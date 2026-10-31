@@ -9,7 +9,6 @@ import type { Mark, MarkTone, Motion, PlaceId, Pose, Spot } from "./scenes";
 export interface TerrainPlace {
   id: PlaceId;
   name: string;
-  codes: string;
   x: number;
   y: number;
 }
@@ -18,7 +17,16 @@ export interface TerrainOptions {
   stage: HTMLElement;
   labels: HTMLElement;
   places: TerrainPlace[];
+  frame: () => Frame | null;
   onSelect: (id: PlaceId) => void;
+}
+
+/** Partie de la scène que rien ne couvre, en pixels depuis le coin haut gauche de la scène. */
+export interface Frame {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
 export interface TerrainShot {
@@ -28,6 +36,7 @@ export interface TerrainShot {
 
 export interface TerrainView {
   play: (shot: TerrainShot | null) => void;
+  reframe: () => void;
   dispose: () => void;
 }
 
@@ -456,8 +465,7 @@ function buildPlaces(ground: Ground, places: TerrainPlace[], labels: HTMLElement
     const label = document.createElement("span");
     label.className = "terrain-label";
     const number = document.createElement("span");
-    number.className = "terrain-label-number";
-    number.textContent = place.codes;
+    number.className = "terrain-label-dot";
     const name = document.createElement("span");
     name.className = "terrain-label-name";
     name.textContent = place.name;
@@ -628,7 +636,7 @@ function softwareRendering(): boolean {
 }
 
 export async function createTerrain(options: TerrainOptions): Promise<TerrainView> {
-  const { stage, labels, places, onSelect } = options;
+  const { stage, labels, places, frame: freeFrame, onSelect } = options;
   const ground = await loadGround(import.meta.env.BASE_URL);
   const software = softwareRendering();
   const renderer = new THREE.WebGLRenderer({ antialias: !software });
@@ -702,8 +710,12 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   let shotClock = 0;
 
   function fitDistance(base: number): number {
-    const aspect = camera.aspect;
-    return aspect < 1.2 ? base * Math.min(1.55 / aspect, 2.6) : base;
+    const free = freeFrame();
+    const height = stage.clientHeight || 1;
+    const aspect = free ? free.width / free.height : camera.aspect;
+    const widthFactor = aspect < 1.2 ? Math.min(1.55 / aspect, 2.6) : 1;
+    const heightFactor = free ? Math.min(1.8, Math.max(1, (height / free.height) ** 0.75)) : 1;
+    return base * Math.max(widthFactor, heightFactor);
   }
 
   camera.position.copy(overview.target).addScaledVector(new THREE.Vector3(0.1, 1.4, 0.5).normalize(), 1500);
@@ -723,6 +735,50 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       t: 0,
       duration,
     };
+  }
+
+  const probe = new THREE.PerspectiveCamera();
+  const probed = new THREE.Vector3();
+  const LABEL_ROOM = { side: 70, top: 34, bottom: 10 };
+
+  function inside(target: THREE.Vector3, position: THREE.Vector3, points: THREE.Vector3[], free: Frame): boolean {
+    const width = stage.clientWidth;
+    const height = stage.clientHeight;
+    probe.copy(camera);
+    probe.setViewOffset(width, height, wanted.x, wanted.y, width, height);
+    probe.position.copy(position);
+    probe.lookAt(target);
+    probe.updateMatrixWorld();
+    probe.updateProjectionMatrix();
+    return points.every((point) => {
+      probed.copy(point).project(probe);
+      const x = ((probed.x + 1) / 2) * width;
+      const y = ((1 - probed.y) / 2) * height;
+      return (
+        probed.z < 1 &&
+        x >= free.left + LABEL_ROOM.side &&
+        x <= free.left + free.width - LABEL_ROOM.side &&
+        y >= free.top + LABEL_ROOM.top &&
+        y <= free.top + free.height - LABEL_ROOM.bottom
+      );
+    });
+  }
+
+  /** Recule le point de vue final jusqu'à ce que les repères allumés tiennent dans la partie libre de la scène. */
+  function framed(flight: Flight, points: THREE.Vector3[]): Flight {
+    const free = freeFrame();
+    if (!free || points.length === 0) return flight;
+    const offsetFromTarget = flight.toPos.clone().sub(flight.to);
+    const base = offsetFromTarget.length();
+    const direction = offsetFromTarget.normalize();
+    let distance = base;
+    while (distance < base * 2.4) {
+      const position = flight.to.clone().addScaledVector(direction, distance);
+      if (inside(flight.to, position, points, free)) break;
+      distance *= 1.1;
+    }
+    flight.toPos = flight.to.clone().addScaledVector(direction, Math.min(distance, base * 2.4));
+    return flight;
   }
 
   function land(flight: Flight) {
@@ -762,17 +818,29 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   };
   controls.addEventListener("change", markDirty);
 
-  let shift = 0;
-  function desiredShift(): number {
+  const offset = { x: 0, y: 0 };
+  let wanted = { x: 0, y: 0 };
+  function desiredOffset(): { x: number; y: number } {
     const width = stage.clientWidth;
-    if (active) return width < 760 ? 0 : -0.16;
-    return width < 1280 ? 0 : 0.16;
+    const height = stage.clientHeight;
+    const free = freeFrame();
+    if (free) return { x: width / 2 - (free.left + free.width / 2), y: height / 2 - (free.top + free.height / 2) };
+    return { x: width < 1280 ? 0 : -0.16 * width, y: 0 };
   }
   function applyShift() {
     const width = stage.clientWidth;
     const height = stage.clientHeight;
-    camera.setViewOffset(width, height, -shift * width, 0, width, height);
+    camera.setViewOffset(width, height, offset.x, offset.y, width, height);
     camera.updateProjectionMatrix();
+  }
+  function reframe() {
+    wanted = desiredOffset();
+    if (software) {
+      offset.x = wanted.x;
+      offset.y = wanted.y;
+      applyShift();
+    }
+    dirty = true;
   }
 
   function resize() {
@@ -783,7 +851,9 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     for (const material of lineMaterials) material.resolution.set(width, height);
-    shift = desiredShift();
+    wanted = desiredOffset();
+    offset.x = wanted.x;
+    offset.y = wanted.y;
     applyShift();
   }
 
@@ -861,6 +931,9 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   function placeLabels() {
     const width = stage.clientWidth;
     const height = stage.clientHeight;
+    const [tx, ty] = screen(controls.target, width, height);
+    stage.dataset.targetX = String(Math.round(tx));
+    stage.dataset.targetY = String(Math.round(ty));
     for (const model of models) {
       const [x, y, visible] = screen(model.anchor, width, height);
       model.label.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
@@ -920,9 +993,15 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       terrain.material.uniforms.uReveal.value = reveal;
       dirty = true;
     }
-    const wantedShift = desiredShift();
-    if (Math.abs(wantedShift - shift) > 0.0005) {
-      shift += (wantedShift - shift) * Math.min(1, delta * 5);
+    const settling = Math.abs(wanted.x - offset.x) > 0.5 || Math.abs(wanted.y - offset.y) > 0.5;
+    if (settling) {
+      const k = Math.min(1, delta * 5);
+      offset.x += (wanted.x - offset.x) * k;
+      offset.y += (wanted.y - offset.y) * k;
+      if (Math.abs(wanted.x - offset.x) <= 0.5 && Math.abs(wanted.y - offset.y) <= 0.5) {
+        offset.x = wanted.x;
+        offset.y = wanted.y;
+      }
       applyShift();
       dirty = true;
     }
@@ -941,7 +1020,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       shotClock += elapsed;
       if (revealMarks()) dirty = true;
     }
-    stage.dataset.motion = flights.length > 0 ? "running" : "done";
+    stage.dataset.motion = flights.length > 0 || settling ? "running" : "done";
     if (controls.update()) dirty = true;
     if (!dirty) return;
     dirty = false;
@@ -958,6 +1037,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       layer = null;
       active = shot?.place ?? null;
       paint();
+      reframe();
       if (!shot) {
         flyTo(overview.target, overview.direction, overview.distance);
         return;
@@ -966,9 +1046,17 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       scene.add(layer.group);
       shotClock = 0;
       revealMarks();
-      fly([poseFlight(shot.motion.from, 1.6), poseFlight(shot.motion.to, Math.max(3, shot.motion.seconds * 0.55))]);
+      const points = [
+        ...shot.motion.marks.map((mark) => groundPoint(ground, mark.at, 6)),
+        ...(shot.motion.trace?.points ?? []).map((spot) => groundPoint(ground, spot, 3)),
+      ];
+      fly([
+        poseFlight(shot.motion.from, 1.6),
+        framed(poseFlight(shot.motion.to, Math.max(3, shot.motion.seconds * 0.55)), points),
+      ]);
       dirty = true;
     },
+    reframe,
     dispose() {
       cancelAnimationFrame(frame);
       layer?.dispose();

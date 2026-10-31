@@ -51,11 +51,19 @@ export interface ScenarioStep {
   tone?: StepTone;
 }
 
+/** Pastille posée sur une capture : position en pixels de l'image d'origine et courte légende. */
+export interface Pin {
+  x: number;
+  y: number;
+  text: string;
+}
+
 export interface Capture {
   file: string;
   caption: string;
   width: number;
   height: number;
+  pins: Pin[];
 }
 
 export interface Place {
@@ -67,7 +75,6 @@ export interface Place {
 export interface Scene {
   id: SceneId;
   axis: AxisId;
-  code: string;
   short: string;
   place: PlaceId | null;
   where: string;
@@ -96,8 +103,23 @@ export function wgs(lon: number, lat: number): Spot {
   };
 }
 
-const desktop = (file: string, caption: string): Capture => ({ file, caption, width: 1440, height: 900 });
-const phone = (file: string, caption: string): Capture => ({ file, caption, width: 390, height: 844 });
+type PinRow = [number, number, string];
+
+const pinsOf = (rows: PinRow[]): Pin[] => rows.map(([x, y, text]) => ({ x, y, text }));
+const desktop = (file: string, caption: string, pins: PinRow[]): Capture => ({
+  file,
+  caption,
+  width: 1440,
+  height: 900,
+  pins: pinsOf(pins),
+});
+const phone = (file: string, caption: string, pins: PinRow[]): Capture => ({
+  file,
+  caption,
+  width: 390,
+  height: 844,
+  pins: pinsOf(pins),
+});
 
 const spots = {
   confluence: wgs(5.9426, 46.69),
@@ -168,7 +190,6 @@ export const scenes: Scene[] = [
   {
     id: "ouverture",
     axis: "ouverture",
-    code: "",
     short: "Alésia",
     place: null,
     where: "Lieu du récit : l’oppidum d’Alésia, sur le plateau entre la Lemme et la Saine",
@@ -192,7 +213,6 @@ export const scenes: Scene[] = [
   {
     id: "veille",
     axis: "preparer",
-    code: "P1",
     short: "La veille",
     place: "tour",
     where: "Lieu du récit : tour de guet nord de l’oppidum, au belvédère des Prés Grillet, face à la plaine de Syam",
@@ -206,7 +226,14 @@ export const scenes: Scene[] = [
       { text: "La question « Relève des veilleurs du rempart nord » est préparée pour la prochaine séance." },
     ],
     feature: "Dans Hall : une affaire, ses pièces et une question préparée pour une séance.",
-    captures: [desktop("preparer-veille.png", "L’affaire « Veille autour de l’oppidum » et ses trois documents.")],
+    captures: [
+      desktop("preparer-veille.png", "L’affaire « Veille autour de l’oppidum » et ses trois documents.", [
+        [412, 256, "La commission défense et soutien porte l’affaire."],
+        [290, 520, "La question préparée pour la prochaine séance."],
+        [318, 606, "Le registre des observations de la tour nord, en PDF."],
+        [318, 666, "Le tableur des ouvrages romains observés."],
+      ]),
+    ],
     motion: {
       from: { at: spots.northCurtain, azimuth: 160, elevation: 20, distance: 2200 },
       to: { at: spots.tower, azimuth: 200, elevation: 18, distance: 2600 },
@@ -223,7 +250,6 @@ export const scenes: Scene[] = [
   {
     id: "carte",
     axis: "preparer",
-    code: "P2",
     short: "La carte",
     place: "cornu",
     where: "Lieu du récit : les chemins du hameau de Cornu, entre le grenier et les abris",
@@ -240,7 +266,12 @@ export const scenes: Scene[] = [
     ],
     feature: "Dans Hall : la carte d’une affaire, le dessin, la mesure de longueur et la légende.",
     captures: [
-      desktop("preparer-carte.png", "La carte « Repérage du plateau de Cornu » et la mesure du chemin des convois."),
+      desktop("preparer-carte.png", "La carte « Repérage du plateau de Cornu » et la mesure du chemin des convois.", [
+        [672, 158, "La carte est liée à l’affaire « Accès et convois »."],
+        [1122, 452, "Le grenier de Cornu, point dessiné sur la carte."],
+        [1030, 503, "Le chemin des convois et sa longueur mesurée : 425 m."],
+        [606, 786, "La légende : sacs du grenier, habitants des abris, point d’eau."],
+      ]),
     ],
     motion: {
       from: { at: spots.cornu, azimuth: 180, elevation: 80, distance: 1800 },
@@ -256,7 +287,6 @@ export const scenes: Scene[] = [
   {
     id: "grenier",
     axis: "preparer",
-    code: "P3",
     short: "Le grenier",
     place: "cornu",
     where: "Lieu du récit : le grenier de Cornu, et les points d’eau au bord de la Lemme",
@@ -275,8 +305,17 @@ export const scenes: Scene[] = [
     ],
     feature: "Dans Hall : les pièces PDF d’une affaire et la photo prise sur le terrain depuis un téléphone.",
     captures: [
-      desktop("preparer-grenier.png", "L’affaire « Réserves et bâtiments », ses éléments préparés et ses documents."),
-      phone("preparer-photo.png", "Sur téléphone, le menu « Nouveau » propose de prendre une photo."),
+      desktop("preparer-grenier.png", "L’affaire « Réserves et bâtiments », ses éléments préparés et ses documents.", [
+        [285, 560, "Le projet « Affectation du grenier de Cornu aux réserves »."],
+        [1280, 560, "Inscrit à la séance du 1er septembre."],
+        [345, 674, "L’inventaire du grenier, en PDF."],
+        [320, 764, "L’état des réserves de Cornu."],
+      ]),
+      phone("preparer-photo.png", "Sur téléphone, le menu « Nouveau » propose de prendre une photo.", [
+        [275, 83, "Le bouton « Nouveau » de l’espace de travail."],
+        [168, 345, "« Prendre une photo » ouvre l’appareil du téléphone."],
+        [72, 519, "Le cliché est rangé dans l’affaire choisie."],
+      ]),
     ],
     motion: {
       from: { at: spots.granary, azimuth: 120, elevation: 40, distance: 1600 },
@@ -292,7 +331,6 @@ export const scenes: Scene[] = [
   {
     id: "ouvrages",
     axis: "preparer",
-    code: "P4",
     short: "Les ouvrages",
     place: "plaine",
     where: "Lieu du récit : la plaine de Syam, au pied de l’éperon",
@@ -308,7 +346,14 @@ export const scenes: Scene[] = [
       { text: "Le conseil y lit, avant chaque séance, les ouvrages que les veilleurs ont vus dans la plaine." },
     ],
     feature: "Dans Hall : un tableur importé et rangé dans l’affaire.",
-    captures: [desktop("preparer-ouvrages.png", "Le tableur « Ouvrages romains observés » ouvert dans Hall.")],
+    captures: [
+      desktop("preparer-ouvrages.png", "Le tableur « Ouvrages romains observés » ouvert dans Hall.", [
+        [737, 266, "Le tableur est rattaché à l’affaire « Veille autour de l’oppidum »."],
+        [541, 400, "Le poste d’où l’ouvrage a été vu."],
+        [687, 400, "L’ouvrage observé : fossé, tour, camp, palissade."],
+        [1006, 400, "L’effectif romain estimé."],
+      ]),
+    ],
     motion: {
       from: { at: spots.tower, azimuth: 190, elevation: 22, distance: 2600 },
       to: { at: spots.plain, azimuth: 165, elevation: 26, distance: 4200 },
@@ -322,7 +367,6 @@ export const scenes: Scene[] = [
   {
     id: "defense",
     axis: "preparer",
-    code: "P5",
     short: "La défense",
     place: "rempart",
     where: "Lieu du récit : le rempart ouest de l’oppidum, au-dessus des gorges de la Lemme",
@@ -339,7 +383,14 @@ export const scenes: Scene[] = [
       },
     ],
     feature: "Dans Hall : une commission, un rapport, un tableur de chiffrage et un projet de délibération.",
-    captures: [desktop("preparer-chiffrage.png", "Le tableur « Chiffrage de la seconde ligne » : 282 quinaires.")],
+    captures: [
+      desktop("preparer-chiffrage.png", "Le tableur « Chiffrage de la seconde ligne » : 282 quinaires.", [
+        [809, 266, "Le tableur est rattaché à l’affaire « Défense du plateau »."],
+        [325, 430, "Les secteurs à consolider : porte ouest, courtine nord, abords du grenier."],
+        [896, 406, "Le total de chaque poste, en quinaires."],
+        [1026, 406, "La part livrée suit l’avancement des travaux."],
+      ]),
+    ],
     motion: {
       from: { at: wgs(5.9425, 46.664), azimuth: 260, elevation: 12, distance: 2000 },
       to: { at: wgs(5.952, 46.6665), azimuth: 215, elevation: 34, distance: 3600 },
@@ -354,7 +405,6 @@ export const scenes: Scene[] = [
   {
     id: "convocation",
     axis: "sieger",
-    code: "S1",
     short: "La convocation",
     place: "maison",
     where: "Lieu du récit : la maison commune de l’oppidum, au cœur du plateau de Cornu",
@@ -367,7 +417,14 @@ export const scenes: Scene[] = [
       },
     ],
     feature: "Dans Hall : l’ordre du jour figé, la convocation générée et un courriel par conseiller.",
-    captures: [desktop("sieger-convocation.png", "La convocation générée et la liste des quinze destinataires.")],
+    captures: [
+      desktop("sieger-convocation.png", "La convocation générée et la liste des quinze destinataires.", [
+        [571, 288, "Un seul PDF réunit la convocation et l’ordre du jour figé."],
+        [945, 342, "La version courante du PDF."],
+        [412, 458, "Les quinze conseillers destinataires."],
+        [826, 731, "Le courriel s’ouvre dans Outlook, PDF joint ; l’envoi reste manuel."],
+      ]),
+    ],
     motion: {
       from: { at: spots.cornu, azimuth: 300, elevation: 30, distance: 2400 },
       to: { at: spots.hall, azimuth: 200, elevation: 40, distance: 2600 },
@@ -381,7 +438,6 @@ export const scenes: Scene[] = [
   {
     id: "appel",
     axis: "sieger",
-    code: "S2",
     short: "L’appel",
     place: "maison",
     where: "Lieu du récit : la salle du conseil, dans la maison commune de l’oppidum",
@@ -395,7 +451,14 @@ export const scenes: Scene[] = [
       { text: "Sans quorum, la séance ne s’ouvre pas et le conseil est convoqué à nouveau." },
     ],
     feature: "Dans Hall : l’appel en mode séance, les pouvoirs et le quorum constaté.",
-    captures: [desktop("sieger-appel.png", "Les présences en mode séance : pouvoir, excusé et absent.")],
+    captures: [
+      desktop("sieger-appel.png", "Les présences en mode séance : pouvoir, excusé et absent.", [
+        [1237, 28, "Le quorum constaté : 12 présents pour 8 requis."],
+        [223, 243, "Dumnacos l’Andécave donne pouvoir à Vercassivellaunos l’Arverne."],
+        [440, 386, "Absent et excusé sont distingués à l’appel."],
+        [912, 187, "Vercingétorix, maire, préside la séance."],
+      ]),
+    ],
     motion: {
       from: { at: spots.hall, azimuth: 200, elevation: 40, distance: 2400 },
       to: { at: spots.hall, azimuth: 180, elevation: 75, distance: 2600 },
@@ -406,7 +469,6 @@ export const scenes: Scene[] = [
   {
     id: "rationnement",
     axis: "sieger",
-    code: "S3",
     short: "Le rationnement",
     place: "maison",
     where: "Lieu du récit : la salle du conseil, dans la maison commune de l’oppidum",
@@ -423,7 +485,14 @@ export const scenes: Scene[] = [
       { text: "Les débats sont consignés point par point dans le déroulé de la séance." },
     ],
     feature: "Dans Hall : les débats consignés, les scrutins publics et leur résultat.",
-    captures: [desktop("sieger-deroule.png", "Le déroulé de la séance : scrutins adoptés et rejetés.")],
+    captures: [
+      desktop("sieger-deroule.png", "Le déroulé de la séance : scrutins adoptés et rejetés.", [
+        [326, 300, "Les présences : 12 présents, 1 représenté, 1 excusé, 1 absent."],
+        [362, 505, "Le grenier affecté aux réserves : 10 pour, 2 contre, 1 abstention."],
+        [362, 653, "La répartition des céréales rejetée : 4 pour, 8 contre."],
+        [534, 190, "Le quorum de la séance : 12 présents pour 8 requis."],
+      ]),
+    ],
     motion: {
       from: { at: spots.hall, azimuth: 180, elevation: 75, distance: 2600 },
       to: { at: wgs(5.965, 46.667), azimuth: 120, elevation: 32, distance: 3200 },
@@ -437,7 +506,6 @@ export const scenes: Scene[] = [
   {
     id: "motion",
     axis: "sieger",
-    code: "S4",
     short: "La motion secrète",
     place: "belvedere",
     where: "Lieu du récit : le belvédère des Trois Vallées, au-dessus de Syam, face au nord",
@@ -455,10 +523,19 @@ export const scenes: Scene[] = [
     ],
     feature: "Dans Hall : le scrutin à bulletin secret et les représentations extérieures du conseil.",
     captures: [
-      desktop("sieger-scrutin-secret.png", "La séance du 3 octobre : la motion de liaison adoptée à bulletin secret."),
+      desktop("sieger-scrutin-secret.png", "La séance du 3 octobre : la motion de liaison adoptée à bulletin secret.", [
+        [331, 721, "La motion de liaison avec les alliés."],
+        [362, 801, "Scrutin secret : seul le total des voix est connu, 7 pour et 4 contre."],
+        [362, 505, "Le procès-verbal de la séance précédente, arrêté."],
+      ]),
       desktop(
         "sieger-representations.png",
         "La représentation « Armée de secours des cités de Gaule » et ses quatre titulaires.",
+        [
+          [289, 298, "L’organisme : l’armée de secours des cités de Gaule."],
+          [667, 295, "L’objet de la représentation."],
+          [300, 454, "Les quatre titulaires et leur date de désignation."],
+        ],
       ),
     ],
     motion: {
@@ -477,7 +554,6 @@ export const scenes: Scene[] = [
   {
     id: "actes",
     axis: "sieger",
-    code: "S5",
     short: "Les actes",
     place: "place",
     where: "Lieu du récit : la place de l’assemblée, dans l’oppidum, puis la plaine au pied de l’oppidum",
@@ -498,11 +574,39 @@ export const scenes: Scene[] = [
     ],
     feature: "Dans Hall : procès-verbal, délibérations, calendrier et courriel préparé depuis un modèle.",
     captures: [
-      desktop("sieger-proces-verbal.png", "Le procès-verbal arrêté de la séance du 1er septembre."),
-      desktop("sieger-deliberation.png", "La délibération « Affectation du grenier de Cornu aux réserves »."),
-      desktop("sieger-calendrier.png", "Le calendrier : séances et rendez-vous avec Jules César."),
-      desktop("sieger-courrier.png", "L’affaire « Correspondance avec le proconsul », son courrier et le rendez-vous."),
-      desktop("sieger-invitation.png", "Le rendez-vous dans la plaine et la création de l’invitation."),
+      desktop("sieger-proces-verbal.png", "Le procès-verbal arrêté de la séance du 1er septembre.", [
+        [1239, 81, "Le procès-verbal est arrêté et son document généré."],
+        [266, 432, "Le quorum atteint à l’ouverture."],
+        [266, 610, "Pouvoirs, excusés et absents repris de l’appel."],
+        [314, 785, "Le résultat du vote de chaque point."],
+      ]),
+      desktop("sieger-deliberation.png", "La délibération « Affectation du grenier de Cornu aux réserves ».", [
+        [441, 178, "La délibération adoptée le 1er septembre."],
+        [300, 381, "Le texte rédigé : visas, considérants, décision."],
+        [407, 727, "« Figer le document » produit sa version définitive."],
+        [266, 773, "Le gel ne vaut ni signature, ni publication, ni transmission."],
+      ]),
+      desktop("sieger-calendrier.png", "Le calendrier : séances et rendez-vous avec Jules César.", [
+        [1095, 194, "Les séances du conseil."],
+        [1263, 681, "Le rendez-vous « Pourparlers avec Jules César »."],
+        [766, 809, "La réunion d’une commission."],
+        [1260, 87, "Un nouveau rendez-vous s’ajoute ici."],
+      ]),
+      desktop(
+        "sieger-courrier.png",
+        "L’affaire « Correspondance avec le proconsul », son courrier et le rendez-vous.",
+        [
+          [288, 303, "La trêve demandée au proconsul, décrite dans l’affaire."],
+          [345, 538, "Le rendez-vous rattaché à l’affaire."],
+          [330, 578, "Le courrier au proconsul."],
+        ],
+      ),
+      desktop("sieger-invitation.png", "Le rendez-vous dans la plaine et la création de l’invitation.", [
+        [757, 267, "Rattaché à l’affaire « Correspondance avec le proconsul »."],
+        [287, 510, "Le lieu : la plaine au pied de l’oppidum."],
+        [276, 587, "Les participants : Vercingétorix et Jules César."],
+        [276, 866, "Le courriel d’invitation est préparé depuis le modèle du conseil."],
+      ]),
     ],
     motion: {
       from: { at: spots.square, azimuth: 180, elevation: 84, distance: 1200 },

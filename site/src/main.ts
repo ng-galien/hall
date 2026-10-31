@@ -4,7 +4,8 @@ import "@fontsource/public-sans/700.css";
 import "@fontsource/public-sans/800.css";
 import "./styles.css";
 import { type Axis, axes, places, type Scene, type SceneId, scenes } from "./scenes";
-import type { TerrainView } from "./terrain";
+import type { Frame, TerrainView } from "./terrain";
+import { openViewer, viewerOpen } from "./viewer";
 import { supportsWebGL } from "./webgl";
 
 type ViewMode = "terrain" | "plain";
@@ -39,14 +40,21 @@ function axisOf(scene: Scene): Axis {
   return axes.find((axis) => axis.id === scene.axis) ?? axes[0];
 }
 
-function axisPosition(scene: Scene): string {
-  const siblings = scenes.filter((s) => s.axis === scene.axis);
-  if (scene.axis === "ouverture") return "Ouverture du parcours";
-  return `${axisOf(scene).name}, étape ${siblings.indexOf(scene) + 1} sur ${siblings.length}`;
+function siblingsOf(scene: Scene): Scene[] {
+  return scenes.filter((s) => s.axis === scene.axis);
 }
 
-function stepLabel(scene: Scene): string {
-  return scene.code ? `${scene.code} ${scene.short}` : scene.short;
+function rankOf(scene: Scene): number {
+  return siblingsOf(scene).indexOf(scene) + 1;
+}
+
+function axisPosition(scene: Scene): string {
+  if (scene.axis === "ouverture") return "Ouverture du parcours";
+  return `${axisOf(scene).name}, étape ${rankOf(scene)} sur ${siblingsOf(scene).length}`;
+}
+
+function placeName(scene: Scene): string {
+  return places.find((place) => place.id === scene.place)?.name ?? "Le plateau entre la Lemme et la Saine";
 }
 
 function renderStepNavigation(scene: Scene, navigation: StepNavigation): HTMLElement {
@@ -59,7 +67,7 @@ function renderStepNavigation(scene: Scene, navigation: StepNavigation): HTMLEle
     [previous, "Étape précédente", "step-previous"],
     [next, "Étape suivante", "step-next"],
   ] as const) {
-    const button = html("button", "step-button", target ? `${text} : ${stepLabel(target)}` : text) as HTMLButtonElement;
+    const button = html("button", "step-button", target ? `${text} : ${target.short}` : text) as HTMLButtonElement;
     button.type = "button";
     button.dataset.testid = testId;
     button.disabled = !target;
@@ -87,12 +95,38 @@ function renderEntries(navigation: StepNavigation): HTMLElement {
     const button = html("button", "axis-entry") as HTMLButtonElement;
     button.type = "button";
     button.dataset.testid = `entry-${axis.id}`;
-    const count = scenes.filter((s) => s.axis === axis.id).length;
-    button.append(html("span", "axis-entry-name", axis.name), html("span", "axis-entry-count", `${count} étapes`));
+    const names = scenes.filter((s) => s.axis === axis.id).map((s) => s.short.toLowerCase());
+    button.append(html("span", "axis-entry-name", axis.name), html("span", "axis-entry-count", names.join(", ")));
     button.addEventListener("click", () => navigation.onMove(first.id));
     entries.append(button);
   }
   return entries;
+}
+
+function renderCaptures(scene: Scene): HTMLElement {
+  const captures = html("div", "captures");
+  scene.captures.forEach((capture, index) => {
+    const figure = html("figure", `capture${capture.width < capture.height ? " is-phone" : ""}`);
+    const open = html("button", "capture-open") as HTMLButtonElement;
+    open.type = "button";
+    open.dataset.testid = `capture-open-${capture.file.replace(/\.png$/, "")}`;
+    open.setAttribute("aria-label", frenchSpacing(`Agrandir la capture : ${capture.caption}`));
+    const img = document.createElement("img");
+    img.src = `${base}captures/${capture.file}`;
+    img.alt = capture.caption;
+    img.width = capture.width;
+    img.height = capture.height;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.dataset.testid = `capture-${capture.file.replace(/\.png$/, "")}`;
+    const hint = html("span", "capture-hint", `Plein écran, ${capture.pins.length} repères`);
+    hint.setAttribute("aria-hidden", "true");
+    open.append(img, hint);
+    open.addEventListener("click", () => openViewer(scene.captures, index, open));
+    figure.append(open, html("figcaption", undefined, capture.caption));
+    captures.append(figure);
+  });
+  return captures;
 }
 
 function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: StepNavigation): HTMLElement {
@@ -101,9 +135,7 @@ function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: St
   article.dataset.axis = scene.axis;
   const head = html("div", "scenario-head");
   const titles = html("div");
-  const position = html("p", "scenario-axis", axisPosition(scene));
-  if (scene.code) position.prepend(html("span", "scenario-code", scene.code));
-  titles.append(position, html(headingLevel, undefined, scene.title));
+  titles.append(html("p", "scenario-axis", axisPosition(scene)), html(headingLevel, undefined, scene.title));
   head.append(titles);
   if (navigation) {
     const close = html("button", "close-button", "×") as HTMLButtonElement;
@@ -120,23 +152,140 @@ function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: St
   }
   article.append(steps, html("p", "scenario-feature", scene.feature));
   if (scene.axis === "ouverture" && navigation) article.append(renderEntries(navigation));
-  const captures = html("div", "captures");
-  for (const capture of scene.captures) {
-    const figure = html("figure", `capture${capture.width < capture.height ? " is-phone" : ""}`);
-    const img = document.createElement("img");
-    img.src = `${base}captures/${capture.file}`;
-    img.alt = capture.caption;
-    img.width = capture.width;
-    img.height = capture.height;
-    img.loading = "lazy";
-    img.decoding = "async";
-    img.dataset.testid = `capture-${capture.file.replace(/\.png$/, "")}`;
-    figure.append(img, html("figcaption", undefined, capture.caption));
-    captures.append(figure);
-  }
-  if (scene.captures.length > 0) article.append(captures);
+  if (scene.captures.length > 0) article.append(renderCaptures(scene));
   if (navigation) article.append(renderStepNavigation(scene, navigation));
   return article;
+}
+
+interface DiscoveryMenu {
+  root: HTMLElement;
+  bar: HTMLElement;
+  mark: (id: SceneId | null) => void;
+  close: () => boolean;
+}
+
+function chevron(): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 12 12");
+  svg.setAttribute("class", "discovery-chevron");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M2.5 7.5 6 4l3.5 3.5");
+  svg.append(path);
+  return svg;
+}
+
+function renderDiscovery(onChoose: (id: SceneId) => void): DiscoveryMenu {
+  const root = html("nav", "discovery");
+  root.setAttribute("aria-label", "Parcours du récit");
+  root.dataset.testid = "menu";
+  const bar = html("div", "discovery-bar");
+  bar.dataset.testid = "menu-bar";
+  root.append(bar);
+  const items = new Map<SceneId, HTMLButtonElement>();
+  const groups: { axis: Axis; toggle: HTMLButtonElement; list: HTMLElement; state: HTMLElement }[] = [];
+
+  function collapse(except?: HTMLButtonElement) {
+    for (const group of groups) {
+      if (group.toggle === except) continue;
+      group.toggle.setAttribute("aria-expanded", "false");
+      group.list.hidden = true;
+    }
+    root.classList.toggle("is-open", Boolean(except));
+  }
+
+  const opening = scenes.find((s) => s.axis === "ouverture");
+  if (opening) {
+    const start = html("button", "discovery-start") as HTMLButtonElement;
+    start.type = "button";
+    start.dataset.testid = `menu-item-${opening.id}`;
+    start.append(
+      html("span", "discovery-group-name", opening.short),
+      html("span", "discovery-group-state", "Ouverture"),
+    );
+    start.addEventListener("click", () => {
+      collapse();
+      onChoose(opening.id);
+    });
+    bar.append(start);
+    items.set(opening.id, start);
+  }
+
+  for (const axis of axes.filter((a) => a.id !== "ouverture")) {
+    const members = scenes.filter((s) => s.axis === axis.id);
+    const group = html("div", "discovery-group");
+    group.dataset.axis = axis.id;
+    const toggle = html("button", "discovery-toggle") as HTMLButtonElement;
+    toggle.type = "button";
+    toggle.dataset.testid = `menu-group-${axis.id}`;
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-controls", `menu-list-${axis.id}`);
+    const label = html("span", "discovery-label");
+    const state = html("span", "discovery-group-state", `${members.length} scénarios`);
+    state.dataset.testid = `menu-group-state-${axis.id}`;
+    label.append(html("span", "discovery-group-name", axis.name), state);
+    toggle.append(label, chevron());
+    const list = html("ol", "discovery-list");
+    list.id = `menu-list-${axis.id}`;
+    list.dataset.testid = `menu-list-${axis.id}`;
+    list.hidden = true;
+    list.setAttribute("aria-label", `Scénarios de l’axe ${axis.name}`);
+    members.forEach((scene, index) => {
+      const item = html("li");
+      const button = html("button", "discovery-item") as HTMLButtonElement;
+      button.type = "button";
+      button.dataset.testid = `menu-item-${scene.id}`;
+      button.append(
+        html("span", "discovery-number", String(index + 1)),
+        html("span", "discovery-name", scene.short),
+        html("span", "discovery-place", placeName(scene)),
+      );
+      button.addEventListener("click", () => {
+        collapse();
+        onChoose(scene.id);
+      });
+      item.append(button);
+      list.append(item);
+      items.set(scene.id, button);
+    });
+    toggle.addEventListener("click", () => {
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      collapse(expanded ? undefined : toggle);
+      toggle.setAttribute("aria-expanded", String(!expanded));
+      list.hidden = expanded;
+    });
+    group.append(list, toggle);
+    bar.append(group);
+    groups.push({ axis, toggle, list, state });
+  }
+
+  document.addEventListener("pointerdown", (event) => {
+    if (!root.contains(event.target as Node)) collapse();
+  });
+
+  return {
+    root,
+    bar,
+    mark(id) {
+      for (const [sceneId, button] of items) {
+        if (sceneId === id) button.setAttribute("aria-current", "step");
+        else button.removeAttribute("aria-current");
+      }
+      const scene = scenes.find((s) => s.id === id);
+      for (const group of groups) {
+        const members = scenes.filter((s) => s.axis === group.axis.id);
+        const inside = scene?.axis === group.axis.id;
+        group.toggle.classList.toggle("is-current", inside);
+        group.state.textContent =
+          scene && inside ? `${scene.short}, ${rankOf(scene)} sur ${members.length}` : `${members.length} scénarios`;
+      }
+    },
+    close() {
+      const open = groups.some((group) => !group.list.hidden);
+      collapse();
+      return open;
+    },
+  };
 }
 
 function prefersReducedMotion(): boolean {
@@ -169,7 +318,8 @@ function renderPlain(root: HTMLElement, notice: string) {
     const group = html("div", "plain-index-group");
     group.append(html("span", "plain-index-axis", axis.name));
     for (const scene of scenes.filter((s) => s.axis === axis.id)) {
-      const link = html("a", undefined, stepLabel(scene)) as HTMLAnchorElement;
+      const label = scene.axis === "ouverture" ? scene.short : `${rankOf(scene)}. ${scene.short}`;
+      const link = html("a", undefined, label) as HTMLAnchorElement;
       link.href = `#lieu-${scene.id}`;
       link.dataset.testid = `plain-link-${scene.id}`;
       group.append(link);
@@ -188,6 +338,30 @@ function renderPlain(root: HTMLElement, notice: string) {
   }
 }
 
+interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+const FRAME_MARGIN = 12;
+
+/** Retire d'une zone la partie couverte par un élément, en gardant le plus grand rectangle restant. */
+function carve(zone: Box, cover: Box): Box {
+  const overlaps =
+    cover.left < zone.right && cover.right > zone.left && cover.top < zone.bottom && cover.bottom > zone.top;
+  if (!overlaps) return zone;
+  const candidates: Box[] = [
+    { ...zone, right: Math.min(zone.right, cover.left - FRAME_MARGIN) },
+    { ...zone, left: Math.max(zone.left, cover.right + FRAME_MARGIN) },
+    { ...zone, bottom: Math.min(zone.bottom, cover.top - FRAME_MARGIN) },
+    { ...zone, top: Math.max(zone.top, cover.bottom + FRAME_MARGIN) },
+  ];
+  const area = (box: Box) => Math.max(0, box.right - box.left) * Math.max(0, box.bottom - box.top);
+  return candidates.reduce((best, box) => (area(box) > area(best) ? box : best));
+}
+
 async function renderTerrain(root: HTMLElement) {
   document.body.classList.add("has-terrain");
   root.hidden = false;
@@ -195,11 +369,35 @@ async function renderTerrain(root: HTMLElement) {
   const bar = element("place-bar");
   const panel = element("scenario-panel");
   const stage = element("terrain-stage");
-  const buttons = new Map<SceneId, HTMLButtonElement>();
+  const masthead = element("site-header");
   let terrain: TerrainView | null = null;
   let current: SceneId | null = null;
   let timer = 0;
   let playing = false;
+
+  function freeFrame(): Frame | null {
+    if (panel.hidden) return null;
+    const box = stage.getBoundingClientRect();
+    let zone: Box = {
+      left: Math.max(box.left, 0),
+      top: Math.max(box.top, masthead.getBoundingClientRect().bottom),
+      right: Math.min(box.right, window.innerWidth),
+      bottom: Math.min(box.bottom, window.innerHeight),
+    };
+    zone = carve(zone, panel.getBoundingClientRect());
+    zone = carve(zone, menu.bar.getBoundingClientRect());
+    return {
+      left: zone.left - box.left,
+      top: zone.top - box.top,
+      width: Math.max(1, zone.right - zone.left),
+      height: Math.max(1, zone.bottom - zone.top),
+    };
+  }
+
+  function bringStageIntoView() {
+    const top = stage.getBoundingClientRect().top - masthead.getBoundingClientRect().bottom;
+    if (Math.abs(top) > 1) window.scrollTo({ top: window.scrollY + top, behavior: "instant" });
+  }
 
   function stopAutoplay() {
     playing = false;
@@ -230,10 +428,13 @@ async function renderTerrain(root: HTMLElement) {
     },
   };
 
+  const menu = renderDiscovery((id) => open(id));
+  bar.append(menu.root);
+
   function open(id: SceneId | null, fromHash = false, fromAutoplay = false) {
     if (!fromAutoplay) stopAutoplay();
     current = id;
-    for (const [sceneId, button] of buttons) button.setAttribute("aria-pressed", String(sceneId === id));
+    menu.mark(id);
     panel.replaceChildren();
     const scene = scenes.find((s) => s.id === id);
     if (scene) {
@@ -245,31 +446,15 @@ async function renderTerrain(root: HTMLElement) {
       panel.hidden = true;
     }
     document.body.classList.toggle("has-scenario", Boolean(scene));
+    if (scene) bringStageIntoView();
     terrain?.play(scene ? { place: scene.place, motion: scene.motion } : null);
     if (!fromHash) history.replaceState(null, "", id ? `#${id}` : `${location.pathname}${location.search}`);
   }
 
-  for (const axis of axes) {
-    const group = html("div", "place-group");
-    group.dataset.axis = axis.id;
-    group.append(html("span", "place-group-name", axis.name));
-    for (const scene of scenes.filter((s) => s.axis === axis.id)) {
-      const button = html("button", "place-button") as HTMLButtonElement;
-      button.type = "button";
-      button.dataset.testid = `place-${scene.id}`;
-      button.setAttribute("aria-pressed", "false");
-      button.setAttribute("aria-label", `${axis.name} : ${scene.title}`);
-      if (scene.code) button.append(html("span", "step-number", scene.code));
-      button.append(html("span", "place-button-name", scene.short));
-      button.addEventListener("click", () => open(current === scene.id ? null : scene.id));
-      group.append(button);
-      buttons.set(scene.id, button);
-    }
-    bar.append(group);
-  }
-
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && current) open(null);
+    if (event.key !== "Escape" || viewerOpen()) return;
+    if (menu.close()) return;
+    if (current) open(null);
   });
   stage.addEventListener("pointerdown", stopAutoplay);
 
@@ -277,20 +462,17 @@ async function renderTerrain(root: HTMLElement) {
   terrain = await createTerrain({
     stage,
     labels: root.querySelector(".terrain-labels") as HTMLElement,
-    places: places.map(({ id, name, at }) => ({
-      id,
-      name,
-      codes: scenes
-        .filter((s) => s.place === id)
-        .map((s) => s.code)
-        .join(" "),
-      ...at,
-    })),
+    places: places.map(({ id, name, at }) => ({ id, name, ...at })),
+    frame: freeFrame,
     onSelect: (placeId) => {
       const scene = scenes.find((s) => s.place === placeId);
       if (scene) open(scene.id);
     },
   });
+  const reframe = () => terrain?.reframe();
+  window.addEventListener("scroll", reframe, { passive: true });
+  window.addEventListener("resize", reframe);
+  new ResizeObserver(reframe).observe(panel);
   const sceneFromHash = () => scenes.find((s) => `#${s.id}` === window.location.hash)?.id ?? null;
   const initial = sceneFromHash();
   if (initial) open(initial, true);
