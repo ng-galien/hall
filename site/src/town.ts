@@ -44,10 +44,13 @@ const materials = {
   board: mat(palette.slate800),
 };
 
+/** Les volumes portent et reçoivent les ombres ; les surfaces posées au sol les reçoivent seulement. */
 function shadowed<T extends THREE.Object3D>(object: T): T {
   object.traverse((child) => {
     if (child instanceof THREE.Mesh) {
-      child.castShadow = true;
+      child.geometry.computeBoundingBox();
+      const height = child.geometry.boundingBox?.getSize(new THREE.Vector3()).y ?? 1;
+      child.castShadow = height > 0.12;
       child.receiveShadow = true;
     }
   });
@@ -259,7 +262,7 @@ const layout: Record<PlaceId, { x: number; z: number; turn: number; labelHeight:
 };
 
 function buildGround(scene: THREE.Scene) {
-  const plinth = box(44, 1.4, 32, materials.plinth, 0, -1.4, 0);
+  const plinth = box(44, 1.3, 32, materials.plinth, 0, -1.4, 0);
   plinth.receiveShadow = true;
   scene.add(plinth);
   const top = box(43.4, 0.06, 31.4, materials.plinthTop, 0, -0.06, 0);
@@ -329,14 +332,14 @@ export function createTown(options: TownOptions): Town {
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   const shadowCamera = sun.shadow.camera;
-  shadowCamera.left = -30;
-  shadowCamera.right = 30;
-  shadowCamera.top = 26;
-  shadowCamera.bottom = -26;
-  shadowCamera.near = 1;
-  shadowCamera.far = 90;
-  sun.shadow.bias = -0.001;
-  sun.shadow.normalBias = 0.06;
+  shadowCamera.left = -27;
+  shadowCamera.right = 27;
+  shadowCamera.top = 22;
+  shadowCamera.bottom = -22;
+  shadowCamera.near = 20;
+  shadowCamera.far = 75;
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.04;
   scene.add(sun);
 
   buildGround(scene);
