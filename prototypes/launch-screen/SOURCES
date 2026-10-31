@@ -1,22 +1,16 @@
 Sources des géométries embarquées dans src/data
 ================================================
 
-Téléchargement : 31 octobre 2026 (Côte-d'Or le matin, Jura l'après-midi).
+Téléchargement : 31 octobre 2026.
 
-1. Communes de la Côte-d'Or (698 communes, contours, population)
-   URL : https://geo.api.gouv.fr/departements/21/communes?format=geojson&geometry=contour
+1. Communes du Jura (492 communes, contours, population)
+   URL : https://geo.api.gouv.fr/departements/39/communes?format=geojson&geometry=contour
    Producteur : API Découpage administratif (geo.api.gouv.fr), Étalab / DINUM,
    à partir d'Admin Express de l'IGN et des populations légales de l'Insee.
-   Fichiers produits : src/data/communes-21.json (champs code, nom, population)
-                       src/data/contour-21.json (union des communes : contour détaillé du département)
-
-1 bis. Communes du Jura (492 communes, contours, population)
-   URL : https://geo.api.gouv.fr/departements/39/communes?format=geojson&geometry=contour
-   Même producteur que ci-dessus.
    Fichiers produits : src/data/communes-39.json (champs code, nom, population)
                        src/data/contour-39.json (union des communes : contour détaillé du Jura)
    Le module src/shared/geo.ts lit ces fichiers : les trois propositions montrent le Jura et
-   Chaux-des-Crotenay (39129), site d'Alésia. Les fichiers de la Côte-d'Or restent disponibles.
+   Chaux-des-Crotenay (39129), site d'Alésia.
 
 2. Départements de France métropolitaine (96 départements, Corse comprise)
    URL : https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson
@@ -41,4 +35,4 @@ Outil : mapshaper 0.7.68.
   avec conservation de toutes les formes (keep-shapes) et réparation des intersections (clean) ;
 - union (dissolve) pour les contours de la France et des départements ;
 - coordonnées arrondies à 0,001° (départements) et 0,0005° (communes).
-Poids total de src/data : environ 950 ko.
+Poids total de src/data : environ 500 ko.

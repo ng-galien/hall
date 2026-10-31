@@ -47,11 +47,11 @@ test.describe("écrans de lancement", () => {
     const lugdunum = page.getByTestId("launch-city").filter({ hasText: "Lugdunum" });
     await expect(lugdunum).toHaveCSS("opacity", "1", { timeout: 8_000 });
     await expect(page.locator("html")).toHaveAttribute("data-state", "playing");
-    for (const name of ["Lutèce", "Genava", "Massalia", "Vesontio"]) {
+    for (const name of ["Lutèce", "Genava", "Massalie", "Vesontio"]) {
       await expect(page.getByTestId("launch-city").filter({ hasText: name })).toBeInViewport();
     }
     await finalAt(page, 10_000);
-    await expect(page.getByTestId("launch-brand")).toContainText("Alésia, Jura");
+    await expect(page.getByTestId("launch-brand")).toContainText("Alésia, territoire des Mandubiens");
     await expect(lugdunum).toHaveCSS("opacity", "0");
   });
 
