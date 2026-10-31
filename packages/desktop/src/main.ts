@@ -10,14 +10,24 @@ import {
   signInToDemonstration,
 } from "./demonstration.js";
 import { isSafeExternalUrl } from "./externalUrl.js";
+import {
+  installLaunchProtocol,
+  launchCommuneExists,
+  registerLaunchScheme,
+  rememberSettingsInseeCode,
+  showLaunchScreen,
+} from "./launchScreen.js";
+import { readStoredInseeCode, resolveLaunchTarget } from "./launchTerritory.js";
 
 let mainWindow: BrowserWindow | null = null;
 let embeddedServer: Promise<HttpServerHandle> | null = null;
 let quitting = false;
 let resetting = false;
 let edition: DesktopEdition = "local";
+let apiBaseUrl: string | null = null;
 
 if (process.env.HALL_USER_DATA_PATH) app.setPath("userData", resolve(process.env.HALL_USER_DATA_PATH));
+registerLaunchScheme();
 
 function applicationUrl(serverBaseUrl: string): string {
   const url = new URL(serverBaseUrl);
@@ -85,10 +95,24 @@ async function startDemonstrationServer(): Promise<HttpServerHandle> {
 async function resolveRendererUrl(): Promise<string> {
   if (edition === "local") {
     const sharedServerUrl = await sharedRendererUrl();
-    if (sharedServerUrl) return sharedServerUrl;
+    if (sharedServerUrl) {
+      apiBaseUrl = sharedServerUrl;
+      return sharedServerUrl;
+    }
   }
   embeddedServer ??= edition === "demonstration" ? startDemonstrationServer() : startEmbeddedServer();
-  return process.env.HALL_RENDERER_URL ?? applicationUrl((await embeddedServer).url);
+  apiBaseUrl = (await embeddedServer).url;
+  return process.env.HALL_RENDERER_URL ?? applicationUrl(apiBaseUrl);
+}
+
+/** Mémorise le code INSEE des réglages pour le prochain écran de lancement, sans interrompre l'appelant. */
+async function rememberInseeCode(): Promise<void> {
+  if (!apiBaseUrl) return;
+  try {
+    await rememberSettingsInseeCode(apiBaseUrl, app.getPath("userData"));
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  }
 }
 
 const preparationPage = `data:text/html;charset=utf-8,${encodeURIComponent(
@@ -152,6 +176,7 @@ function installDemonstrationMenu(): void {
 async function createMainWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
     title: "Hall",
+    backgroundColor: "#eef2f6",
     width: 1440,
     height: 960,
     minWidth: 1000,
@@ -167,8 +192,19 @@ async function createMainWindow(): Promise<void> {
     if (isSafeExternalUrl(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
-  if (edition === "demonstration") await mainWindow.loadURL(preparationPage);
-  await mainWindow.loadURL(await resolveRendererUrl());
+  const window = mainWindow;
+  const target = await resolveLaunchTarget(await readStoredInseeCode(app.getPath("userData")), launchCommuneExists);
+  const launchScreen = showLaunchScreen(window, target);
+  try {
+    const rendererUrl = await resolveRendererUrl();
+    void rememberInseeCode();
+    await window.loadURL(rendererUrl);
+    await launchScreen.final;
+    await launchScreen.leave();
+  } catch (error) {
+    launchScreen.remove();
+    throw error;
+  }
   if (edition === "local" && process.env.HALL_SERVER_URL) {
     await mkdir(app.getPath("userData"), { recursive: true });
     await writeFile(
@@ -195,6 +231,7 @@ else {
     .whenReady()
     .then(async () => {
       edition = await resolveDesktopEdition(app.getAppPath());
+      installLaunchProtocol();
       if (edition === "demonstration") installDemonstrationMenu();
       await createMainWindow();
     })
@@ -210,11 +247,12 @@ else {
     if (process.platform !== "darwin") app.quit();
   });
   app.on("before-quit", (event) => {
-    if (!embeddedServer || quitting) return;
+    if (quitting || (!embeddedServer && !apiBaseUrl)) return;
     event.preventDefault();
     quitting = true;
-    void embeddedServer
-      .then((server) => server.close())
+    const server = embeddedServer;
+    void rememberInseeCode()
+      .then(() => server?.then((handle) => handle.close()))
       .catch((error) => process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`))
       .finally(() => app.quit());
   });
