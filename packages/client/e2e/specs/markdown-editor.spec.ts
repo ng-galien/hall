@@ -295,6 +295,7 @@ test.describe("Markdown editor", () => {
 
   test("opens the authoritative PDF for the current Markdown in the Hall viewer", async ({ appPage: page }) => {
     await openEditorLab(page);
+    await expect(markdownSource(page)).toContainText(/:resource(-embed)?\[/);
     const creationResponse = page.waitForResponse(
       (response) =>
         response.url().includes("/api/templates/preview-pdf?delivery=url") && response.request().method() === "POST",
