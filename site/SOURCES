@@ -1,13 +1,14 @@
 Sources des données géographiques du site public de Hall
 
-Emprise : longitudes 5,925 à 6,035 E, latitudes 46,635 à 46,72 N (WGS 84), environ 8,4 km sur 9,5 km
+Emprise : longitudes 5,925 à 6,065 E, latitudes 46,605 à 46,72 N (WGS 84), environ 10,7 km sur 12,8 km
 autour du plateau de Cornu et de Chaux-des-Crotenay (Jura) : Chaux-des-Crotenay, Syam, Crans,
-Les Planches-en-Montagne, la Saine, la Lemme et l'Ain. Données extraites le 31 octobre 2026.
+Les Planches-en-Montagne, Foncine-le-Bas, la Saine, la Lemme et l'Ain. Données extraites le 31 octobre 2026.
+Repère local : origine fixe à 5,98 E, 46,6775 N ; centre de l'emprise décalé (grid.x, grid.y de terrain.json).
 
 1. Relief : RGE ALTI, Institut national de l'information géographique et forestière (IGN).
    Accès : service WMS-R de la Géoplateforme, https://data.geopf.fr/wms-r/wms,
    couche ELEVATION.ELEVATIONGRIDCOVERAGE.HIGHRES, format image/x-bil;bits=32, grille de
-   1282 x 1450 points moyennée 2 x 2 en 641 x 725 points (pas d'environ 13 m).
+   1634 x 1962 points moyennée 2 x 2 en 817 x 981 points (pas d'environ 13 m).
    Fichier embarqué : public/terrain/terrain.bin (altitudes en décimètres au-dessus de 521 m).
    Licence : Licence Ouverte Etalab 2.0, https://www.etalab.gouv.fr/licence-ouverte-open-licence
 
@@ -21,7 +22,8 @@ Les Planches-en-Montagne, la Saine, la Lemme et l'Ain. Données extraites le 31 
    Licence : Licence Ouverte Etalab 2.0.
 
 3. Contours communaux : geo.api.gouv.fr, https://geo.api.gouv.fr/communes/<code>?geometry=contour,
-   communes 39129 (Chaux-des-Crotenay), 39523 (Syam), 39178 (Crans), 39424 (Les Planches-en-Montagne).
+   communes 39129 (Chaux-des-Crotenay), 39523 (Syam), 39178 (Crans), 39424 (Les Planches-en-Montagne),
+   39227 (Foncine-le-Bas).
    Le service n'indique pas de licence dans sa documentation ; les contours proviennent vraisemblablement
    d'Admin Express (IGN, Licence Ouverte Etalab 2.0), ce qui n'est pas confirmé.
 
