@@ -29,12 +29,12 @@ async function expectLinks(page: Page) {
   await expect(page.getByTestId("footer-documentation-link")).toHaveAttribute("href", documentation);
 }
 
-test.describe("commune en 3D", () => {
+test.describe("relief en 3D", () => {
   test("chaque lieu ouvre son scénario avec ses captures de Hall", async ({ page }) => {
     await page.goto("./");
-    await expect(page.locator("html")).toHaveAttribute("data-view", "town");
-    await expect(page.getByTestId("town-stage")).toHaveAttribute("data-ready", "true");
-    const canvas = page.getByTestId("town-canvas");
+    await expect(page.locator("html")).toHaveAttribute("data-view", "terrain");
+    await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
+    const canvas = page.getByTestId("terrain-canvas");
     await expect(canvas).toBeVisible();
     expect(await canvas.evaluate((c: HTMLCanvasElement) => c.width > 0 && c.height > 0)).toBe(true);
     await expectLinks(page);
@@ -54,15 +54,52 @@ test.describe("commune en 3D", () => {
 
   test("un clic sur la mairie dans la scène ouvre son scénario", async ({ page }) => {
     await page.goto("./");
-    await expect(page.getByTestId("town-stage")).toHaveAttribute("data-ready", "true");
+    await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
     await page.waitForTimeout(1500);
-    const label = page.getByTestId("town-label-mairie");
+    const label = page.getByTestId("terrain-label-mairie");
     const x = Number(await label.getAttribute("data-hit-x"));
     const y = Number(await label.getAttribute("data-hit-y"));
-    const box = await page.getByTestId("town-stage").boundingBox();
+    const box = await page.getByTestId("terrain-stage").boundingBox();
     if (!box) throw new Error("Scène absente");
     await page.mouse.click(box.x + x, box.y + y);
     await expect(page.getByTestId("scenario-mairie")).toBeVisible();
+  });
+
+  test("les étapes se suivent par les boutons précédent et suivant", async ({ page }) => {
+    await page.goto("./#mairie");
+    await expect(page.getByTestId("scenario-mairie")).toBeVisible();
+    await expect(page.getByTestId("step-previous")).toBeDisabled();
+    for (const place of places.slice(1)) {
+      await page.getByTestId("step-next").click();
+      await expect(page.getByTestId(`scenario-${place}`)).toBeVisible();
+      expect(new URL(page.url()).hash).toBe(`#${place}`);
+    }
+    await expect(page.getByTestId("step-next")).toBeDisabled();
+    await page.getByTestId("step-previous").click();
+    await expect(page.getByTestId("scenario-ecole")).toBeVisible();
+  });
+
+  test("le relief vient des données embarquées, sans requête vers un autre hôte", async ({ page, baseURL }) => {
+    const origin = new URL(baseURL ?? "http://127.0.0.1:4791/").origin;
+    const foreign: string[] = [];
+    page.on("request", (request) => {
+      const url = request.url();
+      if (!url.startsWith(origin) && !url.startsWith("data:") && !url.startsWith("blob:")) foreign.push(url);
+    });
+    await page.goto("./");
+    await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
+    await page.waitForLoadState("networkidle");
+    expect(foreign).toEqual([]);
+    const terrainBytes = await page.evaluate(async () => {
+      let total = 0;
+      for (const name of ["terrain.json", "terrain.bin", "landcover.bin"]) {
+        total += (await (await fetch(`terrain/${name}`)).arrayBuffer()).byteLength;
+      }
+      return total;
+    });
+    expect(terrainBytes).toBeGreaterThan(1_000_000);
+    expect(terrainBytes).toBeLessThan(8 * 1024 * 1024);
+    await expect(page.getByTestId("terrain-credit")).toContainText("IGN");
   });
 });
 
@@ -98,9 +135,9 @@ test.describe("mise en page du texte d’accueil", () => {
   test("à 1024 px le texte est au-dessus de la scène", async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.goto("./");
-    await expect(page.getByTestId("town-stage")).toHaveAttribute("data-ready", "true");
+    await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
     const intro = await page.getByTestId("intro").boundingBox();
-    const stage = await page.getByTestId("town-stage").boundingBox();
+    const stage = await page.getByTestId("terrain-stage").boundingBox();
     if (!intro || !stage) throw new Error("Texte ou scène absent");
     expect(intro.y + intro.height).toBeLessThanOrEqual(stage.y);
   });
@@ -108,12 +145,12 @@ test.describe("mise en page du texte d’accueil", () => {
   test("à 1280 px les étiquettes des lieux ne passent pas sous le texte", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("./");
-    await expect(page.getByTestId("town-stage")).toHaveAttribute("data-ready", "true");
+    await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
     await page.waitForTimeout(1500);
     const intro = await page.getByTestId("intro").boundingBox();
     if (!intro) throw new Error("Texte absent");
     for (const place of places) {
-      const label = await page.getByTestId(`town-label-${place}`).boundingBox();
+      const label = await page.getByTestId(`terrain-label-${place}`).boundingBox();
       if (!label) throw new Error(`Étiquette ${place} absente`);
       const overlaps =
         label.x < intro.x + intro.width &&
@@ -130,7 +167,7 @@ test.describe("version sans 3D", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("./");
     await expect(page.locator("html")).toHaveAttribute("data-view", "plain");
-    await expect(page.getByTestId("town-canvas")).toHaveCount(0);
+    await expect(page.getByTestId("terrain-canvas")).toHaveCount(0);
     await expect(page.getByTestId("view-switch")).toBeVisible();
     await expectLinks(page);
     for (const place of places) {
@@ -150,7 +187,7 @@ test.describe("version sans 3D", () => {
     });
     await page.goto("./");
     await expect(page.locator("html")).toHaveAttribute("data-view", "plain");
-    await expect(page.getByTestId("town-canvas")).toHaveCount(0);
+    await expect(page.getByTestId("terrain-canvas")).toHaveCount(0);
     await expect(page.getByTestId("plain-notice")).toBeVisible();
     await expect(page.getByTestId("view-switch")).toHaveCount(0);
     await expectLinks(page);
@@ -161,4 +198,11 @@ test.describe("version sans 3D", () => {
     }
     await expectNoHorizontalScroll(page);
   });
+});
+
+test("les textes nomment Alésia, Cornu et Chaux-des-Crotenay", async ({ page }) => {
+  await page.goto("./?vue=sans-3d");
+  const text = await page.locator("body").innerText();
+  for (const name of ["Alésia", "Cornu", "Chaux-des-Crotenay", "Jura", "André Berthier"]) expect(text).toContain(name);
+  expect(text).not.toMatch(/Foncine|Alise/);
 });

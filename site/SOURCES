@@ -1,0 +1,35 @@
+Sources des données géographiques du site public de Hall
+
+Emprise : longitudes 5,925 à 6,035 E, latitudes 46,635 à 46,72 N (WGS 84), environ 8,4 km sur 9,5 km
+autour du plateau de Cornu et de Chaux-des-Crotenay (Jura) : Chaux-des-Crotenay, Syam, Crans,
+Les Planches-en-Montagne, la Saine, la Lemme et l'Ain. Données extraites le 31 octobre 2026.
+
+1. Relief : RGE ALTI, Institut national de l'information géographique et forestière (IGN).
+   Accès : service WMS-R de la Géoplateforme, https://data.geopf.fr/wms-r/wms,
+   couche ELEVATION.ELEVATIONGRIDCOVERAGE.HIGHRES, format image/x-bil;bits=32, grille de
+   1282 x 1450 points moyennée 2 x 2 en 641 x 725 points (pas d'environ 13 m).
+   Fichier embarqué : public/terrain/terrain.bin (altitudes en décimètres au-dessus de 521 m).
+   Licence : Licence Ouverte Etalab 2.0, https://www.etalab.gouv.fr/licence-ouverte-open-licence
+
+2. Bâti, routes, voie ferrée, cours d'eau, surfaces en eau, végétation et toponymes : BD TOPO V3, IGN.
+   Accès : service WFS de la Géoplateforme, https://data.geopf.fr/wfs/ows, couches BDTOPO_V3:batiment,
+   troncon_de_route, troncon_de_voie_ferree, troncon_hydrographique, surface_hydrographique, plan_d_eau,
+   zone_de_vegetation, zone_d_habitation, lieu_dit_non_habite, detail_orographique,
+   zone_d_activite_ou_d_interet.
+   Fichiers embarqués : public/terrain/terrain.json (vecteurs simplifiés, en mètres autour du centre de
+   l'emprise) et public/terrain/landcover.bin (forêts et eau rasterisées sur la grille du relief).
+   Licence : Licence Ouverte Etalab 2.0.
+
+3. Contours communaux : geo.api.gouv.fr, https://geo.api.gouv.fr/communes/<code>?geometry=contour,
+   communes 39129 (Chaux-des-Crotenay), 39523 (Syam), 39178 (Crans), 39424 (Les Planches-en-Montagne).
+   Le service n'indique pas de licence dans sa documentation ; les contours proviennent vraisemblablement
+   d'Admin Express (IGN, Licence Ouverte Etalab 2.0), ce qui n'est pas confirmé.
+
+Attribution affichée sur la page : « Relief RGE ALTI, bâti, routes et eau BD TOPO © IGN, licence ouverte
+Etalab 2.0 » et, dans le pied de page, la mention des contours communaux de geo.api.gouv.fr.
+
+Aucune donnée OpenStreetMap, SCAN 25, Patriarche ni base Vestiges n'est embarquée.
+
+Régénération : télécharger les fichiers ci-dessus dans un dossier à part (alti-fine.bil, <couche>.json,
+commune-<code>.json), puis, depuis le dossier site :
+  python3 -I scripts/prepare-geodata.py <dossier des téléchargements> public/terrain
