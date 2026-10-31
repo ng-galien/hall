@@ -17,7 +17,8 @@ export interface Commune {
 }
 
 export interface TerrainData {
-  grid: { cols: number; rows: number; width: number; height: number };
+  /** Grille du relief ; `x` et `y` : centre de l'emprise en mètres depuis l'origine du repère (0 par défaut). */
+  grid: { cols: number; rows: number; width: number; height: number; x?: number; y?: number };
   altitude: { minimum: number; unit: number; maximum: number };
   bbox: { west: number; south: number; east: number; north: number };
   origin: { lon: number; lat: number };
@@ -48,6 +49,7 @@ const shownToponyms = new Map<string, "major" | "minor" | "site">([
   ["Syam", "major"],
   ["Crans", "major"],
   ["Les Planches-en-Montagne", "major"],
+  ["Foncine-le-Bas", "major"],
   ["le Pont de la Chaux", "minor"],
   ["Gorges de la Langouette", "minor"],
   ["Bois derrière Cornu", "minor"],
@@ -72,10 +74,10 @@ export async function loadGround(base: string): Promise<Ground> {
   const heights = new Float32Array(raw.length);
   for (let i = 0; i < raw.length; i++) heights[i] = raw[i] * data.altitude.unit * SCALE * EXAGGERATION;
   const cover = new Uint8Array(coverBuffer);
-  const { cols, rows, width, height } = data.grid;
+  const { cols, rows, width, height, x: cx = 0, y: cy = 0 } = data.grid;
   const sample = (x: number, y: number) => {
-    const fx = Math.min(Math.max(((x + width / 2) / width) * cols - 0.5, 0), cols - 1.001);
-    const fy = Math.min(Math.max(((height / 2 - y) / height) * rows - 0.5, 0), rows - 1.001);
+    const fx = Math.min(Math.max(((x - cx + width / 2) / width) * cols - 0.5, 0), cols - 1.001);
+    const fy = Math.min(Math.max(((height / 2 - (y - cy)) / height) * rows - 0.5, 0), rows - 1.001);
     const i = Math.floor(fx);
     const j = Math.floor(fy);
     const u = fx - i;
@@ -123,6 +125,7 @@ const terrainFragment = /* glsl */ `
   uniform vec3 uBackdrop;
   uniform vec3 uLight;
   uniform vec2 uHalf;
+  uniform vec2 uCentre;
   uniform vec3 uFocus;
   uniform float uContourStep;
   uniform float uIndexStep;
@@ -170,7 +173,7 @@ const terrainFragment = /* glsl */ `
     color = mix(color, lineColor, contour * mix(0.18, 0.42 + 0.35 * focus, inside));
     color = mix(color, mix(uIndex, uFocusColor, focus), index * mix(0.3, 0.6, inside));
     color = mix(color, uWire, wire * mix(0.6, 0.12, inside));
-    float reveal = 1.0 - smoothstep(uReveal - 0.15, uReveal, length(vWorld.xz / uHalf) * 0.7);
+    float reveal = 1.0 - smoothstep(uReveal - 0.15, uReveal, length((vWorld.xz - uCentre) / uHalf) * 0.7);
     if (uClip > 0.5 && reveal <= 0.0) discard;
     color = mix(uBackdrop, color, reveal);
     gl_FragColor = vec4(color, 1.0);
@@ -242,7 +245,7 @@ function tileIndices(
 }
 
 export function buildRelief(ground: Ground): Relief {
-  const { cols, rows, width, height } = ground.data.grid;
+  const { cols, rows, width, height, x: cx = 0, y: cy = 0 } = ground.data.grid;
   const count = cols * rows;
   const positions = new Float32Array(count * 3);
   const normals = new Float32Array(count * 3);
@@ -256,9 +259,9 @@ export function buildRelief(ground: Ground): Relief {
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
       const k = j * cols + i;
-      positions[k * 3] = (-width / 2 + ((i + 0.5) * width) / cols) * SCALE;
+      positions[k * 3] = (cx - width / 2 + ((i + 0.5) * width) / cols) * SCALE;
       positions[k * 3 + 1] = ground.heights[k];
-      positions[k * 3 + 2] = (-height / 2 + ((j + 0.5) * height) / rows) * SCALE;
+      positions[k * 3 + 2] = (-cy - height / 2 + ((j + 0.5) * height) / rows) * SCALE;
       normal.set(-(h(i + 1, j) - h(i - 1, j)) / (2 * dx), 1, -(h(i, j + 1) - h(i, j - 1)) / (2 * dz)).normalize();
       normals.set([normal.x, normal.y, normal.z], k * 3);
       coarse[k * 2] = coarseHeight(ground, i, j, LEVEL_STEPS[1]);
@@ -289,6 +292,7 @@ export function buildRelief(ground: Ground): Relief {
       uBackdrop: { value: color(palette.slate950) },
       uLight: { value: new THREE.Vector3(-0.55, 0.75, -0.35) },
       uHalf: { value: new THREE.Vector2((width / 2) * SCALE, (height / 2) * SCALE) },
+      uCentre: { value: new THREE.Vector2(cx * SCALE, -cy * SCALE) },
       uFocus: { value: new THREE.Vector3(0, 0, 0) },
       uContourStep: { value: 10 * SCALE * EXAGGERATION },
       uIndexStep: { value: 100 * SCALE * EXAGGERATION },
@@ -331,7 +335,7 @@ export function buildRelief(ground: Ground): Relief {
 }
 
 export function buildSkirt(ground: Ground): THREE.Group {
-  const { cols, rows, width, height } = ground.data.grid;
+  const { cols, rows, width, height, x: cx = 0, y: cy = 0 } = ground.data.grid;
   const floor = -6;
   const positions: number[] = [];
   const rims: number[] = [];
@@ -348,10 +352,10 @@ export function buildSkirt(ground: Ground): THREE.Group {
       const j0 = startJ + dj * s;
       const i1 = i0 + di;
       const j1 = j0 + dj;
-      const x0 = (-width / 2 + ((i0 + 0.5) * width) / cols) * SCALE;
-      const z0 = (-height / 2 + ((j0 + 0.5) * height) / rows) * SCALE;
-      const x1 = (-width / 2 + ((i1 + 0.5) * width) / cols) * SCALE;
-      const z1 = (-height / 2 + ((j1 + 0.5) * height) / rows) * SCALE;
+      const x0 = (cx - width / 2 + ((i0 + 0.5) * width) / cols) * SCALE;
+      const z0 = (-cy - height / 2 + ((j0 + 0.5) * height) / rows) * SCALE;
+      const x1 = (cx - width / 2 + ((i1 + 0.5) * width) / cols) * SCALE;
+      const z1 = (-cy - height / 2 + ((j1 + 0.5) * height) / rows) * SCALE;
       const y0 = ground.heights[j0 * cols + i0];
       const y1 = ground.heights[j1 * cols + i1];
       positions.push(x0, floor, z0, x1, floor, z1, x1, y1, z1, x0, floor, z0, x1, y1, z1, x0, y0, z0);

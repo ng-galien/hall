@@ -1,6 +1,6 @@
 # Prépare les données géographiques embarquées du site à partir des extractions IGN.
 # Usage : python3 -I scripts/prepare-geodata.py <dossier des téléchargements> <dossier de sortie>
-# Entrées : alti-fine.bil (RGE ALTI, WMS-R Géoplateforme, 1282 x 1450 points, EPSG:4326, moyenné 2 x 2 en 641 x 725),
+# Entrées : alti-fine.bil (RGE ALTI, WMS-R Géoplateforme, 1634 x 1962 points, EPSG:4326, moyenné 2 x 2 en 817 x 981),
 # couches BD TOPO V3 en GeoJSON (WFS Géoplateforme) et contours communaux geo.api.gouv.fr (commune-<code>.json).
 # Sorties : terrain.bin (altitudes Uint16 en décimètres au-dessus du minimum), landcover.bin (Uint8 :
 # bit 1 forêt, bit 2 eau, bit 4 territoire de Chaux-des-Crotenay), terrain.json (métadonnées et vecteurs simplifiés en mètres locaux, x vers l'est, y vers le nord).
@@ -12,11 +12,14 @@ from pathlib import Path
 
 import numpy as np
 
-BBOX = {"west": 5.925, "south": 46.635, "east": 6.035, "north": 46.72}
-COLS = 641
-ROWS = 725
-LAT0 = (BBOX["south"] + BBOX["north"]) / 2
-LON0 = (BBOX["west"] + BBOX["east"]) / 2
+BBOX = {"west": 5.925, "south": 46.605, "east": 6.065, "north": 46.72}
+COLS = 817
+ROWS = 981
+# Origine fixe du repère local, à laquelle se rapportent les lieux du site (scenes.ts) ; le centre de l'emprise en est
+# décalé et figure dans terrain.json (grid.x, grid.y).
+LAT0 = 46.6775
+LON0 = 5.98
+CENTRE = [0.0, 0.0]
 EARTH = 6371008.8
 MX = EARTH * math.cos(math.radians(LAT0)) * math.pi / 180
 MY = EARTH * math.pi / 180
@@ -25,6 +28,7 @@ COMMUNES = [
     ("39523", "Syam", False),
     ("39178", "Crans", False),
     ("39424", "Les Planches-en-Montagne", False),
+    ("39227", "Foncine-le-Bas", False),
 ]
 TOPONYMS = {
     "Cornu",
@@ -32,6 +36,7 @@ TOPONYMS = {
     "Syam",
     "Crans",
     "Les Planches-en-Montagne",
+    "Foncine-le-Bas",
     "le Pont de la Chaux",
     "Gorges de la Langouette",
     "Bois derrière Cornu",
@@ -122,13 +127,13 @@ def flat(points: list[tuple[float, float]]) -> list[float]:
 
 
 def inside_extent(points: list[tuple[float, float]], half_w: float, half_h: float) -> bool:
-    return any(abs(x) <= half_w and abs(y) <= half_h for x, y in points)
+    return any(abs(x - CENTRE[0]) <= half_w and abs(y - CENTRE[1]) <= half_h for x, y in points)
 
 
 def fill(mask: np.ndarray, ring: list[tuple[float, float]], value: int, half_w: float, half_h: float) -> None:
     cols, rows = mask.shape[1], mask.shape[0]
-    px = np.array([(x + half_w) / (2 * half_w) * cols - 0.5 for x, _ in ring])
-    py = np.array([(half_h - y) / (2 * half_h) * rows - 0.5 for _, y in ring])
+    px = np.array([(x - CENTRE[0] + half_w) / (2 * half_w) * cols - 0.5 for x, _ in ring])
+    py = np.array([(half_h - (y - CENTRE[1])) / (2 * half_h) * rows - 0.5 for _, y in ring])
     row_min = max(int(math.floor(py.min())), 0)
     row_max = min(int(math.ceil(py.max())), rows - 1)
     x0, y0 = px, py
@@ -161,6 +166,7 @@ def main() -> None:
     west_x, south_y = local(BBOX["west"], BBOX["south"])
     east_x, north_y = local(BBOX["east"], BBOX["north"])
     half_w, half_h = (east_x - west_x) / 2, (north_y - south_y) / 2
+    CENTRE[:] = [(east_x + west_x) / 2, (north_y + south_y) / 2]
 
     fine = np.fromfile(source / "alti-fine.bil", dtype="<f4").reshape(2 * ROWS, 2 * COLS)
     altitudes = fine.reshape(ROWS, 2, COLS, 2).mean(axis=(1, 3))
@@ -255,11 +261,18 @@ def main() -> None:
             if name not in TOPONYMS:
                 continue
             x, y = label_point(feature)
-            if abs(x) <= half_w and abs(y) <= half_h:
+            if abs(x - CENTRE[0]) <= half_w and abs(y - CENTRE[1]) <= half_h:
                 toponyms.append({"t": name, "k": props.get("nature"), "x": round(x), "y": round(y)})
 
     meta = {
-        "grid": {"cols": COLS, "rows": ROWS, "width": round(2 * half_w, 1), "height": round(2 * half_h, 1)},
+        "grid": {
+            "cols": COLS,
+            "rows": ROWS,
+            "width": round(2 * half_w, 1),
+            "height": round(2 * half_h, 1),
+            "x": round(CENTRE[0], 1),
+            "y": round(CENTRE[1], 1),
+        },
         "altitude": {"minimum": minimum, "unit": 0.1, "maximum": round(float(altitudes.max()), 1)},
         "bbox": BBOX,
         "origin": {"lon": LON0, "lat": LAT0},
