@@ -131,10 +131,10 @@ jobs:
           3. Ouvrez le dossier **Téléchargements** et double-cliquez sur le fichier.
           4. Une fenêtre bleue s’affiche : « Windows a protégé votre ordinateur ». Il n’y a qu’un bouton **Ne pas exécuter**. Ne cliquez pas dessus. Cliquez sur le lien **Informations complémentaires**, sous le texte.
           5. Le nom du fichier s’affiche, avec « Éditeur inconnu ». Un nouveau bouton apparaît en bas. Cliquez sur **Exécuter quand même**.
-          6. Hall s’installe tout seul, sans question. Cela prend quelques secondes. Hall s’ouvre à la fin de l’installation.
+          6. Hall s’installe tout seul, sans question. Cela prend quelques secondes. Un raccourci **Hall** est ajouté sur le Bureau et dans le menu Démarrer, puis Hall s’ouvre.
           7. Une carte de France s’anime, puis la commune d’Alésia et le bouton **Ouvrir Hall**. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.
 
-          Pour rouvrir Hall plus tard : ouvrez le menu Démarrer et tapez « Hall ».
+          Pour rouvrir Hall plus tard : double-cliquez sur le raccourci **Hall** du Bureau, ou ouvrez le menu Démarrer et tapez « Hall ».
 
           Si la fenêtre dit que le « Contrôle intelligent des applications » a bloqué Hall, il n’existe pas de bouton pour continuer. Windows 11 bloque alors toutes les applications non signées. Hall ne peut pas s’installer sur cet ordinateur tant que ce contrôle reste actif.
 
@@ -185,20 +185,20 @@ jobs:
 
           1. Ouvrez le dossier **Téléchargements** et double-cliquez sur le fichier `.deb`. Sur Ubuntu, le Centre d’applications s’ouvre.
           2. Le Centre d’applications prévient que ce paquet ne vient pas d’Ubuntu. Cliquez sur **Installer**, puis tapez votre mot de passe.
-          3. Si le double-clic n’ouvre rien, ou affiche une erreur : dans le dossier **Téléchargements**, faites un clic droit dans le vide et choisissez **Ouvrir dans un terminal**. Copiez cette ligne, collez-la, appuyez sur Entrée, puis tapez votre mot de passe :
+          3. Si le double-clic n’ouvre rien, ou affiche une erreur : ouvrez l’application **Terminal** depuis la liste des applications. Copiez cette ligne, collez-la, appuyez sur Entrée, puis tapez votre mot de passe :
 
           ```
-          sudo apt install ./linux-x64-*.deb
+          sudo apt install "$(xdg-user-dir DOWNLOAD)"/linux-x64-*.deb
           ```
 
           **Fedora**
 
           1. Ouvrez le dossier **Téléchargements** et double-cliquez sur le fichier `.rpm`. L’application **Logiciels** s’ouvre.
           2. Cliquez sur **Installer**, puis tapez votre mot de passe.
-          3. Si le double-clic n’ouvre rien, ou affiche une erreur : dans le dossier **Téléchargements**, faites un clic droit dans le vide et choisissez **Ouvrir dans un terminal**. Copiez cette ligne, collez-la, appuyez sur Entrée, puis tapez votre mot de passe :
+          3. Si le double-clic n’ouvre rien, ou affiche une erreur : ouvrez l’application **Terminal** depuis la liste des applications. Copiez cette ligne, collez-la, appuyez sur Entrée, puis tapez votre mot de passe :
 
           ```
-          sudo dnf install ./linux-x64-*.rpm
+          sudo dnf install "$(xdg-user-dir DOWNLOAD)"/linux-x64-*.rpm
           ```
 
           **Ouvrir Hall**

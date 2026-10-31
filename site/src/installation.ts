@@ -61,7 +61,7 @@ export const installationGuides: readonly InstallationGuide[] = [
           },
           {
             sees: "Hall s'installe tout seul, sans question. Cela prend quelques secondes.",
-            does: "Attendez. Hall s'ouvre à la fin de l'installation.",
+            does: "Attendez. Un raccourci « Hall » est ajouté sur le Bureau et dans le menu Démarrer, puis Hall s'ouvre.",
           },
           {
             sees: "Une carte de France s'anime, puis la commune d'Alésia et le bouton « Ouvrir Hall ».",
@@ -71,7 +71,7 @@ export const installationGuides: readonly InstallationGuide[] = [
       },
     ],
     notes: [
-      "Pour rouvrir Hall plus tard : ouvrez le menu Démarrer et tapez « Hall ».",
+      "Pour rouvrir Hall plus tard : double-cliquez sur le raccourci « Hall » du Bureau, ou ouvrez le menu Démarrer et tapez « Hall ».",
       "Si la fenêtre dit que le « Contrôle intelligent des applications » a bloqué Hall, il n'existe pas de bouton pour continuer. Windows 11 bloque alors toutes les applications non signées. Hall ne peut pas s'installer sur cet ordinateur tant que ce contrôle reste actif.",
       "Sur un ordinateur géré par une entreprise ou une collectivité, le bouton « Exécuter quand même » peut être absent. Demandez à la personne qui s'occupe de l'informatique.",
     ],
@@ -181,7 +181,7 @@ export const installationGuides: readonly InstallationGuide[] = [
           },
           {
             sees: "Si le double-clic n'ouvre rien, ou affiche une erreur.",
-            does: "Dans le dossier « Téléchargements », faites un clic droit dans le vide et choisissez « Ouvrir dans un terminal ». Copiez cette ligne, collez-la, appuyez sur Entrée, puis tapez votre mot de passe : sudo apt install ./linux-x64-*.deb",
+            does: 'Ouvrez l\'application « Terminal » depuis la liste des applications. Copiez cette ligne, collez-la, appuyez sur Entrée, puis tapez votre mot de passe : sudo apt install "$(xdg-user-dir DOWNLOAD)"/linux-x64-*.deb',
           },
         ],
       },
@@ -198,7 +198,7 @@ export const installationGuides: readonly InstallationGuide[] = [
           },
           {
             sees: "Si le double-clic n'ouvre rien, ou affiche une erreur.",
-            does: "Dans le dossier « Téléchargements », faites un clic droit dans le vide et choisissez « Ouvrir dans un terminal ». Copiez cette ligne, collez-la, appuyez sur Entrée, puis tapez votre mot de passe : sudo dnf install ./linux-x64-*.rpm",
+            does: 'Ouvrez l\'application « Terminal » depuis la liste des applications. Copiez cette ligne, collez-la, appuyez sur Entrée, puis tapez votre mot de passe : sudo dnf install "$(xdg-user-dir DOWNLOAD)"/linux-x64-*.rpm',
           },
         ],
       },
