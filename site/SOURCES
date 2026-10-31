@@ -30,6 +30,16 @@ Etalab 2.0 » et, dans le pied de page, la mention des contours communaux de geo
 
 Aucune donnée OpenStreetMap, SCAN 25, Patriarche ni base Vestiges n'est embarquée.
 
+Récit : César, Guerre des Gaules, livre VII, chapitres 68 à 89 (repli sur Alésia, rationnement, travaux
+romains, armée de secours, refus de recevoir les habitants). Les lieux du récit (maison commune, place de
+l'assemblée, grenier, tour de guet, rempart, points d'eau) et les ouvrages romains de la plaine sont des
+positions choisies pour la démonstration sur le relief réel ; ils ne reproduisent aucun tracé
+archéologique. Le chemin des convois reprend le dessin de la carte « Repérage du plateau de Cornu » du
+jeu de démonstration Alésia (scripts/seed/data/datasets/alesia/resources.mjs).
+
+Captures de Hall (public/captures) : écrans de l'application sur le jeu de démonstration Alésia, pris le
+31 octobre 2026 sur un serveur jetable.
+
 Régénération : télécharger les fichiers ci-dessus dans un dossier à part (alti-fine.bil, <couche>.json,
 commune-<code>.json), puis, depuis le dossier site :
   python3 -I scripts/prepare-geodata.py <dossier des téléchargements> public/terrain
