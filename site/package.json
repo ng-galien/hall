@@ -1,0 +1,26 @@
+{
+  "name": "hall-public-site",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Public demonstration site of Hall: an interactive 3D town that presents the council workflow.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4791 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4791 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource/public-sans": "5.3.0",
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.11",
+    "@playwright/test": "1.62.1",
+    "@types/three": "0.187.0",
+    "typescript": "5.9.3",
+    "vite": "8.2.2"
+  }
+}

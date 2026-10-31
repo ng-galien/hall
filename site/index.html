@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#eef2f6" />
+    <meta
+      name="description"
+      content="Hall, logiciel du conseil municipal : préparation des affaires, séances, procès-verbaux, délibérations et cartes. Démonstration sur la commune fictive d’Alésia."
+    />
+    <title>Hall, logiciel du conseil municipal</title>
+  </head>
+  <body>
+    <header class="masthead" data-testid="site-header">
+      <a class="brand" href="./" aria-label="Hall, accueil">
+        <span class="brand-mark" aria-hidden="true">H</span>
+        <span class="brand-name">Hall</span>
+      </a>
+      <nav class="masthead-links" aria-label="Liens principaux">
+        <a data-testid="documentation-link" class="link-quiet" href="https://github.com/ng-galien/hall/tree/main/packages/client/src/docs/content/fr">Documentation</a>
+        <a data-testid="download-link" class="link-strong" href="https://github.com/ng-galien/hall/releases">Télécharger<span class="wide-only">&nbsp;la démonstration</span></a>
+      </nav>
+    </header>
+
+    <main id="app" data-testid="site-main">
+      <section class="intro" data-testid="intro">
+        <h1>Le conseil municipal, de la préparation à l’acte</h1>
+        <p>
+          Hall accompagne le secrétariat et les élus&#8239;: préparer les affaires, convoquer le conseil, tenir la séance,
+          rédiger le procès-verbal et les délibérations, situer les projets sur la carte.
+        </p>
+        <p class="intro-note">
+          Visitez Alésia, commune de démonstration. Les personnes et les données sont fictives.
+        </p>
+      </section>
+
+      <section class="town" data-testid="town" hidden>
+        <div class="town-stage" data-testid="town-stage"></div>
+        <div class="town-labels" aria-hidden="true"></div>
+        <nav class="place-bar" aria-label="Lieux de la commune" data-testid="place-bar"></nav>
+        <aside class="scenario-panel" data-testid="scenario-panel" aria-live="polite" hidden></aside>
+      </section>
+
+      <section class="plain" data-testid="plain-view" hidden></section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Hall, logiciel du conseil municipal. Alésia est une commune fictive créée pour la démonstration.</p>
+      <p class="footer-links">
+        <a data-testid="footer-download-link" href="https://github.com/ng-galien/hall/releases">Télécharger la démonstration</a>
+        <a data-testid="footer-documentation-link" href="https://github.com/ng-galien/hall/tree/main/packages/client/src/docs/content/fr">Documentation utilisateur</a>
+      </p>
+      <p>
+        <button type="button" class="view-switch" data-testid="view-switch"></button>
+      </p>
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
