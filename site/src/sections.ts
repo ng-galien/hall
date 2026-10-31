@@ -6,7 +6,7 @@ export const documentationUrl = "https://github.com/ng-galien/hall/tree/main/pac
 type System = InstallationGuide["system"];
 
 /** Commandes à copier citées dans le guide : elles sont mises en forme et reçoivent un bouton « Copier ». */
-const COMMAND = /(sudo (?:apt|dnf) install \S+|xattr -dr \S+ \/\S+?)(?=\.?(?:\s|$))/g;
+const COMMAND = /(sudo (?:apt|dnf) install (?:"[^"]*"\S*|\S+)|xattr -dr \S+ \/\S+?)(?=\.?(?:\s|$))/g;
 
 /** Espaces insécables de la typographie française devant : ; ? ! » et après «. */
 function frenchSpacing(text: string): string {

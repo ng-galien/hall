@@ -596,8 +596,8 @@ test.describe("sections de la page", () => {
     }
     await page.getByTestId("install-tab-linux").click();
     await expect(page.getByTestId("install-panel-linux").getByTestId("command-text")).toHaveText([
-      "sudo apt install ./linux-x64-*.deb",
-      "sudo dnf install ./linux-x64-*.rpm",
+      'sudo apt install "$(xdg-user-dir DOWNLOAD)"/linux-x64-*.deb',
+      'sudo dnf install "$(xdg-user-dir DOWNLOAD)"/linux-x64-*.rpm',
     ]);
     await page.getByTestId("install-tab-macos").click();
     await expect(page.getByTestId("install-panel-macos").getByTestId("command-text")).toHaveText(
