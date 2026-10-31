@@ -6,6 +6,8 @@ const serverUrl = `http://127.0.0.1:${serverPort}`;
 /** Documentation captures use the built client served by the test server itself; other projects use the Vite client. */
 const builtClient = Boolean(process.env.CLIENT_DIRECTORY);
 const clientUrl = builtClient ? serverUrl : `http://127.0.0.1:${clientPort}`;
+/** The desktop journey launches the Electron application, which starts its own embedded server. */
+const desktop = process.env.HALL_E2E_DESKTOP === "true";
 
 export default defineConfig({
   testDir: "./specs",
@@ -24,8 +26,9 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
-  projects:
-    process.env.HALL_E2E_MEETING_RULES === "true"
+  projects: desktop
+    ? [{ name: "desktop", testDir: "./desktop", testMatch: /\.spec\.ts$/, timeout: 10 * 60_000 }]
+    : process.env.HALL_E2E_MEETING_RULES === "true"
       ? [
           {
             name: "meeting-rules",
@@ -69,34 +72,36 @@ export default defineConfig({
                 use: { ...devices["Desktop Chrome"] },
               },
             ],
-  webServer: [
-    {
-      command: "node packages/server/dist/index.js",
-      cwd: "../../..",
-      env: {
-        ...process.env,
-        HALL_ALLOWED_ORIGINS: clientUrl,
-        SERVER_HOST: "127.0.0.1",
-        SERVER_PORT: String(serverPort),
-      },
-      url: `${serverUrl}/api/health`,
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
-    ...(builtClient
-      ? []
-      : [
-          {
-            command: `npm run dev -- --host 127.0.0.1 --port ${clientPort} --strictPort`,
-            cwd: "..",
-            env: {
-              ...process.env,
-              VITE_API_TARGET: serverUrl,
-            },
-            url: `${clientUrl}/app/`,
-            reuseExistingServer: false,
-            timeout: 120_000,
+  webServer: desktop
+    ? []
+    : [
+        {
+          command: "node packages/server/dist/index.js",
+          cwd: "../../..",
+          env: {
+            ...process.env,
+            HALL_ALLOWED_ORIGINS: clientUrl,
+            SERVER_HOST: "127.0.0.1",
+            SERVER_PORT: String(serverPort),
           },
-        ]),
-  ],
+          url: `${serverUrl}/api/health`,
+          reuseExistingServer: false,
+          timeout: 120_000,
+        },
+        ...(builtClient
+          ? []
+          : [
+              {
+                command: `npm run dev -- --host 127.0.0.1 --port ${clientPort} --strictPort`,
+                cwd: "..",
+                env: {
+                  ...process.env,
+                  VITE_API_TARGET: serverUrl,
+                },
+                url: `${clientUrl}/app/`,
+                reuseExistingServer: false,
+                timeout: 120_000,
+              },
+            ]),
+      ],
 });

@@ -42,6 +42,30 @@ Packaging includes the server runtime, the PostgreSQL binaries for the target pl
 
 Local mode verifies the schema fingerprint and does not run the schema upgrade (`packages/server/src/core/localServer.ts` uses `verify-only`). A desktop database created before the geographic layers schema (requirement HALL-TR-DOC-080) is therefore refused at startup and must be recreated. Desktop local mode has no upgrade path yet.
 
+### Demonstration edition
+
+The demonstration edition is the desktop application distributed on the GitHub release page. It uses the same embedded server and production authentication as local mode; it does not use `HALL_DEV_AUTO_LOGIN`, `HALL_SERVER_URL` or `connection.json`.
+
+The edition is `local` or `demonstration`. A packaged application reads it from `edition.json`, written by `packages/desktop/forge.config.mjs` from `HALL_DESKTOP_EDITION` at packaging time. An unpackaged run reads `HALL_DESKTOP_EDITION` directly:
+
+```sh
+HALL_DESKTOP_EDITION=demonstration npm run desktop:make
+HALL_DESKTOP_EDITION=demonstration HALL_USER_DATA_PATH=/tmp/hall-demo npm run start -w @hall/desktop
+```
+
+On the first launch, `packages/desktop/src/demonstration.ts` starts the embedded server, creates the Alésia administrator through the first-administrator endpoint with a password generated for the profile, loads the Alésia dataset with the `default` scenario through the public API, signs in through `/api/auth/login`, and opens `/app/` with that session. The state, account and password are stored in `demonstration.json` (mode 0600) in the user-data directory; the data never leaves the computer. Later launches sign in again with the stored account.
+
+The **Démonstration** menu erases the embedded database and loads the dataset again. An interrupted load or a profile created by another application version is erased and loaded again at startup. A profile that contains a `postgres` folder without `demonstration.json` is refused and never erased.
+
+The focused journey is:
+
+```sh
+cd packages/client
+HALL_E2E_DESKTOP=true npx playwright test --config e2e/playwright.config.ts --project=desktop e2e/desktop/demonstration.spec.ts
+```
+
+It requires the built packages, the built client and `npm run build -w @hall/desktop`.
+
 ## Local production
 
 Local production uses a dedicated database named `hall_<name>_prod` and serves Hall at `http://localhost:3200/app/`. It is independent from development. Startup never seeds or resets production.

@@ -90,6 +90,14 @@ async function copyProductionRuntime(buildPath) {
   );
 }
 
+const desktopEditions = ["local", "demonstration"];
+
+async function writeDesktopEdition(buildPath) {
+  const edition = process.env.HALL_DESKTOP_EDITION ?? "local";
+  if (!desktopEditions.includes(edition)) throw new Error(`Unknown HALL_DESKTOP_EDITION: ${edition}`);
+  await writeFile(join(buildPath, "edition.json"), `${JSON.stringify({ edition })}\n`);
+}
+
 async function prepareBrowserRuntime(platform, arch) {
   if (platform !== process.platform || arch !== process.arch) {
     throw new Error(
@@ -132,7 +140,10 @@ export default {
   },
   hooks: {
     prePackage: (_config, platform, arch) => prepareBrowserRuntime(platform, arch),
-    packageAfterCopy: (_config, buildPath) => copyProductionRuntime(buildPath),
+    packageAfterCopy: async (_config, buildPath) => {
+      await copyProductionRuntime(buildPath);
+      await writeDesktopEdition(buildPath);
+    },
   },
   makers: [
     { name: "@electron-forge/maker-squirrel", config: { name: "hall" } },

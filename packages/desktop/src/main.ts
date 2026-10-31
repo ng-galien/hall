@@ -1,12 +1,21 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { HttpServerHandle } from "@hall/server";
-import { app, BrowserWindow, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, Menu, type MenuItemConstructorOptions, session, shell } from "electron";
+import {
+  type DesktopEdition,
+  eraseDemonstration,
+  openDemonstration,
+  resolveDesktopEdition,
+  signInToDemonstration,
+} from "./demonstration.js";
 import { isSafeExternalUrl } from "./externalUrl.js";
 
 let mainWindow: BrowserWindow | null = null;
 let embeddedServer: Promise<HttpServerHandle> | null = null;
 let quitting = false;
+let resetting = false;
+let edition: DesktopEdition = "local";
 
 if (process.env.HALL_USER_DATA_PATH) app.setPath("userData", resolve(process.env.HALL_USER_DATA_PATH));
 
@@ -38,21 +47,106 @@ async function sharedRendererUrl(): Promise<string | null> {
   }
 }
 
-async function resolveRendererUrl(): Promise<string> {
-  const sharedServerUrl = await sharedRendererUrl();
-  if (sharedServerUrl) return sharedServerUrl;
-  if (embeddedServer) return process.env.HALL_RENDERER_URL ?? applicationUrl((await embeddedServer).url);
-
+async function startEmbeddedServer(): Promise<HttpServerHandle> {
   const clientDirectory = app.isPackaged
     ? join(process.resourcesPath, "dist")
     : join(app.getAppPath(), "../client/dist");
   if (app.isPackaged) process.env.PLAYWRIGHT_BROWSERS_PATH = join(process.resourcesPath, "playwright");
   const { startLocalHttpServer } = await import("@hall/server");
-  embeddedServer = startLocalHttpServer({
+  return startLocalHttpServer({
     dataDirectory: join(app.getPath("userData"), "postgres"),
     clientDirectory,
   });
+}
+
+async function startDemonstrationServer(): Promise<HttpServerHandle> {
+  const { server, state } = await openDemonstration({
+    userDataPath: app.getPath("userData"),
+    applicationVersion: app.getVersion(),
+    startServer: startEmbeddedServer,
+  });
+  try {
+    const cookie = await signInToDemonstration(server, state);
+    await session.defaultSession.cookies.set({
+      url: new URL("/", server.url).href,
+      name: cookie.name,
+      value: cookie.value,
+      path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+    });
+  } catch (error) {
+    await server.close();
+    throw error;
+  }
+  return server;
+}
+
+async function resolveRendererUrl(): Promise<string> {
+  if (edition === "local") {
+    const sharedServerUrl = await sharedRendererUrl();
+    if (sharedServerUrl) return sharedServerUrl;
+  }
+  embeddedServer ??= edition === "demonstration" ? startDemonstrationServer() : startEmbeddedServer();
   return process.env.HALL_RENDERER_URL ?? applicationUrl((await embeddedServer).url);
+}
+
+const preparationPage = `data:text/html;charset=utf-8,${encodeURIComponent(
+  '<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Hall</title></head>' +
+    '<body style="font-family:system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0;color:#334155">' +
+    "<p>Préparation de la démonstration Alésia…</p></body></html>",
+)}`;
+
+async function resetDemonstration(): Promise<void> {
+  if (resetting || !mainWindow) return;
+  const { response } = await dialog.showMessageBox(mainWindow, {
+    type: "warning",
+    buttons: ["Remettre à zéro", "Annuler"],
+    defaultId: 1,
+    cancelId: 1,
+    message: "Remettre la démonstration à zéro ?",
+    detail: "Les modifications faites dans la démonstration sont effacées et le jeu Alésia est rechargé.",
+  });
+  if (response !== 0 || !mainWindow) return;
+  resetting = true;
+  try {
+    await mainWindow.loadURL(preparationPage);
+    const server = embeddedServer;
+    embeddedServer = null;
+    if (server) await (await server).close();
+    await session.defaultSession.clearStorageData({ storages: ["cookies"] });
+    await eraseDemonstration(app.getPath("userData"));
+    await mainWindow.loadURL(await resolveRendererUrl());
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
+    dialog.showErrorBox(
+      "Impossible de remettre la démonstration à zéro",
+      error instanceof Error ? error.message : String(error),
+    );
+  } finally {
+    resetting = false;
+  }
+}
+
+function installDemonstrationMenu(): void {
+  const template: MenuItemConstructorOptions[] = [
+    ...(process.platform === "darwin" ? [{ role: "appMenu" as const }] : []),
+    { role: "fileMenu" },
+    { role: "editMenu" },
+    { role: "viewMenu" },
+    { role: "windowMenu" },
+    {
+      label: "Démonstration",
+      submenu: [
+        {
+          id: "demonstration-reset",
+          label: "Remettre la démonstration à zéro…",
+          click: () => void resetDemonstration(),
+        },
+      ],
+    },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 async function createMainWindow(): Promise<void> {
@@ -73,8 +167,9 @@ async function createMainWindow(): Promise<void> {
     if (isSafeExternalUrl(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
+  if (edition === "demonstration") await mainWindow.loadURL(preparationPage);
   await mainWindow.loadURL(await resolveRendererUrl());
-  if (process.env.HALL_SERVER_URL) {
+  if (edition === "local" && process.env.HALL_SERVER_URL) {
     await mkdir(app.getPath("userData"), { recursive: true });
     await writeFile(
       join(app.getPath("userData"), "connection.json"),
@@ -98,7 +193,11 @@ else {
   });
   void app
     .whenReady()
-    .then(createMainWindow)
+    .then(async () => {
+      edition = await resolveDesktopEdition(app.getAppPath());
+      if (edition === "demonstration") installDemonstrationMenu();
+      await createMainWindow();
+    })
     .catch((error) => {
       process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
       dialog.showErrorBox("Impossible de démarrer Hall", error instanceof Error ? error.message : String(error));
