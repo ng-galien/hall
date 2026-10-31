@@ -64,6 +64,7 @@ async function copyProductionRuntime(buildPath) {
     } else {
       await cp(source, destination, {
         recursive: true,
+        verbatimSymlinks: true,
         filter: (file) => !relative(source, file).split(sep).includes("node_modules"),
       });
     }
@@ -88,6 +89,25 @@ async function copyProductionRuntime(buildPath) {
       2,
     )}\n`,
   );
+}
+
+function run(command, args) {
+  return new Promise((resolveRun, reject) => {
+    const child = spawn(command, args, { stdio: "inherit" });
+    child.once("error", reject);
+    child.once("exit", (code) =>
+      code === 0 ? resolveRun() : reject(new Error(`${command} ${args.join(" ")} failed: ${code}`)),
+    );
+  });
+}
+
+/** Replaces the signature invalidated by packaging with an ad-hoc signature; no developer identity is used. */
+async function signMacApplicationAdHoc(outputPaths) {
+  for (const outputPath of outputPaths) {
+    const application = join(outputPath, "Hall.app");
+    await run("codesign", ["--force", "--deep", "--sign", "-", application]);
+    await run("codesign", ["--verify", "--deep", "--strict", application]);
+  }
 }
 
 const desktopEditions = ["local", "demonstration"];
@@ -143,6 +163,9 @@ export default {
     packageAfterCopy: async (_config, buildPath) => {
       await copyProductionRuntime(buildPath);
       await writeDesktopEdition(buildPath);
+    },
+    postPackage: async (_config, { platform, outputPaths }) => {
+      if (platform === "darwin") await signMacApplicationAdHoc(outputPaths);
     },
   },
   makers: [

@@ -1,0 +1,146 @@
+name: Hall demonstration release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag of the draft release, for example v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hall-demonstration-release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  make:
+    name: Build the ${{ matrix.name }} demonstration
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            artifact: hall-demonstration-windows-x64
+          - name: macOS arm64
+            os: macos-latest
+            artifact: hall-demonstration-macos-arm64
+          - name: macOS x64
+            os: macos-15-intel
+            artifact: hall-demonstration-macos-x64
+          - name: Linux x64
+            os: ubuntu-latest
+            artifact: hall-demonstration-linux-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install the RPM packaging tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm fakeroot dpkg
+      - name: Install Hall dependencies
+        run: npm ci
+      - name: Build and package the demonstration edition
+        run: npm run desktop:make
+        env:
+          HALL_DESKTOP_EDITION: demonstration
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            packages/desktop/out/make/**/*.exe
+            packages/desktop/out/make/**/*.nupkg
+            packages/desktop/out/make/**/RELEASES
+            packages/desktop/out/make/**/*.zip
+            packages/desktop/out/make/**/*.deb
+            packages/desktop/out/make/**/*.rpm
+          if-no-files-found: error
+
+  draft-release:
+    name: Attach the executables to a draft release
+    needs: make
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hall-demonstration-*
+          path: artifacts
+      - name: Name the executables by platform
+        run: |
+          mkdir release
+          for directory in artifacts/hall-demonstration-*; do
+            platform="${directory#artifacts/hall-demonstration-}"
+            find "$directory" -type f | while read -r file; do
+              name="$(basename "$file")"
+              case "$name" in
+                RELEASES) cp "$file" "release/RELEASES-$platform" ;;
+                *) cp "$file" "release/$platform-$name" ;;
+              esac
+            done
+          done
+          ls -l release
+      - name: Write the release notice
+        run: |
+          cat > "$RUNNER_TEMP/notes.md" <<'NOTICE'
+          Hall accompagne le travail d’un conseil municipal : préparation des affaires, conduite des séances, procès-verbaux et actes.
+
+          Cette version est une démonstration. Au premier lancement, l’application charge la commune fictive d’Alésia et s’ouvre connectée en tant que son administrateur, sans compte à créer ni mot de passe à saisir. Tout fonctionne sur l’ordinateur, avec une base de données embarquée ; rien n’est envoyé à un serveur. Le menu **Démonstration** remet le jeu de données à zéro.
+
+          ## Téléchargements
+
+          - Windows : le fichier `windows-x64-…Setup.exe`.
+          - macOS, processeur Apple : le fichier `macos-arm64-Hall-darwin-arm64-….zip`.
+          - macOS, processeur Intel : le fichier `macos-x64-Hall-darwin-x64-….zip`.
+          - Linux : le fichier `linux-x64-….deb` (Debian, Ubuntu) ou `linux-x64-….rpm` (Fedora, openSUSE).
+
+          Les fichiers `.nupkg` et `RELEASES` servent aux mises à jour Windows ; ils ne sont pas à ouvrir.
+
+          ## Exécutables non signés
+
+          Ces exécutables ne sont pas signés. Windows et macOS affichent un avertissement à la première ouverture.
+
+          **Windows (SmartScreen)** affiche « Windows a protégé votre ordinateur ». Cliquer sur **Informations complémentaires**, puis sur **Exécuter quand même**.
+
+          **macOS (Gatekeeper)** affiche qu’Apple ne peut pas vérifier que « Hall » ne contient pas de logiciel malveillant. Décompresser l’archive, déplacer Hall dans le dossier Applications, l’ouvrir une fois et fermer l’avertissement. Ouvrir ensuite **Réglages Système**, **Confidentialité et sécurité**, cliquer sur **Ouvrir quand même** en face du message qui concerne Hall, puis confirmer avec **Ouvrir**.
+
+          Si macOS indique que « Hall » est endommagé, exécuter dans le Terminal la commande `xattr -dr com.apple.quarantine /Applications/Hall.app`, puis ouvrir Hall à nouveau.
+
+          ## Licence
+
+          La licence de Hall n’est pas encore choisie.
+          NOTICE
+      - name: Create or update the draft release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if [ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" != "true" ]; then
+              echo "Release $TAG is already published; its files are not replaced." >&2
+              exit 1
+            fi
+            gh release upload "$TAG" release/* --clobber
+            gh release edit "$TAG" --draft --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$TAG" release/* \
+              --draft \
+              --target "$GITHUB_SHA" \
+              --title "Hall $TAG – démonstration" \
+              --notes-file "$RUNNER_TEMP/notes.md"
+          fi
