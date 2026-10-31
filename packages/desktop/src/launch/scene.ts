@@ -16,7 +16,10 @@ const palette = {
 } as const;
 
 /** Durée de l'animation jusqu'à l'état final, en secondes. */
-export const launchDuration = 8.3;
+export const launchDuration = 7.5;
+
+/** Longueur de la chronologie de la scène, jouée en `launchDuration` secondes. */
+const timelineLength = 8.3;
 
 const plateDepth = 6;
 
@@ -255,8 +258,9 @@ export function createLaunchScene(
   resize();
 
   let shownAt = 0;
-  const render = (t: number) => {
-    shownAt = t;
+  const render = (elapsed: number) => {
+    shownAt = elapsed;
+    const t = (elapsed * timelineLength) / launchDuration;
     const lift = easeInOutCubic(phase(t, 4.6, 5.5));
     const handover = phase(t, 5.9, 6.8);
     for (const piece of pieces) {

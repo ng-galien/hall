@@ -63,6 +63,7 @@ function showFinal(render: ((t: number) => void) | null): void {
 function play(render: (t: number) => void): void {
   const brandIn = launchDuration - 0.9;
   const start = performance.now();
+  root.dataset.startedAt = String(Math.round(start));
   setState("playing");
   const frame = (now: number) => {
     const elapsed = (now - start) / 1000;
