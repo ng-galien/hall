@@ -130,11 +130,17 @@ async function loadGround(base: string): Promise<Ground> {
 
 const terrainVertex = /* glsl */ `
   attribute vec3 cover;
+  attribute vec2 coarse;
+  uniform vec4 uMorph;
   varying vec3 vWorld;
   varying vec3 vNormal;
   varying vec3 vCover;
   void main() {
     vec4 world = modelMatrix * vec4(position, 1.0);
+    float distance = length(world.xyz - cameraPosition);
+    float toMiddle = clamp((distance - uMorph.x) / (uMorph.y - uMorph.x), 0.0, 1.0);
+    float toCoarse = clamp((distance - uMorph.z) / (uMorph.w - uMorph.z), 0.0, 1.0);
+    world.y = mix(mix(position.y, coarse.x, toMiddle), coarse.y, toCoarse);
     vWorld = world.xyz;
     vNormal = normalize(mat3(modelMatrix) * normal);
     vCover = cover;
@@ -156,7 +162,9 @@ const terrainFragment = /* glsl */ `
   uniform vec2 uHalf;
   uniform vec3 uFocus;
   uniform float uContourStep;
+  uniform float uIndexStep;
   uniform float uWireStep;
+  uniform float uDetailNear;
   uniform float uReveal;
   varying vec3 vWorld;
   varying vec3 vNormal;
@@ -182,9 +190,16 @@ const terrainFragment = /* glsl */ `
     surface = mix(surface, uWater, water * 0.8);
     vec3 shell = mix(uBackground, surface, 0.38);
     vec3 color = mix(shell, surface, inside);
-    float contour = lineAt(vWorld.y, uContourStep);
-    float index = lineAt(vWorld.y, uContourStep * 5.0);
-    float wire = max(lineAt(vWorld.x, uWireStep), lineAt(vWorld.z, uWireStep));
+    float detail = clamp(log2(max(length(vWorld - cameraPosition), 1.0) / uDetailNear), 0.0, 2.0);
+    float level = min(floor(detail), 1.0);
+    float fading = detail - level;
+    float contourStep = uContourStep * exp2(level);
+    float contour = max(lineAt(vWorld.y, contourStep * 2.0), lineAt(vWorld.y, contourStep) * (1.0 - fading));
+    float index = lineAt(vWorld.y, uIndexStep);
+    float wireStep = uWireStep * exp2(level);
+    float wireFine = max(lineAt(vWorld.x, wireStep), lineAt(vWorld.z, wireStep));
+    float wireCoarse = max(lineAt(vWorld.x, wireStep * 2.0), lineAt(vWorld.z, wireStep * 2.0));
+    float wire = max(wireCoarse, wireFine * (1.0 - fading));
     float focusDistance = length(vWorld.xz - uFocus.xy);
     float focus = uFocus.z * (1.0 - smoothstep(0.0, 1.0, focusDistance / 80.0));
     vec3 lineColor = mix(uContour, uFocusColor, focus);
@@ -201,43 +216,98 @@ function color(hex: number): THREE.Color {
   return new THREE.Color(hex);
 }
 
-function buildTerrainMesh(ground: Ground, step: number): { mesh: THREE.Mesh; material: THREE.ShaderMaterial } {
+/** Niveaux de détail du relief : maille de 13 m, 26 m et 52 m. */
+const LEVEL_STEPS = [1, 2, 4] as const;
+const TILE_CELLS = 64;
+/** Distances (unités de la scène) où les sommets glissent vers le niveau suivant : 13 m vers 26 m, puis 26 m vers 52 m. */
+const MORPH = { middleStart: 300, middleEnd: 420, coarseStart: 800, coarseEnd: 1100 } as const;
+/** Distance où les courbes de niveau sont les plus fines (10 m) ; elles passent à 20 m au double, 40 m au quadruple. */
+const DETAIL_NEAR = 220;
+
+interface ReliefTile {
+  mesh: THREE.Mesh;
+  box: THREE.Box3;
+  levels: THREE.BufferAttribute[];
+  level: number;
+}
+
+interface Relief {
+  group: THREE.Group;
+  material: THREE.ShaderMaterial;
+  tiles: ReliefTile[];
+}
+
+function coarseHeight(ground: Ground, i: number, j: number, step: number): number {
+  const { cols } = ground.data.grid;
+  const i0 = Math.floor(i / step) * step;
+  const j0 = Math.floor(j / step) * step;
+  const u = (i - i0) / step;
+  const v = (j - j0) / step;
+  if (u === 0 && v === 0) return ground.heights[j0 * cols + i0];
+  const at = (a: number, b: number) => ground.heights[b * cols + a];
+  const i1 = i0 + step;
+  const j1 = j0 + step;
+  if (u + v <= 1) return at(i0, j0) + (at(i1, j0) - at(i0, j0)) * u + (at(i0, j1) - at(i0, j0)) * v;
+  return at(i1, j1) + (at(i0, j1) - at(i1, j1)) * (1 - u) + (at(i1, j0) - at(i1, j1)) * (1 - v);
+}
+
+function tileIndices(
+  cols: number,
+  i0: number,
+  i1: number,
+  j0: number,
+  j1: number,
+  step: number,
+): THREE.BufferAttribute {
+  const across = (i1 - i0) / step;
+  const down = (j1 - j0) / step;
+  const indices = new Uint32Array(across * down * 6);
+  let n = 0;
+  for (let j = j0; j < j1; j += step) {
+    for (let i = i0; i < i1; i += step) {
+      const a = j * cols + i;
+      const b = a + step;
+      const c = a + step * cols;
+      const d = c + step;
+      indices.set([a, c, b, b, c, d], n);
+      n += 6;
+    }
+  }
+  return new THREE.BufferAttribute(indices, 1);
+}
+
+function buildRelief(ground: Ground): Relief {
   const { cols, rows, width, height } = ground.data.grid;
-  const nx = Math.floor((cols - 1) / step) + 1;
-  const ny = Math.floor((rows - 1) / step) + 1;
-  const positions = new Float32Array(nx * ny * 3);
-  const covers = new Float32Array(nx * ny * 3);
-  for (let j = 0; j < ny; j++) {
-    for (let i = 0; i < nx; i++) {
-      const gi = i * step;
-      const gj = j * step;
-      const k = j * nx + i;
-      positions[k * 3] = (-width / 2 + ((gi + 0.5) * width) / cols) * SCALE;
-      positions[k * 3 + 1] = ground.heights[gj * cols + gi];
-      positions[k * 3 + 2] = (-height / 2 + ((gj + 0.5) * height) / rows) * SCALE;
-      const value = ground.cover[gj * cols + gi];
+  const count = cols * rows;
+  const positions = new Float32Array(count * 3);
+  const normals = new Float32Array(count * 3);
+  const coarse = new Float32Array(count * 2);
+  const covers = new Float32Array(count * 3);
+  const dx = (width / cols) * SCALE;
+  const dz = (height / rows) * SCALE;
+  const h = (i: number, j: number) =>
+    ground.heights[Math.min(rows - 1, Math.max(0, j)) * cols + Math.min(cols - 1, Math.max(0, i))];
+  const normal = new THREE.Vector3();
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const k = j * cols + i;
+      positions[k * 3] = (-width / 2 + ((i + 0.5) * width) / cols) * SCALE;
+      positions[k * 3 + 1] = ground.heights[k];
+      positions[k * 3 + 2] = (-height / 2 + ((j + 0.5) * height) / rows) * SCALE;
+      normal.set(-(h(i + 1, j) - h(i - 1, j)) / (2 * dx), 1, -(h(i, j + 1) - h(i, j - 1)) / (2 * dz)).normalize();
+      normals.set([normal.x, normal.y, normal.z], k * 3);
+      coarse[k * 2] = coarseHeight(ground, i, j, LEVEL_STEPS[1]);
+      coarse[k * 2 + 1] = coarseHeight(ground, i, j, LEVEL_STEPS[2]);
+      const value = ground.cover[k];
       covers[k * 3] = value & 1 ? 1 : 0;
       covers[k * 3 + 1] = value & 2 ? 1 : 0;
       covers[k * 3 + 2] = value & 4 ? 1 : 0;
     }
   }
-  const indices = new Uint32Array((nx - 1) * (ny - 1) * 6);
-  let n = 0;
-  for (let j = 0; j < ny - 1; j++) {
-    for (let i = 0; i < nx - 1; i++) {
-      const a = j * nx + i;
-      const b = a + 1;
-      const c = a + nx;
-      const d = c + 1;
-      indices.set([a, c, b, b, c, d], n);
-      n += 6;
-    }
-  }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute("cover", new THREE.BufferAttribute(covers, 3));
-  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-  geometry.computeVertexNormals();
+  const position = new THREE.BufferAttribute(positions, 3);
+  const normalAttribute = new THREE.BufferAttribute(normals, 3);
+  const coarseAttribute = new THREE.BufferAttribute(coarse, 2);
+  const coverAttribute = new THREE.BufferAttribute(covers, 3);
   const material = new THREE.ShaderMaterial({
     vertexShader: terrainVertex,
     fragmentShader: terrainFragment,
@@ -254,12 +324,42 @@ function buildTerrainMesh(ground: Ground, step: number): { mesh: THREE.Mesh; mat
       uLight: { value: new THREE.Vector3(-0.55, 0.75, -0.35) },
       uHalf: { value: new THREE.Vector2((width / 2) * SCALE, (height / 2) * SCALE) },
       uFocus: { value: new THREE.Vector3(0, 0, 0) },
-      uContourStep: { value: 20 * SCALE * EXAGGERATION },
-      uWireStep: { value: 104 * SCALE },
+      uContourStep: { value: 10 * SCALE * EXAGGERATION },
+      uIndexStep: { value: 100 * SCALE * EXAGGERATION },
+      uWireStep: { value: 52 * SCALE },
+      uDetailNear: { value: DETAIL_NEAR },
+      uMorph: { value: new THREE.Vector4(MORPH.middleStart, MORPH.middleEnd, MORPH.coarseStart, MORPH.coarseEnd) },
       uReveal: { value: 0 },
     },
   });
-  return { mesh: new THREE.Mesh(geometry, material), material };
+  const group = new THREE.Group();
+  const tiles: ReliefTile[] = [];
+  for (let j0 = 0; j0 < rows - 1; j0 += TILE_CELLS) {
+    for (let i0 = 0; i0 < cols - 1; i0 += TILE_CELLS) {
+      const i1 = Math.min(cols - 1, i0 + TILE_CELLS);
+      const j1 = Math.min(rows - 1, j0 + TILE_CELLS);
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", position);
+      geometry.setAttribute("normal", normalAttribute);
+      geometry.setAttribute("coarse", coarseAttribute);
+      geometry.setAttribute("cover", coverAttribute);
+      const levels = LEVEL_STEPS.map((step) => tileIndices(cols, i0, i1, j0, j1, step));
+      geometry.setIndex(levels[0]);
+      const box = new THREE.Box3();
+      for (let j = j0; j <= j1; j++) {
+        for (let i = i0; i <= i1; i++) {
+          const k = j * cols + i;
+          box.expandByPoint(new THREE.Vector3(positions[k * 3], positions[k * 3 + 1], positions[k * 3 + 2]));
+        }
+      }
+      geometry.boundingBox = box.clone();
+      geometry.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+      const mesh = new THREE.Mesh(geometry, material);
+      group.add(mesh);
+      tiles.push({ mesh, box, levels, level: 0 });
+    }
+  }
+  return { group, material, tiles };
 }
 
 function buildSkirt(ground: Ground): THREE.Group {
@@ -336,6 +436,29 @@ function thinLines(segments: number[], hex: number, opacity: number): THREE.Line
   );
 }
 
+/** Estompe un matériau de lignes entre deux distances à la caméra (unités de la scène). */
+function fadeWithDistance(material: THREE.LineBasicMaterial, near: number, far: number) {
+  material.transparent = true;
+  material.depthWrite = false;
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uFadeNear = { value: near };
+    shader.uniforms.uFadeFar = { value: far };
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "void main() {",
+        "uniform float uFadeNear;\nuniform float uFadeFar;\nvarying float vFade;\nvoid main() {",
+      )
+      .replace(
+        "#include <project_vertex>",
+        "#include <project_vertex>\nvFade = 1.0 - smoothstep(uFadeNear, uFadeFar, length(mvPosition.xyz));",
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace("void main() {", "varying float vFade;\nvoid main() {")
+      .replace("#include <opaque_fragment>", "diffuseColor.a *= vFade;\n#include <opaque_fragment>");
+  };
+  material.customProgramCacheKey = () => `fade-${near}-${far}`;
+}
+
 function wideLines(segments: number[], hex: number, width: number, dash?: [number, number]): LineSegments2 {
   const geometry = new LineSegmentsGeometry();
   geometry.setPositions(segments);
@@ -383,16 +506,15 @@ function buildBuildings(ground: Ground): THREE.Group {
     geometry,
     new THREE.MeshLambertMaterial({ color: palette.slate400, side: THREE.DoubleSide }),
   );
-  const edges = new THREE.LineSegments(
-    new THREE.EdgesGeometry(geometry, 30),
-    new THREE.LineBasicMaterial({ color: palette.slate50, transparent: true, opacity: 0.85 }),
-  );
+  const edgeMaterial = new THREE.LineBasicMaterial({ color: palette.slate50, transparent: true, opacity: 0.85 });
+  fadeWithDistance(edgeMaterial, 380, 900);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 30), edgeMaterial);
   const group = new THREE.Group();
   group.add(surfaces, edges);
   return group;
 }
 
-function buildNetworks(ground: Ground, compact: boolean): THREE.Group {
+function buildNetworks(ground: Ground): THREE.Group {
   const group = new THREE.Group();
   const major: number[] = [];
   const minor: number[] = [];
@@ -400,7 +522,7 @@ function buildNetworks(ground: Ground, compact: boolean): THREE.Group {
   for (const road of ground.data.roads) {
     if (road.r <= 3) major.push(...drape(ground, road.p, 0.5));
     else if (road.r === 4 || road.r === 5) minor.push(...drape(ground, road.p, 0.4));
-    else if (!compact) tracks.push(...drape(ground, road.p, 0.3));
+    else tracks.push(...drape(ground, road.p, 0.3));
   }
   const rail: number[] = [];
   for (const track of ground.data.railway) {
@@ -411,8 +533,11 @@ function buildNetworks(ground: Ground, compact: boolean): THREE.Group {
   for (const river of ground.data.rivers) {
     (river.w > 1 ? wideRivers : narrowRivers).push(...drape(ground, river.p, 0.6, 18));
   }
-  group.add(thinLines(tracks, palette.slate500, 0.55));
-  group.add(thinLines(minor, palette.slate300, 0.75));
+  const trackLines = thinLines(tracks, palette.slate500, 0.55);
+  fadeWithDistance(trackLines.material as THREE.LineBasicMaterial, 260, 520);
+  const minorLines = thinLines(minor, palette.slate300, 0.75);
+  fadeWithDistance(minorLines.material as THREE.LineBasicMaterial, 1500, 2400);
+  group.add(trackLines, minorLines);
   group.add(wideLines(major, palette.slate100, 1.6));
   group.add(wideLines(rail, palette.slate50, 1.6, [1.6, 1.2]));
   group.add(thinLines(narrowRivers, palette.blue, 0.9));
@@ -669,10 +794,10 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   sun.position.set(-300, 500, -200);
   scene.add(sun);
 
-  const terrain = buildTerrainMesh(ground, compact ? 2 : 1);
-  scene.add(terrain.mesh);
+  const terrain = buildRelief(ground);
+  scene.add(terrain.group);
   scene.add(buildSkirt(ground));
-  const networks = buildNetworks(ground, compact);
+  const networks = buildNetworks(ground);
   scene.add(networks);
   scene.add(buildBuildings(ground));
   const models = buildPlaces(ground, places, labels, scene);
@@ -978,6 +1103,30 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     return changed;
   }
 
+  const nearest = new THREE.Vector3();
+  function updateDetail(): boolean {
+    let changed = false;
+    const counts = [0, 0, 0];
+    for (const tile of terrain.tiles) {
+      tile.box.clampPoint(camera.position, nearest);
+      const distance = nearest.distanceTo(camera.position);
+      const byDistance = distance >= MORPH.coarseEnd ? 2 : distance >= MORPH.middleEnd ? 1 : 0;
+      const level = software ? Math.max(byDistance, 1) : byDistance;
+      counts[level]++;
+      if (level !== tile.level) {
+        tile.level = level;
+        tile.mesh.geometry.setIndex(tile.levels[level]);
+        changed = true;
+      }
+    }
+    const lod = counts.join(",");
+    if (stage.dataset.lod !== lod) stage.dataset.lod = lod;
+    const detail = Math.min(2, Math.max(0, Math.log2(camera.position.distanceTo(controls.target) / DETAIL_NEAR)));
+    const contour = String(10 * 2 ** Math.round(detail));
+    if (stage.dataset.contour !== contour) stage.dataset.contour = contour;
+    return changed;
+  }
+
   let frame = 0;
   let reveal = software ? 1.2 : 0;
   terrain.material.uniforms.uReveal.value = reveal;
@@ -1022,6 +1171,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     }
     stage.dataset.motion = flights.length > 0 || settling ? "running" : "done";
     if (controls.update()) dirty = true;
+    if (updateDetail()) dirty = true;
     if (!dirty) return;
     dirty = false;
     renderer.render(scene, camera);
