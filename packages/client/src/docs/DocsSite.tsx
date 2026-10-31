@@ -19,7 +19,7 @@ export function DocsSite() {
     <div className="docs-site">
       <header className="docs-site-header">
         <span className="docs-site-brand">
-          <span className="docs-site-mark">M</span>
+          <span className="docs-site-mark">H</span>
           <span className="docs-site-name">{t("app.name")}</span>
           <span className="docs-site-subtitle">· {t("docs.title")}</span>
         </span>

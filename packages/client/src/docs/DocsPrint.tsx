@@ -44,7 +44,7 @@ export function DocsPrint() {
   return (
     <div className="docs-print docs-article">
       <section className="docs-print-cover">
-        <p className="docs-print-brand">MAIRIE</p>
+        <p className="docs-print-brand">Hall, le conseil municipal en séance</p>
         <p className="docs-print-cover-title">{home?.title}</p>
         <p className="docs-print-cover-summary">{home?.summary}</p>
       </section>

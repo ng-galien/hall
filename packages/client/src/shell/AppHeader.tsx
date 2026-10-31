@@ -37,7 +37,7 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
 
       <a href="/app/" className="app-brand flex w-52 shrink-0 items-center gap-2.5" aria-label={t("app.home")}>
         <span className="grid h-7 w-7 place-items-center rounded-(--radius-small) bg-brand text-xs font-bold text-on-brand">
-          M
+          H
         </span>
         <span className="text-sm font-bold tracking-brand text-text">{t("app.name")}</span>
       </a>
