@@ -161,8 +161,13 @@ async function renderTown(root: HTMLElement) {
     places: scenes.map(({ id, place }) => ({ id, name: place })),
     onSelect: (id) => open(id),
   });
-  const initial = scenes.find((s) => `#${s.id}` === window.location.hash);
-  if (initial) open(initial.id, true);
+  const placeFromHash = () => scenes.find((s) => `#${s.id}` === window.location.hash)?.id ?? null;
+  const initial = placeFromHash();
+  if (initial) open(initial, true);
+  window.addEventListener("hashchange", () => {
+    const id = placeFromHash();
+    if (id !== current) open(id, true);
+  });
 }
 
 async function start() {

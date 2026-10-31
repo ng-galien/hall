@@ -66,6 +66,26 @@ test.describe("commune en 3D", () => {
   });
 });
 
+test("le fragment d’adresse ouvre le lieu pendant la visite et la fermeture le retire", async ({ page }) => {
+  await page.goto("./#conseil");
+  await expect(page.getByTestId("scenario-conseil")).toBeVisible();
+  await page.evaluate(() => {
+    window.location.hash = "ecole";
+  });
+  await expect(page.getByTestId("scenario-ecole")).toBeVisible();
+  await expect(page.getByTestId("place-ecole")).toHaveAttribute("aria-pressed", "true");
+  await page.evaluate(() => {
+    window.location.hash = "territoire";
+  });
+  await expect(page.getByTestId("scenario-territoire")).toBeVisible();
+  await page.getByTestId("scenario-close").click();
+  await expect(page.getByTestId("scenario-panel")).toBeHidden();
+  expect(new URL(page.url()).hash).toBe("");
+  expect(await page.evaluate(() => window.location.href.includes("#"))).toBe(false);
+  await page.getByTestId("place-mairie").click();
+  expect(new URL(page.url()).hash).toBe("#mairie");
+});
+
 test("le quorum atteint est une étape valide, sans rouge", async ({ page }) => {
   await page.goto("./?vue=sans-3d");
   const steps = page.locator('[data-testid="scenario-conseil"] .steps li');
