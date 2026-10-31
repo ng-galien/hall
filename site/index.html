@@ -12,41 +12,75 @@
   </head>
   <body>
     <header class="masthead" data-testid="site-header">
-      <a class="brand" href="./" aria-label="Hall, accueil">
+      <a class="brand" href="#decouvrir" aria-label="Hall, haut de la page">
         <span class="brand-mark" aria-hidden="true">H</span>
         <span class="brand-name">Hall</span>
       </a>
-      <nav class="masthead-links" aria-label="Liens principaux">
-        <a data-testid="documentation-link" class="link-quiet" href="https://github.com/ng-galien/hall/tree/main/packages/client/src/docs/content/fr">Documentation</a>
-        <a data-testid="download-link" class="link-strong" href="https://github.com/ng-galien/hall/releases">Télécharger<span class="wide-only">&nbsp;la démonstration</span></a>
+      <nav class="section-nav" aria-label="Sections de la page" data-testid="section-nav">
+        <a data-testid="nav-decouvrir" href="#decouvrir">Découvrir</a>
+        <a data-testid="nav-telecharger" href="#telecharger">Télécharger</a>
+        <a data-testid="nav-installer" href="#installer">Installer</a>
+        <a data-testid="nav-documentation" href="#documentation">Documentation</a>
       </nav>
     </header>
 
     <main id="app" data-testid="site-main">
-      <section class="intro" data-testid="intro">
-        <h1>Le conseil municipal, de la préparation à l’acte</h1>
-        <p>
-          Hall accompagne le secrétariat et les élus&#8239;: préparer les affaires, convoquer le conseil, tenir la séance,
-          rédiger le procès-verbal et les délibérations, situer les projets sur la carte.
-        </p>
-        <p class="intro-note">
-          Alésia, ville des Mandubiens, est assiégée par César. Son maire, Vercingétorix, et son conseil préparent les
-          affaires du siège, puis siègent. Le relief est celui du plateau de Cornu, dans le Jura, autour de
-          Chaux-des-Crotenay.
-        </p>
+      <section id="decouvrir" class="discover" data-testid="section-decouvrir" aria-label="Découvrir Hall">
+        <div class="intro" data-testid="intro">
+          <h1>Le conseil municipal, de la préparation à l’acte</h1>
+          <p>
+            Hall accompagne le secrétariat et les élus&#8239;: préparer les affaires, convoquer le conseil, tenir la
+            séance, rédiger le procès-verbal et les délibérations, situer les projets sur la carte.
+          </p>
+          <p class="intro-note">
+            Alésia, ville des Mandubiens, est assiégée par César. Son maire, Vercingétorix, et son conseil préparent
+            les affaires du siège, puis siègent. Le relief est celui du plateau de Cornu, dans le Jura, autour de
+            Chaux-des-Crotenay.
+          </p>
+        </div>
+
+        <div class="terrain" data-testid="terrain" hidden>
+          <div class="terrain-stage" data-testid="terrain-stage"></div>
+          <div class="terrain-labels" aria-hidden="true"></div>
+          <div class="place-bar" data-testid="place-bar"></div>
+          <p class="terrain-credit" data-testid="terrain-credit">
+            Relief RGE ALTI, bâti, routes et eau BD TOPO © IGN, licence ouverte Etalab 2.0
+          </p>
+          <aside class="scenario-panel" data-testid="scenario-panel" aria-live="polite" hidden></aside>
+        </div>
+
+        <div class="plain" data-testid="plain-view" hidden></div>
       </section>
 
-      <section class="terrain" data-testid="terrain" hidden>
-        <div class="terrain-stage" data-testid="terrain-stage"></div>
-        <div class="terrain-labels" aria-hidden="true"></div>
-        <div class="place-bar" data-testid="place-bar"></div>
-        <p class="terrain-credit" data-testid="terrain-credit">
-          Relief RGE ALTI, bâti, routes et eau BD TOPO © IGN, licence ouverte Etalab 2.0
-        </p>
-        <aside class="scenario-panel" data-testid="scenario-panel" aria-live="polite" hidden></aside>
-      </section>
+      <section id="telecharger" class="page-section" data-testid="section-telecharger"></section>
 
-      <section class="plain" data-testid="plain-view" hidden></section>
+      <section id="installer" class="page-section" data-testid="section-installer"></section>
+
+      <section id="documentation" class="page-section" data-testid="section-documentation">
+        <div class="section-inner">
+          <header class="section-head">
+            <h2>Documentation</h2>
+            <p class="section-lead">
+              Le guide de chaque écran de Hall, de la préparation des affaires à la rédaction des actes, et les
+              versions publiées de l’application.
+            </p>
+          </header>
+          <ul class="doc-links">
+            <li>
+              <a data-testid="documentation-link" href="https://github.com/ng-galien/hall/tree/main/packages/client/src/docs/content/fr">
+                <span class="doc-link-title">Documentation utilisateur</span>
+                <span class="doc-link-text">Les écrans, les étapes d’une séance et les documents produits.</span>
+              </a>
+            </li>
+            <li>
+              <a data-testid="releases-link" href="https://github.com/ng-galien/hall/releases">
+                <span class="doc-link-title">Versions de Hall</span>
+                <span class="doc-link-text">Les paquets de chaque version pour Windows, macOS et Linux.</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
     </main>
 
     <footer class="site-footer">
@@ -57,10 +91,6 @@
       <p>
         Données géographiques&#8239;: IGN, RGE ALTI et BD TOPO, licence ouverte Etalab 2.0&#8239;; contours communaux
         de geo.api.gouv.fr.
-      </p>
-      <p class="footer-links">
-        <a data-testid="footer-download-link" href="https://github.com/ng-galien/hall/releases">Télécharger la démonstration</a>
-        <a data-testid="footer-documentation-link" href="https://github.com/ng-galien/hall/tree/main/packages/client/src/docs/content/fr">Documentation utilisateur</a>
       </p>
       <p>
         <button type="button" class="view-switch" data-testid="view-switch"></button>

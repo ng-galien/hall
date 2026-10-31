@@ -4,6 +4,7 @@ import "@fontsource/public-sans/700.css";
 import "@fontsource/public-sans/800.css";
 import "./styles.css";
 import { type Axis, axes, places, type Scene, type SceneId, scenes } from "./scenes";
+import { renderSections } from "./sections";
 import type { Frame, TerrainView } from "./terrain";
 import { openViewer, viewerOpen } from "./viewer";
 import { supportsWebGL } from "./webgl";
@@ -457,6 +458,10 @@ async function renderTerrain(root: HTMLElement) {
     if (current) open(null);
   });
   stage.addEventListener("pointerdown", stopAutoplay);
+  const sheet = window.matchMedia("(max-width: 760px)");
+  new IntersectionObserver((entries) => {
+    if (sheet.matches && current && entries.every((entry) => !entry.isIntersecting)) open(null);
+  }).observe(stage);
 
   const { createTerrain } = await import("./terrain");
   terrain = await createTerrain({
@@ -489,6 +494,7 @@ async function start() {
   const mode: ViewMode = webgl && (requested === "terrain" || (requested === null && !reduced)) ? "terrain" : "plain";
   document.documentElement.dataset.view = mode;
 
+  renderSections();
   const viewSwitch = element<HTMLButtonElement>("view-switch");
   if (mode === "terrain") {
     viewSwitch.textContent = "Afficher la version sans 3D";
