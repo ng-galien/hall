@@ -5,6 +5,7 @@ import {
   buildBuildings,
   buildNetworks,
   buildRelief,
+  buildSkirt,
   buildToponyms,
   type Ground,
   LEVEL_STEPS,
@@ -14,6 +15,7 @@ import {
   updateTileLevels,
 } from "../../../../site/src/relief";
 import { type MapProjection, type PlanarPoint, projectToMap } from "./geodata.js";
+import { createStoryLayer } from "./storyLayer.js";
 
 const earthRadius = 6371008.8;
 
@@ -34,6 +36,8 @@ export interface ReliefFrame {
   reveal: number;
   /** Opacité des toponymes. */
   names: number;
+  /** Secondes écoulées depuis l'arrivée sur le relief pour les lieux du récit ; null avant l'arrivée. */
+  story: number | null;
 }
 
 export interface ReliefStage {
@@ -106,7 +110,7 @@ function recolorLines(group: THREE.Object3D): void {
   });
 }
 
-/** Le relief ne s'écrit que dans le territoire de la commune ; il y marque le gabarit que suivent ses lignes. */
+/** Le relief marque dans le gabarit la partie déjà révélée, que suivent ses lignes et son bâti. */
 function markTerritory(material: THREE.Material): void {
   material.stencilWrite = true;
   material.stencilRef = 1;
@@ -123,13 +127,14 @@ function insideTerritory(material: THREE.Material): void {
 }
 
 /**
- * Charge le relief du site et l'insère à sa place exacte dans la carte de lancement, découpé au territoire de
- * Chaux-des-Crotenay : il prend la place de la plaque de la commune ; `revealFrom` est la couleur de la plaque.
+ * Charge le relief du site et l'insère à sa place exacte dans la carte de lancement, sur toute son emprise : il se
+ * révèle depuis son centre et remplace les plaques des communes ; ses bords se fondent dans `revealFrom`.
  */
 export async function createReliefStage(
   projection: MapProjection,
   labels: HTMLElement,
   revealFrom: number,
+  list: HTMLElement,
 ): Promise<ReliefStage> {
   const ground = await loadGround(new URL("./", document.baseURI).href);
   const toMap = reliefToMap(projection, ground);
@@ -159,12 +164,24 @@ export async function createReliefStage(
       }
     });
   }
-  scene.add(relief.group, ...raised);
+  const skirt = buildSkirt(ground);
+  const skirtMaterials: THREE.Material[] = [];
+  skirt.traverse((child) => {
+    if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+      const material = child.material as THREE.MeshBasicMaterial;
+      material.color.setHex(child instanceof THREE.Mesh ? palette.slate400 : palette.slate500);
+      material.transparent = true;
+      skirtMaterials.push(material);
+    }
+  });
+  scene.add(relief.group, skirt, ...raised);
   const lineMaterials: LineSegments2["material"][] = [];
   networks.traverse((child) => {
     if (child instanceof LineSegments2) lineMaterials.push(child.material);
   });
   const toponyms = buildToponyms(ground, labels);
+  const story = createStoryLayer(ground, labels, list);
+  scene.add(story.group);
 
   const camera = new THREE.PerspectiveCamera(32, 1, 5, 9000);
   const projected = new THREE.Vector3();
@@ -224,9 +241,13 @@ export async function createReliefStage(
       const rise = Math.max(0.001, frame.rise);
       relief.material.uniforms.uRise.value = rise;
       relief.material.uniforms.uReveal.value = frame.reveal;
-      for (const group of raised) group.scale.y = rise;
+      for (const group of [...raised, skirt]) group.scale.y = rise;
+      const walls = Math.min(1, Math.max(0, (frame.reveal - 1.1) / 0.1)) * frame.rise;
+      for (const material of skirtMaterials) material.opacity = walls;
+      skirt.visible = walls > 0.01;
       buildings.visible = frame.rise > 0.02;
       updateTileLevels(relief.tiles, camera.position);
+      story.update(frame.story, camera, width, height);
       renderer.autoClear = false;
       renderer.clear(false, true, true);
       renderer.render(scene, camera);

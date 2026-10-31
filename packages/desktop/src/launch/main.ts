@@ -301,9 +301,10 @@ function writePlace(communeName: string, departementName: string): void {
   }
 }
 
-function showFinal(scene: LaunchScene | null): void {
-  scene?.render(scene.duration);
+function showFinal(scene: LaunchScene | null, still = true): void {
+  if (still) scene?.renderStill();
   root.style.setProperty("--brand-opacity", "1");
+  for (const name of ["--reveal-name", "--reveal-place", "--reveal-note"]) root.style.setProperty(name, "1");
   setState("final");
   recording = true;
   requestAnimationFrame(reportStarted);
@@ -328,20 +329,31 @@ function play(scene: LaunchScene): void {
   requestAnimationFrame(warmUp);
 }
 
+/**
+ * Inscription progressive du bloc de marque au fil du mouvement : le nom pendant l'assemblage de la France, le
+ * territoire pendant la plongée, la phrase pendant la bascule vers le relief ; l'indicateur et le bouton à la fin.
+ */
+function writeBrand(elapsed: number, duration: number): void {
+  const reveal = (from: number, to: number) => easeOutCubic(phase(elapsed, from, to)).toFixed(3);
+  root.style.setProperty("--reveal-name", reveal(0.5, 1.9));
+  root.style.setProperty("--reveal-place", reveal(duration * 0.52, duration * 0.68));
+  root.style.setProperty("--reveal-note", reveal(duration * 0.7, duration * 0.88));
+}
+
 function runTimeline(scene: LaunchScene): void {
   recording = true;
   const launchDuration = scene.duration;
   const brandIn = launchDuration - 0.9;
   const start = performance.now();
   root.dataset.startedAt = String(Math.round(start));
+  writeBrand(0, launchDuration);
   setState("playing");
   const frame = (now: number) => {
     const elapsed = (now - start) / 1000;
-    if (elapsed >= launchDuration) {
-      showFinal(scene);
-      return;
-    }
+    if (elapsed >= launchDuration && root.dataset.state !== "final") showFinal(scene, false);
+    if (root.dataset.leaving) return;
     root.style.setProperty("--brand-opacity", String(easeOutCubic(phase(elapsed, brandIn, launchDuration))));
+    writeBrand(elapsed, launchDuration);
     scene.render(elapsed);
     requestAnimationFrame(frame);
     if (!startReported) requestAnimationFrame(reportStarted);
@@ -353,10 +365,11 @@ function runTimeline(scene: LaunchScene): void {
 async function loadRelief(
   projection: Parameters<typeof createReliefStage>[0],
   names: HTMLElement,
+  list: HTMLElement,
 ): Promise<ReliefStage | null> {
   const startedAt = performance.now();
   try {
-    const relief = await createReliefStage(projection, names, 0x2f6fd6);
+    const relief = await createReliefStage(projection, names, 0xa9b4c2, list);
     root.dataset.reliefBuildMs = String(Math.round(performance.now() - startedAt));
     return relief;
   } catch (error) {
@@ -383,13 +396,14 @@ async function start(): Promise<void> {
   const stage = document.getElementById("stage");
   const cities = document.getElementById("cities");
   const names = document.getElementById("relief-names");
-  if (!stage || !cities || !names) return;
+  const list = document.getElementById("story-list");
+  if (!stage || !cities || !names || !list) return;
   try {
     const data = await loadGeodata(departementCode);
     const departement = data.departements.find((area) => area.code === departementCode);
     const commune = data.communes.find((area) => area.code === communeCode);
     writePlace(commune?.name ?? "", departement?.name ?? "");
-    const relief = presentation === "alesia" ? await loadRelief(data.projection, names) : null;
+    const relief = presentation === "alesia" ? await loadRelief(data.projection, names, list) : null;
     const scene = createLaunchScene(
       stage,
       cities,

@@ -146,7 +146,6 @@ const terrainFragment = /* glsl */ `
     float forest = smoothstep(0.3, 0.7, vCover.x);
     float water = smoothstep(0.3, 0.7, vCover.y);
     float inside = smoothstep(0.2, 0.8, vCover.z);
-    if (uClip > 0.5 && inside < 0.5) discard;
     vec3 surface = mix(uBase, uLit, pow(lambert, 1.3));
     vec2 cell = fract(vWorld.xz / 2.6) - 0.5;
     float dots = 1.0 - smoothstep(0.1, 0.22, length(cell));
@@ -172,6 +171,7 @@ const terrainFragment = /* glsl */ `
     color = mix(color, mix(uIndex, uFocusColor, focus), index * mix(0.3, 0.6, inside));
     color = mix(color, uWire, wire * mix(0.6, 0.12, inside));
     float reveal = 1.0 - smoothstep(uReveal - 0.15, uReveal, length(vWorld.xz / uHalf) * 0.7);
+    if (uClip > 0.5 && reveal <= 0.0) discard;
     color = mix(uBackdrop, color, reveal);
     gl_FragColor = vec4(color, 1.0);
   }

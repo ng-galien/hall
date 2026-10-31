@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { type AncientCity, type LaunchGeodata, type PlanarPolygon, planarCentroid } from "./geodata.js";
 import type { CameraPose, ReliefStage } from "./reliefStage.js";
+import { storyDuration } from "./storyLayer.js";
 import { easeInOutCubic, easeOutCubic, easeOutQuint, phase } from "./timeline.js";
 
 /** Couleurs de la charte Hall, mêmes valeurs que les variables de launch.css. */
@@ -39,7 +40,10 @@ export interface LaunchScene {
   duration: number;
   /** Envoie au processeur graphique ce qui sera dessiné pendant l'animation. */
   prepare(): void;
+  /** Dessine l'image à `t` secondes ; après `duration`, les lieux du récit puis la rotation lente continuent. */
   render(t: number): void;
+  /** Dessine l'état final immobile, tous les lieux du récit affichés. */
+  renderStill(): void;
 }
 
 interface Piece {
@@ -298,7 +302,7 @@ export function createLaunchScene(
   const look = new THREE.Vector3();
   const eye = new THREE.Vector3();
 
-  const finalPose = relief ? reliefFinalPose(relief, focus) : null;
+  const finalPose = relief ? reliefFinalPose() : null;
   const reliefPose: CameraPose = { look: new THREE.Vector3(), eye: new THREE.Vector3() };
 
   const resize = () => {
@@ -310,6 +314,9 @@ export function createLaunchScene(
   resize();
 
   let shownAt = 0;
+  let still = false;
+  const arrival = reliefStart + reliefDuration;
+  const orbitPose: CameraPose = { look: new THREE.Vector3(), eye: new THREE.Vector3() };
   const render = (elapsed: number) => {
     shownAt = elapsed;
     const t = (elapsed * timelineLength) / launchDuration;
@@ -352,7 +359,8 @@ export function createLaunchScene(
     if (relief && finalPose && bascule > 0) {
       reliefPose.look.copy(look).applyMatrix4(relief.fromMap);
       reliefPose.eye.copy(eye).applyMatrix4(relief.fromMap);
-      blendPose(reliefPose, finalPose, easeInOutCubic(bascule), relief.camera);
+      orbit(finalPose, still ? 0 : elapsed - arrival - storyDuration, orbitPose);
+      blendPose(reliefPose, orbitPose, easeInOutCubic(bascule), relief.camera);
       look.copy(reliefPose.look).applyMatrix4(relief.toMap);
       eye.copy(relief.camera.position).applyMatrix4(relief.toMap);
       const settled = easeInOutCubic(phase(bascule, 0, 0.5));
@@ -364,6 +372,10 @@ export function createLaunchScene(
       highlightMaterial.color.copy(accent);
       highlightMaterial.emissiveIntensity = 0.2;
     }
+    const shift =
+      bascule > 0 && stage.clientWidth >= 1280 ? -0.16 * stage.clientWidth * easeInOutCubic(bascule) : 0;
+    shiftView(camera, shift);
+    if (relief) shiftView(relief.camera, shift);
     camera.position.copy(eye);
     camera.lookAt(look);
     placeCityMarks(cityMarks, citiesLayer, camera, t, easeInOutCubic(phase(t, 5.2, 6.0)));
@@ -371,8 +383,9 @@ export function createLaunchScene(
     if (relief && bascule > 0) {
       relief.render(renderer, {
         rise: easeInOutCubic(phase(bascule, 0.1, 0.75)),
-        reveal: 1.25 * easeInOutCubic(phase(bascule, 0, 0.55)),
+        reveal: 1.2 * easeInOutCubic(phase(bascule, 0, 0.6)),
         names: easeOutCubic(phase(bascule, 0.75, 1)),
+        story: still ? Number.POSITIVE_INFINITY : bascule >= 1 ? elapsed - arrival : null,
       });
     }
   };
@@ -388,26 +401,48 @@ export function createLaunchScene(
     resize();
     render(shownAt);
   }).observe(stage);
-  return { duration: finalPose ? reliefStart + reliefDuration : launchDuration, prepare, render };
+  const renderStill = () => {
+    still = true;
+    render(finalPose ? arrival : launchDuration);
+  };
+  return { duration: finalPose ? arrival : launchDuration, prepare, render, renderStill };
 }
 
-/** Pose finale sur le relief : vue rasante depuis le sud-ouest, Cornu dans la partie haute et droite de l'image. */
-function reliefFinalPose(relief: ReliefStage, focus: [number, number]): CameraPose {
-  const cornu = relief.groundOf(focus);
-  const look = cornu.clone().add(new THREE.Vector3(-150, 0, 60));
-  const azimuth = THREE.MathUtils.degToRad(-36);
-  const elevation = THREE.MathUtils.degToRad(26);
-  const distance = 950;
-  const eye = look
-    .clone()
-    .add(
-      new THREE.Vector3(
-        Math.sin(azimuth) * Math.cos(elevation),
-        Math.sin(elevation),
-        Math.cos(azimuth) * Math.cos(elevation),
-      ).multiplyScalar(distance),
-    );
+/** Pose finale sur le relief : la vue d'ensemble du site public, dans l'axe Cornu–Syam, à la même échelle. */
+function reliefFinalPose(): CameraPose {
+  const look = new THREE.Vector3(-90, 40, 30);
+  const eye = look.clone().addScaledVector(new THREE.Vector3(0.28, 0.6, 1).normalize(), 2300);
   return { look, eye };
+}
+
+/** Amplitude et période du balancement lent de la caméra autour du site, dans l'axe de la vue d'ensemble. */
+const swingDegrees = 28;
+const swingSeconds = 46;
+
+/**
+ * Pose de la rotation lente autour du point visé, `seconds` après la fin du récit : l'azimut oscille autour de l'axe
+ * Cornu–Syam, avec une mise en mouvement progressive ; avant la fin du récit, la pose finale.
+ */
+function orbit(pose: CameraPose, seconds: number, into: CameraPose): void {
+  into.look.copy(pose.look);
+  const offset = new THREE.Vector3().subVectors(pose.eye, pose.look);
+  if (seconds > 0) {
+    const ramp = easeInOutCubic(phase(seconds, 0, 4));
+    const angle = THREE.MathUtils.degToRad(swingDegrees) * Math.sin((2 * Math.PI * seconds) / swingSeconds) * ramp;
+    offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+  }
+  into.eye.copy(pose.look).add(offset);
+}
+
+/** Décale l'image horizontalement de `x` pixels, comme la vue d'ensemble du site qui laisse la gauche au texte. */
+function shiftView(camera: THREE.PerspectiveCamera, x: number): void {
+  const size = camera.view;
+  if (x === 0) {
+    if (size?.enabled) camera.clearViewOffset();
+    return;
+  }
+  const width = Math.max(1, camera.aspect * 1000);
+  camera.setViewOffset(width, 1000, (x / Math.max(1, window.innerWidth)) * width, 0, width, 1000);
 }
 
 const offsetFrom = new THREE.Vector3();
