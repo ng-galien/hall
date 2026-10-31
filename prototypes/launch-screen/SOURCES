@@ -1,0 +1,36 @@
+Sources des géométries embarquées dans src/data
+================================================
+
+Téléchargement : 31 octobre 2026.
+
+1. Communes de la Côte-d'Or (698 communes, contours, population)
+   URL : https://geo.api.gouv.fr/departements/21/communes?format=geojson&geometry=contour
+   Producteur : API Découpage administratif (geo.api.gouv.fr), Étalab / DINUM,
+   à partir d'Admin Express de l'IGN et des populations légales de l'Insee.
+   Fichiers produits : src/data/communes-21.json (champs code, nom, population)
+                       src/data/contour-21.json (union des communes : contour détaillé du département)
+
+2. Départements de France métropolitaine (96 départements, Corse comprise)
+   URL : https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson
+   Producteur : dépôt france-geojson (Grégoire David), dérivé d'Admin Express de l'IGN.
+   L'API geo.api.gouv.fr ne fournit pas de contour pour la liste des départements
+   (le paramètre geometry=contour y est ignoré), d'où ce second fournisseur.
+   Fichiers produits : src/data/departements.json (champs code, nom)
+                       src/data/france.json (union des départements : contour de la France métropolitaine)
+
+Licence
+-------
+Licence Ouverte / Open Licence version 2.0 d'Étalab
+https://www.etalab.gouv.fr/licence-ouverte-open-licence/
+Mention de la source : « IGN, Admin Express ; Étalab, API Découpage administratif ; Insee, populations légales ».
+
+Traitements
+-----------
+Script : scripts/prepare-geodata.mjs (npm run data:prepare -- <dossier des fichiers téléchargés>).
+Outil : mapshaper 0.7.68.
+- conservation des seuls champs utiles ;
+- simplification Visvalingam pondérée, 6 % des sommets pour les départements, 8 % pour les communes,
+  avec conservation de toutes les formes (keep-shapes) et réparation des intersections (clean) ;
+- union (dissolve) pour les contours de la France et de la Côte-d'Or ;
+- coordonnées arrondies à 0,001° (départements) et 0,0005° (communes).
+Poids total de src/data : environ 660 ko.

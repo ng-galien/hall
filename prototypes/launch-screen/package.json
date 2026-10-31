@@ -1,0 +1,31 @@
+{
+  "name": "hall-launch-screen-prototypes",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Three animated launch-screen proposals for the Hall desktop application, built on real French administrative boundaries.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4793 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4793 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "test:e2e": "playwright test",
+    "data:prepare": "node scripts/prepare-geodata.mjs"
+  },
+  "dependencies": {
+    "@fontsource/public-sans": "5.3.0",
+    "d3-geo": "3.1.1",
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.11",
+    "@playwright/test": "1.62.1",
+    "@types/d3-geo": "3.1.0",
+    "@types/geojson": "7946.0.16",
+    "@types/three": "0.187.0",
+    "mapshaper": "0.7.68",
+    "typescript": "5.9.3",
+    "vite": "8.2.2"
+  }
+}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Écrans de lancement de Hall : trois propositions</title>
+    <script type="module" src="./src/index.ts"></script>
+  </head>
+  <body>
+    <main class="catalogue">
+      <header class="catalogue-header">
+        <h1>Écrans de lancement de Hall</h1>
+        <p>
+          Trois propositions d’animation pour l’ouverture de l’application de bureau, sur les contours réels des
+          départements de France métropolitaine et des communes de la Côte-d’Or. Chacune se pose en moins de huit
+          secondes sur le nom Hall, la commune et l’indicateur de chargement, puis reprend en boucle.
+        </p>
+      </header>
+      <ol class="catalogue-list" data-testid="proposal-list">
+        <li class="proposal" data-testid="proposal-assemblage">
+          <a class="proposal-frame" href="./assemblage/" aria-label="Ouvrir la proposition 1 en plein écran">
+            <iframe src="./assemblage/" title="Aperçu : assemblage des départements" tabindex="-1" loading="lazy"></iframe>
+          </a>
+          <h2><span class="proposal-number">Proposition 1</span>Assemblage des départements</h2>
+          <p>Les départements arrivent dispersés, se rejoignent pour former la France, puis la caméra plonge vers la Côte-d’Or dont les communes apparaissent ; Alise-Sainte-Reine se lève en bleu.</p>
+          <p class="proposal-technique">Scène 3D Three.js, 7 secondes.</p>
+          <a class="proposal-open" data-testid="open-assemblage" href="./assemblage/">Ouvrir en plein écran</a>
+        </li>
+        <li class="proposal" data-testid="proposal-relief">
+          <a class="proposal-frame" href="./relief/" aria-label="Ouvrir la proposition 2 en plein écran">
+            <iframe src="./relief/" title="Aperçu : relief des communes" tabindex="-1" loading="lazy"></iframe>
+          </a>
+          <h2><span class="proposal-number">Proposition 2</span>Relief des communes</h2>
+          <p>Les 698 communes de la Côte-d’Or s’élèvent selon leur population sous une lumière rasante qui balaie le département ; la caméra descend jusqu’à Alise-Sainte-Reine, seul volume bleu.</p>
+          <p class="proposal-technique">Scène 3D Three.js avec ombres portées, 7,5 secondes.</p>
+          <a class="proposal-open" data-testid="open-relief" href="./relief/">Ouvrir en plein écran</a>
+        </li>
+        <li class="proposal" data-testid="proposal-trace">
+          <a class="proposal-frame" href="./trace/" aria-label="Ouvrir la proposition 3 en plein écran">
+            <iframe src="./trace/" title="Aperçu : tracé du national au local" tabindex="-1" loading="lazy"></iframe>
+          </a>
+          <h2><span class="proposal-number">Proposition 3</span>Tracé du national au local</h2>
+          <p>Sur un fond de méridiens et de parallèles, la France puis ses départements se dessinent trait par trait ; le cadre se resserre sur la Côte-d’Or, ses communes se tracent en filigrane et Alise-Sainte-Reine se remplit en bleu.</p>
+          <p class="proposal-technique">Dessin vectoriel SVG avec d3-geo, 7 secondes.</p>
+          <a class="proposal-open" data-testid="open-trace" href="./trace/">Ouvrir en plein écran</a>
+        </li>
+      </ol>
+      <footer class="catalogue-footer">
+        <p>Données : API Découpage administratif (geo.api.gouv.fr) et dépôt france-geojson, issues d’Admin Express de l’IGN, sous Licence Ouverte Étalab. Détail dans le fichier SOURCES.</p>
+      </footer>
+    </main>
+  </body>
+</html>
