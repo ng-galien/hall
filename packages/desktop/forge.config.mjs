@@ -150,6 +150,7 @@ export default {
   packagerConfig: {
     name: "Hall",
     executableName: "Hall",
+    icon: resolve(import.meta.dirname, "icons/hall"),
     asar: false,
     prune: false,
     extraResource: [resolve(import.meta.dirname, "../client/dist"), browserDirectory],
