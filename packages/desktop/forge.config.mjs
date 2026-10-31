@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { cp, mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import MakerDmg from "./scripts/maker-dmg.mjs";
 
 const projectRoot = resolve(import.meta.dirname, "../..");
 const desktopRoot = import.meta.dirname;
@@ -170,7 +171,7 @@ export default {
   },
   makers: [
     { name: "@electron-forge/maker-squirrel", config: { name: "hall" } },
-    { name: "@electron-forge/maker-zip", platforms: ["darwin"] },
+    new MakerDmg({ volumeName: "Hall" }),
     { name: "@electron-forge/maker-deb", config: { options: { bin: "Hall" } } },
     { name: "@electron-forge/maker-rpm", config: { options: { bin: "Hall" } } },
   ],

@@ -75,6 +75,8 @@ HALL_DESKTOP_EDITION=demonstration npm run desktop:make
 HALL_DESKTOP_EDITION=demonstration HALL_USER_DATA_PATH=/tmp/hall-demo npm run start -w @hall/desktop
 ```
 
+On macOS, `desktop:make` produces the DMG disk image `packages/desktop/out/make/dmg/darwin/<arch>/Hall-<version>-<arch>.dmg`; the installation steps for each system are in [Installer la démonstration](distribution.md#installer-la-démonstration).
+
 On the first launch, `packages/desktop/src/demonstration.ts` starts the embedded server, creates the Alésia administrator through the first-administrator endpoint with a password generated for the profile, loads the Alésia dataset with the `default` scenario through the public API, signs in through `/api/auth/login`, and opens `/app/` with that session. The state, account and password are stored in `demonstration.json` (mode 0600) in the user-data directory; the data never leaves the computer. Later launches sign in again with the stored account.
 
 The **Démonstration** menu erases the embedded database and loads the dataset again. An interrupted load or a profile created by another application version is erased and loaded again at startup. A profile that contains a `postgres` folder without `demonstration.json` is refused and never erased.
