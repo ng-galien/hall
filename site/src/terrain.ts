@@ -4,15 +4,14 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { palette } from "./palette";
-import type { PlaceId } from "./scenes";
+import type { Mark, MarkTone, Motion, PlaceId, Pose, Spot } from "./scenes";
 
 export interface TerrainPlace {
   id: PlaceId;
   name: string;
+  codes: string;
   x: number;
   y: number;
-  radius: number;
-  view: number;
 }
 
 export interface TerrainOptions {
@@ -22,8 +21,13 @@ export interface TerrainOptions {
   onSelect: (id: PlaceId) => void;
 }
 
+export interface TerrainShot {
+  place: PlaceId | null;
+  motion: Motion;
+}
+
 export interface TerrainView {
-  focus: (id: PlaceId | null) => void;
+  play: (shot: TerrainShot | null) => void;
   dispose: () => void;
 }
 
@@ -414,21 +418,22 @@ function buildNetworks(ground: Ground, compact: boolean): THREE.Group {
   return group;
 }
 
+const PLACE_RADIUS = 70;
+
 function buildPlaces(ground: Ground, places: TerrainPlace[], labels: HTMLElement, scene: THREE.Scene): PlaceModel[] {
   return places.map((place, index) => {
     const groundY = ground.height(place.x, place.y);
     const x = place.x * SCALE;
     const z = -place.y * SCALE;
-    const radius = place.radius * SCALE;
+    const radius = PLACE_RADIUS * SCALE;
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(radius * 0.92, radius, 72),
       new THREE.MeshBasicMaterial({ color: palette.blue, transparent: true, opacity: 0.25, depthTest: false }),
     );
-    ring.visible = place.radius <= 600;
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(x, groundY + 2, z);
     ring.renderOrder = 5;
-    const beamHeight = place.radius > 100 ? 40 : 30 + index * 30;
+    const beamHeight = 30 + (index % 3) * 18;
     const beam = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(x, groundY, z),
@@ -452,7 +457,7 @@ function buildPlaces(ground: Ground, places: TerrainPlace[], labels: HTMLElement
     label.className = "terrain-label";
     const number = document.createElement("span");
     number.className = "terrain-label-number";
-    number.textContent = String(index + 1);
+    number.textContent = place.codes;
     const name = document.createElement("span");
     name.className = "terrain-label-name";
     name.textContent = place.name;
@@ -492,6 +497,125 @@ function buildToponyms(ground: Ground, labels: HTMLElement): { node: HTMLElement
   return items;
 }
 
+const markColors: Record<MarkTone, number> = {
+  blue: palette.blue,
+  green: palette.green,
+  light: palette.slate100,
+  slate: palette.slate500,
+};
+
+interface MarkItem {
+  objects: THREE.Object3D[];
+  node: HTMLElement | null;
+  at: THREE.Vector3;
+  delay: number;
+}
+
+interface MarkLayer {
+  group: THREE.Group;
+  items: MarkItem[];
+  dispose: () => void;
+}
+
+function groundPoint(ground: Ground, spot: Spot, lift: number): THREE.Vector3 {
+  return new THREE.Vector3(spot.x * SCALE, ground.height(spot.x, spot.y) + lift, -spot.y * SCALE);
+}
+
+function markLabel(labels: HTMLElement, text: string, kind: string): HTMLElement {
+  const node = document.createElement("span");
+  node.className = `terrain-mark is-${kind}`;
+  node.textContent = text;
+  node.dataset.testid = "terrain-mark";
+  node.style.visibility = "hidden";
+  labels.appendChild(node);
+  return node;
+}
+
+function markObjects(ground: Ground, mark: Mark): THREE.Object3D[] {
+  const base = groundPoint(ground, mark.at, 1.5);
+  if (mark.kind === "label") return [];
+  if (mark.kind === "work") {
+    const tower = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints([
+        base,
+        base.clone().setY(base.y + 14),
+        base.clone().add(new THREE.Vector3(-2.5, 14, 0)),
+        base.clone().add(new THREE.Vector3(2.5, 14, 0)),
+      ]),
+      new THREE.LineBasicMaterial({ color: palette.slate200, transparent: true, opacity: 0.9 }),
+    );
+    return [tower];
+  }
+  const disc = new THREE.Mesh(
+    new THREE.CircleGeometry(mark.label ? 4 : 2.4, 24),
+    new THREE.MeshBasicMaterial({ color: markColors[mark.tone], depthTest: false, transparent: true }),
+  );
+  disc.rotation.x = -Math.PI / 2;
+  disc.position.copy(base);
+  disc.renderOrder = 8;
+  return [disc];
+}
+
+function buildMarks(ground: Ground, motion: Motion, labels: HTMLElement): MarkLayer {
+  const group = new THREE.Group();
+  const items: MarkItem[] = [];
+  const span = motion.seconds * 0.55;
+  const count = motion.marks.length + (motion.trace ? 1 : 0);
+  const delayOf = (index: number) => 0.8 + (span * index) / Math.max(1, count);
+  motion.marks.forEach((mark, index) => {
+    const objects = markObjects(ground, mark);
+    for (const object of objects) {
+      object.visible = false;
+      group.add(object);
+    }
+    const text = mark.kind === "label" ? mark.text : mark.kind === "point" ? (mark.label ?? null) : null;
+    const node = text ? markLabel(labels, text, mark.kind === "label" ? "name" : "point") : null;
+    items.push({
+      objects,
+      node,
+      at: groundPoint(ground, mark.at, mark.kind === "label" ? 6 : 3),
+      delay: delayOf(index),
+    });
+  });
+  if (motion.trace) {
+    const flat = motion.trace.points.flatMap((spot) => [spot.x, spot.y]);
+    const line = wideLines(drape(ground, flat, 2.5, 10), palette.blue, 4);
+    line.visible = false;
+    line.renderOrder = 9;
+    group.add(line);
+    const middle = motion.trace.points[Math.floor(motion.trace.points.length / 2)];
+    items.push({
+      objects: [line],
+      node: markLabel(labels, motion.trace.label, "trace"),
+      at: groundPoint(ground, middle, 8),
+      delay: delayOf(motion.marks.length),
+    });
+  }
+  return {
+    group,
+    items,
+    dispose() {
+      group.traverse((child) => {
+        if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+          child.geometry.dispose();
+          (child.material as THREE.Material).dispose();
+        }
+      });
+      for (const item of items) item.node?.remove();
+    },
+  };
+}
+
+function poseDirection(pose: Pose): THREE.Vector3 {
+  const azimuth = (pose.azimuth * Math.PI) / 180;
+  const elevation = (pose.elevation * Math.PI) / 180;
+  return new THREE.Vector3(
+    Math.sin(azimuth) * Math.cos(elevation),
+    Math.sin(elevation),
+    -Math.cos(azimuth) * Math.cos(elevation),
+  ).normalize();
+}
+
 /** Rendu logiciel (SwiftShader, llvmpipe) : maillage allégé, sans anticrénelage ni mouvement de caméra animé. */
 function softwareRendering(): boolean {
   const canvas = document.createElement("canvas");
@@ -521,7 +645,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
 
   const scene = new THREE.Scene();
   scene.background = color(palette.slate950);
-  const camera = new THREE.PerspectiveCamera(30, 1, 5, 4000);
+  const camera = new THREE.PerspectiveCamera(30, 1, 5, 7000);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.07;
@@ -529,7 +653,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   controls.minPolarAngle = 0.25;
   controls.maxPolarAngle = 1.18;
   controls.minDistance = 90;
-  controls.maxDistance = 1500;
+  controls.maxDistance = 3200;
   controls.rotateSpeed = 0.5;
 
   scene.add(new THREE.HemisphereLight(palette.slate100, palette.slate800, 1.4));
@@ -551,21 +675,31 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     if (child instanceof LineSegments2) lineMaterials.push(child.material);
   });
 
-  const overview = {
-    target: new THREE.Vector3(-90, 40, 30),
-    direction: new THREE.Vector3(0.28, 0.6, 1).normalize(),
-    distance: 1500,
-  };
+  const narrow = stage.clientWidth < 760;
+  const overview = narrow
+    ? {
+        target: new THREE.Vector3(-190, 75, -40),
+        direction: new THREE.Vector3(0.08, 1.15, 1).normalize(),
+        distance: 520,
+      }
+    : {
+        target: new THREE.Vector3(-90, 40, 30),
+        direction: new THREE.Vector3(0.28, 0.6, 1).normalize(),
+        distance: 1500,
+      };
   let active: PlaceId | null = null;
   let hovered: PlaceId | null = null;
-  let flight: {
-    from: THREE.Vector3;
+  interface Flight {
+    from: THREE.Vector3 | null;
+    fromPos: THREE.Vector3 | null;
     to: THREE.Vector3;
-    fromPos: THREE.Vector3;
     toPos: THREE.Vector3;
     t: number;
     duration: number;
-  } | null = null;
+  }
+  let flights: Flight[] = [];
+  let layer: MarkLayer | null = null;
+  let shotClock = 0;
 
   function fitDistance(base: number): number {
     const aspect = camera.aspect;
@@ -575,17 +709,51 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   camera.position.copy(overview.target).addScaledVector(new THREE.Vector3(0.1, 1.4, 0.5).normalize(), 1500);
   controls.target.copy(overview.target);
 
+  function poseTarget(pose: Pose): THREE.Vector3 {
+    return groundPoint(ground, pose.at, 0);
+  }
+
+  function poseFlight(pose: Pose, duration: number): Flight {
+    const to = poseTarget(pose);
+    return {
+      from: null,
+      fromPos: null,
+      to,
+      toPos: to.clone().addScaledVector(poseDirection(pose), fitDistance(pose.distance * SCALE)),
+      t: 0,
+      duration,
+    };
+  }
+
+  function land(flight: Flight) {
+    controls.target.copy(flight.to);
+    camera.position.copy(flight.toPos);
+    dirty = true;
+  }
+
+  function fly(queue: Flight[]) {
+    if (software) {
+      const last = queue.at(-1);
+      if (last) land(last);
+      flights = [];
+      return;
+    }
+    flights = queue;
+  }
+
   function flyTo(target: THREE.Vector3, direction: THREE.Vector3, distance: number, duration = 2.2) {
     const current = camera.position.clone().sub(controls.target).normalize();
     const blended = current.lerp(direction, 0.7).normalize();
-    flight = {
-      from: controls.target.clone(),
-      to: target.clone(),
-      fromPos: camera.position.clone(),
-      toPos: target.clone().addScaledVector(blended, fitDistance(distance)),
-      t: software ? 1 : 0,
-      duration,
-    };
+    fly([
+      {
+        from: null,
+        fromPos: null,
+        to: target.clone(),
+        toPos: target.clone().addScaledVector(blended, fitDistance(distance)),
+        t: 0,
+        duration,
+      },
+    ]);
   }
 
   let dirty = true;
@@ -656,7 +824,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   let down: { x: number; y: number } | null = null;
   const onPointerDown = (event: PointerEvent) => {
     down = { x: event.clientX, y: event.clientY };
-    flight = null;
+    flights = [];
   };
   const onPointerUp = (event: PointerEvent) => {
     if (!down) return;
@@ -706,6 +874,35 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       toponym.node.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
       toponym.node.style.visibility = visible ? "visible" : "hidden";
     }
+    for (const item of layer?.items ?? []) {
+      if (!item.node) continue;
+      const [x, y, visible] = screen(item.at, width, height);
+      item.node.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+      item.node.style.visibility =
+        visible && item.objects.every((o) => o.visible) && shown(item) ? "visible" : "hidden";
+    }
+  }
+
+  function shown(item: MarkItem): boolean {
+    return software || shotClock >= item.delay;
+  }
+
+  function revealMarks(): boolean {
+    let changed = false;
+    for (const item of layer?.items ?? []) {
+      const visible = shown(item);
+      for (const object of item.objects) {
+        if (object.visible !== visible) {
+          object.visible = visible;
+          changed = true;
+        }
+      }
+      if (item.objects.length === 0 && item.node && (item.node.dataset.shown === "true") !== visible) {
+        item.node.dataset.shown = String(visible);
+        changed = true;
+      }
+    }
+    return changed;
   }
 
   let frame = 0;
@@ -729,14 +926,22 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       applyShift();
       dirty = true;
     }
+    const flight = flights[0];
     if (flight) {
+      flight.from ??= controls.target.clone();
+      flight.fromPos ??= camera.position.clone();
       flight.t = Math.min(1, flight.t + elapsed / flight.duration);
       const k = flight.t < 0.5 ? 4 * flight.t ** 3 : 1 - (-2 * flight.t + 2) ** 3 / 2;
       controls.target.lerpVectors(flight.from, flight.to, k);
       camera.position.lerpVectors(flight.fromPos, flight.toPos, k);
-      if (flight.t >= 1) flight = null;
+      if (flight.t >= 1) flights.shift();
       dirty = true;
     }
+    if (layer) {
+      shotClock += elapsed;
+      if (revealMarks()) dirty = true;
+    }
+    stage.dataset.motion = flights.length > 0 ? "running" : "done";
     if (controls.update()) dirty = true;
     if (!dirty) return;
     dirty = false;
@@ -747,18 +952,26 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   stage.dataset.ready = "true";
 
   return {
-    focus(id) {
-      active = id;
+    play(shot) {
+      layer?.dispose();
+      if (layer) scene.remove(layer.group);
+      layer = null;
+      active = shot?.place ?? null;
       paint();
-      const model = models.find((m) => m.place.id === id);
-      if (model) {
-        flyTo(model.centre, new THREE.Vector3(0.3, 0.62, 1).normalize(), model.place.view * SCALE);
-      } else {
+      if (!shot) {
         flyTo(overview.target, overview.direction, overview.distance);
+        return;
       }
+      layer = buildMarks(ground, shot.motion, labels);
+      scene.add(layer.group);
+      shotClock = 0;
+      revealMarks();
+      fly([poseFlight(shot.motion.from, 1.6), poseFlight(shot.motion.to, Math.max(3, shot.motion.seconds * 0.55))]);
+      dirty = true;
     },
     dispose() {
       cancelAnimationFrame(frame);
+      layer?.dispose();
       observer.disconnect();
       controls.removeEventListener("change", markDirty);
       controls.dispose();
