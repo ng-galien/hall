@@ -6,22 +6,27 @@
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
-    "build": "rimraf dist && esbuild src/main.ts --outfile=dist/main.js --bundle --packages=external --platform=node --target=node22 --format=esm --external:electron --sourcemap && esbuild src/preload.ts --outfile=dist/preload.cjs --bundle --packages=external --platform=node --target=node22 --format=cjs --external:electron --sourcemap",
+    "build": "rimraf dist && esbuild src/main.ts --outfile=dist/main.js --bundle --packages=external --platform=node --target=node22 --format=esm --external:electron --sourcemap && esbuild src/preload.ts --outfile=dist/preload.cjs --bundle --packages=external --platform=node --target=node22 --format=cjs --external:electron --sourcemap && esbuild src/launchPreload.ts --outfile=dist/launch-preload.cjs --bundle --packages=external --platform=node --target=node22 --format=cjs --external:electron --sourcemap && node scripts/build-launch.mjs",
     "start": "npm run build && electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p src/launch/tsconfig.json --noEmit"
   },
-  "dependencies": { "@hall/server": "*" },
+  "dependencies": {
+    "@hall/server": "*"
+  },
   "devDependencies": {
     "@electron-forge/cli": "8.0.0-alpha.10",
     "@electron-forge/maker-deb": "8.0.0-alpha.10",
     "@electron-forge/maker-rpm": "8.0.0-alpha.10",
     "@electron-forge/maker-squirrel": "8.0.0-alpha.10",
     "@electron-forge/maker-zip": "8.0.0-alpha.10",
+    "@fontsource-variable/archivo": "^5.3.0",
     "@types/node": "^24.12.0",
+    "@types/three": "0.187.0",
     "electron": "44.0.0",
     "esbuild": "0.28.2",
+    "three": "0.187.0",
     "typescript": "^5.9.3"
   }
 }
