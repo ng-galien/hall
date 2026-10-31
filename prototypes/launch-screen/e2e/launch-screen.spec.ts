@@ -42,6 +42,19 @@ test.describe("écrans de lancement", () => {
     expect(external).toEqual([]);
   });
 
+  test("assemblage : les cités antiques apparaissent sur la France avant la plongée", async ({ page }) => {
+    await page.goto("./assemblage/");
+    const lugdunum = page.getByTestId("launch-city").filter({ hasText: "Lugdunum" });
+    await expect(lugdunum).toHaveCSS("opacity", "1", { timeout: 8_000 });
+    await expect(page.locator("html")).toHaveAttribute("data-state", "playing");
+    for (const name of ["Lutèce", "Genava", "Massalia", "Vesontio"]) {
+      await expect(page.getByTestId("launch-city").filter({ hasText: name })).toBeInViewport();
+    }
+    await finalAt(page, 10_000);
+    await expect(page.getByTestId("launch-brand")).toContainText("Alésia, Jura");
+    await expect(lugdunum).toHaveCSS("opacity", "0");
+  });
+
   for (const name of proposals) {
     test(`${name} : état final atteint entre quatre et dix secondes, sans réseau externe`, async ({ page }) => {
       const external = watchExternalRequests(page);

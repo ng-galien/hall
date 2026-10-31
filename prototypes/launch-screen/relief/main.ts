@@ -35,7 +35,7 @@ const project = (position: [number, number]): [number, number] => {
   return [point[0], -point[1]];
 };
 
-/** Hauteur d'un volume : logarithme de la population, de 2 unités pour un hameau à 24 pour Dijon. */
+/** Hauteur d'un volume : logarithme de la population, de 2 unités pour un hameau à 24 pour une ville de 150 000 habitants. */
 function heightOf(population: number | undefined): number {
   const level = clamp01((Math.log10(Math.max(population ?? 1, 1)) - 1.3) / 3.95);
   return 2 + level * 22;

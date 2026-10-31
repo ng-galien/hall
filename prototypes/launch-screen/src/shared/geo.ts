@@ -1,7 +1,7 @@
 import { type GeoProjection, geoConicConformal } from "d3-geo";
 import type { Feature, FeatureCollection, GeometryCollection, MultiPolygon, Polygon, Position } from "geojson";
-import communesData from "../data/communes-21.json";
-import contourData from "../data/contour-21.json";
+import communesData from "../data/communes-39.json";
+import contourData from "../data/contour-39.json";
 import departementsData from "../data/departements.json";
 import franceData from "../data/france.json";
 
@@ -41,10 +41,11 @@ export const communes = rewindAll(communesData as FeatureCollection<AreaGeometry
 export const franceOutline = rewind((franceData as GeometryCollection<AreaGeometry>).geometries[0]);
 
 export const territory = {
-  departementCode: "21",
-  departementName: "Côte-d’Or",
-  communeCode: "21008",
-  communeName: "Alise-Sainte-Reine",
+  departementCode: "39",
+  departementName: "Jura",
+  communeCode: "39129",
+  communeName: "Chaux-des-Crotenay",
+  placeLabel: "Alésia",
 } as const;
 
 export function findArea(collection: FeatureCollection<AreaGeometry, AreaProperties>, code: string): Area {
@@ -54,7 +55,7 @@ export function findArea(collection: FeatureCollection<AreaGeometry, AreaPropert
 }
 
 export const departement = findArea(departements, territory.departementCode);
-/** Contour détaillé de la Côte-d'Or, union des communes, au même niveau de détail que celles-ci. */
+/** Contour détaillé du Jura, union des communes, au même niveau de détail que celles-ci. */
 export const departementContour = rewind((contourData as GeometryCollection<AreaGeometry>).geometries[0]);
 export const commune = findArea(communes, territory.communeCode);
 

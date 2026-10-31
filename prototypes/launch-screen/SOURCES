@@ -1,7 +1,7 @@
 Sources des géométries embarquées dans src/data
 ================================================
 
-Téléchargement : 31 octobre 2026.
+Téléchargement : 31 octobre 2026 (Côte-d'Or le matin, Jura l'après-midi).
 
 1. Communes de la Côte-d'Or (698 communes, contours, population)
    URL : https://geo.api.gouv.fr/departements/21/communes?format=geojson&geometry=contour
@@ -9,6 +9,14 @@ Téléchargement : 31 octobre 2026.
    à partir d'Admin Express de l'IGN et des populations légales de l'Insee.
    Fichiers produits : src/data/communes-21.json (champs code, nom, population)
                        src/data/contour-21.json (union des communes : contour détaillé du département)
+
+1 bis. Communes du Jura (492 communes, contours, population)
+   URL : https://geo.api.gouv.fr/departements/39/communes?format=geojson&geometry=contour
+   Même producteur que ci-dessus.
+   Fichiers produits : src/data/communes-39.json (champs code, nom, population)
+                       src/data/contour-39.json (union des communes : contour détaillé du Jura)
+   Le module src/shared/geo.ts lit ces fichiers : les trois propositions montrent le Jura et
+   Chaux-des-Crotenay (39129), site d'Alésia. Les fichiers de la Côte-d'Or restent disponibles.
 
 2. Départements de France métropolitaine (96 départements, Corse comprise)
    URL : https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson
@@ -26,11 +34,11 @@ Mention de la source : « IGN, Admin Express ; Étalab, API Découpage administr
 
 Traitements
 -----------
-Script : scripts/prepare-geodata.mjs (npm run data:prepare -- <dossier des fichiers téléchargés>).
+Script : scripts/prepare-geodata.mjs (npm run data:prepare -- <dossier des fichiers téléchargés> [codes de département], 39 par défaut).
 Outil : mapshaper 0.7.68.
 - conservation des seuls champs utiles ;
 - simplification Visvalingam pondérée, 6 % des sommets pour les départements, 8 % pour les communes,
   avec conservation de toutes les formes (keep-shapes) et réparation des intersections (clean) ;
-- union (dissolve) pour les contours de la France et de la Côte-d'Or ;
+- union (dissolve) pour les contours de la France et des départements ;
 - coordonnées arrondies à 0,001° (départements) et 0,0005° (communes).
-Poids total de src/data : environ 660 ko.
+Poids total de src/data : environ 950 ko.

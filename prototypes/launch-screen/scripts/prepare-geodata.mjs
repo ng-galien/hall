@@ -5,8 +5,11 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const downloadDir = process.argv[2];
+const departementCodes = process.argv.length > 3 ? process.argv.slice(3) : ["39"];
 if (!downloadDir) {
-  console.error("Usage: npm run data:prepare -- <dossier contenant departements.geojson et communes-21.geojson>");
+  console.error(
+    "Usage: npm run data:prepare -- <dossier contenant departements.geojson et communes-<code>.geojson> [codes de département]",
+  );
   process.exit(1);
 }
 
@@ -30,22 +33,24 @@ const jobs = [
     precision: "0.001",
     extra: ["-dissolve"],
   },
-  {
-    input: join(downloadDir, "communes-21.geojson"),
-    output: join(outDir, "communes-21.json"),
-    fields: "code,nom,population",
-    simplify: "8%",
-    precision: "0.0005",
-    extra: [],
-  },
-  {
-    input: join(downloadDir, "communes-21.geojson"),
-    output: join(outDir, "contour-21.json"),
-    fields: "codeDepartement",
-    simplify: "8%",
-    precision: "0.0005",
-    extra: ["-dissolve"],
-  },
+  ...departementCodes.flatMap((code) => [
+    {
+      input: join(downloadDir, `communes-${code}.geojson`),
+      output: join(outDir, `communes-${code}.json`),
+      fields: "code,nom,population",
+      simplify: "8%",
+      precision: "0.0005",
+      extra: [],
+    },
+    {
+      input: join(downloadDir, `communes-${code}.geojson`),
+      output: join(outDir, `contour-${code}.json`),
+      fields: "codeDepartement",
+      simplify: "8%",
+      precision: "0.0005",
+      extra: ["-dissolve"],
+    },
+  ]),
 ];
 
 for (const job of jobs) {

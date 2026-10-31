@@ -168,3 +168,38 @@ body {
     transparent 100%
   );
 }
+
+.launch-cities {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.launch-city {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: clamp(11px, 1.55vmin, 15px);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--slate-800);
+  white-space: nowrap;
+  text-shadow:
+    0 0 3px var(--bg),
+    0 0 6px var(--bg);
+  will-change: transform, opacity;
+}
+
+.launch-city::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--slate-800);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--bg) 80%, transparent);
+}
