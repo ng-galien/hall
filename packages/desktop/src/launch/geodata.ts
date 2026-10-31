@@ -14,7 +14,16 @@ export interface AncientCity {
   position: PlanarPoint;
 }
 
+/** Projection de la carte : Lambert conique conforme sur la sphère, recentrée et ramenée à l'emprise de la métropole. */
+export interface MapProjection {
+  parallels: [number, number];
+  centralMeridian: number;
+  center: [number, number];
+  scale: number;
+}
+
 export interface LaunchGeodata {
+  projection: MapProjection;
   departements: Area[];
   communes: Area[];
   ancientCities: AncientCity[];
@@ -63,7 +72,7 @@ async function readJson<T>(path: string): Promise<T> {
 /** Charge les départements, les repères et les communes du seul département visé. */
 export async function loadGeodata(departementCode: string): Promise<LaunchGeodata> {
   const [departements, communes, landmarks] = await Promise.all([
-    readJson<{ departements: EncodedArea[] }>("geodata/departements.json"),
+    readJson<{ projection: MapProjection; departements: EncodedArea[] }>("geodata/departements.json"),
     readJson<{ communes: EncodedArea[] }>(`geodata/communes/${encodeURIComponent(departementCode)}.json`),
     readJson<{
       ancientCities: { name: string; modernName: string; position: number[] }[];
@@ -71,6 +80,7 @@ export async function loadGeodata(departementCode: string): Promise<LaunchGeodat
     }>("geodata/landmarks.json"),
   ]);
   return {
+    projection: departements.projection,
     departements: departements.departements.map(decodeArea),
     communes: communes.communes.map(decodeArea),
     ancientCities: landmarks.ancientCities.map((city) => ({
@@ -95,4 +105,20 @@ export function planarCentroid(polygons: PlanarPolygon[]): PlanarPoint {
     }
   }
   return count === 0 ? [0, 0] : [x / count, y / count];
+}
+
+/** Point de la carte d'une longitude et d'une latitude en degrés, par la projection de la carte. */
+export function projectToMap(projection: MapProjection, longitude: number, latitude: number): PlanarPoint {
+  const radians = Math.PI / 180;
+  const [phi1, phi2] = projection.parallels.map((value) => value * radians) as [number, number];
+  const cone =
+    Math.log(Math.cos(phi1) / Math.cos(phi2)) /
+    Math.log(Math.tan(Math.PI / 4 + phi2 / 2) / Math.tan(Math.PI / 4 + phi1 / 2));
+  const constant = (Math.cos(phi1) * Math.tan(Math.PI / 4 + phi1 / 2) ** cone) / cone;
+  const rho = constant / Math.tan(Math.PI / 4 + (latitude * radians) / 2) ** cone;
+  const theta = cone * (longitude - projection.centralMeridian) * radians;
+  return [
+    (rho * Math.sin(theta) - projection.center[0]) * projection.scale,
+    (-rho * Math.cos(theta) - projection.center[1]) * projection.scale,
+  ];
 }

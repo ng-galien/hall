@@ -107,6 +107,44 @@ html[data-leaving] body {
   color: var(--slate-600);
 }
 
+.launch-relief-names {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.terrain-toponym {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--slate-700);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  text-shadow:
+    0 0 3px var(--bg),
+    0 0 6px var(--bg);
+}
+
+.terrain-toponym.is-major {
+  color: var(--slate-950);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.terrain-toponym.is-site,
+.terrain-toponym.is-minor {
+  display: none;
+}
+
+.terrain-toponym.is-river {
+  color: var(--blue);
+  font-style: italic;
+}
+
 .launch-scrim {
   position: fixed;
   inset: 0;

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { type AncientCity, type LaunchGeodata, type PlanarPolygon, planarCentroid } from "./geodata.js";
+import type { CameraPose, ReliefStage } from "./reliefStage.js";
 import { easeInOutCubic, easeOutCubic, easeOutQuint, phase } from "./timeline.js";
 
 /** Couleurs de la charte Hall, mêmes valeurs que les variables de launch.css. */
@@ -15,8 +16,12 @@ const palette = {
   blue: 0x2f6fd6,
 } as const;
 
-/** Durée de l'animation jusqu'à l'état final, en secondes. */
+/** Durée de l'animation de la carte jusqu'au zoom sur la commune, en secondes. */
 export const launchDuration = 7.5;
+
+/** Début de la bascule vers le relief, pendant la fin du zoom sur Cornu, et sa durée, en secondes. */
+const reliefStart = 6.85;
+const reliefDuration = 2.85;
 
 /** Longueur de la chronologie de la scène, jouée en `launchDuration` secondes. */
 const timelineLength = 8.3;
@@ -30,6 +35,10 @@ export interface SceneTarget {
 }
 
 export interface LaunchScene {
+  /** Durée de l'animation jusqu'à l'état final, en secondes. */
+  duration: number;
+  /** Envoie au processeur graphique ce qui sera dessiné pendant l'animation. */
+  prepare(): void;
   render(t: number): void;
 }
 
@@ -89,7 +98,7 @@ function translate(polygons: PlanarPolygon[], dx: number, dy: number): PlanarPol
 
 function createRenderer(stage: HTMLElement): THREE.WebGLRenderer | null {
   try {
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, stencil: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.domElement.dataset.testid = "launch-canvas";
     stage.append(renderer.domElement);
@@ -181,6 +190,7 @@ export function createLaunchScene(
   citiesLayer: HTMLElement,
   data: LaunchGeodata,
   target: SceneTarget,
+  relief: ReliefStage | null,
 ): LaunchScene | null {
   const renderer = createRenderer(stage);
   if (!renderer) return null;
@@ -288,10 +298,14 @@ export function createLaunchScene(
   const look = new THREE.Vector3();
   const eye = new THREE.Vector3();
 
+  const finalPose = relief ? reliefFinalPose(relief, focus) : null;
+  const reliefPose: CameraPose = { look: new THREE.Vector3(), eye: new THREE.Vector3() };
+
   const resize = () => {
     renderer.setSize(stage.clientWidth, stage.clientHeight, false);
     camera.aspect = stage.clientWidth / Math.max(1, stage.clientHeight);
     camera.updateProjectionMatrix();
+    relief?.resize(stage.clientWidth, stage.clientHeight);
   };
   resize();
 
@@ -334,15 +348,94 @@ export function createLaunchScene(
       .lerp(regionFrom, dive)
       .lerp(siteFrom, settle);
     look.lerpVectors(wideTarget, regionTarget, dive).lerp(siteTarget, settle);
+    const bascule = relief && finalPose ? phase(elapsed, reliefStart, reliefStart + reliefDuration) : 0;
+    if (relief && finalPose && bascule > 0) {
+      reliefPose.look.copy(look).applyMatrix4(relief.fromMap);
+      reliefPose.eye.copy(eye).applyMatrix4(relief.fromMap);
+      blendPose(reliefPose, finalPose, easeInOutCubic(bascule), relief.camera);
+      look.copy(reliefPose.look).applyMatrix4(relief.toMap);
+      eye.copy(relief.camera.position).applyMatrix4(relief.toMap);
+      const settled = easeInOutCubic(phase(bascule, 0, 0.5));
+      highlight.scale.z = THREE.MathUtils.lerp(highlight.scale.z, 0.1, settled);
+      highlight.position.z = communeLayer.position.z + 2 - 2 * highlight.scale.z;
+      highlightMaterial.color.copy(accent).lerp(slate300, settled);
+      highlightMaterial.emissiveIntensity = 0.2 * (1 - settled);
+    } else {
+      highlightMaterial.color.copy(accent);
+      highlightMaterial.emissiveIntensity = 0.2;
+    }
     camera.position.copy(eye);
     camera.lookAt(look);
-    renderer.render(scene, camera);
     placeCityMarks(cityMarks, citiesLayer, camera, t, easeInOutCubic(phase(t, 5.2, 6.0)));
+    renderer.render(scene, camera);
+    if (relief && bascule > 0) {
+      relief.render(renderer, {
+        rise: easeInOutCubic(phase(bascule, 0.1, 0.75)),
+        reveal: 1.25 * easeInOutCubic(phase(bascule, 0, 0.55)),
+        names: easeOutCubic(phase(bascule, 0.75, 1)),
+      });
+    }
+  };
+
+  const prepare = () => {
+    if (!relief || !finalPose) return;
+    relief.camera.position.copy(finalPose.eye);
+    relief.camera.lookAt(finalPose.look);
+    relief.prepare(renderer);
   };
 
   new ResizeObserver(() => {
     resize();
     render(shownAt);
   }).observe(stage);
-  return { render };
+  return { duration: finalPose ? reliefStart + reliefDuration : launchDuration, prepare, render };
+}
+
+/** Pose finale sur le relief : vue rasante depuis le sud-ouest, Cornu dans la partie haute et droite de l'image. */
+function reliefFinalPose(relief: ReliefStage, focus: [number, number]): CameraPose {
+  const cornu = relief.groundOf(focus);
+  const look = cornu.clone().add(new THREE.Vector3(-150, 0, 60));
+  const azimuth = THREE.MathUtils.degToRad(-36);
+  const elevation = THREE.MathUtils.degToRad(26);
+  const distance = 950;
+  const eye = look
+    .clone()
+    .add(
+      new THREE.Vector3(
+        Math.sin(azimuth) * Math.cos(elevation),
+        Math.sin(elevation),
+        Math.cos(azimuth) * Math.cos(elevation),
+      ).multiplyScalar(distance),
+    );
+  return { look, eye };
+}
+
+const offsetFrom = new THREE.Vector3();
+const offsetTo = new THREE.Vector3();
+
+/**
+ * Place la caméra du relief entre la pose de départ (modifiée en place) et la pose finale : point visé interpolé,
+ * distance interpolée en échelle logarithmique, azimut et élévation interpolés autour du point visé.
+ */
+function blendPose(from: CameraPose, to: CameraPose, k: number, camera: THREE.PerspectiveCamera): void {
+  offsetFrom.subVectors(from.eye, from.look);
+  offsetTo.subVectors(to.eye, to.look);
+  const startDistance = offsetFrom.length();
+  const endDistance = offsetTo.length();
+  const startAzimuth = Math.atan2(offsetFrom.x, offsetFrom.z);
+  let endAzimuth = Math.atan2(offsetTo.x, offsetTo.z);
+  if (endAzimuth - startAzimuth > Math.PI) endAzimuth -= 2 * Math.PI;
+  if (startAzimuth - endAzimuth > Math.PI) endAzimuth += 2 * Math.PI;
+  const startElevation = Math.asin(offsetFrom.y / startDistance);
+  const endElevation = Math.asin(offsetTo.y / endDistance);
+  const distance = Math.exp(THREE.MathUtils.lerp(Math.log(startDistance), Math.log(endDistance), k));
+  const azimuth = THREE.MathUtils.lerp(startAzimuth, endAzimuth, k);
+  const elevation = THREE.MathUtils.lerp(startElevation, endElevation, k);
+  from.look.lerp(to.look, k);
+  camera.position
+    .set(Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.cos(azimuth) * Math.cos(elevation))
+    .multiplyScalar(distance)
+    .add(from.look);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(from.look);
 }

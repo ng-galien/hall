@@ -1,7 +1,8 @@
 import "./launch.css";
 import { createFrameProbe } from "./frames.js";
 import { loadGeodata } from "./geodata.js";
-import { createLaunchScene, launchDuration } from "./scene.js";
+import { createReliefStage, type ReliefStage } from "./reliefStage.js";
+import { createLaunchScene, type LaunchScene } from "./scene.js";
 import { easeOutCubic, phase } from "./timeline.js";
 
 type Presentation = "alesia" | "official";
@@ -253,7 +254,7 @@ function startFrameLoop(): void {
     if (recording) frameProbe.record(now);
     advanceProgress(now);
     recordMotion(now);
-    if (progress.ready && progress.shown >= 1) {
+    if (progress.ready && progress.shown >= 1 && root.dataset.state === "final") {
       looping = false;
       root.dataset.frameStatistics = JSON.stringify(frameProbe.statistics());
       root.dataset.progressStatistics = JSON.stringify({
@@ -300,8 +301,8 @@ function writePlace(communeName: string, departementName: string): void {
   }
 }
 
-function showFinal(render: ((t: number) => void) | null): void {
-  render?.(launchDuration);
+function showFinal(scene: LaunchScene | null): void {
+  scene?.render(scene.duration);
   root.style.setProperty("--brand-opacity", "1");
   setState("final");
   recording = true;
@@ -315,19 +316,21 @@ const warmUpFrames = 3;
  * Dessine la première image et attend que le rendu soit prêt, puis joue l'animation une fois selon l'horloge et
  * tient l'état final jusqu'à l'ordre de départ ; le coût du premier rendu ne fait donc pas sauter l'animation.
  */
-function play(render: (t: number) => void): void {
-  render(0);
+function play(scene: LaunchScene): void {
+  scene.render(0);
+  scene.prepare();
   let remaining = warmUpFrames;
   const warmUp = () => {
     remaining -= 1;
     if (remaining > 0) requestAnimationFrame(warmUp);
-    else runTimeline(render);
+    else runTimeline(scene);
   };
   requestAnimationFrame(warmUp);
 }
 
-function runTimeline(render: (t: number) => void): void {
+function runTimeline(scene: LaunchScene): void {
   recording = true;
+  const launchDuration = scene.duration;
   const brandIn = launchDuration - 0.9;
   const start = performance.now();
   root.dataset.startedAt = String(Math.round(start));
@@ -335,15 +338,31 @@ function runTimeline(render: (t: number) => void): void {
   const frame = (now: number) => {
     const elapsed = (now - start) / 1000;
     if (elapsed >= launchDuration) {
-      showFinal(render);
+      showFinal(scene);
       return;
     }
     root.style.setProperty("--brand-opacity", String(easeOutCubic(phase(elapsed, brandIn, launchDuration))));
-    render(elapsed);
+    scene.render(elapsed);
     requestAnimationFrame(frame);
     if (!startReported) requestAnimationFrame(reportStarted);
   };
   requestAnimationFrame(frame);
+}
+
+/** Relief de Cornu du site public, chargé et maillé avant l'animation ; null s'il ne peut pas être chargé. */
+async function loadRelief(
+  projection: Parameters<typeof createReliefStage>[0],
+  names: HTMLElement,
+): Promise<ReliefStage | null> {
+  const startedAt = performance.now();
+  try {
+    const relief = await createReliefStage(projection, names, 0x2f6fd6);
+    root.dataset.reliefBuildMs = String(Math.round(performance.now() - startedAt));
+    return relief;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 }
 
 async function start(): Promise<void> {
@@ -363,19 +382,24 @@ async function start(): Promise<void> {
   });
   const stage = document.getElementById("stage");
   const cities = document.getElementById("cities");
-  if (!stage || !cities) return;
+  const names = document.getElementById("relief-names");
+  if (!stage || !cities || !names) return;
   try {
     const data = await loadGeodata(departementCode);
     const departement = data.departements.find((area) => area.code === departementCode);
     const commune = data.communes.find((area) => area.code === communeCode);
     writePlace(commune?.name ?? "", departement?.name ?? "");
-    const scene = createLaunchScene(stage, cities, data, {
-      departementCode,
-      communeCode,
-      focus: presentation === "alesia" ? data.alesiaFocus : null,
-    });
-    if (!scene || reducedMotion) showFinal(scene ? scene.render : null);
-    else play(scene.render);
+    const relief = presentation === "alesia" ? await loadRelief(data.projection, names) : null;
+    const scene = createLaunchScene(
+      stage,
+      cities,
+      data,
+      { departementCode, communeCode, focus: presentation === "alesia" ? data.alesiaFocus : null },
+      relief,
+    );
+    if (relief) root.dataset.relief = "true";
+    if (!scene || reducedMotion) showFinal(scene);
+    else play(scene);
   } catch (error) {
     console.error(error);
     showFinal(null);

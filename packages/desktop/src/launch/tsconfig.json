@@ -5,7 +5,12 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": []
+    "types": [],
+    "baseUrl": ".",
+    "paths": {
+      "three": ["../../../../node_modules/@types/three"],
+      "three/*": ["../../../../node_modules/@types/three/*"]
+    }
   },
   "include": ["./**/*.ts"]
 }
