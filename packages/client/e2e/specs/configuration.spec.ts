@@ -1,0 +1,84 @@
+import { expect, test } from "../fixtures/application";
+
+test.use({ seedScenario: "default" });
+
+// @verifies-requirement HALL-FR-CFG-010
+// @verifies-requirement HALL-FR-CFG-020
+// @verifies-requirement HALL-FR-CFG-030
+test("configuration categories preserve mail settings and expose editable generation templates", async ({
+  appPage: page,
+}) => {
+  test.setTimeout(60_000);
+  await page.goto("/app/settings?category=mail");
+  const mail = page.getByTestId("settings-mail");
+  await mail.getByTestId("settings-mail-outboundEmailReplyToAddress").fill("reply@example.test");
+  for (const [field, value] of [
+    ["outboundEmailSignatureMarkdown", "Signature UI"],
+    ["outboundEmailFooterMarkdown", "Footer UI"],
+  ]) {
+    const editor = mail.getByTestId(`settings-mail-${field}`).getByTestId("editor-writing-area");
+    await editor.click();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.type(value!);
+  }
+  await mail.getByTestId("settings-mail-save").click();
+  await expect(mail.getByTestId("settings-mail-saved")).toBeVisible();
+  await page.getByTestId("settings-tab-commune").click();
+  await page.getByTestId("settings-tab-mail").click();
+  await expect(mail.getByTestId("settings-mail-outboundEmailReplyToAddress")).toHaveValue("reply@example.test");
+  await expect(mail.getByTestId("settings-mail-outboundEmailSignatureMarkdown")).toContainText("Signature UI");
+  await page.reload();
+  await expect(mail.getByTestId("settings-mail-outboundEmailFooterMarkdown")).toContainText("Footer UI");
+  await page.getByTestId("settings-tab-documents").click();
+  const response = await page.request.get("/api/templates");
+  const templates = (await response.json()).entities.map(
+    (entity: { properties: { id: string; documentType: string } }) => entity.properties,
+  );
+  for (const type of ["document-print", "meeting-dossier-cover", "meeting-dossier-point", "event-invitation"])
+    expect(templates.some((entry: { documentType: string }) => entry.documentType === type)).toBe(true);
+  const print = templates.find((entry: { documentType: string }) => entry.documentType === "document-print");
+  await page.getByTestId(`template-row-${print.id}`).click();
+  await expect(page.getByTestId("template-save")).toBeDisabled();
+  await expect(page.getByTestId("template-unsaved")).toHaveCount(0);
+  await page.getByTestId("template-stylesheet").fill("h1 { color: #123456; }");
+  await page.getByTestId("template-header-source").fill("<div>Configured header</div>");
+  await page.getByTestId("template-save").click();
+  await expect(page.getByTestId("template-saved")).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId("template-stylesheet")).toHaveValue("h1 { color: #123456; }");
+  await page.getByTestId("template-preview").click();
+  await expect(page.frameLocator('[data-testid="template-preview-frame"]').locator("header")).toContainText(
+    "Configured header",
+  );
+});
+
+// @verifies-requirement HALL-FR-CFG-020
+test("all nine templates preview real Alésia data with saved presentation", async ({ appPage: page }) => {
+  const listing = await page.request.get("/api/templates");
+  const templates = (await listing.json()).entities.map(
+    (entry: { properties: Record<string, unknown> }) => entry.properties,
+  );
+  expect(templates).toHaveLength(9);
+  for (const template of templates) {
+    const response = await page.request.post("/api/templates/preview", { data: { ...template, context: {} } });
+    expect(response.ok(), JSON.stringify(await response.json())).toBeTruthy();
+    const preview = (await response.json()).properties;
+    expect(preview.sourceLabel, String(template.documentType)).toBeTruthy();
+    expect(preview.diagnostics, String(template.documentType)).toEqual([]);
+    expect(preview.html.length, String(template.documentType)).toBeGreaterThan(1000);
+    expect(preview.html).not.toContain("Contenu d’exemple");
+    expect(preview.html, String(template.documentType)).not.toContain("Commune non renseignée");
+    expect(preview.html, String(template.documentType)).not.toContain("nom non renseigné");
+    if (template.documentType === "council-decision") expect(preview.html).toContain("<h1>Commune de Alésia</h1>");
+    if (template.kind === "pdf") {
+      expect(template.headerHtml).toBeTruthy();
+      expect(template.footerHtml).toBeTruthy();
+    } else expect(preview.html).toContain("Démonstration Hall");
+  }
+  await page.goto(
+    `/app/templates/${templates.find((entry: { documentType: string }) => entry.documentType === "minutes").id}`,
+  );
+  await page.getByTestId("template-preview").click();
+  await expect(page.getByTestId("template-preview-source")).toContainText("Preview data: council meeting no.");
+  await expect(page.frameLocator('[data-testid="template-preview-frame"]').locator("body")).toContainText("Alésia");
+});

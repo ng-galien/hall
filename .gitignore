@@ -26,3 +26,9 @@ packages/client/test-results/
 # Local Codex configuration and TRUST Runner log
 /.codex/config.toml
 /.trust/server/runner.log
+
+# Local document renders and visual inspection artifacts.
+/output/pdf/
+/tmp/pdfs/
+/tmp/verify-opening-ui.mjs
+/prototypes/launch-screen/captures/

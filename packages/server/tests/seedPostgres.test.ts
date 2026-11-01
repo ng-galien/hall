@@ -83,7 +83,7 @@ postgresTest.each(["preparation", "default", "minutes"])(
           "Correspondance avec le proconsul",
         ]),
       );
-      expect(names).not.toContain("Affectation du grenier de Cornu aux réserves");
+      expect(names).not.toContain("Affectation du grenier d’Alésia aux réserves");
       expect(names).not.toContain("Répartition des réserves de céréales");
       const subjects = await get("/council-business/prepared-subjects");
       expect(subjects).toHaveLength(16);
@@ -95,8 +95,8 @@ postgresTest.each(["preparation", "default", "minutes"])(
         (subject: { councilBusinessId: string }) => subject.councilBusinessId === property.id,
       );
       expect(propertySubjects.map((subject: { title: string }) => subject.title).sort()).toEqual([
-        "Affectation du grenier de Cornu aux réserves",
-        "Aménagement des abris de Cornu - étude préalable",
+        "Affectation du grenier d’Alésia aux réserves",
+        "Aménagement des abris d’Alésia - étude préalable",
       ]);
       const associations = businesses.find((business: { title: string }) => business.title === "Équipes de soutien");
       const propertyResources = await get(`/council-business/${property.id}/resources`);
@@ -171,7 +171,7 @@ postgresTest.each(["preparation", "default", "minutes"])(
       expect(thirdAgenda.map((item: { title: string }) => item.title)).toEqual(
         expect.arrayContaining([
           "Défense du plateau - renforcement de la seconde ligne",
-          "Aménagement des abris de Cornu - étude préalable",
+          "Aménagement des abris d’Alésia - étude préalable",
           "Acheminement des vivres entre le grenier et les abris",
         ]),
       );
@@ -190,7 +190,7 @@ postgresTest.each(["preparation", "default", "minutes"])(
         expect(third.closedAt).toBeNull();
         expect(
           thirdAgenda.find(
-            (item: { title: string }) => item.title === "Aménagement des abris de Cornu - étude préalable",
+            (item: { title: string }) => item.title === "Aménagement des abris d’Alésia - étude préalable",
           ).startedAt,
         ).not.toBeNull();
       }

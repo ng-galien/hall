@@ -6,6 +6,7 @@ import { z } from "zod";
 import { cookieValueFromHeader, requestHostAllowed } from "../api/accessControl.js";
 import type { ServerConfig } from "../core/config.js";
 import { logger } from "../core/logger.js";
+import type { AuthorizeReading } from "../security/authorization.js";
 import { type AuthService, SESSION_COOKIE_NAME } from "../services/authService.js";
 import type { LiveEventBus, LiveSubscription } from "./liveEvents.js";
 
@@ -45,7 +46,13 @@ export function attachLiveWebSocket(
     authService,
     config,
     realtimeEvents,
-  }: { authService: AuthService; config: ServerConfig; realtimeEvents: LiveEventBus },
+    authorizeReading,
+  }: {
+    authService: AuthService;
+    config: ServerConfig;
+    realtimeEvents: LiveEventBus;
+    authorizeReading: AuthorizeReading;
+  },
 ): { close(): Promise<void> } {
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 });
 
@@ -64,7 +71,8 @@ export function attachLiveWebSocket(
       if (config.devAutoLogin) return true;
       if (!token) return false;
       const session = await authService.authenticate(token);
-      return (session?.user.roles.length ?? 0) > 0;
+      if (!session) return false;
+      return authorizeReading(session.user);
     };
     try {
       if (!(await permitted())) {

@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { ApiRole, ApiUser } from "@hall/api-contract";
+import type { AuthorizationAdministrationClient } from "../clients/authorizationAdministrationClient.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { UnitOfWork } from "../repositories/contracts.js";
@@ -68,12 +69,14 @@ export interface AuthService {
 // @implements-requirement HALL-FR-USR-020 (reactivateUser; the revocation is disableUser, audited as user.revoke-access)
 export function createAuthService({
   securityRepository,
+  authorizationAdministrationClient,
   directoryClient,
   resourcesClient,
   unitOfWork,
   requestContext,
 }: {
   securityRepository: SecurityRepository;
+  authorizationAdministrationClient: AuthorizationAdministrationClient;
   directoryClient: DirectoryClient;
   resourcesClient: ResourcesClient;
   unitOfWork: UnitOfWork;
@@ -87,7 +90,7 @@ export function createAuthService({
   };
 
   const provisionCouncillor = async (roles: readonly ApiRole[], contactId: string | null) => {
-    if (!roles.includes("councillor")) return;
+    if (!(await authorizationAdministrationClient.requiresPersonalWorkspace(roles))) return;
     if (!contactId) throw new DomainError("councillor_requires_active_member", 422);
     await resourcesClient.provisionPersonalWorkspace(contactId);
   };

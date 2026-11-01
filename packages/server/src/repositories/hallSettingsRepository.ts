@@ -34,6 +34,14 @@ function mapHallSettings(row: DatabaseRow, meetingLocations: string[]): HallSett
       row.outbound_email_reply_to_address,
       "hall_settings.outbound_email_reply_to_address",
     ),
+    outboundEmailSignatureMarkdown: asString(
+      row.outbound_email_signature_markdown,
+      "hall_settings.outbound_email_signature_markdown",
+    ),
+    outboundEmailFooterMarkdown: asString(
+      row.outbound_email_footer_markdown,
+      "hall_settings.outbound_email_footer_markdown",
+    ),
     updatedAt: asNullableString(row.updated_at, "hall_settings.updated_at"),
   };
 }

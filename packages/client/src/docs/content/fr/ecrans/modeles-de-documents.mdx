@@ -5,7 +5,7 @@ order: 14.5
 screen: /templates
 ---
 
-L’écran **Modèles de documents**, dans le menu Administration, liste les modèles d’après lesquels Hall produit ses documents : la convocation, le message de convocation, le procès-verbal, la délibération et la liste des délibérations examinées. Chaque ligne donne le nom du modèle, son type de document et sa forme, PDF ou message.
+L’onglet **Documents** des paramètres et l’écran **Modèles de documents**, dans le menu Administration, liste les modèles d’après lesquels Hall produit ses documents : la convocation, le message de convocation, le procès-verbal, la délibération et la liste des délibérations examinées, l’impression des documents, la couverture et les pages des points du dossier de séance, ainsi que les invitations ou annulations d’événements. Chaque ligne donne le nom du modèle, son type de document et sa forme, PDF ou message.
 
 ![Les modèles de documents d’Alésia](/app/documentation/captures/ecrans/modeles-de-documents.png)
 
@@ -13,12 +13,16 @@ Un clic sur un modèle ouvre sa fiche.
 Le **Texte** se modifie dans l’éditeur de Hall, comme un document ; les lignes qui commencent par `::`, comme `::meeting-notice` ou `::minutes{section="facts"}`, marquent l’endroit où Hall place la convocation, les présences ou les points : elles restent dans le texte.
 **Choisir une photo**, sous le texte, y place une image ; elle est rangée dans le dossier **Modèles de documents** de l’espace de travail.
 L’**En-tête** et le **Pied de page** d’un PDF sont imprimés sur chaque page. **Insérer une image** y place un logo, une image JPEG ou PNG de 60 Ko au plus.
-Un message de convocation a un **Objet du message** à la place de l’en-tête.
+Le champ **Style du document (CSS)** règle la présentation du contenu des PDF. Un modèle de message a un **Objet du message** à la place de l’en-tête.
 **Aperçu** montre le modèle tel que Hall l’imprime ; **Enregistrer** le garde. Les documents produits ensuite suivent le modèle enregistré ; ceux déjà produits ne changent pas. La liste des délibérations, qui n’est pas conservée, se produit à chaque ouverture avec le modèle du moment.
 
 ![La fiche d’un modèle : en-tête avec logo, texte et pied de page](/app/documentation/captures/ecrans/modele-de-document.png)
 
 **Nouveau modèle** crée le modèle d’un type de document qui n’en a pas encore, avec un texte de départ ; chaque type n’a qu’un modèle.
-Les comptes qui modifient l’espace de travail changent les modèles ; les autres les lisent.
+Les actions proposées suivent les droits du compte connecté.
+
+Les modèles d’impression, de dossier et d’invitation conservent exactement un bloc `::generated-content` : Hall y insère le contenu réel. L’aperçu utilise un contenu d’exemple. La suppression ou la répétition de ce bloc est refusée lors de l’enregistrement. L’objet des invitations peut inclure `:field{name=generated.subject}`.
+
+Les modèles et les réglages de courriel peuvent aussi être lus et modifiés par un agent via les outils MCP de configuration, avec les mêmes droits.
 
 Voir aussi [Paramètres de l’application](/docs/ecrans/parametres), pour les données de la commune.

@@ -24,8 +24,8 @@ const fields: Array<{ field: CommuneField; label: TranslationKey; type?: string;
   { field: "populationReferenceDate", label: "settings.communePopulationReferenceDate", type: "date" },
   { field: "phone", label: "settings.communePhone", type: "tel" },
   { field: "website", label: "settings.communeWebsite", type: "url" },
-  { field: "outboundEmailSenderName", label: "settings.communeSenderName" },
-  { field: "outboundEmailSenderAddress", label: "settings.communeSenderAddress", type: "email" },
+  { field: "email", label: "settings.mail.contact", type: "email" },
+  { field: "timeZone", label: "settings.mail.timeZone" },
 ];
 
 const nullableFields = new Set<CommuneField>([
@@ -34,7 +34,7 @@ const nullableFields = new Set<CommuneField>([
   "population",
   "populationReferenceDate",
   "website",
-  "outboundEmailSenderAddress",
+  "email",
 ]);
 
 function draftOf(settings: HallSettings): Record<CommuneField, string> {
@@ -54,11 +54,18 @@ function communeOf(draft: Record<CommuneField, string>): CommuneValues {
 
 /**
  * The municipality's data in Settings: an administrator, who holds settings.update, edits the named fields; any other
- * signed-in account reads them. The geographic position, contact and reply addresses, time zone and meeting
- * locations are neither shown nor changed here.
+ * signed-in account reads them. Fields owned by other settings categories keep their stored values.
  */
 // @implements-requirement HALL-FR-COM-010
-export function CommuneSettings({ settings, canUpdate }: { settings: HallSettings; canUpdate: boolean }) {
+export function CommuneSettings({
+  settings,
+  canUpdate,
+  onSaved,
+}: {
+  settings: HallSettings;
+  canUpdate: boolean;
+  onSaved?: (settings: HallSettings) => void;
+}) {
   const { t } = useI18n();
   const id = useId();
   const { submitting, run } = useSubmitting();
@@ -72,7 +79,9 @@ export function CommuneSettings({ settings, canUpdate }: { settings: HallSetting
       setError(null);
       setSaved(false);
       try {
-        setDraft(draftOf(await updateCommuneSettings(communeOf(draft))));
+        const updated = await updateCommuneSettings(communeOf(draft));
+        setDraft(draftOf(updated));
+        onSaved?.(updated);
         setSaved(true);
         return true;
       } catch (cause) {

@@ -1,3 +1,9 @@
+import {
+  type AuthorizationRoleInput,
+  authorizationConfigurationSchema,
+  authorizationRoleOptionSchema,
+  authorizationRoleSchema,
+} from "@hall/contracts";
 import type { Pool } from "pg";
 import { z } from "zod";
 import type { PostgresRequest } from "./callContext.js";
@@ -28,6 +34,67 @@ export class PostgresAuthorization {
           text: "SELECT to_jsonb(hall_api.allows($1::text, $2::jsonb)) AS payload",
           values: [action, target ? JSON.stringify(target) : null],
           schema: z.boolean(),
+        }),
+    );
+  }
+
+  requiresPersonalWorkspace(request: PostgresRequest, roles: readonly string[]) {
+    return this.transactions.run(
+      { role: request.role, context: { ...request.context, action: "role.workspace-policy" } },
+      (client) =>
+        callJson(client, {
+          text: "SELECT to_jsonb(hall_api.authorization_requires_personal_workspace($1::text[])) AS payload",
+          values: [roles],
+          schema: z.boolean(),
+        }),
+    );
+  }
+
+  roleOptions(request: PostgresRequest) {
+    return this.transactions.run(
+      { role: request.role, context: { ...request.context, action: "role.options" } },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.authorization_role_options() AS payload",
+          schema: z.array(authorizationRoleOptionSchema),
+        }),
+    );
+  }
+
+  configuration(request: PostgresRequest) {
+    return this.transactions.run(
+      { role: request.role, context: { ...request.context, action: "role.list" } },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.authorization_configuration() AS payload",
+          schema: authorizationConfigurationSchema,
+        }),
+    );
+  }
+
+  saveRole(request: PostgresRequest, id: string, input: AuthorizationRoleInput) {
+    return this.transactions.run(
+      {
+        role: request.role,
+        context: { ...request.context, action: input.revision === 0 ? "role.create" : "role.update" },
+      },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.save_authorization_role($1::text, $2::jsonb) AS payload",
+          values: [id, JSON.stringify(input)],
+          schema: authorizationRoleSchema,
+        }),
+    );
+  }
+
+  deleteRole(request: PostgresRequest, id: string, revision: number) {
+    return this.transactions.run(
+      { role: request.role, context: { ...request.context, action: "role.delete" } },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.delete_authorization_role($1::text, $2::integer) AS payload",
+          values: [id, revision],
+          schema: authorizationRoleSchema,
         }),
     );
   }

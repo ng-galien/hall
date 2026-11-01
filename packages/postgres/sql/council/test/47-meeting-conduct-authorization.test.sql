@@ -21,6 +21,12 @@ SELECT is((SELECT count(*)::int FROM hall.action_access), (SELECT count(DISTINCT
 SELECT is((SELECT count(*)::int FROM hall.action_access mapping WHERE NOT EXISTS (SELECT FROM hall.access a WHERE a.access = mapping.access)),
   0, 'every action access is in the access catalogue');
 SELECT set_eq($$SELECT action, access FROM hall.action_access$$, $$VALUES
+ ('application.read','read'),
+ ('application.export','export'),
+ ('role.list','authorization.manage'),
+ ('role.create','authorization.manage'),
+ ('role.update','authorization.manage'),
+ ('role.delete','authorization.manage'),
  ('resource.search-legal-references','read'),
  ('template.preview','read'),
  ('template.preview-pdf','read'),

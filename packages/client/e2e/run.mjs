@@ -26,8 +26,8 @@ const documentationCaptures =
 const buildPackages = [
   { name: "@hall/contracts", directory: "contracts" },
   { name: "@hall/api-contract", directory: "api-contract" },
-  { name: "@hall/mcp", directory: "mcp" },
   { name: "@hall/domain", directory: "domain" },
+  { name: "@hall/mcp", directory: "mcp" },
   { name: "@hall/templating", directory: "templating" },
   { name: "@hall/server", directory: "server" },
 ];

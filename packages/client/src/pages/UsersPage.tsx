@@ -16,6 +16,7 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
+import { useRoleOptions } from "../features/authorization/useRoleOptions";
 import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
 import { UserRoles } from "../features/users/UserRoles";
 import { useSubmitting } from "../hooks/useSubmitting";
@@ -27,6 +28,7 @@ import { useUsersStore } from "../stores/usersStore";
 
 export function UsersPage() {
   const { t } = useI18n();
+  const { roleName, requiresActiveMember } = useRoleOptions();
   const navigate = useNavigate();
   const { submitting, run } = useSubmitting();
   const { users, loading, load, create, error, canCreate, canGeneratePassphrase, clearError } = useUsersStore();
@@ -44,7 +46,7 @@ export function UsersPage() {
     void load();
   }, [load]);
   const visible = users.filter((user) =>
-    matchesQuery(query, user.displayName, user.email, ...user.roles.map((role) => t(`users.role.${role}`))),
+    matchesQuery(query, user.displayName, user.email, ...user.roles.map((role) => roleName(role))),
   );
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -95,7 +97,7 @@ export function UsersPage() {
   const details = (user: ApiUser) => (
     <div className="council-member-contact">
       <a href={`mailto:${user.email}`}>{user.email}</a>
-      <span>{user.roles.map((role) => t(`users.role.${role}`)).join(" · ")}</span>
+      <span>{user.roles.map((role) => roleName(role)).join(" · ")}</span>
     </div>
   );
   return (
@@ -227,9 +229,9 @@ export function UsersPage() {
               )}
             </div>
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
-            {roles.includes("councillor") && (
+            {requiresActiveMember(roles) && (
               <p className="text-sm text-muted-foreground" data-testid="user-councillor-contact-hint">
-                {t("users.councillorContactHint")}
+                {t("authorization.activeMemberRequired")}
               </p>
             )}
             <Button

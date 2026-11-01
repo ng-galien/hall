@@ -190,6 +190,11 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   invalid_credentials: "error.invalid_credentials",
   bootstrap_unavailable: "error.bootstrap_unavailable",
   last_administrator_required: "error.last_administrator_required",
+  built_in_administrator_protected: "error.built_in_administrator_protected",
+  invalid_authorization_grant: "error.invalid_authorization_grant",
+  authorization_role_changed: "error.authorization_role_changed",
+  authorization_role_in_use: "error.authorization_role_in_use",
+
   councillor_requires_active_member: "error.councillor_requires_active_member",
   personal_workspace_resource_not_associable: "error.personal_workspace_resource_not_associable",
   council_business_report_not_deletable: "error.council_business_report_not_deletable",

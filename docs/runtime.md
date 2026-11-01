@@ -44,16 +44,11 @@ Local mode verifies the schema fingerprint and does not run the schema upgrade (
 
 ### Launch screen
 
-At every launch, the main window shows the launch screen in a view placed over the window content while the embedded PostgreSQL server and the local server start (or while the connected server loads). The France forms from its departments, the main ancient cities appear with their Gaulish or Roman names, then the camera moves to a department and settles on a commune. The application loads under the view. The final state shows Hall, the commune, a preparation scale with three steps (server, workspace loading, workspace ready) and the **Ouvrir Hall** button. The button stays inactive until the application has loaded; the application replaces the screen only when the user clicks the button or presses Enter. With reduced motion requested by the system (`prefers-reduced-motion` or Electron `getAnimationSettings().prefersReducedMotion`), the final state and the button are shown immediately.
+At every launch, the desktop demonstration shows the same introduction: France assembles from its departments, ancient cities appear, the camera moves towards the Jura and Alésia, then transitions into the existing shared 3D relief. The validated scene, labels and relief coordinates are independent of municipality settings. Historical `launch-territory.json` files are neither read nor updated, and startup makes no request to `/api/settings`.
 
-The commune shown is chosen by `packages/desktop/src/launchTerritory.ts`:
+The application loads under the launch view. The final state shows Alésia and a preparation scale for the actual database, server, dataset (when needed) and interface phases. **Ouvrir Hall** and Enter open the workspace only after it has loaded and the introduction has reached its final state. A reduced-motion preference skips the animated timeline and shows the final relief after its resources have been prepared.
 
-1. The INSEE code stored in `launch-territory.json` in the user-data directory, when the embedded geometries contain that commune. The commune and its department are shown under their official names.
-2. Otherwise, in every edition: Chaux-des-Crotenay (39129, Jura), framed on the plateau of Cornu, with the texts of the demonstration story: « Alésia, territoire des Mandubiens » and « Oppidum du plateau de Cornu, entre la Lemme et la Saine. Le maire est Vercingétorix. ».
-
-The main process reads `inseeCode` from `GET /api/settings` with the session cookies of the application as soon as the server answers, and again when the application quits, before the embedded server stops; the value is stored in `launch-territory.json` for the next launch. Without a signed-in session the request is refused and the stored value is unchanged, so a commune recorded in the settings is shown from the launch that follows a quit with an open session.
-
-The page is served from the application through the private `hall-launch://` protocol and makes no network request. Its geometries are in `packages/desktop/geodata/`: the 96 metropolitan departments, one file of communes per department loaded on demand, and the ancient cities; sources, licence and processing are in `packages/desktop/geodata/SOURCES`, and `packages/desktop/scripts/prepare-launch-geodata.mjs` regenerates them from downloaded files.
+The page and its geometries are served through the private `hall-launch://` protocol without network access. The existing geometries and their processing sources remain in `packages/desktop/geodata/` and `packages/desktop/geodata/SOURCES`; only the Jura communes are requested by the introduction. The relief renderer and data are shared with the public site.
 
 The focused journey uses a stub Hall server in connected mode:
 
@@ -68,7 +63,7 @@ It requires `npm run build -w @hall/desktop`.
 
 The demonstration edition is the desktop application distributed on the GitHub release page. It uses the same embedded server and production authentication as local mode; it does not use `HALL_DEV_AUTO_LOGIN`, `HALL_SERVER_URL` or `connection.json`.
 
-The edition is `local` or `demonstration`. A packaged application reads it from `edition.json`, written by `packages/desktop/forge.config.mjs` from `HALL_DESKTOP_EDITION` at packaging time. An unpackaged run reads `HALL_DESKTOP_EDITION` directly:
+The distributed desktop application is the demonstration. Packaging and an unpackaged run default to `demonstration`; `edition.json` records the packaged edition. `HALL_DESKTOP_EDITION=local` remains an explicit development/test mode for the connected-server test harness, not a separately distributed municipal edition:
 
 ```sh
 HALL_DESKTOP_EDITION=demonstration npm run desktop:make
@@ -77,12 +72,12 @@ HALL_DESKTOP_EDITION=demonstration HALL_USER_DATA_PATH=/tmp/hall-demo npm run st
 
 #### Startup order and progress
 
-1. The main process creates the window and the launch view. The launch page loads its geometries, draws a first frame and three warm-up frames (shader compilation and geometry upload), then starts the animation clock and signals `hall-launch:started`. The main process waits for this signal (4 s at most) before starting any server work.
+1. The main process creates the window and launch view. The page loads and prepares the existing geometry and shaders, draws its first useful frame, then signals `hall-launch:started`. Embedded preparation waits for this actual signal. A missing signal after 30 seconds or a lost renderer rejects startup with an error; neither condition releases server work.
 2. The main process forks `dist/server-process.js` (`packages/desktop/src/serverProcess.ts`) with Electron `utilityProcess` and lowers its priority to nice 10; embedded PostgreSQL inherits it. The main process, the GPU process and the renderers keep their normal priority.
 3. The server process reports its phases: **database** (embedded PostgreSQL initialised and started; `startLocalHttpServer` calls `onDatabaseReady`), **server** (HTTP server, schema installation or verification), then, on the first launch of a demonstration profile or after a reset, **dataset** (Alésia dataset and `default` scenario loaded through the public API). It then signs in to the demonstration and sends the server address and session cookie to the main process, which sets the cookie.
 4. The main process loads `/app/` under the launch view: **interface** phase. The launch page then shows « Espace de travail prêt » and enables **Ouvrir Hall**.
 
-The progress bar has one segment per phase, sized by the phase duration measured at the previous launch (`launch-timings.json` in the user-data directory; default values on a new profile). Within a running phase the bar advances with time, linearly up to 80 % of the expected duration, then more slowly without stopping; at each real end-of-phase signal it reaches the phase boundary in a short transition. It never moves backwards. The page records frame statistics (`data-frame-statistics`), bar regularity (`data-progress-statistics`) and phase times (`data-phases` on the progress bar).
+The progress bar has one segment per phase, sized by the phase duration measured at the previous launch (`launch-timings.json` in the user-data directory; default values on a new profile). Within a running phase the bar advances with time, linearly up to 80 % of the expected duration, then more slowly without stopping; at each real end-of-phase signal it reaches the phase boundary in a short transition. It never moves backwards. The page records inexpensive live frame totals (`data-frame-statistics`), bar regularity (`data-progress-statistics`) and phase times (`data-phases` on the progress bar). Sampling starts at navigation, includes geometry/shader preparation and warm-up, and continues through the final orbit and departure rather than stopping at readiness. Complete snapshots include p95, p99, maximum and misses against an explicit 60 Hz reference budget; this reference is not a hardware-independent performance guarantee. `window.hallLaunchSnapshot()` returns raw intervals and stage marks for a verification run. Setting `HALL_STARTUP_TRACE_PATH` to an explicit file path saves the complete measurements at departure (mode 0600); no trace is written by default. The trace includes process and navigation origins so invocation-to-first-frame waiting is distinguishable from subsequent frame intervals.
 
 Closing Hall or resetting the demonstration asks the server process to close the HTTP server and PostgreSQL, then waits for it to exit (15 s at most before it is killed).
 

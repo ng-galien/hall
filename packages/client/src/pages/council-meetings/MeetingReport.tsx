@@ -160,7 +160,7 @@ export function MeetingReport({
       </div>
       {deliberationListHref && deliberationListOpen ? (
         <DocumentObjectViewer
-          title={t("meeting.deliberationList")}
+          title={`${t("meeting.deliberationList")} · ${formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}`}
           objectUrl={deliberationListHref}
           mediaType="application/pdf"
           onClose={() => setDeliberationListOpen(false)}

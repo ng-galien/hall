@@ -18,7 +18,7 @@ export interface MeetingDossierService {
   dossier(meetingId: string): Promise<MeetingDossier>;
 }
 
-interface DossierPiece {
+export interface DossierPiece {
   name: string;
   pdf: Buffer | null;
 }
@@ -39,7 +39,7 @@ function itemTitle(item: MeetingNoticeMeetingFacts["agenda"][number]): string {
   });
 }
 
-function coverMarkdown(facts: MeetingNoticeMeetingFacts, communeName: string, timeZone: string): string {
+export function coverMarkdown(facts: MeetingNoticeMeetingFacts, communeName: string, timeZone: string): string {
   const scheduledAt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "full", timeStyle: "short", timeZone }).format(
     new Date(facts.scheduledAt),
   );
@@ -58,7 +58,7 @@ function subjectHeading(item: AgendaItem): string | null {
   });
 }
 
-function pointMarkdown(
+export function pointMarkdown(
   frozen: MeetingNoticeMeetingFacts["agenda"][number],
   item: AgendaItem | undefined,
   report: string | null,
@@ -133,10 +133,10 @@ export function createMeetingDossierService({
 
   async function pointPdf(markdown: string, literal: () => string): Promise<Buffer> {
     try {
-      return await contentTemplateService.previewPdf(markdown, {}, false);
+      return await contentTemplateService.generatedPdf("meeting-dossier-point", markdown, {}, false);
     } catch (error) {
       if (!(error instanceof DomainError) || error.code !== "template_invalid") throw error;
-      return contentTemplateService.previewPdf(literal(), {}, false);
+      return contentTemplateService.generatedPdf("meeting-dossier-point", literal(), {}, false);
     }
   }
 
@@ -148,7 +148,12 @@ export function createMeetingDossierService({
       const agenda = new Map((await councilClient.listAgenda(meetingId)).map((item) => [item.id, item]));
       const context = { meetingId };
       const parts = [
-        await contentTemplateService.previewPdf(coverMarkdown(facts, settings.name, settings.timeZone), context, false),
+        await contentTemplateService.generatedPdf(
+          "meeting-dossier-cover",
+          coverMarkdown(facts, settings.name, settings.timeZone),
+          context,
+          false,
+        ),
       ];
       for (const frozen of [...facts.agenda].sort((left, right) => left.position - right.position)) {
         const item = agenda.get(frozen.id);

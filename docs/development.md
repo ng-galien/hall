@@ -86,3 +86,7 @@ accepted attributes live in [`grammar.ts`](../packages/templating/src/grammar.ts
 Map inclusions read the existing map; they do not copy or replace its drawings.
 Image presentation requires a compatible image document. PDFs remain document
 references. Reusable `::snippet` directives are not part of the grammar.
+
+### Enriching an existing Alésia demonstration
+
+After identifying the intended local demonstration, `node scripts/seed/enrich-alesia-configuration.mjs --api http://127.0.0.1:PORT/api` fills only empty mail signature/footer and PDF presentation fields through the public API. It requires development access and municipality name `Alésia`; it does not reset data or create accounts. A second run makes no changes. New Alésia seeds use the same examples. See [configuration.md](configuration.md) for generated-output ownership.

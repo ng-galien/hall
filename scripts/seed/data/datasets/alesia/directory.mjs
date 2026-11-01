@@ -1,3 +1,4 @@
+import { alesiaMailPresentation } from "./configuration.mjs";
 /** The Alésia administrator: the first account on a server without development access. */
 export const alesiaAdministrator = { email: "vercingetorix@alesia.example", displayName: "Vercingétorix l’Arverne" };
 
@@ -5,12 +6,13 @@ export async function seedDirectory({ post, put, signedInEmail }, { daysFromNow,
   console.log("- Configuration de la commune");
   await put("/settings", {
     name: "Alésia",
+    ...alesiaMailPresentation,
     inseeCode: "12345",
     siren: "123456789",
     population: 2_500,
     populationReferenceDate: daysFromNow(-120).slice(0, 10),
     addressLine1: "Enceinte de l’oppidum",
-    addressLine2: "Plateau de Cornu",
+    addressLine2: "Plateau d’Alésia",
     postalCode: "12345",
     city: "Alésia",
     geographicPosition: [4.438, 47.558],

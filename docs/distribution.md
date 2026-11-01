@@ -160,7 +160,7 @@ npm ci
 npm run pack:distribution
 ```
 
-The artifact is `dist/npm/ng-galien-hall-0.1.0.tgz`, with a SHA-256 sidecar. The build
+The artifact is `dist/npm/ng-galien-hall-1.0.0.tgz`, with a SHA-256 sidecar. The build
 bundles the internal Hall modules and declares exact external dependency versions
 from the lockfile. Every runtime dependency must have a registry URL and integrity;
 the build no longer reads a local PostgreSQL catalog archive.
@@ -171,10 +171,10 @@ excluding private configuration, TRUST files and source checkouts.
 Install the tarball into a version-specific directory outside the source tree:
 
 ```sh
-npm install --prefix /srv/hall/releases/0.1.0 \
-  /absolute/path/ng-galien-hall-0.1.0.tgz
-/srv/hall/releases/0.1.0/node_modules/.bin/hall --version
-/srv/hall/releases/0.1.0/node_modules/.bin/hall --help
+npm install --prefix /srv/hall/releases/1.0.0 \
+  /absolute/path/ng-galien-hall-1.0.0.tgz
+/srv/hall/releases/1.0.0/node_modules/.bin/hall --version
+/srv/hall/releases/1.0.0/node_modules/.bin/hall --help
 ```
 
 After an authorized npm publication, an exact package version can replace the
@@ -199,8 +199,8 @@ Provision the dedicated empty database separately. Do not pass an unrelated
 database to Hall. Run:
 
 ```sh
-/srv/hall/releases/0.1.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
-/srv/hall/releases/0.1.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
+/srv/hall/releases/1.0.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
+/srv/hall/releases/1.0.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
 ```
 
 The same process serves the API and the bundled interface at `/app/`. The CLI
@@ -221,7 +221,7 @@ outside `/srv/hall/releases/` and `node_modules/`.
 ## Inspect compatibility before an update
 
 ```sh
-/srv/hall/releases/0.1.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
+/srv/hall/releases/1.0.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
 ```
 
 This checks the stored Hall schema fingerprint without starting the HTTP server,
@@ -238,9 +238,9 @@ metadata with the tarball and backup manifest.
 incompatible schema before listening. Install or upgrade the schema explicitly:
 
 ```sh
-/srv/hall/releases/0.1.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
-/srv/hall/releases/0.1.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
-/srv/hall/releases/0.1.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
+/srv/hall/releases/1.0.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
+/srv/hall/releases/1.0.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
+/srv/hall/releases/1.0.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
 ```
 
 Use `migrate` only after stopping application writers and verifying recovery from
@@ -412,3 +412,54 @@ New log directories and files are owner-only. Rotation, retention and external
 backup are not configured by this command. Preserve startup output as well when
 running through a scheduler: configuration or Chromium failures occur before the
 HTTP application logger starts.
+
+## Targeted runtime notice
+
+Both the npm distribution and the desktop runtime include the curated notice
+`licenses/runtime/buffers-0.1.1/MIT.txt`. Its adjacent
+`licenses/runtime-notices.json` identifies the Hall artifact, component version,
+upstream license declaration and verified implementation hash. This supplements
+the third-party files already retained by packaging; it is not a complete
+license audit. The source notice is [buffers 0.1.1](licenses/runtime/buffers-0.1.1/MIT.txt).
+A different component version or implementation requires a new review rather
+than silently receiving this version-specific notice. Hall's own LICENSE is
+unchanged.
+
+## MCP command
+
+The installed server package also provides `hall-workspace-mcp` (stdio). Configure
+its private process environment with `HALL_URL`, an origin without a path. It
+defaults to `http://127.0.0.1:3100`; non-loopback access requires HTTPS. The command
+does not start Hall. `hall_learn` explains the product and current tools without
+reading instance data.
+
+For a server requiring authentication, run these commands from a private terminal:
+
+```sh
+hall-workspace-mcp login --url https://your-hall-instance.example
+hall-workspace-mcp status --url https://your-hall-instance.example
+```
+
+Login uses the existing Hall account API, asks for an email and hidden password,
+and saves only the session in private per-origin storage under
+`$XDG_CONFIG_HOME/hall/mcp` or `~/.config/hall/mcp` (POSIX directory 700/file 600).
+Configure only `HALL_URL` in the MCP client; it must run under the same OS account
+and use that private configuration directory. The command loads the saved session
+automatically. Do not extract browser cookies or paste credentials into a chat.
+The existing `HALL_SESSION_TOKEN` environment override remains supported for
+integrations, but is not needed by this login workflow.
+
+`hall-workspace-mcp logout --url <origin>` revokes the saved session and removes
+its local file. If server revocation cannot be confirmed, local removal still
+occurs and the command reports the distinction. Expired sessions require login.
+The workflow is verified on macOS with a generic MCP SDK client. Interactive
+Windows login refuses to persist a session until protected storage is supplied;
+POSIX permission bits do not establish Windows access control.
+
+HTTP `/mcp` requires the existing Hall session cookie outside the local
+demonstration; no OAuth discovery or Bearer authentication is implemented. The
+stdio login command does not claim to authenticate a separate HTTP client.
+
+The rendered user manual in Hall contains **Connecter un agent IA par MCP** with
+current capabilities, connection prerequisites and refusal diagnostics. No AI
+provider client compatibility is implied by the transport implementation.

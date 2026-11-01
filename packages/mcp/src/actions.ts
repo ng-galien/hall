@@ -1,4 +1,10 @@
 import * as contract from "@hall/api-contract";
+import {
+  createContentTemplateSchema,
+  previewContentTemplateSchema,
+  updateContentTemplateSchema,
+  updateHallSettingsSchema,
+} from "@hall/domain";
 import { z } from "zod";
 
 const fileFields = z.object({
@@ -43,10 +49,23 @@ export const workspaceActions = {
 } satisfies Partial<Record<contract.ApiActionName, { schema: z.ZodType; fileRequired: boolean }>>;
 export type WorkspaceAction = keyof typeof workspaceActions;
 export const workspaceActionSchema = z.enum(Object.keys(workspaceActions) as [WorkspaceAction, ...WorkspaceAction[]]);
-export function describeAction(name: WorkspaceAction) {
+export const configurationActions = {
+  "template.create": { schema: createContentTemplateSchema, fileRequired: false },
+  "template.update": { schema: updateContentTemplateSchema, fileRequired: false },
+  "template.delete": { schema: z.object({}).strict(), fileRequired: false },
+  "template.preview": { schema: previewContentTemplateSchema, fileRequired: false },
+  "settings.update": { schema: updateHallSettingsSchema, fileRequired: false },
+} satisfies Partial<Record<contract.ApiActionName, { schema: z.ZodType; fileRequired: boolean }>>;
+export type ConfigurationAction = keyof typeof configurationActions;
+export const configurationActionSchema = z.enum(
+  Object.keys(configurationActions) as [ConfigurationAction, ...ConfigurationAction[]],
+);
+export const hallActions = { ...workspaceActions, ...configurationActions };
+export type HallAction = keyof typeof hallActions;
+export function describeAction(name: HallAction) {
   return {
     name,
-    inputSchema: z.toJSONSchema(workspaceActions[name].schema),
-    fileRequired: workspaceActions[name].fileRequired,
+    inputSchema: z.toJSONSchema(hallActions[name].schema),
+    fileRequired: hallActions[name].fileRequired,
   };
 }

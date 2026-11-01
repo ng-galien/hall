@@ -79,7 +79,8 @@
       "LIV": "quality",
       "DSK": "quality",
       "LAY": "quality",
-      "USR": "municipality"
+      "USR": "municipality",
+      "CFG": "municipality"
     },
     "requirementThemes": {}
   },
@@ -3971,7 +3972,8 @@
         "La visionneuse est une fenêtre de dialogue qui occupe presque tout l’écran, avec le titre du document et un bouton de fermeture ; ce bouton la ferme, et Échap la ferme lorsque le focus n’est pas dans un éditeur de texte, où Échap reste à l’éditeur.",
         "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
         "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré.",
-        "La visionneuse présente le document avec les droits de l’utilisateur, quel que soit l’endroit d’où il est ouvert : une carte, un texte ou un tableur que l’utilisateur peut modifier y est modifiable avec son propre éditeur, exactement comme dans la ligne dépliée (pour une carte : mode Dessin, mesures, notes et « Enregistrer ce cadrage »), et il y est présenté en lecture sinon."
+        "La visionneuse présente le document avec les droits de l’utilisateur, quel que soit l’endroit d’où il est ouvert : une carte, un texte ou un tableur que l’utilisateur peut modifier y est modifiable avec son propre éditeur, exactement comme dans la ligne dépliée (pour une carte : mode Dessin, mesures, notes et « Enregistrer ce cadrage »), et il y est présenté en lecture sinon.",
+        "Les aperçus de PV, délibérations, PDF temporaires et modèles HTML réutilisent le cadre commun, avec un titre identifiant leur document et son contexte ; le corps reste adapté au format. L’en-tête, le contenu et la fermeture sont alignés en clair et sombre, sans changer les octets des documents figés."
       ],
       "clauses": [
         {
@@ -3984,6 +3986,12 @@
           "key": "viewer-rights-follow-user",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : une carte ouverte en plein écran depuis les documents d’une affaire doit rester modifiable pour l’utilisateur qui la modifie dans la ligne dépliée ; les droits suivent l’utilisateur, pas le point d’entrée.",
+          "sourceIds": []
+        },
+        {
+          "key": "preview-alignment",
+          "origin": "product",
+          "statement": "Demande propriétaire du 1 novembre 2026, hall-ui-refinement/3a205c1a-7d7d-4d68-98f1-8523f3e0ec7a : aligner toutes les modales de preview documentaire et leurs titres, à partir du défaut PV. Les confirmations métier et fiches d’entités restent distinctes.",
           "sourceIds": []
         }
       ]
@@ -6463,6 +6471,12 @@
           "origin": "product",
           "statement": "Révision du 25 octobre 2026 : les actions documentaires ne sont plus réservées au rôle administrateur (décisions a6702014 et D3 87a55a21, espaces personnels 0a8f2682).",
           "sourceIds": []
+        },
+        {
+          "key": "configurable-presets",
+          "origin": "product",
+          "statement": "Depuis la décision du 31 octobre 2026 (987a70cc-c9a8-4a2e-95de-284803432003), les attributions décrites ici sont les préréglages initiaux, configurables selon HALL-FR-USR-060. Les conditions restent les prédicats métier de Hall ; le rôle administrateur intégré garde tous les droits.",
+          "sourceIds": []
         }
       ]
     },
@@ -8712,6 +8726,12 @@
           "origin": "product",
           "statement": "Demande du propriétaire du 25 octobre 2026 (3d7e566d) : « accès lecture et accès écriture sur leur workspace personnel » ; changement M4 approuvé le 25 octobre (0a8f2682).",
           "sourceIds": []
+        },
+        {
+          "key": "configurable-presets",
+          "origin": "product",
+          "statement": "Depuis la décision du 31 octobre 2026 (987a70cc-c9a8-4a2e-95de-284803432003), les attributions décrites ici sont les préréglages initiaux, configurables selon HALL-FR-USR-060. Les conditions restent les prédicats métier de Hall ; le rôle administrateur intégré garde tous les droits.",
+          "sourceIds": []
         }
       ]
     },
@@ -8755,6 +8775,12 @@
           "key": "clerk-personal-folders",
           "origin": "product",
           "statement": "Décisions du propriétaire du 25 octobre 2026 : D6 (85ee5fe3) le secrétariat écrit dans les dossiers personnels ; D2 (097e6aa9) la reprise est un déplacement ; D7 (fa594a1b) seuls le Secrétariat et les administrateurs, pas les contributeurs.",
+          "sourceIds": []
+        },
+        {
+          "key": "configurable-presets",
+          "origin": "product",
+          "statement": "Depuis la décision du 31 octobre 2026 (987a70cc-c9a8-4a2e-95de-284803432003), les attributions décrites ici sont les préréglages initiaux, configurables selon HALL-FR-USR-060. Les conditions restent les prédicats métier de Hall ; le rôle administrateur intégré garde tous les droits.",
           "sourceIds": []
         }
       ]
@@ -9839,7 +9865,8 @@
         "« Aperçu » montre le modèle tel que le serveur le rend, en-tête et pied de page compris.",
         "« Nouveau modèle » ne propose que les types de document qui n’ont pas encore de modèle, avec un texte de départ qui contient les directives que la génération exige.",
         "Sans l’action template.update, la fiche se lit sans champ modifiable ; sans template.create, la liste ne propose pas de création.",
-        "La génération qui suit l’enregistrement emploie le texte, l’en-tête et le pied de page enregistrés."
+        "La génération qui suit l’enregistrement emploie le texte, l’en-tête et le pied de page enregistrés.",
+        "Configuration > Documents ouvre ce même catalogue ; les types complémentaires et les réglages CSS des PDF suivent HALL-FR-CFG-020."
       ],
       "clauses": [
         {
@@ -10007,6 +10034,12 @@
           "origin": "product",
           "statement": "Les rôles de compte sont administrateur, secrétariat, contributeur et conseiller ; un compte qui ne portait que le rôle lecteur ou conduite de séance devient conseiller au démarrage.",
           "sourceIds": []
+        },
+        {
+          "key": "configurable-presets",
+          "origin": "product",
+          "statement": "Depuis la décision du 31 octobre 2026 (987a70cc-c9a8-4a2e-95de-284803432003), les attributions décrites ici sont les préréglages initiaux, configurables selon HALL-FR-USR-060. Les conditions restent les prédicats métier de Hall ; le rôle administrateur intégré garde tous les droits.",
+          "sourceIds": []
         }
       ]
     },
@@ -10040,6 +10073,12 @@
           "key": "criterion-3",
           "origin": "product",
           "statement": "Dans son dossier personnel et tant que son mandat est actif, un conseiller crée, modifie et supprime ses documents ; il ne supprime rien ailleurs.",
+          "sourceIds": []
+        },
+        {
+          "key": "configurable-presets",
+          "origin": "product",
+          "statement": "Depuis la décision du 31 octobre 2026 (987a70cc-c9a8-4a2e-95de-284803432003), les attributions décrites ici sont les préréglages initiaux, configurables selon HALL-FR-USR-060. Les conditions restent les prédicats métier de Hall ; le rôle administrateur intégré garde tous les droits.",
           "sourceIds": []
         }
       ]
@@ -10081,6 +10120,195 @@
           "key": "criterion-4",
           "origin": "product",
           "statement": "Le serveur ne porte ni matrice ni permissions : ses routes et son Siren interrogent la base.",
+          "sourceIds": []
+        },
+        {
+          "key": "configurable-presets",
+          "origin": "product",
+          "statement": "Depuis la décision du 31 octobre 2026 (987a70cc-c9a8-4a2e-95de-284803432003), les attributions décrites ici sont les préréglages initiaux, configurables selon HALL-FR-USR-060. Les conditions restent les prédicats métier de Hall ; le rôle administrateur intégré garde tous les droits.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-USR-060": {
+      "name": "CONFIGURABLE_AUTHORIZATION_WITH_BUILT_IN_ADMINISTRATOR",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-31"
+      },
+      "statement": "Un administrateur intégré conserve tous les droits et configure les rôles, leurs accès et les conditions proposées par Hall ; les rôles actuels initialisent les réglages et le dernier administrateur actif est protégé.",
+      "acceptanceCriteria": [
+        "Les rôles et leurs octrois sont persistants ; les préréglages existants sont installés une seule fois et les changements restent après redémarrage et mise à niveau.",
+        "L’administrateur crée, nomme, modifie et supprime les rôles ordinaires non affectés ; les comptes peuvent recevoir ces rôles.",
+        "Les changements de lecture, export, mutation et conditions sont appliqués à la requête suivante par HTTP et les contrôles documentaires, et les actions Siren suivent ces droits.",
+        "Les conditions prédéfinies sont proposées selon les attributs de la cible ; le rôle administrateur intégré ne peut être supprimé, modifié ou privé d’accès.",
+        "La désactivation, révocation et rétrogradation du dernier administrateur actif sont refusées, y compris lors d’opérations concurrentes.",
+        "La configuration des autorisations est réservée à l’administrateur intégré et ses modifications sont auditées ; les invariants métier restent applicables.",
+        "La démo existante reste accessible avec son administration et ses données ; aucun compte personnel ni compte réel de mairie n’est créé ou modifié."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Demande directe du 31 octobre 2026 et précisions : Topic Graph hall-authorization-model, 61cee1f1-4bcb-45ad-8a7f-ae8b98f04ecf et 987a70cc-c9a8-4a2e-95de-284803432003. Déclaration v1 bf675865-0be2-474b-b6c9-a77759bb6d4a, revue acceptée eb1387ca-253c-4ab7-b844-ea79e8f0d69a. Les anciens accès deviennent des préréglages ; l’administrateur intégré conserve tous les droits.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-CFG-010": {
+      "name": "CONFIGURATION_CATEGORIES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-31"
+      },
+      "statement": "La configuration est organisée en catégories Commune, Conseil, Documents, Courriels, Droits et Préférences/session.",
+      "acceptanceCriteria": [
+        "Chaque catégorie est accessible par un onglet nommé et une URL conservée au rechargement.",
+        "Les droits ne sont proposés que par la capacité Siren de gestion des rôles.",
+        "Un changement sauvegardé reste visible après passage dans une autre catégorie."
+      ],
+      "clauses": [
+        {
+          "key": "configuration",
+          "origin": "product",
+          "statement": "Demande propriétaire 0b3fa579-e644-45a8-87fb-36fda6c82221 (hall-configuration), déclaration v1 5b175c89 et verdict 2f359226. La configuration est organisée en catégories Commune, Conseil, Documents, Courriels, Droits et Préférences/session.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-CFG-020": {
+      "name": "GENERATED_DOCUMENT_CONFIGURATION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-31"
+      },
+      "statement": "Les modèles des productions existantes sont visibles, modifiables et enregistrables dans la configuration et par MCP avec les mêmes autorisations.",
+      "acceptanceCriteria": [
+        "Le catalogue couvre convocation, message de convocation, PV, délibération, liste des délibérations, impression de document, couverture et points du dossier de séance, invitation et annulation d’événement.",
+        "Le texte et l’objet des messages et le texte, CSS, en-tête et pied de page des PDF sont enregistrés ; les générations suivantes les emploient.",
+        "Les modèles des contenus générés conservent exactement un bloc ::generated-content ; faits, ordre et pièces jointes restent fournis par leur service métier.",
+        "MCP découvre, lit, crée, modifie, supprime et prévisualise via les actions Siren et leurs schémas ; une action non disponible est refusée.",
+        "La migration conserve les modèles et réglages existants ; elle initialise les nouveaux modèles une seule fois.",
+        "Les neuf aperçus d’Alésia sont alimentés par des données représentatives réellement stockées via les générateurs existants ; ils affichent provenance, contenu, en-tête/pied et signature configurés.",
+        "Le seed Alésia fournit des exemples fictifs de présentation ; l’enrichissement de la démonstration existante ne remplit que les champs vides et est idempotent."
+      ],
+      "clauses": [
+        {
+          "key": "configuration",
+          "origin": "product",
+          "statement": "Demande propriétaire 0b3fa579-e644-45a8-87fb-36fda6c82221 (hall-configuration), déclaration v1 5b175c89 et verdict 2f359226. Les modèles des productions existantes sont visibles, modifiables et enregistrables dans la configuration et par MCP avec les mêmes autorisations.",
+          "sourceIds": []
+        },
+        {
+          "key": "demonstration-preview",
+          "origin": "product",
+          "statement": "Demandes originales 78f712dd et 1cf9b04e, déclaration v3 0868f428, acceptée par verdict 1d690ff5 : exemples Alésia et aperçus utiles réellement alimentés, sans reset ni écrasement.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-CFG-030": {
+      "name": "OUTBOUND_MESSAGE_PRESENTATION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-31"
+      },
+      "statement": "L’expéditeur, l’adresse de réponse, la signature et le pied de page des courriels générés sont paramétrables.",
+      "acceptanceCriteria": [
+        "Signature et pied de page sont enregistrés en Markdown et ajoutés une seule fois à chaque variante texte et HTML du message de convocation et de l’invitation ou annulation d’événement.",
+        "Le rendu d’aperçu applique les mêmes réglages.",
+        "Les réglages initiaux sont vides ; aucun envoi SMTP ni modification rétroactive des documents figés."
+      ],
+      "clauses": [
+        {
+          "key": "configuration",
+          "origin": "product",
+          "statement": "Demande propriétaire 0b3fa579-e644-45a8-87fb-36fda6c82221 (hall-configuration), déclaration v1 5b175c89 et verdict 2f359226. L’expéditeur, l’adresse de réponse, la signature et le pied de page des courriels générés sont paramétrables.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-DSK-020": {
+      "name": "DEMONSTRATION_STARTUP_PRIORITIZES_ALESIA_ANIMATION",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-31"
+      },
+      "statement": "The distributed desktop demonstration presents the validated Alésia introduction and prioritizes its rendering from opening until the user enters the ready workspace.",
+      "acceptanceCriteria": [
+        "The introduction always follows France, ancient cities, Jura, Alésia and the existing shared relief, irrespective of any historical stored INSEE code. Startup neither reads municipality settings nor writes a remembered territory.",
+        "Embedded preparation starts only after a real useful frame signal; timeout or renderer failure never masquerades as this signal and produces a visible startup error.",
+        "Frame observations include initial preparation, geometry and shader warm-up, animation, transition, final orbit, application loading and departure; raw timed intervals and p95/p99/max are retained, with an explicit reference frame budget rather than the measured median.",
+        "The opening button and Enter require actual workspace readiness. The exact demonstration candidate is checked on its available target hardware for first launch, persisted relaunch, reset, reduced motion, local resources, errors and shutdown. Unexecuted target platforms remain explicit validation dependencies.",
+        "The visual scenario, relief geometry and data remain unchanged. Candidate installation warnings distinguish technical macOS ad-hoc signing from developer signing or notarization; no signed-publisher distribution is promised.",
+        "The sculpted progress footer reports real startup phases. Its opening button stays hidden, disabled and outside keyboard navigation until actual workspace readiness and the existing introduction guard permit opening; preview-only simulations never enter the product.",
+        "Map captions successively show “La Gaule de Vercingétorix”, “Le territoire des Mandubiens” and “Alésia” with the existing map phases, progressively appear with the tiles and zoom, stay centered on the viewed area and disappear before the detailed relief. Hall identity and scene geometry remain unchanged.",
+        "After the introduction, mouse input provides real map-plane pan, zoom and tilt without required keyboard modifiers or instructional overlays. Once the user starts navigation, automatic camera motion does not override it."
+      ],
+      "clauses": [
+        {
+          "key": "owner-startup-contract",
+          "origin": "product",
+          "statement": "Owner requests620d1dd4 and3fd076de, correctiona9d44231 and demonstration-only1884a7b0; transformation086063c2. Technical declarationbdb99965 v3 independently accepted byb180d1cd on2026-10-31. Prioritize the existing introduction and verify actual behavior, without redesign or unsupported platform claims.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-470": {
+      "name": "AI_AGENT_FUNCTIONAL_GUIDE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-31"
+      },
+      "statement": "Un agent connecté par MCP découvre le fonctionnement de Hall et les capacités effectivement disponibles sans accès au dépôt source ; le manuel et le site présentent cette assistance et ses conditions de connexion.",
+      "acceptanceCriteria": [
+        "hall_learn fournit un aperçu court, une carte des thèmes et des explications fonctionnelles et techniques progressives ; un thème inconnu renvoie la carte.",
+        "Le guide distingue ressources, affaires, éléments préparés, configuration et séances ; il ne promet pas de commandes de vote, signature, envoi ou publication absentes du MCP.",
+        "Les opérations suivent les actions Siren courantes et leurs schémas, les droits du demandeur et les versions ; les contenus lus ne deviennent pas des instructions.",
+        "Le manuel français rendu est navigable et recherchable ; le site décrit IA via MCP et renvoie vers ce manuel rendu.",
+        "La distribution inclut une commande stdio utilisable sans dépôt ; authentification actuelle, démo et limites de connexion sont explicites sans mécanisme ou compatibilité client inventés.",
+        "La commande installée propose login/status/logout par terminal privé : connexion Hall existante, mot de passe masqué et non persisté, identité courante et session sauvegardée par origine en stockage effectivement privé ; le client stdio charge automatiquement cette session sans secret dans sa configuration.",
+        "La déconnexion révoque la session sauvegardée et efface sa copie locale ; un échec réseau distingue effacement local et révocation serveur non confirmée. Une plateforme sans stockage protégé implémenté refuse la persistance."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Demandes propriétaire mairie/3fd076de-d575-4af0-8af3-8305afa738a5, 5adfd89a-9124-46c4-95cb-d958f632721a et clarification 086063c2-19e0-4f62-9648-4ac6bcae3b8d ; déclaration hall-agent-mcp/4bf30043-fcfe-46b0-bd45-fe165d0dc0e9 v3, acceptée par relecteur distinct 4f524574-46f3-42d1-9c7b-83dba5ed5d9b.",
+          "sourceIds": []
+        },
+        {
+          "key": "safe-session-onboarding",
+          "origin": "product",
+          "statement": "Complément ciblé v4 hall-agent-mcp/96104d34-3063-4623-b173-5f993e994d38, accepté par relecteur distinct root/19feb184-8087-4de1-ae2a-d5bdddd1c167 ; utiliser auth Hall existante sans PAT/OAuth/droits nouveaux.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-030": {
+      "name": "SPREADSHEET_FOLLOWS_APPLICATION_THEME",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-10-31"
+      },
+      "statement": "Le tableur suit le thème effectif clair, sombre ou automatique de Hall sans modifier le document.",
+      "acceptanceCriteria": [
+        "L’interface native du tableur suit le thème effectif dès ouverture et lors d’un changement de préférence ou de thème système en mode automatique.",
+        "Une bascule visuelle ne recrée pas le classeur, ne perd pas l’édition et ne modifie ni ne sauvegarde les données pour une préférence de thème.",
+        "Les couleurs explicitement enregistrées dans les cellules restent des données du document et sont conservées."
+      ],
+      "clauses": [
+        {
+          "key": "owner-dark-theme-and-captures",
+          "origin": "product",
+          "statement": "Demandes propriétaire du 31 octobre 2026 : revue des styles et thèmes, captures du site en thème sombre, corrections pertinentes autonomes. Topic Graph 3fd076de-d575-4af0-8af3-8305afa738a5,9606843d-3c82-4145-ac1a-d4df0337c916,086063c2-19e0-4f62-9648-4ac6bcae3b8d ; déclaration38df359a-0f41-4a70-ac0e-ee510a473471 acceptée22d6c064-8a2e-4931-a217-65a9f1397100.",
           "sourceIds": []
         }
       ]

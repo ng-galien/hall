@@ -47,7 +47,13 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
   router.post("/preview", requireActionPermission("template.preview"), async (request, response) => {
     const input = previewContentTemplateSchema.parse(request.body);
     const preview = await contentTemplateService.preview(input, input.context);
-    response.json({ html: preview.html, subject: preview.subject, diagnostics: preview.diagnostics });
+    response.json({
+      html: preview.html,
+      subject: preview.subject,
+      diagnostics: preview.diagnostics,
+      sourceLabel: preview.sourceLabel ?? null,
+      sourceKind: preview.sourceKind,
+    });
   });
 
   router.post("/preview-pdf", requireActionPermission("template.preview-pdf"), async (request, response) => {

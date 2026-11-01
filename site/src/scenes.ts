@@ -139,7 +139,7 @@ const spots = {
 
 export const places: Place[] = [
   { id: "tour", name: "Tour de guet nord", at: spots.tower },
-  { id: "cornu", name: "Grenier et chemins de Cornu", at: spots.cornu },
+  { id: "cornu", name: "Grenier et chemins d’Alésia", at: spots.cornu },
   { id: "plaine", name: "Plaine de Syam", at: spots.plain },
   { id: "rempart", name: "Rempart ouest", at: spots.westRampart },
   { id: "maison", name: "Maison commune de l’oppidum", at: spots.hall },
@@ -153,7 +153,7 @@ export const axes: Axis[] = [
   { id: "sieger", name: "Siéger" },
 ];
 
-/** Tracé du chemin des convois de la carte « Repérage du plateau de Cornu » du jeu Alésia. */
+/** Tracé du chemin des convois de la carte « Repérage du plateau d’Alésia » du jeu Alésia. */
 const convoyPath: Spot[] = [wgs(5.959, 46.6687), wgs(5.9575, 46.6682), wgs(5.9555, 46.6687), wgs(5.9545, 46.6697)];
 
 /** Ouvrages romains vus depuis l'oppidum, stylisés en marques isolées dans la plaine, sans tracé continu. */
@@ -193,7 +193,7 @@ export const scenes: Scene[] = [
     short: "Alésia",
     place: null,
     where: "Lieu du récit : l’oppidum d’Alésia, sur le plateau entre la Lemme et la Saine",
-    title: "Alésia sur le plateau de Cornu",
+    title: "Alésia sur le plateau d’Alésia",
     lead: "Après le combat de cavalerie perdu, Vercingétorix replie l’armée gauloise sur l’oppidum d’Alésia, la ville des Mandubiens. Le conseil de la commune prépare les affaires du siège, puis siège pour les trancher.",
     steps: [
       { text: "Préparer : la veille, la carte, le grenier, les ouvrages romains observés, la défense du plateau." },
@@ -252,7 +252,7 @@ export const scenes: Scene[] = [
     axis: "preparer",
     short: "La carte",
     place: "cornu",
-    where: "Lieu du récit : les chemins du hameau de Cornu, entre le grenier et les abris",
+    where: "Lieu du récit : les chemins du hameau d’Alésia, entre le grenier et les abris",
     title: "La carte des convois et le passage des messagers",
     lead: "Le chemin des convois relie le grenier aux abris. Il est dessiné sur la carte de l’affaire « Accès et convois », sur le plan IGN du plateau.",
     steps: [
@@ -266,9 +266,9 @@ export const scenes: Scene[] = [
     ],
     feature: "Dans Hall : la carte d’une affaire, le dessin, la mesure de longueur et la légende.",
     captures: [
-      desktop("preparer-carte.png", "La carte « Repérage du plateau de Cornu » et la mesure du chemin des convois.", [
+      desktop("preparer-carte.png", "La carte « Repérage du plateau d’Alésia » et la mesure du chemin des convois.", [
         [672, 158, "La carte est liée à l’affaire « Accès et convois »."],
-        [1122, 452, "Le grenier de Cornu, point dessiné sur la carte."],
+        [1122, 452, "Le grenier d’Alésia, point dessiné sur la carte."],
         [1030, 503, "Le chemin des convois et sa longueur mesurée : 425 m."],
         [606, 786, "La légende : sacs du grenier, habitants des abris, point d’eau."],
       ]),
@@ -289,12 +289,12 @@ export const scenes: Scene[] = [
     axis: "preparer",
     short: "Le grenier",
     place: "cornu",
-    where: "Lieu du récit : le grenier de Cornu, et les points d’eau au bord de la Lemme",
-    title: "Le grenier de Cornu et les points d’eau",
-    lead: "Vercingétorix fait apporter tout le blé dans l’oppidum. Le grenier de Cornu contient 120 sacs de céréales, sans affectation décidée.",
+    where: "Lieu du récit : le grenier d’Alésia, et les points d’eau au bord de la Lemme",
+    title: "Le grenier d’Alésia et les points d’eau",
+    lead: "Vercingétorix fait apporter tout le blé dans l’oppidum. Le grenier d’Alésia contient 120 sacs de céréales, sans affectation décidée.",
     steps: [
       {
-        text: "L’affaire « Réserves et bâtiments » réunit l’inventaire du grenier, l’état des réserves et le projet « Affectation du grenier de Cornu aux réserves ».",
+        text: "L’affaire « Réserves et bâtiments » réunit l’inventaire du grenier, l’état des réserves et le projet « Affectation du grenier d’Alésia aux réserves ».",
       },
       {
         text: "Les abris accueillent 142 habitants ; deux points d’eau utilisés la nuit sont à protéger. Le bilan des abris est rangé dans l’affaire « Accueil des habitants ».",
@@ -306,10 +306,10 @@ export const scenes: Scene[] = [
     feature: "Dans Hall : les pièces PDF d’une affaire et la photo prise sur le terrain depuis un téléphone.",
     captures: [
       desktop("preparer-grenier.png", "L’affaire « Réserves et bâtiments », ses éléments préparés et ses documents.", [
-        [285, 560, "Le projet « Affectation du grenier de Cornu aux réserves »."],
+        [285, 560, "Le projet « Affectation du grenier d’Alésia aux réserves »."],
         [1280, 560, "Inscrit à la séance du 1er septembre."],
         [345, 674, "L’inventaire du grenier, en PDF."],
-        [320, 764, "L’état des réserves de Cornu."],
+        [320, 764, "L’état des réserves d’Alésia."],
       ]),
       phone("preparer-photo.png", "Sur téléphone, le menu « Nouveau » propose de prendre une photo.", [
         [275, 83, "Le bouton « Nouveau » de l’espace de travail."],
@@ -407,7 +407,7 @@ export const scenes: Scene[] = [
     axis: "sieger",
     short: "La convocation",
     place: "maison",
-    where: "Lieu du récit : la maison commune de l’oppidum, au cœur du plateau de Cornu",
+    where: "Lieu du récit : la maison commune de l’oppidum, au cœur du plateau d’Alésia",
     title: "La convocation de l’assemblée",
     lead: "Les projets préparés sont inscrits à l’ordre du jour de la séance.",
     steps: [
@@ -476,7 +476,7 @@ export const scenes: Scene[] = [
     lead: "Le blé est distribué par petites rations. La répartition entre habitants et combattants divise le conseil.",
     steps: [
       {
-        text: "Commius l’Atrébate présente l’inventaire ; l’affectation du grenier de Cornu est adoptée par 10 voix pour, 2 contre et 1 abstention.",
+        text: "Commius l’Atrébate présente l’inventaire ; l’affectation du grenier d’Alésia est adoptée par 10 voix pour, 2 contre et 1 abstention.",
         tone: "valid",
       },
       {
@@ -499,7 +499,7 @@ export const scenes: Scene[] = [
       seconds: 12,
       marks: [
         ...ring(spots.hall, 260, 13).map((at, index): Mark => ({ kind: "point", at, tone: granaryVote[index] })),
-        { kind: "point", at: spots.granary, tone: "light", label: "Grenier de Cornu" },
+        { kind: "point", at: spots.granary, tone: "light", label: "Grenier d’Alésia" },
       ],
     },
   },
@@ -580,7 +580,7 @@ export const scenes: Scene[] = [
         [266, 610, "Pouvoirs, excusés et absents repris de l’appel."],
         [314, 785, "Le résultat du vote de chaque point."],
       ]),
-      desktop("sieger-deliberation.png", "La délibération « Affectation du grenier de Cornu aux réserves ».", [
+      desktop("sieger-deliberation.png", "La délibération « Affectation du grenier d’Alésia aux réserves ».", [
         [441, 178, "La délibération adoptée le 1er septembre."],
         [300, 381, "Le texte rédigé : visas, considérants, décision."],
         [407, 727, "« Figer le document » produit sa version définitive."],

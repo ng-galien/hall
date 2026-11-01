@@ -694,7 +694,7 @@ test.describe("Markdown editor", () => {
     await openEditorLab(page);
     const editor = await openEnrichedEditor(page);
     const search = await openReferenceSearch(editor);
-    await search.getByTestId("reference-search-input").fill("Plan du plateau de Cornu");
+    await search.getByTestId("reference-search-input").fill("Plan du plateau d’Alésia");
     const imageOption = search.getByTestId("reference-search-result").first();
     await expect(imageOption).toBeVisible();
     await imageOption.click();

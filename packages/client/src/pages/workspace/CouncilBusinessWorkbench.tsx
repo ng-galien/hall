@@ -129,6 +129,7 @@ export function CouncilBusinessWorkbench({
               <PdfPreviewButton
                 key={business.id}
                 markdown={reportSession.content}
+                title={`${t("meeting.report")} · ${business.title}`}
                 testId="business-report-pdf-preview"
                 disabled={!reportSession.resource}
               />

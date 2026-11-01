@@ -30,7 +30,7 @@
   --step-3: clamp(1.9rem, 1.2rem + 2.6vw, 3.05rem);
   --gutter: clamp(1rem, 0.6rem + 1.6vw, 2rem);
   --masthead: 4rem;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 *,

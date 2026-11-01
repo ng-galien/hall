@@ -16,7 +16,7 @@ import { createTemplate, listTemplates } from "../services/templatesApi";
 
 /** Modèles de documents: the template of each generated document, and the creation of a missing one. */
 // @implements-requirement HALL-FR-DOC-580
-export function TemplatesPage() {
+export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { submitting, run } = useSubmitting();
@@ -57,17 +57,28 @@ export function TemplatesPage() {
     });
   };
 
+  const addButton = canCreate ? (
+    <Button data-testid="templates-add" onClick={() => setAddOpen(true)}>
+      <AddIcon />
+      {t("templates.add")}
+    </Button>
+  ) : null;
   return (
-    <div className="page">
-      <PageHeader title={t("templates.title")} description={t("templates.description")}>
-        {canCreate ? (
-          <Button data-testid="templates-add" onClick={() => setAddOpen(true)}>
-            <AddIcon />
-            {t("templates.add")}
-          </Button>
-        ) : null}
-      </PageHeader>
-      <div className="page-content">
+    <div className={embedded ? "" : "page"}>
+      {embedded ? (
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3>{t("templates.title")}</h3>
+            <p className="text-sm text-muted-foreground">{t("templates.description")}</p>
+          </div>
+          {addButton}
+        </div>
+      ) : (
+        <PageHeader title={t("templates.title")} description={t("templates.description")}>
+          {addButton}
+        </PageHeader>
+      )}
+      <div className={embedded ? "" : "page-content"}>
         <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
         <Modal
           open={addOpen}

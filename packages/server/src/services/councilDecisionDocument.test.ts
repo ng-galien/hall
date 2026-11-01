@@ -1,10 +1,11 @@
-import type { CouncilDecisionFacts } from "@hall/contracts";
+import type { CouncilDecisionDetail, CouncilDecisionFacts } from "@hall/contracts";
 import { describe, expect, it } from "vitest";
 import {
   renderCouncilDecisionContent,
   renderCouncilDecisionFacts,
   renderCouncilDecisionResult,
 } from "./councilDecisionDocument.js";
+import { createTemplateRenderingService } from "./templateRendering.js";
 
 const member = { id: "member", name: "Marie <Martin>" };
 const facts: CouncilDecisionFacts = {
@@ -139,4 +140,27 @@ describe("council decision documentary facts", () => {
     expect(html).toContain("Délibération n° 2026-06-04");
     expect(html).not.toContain("Pour :");
   });
+});
+
+// @verifies-requirement HALL-FR-CFG-020
+it("uses configured identity only when decision facts have no municipality and never rewrites those facts", async () => {
+  const renderer = createTemplateRenderingService({
+    hallSettingsRepository: { get: async () => ({ name: "Current municipality", timeZone: "Europe/Paris" }) },
+  } as unknown as Parameters<typeof createTemplateRenderingService>[0]);
+  const template = {
+    bodyMarkdown: "::council-decision{section=facts}",
+    subject: null,
+    stylesheet: "",
+    headerHtml: "",
+    footerHtml: "",
+  };
+  const historicalFacts = { ...facts, hall: null };
+  const decision = { facts: historicalFacts, documentDate: null } as unknown as CouncilDecisionDetail;
+  const missing = await renderer.preview(template, {}, undefined, decision);
+  expect(missing.html).toContain("<h1>Commune de Current municipality</h1>");
+  expect(missing.html).not.toContain("Commune non renseignée");
+  expect(historicalFacts.hall).toBeNull();
+  const preserved = await renderer.preview(template, {}, undefined, { ...decision, facts });
+  expect(preserved.html).toContain("<h1>Commune de Alésia</h1>");
+  expect(preserved.html).not.toContain("Current municipality");
 });

@@ -1,8 +1,26 @@
+import { authorizationRoleIdSchema } from "@hall/contracts";
 import { z } from "zod";
 
+export type {
+  AuthorizationCondition,
+  AuthorizationConfiguration,
+  AuthorizationGrant,
+  AuthorizationRole,
+  AuthorizationRoleInput,
+  AuthorizationRoleOption,
+} from "@hall/contracts";
+export {
+  authorizationConditionSchema,
+  authorizationConditions,
+  authorizationConfigurationSchema,
+  authorizationRoleInputSchema,
+  authorizationRoleOptionSchema,
+  authorizationRoleSchema,
+} from "@hall/contracts";
+
 export const apiRoles = ["administrator", "clerk", "contributor", "councillor"] as const;
-export type ApiRole = (typeof apiRoles)[number];
-export const apiRoleSchema = z.enum(apiRoles);
+export type ApiRole = string;
+export const apiRoleSchema = authorizationRoleIdSchema;
 const apiRoleListSchema = z
   .array(apiRoleSchema)
   .min(1)

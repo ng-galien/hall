@@ -75,10 +75,18 @@ export async function updateTemplate(id: string, template: TemplateInput): Promi
   ).data;
 }
 
+export interface TemplatePreviewResult {
+  html: string;
+  subject: string | null;
+  sourceLabel: string | null;
+  sourceKind?: "meeting";
+  diagnostics: Array<{ code: string; message: string; severity: "error" | "warning" }>;
+}
+
 /** The server rendering of a draft: the HTML the PDF engine prints, header and footer included. */
-export async function previewTemplate(template: TemplateInput): Promise<{ html: string; subject: string | null }> {
+export async function previewTemplate(template: TemplateInput): Promise<TemplatePreviewResult> {
   return (
-    await submitSirenActionAt<{ html: string; subject: string | null }>("/templates", "template.preview", {
+    await submitSirenActionAt<TemplatePreviewResult>("/templates", "template.preview", {
       ...templateInput(template),
       context: {},
     })

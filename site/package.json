@@ -2,7 +2,7 @@
   "name": "hall-public-site",
   "private": true,
   "license": "EUPL-1.2",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Public demonstration site of Hall: an interactive 3D town that presents the council workflow.",
   "scripts": {
@@ -11,7 +11,8 @@
     "preview": "vite preview --host 127.0.0.1 --port 4791 --strictPort",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "prebuild": "npm --prefix .. run build:docs --workspace @hall/client"
   },
   "dependencies": {
     "@fontsource/public-sans": "5.3.0",

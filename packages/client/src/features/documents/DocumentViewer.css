@@ -23,6 +23,8 @@
 
 .document-viewer-header > div:first-child {
   display: grid;
+  min-width: 0;
+  gap: var(--hall-space-1);
 }
 
 .document-viewer-header span {
@@ -31,11 +33,15 @@
 }
 
 .document-viewer-header h2 {
+  margin: 0;
   font-size: var(--hall-font-size-title);
+  overflow-wrap: anywhere;
 }
 
 .document-viewer-actions {
   display: flex;
+  flex-shrink: 0;
+  align-items: center;
   gap: var(--hall-space-2);
 }
 
@@ -52,4 +58,22 @@
   width: 100%;
   height: 100%;
   border: 0;
+}
+
+.template-preview-content {
+  grid-template-rows: auto minmax(0, 1fr);
+  place-items: stretch;
+}
+
+.template-preview-metadata {
+  padding: var(--hall-space-3) var(--hall-space-5);
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+}
+
+.template-preview-content > .template-preview-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
 }

@@ -81,8 +81,22 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
       "INSERT INTO hall.council_term (id, expected_member_count, started_on, ended_on) VALUES ($1, 1, DATE '2025-01-01', DATE '2025-12-31')",
       [preservedTerm],
     );
+    // @verifies-requirement HALL-FR-USR-060
+    await pool.query(
+      "INSERT INTO hall.authorization_role(id,name,revision) VALUES ('custom-preserved','Renamed role',7); DELETE FROM hall.authorization_grant WHERE role='contributor' AND access='read'",
+    );
     const bootstrap = new PostgresSchemaBootstrap(pool);
     await expect(bootstrap.install()).resolves.toBe("upgraded");
+    expect(
+      (await pool.query("SELECT name,revision FROM hall.authorization_role WHERE id='custom-preserved'")).rows,
+    ).toEqual([{ name: "Renamed role", revision: 7 }]);
+    expect(
+      (
+        await pool.query(
+          "SELECT count(*)::int AS count FROM hall.authorization_grant WHERE role='contributor' AND access='read'",
+        )
+      ).rows[0].count,
+    ).toBe(0);
     await expect(bootstrap.verify()).resolves.toBeUndefined();
     expect((await pool.query("SELECT id::text FROM hall.council_term WHERE id = $1", [preservedTerm])).rows).toEqual([
       { id: preservedTerm },

@@ -1,4 +1,5 @@
 export * from "./agendaNumber.js";
+export * from "./authorization.js";
 export * from "./calendarEvent.js";
 export * from "./conductActions.js";
 export * from "./councilDecisionDocument.js";

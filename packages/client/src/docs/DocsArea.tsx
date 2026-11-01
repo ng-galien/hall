@@ -205,7 +205,13 @@ function TreeNode({ node, current, depth }: { node: DocsNode; current: string; d
         ) : (
           <span className="docs-tree-caret-space" />
         )}
-        <NavLink to={`/docs/${node.page.path}`} end className="docs-tree-link" data-depth={depth}>
+        <NavLink
+          to={`/docs/${node.page.path}`}
+          end
+          className="docs-tree-link"
+          data-depth={depth}
+          data-testid={`docs-page-${node.page.path.replaceAll("/", "-")}`}
+        >
           <span className="docs-tree-title">{node.page.title}</span>
           {node.page.draft ? <span className="docs-tree-draft" title={t("docs.page.draft")} /> : null}
         </NavLink>
@@ -295,6 +301,7 @@ function DocsSearch({ locale }: { locale: Locale }) {
       <label className="docs-search-field">
         <SearchIcon aria-hidden="true" />
         <input
+          data-testid="docs-search"
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -313,7 +320,13 @@ function DocsSearch({ locale }: { locale: Locale }) {
         <div className="docs-search-results">
           {results.length === 0 ? <p className="docs-search-empty">{t("docs.search.noResult")}</p> : null}
           {results.map(({ page, excerpt }) => (
-            <button key={page.path} type="button" onClick={() => go(page)} className="docs-search-result">
+            <button
+              key={page.path}
+              type="button"
+              onClick={() => go(page)}
+              className="docs-search-result"
+              data-testid={`docs-search-result-${page.path.replaceAll("/", "-")}`}
+            >
               <span className="docs-search-result-title">{page.title}</span>
               <span className="docs-search-result-excerpt">{excerpt}</span>
             </button>
@@ -358,7 +371,13 @@ function MdxLink({ href = "", children, ...rest }: AnchorHTMLAttributes<HTMLAnch
   );
 }
 
+function DocumentationImage({ src, alt, ...rest }: ComponentProps<"img">) {
+  const resolved = standalone && typeof src === "string" ? src.replace(/^\/app\/documentation\//, "./") : src;
+  return <img src={resolved} alt={alt} {...rest} />;
+}
+
 export const mdxComponents = {
+  img: DocumentationImage,
   h2: heading(2),
   h3: heading(3),
   h4: heading(4),

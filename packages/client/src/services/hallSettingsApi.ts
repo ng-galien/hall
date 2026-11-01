@@ -65,8 +65,8 @@ export type CommuneSettings = Pick<
   | "populationReferenceDate"
   | "phone"
   | "website"
-  | "outboundEmailSenderName"
-  | "outboundEmailSenderAddress"
+  | "email"
+  | "timeZone"
 >;
 
 // @implements-requirement HALL-FR-COM-010
@@ -74,5 +74,21 @@ export async function updateCommuneSettings(commune: CommuneSettings): Promise<H
   const current = await apiSirenRequest<HallSettings>("/settings");
   if (!current.representation) throw new Error("Missing HallSettings Siren representation");
   const input = updateHallSettingsSchema.parse({ ...current.data, ...commune });
+  return (await submitSirenAction<HallSettings>(current.representation, "settings.update", input)).data;
+}
+
+export type MailSettingsValues = Pick<
+  HallSettings,
+  | "outboundEmailSenderName"
+  | "outboundEmailSenderAddress"
+  | "outboundEmailReplyToAddress"
+  | "outboundEmailSignatureMarkdown"
+  | "outboundEmailFooterMarkdown"
+>;
+
+export async function updateMailSettings(mail: MailSettingsValues): Promise<HallSettings> {
+  const current = await apiSirenRequest<HallSettings>("/settings");
+  if (!current.representation) throw new Error("Missing HallSettings Siren representation");
+  const input = updateHallSettingsSchema.parse({ ...current.data, ...mail });
   return (await submitSirenAction<HallSettings>(current.representation, "settings.update", input)).data;
 }

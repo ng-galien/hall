@@ -5,6 +5,9 @@ import { apiCommandPolicies } from "./apiCommandPolicy.js";
 import { resolveAuditIntent } from "./apiCommandResolution.js";
 
 const auditCases = [
+  ["POST", "/api/roles", undefined, "role.create", "authorization-role", undefined],
+  ["PUT", "/api/roles/role-1", undefined, "role.update", "authorization-role", "role-1"],
+  ["DELETE", "/api/roles/role-1", undefined, "role.delete", "authorization-role", "role-1"],
   [
     "POST",
     "/api/council-business/business-1/prepared-subjects",

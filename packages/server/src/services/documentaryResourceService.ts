@@ -22,6 +22,7 @@ import { documentPreviewModeForMediaType, inspectDocument } from "../domain/docu
 import type { HallSettingsRepository } from "../repositories/contracts.js";
 import { PersistenceError } from "../repositories/errors.js";
 import type { SecurityRepository } from "../repositories/securityRepository.js";
+import type { AuthorizationClient } from "../security/authorization.js";
 import type { DocumentPreviewConverter } from "./documentPreviewConverter.js";
 import { DomainError } from "./errors.js";
 import {
@@ -147,12 +148,14 @@ export function numberedName(name: string, number: number) {
 // @implements-requirement HALL-FR-WSP-460
 export function createDocumentaryResourceService({
   resourcesClient,
+  authorizationClient,
   documentPreviewConverter,
   hallSettingsRepository,
   legalReferenceProvider,
   securityRepository,
 }: {
   resourcesClient: ResourcesClient;
+  authorizationClient: AuthorizationClient;
   documentPreviewConverter: DocumentPreviewConverter;
   hallSettingsRepository: HallSettingsRepository;
   legalReferenceProvider: LegalReferenceProvider;
@@ -306,6 +309,9 @@ export function createDocumentaryResourceService({
     async readBinaryReferenceContent(id) {
       const content = await resourcesClient.readBinaryReferenceContent(id);
       if (!content) throw new DomainError("resource_not_found", 404);
+      if (!content.mediaType.startsWith("image/") && !(await authorizationClient.allows("application.export"))) {
+        throw new DomainError("permission_denied", 403);
+      }
       return content;
     },
     relocate(reference, input) {

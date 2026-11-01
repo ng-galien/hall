@@ -93,6 +93,8 @@ describe("updateHallSettingsSchema", () => {
     outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
     outboundEmailSenderAddress: "conseil@saint-aubin.fr",
     outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
+    outboundEmailSignatureMarkdown: "",
+    outboundEmailFooterMarkdown: "",
   };
 
   it("accepts a complete Hall configuration", () => {

@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { join, normalize, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
@@ -8,18 +7,16 @@ import {
   ipcMain,
   net,
   protocol,
-  session,
   systemPreferences,
   WebContentsView,
 } from "electron";
-import { inseeCodeOfSettings, type LaunchTarget, writeStoredInseeCode } from "./launchTerritory.js";
+import type { LaunchTarget } from "./launchTerritory.js";
 import type { StartupPhase } from "./startupProtocol.js";
 
 const launchScheme = "hall-launch";
 const launchOrigin = `${launchScheme}://screen`;
 const leaveTimeoutMilliseconds = 1_500;
-const settingsTimeoutMilliseconds = 3_000;
-const startTimeoutMilliseconds = 4_000;
+const startTimeoutMilliseconds = 30_000;
 
 /** Phase prévue du démarrage, avec sa durée attendue d'après le lancement précédent. */
 export interface PlannedPhase {
@@ -34,7 +31,7 @@ type ProgressMessage =
   | { type: "ready" };
 
 export interface LaunchScreen {
-  /** Résolue quand la page montre sa première image, ou après un délai de garde. */
+  /** Resolves only after the first useful frame; a timeout or lost renderer rejects startup. */
   started: Promise<void>;
   /** Annonce les phases du démarrage et leurs durées attendues. */
   plan(phases: PlannedPhase[]): void;
@@ -48,6 +45,8 @@ export interface LaunchScreen {
   leave(): Promise<void>;
   /** Retire la vue sans fondu. */
   remove(): void;
+  /** Complete renderer measurements, received before the launch view leaves. */
+  measurements(): string | null;
 }
 
 /** Déclare le protocole de la page de lancement ; à appeler avant que l'application soit prête. */
@@ -84,44 +83,36 @@ export function installLaunchProtocol(): void {
   });
 }
 
-const departementCommunes = new Map<string, Promise<Set<string>>>();
-
-async function readCommuneCodes(departementCode: string): Promise<Set<string>> {
-  try {
-    const content = JSON.parse(
-      await readFile(join(geodataDirectory(), "communes", `${departementCode}.json`), "utf8"),
-    ) as { communes: { code: string }[] };
-    return new Set(content.communes.map((commune) => commune.code));
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return new Set();
-    throw error;
-  }
-}
-
-/** Indique si une commune figure dans les géométries embarquées de son département. */
-export async function launchCommuneExists(departementCode: string, communeCode: string): Promise<boolean> {
-  if (!departementCommunes.has(departementCode)) {
-    departementCommunes.set(departementCode, readCommuneCodes(departementCode));
-  }
-  return (await departementCommunes.get(departementCode)!).has(communeCode);
-}
-
-function waitFor(sender: Electron.WebContents, channel: string, timeout?: number): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = timeout === undefined ? undefined : setTimeout(done, timeout);
-    sender.once("render-process-gone", done);
-    sender.once("destroyed", done);
+function waitFor(
+  sender: Electron.WebContents,
+  channel: string,
+  timeout?: number,
+  requireSignal = false,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = timeout === undefined ? undefined : setTimeout(expired, timeout);
+    sender.once("render-process-gone", lost);
+    sender.once("destroyed", lost);
     function listener(event: IpcMainEvent) {
-      if (event.sender === sender) done();
+      if (event.sender === sender) finish();
     }
-    function done() {
+    function lost() {
+      finish(requireSignal ? new Error("L’écran de lancement s’est arrêté avant sa première image.") : undefined);
+    }
+    function expired() {
+      finish(
+        requireSignal
+          ? new Error("L’écran de lancement n’a pas affiché sa première image dans le délai prévu.")
+          : undefined,
+      );
+    }
+    function finish(error?: Error) {
       clearTimeout(timer);
       ipcMain.off(channel, listener);
-      if (!sender.isDestroyed()) {
-        sender.off("render-process-gone", done);
-        sender.off("destroyed", done);
-      }
-      resolve();
+      sender.off("render-process-gone", lost);
+      sender.off("destroyed", lost);
+      if (error) reject(error);
+      else resolve();
     }
     ipcMain.on(channel, listener);
   });
@@ -132,6 +123,7 @@ function launchUrl(target: LaunchTarget): string {
   url.searchParams.set("departement", target.departementCode);
   url.searchParams.set("commune", target.communeCode);
   url.searchParams.set("presentation", target.presentation);
+  url.searchParams.set("invokedAt", String(performance.timeOrigin));
   if (systemPreferences.getAnimationSettings().prefersReducedMotion) url.searchParams.set("reduced", "1");
   return url.href;
 }
@@ -155,7 +147,26 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
   fit();
   window.on("resize", fit);
   const opened = waitFor(view.webContents, "hall-launch:open");
-  const started = waitFor(view.webContents, "hall-launch:started", startTimeoutMilliseconds);
+  const started = waitFor(view.webContents, "hall-launch:started", startTimeoutMilliseconds, true);
+  let measurements: string | null = null;
+  const receiveMeasurements = (event: IpcMainEvent, value: unknown) => {
+    if (event.sender !== view.webContents || typeof value !== "string" || value.length > 5_000_000) return;
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        "version" in parsed &&
+        parsed.version === 1 &&
+        "samples" in parsed &&
+        Array.isArray(parsed.samples)
+      )
+        measurements = value;
+    } catch {
+      return;
+    }
+  };
+  ipcMain.on("hall-launch:measurements", receiveMeasurements);
   let pageLoaded = false;
   const messages: ProgressMessage[] = [];
   const deliver = (message: ProgressMessage) => {
@@ -171,11 +182,12 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
     pageLoaded = true;
     for (const message of messages) deliver(message);
   });
-  void view.webContents.loadURL(launchUrl(target));
+  void view.webContents.loadURL(launchUrl(target)).catch(() => view.webContents.close());
   let removed = false;
   const remove = () => {
     if (removed) return;
     removed = true;
+    ipcMain.off("hall-launch:measurements", receiveMeasurements);
     if (!window.isDestroyed()) {
       window.off("resize", fit);
       window.off("closed", remove);
@@ -187,6 +199,7 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
   return {
     opened,
     started,
+    measurements: () => measurements,
     plan: (phases) => signal({ type: "plan", phases }),
     phase: (phase, status) => signal({ type: "phase", phase, status }),
     ready: () => signal({ type: "ready" }),
@@ -199,23 +212,4 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
     },
     remove,
   };
-}
-
-/**
- * Lit le code INSEE des réglages de Hall avec la session de l'application et le mémorise pour le
- * prochain lancement ; sans session ouverte ou en cas d'erreur, la mémoire reste inchangée.
- */
-export async function rememberSettingsInseeCode(apiBaseUrl: string, userDataPath: string): Promise<void> {
-  const url = new URL("/api/settings", apiBaseUrl);
-  const cookies = await session.defaultSession.cookies.get({ url: url.href });
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      Cookie: cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; "),
-    },
-    signal: AbortSignal.timeout(settingsTimeoutMilliseconds),
-  });
-  if (!response.ok) return;
-  const inseeCode = inseeCodeOfSettings(await response.json());
-  if (inseeCode !== undefined) await writeStoredInseeCode(userDataPath, inseeCode);
 }

@@ -16,10 +16,11 @@ import {
   prepareMeetingNoticeMessage,
 } from "../../services/meetingNoticesApi";
 import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
+import { formatMeetingLabel } from "./meetingPresentation";
 
 /** Notice commands are supplied by Siren; document generation never means that a notice was sent. */
 export function MeetingNoticeActions({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
-  const { t, formatDateTime } = useI18n();
+  const { t, formatDate, formatDateTime } = useI18n();
   const meeting = meetingActions.workspace!.meeting;
   const [open, setOpen] = useState(false);
   const [notices, setNotices] = useState<MeetingNotice[]>([]);
@@ -183,7 +184,7 @@ export function MeetingNoticeActions({ meetingActions }: { meetingActions: Retur
       </Modal>
       {previewHref ? (
         <DocumentObjectViewer
-          title={t("meeting.notice.title")}
+          title={`${t("meeting.notice.title")} · ${formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}`}
           objectUrl={previewHref}
           mediaType="application/pdf"
           onClose={() => setPreviewHref(null)}

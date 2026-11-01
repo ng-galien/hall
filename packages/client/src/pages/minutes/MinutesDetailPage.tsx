@@ -2,10 +2,11 @@ import { useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { ArrowDownIcon, CalendarIcon, CloseIcon, PdfIcon, VisibleIcon } from "../../components/icons";
+import { ArrowDownIcon, CalendarIcon, PdfIcon, VisibleIcon } from "../../components/icons";
 import { ShareButton } from "../../components/ShareButton";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
+import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiFile } from "../../services/fileSharing";
@@ -30,9 +31,18 @@ function MinutesDetail({ id }: { id: string }) {
   const { t, formatDate, formatNumber } = useI18n();
   const draft = useMinutesDraft(id);
   const documentTrigger = useRef<HTMLButtonElement>(null);
-  const documentClose = useRef<HTMLButtonElement>(null);
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const { minutes } = draft;
+  const generatedDocument = draft.documentUrl === minutesContentHref(id) && Boolean(minutes?.documentId);
+  const documentTitle = t(generatedDocument ? "minutes.viewerTitle" : "minutes.previewTitle", {
+    meeting: minutes
+      ? formatMeetingLabel(
+          { number: minutes.meetingNumber, scheduledAt: minutes.scheduledAt },
+          t("meetings.occurrenceLabel"),
+          formatDate,
+        )
+      : "",
+  });
   const approvalMeeting = meetings.find((meeting) => meeting.previousCouncilMeetingId === minutes?.councilMeetingId);
   return (
     <div className="page" data-testid="minutes-detail">
@@ -191,55 +201,24 @@ function MinutesDetail({ id }: { id: string }) {
         ) : null}
       </div>
       {draft.documentUrl ? (
-        <Dialog
-          open
-          onOpenChange={(open) => {
-            if (!open) draft.closeDocument();
-          }}
+        <DocumentViewerDialog
+          testId="minutes-document-dialog"
+          titleId="minutes-document-dialog-title"
+          title={documentTitle}
+          description={t(generatedDocument ? "minutes.frozenDocumentHint" : "minutes.previewHint")}
+          documentKind={generatedDocument ? "generated" : "draft"}
+          closeTestId="minutes-document-close"
+          returnFocusRef={documentTrigger}
+          onClose={draft.closeDocument}
         >
-          <DialogContent
-            className="document-viewer gap-0 p-0 sm:max-w-[var(--hall-size-viewer-width)]"
-            data-testid="minutes-document-dialog"
-            data-document-kind={minutes?.documentId ? "generated" : "draft"}
-            showCloseButton={false}
-            onOpenAutoFocus={(event) => {
-              event.preventDefault();
-              documentClose.current?.focus();
-            }}
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              documentTrigger.current?.focus();
-            }}
-          >
-            <header>
-              <div>
-                <DialogTitle>{t(minutes?.documentId ? "minutes.document" : "minutes.preview")}</DialogTitle>
-                <DialogDescription>
-                  {t(minutes?.documentId ? "minutes.frozenDocumentHint" : "minutes.previewHint")}
-                </DialogDescription>
-              </div>
-              <Button
-                ref={documentClose}
-                variant="ghost"
-                size="icon"
-                aria-label={t("common.close")}
-                data-testid="minutes-document-close"
-                onClick={draft.closeDocument}
-              >
-                <CloseIcon />
-              </Button>
-            </header>
-            <div className="document-viewer-content">
-              <NativeDocumentFrame
-                url={draft.documentUrl}
-                mediaType="application/pdf"
-                title={t(minutes?.documentId ? "minutes.document" : "minutes.preview")}
-                testId="minutes-document-frame"
-                onError={draft.failDocument}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+          <NativeDocumentFrame
+            url={draft.documentUrl}
+            mediaType="application/pdf"
+            title={documentTitle}
+            testId="minutes-document-frame"
+            onError={draft.failDocument}
+          />
+        </DocumentViewerDialog>
       ) : null}
     </div>
   );

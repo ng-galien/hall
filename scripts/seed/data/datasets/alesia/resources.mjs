@@ -423,7 +423,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     [5.9545, 46.6697],
   ];
   await createGeographicResource({
-    name: "Repérage du plateau de Cornu",
+    name: "Repérage du plateau d’Alésia",
     path: folders.access,
     tags: ["convois", "carte"],
     view,
@@ -431,7 +431,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     hallLayer: {
       type: "FeatureCollection",
       legend: [
-        { color: colors.blue, label: "Grenier de Cornu : 120 sacs, garde permanente" },
+        { color: colors.blue, label: "Grenier d’Alésia : 120 sacs, garde permanente" },
         {
           color: colors.slate,
           label:
@@ -454,7 +454,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
           colors.slate,
           0.1,
         ),
-        marker("Grenier de Cornu", [5.959, 46.6687], colors.blue, "large"),
+        marker("Grenier d’Alésia", [5.959, 46.6687], colors.blue, "large"),
         marker("Abri nord des habitants", [5.9545, 46.6697], colors.slate),
         marker("Abri sud des habitants", [5.954, 46.6662], colors.slate),
         marker("Point d’eau de l’oppidum", [5.956, 46.6675], colors.green),
@@ -559,7 +559,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
       folders.root,
       "Situation de l’oppidum",
       ["conseil"],
-      "## Situation de l’oppidum\n\nLes lignes romaines resserrent l’étau autour de Cornu. Vercingétorix réunit le conseil : garder le grenier, consolider les abris et obtenir des nouvelles des alliés.\n\nCommius prépare les messages tandis que Vercassivellaunos inspecte les défenses. Les pourparlers avec César porteront sur une trêve et le passage des habitants vulnérables ; aucun passage ne sera engagé avant accord sur les garanties.",
+      "## Situation de l’oppidum\n\nLes lignes romaines resserrent l’étau autour d’Alésia. Vercingétorix réunit le conseil : garder le grenier, consolider les abris et obtenir des nouvelles des alliés.\n\nCommius prépare les messages tandis que Vercassivellaunos inspecte les défenses. Les pourparlers avec César porteront sur une trêve et le passage des habitants vulnérables ; aucun passage ne sera engagé avant accord sur les garanties.",
     ],
     [
       folders.council,
@@ -575,7 +575,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     ],
     [
       folders.reserveShelters,
-      "Diagnostic des abris de Cornu",
+      "Diagnostic des abris d’Alésia",
       ["abris"],
       "## Diagnostic des abris\n\nDeux couvertures sont affaissées près du grenier et laissent passer la pluie.\n\n- Abri nord : appuis fragilisés contre le mur nord.\n- Abri sud : deux poutres fendues, réutilisables pour moitié.\n\nUne visite des charpentiers doit préciser les réparations nécessaires avant attribution des matériaux.",
     ],
@@ -601,7 +601,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
       folders.defense,
       "Note de cadrage - défense du plateau",
       ["défense"],
-      "## Objectif\n\nConsolider les accès des abris et la seconde ligne de défense de Cornu.\n\n- Examiner les besoins en bois et en pierre.\n- Maintenir le passage des équipes de ravitaillement.\n- Présenter un bilan au conseil.",
+      "## Objectif\n\nConsolider les accès des abris et la seconde ligne de défense d’Alésia.\n\n- Examiner les besoins en bois et en pierre.\n- Maintenir le passage des équipes de ravitaillement.\n- Présenter un bilan au conseil.",
     ],
     [
       folders.support,
@@ -635,7 +635,7 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     ],
     [
       folders.access,
-      "Consigne de circulation - accès de Cornu",
+      "Consigne de circulation - accès d’Alésia",
       ["convois"],
       "## Consigne de circulation\n\nConserver un passage aux équipes de ravitaillement pendant les travaux de défense. Les chariots montent aux heures paires et descendent aux heures impaires.",
     ],
@@ -672,10 +672,10 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     ],
     [
       folders.root,
-      "Inventaire du grenier de Cornu",
-      "inventaire-grenier-cornu.pdf",
+      "Inventaire du grenier d’Alésia",
+      "inventaire-grenier-alesia.pdf",
       [
-        "INVENTAIRE DU GRENIER DE CORNU",
+        "INVENTAIRE DU GRENIER D’ALÉSIA",
         "Espace nord : 60 sacs de céréales.",
         "Espace sud : 40 sacs de céréales et une réserve gardée de 20 sacs.",
         "Stock total : 120 sacs, compté le matin par les deux gardiens.",
@@ -683,8 +683,8 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     ],
     [
       folders.reserves,
-      "État des réserves de Cornu",
-      "etat-reserves-cornu.pdf",
+      "État des réserves d’Alésia",
+      "etat-reserves-alesia.pdf",
       [
         "ÉTAT DES RÉSERVES",
         "Sorties des sept derniers jours : 14 sacs, dont 9 pour les abris et 5 pour les équipes.",
@@ -731,8 +731,8 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     await uploadPdf({ title, fileName, folderPath, lines });
   }
   await uploadDocument({
-    title: "Plan du plateau de Cornu",
-    fileName: "plan-plateau-cornu.png",
+    title: "Plan du plateau d’Alésia",
+    fileName: "plan-plateau-alesia.png",
     folderPath: folders.access,
     content: plateauPlan(),
     mediaType: "image/png",

@@ -3,6 +3,7 @@ import { documentFormatSchema, matchLiteral } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
 import { documentPreviewMode } from "../domain/documentPolicy.js";
 import { canExecute } from "../security/authorization.js";
+import { canFollowReadHref } from "./readAuthorization.js";
 import { collectionActions, objectActions, withConductAuthorization } from "./sirenActionPolicy.js";
 import {
   canonicalHref,
@@ -199,12 +200,23 @@ export function toSirenRepresentation(request: Request, input: unknown): SirenEn
   };
 }
 
+function filterReadLinks(request: Request, entity: SirenEntity): SirenEntity {
+  return {
+    ...entity,
+    links: entity.links?.filter((link) => canFollowReadHref(request, link.href)),
+    actions: entity.actions?.filter((action) => action.method !== "GET" || canFollowReadHref(request, action.href)),
+    entities: entity.entities?.map((child) =>
+      "properties" in child ? { ...filterReadLinks(request, child), rel: child.rel } : child,
+    ),
+  };
+}
+
 export function sirenResponses(request: Request, response: Response, next: NextFunction): void {
   const json = response.json.bind(response);
   response.json = ((payload: unknown) => {
     if (response.statusCode >= 400 || request.path === "/health") return json(payload);
     response.type(SIREN_MEDIA_TYPE);
-    return json(isSirenEntity(payload) ? payload : toSirenRepresentation(request, payload));
+    return json(filterReadLinks(request, isSirenEntity(payload) ? payload : toSirenRepresentation(request, payload)));
   }) as Response["json"];
   next();
 }
@@ -230,6 +242,9 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
       { rel: ["council-delegations"], href: "/api/council-delegations", type: SIREN_MEDIA_TYPE },
       { rel: ["council-committees"], href: "/api/council-committees", type: SIREN_MEDIA_TYPE },
     );
+    if (canExecute(request, "role.list")) {
+      links.push({ rel: ["roles"], href: "/api/roles", type: SIREN_MEDIA_TYPE });
+    }
     if (canExecute(request, "user.list")) {
       links.push({ rel: ["users"], href: "/api/users", type: SIREN_MEDIA_TYPE });
     }

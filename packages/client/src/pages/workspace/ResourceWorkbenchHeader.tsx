@@ -112,7 +112,12 @@ export function ResourceWorkbenchHeader({
             <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
           </Tooltip>
           {pdfMarkdown !== undefined ? (
-            <PdfPreviewButton key={resource.id} markdown={pdfMarkdown} testId="resource-pdf-preview" />
+            <PdfPreviewButton
+              key={resource.id}
+              markdown={pdfMarkdown}
+              title={resource.name}
+              testId="resource-pdf-preview"
+            />
           ) : null}
           {resource.kind === "document" && shareFile ? (
             <ShareButton testId="resource-workbench-share" file={shareFile} />

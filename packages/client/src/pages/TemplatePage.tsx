@@ -1,19 +1,28 @@
 import type { ContentTemplate } from "@hall/domain";
+import { parse, serialize } from "@hall/templating";
 import { useEffect, useId, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { MarkdownEditor } from "../components/editor/MarkdownEditor";
-import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { DocumentViewerDialog } from "../features/documents/DocumentViewerDialog";
 import { TemplateDecorationField } from "../features/templates/TemplateDecorationField";
 import { templateTypeLabel } from "../features/templates/templateTypes";
 import { useTemplateImageUpload } from "../features/templates/useTemplateImageUpload";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
-import { openTemplate, previewTemplate, type TemplateInput, updateTemplate } from "../services/templatesApi";
+import {
+  openTemplate,
+  previewTemplate,
+  type TemplateInput,
+  type TemplatePreviewResult,
+  updateTemplate,
+} from "../services/templatesApi";
 
 const draftOf = (template: ContentTemplate): TemplateInput => ({
   kind: template.kind,
@@ -43,7 +52,7 @@ export function TemplatePage() {
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [savedOnce, setSavedOnce] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<TemplatePreviewResult | null>(null);
 
   useEffect(() => {
     let current = true;
@@ -77,7 +86,8 @@ export function TemplatePage() {
   }
 
   const readOnly = !canUpdate;
-  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
+  const comparable = (input: TemplateInput) => ({ ...input, bodyMarkdown: serialize(parse(input.bodyMarkdown)) });
+  const dirty = JSON.stringify(comparable(draft)) !== JSON.stringify(comparable(saved));
   const change = (patch: Partial<TemplateInput>) => {
     setDraft((current) => (current ? { ...current, ...patch } : current));
     setSavedOnce(false);
@@ -100,7 +110,7 @@ export function TemplatePage() {
     void run(async () => {
       setError(null);
       try {
-        setPreview((await previewTemplate(draft)).html);
+        setPreview(await previewTemplate(draft));
         return true;
       } catch (failure) {
         setError(apiErrorCode(failure));
@@ -122,6 +132,9 @@ export function TemplatePage() {
         )}
       </PageHeader>
       <div className="page-content template-editor" data-testid="template-editor">
+        <Link className="text-sm underline" to="/settings?category=documents">
+          {t("templates.backToSettings")}
+        </Link>
         <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
         <p className="template-editor-status">
           <Badge variant="outline">{typeLabel ? t(typeLabel) : draft.documentType}</Badge>
@@ -189,22 +202,55 @@ export function TemplatePage() {
               onChange={(footerHtml) => change({ footerHtml })}
             />
           ) : null}
+          {draft.kind === "pdf" ? (
+            <div className="grid gap-1.5">
+              <Label htmlFor={`${id}-stylesheet`}>{t("templates.stylesheet")}</Label>
+              <p className="text-xs text-muted-foreground">{t("templates.stylesheetDescription")}</p>
+              <Textarea
+                id={`${id}-stylesheet`}
+                className="font-mono"
+                value={draft.stylesheet}
+                readOnly={readOnly}
+                data-testid="template-stylesheet"
+                onChange={(event) => change({ stylesheet: event.currentTarget.value })}
+              />
+            </div>
+          ) : null}
         </section>
-        <Modal
-          open={preview !== null}
-          size="wide"
-          title={t("templates.previewTitle")}
-          testId="template-preview-dialog"
-          onClose={() => setPreview(null)}
-        >
-          <iframe
-            className="template-preview-frame"
-            title={t("templates.previewTitle")}
-            sandbox="allow-same-origin"
-            srcDoc={preview ?? ""}
-            data-testid="template-preview-frame"
-          />
-        </Modal>
+        {preview ? (
+          <DocumentViewerDialog
+            title={`${t("templates.previewTitle")} · ${draft.name}`}
+            caption={typeLabel ? t(typeLabel) : draft.documentType}
+            testId="template-preview-dialog"
+            titleId="template-preview-dialog-title"
+            closeTestId="template-preview-close"
+            contentClassName="template-preview-content"
+            onClose={() => setPreview(null)}
+          >
+            <div className="template-preview-metadata">
+              <p className="text-sm text-muted-foreground" data-testid="template-preview-source">
+                {preview?.sourceLabel
+                  ? t(preview.sourceKind === "meeting" ? "templates.previewMeetingSource" : "templates.previewSource", {
+                      source: preview.sourceLabel,
+                    })
+                  : t("templates.previewNoSource")}
+              </p>
+              {preview?.diagnostics.length ? <p role="alert">{t("templates.previewIncomplete")}</p> : null}
+              {preview?.subject ? (
+                <p>
+                  <strong>{t("templates.subject")}</strong> : {preview.subject}
+                </p>
+              ) : null}
+            </div>
+            <iframe
+              className="template-preview-frame"
+              title={`${t("templates.previewTitle")} · ${draft.name}`}
+              sandbox="allow-same-origin"
+              srcDoc={preview?.html ?? ""}
+              data-testid="template-preview-frame"
+            />
+          </DocumentViewerDialog>
+        ) : null}
       </div>
     </div>
   );

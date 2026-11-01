@@ -1,7 +1,6 @@
 import { collectResourceReferences, parse } from "@hall/templating";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,17 +10,20 @@ import {
 import { ChevronDownIcon, PdfIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { previewTemplatePdf } from "../../services/templatesApi";
+import { DocumentViewerDialog } from "./DocumentViewerDialog";
 import { NativeDocumentFrame } from "./NativeDocumentFrame";
 
 // @implements-requirement HALL-FR-WSP-370
 /** Preview the current Markdown through the same Siren PDF action used by the editor Lab. */
 export function PdfPreviewButton({
   markdown,
+  title,
   testId,
   viewerTestId,
   disabled = false,
 }: {
   markdown: string;
+  title: string;
   testId: string;
   viewerTestId?: string;
   disabled?: boolean;
@@ -100,30 +102,26 @@ export function PdfPreviewButton({
           {t("editor.pdfPreviewFailed")}
         </p>
       ) : null}
-      <Dialog
-        open={Boolean(url)}
-        onOpenChange={(open) => {
-          if (!open) {
+      {url ? (
+        <DocumentViewerDialog
+          testId={`${testId}-dialog`}
+          titleId={`${testId}-title`}
+          title={title}
+          caption={t("editor.pdfPreview")}
+          closeTestId={`${testId}-close`}
+          onClose={() => {
             requestSequence.current += 1;
             setUrl(null);
-          }
-        }}
-      >
-        <DialogContent
-          className="editor-lab-pdf-dialog h-[var(--hall-size-overlay-height)] w-[var(--hall-size-viewer-width)] max-w-[var(--hall-size-viewer-width)] grid-rows-[auto_minmax(0,1fr)] sm:max-w-[var(--hall-size-document-viewer)]"
-          data-testid={`${testId}-dialog`}
-          closeLabel={t("common.close")}
+          }}
         >
-          <DialogHeader>
-            <DialogTitle>{t("editor.pdfPreview")}</DialogTitle>
-          </DialogHeader>
-          {url ? (
-            <section className="editor-lab-pdf-preview" data-testid={viewerTestId ?? `${testId}-native-viewer`}>
-              <NativeDocumentFrame url={url} mediaType="application/pdf" title={t("editor.pdfPreview")} />
-            </section>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+          <NativeDocumentFrame
+            url={url}
+            mediaType="application/pdf"
+            title={title}
+            testId={viewerTestId ?? `${testId}-native-viewer`}
+          />
+        </DocumentViewerDialog>
+      ) : null}
     </>
   );
 }

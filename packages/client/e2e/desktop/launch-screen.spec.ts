@@ -13,8 +13,13 @@ const desktopDirectory = resolve(import.meta.dirname, "../../../desktop");
  * Serveur Hall de test : une page d'application, servie en `applicationDelay` millisecondes, et GET /api/settings
  * avec le code INSEE donné.
  */
-async function startHallStub(inseeCode: string | null, applicationDelay = 0): Promise<{ url: string; server: Server }> {
+async function startHallStub(
+  inseeCode: string | null,
+  applicationDelay = 0,
+): Promise<{ url: string; server: Server; requests: string[] }> {
+  const requests: string[] = [];
   const server = createServer((request, response) => {
+    requests.push(request.url ?? "");
     if (request.url === "/api/settings") {
       response.writeHead(200, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ name: "Commune de test", inseeCode }));
@@ -32,7 +37,7 @@ async function startHallStub(inseeCode: string | null, applicationDelay = 0): Pr
     response.writeHead(404).end();
   });
   await new Promise<void>((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
-  return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, server };
+  return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, server, requests };
 }
 
 async function launchHall(userDataPath: string, serverUrl: string) {
@@ -77,7 +82,7 @@ async function onlyLocalResources(page: Page): Promise<string[]> {
 }
 
 const alesiaPlace = "Alésia, territoire des Mandubiens";
-const alesiaNote = "Oppidum du plateau de Cornu, entre la Lemme et la Saine. Le maire est Vercingétorix.";
+const alesiaNote = "Oppidum du plateau d’Alésia, entre la Lemme et la Saine. Le maire est Vercingétorix.";
 
 async function launchViewOpen(application: ElectronApplication): Promise<boolean> {
   return application.windows().some((page) => page.url().startsWith("hall-launch:"));
@@ -114,7 +119,7 @@ async function storedInseeCode(userDataPath: string): Promise<unknown> {
 
 test.describe("écran de lancement de l'application de bureau", () => {
   let userDataPath: string;
-  let stub: { url: string; server: Server } | null = null;
+  let stub: { url: string; server: Server; requests: string[] } | null = null;
   let application: ElectronApplication | null = null;
 
   test.beforeEach(async () => {
@@ -145,21 +150,23 @@ test.describe("écran de lancement de l'application de bureau", () => {
     await launch.waitForTimeout(800);
     expect(await overlappingCityLabels(launch)).toEqual([]);
     const reached = await finalAt(launch, 15_000);
-    expect(reached).toBeGreaterThan(7_000);
-    expect(reached).toBeLessThan(10_000);
+    const startedAt = Number(await launch.locator("html").getAttribute("data-started-at"));
+    expect(reached - startedAt).toBeGreaterThan(9_000);
+    expect(reached - startedAt).toBeLessThan(11_000);
     await expect(launch.getByTestId("launch-place")).toHaveText(alesiaPlace);
     await expect(launch.getByTestId("launch-note")).toHaveText(alesiaNote);
     expect(await onlyLocalResources(launch)).toEqual([]);
     const open = launch.getByTestId("launch-open");
     await expect(open).toBeEnabled();
-    await expect(open).toContainText("Ouvrir Hall");
+    await expect(open).toContainText("Démarrer Hall");
     await expect(open).toContainText("Entrée");
     await launch.waitForTimeout(2_000);
     expect(await launchViewOpen(application)).toBe(true);
     await open.click();
     await expect.poll(() => launchViewOpen(application!), { timeout: 5_000 }).toBe(false);
     await expect((await applicationPage(application)).getByTestId("stub-application")).toBeVisible();
-    await expect.poll(() => storedInseeCode(userDataPath)).toBeNull();
+    expect(await storedInseeCode(userDataPath)).toBeUndefined();
+    expect(stub.requests).not.toContain("/api/settings");
   });
 
   test("application lente : bouton désactivé pendant la préparation, puis ouverture par Entrée", async () => {
@@ -169,6 +176,8 @@ test.describe("écran de lancement de l'application de bureau", () => {
     await finalAt(launch, 15_000);
     const open = launch.getByTestId("launch-open");
     await expect(open).toBeDisabled();
+    await launch.keyboard.press("Enter");
+    expect(await launchViewOpen(application)).toBe(true);
     await expect(launch.getByTestId("launch-step")).toHaveText("Chargement de l’interface");
     await expect(launch.getByTestId("launch-step-count")).toHaveText("1 sur 1");
     const loader = launch.getByTestId("launch-loader");
@@ -188,43 +197,30 @@ test.describe("écran de lancement de l'application de bureau", () => {
     await expect((await applicationPage(application)).getByTestId("stub-application")).toBeVisible();
   });
 
-  test("code enregistré mémorisé : plongée sur sa commune sous son nom officiel", async () => {
-    await writeFile(join(userDataPath, "launch-territory.json"), `${JSON.stringify({ inseeCode: "69123" })}\n`);
-    stub = await startHallStub("69123");
-    application = await launchHall(userDataPath, stub.url);
-    const launch = await launchPage(application);
-    await expect(launch.locator("html")).toHaveAttribute("data-commune", "69123");
-    await expect(launch.locator("html")).toHaveAttribute("data-departement", "69");
-    await expect(launch.locator("html")).toHaveAttribute("data-presentation", "official");
-    await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.setContentSize(1280, 800));
-    await expect(launch.getByTestId("launch-city").filter({ hasText: "Lugdunum" })).toHaveCSS("opacity", "1", {
-      timeout: 10_000,
-    });
-    await launch.waitForTimeout(800);
-    expect(await overlappingCityLabels(launch)).toEqual([]);
-    for (const name of ["Lutèce", "Lugdunum", "Genava"]) {
-      await expect(launch.getByTestId("launch-city").filter({ hasText: name })).toHaveAttribute(
-        "data-side",
-        /right|left/,
-      );
-    }
-    await finalAt(launch, 15_000);
-    await expect(launch.getByTestId("launch-place")).toHaveText("Lyon, Rhône");
-    await expect(launch.getByTestId("launch-note")).toBeHidden();
-    await launch.getByTestId("launch-open").click();
-    await expect.poll(() => launchViewOpen(application!), { timeout: 5_000 }).toBe(false);
-  });
-
-  test("code lu sur le serveur : mémorisé, puis montré à la relance", async () => {
+  /** @verifies-requirement HALL-TR-DSK-020 */
+  test("a historical municipality code never changes Alésia or triggers a settings read, including on relaunch", async () => {
+    const original = `${JSON.stringify({ inseeCode: "69123" })}\n`;
+    await writeFile(join(userDataPath, "launch-territory.json"), original);
     stub = await startHallStub("29019");
-    application = await launchHall(userDataPath, stub.url);
-    await expect((await launchPage(application)).locator("html")).toHaveAttribute("data-commune", "39129");
-    await expect.poll(() => storedInseeCode(userDataPath), { timeout: 15_000 }).toBe("29019");
-    await application.close();
-    application = await launchHall(userDataPath, stub.url);
-    const launch = await launchPage(application);
-    await expect(launch.locator("html")).toHaveAttribute("data-commune", "29019");
-    await expect(launch.getByTestId("launch-place")).toHaveText("Brest, Finistère");
+    for (let run = 0; run < 2; run += 1) {
+      application = await launchHall(userDataPath, stub.url);
+      const launch = await launchPage(application);
+      await expect(launch.locator("html")).toHaveAttribute("data-commune", "39129");
+      await expect(launch.locator("html")).toHaveAttribute("data-presentation", "alesia");
+      await finalAt(launch, 20_000);
+      await expect(launch.getByTestId("launch-place")).toHaveText(alesiaPlace);
+      await expect(launch.getByTestId("launch-open")).toBeEnabled();
+      const before = JSON.parse((await launch.locator("html").getAttribute("data-frame-statistics")) ?? "{}");
+      await launch.waitForTimeout(2_000);
+      const after = JSON.parse((await launch.locator("html").getAttribute("data-frame-statistics")) ?? "{}");
+      expect(after.frames).toBeGreaterThan(before.frames);
+      await launch.getByTestId("launch-open").click();
+      await expect.poll(() => launchViewOpen(application!)).toBe(false);
+      await application.close();
+      application = null;
+      expect(await readFile(join(userDataPath, "launch-territory.json"), "utf8")).toBe(original);
+      expect(stub.requests).not.toContain("/api/settings");
+    }
   });
 
   test("animations réduites : état final immédiat", async () => {

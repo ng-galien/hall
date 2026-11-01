@@ -12,7 +12,12 @@ import { sendProblem } from "./problemDetails.js";
 // @implements-requirement HALL-FR-DIR-150
 // @implements-requirement HALL-FR-WSP-440
 // @implements-requirement HALL-FR-WSP-450
+// @implements-requirement HALL-FR-USR-060
 const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly code: string }> = new Map([
+  ["HV801", { status: 409, code: "built_in_administrator_protected" }],
+  ["HV802", { status: 400, code: "invalid_authorization_grant" }],
+  ["HV803", { status: 409, code: "authorization_role_changed" }],
+  ["HV804", { status: 409, code: "authorization_role_in_use" }],
   ["HV614", { status: 403, code: "permission_denied" }],
   ["HV615", { status: 403, code: "permission_denied" }],
   ["HV617", { status: 422, code: "councillor_requires_active_member" }],

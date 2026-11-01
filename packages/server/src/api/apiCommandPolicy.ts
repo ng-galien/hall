@@ -19,6 +19,7 @@ export const auditTargetTypes = [
   "ballot",
   "ballot-preview",
   "user",
+  "authorization-role",
   "hall-settings",
   "template",
 ] as const;
@@ -130,6 +131,9 @@ export const apiCommandPolicies = {
   "user.reactivate": { auditTargetType: "user" },
   "user.generate-passphrase": { auditTargetType: "user" },
   "user.assign-role": { auditTargetType: "user" },
+  "role.create": { auditTargetType: "authorization-role" },
+  "role.update": { auditTargetType: "authorization-role" },
+  "role.delete": { auditTargetType: "authorization-role" },
   "settings.update": { auditTargetType: "hall-settings" },
   "template.create": { auditTargetType: "template" },
   "template.update": { auditTargetType: "template" },

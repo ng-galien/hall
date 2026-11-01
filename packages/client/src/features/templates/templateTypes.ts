@@ -1,3 +1,4 @@
+import { generatedDocumentTemplates } from "@hall/domain";
 import type { TranslationKey } from "../../i18n/en";
 import type { TemplateInput } from "../../services/templatesApi";
 
@@ -86,6 +87,12 @@ export const knownTemplateTypes: ReadonlyArray<{
       footerHtml: "",
     },
   },
+  ...generatedDocumentTemplates.map(({ name: _name, ...starter }) => ({
+    documentType: starter.documentType,
+    kind: starter.kind,
+    label: `templates.type.${starter.documentType}` as TranslationKey,
+    starter,
+  })),
 ];
 
 export function templateTypeLabel(documentType: string, kind: TemplateInput["kind"]): TranslationKey | null {

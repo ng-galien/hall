@@ -72,7 +72,15 @@ export function AgendaMinutesApproval({ minutesId, itemId }: { minutesId: string
       </Button>
       {previewOpen && contentHref ? (
         <DocumentObjectViewer
-          title={t("minutes.document")}
+          title={t("minutes.viewerTitle", {
+            meeting: minutes
+              ? formatMeetingLabel(
+                  { number: minutes.meetingNumber, scheduledAt: minutes.scheduledAt },
+                  t("meetings.occurrenceLabel"),
+                  formatDate,
+                )
+              : "",
+          })}
           objectUrl={contentHref}
           mediaType="application/pdf"
           onClose={() => setPreviewOpen(false)}

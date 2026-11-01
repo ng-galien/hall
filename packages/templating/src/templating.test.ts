@@ -466,6 +466,7 @@ describe("registry", () => {
       "councilBusiness",
       "decision",
       "meeting",
+      "generated-content",
       "meeting-notice",
       "deliberation-list",
       "minutes",
@@ -482,6 +483,7 @@ describe("registry", () => {
 
   it("reserves block directives for meeting notices, deliberation lists, minutes sections, archived images and resource presentations", () => {
     expect(directiveSpecs.filter((spec) => spec.node === "leafDirective").map((spec) => spec.name)).toEqual([
+      "generated-content",
       "meeting-notice",
       "deliberation-list",
       "minutes",

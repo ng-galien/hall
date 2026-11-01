@@ -100,6 +100,7 @@ test("edits account identity with autosave and safely changes and resets passwor
   await expect(page.getByTestId("password-new")).toHaveValue("");
   await page.keyboard.press("Escape");
   await page.getByTestId("navigation-settings").click();
+  await page.getByTestId("settings-tab-preferences").click();
   await page.getByTestId("settings-change-password").click();
   await page.getByTestId("password-current").fill("Hall-incorrect-current!");
   await page.getByTestId("password-new").fill("Hall-admin-changed!");

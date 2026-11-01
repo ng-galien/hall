@@ -54,6 +54,8 @@ export interface HallSettings {
   outboundEmailSenderName: string;
   outboundEmailSenderAddress: string | null;
   outboundEmailReplyToAddress: string | null;
+  outboundEmailSignatureMarkdown: string;
+  outboundEmailFooterMarkdown: string;
   updatedAt: IsoDateTime | null;
 }
 

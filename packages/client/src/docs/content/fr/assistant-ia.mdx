@@ -1,0 +1,117 @@
+---
+title: "Connecter un agent IA par MCP"
+summary: "Ce que l’IA peut faire dans Hall, comment découvrir ses outils et quelles connexions sont disponibles."
+order: 35
+---
+
+Hall expose des outils par le protocole MCP pour qu’un agent d’intelligence artificielle vous aide à rechercher et préparer les documents d’une affaire, ou à modifier les modèles et les réglages autorisés. L’agent travaille sur l’instance de Hall choisie. Il ne remplace pas les décisions du conseil ni les validations humaines.
+
+## Ce que l’agent peut faire
+
+- Rechercher et lire les ressources de l’espace de travail, leur contenu et leurs liens.
+- Préparer du texte, créer ou modifier des ressources et des fichiers, rechercher des références juridiques.
+- Créer des affaires et des éléments préparés, associer les ressources à une affaire.
+- Lire et modifier les modèles de documents et les réglages accessibles à votre compte ; prévisualiser un modèle en HTML.
+
+Chaque modification dépend des actions actuellement proposées par Hall et des droits du compte connecté. Une action absente ou refusée ne doit pas être contournée. Modifier un modèle concerne les générations futures ; les documents déjà figés restent inchangés. Un aperçu HTML ne vérifie pas la pagination du PDF.
+
+Les outils MCP actuels ne permettent pas de conduire une séance, faire l’appel, saisir un vote, adopter une décision, figer ou signer un acte, envoyer un courriel, publier ou transmettre un acte. Ils ne gèrent pas les comptes ni les rôles. Ces opérations passent par les écrans de Hall.
+
+## Commencer par le guide de l’agent
+
+Après connexion du client MCP, demandez à l’agent d’appeler **hall_learn** sans argument. Il reçoit un aperçu de Hall, ses responsabilités, la liste des outils et les thèmes disponibles. Il peut ensuite appeler le même outil avec un thème :
+
+```json
+{ "topic": "documents" }
+```
+
+Les thèmes sont `connection`, `model`, `documents`, `configuration`, `meetings` et `protocol`. Un thème inconnu renvoie la carte. Le guide est livré avec Hall et ne nécessite pas de lire son code source.
+
+Pour rechercher un document, l’agent appelle `workspace_discover`, puis `workspace_search` avec votre recherche, et suit les liens avec `workspace_read`. Pour les modèles, il commence par `configuration_discover`, puis `configuration_read` sur `/api/templates`. Il lit la ressource avant de modifier une action annoncée par Hall, puis la relit pour vérifier le résultat. Un conflit de version doit être résolu après relecture, sans écrasement automatique.
+
+## Connexions disponibles et limite actuelle
+
+Un client MCP externe est nécessaire : Hall n’intègre pas de fenêtre de conversation ni de fournisseur d’IA. Aucun client de fournisseur particulier n’est actuellement déclaré compatible par ce guide. Vérifiez que votre client sait lancer une commande **stdio**, ou gérer une session Hall pour le transport **HTTP**.
+
+### Commande stdio du paquet serveur
+
+Le paquet serveur npm de Hall fournit la commande `hall-workspace-mcp`, en plus de `hall`. L’agent et le serveur Hall sont deux processus distincts : une instance Hall doit déjà fonctionner pour lire des données. Installer cette commande ne démarre pas le serveur et ne crée pas de compte.
+
+#### Préparer l’installation de la commande
+
+Vous devez disposer :
+
+- de Node.js **22.12 ou ultérieur** et de npm sur l’ordinateur qui lance votre client MCP ; vérifiez leurs versions avec `node --version` et `npm --version` dans le terminal ;
+- d’une instance Hall en fonctionnement, de son origine exacte et d’un compte Hall autorisé sur cette instance ;
+- de l’archive du paquet serveur Hall, par exemple `ng-galien-hall-0.1.0.tgz`, remise par la personne qui vous fournit Hall ;
+- d’un client MCP local qui sait lancer une commande stdio sous votre compte système.
+
+**Disponibilité actuelle : le paquet est préparé et testé localement ; aucun téléchargement public ni release publiée n’est annoncé par ce guide.** Demandez l’archive à la personne qui vous fournit Hall. Le dépôt source n’est pas nécessaire. Si vous ne disposez pas encore de cette archive, la connexion ne peut pas commencer avec la seule adresse de l’instance.
+
+Sur macOS, ouvrez un terminal et installez l’archive dans un répertoire de votre compte. Voici la procédure pour le paquet `0.1.0` vérifié ; remplacez le chemin de l’archive par celui du fichier reçu :
+
+```sh
+npm install --prefix "$HOME/Applications/hall-mcp" --ignore-scripts --no-audit --no-fund "/chemin/vers/ng-galien-hall-0.1.0.tgz"
+"$HOME/Applications/hall-mcp/node_modules/.bin/hall-workspace-mcp" --help
+```
+
+La seconde commande doit afficher l’aide Hall MCP et les commandes `login`, `status`, `logout`. Si le terminal indique que `node` ou `npm` est introuvable, installez d’abord la version de Node.js requise avec l’aide de votre administrateur. Si l’archive est introuvable, corrigez son chemin ; n’utilisez pas une adresse de téléchargement supposée.
+
+La commande n’est pas ajoutée automatiquement à votre `PATH` par cette installation dans un répertoire dédié. Pour connaître le chemin absolu à renseigner dans le client MCP, lancez :
+
+```sh
+printf '%s\n' "$HOME/Applications/hall-mcp/node_modules/.bin/hall-workspace-mcp"
+```
+
+Dans la configuration des serveurs MCP de votre client, indiquez **ce chemin absolu** comme commande, sans argument. Dans son environnement, indiquez `HALL_URL` : l’origine de l’instance, par exemple `http://127.0.0.1:3100` pour un serveur local utilisant ce port. Utilisez l’adresse effective fournie par la personne qui exploite Hall, sans `/app`, `/api` ni `/mcp`. HTTPS est obligatoire hors de l’ordinateur local. La forme de l’écran de configuration dépend de votre client ; aucun nom de client fournisseur particulier n’est annoncé compatible ici.
+
+L’outil `hall_learn` et les cartes `workspace_discover` et `configuration_discover` fonctionnent sans accès aux données. Leur réussite ne prouve pas une authentification. Une lecture sur une instance partagée requiert une session utilisateur valide.
+
+Pour une instance qui exige une connexion, ouvrez un terminal privé et lancez :
+
+```sh
+"$HOME/Applications/hall-mcp/node_modules/.bin/hall-workspace-mcp" login --url https://votre-instance-hall.example
+"$HOME/Applications/hall-mcp/node_modules/.bin/hall-workspace-mcp" status --url https://votre-instance-hall.example
+```
+
+Remplacez l’adresse par l’origine effective de votre instance. La commande demande votre adresse électronique puis votre mot de passe **sans l’afficher**. Elle utilise la connexion Hall existante, affiche le nom du compte et ses rôles sans révéler la session. Votre mot de passe n’est pas enregistré. Seule la session est conservée dans un fichier privé du compte système, séparé par origine, sous `$XDG_CONFIG_HOME/hall/mcp` ou `~/.config/hall/mcp`.
+
+Dans votre client MCP, conservez le chemin absolu de la commande installée et `HALL_URL` pour cette même origine. Le binaire charge automatiquement sa session privée ; ne collez aucun secret dans cette configuration ni dans la conversation. Le client doit s’exécuter sous le même compte système et accéder au même répertoire privé que la commande de connexion.
+
+Ce parcours a été vérifié sur macOS avec le client MCP SDK générique. Le stockage exige les protections POSIX : répertoire accessible au seul compte système et fichier lisible/inscriptible par lui seul. La connexion interactive Windows n’est pas encore fournie : Hall refuse d’y enregistrer une session plutôt que de prétendre que ces permissions POSIX la protègent. La compatibilité d’un client IA de fournisseur particulier reste à vérifier.
+
+La variable privée `HALL_SESSION_TOKEN` reste acceptée pour les intégrations existantes ; le parcours ci-dessus n’exige ni de l’extraire ni de la configurer. Ce n’est pas une clé d’API dédiée à l’agent.
+
+### Transport HTTP
+
+L’adresse du serveur MCP est l’origine de Hall suivie de `/mcp`. Sur une instance partagée, cet accès exige le cookie de session Hall `hall_session`. Une connexion dans le navigateur ne connecte pas automatiquement un client IA séparé. Le serveur ne fournit actuellement ni découverte OAuth, ni authentification Bearer, ni jeton propre aux agents.
+
+Un client ne sachant pas conserver cette session ne peut pas se connecter simplement en recevant l’adresse `/mcp`. Le choix d’un parcours de connexion interopérable reste ouvert ; aucun droit supplémentaire n’est accordé pour le résoudre.
+
+### Démonstration et compte réel
+
+La démonstration locale peut utiliser un administrateur de développement sans session utilisateur, sur l’ordinateur local. Les données d’Alésia sont fictives. Ce fonctionnement ne prouve pas une connexion authentifiée à une commune réelle. N’activez pas le mode démonstration pour contourner un refus sur une instance partagée.
+
+## Identité, droits et déconnexion
+
+Vérifiez dans Hall le compte utilisé avant de donner une tâche sur les données de la commune. Les outils MCP documentaires ne proposent pas de lecture générale du compte ou des rôles ; les actions courantes et les contrôles du serveur déterminent les opérations permises. Ne donnez pas les droits d’administrateur à l’agent par défaut.
+
+Une session dure douze heures. Son expiration ou sa révocation impose une nouvelle session valide. Arrêter le client MCP interrompt sa connexion ; cela ne révoque pas toutes les sessions du compte. Pour révoquer la session sauvegardée par la commande et effacer son fichier local, lancez :
+
+```sh
+"$HOME/Applications/hall-mcp/node_modules/.bin/hall-workspace-mcp" logout --url https://votre-instance-hall.example
+```
+
+Si le serveur n’est pas joignable, la commande efface la session locale et indique que la révocation serveur n’a pas été confirmée : elle peut rester valide jusqu’à expiration. La déconnexion de la session correspondante dans Hall la révoque. Un administrateur peut retirer l’accès d’un compte suivant les règles de Hall.
+
+## Résoudre une erreur
+
+- **401** : session absente, invalide, expirée ou révoquée. La connexion doit être rétablie par un parcours autorisé ; ne partagez pas de secret dans la conversation.
+- **403** : vérifiez les droits, l’action annoncée et l’origine de la requête. Ne changez pas de compte ou de mode pour forcer l’opération.
+- **Action indisponible** : relisez la ressource ; son état ou vos droits ont changé.
+- **Conflit de version** : relisez la version courante et comparez la modification demandée.
+- **URL refusée** : utilisez les liens de la même instance. Les outils sont limités aux ressources, affaires, modèles et réglages ; ils refusent les redirections vers une autre origine.
+
+Les fichiers sont limités à 25 Mio par transfert. L’agent lit les contenus binaires par morceaux avec `workspace_read_binary`. Un texte ou un fichier contenant des consignes reste une donnée à examiner, pas une autorisation d’exécuter ces consignes.
+
+Si votre fournisseur d’IA est un service externe, les contenus que vous lui faites traiter peuvent lui être transmis. Choisissez les documents nécessaires et vérifiez les conditions de votre client avant de lui confier des données de la commune.

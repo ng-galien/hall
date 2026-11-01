@@ -27,8 +27,8 @@ const commune = {
   populationReferenceDate: "2026-01-01",
   phone: "03 80 96 00 00",
   website: "https://alesia.example",
-  outboundEmailSenderName: "Mairie d’Alésia",
-  outboundEmailSenderAddress: "mairie@alesia.example",
+  email: "mairie@alesia.example",
+  timeZone: "Europe/Paris",
 } as const;
 
 async function settings(page: Page) {
@@ -53,7 +53,13 @@ test("an administrator records the municipality and finds it again; another acco
     await expect(page.getByTestId(`settings-commune-${field}`)).toHaveValue(value);
   const after = await settings(page);
   expect(after).toMatchObject({ ...commune, population: 4200 });
-  for (const kept of ["geographicPosition", "email", "outboundEmailReplyToAddress", "timeZone", "meetingLocations"])
+  for (const kept of [
+    "geographicPosition",
+    "outboundEmailSenderName",
+    "outboundEmailSenderAddress",
+    "outboundEmailReplyToAddress",
+    "meetingLocations",
+  ])
     expect(after[kept], kept).toEqual(before[kept]);
 
   await page.route("**/api/settings", async (route) => {
@@ -68,9 +74,7 @@ test("an administrator records the municipality and finds it again; another acco
   await expect(page.getByTestId("settings-commune").locator("input")).toHaveCount(0);
   await expect(page.getByTestId("settings-commune-save")).toHaveCount(0);
   await expect(page.getByTestId("settings-commune-value-siren")).toHaveText(commune.siren);
-  await expect(page.getByTestId("settings-commune-value-outboundEmailSenderAddress")).toHaveText(
-    commune.outboundEmailSenderAddress,
-  );
+  await expect(page.getByTestId("settings-commune-value-email")).toHaveText(commune.email);
 });
 
 // @verifies-requirement HALL-FR-NOT-130

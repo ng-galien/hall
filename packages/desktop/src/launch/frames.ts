@@ -4,6 +4,9 @@ export interface FrameStatistics {
   durationMs: number;
   medianMs: number;
   p95Ms: number;
+  p99Ms: number;
+  referenceFrameMs: number;
+  overBudget: number;
   maxMs: number;
   dropped: number;
   /** Les plus longs intervalles : instant de l'image depuis le chargement de la page et durée. */
@@ -15,34 +18,53 @@ function percentile(sorted: readonly number[], ratio: number): number {
   return sorted[Math.min(sorted.length - 1, Math.floor(ratio * sorted.length))]!;
 }
 
-/** Relève l'instant de chaque image ; une image perdue est un intervalle plus long que la cadence médiane. */
-export function createFrameProbe() {
+/** Samples every frame against an explicit budget, including preparation and the final orbit. */
+export function createFrameProbe(referenceFrameMs = 1000 / 60) {
   const intervals: number[] = [];
   const instants: number[] = [];
   let first: number | null = null;
   let last: number | null = null;
+  let maximum = 0;
+  let dropped = 0;
+  let overBudget = 0;
   return {
     record(now: number): void {
       if (last !== null) {
-        intervals.push(now - last);
+        const interval = now - last;
+        intervals.push(interval);
         instants.push(now);
+        maximum = Math.max(maximum, interval);
+        dropped += Math.max(0, Math.round(interval / referenceFrameMs) - 1);
+        if (interval > referenceFrameMs * 1.25) overBudget += 1;
       }
       first ??= now;
       last = now;
     },
+    runningStatistics() {
+      return {
+        frames: intervals.length,
+        durationMs: Math.round((last ?? 0) - (first ?? 0)),
+        maxMs: maximum,
+        referenceFrameMs,
+        dropped,
+        overBudget,
+      };
+    },
+    samples(): { atMs: number; ms: number }[] {
+      return intervals.map((ms, index) => ({ atMs: instants[index]!, ms }));
+    },
     statistics(): FrameStatistics {
       const sorted = [...intervals].sort((a, b) => a - b);
       const median = percentile(sorted, 0.5);
-      const dropped =
-        median > 0
-          ? intervals.reduce((total, interval) => total + Math.max(0, Math.round(interval / median) - 1), 0)
-          : 0;
       const round = (value: number) => Math.round(value * 10) / 10;
       return {
         frames: intervals.length,
         durationMs: Math.round((last ?? 0) - (first ?? 0)),
         medianMs: round(median),
         p95Ms: round(percentile(sorted, 0.95)),
+        p99Ms: round(percentile(sorted, 0.99)),
+        referenceFrameMs: round(referenceFrameMs),
+        overBudget,
         maxMs: round(sorted.at(-1) ?? 0),
         dropped,
         longest: intervals

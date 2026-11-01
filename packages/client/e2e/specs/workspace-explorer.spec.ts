@@ -733,7 +733,7 @@ test.describe("workspace explorer", () => {
     await page.goto("/app/workspace");
     const document = page
       .locator('[data-testid^="workspace-resource-title-"]')
-      .filter({ hasText: "État des réserves de Cornu" });
+      .filter({ hasText: "État des réserves d’Alésia" });
 
     const business = page.locator('[data-testid^="workspace-business-title-"]').first();
     await expect(business).toBeVisible();
@@ -745,7 +745,7 @@ test.describe("workspace explorer", () => {
     await page.getByTestId("workspace-view-resources").click();
     await expect(document).toBeVisible();
 
-    await page.getByTestId("workspace-tree-filter").fill("État des réserves de Cornu");
+    await page.getByTestId("workspace-tree-filter").fill("État des réserves d’Alésia");
     await expect(document).toBeVisible();
     await expect(page.locator('[data-testid^="workspace-resource-title-"]')).toHaveCount(1);
 

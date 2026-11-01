@@ -36,10 +36,11 @@ export const navigationSections: NavigationSection[] = [
   {
     labelKey: "navigation.council",
     items: [
-      { to: "/meetings", labelKey: "navigation.meetings", icon: <GavelIcon /> },
-      { to: "/minutes", labelKey: "navigation.minutes", icon: <MinutesIcon /> },
+      { to: "/meetings", requiredRelation: "council-meetings", labelKey: "navigation.meetings", icon: <GavelIcon /> },
+      { to: "/minutes", requiredRelation: "minutes", labelKey: "navigation.minutes", icon: <MinutesIcon /> },
       {
         to: "/council-decisions",
+        requiredRelation: "council-decisions",
         labelKey: "navigation.decisions",
         icon: <DecisionsIcon />,
       },
@@ -49,28 +50,40 @@ export const navigationSections: NavigationSection[] = [
     items: [
       {
         to: "/workspace",
+        requiredRelation: "resources",
         labelKey: "navigation.workspace",
         icon: <CouncilBusinessIcon data-testid="workspace-navigation-business-icon" />,
         workspaceTree: true,
       },
       // @implements-requirement HALL-FR-WSP-310
-      { to: "/maps", labelKey: "navigation.maps", icon: <MapIcon /> },
-      { to: "/calendar", labelKey: "navigation.calendar", icon: <CalendarIcon /> },
+      { to: "/maps", requiredRelation: "resources", labelKey: "navigation.maps", icon: <MapIcon /> },
+      { to: "/calendar", requiredRelation: "resources", labelKey: "navigation.calendar", icon: <CalendarIcon /> },
     ],
   },
   {
     labelKey: "navigation.administration",
     items: [
       { to: "/users", labelKey: "users.title", icon: <MembersIcon />, requiredRelation: "users" },
-      { to: "/contacts", labelKey: "navigation.contacts", icon: <ContactIcon /> },
-      { to: "/council-members", labelKey: "navigation.members", icon: <MembersIcon /> },
+      { to: "/contacts", requiredRelation: "contacts", labelKey: "navigation.contacts", icon: <ContactIcon /> },
+      {
+        to: "/council-members",
+        requiredRelation: "council-members",
+        labelKey: "navigation.members",
+        icon: <MembersIcon />,
+      },
       {
         to: "/council-committees",
+        requiredRelation: "council-committees",
         labelKey: "navigation.committees",
         icon: <CommitteeIcon />,
       },
-      { to: "/council-delegations", labelKey: "navigation.delegations", icon: <DelegationIcon /> },
-      { to: "/templates", labelKey: "navigation.templates", icon: <TemplateIcon /> },
+      {
+        to: "/council-delegations",
+        requiredRelation: "council-delegations",
+        labelKey: "navigation.delegations",
+        icon: <DelegationIcon />,
+      },
+      { to: "/templates", requiredRelation: "templates", labelKey: "navigation.templates", icon: <TemplateIcon /> },
     ],
   },
 ];

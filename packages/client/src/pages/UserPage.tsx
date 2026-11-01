@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { DeleteIcon, EditIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { useRoleOptions } from "../features/authorization/useRoleOptions";
 import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
 import { PasswordDialog } from "../features/users/PasswordDialog";
 import { UserRoles } from "../features/users/UserRoles";
@@ -20,6 +21,7 @@ import { useUsersStore } from "../stores/usersStore";
 export function UserPage() {
   const { userId = "" } = useParams();
   const { t } = useI18n();
+  const { roleName, requiresActiveMember } = useRoleOptions();
   const {
     users,
     loading,
@@ -195,7 +197,7 @@ export function UserPage() {
                   </Button>
                 )}
               </div>
-              <p data-testid="user-roles">{user.roles.map((role) => t(`users.role.${role}`)).join(" · ")}</p>
+              <p data-testid="user-roles">{user.roles.map((role) => roleName(role)).join(" · ")}</p>
             </section>
             {canResetPassword[userId] && (
               <section className="admin-record" aria-labelledby={`${fieldId}-password`}>
@@ -314,9 +316,9 @@ export function UserPage() {
           <form className="modal-form" onSubmit={saveRoles}>
             <RequestErrorBanner error={error} />
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
-            {roles.includes("councillor") && (
+            {requiresActiveMember(roles) && (
               <p className="text-sm text-muted-foreground" data-testid="user-councillor-contact-hint">
-                {t("users.councillorContactHint")}
+                {t("authorization.activeMemberRequired")}
               </p>
             )}
             <Button type="submit" disabled={submitting || roles.length === 0} data-testid="user-roles-submit">

@@ -20,7 +20,7 @@ import { createStoryLayer } from "./storyLayer.js";
 const earthRadius = 6371008.8;
 
 /** Hauteur de la carte plate (dessus des communes) où se pose le pied du relief, en unités de la carte. */
-const mapGroundHeight = 12;
+export const mapGroundHeight = 12;
 
 /** Pose de caméra : point visé et position, dans le repère du relief (y vers le haut). */
 export interface CameraPose {
@@ -165,6 +165,15 @@ export async function createReliefStage(
     });
   }
   const skirt = buildSkirt(ground);
+  const supportFloor = -0.025 / new THREE.Vector3().setFromMatrixScale(toMap).y;
+  skirt.traverse((child) => {
+    if (!(child instanceof THREE.Mesh || child instanceof THREE.LineSegments)) return;
+    const positions = child.geometry.getAttribute("position");
+    for (let index = 0; index < positions.count; index += 1) {
+      if (positions.getY(index) < 0) positions.setY(index, supportFloor);
+    }
+    positions.needsUpdate = true;
+  });
   const skirtMaterials: THREE.Material[] = [];
   skirt.traverse((child) => {
     if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {

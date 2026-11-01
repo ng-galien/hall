@@ -88,6 +88,8 @@ async function resourceReferenceNode(
 }
 
 export interface TemplatePreview {
+  sourceLabel?: string | null;
+  sourceKind?: "meeting";
   html: string;
   /** HTML without preview-only header/footer; used as Chromium's printable page body. */
   printHtml: string;
@@ -103,6 +105,7 @@ export interface TemplatePreview {
 interface ResolvedContext {
   /** Whether the PDF carries the PDF documents its text references, appended after it and linked. */
   attachPdfDocuments: boolean;
+  generated: { bodyMarkdown: string; subject: string | null } | null;
   notice: MeetingNoticeFacts | null;
   councilDecision: CouncilDecisionDetail | null;
   minutes: MinutesDetail | null;
@@ -650,7 +653,7 @@ export interface TemplateRenderingService {
     context?: TemplateRenderContext,
     notice?: MeetingNoticeFacts,
     councilDecision?: CouncilDecisionDetail,
-    options?: { attachPdfDocuments?: boolean },
+    options?: { attachPdfDocuments?: boolean; generated?: { bodyMarkdown: string; subject: string | null } },
   ): Promise<TemplatePreview>;
 }
 
@@ -671,6 +674,7 @@ export function createTemplateRenderingService({
 }): TemplateRenderingService {
   const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => ({
     attachPdfDocuments: true,
+    generated: null,
     notice: null,
     councilDecision: null,
     minutes: context.minutesId ? await minutesClient.open(context.minutesId) : null,
@@ -700,6 +704,21 @@ export function createTemplateRenderingService({
       : null;
     for (const directive of collectDirectives(tree)) {
       const key = `${directive.name}:${directive.occurrence}`;
+      if (directive.name === "generated-content") {
+        if (!context.generated) {
+          diagnostics.push(diagnostic("unresolved_reference", "Generated document content is unavailable", directive));
+        } else {
+          const rendered = await renderSource(
+            context.generated.bodyMarkdown,
+            { ...context, generated: null },
+            ancestors,
+          );
+          values.set(key, { type: "html", value: rendered.bodyHtml, children: [textNode(rendered.text)] });
+          diagnostics.push(...rendered.diagnostics);
+          for (const attachment of rendered.pdfAttachments) pdfAttachments.set(attachment.id, attachment);
+        }
+        continue;
+      }
       if (directive.name === "council-decision") {
         const section = directive.attributes.section;
         const decision = context.councilDecision;
@@ -841,6 +860,7 @@ export function createTemplateRenderingService({
         const name = directive.attributes.name;
         if (!name || !isFieldName(name)) continue;
         const fields: Record<typeof name, string | null> = {
+          "generated.subject": context.generated?.subject ?? null,
           "hall.name": context.hall.name,
           "meeting.startsAt": context.meeting?.scheduledAt
             ? formatMeetingDate(context.meeting.scheduledAt, context.hall.timeZone)
@@ -875,7 +895,18 @@ export function createTemplateRenderingService({
     async preview(template, renderContext = {}, notice, councilDecision, options = {}) {
       const context = await loadContext(renderContext);
       context.attachPdfDocuments = options.attachPdfDocuments ?? true;
-      context.councilDecision = councilDecision ?? null;
+      context.generated = options.generated ?? null;
+      context.councilDecision = councilDecision
+        ? {
+            ...councilDecision,
+            facts: {
+              ...councilDecision.facts,
+              hall:
+                councilDecision.facts.hall ??
+                (context.hall.name.trim() ? { name: context.hall.name, timeZone: context.hall.timeZone } : null),
+            },
+          }
+        : null;
       const meetingFacts =
         !notice && renderContext.meetingId ? await councilClient.noticeFacts(renderContext.meetingId) : null;
       context.notice =

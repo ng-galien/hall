@@ -1,6 +1,6 @@
 import { sirenActionSchema } from "@hall/api-contract";
 import { z } from "zod";
-import { describeAction, type WorkspaceAction, workspaceActions } from "./actions.js";
+import { describeAction, type HallAction, hallActions } from "./actions.js";
 
 const representationSchema = z.object({ actions: z.array(sirenActionSchema).optional() }).passthrough();
 export const uploadSchema = z.object({
@@ -35,9 +35,9 @@ export class WorkspaceClient {
       url.origin !== this.base.origin ||
       url.username ||
       url.password ||
-      !/^\/api\/(resources|council-business)(\/|$)/.test(url.pathname)
+      !/^\/api\/(resources|council-business|templates|settings)(\/|$)/.test(url.pathname)
     )
-      throw new Error("Only workspace URLs on the configured Hall instance are allowed");
+      throw new Error("Only workspace or configuration URLs on the configured Hall instance are allowed");
     if (/%2f|%5c|%2e/i.test(url.pathname) || url.hash) throw new Error("Invalid workspace URL");
     return url;
   }
@@ -54,7 +54,9 @@ export class WorkspaceClient {
     });
     if (!response.ok) {
       const problem = await response.text();
-      throw new Error(`Hall HTTP ${response.status}: ${problem.slice(0, 8000)}`);
+      throw new Error(
+        `Hall HTTP ${response.status}: ${problem.slice(0, 8000)}${response.status === 401 ? " Reconnect in a private terminal with hall-workspace-mcp login --url <Hall origin>." : ""}`,
+      );
     }
     return response;
   }
@@ -67,7 +69,7 @@ export class WorkspaceClient {
     return value;
   }
 
-  async execute(href: string, name: WorkspaceAction, input: Record<string, unknown>, file?: Upload): Promise<unknown> {
+  async execute(href: string, name: HallAction, input: Record<string, unknown>, file?: Upload): Promise<unknown> {
     const entity = representationSchema.parse(await this.read(href));
     const action = entity.actions?.find((candidate) => candidate.name === name);
     if (!action)
@@ -86,7 +88,7 @@ export class WorkspaceClient {
       if (contextualInput[field.name] === undefined || field.type === "hidden")
         contextualInput[field.name] = field.value;
     }
-    const parsed = workspaceActions[name].schema.parse(contextualInput);
+    const parsed = hallActions[name].schema.parse(contextualInput);
     const description = describeAction(name);
     if (Boolean(file) !== description.fileRequired)
       throw new Error(description.fileRequired ? "This action requires a file" : "This action does not accept a file");

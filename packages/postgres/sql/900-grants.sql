@@ -328,3 +328,8 @@ GRANT EXECUTE ON FUNCTION hall_api.list_council_delegations(BOOLEAN),
  hall_api.update_delegation_membership(UUID,UUID,TEXT,DATE,DATE),
  hall_api.end_delegation_membership(UUID,UUID,DATE)
  TO hall_api_authenticated,hall_api_worker;
+
+GRANT EXECUTE ON FUNCTION hall_api.authorization_role_options(), hall_api.authorization_configuration(),
+ hall_api.save_authorization_role(TEXT, JSONB), hall_api.delete_authorization_role(TEXT, INTEGER) TO hall_api_authenticated;
+
+GRANT EXECUTE ON FUNCTION hall_api.authorization_requires_personal_workspace(TEXT[]) TO hall_api_authenticated;

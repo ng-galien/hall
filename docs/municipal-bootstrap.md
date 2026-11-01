@@ -190,22 +190,14 @@ status, and the roles selected by the user. An elected contact and a login are
 different objects; a contact link does not grant a council mandate or permission.
 Transmit initial passwords through the municipality's chosen confidential channel.
 
-| Existing role | Current application permissions |
-| --- | --- |
-| administrator | All application permissions, account management and municipality changes |
-| clerk | Contacts, members, workspace, business updates, meeting reading/preparation |
-| contributor | Contact reading, workspace, business updates, meeting reading |
-| meetingConductor | Contact/workspace reading, meeting reading/conduct |
-| reader | Contact/workspace/meeting reading |
-
-Roles can be combined. These are current permission mappings, not an instruction
-to grant a particular role. SQL and Siren also control actions: documentary
-mutation affordances currently require administrator status even where a role
-has `workspace.write`. Do not grant administrator merely to work around this;
-report the missing required action for an explicit product decision.
+The built-in administrator always has every permission and configures the policy in
+**Configuration → Permissions**. The secretariat (`clerk`), contributor and councillor
+roles are initial, editable presets. Roles combine their grants. Use the current
+configuration to review each account's effective access; see
+[Configurable authorization](authorization.md) for conditions and administrator protection.
 
 Sign in as each selected profile and verify its actual needed operations. Confirm
-that account administration is unavailable to non-administrators. Check an
+that account administration matches the configured grants. Check an
 existing contact, council meeting, document text, document download, and the
 expected read/write actions. Record concrete discrepancies. Health returning
 200 and a visible menu alone do not establish usable collaborator access.

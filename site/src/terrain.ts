@@ -264,7 +264,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   renderer.domElement.setAttribute("role", "img");
   renderer.domElement.setAttribute(
     "aria-label",
-    "Relief du plateau de Cornu et de Chaux-des-Crotenay, dans le Jura, avec les vallées de la Saine et de la Lemme, les routes, l’eau et le bâti.",
+    "Relief du plateau d’Alésia et de Chaux-des-Crotenay, dans le Jura, avec les vallées de la Saine et de la Lemme, les routes, l’eau et le bâti.",
   );
 
   const scene = new THREE.Scene();
@@ -380,7 +380,6 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     });
   }
 
-  /** Recule le point de vue final jusqu'à ce que les repères allumés tiennent dans la partie libre de la scène. */
   function framed(flight: Flight, points: THREE.Vector3[]): Flight {
     const free = freeFrame();
     if (!free || points.length === 0) return flight;

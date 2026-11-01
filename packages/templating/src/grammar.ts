@@ -40,6 +40,7 @@ export type DirectiveKind =
   | "resource-embed"
   | "field"
   | "minutes"
+  | "generated-content"
   | "meeting-notice"
   | "deliberation-list"
   | "council-decision";
@@ -71,6 +72,7 @@ const reference = (name: ReferenceKind): DirectiveSpec => ({
 
 export const directiveSpecs: readonly DirectiveSpec[] = [
   ...referenceKinds.map(reference),
+  { name: "generated-content", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },
   { name: "meeting-notice", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },
   { name: "deliberation-list", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },
   { name: "minutes", node: "leafDirective", label: false, attributes: ["section"], attributesRequired: ["section"] },
@@ -108,6 +110,7 @@ export const directiveSpecs: readonly DirectiveSpec[] = [
 
 /** Closed list of contextual field names accepted by the `field` directive. */
 export const fieldNames = [
+  "generated.subject",
   "hall.name",
   "meeting.startsAt",
   "meeting.location",

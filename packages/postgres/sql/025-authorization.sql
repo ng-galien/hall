@@ -37,10 +37,11 @@ CREATE VIEW hall.access AS
       ('user.list', 'Compte', 'lister'),
       ('user.manage', 'Compte', 'gérer (créer, modifier, phrase de passe, révoquer, réactiver, désactiver, attribuer les rôles)'),
       ('settings.manage', 'Réglages de la commune', 'modifier (dont le patrimoine communal)'),
-      ('audit.read', 'Journal d’audit', 'lire')
+      ('audit.read', 'Journal d’audit', 'lire'),
+      ('authorization.manage', 'Rôles et autorisations', 'configurer (administrateur intégré)')
   ) AS entry(access, resource, operation);
 
-CREATE VIEW hall.role_access AS
+CREATE VIEW hall.authorization_default_grant AS
   SELECT role, access, condition
   FROM (
     VALUES
@@ -116,6 +117,25 @@ CREATE VIEW hall.role_access AS
       ('councillor', 'ballot.record', 'meetingOfficer'),
       ('councillor', 'meeting.conduct', 'meetingOfficer')
   ) AS entry(role, access, condition);
+
+-- @implements-requirement HALL-FR-USR-060
+CREATE TABLE hall.authorization_role (
+  id TEXT PRIMARY KEY CONSTRAINT authorization_role_id CHECK (id ~ '^[a-z][a-z0-9-]*$'::text AND length(id) <= 80),
+  name TEXT NOT NULL CONSTRAINT authorization_role_name CHECK (length(btrim(name)) >= 1 AND length(btrim(name)) <= 120),
+  revision INTEGER NOT NULL DEFAULT 1 CONSTRAINT authorization_role_revision CHECK (revision > 0)
+);
+CREATE TABLE hall.authorization_grant (
+  role TEXT NOT NULL REFERENCES hall.authorization_role(id) ON DELETE CASCADE,
+  access TEXT NOT NULL,
+  condition TEXT NOT NULL CONSTRAINT authorization_grant_condition CHECK (condition = ANY (ARRAY['always'::text, 'meetingOfficer'::text, 'ownPersonalWorkspace'::text])),
+  PRIMARY KEY (role, access)
+);
+CREATE VIEW hall.role_access AS
+  SELECT role, access, condition FROM hall.authorization_grant;
+ALTER TABLE hall.authorization_role OWNER TO hall_owner;
+ALTER TABLE hall.authorization_grant OWNER TO hall_owner;
+ALTER VIEW hall.authorization_default_grant OWNER TO hall_owner;
+REVOKE ALL ON hall.authorization_role, hall.authorization_grant, hall.authorization_default_grant FROM PUBLIC;
 
 CREATE VIEW hall.action_access AS
   SELECT action, access
@@ -227,6 +247,12 @@ CREATE VIEW hall.action_access AS
       ('user.reactivate', 'user.manage'),
       ('user.generate-passphrase', 'user.manage'),
       ('user.assign-role', 'user.manage'),
+      ('role.create', 'authorization.manage'),
+      ('role.update', 'authorization.manage'),
+      ('role.delete', 'authorization.manage'),
+      ('role.list', 'authorization.manage'),
+      ('application.read', 'read'),
+      ('application.export', 'export'),
       ('settings.update', 'settings.manage'),
       ('resource.import-municipal-property', 'settings.manage'),
       ('audit-event.list', 'audit.read')
@@ -277,6 +303,9 @@ BEGIN
   IF granted_access IS NULL THEN
     RETURN FALSE;
   END IF;
+  IF caller_roles ? 'administrator' THEN RETURN TRUE; END IF;
+  IF granted_access = 'authorization.manage' THEN RETURN FALSE; END IF;
+  IF granted_access = 'session' THEN RETURN jsonb_array_length(caller_roles) > 0; END IF;
   -- Without a location, a resource action is admitted where the caller may
   -- write or delete somewhere; the operation then checks its own location.
   IF NOT scope ? 'location' AND granted_access IN ('common-resource.write', 'common-resource.delete') THEN
@@ -315,7 +344,7 @@ STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
-  SELECT EXISTS (
+  SELECT coalesce(nullif(current_setting('hall.roles', true), '')::jsonb, '[]'::jsonb) ? 'administrator' OR EXISTS (
     SELECT FROM hall.role_access AS grant_row
     WHERE coalesce(nullif(current_setting('hall.roles', true), '')::jsonb, '[]'::jsonb) ? grant_row.role
       AND grant_row.access = target_access
@@ -352,3 +381,21 @@ $function$;
 
 ALTER FUNCTION hall_api.allowed_actions(JSONB) OWNER TO hall_owner;
 REVOKE ALL ON FUNCTION hall_api.allowed_actions(JSONB) FROM PUBLIC;
+
+-- Installs the former matrix only for an empty catalog. Later startup and
+-- upgrades never overwrite administrative choices, including removed grants.
+CREATE FUNCTION hall.initialize_authorization_defaults()
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+BEGIN
+  LOCK TABLE hall.authorization_role IN EXCLUSIVE MODE;
+  IF EXISTS (SELECT FROM hall.authorization_role) THEN RETURN; END IF;
+  INSERT INTO hall.authorization_role(id, name) VALUES
+    ('administrator', 'Administrateur'), ('clerk', 'Secrétariat'),
+    ('contributor', 'Contributeur'), ('councillor', 'Conseiller');
+  INSERT INTO hall.authorization_grant(role, access, condition)
+    SELECT role, access, condition FROM hall.authorization_default_grant;
+END;
+$$;
+ALTER FUNCTION hall.initialize_authorization_defaults() OWNER TO hall_owner;
+REVOKE ALL ON FUNCTION hall.initialize_authorization_defaults() FROM PUBLIC;
+SELECT hall.initialize_authorization_defaults();

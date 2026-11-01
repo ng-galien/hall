@@ -1,6 +1,6 @@
 import { type ReactNode, type RefObject, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -13,11 +13,14 @@ export function DocumentViewerDialog({
   titleId,
   title,
   caption,
+  description,
   actions,
   header,
   closeTestId,
   closeButtonRef,
   restoreFocus = true,
+  returnFocusRef,
+  documentKind,
   resourceMode,
   className,
   contentClassName,
@@ -29,12 +32,15 @@ export function DocumentViewerDialog({
   /** Title of the default header; a custom `header` renders its own title with `titleId`. */
   title?: ReactNode;
   caption?: ReactNode;
+  description?: ReactNode;
   actions?: ReactNode;
   /** Replaces the default header; it then renders the close control bound to `closeButtonRef`. */
   header?: ReactNode;
   closeTestId?: string;
   closeButtonRef?: RefObject<HTMLButtonElement | null>;
   restoreFocus?: boolean;
+  returnFocusRef?: RefObject<HTMLElement | null>;
+  documentKind?: string;
   resourceMode?: string;
   className?: string;
   contentClassName?: string;
@@ -50,25 +56,32 @@ export function DocumentViewerDialog({
         className={cn("document-viewer gap-0 p-0 sm:max-w-[var(--hall-size-viewer-width)]", className)}
         data-testid={testId}
         data-resource-mode={resourceMode}
+        data-document-kind={documentKind}
         aria-labelledby={titleId}
-        aria-describedby={undefined}
+        aria-describedby={description ? `${titleId}-description` : undefined}
         showCloseButton={false}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           closeButton.current?.focus({ preventScroll: true });
         }}
-        onCloseAutoFocus={restoreFocus ? undefined : (event) => event.preventDefault()}
+        onCloseAutoFocus={(event) => {
+          if (returnFocusRef?.current) {
+            event.preventDefault();
+            returnFocusRef.current.focus({ preventScroll: true });
+          } else if (!restoreFocus) event.preventDefault();
+        }}
       >
         {header ?? (
           <header className="document-viewer-header">
             <div>
               {caption ? <span>{caption}</span> : null}
               <DialogTitle id={titleId}>{title}</DialogTitle>
+              {description ? <DialogDescription id={`${titleId}-description`}>{description}</DialogDescription> : null}
             </div>
             <div className="document-viewer-actions">
               {actions}
               <Button
-                ref={ownCloseButton}
+                ref={closeButton}
                 data-testid={closeTestId}
                 size="icon"
                 variant="ghost"

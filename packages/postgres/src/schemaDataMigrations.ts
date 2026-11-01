@@ -3,7 +3,10 @@ import { fileURLToPath } from "node:url";
 import type { PoolClient } from "pg";
 import { HallPostgresError, preservePostgresError } from "./errors.js";
 
-const dataMigrationPaths = ["sql/migrations/001-agenda-subject-text-lock.sql"] as const;
+const dataMigrationPaths = [
+  "sql/migrations/001-agenda-subject-text-lock.sql",
+  "sql/migrations/002-authorization-defaults.sql",
+] as const;
 
 export async function executeSchemaDataMigrations(client: PoolClient): Promise<void> {
   const packageRoot = new URL("../", import.meta.url);

@@ -12,6 +12,7 @@ type SpreadsheetDocument = Extract<ResourceDetail, { kind: "spreadsheet" }>["doc
 
 const SNAPSHOT_DEBOUNCE_MS = 100;
 
+// @implements-requirement HALL-FR-LAY-030
 export function UniverSpreadsheetAdapter({
   mountElement,
   document,
@@ -57,7 +58,9 @@ export function UniverSpreadsheetAdapter({
     instanceHost.className = "univer-spreadsheet-instance";
     host.append(instanceHost);
     const currentLocale = locale === "fr" ? LocaleType.FR_FR : LocaleType.EN_US;
+    const isDarkMode = () => window.document.documentElement.dataset.theme === "dark";
     const univer = new Univer({
+      darkMode: isDarkMode(),
       locale: currentLocale,
       locales: { [LocaleType.FR_FR]: frFR, [LocaleType.EN_US]: enUS },
     });
@@ -72,6 +75,8 @@ export function UniverSpreadsheetAdapter({
       else univer.registerPlugin(plugin);
     }
     const univerAPI = FUniver.newAPI(univer);
+    const themeObserver = new MutationObserver(() => univerAPI.toggleDarkMode(isDarkMode()));
+    themeObserver.observe(window.document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     const initialDocument = initialDocumentRef.current;
     const workbook = univerAPI.createWorkbook(workbookFromSpreadsheetDocument(initialDocument));
     let lastSnapshot = JSON.stringify(initialDocument.workbook);
@@ -102,6 +107,7 @@ export function UniverSpreadsheetAdapter({
       queueSnapshot(0);
     });
     return () => {
+      themeObserver.disconnect();
       if (snapshotTimer !== null) publishSnapshot();
       onEditingChangeRef.current(false);
       editEnded.dispose();

@@ -19,6 +19,7 @@ import {
 } from "./accessControl.js";
 import { errorHandler } from "./errorHandler.js";
 import { sendProblem } from "./problemDetails.js";
+import { requireApplicationReading } from "./readAuthorization.js";
 import { createAuditRouter } from "./routes/auditRoutes.js";
 import { createAuthRouter, createUsersRouter } from "./routes/authRoutes.js";
 import { createBallotPreviewsRouter } from "./routes/ballotPreviewsRoutes.js";
@@ -37,6 +38,7 @@ import { createDocumentationRouter } from "./routes/documentationRoutes.js";
 import { createGeographicLayersRouter } from "./routes/geographicLayersRoutes.js";
 import { createMeetingNoticesRouter } from "./routes/meetingNoticesRoutes.js";
 import { createMinutesRouter } from "./routes/minutesRoutes.js";
+import { createRolesRouter } from "./routes/rolesRoutes.js";
 import { createSettingsRouter } from "./routes/settingsRoutes.js";
 import { apiRootRepresentation, sirenResponses } from "./sirenRepresentation.js";
 
@@ -101,8 +103,10 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/auth", createAuthRouter(container.cradle));
   app.get("/api", (request, response) => response.json(apiRootRepresentation(request)));
   app.use("/api", requireAuthentication);
+  app.use("/api/roles", createRolesRouter(container.cradle));
   app.use("/api/users", createUsersRouter(container.cradle));
   app.use("/api/audit-events", createAuditRouter(container.cradle));
+  app.use("/api", requireApplicationReading);
   app.use("/api/ballot-previews", createBallotPreviewsRouter(container.cradle));
   app.use("/api/ballots", createBallotsRouter(container.cradle));
   app.use("/api/contacts", createContactsRouter(container.cradle));

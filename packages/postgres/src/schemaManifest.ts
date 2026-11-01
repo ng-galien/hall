@@ -9,6 +9,7 @@ export const schemaManifestPaths = [
   "sql/020-call-context.sql",
   "sql/025-authorization.sql",
   "sql/030-audit.sql",
+  "sql/026-authorization-administration.sql",
   "sql/directory/000-requirements.sql",
   "sql/directory/001-types.sql",
   "sql/directory/010-model.sql",

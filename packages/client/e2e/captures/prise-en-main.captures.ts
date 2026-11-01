@@ -8,7 +8,7 @@ test("prise en main de Hall", async ({ docsPage: page }) => {
   const journey = "prise-en-main";
 
   // The secretariat signs out, then signs in again through the sign-in screen.
-  await page.goto("/app/settings");
+  await page.goto("/app/settings?category=preferences");
   await page.getByTestId("settings-logout").click();
   await expect(page.getByTestId("auth-submit")).toBeVisible();
   await capture(page, `${journey}/01-connexion`);
@@ -40,7 +40,7 @@ test("prise en main de Hall", async ({ docsPage: page }) => {
   await capture(page, `${journey}/04-recherche-rapide`);
   await page.keyboard.press("Escape");
 
-  await page.goto("/app/settings");
+  await page.goto("/app/settings?category=preferences");
   await expect(page.getByRole("heading", { name: "Paramètres" })).toBeVisible();
   await expect(page.getByTestId("settings-logout")).toBeVisible();
   await page.getByTestId("settings-logout").scrollIntoViewIfNeeded();

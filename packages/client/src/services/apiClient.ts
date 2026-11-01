@@ -11,6 +11,10 @@ import {
 import { liveOrigin } from "./liveOrigin";
 
 export type ApiErrorCode =
+  | "built_in_administrator_protected"
+  | "invalid_authorization_grant"
+  | "authorization_role_changed"
+  | "authorization_role_in_use"
   | "ballot_preview_stale"
   | "ballot_already_confirmed"
   | "ballot_candidate_invalid"

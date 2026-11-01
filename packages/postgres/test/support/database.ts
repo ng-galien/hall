@@ -31,6 +31,10 @@ async function clearHallTestData(pool: Pool): Promise<void> {
         EXECUTE 'TRUNCATE TABLE ' || tables || ' RESTART IDENTITY CASCADE';
       END IF;
 
+      IF to_regprocedure('hall.initialize_authorization_defaults()') IS NOT NULL THEN
+        PERFORM hall.initialize_authorization_defaults();
+      END IF;
+
       IF to_regclass('public.hall_settings') IS NOT NULL THEN
         INSERT INTO public.hall_settings (id)
         VALUES ('hall')

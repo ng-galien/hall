@@ -226,6 +226,13 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     return null;
   }
 
+  if (root === "roles") {
+    if (method === "POST" && !id) return auditIntent("role.create");
+    if (method === "PUT" && id && !child) return auditIntent("role.update", id);
+    if (method === "DELETE" && id && !child) return auditIntent("role.delete", id);
+    return null;
+  }
+
   if (root === "users") {
     if (method === "PUT" && id && !child) return auditIntent("user.update", id, body && { contactId: body.contactId });
     if (method === "POST" && id && child === "reset-password" && !childId)

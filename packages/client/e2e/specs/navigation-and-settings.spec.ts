@@ -65,6 +65,7 @@ test.describe("navigation and settings", () => {
 
   test("persists the selected interface language after a reload", async ({ appPage: page }) => {
     await page.getByTestId("navigation-settings").click();
+    await page.getByTestId("settings-tab-preferences").click();
     await page.getByTestId("settings-language").click();
     await page.getByTestId("settings-language-fr").click();
     await expect(page.locator("html")).toHaveAttribute("lang", "fr");
@@ -86,6 +87,7 @@ test.describe("navigation and settings", () => {
 
   test("keeps authentication credentials out of application settings", async ({ appPage: page }) => {
     await page.getByTestId("navigation-settings").click();
+    await page.getByTestId("settings-tab-preferences").click();
     await expect(page.getByTestId("settings-language")).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Appearance", exact: true })).toBeVisible();
     await expect(page.getByLabel("Access token", { exact: true })).toHaveCount(0);

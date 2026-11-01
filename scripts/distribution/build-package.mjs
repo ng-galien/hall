@@ -1,9 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmod, cp, mkdir, readdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
-import { isBuiltin } from "node:module";
+import { createRequire, isBuiltin } from "node:module";
 import { dirname, join, resolve, sep } from "node:path";
 import { build } from "esbuild";
+import { installBuffersNotice } from "./buffers-notice.mjs";
 
 // @implements-requirement HALL-TR-DST-010
 const root = resolve(import.meta.dirname, "../..");
@@ -29,8 +30,9 @@ await mkdir(join(stage, "bin"), { recursive: true });
 
 const result = await build({
   absWorkingDir: root,
-  entryPoints: ["packages/server/standalone/hall.mjs"],
-  outfile: join(stage, "bin/hall.mjs"),
+  entryPoints: { hall: "packages/server/standalone/hall.mjs", "hall-workspace-mcp": "packages/mcp/src/index.ts" },
+  outdir: join(stage, "bin"),
+  outExtension: { ".js": ".mjs" },
   bundle: true,
   platform: "node",
   format: "esm",
@@ -114,11 +116,20 @@ const manifest = {
   type: "module",
   license: "EUPL-1.2",
   engines: { node: ">=22.12.0" },
-  bin: { hall: "bin/hall.mjs" },
+  bin: { hall: "bin/hall.mjs", "hall-workspace-mcp": "bin/hall-workspace-mcp.mjs" },
   files: ["bin", "client", "sql", "licenses", "release.json", "README.md", "distribution.md", "municipal-bootstrap.md"],
   dependencies: Object.fromEntries(Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b))),
 };
 await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+const requireRuntime = createRequire(join(root, "package.json"));
+const excelRuntime = createRequire(requireRuntime.resolve("exceljs"));
+const unzipRuntime = createRequire(excelRuntime.resolve("unzipper"));
+const binaryRuntime = createRequire(unzipRuntime.resolve("binary"));
+const buffersNotice = await installBuffersNotice({
+  buffersDirectory: dirname(binaryRuntime.resolve("buffers")),
+  outputDirectory: stage,
+  artifact: { name: manifest.name, version: manifest.version },
+});
 const { loadSchemaManifest } = await import("../../packages/postgres/dist/schemaManifest.js");
 await writeFile(
   join(stage, "release.json"),
@@ -131,6 +142,7 @@ await writeFile(
         dirty: Boolean(spawnSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" }).stdout?.trim()),
       },
       schemaFingerprint: (await loadSchemaManifest()).fingerprint,
+      thirdPartyNotices: [buffersNotice],
       runtimeDependencies: Object.fromEntries(
         Object.keys(manifest.dependencies).map((name) => {
           const { version, resolved, integrity } = lock.packages[`node_modules/${name}`];
@@ -143,6 +155,7 @@ await writeFile(
   )}\n`,
 );
 await chmod(join(stage, "bin/hall.mjs"), 0o755);
+await chmod(join(stage, "bin/hall-workspace-mcp.mjs"), 0o755);
 console.log(`Standalone package prepared in ${stage}`);
 if (process.argv.includes("--pack")) {
   run("npm", ["pack", "--loglevel=error", "--ignore-scripts", "--pack-destination", output], stage);

@@ -61,6 +61,8 @@ export const updateHallSettingsSchema = z.object({
   outboundEmailSenderName: boundedText(160),
   outboundEmailSenderAddress: z.email().nullable(),
   outboundEmailReplyToAddress: z.email().nullable(),
+  outboundEmailSignatureMarkdown: z.string().max(20_000).default(""),
+  outboundEmailFooterMarkdown: z.string().max(20_000).default(""),
 });
 
 const contentTemplateShape = {
@@ -100,6 +102,7 @@ export const previewContentTemplateSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("pdf"),
     bodyMarkdown: z.string().max(500_000),
+    documentType: z.string().max(100).optional(),
     subject: z.null().optional().default(null),
     stylesheet: z.string().max(100_000).default(""),
     headerHtml: z.string().max(100_000).default(""),
@@ -109,6 +112,7 @@ export const previewContentTemplateSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("message"),
     bodyMarkdown: z.string().max(500_000),
+    documentType: z.string().max(100).optional(),
     subject: z.string().max(500),
     context: templateRenderContextSchema.default({}),
   }),

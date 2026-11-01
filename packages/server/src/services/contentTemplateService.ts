@@ -1,6 +1,11 @@
 import type { CouncilDecisionDetail, MeetingNoticeFacts } from "@hall/contracts";
-import type { ContentTemplate, TemplateRenderContext } from "@hall/domain";
-import { type Diagnostic, parse, serialize } from "@hall/templating";
+import {
+  type ContentTemplate,
+  type GeneratedDocumentType,
+  generatedDocumentTemplates,
+  type TemplateRenderContext,
+} from "@hall/domain";
+import { collectDirectives, type Diagnostic, parse, serialize } from "@hall/templating";
 import MailComposer from "nodemailer/lib/mail-composer/index.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type {
@@ -11,9 +16,11 @@ import type {
 } from "../repositories/contracts.js";
 import type { DocumentRenderer } from "./documentRenderer.js";
 import { DomainError } from "./errors.js";
+import type { TemplatePreviewContext, TemplatePreviewContextService } from "./templatePreviewContextService.js";
 import type { TemplatePreview, TemplateRenderingService } from "./templateRendering.js";
 
 export interface TemplateDraft {
+  documentType?: string;
   kind: ContentTemplate["kind"];
   bodyMarkdown: string;
   subject?: string | null;
@@ -48,6 +55,18 @@ export interface ContentTemplateService {
   delete(id: string): Promise<void>;
   preview(draft: TemplateDraft, context: TemplateRenderContext): Promise<TemplatePreview>;
   previewPdf(bodyMarkdown: string, context: TemplateRenderContext, attachPdfDocuments?: boolean): Promise<Buffer>;
+  generatedPreview(
+    type: GeneratedDocumentType,
+    bodyMarkdown: string,
+    subject: string | null,
+    context?: TemplateRenderContext,
+  ): Promise<TemplatePreview>;
+  generatedPdf(
+    type: GeneratedDocumentType,
+    bodyMarkdown: string,
+    context?: TemplateRenderContext,
+    attachPdfDocuments?: boolean,
+  ): Promise<Buffer>;
   generate(id: string, input: GenerateTemplateInput): Promise<GeneratedFile>;
   generateFromTemplate(template: ContentTemplate, input: GenerateTemplateInput): Promise<GeneratedFile>;
 }
@@ -57,11 +76,22 @@ function canonicalSource(source: string): string {
 }
 
 function canonicalTemplate(input: SaveContentTemplate): SaveContentTemplate {
+  validateGeneratedTemplate(input);
   return {
     ...input,
     bodyMarkdown: canonicalSource(input.bodyMarkdown),
     subject: input.subject === null ? null : canonicalSource(input.subject).trim(),
   };
+}
+
+function validateGeneratedTemplate(template: Pick<ContentTemplate, "kind" | "documentType" | "bodyMarkdown">): void {
+  const generatedType = generatedDocumentTemplates.find((entry) => entry.documentType === template.documentType);
+  if (!generatedType) return;
+  const slots = collectDirectives(parse(template.bodyMarkdown)).filter(
+    (directive) => directive.name === "generated-content",
+  );
+  if (template.kind !== generatedType.kind || slots.length !== 1 || slots[0]?.node !== "leafDirective")
+    throw new DomainError("template_invalid", 422);
 }
 
 function assertRenderable(diagnostics: Diagnostic[]): void {
@@ -115,6 +145,7 @@ async function attachments(resourcesClient: ResourcesClient, resourceIds: string
 export function createContentTemplateService({
   contentTemplateRepository,
   templateRenderingService,
+  templatePreviewContextService,
   documentRenderer,
   resourcesClient,
   hallSettingsRepository,
@@ -122,6 +153,7 @@ export function createContentTemplateService({
 }: {
   contentTemplateRepository: ContentTemplateRepository;
   templateRenderingService: TemplateRenderingService;
+  templatePreviewContextService: TemplatePreviewContextService;
   documentRenderer: DocumentRenderer;
   resourcesClient: ResourcesClient;
   hallSettingsRepository: HallSettingsRepository;
@@ -155,7 +187,55 @@ export function createContentTemplateService({
     return template;
   };
 
+  const messagePresentation = async <T extends TemplateDraft>(draft: T): Promise<T> => {
+    if (draft.kind !== "message") return draft;
+    const hall = await hallSettingsRepository.get();
+    return {
+      ...draft,
+      bodyMarkdown: [draft.bodyMarkdown, hall.outboundEmailSignatureMarkdown, hall.outboundEmailFooterMarkdown]
+        .filter((part) => part?.trim())
+        .join("\n\n"),
+    };
+  };
+  const generatedPreview = async (
+    type: GeneratedDocumentType,
+    bodyMarkdown: string,
+    subject: string | null,
+    context: TemplateRenderContext = {},
+    attachPdfDocuments = false,
+  ) => {
+    const templates = (await contentTemplateRepository.list()).filter((candidate) => candidate.documentType === type);
+    if (templates.length !== 1) throw new DomainError("template_not_found", 404);
+    validateGeneratedTemplate(templates[0]!);
+    const template = await messagePresentation(templates[0]!);
+    return templateRenderingService.preview(template, context, undefined, undefined, {
+      attachPdfDocuments,
+      generated: { bodyMarkdown, subject },
+    });
+  };
+  const generatedPdf = async (
+    type: GeneratedDocumentType,
+    bodyMarkdown: string,
+    context: TemplateRenderContext = {},
+    attachPdfDocuments = false,
+  ) =>
+    withGenerationSlot(async () => {
+      const preview = await generatedPreview(type, bodyMarkdown, null, context, attachPdfDocuments);
+      assertRenderable(preview.diagnostics);
+      const content = await documentRenderer.pdf({
+        html: preview.printHtml,
+        headerHtml: preview.headerHtml,
+        footerHtml: preview.footerHtml,
+      });
+      return documentRenderer.appendPdfs(
+        content,
+        preview.pdfAttachments.map((resource) => ({ id: resource.id, content: resource.content })),
+      );
+    });
+
   return {
+    generatedPreview,
+    generatedPdf,
     list: () => contentTemplateRepository.list(),
     find,
     create: (input) => unitOfWork.execute(() => contentTemplateRepository.create(canonicalTemplate(input))),
@@ -172,52 +252,38 @@ export function createContentTemplateService({
       });
     },
     async preview(draft, context) {
+      const presented = await messagePresentation(draft);
+      const selected: TemplatePreviewContext = draft.documentType
+        ? await templatePreviewContextService.resolve(draft.documentType, context)
+        : { context, sourceLabel: null };
       const preview = await templateRenderingService.preview(
         {
-          bodyMarkdown: draft.bodyMarkdown,
+          bodyMarkdown: presented.bodyMarkdown,
           subject: draft.subject ?? null,
-          stylesheet: draft.kind === "pdf" ? (draft.stylesheet ?? "") : "",
+          stylesheet: draft.stylesheet ?? "",
           headerHtml: draft.kind === "pdf" ? (draft.headerHtml ?? "") : "",
           footerHtml: draft.kind === "pdf" ? (draft.footerHtml ?? "") : "",
         },
-        context,
+        selected.context,
+        undefined,
+        selected.councilDecision,
+        { generated: selected.generated },
       );
-      return unitOfWork.execute(async () => preview);
+      return unitOfWork.execute(async () => ({
+        ...preview,
+        sourceLabel: selected.sourceLabel,
+        sourceKind: selected.sourceKind,
+      }));
     },
-    previewPdf(bodyMarkdown, context, attachPdfDocuments = true) {
-      return withGenerationSlot(async () => {
-        const preview = await templateRenderingService.preview(
-          {
-            bodyMarkdown,
-            subject: null,
-            stylesheet: "",
-            headerHtml: "",
-            footerHtml: "",
-          },
-          context,
-          undefined,
-          undefined,
-          { attachPdfDocuments },
-        );
-        assertRenderable(preview.diagnostics);
-        const generated = await documentRenderer.pdf({
-          html: preview.printHtml,
-          headerHtml: preview.headerHtml,
-          footerHtml: preview.footerHtml,
-        });
-        return documentRenderer.appendPdfs(
-          generated,
-          preview.pdfAttachments.map((resource) => ({ id: resource.id, content: resource.content })),
-        );
-      });
-    },
+    previewPdf: (bodyMarkdown, context, attachPdfDocuments = true) =>
+      generatedPdf("document-print", bodyMarkdown, context, attachPdfDocuments),
     async generate(id, input) {
       return this.generateFromTemplate(await find(id), input);
     },
     generateFromTemplate(template, input) {
       return withGenerationSlot(async () => {
         const preview = await templateRenderingService.preview(
-          template,
+          await messagePresentation(template),
           input.context,
           input.meetingNoticeFacts,
           input.councilDecision,

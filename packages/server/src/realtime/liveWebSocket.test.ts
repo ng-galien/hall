@@ -29,6 +29,7 @@ async function fixture() {
     database: { kind: "postgres", url: "postgresql://unused" },
   } satisfies ServerConfig;
   let sessionActive = true;
+  let readingGranted = true;
   const authService = {
     async authenticate(token: string) {
       if (!sessionActive || !["reader", "conductor", "workspace"].includes(token)) return null;
@@ -44,7 +45,12 @@ async function fixture() {
       };
     },
   } as AuthService;
-  const live = attachLiveWebSocket(server, { authService, config, realtimeEvents: bus });
+  const live = attachLiveWebSocket(server, {
+    authService,
+    config,
+    realtimeEvents: bus,
+    authorizeReading: async (principal) => readingGranted && principal.roles.length > 0,
+  });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("Test server has no port");
@@ -54,7 +60,7 @@ async function fixture() {
     await live.close();
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   });
-  return { base, origin, bus, revoke: () => (sessionActive = false) };
+  return { base, origin, bus, revoke: () => (sessionActive = false), revokeReading: () => (readingGranted = false) };
 }
 
 function connect(
@@ -152,4 +158,15 @@ it("accepts a new subscription after the first socket disconnects", async () => 
   const next = nextMessage(reconnected);
   bus.publish({ type: "meeting.changed", meetingId });
   await expect(next).resolves.toEqual({ type: "meeting.changed", meetingId, origin: null });
+});
+
+// @verifies-requirement HALL-FR-USR-060
+it("ends a live subscription when reading is withdrawn from an otherwise valid session", async () => {
+  const { base, origin, bus, revokeReading } = await fixture();
+  const reader = await connect(base, origin, "meeting", meetingId, "reader");
+  revokeReading();
+  const closed = new Promise<number>((resolve) => reader.once("close", resolve));
+  bus.publish({ type: "meeting.changed", meetingId });
+  await expect(closed).resolves.toBe(1008);
+  await expect(rejected(base, origin, "meeting", meetingId, "reader")).resolves.toBe(403);
 });

@@ -51,7 +51,7 @@ describe("demonstration seed", () => {
     }
   });
 
-  it("places the alesia maps on Cornu and adds the storyboard elements", async () => {
+  it("places the alesia maps on the Alésia story plateau and adds the storyboard elements", async () => {
     const { databaseUrl, pool } = createPostgresTestPool();
     await resetPostgresTestDatabase(pool);
     const server = await startHttpServer({
@@ -66,7 +66,7 @@ describe("demonstration seed", () => {
       const api = createSeedApi(`${server.url}/api`);
       const resources = await api.get("/resources/catalog");
       const maps = resources.filter((resource) => resource.kind === "geographic");
-      expect(maps.map(({ name }) => name).sort()).toEqual(["Défenses de l’oppidum", "Repérage du plateau de Cornu"]);
+      expect(maps.map(({ name }) => name).sort()).toEqual(["Défenses de l’oppidum", "Repérage du plateau d’Alésia"]);
       for (const map of maps) {
         const detail = await api.get(`/resources/${map.id}`);
         expect(detail.document.view.center, map.name).toEqual([5.957, 46.668]);

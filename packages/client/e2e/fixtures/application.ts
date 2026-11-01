@@ -49,6 +49,9 @@ BEGIN
   IF tables IS NOT NULL THEN
     EXECUTE 'TRUNCATE TABLE ' || tables || ' RESTART IDENTITY CASCADE';
   END IF;
+  IF to_regprocedure('hall.initialize_authorization_defaults()') IS NOT NULL THEN
+    PERFORM hall.initialize_authorization_defaults();
+  END IF;
 END
 $reset$;
 COMMIT;

@@ -31,8 +31,8 @@ const romanWorks: Spot[] = [
 
 /** Lieux du récit dans l'ordre d'apparition, avec leur rôle dans le récit du siège. */
 const storyPlaces: StoryPlace[] = [
-  { name: "Oppidum de Cornu", role: "le refuge", at: wgs(5.957, 46.6677), stem: 120 },
-  { name: "Grenier de Cornu", role: "les vivres", at: wgs(5.959, 46.6687), stem: 70 },
+  { name: "Oppidum d’Alésia", role: "le refuge", at: wgs(5.957, 46.6677), stem: 120 },
+  { name: "Grenier d’Alésia", role: "les vivres", at: wgs(5.959, 46.6687), stem: 70 },
   { name: "Maison commune", role: "le conseil", at: placeAt("maison"), stem: 90 },
   { name: "Place de l’assemblée", role: "les votes", at: placeAt("place"), stem: 140 },
   { name: "Rempart ouest", role: "la défense", at: placeAt("rempart"), stem: 100 },
@@ -123,7 +123,12 @@ function worksGeometry(ground: Ground, spots: Spot[]): THREE.BufferGeometry {
   for (const spot of spots) {
     const foot = groundPoint(ground, spot, 0.5);
     const head = foot.clone().setY(foot.y + 26);
-    points.push(foot, head, head.clone().add(new THREE.Vector3(-6, 0, 0)), head.clone().add(new THREE.Vector3(6, 0, 0)));
+    points.push(
+      foot,
+      head,
+      head.clone().add(new THREE.Vector3(-6, 0, 0)),
+      head.clone().add(new THREE.Vector3(6, 0, 0)),
+    );
   }
   return new THREE.BufferGeometry().setFromPoints(points);
 }
@@ -140,7 +145,12 @@ export function createStoryLayer(ground: Ground, labels: HTMLElement, list: HTML
     const base = groundPoint(ground, place.at, 1.5);
     const outline = new THREE.Mesh(
       new THREE.RingGeometry(16.5, 19.5, 48),
-      new THREE.MeshBasicMaterial({ color: palette.blue, transparent: true, depthWrite: false, side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({
+        color: palette.blue,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
     );
     outline.rotation.x = -Math.PI / 2;
     outline.position.copy(base);
@@ -195,7 +205,6 @@ export function createStoryLayer(ground: Ground, labels: HTMLElement, list: HTML
   const placed: Box[] = [];
   const gap = 6;
 
-  /** Boîte occupée par une étiquette (coin bas gauche en `left`, `bottom`) avec sa marge. */
   function boxOf(left: number, bottom: number, w: number, h: number): Box {
     return { left: left - gap, right: left + w + gap, top: bottom - h - gap, bottom: bottom + gap / 2 };
   }
@@ -204,12 +213,6 @@ export function createStoryLayer(ground: Ground, labels: HTMLElement, list: HTML
     return box.left > 4 && box.right < width - 4 && box.top > 4 && !placed.some((other) => overlaps(box, other));
   }
 
-  /**
-   * Place d'une étiquette : au bout du trait, plus haut, ou décalée à droite ou à gauche avec un trait coudé ; jamais
-   * sur une étiquette déjà placée ni hors de l'écran. La place précédente est gardée tant qu'elle reste libre, et
-   * encore une demi-seconde quand une autre étiquette vient la gêner : l'étiquette ne change de place que si le
-   * chevauchement dure.
-   */
   function layoutLabel(model: PlaceModel, x: number, y: number, width: number): { x: number; y: number } | null {
     const w = model.label.offsetWidth;
     const h = model.label.offsetHeight;
@@ -250,7 +253,8 @@ export function createStoryLayer(ground: Ground, labels: HTMLElement, list: HTML
       placed.length = 0;
       for (const selector of [".launch-story-list", ".launch-brand"]) {
         const rect = document.querySelector(selector)?.getBoundingClientRect();
-        if (rect && rect.width > 0) placed.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
+        if (rect && rect.width > 0)
+          placed.push({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
       }
       for (const model of models) {
         const local = seconds === null ? -1 : seconds - model.delay;

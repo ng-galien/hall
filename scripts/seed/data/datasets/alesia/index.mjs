@@ -37,7 +37,7 @@ export async function seedAlesia(api, options) {
     discussions: {
       firstDecision: `### Présentation de l’inventaire
 
-${memberRef("Commius")} présente l’état des réserves établi le matin même. Le grenier de Cornu contient **120 sacs de céréales**, répartis entre les deux espaces couverts.
+${memberRef("Commius")} présente l’état des réserves établi le matin même. Le grenier d’Alésia contient **120 sacs de céréales**, répartis entre les deux espaces couverts.
 
 ${memberRef("Vercingétorix")} demande que chaque sortie soit inscrite sur le registre tenu par les gardiens et qu’un relevé soit présenté lors de la prochaine séance.
 

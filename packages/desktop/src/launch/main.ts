@@ -5,7 +5,6 @@ import { createReliefStage, type ReliefStage } from "./reliefStage.js";
 import { createLaunchScene, type LaunchScene } from "./scene.js";
 import { easeOutCubic, phase } from "./timeline.js";
 
-type Presentation = "alesia" | "official";
 type Phase = "database" | "server" | "dataset" | "interface";
 
 interface PlannedPhase {
@@ -20,6 +19,7 @@ type ProgressMessage =
 
 interface LaunchBridge {
   reportStarted(): void;
+  reportMeasurements(value: string): void;
   reportLeft(): void;
   open(): void;
   onProgress(listener: (message: ProgressMessage) => void): void;
@@ -29,6 +29,7 @@ interface LaunchBridge {
 declare global {
   interface Window {
     hallLaunch?: LaunchBridge;
+    hallLaunchSnapshot?: () => unknown;
   }
 }
 
@@ -37,27 +38,32 @@ const alesiaTerritory = "territoire des Mandubiens";
 const phaseLabels: Record<Phase, string> = {
   database: "Préparation de la base",
   server: "Démarrage du serveur",
-  dataset: "Chargement du jeu Alésia",
+  dataset: "Chargement des données Alésia",
   interface: "Chargement de l’interface",
 };
 const readyLabel = "Espace de travail prêt";
 /** Constante de temps du rattrapage de la barre vers sa position cible, en millisecondes. */
 const catchUpMilliseconds = 140;
-const alesiaNote = "Oppidum du plateau de Cornu, entre la Lemme et la Saine. Le maire est Vercingétorix.";
+const alesiaNote = "Oppidum du plateau d’Alésia, entre la Lemme et la Saine. Le maire est Vercingétorix.";
 
 const root = document.documentElement;
 const parameters = new URLSearchParams(location.search);
-const departementCode = parameters.get("departement") ?? "39";
-const communeCode = parameters.get("commune") ?? "39129";
-const presentation: Presentation = parameters.get("presentation") === "official" ? "official" : "alesia";
+const departementCode = "39";
+const communeCode = "39129";
+const presentation = "alesia";
+const marks: Record<string, number> = { module: performance.now() };
+const mark = (name: string) => {
+  marks[name] = performance.now();
+};
 const reducedMotion =
   parameters.get("reduced") === "1" || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function setState(state: "playing" | "final"): void {
   root.dataset.state = state;
   if (state === "final") {
+    mark("final");
     root.dataset.finalAt = String(Math.round(performance.now()));
-    focusOpenButton();
+    syncOpening();
   }
 }
 
@@ -65,18 +71,26 @@ function openButton(): HTMLButtonElement | null {
   return document.querySelector<HTMLButtonElement>("[data-testid='launch-open']");
 }
 
-function focusOpenButton(): void {
-  const button = openButton();
-  if (button && !button.disabled && root.dataset.state === "final") button.focus();
-}
-
 /** Active le bouton d'ouverture quand l'application est chargée sous l'écran. */
-function enableOpening(): void {
+function syncOpening(): void {
   const button = openButton();
   if (!button) return;
+  const available = root.dataset.application === "ready" && root.dataset.state === "final";
+  button.hidden = !available;
+  button.disabled = !available;
+  button.setAttribute("aria-hidden", String(!available));
+  button.tabIndex = available ? 0 : -1;
+}
+
+function enableOpening(): void {
   root.dataset.application = "ready";
-  button.disabled = false;
-  focusOpenButton();
+  syncOpening();
+}
+
+function revealPreparation(): void {
+  if (root.dataset.brandComplete === "true") return;
+  root.dataset.brandComplete = "true";
+  document.querySelector("[data-testid='launch-footer']")?.removeAttribute("aria-hidden");
 }
 
 /**
@@ -162,6 +176,7 @@ function renderProgress(): void {
   if (name.textContent !== label) name.textContent = label;
   const counted = `${progress.ready ? total : index + 1} sur ${total}`;
   if (count.textContent !== counted) count.textContent = counted;
+  loader.querySelector<HTMLElement>(".launch-scale")?.style.setProperty("--progress", progress.shown.toFixed(4));
   const segments = loader.querySelectorAll<HTMLElement>(".launch-scale-segment");
   for (const [position, bounds] of phaseBounds().entries()) {
     const segment = segments[position];
@@ -184,7 +199,7 @@ function renderProgress(): void {
 
 /** Avance la barre d'une image : elle rejoint sa cible en douceur, sans jamais reculer. */
 function advanceProgress(now: number): void {
-  if (progress.phases.length === 0) return;
+  if (progress.phases.length === 0 || (progress.ready && progress.shown === 1 && progress.written === 1)) return;
   const target = targetProgress(now);
   const elapsed = progress.lastFrame === null ? 0 : now - progress.lastFrame;
   progress.lastFrame = now;
@@ -220,6 +235,7 @@ function receiveProgress(message: ProgressMessage): void {
     }
     recordPhase(message.phase, message.status, now);
   } else {
+    mark("ready");
     progress.ready = true;
     enableOpening();
   }
@@ -228,7 +244,8 @@ function receiveProgress(message: ProgressMessage): void {
 
 const frameProbe = createFrameProbe();
 let looping = true;
-let recording = false;
+frameProbe.record(0);
+let lastStatisticsAt = 0;
 const motion = { previous: 0, maxStep: 0, still: 0, longestStill: 0, backwards: 0, lastAt: null as number | null };
 
 /** Relève la régularité de la barre : plus grand pas entre deux images, plus long arrêt avant l'état prêt. */
@@ -245,28 +262,42 @@ function recordMotion(now: number): void {
   motion.lastAt = now;
 }
 
-/**
- * Boucle d'images de la page jusqu'au remplissage complet de la barre : elle anime la progression et relève
- * la cadence de rendu du début de l'animation, après les images de préparation, jusqu'à l'application prête.
- */
+function publishStatistics(): void {
+  root.dataset.frameStatistics = JSON.stringify(frameProbe.runningStatistics());
+  root.dataset.progressStatistics = JSON.stringify({
+    maxStepPerFrame: Math.round(motion.maxStep * 10_000) / 10_000,
+    longestStillMs: Math.round(motion.longestStill),
+    backwards: motion.backwards,
+  });
+}
+
+/** The probe starts before preparation and keeps observing the orbit until departure. */
 function startFrameLoop(): void {
   const tick = (now: number) => {
-    if (recording) frameProbe.record(now);
+    if (!looping) return;
+    frameProbe.record(now);
     advanceProgress(now);
     recordMotion(now);
-    if (progress.ready && progress.shown >= 1 && root.dataset.state === "final") {
-      looping = false;
-      root.dataset.frameStatistics = JSON.stringify(frameProbe.statistics());
-      root.dataset.progressStatistics = JSON.stringify({
-        maxStepPerFrame: Math.round(motion.maxStep * 10_000) / 10_000,
-        longestStillMs: Math.round(motion.longestStill),
-        backwards: motion.backwards,
-      });
+    if (now - lastStatisticsAt >= 1000) {
+      publishStatistics();
+      lastStatisticsAt = now;
     }
-    if (looping) requestAnimationFrame(tick);
+    requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
 }
+
+window.hallLaunchSnapshot = () => ({
+  version: 1,
+  invokedAtEpochMs: Number(parameters.get("invokedAt")) || performance.timeOrigin,
+  navigationAtEpochMs: performance.timeOrigin,
+  marks: { ...marks },
+  phases: phaseTimes,
+  statistics: frameProbe.statistics(),
+  samples: frameProbe.samples(),
+  viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
+  reducedMotion,
+});
 
 let startReported = false;
 
@@ -274,6 +305,7 @@ let startReported = false;
 function reportStarted(): void {
   if (startReported) return;
   startReported = true;
+  mark("firstFrame");
   root.dataset.firstFrameAt = String(Math.round(performance.now()));
   window.hallLaunch?.reportStarted();
 }
@@ -282,31 +314,28 @@ function openApplication(): void {
   const button = openButton();
   if (!button || button.disabled || root.dataset.state !== "final" || root.dataset.leaving) return;
   button.disabled = true;
+  mark("openRequested");
   window.hallLaunch?.open();
 }
 
-function writePlace(communeName: string, departementName: string): void {
+function writePlace(): void {
   const place = document.querySelector<HTMLElement>("[data-testid='launch-place']");
   const note = document.querySelector<HTMLElement>("[data-testid='launch-note']");
   if (!place || !note) return;
   const name = document.createElement("strong");
-  if (presentation === "alesia") {
-    name.textContent = alesiaLabel;
-    place.replaceChildren(name, document.createTextNode(`, ${alesiaTerritory}`));
-    note.textContent = alesiaNote;
-    note.hidden = false;
-  } else {
-    name.textContent = communeName;
-    place.replaceChildren(name, document.createTextNode(`, ${departementName}`));
-  }
+  name.textContent = alesiaLabel;
+  place.replaceChildren(name, document.createTextNode(`, ${alesiaTerritory}`));
+  note.textContent = alesiaNote;
+  note.hidden = false;
 }
 
 function showFinal(scene: LaunchScene | null, still = true): void {
   if (still) scene?.renderStill();
   root.style.setProperty("--brand-opacity", "1");
-  for (const name of ["--reveal-name", "--reveal-dash", "--reveal-tagline", "--reveal-place", "--reveal-note"]) root.style.setProperty(name, "1");
+  for (const name of ["--reveal-name", "--reveal-dash", "--reveal-tagline", "--reveal-place", "--reveal-note"])
+    root.style.setProperty(name, "1");
+  revealPreparation();
   setState("final");
-  recording = true;
   requestAnimationFrame(reportStarted);
 }
 
@@ -318,13 +347,17 @@ const warmUpFrames = 3;
  * tient l'état final jusqu'à l'ordre de départ ; le coût du premier rendu ne fait donc pas sauter l'animation.
  */
 function play(scene: LaunchScene): void {
+  mark("warmupStart");
   scene.render(0);
   scene.prepare();
   let remaining = warmUpFrames;
   const warmUp = () => {
     remaining -= 1;
     if (remaining > 0) requestAnimationFrame(warmUp);
-    else runTimeline(scene);
+    else {
+      mark("warmupEnd");
+      runTimeline(scene);
+    }
   };
   requestAnimationFrame(warmUp);
 }
@@ -340,10 +373,11 @@ function writeBrand(elapsed: number, duration: number): void {
   root.style.setProperty("--reveal-tagline", reveal(2.3, 3.6));
   root.style.setProperty("--reveal-place", reveal(duration * 0.52, duration * 0.68));
   root.style.setProperty("--reveal-note", reveal(duration * 0.7, duration * 0.88));
+  if (elapsed >= 3.6) revealPreparation();
 }
 
 function runTimeline(scene: LaunchScene): void {
-  recording = true;
+  mark("animationStart");
   const launchDuration = scene.duration;
   const brandIn = launchDuration - 0.9;
   const start = performance.now();
@@ -354,8 +388,10 @@ function runTimeline(scene: LaunchScene): void {
     const elapsed = (now - start) / 1000;
     if (elapsed >= launchDuration && root.dataset.state !== "final") showFinal(scene, false);
     if (root.dataset.leaving) return;
-    root.style.setProperty("--brand-opacity", String(easeOutCubic(phase(elapsed, brandIn, launchDuration))));
-    writeBrand(elapsed, launchDuration);
+    if (elapsed < launchDuration) {
+      root.style.setProperty("--brand-opacity", String(easeOutCubic(phase(elapsed, brandIn, launchDuration))));
+      writeBrand(elapsed, launchDuration);
+    }
     scene.render(elapsed);
     requestAnimationFrame(frame);
     if (!startReported) requestAnimationFrame(reportStarted);
@@ -363,7 +399,7 @@ function runTimeline(scene: LaunchScene): void {
   requestAnimationFrame(frame);
 }
 
-/** Relief de Cornu du site public, chargé et maillé avant l'animation ; null s'il ne peut pas être chargé. */
+/** Relief d’Alésia du site public, chargé et maillé avant l'animation ; null s'il ne peut pas être chargé. */
 async function loadRelief(
   projection: Parameters<typeof createReliefStage>[0],
   names: HTMLElement,
@@ -393,7 +429,15 @@ async function start(): Promise<void> {
   });
   window.hallLaunch?.onLeave(() => {
     root.dataset.leaving = "true";
-    setTimeout(() => window.hallLaunch?.reportLeft(), 420);
+    mark("leaving");
+    setTimeout(() => {
+      frameProbe.record(performance.now());
+      mark("left");
+      looping = false;
+      publishStatistics();
+      window.hallLaunch?.reportMeasurements(JSON.stringify(window.hallLaunchSnapshot?.()));
+      window.hallLaunch?.reportLeft();
+    }, 420);
   });
   const stage = document.getElementById("stage");
   const cities = document.getElementById("cities");
@@ -401,18 +445,23 @@ async function start(): Promise<void> {
   const list = document.getElementById("story-list");
   if (!stage || !cities || !names || !list) return;
   try {
+    mark("geodataStart");
     const data = await loadGeodata(departementCode);
-    const departement = data.departements.find((area) => area.code === departementCode);
-    const commune = data.communes.find((area) => area.code === communeCode);
-    writePlace(commune?.name ?? "", departement?.name ?? "");
-    const relief = presentation === "alesia" ? await loadRelief(data.projection, names, list) : null;
+    mark("geodataEnd");
+    writePlace();
+    mark("reliefStart");
+    const relief = await loadRelief(data.projection, names, list);
+    mark("reliefEnd");
+    mark("sceneBuildStart");
     const scene = createLaunchScene(
       stage,
       cities,
       data,
-      { departementCode, communeCode, focus: presentation === "alesia" ? data.alesiaFocus : null },
+      { departementCode, communeCode, focus: data.alesiaFocus },
       relief,
+      document.getElementById("map-caption"),
     );
+    mark("sceneBuildEnd");
     if (relief) root.dataset.relief = "true";
     if (!scene || reducedMotion) showFinal(scene);
     else play(scene);

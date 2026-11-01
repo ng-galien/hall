@@ -14,15 +14,8 @@ import {
 } from "electron";
 import { type DesktopEdition, eraseDemonstration, resolveDesktopEdition } from "./demonstration.js";
 import { isSafeExternalUrl } from "./externalUrl.js";
-import {
-  installLaunchProtocol,
-  type LaunchScreen,
-  launchCommuneExists,
-  registerLaunchScheme,
-  rememberSettingsInseeCode,
-  showLaunchScreen,
-} from "./launchScreen.js";
-import { readStoredInseeCode, resolveLaunchTarget } from "./launchTerritory.js";
+import { installLaunchProtocol, type LaunchScreen, registerLaunchScheme, showLaunchScreen } from "./launchScreen.js";
+import { alesiaTarget } from "./launchTerritory.js";
 import type { ServerCommand, ServerEvent } from "./startupProtocol.js";
 import {
   createStartupTracker,
@@ -160,16 +153,6 @@ async function resolveRendererUrl(tracker: StartupTracker | null): Promise<strin
   return process.env.HALL_RENDERER_URL ?? applicationUrl(apiBaseUrl);
 }
 
-/** Mémorise le code INSEE des réglages pour le prochain écran de lancement, sans interrompre l'appelant. */
-async function rememberInseeCode(): Promise<void> {
-  if (!apiBaseUrl) return;
-  try {
-    await rememberSettingsInseeCode(apiBaseUrl, app.getPath("userData"));
-  } catch (error) {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  }
-}
-
 const preparationPage = `data:text/html;charset=utf-8,${encodeURIComponent(
   '<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Hall</title></head>' +
     '<body style="font-family:system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0;color:#334155">' +
@@ -228,6 +211,7 @@ function installDemonstrationMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+/** @implements-requirement HALL-TR-DSK-020 */
 async function createMainWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
     title: "Hall",
@@ -251,8 +235,7 @@ async function createMainWindow(): Promise<void> {
   window.on("closed", () => {
     if (mainWindow === window) mainWindow = null;
   });
-  const target = await resolveLaunchTarget(await readStoredInseeCode(app.getPath("userData")), launchCommuneExists);
-  const launchScreen = showLaunchScreen(window, target);
+  const launchScreen = showLaunchScreen(window, alesiaTarget);
   void openApplication(window, launchScreen).catch(reportStartupFailure);
 }
 
@@ -266,7 +249,6 @@ async function openApplication(window: BrowserWindow, launchScreen: LaunchScreen
     const userDataPath = app.getPath("userData");
     const tracker = createStartupTracker(launchScreen, await readStartupTimings(userDataPath));
     const rendererUrl = await resolveRendererUrl(tracker);
-    void rememberInseeCode();
     tracker.phase("interface", "start");
     await window.loadURL(rendererUrl);
     tracker.phase("interface", "end");
@@ -276,6 +258,9 @@ async function openApplication(window: BrowserWindow, launchScreen: LaunchScreen
     );
     await launchScreen.opened;
     await launchScreen.leave();
+    if (process.env.HALL_STARTUP_TRACE_PATH && launchScreen.measurements()) {
+      await writeFile(resolve(process.env.HALL_STARTUP_TRACE_PATH), launchScreen.measurements()!, { mode: 0o600 });
+    }
   } catch (error) {
     launchScreen.remove();
     throw error;
@@ -350,8 +335,7 @@ function startApplication(): void {
     event.preventDefault();
     quitting = true;
     const server = embeddedServer;
-    void rememberInseeCode()
-      .then(() => server?.then((handle) => handle.close()))
+    void Promise.resolve(server?.then((handle) => handle.close()))
       .catch((error) => process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`))
       .finally(() => app.quit());
   });

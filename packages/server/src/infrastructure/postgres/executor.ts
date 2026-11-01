@@ -10,6 +10,7 @@ import type { SqlQueryName } from "../database/queries.js";
 import { logIdleConnectionFailures } from "./idleConnectionFailures.js";
 import {
   formerMeetingEngineTables,
+  postgresDocumentConfigurationMigration,
   postgresFormerMeetingEngineRemoval,
   postgresSchema,
   postgresTables,
@@ -64,6 +65,7 @@ export async function initializeServerSchema(
     }
   }
   if (mode === "automatic") {
+    await client.query(postgresDocumentConfigurationMigration);
     await client.query(postgresUserContactMigration);
     await client.query(postgresUserRoleCatalogSchema);
     await client.query(postgresFormerMeetingEngineRemoval);
@@ -75,9 +77,11 @@ async function verifyServerInvariants(client: PoolClient): Promise<void> {
     `SELECT EXISTS (
        SELECT FROM pg_catalog.pg_constraint c
        WHERE c.conrelid = to_regclass(format('%I.user_roles', current_schema()))
-         AND c.conname = 'user_roles_role_check'
-         AND pg_catalog.pg_get_constraintdef(c.oid) LIKE '%councillor%'
-     ) AS valid`,
+         AND c.conname = 'user_roles_catalog'
+         AND c.confrelid = 'hall.authorization_role'::regclass
+     ) AND (SELECT count(*) = 2 FROM information_schema.columns
+       WHERE table_schema = current_schema() AND table_name = 'hall_settings'
+         AND column_name IN ('outbound_email_signature_markdown', 'outbound_email_footer_markdown')) AS valid`,
   );
   if (result.rows[0]?.valid !== true) {
     throw new Error("Server schema invariants require migration; run hall migrate before starting Hall");

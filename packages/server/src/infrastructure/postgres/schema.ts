@@ -1,4 +1,30 @@
+import { generatedDocumentTemplates } from "@hall/domain";
 import { meetingLocationsSchema } from "../database/meetingLocationsSchema.js";
+
+const sqlString = (value: string | null) => (value === null ? "NULL" : `'${value.replaceAll("'", "''")}'`);
+const initialGeneratedTemplates = generatedDocumentTemplates
+  .map(
+    (template) => `
+  INSERT INTO templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
+  SELECT gen_random_uuid()::text, ${sqlString(template.kind)}, ${sqlString(template.documentType)}, ${sqlString(template.name)},
+    ${sqlString(template.bodyMarkdown)}, ${sqlString(template.subject)}, '', '', '', clock_timestamp()::text, clock_timestamp()::text
+  WHERE NOT EXISTS (SELECT FROM templates WHERE kind = ${sqlString(template.kind)} AND document_type = ${sqlString(template.documentType)});
+`,
+  )
+  .join("\n");
+
+// @implements-requirement HALL-FR-CFG-020
+// @implements-requirement HALL-FR-CFG-030
+export const postgresDocumentConfigurationMigration = `
+  DO $configuration$ BEGIN
+    IF NOT EXISTS (SELECT FROM pg_attribute WHERE attrelid = 'hall_settings'::regclass
+      AND attname = 'outbound_email_signature_markdown' AND NOT attisdropped) THEN
+      ALTER TABLE hall_settings ADD COLUMN outbound_email_signature_markdown TEXT NOT NULL DEFAULT '';
+      ALTER TABLE hall_settings ADD COLUMN outbound_email_footer_markdown TEXT NOT NULL DEFAULT '';
+      ${initialGeneratedTemplates}
+    END IF;
+  END $configuration$;
+`;
 
 export const postgresUserContactMigration = `
   DO $migration$
@@ -35,7 +61,12 @@ export const postgresUserRoleCatalogSchema = `
         AND kept.role NOT IN ('reader', 'meetingConductor'));
   DELETE FROM user_roles WHERE role IN ('reader', 'meetingConductor');
   ALTER TABLE user_roles ADD CONSTRAINT user_roles_role_check
-    CHECK (role IN ('administrator', 'clerk', 'contributor', 'councillor'));
+    CHECK (role ~ '^[a-z][a-z0-9-]*$' AND length(role) <= 80);
+  DO $roles$ BEGIN
+    IF NOT EXISTS (SELECT FROM pg_constraint WHERE conrelid = 'user_roles'::regclass AND conname = 'user_roles_catalog') THEN
+      ALTER TABLE user_roles ADD CONSTRAINT user_roles_catalog FOREIGN KEY (role) REFERENCES hall.authorization_role(id);
+    END IF;
+  END $roles$;
 `;
 
 export const postgresTables = [
@@ -108,6 +139,8 @@ export const postgresSchema = `
     outbound_email_sender_name TEXT NOT NULL DEFAULT '',
     outbound_email_sender_address TEXT,
     outbound_email_reply_to_address TEXT,
+    outbound_email_signature_markdown TEXT NOT NULL DEFAULT '',
+    outbound_email_footer_markdown TEXT NOT NULL DEFAULT '',
     updated_at TEXT,
     CHECK ((geographic_longitude IS NULL) = (geographic_latitude IS NULL)),
     CHECK (geographic_longitude IS NULL OR geographic_longitude BETWEEN -180 AND 180),
@@ -149,7 +182,8 @@ export const postgresSchema = `
 
   CREATE TABLE user_roles (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CONSTRAINT user_roles_role_check CHECK (role IN ('administrator', 'clerk', 'contributor', 'councillor')),
+    role TEXT NOT NULL CONSTRAINT user_roles_role_check CHECK (role ~ '^[a-z][a-z0-9-]*$' AND length(role) <= 80)
+      CONSTRAINT user_roles_catalog REFERENCES hall.authorization_role(id),
     PRIMARY KEY (user_id, role)
   );
 
@@ -172,6 +206,8 @@ export const postgresSchema = `
     details_json JSONB NOT NULL DEFAULT '{}'::jsonb,
     occurred_at TEXT NOT NULL
   );
+
+  ${initialGeneratedTemplates}
 
   CREATE INDEX users_by_status ON users(status, display_name);
   CREATE INDEX sessions_by_user ON sessions(user_id, expires_at);

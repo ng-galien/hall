@@ -3,9 +3,17 @@ import type { NextFunction, Request, Response } from "express";
 import { sendProblem } from "../api/problemDetails.js";
 
 /** The API actions and the two reserved readings that the role matrix of the database rules. */
-export type AuthorizedAction = ApiActionName | "user.list" | "audit-event.list";
+export type AuthorizedAction =
+  | ApiActionName
+  | "user.list"
+  | "audit-event.list"
+  | "role.list"
+  | "application.read"
+  | "application.export";
 /** The object an action applies to, when a condition of the role matrix depends on it. */
 export type AuthorizationTarget = Readonly<{ meetingId?: string; location?: string }>;
+
+export type AuthorizeReading = (principal: ApiPrincipal) => Promise<boolean>;
 
 export interface AuthorizationClient {
   allows(action: AuthorizedAction, target?: AuthorizationTarget | null): Promise<boolean>;

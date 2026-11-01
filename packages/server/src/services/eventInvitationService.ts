@@ -3,6 +3,7 @@ import MailComposer from "nodemailer/lib/mail-composer/index.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
+import type { ContentTemplateService } from "./contentTemplateService.js";
 import { DomainError } from "./errors.js";
 
 export interface EventInvitationMessage {
@@ -63,6 +64,16 @@ function foldCalendarLine(line: string): string {
   return folded.join("\r\n");
 }
 
+/** Shared human-readable invitation content for generation and template preview. */
+export function eventInvitationSource(
+  name: string,
+  content: string,
+  method: GenerateEventInvitation["method"],
+): { subject: string; bodyMarkdown: string } {
+  const subject = `${method === "cancel" ? "Annulation" : "Invitation"} : ${name}`;
+  return { subject, bodyMarkdown: `${subject}\n\n${content}` };
+}
+
 // @implements-requirement HALL-FR-CAL-170
 // @implements-requirement HALL-FR-CAL-180
 // @implements-requirement HALL-FR-CAL-190
@@ -70,10 +81,12 @@ export function createEventInvitationService({
   resourcesClient,
   directoryClient,
   hallSettingsRepository,
+  contentTemplateService,
 }: {
   resourcesClient: ResourcesClient;
   directoryClient: DirectoryClient;
   hallSettingsRepository: HallSettingsRepository;
+  contentTemplateService: ContentTemplateService;
 }): EventInvitationService {
   return {
     async generate(reference, input) {
@@ -124,15 +137,21 @@ export function createEventInvitationService({
       ]
         .map(foldCalendarLine)
         .join("\r\n");
-      const cancelling = input.method === "cancel";
-      const subject = `${cancelling ? "Annulation" : "Invitation"} : ${opened.data.name}`;
+      const { subject, bodyMarkdown } = eventInvitationSource(
+        opened.data.name,
+        opened.data.document.content,
+        input.method,
+      );
+      const preview = await contentTemplateService.generatedPreview("event-invitation", bodyMarkdown, subject);
+      if (preview.diagnostics.some((item) => item.severity === "error")) throw new DomainError("template_invalid", 422);
       const composer = new MailComposer({
         headers: { "X-Unsent": "1" },
         from: { name: hall.outboundEmailSenderName || hall.name, address: organizerAddress },
         replyTo: hall.outboundEmailReplyToAddress ?? undefined,
         to: recipients,
-        subject,
-        text: `${subject}\n\n${opened.data.document.content}`,
+        subject: preview.subject ?? subject,
+        text: preview.text,
+        html: preview.html,
         alternatives: [
           {
             filename: "invitation.ics",

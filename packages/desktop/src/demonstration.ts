@@ -47,7 +47,7 @@ export async function resolveDesktopEdition(applicationPath: string): Promise<De
     const edition = content && typeof content === "object" && "edition" in content ? content.edition : undefined;
     return parseEdition(edition, editionPath);
   } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return "local";
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return "demonstration";
     throw error;
   }
 }

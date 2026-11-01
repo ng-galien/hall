@@ -1,3 +1,4 @@
+import { generatedDocumentTemplates } from "@hall/domain";
 import { PostgresDirectory } from "@hall/postgres";
 import { Pool } from "pg";
 
@@ -26,6 +27,9 @@ export async function resetPostgresTestDatabase(pool: Pool): Promise<void> {
         EXECUTE 'TRUNCATE TABLE ' || tables || ' RESTART IDENTITY CASCADE';
       END IF;
 
+      IF to_regprocedure('hall.initialize_authorization_defaults()') IS NOT NULL THEN
+        PERFORM hall.initialize_authorization_defaults();
+      END IF;
       IF to_regclass('public.hall_settings') IS NOT NULL THEN
         INSERT INTO public.hall_settings (id)
         VALUES ('hall')
@@ -36,6 +40,14 @@ export async function resetPostgresTestDatabase(pool: Pool): Promise<void> {
 
     COMMIT;
   `);
+  if ((await pool.query("SELECT to_regclass('public.templates') AS present")).rows[0].present) {
+    for (const template of generatedDocumentTemplates)
+      await pool.query(
+        `INSERT INTO public.templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, '', '', '', clock_timestamp()::text, clock_timestamp()::text)`,
+        [template.kind, template.documentType, template.name, template.bodyMarkdown, template.subject],
+      );
+  }
 }
 
 export async function configureTestCouncilTerm(pool: Pool, expectedCouncilMemberCount: number): Promise<void> {

@@ -38,7 +38,7 @@ Le conseil est invité à dire s’il retient cette organisation et à désigner
       path: "Réserves",
       name: "Réserves et bâtiments",
       committee: "supply",
-      reportContent: `Le grenier de Cornu dispose de deux espaces couverts. L’espace nord reçoit 60 sacs de céréales, l’espace sud 40 sacs et une réserve gardée de 20 sacs. L’inventaire du matin établit le stock à 120 sacs.
+      reportContent: `Le grenier d’Alésia dispose de deux espaces couverts. L’espace nord reçoit 60 sacs de céréales, l’espace sud 40 sacs et une réserve gardée de 20 sacs. L’inventaire du matin établit le stock à 120 sacs.
 
 Le grenier n’a jusqu’ici aucune affectation décidée par le conseil : les sorties sont consignées par les gardiens, mais sans règle de priorité ni état présenté en séance.
 
@@ -49,12 +49,12 @@ Il est proposé d’affecter le grenier aux réserves communes et de reporter la
         {
           key: "granaryAllocation",
           kind: "councilDecisionProposal",
-          name: "Affectation du grenier de Cornu aux réserves",
-          content: `## Affectation du grenier de Cornu aux réserves
+          name: "Affectation du grenier d’Alésia aux réserves",
+          content: `## Affectation du grenier d’Alésia aux réserves
 
 Le conseil de l’oppidum,
 
-Vu l’inventaire du grenier de Cornu établi par les gardiens ;
+Vu l’inventaire du grenier d’Alésia établi par les gardiens ;
 
 Considérant que les deux espaces couverts du grenier contiennent 120 sacs de céréales et qu’aucune affectation n’a été décidée ;
 
@@ -64,7 +64,7 @@ Après en avoir délibéré,
 
 **Décide :**
 
-1. d’affecter les deux espaces couverts du grenier de Cornu aux réserves communes : 60 sacs au nord, 40 sacs au sud et 20 sacs dans une réserve gardée de l’espace sud ;
+1. d’affecter les deux espaces couverts du grenier d’Alésia aux réserves communes : 60 sacs au nord, 40 sacs au sud et 20 sacs dans une réserve gardée de l’espace sud ;
 2. de placer les deux espaces sous garde permanente ;
 3. de faire tenir par les gardiens un inventaire quotidien des entrées et des sorties ;
 4. de demander qu’un état des stocks soit présenté à la prochaine séance.`,
@@ -72,8 +72,8 @@ Après en avoir délibéré,
         {
           key: "shelterStudy",
           kind: "openQuestion",
-          name: "Aménagement des abris de Cornu - étude préalable",
-          content: `## Aménagement des abris de Cornu
+          name: "Aménagement des abris d’Alésia - étude préalable",
+          content: `## Aménagement des abris d’Alésia
 
 Deux abris occupés présentent des couvertures affaissées et des infiltrations après la pluie. Le bois disponible ne permet pas de tout réparer à la fois.
 
@@ -82,7 +82,7 @@ Une visite des charpentiers doit préciser la stabilité des appuis contre le mu
 Le conseil est invité à prendre connaissance du diagnostic avant toute décision de travaux.`,
         },
       ],
-      resourceNames: ["Inventaire du grenier de Cornu", "État des réserves de Cornu", "Diagnostic des abris de Cornu"],
+      resourceNames: ["Inventaire du grenier d’Alésia", "État des réserves d’Alésia", "Diagnostic des abris d’Alésia"],
     },
     {
       key: "foodSupply",
@@ -105,7 +105,7 @@ La proposition initiale est présentée au vote ; une répartition alternative s
 
 Le conseil de l’oppidum,
 
-Vu l’état des réserves du grenier de Cornu ;
+Vu l’état des réserves du grenier d’Alésia ;
 
 Considérant que 120 sacs de céréales sont disponibles et que les abris comme les équipes de défense doivent être ravitaillés ;
 
@@ -296,7 +296,7 @@ Le bilan des abris est présenté au conseil pour information ; la capacité com
           name: "Accueil des habitants - bilan des abris",
           content: `## Bilan des abris
 
-142 habitants sont accueillis dans les abris de Cornu. Les capacités restent suffisantes, mais les couvertures, l’eau et les passages demandent une attention immédiate.
+142 habitants sont accueillis dans les abris d’Alésia. Les capacités restent suffisantes, mais les couvertures, l’eau et les passages demandent une attention immédiate.
 
 Le bilan est présenté au conseil pour information.`,
         },
@@ -357,7 +357,7 @@ Après en avoir délibéré,
 3. de demander un relevé des temps de parcours avant et après les travaux.`,
         },
       ],
-      resourceNames: ["Inventaire des chemins de liaison", "Plan du plateau de Cornu", "Repérage du plateau de Cornu"],
+      resourceNames: ["Inventaire des chemins de liaison", "Plan du plateau d’Alésia", "Repérage du plateau d’Alésia"],
     },
     {
       key: "reliefArmy",

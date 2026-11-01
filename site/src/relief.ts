@@ -539,7 +539,9 @@ export function buildToponyms(ground: Ground, labels: HTMLElement): { node: HTML
     const kind = shownToponyms.get(toponym.t);
     if (!kind || seen.has(toponym.t)) continue;
     seen.add(toponym.t);
-    add(toponym.t, toponym.x, toponym.y, kind);
+    const storyName =
+      toponym.t === "Cornu" ? "Alésia" : toponym.t === "Bois derrière Cornu" ? "Bois derrière Alésia" : toponym.t;
+    add(storyName, toponym.x, toponym.y, kind);
   }
   for (const [name, [x, y]] of Object.entries(riverNames)) add(name, x, y, "river");
   return items;

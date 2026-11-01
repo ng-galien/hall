@@ -10,7 +10,7 @@ export type StartupTimings = Partial<Record<StartupPhase, number>>;
 const defaultTimings: Record<StartupPhase, number> = {
   database: 3_000,
   server: 3_000,
-  dataset: 15_000,
+  dataset: 60_000,
   interface: 1_500,
 };
 

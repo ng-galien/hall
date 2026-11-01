@@ -11,18 +11,22 @@
     <div class="launch-relief-names" id="relief-names" aria-hidden="true"></div>
     <div class="launch-cities" id="cities" aria-hidden="true"></div>
     <div class="launch-scrim"></div>
+    <p class="launch-map-caption" id="map-caption" data-testid="launch-map-caption" aria-live="polite" aria-atomic="true" hidden></p>
     <ol class="launch-story-list" id="story-list" data-testid="launch-story-list" aria-label="Lieux du récit d’Alésia"></ol>
     <section class="launch-brand" data-testid="launch-brand" aria-live="polite">
       <div class="launch-title">
-        <h1 class="launch-name">Hall</h1>
+        <h1 class="launch-name" data-testid="launch-name">
+          <span class="launch-name-ink" data-testid="launch-name-ink">Hall</span>
+        </h1>
         <p class="launch-tagline" data-testid="launch-tagline">
           <span class="launch-dash" aria-hidden="true"></span><span class="launch-tagline-text">Pilotage de la commune</span>
         </p>
       </div>
       <p class="launch-place" data-testid="launch-place"></p>
       <p class="launch-note" data-testid="launch-note" hidden></p>
-      <div class="launch-actions">
-        <button class="launch-open" type="button" data-testid="launch-open" disabled>
+      <div class="launch-footer-slot" data-testid="launch-footer" aria-hidden="true">
+        <div class="launch-actions">
+        <button class="launch-open" type="button" data-testid="launch-open" disabled hidden aria-hidden="true" tabindex="-1">
           <span class="launch-open-label">Ouvrir Hall</span>
           <kbd class="launch-key" aria-label="Touche Entrée">Entrée <span aria-hidden="true">↵</span></kbd>
         </button>
@@ -36,12 +40,14 @@
           aria-valuenow="0"
         >
           <div class="launch-progress-head">
-            <span class="launch-progress-step" data-testid="launch-step">Préparation de l’espace de travail</span>
+            <span class="launch-progress-caption">Préparation de Hall</span>
             <span class="launch-progress-count" data-testid="launch-step-count"></span>
           </div>
+          <strong class="launch-progress-step" data-testid="launch-step">Préparation de l’espace de travail</strong>
           <div class="launch-scale" aria-hidden="true">
             <span class="launch-scale-segment" data-state="pending"></span>
           </div>
+        </div>
         </div>
       </div>
     </section>

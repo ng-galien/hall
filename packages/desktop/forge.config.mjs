@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { cp, mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import { installBuffersNotice } from "../../scripts/distribution/buffers-notice.mjs";
 import MakerDmg from "./scripts/maker-dmg.mjs";
 
 const projectRoot = resolve(import.meta.dirname, "../..");
@@ -82,6 +83,15 @@ async function copyProductionRuntime(buildPath) {
     }
   }
   await copyPackage(await packageDirectory("@hall/server", desktopRoot));
+  const buffers = manifest.find((entry) => entry.name === "buffers");
+  if (buffers) {
+    const artifact = JSON.parse(await readFile(join(buildPath, "package.json"), "utf8"));
+    await installBuffersNotice({
+      buffersDirectory: join(buildPath, buffers.path),
+      outputDirectory: buildPath,
+      artifact: { name: "Hall", version: artifact.version },
+    });
+  }
   await writeFile(
     join(buildPath, "runtime-manifest.json"),
     `${JSON.stringify(
@@ -114,7 +124,7 @@ async function signMacApplicationAdHoc(outputPaths) {
 const desktopEditions = ["local", "demonstration"];
 
 async function writeDesktopEdition(buildPath) {
-  const edition = process.env.HALL_DESKTOP_EDITION ?? "local";
+  const edition = process.env.HALL_DESKTOP_EDITION ?? "demonstration";
   if (!desktopEditions.includes(edition)) throw new Error(`Unknown HALL_DESKTOP_EDITION: ${edition}`);
   await writeFile(join(buildPath, "edition.json"), `${JSON.stringify({ edition })}\n`);
 }
@@ -155,7 +165,7 @@ export default {
     prune: false,
     extraResource: [resolve(import.meta.dirname, "../client/dist"), browserDirectory],
     ignore: [
-      /^\/(?:src|scripts|out|node_modules)(?:\/|$)/,
+      /^\/(?:src|scripts|tests|out|node_modules)(?:\/|$)/,
       /^\/dist\/playwright(?:\/|$)/,
       /^\/(?:forge\.config\.mjs|tsconfig\.json)$/,
     ],

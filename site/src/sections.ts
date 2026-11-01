@@ -1,7 +1,7 @@
 import { type InstallationGuide, installationGuides, installationIntroduction } from "./installation";
 
 export const releasesUrl = "https://github.com/ng-galien/hall/releases";
-export const documentationUrl = "https://github.com/ng-galien/hall/tree/main/packages/client/src/docs/content/fr";
+export const documentationUrl = "./documentation/index.html#/docs";
 
 type System = InstallationGuide["system"];
 

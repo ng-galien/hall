@@ -1,3 +1,4 @@
+import type { HallSettings } from "@hall/domain";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
@@ -12,7 +13,13 @@ import { updateMeetingLocations } from "../../services/hallSettingsApi";
 
 /** Edits Hall's ordered meeting-location catalogue; every change is saved immediately. */
 // @implements-requirement HALL-FR-LOC-040
-export function MeetingLocationsSettings({ initialLocations }: { initialLocations: string[] }) {
+export function MeetingLocationsSettings({
+  initialLocations,
+  onSaved,
+}: {
+  initialLocations: string[];
+  onSaved?: (settings: HallSettings) => void;
+}) {
   const { t } = useI18n();
   const { submitting, run } = useSubmitting();
   const [locations, setLocations] = useState(initialLocations);
@@ -29,6 +36,7 @@ export function MeetingLocationsSettings({ initialLocations }: { initialLocation
       try {
         const settings = await updateMeetingLocations(next);
         setLocations(settings.meetingLocations);
+        onSaved?.(settings);
         setSaved(true);
         return true;
       } catch (cause) {

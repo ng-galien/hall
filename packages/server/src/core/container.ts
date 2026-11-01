@@ -10,6 +10,7 @@ import {
 } from "@hall/postgres";
 import { type AwilixContainer, asFunction, asValue, createContainer, InjectionMode } from "awilix";
 import type { Pool } from "pg";
+import type { AuthorizationAdministrationClient } from "../clients/authorizationAdministrationClient.js";
 import type { CouncilClient } from "../clients/councilClient.js";
 import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
@@ -20,7 +21,11 @@ import type { SqlExecutor } from "../infrastructure/database/executor.js";
 import { createSqlExecutor } from "../infrastructure/database/factory.js";
 import { createMarkdownDocumentPreviewConverter } from "../infrastructure/documents/markdownDocumentPreviewConverter.js";
 import { createLegifranceProvider } from "../infrastructure/legal/legifranceProvider.js";
-import { createPostgresAuthorizationClient } from "../infrastructure/postgres/authorizationClient.js";
+import {
+  createPostgresAuthorizationAdministrationClient,
+  createPostgresAuthorizationClient,
+  createPrincipalReadingAuthorization,
+} from "../infrastructure/postgres/authorizationClient.js";
 import { createPostgresCouncilClient } from "../infrastructure/postgres/councilClient.js";
 import { createPostgresCouncilDecisionClient } from "../infrastructure/postgres/councilDecisionClient.js";
 import { createPostgresDirectoryClient } from "../infrastructure/postgres/directoryClient.js";
@@ -33,7 +38,7 @@ import { createContentTemplateRepository } from "../repositories/contentTemplate
 import type { ContentTemplateRepository, HallSettingsRepository, UnitOfWork } from "../repositories/contracts.js";
 import { createHallSettingsRepository } from "../repositories/hallSettingsRepository.js";
 import { createSecurityRepository, type SecurityRepository } from "../repositories/securityRepository.js";
-import type { AuthorizationClient } from "../security/authorization.js";
+import type { AuthorizationClient, AuthorizeReading } from "../security/authorization.js";
 import { RequestContextStore } from "../security/requestContext.js";
 import { type AuthService, createAuthService } from "../services/authService.js";
 import { type ContentTemplateService, createContentTemplateService } from "../services/contentTemplateService.js";
@@ -62,6 +67,10 @@ import { createMeetingDossierService, type MeetingDossierService } from "../serv
 import { createMeetingNoticeService, type MeetingNoticeService } from "../services/meetingNoticeService.js";
 import { createMinutesService, type MinutesService } from "../services/minutesService.js";
 import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../services/referenceEntityResolver.js";
+import {
+  createTemplatePreviewContextService,
+  type TemplatePreviewContextService,
+} from "../services/templatePreviewContextService.js";
 import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
 import type { ServerConfig } from "./config.js";
 
@@ -80,6 +89,8 @@ export interface Cradle {
   postgresClient: PostgresClient | null;
   postgresAuthorization: PostgresAuthorization;
   authorizationClient: AuthorizationClient;
+  authorizeReading: AuthorizeReading;
+  authorizationAdministrationClient: AuthorizationAdministrationClient;
   postgresCouncil: PostgresCouncil;
   postgresDirectory: PostgresDirectory;
   postgresResources: PostgresResources;
@@ -117,6 +128,7 @@ export interface Cradle {
   documentPreviewConverter: DocumentPreviewConverter;
   legalReferenceProvider: LegalReferenceProvider;
   contentTemplateService: ContentTemplateService;
+  templatePreviewContextService: TemplatePreviewContextService;
 }
 
 export function buildContainer(config: ServerConfig, options: ServerCompositionOptions = {}): AwilixContainer<Cradle> {
@@ -165,6 +177,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     documentPreviewConverter: asFunction(createMarkdownDocumentPreviewConverter).singleton(),
     legalReferenceProvider: asFunction(createLegifranceProvider).singleton(),
     contentTemplateService: asFunction(createContentTemplateService).singleton(),
+    templatePreviewContextService: asFunction(createTemplatePreviewContextService).singleton(),
   });
   if (config.database.kind === "postgres") {
     container.register({
@@ -173,6 +186,8 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
         return postgresClient.authorization;
       }).singleton(),
       authorizationClient: asFunction(createPostgresAuthorizationClient).singleton(),
+      authorizeReading: asFunction(createPrincipalReadingAuthorization).singleton(),
+      authorizationAdministrationClient: asFunction(createPostgresAuthorizationAdministrationClient).singleton(),
       postgresCouncil: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
         if (!postgresClient) throw new Error("Council PostgreSQL storage is required");
         return postgresClient.council;

@@ -17,7 +17,7 @@ const order = [
 const withCaptures = order.filter((id) => id !== "ouverture");
 const places = ["tour", "cornu", "plaine", "rempart", "maison", "belvedere", "place"] as const;
 const releases = "https://github.com/ng-galien/hall/releases";
-const documentation = "https://github.com/ng-galien/hall/tree/main/packages/client/src/docs/content/fr";
+const documentation = "./documentation/index.html#/docs";
 const outsideTheGame = /Berthier|Alise|Foncine|thèse|clin d[’']œil/i;
 const presentDayObjects = /mairie|salle polyvalente|école|église|route nationale|voie ferrée|Pont de la Chaux/i;
 
@@ -145,6 +145,9 @@ test.describe("relief en 3D", () => {
     await page.goto("./");
     await expect(page.locator("html")).toHaveAttribute("data-view", "terrain");
     await sceneReady(page);
+    const toponyms = await page.locator(".terrain-toponym").allTextContents();
+    expect(toponyms).toContain("Alésia");
+    expect(toponyms.join(" ")).not.toMatch(/cornu/i);
     const canvas = page.getByTestId("terrain-canvas");
     await expect(canvas).toBeVisible();
     expect(await canvas.evaluate((c: HTMLCanvasElement) => c.width > 0 && c.height > 0)).toBe(true);
@@ -406,7 +409,9 @@ test("le récit reste dans l’oppidum, sans objet contemporain ni sortie du jeu
   const description = (await page.locator('meta[name="description"]').getAttribute("content")) ?? "";
   expect(page_text).not.toMatch(outsideTheGame);
   expect(description).not.toMatch(outsideTheGame);
-  for (const name of ["Alésia", "Cornu", "Jura", "Chaux-des-Crotenay", "Mandubiens", "plaine de Syam", "Lemme"]) {
+  expect(page_text).not.toMatch(/cornu/i);
+  expect(description).not.toMatch(/cornu/i);
+  for (const name of ["Alésia", "Jura", "Chaux-des-Crotenay", "Mandubiens", "plaine de Syam", "Lemme"]) {
     expect(page_text).toContain(name);
   }
   for (const id of order) {

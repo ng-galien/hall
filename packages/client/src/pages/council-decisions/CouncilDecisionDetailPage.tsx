@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { ArrowDownIcon, CalendarIcon, CloseIcon, PdfIcon } from "../../components/icons";
+import { ArrowDownIcon, CalendarIcon, PdfIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { ShareButton } from "../../components/ShareButton";
 import { PageHeader, RequestErrorBanner } from "../../components/Ui";
@@ -9,6 +9,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
+import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiFile } from "../../services/fileSharing";
@@ -147,46 +148,23 @@ function CouncilDecisionDetail({ id }: { id: string }) {
                 </Button>
               </DialogContent>
             </Dialog>
-            <Dialog
-              open={Boolean(draft.documentUrl)}
-              onOpenChange={(open) => {
-                if (!open) draft.closeDocument();
-              }}
-            >
-              <DialogContent
-                className="document-viewer gap-0 p-0 sm:max-w-[var(--hall-size-viewer-width)]"
-                data-testid="decision-document-dialog"
-                showCloseButton={false}
+            {draft.documentUrl ? (
+              <DocumentViewerDialog
+                testId="decision-document-dialog"
+                titleId="decision-document-dialog-title"
+                title={[decision.number, decision.title].filter(Boolean).join(" · ")}
+                description={t(decision.state === "frozen" ? "decisionDocument.frozen" : "decisionDocument.draft")}
+                closeTestId="decision-document-close"
+                onClose={draft.closeDocument}
               >
-                <header>
-                  <div>
-                    <DialogTitle>{decision.title}</DialogTitle>
-                    <DialogDescription>
-                      {t(decision.state === "frozen" ? "decisionDocument.frozen" : "decisionDocument.draft")}
-                    </DialogDescription>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={t("common.close")}
-                    data-testid="decision-document-close"
-                    onClick={draft.closeDocument}
-                  >
-                    <CloseIcon />
-                  </Button>
-                </header>
-                <div className="document-viewer-content">
-                  {draft.documentUrl ? (
-                    <NativeDocumentFrame
-                      url={draft.documentUrl}
-                      mediaType="application/pdf"
-                      title={decision.title}
-                      testId="decision-document-frame"
-                    />
-                  ) : null}
-                </div>
-              </DialogContent>
-            </Dialog>
+                <NativeDocumentFrame
+                  url={draft.documentUrl}
+                  mediaType="application/pdf"
+                  title={[decision.number, decision.title].filter(Boolean).join(" · ")}
+                  testId="decision-document-frame"
+                />
+              </DocumentViewerDialog>
+            ) : null}
           </>
         ) : null}
       </div>

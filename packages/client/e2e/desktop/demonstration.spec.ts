@@ -2,12 +2,22 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { SIREN_MEDIA_TYPE, sirenData } from "@hall/api-contract";
 import { _electron as electron, expect, type Page, test } from "@playwright/test";
 import { openDemonstration } from "../../../desktop/src/demonstration";
 
 const require = createRequire(import.meta.url);
 const desktopDirectory = resolve(import.meta.dirname, "../../../desktop");
 const markerName = "marqueur-remise-a-zero.md";
+
+function launchDemonstration(userDataPath: string) {
+  const executable = process.env.HALL_E2E_DESKTOP_EXECUTABLE;
+  return electron.launch({
+    executablePath: executable ?? (require("electron") as unknown as string),
+    args: executable ? [] : [desktopDirectory],
+    env: { ...process.env, HALL_USER_DATA_PATH: userDataPath, HALL_DESKTOP_EDITION: "demonstration" },
+  });
+}
 
 async function resourcesContainMarker(page: Page): Promise<boolean> {
   return page.evaluate(
@@ -16,13 +26,10 @@ async function resourcesContainMarker(page: Page): Promise<boolean> {
   );
 }
 
-test("opens the Alésia demonstration signed in after the Alésia launch screen and resets it from the Démonstration menu", async () => {
+/** @verifies-requirement HALL-TR-DSK-020 */
+test("opens Alésia signed in, retains changes on relaunch and resets them from the Démonstration menu", async () => {
   const userDataPath = await mkdtemp(join(tmpdir(), "hall-demonstration-"));
-  const application = await electron.launch({
-    executablePath: require("electron") as unknown as string,
-    args: [desktopDirectory],
-    env: { ...process.env, HALL_USER_DATA_PATH: userDataPath, HALL_DESKTOP_EDITION: "demonstration" },
-  });
+  let application = await launchDemonstration(userDataPath);
   try {
     await expect
       .poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:")), { timeout: 15_000 })
@@ -41,17 +48,69 @@ test("opens the Alésia demonstration signed in after the Alésia launch screen 
     expect(phases.server.startMs).toBeGreaterThanOrEqual(phases.database.endMs);
     expect(phases.dataset.startMs).toBeGreaterThanOrEqual(phases.server.endMs);
     expect(phases.interface.startMs).toBeGreaterThanOrEqual(phases.dataset.endMs);
+    await writeFile(
+      test.info().outputPath("startup-first-frames.json"),
+      JSON.stringify(await launch.evaluate(() => window.hallLaunchSnapshot?.())),
+    );
     const motion = JSON.parse((await launch.locator("html").getAttribute("data-progress-statistics")) ?? "{}");
     expect(motion.backwards).toBe(0);
     expect(motion.longestStillMs).toBeLessThan(1_000);
     expect(motion.maxStepPerFrame).toBeLessThan(0.05);
+    const story = launch.getByTestId("launch-story-list");
+    const places = await story.locator("li").count();
+    await expect(story.locator('li[data-state="written"]')).toHaveCount(places, { timeout: 25_000 });
+    await launch.waitForTimeout(1_000);
+    await launch.screenshot({ path: test.info().outputPath("candidate-startup-final.png") });
     await launch.getByTestId("launch-open").click();
     await expect
       .poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:")), { timeout: 5_000 })
       .toBe(false);
-    const window = application.windows().find((page) => page.url().includes("/app/"))!;
+    let window = application.windows().find((page) => page.url().includes("/app/"))!;
     await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible({ timeout: 8 * 60_000 });
     expect(new URL(window.url()).pathname).toBe("/app/");
+    await window.screenshot({ path: test.info().outputPath("candidate-dashboard.png") });
+    const collections = await window.evaluate(async (accept) => {
+      const read = async (path: string) => {
+        const response = await fetch(`/api/${path}`, { headers: { Accept: accept } });
+        if (!response.ok) throw new Error(`${path}: ${response.status}`);
+        return response.json();
+      };
+      return {
+        meetings: await read("council-meetings"),
+        minutes: await read("minutes"),
+        decisions: await read("council-decisions"),
+      };
+    }, SIREN_MEDIA_TYPE);
+    const meetings = sirenData<unknown[]>(collections.meetings);
+    const minutes = sirenData<unknown[]>(collections.minutes);
+    const decision = sirenData<{ id: string; title: string }[]>(collections.decisions).find((item) =>
+      /grenier/i.test(item.title),
+    );
+    if (!decision) throw new Error("Missing Alésia granary decision");
+    expect(meetings.length).toBeGreaterThan(0);
+    expect(minutes.length).toBeGreaterThan(0);
+    const preview = await window.evaluate(async (id) => {
+      const response = await fetch(`/api/council-decisions/${id}/preview.pdf`);
+      return {
+        status: response.status,
+        mediaType: response.headers.get("content-type"),
+        bytes: [...new Uint8Array(await response.arrayBuffer())],
+      };
+    }, decision.id);
+    expect(preview.status).toBe(200);
+    expect(preview.mediaType).toContain("application/pdf");
+    const pdf = Buffer.from(preview.bytes);
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    await writeFile(test.info().outputPath("candidate-decision-preview.pdf"), pdf);
+    await writeFile(
+      test.info().outputPath("candidate-alesia-summary.json"),
+      JSON.stringify({
+        meetings: meetings.length,
+        minutes: minutes.length,
+        title: decision.title,
+        pdfBytes: pdf.length,
+      }),
+    );
 
     const created = await window.evaluate(async (name) => {
       const response = await fetch("/api/resources", {
@@ -62,6 +121,18 @@ test("opens the Alésia demonstration signed in after the Alésia launch screen 
       return `${response.status} ${await response.text()}`;
     }, markerName);
     expect(created).toMatch(/^201 /);
+    expect(await resourcesContainMarker(window)).toBe(true);
+
+    await application.close();
+    application = await launchDemonstration(userDataPath);
+    await expect.poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:"))).toBe(true);
+    const relaunch = application.windows().find((page) => page.url().startsWith("hall-launch:"))!;
+    await expect(relaunch.getByTestId("launch-open")).toBeEnabled({ timeout: 120_000 });
+    await expect(relaunch.locator("html")).toHaveAttribute("data-state", "final", { timeout: 20_000 });
+    await relaunch.keyboard.press("Enter");
+    await expect.poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:"))).toBe(false);
+    window = application.windows().find((page) => page.url().includes("/app/"))!;
+    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible();
     expect(await resourcesContainMarker(window)).toBe(true);
 
     await application.evaluate(({ dialog }) => {

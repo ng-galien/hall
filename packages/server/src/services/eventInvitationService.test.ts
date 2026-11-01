@@ -1,8 +1,9 @@
 import type { HallSettings } from "@hall/domain";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createTestDirectoryClient } from "../__tests__/support/directoryClient.js";
 import { createTestResourcesClient } from "../__tests__/support/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
+import type { ContentTemplateService } from "./contentTemplateService.js";
 import { createEventInvitationService } from "./eventInvitationService.js";
 
 const hall: HallSettings = {
@@ -24,6 +25,8 @@ const hall: HallSettings = {
   outboundEmailSenderName: "Conseil municipal",
   outboundEmailSenderAddress: "conseil@example.test",
   outboundEmailReplyToAddress: "secretariat@example.test",
+  outboundEmailSignatureMarkdown: "",
+  outboundEmailFooterMarkdown: "",
   updatedAt: null,
 };
 
@@ -67,9 +70,16 @@ describe("event calendar invitation", () => {
         ],
       },
     });
+    const generatedPreview = vi.fn(async (_type, bodyMarkdown, subject) => ({
+      subject,
+      text: bodyMarkdown,
+      html: `<p>${bodyMarkdown}</p>`,
+      diagnostics: [],
+    }));
     const service = createEventInvitationService({
       resourcesClient,
       directoryClient,
+      contentTemplateService: { generatedPreview } as unknown as ContentTemplateService,
       hallSettingsRepository: { get: async () => hall } as HallSettingsRepository,
     });
     const request = await service.generate(created.data.id, { method: "request" });
@@ -77,6 +87,11 @@ describe("event calendar invitation", () => {
     const requestText = request.content.toString("utf8");
     const cancellationText = cancellation.content.toString("utf8");
 
+    expect(generatedPreview).toHaveBeenCalledWith(
+      "event-invitation",
+      expect.stringContaining("Préparer le dossier."),
+      expect.any(String),
+    );
     expect(request.mediaType).toBe("message/rfc822");
     expect(requestText).toContain("alice@example.test");
     expect(requestText).not.toContain("Bruno Durand <>");

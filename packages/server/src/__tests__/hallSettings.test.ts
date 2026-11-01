@@ -21,6 +21,8 @@ const settingsInput = {
   outboundEmailSenderName: "Conseil municipal de Saint-Aubin",
   outboundEmailSenderAddress: "conseil@saint-aubin.fr",
   outboundEmailReplyToAddress: "secretariat@saint-aubin.fr",
+  outboundEmailSignatureMarkdown: "Le secrétariat",
+  outboundEmailFooterMarkdown: "Commune de Saint-Aubin",
 };
 
 describe("Hall settings", () => {

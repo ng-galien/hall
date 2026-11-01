@@ -1,7 +1,8 @@
 import * as THREE from "three";
+import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { type AncientCity, type LaunchGeodata, type PlanarPolygon, planarCentroid } from "./geodata.js";
-import type { CameraPose, ReliefStage } from "./reliefStage.js";
+import { type CameraPose, mapGroundHeight, type ReliefStage } from "./reliefStage.js";
 import { storyDuration } from "./storyLayer.js";
 import { easeInOutCubic, easeOutCubic, easeOutQuint, phase } from "./timeline.js";
 
@@ -18,16 +19,17 @@ const palette = {
 } as const;
 
 /** Durée de l'animation de la carte jusqu'au zoom sur la commune, en secondes. */
-export const launchDuration = 7.5;
+export const launchDuration = 11.5;
 
 /** Début de la bascule vers le relief, pendant la fin du zoom sur Cornu, et sa durée, en secondes. */
-const reliefStart = 6.85;
-const reliefDuration = 2.85;
+const reliefStart = 11.8;
+const reliefDuration = 3.6;
 
 /** Longueur de la chronologie de la scène, jouée en `launchDuration` secondes. */
 const timelineLength = 8.3;
 
-const plateDepth = 6;
+const plateThickness = 0.025;
+const cameraReferenceHeight = 6;
 
 export interface SceneTarget {
   departementCode: string;
@@ -125,7 +127,7 @@ function createCityMarks(cities: AncientCity[], layer: HTMLElement): CityMark[] 
     layer.append(element);
     return {
       element,
-      point: new THREE.Vector3(city.position[0], city.position[1], plateDepth),
+      point: new THREE.Vector3(city.position[0], city.position[1], mapGroundHeight),
       delay: 3.3 + index * 0.06,
     };
   });
@@ -184,6 +186,64 @@ function placeCityMarks(marks: CityMark[], layer: HTMLElement, camera: THREE.Cam
   }
 }
 
+function createMapCaption(element: HTMLElement | null): (t: number) => void {
+  const captions = [
+    { from: 0.55, to: 4.15, text: "La Gaule de Vercingétorix", key: "france" },
+    { from: 4.9, to: 6.8, text: "Le territoire des Mandubiens", key: "region" },
+    { from: 6.8, to: (reliefStart * timelineLength) / launchDuration, text: "Alésia", key: "alesia" },
+  ];
+  let current = -1;
+  let visible = false;
+  let words: { element: HTMLSpanElement; written: string }[] = [];
+  let opacity = "";
+  return (t) => {
+    if (!element) return;
+    const index = captions.findIndex((caption) => t >= caption.from && t < caption.to);
+    if (index < 0) {
+      if (visible) {
+        element.hidden = true;
+        element.dataset.phase = "none";
+        visible = false;
+      }
+      return;
+    }
+    const caption = captions[index]!;
+    if (current !== index) {
+      current = index;
+      words = caption.text.split(" ").map((text) => {
+        const word = document.createElement("span");
+        word.className = "launch-map-caption-word";
+        word.textContent = text;
+        return { element: word, written: "" };
+      });
+      const fragment = document.createDocumentFragment();
+      words.forEach((word, position) => {
+        if (position > 0) fragment.append(document.createTextNode(" "));
+        fragment.append(word.element);
+      });
+      element.replaceChildren(fragment);
+      element.dataset.phase = caption.key;
+    }
+    if (!visible) {
+      element.hidden = false;
+      visible = true;
+    }
+    const nextOpacity = (1 - easeOutCubic(phase(t, caption.to - 0.3, caption.to))).toFixed(4);
+    if (nextOpacity !== opacity) {
+      element.style.opacity = nextOpacity;
+      opacity = nextOpacity;
+    }
+    words.forEach((word, position) => {
+      const from = caption.from + position * 0.08;
+      const value = easeOutCubic(phase(t, from, from + 0.5)).toFixed(4);
+      if (value !== word.written) {
+        word.element.style.setProperty("--word-appear", value);
+        word.written = value;
+      }
+    });
+  };
+}
+
 /**
  * Scène d'assemblage : les départements se rejoignent pour former la France, les cités antiques
  * apparaissent, puis la caméra plonge vers le département visé et se pose sur la commune.
@@ -195,9 +255,11 @@ export function createLaunchScene(
   data: LaunchGeodata,
   target: SceneTarget,
   relief: ReliefStage | null,
+  captionElement: HTMLElement | null = null,
 ): LaunchScene | null {
   const renderer = createRenderer(stage);
   if (!renderer) return null;
+  const renderCaption = createMapCaption(captionElement);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(palette.slate100);
@@ -221,14 +283,14 @@ export function createLaunchScene(
   const pieces: Piece[] = data.departements.map((area) => {
     const [cx, cy] = planarCentroid(area.polygons);
     const local = translate(area.polygons, cx, cy);
-    const geometry = new THREE.ExtrudeGeometry(local.map(shapeFromRings), { depth: plateDepth, bevelEnabled: false });
+    const geometry = new THREE.ExtrudeGeometry(local.map(shapeFromRings), { depth: plateThickness, bevelEnabled: false });
     const tone = slate300.clone().lerp(slate400, rand() * 0.55);
     const mesh = new THREE.Mesh(
       geometry,
       new THREE.MeshStandardMaterial({ color: tone.clone(), roughness: 0.85, metalness: 0 }),
     );
     const edges = new THREE.LineSegments(
-      outlineGeometry(local, plateDepth + 0.05),
+      outlineGeometry(local, plateThickness + 0.005),
       new THREE.LineBasicMaterial({ color: palette.slate600, transparent: true, opacity: 0.85 }),
     );
     mesh.add(edges);
@@ -240,7 +302,7 @@ export function createLaunchScene(
     return {
       mesh,
       edges,
-      home: new THREE.Vector3(cx, cy, 0),
+      home: new THREE.Vector3(cx, cy, mapGroundHeight - 2 * plateThickness),
       from: new THREE.Vector3(cx + Math.cos(angle) * reach, cy + Math.sin(angle) * reach, 120 + rand() * 260),
       spin: new THREE.Euler((rand() - 0.5) * 2.4, (rand() - 0.5) * 2.4, (rand() - 0.5) * 3),
       delay: isTarget ? 1.55 : Math.max(0, 1.25 - distance / 420) * 0.9 + rand() * 0.35,
@@ -253,13 +315,16 @@ export function createLaunchScene(
   const communeMaterial = new THREE.MeshStandardMaterial({
     color: palette.slate300,
     roughness: 0.85,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
     transparent: true,
     opacity: 0,
   });
   const communeLayer = new THREE.Mesh(
     mergeGeometries(
       others.map(
-        (area) => new THREE.ExtrudeGeometry(area.polygons.map(shapeFromRings), { depth: 2, bevelEnabled: false }),
+        (area) => new THREE.ExtrudeGeometry(area.polygons.map(shapeFromRings), { depth: plateThickness, bevelEnabled: false }),
       ),
     ),
     communeMaterial,
@@ -267,10 +332,11 @@ export function createLaunchScene(
   const communeEdges = new THREE.LineSegments(
     outlineGeometry(
       others.flatMap((area) => area.polygons),
-      2.05,
+      plateThickness + 0.005,
     ),
-    new THREE.LineBasicMaterial({ color: palette.slate600, transparent: true, opacity: 0 }),
+    new THREE.LineBasicMaterial({ color: palette.slate800, transparent: true, opacity: 0, depthTest: false, fog: false }),
   );
+  communeEdges.renderOrder = 1;
   communeLayer.add(communeEdges);
   scene.add(communeLayer);
 
@@ -281,11 +347,14 @@ export function createLaunchScene(
     emissive: palette.blue,
     emissiveIntensity: 0.2,
     roughness: 0.5,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
     transparent: true,
     opacity: 0,
   });
   const highlight = new THREE.Mesh(
-    new THREE.ExtrudeGeometry(highlightPolygons.map(shapeFromRings), { depth: 2, bevelEnabled: false }),
+    new THREE.ExtrudeGeometry(highlightPolygons.map(shapeFromRings), { depth: plateThickness, bevelEnabled: false }),
     highlightMaterial,
   );
   scene.add(highlight);
@@ -295,9 +364,9 @@ export function createLaunchScene(
   const wideTarget = new THREE.Vector3(0, 30, 0);
   const wideFrom = new THREE.Vector3(0, -1500, 1500);
   const wideTo = new THREE.Vector3(0, -1150, 1180);
-  const regionTarget = new THREE.Vector3(targetCenter[0] - 12, targetCenter[1] + 8, plateDepth);
+  const regionTarget = new THREE.Vector3(targetCenter[0] - 12, targetCenter[1] + 8, cameraReferenceHeight);
   const regionFrom = new THREE.Vector3(targetCenter[0] - 60, targetCenter[1] - 190, 185);
-  const siteTarget = new THREE.Vector3(focus[0] - 2.2, focus[1] + 1.2, plateDepth + 4);
+  const siteTarget = new THREE.Vector3(focus[0] - 2.2, focus[1] + 1.2, cameraReferenceHeight + 4);
   const siteFrom = new THREE.Vector3(focus[0] - 6, focus[1] - 16, 30);
   const look = new THREE.Vector3();
   const eye = new THREE.Vector3();
@@ -315,39 +384,44 @@ export function createLaunchScene(
 
   let shownAt = 0;
   let still = false;
+  let citiesHidden = false;
   const arrival = reliefStart + reliefDuration;
   const orbitPose: CameraPose = { look: new THREE.Vector3(), eye: new THREE.Vector3() };
+  let controls: MapControls | null = null;
+  let exploring = false;
+  let redrawQueued = false;
   const render = (elapsed: number) => {
     shownAt = elapsed;
     const t = (elapsed * timelineLength) / launchDuration;
+    renderCaption(t);
     const lift = easeInOutCubic(phase(t, 4.6, 5.5));
     const handover = phase(t, 5.9, 6.8);
+    const bascule = relief && finalPose ? phase(elapsed, reliefStart, reliefStart + reliefDuration) : 0;
     for (const piece of pieces) {
       const p = easeOutQuint(phase(t, piece.delay, piece.delay + 1.9));
       piece.mesh.position.lerpVectors(piece.from, piece.home, p);
+      piece.mesh.visible = true;
       piece.mesh.rotation.set(piece.spin.x * (1 - p), piece.spin.y * (1 - p), piece.spin.z * (1 - p));
       const landing = phase(phase(t, piece.delay, piece.delay + 1.9), 0.3, 1);
       const color = piece.mesh.material.color.copy(piece.tone).lerp(accent, Math.sin(Math.PI * landing) * 0.7);
       if (piece.isTarget) {
-        color.lerp(slate500, lift).lerp(accent, Math.sin(Math.PI * phase(t, 4.6, 6.4)) * 0.85);
-        piece.mesh.position.z += lift * 4;
-        piece.mesh.material.transparent = handover > 0;
-        piece.mesh.material.opacity = 1 - handover * 0.85;
+        color
+          .lerp(slate500, lift)
+          .lerp(accent, Math.sin(Math.PI * phase(t, 4.6, 6.4)) * 0.85)
+          .lerp(slate200, easeInOutCubic(phase(t, 8.1, timelineLength)));
         piece.edges.material.opacity = 0.85 * (1 - handover);
       } else {
         color.lerp(slate200, lift);
         piece.edges.material.opacity = 0.85 - lift * 0.45;
       }
     }
-    const reveal = easeOutCubic(phase(t, 5.9, 6.9));
-    communeLayer.position.z = plateDepth + 4 * lift;
-    communeMaterial.opacity = reveal;
-    communeEdges.material.opacity = reveal * 0.6;
-    communeLayer.visible = reveal > 0;
+    communeLayer.position.z = mapGroundHeight - plateThickness;
+    communeMaterial.opacity = 1;
+    communeEdges.material.opacity = 1;
+    communeLayer.visible = handover >= 1;
     highlight.position.z = communeLayer.position.z;
-    highlight.scale.z = 1 + easeOutCubic(phase(t, 6.7, 7.8)) * 0.35;
     highlightMaterial.opacity = phase(t, 6.6, 7.1);
-    highlight.visible = highlightMaterial.opacity > 0;
+    highlight.visible = highlightMaterial.opacity > 0 && handover >= 1;
     const dive = easeInOutCubic(phase(t, 4.9, 6.7));
     const settle = easeInOutCubic(phase(t, 6.5, 8.1));
     eye
@@ -355,30 +429,68 @@ export function createLaunchScene(
       .lerp(regionFrom, dive)
       .lerp(siteFrom, settle);
     look.lerpVectors(wideTarget, regionTarget, dive).lerp(siteTarget, settle);
-    const bascule = relief && finalPose ? phase(elapsed, reliefStart, reliefStart + reliefDuration) : 0;
     if (relief && finalPose && bascule > 0) {
-      reliefPose.look.copy(look).applyMatrix4(relief.fromMap);
-      reliefPose.eye.copy(eye).applyMatrix4(relief.fromMap);
-      orbit(finalPose, still ? 0 : elapsed - arrival - storyDuration, orbitPose);
-      blendPose(reliefPose, orbitPose, easeInOutCubic(bascule), relief.camera);
+      if (exploring && controls) {
+        controls.update();
+        reliefPose.look.copy(controls.target);
+      } else {
+        reliefPose.look.copy(look).applyMatrix4(relief.fromMap);
+        reliefPose.eye.copy(eye).applyMatrix4(relief.fromMap);
+        orbit(finalPose, still ? 0 : elapsed - arrival - storyDuration, orbitPose);
+        blendPose(reliefPose, orbitPose, easeInOutCubic(bascule), relief.camera);
+      }
       look.copy(reliefPose.look).applyMatrix4(relief.toMap);
       eye.copy(relief.camera.position).applyMatrix4(relief.toMap);
       const settled = easeInOutCubic(phase(bascule, 0, 0.5));
-      highlight.scale.z = THREE.MathUtils.lerp(highlight.scale.z, 0.1, settled);
-      highlight.position.z = communeLayer.position.z + 2 - 2 * highlight.scale.z;
       highlightMaterial.color.copy(accent).lerp(slate300, settled);
       highlightMaterial.emissiveIntensity = 0.2 * (1 - settled);
     } else {
       highlightMaterial.color.copy(accent);
       highlightMaterial.emissiveIntensity = 0.2;
     }
-    const shift =
-      bascule > 0 && stage.clientWidth >= 1280 ? -0.16 * stage.clientWidth * easeInOutCubic(bascule) : 0;
+    const shift = bascule > 0 && stage.clientWidth >= 1280 ? -0.16 * stage.clientWidth * easeInOutCubic(bascule) : 0;
     shiftView(camera, shift);
     if (relief) shiftView(relief.camera, shift);
     camera.position.copy(eye);
     camera.lookAt(look);
-    placeCityMarks(cityMarks, citiesLayer, camera, t, easeInOutCubic(phase(t, 5.2, 6.0)));
+    if (t < 6.0 || !citiesHidden) {
+      placeCityMarks(cityMarks, citiesLayer, camera, t, easeInOutCubic(phase(t, 5.2, 6.0)));
+      citiesHidden = t >= 6.0;
+    }
+    if (relief && finalPose && elapsed >= arrival && !controls) {
+      const position = relief.camera.position.clone();
+      const orientation = relief.camera.quaternion.clone();
+      const navigation = new MapControls(relief.camera, renderer.domElement);
+      navigation.target.copy(reliefPose.look);
+      navigation.mouseButtons = {
+        LEFT: THREE.MOUSE.PAN,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.ROTATE,
+      };
+      navigation.minDistance = 120;
+      navigation.maxDistance = 7000;
+      navigation.minPolarAngle = 0.08;
+      navigation.maxPolarAngle = Math.PI / 2 - 0.04;
+      navigation.zoomToCursor = true;
+      navigation.panSpeed = 1;
+      navigation.rotateSpeed = 0.65;
+      navigation.zoomSpeed = 0.85;
+      relief.camera.position.copy(position);
+      relief.camera.quaternion.copy(orientation);
+      navigation.update();
+      controls = navigation;
+      navigation.addEventListener("start", () => {
+        exploring = true;
+      });
+      navigation.addEventListener("change", () => {
+        if (!still || redrawQueued) return;
+        redrawQueued = true;
+        requestAnimationFrame(() => {
+          redrawQueued = false;
+          render(shownAt);
+        });
+      });
+    }
     renderer.render(scene, camera);
     if (relief && bascule > 0) {
       relief.render(renderer, {
@@ -427,21 +539,20 @@ const orbitRamp = 5;
  */
 function orbit(pose: CameraPose, seconds: number, into: CameraPose): void {
   into.look.copy(pose.look);
-  const offset = new THREE.Vector3().subVectors(pose.eye, pose.look);
+  const offset = into.eye.subVectors(pose.eye, pose.look);
   if (seconds > 0) {
     const travelled = seconds < orbitRamp ? (seconds * seconds) / (2 * orbitRamp) : seconds - orbitRamp / 2;
     const theta = (2 * Math.PI * travelled) / orbitSeconds;
-    const distance = offset.length() * (1 + 0.13 * (Math.cos(theta) - 1) + 0.06 * (Math.cos(2 * theta + 1) - Math.cos(1)));
+    const distance =
+      offset.length() * (1 + 0.13 * (Math.cos(theta) - 1) + 0.06 * (Math.cos(2 * theta + 1) - Math.cos(1)));
     const elevation =
       Math.asin(offset.y / offset.length()) + THREE.MathUtils.degToRad(7 * Math.sin(theta) + 3 * Math.sin(2 * theta));
     const azimuth = Math.atan2(offset.x, offset.z) - theta;
-    offset.set(
-      Math.sin(azimuth) * Math.cos(elevation),
-      Math.sin(elevation),
-      Math.cos(azimuth) * Math.cos(elevation),
-    ).multiplyScalar(distance);
+    offset
+      .set(Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.cos(azimuth) * Math.cos(elevation))
+      .multiplyScalar(distance);
   }
-  into.eye.copy(pose.look).add(offset);
+  into.eye.add(pose.look);
 }
 
 /** Décale l'image horizontalement de `x` pixels, comme la vue d'ensemble du site qui laisse la gauche au texte. */
