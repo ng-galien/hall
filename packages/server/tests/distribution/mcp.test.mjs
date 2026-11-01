@@ -306,7 +306,7 @@ print(output.decode())
       serverSessionRevoked: process.platform !== "win32",
     });
     if (process.platform === "win32") {
-      expect((await request("/api/auth/logout", { cookie, body: {} })).status).toBe(200);
+      expect((await request("/api/auth/logout", { cookie, body: {} })).status).toBe(204);
       await expect(stat(privateDirectory)).rejects.toMatchObject({ code: "ENOENT" });
     } else expect(await readdir(privateDirectory)).toEqual([]);
     expect((await authenticated.callTool({ name: "workspace_read", arguments: { href: documentHref } })).isError).toBe(
