@@ -48,8 +48,9 @@ test("imports selected folders on a folder and dropped folders on a business pre
     await page.reload();
     const target = page.getByTestId(`workspace-business-${business.id}`);
     await expect(target).toHaveAttribute("data-folder-import-enabled", "true");
-    const dropFolder = async (target: import("@playwright/test").Locator) =>
-      target.evaluate((element) => {
+    const dropFolder = async (target: import("@playwright/test").Locator) => {
+      await expect(target).toBeVisible();
+      const transfer = await page.evaluateHandle(() => {
         const file = (name: string, text: string) => ({
           isFile: true,
           isDirectory: false,
@@ -78,8 +79,16 @@ test("imports selected folders on a folder and dropped folders on a business pre
         const transfer = new DataTransfer();
         Object.defineProperty(transfer, "items", { value: [{ webkitGetAsEntry: () => root }] });
         Object.defineProperty(transfer, "types", { value: ["Files"] });
-        element.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }));
+        return transfer;
       });
+      try {
+        await target.dispatchEvent("dragenter", { dataTransfer: transfer });
+        await target.dispatchEvent("dragover", { dataTransfer: transfer });
+        await target.dispatchEvent("drop", { dataTransfer: transfer });
+      } finally {
+        await transfer.dispose();
+      }
+    };
     await dropFolder(target);
     await expect
       .poll(
