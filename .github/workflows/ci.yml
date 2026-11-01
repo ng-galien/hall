@@ -172,8 +172,6 @@ jobs:
 
   distribution-install:
     needs: distribution-build
-    env:
-      npm_config_cache: ${{ runner.temp }}/hall-distribution-npm-cache
     strategy:
       fail-fast: false
       matrix:
@@ -182,6 +180,11 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7.0.1
+      - name: Configure the shared npm cache on the allocated runner
+        shell: bash
+        env:
+          HALL_DISTRIBUTION_NPM_CACHE: ${{ runner.temp }}/hall-distribution-npm-cache
+        run: echo "npm_config_cache=$HALL_DISTRIBUTION_NPM_CACHE" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: "22"
