@@ -61,6 +61,8 @@ async function main() {
     throw new Error("Use hall-workspace-mcp login|status|logout [--url <origin>], or --help.");
   const selectedOrigin = url ? hallOrigin(url) : origin;
   if (command === "login") {
+    if (process.platform === "win32")
+      throw new Error("Private MCP session storage is not implemented on Windows. No session was stored.");
     if (!process.stdin.isTTY || !process.stdout.isTTY)
       throw new Error(
         "Hall login requires a private interactive terminal; passwords are never accepted as command arguments or MCP prompts.",

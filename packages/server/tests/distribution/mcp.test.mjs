@@ -10,7 +10,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { expect, it } from "vitest";
-import { startEmbeddedPostgresRuntime } from "../../dist/infrastructure/database/embeddedPostgresRuntime.js";
+import { createDistributionDatabase } from "../../../../tests/distribution/database.mjs";
 
 const root = resolve(import.meta.dirname, "../../../..");
 function unpack(result) {
@@ -33,8 +33,18 @@ it("uses the installed MCP command and HTTP transport with real Hall sessions, r
   const environment = {
     PATH: process.env.PATH,
     TMPDIR: temporary,
+    TMP: temporary,
+    TEMP: temporary,
+    ...Object.fromEntries(
+      Object.entries(process.env).filter(([key]) =>
+        ["systemroot", "windir", "comspec", "pathext", "appdata", "localappdata", "userprofile"].includes(
+          key.toLowerCase(),
+        ),
+      ),
+    ),
     XDG_CONFIG_HOME: join(temporary, "profile"),
     npm_config_update_notifier: "false",
+    PLAYWRIGHT_BROWSERS_PATH: join(tmpdir(), "hall-distribution-browser-cache"),
   };
   const version = JSON.parse(await readFile(join(root, "package.json"), "utf8")).version;
   const installed = join(prefix, "node_modules/@ng-galien/hall");
@@ -84,20 +94,27 @@ it("uses the installed MCP command and HTTP transport with real Hall sessions, r
         prefix,
         "--no-audit",
         "--no-fund",
-        join(root, `dist/npm/ng-galien-hall-${version}.tgz`),
+        process.env.HALL_PACKAGE_TEST_ARCHIVE ?? join(root, `dist/npm/ng-galien-hall-${version}.tgz`),
       ],
       { cwd: temporary, env: environment, encoding: "utf8", timeout: 300_000 },
     );
     expect(installation.status, installation.stderr).toBe(0);
     const manifest = JSON.parse(await readFile(join(installed, "package.json"), "utf8"));
     expect(manifest.bin["hall-workspace-mcp"]).toBe("bin/hall-workspace-mcp.mjs");
+    const browser = spawnSync(process.execPath, [cli, "install-browser"], {
+      cwd: temporary,
+      env: environment,
+      encoding: "utf8",
+      timeout: 300_000,
+    });
+    expect(browser.status, browser.stderr).toBe(0);
     const anonymous = await connect("");
     expect((await anonymous.listTools()).tools.map((tool) => tool.name)).toContain("hall_learn");
     expect(unpack(await anonymous.callTool({ name: "hall_learn", arguments: {} })).topic).toBe("overview");
     expect(unpack(await anonymous.callTool({ name: "hall_learn", arguments: { topic: "missing" } })).unknownTopic).toBe(
       "missing",
     );
-    database = await startEmbeddedPostgresRuntime(join(temporary, "database"));
+    database = await createDistributionDatabase(join(temporary, "database"));
     await writeFile(
       envFile,
       `NODE_ENV=production\nDATABASE_URL=${database.url}\nSERVER_HOST=127.0.0.1\nSERVER_PORT=${new URL(origin).port}\nHALL_ALLOWED_ORIGINS=${origin}\n`,
@@ -115,18 +132,26 @@ it("uses the installed MCP command and HTTP transport with real Hall sessions, r
       env: environment,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    let output = "";
+    running.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    running.stderr.on("data", (chunk) => {
+      output += chunk;
+    });
     let ready = false;
     for (let attempt = 0; attempt < 200; attempt += 1) {
-      if (running.exitCode !== null) throw new Error("Installed server exited before readiness");
+      if (running.exitCode !== null || running.signalCode !== null)
+        throw new Error(`Installed server exited before readiness: ${output}`);
       try {
-        ready = (await fetch(`${origin}/api/health`)).ok;
+        ready = (await fetch(`${origin}/api/health`, { signal: AbortSignal.timeout(500) })).ok;
       } catch {
         /* Wait for the isolated server. */
       }
       if (ready) break;
       await delay(100);
     }
-    expect(ready).toBe(true);
+    expect(ready, output).toBe(true);
     expect((await request("/mcp", { body: {} })).status).toBe(401);
     expect((await request("/mcp", { body: {}, cookie: "hall_session=invalid" })).status).toBe(401);
     const bootstrap = await request("/api/auth/bootstrap", { body: user });
@@ -134,11 +159,25 @@ it("uses the installed MCP command and HTTP transport with real Hall sessions, r
     let cookie = bootstrap.headers.get("set-cookie").split(";", 1)[0];
     const identity = await request("/api/auth/session", { cookie });
     expect((await identity.json()).properties.displayName).toBe(user.displayName);
-    const terminalLogin = spawnSync(
-      "python3",
-      [
-        "-c",
-        `
+    const privateDirectory = join(environment.XDG_CONFIG_HOME, "hall/mcp");
+    let authenticated;
+    if (process.platform === "win32") {
+      const unsupported = spawnSync(process.execPath, [mcp, "login", "--url", origin], {
+        cwd: temporary,
+        env: environment,
+        encoding: "utf8",
+        timeout: 30_000,
+      });
+      expect(unsupported.status).not.toBe(0);
+      expect(unsupported.stderr).toContain("Private MCP session storage is not implemented on Windows");
+      await expect(stat(privateDirectory)).rejects.toMatchObject({ code: "ENOENT" });
+      authenticated = await connect(cookie);
+    } else {
+      const terminalLogin = spawnSync(
+        "python3",
+        [
+          "-c",
+          `
 import errno, json, os, pty, select, sys, time
 credentials = json.load(sys.stdin)
 pid, fd = pty.fork()
@@ -171,32 +210,32 @@ if credentials["password"].encode() in output:
 if os.waitstatus_to_exitcode(status) != 0:
     raise RuntimeError("Private login command failed")
 print(output.decode())
-`,
-        process.execPath,
-        mcp,
-        origin,
-      ],
-      { cwd: temporary, env: environment, input: JSON.stringify(user), encoding: "utf8", timeout: 40_000 },
-    );
-    expect(terminalLogin.status, terminalLogin.stderr).toBe(0);
-    expect(terminalLogin.stdout).toContain(user.displayName);
-    const privateDirectory = join(environment.XDG_CONFIG_HOME, "hall/mcp");
-    const sessionFile = join(privateDirectory, (await readdir(privateDirectory))[0]);
-    expect((await stat(sessionFile)).mode & 0o777).toBe(0o600);
-    expect((await stat(privateDirectory)).mode & 0o777).toBe(0o700);
-    const saved = await readFile(sessionFile, "utf8");
-    expect(saved).not.toContain(user.password);
-    cookie = `hall_session=${encodeURIComponent(JSON.parse(saved).token)}`;
-    const status = spawnSync(process.execPath, [mcp, "status", "--url", origin], {
-      cwd: temporary,
-      env: environment,
-      encoding: "utf8",
-      timeout: 30_000,
-    });
-    expect(status.status).toBe(0);
-    expect(status.stdout).toContain(user.displayName);
-    expect(status.stdout).not.toContain(JSON.parse(saved).token);
-    const authenticated = await connect(undefined);
+  `,
+          process.execPath,
+          mcp,
+          origin,
+        ],
+        { cwd: temporary, env: environment, input: JSON.stringify(user), encoding: "utf8", timeout: 40_000 },
+      );
+      expect(terminalLogin.status, terminalLogin.stderr).toBe(0);
+      expect(terminalLogin.stdout).toContain(user.displayName);
+      const sessionFile = join(privateDirectory, (await readdir(privateDirectory))[0]);
+      expect((await stat(sessionFile)).mode & 0o777).toBe(0o600);
+      expect((await stat(privateDirectory)).mode & 0o777).toBe(0o700);
+      const saved = await readFile(sessionFile, "utf8");
+      expect(saved).not.toContain(user.password);
+      cookie = `hall_session=${encodeURIComponent(JSON.parse(saved).token)}`;
+      const status = spawnSync(process.execPath, [mcp, "status", "--url", origin], {
+        cwd: temporary,
+        env: environment,
+        encoding: "utf8",
+        timeout: 30_000,
+      });
+      expect(status.status).toBe(0);
+      expect(status.stdout).toContain(user.displayName);
+      expect(status.stdout).not.toContain(JSON.parse(saved).token);
+      authenticated = await connect(undefined);
+    }
     const http = await connect(cookie, true);
     expect(unpack(await http.callTool({ name: "hall_learn", arguments: { topic: "connection" } })).topic).toBe(
       "connection",
@@ -262,8 +301,14 @@ print(output.decode())
       timeout: 30_000,
     });
     expect(logout.status).toBe(0);
-    expect(JSON.parse(logout.stdout)).toMatchObject({ localSessionRemoved: true, serverSessionRevoked: true });
-    expect(await readdir(privateDirectory)).toEqual([]);
+    expect(JSON.parse(logout.stdout)).toMatchObject({
+      localSessionRemoved: true,
+      serverSessionRevoked: process.platform !== "win32",
+    });
+    if (process.platform === "win32") {
+      expect((await request("/api/auth/logout", { cookie, body: {} })).status).toBe(200);
+      await expect(stat(privateDirectory)).rejects.toMatchObject({ code: "ENOENT" });
+    } else expect(await readdir(privateDirectory)).toEqual([]);
     expect((await authenticated.callTool({ name: "workspace_read", arguments: { href: documentHref } })).isError).toBe(
       true,
     );
@@ -273,7 +318,7 @@ print(output.decode())
     await database.pool.query("UPDATE public.sessions SET expires_at = $1", [new Date(0).toISOString()]);
     expect((await request("/mcp", { cookie, body: {} })).status).toBe(401);
     console.log(
-      "Verified installed guide/stdio/HTTP, real login identity, document create/reread, anonymous/invalid/expired/revoked refusal, same-origin refusal and next-operation permission withdrawal. Test sessions stayed in process memory; no user onboarding claimed.",
+      "Verified installed guide/stdio/HTTP, real login identity, document create/reread, anonymous/invalid/expired/revoked refusal, same-origin refusal and next-operation permission withdrawal. Disposable test identities only; POSIX checks private login/storage/logout, Windows checks refusal of private session storage.",
     );
   } finally {
     await Promise.allSettled(clients.map((client) => client.close()));

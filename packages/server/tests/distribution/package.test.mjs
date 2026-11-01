@@ -157,7 +157,8 @@ it(
     }
     try {
       const rootMetadata = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-      const tarball = join(root, `dist/npm/ng-galien-hall-${rootMetadata.version}.tgz`);
+      const tarball =
+        process.env.HALL_PACKAGE_TEST_ARCHIVE ?? join(root, `dist/npm/ng-galien-hall-${rootMetadata.version}.tgz`);
       const expectedDigest = (await readFile(`${tarball}.sha256`, "utf8")).trim().split(/\s+/)[0];
       expect(
         createHash("sha256")
@@ -253,7 +254,7 @@ it(
       const empty = command(process.execPath, [cli, "schema-check", "--env-file", envFile]);
       expect(empty.status).not.toBe(0);
       expect((await pool.query("SELECT to_regnamespace('hall') AS value")).rows[0].value).toBeNull();
-      const emptyStart = command(process.execPath, [cli, "start", "--env-file", envFile]);
+      const emptyStart = command(process.execPath, [cli, "start", "--env-file", envFile], { timeout: 30_000 });
       expect(emptyStart.status).not.toBe(0);
       expect(emptyStart.stderr).toContain("hall migrate");
       expect((await pool.query("SELECT to_regnamespace('hall') AS value")).rows[0].value).toBeNull();
@@ -358,7 +359,7 @@ it(
       // An older public user layout must not be silently migrated by startup,
       // even when the managed Hall fingerprint already matches.
       await pool.query("ALTER TABLE public.users RENAME COLUMN contact_id TO council_member_id");
-      const legacyStart = command(process.execPath, [cli, "start", "--env-file", envFile]);
+      const legacyStart = command(process.execPath, [cli, "start", "--env-file", envFile], { timeout: 30_000 });
       expect(legacyStart.status).not.toBe(0);
       expect(legacyStart.stderr).toContain("Server user schema requires migration");
       expect(
@@ -375,7 +376,9 @@ it(
       expect(await resource(id)).toEqual(before);
       await stop();
       await pool.query("ALTER TABLE public.user_roles DROP CONSTRAINT user_roles_role_check");
-      const missingInvariantStart = command(process.execPath, [cli, "start", "--env-file", envFile]);
+      const missingInvariantStart = command(process.execPath, [cli, "start", "--env-file", envFile], {
+        timeout: 30_000,
+      });
       expect(missingInvariantStart.status).not.toBe(0);
       expect(missingInvariantStart.stderr).toContain("Server schema invariants require migration");
       expect(
@@ -449,7 +452,7 @@ it(
       const mismatch = command(process.execPath, [cli, "schema-check", "--env-file", envFile]);
       expect(mismatch.status).not.toBe(0);
       expect(mismatch.stderr).toContain("fingerprint differs");
-      const mismatchStart = command(process.execPath, [cli, "start", "--env-file", envFile]);
+      const mismatchStart = command(process.execPath, [cli, "start", "--env-file", envFile], { timeout: 30_000 });
       expect(mismatchStart.status).not.toBe(0);
       expect(mismatchStart.stderr).toContain("hall migrate");
       expect((await pool.query("SELECT manifest_sha256 FROM hall_meta.schema_contract")).rows[0].manifest_sha256).toBe(
