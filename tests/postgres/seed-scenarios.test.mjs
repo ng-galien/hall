@@ -40,7 +40,7 @@ describe("demonstration seed", () => {
         const hallLayer = detail.document?.hallLayer;
         expect(hallLayer, map.name).toBeTruthy();
         for (const feature of hallLayer.features) {
-          const words = feature.properties.label?.split(/\s+/).filter(Boolean).length ?? 0;
+          const words = feature.properties.label?.split(/[\s’']+/).filter(Boolean).length ?? 0;
           expect(words, `${map.name} : ${feature.properties.label}`).toBeGreaterThanOrEqual(3);
           expect(words, `${map.name} : ${feature.properties.label}`).toBeLessThanOrEqual(6);
         }

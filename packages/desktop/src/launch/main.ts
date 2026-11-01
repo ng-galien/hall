@@ -75,7 +75,7 @@ function openButton(): HTMLButtonElement | null {
 function syncOpening(): void {
   const button = openButton();
   if (!button) return;
-  const available = root.dataset.application === "ready" && root.dataset.state === "final";
+  const available = root.dataset.application === "ready" && !root.dataset.leaving;
   button.hidden = !available;
   button.disabled = !available;
   button.setAttribute("aria-hidden", String(!available));
@@ -84,6 +84,7 @@ function syncOpening(): void {
 
 function enableOpening(): void {
   root.dataset.application = "ready";
+  document.querySelector("[data-testid='launch-footer']")?.removeAttribute("aria-hidden");
   syncOpening();
 }
 
@@ -169,12 +170,15 @@ function renderProgress(): void {
   const loader = document.querySelector<HTMLElement>("[data-testid='launch-loader']");
   const name = document.querySelector<HTMLElement>("[data-testid='launch-step']");
   const count = document.querySelector<HTMLElement>("[data-testid='launch-step-count']");
-  if (!loader || !name || !count || progress.phases.length === 0) return;
+  if (!loader || !name || !count) return;
   const total = progress.phases.length;
   const index = currentPhaseIndex();
-  const label = progress.ready ? readyLabel : phaseLabels[progress.phases[index]!.phase];
+  const planned = progress.phases[index];
+  const label = progress.ready ? readyLabel : planned ? phaseLabels[planned.phase] : "Préparation en cours";
   if (name.textContent !== label) name.textContent = label;
-  const counted = `${progress.ready ? total : index + 1} sur ${total}`;
+  const counted = total ? `${progress.ready ? total : index + 1} sur ${total}` : "";
+  loader.dataset.active = String(!progress.ready);
+  loader.setAttribute("aria-valuetext", counted ? `${label}, ${counted}` : label);
   if (count.textContent !== counted) count.textContent = counted;
   loader.querySelector<HTMLElement>(".launch-scale")?.style.setProperty("--progress", progress.shown.toFixed(4));
   const segments = loader.querySelectorAll<HTMLElement>(".launch-scale-segment");
@@ -199,7 +203,11 @@ function renderProgress(): void {
 
 /** Avance la barre d'une image : elle rejoint sa cible en douceur, sans jamais reculer. */
 function advanceProgress(now: number): void {
-  if (progress.phases.length === 0 || (progress.ready && progress.shown === 1 && progress.written === 1)) return;
+  if (progress.phases.length === 0) {
+    renderProgress();
+    return;
+  }
+  if (progress.ready && progress.shown === 1 && progress.written === 1) return;
   const target = targetProgress(now);
   const elapsed = progress.lastFrame === null ? 0 : now - progress.lastFrame;
   progress.lastFrame = now;
@@ -312,7 +320,7 @@ function reportStarted(): void {
 
 function openApplication(): void {
   const button = openButton();
-  if (!button || button.disabled || root.dataset.state !== "final" || root.dataset.leaving) return;
+  if (!button || button.disabled || root.dataset.application !== "ready" || root.dataset.leaving) return;
   button.disabled = true;
   mark("openRequested");
   window.hallLaunch?.open();
@@ -364,7 +372,7 @@ function play(scene: LaunchScene): void {
 
 /**
  * Inscription progressive du bloc de marque au fil du mouvement : le nom pendant l'assemblage de la France, le
- * territoire pendant la plongée, la phrase pendant la bascule vers le relief ; l'indicateur et le bouton à la fin.
+ * territoire pendant la plongée et la phrase pendant la bascule vers le relief ; le chargement suit le titre.
  */
 function writeBrand(elapsed: number, duration: number): void {
   const reveal = (from: number, to: number) => easeOutCubic(phase(elapsed, from, to)).toFixed(3);

@@ -1,105 +1,61 @@
 # Hall
 
-Hall supports the work of a French municipal council: preparing council business, conducting meetings, and preserving minutes and resulting acts. Its interface is in French.
+**Prepare council business, conduct meetings and keep the resulting records.**
 
-## Try the demonstration
+[![Hall test gate](https://github.com/ng-galien/hall/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ng-galien/hall/actions/workflows/ci.yml)
+[![Website](https://img.shields.io/badge/website-Hall-2f6fd6)](https://ng-galien.github.io/hall/)
+[![Licence: EUPL-1.2](https://img.shields.io/badge/licence-EUPL--1.2-2f6fd6)](LICENSE)
 
-The desktop demonstration runs Hall on your computer with the fictional municipality of Alésia. On first launch it loads the dataset and opens signed in as the Alésia administrator, with no account to create and no password to enter. It lets you browse the councillors, committees and contacts; prepare council business and agenda items; follow two closed meetings with their ballots and a meeting in progress; and open the documents, maps, spreadsheets and templates of the dataset. The data stays on your computer in an embedded database. The **Démonstration** menu resets the dataset.
+Hall is an application for French municipal councils. It connects the working documents, people, agenda, votes and records of a council, from preparing an item to preserving its decisions and minutes. The application and its user guide are in French.
 
-Download the executable for your system from the [GitHub releases](https://github.com/ng-galien/hall/releases):
+**[Discover Hall](https://ng-galien.github.io/hall/) · [Read the user guide](https://ng-galien.github.io/hall/documentation/index.html#/docs) · [Versions and downloads](https://github.com/ng-galien/hall/releases)**
 
-- Windows: the `Setup.exe` installer.
-- macOS: the `.zip` archive for Apple silicon (`arm64`) or Intel (`x64`).
-- Linux: the `.deb` or `.rpm` package.
+![A council meeting in Hall, using the fictional Alésia demonstration](site/public/captures/sieger-deroule.png)
 
-The executables are not signed. Windows SmartScreen and macOS Gatekeeper show a warning on first launch; the release notes give the steps to open Hall anyway. The release workflow is [`.github/workflows/release.yml`](.github/workflows/release.yml) and the demonstration edition is described in [`docs/runtime.md`](docs/runtime.md#demonstration-edition).
+*The Alésia demonstration: agenda items, attendance, quorum and ballot results in one meeting view.*
+
+## From preparation to the council record
+
+| Work | In Hall |
+| --- | --- |
+| Prepare council business | Organize matters and supporting documents; work with text, files, spreadsheets and maps; prepare agenda items and invitations. |
+| Conduct a meeting | Follow attendance, proxies and quorum; work through the agenda; record public or secret ballots and decisions. |
+| Keep the record | Produce decisions, minutes and PDF documents, keeping frozen documents separate from later edits to their templates. |
+| Configure the application | Manage council members, committees and contacts; adapt document templates, application settings and account permissions. |
+
+The [public site](https://ng-galien.github.io/hall/) shows these workflows with application screenshots. The [user guide](https://ng-galien.github.io/hall/documentation/index.html#/docs) explains how to use them.
+
+## Try Hall with Alésia
+
+The desktop demonstration runs on your computer with a fictional municipality, Alésia. It opens with a demonstration account and prepared data: council members, committees, contacts, council business, meetings, ballots and documents. There is no account to create or password to enter. Its embedded database is stored locally; the **Démonstration** menu resets the demonstration data.
+
+**Public release 1.0.0 is being prepared. No public installer is available until a release is published.** Downloads will appear on the [versions page](https://github.com/ng-galien/hall/releases), with the available platforms and installation notes. The macOS Apple silicon demonstration has been checked locally; other desktop platforms have not yet been validated on hardware.
+
+Once a build is available:
+
+1. Choose the installer for your system from its release page.
+2. Follow the [demonstration installation guide](docs/distribution.md#installer-la-démonstration). The installers do not have an Apple or Microsoft publisher signature; the guide explains the first-launch notices.
+3. Open Hall, let it prepare the demonstration, then choose **Ouvrir Hall**. Explore the dataset and reset it when needed.
+
+The demonstration is for exploring Hall with fictional data. For a shared Hall server, installation, configuration and recovery are documented in the [deployment guide](docs/distribution.md).
+
+## Connect an AI assistant
+
+Hall exposes tools through **MCP** so an external AI assistant can search and read workspace resources, prepare text and files, create council business, and work with document templates and settings allowed by the connected account.
+
+The assistant can discover Hall's tools through `hall_learn`, a guide included with Hall. Its actions follow the permissions and operations exposed by the server. Council decisions and human validations remain with the people using Hall; the current MCP tools do not conduct meetings or record votes.
+
+Read [Connecter un agent IA par MCP](https://ng-galien.github.io/hall/documentation/index.html#/docs/assistant-ia) for the supported capabilities, installation and authentication. An external MCP client is required; Hall does not include an AI provider or a chat interface.
+
+## Documentation and development
+
+- **Using Hall:** [French user guide](https://ng-galien.github.io/hall/documentation/index.html#/docs).
+- **Installing and operating Hall:** [distribution](docs/distribution.md) and [local runtimes](docs/runtime.md).
+- **Understanding the project:** [documentation map](docs/README.md), [architecture](docs/project.md) and [application configuration](docs/configuration.md).
+- **Developing and verifying changes:** [development guide](docs/development.md), [behavior requirements](requirements/README.md) and [repository instructions](AGENTS.md).
+
+The source repository is an npm workspace. Technical setup, PostgreSQL operation, verification commands and packaging instructions live in the linked documentation.
 
 ## Licence
 
-Hall is licensed under the European Union Public Licence, version 1.2 (EUPL-1.2). The copyright holder is Alexandre Boyer. The full text of the licence is in [`LICENSE`](LICENSE).
-
-## Repository structure
-
-Hall is an npm workspace organized around explicit architectural boundaries:
-
-- `@hall/contracts`: dependency-free identifiers and shared types.
-- `@hall/domain`: aggregates, invariants, and domain events.
-- `@hall/api-contract`: transport schemas and DTOs.
-- `@hall/postgres`: PostgreSQL migrations, repositories, and pgTAP tests.
-- `@hall/server`: Express composition root and HTTP API.
-- `@hall/client`: React web application.
-- `@hall/templating`: document and PDF templates.
-- `@hall/desktop`: Electron packaging for local distribution.
-
-The shared server uses PostgreSQL; desktop local mode uses an embedded PostgreSQL server. Domain code does not depend on database or HTTP implementation details.
-
-Read [`docs/README.md`](docs/README.md) for the documentation map, [`requirements/catalog.json`](requirements/catalog.json) for expected behavior, and [`AGENTS.md`](AGENTS.md) before making changes.
-
-## Standalone server
-
-Build a server and web-interface tarball with `npm run pack:distribution`. See
-[installation, configuration, updates and recovery](docs/distribution.md). The
-npm workspaces are not published to the npm registry; publication is a separate
-release action.
-
-## Development
-
-Requirements:
-
-- Node.js 22 or later.
-- Docker with Compose.
-
-Install dependencies and start the shared development runtime:
-
-```bash
-npm install
-npm run dev:session
-```
-
-The web application is available at `http://localhost:5174/app/`; the API listens on `http://127.0.0.1:3100`.
-
-Useful runtime commands:
-
-```bash
-npm run dev:status
-npm run dev:logs
-npm run dev:restart
-npm run dev:stop
-```
-
-To rebuild the disposable demonstration database and load the fictional Alésia dataset through the public API:
-
-```bash
-npm run demo:restart
-```
-
-For foreground development, start PostgreSQL and then the application:
-
-```bash
-npm run postgres:up
-npm run dev
-```
-
-See [`docs/development.md`](docs/development.md) for dataset details.
-
-## Verification
-
-Run the checks appropriate to the change:
-
-```bash
-npm run typecheck
-npm run test
-npm run test:postgres
-npm run test:e2e
-npm run check:requirements
-```
-
-`npm run test:postgres` creates one disposable PostgreSQL database, runs the pgTAP suites, resets the database, and then runs backend integration tests against it.
-
-The requirements workflow and traceability commands are documented in [`requirements/README.md`](requirements/README.md).
-
-## Desktop and deployment
-
-The desktop package can run its embedded PostgreSQL server or connect to a shared Hall server. See [`docs/runtime.md`](docs/runtime.md) for packaging and local operation.
-
-Shared-server deployments require `DATABASE_URL` and the server security configuration. See [`docs/runtime.md`](docs/runtime.md) for the isolated local production build, authentication, backup, and restore-verification procedure.
+Hall is distributed under the **European Union Public Licence, version 1.2 (EUPL-1.2)**. The copyright holder is Alexandre Boyer. Read the [full licence](LICENSE).
