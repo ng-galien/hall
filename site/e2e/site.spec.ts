@@ -523,6 +523,8 @@ test.describe("sections de la page", () => {
       "Documentation",
     ]);
     await expect(page.getByTestId("section-installer")).toHaveCount(0);
+    await expect(page.getByTestId("nav-accueil")).toHaveCount(0);
+    await expect(page.getByTestId("brand-home")).toHaveAttribute("href", "#haut");
     const tops: number[] = [];
     for (const id of ids) {
       await expect(page.getByTestId(`nav-${id}`)).toHaveAttribute("href", `#${id}`);
@@ -616,6 +618,92 @@ test.describe("sections de la page", () => {
     await page.getByTestId("nav-telecharger").click();
     await expect(page.getByTestId("section-telecharger")).toBeInViewport();
     await expectLinks(page);
+  });
+});
+
+/** Distance entre le bas de l'en-tête fixe et le haut d'un élément. */
+async function belowHeader(page: Page, selector: string): Promise<number> {
+  return page.evaluate((target) => {
+    const header = document.querySelector('[data-testid="site-header"]')?.getBoundingClientRect().bottom ?? 0;
+    const element = document.querySelector(target)?.getBoundingClientRect().top ?? Number.NaN;
+    return Math.round(element - header);
+  }, selector);
+}
+
+async function expectCardUnderHeader(page: Page, selector: string) {
+  await expect.poll(() => belowHeader(page, selector)).toBeGreaterThanOrEqual(0);
+  await expect.poll(() => belowHeader(page, selector)).toBeLessThanOrEqual(32);
+}
+
+test.describe("la scène continue sous les sections", () => {
+  test("les sections et le pied de page sont posés sur le relief de Découvrir", async ({ page }) => {
+    await page.goto("./");
+    await sceneReady(page);
+    const discover = page.getByTestId("section-decouvrir");
+    await expect(discover.getByTestId("section-telecharger")).toHaveCount(1);
+    await expect(discover.getByTestId("section-documentation")).toHaveCount(1);
+    await expect(discover.locator(".site-footer")).toHaveCount(1);
+    await page.getByTestId("nav-documentation").click();
+    await expect(page.getByTestId("terrain-stage")).toBeInViewport();
+    await expect(page.locator("body")).toHaveClass(/is-beyond/);
+    const gap = await page.evaluate(() => {
+      const card = document.querySelector("#documentation .section-inner")?.getBoundingClientRect().bottom ?? 0;
+      const footer = document.querySelector(".footer-bar")?.getBoundingClientRect().top ?? 0;
+      return footer - card;
+    });
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThanOrEqual(32);
+  });
+
+  test("l’en-tête amène chaque carte juste sous l’en-tête et le nom Hall ramène au premier écran", async ({ page }) => {
+    await page.goto("./");
+    await sceneReady(page);
+    await page.getByTestId("nav-telecharger").click();
+    await expectCardUnderHeader(page, "#telecharger .section-inner");
+    await page.getByTestId("nav-documentation").click();
+    await expectCardUnderHeader(page, "#documentation .section-inner");
+    await page.getByTestId("brand-home").click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    await expect(page.getByTestId("nav-decouvrir")).toHaveAttribute("aria-current", "true");
+    await page.getByTestId("nav-decouvrir").click();
+    await expect.poll(() => belowHeader(page, '[data-testid="terrain-stage"]')).toBeLessThanOrEqual(1);
+    await expect(page.getByTestId("terrain-stage")).toBeInViewport();
+  });
+
+  test("on passe de carte en carte par les flèches, les repères et le clavier", async ({ page }) => {
+    await page.goto("./");
+    await sceneReady(page);
+    const rail = page.getByTestId("card-rail");
+    await expect(rail).toBeVisible();
+    await expect(rail.getByRole("button")).toHaveText(["Découvrir", "Télécharger", "Marche à suivre", "Documentation"]);
+    await expect(page.getByTestId("card-dot-0")).toHaveAttribute("aria-current", "true");
+
+    await page.getByTestId("card-dot-1").click();
+    await expectCardUnderHeader(page, "#telecharger .section-inner");
+    await expect(page.getByTestId("card-dot-1")).toHaveAttribute("aria-current", "true");
+    await expect(page.getByTestId("card-up-1")).toHaveAttribute("aria-label", "Carte précédente : Découvrir");
+
+    await page.getByTestId("card-down-1").click();
+    await expectCardUnderHeader(page, ".section-card-install");
+    await expect(page.getByTestId("card-dot-2")).toHaveAttribute("aria-current", "true");
+    await expect(page.getByTestId("card-down-3")).toBeDisabled();
+
+    await page.getByTestId("card-next-2").click();
+    await expectCardUnderHeader(page, "#documentation .section-inner");
+    await expect(page.getByTestId("card-dot-3")).toHaveAttribute("aria-current", "true");
+    await expect(page.locator("#documentation h2")).toBeFocused();
+
+    await page.getByTestId("card-dot-3").focus();
+    await page.keyboard.press("ArrowUp");
+    await expectCardUnderHeader(page, ".section-card-install");
+    await expect(page.getByTestId("card-dot-2")).toBeFocused();
+    await expect(page.getByTestId("card-dot-2")).toHaveAttribute("aria-current", "true");
+
+    await page.getByTestId("card-dot-0").click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    await expect(page.getByTestId("card-dot-0")).toHaveAttribute("aria-current", "true");
+    await expect(rail).toBeVisible();
+    await expectNoHorizontalScroll(page);
   });
 });
 
