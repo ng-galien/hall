@@ -128,6 +128,7 @@ async function seed(server: HttpServerHandle, state: DemonstrationState): Promis
 /**
  * Starts the embedded server on a demonstration profile. An empty profile, an interrupted load or a
  * profile from another application version is erased and loaded again with the Alésia dataset.
+ * A recognized same-version profile is also recreated after a verified schema fingerprint mismatch.
  */
 export async function openDemonstration(profile: DemonstrationProfile): Promise<{
   server: HttpServerHandle;
@@ -137,7 +138,12 @@ export async function openDemonstration(profile: DemonstrationProfile): Promise<
   const current = await readState(userDataPath);
   if (current?.status === "ready" && current.version === applicationVersion) {
     profile.onPlan?.(false);
-    return { server: await profile.startServer(), state: current };
+    try {
+      return { server: await profile.startServer(), state: current };
+    } catch (error) {
+      const { isLocalSchemaFingerprintMismatch } = await import("@hall/server");
+      if (!isLocalSchemaFingerprintMismatch(error)) throw error;
+    }
   }
   profile.onPlan?.(true);
   await eraseDemonstration(userDataPath);

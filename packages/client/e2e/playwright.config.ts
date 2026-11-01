@@ -8,6 +8,7 @@ const builtClient = Boolean(process.env.CLIENT_DIRECTORY);
 const clientUrl = builtClient ? serverUrl : `http://127.0.0.1:${clientPort}`;
 /** The desktop journey launches the Electron application, which starts its own embedded server. */
 const desktop = process.env.HALL_E2E_DESKTOP === "true";
+const fixtureServer = process.env.HALL_E2E_SEEDED_CLONES === "true";
 
 export default defineConfig({
   testDir: "./specs",
@@ -19,7 +20,12 @@ export default defineConfig({
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
-  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
+  reporter: [
+    ...(process.env.CI ? [["github"] as const, ["html", { open: "never" }] as const] : [["list"] as const]),
+    ...(process.env.HALL_E2E_JSON_OUTPUT_FILE
+      ? [["json", { outputFile: process.env.HALL_E2E_JSON_OUTPUT_FILE }] as const]
+      : []),
+  ],
   use: {
     baseURL: `${clientUrl}/app/`,
     trace: "retain-on-failure",
@@ -75,19 +81,23 @@ export default defineConfig({
   webServer: desktop
     ? []
     : [
-        {
-          command: "node packages/server/dist/index.js",
-          cwd: "../../..",
-          env: {
-            ...process.env,
-            HALL_ALLOWED_ORIGINS: clientUrl,
-            SERVER_HOST: "127.0.0.1",
-            SERVER_PORT: String(serverPort),
-          },
-          url: `${serverUrl}/api/health`,
-          reuseExistingServer: false,
-          timeout: 120_000,
-        },
+        ...(!fixtureServer
+          ? [
+              {
+                command: "node packages/server/dist/index.js",
+                cwd: "../../..",
+                env: {
+                  ...process.env,
+                  HALL_ALLOWED_ORIGINS: clientUrl,
+                  SERVER_HOST: "127.0.0.1",
+                  SERVER_PORT: String(serverPort),
+                },
+                url: `${serverUrl}/api/health`,
+                reuseExistingServer: false,
+                timeout: 120_000,
+              },
+            ]
+          : []),
         ...(builtClient
           ? []
           : [

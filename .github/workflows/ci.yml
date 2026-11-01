@@ -6,33 +6,125 @@ on:
       - "**"
   pull_request:
 
+concurrency:
+  group: hall-gate-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
 jobs:
-  test:
+  build:
+    outputs:
+      cache-hit: ${{ steps.build-cache.outputs.cache-hit }}
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: "26"
           cache: npm
-      - name: Install Hall dependencies
-        run: npm ci
+      - run: npm ci
+      - name: Identify every build input
+        id: inputs
+        run: |
+          echo "key=$(node scripts/testing/build.mjs --key)" >> "$GITHUB_OUTPUT"
+          echo "prefix=$(node scripts/testing/build.mjs --prefix)" >> "$GITHUB_OUTPUT"
+      - name: Restore compilation candidates for validation
+        id: build-cache
+        uses: actions/cache@v6.1.0
+        with:
+          key: hall-build-v2-${{ steps.inputs.outputs.key }}
+          restore-keys: |
+            hall-build-v2-${{ steps.inputs.outputs.prefix }}-
+          path: |
+            packages/contracts/dist
+            packages/api-contract/dist
+            packages/domain/dist
+            packages/mcp/dist
+            packages/templating/dist
+            packages/postgres/dist
+            packages/server/dist
+            packages/client/dist
+            node_modules/.cache/hall/
+      - run: npm run build:verified
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: hall-gate-build
+          include-hidden-files: true
+          retention-days: 1
+          path: |
+            packages/*/dist
+            node_modules/.cache/hall/
+          if-no-files-found: error
+
+  verification:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: hall-gate-build
+      - run: node scripts/testing/build.mjs --verify
       - name: Use the locked Code Moniker executable
         run: echo "$GITHUB_WORKSPACE/node_modules/@code-moniker/cli-linux-x64/bin" >> "$GITHUB_PATH"
-      - name: Install Chromium and operating-system dependencies
-        run: npx playwright install --with-deps chromium
-      - name: Run the complete serial gate
-        run: npm run test:all
-        env:
-          HALL_E2E_LANES: "1"
-          HALL_E2E_MOBILE_RECUSALS: "1"
-      - name: Upload browser failure artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
+      - name: Install the headless PDF engine
+        run: npx playwright install --with-deps --only-shell chromium
+      - run: node scripts/testing/gate.mjs verification
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
         with:
-          name: playwright-failures
+          name: hall-verification-timings
+          path: dist/verification/
+          retention-days: 7
+
+  browser:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: hall-gate-build
+      - run: node scripts/testing/build.mjs --verify
+      - name: Install only the headless browser used by these journeys
+        run: npx playwright install --with-deps --only-shell chromium
+      - name: Run all browser families with isolated databases
+        run: node scripts/testing/gate.mjs browser
+        env:
+          HALL_E2E_LANES: "2"
+          HALL_E2E_SHARD: ${{ matrix.shard }}
+          HALL_E2E_SHARDS: "2"
+          HALL_E2E_MOBILE_RECUSALS: "1"
+          HALL_E2E_DESKTOP: "false"
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: playwright-shard-${{ matrix.shard }}
+          retention-days: 7
           path: |
+            dist/verification/
             packages/client/test-results/
             packages/client/playwright-report/
           if-no-files-found: ignore
@@ -41,37 +133,64 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npm run pack:distribution
-      - uses: actions/upload-artifact@v4
+      - name: Identify current build inputs
+        id: inputs
+        run: |
+          echo "key=$(node scripts/testing/build.mjs --key)" >> "$GITHUB_OUTPUT"
+          echo "prefix=$(node scripts/testing/build.mjs --prefix)" >> "$GITHUB_OUTPUT"
+        shell: bash
+      - name: Restore compilation candidates for validation
+        uses: actions/cache@v6.1.0
+        with:
+          key: hall-build-v2-${{ steps.inputs.outputs.key }}
+          restore-keys: |
+            hall-build-v2-${{ steps.inputs.outputs.prefix }}-
+          path: |
+            packages/contracts/dist
+            packages/api-contract/dist
+            packages/domain/dist
+            packages/mcp/dist
+            packages/templating/dist
+            packages/postgres/dist
+            packages/server/dist
+            packages/client/dist
+            node_modules/.cache/hall/
+      - run: npm run build:verified
+      - run: npm run pack:distribution -- --prebuilt
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: hall-npm-package
+          retention-days: 1
           path: dist/npm/*.tgz*
           if-no-files-found: error
 
   distribution-install:
     needs: distribution-build
+    env:
+      npm_config_cache: ${{ runner.temp }}/hall-distribution-npm-cache
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-2025]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: hall-npm-package
+          retention-days: 1
           path: dist/npm
       - name: Prepare disposable PostgreSQL on Linux
         if: runner.os == 'Linux'
@@ -94,10 +213,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL did not start' }
           $env:PGBIN | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           'HALL_PACKAGE_TEST_DATABASE_URL=postgresql://hall_package_test@127.0.0.1:55432/postgres' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Install the built artifact and verify bootstrap, replacement and restore
-        run: npm run test:distribution:artifact
-      - name: Verify schema convergence using the packaged migration runtime
-        run: npm run test:distribution:upgrade
+      - name: Verify installed artifact, MCP and schema convergence without duplicate MCP
+        run: npm run test:distribution:complete
       - name: Stop disposable PostgreSQL on Windows
         if: always() && runner.os == 'Windows'
         shell: pwsh
@@ -109,8 +226,38 @@ jobs:
           }
       - name: Retain PostgreSQL failure log
         if: failure() && runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: hall-package-postgres-windows
+          retention-days: 7
           path: ${{ runner.temp }}/hall-postgres.log
           if-no-files-found: ignore
+
+  test:
+    if: always()
+    needs: [build, verification, browser, distribution-build, distribution-install]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RESULTS: ${{ toJSON(needs) }}
+      BUILD_CACHE_HIT: ${{ needs.build.outputs.cache-hit }}
+    steps:
+      - name: Report complete coverage and resource use
+        shell: bash
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/hall-run.json"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --slurp > "$RUNNER_TEMP/hall-jobs.json"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const outcomes = Object.values(JSON.parse(process.env.RESULTS));
+          const run = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/hall-run.json`));
+          const jobs = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/hall-jobs.json`)).flatMap(page => page.jobs).filter(job => job.completed_at);
+          const end = Math.max(...jobs.map(job => Date.parse(job.completed_at)));
+          const wall = (end - Date.parse(run.run_started_at)) / 60000;
+          const minutes = jobs.reduce((total, job) => total + (Date.parse(job.completed_at) - Date.parse(job.started_at)) / 60000, 0);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Complete gate: ${wall.toFixed(2)} min elapsed; ${minutes.toFixed(2)} runner-minutes across completed jobs. Target: 15 min; ${wall <= 15 ? 'met' : 'not met on this run'}. Queue/install/cache costs are included in elapsed time.\n\nBuild cache: ${process.env.BUILD_CACHE_HIT === 'true' ? 'exact candidate; validated/rebuilt before use' : 'global miss; component validation/rebuild required'}.\n\nAll unique checks, coverage thresholds, mutation operators and browser families are required; Linux and Windows exercise the same built npm artifact.\n`);
+          if (outcomes.some(outcome => outcome.result !== 'success')) throw new Error('The complete Hall gate has a failed, cancelled or skipped dependency');
+          NODE

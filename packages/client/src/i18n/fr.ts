@@ -143,6 +143,7 @@ export const fr: Messages = {
   "users.email": "Adresse e-mail",
   "users.password": "Mot de passe initial",
   "users.passwordHint": "12 caractères minimum.",
+  "users.generatedPasswordHint": "Phrase de passe générée par Hall.",
   "users.contact": "Contact rattaché",
   "users.noContact": "Aucun rattachement",
   "users.contactUnavailable": "Contact indisponible",

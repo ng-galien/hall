@@ -1,3 +1,9 @@
+/* @implements-requirement HALL-FR-DOC-480 */
+.workspace-explorer-content-body:has(> .spreadsheet-editor) {
+  display: flex;
+  block-size: clamp(var(--hall-size-relative-22rem), 60vh, var(--hall-size-relative-40rem));
+}
+
 .spreadsheet-editor {
   position: relative;
   display: flex;

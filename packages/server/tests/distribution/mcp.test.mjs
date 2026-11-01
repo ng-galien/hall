@@ -44,6 +44,7 @@ it("uses the installed MCP command and HTTP transport with real Hall sessions, r
     ),
     XDG_CONFIG_HOME: join(temporary, "profile"),
     npm_config_update_notifier: "false",
+    npm_config_cache: process.env.npm_config_cache ?? join(tmpdir(), "hall-distribution-npm-cache"),
     PLAYWRIGHT_BROWSERS_PATH: join(tmpdir(), "hall-distribution-browser-cache"),
   };
   const version = JSON.parse(await readFile(join(root, "package.json"), "utf8")).version;

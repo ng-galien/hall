@@ -45,7 +45,7 @@ export function ImageFileControls({
       insertImage(editor.view, file, position.current, target, onStatus);
   };
   return (
-    <div className="editor-image-file-controls" aria-busy={busy}>
+    <div className={`editor-image-file-controls${uploadPhoto && upload ? " has-image-upload" : ""}`} aria-busy={busy}>
       {uploadPhoto && upload ? (
         <>
           <Button
@@ -73,6 +73,7 @@ export function ImageFileControls({
           <Button
             variant="outline"
             type="button"
+            className="editor-photo-control"
             data-testid="editor-choose-image"
             disabled={busy}
             onClick={() => choose(library.current)}
@@ -83,6 +84,7 @@ export function ImageFileControls({
           <Button
             variant="outline"
             type="button"
+            className="editor-photo-control"
             data-testid="editor-take-photo"
             disabled={busy}
             onClick={() => choose(camera.current)}

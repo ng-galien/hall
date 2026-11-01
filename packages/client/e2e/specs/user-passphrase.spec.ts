@@ -10,7 +10,7 @@ test("creates an account with a generated passphrase shown once, then revokes it
   page,
   context,
   baseURL,
-}) => {
+}, testInfo) => {
   test.setTimeout(120_000);
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
@@ -19,12 +19,28 @@ test("creates an account with a generated passphrase shown once, then revokes it
   });
   expect(bootstrap.status()).toBe(201);
 
+  await page.setViewportSize({ width: 1498, height: 1314 });
   await page.goto("/app/users");
+  const generation = page.waitForResponse(
+    (response) => response.url().endsWith("/api/users/passphrases") && response.request().method() === "POST",
+  );
   await page.getByTestId("users-add").click();
+  expect((await generation).status()).toBe(200);
+  await expect(page.getByTestId("passphrase-value")).toBeVisible();
+  const tops = await page
+    .locator('[data-testid="user-display-name"], [data-testid="user-email"], [data-testid="user-password"]')
+    .evaluateAll((fields) => fields.map((field) => field.getBoundingClientRect().top));
+  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(1);
+  await page.screenshot({ path: testInfo.outputPath("create-user-desktop.png"), animations: "disabled" });
+  const viewport = page.viewportSize()!;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByTestId("user-password")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("create-user-mobile.png"), animations: "disabled" });
+  await page.setViewportSize(viewport);
   await page.getByTestId("user-display-name").fill("Élue de test");
   await page.getByTestId("user-email").fill("elue@example.test");
   await page.getByTestId("user-role-contributor").check();
-  await page.getByTestId("passphrase-generate").click();
   const passphrase = (await page.getByTestId("passphrase-value").textContent())!.trim();
   expect(passphrase).toMatch(/^[a-z]{4,8}(-[a-z]{4,8}){4}$/);
   await expect(page.getByTestId("user-password")).toHaveValue(passphrase);

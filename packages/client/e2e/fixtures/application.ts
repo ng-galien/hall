@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test as base, expect, type Page } from "@playwright/test";
+import { createSeededDatabase } from "./seeded-database.mjs";
 
 const clientDirectory = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const projectDirectory = join(clientDirectory, "../..");
@@ -87,14 +88,41 @@ interface ApplicationOptions {
   seedScenario: "fresh" | "preparation" | "default" | "minutes";
 }
 
-export const test = base.extend<ApplicationFixtures & ApplicationOptions>({
+export const test = base.extend<
+  ApplicationFixtures & ApplicationOptions,
+  { seededDatabase: ReturnType<typeof createSeededDatabase> }
+>({
+  seededDatabase: [
+    async ({ playwright: _playwright }, use) => {
+      const owner = createSeededDatabase({
+        databaseUrl: process.env.DATABASE_URL!,
+        schemaTemplate: process.env.HALL_E2E_SCHEMA_TEMPLATE!,
+        modelPrefix: process.env.HALL_E2E_SEED_MODEL_PREFIX,
+        port: Number(process.env.HALL_E2E_SERVER_PORT),
+        clientDirectory: process.env.CLIENT_DIRECTORY,
+        devAutoLogin: process.env.HALL_DEV_AUTO_LOGIN === "true",
+      });
+      try {
+        await use(owner);
+      } finally {
+        await owner.close();
+      }
+    },
+    { scope: "worker" },
+  ],
   seedScenario: ["fresh", { option: true }],
   isolatedDatabase: [
-    async ({ seedScenario }, use) => {
-      resetAndSeedTestDatabase(seedScenario);
-      await use(undefined);
+    async ({ seedScenario, seededDatabase }, use) => {
+      const clones = process.env.HALL_E2E_SEEDED_CLONES === "true";
+      if (clones) await seededDatabase.prepare(seedScenario);
+      else resetAndSeedTestDatabase(seedScenario);
+      try {
+        await use(undefined);
+      } finally {
+        if (clones) await seededDatabase.stop();
+      }
     },
-    { auto: true },
+    { auto: true, timeout: 120_000 },
   ],
   appPage: async ({ page, isolatedDatabase: _isolatedDatabase }, use) => {
     const pageErrors: string[] = [];

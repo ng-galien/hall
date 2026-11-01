@@ -351,6 +351,8 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(buttonImageId);
   await writingArea.click();
   await page.keyboard.press("End");
+  const desktopViewport = page.viewportSize()!;
+  await page.setViewportSize({ width: 390, height: 844 });
   const importedPhoto = page.waitForResponse(
     (response) => response.url().endsWith("/api/resources/documents") && response.request().method() === "POST",
   );
@@ -362,6 +364,7 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   expect(photoFile.name).toMatch(/^Photo of \d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2}( \(\d+\))?\.png$/);
   await expect(card.locator(`[data-resource-id="${photoFile.id}"] img`)).toBeVisible();
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(photoFile.id);
+  await page.setViewportSize(desktopViewport);
 
   await writingArea.click();
   await card.getByTestId("editor-open-enriched").click();

@@ -34,8 +34,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: "22"
           cache: npm
@@ -50,16 +50,40 @@ jobs:
           sudo apt-get install -y rpm fakeroot dpkg
       - name: Install Hall dependencies
         run: npm ci
-      - name: Build and package the demonstration edition
-        run: npm run desktop:make
-        env:
-          HALL_DESKTOP_EDITION: demonstration
+      - name: Identify current build inputs
+        id: inputs
+        run: |
+          echo "key=$(node scripts/testing/build.mjs --key)" >> "$GITHUB_OUTPUT"
+          echo "prefix=$(node scripts/testing/build.mjs --prefix)" >> "$GITHUB_OUTPUT"
+        shell: bash
+      - name: Restore compilation candidates for validation
+        uses: actions/cache@v6.1.0
+        with:
+          key: hall-build-v2-${{ steps.inputs.outputs.key }}
+          restore-keys: |
+            hall-build-v2-${{ steps.inputs.outputs.prefix }}-
+          path: |
+            packages/contracts/dist
+            packages/api-contract/dist
+            packages/domain/dist
+            packages/mcp/dist
+            packages/templating/dist
+            packages/postgres/dist
+            packages/server/dist
+            packages/client/dist
+            node_modules/.cache/hall/
+      - run: npm run build:verified
       - name: Build the standalone server and MCP package
         if: runner.os == 'Linux'
-        run: npm run pack:distribution
-      - uses: actions/upload-artifact@v4
+        run: npm run pack:distribution -- --prebuilt
+      - name: Package the current demonstration edition
+        run: npm run make -w @hall/desktop
+        env:
+          HALL_DESKTOP_EDITION: demonstration
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.artifact }}
+          retention-days: 7
           path: |
             packages/desktop/out/make/**/*.exe
             packages/desktop/out/make/**/*.nupkg
@@ -82,7 +106,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.ref_name }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: hall-demonstration-*
           path: artifacts

@@ -1,6 +1,6 @@
 {
   "name": "hall",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -39,7 +39,7 @@
     "test:i18n-hmr": "npm run test:i18n-hmr -w @hall/client",
     "check:test-inventory": "node scripts/checks/check-test-inventory.mjs",
     "check:public-artifacts": "node scripts/checks/check-public-artifacts.mjs",
-    "test:all": "npm run build && npm run check:test-inventory && npm run check:public-artifacts && npm run check:requirements && npm run test:meta && npm run check:architecture && npm run lint && npm run typecheck && npm run test:backend && npm run test --workspace @hall/api-contract --workspace @hall/mcp --workspace @hall/templating --workspace @hall/client && npm run test:postgres:council && npm run test:postgres:document && vitest run --config tests/postgres/vitest.adapter.config.ts && npm run test:i18n-hmr && npm run test:e2e && npm run test:e2e:auth && npm run test:e2e:docs && npm run test:e2e:rules && npm run test:policy:mutation",
+    "test:all": "node scripts/testing/gate.mjs",
     "check:requirements": "node scripts/checks/check-requirements.mjs",
     "test:requirements": "vitest run tests/meta/check-requirements.test.mjs tests/meta/requirements-ui.test.mjs",
     "test:meta": "vitest run tests/meta/*.test.mjs",
@@ -63,7 +63,12 @@
     "test:distribution": "npm run pack:distribution && npm run test:distribution:artifact",
     "test:distribution:artifact": "vitest run --config tests/distribution/vitest.config.mjs",
     "check:distribution": "npm run check:requirements && npm run check:architecture && npm run lint && npm run typecheck && vitest run tests/meta/distribution-documentation.test.mjs",
-    "test:distribution:upgrade": "cross-env HALL_PACKAGE_TEST_UPGRADE=true vitest run --config tests/distribution/vitest.config.mjs"
+    "test:distribution:upgrade": "cross-env HALL_PACKAGE_TEST_UPGRADE=true vitest run --config tests/distribution/vitest.config.mjs packages/server/tests/distribution/package.test.mjs",
+    "build:verified": "node scripts/testing/build.mjs",
+    "test:e2e:all": "node packages/client/e2e/run.mjs --all",
+    "typecheck:built": "node scripts/testing/build.mjs --verify && npm run typecheck -w @hall/desktop",
+    "test:distribution:mcp": "vitest run --config tests/distribution/vitest.config.mjs packages/server/tests/distribution/mcp.test.mjs",
+    "test:distribution:complete": "cross-env HALL_PACKAGE_TEST_UPGRADE=true vitest run --config tests/distribution/vitest.config.mjs"
   },
   "allowScripts": {
     "@embedded-postgres/darwin-arm64@17.10.0-beta.17": true,

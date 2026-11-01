@@ -47,10 +47,13 @@ test("an editor changes a template's name, text and header with a logo, then fin
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.press("Enter");
   await page.keyboard.type("Texte ajouté au modèle.");
+  const desktopViewport = page.viewportSize()!;
+  await page.setViewportSize({ width: 390, height: 844 });
   const bodyImage = page.waitForEvent("filechooser");
   await body.getByTestId("editor-choose-image").click();
   await (await bodyImage).setFiles({ name: "plan.png", mimeType: "image/png", buffer: png });
   await expect(body.locator(".editor-image-node")).toHaveCount(1);
+  await page.setViewportSize(desktopViewport);
 
   await expect(page.getByTestId("template-unsaved")).toBeVisible();
   await page.getByTestId("template-save").click();

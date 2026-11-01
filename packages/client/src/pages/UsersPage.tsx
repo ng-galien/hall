@@ -1,5 +1,5 @@
 import type { ApiRole, ApiUser } from "@hall/api-contract";
-import { type FormEvent, useEffect, useId, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,12 +39,45 @@ export function UsersPage() {
   const [password, setPassword] = useState("");
   const [passphrase, setPassphrase] = useState<string | null>(null);
   const [handedOver, setHandedOver] = useState(false);
+  const generationId = useRef(0);
+  const [generating, setGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<ApiErrorCode | null>(null);
   const { layout, setLayout, query, setQuery } = useCollectionView();
   const fieldId = useId();
   useEffect(() => {
     void load();
   }, [load]);
+  const generate = useCallback(() => {
+    const id = ++generationId.current;
+    setGenerating(true);
+    setGenerationError(null);
+    setPassword("");
+    setPassphrase(null);
+    setHandedOver(false);
+    void generatePassphrase().then(
+      (generated) => {
+        if (id !== generationId.current) return;
+        setPassword(generated);
+        setPassphrase(generated);
+        setGenerating(false);
+      },
+      (failure) => {
+        if (id !== generationId.current) return;
+        setGenerationError(apiErrorCode(failure));
+        setGenerating(false);
+      },
+    );
+  }, []);
+  useEffect(() => {
+    if (!addOpen || !canCreate || !canGeneratePassphrase) {
+      setGenerating(false);
+      return;
+    }
+    generate();
+    return () => {
+      generationId.current += 1;
+    };
+  }, [addOpen, canCreate, canGeneratePassphrase, generate]);
   const visible = users.filter((user) =>
     matchesQuery(query, user.displayName, user.email, ...user.roles.map((role) => roleName(role))),
   );
@@ -137,7 +170,7 @@ export function UsersPage() {
         >
           <form className="modal-form" onSubmit={submit} data-testid="user-create-form">
             <RequestErrorBanner error={error ?? generationError} />
-            <fieldset disabled={submitting} className="form-grid">
+            <fieldset disabled={submitting || generating} className="form-grid items-start">
               <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-name`}>{t("users.displayName")}</Label>
                 <Input
@@ -179,7 +212,7 @@ export function UsersPage() {
                   data-testid="user-password"
                 />
                 <p id={`${fieldId}-password-help`} className="text-sm text-muted-foreground">
-                  {t("users.passwordHint")}
+                  {t(passphrase ? "users.generatedPasswordHint" : "users.passwordHint")}
                 </p>
               </div>
               <div className="grid gap-1.5">
@@ -205,17 +238,8 @@ export function UsersPage() {
                   variant="outline"
                   className="justify-self-start"
                   data-testid="passphrase-generate"
-                  onClick={() =>
-                    void generatePassphrase().then(
-                      (generated) => {
-                        setGenerationError(null);
-                        setPassword(generated);
-                        setPassphrase(generated);
-                        setHandedOver(false);
-                      },
-                      (failure) => setGenerationError(apiErrorCode(failure)),
-                    )
-                  }
+                  disabled={generating || submitting}
+                  onClick={generate}
                 >
                   {t("users.passphraseGenerate")}
                 </Button>
@@ -236,7 +260,7 @@ export function UsersPage() {
             )}
             <Button
               type="submit"
-              disabled={submitting || roles.length === 0 || (passphrase !== null && !handedOver)}
+              disabled={submitting || generating || roles.length === 0 || (passphrase !== null && !handedOver)}
               data-testid="user-create-submit"
             >
               {t(submitting ? "common.saving" : "common.create")}

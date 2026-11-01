@@ -1,3 +1,4 @@
+import { SchemaContractError } from "@hall/postgres";
 import { startEmbeddedPostgresRuntime } from "../infrastructure/database/embeddedPostgresRuntime.js";
 import { type HttpServerHandle, startHttpServer } from "../server.js";
 
@@ -6,6 +7,15 @@ export interface LocalServerOptions {
   clientDirectory?: string;
   /** Appelé quand PostgreSQL embarqué est prêt, avant le démarrage du serveur HTTP. */
   onDatabaseReady?: () => void;
+}
+
+/** Identifies a verified fingerprint mismatch, excluding missing or unidentified schema contracts. */
+export function isLocalSchemaFingerprintMismatch(error: unknown): boolean {
+  return (
+    error instanceof SchemaContractError &&
+    error.actualFingerprint !== null &&
+    error.actualFingerprint !== error.expectedFingerprint
+  );
 }
 
 export async function startLocalHttpServer(options: LocalServerOptions): Promise<HttpServerHandle> {

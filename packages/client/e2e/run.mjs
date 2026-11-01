@@ -1,20 +1,22 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { verifyBuild } from "../../../scripts/testing/build.mjs";
 
 const require = createRequire(import.meta.url);
 const projectDirectory = resolve(import.meta.dirname, "../../..");
 const clientDirectory = resolve(import.meta.dirname, "..");
 const postgresDirectory = resolve(projectDirectory, "packages/postgres");
 const playwrightCli = require.resolve("@playwright/test/cli");
-const suiteTimeoutMinutes = process.env.CI ? 90 : 10;
+const allFamilies = process.argv.includes("--all");
+const suiteTimeoutMinutes = allFamilies ? 30 : process.env.CI ? 90 : 10;
 const suiteTimeoutMs = suiteTimeoutMinutes * 60 * 1_000;
 const deadline = Date.now() + suiteTimeoutMs;
-const requestedArguments = process.argv.slice(2);
+const requestedArguments = process.argv.slice(2).filter((argument) => argument !== "--all");
 const authenticationMode = process.env.HALL_E2E_AUTH_MODE === "true";
 // Documentation journeys (with or without writing captures) and the meeting-rule journeys run Hall as delivered: the built client, served by the
 // test server, with real sign-in.
@@ -171,12 +173,12 @@ function availablePort() {
 
 function configuredLaneCount() {
   const configured = process.env.HALL_E2E_LANES;
-  if (configured === undefined) return requestedArguments.length === 0 && !authenticationMode ? 2 : 1;
+  if (configured === undefined) return allFamilies ? 4 : requestedArguments.length === 0 && !authenticationMode ? 2 : 1;
   const lanes = Number.parseInt(configured, 10);
   if (!Number.isInteger(lanes) || lanes < 1 || lanes > 4) {
     throw new Error("HALL_E2E_LANES must be an integer between 1 and 4");
   }
-  return authenticationMode ? 1 : lanes;
+  return authenticationMode && !allFamilies ? 1 : lanes;
 }
 
 function stopProcessGroup(child, signal) {
@@ -188,8 +190,28 @@ function stopProcessGroup(child, signal) {
   }
 }
 
-function startLane({ lane, lanes, name, serverPort, clientPort, temporaryDirectory }) {
-  const shard = lanes > 1 ? [`--shard=${lane}/${lanes}`] : [];
+function startLane({ lane, lanes, family, name, serverPort, clientPort, temporaryDirectory }) {
+  const outer = Number(process.env.HALL_E2E_SHARD ?? 1);
+  const total = Number(process.env.HALL_E2E_SHARDS ?? 1);
+  if (!Number.isInteger(outer) || !Number.isInteger(total) || outer < 1 || outer > total) {
+    throw new Error("Invalid E2E outer shard");
+  }
+  const core = family === "core";
+  const shards = core ? lanes * total : total;
+  const shardIndex = core ? (outer - 1) * lanes + lane : outer;
+  const shard = shards > 1 ? [`--shard=${shardIndex}/${shards}`] : [];
+  const mode = allFamilies
+    ? family
+    : authenticationMode
+      ? "auth"
+      : process.env.HALL_E2E_MEETING_RULES === "true"
+        ? "rules"
+        : documentationCaptures
+          ? "docs"
+          : "core";
+  const clones = mode !== "auth" && process.env.HALL_E2E_DESKTOP !== "true";
+  const origin = builtClientDirectory ? `http://127.0.0.1:${serverPort}` : `http://127.0.0.1:${clientPort}`;
+  const output = `${mode}-${shardIndex}`;
   const child = spawn(
     process.execPath,
     [playwrightCli, "test", "--config", "e2e/playwright.config.ts", ...requestedArguments, ...shard],
@@ -198,23 +220,33 @@ function startLane({ lane, lanes, name, serverPort, clientPort, temporaryDirecto
       detached: true,
       env: {
         ...process.env,
+        ...(allFamilies ? { HALL_E2E_DESKTOP: "false", HALL_DOCS_CAPTURES: "false" } : {}),
+        LOG_LEVEL: process.env.LOG_LEVEL ?? "warn",
+        HALL_E2E_AUTH_MODE: String(mode === "auth"),
+        HALL_DOCS_JOURNEYS: String(mode === "docs"),
+        HALL_E2E_MEETING_RULES: String(mode === "rules"),
+        HALL_E2E_SEEDED_CLONES: String(clones),
+        HALL_E2E_SCHEMA_TEMPLATE: templateDatabase,
+        HALL_E2E_SEED_MODEL_PREFIX: templateDatabase,
+        HALL_E2E_CLIENT_ORIGIN: origin,
         DATABASE_URL: databaseUrl(name),
         DOCUMENT_STORAGE_PATH: join(temporaryDirectory, "documents"),
-        HALL_DEV_AUTO_LOGIN: authenticationMode || documentationCaptures ? "false" : "true",
+        HALL_DEV_AUTO_LOGIN: String(mode === "core"),
         ...(builtClientDirectory ? { CLIENT_DIRECTORY: builtClientDirectory } : {}),
         HALL_E2E_CLIENT_PORT: clientPort,
         HALL_E2E_DATABASE_NAME: name,
         HALL_E2E_LANE: String(lane),
-        HALL_E2E_OUTPUT_DIR: `../test-results/e2e/lane-${lane}`,
+        HALL_E2E_OUTPUT_DIR: `../test-results/e2e/${output}`,
+        HALL_E2E_JSON_OUTPUT_FILE: resolve(clientDirectory, `test-results/e2e/${output}/results.json`),
         HALL_E2E_SERVER_PORT: serverPort,
-        PLAYWRIGHT_HTML_OUTPUT_DIR: `playwright-report/e2e/lane-${lane}`,
+        PLAYWRIGHT_HTML_OUTPUT_DIR: `playwright-report/e2e/${output}`,
       },
       stdio: "inherit",
     },
   );
   const completion = new Promise((resolveLane, rejectLane) => {
     child.once("error", rejectLane);
-    child.once("close", (status, signal) => resolveLane({ lane, status, signal }));
+    child.once("close", (status, signal) => resolveLane({ lane, family: mode, status, signal }));
   });
   return { child, completion };
 }
@@ -242,36 +274,56 @@ try {
   compose(["--profile", "test", "up", "-d", "--wait", "postgres-test"]);
   // The running development session imports these packages' dist folders: rebuilding them when nothing changed
   // would reload every open Hall page, so only packages whose sources are newer than their build are rebuilt.
-  const stalePackages = buildPackages.filter(isPackageStale);
+  if (allFamilies) verifyBuild();
+  const stalePackages = allFamilies ? [] : buildPackages.filter(isPackageStale);
   if (stalePackages.length) run("npm", ["run", "build", ...stalePackages.flatMap(({ name }) => ["-w", name])]);
-  if (documentationCaptures) {
+  if (allFamilies || process.env.HALL_E2E_BUILT_CLIENT === "true") {
+    builtClientDirectory = resolve(clientDirectory, "dist");
+    if (!existsSync(join(builtClientDirectory, "index.html")))
+      throw new Error("Build the current client before the complete E2E gate");
+  } else if (documentationCaptures) {
     builtClientDirectory = mkdtempSync(join(tmpdir(), "hall-docs-client-"));
     run("npm", ["run", "build", "-w", "@hall/client", "--", "--outDir", builtClientDirectory, "--emptyOutDir"]);
   }
   recreateDatabase(templateDatabase);
   templateCreated = true;
   installDatabase(templateDatabase);
+  if (process.env.HALL_E2E_PREPARED_SIGNAL) writeFileSync(process.env.HALL_E2E_PREPARED_SIGNAL, "ready");
 
-  for (let lane = 1; lane <= lanes; lane += 1) {
-    const name = databaseName(lane);
-    recreateDatabase(name, templateDatabase);
-    resources.push({
-      lane,
-      name,
-      serverPort: await availablePort(),
-      clientPort: await availablePort(),
-      temporaryDirectory: mkdtempSync(join(tmpdir(), `hall-playwright-${lane}-`)),
-    });
-  }
-
-  for (const resource of resources) running.push(startLane({ ...resource, lanes }));
+  const jobs = allFamilies
+    ? [
+        ...Array.from({ length: lanes }, (_, index) => ({ lane: index + 1, family: "core", lanes })),
+        ...["auth", "docs", "rules"].map((family, index) => ({ lane: lanes + index + 1, family, lanes: 1 })),
+      ]
+    : Array.from({ length: lanes }, (_, index) => ({ lane: index + 1, family: "core", lanes }));
+  let next = 0;
+  const results = [];
   const timeout = setTimeout(() => {
     timedOut = true;
     stopAll("SIGTERM");
     setTimeout(() => stopAll("SIGKILL"), 5_000).unref();
   }, remainingTime());
   timeout.unref();
-  const results = await Promise.all(running.map(({ completion }) => completion));
+  await Promise.all(
+    Array.from({ length: lanes }, async () => {
+      while (next < jobs.length && !timedOut && !interrupted) {
+        const job = jobs[next++];
+        const name = databaseName(job.lane);
+        recreateDatabase(name, templateDatabase);
+        const resource = {
+          ...job,
+          name,
+          serverPort: await availablePort(),
+          clientPort: await availablePort(),
+          temporaryDirectory: mkdtempSync(join(tmpdir(), `hall-playwright-${job.lane}-`)),
+        };
+        resources.push(resource);
+        const run = startLane(resource);
+        running.push(run);
+        results.push(await run.completion);
+      }
+    }),
+  );
   clearTimeout(timeout);
 
   if (timedOut) throw new Error(`The E2E suite exceeded its ${suiteTimeoutMinutes} minute limit and was stopped`);
@@ -281,11 +333,18 @@ try {
   stopAll("SIGTERM");
   for (const { name, temporaryDirectory } of resources) {
     try {
+      for (const scenario of ["fresh", "preparation", "default", "minutes"]) dropDatabase(`${name}_seed_${scenario}`);
       dropDatabase(name);
     } finally {
       rmSync(temporaryDirectory, { recursive: true, force: true });
     }
   }
-  if (templateCreated) dropDatabase(templateDatabase);
-  if (builtClientDirectory) rmSync(builtClientDirectory, { recursive: true, force: true });
+  if (templateCreated) {
+    for (const mode of ["dev", "session"])
+      for (const scenario of ["fresh", "preparation", "default", "minutes"])
+        dropDatabase(`${templateDatabase}_seed_${mode}_${scenario}`);
+    dropDatabase(templateDatabase);
+  }
+  if (builtClientDirectory && builtClientDirectory !== resolve(clientDirectory, "dist"))
+    rmSync(builtClientDirectory, { recursive: true, force: true });
 }

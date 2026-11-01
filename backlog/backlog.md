@@ -6,6 +6,10 @@ Tags identify the main scope: `[FRONT]`, `[BACK]`, `[FULL]`, or `[OPS]`. Require
 
 The user decides business rules, data-model changes, product behavior, UI design, and ergonomics. Stop at a precise unresolved choice before changing dependent behavior.
 
+## Desktop demonstration
+
+- [ ] `[OPS]` Deliver the demonstration schema-reset correction in a traceable corrective desktop release after the version/publication decision; leave the installed user profile untouched by agents. @tracks-requirement HALL-TR-DSK-010
+
 ## Council meetings
 
 - [ ] `[BACK]` Replay opening, attendance, quorum, proxy, ballot, and closing invariants on the demonstration database.

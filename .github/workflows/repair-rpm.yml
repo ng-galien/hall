@@ -28,10 +28,10 @@ jobs:
       TAG: ${{ inputs.tag }}
       HALL_DESKTOP_EDITION: demonstration
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: "22"
           cache: npm
@@ -78,9 +78,10 @@ jobs:
           const data = { tag: process.env.TAG, runtimeCommit: execFileSync("git", ["rev-parse", `${process.env.TAG}^{}`], { encoding: "utf8" }).trim(), repairCommit: process.env.GITHUB_SHA, workflow: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`, toolchain: execFileSync("rpm", ["--version"], { encoding: "utf8" }).trim(), checksums: fs.readFileSync("repaired-rpm/RPM-SHA256SUMS.txt", "utf8").trim() };
           fs.writeFileSync("repaired-rpm/linux-rpm-provenance.json", JSON.stringify(data, null, 2) + "\n");
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: hall-repaired-rpm
+          retention-days: 7
           path: repaired-rpm/*
           if-no-files-found: error
       - name: Add only the repaired RPM to the existing release

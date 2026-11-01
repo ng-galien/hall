@@ -1,13 +1,16 @@
 /* @implements-requirement HALL-FR-LAY-010 */
 .editor-image-file-controls {
-  display: flex;
+  display: none;
   flex-wrap: wrap;
   gap: var(--hall-space-2);
   padding-block: var(--hall-space-1);
 }
-.markdown-editor-compact:has(> .editor-image-file-controls) { flex-direction: column; }
+.editor-image-file-controls.has-image-upload { display: flex; }
+.editor-photo-control { display: none; }
+.markdown-editor-compact:has(> .editor-image-file-controls.has-image-upload) { flex-direction: column; }
 
 @media (max-width: 1000px) {
+  .editor-image-file-controls, .editor-photo-control { display: flex; }
   :root {
     --hall-size-application-min: 0;
     --hall-size-control: var(--hall-size-touch-control);

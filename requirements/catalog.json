@@ -3973,7 +3973,8 @@
         "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
         "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré.",
         "La visionneuse présente le document avec les droits de l’utilisateur, quel que soit l’endroit d’où il est ouvert : une carte, un texte ou un tableur que l’utilisateur peut modifier y est modifiable avec son propre éditeur, exactement comme dans la ligne dépliée (pour une carte : mode Dessin, mesures, notes et « Enregistrer ce cadrage »), et il y est présenté en lecture sinon.",
-        "Les aperçus de PV, délibérations, PDF temporaires et modèles HTML réutilisent le cadre commun, avec un titre identifiant leur document et son contexte ; le corps reste adapté au format. L’en-tête, le contenu et la fermeture sont alignés en clair et sombre, sans changer les octets des documents figés."
+        "Les aperçus de PV, délibérations, PDF temporaires et modèles HTML réutilisent le cadre commun, avec un titre identifiant leur document et son contexte ; le corps reste adapté au format. L’en-tête, le contenu et la fermeture sont alignés en clair et sombre, sans changer les octets des documents figés.",
+        "Un tableur ouvert dans la ligne dépliée des documents d’une affaire présente une grille de cellules visible et utilisable, sans devoir passer en plein écran ; les modifications restent enregistrées après réouverture."
       ],
       "clauses": [
         {
@@ -3992,6 +3993,12 @@
           "key": "preview-alignment",
           "origin": "product",
           "statement": "Demande propriétaire du 1 novembre 2026, hall-ui-refinement/3a205c1a-7d7d-4d68-98f1-8523f3e0ec7a : aligner toutes les modales de preview documentaire et leurs titres, à partir du défaut PV. Les confirmations métier et fiches d’entités restent distinctes.",
+          "sourceIds": []
+        },
+        {
+          "key": "release-101-inline-regression",
+          "origin": "product",
+          "statement": "Annotation propriétaire du 1 novembre 2026 pour Hall 1.0.1 : hauteur du tableur intégré effondrée dans les documents d’une affaire ; restaurer la grille intégrée, sans substitution par le plein écran.",
           "sourceIds": []
         }
       ]
@@ -9111,13 +9118,21 @@
         "Les données sont conservées dans le répertoire de données utilisateur de l’application et survivent au redémarrage.",
         "Le serveur Hall local utilise les mêmes contrats SQL et les mêmes services HTTP que le serveur partagé.",
         "Une erreur SQL n’interrompt pas les requêtes suivantes.",
-        "La fermeture de l’application arrête le serveur PostgreSQL embarqué."
+        "La fermeture de l’application arrête le serveur PostgreSQL embarqué.",
+        "A recognized demonstration profile with a verified non-null schema fingerprint mismatch is erased and seeded again with fictional Alésia data, even when its application version is unchanged; it does not run schema migrations.",
+        "A compatible demonstration is reused. Network failures, unidentified schema failures and databases without a valid demonstration state are not erased automatically."
       ],
       "clauses": [
         {
           "key": "embedded-postgresql",
           "origin": "product",
           "statement": "L’application de bureau fonctionne de manière autonome avec un serveur PostgreSQL embarqué.",
+          "sourceIds": []
+        },
+        {
+          "key": "demonstration-schema-incompatibility-reset",
+          "origin": "product",
+          "statement": "Owner decision of 2026-11-01: demonstration data is disposable; recreate an incompatible recognized demonstration instead of migrating or recovering it. Non-demonstration profiles remain separate. Source: hall-public-demo-distribution/b58b2ec0-7d44-4500-b3f7-d30ba6ba7f88.",
           "sourceIds": []
         }
       ]
@@ -9222,13 +9237,20 @@
         "En vue liste des élus, les identités restent lisibles sans chevauchement avec avatar, mandat ou commissions. Les titres et commandes des éléments préparés et de l’ordre du jour restent accessibles dans les séances et les affaires aux formats téléphone, tablette et bureau (correction propriétaire du 16 octobre 2026, Topic Graph 420eb39d-e972-418d-bdaf-cd7b6b433d47).",
         "Un texte modifiable propose le choix d’une photo existante et la capture depuis le téléphone dans l’éditeur compact comme en plein écran.",
         "L’import utilise les permissions, formats et stockage existants ; une image importée reste présente après réouverture et un échec est visible sans perte du texte.",
-        "L’adaptation mobile conserve les fonctions et les permissions existantes sur ordinateur."
+        "L’adaptation mobile conserve les fonctions et les permissions existantes sur ordinateur.",
+        "Les commandes « Choisir une photo » et « Prendre une photo » des éditeurs restent réservées à la présentation mobile ; elles ne prennent pas de place dans le texte sur bureau. Le dépôt, le collage et l’import d’image ordinaires sur bureau sont conservés."
       ],
       "clauses": [
         {
           "key": "owner-mobile-interface-and-photo",
           "origin": "product",
           "statement": "Demande propriétaire du 16 octobre 2026, Topic Graph mairie 8b9a5fca-9259-46c9-94f1-9a656582172f : version mobile de Hall, ajout d’une image ou photo depuis le téléphone. Cadrage hall-mobile-v1 3bfb14e2-c9df-4847-a1ae-65152c56738e accepté par revue bdc3982f-079e-46a3-bf06-faf27ee4412a.",
+          "sourceIds": []
+        },
+        {
+          "key": "release-101-inline-regression",
+          "origin": "product",
+          "statement": "Correction propriétaire du 1 novembre 2026 pour Hall 1.0.1 : commandes photo mobiles uniquement, pas de bandeau photo dans l’éditeur compact sur bureau ; aucun nouveau choix de présentation mobile adopté.",
           "sourceIds": []
         }
       ]
@@ -9939,7 +9961,8 @@
       "acceptanceCriteria": [
         "Le formulaire de création d’un compte et la réinitialisation du mot de passe par un administrateur proposent « Générer une phrase de passe » : Hall tire cinq mots français courants sans accent, en minuscules, d’une liste d’au moins 1 024 mots, avec un générateur cryptographique, et les joint par des tirets.",
         "La phrase s’affiche une seule fois, en clair, avec « Copier » ; Créer ou Réinitialiser ne s’activent qu’après la case « J’ai noté la phrase pour la remettre en main propre » ; elle n’est plus lisible après la fermeture du formulaire.",
-        "La phrase n’est ni enregistrée en clair ni écrite au journal d’audit ; la réponse qui la porte n’est pas mise en cache ; la saisie d’un mot de passe choisi reste possible."
+        "La phrase n’est ni enregistrée en clair ni écrite au journal d’audit ; la réponse qui la porte n’est pas mise en cache ; la saisie d’un mot de passe choisi reste possible.",
+        "À chaque ouverture du formulaire de création, la phrase initiale est générée automatiquement par l’action existante si elle est autorisée ; nom, adresse et mot de passe présentent leurs labels et champs alignés. Les erreurs de génération ou de chargement des rôles restent visibles ; la confirmation de remise est conservée."
       ],
       "clauses": [
         {
@@ -9958,6 +9981,12 @@
           "key": "criterion-3",
           "origin": "product",
           "statement": "La phrase n’est ni enregistrée en clair ni écrite au journal d’audit ; la réponse qui la porte n’est pas mise en cache ; la saisie d’un mot de passe choisi reste possible.",
+          "sourceIds": []
+        },
+        {
+          "key": "release-101-user-creation",
+          "origin": "product",
+          "statement": "Annotation propriétaire du 1 novembre 2026, Hall 1.0.1 : aligner le formulaire Créer un utilisateur et générer automatiquement le mot de passe initial conformément à la phrase de cinq mots existante ; vérifier le parcours interface complet et identifier la panne de rôles sans créer de compte municipal.",
           "sourceIds": []
         }
       ]

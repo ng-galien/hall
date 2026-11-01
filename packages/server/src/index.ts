@@ -6,7 +6,7 @@ import { startHttpServer } from "./server.js";
 export { createHttpApplication } from "./api/application.js";
 export type { ServerConfig } from "./core/config.js";
 export { buildContainer } from "./core/container.js";
-export { type LocalServerOptions, startLocalHttpServer } from "./core/localServer.js";
+export { isLocalSchemaFingerprintMismatch, type LocalServerOptions, startLocalHttpServer } from "./core/localServer.js";
 export type { HttpServerHandle } from "./server.js";
 export { startHttpServer } from "./server.js";
 

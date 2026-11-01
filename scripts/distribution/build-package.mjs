@@ -4,6 +4,7 @@ import { chmod, cp, mkdir, readdir, readFile, realpath, rm, stat, writeFile } fr
 import { createRequire, isBuiltin } from "node:module";
 import { dirname, join, resolve, sep } from "node:path";
 import { build } from "esbuild";
+import { verifyBuild } from "../testing/build.mjs";
 import { installBuffersNotice } from "./buffers-notice.mjs";
 
 // @implements-requirement HALL-TR-DST-010
@@ -22,9 +23,11 @@ function run(command, args, cwd = root) {
   if (result.status !== 0) throw new Error(`${command} failed (${result.status})`);
 }
 const workspaces = ["contracts", "api-contract", "domain", "mcp", "templating", "postgres", "server", "client"];
-for (const name of workspaces) {
-  run("npm", ["run", "build", "-w", `@hall/${name}`]);
-}
+if (process.argv.includes("--prebuilt")) verifyBuild();
+else
+  for (const name of workspaces) {
+    run("npm", ["run", "build", "-w", `@hall/${name}`]);
+  }
 await rm(stage, { recursive: true, force: true });
 await mkdir(join(stage, "bin"), { recursive: true });
 

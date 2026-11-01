@@ -54,7 +54,7 @@ it(
       ),
       NODE_PATH: "",
       PLAYWRIGHT_BROWSERS_PATH: join(tmpdir(), "hall-distribution-browser-cache"),
-      npm_config_cache: join(tmpdir(), "hall-distribution-npm-cache"),
+      npm_config_cache: process.env.npm_config_cache ?? join(tmpdir(), "hall-distribution-npm-cache"),
       npm_config_fetch_timeout: "30000",
       npm_config_fetch_retries: "1",
       npm_config_update_notifier: "false",

@@ -1,6 +1,6 @@
 {
   "name": "@hall/client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "license": "EUPL-1.2",
   "type": "module",
@@ -23,7 +23,7 @@
     "@fullcalendar/react": "^7.1.0",
     "@hall/api-contract": "*",
     "@hall/domain": "*",
-    "@hall/templating": "^1.0.0",
+    "@hall/templating": "^1.0.1",
     "@mdx-js/react": "^3.1.1",
     "@phosphor-icons/react": "^2.1.10",
     "@stepperize/react": "^7.0.0",
