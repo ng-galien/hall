@@ -81,7 +81,12 @@ jobs:
         run: echo "$GITHUB_WORKSPACE/node_modules/@code-moniker/cli-linux-x64/bin" >> "$GITHUB_PATH"
       - name: Install the headless PDF engine
         run: npx playwright install --with-deps --only-shell chromium
-      - run: node scripts/testing/gate.mjs verification
+      - name: Verify repository, fixtures, backend coverage and PostgreSQL
+        run: |
+          node scripts/testing/gate.mjs checks
+          node scripts/testing/gate.mjs fixtures
+          node scripts/testing/gate.mjs backend
+          node scripts/testing/gate.mjs postgres
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
@@ -118,6 +123,12 @@ jobs:
           HALL_E2E_SHARDS: "2"
           HALL_E2E_MOBILE_RECUSALS: "1"
           HALL_E2E_DESKTOP: "false"
+      - name: Verify ordinary units and HMR after browser cleanup
+        if: matrix.shard == 1
+        run: node scripts/testing/gate.mjs units
+      - name: Verify all policy mutants after browser cleanup
+        if: matrix.shard == 2
+        run: node scripts/testing/gate.mjs mutation
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:

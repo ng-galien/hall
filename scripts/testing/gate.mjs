@@ -82,12 +82,17 @@ const groups = {
   fixtures: "npx vitest run tests/postgres/e2e-fixture.test.mjs",
   backend: "npm run test:backend",
   units:
-    "npm run test --workspace @hall/api-contract --workspace @hall/mcp --workspace @hall/templating --workspace @hall/client --workspace @hall/desktop -- --maxWorkers=2 && npm run test:i18n-hmr && npm run test:policy:mutation",
+    "npm run test --workspace @hall/api-contract --workspace @hall/mcp --workspace @hall/templating --workspace @hall/client --workspace @hall/desktop -- --maxWorkers=2 && npm run test:i18n-hmr",
+  mutation: "npm run test:policy:mutation",
   postgres:
     "node tests/postgres/run.mjs --pgtap all && npx vitest run --config tests/postgres/vitest.adapter.config.ts",
   browser: "node packages/client/e2e/run.mjs --all",
   distribution: "npm run pack:distribution -- --prebuilt && npm run test:distribution:complete",
 };
+async function unitChecks() {
+  await run("units", groups.units);
+  await run("mutation", groups.mutation);
+}
 try {
   if (mode === "all") {
     await run("build", "npm run build:verified");
@@ -96,7 +101,7 @@ try {
     await browserWithBackend(async () => {
       await run("backend", groups.backend);
       await together([
-        run("units", groups.units),
+        unitChecks(),
         (async () => {
           await run("postgres", groups.postgres);
           await run("distribution", groups.distribution);
@@ -107,7 +112,7 @@ try {
     await run("checks", groups.checks);
     await run("fixtures", groups.fixtures);
     await run("backend", groups.backend);
-    await together([run("units", groups.units), run("postgres", groups.postgres)]);
+    await together([unitChecks(), run("postgres", groups.postgres)]);
   } else {
     if (!Object.hasOwn(groups, mode)) throw new Error(`Unknown gate group: ${mode}`);
     await run(mode, groups[mode]);
