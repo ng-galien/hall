@@ -469,6 +469,8 @@ async function renderTerrain(root: HTMLElement) {
       panel.hidden = true;
     }
     document.body.classList.toggle("has-scenario", Boolean(scene));
+    const canvas = stage.querySelector("canvas");
+    if (canvas) canvas.style.touchAction = scene && sheet.matches ? "pan-y" : "none";
     if (scene) bringStageIntoView();
     terrain?.play(scene ? { place: scene.place, motion: scene.motion } : null);
     if (!fromHash) history.replaceState(null, "", id ? `#${id}` : `${location.pathname}${location.search}`);

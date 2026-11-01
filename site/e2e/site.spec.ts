@@ -27,7 +27,14 @@ async function expectCapturesLoaded(page: Page, scope: string) {
   expect(count).toBeGreaterThan(0);
   for (let i = 0; i < count; i++) {
     const image = images.nth(i);
-    await image.scrollIntoViewIfNeeded();
+    await image.evaluate((img) => {
+      const panel = img.closest<HTMLElement>(".scenario-panel");
+      if (!panel) {
+        img.scrollIntoView({ block: "center", behavior: "instant" });
+        return;
+      }
+      panel.scrollTop += img.getBoundingClientRect().top - panel.getBoundingClientRect().top - 16;
+    });
     await expect
       .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
       .toBeGreaterThan(0);
@@ -688,6 +695,40 @@ test.describe("la scène continue sous les sections", () => {
     await page.getByTestId("nav-decouvrir").click();
     await expect.poll(() => belowHeader(page, '[data-testid="terrain-stage"]')).toBeLessThanOrEqual(1);
     await expect(page.getByTestId("terrain-stage")).toBeInViewport();
+  });
+
+  test("au téléphone, un glissement du doigt remonte le menu au-dessus du scénario ouvert", async ({ page }) => {
+    const viewport = page.viewportSize();
+    test.skip(!viewport || viewport.width > 760, "geste du téléphone");
+    await page.goto("./#carte");
+    await expect(page.getByTestId("scenario-carte")).toBeVisible();
+    await sceneReady(page);
+    await scrollSettled(page);
+    const sieger = page.getByTestId("menu-group-sieger");
+    const panelTop = async () => (await page.getByTestId("scenario-panel").boundingBox())?.y ?? 0;
+    const siegerBottom = async () => {
+      const box = await sieger.boundingBox();
+      return box ? box.y + box.height : Number.POSITIVE_INFINITY;
+    };
+    expect(await siegerBottom()).toBeGreaterThan(await panelTop());
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.synthesizeScrollGesture", {
+      x: 200,
+      y: 380,
+      yDistance: -260,
+      gestureSourceType: "touch",
+      speed: 600,
+    });
+    await scrollSettled(page);
+    expect(await siegerBottom()).toBeLessThan(await panelTop());
+    const reachable = await sieger.evaluate((button) => {
+      const box = button.getBoundingClientRect();
+      return button.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+    });
+    expect(reachable).toBe(true);
+    await sieger.tap();
+    await expect(page.getByTestId("menu-list-sieger")).toBeVisible();
+    await expect(page.getByTestId("scenario-carte")).toBeVisible();
   });
 
   test("on passe de carte en carte par les flèches, les repères et le clavier", async ({ page }) => {

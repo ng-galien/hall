@@ -753,6 +753,11 @@
     top: auto;
   }
 
+  /* Un glissement vertical du doigt sur le relief fait défiler la page ; le glissement horizontal tourne la scène. */
+  .has-scenario .terrain-stage {
+    touch-action: pan-y;
+  }
+
   .has-scenario .card-rail {
     top: 25%;
   }
