@@ -21,7 +21,7 @@ function run(command, args, cwd = root) {
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`${command} failed (${result.status})`);
 }
-const workspaces = ["contracts", "api-contract", "mcp", "domain", "templating", "postgres", "server", "client"];
+const workspaces = ["contracts", "api-contract", "domain", "mcp", "templating", "postgres", "server", "client"];
 for (const name of workspaces) {
   run("npm", ["run", "build", "-w", `@hall/${name}`]);
 }

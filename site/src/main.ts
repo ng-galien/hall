@@ -474,7 +474,6 @@ async function renderTerrain(root: HTMLElement) {
     if (!fromHash) history.replaceState(null, "", id ? `#${id}` : `${location.pathname}${location.search}`);
   }
 
-  /** Retour au début de la page : ferme le scénario ouvert et remonte, sans saut, jusqu'au premier écran. */
   function glide(top: number) {
     window.scrollTo({ top, behavior: prefersReducedMotion() ? "instant" : "smooth" });
   }

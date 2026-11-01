@@ -8,6 +8,7 @@ import { easeInOutCubic, easeOutCubic, easeOutQuint, phase } from "./timeline.js
 
 /** Couleurs de la charte Hall, mêmes valeurs que les variables de launch.css. */
 const palette = {
+  white: 0xffffff,
   slate600: 0x475569,
   slate500: 0x64748b,
   slate400: 0x94a3b8,
@@ -283,7 +284,10 @@ export function createLaunchScene(
   const pieces: Piece[] = data.departements.map((area) => {
     const [cx, cy] = planarCentroid(area.polygons);
     const local = translate(area.polygons, cx, cy);
-    const geometry = new THREE.ExtrudeGeometry(local.map(shapeFromRings), { depth: plateThickness, bevelEnabled: false });
+    const geometry = new THREE.ExtrudeGeometry(local.map(shapeFromRings), {
+      depth: plateThickness,
+      bevelEnabled: false,
+    });
     const tone = slate300.clone().lerp(slate400, rand() * 0.55);
     const mesh = new THREE.Mesh(
       geometry,
@@ -324,7 +328,8 @@ export function createLaunchScene(
   const communeLayer = new THREE.Mesh(
     mergeGeometries(
       others.map(
-        (area) => new THREE.ExtrudeGeometry(area.polygons.map(shapeFromRings), { depth: plateThickness, bevelEnabled: false }),
+        (area) =>
+          new THREE.ExtrudeGeometry(area.polygons.map(shapeFromRings), { depth: plateThickness, bevelEnabled: false }),
       ),
     ),
     communeMaterial,
@@ -334,7 +339,13 @@ export function createLaunchScene(
       others.flatMap((area) => area.polygons),
       plateThickness + 0.005,
     ),
-    new THREE.LineBasicMaterial({ color: palette.slate800, transparent: true, opacity: 0, depthTest: false, fog: false }),
+    new THREE.LineBasicMaterial({
+      color: palette.white,
+      transparent: true,
+      opacity: 0,
+      depthTest: false,
+      fog: false,
+    }),
   );
   communeEdges.renderOrder = 1;
   communeLayer.add(communeEdges);

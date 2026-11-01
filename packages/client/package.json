@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "prebuild:docs": "npm --prefix ../.. run build -w @hall/contracts && npm --prefix ../.. run build -w @hall/api-contract && npm --prefix ../.. run build -w @hall/domain && npm --prefix ../.. run build -w @hall/templating",
     "build:docs": "vite build --config vite.docs.config.ts && mv dist-docs/docs-site.html dist-docs/index.html",
     "zip:docs": "npm run build:docs && cd dist-docs && rm -f ../hall-docs.zip && zip -q ../hall-docs.zip index.html && echo hall-docs.zip",
     "typecheck": "tsc -b --pretty false",

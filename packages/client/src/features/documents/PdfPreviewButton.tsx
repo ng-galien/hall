@@ -114,12 +114,9 @@ export function PdfPreviewButton({
             setUrl(null);
           }}
         >
-          <NativeDocumentFrame
-            url={url}
-            mediaType="application/pdf"
-            title={title}
-            testId={viewerTestId ?? `${testId}-native-viewer`}
-          />
+          <div className="h-full min-h-0 w-full" data-testid={viewerTestId ?? `${testId}-native-viewer`}>
+            <NativeDocumentFrame url={url} mediaType="application/pdf" title={title} />
+          </div>
         </DocumentViewerDialog>
       ) : null}
     </>

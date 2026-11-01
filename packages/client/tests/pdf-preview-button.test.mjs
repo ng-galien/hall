@@ -9,7 +9,7 @@ import { previewTemplatePdf } from "../src/services/templatesApi.ts";
 vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
 vi.mock("../src/services/templatesApi.ts", () => ({ previewTemplatePdf: vi.fn() }));
 vi.mock("../src/i18n/I18nProvider", () => ({ useI18n: () => ({ t: (key) => key }) }));
-vi.mock("../src/components/icons", () => ({ PdfIcon: () => null, ChevronDownIcon: () => null }));
+vi.mock("../src/components/icons", () => ({ PdfIcon: () => null, ChevronDownIcon: () => null, CloseIcon: () => null }));
 vi.mock("../src/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }) => h("div", {}, children),
   DropdownMenuTrigger: ({ children }) => children,

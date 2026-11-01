@@ -4,18 +4,12 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Version tag of the draft release, for example v1.0.0"
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: hall-demonstration-release-${{ github.event.inputs.tag || github.ref_name }}
+  group: hall-demonstration-release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -45,6 +39,10 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Verify the tag matches the application version
+        shell: bash
+        run: |
+          node --input-type=module -e 'import fs from "node:fs"; const expected = "v" + JSON.parse(fs.readFileSync("packages/desktop/package.json", "utf8")).version; if (process.env.GITHUB_REF_NAME !== expected) throw new Error(`Tag ${process.env.GITHUB_REF_NAME} does not match ${expected}`);'
       - name: Install the RPM packaging tools
         if: runner.os == 'Linux'
         run: |
@@ -78,7 +76,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/download-artifact@v4
         with:

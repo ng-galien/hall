@@ -9,11 +9,12 @@ PostgreSQL, start Hall, or migrate a database.
 ## Public repository and licence
 
 The sources, the desktop demonstration downloads and the GitHub Pages site are
-published from the same repository, `ng-galien/hall`. The repository becomes
-public once the site has been validated; until then it remains private. The
-desktop demonstration executables are built by
+published from the same public repository, `ng-galien/hall`. Desktop demonstration
+executables are built only after pushing a version tag such as `v1.0.0` by
 [`.github/workflows/release.yml`](../.github/workflows/release.yml) into a draft
-GitHub release and are not signed; see the
+GitHub release. The workflow rejects a tag that does not match the desktop package
+version and has no manual branch-build trigger. The executables have no publisher
+signature; see the
 [demonstration edition](runtime.md#demonstration-edition). The release contains a
 Windows Squirrel installer, a macOS DMG disk image for Apple silicon and for Intel,
 and Linux `deb` and `rpm` packages. The DMG is made by the Electron Forge maker
