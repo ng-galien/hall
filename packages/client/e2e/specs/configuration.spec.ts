@@ -1,6 +1,30 @@
+import type { Page } from "@playwright/test";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { expect, test } from "../fixtures/application";
 
 test.use({ seedScenario: "default" });
+
+async function previewPdfText(page: Page): Promise<string> {
+  const frame = page.getByTestId("template-preview-frame");
+  await expect(frame).toBeVisible();
+  await expect(frame).toHaveAttribute("src", /\/api\/templates\/preview-pdf\//);
+  const response = await page.request.get((await frame.getAttribute("src"))!);
+  expect(response.ok()).toBeTruthy();
+  expect(response.headers()["content-type"]).toContain("application/pdf");
+  const loading = getDocument({ data: new Uint8Array(await response.body()), useSystemFonts: true });
+  try {
+    const pdf = await loading.promise;
+    expect(pdf.numPages).toBeGreaterThan(0);
+    const pages: string[] = [];
+    for (let number = 1; number <= pdf.numPages; number++) {
+      const content = await (await pdf.getPage(number)).getTextContent();
+      pages.push(content.items.map((item) => ("str" in item ? item.str + (item.hasEOL ? " " : "") : "")).join(""));
+    }
+    return pages.join(" ").replace(/\s+/g, " ").trim();
+  } finally {
+    await loading.destroy();
+  }
+}
 
 // @verifies-requirement HALL-FR-CFG-010
 // @verifies-requirement HALL-FR-CFG-020
@@ -47,9 +71,20 @@ test("configuration categories preserve mail settings and expose editable genera
   await page.reload();
   await expect(page.getByTestId("template-stylesheet")).toHaveValue("h1 { color: #123456; }");
   await page.getByTestId("template-preview").click();
-  await expect(page.frameLocator('[data-testid="template-preview-frame"]').locator("header")).toContainText(
-    "Configured header",
-  );
+  const pdfText = await previewPdfText(page);
+  expect(pdfText).toContain("Configured header");
+  const previewResponse = await page.request.post("/api/templates/preview", { data: { ...print, context: {} } });
+  expect(previewResponse.ok()).toBeTruthy();
+  const preview = (await previewResponse.json()).properties;
+  const documentExcerpt = await page.evaluate((html: string) => {
+    const document = new DOMParser().parseFromString(html, "text/html");
+    return Array.from(document.querySelectorAll("main h1, main h2, main p, main li"))
+      .map((element) => (element.textContent ?? "").replace(/\s+/g, " ").trim())
+      .find((text) => text.length >= 20)
+      ?.slice(0, 80);
+  }, preview.html);
+  expect(documentExcerpt, "the selected real document contains substantive text").toBeTruthy();
+  expect(pdfText).toContain(documentExcerpt!);
 });
 
 // @verifies-requirement HALL-FR-CFG-020
@@ -80,5 +115,7 @@ test("all nine templates preview real Alésia data with saved presentation", asy
   );
   await page.getByTestId("template-preview").click();
   await expect(page.getByTestId("template-preview-source")).toContainText("Preview data: council meeting no.");
-  await expect(page.frameLocator('[data-testid="template-preview-frame"]').locator("body")).toContainText("Alésia");
+  const pdfText = await previewPdfText(page);
+  expect(pdfText).toContain("Alésia");
+  expect(pdfText).toContain("Procès-verbal");
 });

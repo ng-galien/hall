@@ -407,7 +407,7 @@ describe("backend business-rule coverage", () => {
     );
     expect(updated).toMatchObject({
       name: "Procès-verbal validé",
-      bodyMarkdown: "# Procès-verbal\n\nVersion validée.\n",
+      bodyMarkdown: "# Procès-verbal\n\nVersion validée.",
     });
 
     const missingId = randomUUID();

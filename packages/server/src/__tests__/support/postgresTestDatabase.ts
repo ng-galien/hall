@@ -44,8 +44,17 @@ export async function resetPostgresTestDatabase(pool: Pool): Promise<void> {
     for (const template of generatedDocumentTemplates)
       await pool.query(
         `INSERT INTO public.templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, '', '', '', clock_timestamp()::text, clock_timestamp()::text)`,
-        [template.kind, template.documentType, template.name, template.bodyMarkdown, template.subject],
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, clock_timestamp()::text, clock_timestamp()::text)`,
+        [
+          template.kind,
+          template.documentType,
+          template.name,
+          template.bodyMarkdown,
+          template.subject,
+          template.stylesheet,
+          template.headerHtml,
+          template.footerHtml,
+        ],
       );
   }
 }
