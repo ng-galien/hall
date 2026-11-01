@@ -83,6 +83,7 @@ async function copyProductionRuntime(buildPath) {
     }
   }
   await copyPackage(await packageDirectory("@hall/server", desktopRoot));
+  await cp(join(projectRoot, "LICENSE"), join(buildPath, "LICENSE"));
   const buffers = manifest.find((entry) => entry.name === "buffers");
   if (buffers) {
     const artifact = JSON.parse(await readFile(join(buildPath, "package.json"), "utf8"));
