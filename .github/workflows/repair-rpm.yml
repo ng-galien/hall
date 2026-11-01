@@ -1,0 +1,87 @@
+name: Repair the Hall Linux RPM
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published version whose unchanged runtime is being repackaged
+        required: true
+        default: v1.0.0
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hall-rpm-repair-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  rpm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag }}
+      HALL_DESKTOP_EDITION: demonstration
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Verify the published runtime is unchanged
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { execFileSync } from "node:child_process";
+          const tag = process.env.TAG;
+          const version = JSON.parse(fs.readFileSync("packages/desktop/package.json", "utf8")).version;
+          if (tag !== `v${version}`) throw new Error("The repair tag must match the application version");
+          execFileSync("gh", ["release", "view", tag]);
+          const allowed = new Set([".github/workflows/repair-rpm.yml", "packages/desktop/forge.config.mjs", "packages/desktop/scripts/rpm-compatibility.mjs"]);
+          const changes = execFileSync("git", ["diff", "--name-only", tag, "HEAD"], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
+          if (changes.some(path => !allowed.has(path))) throw new Error(`Runtime differs from the published tag: ${changes.join(", ")}`);
+          console.log(`Runtime from ${execFileSync("git", ["rev-parse", `${tag}^{}`], { encoding: "utf8" }).trim()}; packaging repair ${process.env.GITHUB_SHA}`);
+          NODE
+      - name: Install the RPM toolchain and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          rpm --version
+          npm ci
+      - name: Build only the RPM installer
+        run: |
+          npm run build
+          npm run make -w @hall/desktop -- --targets @electron-forge/maker-rpm
+      - name: Verify the RPM and record its provenance
+        run: |
+          mkdir repaired-rpm
+          mapfile -t packages < <(find packages/desktop/out/make -type f -name '*.rpm')
+          test "${#packages[@]}" -eq 1
+          rpmfile="${packages[0]}"
+          test "$(rpm -qp --qf '%{VERSION}' "$rpmfile")" = "${TAG#v}"
+          test "$(rpm -qp --qf '%{ARCH}' "$rpmfile")" = x86_64
+          rpm -qpl "$rpmfile" > "$RUNNER_TEMP/hall-rpm-files.txt"
+          grep -F '/resources/app/LICENSE' "$RUNNER_TEMP/hall-rpm-files.txt"
+          grep -F '/resources/app/licenses/runtime/buffers-0.1.1/MIT.txt' "$RUNNER_TEMP/hall-rpm-files.txt"
+          cp "$rpmfile" "repaired-rpm/linux-x64-$(basename "$rpmfile")"
+          (cd repaired-rpm && sha256sum *.rpm > RPM-SHA256SUMS.txt)
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import { execFileSync } from "node:child_process";
+          const data = { tag: process.env.TAG, runtimeCommit: execFileSync("git", ["rev-parse", `${process.env.TAG}^{}`], { encoding: "utf8" }).trim(), repairCommit: process.env.GITHUB_SHA, workflow: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`, toolchain: execFileSync("rpm", ["--version"], { encoding: "utf8" }).trim(), checksums: fs.readFileSync("repaired-rpm/RPM-SHA256SUMS.txt", "utf8").trim() };
+          fs.writeFileSync("repaired-rpm/linux-rpm-provenance.json", JSON.stringify(data, null, 2) + "\n");
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hall-repaired-rpm
+          path: repaired-rpm/*
+          if-no-files-found: error
+      - name: Add only the repaired RPM to the existing release
+        run: gh release upload "$TAG" repaired-rpm/*

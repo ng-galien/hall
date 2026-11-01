@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { installBuffersNotice } from "../../scripts/distribution/buffers-notice.mjs";
 import MakerDmg from "./scripts/maker-dmg.mjs";
+import { prepareRpmTemplate } from "./scripts/rpm-compatibility.mjs";
 
 const projectRoot = resolve(import.meta.dirname, "../..");
 const desktopRoot = import.meta.dirname;
@@ -172,6 +173,9 @@ export default {
     ],
   },
   hooks: {
+    preMake: async () => {
+      if (process.platform === "linux") await prepareRpmTemplate();
+    },
     prePackage: (_config, platform, arch) => prepareBrowserRuntime(platform, arch),
     packageAfterCopy: async (_config, buildPath) => {
       await copyProductionRuntime(buildPath);
