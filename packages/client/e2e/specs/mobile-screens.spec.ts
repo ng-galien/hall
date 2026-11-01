@@ -157,7 +157,11 @@ for (const [device, viewport] of [
 
       await check(page, "overview", "/");
       await check(page, "meetings", "/meetings");
-      if (closed) await check(page, "closed meeting", `/meetings/${closed.id}`);
+      if (closed) {
+        await check(page, "closed meeting", `/meetings/${closed.id}`, async () => {
+          await expect(page.getByTestId("meeting-report-facts")).toBeVisible();
+        });
+      }
       if (running) {
         await check(page, "running meeting", `/meetings/${running.id}`);
         await check(page, "meeting mode", `/meetings/${running.id}/live`);

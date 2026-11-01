@@ -61,7 +61,7 @@ export function MeetingReport({
               {t("meeting.deliberationList")}
             </Button>
           ) : null}
-          <dl className="meeting-facts">
+          <dl className="meeting-facts" data-testid="meeting-report-facts">
             <div>
               <dt>{t("calendar.start")}</dt>
               <dd>

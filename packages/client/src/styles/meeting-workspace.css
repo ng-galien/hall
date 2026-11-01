@@ -1295,8 +1295,8 @@
   }
   @media (max-width: 1000px) {
     .composer-add-zone { grid-template-columns: 1fr; }
-    .meeting-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--hall-space-3); }
-    .meeting-facts > div { padding: 0; border: 0; }
+    .meeting-facts, .meeting-report-header .meeting-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--hall-space-3); }
+    .meeting-facts > div, .meeting-report-header .meeting-facts > div { padding: 0; border: 0; }
     .collection-toolbar { flex-wrap: wrap; }
     .minutes-detail-header > header {
       grid-template-columns: minmax(0, 1fr);

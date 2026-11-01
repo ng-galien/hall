@@ -20,6 +20,7 @@ export function Layout() {
       setNavigationOpen(false);
     };
     query.addEventListener("change", update);
+    update();
     return () => query.removeEventListener("change", update);
   }, []);
   useEffect(() => {
