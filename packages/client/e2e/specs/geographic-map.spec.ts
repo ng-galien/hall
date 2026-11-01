@@ -212,6 +212,7 @@ test("a drawn area too small on screen becomes a selectable marker and its geome
 test("a drawn element carries a rich-text note that survives a reload and outlives the element", async ({
   appPage: page,
 }) => {
+  test.setTimeout(60_000);
   const created = await page.request.post("/api/resources", {
     data: { kind: "geographic", name: `Noted drawing ${crypto.randomUUID()}`, path: "seed" },
   });

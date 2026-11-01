@@ -128,6 +128,7 @@ export const test = base.extend<
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.addInitScript(() => {
+      if (window !== window.top) return;
       if (!localStorage.getItem("mairie.locale")) localStorage.setItem("mairie.locale", "en");
     });
     await page.goto("/app/");

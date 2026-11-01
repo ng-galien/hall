@@ -182,7 +182,7 @@ function configuredLaneCount() {
 }
 
 function stopProcessGroup(child, signal) {
-  if (!child.pid) return;
+  if (!child.pid || child.exitCode !== null || child.signalCode !== null) return;
   try {
     process.kill(-child.pid, signal);
   } catch (error) {
@@ -215,7 +215,7 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
       ? builtDevelopmentDirectory
       : builtClientDirectory;
   const origin = selectedClient ? `http://127.0.0.1:${serverPort}` : `http://127.0.0.1:${clientPort}`;
-  const output = `${mode}-${shardIndex}`;
+  const output = `${process.pid}/${mode}-${shardIndex}`;
   const child = spawn(
     process.execPath,
     [

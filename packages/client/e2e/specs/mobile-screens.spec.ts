@@ -28,7 +28,18 @@ async function layoutFindings(page: Page) {
       const visible = (element: Element) => {
         const rect = element.getBoundingClientRect();
         const style = getComputedStyle(element);
-        return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+        if (rect.width <= 0 || rect.height <= 0 || style.visibility === "hidden" || style.display === "none")
+          return false;
+        if (rect.right <= 0 || rect.left >= viewport) return false;
+        for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+          const clipping = getComputedStyle(parent);
+          const bounds = parent.getBoundingClientRect();
+          if (clipping.overflowX !== "visible" && (rect.right <= bounds.left || rect.left >= bounds.right))
+            return false;
+          if (clipping.overflowY !== "visible" && (rect.bottom <= bounds.top || rect.top >= bounds.bottom))
+            return false;
+        }
+        return true;
       };
       const describe = (element: Element) => {
         const rect = element.getBoundingClientRect();

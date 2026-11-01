@@ -134,6 +134,12 @@
      height on the event itself, so its positioned frame receives it. */
   .hall-calendar :has(> .hall-calendar-event) { min-height: calc(var(--hall-size-touch-control) + var(--hall-stroke-thick)); }
   .hall-calendar-event-label { font-size: var(--hall-font-size-caption); }
+  .workspace-explorer-folder-name,
+  .univer-spreadsheet button,
+  .univer-spreadsheet input {
+    min-width: var(--hall-size-touch-control);
+    min-height: var(--hall-size-touch-control);
+  }
 }
 @layer base {
 @media (pointer: coarse) {
