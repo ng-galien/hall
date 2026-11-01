@@ -160,6 +160,25 @@ for (const [device, viewport] of [
       if (closed) {
         await check(page, "closed meeting", `/meetings/${closed.id}`, async () => {
           await expect(page.getByTestId("meeting-report-facts")).toBeVisible();
+          const minutesLink = page.getByTestId("meeting-minutes-link");
+          await expect(minutesLink).toBeVisible();
+          await expect
+            .poll(
+              async () => {
+                const title = await page.locator(".meeting-report-header h1").boundingBox();
+                const link = await minutesLink.boundingBox();
+                return Boolean(
+                  title &&
+                    link &&
+                    (link.y >= title.y + title.height ||
+                      title.y >= link.y + link.height ||
+                      link.x >= title.x + title.width ||
+                      title.x >= link.x + link.width),
+                );
+              },
+              { message: "The minutes link must not overlap the closed meeting title" },
+            )
+            .toBe(true);
         });
       }
       if (running) {
