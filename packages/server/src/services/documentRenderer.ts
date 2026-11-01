@@ -92,7 +92,9 @@ export function createDocumentRenderer(): DocumentRenderer {
         });
         const page = await context.newPage();
         await page.setContent(input.html, { waitUntil: "load" });
+        await page.evaluate("document.fonts.ready.then(() => true)");
         const bytes = await page.pdf({
+          preferCSSPageSize: true,
           format: "A4",
           printBackground: true,
           displayHeaderFooter: Boolean(input.headerHtml || input.footerHtml),

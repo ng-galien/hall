@@ -1,5 +1,5 @@
 import type { ContentTemplate, HallSettings } from "@hall/domain";
-import { generatedDocumentTemplates } from "@hall/domain";
+import { generatedDocumentTemplates, jinjaBody } from "@hall/domain";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { postgresDocumentConfigurationMigration } from "../infrastructure/postgres/schema.js";
@@ -40,13 +40,36 @@ describe("generated document configuration", () => {
       const original = templates.find((entry) => entry.documentType === type)!;
       const input = {
         ...original,
-        bodyMarkdown: "# Custom wrapper\n\n::generated-content\n\nEnd wrapper",
+        bodyMarkdown: `# Custom wrapper\n\n${jinjaBody(type)}\n\nEnd wrapper`,
         stylesheet: "h1 { color: #123456; }",
         headerHtml: "<div>Header UNIQUE</div>",
         footerHtml: "<div>Page UNIQUE</div>",
       };
       await agent.put(`/api/templates/${original.id}`).send(input).expect(200);
-      await container.cradle.contentTemplateService.generatedPdf(type, "# Original fact\n\nContent remains here.");
+      await container.cradle.contentTemplateService.generatedPdf(
+        type,
+        "# Original fact\n\nContent remains here.",
+        {},
+        false,
+        {
+          dossier: {
+            meeting: {
+              number: 1,
+              scheduledAt: "2026-11-10T10:00:00Z",
+              location: "Room",
+              agenda: [{ agendaNumber: 1, kind: "openQuestion", title: "Original fact" }],
+            },
+            point: {
+              number: 1,
+              kind: "openQuestion",
+              title: "Original fact",
+              report: "",
+              subjectText: "Content remains here.",
+              pieces: [],
+            },
+          },
+        },
+      );
       const output = printed.at(-1)!;
       expect(output.html).toContain("Original fact");
       expect(output.html).toContain("Custom wrapper");
@@ -55,11 +78,11 @@ describe("generated document configuration", () => {
       expect(output.footerHtml).toContain("Page UNIQUE");
       await agent
         .put(`/api/templates/${original.id}`)
-        .send({ ...input, bodyMarkdown: "No source facts" })
+        .send({ ...input, bodyMarkdown: "{% for broken %}" })
         .expect(422);
       await agent
         .put(`/api/templates/${original.id}`)
-        .send({ ...input, bodyMarkdown: "::generated-content\n\n::generated-content" })
+        .send({ ...input, kind: "message", subject: "Wrong family", stylesheet: "", headerHtml: "", footerHtml: "" })
         .expect(422);
       expect(domainBody<ContentTemplate>(await agent.get(`/api/templates/${original.id}`)).bodyMarkdown).toContain(
         "Custom wrapper",
@@ -70,14 +93,26 @@ describe("generated document configuration", () => {
       .put(`/api/templates/${eventTemplate.id}`)
       .send({
         ...eventTemplate,
-        bodyMarkdown: "Event introduction\n\n::generated-content",
-        subject: "Configured :field{name=generated.subject}",
+        bodyMarkdown: `Event introduction\n\n${jinjaBody("event-invitation")}`,
+        subject: "Configured {{ generated.subject | text }}",
       })
       .expect(200);
     const preview = await container.cradle.contentTemplateService.generatedPreview(
       "event-invitation",
       "Meeting source text",
       "Invitation",
+      {},
+      false,
+      {
+        event: {
+          name: "Meeting",
+          content: "Meeting source text",
+          method: "request",
+          schedule: { kind: "timed", start: "2026-11-10T10:00:00Z", end: "2026-11-10T11:00:00Z" },
+          location: "Room",
+          participants: [],
+        },
+      },
     );
     expect(preview.subject).toBe("Configured Invitation");
     for (const value of [preview.html, preview.text]) {

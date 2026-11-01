@@ -1,7 +1,6 @@
 import type { MeetingNoticeMessagePreparation } from "@hall/contracts";
 import { type MeetingNotice, type MeetingNoticeFacts, meetingNoticeHallFactsSchema } from "@hall/contracts";
 import type { ContentTemplate } from "@hall/domain";
-import { collectDirectives, parse } from "@hall/templating";
 import type { CouncilClient } from "../clients/councilClient.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ContentTemplateService, GeneratedFile } from "./contentTemplateService.js";
@@ -40,11 +39,6 @@ export function createMeetingNoticeService({
     if (templates.length === 0) throw new DomainError("template_not_found", 404);
     if (templates.length !== 1) throw new DomainError("template_invalid", 422);
     const selected = templates[0]!;
-    if (
-      collectDirectives(parse(selected.bodyMarkdown)).filter((entry) => entry.name === "meeting-notice").length !== 1
-    ) {
-      throw new DomainError("template_invalid", 422);
-    }
     return selected;
   }
   async function messagePreparation(meetingId: string): Promise<MeetingNoticeMessagePreparation> {

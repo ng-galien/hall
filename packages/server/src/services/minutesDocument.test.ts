@@ -82,19 +82,69 @@ describe("minutes generated document", () => {
     expect(html).not.toContain("<h3>6. ");
   });
 
-  it("prints immutable identities, reports and named public votes separately from sanitized narrative", () => {
+  // @verifies-requirement HALL-FR-MIN-250
+  it("prints immutable identities and votes with sanitized council narrative, without preparatory reports", () => {
     const html = Object.values(renderMinutesSections(fixture)).join("");
     expect(html).toContain("Présidence : Marie Martin");
     expect(html).toContain("Secrétariat : Jean Dupont");
     expect(html).toContain("Arrêt du procès-verbal de la séance précédente");
-    expect(html).toContain("Rapport figé <strong>important</strong>");
-    expect(html).toContain("Marie Martin : Pour");
+    expect(html).not.toContain("Rapport figé");
+    expect(html).not.toContain("Rapport présenté");
+    expect(html).not.toContain("Marie Martin : Pour");
+    expect(html).toContain("Pour : 1");
     expect(html).toContain("Salle &lt;A&gt;");
     expect(html).not.toContain("<script>");
     expect(html).toContain("Une correction de rédaction.");
   });
 
-  it("prints public non-participation separately from abstention and escapes identities", () => {
+  // @verifies-requirement HALL-FR-MIN-250
+  it("separates the captured subject text from the council account without repeating the business report", () => {
+    const minutes = structuredClone(fixture);
+    minutes.facts.agenda[0] = {
+      ...minutes.facts.agenda[0]!,
+      kind: "councilDecisionProposal",
+      title: "Programme forestier",
+      report: "## Contexte préparatoire\n\nPièce examinée : devis de préparation.",
+      proposal: "Projet proposé avant la séance.",
+    };
+    minutes.sections[0]!.content = "Le conseil a examiné le devis.\n\nIl retient la proposition discutée en séance.";
+    const original = structuredClone(minutes);
+    const html = renderMinutesSections(minutes).proceedings;
+    expect(html).toContain("<h3>1. Programme forestier</h3>");
+    expect(html).toContain("Le conseil a examiné le devis.");
+    expect(html).toContain("Il retient la proposition discutée en séance.");
+    expect(html).toContain("Pour : 1");
+    expect(html).not.toContain("Contexte préparatoire");
+    expect(html).not.toContain("Pièce examinée : devis de préparation");
+    expect(html).toContain("Projet proposé avant la séance");
+    expect(html.indexOf("Projet proposé avant la séance")).toBeLessThan(html.indexOf("Le conseil a examiné le devis."));
+    expect(html).not.toContain("Projet de délibération examiné");
+    expect(minutes).toEqual(original);
+  });
+
+  it("renders the resolved open-question subject separately without falling back to its business report", () => {
+    const minutes = structuredClone(fixture);
+    const item = minutes.facts.agenda[0]!;
+    item.kind = "openQuestion";
+    item.title = "Pont communal";
+    item.report = "Rapport général de l’affaire à ne pas reprendre.";
+    minutes.sections[0]!.content = "Le conseil demande un devis.";
+    const subjectTexts = new Map([
+      [item.id, "Texte propre de la question.\n\nDeuxième paragraphe. <script>unsafe()</script>"],
+    ]);
+    const before = structuredClone(minutes);
+    const html = renderMinutesSections(minutes, subjectTexts).proceedings;
+    expect(html).toContain("Texte propre de la question.");
+    expect(html).toContain("Deuxième paragraphe.");
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("Rapport général");
+    expect(html.indexOf("Texte propre de la question.")).toBeLessThan(html.indexOf("Le conseil demande un devis."));
+    expect(minutes).toEqual(before);
+    expect(renderMinutesSections(minutes, new Map([[item.id, ""]])).proceedings).not.toContain("Sujet présenté");
+    expect(renderMinutesSections(minutes).proceedings).not.toContain("Rapport général");
+  });
+
+  it("prints non-participation totals separately from abstention without individual names", () => {
     const minutes = structuredClone(fixture);
     minutes.facts.ballots[0]!.nonParticipations = [
       { count: 1, reason: "departed", member: { id: "departure", name: "Personne <partie>" } },
@@ -103,8 +153,8 @@ describe("minutes generated document", () => {
     const html = renderMinutesSections(minutes).proceedings;
     expect(html).toContain("Abstentions : 0");
     expect(html).toContain("Non-participations : 2");
-    expect(html).toContain("Personne &lt;partie&gt; : ne prend pas part au vote (départ)");
-    expect(html).toContain("Personne refusant : ne prend pas part au vote (refus de participer)");
+    expect(html).not.toContain("Personne");
+    expect(html).not.toContain("ne prend pas part au vote");
   });
 
   it("prints anonymous secret blank, invalid and non-participation totals independently", () => {
@@ -263,11 +313,29 @@ describe("minutes generated document", () => {
     expect(facts.match(/Ouverture :/g)).toHaveLength(1);
     expect(proceedings.match(/Arrêt du procès-verbal de la séance précédente/g)).toHaveLength(1);
     expect(proceedings.match(/Une correction de rédaction/g)).toHaveLength(1);
-    expect(proceedings.indexOf("Rapport figé")).toBeLessThan(proceedings.indexOf("Une correction de rédaction"));
+    expect(proceedings).not.toContain("Rapport figé");
     expect(proceedings.indexOf("Une correction de rédaction")).toBeLessThan(proceedings.indexOf("Scrutin public"));
     expect(proceedings).not.toContain("<p>Examiné</p>");
     expect(proceedings).toContain("Arrêté");
     expect(proceedings).not.toContain("Adopté");
+  });
+
+  it("omits ordinary examined status but retains adjournment and non-examination", () => {
+    const minutes = structuredClone(fixture);
+    const item = minutes.facts.agenda[0]!;
+    item.kind = "openQuestion";
+    item.title = "Questions diverses";
+    minutes.facts.ballots = [];
+    expect(renderMinutesSections(minutes).proceedings).not.toContain("Examiné");
+    expect(renderMinutesSections(minutes).proceedings).toContain("Une correction de rédaction");
+    item.completedAt = null;
+    expect(renderMinutesSections(minutes).proceedings).toContain("Non examiné");
+    item.adjournedAt = "2026-09-05T18:20:00Z";
+    expect(renderMinutesSections(minutes).proceedings).toContain("Ajourné");
+    item.kind = "minutesApproval";
+    item.adjournedAt = null;
+    item.completedAt = "2026-09-05T18:20:00Z";
+    expect(renderMinutesSections(minutes).proceedings).toContain("<p>Non arrêté</p>");
   });
 
   it("distinguishes a PV not settled from a rejected deliberation", () => {
@@ -310,7 +378,7 @@ describe("minutes generated document", () => {
     };
     expect(renderMinutesSections(minutes).facts).toContain("Jean Dupont - Représenté par Marie Martin");
   });
-  it("prints the quorum verdicts, every named public choice and every handover basis", () => {
+  it("prints quorum verdicts, aggregate public choices and every handover basis", () => {
     const observation = (
       id: string,
       agendaItemId: string | null,
@@ -393,17 +461,12 @@ describe("minutes generated document", () => {
     expect(facts).toContain(
       "sur demande de Première &lt;Élue&gt;, Second Élu, Troisième Élu, par 6 voix sur 9 membres présents ou représentés, pour la suite de la séance",
     );
-    expect(proceedings).toContain("7 présents retenus sur 15 membres pris en compte, seuil 8 : atteint.");
+    expect(proceedings).not.toContain("seuil 8 : atteint.");
     expect(proceedings).toContain("seuil 8 : non atteint.");
     expect(proceedings).toContain("seuil 8 : seconde convocation, dispense de quorum.");
-    for (const line of [
-      "Votant Pour : Pour",
-      "Votant Contre : Contre",
-      "Votant Abstention : Abstention",
-      "Votant Blanc : Blanc",
-      "Votant Nul : Nul",
-    ])
+    for (const line of ["Pour : 1", "Contre : 1", "Abstentions : 1", "Blancs : 1", "Nuls : 1"])
       expect(proceedings).toContain(line);
+    expect(proceedings).not.toContain("Votant");
 
     minutes.facts.conduct.quorumObservations = [observation("opening", null, "exempt")];
     expect(renderMinutesSections(minutes).facts).toContain(

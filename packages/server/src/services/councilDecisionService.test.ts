@@ -1,4 +1,5 @@
 import type { CouncilDecisionDetail } from "@hall/contracts";
+import { jinjaBody } from "@hall/domain";
 import { describe, expect, it, vi } from "vitest";
 import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 import type { ContentTemplateService } from "./contentTemplateService.js";
@@ -25,8 +26,7 @@ function setup() {
         {
           kind: "pdf",
           documentType: "council-decision",
-          bodyMarkdown:
-            "::council-decision{section=facts}\n\n::council-decision{section=content}\n\n::council-decision{section=result}",
+          bodyMarkdown: jinjaBody("council-decision"),
         },
       ],
       generateFromTemplate: generate,

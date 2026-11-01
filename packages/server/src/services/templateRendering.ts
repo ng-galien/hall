@@ -14,31 +14,22 @@ import {
   baseRenderStylesheet,
   collectDirectives,
   type Diagnostic,
-  isCouncilDecisionSection,
-  isFieldName,
-  isMinutesSection,
   isReferenceKind,
   isResourcePresentationKind,
   parse,
   renderHtml,
   validateStructure,
 } from "@hall/templating";
+import { jinjaError, renderJinja } from "@hall/templating/jinja";
 import sanitizeHtml from "sanitize-html";
 import type { CouncilClient } from "../clients/councilClient.js";
 import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
-import {
-  renderCouncilDecisionContent,
-  renderCouncilDecisionFacts,
-  renderCouncilDecisionResult,
-} from "./councilDecisionDocument.js";
-import { renderDeliberationList } from "./deliberationListDocument.js";
 import { pdfAttachmentHref } from "./documentRenderer.js";
 import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
-import { renderMeetingNotice } from "./meetingNoticeDocument.js";
-import { renderMinutesSections } from "./minutesDocument.js";
 import type { ReferenceEntityResolver } from "./referenceEntityResolver.js";
+import { documentTemplateData, type GeneratedTemplateData, type ResolvedSubjectText } from "./templateData.js";
 
 type AstNode = {
   type: string;
@@ -91,6 +82,7 @@ export interface TemplatePreview {
   sourceLabel?: string | null;
   sourceKind?: "meeting";
   html: string;
+  resolvedMarkdown?: string;
   /** HTML without preview-only header/footer; used as Chromium's printable page body. */
   printHtml: string;
   text: string;
@@ -105,7 +97,8 @@ export interface TemplatePreview {
 interface ResolvedContext {
   /** Whether the PDF carries the PDF documents its text references, appended after it and linked. */
   attachPdfDocuments: boolean;
-  generated: { bodyMarkdown: string; subject: string | null } | null;
+  generated: { bodyMarkdown: string; subject: string | null; data?: GeneratedTemplateData } | null;
+  subjects: Map<string, ResolvedSubjectText>;
   notice: MeetingNoticeFacts | null;
   councilDecision: CouncilDecisionDetail | null;
   minutes: MinutesDetail | null;
@@ -590,14 +583,6 @@ async function renderResourceEmbed(
   });
 }
 
-function formatMeetingDate(value: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "long",
-    timeStyle: "short",
-    timeZone,
-  }).format(new Date(value));
-}
-
 function textFromTree(node: AstNode): string {
   if (node.type === "text") return node.value ?? "";
   if (node.type === "image") return node.alt ?? "";
@@ -641,6 +626,8 @@ function safeDecorationHtml(source: string): string {
         "font-weight": [/^(?:normal|bold|[1-9]00)$/],
         "text-align": [/^(?:left|center|right)$/],
         width: [/^\d+(?:\.\d+)?(?:px|mm|cm|%|rem|em)$/],
+        "max-height": [/^\d+(?:\.\d+)?(?:px|mm|cm|%|rem|em)$/],
+        "object-fit": [/^contain$/],
       },
     },
     allowProtocolRelative: false,
@@ -653,7 +640,10 @@ export interface TemplateRenderingService {
     context?: TemplateRenderContext,
     notice?: MeetingNoticeFacts,
     councilDecision?: CouncilDecisionDetail,
-    options?: { attachPdfDocuments?: boolean; generated?: { bodyMarkdown: string; subject: string | null } },
+    options?: {
+      attachPdfDocuments?: boolean;
+      generated?: { bodyMarkdown: string; subject: string | null; data?: GeneratedTemplateData };
+    },
   ): Promise<TemplatePreview>;
 }
 
@@ -675,6 +665,7 @@ export function createTemplateRenderingService({
   const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => ({
     attachPdfDocuments: true,
     generated: null,
+    subjects: new Map(),
     notice: null,
     councilDecision: null,
     minutes: context.minutesId ? await minutesClient.open(context.minutesId) : null,
@@ -692,7 +683,6 @@ export function createTemplateRenderingService({
     diagnostics: Diagnostic[];
     pdfAttachments: TemplatePdfAttachment[];
   }> => {
-    const minutes = context.minutes ? renderMinutesSections(context.minutes) : null;
     const tree = parse(source);
     const diagnostics = validateStructure(tree);
     const values = new Map<string, AstNode>();
@@ -704,66 +694,29 @@ export function createTemplateRenderingService({
       : null;
     for (const directive of collectDirectives(tree)) {
       const key = `${directive.name}:${directive.occurrence}`;
-      if (directive.name === "generated-content") {
-        if (!context.generated) {
-          diagnostics.push(diagnostic("unresolved_reference", "Generated document content is unavailable", directive));
-        } else {
-          const rendered = await renderSource(
-            context.generated.bodyMarkdown,
-            { ...context, generated: null },
-            ancestors,
-          );
-          values.set(key, { type: "html", value: rendered.bodyHtml, children: [textNode(rendered.text)] });
-          diagnostics.push(...rendered.diagnostics);
-          for (const attachment of rendered.pdfAttachments) pdfAttachments.set(attachment.id, attachment);
-        }
+      if (directive.name === "page-break") {
+        values.set(key, { type: "html", value: '<div class="hall-page-break"></div>' });
         continue;
       }
-      if (directive.name === "council-decision") {
-        const section = directive.attributes.section;
-        const decision = context.councilDecision;
-        if (!decision || !section || !isCouncilDecisionSection(section)) {
-          diagnostics.push(
-            diagnostic("unresolved_reference", "Council decision context or section unavailable", directive),
-          );
-          continue;
-        }
-        const fragments = {
-          facts: () => renderCouncilDecisionFacts(decision.facts, decision.documentDate),
-          content: () => renderCouncilDecisionContent(decision),
-          result: () => renderCouncilDecisionResult(decision.facts),
-        };
-        values.set(key, { type: "html", value: matchLiteral(section, fragments) });
+      if (directive.name === "page-number" || directive.name === "page-count") {
+        values.set(key, {
+          type: "html",
+          value: `<span class="${directive.name === "page-number" ? "pageNumber" : "totalPages"}"></span>`,
+        });
         continue;
       }
-      if (directive.name === "meeting-notice") {
-        if (!context.notice)
-          diagnostics.push(
-            diagnostic("unresolved_reference", "A frozen meeting notice context is required", directive),
-          );
-        else values.set(key, { type: "html", value: renderMeetingNotice(context.notice) });
-        continue;
-      }
-      if (directive.name === "deliberation-list") {
-        if (!context.minutes)
-          diagnostics.push(diagnostic("unresolved_reference", "A closed meeting context is required", directive));
-        else
-          values.set(key, {
-            type: "html",
-            value: renderDeliberationList(context.minutes.facts, {
-              name: context.hall.name,
-              timeZone: context.hall.timeZone,
-            }),
-          });
-        continue;
-      }
-      if (directive.name === "minutes") {
-        const section = directive.attributes.section;
-        if (!minutes || !section || !isMinutesSection(section)) {
-          diagnostics.push(diagnostic("unresolved_reference", "Minutes context or section unavailable", directive));
-          continue;
-        }
-        values.set(key, { type: "html", value: minutes[section] });
+      if (
+        ["generated-content", "council-decision", "meeting-notice", "deliberation-list", "minutes", "field"].includes(
+          directive.name,
+        )
+      ) {
+        diagnostics.push(
+          diagnostic(
+            "unknown_directive",
+            "This former template directive is no longer supported; use Markdown with Jinja data fields",
+            directive,
+          ),
+        );
         continue;
       }
       if (directive.name === "resource-embed") {
@@ -854,32 +807,6 @@ export function createTemplateRenderingService({
             diagnostic("unresolved_reference", `${directive.name} reference not found: ${id}`, directive),
           );
         }
-        continue;
-      }
-      if (directive.name === "field") {
-        const name = directive.attributes.name;
-        if (!name || !isFieldName(name)) continue;
-        const fields: Record<typeof name, string | null> = {
-          "generated.subject": context.generated?.subject ?? null,
-          "hall.name": context.hall.name,
-          "meeting.startsAt": context.meeting?.scheduledAt
-            ? formatMeetingDate(context.meeting.scheduledAt, context.hall.timeZone)
-            : null,
-          "meeting.location": context.meeting?.location ?? null,
-          "meeting.chair": context.meeting?.chairMemberId
-            ? ((await referenceEntityResolver.resolve("member", context.meeting.chairMemberId))?.label ?? null)
-            : null,
-          "meeting.secretary": context.meeting?.secretaryMemberId
-            ? ((await referenceEntityResolver.resolve("member", context.meeting.secretaryMemberId))?.label ?? null)
-            : null,
-        };
-        const value = fields[name];
-        values.set(key, { type: "text", value: value ?? "" });
-        if (value === null) {
-          diagnostics.push(
-            diagnostic("unresolved_reference", `Required context is unavailable for field ${name}`, directive),
-          );
-        }
       }
     }
     const resolvedTree = replaceDirectives(tree as AstNode, values);
@@ -889,6 +816,45 @@ export function createTemplateRenderingService({
       diagnostics,
       pdfAttachments: [...pdfAttachments.values()],
     };
+  };
+
+  const renderJinjaSource = async (source: string, context: ResolvedContext, name: string, raw = false) => {
+    try {
+      const markdown = renderJinja(
+        source,
+        documentTemplateData({
+          hall: context.hall,
+          meeting: context.meeting,
+          notice: context.notice,
+          minutes: context.minutes,
+          subjects: context.subjects,
+          decision: context.councilDecision,
+          generated: context.generated,
+        }),
+        { name, timeZone: context.hall.timeZone },
+      );
+      const rendered = raw
+        ? { bodyHtml: markdown, text: markdown, diagnostics: [], pdfAttachments: [] }
+        : await renderSource(markdown, context);
+      return { ...rendered, markdown };
+    } catch (error) {
+      const detail = jinjaError(error);
+      const diagnostics: Diagnostic[] = [
+        {
+          code: "invalid_attribute",
+          severity: "error",
+          message: detail.message,
+          anchor: {
+            directive: "jinja",
+            occurrence: 0,
+            ...(detail.line
+              ? { position: { start: { line: detail.line, column: 1 }, end: { line: detail.line, column: 1 } } }
+              : {}),
+          },
+        },
+      ];
+      return { bodyHtml: "", text: "", markdown: "", diagnostics, pdfAttachments: [] };
+    }
   };
 
   return {
@@ -927,16 +893,49 @@ export function createTemplateRenderingService({
             location: context.notice.meeting.location,
           };
       }
-      const body = await renderSource(template.bodyMarkdown, context);
-      const subject = template.subject ? await renderSource(template.subject, context) : null;
-      const headerHtml = safeDecorationHtml(template.headerHtml);
-      const footerHtml = safeDecorationHtml(template.footerHtml);
+      if (context.minutes) {
+        const questions = context.minutes.facts.agenda.filter((item) => item.kind === "openQuestion");
+        await Promise.all(
+          questions.map(async (item) => {
+            const current = await councilClient.openAgendaItem(item.id);
+            if (current?.subject.kind === "openQuestion")
+              context.subjects.set(item.id, { text: current.subject.content, source: "currentResource" });
+          }),
+        );
+      }
+      const body = await renderJinjaSource(template.bodyMarkdown, context, "body.md");
+      const subject = template.subject ? await renderJinjaSource(template.subject, context, "subject.md") : null;
+      const decoration = async (value: string, name: string) => {
+        if (!value.trim()) return { bodyHtml: "", diagnostics: [] };
+        const rendered = await renderJinjaSource(value, context, name);
+        const markdownHtml = rendered.bodyHtml.replaceAll(
+          "<img ",
+          '<img style="width:35mm;max-height:18mm;object-fit:contain" ',
+        );
+        return {
+          ...rendered,
+          bodyHtml: `<div style="font-size:9px;width:100%;text-align:center">${markdownHtml}</div>`,
+        };
+      };
+      const header = await decoration(template.headerHtml, "header.md");
+      const footer = await decoration(template.footerHtml, "footer.md");
+      const style = await renderJinjaSource(template.stylesheet, context, "style.css", true);
+      const headerHtml = safeDecorationHtml(header.bodyHtml);
+      const footerHtml = safeDecorationHtml(footer.bodyHtml);
       return {
-        html: htmlShell(body.bodyHtml, template.stylesheet, headerHtml, footerHtml),
-        printHtml: htmlShell(body.bodyHtml, template.stylesheet),
+        html: htmlShell(body.bodyHtml, style.bodyHtml, headerHtml, footerHtml),
+        printHtml: htmlShell(body.bodyHtml, style.bodyHtml),
         text: body.text,
-        subject: subject?.text ?? null,
-        diagnostics: [...body.diagnostics, ...(subject?.diagnostics ?? [])],
+        resolvedMarkdown:
+          "markdown" in body && typeof body.markdown === "string" ? body.markdown : template.bodyMarkdown,
+        subject: subject?.text.trim() ?? null,
+        diagnostics: [
+          ...body.diagnostics,
+          ...(subject?.diagnostics ?? []),
+          ...header.diagnostics,
+          ...footer.diagnostics,
+          ...style.diagnostics,
+        ],
         headerHtml,
         footerHtml,
         pdfAttachments: body.pdfAttachments,

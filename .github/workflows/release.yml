@@ -76,6 +76,14 @@ jobs:
       - name: Build the standalone server and MCP package
         if: runner.os == 'Linux'
         run: npm run pack:distribution -- --prebuilt
+      - name: Retain the exact server candidate before desktop packaging
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: hall-server-candidate
+          retention-days: 7
+          path: dist/npm/*.tgz*
+          if-no-files-found: error
       - name: Package the current demonstration edition
         run: npm run make -w @hall/desktop
         env:

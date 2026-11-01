@@ -3,6 +3,7 @@ import { cp, mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises
 import { createRequire } from "node:module";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { installBuffersNotice } from "../../scripts/distribution/buffers-notice.mjs";
+import { installMinijinjaNotice } from "../../scripts/distribution/minijinja-notice.mjs";
 import MakerDmg from "./scripts/maker-dmg.mjs";
 import { prepareRpmTemplate } from "./scripts/rpm-compatibility.mjs";
 
@@ -90,6 +91,15 @@ async function copyProductionRuntime(buildPath) {
     const artifact = JSON.parse(await readFile(join(buildPath, "package.json"), "utf8"));
     await installBuffersNotice({
       buffersDirectory: join(buildPath, buffers.path),
+      outputDirectory: buildPath,
+      artifact: { name: "Hall", version: artifact.version },
+    });
+  }
+  const minijinja = manifest.find((entry) => entry.name === "minijinja-js");
+  if (minijinja) {
+    const artifact = JSON.parse(await readFile(join(buildPath, "package.json"), "utf8"));
+    await installMinijinjaNotice({
+      componentDirectory: join(buildPath, minijinja.path),
       outputDirectory: buildPath,
       artifact: { name: "Hall", version: artifact.version },
     });

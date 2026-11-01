@@ -16,10 +16,10 @@ function dataUrl(file: File): Promise<string> {
   });
 }
 
-const attribute = (value: string) => value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
+const imageLabel = (value: string) => value.replaceAll(/([\\[\]])/g, "\\$1");
 
 /**
- * The header or footer of a PDF template: the HTML fragment the PDF engine prints on every page, and a button that
+ * The header or footer of a PDF template: editable Markdown/Jinja printed on every page, and a button that
  * places a JPEG or PNG image in it, embedded so that the template carries its own logo.
  */
 // @implements-requirement HALL-FR-DOC-580
@@ -44,8 +44,8 @@ export function TemplateDecorationField({
     if (!["image/jpeg", "image/png"].includes(file.type)) return setProblem(t("templates.imageType"));
     if (file.size > maximumImageBytes) return setProblem(t("templates.imageTooLarge"));
     setProblem(null);
-    const image = `<img src="${await dataUrl(file)}" alt="${attribute(file.name)}" style="width:35mm">`;
-    onChange(value.trim() ? `${image}\n${value}` : image);
+    const image = `![${imageLabel(file.name)}](${await dataUrl(file)})`;
+    onChange(value.trim() ? `${image}\n\n${value}` : image);
   };
   return (
     <div className="grid gap-1.5" data-testid={testId}>

@@ -1,6 +1,6 @@
 {
   "name": "@hall/templating",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "license": "EUPL-1.2",
   "type": "module",
@@ -10,6 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./jinja": {
+      "types": "./dist/jinja.d.ts",
+      "default": "./dist/jinja.js"
     }
   },
   "scripts": {
@@ -20,6 +24,7 @@
   "dependencies": {
     "@hall/domain": "*",
     "mdast-util-directive": "^3.1.0",
+    "minijinja-js": "3.0.5",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "rehype-stringify": "^10.0.1",

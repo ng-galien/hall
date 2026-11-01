@@ -1,3 +1,5 @@
+import { jinjaBody } from "@hall/domain";
+
 if (!process.env.TEST_DATABASE_URL)
   throw new Error("TEST_DATABASE_URL is required; use the isolated test:postgres entry point");
 
@@ -63,7 +65,7 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
             kind,
             name: kind,
             documentType: kind === "pdf" ? "meeting-notice" : "meeting-notice-message",
-            bodyMarkdown: "::meeting-notice",
+            bodyMarkdown: jinjaBody("meeting-notice"),
             ...(kind === "message" ? { subject: "Convocation du conseil" } : {}),
           },
           201,

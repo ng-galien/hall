@@ -328,7 +328,10 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
         action("template.preview", "POST", "/api/templates/preview", "Preview a template"),
         {
           ...action("template.preview-pdf", "POST", "/api/templates/preview-pdf", "Preview a PDF"),
-          fields: [{ name: "bodyMarkdown", type: "text" }],
+          fields: ["bodyMarkdown", "kind", "documentType", "stylesheet", "headerHtml", "footerHtml"].map((name) => ({
+            name,
+            type: "text" as const,
+          })),
         },
       ]),
     "template-preview": () => [],

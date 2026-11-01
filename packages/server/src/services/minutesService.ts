@@ -1,5 +1,4 @@
 import type { GenerateMinutes, MinutesDetail, MinutesSummary, UpdateMinutesDraft } from "@hall/api-contract";
-import { collectDirectives, minutesSections, parse } from "@hall/templating";
 import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ContentTemplateService } from "./contentTemplateService.js";
 import { DomainError } from "./errors.js";
@@ -32,13 +31,6 @@ export function createMinutesService({
     if (templates.length === 0) throw new DomainError("template_not_found", 404);
     if (templates.length !== 1) throw new DomainError("template_invalid", 422);
     const template = templates[0]!;
-    const directives = collectDirectives(parse(template.bodyMarkdown)).filter((entry) => entry.name === "minutes");
-    if (
-      directives.length !== minutesSections.length ||
-      minutesSections.some((section) => directives.filter((entry) => entry.attributes.section === section).length !== 1)
-    ) {
-      throw new DomainError("template_invalid", 422);
-    }
     const generated = await contentTemplateService.generateFromTemplate(template, {
       context: { minutesId: id },
       attachmentResourceIds: [],

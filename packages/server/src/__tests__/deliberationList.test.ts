@@ -1,3 +1,4 @@
+import { jinjaBody } from "@hall/domain";
 import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
@@ -40,7 +41,12 @@ describe("list of deliberations examined in a closed meeting", () => {
     );
     await agent
       .post("/api/templates")
-      .send({ kind: "pdf", documentType: "deliberation-list", name: "Liste", bodyMarkdown: "::deliberation-list" })
+      .send({
+        kind: "pdf",
+        documentType: "deliberation-list",
+        name: "Liste",
+        bodyMarkdown: jinjaBody("deliberation-list"),
+      })
       .expect(201);
     const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
     const schedule = async (kind: "councilDecisionProposal" | "openQuestion", name: string, position: number) => {

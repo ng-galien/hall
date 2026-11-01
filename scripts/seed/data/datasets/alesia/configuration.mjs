@@ -4,10 +4,8 @@ export const alesiaMailPresentation = {
   outboundEmailFooterMarkdown: "*Démonstration Hall : commune, personnes et coordonnées fictives.*",
 };
 export const alesiaPdfPresentation = {
-  headerHtml:
-    '<div style="font-size:9px;width:100%;text-align:center">ALÉSIA · Conseil de l’oppidum · Démonstration</div>',
-  footerHtml:
-    '<div style="font-size:8px;width:100%;text-align:center">Démonstration Hall · Données fictives · <span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+  headerHtml: "ALÉSIA · Conseil de l’oppidum · Démonstration",
+  footerHtml: "Démonstration Hall · Données fictives · :page-number / :page-count",
   stylesheet:
     "body { font-family: Arial, sans-serif; color: #18263c; font-size: 11pt; line-height: 1.4; } h1, h2 { color: #102a83; break-after: avoid; } table { width: 100%; border-collapse: collapse; } th, td { padding: 4px; border-bottom: 1px solid #bbb; text-align: left; }",
 };

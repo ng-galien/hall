@@ -59,14 +59,14 @@ export interface HallSettings {
   updatedAt: IsoDateTime | null;
 }
 
-/** A Hall document or message template. Its editable source remains Markdown. */
+/** A Hall document or message template: editable Markdown with Jinja data expressions. */
 export interface ContentTemplate {
   id: Identifier;
   kind: TemplateKind;
   documentType: string;
   name: string;
   bodyMarkdown: string;
-  /** Only message templates carry a subject. It uses the same inline directive grammar. */
+  /** Only message templates carry a subject. Supports Markdown and Jinja. */
   subject: string | null;
   /** PDF-only presentation data, stored with the template rather than in application code. */
   stylesheet: string;

@@ -1,5 +1,4 @@
 import type { ContentTemplate } from "@hall/domain";
-import { parse, serialize } from "@hall/templating";
 import { useEffect, useId, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MarkdownEditor } from "../components/editor/MarkdownEditor";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { DocumentViewerDialog } from "../features/documents/DocumentViewerDialog";
+import { NativeDocumentFrame } from "../features/documents/NativeDocumentFrame";
 import { TemplateDecorationField } from "../features/templates/TemplateDecorationField";
 import { templateTypeLabel } from "../features/templates/templateTypes";
-import { useTemplateImageUpload } from "../features/templates/useTemplateImageUpload";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
@@ -36,7 +34,7 @@ const draftOf = (template: ContentTemplate): TemplateInput => ({
 });
 
 /**
- * One document template: its name, its text in Hall's editor, and for a PDF its header and footer with an embedded
+ * One document template: its exact Jinja source, and for a PDF its header and footer with an embedded
  * logo, previewed as the server renders it. Saving requires template.update; otherwise the page reads only.
  */
 // @implements-requirement HALL-FR-DOC-580
@@ -45,7 +43,6 @@ export function TemplatePage() {
   const { t } = useI18n();
   const id = useId();
   const { submitting, run } = useSubmitting();
-  const imageUpload = useTemplateImageUpload();
   const [saved, setSaved] = useState<TemplateInput | null>(null);
   const [draft, setDraft] = useState<TemplateInput | null>(null);
   const [canUpdate, setCanUpdate] = useState(false);
@@ -86,8 +83,7 @@ export function TemplatePage() {
   }
 
   const readOnly = !canUpdate;
-  const comparable = (input: TemplateInput) => ({ ...input, bodyMarkdown: serialize(parse(input.bodyMarkdown)) });
-  const dirty = JSON.stringify(comparable(draft)) !== JSON.stringify(comparable(saved));
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const change = (patch: Partial<TemplateInput>) => {
     setDraft((current) => (current ? { ...current, ...patch } : current));
     setSavedOnce(false);
@@ -183,15 +179,25 @@ export function TemplatePage() {
             />
           )}
           <div className="grid gap-1.5" data-testid="template-body">
-            <span className="text-sm font-medium">{t("templates.body")}</span>
-            <MarkdownEditor
-              testId="template-body-editor"
-              markdown={draft.bodyMarkdown}
-              title={draft.name}
+            <Label htmlFor={`${id}-body`}>{t("templates.body")}</Label>
+            <p className="text-xs text-muted-foreground" id={`${id}-body-help`}>
+              {t("templates.jinjaHelp")}
+            </p>
+            <Textarea
+              id={`${id}-body`}
+              data-testid="template-body-editor"
+              aria-describedby={`${id}-body-help`}
+              className="font-mono min-h-96 whitespace-pre"
+              spellCheck={false}
+              value={draft.bodyMarkdown}
               readOnly={readOnly}
-              onUploadImage={!readOnly && imageUpload.canUpload ? imageUpload.upload : undefined}
-              onChange={(bodyMarkdown) => change({ bodyMarkdown })}
+              onChange={(event) => change({ bodyMarkdown: event.currentTarget.value })}
             />
+            <details className="text-sm">
+              <summary>{t("templates.jinjaExamples")}</summary>
+              <p className="my-2 text-xs text-muted-foreground">{t("templates.jinjaData")}</p>
+              <pre className="overflow-auto text-xs">{`{% for point in minutes.points %}\n## {{ point.number }}. {{ point.title | text }}\n\n{% if point.subjectText %}\n### Sujet présenté\n\n{{ point.subjectText | markdown }}\n{% endif %}\n\n### Discussion\n\n{{ point.narrative | markdown }}\n\n{% if point.ballot %}\nPour : {{ point.ballot.totals.approve }}\n{% endif %}\n{% endfor %}\n\n::page-break\n\nPage :page-number / :page-count`}</pre>
+            </details>
           </div>
           {draft.kind === "pdf" ? (
             <TemplateDecorationField
@@ -235,20 +241,38 @@ export function TemplatePage() {
                     })
                   : t("templates.previewNoSource")}
               </p>
-              {preview?.diagnostics.length ? <p role="alert">{t("templates.previewIncomplete")}</p> : null}
+              {preview?.diagnostics.length ? (
+                <div role="alert">
+                  <p>{t("templates.previewIncomplete")}</p>
+                  <ul className="list-disc pl-5 text-sm">
+                    {[...new Set(preview.diagnostics.map((diagnostic) => diagnostic.message))].map((message) => (
+                      <li key={message}>{message}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               {preview?.subject ? (
                 <p>
                   <strong>{t("templates.subject")}</strong> : {preview.subject}
                 </p>
               ) : null}
             </div>
-            <iframe
-              className="template-preview-frame"
-              title={`${t("templates.previewTitle")} · ${draft.name}`}
-              sandbox="allow-same-origin"
-              srcDoc={preview?.html ?? ""}
-              data-testid="template-preview-frame"
-            />
+            {preview.pdfUrl ? (
+              <NativeDocumentFrame
+                url={preview.pdfUrl}
+                mediaType="application/pdf"
+                title={`${t("templates.previewTitle")} · ${draft.name}`}
+                testId="template-preview-frame"
+              />
+            ) : (
+              <iframe
+                className="template-preview-frame"
+                title={`${t("templates.previewTitle")} · ${draft.name}`}
+                sandbox="allow-same-origin"
+                srcDoc={preview?.html ?? ""}
+                data-testid="template-preview-frame"
+              />
+            )}
           </DocumentViewerDialog>
         ) : null}
       </div>

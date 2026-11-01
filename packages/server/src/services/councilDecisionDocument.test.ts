@@ -148,7 +148,7 @@ it("uses configured identity only when decision facts have no municipality and n
     hallSettingsRepository: { get: async () => ({ name: "Current municipality", timeZone: "Europe/Paris" }) },
   } as unknown as Parameters<typeof createTemplateRenderingService>[0]);
   const template = {
-    bodyMarkdown: "::council-decision{section=facts}",
+    bodyMarkdown: "# Commune de {{ decision.facts.hall.name | text }}",
     subject: null,
     stylesheet: "",
     headerHtml: "",

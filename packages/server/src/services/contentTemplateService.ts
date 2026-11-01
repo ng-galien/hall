@@ -1,11 +1,12 @@
 import type { CouncilDecisionDetail, MeetingNoticeFacts } from "@hall/contracts";
 import {
   type ContentTemplate,
+  defaultDocumentTemplates,
   type GeneratedDocumentType,
-  generatedDocumentTemplates,
   type TemplateRenderContext,
 } from "@hall/domain";
-import { collectDirectives, type Diagnostic, parse, serialize } from "@hall/templating";
+import type { Diagnostic } from "@hall/templating";
+import { validateJinja } from "@hall/templating/jinja";
 import MailComposer from "nodemailer/lib/mail-composer/index.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type {
@@ -16,6 +17,7 @@ import type {
 } from "../repositories/contracts.js";
 import type { DocumentRenderer } from "./documentRenderer.js";
 import { DomainError } from "./errors.js";
+import type { GeneratedTemplateData } from "./templateData.js";
 import type { TemplatePreviewContext, TemplatePreviewContextService } from "./templatePreviewContextService.js";
 import type { TemplatePreview, TemplateRenderingService } from "./templateRendering.js";
 
@@ -54,44 +56,50 @@ export interface ContentTemplateService {
   update(id: string, input: SaveContentTemplate): Promise<ContentTemplate>;
   delete(id: string): Promise<void>;
   preview(draft: TemplateDraft, context: TemplateRenderContext): Promise<TemplatePreview>;
+  previewPdfDraft(draft: TemplateDraft, context: TemplateRenderContext): Promise<Buffer>;
   previewPdf(bodyMarkdown: string, context: TemplateRenderContext, attachPdfDocuments?: boolean): Promise<Buffer>;
   generatedPreview(
     type: GeneratedDocumentType,
     bodyMarkdown: string,
     subject: string | null,
     context?: TemplateRenderContext,
+    attachPdfDocuments?: boolean,
+    generatedData?: GeneratedTemplateData,
   ): Promise<TemplatePreview>;
   generatedPdf(
     type: GeneratedDocumentType,
     bodyMarkdown: string,
     context?: TemplateRenderContext,
     attachPdfDocuments?: boolean,
+    generatedData?: GeneratedTemplateData,
   ): Promise<Buffer>;
   generate(id: string, input: GenerateTemplateInput): Promise<GeneratedFile>;
   generateFromTemplate(template: ContentTemplate, input: GenerateTemplateInput): Promise<GeneratedFile>;
 }
 
-function canonicalSource(source: string): string {
-  return serialize(parse(source));
+const markdownExpression = (source: string): string => `{{ ${JSON.stringify(source)} | markdown }}`;
+
+function validatedTemplate(input: SaveContentTemplate): SaveContentTemplate {
+  validateTemplateFamily(input);
+  try {
+    for (const source of [input.bodyMarkdown, input.subject, input.stylesheet, input.headerHtml, input.footerHtml]) {
+      if (source) validateJinja(source);
+    }
+  } catch (error) {
+    throw new DomainError(
+      "template_invalid",
+      422,
+      "template_invalid",
+      error instanceof Error ? error.message : undefined,
+    );
+  }
+  return input;
 }
 
-function canonicalTemplate(input: SaveContentTemplate): SaveContentTemplate {
-  validateGeneratedTemplate(input);
-  return {
-    ...input,
-    bodyMarkdown: canonicalSource(input.bodyMarkdown),
-    subject: input.subject === null ? null : canonicalSource(input.subject).trim(),
-  };
-}
-
-function validateGeneratedTemplate(template: Pick<ContentTemplate, "kind" | "documentType" | "bodyMarkdown">): void {
-  const generatedType = generatedDocumentTemplates.find((entry) => entry.documentType === template.documentType);
+function validateTemplateFamily(template: Pick<ContentTemplate, "kind" | "documentType" | "bodyMarkdown">): void {
+  const generatedType = defaultDocumentTemplates.find((entry) => entry.documentType === template.documentType);
   if (!generatedType) return;
-  const slots = collectDirectives(parse(template.bodyMarkdown)).filter(
-    (directive) => directive.name === "generated-content",
-  );
-  if (template.kind !== generatedType.kind || slots.length !== 1 || slots[0]?.node !== "leafDirective")
-    throw new DomainError("template_invalid", 422);
+  if (template.kind !== generatedType.kind) throw new DomainError("template_invalid", 422);
 }
 
 function assertRenderable(diagnostics: Diagnostic[]): void {
@@ -193,6 +201,7 @@ export function createContentTemplateService({
     return {
       ...draft,
       bodyMarkdown: [draft.bodyMarkdown, hall.outboundEmailSignatureMarkdown, hall.outboundEmailFooterMarkdown]
+        .map((part, index) => (index > 0 && part ? markdownExpression(part) : part))
         .filter((part) => part?.trim())
         .join("\n\n"),
     };
@@ -203,14 +212,15 @@ export function createContentTemplateService({
     subject: string | null,
     context: TemplateRenderContext = {},
     attachPdfDocuments = false,
+    generatedData?: GeneratedTemplateData,
   ) => {
     const templates = (await contentTemplateRepository.list()).filter((candidate) => candidate.documentType === type);
     if (templates.length !== 1) throw new DomainError("template_not_found", 404);
-    validateGeneratedTemplate(templates[0]!);
+    validateTemplateFamily(templates[0]!);
     const template = await messagePresentation(templates[0]!);
     return templateRenderingService.preview(template, context, undefined, undefined, {
       attachPdfDocuments,
-      generated: { bodyMarkdown, subject },
+      generated: { bodyMarkdown, subject, data: generatedData },
     });
   };
   const generatedPdf = async (
@@ -218,9 +228,10 @@ export function createContentTemplateService({
     bodyMarkdown: string,
     context: TemplateRenderContext = {},
     attachPdfDocuments = false,
+    generatedData?: GeneratedTemplateData,
   ) =>
     withGenerationSlot(async () => {
-      const preview = await generatedPreview(type, bodyMarkdown, null, context, attachPdfDocuments);
+      const preview = await generatedPreview(type, bodyMarkdown, null, context, attachPdfDocuments, generatedData);
       assertRenderable(preview.diagnostics);
       const content = await documentRenderer.pdf({
         html: preview.printHtml,
@@ -238,10 +249,10 @@ export function createContentTemplateService({
     generatedPdf,
     list: () => contentTemplateRepository.list(),
     find,
-    create: (input) => unitOfWork.execute(() => contentTemplateRepository.create(canonicalTemplate(input))),
+    create: (input) => unitOfWork.execute(() => contentTemplateRepository.create(validatedTemplate(input))),
     async update(id, input) {
       return unitOfWork.execute(async () => {
-        const template = await contentTemplateRepository.update(id, canonicalTemplate(input));
+        const template = await contentTemplateRepository.update(id, validatedTemplate(input));
         if (!template) throw new DomainError("template_not_found", 404);
         return template;
       });
@@ -277,6 +288,17 @@ export function createContentTemplateService({
     },
     previewPdf: (bodyMarkdown, context, attachPdfDocuments = true) =>
       generatedPdf("document-print", bodyMarkdown, context, attachPdfDocuments),
+    previewPdfDraft(draft, context) {
+      return withGenerationSlot(async () => {
+        const preview = await this.preview(draft, context);
+        assertRenderable(preview.diagnostics);
+        return documentRenderer.pdf({
+          html: preview.printHtml,
+          headerHtml: preview.headerHtml,
+          footerHtml: preview.footerHtml,
+        });
+      });
+    },
     async generate(id, input) {
       return this.generateFromTemplate(await find(id), input);
     },

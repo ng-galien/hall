@@ -80,15 +80,27 @@ export interface TemplatePreviewResult {
   subject: string | null;
   sourceLabel: string | null;
   sourceKind?: "meeting";
+  pdfUrl?: string;
   diagnostics: Array<{ code: string; message: string; severity: "error" | "warning" }>;
 }
 
 /** The server rendering of a draft: the HTML the PDF engine prints, header and footer included. */
 export async function previewTemplate(template: TemplateInput): Promise<TemplatePreviewResult> {
-  return (
+  const preview = (
     await submitSirenActionAt<TemplatePreviewResult>("/templates", "template.preview", {
       ...templateInput(template),
       context: {},
     })
   ).data;
+  if (template.kind === "pdf" && !preview.diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
+    const representation = await sirenRepresentation("/templates");
+    const action = findSirenAction(representation, "template.preview-pdf");
+    if (!action) throw new SirenCapabilityUnavailable("template.preview-pdf");
+    const result = await apiRequest<{ url: string }>(`${apiPathFromHref(action.href)}?delivery=url`, {
+      method: action.method,
+      body: JSON.stringify({ ...templateInput(template), context: {} }),
+    });
+    return { ...preview, pdfUrl: result.url };
+  }
+  return preview;
 }

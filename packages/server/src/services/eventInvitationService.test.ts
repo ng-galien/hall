@@ -91,6 +91,9 @@ describe("event calendar invitation", () => {
       "event-invitation",
       expect.stringContaining("Préparer le dossier."),
       expect.any(String),
+      {},
+      false,
+      expect.objectContaining({ event: expect.objectContaining({ name: expect.any(String), method: "request" }) }),
     );
     expect(request.mediaType).toBe("message/rfc822");
     expect(requestText).toContain("alice@example.test");

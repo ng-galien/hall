@@ -30,6 +30,8 @@ SELECT hall_api.update_council_agenda_item_notes((SELECT (item->>'id')::uuid FRO
 SELECT complete_non_voting_agenda_item((SELECT (item->>'id')::uuid FROM added),clock_timestamp());
 SELECT is((SELECT count(*)::int FROM ballots WHERE council_agenda_item=(SELECT (item->>'id')::uuid FROM added)),0,'open question completion creates no ballot');
 SELECT close_council_meeting(test_uuid('addition:meeting'),clock_timestamp());
+-- @verifies-requirement HALL-FR-MIN-160
+SELECT is((SELECT facts#>>'{agenda,1,title}' FROM minutes WHERE council_meeting=test_uuid('addition:meeting')),'Question en fin de séance','minutes capture the title of an in-meeting addition absent from the frozen notice');
 SELECT is((SELECT hall_api.open_minutes(id)#>>'{facts,agenda,1,introducedAt}' FROM minutes WHERE council_meeting=test_uuid('addition:meeting')),(SELECT item->>'introducedAt' FROM added),'minutes retain the addition timestamp');
 SELECT is((SELECT hall_api.open_minutes(id)#>>'{sections,1,content}' FROM minutes WHERE council_meeting=test_uuid('addition:meeting')),'Échanges consignés','minutes retain the discussion');
 SELECT throws_ok($$SELECT hall_api.add_open_question(test_uuid('addition:meeting'),'seed','Too late','')$$,'HV235',NULL,'closed meeting refuses addition');

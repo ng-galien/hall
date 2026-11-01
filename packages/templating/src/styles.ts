@@ -8,7 +8,8 @@ export const baseRenderStylesheet = `
 }
 * { box-sizing: border-box; }
 body { margin: 0; }
-h1, h2, h3 { break-after: avoid; }
+.hall-page-break { break-before: page; height: 0; }
+h1, h2, h3, h4, h5, h6 { break-after: avoid; }
 p, li { orphans: 3; widows: 3; }
 table { width: 100%; border-collapse: collapse; }
 thead { display: table-header-group; }

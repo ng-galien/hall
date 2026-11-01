@@ -1,3 +1,5 @@
+import { jinjaBody } from "@hall/domain";
+
 if (!process.env.TEST_DATABASE_URL)
   throw new Error("TEST_DATABASE_URL is required; use the isolated test:postgres entry point");
 
@@ -196,8 +198,7 @@ postgresTest(
           kind: "pdf",
           documentType: "council-decision",
           name: "Decision template",
-          bodyMarkdown:
-            "# Council decision\n\n::council-decision{section=facts}\n\n::council-decision{section=content}\n\n::council-decision{section=result}",
+          bodyMarkdown: jinjaBody("council-decision"),
         },
         201,
       );

@@ -1,6 +1,8 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
+test.use({ seedScenario: "minutes" });
+
 /* Modèles de documents: the templates Hall generates from, edited with an embedded logo, and the missing one created. */
 
 const png = Buffer.from(
@@ -36,23 +38,20 @@ test("an editor changes a template's name, text and header with a logo, then fin
   await expect(page.getByTestId("template-editor")).toBeVisible();
 
   await page.getByTestId("template-name").fill("Procès-verbal de la mairie");
-  await page.getByTestId("template-header-source").fill('<div style="font-size:10px">Mairie d’Alésia</div>');
+  await page.getByTestId("template-header-source").fill("Mairie d’Alésia");
   const logo = page.waitForEvent("filechooser");
   await page.getByTestId("template-header-insert-image").click();
   await (await logo).setFiles({ name: "blason.png", mimeType: "image/png", buffer: png });
-  await expect(page.getByTestId("template-header-source")).toHaveValue(/^<img src="data:image\/png;base64,/);
+  await expect(page.getByTestId("template-header-source")).toHaveValue(/^!\[blason.png\]\(data:image\/png;base64,/);
 
-  const body = page.getByTestId("template-body");
-  await body.getByTestId("editor-writing-area").click();
-  await page.keyboard.press("ControlOrMeta+End");
-  await page.keyboard.press("Enter");
-  await page.keyboard.type("Texte ajouté au modèle.");
+  const body = page.getByTestId("template-body-editor");
+  const source = await body.inputValue();
+  const edited = `${source}\n\nTexte ajouté au modèle.\n\n::page-break\n\n## Deuxième page imposée\n`;
+  await body.fill(edited);
   const desktopViewport = page.viewportSize()!;
   await page.setViewportSize({ width: 390, height: 844 });
-  const bodyImage = page.waitForEvent("filechooser");
-  await body.getByTestId("editor-choose-image").click();
-  await (await bodyImage).setFiles({ name: "plan.png", mimeType: "image/png", buffer: png });
-  await expect(body.locator(".editor-image-node")).toHaveCount(1);
+  await expect(body).toBeVisible();
+  await expect(body).toHaveValue(edited);
   await page.setViewportSize(desktopViewport);
 
   await expect(page.getByTestId("template-unsaved")).toBeVisible();
@@ -62,18 +61,19 @@ test("an editor changes a template's name, text and header with a logo, then fin
   await page.reload();
   await expect(page.getByTestId("template-name")).toHaveValue("Procès-verbal de la mairie");
   await expect(page.getByTestId("template-header-source")).toHaveValue(/data:image\/png;base64,[\s\S]*Mairie d’Alésia/);
-  await expect(page.getByTestId("template-body").locator(".editor-image-node")).toHaveCount(1);
+  await expect(page.getByTestId("template-body-editor")).toHaveValue(edited);
   const saved = (await templates(page)).find((entry) => entry.id === minutes.id)!;
   expect(saved.bodyMarkdown).toContain("Texte ajouté au modèle.");
-  expect(saved.bodyMarkdown).toMatch(/::image\[[^\]]*\]\{#[0-9a-f-]{36}/);
-  expect(saved.bodyMarkdown.match(/::minutes\{section="?facts"?\}/g)).toHaveLength(1);
-  expect(saved.bodyMarkdown.match(/::minutes\{section="?proceedings"?\}/g)).toHaveLength(1);
+  expect(saved.bodyMarkdown).toBe(edited);
+  expect(saved.bodyMarkdown).toContain("{% for point in minutes.points %}");
+  expect(saved.bodyMarkdown).not.toContain("::minutes");
 
   await page.getByTestId("template-preview").click();
-  const frame = page.frameLocator('[data-testid="template-preview-frame"]');
-  await expect(frame.locator("header")).toContainText("Mairie d’Alésia");
-  await expect(frame.locator('header img[src^="data:image/png"]')).toHaveCount(1);
-  await expect(frame.locator("body")).toContainText("Texte ajouté au modèle.");
+  const frame = page.getByTestId("template-preview-frame");
+  await expect(frame).toHaveAttribute("src", /\/api\/templates\/preview-pdf\//);
+  const pdf = await page.request.get((await frame.getAttribute("src"))!);
+  expect(pdf.headers()["content-type"]).toContain("application/pdf");
+  expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
 });
 
 // @verifies-requirement HALL-FR-DOC-580
@@ -93,7 +93,9 @@ test("the missing template of a document type is created from its starting text,
   await expect(page.getByTestId("template-name")).toHaveValue("Délibération de la mairie");
   const decisions = (await templates(page)).filter((entry) => entry.documentType === "council-decision");
   expect(decisions).toHaveLength(1);
-  expect(decisions[0]!.bodyMarkdown.match(/::council-decision/g)).toHaveLength(3);
+  expect(decisions[0]!.bodyMarkdown).toContain("decision.facts");
+  expect(decisions[0]!.bodyMarkdown).toContain("decision.content | markdown");
+  expect(decisions[0]!.bodyMarkdown).not.toContain("::council-decision");
 
   await page.goto("/app/templates");
   await page.getByTestId("templates-add").click();

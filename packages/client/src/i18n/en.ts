@@ -1374,11 +1374,16 @@ export const en = {
   "templates.type.minutes": "Minutes",
   "templates.type.councilDecision": "Council decision",
   "templates.type.deliberationList": "List of deliberations",
-  "templates.body": "Text",
+  "templates.body": "Markdown and Jinja template",
+  "templates.jinjaHelp":
+    "Write Markdown headings (# Title), paragraphs, lists and tables. {{ … }} displays data; {% for … %} and {% if … %} provide loops and conditions. Separate paragraphs with a blank line; two trailing spaces create a line break.",
+  "templates.jinjaExamples": "Data and layout examples",
+  "templates.jinjaData":
+    "Data by document: hall, meeting, notice, minutes.points, decision, deliberations, dossier and event. The markdown filter inserts authored text; text protects scalar values; date and datetime format dates. ::page-break starts a page. Use :page-number and :page-count in the header or footer. PDF preview shows the actual pages.",
   "templates.subject": "Message subject",
   "templates.header": "Header",
   "templates.footer": "Footer",
-  "templates.decorationHelp": "HTML fragment printed on every page: text, table or image.",
+  "templates.decorationHelp": "Markdown and Jinja printed on every page. Pagination: Page :page-number / :page-count.",
   "templates.insertImage": "Insert an image",
   "templates.imageTooLarge": "The image exceeds 60 KB: choose a lighter image.",
   "templates.imageType": "Choose a JPEG or PNG image.",

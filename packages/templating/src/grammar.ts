@@ -40,6 +40,9 @@ export type DirectiveKind =
   | "resource-embed"
   | "field"
   | "minutes"
+  | "page-break"
+  | "page-number"
+  | "page-count"
   | "generated-content"
   | "meeting-notice"
   | "deliberation-list"
@@ -72,6 +75,9 @@ const reference = (name: ReferenceKind): DirectiveSpec => ({
 
 export const directiveSpecs: readonly DirectiveSpec[] = [
   ...referenceKinds.map(reference),
+  { name: "page-break", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },
+  { name: "page-number", node: "textDirective", label: false, attributes: [], attributesRequired: [] },
+  { name: "page-count", node: "textDirective", label: false, attributes: [], attributesRequired: [] },
   { name: "generated-content", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },
   { name: "meeting-notice", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },
   { name: "deliberation-list", node: "leafDirective", label: false, attributes: [], attributesRequired: [] },

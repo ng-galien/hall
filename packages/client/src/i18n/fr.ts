@@ -1400,11 +1400,17 @@ export const fr: Messages = {
   "templates.type.minutes": "Procès-verbal",
   "templates.type.councilDecision": "Délibération",
   "templates.type.deliberationList": "Liste des délibérations",
-  "templates.body": "Texte",
+  "templates.body": "Modèle Markdown et Jinja",
+  "templates.jinjaHelp":
+    "Écrivez des titres (# Titre), paragraphes, listes et tableaux Markdown. {{ … }} affiche une donnée ; {% for … %} et {% if … %} permettent les boucles et les conditions. Séparez les paragraphes par une ligne vide ; deux espaces en fin de ligne créent un retour à la ligne.",
+  "templates.jinjaExamples": "Données et exemples de mise en page",
+  "templates.jinjaData":
+    "Données selon le document : hall, meeting, notice, minutes.points, decision, deliberations, dossier et event. Le filtre markdown insère un texte rédigé ; text protège les valeurs simples ; date et datetime formatent les dates. ::page-break commence une page. :page-number et :page-count s’utilisent dans l’en-tête ou le pied. L’aperçu PDF montre les pages réelles.",
   "templates.subject": "Objet du message",
   "templates.header": "En-tête",
   "templates.footer": "Pied de page",
-  "templates.decorationHelp": "Fragment HTML imprimé sur chaque page : texte, tableau ou image.",
+  "templates.decorationHelp":
+    "Markdown et Jinja imprimés sur chaque page. Pagination : Page :page-number / :page-count.",
   "templates.insertImage": "Insérer une image",
   "templates.imageTooLarge": "L’image dépasse 60 Ko : choisissez une image plus légère.",
   "templates.imageType": "Choisissez une image JPEG ou PNG.",

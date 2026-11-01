@@ -4,7 +4,6 @@ import type {
   FreezeCouncilDecision,
   UpdateCouncilDecisionDraft,
 } from "@hall/api-contract";
-import { collectDirectives, councilDecisionSections, parse } from "@hall/templating";
 import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
 import type { ContentTemplateService } from "./contentTemplateService.js";
 import { DomainError } from "./errors.js";
@@ -36,13 +35,6 @@ export function createCouncilDecisionService({
     );
     if (templates.length !== 1) throw new DomainError("template_invalid", 422);
     const template = templates[0]!;
-    const directives = collectDirectives(parse(template.bodyMarkdown)).filter((d) => d.name === "council-decision");
-    if (
-      directives.length !== councilDecisionSections.length ||
-      councilDecisionSections.some((section) => directives.filter((d) => d.attributes.section === section).length !== 1)
-    ) {
-      throw new DomainError("template_invalid", 422);
-    }
     return (
       await contentTemplateService.generateFromTemplate(template, {
         councilDecision: decision,

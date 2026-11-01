@@ -6,14 +6,15 @@ import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
 import { eventInvitationSource } from "./eventInvitationService.js";
-import { coverMarkdown, type DossierPiece, pointMarkdown } from "./meetingDossierService.js";
+import { coverMarkdown, type DossierPiece, dossierTemplateData, pointMarkdown } from "./meetingDossierService.js";
+import type { GeneratedTemplateData } from "./templateData.js";
 
 export interface TemplatePreviewContext {
   context: TemplateRenderContext;
   sourceLabel: string | null;
   sourceKind?: "meeting";
   councilDecision?: CouncilDecisionDetail;
-  generated?: { bodyMarkdown: string; subject: string | null };
+  generated?: { bodyMarkdown: string; subject: string | null; data?: GeneratedTemplateData };
 }
 export interface TemplatePreviewContextService {
   resolve(documentType: string, context: TemplateRenderContext): Promise<TemplatePreviewContext>;
@@ -80,7 +81,10 @@ export function createTemplatePreviewContextService({
             return {
               context,
               sourceLabel: resource.name,
-              generated: eventInvitationSource(resource.name, resource.document.content, "request"),
+              generated: {
+                ...eventInvitationSource(resource.name, resource.document.content, "request"),
+                data: { event: { id: resource.id, name: resource.name, ...resource.document, method: "request" } },
+              },
             };
           }
         }
@@ -104,7 +108,11 @@ export function createTemplatePreviewContextService({
         };
         if (documentType === "meeting-dossier-cover") {
           const hall = await hallSettingsRepository.get();
-          selected.generated = { bodyMarkdown: coverMarkdown(facts, hall.name, hall.timeZone), subject: null };
+          selected.generated = {
+            bodyMarkdown: coverMarkdown(facts, hall.name, hall.timeZone),
+            subject: null,
+            data: dossierTemplateData(facts),
+          };
         }
         if (documentType === "meeting-dossier-point") {
           const agenda = await councilClient.listAgenda(meeting.id);
@@ -123,6 +131,7 @@ export function createTemplatePreviewContextService({
           selected.generated = {
             bodyMarkdown: pointMarkdown(frozen, item, report?.kind === "text" ? report.content : null, pieces),
             subject: null,
+            data: dossierTemplateData(facts, frozen, item, report?.kind === "text" ? report.content : null, pieces),
           };
           selected.sourceLabel = `${selected.sourceLabel} · ${frozen.title}`;
         }

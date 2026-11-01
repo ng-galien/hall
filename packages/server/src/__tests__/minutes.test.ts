@@ -1,4 +1,5 @@
 import type { MinutesDetail, MinutesSummary } from "@hall/api-contract";
+import { jinjaBody } from "@hall/domain";
 import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
@@ -39,7 +40,7 @@ describe("dedicated minutes HTTP lifecycle", () => {
       kind: "pdf",
       documentType: "minutes",
       name: "PV de test",
-      bodyMarkdown: "# Mon procès-verbal\n\n::minutes{section=facts}\n\n::minutes{section=proceedings}",
+      bodyMarkdown: jinjaBody("minutes").replace("Procès-verbal du conseil", "Mon procès-verbal"),
       stylesheet: "h1 { color: #123456; font-size: 32px; }",
     };
     const template = domainBody<{ id: string }>(await agent.post("/api/templates").send(templateInput).expect(201));

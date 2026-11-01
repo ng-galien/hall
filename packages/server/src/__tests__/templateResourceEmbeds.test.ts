@@ -74,7 +74,7 @@ async function extractedPdfText(content: Buffer): Promise<string> {
 }
 
 describe("authoritative resource presentation rendering", () => {
-  it("reports missing meeting, minutes and decision contexts instead of inventing official document facts", async () => {
+  it("rejects former opaque template directives instead of assembling legacy document blocks", async () => {
     const { container } = await createServiceTestServer();
     const preview = await container.cradle.templateRenderingService.preview(
       template(
@@ -86,15 +86,8 @@ describe("authoritative resource presentation rendering", () => {
         ].join("\n\n"),
       ),
     );
-    expect(preview.diagnostics.filter(({ code }) => code === "unresolved_reference")).toHaveLength(4);
-    expect(preview.diagnostics.map(({ message }) => message)).toEqual(
-      expect.arrayContaining([
-        "A frozen meeting notice context is required",
-        "Minutes context or section unavailable",
-        "Council decision context or section unavailable",
-        "Required context is unavailable for field meeting.location",
-      ]),
-    );
+    expect(preview.diagnostics.filter(({ code }) => code === "unknown_directive")).toHaveLength(4);
+    expect(preview.diagnostics.filter(({ message }) => message.includes("no longer supported"))).toHaveLength(4);
     expect(preview.pdfAttachments).toEqual([]);
   });
 

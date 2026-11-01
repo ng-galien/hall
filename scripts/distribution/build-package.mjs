@@ -6,6 +6,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { build } from "esbuild";
 import { verifyBuild } from "../testing/build.mjs";
 import { installBuffersNotice } from "./buffers-notice.mjs";
+import { installMinijinjaNotice } from "./minijinja-notice.mjs";
 
 // @implements-requirement HALL-TR-DST-010
 const root = resolve(import.meta.dirname, "../..");
@@ -133,6 +134,11 @@ const buffersNotice = await installBuffersNotice({
   outputDirectory: stage,
   artifact: { name: manifest.name, version: manifest.version },
 });
+const minijinjaNotice = await installMinijinjaNotice({
+  componentDirectory: dirname(requireRuntime.resolve("minijinja-js/package.json")),
+  outputDirectory: stage,
+  artifact: { name: manifest.name, version: manifest.version },
+});
 const { loadSchemaManifest } = await import("../../packages/postgres/dist/schemaManifest.js");
 await writeFile(
   join(stage, "release.json"),
@@ -145,7 +151,7 @@ await writeFile(
         dirty: Boolean(spawnSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" }).stdout?.trim()),
       },
       schemaFingerprint: (await loadSchemaManifest()).fingerprint,
-      thirdPartyNotices: [buffersNotice],
+      thirdPartyNotices: [buffersNotice, minijinjaNotice],
       runtimeDependencies: Object.fromEntries(
         Object.keys(manifest.dependencies).map((name) => {
           const { version, resolved, integrity } = lock.packages[`node_modules/${name}`];

@@ -57,19 +57,19 @@ describe("content templates", () => {
         kind: "message",
         documentType: "meeting-notice-message",
         name: "Message de convocation",
-        subject: ":field{name=meeting.startsAt}",
-        bodyMarkdown: `Bonjour :member[Ancien libellé]{#${member.id}}, rendez-vous le :field{name=meeting.startsAt}.`,
+        subject: "{{ meeting.scheduledAt | datetime }}",
+        bodyMarkdown: `Bonjour :member[Ancien libellé]{#${member.id}}, rendez-vous le {{ meeting.scheduledAt | datetime }}.`,
       })
       .expect(201);
     const template = domainBody<{ id: string; subject: string }>(created);
-    expect(template.subject).toBe(':field{name="meeting.startsAt"}');
+    expect(template.subject).toBe("{{ meeting.scheduledAt | datetime }}");
     expect((created.body.actions ?? []).map((item: { name: string }) => item.name)).toContain("template.generate");
 
     const previewResponse = await agent
       .post("/api/templates/preview")
       .send({
         kind: "message",
-        subject: ":field{name=meeting.startsAt}",
+        subject: "{{ meeting.scheduledAt | datetime }}",
         bodyMarkdown: `Bonjour :member[Ancien libellé]{#${member.id}}.`,
         context: { meetingId: meeting.id },
       })
@@ -103,7 +103,7 @@ describe("content templates", () => {
         kind: "message",
         documentType: "meeting-notice-message",
         name: "Message de convocation actualisé",
-        subject: ":field{name=meeting.startsAt}",
+        subject: "{{ meeting.scheduledAt | datetime }}",
         bodyMarkdown: `Bonjour :member[Ancien libellé]{#${member.id}}.`,
       })
       .expect(200);
@@ -264,7 +264,7 @@ describe("content templates", () => {
           kind: "pdf",
           documentType: "meeting-notice",
           name: "Convocation PDF",
-          bodyMarkdown: "# Convocation\n\nLieu : :field{name=meeting.location}",
+          bodyMarkdown: "# Convocation\n\nLieu : {{ meeting.location | text }}",
           stylesheet: "h1 { color: #102a83; }",
           headerHtml: "<div>Hall</div>",
           footerHtml: "<div>Conseil municipal</div>",
@@ -349,7 +349,7 @@ describe("content templates", () => {
           kind: "pdf",
           documentType: "meeting-notice",
           name: "Convocation",
-          bodyMarkdown: "# Convocation\n\nLieu : :field{name=meeting.location}",
+          bodyMarkdown: "# Convocation\n\nLieu : {{ meeting.location | text }}",
           headerHtml: "<div>Ancien en-tête</div>",
           footerHtml: "<div>Conseil municipal</div>",
         })
@@ -370,7 +370,7 @@ describe("content templates", () => {
       kind: "pdf",
       documentType: "meeting-notice",
       name: "Convocation de la mairie",
-      bodyMarkdown: `# Convocation du conseil\n\n::image[Blason]{#${logo.id} align="center" width="40"}\n\nLieu : :field{name=meeting.location}`,
+      bodyMarkdown: `# Convocation du conseil\n\n::image[Blason]{#${logo.id} align="center" width="40"}\n\nLieu : {{ meeting.location | text }}`,
       stylesheet: "",
       headerHtml: `${headerImage}<div>Mairie d’Alésia</div>`,
       footerHtml: "<div>Hôtel de ville</div>",

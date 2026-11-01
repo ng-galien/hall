@@ -38,8 +38,12 @@ function officerChange(change: OfficerChange): string {
  * The printable facts come exclusively from the immutable closure snapshot.
  * @implements-requirement HALL-FR-MTG-350 (each item examined in closed session, and the closed sessions decided)
  * @implements-requirement HALL-FR-MTG-290 (the quorum observed at the opening)
+ * @implements-requirement HALL-FR-MIN-250 (council narrative and aggregate votes in the template)
  */
-export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSection, string> {
+export function renderMinutesSections(
+  minutes: MinutesDetail,
+  subjectTexts: ReadonlyMap<string, string> = new Map(),
+): Record<MinutesSection, string> {
   const { meeting, attendance, agenda, ballots, recusals, conduct } = minutes.facts;
   const rows = attendance.map((entry) => {
     const status = matchLiteral(entry.status, {
@@ -61,7 +65,7 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
     const votes = ballot?.votes ?? [];
     const total = (choice: "approve" | "reject" | "abstain" | "blank" | "invalid") =>
       votes.filter((vote) => vote.choice === choice).reduce((sum, vote) => sum + vote.count, 0);
-    const outcome = item.adjournedAt ? "Ajourné" : item.completedAt ? "Examiné" : "Non examiné";
+    const outcome = item.adjournedAt ? "Ajourné" : item.completedAt ? "" : "Non examiné";
     const result =
       item.kind === "minutesApproval"
         ? ballot?.completedAt && ballot.result === "approve"
@@ -70,31 +74,21 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
         : !ballot?.completedAt || ballot.result === null
           ? "Sans décision"
           : matchLiteral(ballot.result, { approve: () => "Adopté", reject: () => "Rejeté" });
-    const individual = ballot
-      ? matchLiteral(ballot.mode, {
-          secret: () => "",
-          public: () =>
-            `<ul>${votes.map((vote) => `<li>${escapeHtml(vote.member?.name ?? "Votant non renseigné")} : ${matchLiteral(vote.choice, { approve: () => "Pour", reject: () => "Contre", abstain: () => "Abstention", blank: () => "Blanc", invalid: () => "Nul" })}</li>`).join("")}</ul>`,
-        })
-      : "";
     const nonParticipationCount = ballot?.nonParticipations.reduce((sum, entry) => sum + entry.count, 0) ?? 0;
-    const nonParticipationNames =
-      ballot?.mode === "public"
-        ? `<ul>${ballot.nonParticipations
-            .map(
-              (entry) =>
-                `<li>${escapeHtml(entry.member?.name ?? "Participant non renseigné")} : ne prend pas part au vote${entry.reason ? matchLiteral(entry.reason, { declined: () => " (refus de participer)", departed: () => " (départ)" }) : ""}</li>`,
-            )
-            .join("")}</ul>`
-        : "";
     const quorum = conduct.quorumObservations
-      .filter((observation) => observation.agendaItemId === item.id)
+      .filter((observation) => observation.agendaItemId === item.id && observation.facts.verdict !== "met")
       .map(
         (observation) =>
           `<p>Quorum constaté le ${escapeHtml(date(observation.observedAt))} : ${observation.facts.presentCount} présents retenus sur ${observation.facts.denominator} membres pris en compte, seuil ${observation.facts.requiredPresent} : ${matchLiteral(observation.facts.verdict, { met: () => "atteint", notMet: () => "non atteint", exempt: () => "seconde convocation, dispense de quorum" })}.</p>`,
       )
       .join("");
     const mode = ballot ? matchLiteral(ballot.mode, { public: () => "public", secret: () => "secret" }) : "";
+    const subjectText = matchLiteral(item.kind, {
+      minutesApproval: () => "",
+      councilDecisionProposal: () => item.proposal ?? "",
+      openQuestion: () => subjectTexts.get(item.id) ?? "",
+    });
+    const subject = subjectText.trim() ? `<h4>Sujet présenté</h4>${markdown(subjectText)}` : "";
     const section = minutes.sections.find((candidate) => candidate.agendaItemId === item.id);
     const discussion = section?.content.trim() ? `<h4>Discussion</h4>${markdown(section.content)}` : "";
     const declarations = recusals
@@ -113,8 +107,8 @@ export function renderMinutesSections(minutes: MinutesDetail): Record<MinutesSec
     const status =
       ballot?.completedAt && !item.adjournedAt
         ? ""
-        : `<p>${outcome}${item.kind === "minutesApproval" ? " · Non arrêté" : ""}</p>`;
-    return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${closedSession}${status}${item.report ? `<h4>Rapport présenté</h4>${markdown(item.report)}` : ""}${item.proposal ? `<h4>Projet de délibération examiné</h4>${markdown(item.proposal)}` : ""}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>${individual}${nonParticipationNames}` : ""}</section>`;
+        : [outcome, item.kind === "minutesApproval" ? "Non arrêté" : ""].filter(Boolean).join(" · ");
+    return `<section><h3>${item.agendaNumber}. ${escapeHtml(title)}</h3>${item.introducedAt ? `<p>Question ajoutée en séance le ${escapeHtml(date(item.introducedAt))}.</p>` : ""}${closedSession}${status ? `<p>${status}</p>` : ""}${subject}${discussion}${quorum}${recusalEvidence}${ballot ? `<h4>Scrutin ${mode}</h4><p>${result} · Pour : ${total("approve")} · Contre : ${total("reject")} · Abstentions : ${total("abstain")} · Blancs : ${total("blank")} · Nuls : ${total("invalid")} · Non-participations : ${nonParticipationCount}</p>` : ""}</section>`;
   });
   const closedSessions = conduct.closedSessions.map((session) => {
     const request =

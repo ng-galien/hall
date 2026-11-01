@@ -51,7 +51,7 @@ function frenchYear(value: number): string {
   );
 }
 
-function ballotTotals(facts: CouncilDecisionFacts) {
+export function councilDecisionVoteTotals(facts: CouncilDecisionFacts) {
   return matchDiscriminated(facts.ballot, "mode", {
     public: (ballot) => ({
       approve: ballot.votes.filter((vote) => vote.choice === "approve").length,
@@ -72,7 +72,7 @@ export function renderCouncilDecisionFacts(facts: CouncilDecisionFacts, document
     value
       ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`))
       : "Non renseignée";
-  const totals = ballotTotals(facts);
+  const totals = councilDecisionVoteTotals(facts);
   const opening = facts.opening;
   const attendance = opening?.attendance ?? facts.attendance;
   const names = (status: CouncilDecisionFacts["attendance"][number]["status"]) =>
@@ -132,7 +132,7 @@ export function renderCouncilDecisionFacts(facts: CouncilDecisionFacts, document
 }
 
 export function renderCouncilDecisionResult(facts: CouncilDecisionFacts): string {
-  const totals = ballotTotals(facts);
+  const totals = councilDecisionVoteTotals(facts);
   const result = matchLiteral(facts.ballot.result, { approve: () => "Adoptée", reject: () => "Rejetée" });
   const mode = matchLiteral(facts.ballot.mode, { public: () => "public", secret: () => "secret" });
   const secretChoices = matchLiteral(facts.ballot.mode, {

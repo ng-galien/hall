@@ -44,4 +44,5 @@ export {
 } from "./grammar.js";
 export { preferredResourcePresentation, resourceSupportsPresentation } from "./resourcePresentation.js";
 export { baseRenderStylesheet } from "./styles.js";
+export { isJinjaTemplate } from "./templateSyntax.js";
 export { remarkUnderline } from "./underline.js";

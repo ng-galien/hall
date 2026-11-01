@@ -4559,13 +4559,20 @@
       },
       "statement": "Les faits du procès-verbal sont capturés à la clôture de la séance.",
       "acceptanceCriteria": [
-        "Faits capturés à clôture : P — photographie choisie."
+        "Faits capturés à clôture : P — photographie choisie.",
+        "The captured agenda title is the historical point title shown in the meeting proceedings, not the name of the associated business folder. The closing observation retains that title before an unfinished occurrence is carried forward; an in-meeting addition retains its point title even though it is absent from the frozen notice."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
           "statement": "Faits capturés à clôture : P — photographie choisie.",
+          "sourceIds": []
+        },
+        {
+          "key": "historical-agenda-point-title",
+          "origin": "product",
+          "statement": "On 1 November 2026 the user approved correcting the title source for future minutes after comparing the PV with the meeting proceedings. The separate existing-record repair was explicitly limited to council minutes no. 7. Topic Graph mairie declaration 3bcead7b-d3be-46b0-8a3b-8fafb15d3950 and accepted review 40000f03-063a-400f-b739-6811c37dbaa7 record that scope; it does not introduce ordinary editing of immutable facts.",
           "sourceIds": []
         }
       ]
@@ -4753,13 +4760,20 @@
         "Après la clôture, les notes de séance sont lues depuis le point à l’ordre du jour devenu immuable, sans être recopiées dans les faits du procès-verbal.",
         "Deux onglets distinguent les notes de séance en lecture seule de la rédaction du procès-verbal modifiable.",
         "L’état d’enregistrement de chaque rédaction est visible dans la barre de ses onglets.",
-        "Lorsque la rédaction diffère de la note originale, une action avec icône et infobulle permet de reprendre intégralement la note originale après confirmation explicite."
+        "Lorsque la rédaction diffère de la note originale, une action avec icône et infobulle permet de reprendre intégralement la note originale après confirmation explicite.",
+        "In the minutes template, each point renders its historical title, its own subject text (decision proposal or open question), the final council narrative and aggregate ballot result as separate blocks, without automatically repeating the general business report, ordinary per-point quorum attained or examined status, or individual voter and non-participant lists. This presentation does not change the stored voting system, identities, choices, counts, editorial text, opening facts or special-event evidence."
       ],
       "clauses": [
         {
           "key": "minutes-point-editorial-cycle",
           "origin": "product",
           "statement": "Le point de procès-verbal expose séparément les notes du point à l’ordre du jour clos, son vote et sa rédaction finale, sans dupliquer ces notes dans les faits du procès-verbal.",
+          "sourceIds": []
+        },
+        {
+          "key": "minutes-template-editorial-content",
+          "origin": "product",
+          "statement": "The minutes template shows the historical agenda title, the subject’s own text for both decision proposals and open questions, council narrative and aggregate vote counts in distinct blocks. It does not automatically repeat the general business report, named vote lists, ordinary per-point quorum attained or examined status. Subject text provenance is resolved separately from the council narrative. The owner subsequently authorized current subject resources for the current rendering request and deferred historical recovery (chat correction 01a198cd); current resources are labelled as current in the template context rather than claimed to be frozen historical content. Opening attendance and exceptional procedural events remain visible. The voting system and recorded data remain unchanged. Owner requests: chat 01a19873-f729-7353-a2b8-d34536679b47, corrections 01a198b9-9846-7d92-951e-8300ce116130 and 01a198bb-5b2f-7682-884e-a05a2fe3608c; owner clarification to recall the subject text in 01a198c5-ea2c and 01a198c6-e587; accepted framing pv-rendering-v5 in Topic Graph mairie 5a83ff96-14a7-447c-936f-f270b1ac10a3. This rendering choice is not a general legal-conformity claim.",
           "sourceIds": []
         }
       ]
@@ -9882,13 +9896,14 @@
       "statement": "La page Modèles de documents liste les modèles d’après lesquels Hall produit la convocation, son message, le procès-verbal, les délibérations et la liste des délibérations examinées ; le secrétariat et l’administrateur changent leur texte, leur en-tête et leur pied de page, y place une image, et crée le modèle d’un type qui n’en a pas ; les documents générés ensuite suivent le modèle modifié.",
       "acceptanceCriteria": [
         "La liste donne pour chaque modèle son nom, son type de document en clair et sa forme, PDF ou message.",
-        "La fiche d’un modèle PDF modifie son nom, son texte dans l’éditeur de Hall, son en-tête et son pied de page, fragments HTML imprimés sur chaque page ; « Insérer une image » y intègre une image JPEG ou PNG de 60 Ko au plus. Une image placée dans le texte devient un fichier importé du dossier « Modèles de documents ».",
+        "La fiche d’un modèle PDF modifie son nom, sa source Markdown/Jinja lisible par un humain sans réécriture des espaces ou des expressions, son CSS, son en-tête et son pied de page ; « Insérer une image » dans les décorations y intègre une image JPEG ou PNG de 60 Ko au plus. Aucun HTML n’est requis pour rédiger le corps, les sauts et les compteurs de page.",
         "La fiche d’un modèle de message modifie son nom, son objet et son texte.",
-        "« Aperçu » montre le modèle tel que le serveur le rend, en-tête et pied de page compris.",
-        "« Nouveau modèle » ne propose que les types de document qui n’ont pas encore de modèle, avec un texte de départ qui contient les directives que la génération exige.",
+        "« Aperçu » montre pour un modèle PDF les pages réellement calculées par le même moteur PDF que la génération, avec les sauts, en-tête, pied et numéros de page ; l’aperçu n’enregistre aucun document métier. Un modèle de message conserve l’aperçu HTML.",
+        "« Nouveau modèle » ne propose que les types de document qui n’ont pas encore de modèle, avec une source Jinja explicite dont les boucles et conditions peuvent être modifiées.",
         "Sans l’action template.update, la fiche se lit sans champ modifiable ; sans template.create, la liste ne propose pas de création.",
         "La génération qui suit l’enregistrement emploie le texte, l’en-tête et le pied de page enregistrés.",
-        "Configuration > Documents ouvre ce même catalogue ; les types complémentaires et les réglages CSS des PDF suivent HALL-FR-CFG-020."
+        "Configuration > Documents ouvre ce même catalogue ; les types complémentaires et les réglages CSS des PDF suivent HALL-FR-CFG-020.",
+        "Les exemples dans l’éditeur montrent les chemins de données, les boucles et conditions Jinja, le filtre markdown et les sauts de ligne/page ; le PV expose séparément titre, texte du sujet, rédaction et totaux."
       ],
       "clauses": [
         {
@@ -9901,6 +9916,12 @@
           "key": "template-access",
           "origin": "product",
           "statement": "Révision du 29 octobre 2026 : création, modification et suppression des modèles réservées au secrétariat et à l’administrateur. Demande 308df4b5 du 29 octobre 2026, arbitrage a3119719 (la base est la seule source des autorisations), matrice 627af3ec, revue 67603a49, décisions du 29 octobre 656cb5af, ff96773a et 5a8cc19c.",
+          "sourceIds": []
+        },
+        {
+          "key": "human-markdown-jinja",
+          "origin": "product",
+          "statement": "Décisions propriétaire du 1er novembre 2026 : source 01a198db-654c-76a1-9771-fbae61490d23 pour des modèles Markdown/Jinja éditables par les humains, rendu en Markdown puis PDF ; source 01a198e8-6c5c-7fc1-8302-5156c4e9cc9f pour remplacer explicitement les modèles par défaut sans convertir les anciennes sources. Déclaration mairie c1bfe0fb-142e-4ce3-a92c-0db6184806e2 acceptée par 096ccc93-8fb5-4630-a7ad-46e5886c371c. Les modèles restent génériques, sans personnalisation territoriale intégrée.",
           "sourceIds": []
         }
       ]
@@ -9917,7 +9938,7 @@
         "La liste des délibérations examinées par le conseil municipal est affichée à la mairie et mise en ligne sur le site internet de la commune dans un délai d’une semaine.",
         "Depuis la page d’une séance close, Hall produit en PDF, d’après le modèle unique de type « Liste des délibérations », la liste qui donne le nom de la commune, le numéro et la date de la séance et, pour chaque point terminé sans ajournement, dans l’ordre du jour, son numéro, son titre et son sort : « Adoptée », « Rejetée » ou « Sans vote » pour un point sans scrutin.",
         "Le document se produit à la demande depuis les faits figés à la clôture ; Hall n’enregistre ni date d’affichage, ni date de mise en ligne, ni transmission. Une séance qui n’est pas close ne propose pas le document et le serveur le refuse.",
-        "« Nouveau modèle » propose le type « Liste des délibérations » quand il n’a pas de modèle, avec un texte de départ qui contient la directive ::deliberation-list."
+        "« Nouveau modèle » propose le type « Liste des délibérations » quand il n’a pas de modèle, avec une source Markdown/Jinja qui parcourt les délibérations et affiche leur numéro, titre et sort."
       ],
       "clauses": [
         {
@@ -9945,7 +9966,7 @@
         {
           "key": "template-type",
           "origin": "product",
-          "statement": "« Nouveau modèle » propose le type « Liste des délibérations » quand il n’a pas de modèle, avec un texte de départ qui contient la directive ::deliberation-list.",
+          "statement": "« Nouveau modèle » propose le type « Liste des délibérations » quand il n’a pas de modèle, avec une source Markdown/Jinja qui parcourt les délibérations et affiche leur numéro, titre et sort. Révision propriétaire du 1er novembre 2026, source 01a198db-654c-76a1-9771-fbae61490d23.",
           "sourceIds": []
         }
       ]
@@ -10218,9 +10239,9 @@
       "acceptanceCriteria": [
         "Le catalogue couvre convocation, message de convocation, PV, délibération, liste des délibérations, impression de document, couverture et points du dossier de séance, invitation et annulation d’événement.",
         "Le texte et l’objet des messages et le texte, CSS, en-tête et pied de page des PDF sont enregistrés ; les générations suivantes les emploient.",
-        "Les modèles des contenus générés conservent exactement un bloc ::generated-content ; faits, ordre et pièces jointes restent fournis par leur service métier.",
+        "Les modèles Markdown/Jinja des neuf familles contrôlent la présentation à partir de données structurées, avec titres, listes et tableaux Markdown, boucles, conditions et chemins pointés. Jinja produit du Markdown, ensuite rendu par Hall en PDF ; aucun bloc HTML précomposé ne remplace les points d’un PV, d’une convocation, d’un dossier ou d’une délibération. Le filtre markdown insère les textes rédigés ; leurs références sont résolues par le rendu Markdown existant. Les pièces jointes restent fournies par leur service métier.",
         "MCP découvre, lit, crée, modifie, supprime et prévisualise via les actions Siren et leurs schémas ; une action non disponible est refusée.",
-        "La migration conserve les modèles et réglages existants ; elle initialise les nouveaux modèles une seule fois.",
+        "Les neuf modèles par défaut sont génériques pour toute commune et partagés par la création et le seed. Leur remplacement sur l’instance installée est explicite, après sauvegarde, conserve les identifiants configurés et ne convertit pas les anciennes sources. Aucun adaptateur de lecture des anciennes sources n’est ajouté. Aucun fait, date, vote, rédaction métier ou PDF figé n’est réécrit.",
         "Les neuf aperçus d’Alésia sont alimentés par des données représentatives réellement stockées via les générateurs existants ; ils affichent provenance, contenu, en-tête/pied et signature configurés.",
         "Le seed Alésia fournit des exemples fictifs de présentation ; l’enrichissement de la démonstration existante ne remplit que les champs vides et est idempotent."
       ],
@@ -10235,6 +10256,12 @@
           "key": "demonstration-preview",
           "origin": "product",
           "statement": "Demandes originales 78f712dd et 1cf9b04e, déclaration v3 0868f428, acceptée par verdict 1d690ff5 : exemples Alésia et aperçus utiles réellement alimentés, sans reset ni écrasement.",
+          "sourceIds": []
+        },
+        {
+          "key": "human-markdown-jinja",
+          "origin": "product",
+          "statement": "Décisions propriétaire du 1er novembre 2026 : source 01a198db-654c-76a1-9771-fbae61490d23 pour des modèles Markdown/Jinja éditables par les humains, rendu en Markdown puis PDF ; source 01a198e8-6c5c-7fc1-8302-5156c4e9cc9f pour remplacer explicitement les modèles par défaut sans convertir les anciennes sources. Déclaration mairie c1bfe0fb-142e-4ce3-a92c-0db6184806e2 acceptée par 096ccc93-8fb5-4630-a7ad-46e5886c371c. Les modèles restent génériques, sans personnalisation territoriale intégrée.",
           "sourceIds": []
         }
       ]

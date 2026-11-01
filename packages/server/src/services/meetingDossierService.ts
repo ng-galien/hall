@@ -7,6 +7,7 @@ import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { ContentTemplateService } from "./contentTemplateService.js";
 import { DomainError } from "./errors.js";
 import type { HallSettingsService } from "./hallSettingsService.js";
+import type { GeneratedTemplateData } from "./templateData.js";
 
 /** One generated meeting dossier: produced on demand from the frozen agenda, never stored. */
 export interface MeetingDossier {
@@ -79,6 +80,31 @@ export function pointMarkdown(
   return `${sections.join("\n\n")}\n`;
 }
 
+export function dossierTemplateData(
+  meeting: MeetingNoticeMeetingFacts,
+  frozen?: MeetingNoticeMeetingFacts["agenda"][number],
+  item?: AgendaItem,
+  report: string | null = null,
+  pieces: readonly DossierPiece[] = [],
+): GeneratedTemplateData {
+  return {
+    dossier: {
+      meeting,
+      point: frozen
+        ? {
+            id: frozen.id,
+            number: frozen.agendaNumber,
+            title: itemTitle(frozen),
+            kind: frozen.kind,
+            report,
+            subjectText: item && "content" in item.subject ? item.subject.content : "",
+            pieces: pieces.map((piece) => ({ name: piece.name, attached: piece.pdf !== null })),
+          }
+        : null,
+    },
+  };
+}
+
 async function concatenate(parts: readonly Buffer[]): Promise<Buffer> {
   const output = await PDFDocument.create();
   for (const part of parts) {
@@ -131,12 +157,17 @@ export function createMeetingDossierService({
     return report?.data.kind === "text" ? report.data.content : null;
   }
 
-  async function pointPdf(markdown: string, literal: () => string): Promise<Buffer> {
+  async function pointPdf(
+    markdown: string,
+    literal: () => string,
+    data: GeneratedTemplateData,
+    literalData: () => GeneratedTemplateData,
+  ): Promise<Buffer> {
     try {
-      return await contentTemplateService.generatedPdf("meeting-dossier-point", markdown, {}, false);
+      return await contentTemplateService.generatedPdf("meeting-dossier-point", markdown, {}, false, data);
     } catch (error) {
       if (!(error instanceof DomainError) || error.code !== "template_invalid") throw error;
-      return contentTemplateService.generatedPdf("meeting-dossier-point", literal(), {}, false);
+      return contentTemplateService.generatedPdf("meeting-dossier-point", literal(), {}, false, literalData());
     }
   }
 
@@ -153,6 +184,7 @@ export function createMeetingDossierService({
           coverMarkdown(facts, settings.name, settings.timeZone),
           context,
           false,
+          dossierTemplateData(facts),
         ),
       ];
       for (const frozen of [...facts.agenda].sort((left, right) => left.position - right.position)) {
@@ -161,8 +193,19 @@ export function createMeetingDossierService({
         const pieces = businessId ? await piecesOf(businessId) : [];
         const report = businessId ? await reportOf(businessId) : null;
         parts.push(
-          await pointPdf(pointMarkdown(frozen, item, report, pieces), () =>
-            pointMarkdown(frozen, withLiteralColons(item), report === null ? null : literalColons(report), pieces),
+          await pointPdf(
+            pointMarkdown(frozen, item, report, pieces),
+            () =>
+              pointMarkdown(frozen, withLiteralColons(item), report === null ? null : literalColons(report), pieces),
+            dossierTemplateData(facts, frozen, item, report, pieces),
+            () =>
+              dossierTemplateData(
+                facts,
+                frozen,
+                withLiteralColons(item),
+                report === null ? null : literalColons(report),
+                pieces,
+              ),
           ),
         );
         for (const piece of pieces) if (piece.pdf) parts.push(piece.pdf);

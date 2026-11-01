@@ -142,7 +142,14 @@ export function createEventInvitationService({
         opened.data.document.content,
         input.method,
       );
-      const preview = await contentTemplateService.generatedPreview("event-invitation", bodyMarkdown, subject);
+      const preview = await contentTemplateService.generatedPreview(
+        "event-invitation",
+        bodyMarkdown,
+        subject,
+        {},
+        false,
+        { event: { id: opened.data.id, name: opened.data.name, ...opened.data.document, method: input.method } },
+      );
       if (preview.diagnostics.some((item) => item.severity === "error")) throw new DomainError("template_invalid", 422);
       const composer = new MailComposer({
         headers: { "X-Unsent": "1" },

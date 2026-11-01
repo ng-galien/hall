@@ -1,0 +1,261 @@
+/** Editable Jinja sources produce Markdown; Hall owns the subsequent Markdown/PDF rendering. */
+export const jinjaMinutesFacts = `Séance n° {{ minutes.meeting.number }}  
+Ouverture : {{ minutes.meeting.startedAt | datetime }}  
+Clôture : {{ minutes.meeting.closedAt | datetime }}  
+Lieu : {{ (minutes.meeting.location or 'Non renseigné') | text }}
+
+Présidence : {{ (minutes.meeting.chair.name if minutes.meeting.chair else 'Non renseignée') | text }}  
+Secrétariat : {{ (minutes.meeting.secretary.name if minutes.meeting.secretary else 'Non renseigné') | text }}
+
+{% for observation in minutes.conduct.quorumObservations if observation.agendaItemId == none %}
+Quorum à l’ouverture : {{ {'met': 'atteint', 'notMet': 'non atteint', 'exempt': 'seconde convocation, sans condition de quorum'}[observation.facts.verdict] }}, {{ observation.facts.presentCount }} présents sur {{ observation.facts.requiredPresent }} requis.
+
+{% endfor %}
+{% if minutes.meeting.reconvenedFrom %}
+Seconde convocation après la séance n° {{ minutes.meeting.reconvenedFrom.number }} du {{ minutes.meeting.reconvenedFrom.scheduledAt | datetime }}.
+
+{% endif %}
+{% for reconvocation in minutes.conduct.reconvocations %}
+Seconde convocation envoyée le {{ reconvocation.sentAt | datetime }} pour le {{ reconvocation.scheduledAt | datetime }}.
+
+{% endfor %}
+{% for entry in minutes.attendance %}
+- {{ entry.member.name | text }} : {{ {'present': 'Présent', 'represented': 'Représenté', 'excused': 'Excusé', 'absent': 'Absent'}[entry.status] }}{% if entry.proxyHolder %}, pouvoir à {{ entry.proxyHolder.name | text }}{% endif %}
+{% endfor %}
+
+{% if minutes.conduct.auxiliaryAttendances %}
+Assistaient également :
+
+{% for entry in minutes.conduct.auxiliaryAttendances %}
+- {{ entry.name | text }}{% if entry.quality %} ({{ entry.quality | text }}){% endif %}
+{% endfor %}
+
+{% endif %}
+{% if minutes.conduct.officerChanges %}
+Passations en séance :
+
+{% for change in minutes.conduct.officerChanges %}
+- {{ change.observedAt | datetime }}, {{ {'chair': 'présidence confiée', 'secretary': 'secrétariat confié'}[change.office] }} à {{ change.memberName | text }} ({{ {'mayor': 'reprise par le maire', 'deputyInNominationOrder': 'adjoint dans l’ordre des nominations', 'councilDesignation': 'désignation par le conseil', 'councilNomination': 'nomination par le conseil'}[change.basis] }}).
+{% endfor %}
+
+{% endif %}
+{% if minutes.conduct.closedSessions %}
+Huis clos :
+
+{% for session in minutes.conduct.closedSessions %}
+- {{ session.observedAt | datetime }}, huis clos décidé sans débat sur demande de {% for requester in session.requesters %}{{ requester.name | text }}{% if not loop.last %}, {% endif %}{% endfor %}, par {{ session.approvals }} voix sur {{ session.presentOrRepresented }} membres présents ou représentés, {% if session.wholeMeeting %}pour la suite de la séance{% else %}pour les points {% for point in minutes.points if point.id in session.agendaItemIds %}{{ point.number }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}.
+{% endfor %}
+
+{% endif %}`;
+
+export const jinjaMinutesProceedings = `{% for point in minutes.points %}
+### {{ point.number }}. {{ point.title | text }}
+
+{% if point.introducedAt %}
+Question ajoutée en séance le {{ point.introducedAt | datetime }}.
+
+{% endif %}
+{% if point.closedSession %}
+Point examiné à huis clos.
+
+{% endif %}
+{% if point.adjournedAt %}
+Ajourné.
+
+{% elif not point.completedAt %}
+Non examiné.
+
+{% endif %}
+{% if point.subjectText %}
+#### Sujet présenté
+
+{{ point.subjectText | markdown }}
+
+{% endif %}
+{% if point.narrative %}
+#### Discussion
+
+{{ point.narrative | markdown }}
+
+{% endif %}
+{% for observation in point.quorumObservations if observation.facts.verdict != 'met' %}
+Quorum constaté le {{ observation.observedAt | datetime }} : {{ observation.facts.presentCount }} présents sur {{ observation.facts.denominator }} membres pris en compte, seuil {{ observation.facts.requiredPresent }} : {{ 'non atteint' if observation.facts.verdict == 'notMet' else 'seconde convocation, dispense de quorum' }}.
+
+{% endfor %}
+{% if point.recusals %}
+#### Déports déclarés
+
+{% for recusal in point.recusals %}
+- {{ recusal.memberName | text }} : {{ 'Intérêt personnel' if recusal.legalBasis == 'personalInterest' else 'Représentant désigné, régime L1111-6 II' }}, déport déclaré le {{ recusal.declaredAt | datetime }}.
+{% endfor %}
+
+{% endif %}
+{% if point.ballot %}
+{% if point.kind == 'minutesApproval' %}
+{% set outcome = 'Arrêté' if point.ballot.completedAt and point.ballot.result == 'approve' else 'Non arrêté' %}
+{% elif point.ballot.completedAt and point.ballot.result %}
+{% set outcome = {'approve': 'Adopté', 'reject': 'Rejeté'}[point.ballot.result] %}
+{% else %}
+{% set outcome = 'Sans décision' %}
+{% endif %}
+> **Scrutin {{ 'public' if point.ballot.mode == 'public' else 'secret' }} : {{ outcome }}**
+>
+> Pour : {{ point.ballot.totals.approve }} · Contre : {{ point.ballot.totals.reject }} · Abstentions : {{ point.ballot.totals.abstain }}{% if point.ballot.mode == 'secret' %} · Blancs : {{ point.ballot.totals.blank }} · Nuls : {{ point.ballot.totals.invalid }}{% endif %} · Non-participations : {{ point.ballot.totals.nonParticipation }}
+
+{% elif point.kind == 'minutesApproval' %}
+Non arrêté.
+
+{% endif %}
+{% endfor %}`;
+
+export const jinjaMeetingNotice = `{{ notice.hall.name | text }}
+
+# Convocation au conseil municipal
+
+{% if notice.issuedOn %}
+Date de convocation : {{ notice.issuedOn | date }}
+
+{% endif %}
+Le maire convoque les membres du conseil municipal à la séance n° {{ notice.meeting.number }}, qui se tiendra le **{{ notice.meeting.scheduledAt | datetime('full') }}**.
+
+Lieu : **{{ notice.meeting.location | text }}**.
+
+## Ordre du jour
+
+{% for point in notice.meeting.agenda %}
+{{ point.agendaNumber }}. {{ ('Arrêt du procès-verbal de la séance précédente' if point.kind == 'minutesApproval' else point.title) | text }}
+{% endfor %}
+
+Le maire
+`;
+
+export const jinjaDeliberationList = `{{ hall.name | text }}
+
+# Liste des délibérations examinées
+
+Séance du conseil municipal n° {{ minutes.meeting.number }} du {{ minutes.meeting.startedAt | date('full') }}
+
+| N° | Point examiné | Sort |
+| --- | --- | --- |
+{% for entry in deliberations -%}
+| {{ entry.agendaNumber }} | {{ entry.title | text }} | {{ {'adopted': 'Adoptée', 'rejected': 'Rejetée', 'withoutVote': 'Sans vote'}[entry.outcome] }} |
+{% endfor %}
+`;
+
+export const jinjaDecisionFacts = `{% set facts = decision.facts %}
+{% set attendance = facts.opening.attendance if facts.opening else facts.attendance %}
+{% set quorum = facts.opening.quorum if facts.opening else facts.quorum %}
+# Commune {{ ('de ' ~ facts.hall.name if facts.hall else 'non renseignée') | text }}
+
+# Extrait du registre des délibérations du conseil municipal
+
+## Séance du {{ facts.meeting.startedAt | date }}
+
+| Effectif | Nombre |
+| --- | ---: |
+| Membres en exercice | {{ quorum.memberCount }} |
+| Présents {{ 'à l’ouverture' if facts.opening else 'au scrutin' }} | {{ attendance | selectattr('status', 'equalto', 'present') | list | length }} |
+| Votants au scrutin | {{ decision.totals.approve + decision.totals.reject + decision.totals.abstain + decision.totals.blank + decision.totals.invalid }} |
+
+Date de convocation : {{ facts.noticeDate | date if facts.noticeDate else 'Non renseignée' }}  
+Date d’affichage : {{ decision.documentDate | date if decision.documentDate else 'Non renseignée' }}
+
+Le {{ facts.meeting.startedAt | datetime }}, le conseil municipal s’est réuni {{ ('à ' ~ facts.meeting.location if facts.meeting.location else 'en un lieu non renseigné') | text }}, sous la présidence de {{ (facts.meeting.chair.name if facts.meeting.chair else 'une présidence non renseignée') | text }}{% if facts.meeting.chairRole %}, {{ {'mayor': 'maire', 'deputyMayor': 'adjoint au maire', 'councillor': 'membre du conseil municipal'}[facts.meeting.chairRole] }}{% endif %}.
+
+{% if facts.opening %}
+{{ {'met': 'Le quorum a été constaté à l’ouverture.', 'notMet': 'Le quorum n’était pas atteint à l’ouverture.', 'exempt': 'L’ouverture relève du régime de seconde convocation.'}[facts.opening.quorum.verdict] }}
+
+{% endif %}
+{% for status, label in [('present','Présents'),('represented','Absents avec pouvoir'),('excused','Absents excusés'),('absent','Absents')] %}
+**{{ label }} :** {% for entry in attendance if entry.status == status %}{{ entry.member.name | text }}{% if entry.proxyHolder %} (pouvoir à {{ entry.proxyHolder.name | text }}){% endif %}{% if not loop.last %}, {% endif %}{% else %}Néant{% endfor %}
+
+{% endfor %}
+**Secrétaire de séance :** {{ (facts.meeting.secretary.name if facts.meeting.secretary else 'Non renseigné') | text }}
+
+{% if facts.recusals %}
+**Déports pour cette délibération :** {% for entry in facts.recusals %}{{ entry.member.name | text }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endif %}`;
+
+export const jinjaDecisionContent = `{% if decision.number %}
+Délibération n° {{ decision.number | text }}
+
+{% endif %}
+## Objet : {{ decision.title | text }}
+
+{{ decision.content | markdown }}
+`;
+
+export const jinjaDecisionResult = `**{{ 'Adoptée' if decision.facts.ballot.result == 'approve' else 'Rejetée' }}** · Scrutin {{ 'public' if decision.facts.ballot.mode == 'public' else 'secret' }}
+
+Pour : {{ decision.totals.approve }} · Contre : {{ decision.totals.reject }} · Abstentions : {{ decision.totals.abstain }}{% if decision.facts.ballot.mode == 'secret' %} · Blancs : {{ decision.totals.blank }} · Nuls : {{ decision.totals.invalid }}{% endif %} · Non-participations : {{ decision.totals.nonParticipation }}
+
+| Le secrétaire de séance | Le maire |
+| --- | --- |
+| {{ (decision.facts.meeting.secretary.name if decision.facts.meeting.secretary else '') | text }} | {{ (decision.facts.meeting.chair.name if decision.facts.meeting.chairRole == 'mayor' and decision.facts.meeting.chair else '') | text }} |
+`;
+
+export const jinjaDocumentBodies: Readonly<Record<string, string>> = {
+  "document-print": "{{ generated.bodyMarkdown | markdown }}",
+  "meeting-dossier-cover": `# Dossier de séance
+
+{{ hall.name | text }}
+
+Conseil municipal n° {{ dossier.meeting.number }}, {{ dossier.meeting.scheduledAt | datetime('full') }}, {{ dossier.meeting.location | text }}.
+
+## Ordre du jour
+
+{% for point in dossier.meeting.agenda %}
+{{ point.agendaNumber }}. {{ ('Arrêt du procès-verbal de la séance précédente' if point.kind == 'minutesApproval' else point.title) | text }}
+{% endfor %}
+`,
+  "meeting-dossier-point": `## Point {{ dossier.point.number }} : {{ dossier.point.title | text }}
+
+{% if dossier.point.report %}
+### Rapport
+
+{{ dossier.point.report | markdown }}
+
+{% endif %}
+{% if dossier.point.subjectText %}
+### {{ 'Projet de délibération' if dossier.point.kind == 'councilDecisionProposal' else 'Question' }}
+
+{{ dossier.point.subjectText | markdown }}
+
+{% endif %}
+{% if dossier.point.pieces %}
+### Pièces
+
+{% for piece in dossier.point.pieces %}
+- {{ piece.name | text }} ({{ 'jointe à la suite' if piece.attached else 'consultable dans Hall' }})
+{% endfor %}
+
+{% endif %}`,
+  "event-invitation": `# {{ event.name | text }}
+
+{% if event.method == 'cancel' %}
+Cet événement est annulé.
+
+{% endif %}
+{% if event.schedule.kind == 'allDay' %}
+Du {{ event.schedule.start | date }} (inclus) au {{ event.schedule.end | date }} (exclu), toute la journée.
+{% else %}
+Du {{ event.schedule.start | datetime }} au {{ event.schedule.end | datetime }}.
+{% endif %}
+
+{% if event.location %}
+Lieu : {{ event.location | text }}
+
+{% endif %}
+{% if event.content %}
+{{ event.content | markdown }}
+
+{% endif %}`,
+  "meeting-notice": jinjaMeetingNotice,
+  "meeting-notice-message": `${jinjaMeetingNotice}\nLe PDF de la convocation est joint à ce message.\n`,
+  minutes: `# Procès-verbal du conseil\n\n## Séance, présences et pouvoirs\n\n${jinjaMinutesFacts}\n\n## Examen des points\n\n${jinjaMinutesProceedings}`,
+  "deliberation-list": jinjaDeliberationList,
+  "council-decision": [jinjaDecisionFacts, jinjaDecisionContent, jinjaDecisionResult].join("\n\n"),
+};
+
+export const jinjaBody = (type: string): string => `{# hall:jinja #}\n${jinjaDocumentBodies[type] ?? ""}`;

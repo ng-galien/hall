@@ -7,7 +7,7 @@ const initialGeneratedTemplates = generatedDocumentTemplates
     (template) => `
   INSERT INTO templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
   SELECT gen_random_uuid()::text, ${sqlString(template.kind)}, ${sqlString(template.documentType)}, ${sqlString(template.name)},
-    ${sqlString(template.bodyMarkdown)}, ${sqlString(template.subject)}, '', '', '', clock_timestamp()::text, clock_timestamp()::text
+    ${sqlString(template.bodyMarkdown)}, ${sqlString(template.subject)}, ${sqlString(template.stylesheet)}, ${sqlString(template.headerHtml)}, ${sqlString(template.footerHtml)}, clock_timestamp()::text, clock_timestamp()::text
   WHERE NOT EXISTS (SELECT FROM templates WHERE kind = ${sqlString(template.kind)} AND document_type = ${sqlString(template.documentType)});
 `,
   )

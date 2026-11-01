@@ -3,6 +3,16 @@
 CREATE FUNCTION hall.enrich_meeting_documentary_snapshot()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
+  -- @implements-requirement HALL-FR-MIN-160
+  -- Resolve the same historical point title as the proceedings before closure
+  -- carries unfinished occurrences forward to another meeting.
+  NEW.payload := jsonb_set(NEW.payload, '{agenda}', (
+    SELECT coalesce(jsonb_agg(recorded.value || jsonb_build_object('title', (
+      SELECT hall.council_agenda_item_title(item) FROM hall.council_agenda_item item
+      WHERE item.id = (recorded.value->>'id')::UUID
+    )) ORDER BY recorded.ordinality), '[]'::JSONB)
+    FROM jsonb_array_elements(NEW.payload->'agenda') WITH ORDINALITY recorded
+  ));
   NEW.payload := NEW.payload || jsonb_build_object('proposals', (
     SELECT coalesce(jsonb_agg(jsonb_build_object('id', workspace.council_decision_proposal, 'content', text.content)), '[]'::JSONB)
     FROM hall.council_decision_proposal_workspace workspace JOIN hall.text_resource text ON text.id = workspace.text_resource
