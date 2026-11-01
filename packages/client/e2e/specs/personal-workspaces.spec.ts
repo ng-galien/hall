@@ -166,7 +166,7 @@ test("gives council members read access and a personal folder that only they and
     await expect(admin.getByTestId("user-councillor-contact-hint")).toBeVisible();
     await admin.getByTestId("user-create-submit").click();
     await expect(admin.getByTestId("user-create-form")).toContainText(
-      "Choose the contact of an elected member in office",
+      "This role requires the contact of a council member with an active mandate.",
     );
     await admin.getByTestId("user-contact-select").click();
     await admin
