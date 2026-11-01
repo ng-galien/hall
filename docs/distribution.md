@@ -24,6 +24,43 @@ Applications folder. The installation guide below is repeated in the release not
 and, as data for the public site, in
 [`site/src/installation.ts`](../site/src/installation.ts).
 
+## Validating and publishing a release
+
+The tag workflow may build every installer while CI is running. Its draft step
+uses [`release-publication.mjs`](../scripts/distribution/release-publication.mjs)
+and waits for the **complete successful push gate in `ci.yml` at the exact tag
+commit**. An older green commit, a pending or failed run, skipped or missing jobs,
+and an unavailable API do not authorize publication. A later failed attempt is
+not replaced by an earlier green result. The final `test` job remains the CI
+verdict; the publisher additionally requires every job in that run to succeed.
+
+The same entry point is mandatory for the operator's GitHub publication. With
+Node.js 22 and an authenticated GitHub CLI, set `TAG`, `BUILD_RUN_ID` and
+`NOTES_FILE` to the candidate tag, its official tag-workflow run and its notice:
+
+```sh
+node scripts/distribution/release-publication.mjs check --tag "$TAG"
+node scripts/distribution/release-publication.mjs prepare \
+  --tag "$TAG" --build-run "$BUILD_RUN_ID" --notes-file "$NOTES_FILE" --wait-seconds 1800
+node scripts/distribution/release-publication.mjs publish \
+  --tag "$TAG" --build-run "$BUILD_RUN_ID"
+```
+
+`check` is read-only. `prepare` downloads the official maker artifacts, checks
+their source, normalizes filenames, and records their digests in
+`HALL-BUILD-PROVENANCE.json` and `SHA256SUMS.txt`. It creates or updates only a
+draft, after checking CI again. `publish` checks that inventory, the current tag
+and the latest complete CI result again immediately before making the draft
+public. It never replaces an already public release. A new source commit needs
+its own complete validation; similar runtime files are not a substitute.
+
+The workflow token needs only `actions: read` and `contents: write`. Authorization
+errors fail closed; this tool does not create credentials or increase their scope.
+The workflow prepares drafts, and does not automatically promote them. Do not use
+raw `gh release edit --draft=false` or API calls as a fallback. Arbitrary GitHub
+commands outside this entry point are **not technically intercepted** by this
+guard; the documented workflow and operator command are its enforcement boundary.
+
 Hall is licensed under the European Union Public Licence, version 1.2
 (EUPL-1.2); the copyright holder is Alexandre Boyer. The text of the licence is
 in [`LICENSE`](../LICENSE). The staged package declares `EUPL-1.2` and includes

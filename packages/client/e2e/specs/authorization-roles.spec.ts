@@ -72,7 +72,8 @@ test("a councillor cannot delete an affair and a secretariat account deletes it"
   const councillor = await sessionPage(browser, origin, "alice@example.test");
   await councillor.goto("/app/workspace");
   const councillorRow = councillor.getByTestId(`workspace-business-${business.id}`);
-  await councillorRow.click({ button: "right" });
+  await expect(councillorRow.locator('[data-slot="context-menu-trigger"]').first()).toBeVisible();
+  await councillor.getByTestId(`workspace-business-title-${business.id}`).click({ button: "right" });
   await expect(councillor.getByRole("menu")).toBeVisible();
   await expect(councillor.getByTestId("workspace-tree-delete-business")).toHaveCount(0);
   await councillor.keyboard.press("Escape");
@@ -82,7 +83,8 @@ test("a councillor cannot delete an affair and a secretariat account deletes it"
   const clerk = await sessionPage(browser, origin, "clerk@example.test");
   await clerk.goto("/app/workspace");
   const clerkRow = clerk.getByTestId(`workspace-business-${business.id}`);
-  await clerkRow.click({ button: "right" });
+  await expect(clerkRow.locator('[data-slot="context-menu-trigger"]').first()).toBeVisible();
+  await clerk.getByTestId(`workspace-business-title-${business.id}`).click({ button: "right" });
   await clerk.getByTestId("workspace-tree-delete-business").click();
   await clerk.getByTestId("business-delete-confirm").click();
   await expect(clerkRow).toHaveCount(0);

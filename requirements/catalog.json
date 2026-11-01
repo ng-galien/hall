@@ -10341,6 +10341,30 @@
           "sourceIds": []
         }
       ]
+    },
+    "HALL-TR-DST-030": {
+      "name": "EXACT_SOURCE_VALIDATED_RELEASE_PUBLICATION",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-01"
+      },
+      "statement": "Final public release publication requires complete successful CI for the exact source commit associated with the version tag and official maker artifacts.",
+      "acceptanceCriteria": [
+        "Installers may be built in parallel with validation; neither a completed build nor a draft authorizes final public promotion.",
+        "The latest complete push validation of the exact tag commit must be successful, with all required jobs present and successful. Failed, pending, absent, skipped, incomplete or other-commit evidence and unavailable APIs deny publication.",
+        "The tag version, official tag-workflow build, artifact identities, public file inventory and checksums must agree. Source and CI are checked again immediately before final promotion.",
+        "One executable guarded entry point serves the release workflow and the documented operator publication procedure, without a force or bypass option. Already public releases are not replaced.",
+        "The boundary is explicit: arbitrary GitHub commands outside the guarded entry point are not technically intercepted; they are not an authorized fallback when validation is refused."
+      ],
+      "clauses": [
+        {
+          "key": "owner-green-ci-before-publication",
+          "origin": "product",
+          "statement": "The user explicitly requested on 1 November 2026: « corriger … pour la prochaine version … veux … CI verte », following release 1.0.1 publication with incomplete or failed CI. The accepted publication-guard-v1 framing requires exact-source complete validation, parallel makers and protection of the existing public release. Topic Graph hall-public-demo-distribution result 9eaacedf-c8e5-4a48-8ffd-c019647cc8bc records delivery without global CI acceptance.",
+          "sourceIds": []
+        }
+      ]
     }
   }
 }

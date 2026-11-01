@@ -105,6 +105,15 @@ For changes under `packages/postgres/` or any SQL schema, migration, invariant, 
 
 PDF rendering tests launch Chromium. A `MachPortRendezvousServer` or `EPERM` failure in the macOS sandbox is an environment limitation; rerun the affected test outside the sandbox without hiding application errors.
 
+## Public release publication
+
+Use `scripts/distribution/release-publication.mjs` for release preparation and final
+GitHub publication, as documented in `docs/distribution.md`. Final publication
+requires the complete green CI gate for the exact tag commit and matching maker
+provenance. Do not bypass a refusal with raw `gh release edit` or API calls. The
+guard controls this entry point and the tag workflow, not arbitrary external
+GitHub commands. Building installers may proceed in parallel with validation.
+
 ## Shared development runtime
 
 Always reuse the shared Hall runtime:

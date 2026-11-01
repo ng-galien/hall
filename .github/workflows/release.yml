@@ -98,33 +98,19 @@ jobs:
     name: Attach the executables to a draft release
     needs: make
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     permissions:
+      actions: read
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.ref_name }}
     steps:
-      - uses: actions/download-artifact@v8.0.2
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
-          pattern: hall-demonstration-*
-          path: artifacts
-      - name: Name the executables by platform
-        run: |
-          mkdir release
-          for directory in artifacts/hall-demonstration-*; do
-            platform="${directory#artifacts/hall-demonstration-}"
-            find "$directory" -type f | while read -r file; do
-              name="$(basename "$file")"
-              case "$name" in
-                ng-galien-hall-*.tgz|ng-galien-hall-*.tgz.sha256) cp "$file" "release/$name" ;;
-                RELEASES) cp "$file" "release/RELEASES-$platform" ;;
-                *) cp "$file" "release/$platform-$name" ;;
-              esac
-            done
-          done
-          ls -l release
+          node-version: "22"
       - name: Write the release notice
         run: |
           cat > "$RUNNER_TEMP/notes.md" <<'NOTICE'
@@ -238,19 +224,10 @@ jobs:
 
           *Hall, le conseil municipal en séance.*
           NOTICE
-      - name: Create or update the draft release
+      - name: Prepare a draft only after complete exact-source validation
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            if [ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" != "true" ]; then
-              echo "Release $TAG is already published; its files are not replaced." >&2
-              exit 1
-            fi
-            gh release upload "$TAG" release/* --clobber
-            gh release edit "$TAG" --draft --notes-file "$RUNNER_TEMP/notes.md"
-          else
-            gh release create "$TAG" release/* \
-              --draft \
-              --target "$GITHUB_SHA" \
-              --title "Hall $TAG – démonstration" \
-              --notes-file "$RUNNER_TEMP/notes.md"
-          fi
+          node scripts/distribution/release-publication.mjs prepare \
+            --tag "$TAG" \
+            --build-run "$GITHUB_RUN_ID" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --wait-seconds 1800

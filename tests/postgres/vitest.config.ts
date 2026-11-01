@@ -19,7 +19,7 @@ export default defineConfig({
     testTimeout: 120_000,
     hookTimeout: 120_000,
     globalSetup: ["tests/postgres/global-setup.mjs"],
-    pool: "threads",
+    pool: process.platform === "darwin" ? "forks" : "threads",
     coverage: {
       ...serverConfig.test!.coverage,
       include: ["packages/server/src/**/*.ts"],

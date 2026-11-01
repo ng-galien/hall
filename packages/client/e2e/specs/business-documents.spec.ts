@@ -91,6 +91,11 @@ test("the business documents section folds by its header and opens each document
     Math.abs(chevronBox!.y + chevronBox!.height / 2 - (titleBox!.y + titleBox!.height / 2)),
     "The chevron is aligned with the title",
   ).toBeLessThanOrEqual(2);
+  await page.mouse.move(0, 0);
+  await expect.poll(() => toggle.evaluate((element) => element.matches(":hover"))).toBe(false);
+  await toggle.evaluate((element) =>
+    Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
+  );
   const restingBackground = await toggle.evaluate((element) => getComputedStyle(element).backgroundColor);
   await toggle.hover();
   await expect
