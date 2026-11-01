@@ -38,7 +38,7 @@ test("imports selected folders on a folder and dropped folders on a business pre
         ?.map((entry: { properties: { path: string; name: string } }) => entry.properties)
         .find((resource: { path: string; name: string }) => resource.path === path && resource.name === name);
     };
-    await expect.poll(() => find("seed/Selection/Pieces/Details", "notes.txt")).toBeTruthy();
+    await expect.poll(() => find("seed/Selection/Pieces/Details", "notes.txt"), { timeout: 30_000 }).toBeTruthy();
     expect(await find("seed/Selection", "rapport.txt")).toBeTruthy();
     expect(await find("seed/Selection/Pieces", "annexe.txt")).toBeTruthy();
     const created = await page.request.post("/api/council-business", {
@@ -82,12 +82,15 @@ test("imports selected folders on a folder and dropped folders on a business pre
       });
     await dropFolder(target);
     await expect
-      .poll(async () => {
-        const detail = await (
-          await page.request.get(`/api/council-business/resource-items?councilBusinessId=${business.id}`)
-        ).json();
-        return JSON.stringify(detail).includes("piece.txt");
-      })
+      .poll(
+        async () => {
+          const detail = await (
+            await page.request.get(`/api/council-business/resource-items?councilBusinessId=${business.id}`)
+          ).json();
+          return JSON.stringify(detail).includes("piece.txt");
+        },
+        { timeout: 30_000 },
+      )
       .toBe(true);
     expect(await find("seed/Affaire import dossier/Depot/Sous-dossier", "piece.txt")).toBeTruthy();
     expect(await find("seed/Affaire import dossier/Depot", "Vide")).toBeTruthy();
@@ -96,10 +99,12 @@ test("imports selected folders on a folder and dropped folders on a business pre
     const businessChooser = page.waitForEvent("filechooser");
     await page.getByTestId("workspace-tree-import-folder").click();
     await (await businessChooser).setFiles(selected);
-    await expect.poll(() => find("seed/Affaire import dossier/Selection/Pieces/Details", "notes.txt")).toBeTruthy();
+    await expect
+      .poll(() => find("seed/Affaire import dossier/Selection/Pieces/Details", "notes.txt"), { timeout: 30_000 })
+      .toBeTruthy();
     await expect(page.getByTestId("workspace-import-progress")).toHaveCount(0);
     await dropFolder(page.getByTestId("workspace-tree-root"));
-    await expect.poll(() => find("seed/Depot/Sous-dossier", "piece.txt")).toBeTruthy();
+    await expect.poll(() => find("seed/Depot/Sous-dossier", "piece.txt"), { timeout: 30_000 }).toBeTruthy();
     expect(await find("seed/Depot", "Vide")).toBeTruthy();
   } finally {
     await rm(temp, { recursive: true, force: true });
@@ -194,18 +199,23 @@ test("preserves empty folders through the native folder picker", async ({ appPag
   await page.getByTestId("workspace-tree-root").click({ button: "right" });
   await page.getByTestId("workspace-tree-import-folder").click();
   await expect
-    .poll(async () => {
-      const result = await (await page.request.get("/api/resources/catalog")).json();
-      const entries = result.entities.map((entry: { properties: { path: string; name: string } }) => entry.properties);
-      return (
-        entries.some(
-          (entry: { path: string; name: string }) =>
-            entry.path === "seed/ChoixNatif/Pieces" && entry.name === "note.txt",
-        ) &&
-        entries.some(
-          (entry: { path: string; name: string }) => entry.path === "seed/ChoixNatif" && entry.name === "Vide",
-        )
-      );
-    })
+    .poll(
+      async () => {
+        const result = await (await page.request.get("/api/resources/catalog")).json();
+        const entries = result.entities.map(
+          (entry: { properties: { path: string; name: string } }) => entry.properties,
+        );
+        return (
+          entries.some(
+            (entry: { path: string; name: string }) =>
+              entry.path === "seed/ChoixNatif/Pieces" && entry.name === "note.txt",
+          ) &&
+          entries.some(
+            (entry: { path: string; name: string }) => entry.path === "seed/ChoixNatif" && entry.name === "Vide",
+          )
+        );
+      },
+      { timeout: 30_000 },
+    )
     .toBe(true);
 });

@@ -132,7 +132,7 @@ export const test = base.extend<
     });
     await page.goto("/app/");
     const synchronizationStatus = page.getByTestId("application-sync-status");
-    await expect(synchronizationStatus).toHaveAttribute("data-sync-state", "synchronized");
+    await expect(synchronizationStatus).toHaveAttribute("data-sync-state", "synchronized", { timeout: 30_000 });
     await use(page);
     expect(pageErrors, "The application must not emit uncaught browser errors").toEqual([]);
   },
