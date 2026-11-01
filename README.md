@@ -29,7 +29,7 @@ The [public site](https://ng-galien.github.io/hall/) shows these workflows with 
 
 The desktop demonstration runs on your computer with a fictional municipality, Alésia. It opens with a demonstration account and prepared data: council members, committees, contacts, council business, meetings, ballots and documents. There is no account to create or password to enter. Its embedded database is stored locally; the **Démonstration** menu resets the demonstration data.
 
-**Public release 1.0.0 is being prepared. No public installer is available until a release is published.** Downloads will appear on the [versions page](https://github.com/ng-galien/hall/releases), with the available platforms and installation notes. The macOS Apple silicon demonstration has been checked locally; other desktop platforms have not yet been validated on hardware.
+Published installers and their installation notes are listed on the [versions page](https://github.com/ng-galien/hall/releases). Choose a build for your operating system and processor from the available assets. The macOS Apple silicon demonstration has been checked locally; other desktop platforms have not yet been validated on hardware.
 
 Once a build is available:
 
