@@ -52,8 +52,18 @@ async function layoutFindings(page: Page) {
       };
       const scrolling = document.scrollingElement;
       const horizontalScroll = (scrolling?.scrollWidth ?? 0) > viewport + 1;
+      const cutAtRightEdge = (element: Element) => {
+        const rect = element.getBoundingClientRect();
+        if (rect.right <= viewport + 1) return false;
+        let paintedRight = rect.right;
+        for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+          if (getComputedStyle(parent).overflowX !== "visible")
+            paintedRight = Math.min(paintedRight, parent.getBoundingClientRect().right);
+        }
+        return paintedRight >= viewport - 1;
+      };
       const cut = [...document.querySelectorAll("body *")]
-        .filter((element) => visible(element) && element.getBoundingClientRect().right > viewport + 1)
+        .filter((element) => visible(element) && cutAtRightEdge(element))
         .filter((element) => !element.closest("[data-horizontal-scroll], .maplibregl-map, .univer-container, table"))
         .slice(0, 8)
         .map(describe);
@@ -296,3 +306,30 @@ for (const [device, viewport] of [
     });
   });
 }
+
+test.describe("Layout audit clipping", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("ignores internal clipping while reporting real viewport cuts", async ({ page }) => {
+    await page.setContent(
+      `<style>body{margin:0}#clip{position:absolute;left:320px;top:20px;width:50px;height:44px;overflow:hidden}#content{width:306px;height:44px}</style><div id="clip"><div id="content">General</div></div>`,
+    );
+    const internal = await layoutFindings(page);
+    expect(internal.horizontalScroll).toBe(false);
+    expect(internal.cut).toEqual([]);
+
+    await page.setContent(
+      `<style>body{margin:0}#content{position:absolute;left:360px;top:20px;width:80px;height:44px}</style><div id="content" data-testid="real-overflow">Overflow</div>`,
+    );
+    const overflow = await layoutFindings(page);
+    expect(overflow.horizontalScroll).toBe(true);
+    expect(overflow.cut).toEqual(["div real-overflow 80x44"]);
+
+    await page.setContent(
+      `<style>body{margin:0}#clip{position:absolute;left:320px;top:20px;width:70px;height:44px;overflow:hidden}#content{width:306px;height:44px}</style><div id="clip"><div id="content">General</div></div>`,
+    );
+    const viewportCut = await layoutFindings(page);
+    expect(viewportCut.horizontalScroll).toBe(false);
+    expect(viewportCut.cut).toEqual(["div General 306x44"]);
+  });
+});
