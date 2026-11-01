@@ -22,10 +22,12 @@ export const minutesFactsSchema = z
         chair: person.nullable(),
         secretary: person.nullable(),
         // The meeting without quorum whose second convocation called this meeting.
+        // Earlier immutable records did not capture this field; preserve its absence.
         reconvenedFrom: z
           .object({ id, number: z.number().int().positive(), scheduledAt: time, startedAt: time })
           .strict()
-          .nullable(),
+          .nullable()
+          .optional(),
       })
       .strict(),
     attendance: z.array(
