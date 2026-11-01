@@ -41,7 +41,19 @@ test("creates a linked user, assigns cumulative roles and disables the account",
   await page.getByTestId("user-roles-submit").click();
   await expect(page.getByTestId("user-roles-submit")).toHaveCount(0);
   await page.reload();
-  await expect(page.getByTestId("user-roles")).toHaveText("Clerk · Contributor");
+  const assigned = await page.request.get(`/api/users/${new URL(detailUrl).pathname.split("/").at(-1)}`);
+  expect(assigned.ok()).toBe(true);
+  const assignedRoles = (await assigned.json()).properties.roles as string[];
+  expect([...assignedRoles].sort()).toEqual(["clerk", "contributor"]);
+  const roleCatalog = await page.request.get("/api/roles");
+  expect(roleCatalog.ok()).toBe(true);
+  const roleNames = new Map<string, string>(
+    (await roleCatalog.json()).entities.map(({ properties }: { properties: { id: string; name: string } }) => [
+      properties.id,
+      properties.name,
+    ]),
+  );
+  await expect(page.getByTestId("user-roles")).toHaveText(assignedRoles.map((role) => roleNames.get(role)).join(" · "));
   await page.getByTestId("navigation-users").click();
   await page.getByTestId("collection-search").fill("Responsable des approvisionnements");
   await page.getByTestId("collection-layout-cards").click();
