@@ -39,7 +39,8 @@ test("offers business deletion only when Hall accepts it, never for its folder",
 
   await page.goto("/app/workspace");
   const examinedRow = page.getByTestId(`workspace-business-${examined.properties.id}`);
-  await examinedRow.click({ button: "right" });
+  await expect(examinedRow.locator('[data-slot="context-menu-trigger"]').first()).toBeVisible();
+  await page.getByTestId(`workspace-business-title-${examined.properties.id}`).click({ button: "right" });
   await expect(page.getByTestId("workspace-tree-rename")).toBeVisible();
   await expect(page.getByTestId("workspace-tree-delete-business")).toHaveCount(0);
   await page.keyboard.press("Escape");
@@ -56,7 +57,8 @@ test("offers business deletion only when Hall accepts it, never for its folder",
   const createdId = new URL(page.url()).searchParams.get("councilBusiness")!;
   await page.goto("/app/workspace");
   const createdRow = page.getByTestId(`workspace-business-${createdId}`);
-  await createdRow.click({ button: "right" });
+  await expect(createdRow.locator('[data-slot="context-menu-trigger"]').first()).toBeVisible();
+  await page.getByTestId(`workspace-business-title-${createdId}`).click({ button: "right" });
   await page.getByTestId("workspace-tree-delete-business").click();
   await page.getByTestId("business-delete-confirm").click();
   await expect(createdRow).toHaveCount(0);

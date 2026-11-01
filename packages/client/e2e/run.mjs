@@ -210,11 +210,23 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
           ? "docs"
           : "core";
   const clones = mode !== "auth" && process.env.HALL_E2E_DESKTOP !== "true";
-  const origin = builtClientDirectory ? `http://127.0.0.1:${serverPort}` : `http://127.0.0.1:${clientPort}`;
+  const selectedClient =
+    builtDevelopmentDirectory && (mode === "core" || mode === "auth")
+      ? builtDevelopmentDirectory
+      : builtClientDirectory;
+  const origin = selectedClient ? `http://127.0.0.1:${serverPort}` : `http://127.0.0.1:${clientPort}`;
   const output = `${mode}-${shardIndex}`;
   const child = spawn(
     process.execPath,
-    [playwrightCli, "test", "--config", "e2e/playwright.config.ts", ...requestedArguments, ...shard],
+    [
+      playwrightCli,
+      "test",
+      "--config",
+      "e2e/playwright.config.ts",
+      ...requestedArguments,
+      ...(allFamilies ? ["--max-failures=1"] : []),
+      ...shard,
+    ],
     {
       cwd: clientDirectory,
       detached: true,
@@ -232,7 +244,7 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
         DATABASE_URL: databaseUrl(name),
         DOCUMENT_STORAGE_PATH: join(temporaryDirectory, "documents"),
         HALL_DEV_AUTO_LOGIN: String(mode === "core"),
-        ...(builtClientDirectory ? { CLIENT_DIRECTORY: builtClientDirectory } : {}),
+        ...(selectedClient ? { CLIENT_DIRECTORY: selectedClient } : {}),
         HALL_E2E_CLIENT_PORT: clientPort,
         HALL_E2E_DATABASE_NAME: name,
         HALL_E2E_LANE: String(lane),
@@ -259,6 +271,7 @@ let timedOut = false;
 let interrupted = false;
 let templateCreated = false;
 let builtClientDirectory = null;
+let builtDevelopmentDirectory = null;
 
 function stopAll(signal) {
   for (const { child } of running) stopProcessGroup(child, signal);
@@ -285,6 +298,26 @@ try {
     builtClientDirectory = mkdtempSync(join(tmpdir(), "hall-docs-client-"));
     run("npm", ["run", "build", "-w", "@hall/client", "--", "--outDir", builtClientDirectory, "--emptyOutDir"]);
   }
+  if (allFamilies || process.env.HALL_E2E_CLIENT_MODE === "development") {
+    builtDevelopmentDirectory = mkdtempSync(join(tmpdir(), "hall-e2e-development-"));
+    run(
+      "npm",
+      [
+        "exec",
+        "-w",
+        "@hall/client",
+        "--",
+        "vite",
+        "build",
+        "--mode",
+        "development",
+        "--outDir",
+        builtDevelopmentDirectory,
+        "--emptyOutDir",
+      ],
+      { env: { NODE_ENV: "development" } },
+    );
+  }
   recreateDatabase(templateDatabase);
   templateCreated = true;
   installDatabase(templateDatabase);
@@ -297,6 +330,7 @@ try {
       ]
     : Array.from({ length: lanes }, (_, index) => ({ lane: index + 1, family: "core", lanes }));
   let next = 0;
+  let failed = false;
   const results = [];
   const timeout = setTimeout(() => {
     timedOut = true;
@@ -306,7 +340,7 @@ try {
   timeout.unref();
   await Promise.all(
     Array.from({ length: lanes }, async () => {
-      while (next < jobs.length && !timedOut && !interrupted) {
+      while (next < jobs.length && !timedOut && !interrupted && !failed) {
         const job = jobs[next++];
         const name = databaseName(job.lane);
         recreateDatabase(name, templateDatabase);
@@ -320,7 +354,12 @@ try {
         resources.push(resource);
         const run = startLane(resource);
         running.push(run);
-        results.push(await run.completion);
+        const result = await run.completion;
+        results.push(result);
+        if (result.status !== 0) {
+          failed = true;
+          stopAll("SIGTERM");
+        }
       }
     }),
   );
@@ -345,6 +384,7 @@ try {
         dropDatabase(`${templateDatabase}_seed_${mode}_${scenario}`);
     dropDatabase(templateDatabase);
   }
+  if (builtDevelopmentDirectory) rmSync(builtDevelopmentDirectory, { recursive: true, force: true });
   if (builtClientDirectory && builtClientDirectory !== resolve(clientDirectory, "dist"))
     rmSync(builtClientDirectory, { recursive: true, force: true });
 }

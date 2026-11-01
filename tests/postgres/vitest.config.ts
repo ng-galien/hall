@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import serverConfig from "../../packages/server/vitest.config.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -9,6 +9,7 @@ export default defineConfig({
   root,
   test: {
     include: ["tests/postgres/*.test.mjs", "packages/server/src/**/*.test.ts", "packages/server/tests/**/*.test.ts"],
+    exclude: [...configDefaults.exclude, "tests/postgres/e2e-fixture.test.mjs"],
     environment: "node",
     env: {
       TEST_DATABASE_URL: databaseUrl,

@@ -30,7 +30,7 @@ export default defineConfig({
     baseURL: `${clientUrl}/app/`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    video: "off",
   },
   projects: desktop
     ? [{ name: "desktop", testDir: "./desktop", testMatch: /\.spec\.ts$/, timeout: 10 * 60_000 }]

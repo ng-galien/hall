@@ -79,6 +79,7 @@ const mode = process.argv[2] ?? "all";
 const groups = {
   checks:
     "npm run check:test-inventory && npm run check:public-artifacts && npm run check:requirements && npm run test:meta && code-moniker check . && npm run lint && npm run typecheck:built",
+  fixtures: "npx vitest run tests/postgres/e2e-fixture.test.mjs",
   backend: "npm run test:backend",
   units:
     "npm run test --workspace @hall/api-contract --workspace @hall/mcp --workspace @hall/templating --workspace @hall/client --workspace @hall/desktop -- --maxWorkers=2 && npm run test:i18n-hmr && npm run test:policy:mutation",
@@ -91,6 +92,7 @@ try {
   if (mode === "all") {
     await run("build", "npm run build:verified");
     await run("checks", groups.checks);
+    await run("fixtures", groups.fixtures);
     await browserWithBackend(async () => {
       await run("backend", groups.backend);
       await together([
@@ -103,6 +105,7 @@ try {
     });
   } else if (mode === "verification") {
     await run("checks", groups.checks);
+    await run("fixtures", groups.fixtures);
     await run("backend", groups.backend);
     await together([run("units", groups.units), run("postgres", groups.postgres)]);
   } else {
@@ -124,6 +127,7 @@ try {
         unchanged,
         seconds: (Date.now() - started) / 1000,
         withinFifteenMinutes: Date.now() - started <= 900_000,
+        targetMet: process.exitCode !== 1 && Date.now() - started <= 900_000,
         passed: process.exitCode !== 1,
         records,
       },

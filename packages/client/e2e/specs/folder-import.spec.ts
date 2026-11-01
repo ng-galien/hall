@@ -3,6 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "../fixtures/application";
 
+test.beforeEach(async ({ appPage: page }) => {
+  const created = await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: "seed" } });
+  expect(created.status()).toBe(201);
+});
+
 test("imports selected folders on a folder and dropped folders on a business preserving all paths", async ({
   appPage: page,
 }) => {
@@ -18,6 +23,8 @@ test("imports selected folders on a folder and dropped folders on a business pre
   await writeFile(join(selected, "Pieces", "Details", "notes.txt"), "Notes");
   try {
     await page.goto("/app/workspace?path=seed");
+    await expect(page.getByTestId("workspace-folder-input")).toBeEnabled();
+    await expect(page.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
     await page.getByTestId("workspace-tree-root").click({ button: "right" });
     const chooser = page.waitForEvent("filechooser");
     await page.getByTestId("workspace-tree-import-folder").click();
@@ -145,6 +152,8 @@ test("warns on identical file bytes across names and retains folder import error
   await writeFile(join(directory, "programme.exe"), "unsupported");
   try {
     await page.goto("/app/workspace?path=seed");
+    await expect(page.getByTestId("workspace-folder-input")).toBeEnabled();
+    await expect(page.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
     await page.getByTestId("workspace-tree-root").click({ button: "right" });
     const rejected = page.waitForEvent("filechooser");
     await page.getByTestId("workspace-tree-import-folder").click();
