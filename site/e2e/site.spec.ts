@@ -34,6 +34,17 @@ async function expectCapturesLoaded(page: Page, scope: string) {
   }
 }
 
+/** Attend la fin du défilement fluide : la position de la page ne bouge plus. */
+async function scrollSettled(page: Page) {
+  await expect
+    .poll(async () => {
+      const before = await page.evaluate(() => window.scrollY);
+      await page.waitForTimeout(150);
+      return before === (await page.evaluate(() => window.scrollY));
+    })
+    .toBe(true);
+}
+
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
@@ -320,7 +331,10 @@ test.describe("relief en 3D", () => {
     await page.goto("./");
     await sceneReady(page);
     const label = page.getByTestId("terrain-label-maison");
-    await page.getByTestId("terrain-stage").evaluate((stage) => stage.scrollIntoView({ block: "center" }));
+    await page
+      .getByTestId("terrain-stage")
+      .evaluate((stage) => stage.scrollIntoView({ block: "center", behavior: "instant" }));
+    await scrollSettled(page);
     const x = Number(await label.getAttribute("data-hit-x"));
     const y = Number(await label.getAttribute("data-hit-y"));
     const box = await page.getByTestId("terrain-stage").boundingBox();
@@ -560,6 +574,7 @@ test.describe("sections de la page", () => {
       await expect(page.getByTestId(`download-how-${guide.system}`)).toHaveText(`Marche à suivre pour ${guide.title}`);
     }
     const section = page.getByTestId("section-telecharger");
+    await scrollSettled(page);
     const list = await section.locator(".download-list").boundingBox();
     const part = await section.getByTestId("install-part").boundingBox();
     if (!list || !part) throw new Error("Téléchargements ou marche à suivre absents");

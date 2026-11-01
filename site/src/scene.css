@@ -747,6 +747,12 @@
     z-index: 6;
   }
 
+  /* Scénario ouvert : la scène défile de nouveau, pour amener le menu au-dessus du panneau du bas. */
+  .has-scenario .terrain {
+    position: relative;
+    top: auto;
+  }
+
   .has-scenario .card-rail {
     top: 25%;
   }
