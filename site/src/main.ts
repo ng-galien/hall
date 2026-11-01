@@ -3,7 +3,9 @@ import "@fontsource/public-sans/600.css";
 import "@fontsource/public-sans/700.css";
 import "@fontsource/public-sans/800.css";
 import "./styles.css";
-import { type Axis, axes, places, type Scene, type SceneId, scenes } from "./scenes";
+import "./scene.css";
+import { renderCardNavigation } from "./cards";
+import { type Axis, axes, type Motion, type PlaceId, places, type Scene, type SceneId, scenes } from "./scenes";
 import { renderSections } from "./sections";
 import type { Frame, TerrainView } from "./terrain";
 import { openViewer, viewerOpen } from "./viewer";
@@ -339,6 +341,25 @@ function renderPlain(root: HTMLElement, notice: string) {
   }
 }
 
+/** Vol de caméra vers le lieu du récit d'une section, sans repère ajouté. */
+function sectionShot(
+  placeId: PlaceId,
+  azimuth: number,
+  elevation: number,
+  distance: number,
+): { place: PlaceId; motion: Motion } {
+  const at = places.find((place) => place.id === placeId)?.at ?? { x: 0, y: 0 };
+  return {
+    place: placeId,
+    motion: {
+      from: { at, azimuth: azimuth - 25, elevation: elevation + 8, distance: distance * 1.6 },
+      to: { at, azimuth, elevation, distance },
+      seconds: 9,
+      marks: [],
+    },
+  };
+}
+
 interface Box {
   left: number;
   top: number;
@@ -377,7 +398,8 @@ async function renderTerrain(root: HTMLElement) {
   let playing = false;
 
   function freeFrame(): Frame | null {
-    if (panel.hidden) return null;
+    const cover = panel.hidden ? sectionCover() : panel.getBoundingClientRect();
+    if (!cover) return null;
     const box = stage.getBoundingClientRect();
     let zone: Box = {
       left: Math.max(box.left, 0),
@@ -385,8 +407,8 @@ async function renderTerrain(root: HTMLElement) {
       right: Math.min(box.right, window.innerWidth),
       bottom: Math.min(box.bottom, window.innerHeight),
     };
-    zone = carve(zone, panel.getBoundingClientRect());
-    zone = carve(zone, menu.bar.getBoundingClientRect());
+    zone = carve(zone, cover);
+    if (panel.hidden === false) zone = carve(zone, menu.bar.getBoundingClientRect());
     return {
       left: zone.left - box.left,
       top: zone.top - box.top,
@@ -452,6 +474,24 @@ async function renderTerrain(root: HTMLElement) {
     if (!fromHash) history.replaceState(null, "", id ? `#${id}` : `${location.pathname}${location.search}`);
   }
 
+  /** Retour au début de la page : ferme le scénario ouvert et remonte, sans saut, jusqu'au premier écran. */
+  function glide(top: number) {
+    window.scrollTo({ top, behavior: prefersReducedMotion() ? "instant" : "smooth" });
+  }
+  const intro = document.querySelector<HTMLElement>(".intro");
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href="#haut"], a[href="#decouvrir"]')) {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (current) open(null);
+      if (link.hash === "#haut" || !intro || getComputedStyle(intro).position === "absolute") {
+        glide(0);
+        return;
+      }
+      const sceneTop = intro.getBoundingClientRect().bottom + window.scrollY - masthead.offsetHeight;
+      glide(Math.max(0, Math.round(sceneTop)));
+    });
+  }
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || viewerOpen()) return;
     if (menu.close()) return;
@@ -462,6 +502,66 @@ async function renderTerrain(root: HTMLElement) {
   new IntersectionObserver((entries) => {
     if (sheet.matches && current && entries.every((entry) => !entry.isIntersecting)) open(null);
   }).observe(stage);
+
+  new ResizeObserver(() => root.style.setProperty("--terrain-h", `${root.offsetHeight}px`)).observe(root);
+  const sentinel = root.parentElement?.querySelector<HTMLElement>(".scene-sentinel") ?? null;
+  const narrow = window.matchMedia("(max-width: 760px)");
+  const firstCard = document.querySelector<HTMLElement>("#telecharger .section-inner");
+  const sectionShots: { selector: string; shot: { place: PlaceId; motion: Motion } | null }[] = [
+    { selector: "#telecharger", shot: sectionShot("maison", 205, 28, 2300) },
+    { selector: "#documentation", shot: sectionShot("tour", 150, 24, 2400) },
+    { selector: ".site-footer", shot: null },
+  ];
+  let following = "accueil";
+  let coverElement: HTMLElement | null = null;
+
+  function sectionCover(): DOMRect | null {
+    if (!coverElement) return null;
+    const box = coverElement.getBoundingClientRect();
+    if (box.bottom < 0 || box.top > window.innerHeight) return null;
+    return box;
+  }
+
+  function followSections() {
+    const beyond = narrow.matches
+      ? (firstCard?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY) < bar.getBoundingClientRect().top
+      : sentinel
+        ? sentinel.getBoundingClientRect().top < window.innerHeight * 0.55
+        : false;
+    document.body.classList.toggle("is-beyond", beyond);
+    let chosen = "accueil";
+    let shot: { place: PlaceId; motion: Motion } | null = null;
+    let cover: HTMLElement | null = null;
+    if (beyond) {
+      chosen = "relief";
+      for (const entry of sectionShots) {
+        const target = document.querySelector<HTMLElement>(entry.selector);
+        if (target && target.getBoundingClientRect().top < window.innerHeight * 0.6) {
+          chosen = entry.selector;
+          shot = entry.shot;
+          const inners = [...target.querySelectorAll<HTMLElement>(".section-inner, .footer-bar")];
+          cover =
+            inners.find((inner) => inner.getBoundingClientRect().bottom > window.innerHeight * 0.3) ??
+            inners.at(-1) ??
+            null;
+        }
+      }
+    }
+    coverElement = cover;
+    if (chosen === following) return;
+    following = chosen;
+    if (beyond && current) {
+      current = null;
+      menu.mark(null);
+      panel.hidden = true;
+      panel.replaceChildren();
+      document.body.classList.remove("has-scenario");
+      stopAutoplay();
+      history.replaceState(null, "", `${location.pathname}${location.search}`);
+    }
+    if (chosen === "accueil" && current) return;
+    terrain?.play(shot);
+  }
 
   const { createTerrain } = await import("./terrain");
   terrain = await createTerrain({
@@ -475,6 +575,7 @@ async function renderTerrain(root: HTMLElement) {
     },
   });
   const reframe = () => terrain?.reframe();
+  window.addEventListener("scroll", followSections, { passive: true });
   window.addEventListener("scroll", reframe, { passive: true });
   window.addEventListener("resize", reframe);
   new ResizeObserver(reframe).observe(panel);
@@ -499,6 +600,7 @@ async function start() {
   if (mode === "terrain") {
     viewSwitch.textContent = "Afficher la version sans 3D";
     viewSwitch.addEventListener("click", () => setMode("plain"));
+    renderCardNavigation(element("site-header"));
     await renderTerrain(element("terrain"));
   } else {
     if (webgl) {

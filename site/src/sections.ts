@@ -167,7 +167,9 @@ function renderInstall(inner: HTMLElement): InstallTabs {
 function renderDownload(inner: HTMLElement): (install: InstallTabs) => void {
   const head = node("header", "section-head");
   head.append(
+    node("p", "section-axis", "Installation, trois systèmes"),
     node("h2", undefined, "Télécharger la démonstration"),
+    node("p", "section-where", "Lieu du récit : la maison commune de l’oppidum, où siège le conseil d’Alésia."),
     node(
       "p",
       "section-lead",
@@ -209,34 +211,47 @@ export function renderSections() {
   const inner = node("div", "section-inner");
   download.append(inner);
   const connect = renderDownload(inner);
-  connect(renderInstall(inner));
+  const install = node("div", "section-inner section-card-install");
+  download.append(install);
+  connect(renderInstall(install));
+
+  document.querySelector(`[data-testid="download-${detectedSystem()}"]`)?.classList.add("is-detected");
 
   const links = new Map<string, HTMLElement>();
   for (const link of document.querySelectorAll<HTMLAnchorElement>(".section-nav a")) {
     links.set(link.hash.slice(1), link);
   }
-  const visible = new Map<string, number>();
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries)
-        visible.set(entry.target.id, entry.isIntersecting ? entry.intersectionRect.height : 0);
-      let best = "";
-      let ratio = 0;
-      for (const [id, value] of visible) {
-        if (value > ratio) {
-          best = id;
-          ratio = value;
-        }
+  const lists = [...document.querySelectorAll<HTMLElement>(".install-steps")];
+  let queued = false;
+  function update() {
+    queued = false;
+    const line = window.innerHeight * 0.4;
+    let best = "decouvrir";
+    for (const id of ["telecharger", "documentation"]) {
+      const section = document.getElementById(id);
+      if (section && section.getBoundingClientRect().top < line) best = id;
+    }
+    for (const [id, link] of links) {
+      if (id === best) link.setAttribute("aria-current", "true");
+      else link.removeAttribute("aria-current");
+    }
+    const reach = window.innerHeight * 0.62;
+    for (const list of lists) {
+      if (list.offsetParent === null) continue;
+      const box = list.getBoundingClientRect();
+      list.style.setProperty("--fill", `${Math.max(0, Math.min(box.height, reach - box.top))}px`);
+      for (const item of list.children) {
+        (item as HTMLElement).classList.toggle("is-reached", item.getBoundingClientRect().top + 14 < reach);
       }
-      for (const [id, link] of links) {
-        if (id === best) link.setAttribute("aria-current", "true");
-        else link.removeAttribute("aria-current");
-      }
-    },
-    { rootMargin: "-30% 0px -40% 0px", threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1] },
-  );
-  for (const id of links.keys()) {
-    const section = document.getElementById(id);
-    if (section) observer.observe(section);
+    }
   }
+  const request = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(update);
+  };
+  window.addEventListener("scroll", request, { passive: true });
+  window.addEventListener("resize", request);
+  for (const tab of document.querySelectorAll(".install-tab")) tab.addEventListener("click", request);
+  update();
 }

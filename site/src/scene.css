@@ -1,0 +1,810 @@
+/*
+ * La scène continue : le relief reste derrière toute la page, chaque section est une carte posée sur la scène
+ * et la caméra survole le lieu du récit de la section. Mêmes couleurs que src/styles.css.
+ */
+
+.has-terrain .terrain {
+  position: sticky;
+  top: min(var(--masthead), calc(100svh - var(--terrain-h, 0px)));
+  z-index: 0;
+}
+
+.has-terrain .terrain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--slate-950) 55%, transparent),
+    color-mix(in srgb, var(--slate-950) 10%, transparent) 70%
+  );
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.is-beyond .terrain::after {
+  opacity: 1;
+}
+
+.place-bar,
+.terrain-credit,
+.terrain-labels {
+  transition: opacity 300ms ease;
+}
+
+.is-beyond .place-bar,
+.is-beyond .terrain-credit {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.is-beyond .place-bar *,
+.is-beyond .terrain-stage {
+  pointer-events: none;
+}
+
+.scene-sentinel {
+  height: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Arrivée des liens de l'en-tête : la carte de la section juste sous l'en-tête fixe */
+.has-terrain {
+  --arrival: calc(var(--masthead) + 1.5rem);
+}
+
+.has-terrain {
+  --lead-in: 10svh;
+  --between: 8svh;
+}
+
+.has-terrain #telecharger {
+  scroll-margin-top: calc(var(--arrival) - var(--lead-in));
+}
+
+.has-terrain #documentation {
+  scroll-margin-top: calc(var(--arrival) - var(--between));
+}
+
+.has-terrain #marche-a-suivre {
+  scroll-margin-top: var(--arrival);
+}
+
+/* Sections : des panneaux posés sur le relief */
+.has-terrain .page-section {
+  position: relative;
+  z-index: 5;
+  border-top: 0;
+  pointer-events: none;
+}
+
+.has-terrain #telecharger {
+  padding-top: var(--lead-in);
+}
+
+.has-terrain #documentation {
+  padding-top: var(--between);
+}
+
+.has-terrain .section-card-install {
+  margin-top: 1rem;
+}
+
+.has-terrain .section-card-install .install-part {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.has-terrain .install-head h3 {
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem);
+  letter-spacing: -0.02em;
+}
+
+.has-terrain .section-inner {
+  pointer-events: auto;
+  max-width: 46rem;
+  margin: 0 auto 0 var(--gutter);
+  position: relative;
+  padding: 1.6rem 2rem 1.5rem;
+  color: var(--slate-200);
+  background-color: color-mix(in srgb, var(--slate-950) 93%, transparent);
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--slate-700) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--slate-700) 38%, transparent) 1px, transparent 1px);
+  background-size: 2rem 2rem;
+  border: 1px solid var(--slate-600);
+  border-radius: 0.35rem;
+  backdrop-filter: blur(6px);
+}
+
+.has-terrain #documentation .section-inner {
+  max-width: 42rem;
+  margin: 0 calc(var(--gutter) + 2rem) 0 auto;
+}
+
+.section-axis {
+  margin: 0 0 0.5rem;
+  color: var(--slate-400);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.has-terrain .section-head {
+  margin-bottom: 1.25rem;
+  padding-right: 5.5rem;
+}
+
+.has-terrain .install-head {
+  margin-bottom: 1rem;
+  padding-right: 5.5rem;
+}
+
+.has-terrain .download-warning {
+  margin-top: 1rem;
+}
+
+.has-terrain .install-before {
+  margin-bottom: 1.25rem;
+}
+
+.has-terrain .install-tabs {
+  margin-bottom: 1.25rem;
+}
+
+.has-terrain .install-path {
+  margin-bottom: 1.25rem;
+}
+
+.has-terrain .section-head h2 {
+  color: var(--slate-50);
+  font-size: clamp(1.75rem, 1.1rem + 2vw, 2.6rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+.section-where {
+  margin: 0 0 0.9rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--blue);
+  color: var(--slate-200);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.has-terrain .section-lead {
+  color: var(--slate-300);
+}
+
+/* Fichiers : une barre de systèmes, comme le menu de découverte */
+.has-terrain .download-list {
+  border: 1px solid var(--slate-600);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--slate-950) 70%, transparent);
+}
+
+.has-terrain .download-row {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem 1.5rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--slate-700);
+}
+
+.has-terrain .download-row:last-child {
+  border-bottom: 0;
+}
+
+.has-terrain .download-row.is-detected {
+  box-shadow: inset 2px 0 0 var(--blue);
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
+
+.download-row.is-detected .download-system h3::after {
+  content: "Votre système";
+  margin-left: 0.75rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--blue);
+  border-radius: 0.25rem;
+  color: var(--slate-100);
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: 0.2em;
+}
+
+.has-terrain .download-system h3 {
+  color: var(--slate-50);
+}
+
+.has-terrain .download-file {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  color: var(--slate-400);
+  font-size: 0.875rem;
+}
+
+.has-terrain .download-actions {
+  grid-row: 1;
+  grid-column: 2;
+}
+
+.has-terrain .download-warning {
+  color: var(--slate-300);
+}
+
+/* Marche à suivre : une ligne d'étapes qui s'allume au fil de la lecture */
+.has-terrain .install-head h3,
+.has-terrain .install-path h4,
+.has-terrain .install-notes h4 {
+  color: var(--slate-50);
+}
+
+.has-terrain .install-tabs {
+  display: flex;
+  border-color: var(--slate-600);
+  background: color-mix(in srgb, var(--slate-950) 70%, transparent);
+}
+
+.has-terrain .install-tab {
+  flex: 1;
+  min-height: 3.25rem;
+  color: var(--slate-300);
+}
+
+.has-terrain .install-tab + .install-tab {
+  border-left-color: var(--slate-700);
+}
+
+.has-terrain .install-tab:hover {
+  background: color-mix(in srgb, var(--slate-700) 45%, transparent);
+}
+
+.has-terrain .install-tab[aria-selected="true"] {
+  background: transparent;
+  color: var(--slate-50);
+  box-shadow: inset 0 -2px 0 var(--blue);
+}
+
+.has-terrain .install-facts {
+  grid-template-columns: 10rem minmax(0, 1fr);
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--slate-700);
+  border-radius: 0.35rem;
+}
+
+.has-terrain .install-facts dt {
+  color: var(--slate-100);
+}
+
+.has-terrain .install-steps {
+  position: relative;
+  border-top: 0;
+  --fill: 0px;
+}
+
+.has-terrain .install-steps::before,
+.has-terrain .install-steps::after {
+  content: "";
+  position: absolute;
+  left: 0.95rem;
+  top: 0.5rem;
+  width: 1px;
+  bottom: 1.5rem;
+  background: var(--slate-700);
+}
+
+.has-terrain .install-steps::after {
+  bottom: auto;
+  width: 2px;
+  margin-left: -0.5px;
+  height: max(0px, calc(var(--fill) - 1.5rem));
+  max-height: calc(100% - 2rem);
+  background: var(--blue);
+  transition: height 140ms linear;
+}
+
+.has-terrain .install-step {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.35rem;
+  padding: 0.25rem 0 1.1rem 3.25rem;
+  border-bottom: 0;
+}
+
+.has-terrain .install-step::before {
+  top: 0.25rem;
+  z-index: 1;
+  border-color: var(--slate-500);
+  background: var(--slate-950);
+  color: var(--slate-200);
+  transition:
+    background-color 250ms ease,
+    border-color 250ms ease,
+    color 250ms ease;
+}
+
+.has-terrain .install-step.is-reached::before {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: var(--slate-50);
+}
+
+.has-terrain .install-step:last-child.is-reached::before {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.has-terrain .install-label {
+  color: var(--slate-400);
+}
+
+.has-terrain .install-sees .guide-text {
+  color: var(--slate-300);
+}
+
+.has-terrain .install-does .guide-text {
+  color: var(--slate-50);
+}
+
+.has-terrain .install-notes li {
+  border-left-color: var(--slate-600);
+  color: var(--slate-300);
+}
+
+.has-terrain .command code {
+  border-color: var(--slate-600);
+  background: var(--slate-800);
+  color: var(--slate-100);
+}
+
+.has-terrain .copy-button {
+  border-color: var(--slate-600);
+  color: var(--slate-100);
+}
+
+.has-terrain .copy-button:hover {
+  border-color: var(--slate-300);
+}
+
+/* Documentation : les entrées comme celles de l'ouverture du récit */
+.has-terrain [data-testid="ai-presentation"] {
+  margin-bottom: 1.25rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--slate-700);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--slate-950) 70%, transparent);
+}
+
+.has-terrain [data-testid="ai-presentation"] h3 {
+  margin: 0 0 0.6rem;
+  color: var(--slate-50);
+  font-size: var(--step-1);
+}
+
+.has-terrain [data-testid="ai-presentation"] p {
+  margin: 0 0 0.75rem;
+  color: var(--slate-300);
+  font-size: 0.95rem;
+}
+
+.has-terrain .link-plain {
+  color: var(--slate-50);
+}
+
+.has-terrain .doc-links {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.has-terrain .doc-links a {
+  border-color: var(--slate-500);
+  border-radius: 0.3rem;
+  background: transparent;
+}
+
+.has-terrain .doc-links a:hover {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 14%, transparent);
+}
+
+.has-terrain .doc-link-text {
+  color: var(--slate-400);
+}
+
+/* Pied de page : une barre posée au bas du relief */
+.has-terrain .site-footer {
+  position: relative;
+  z-index: 5;
+  padding: 1rem calc(var(--gutter) + 2rem) var(--gutter) var(--gutter);
+  border-top: 0;
+  pointer-events: none;
+}
+
+.footer-bar {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.has-terrain .footer-bar {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 2rem;
+  align-items: end;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--slate-600);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--slate-950) 90%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.has-terrain .footer-bar p {
+  grid-column: 1;
+  margin: 0;
+  color: var(--slate-400);
+  font-size: 0.85rem;
+}
+
+.has-terrain .footer-bar .site-signature {
+  margin-bottom: 0.35rem;
+  color: var(--slate-50);
+  font-size: clamp(1.25rem, 1rem + 1vw, 1.6rem);
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.has-terrain .footer-bar p:last-child {
+  grid-column: 2;
+  grid-row: 1 / span 4;
+  align-self: end;
+}
+
+.has-terrain .view-switch {
+  min-height: 2.5rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--slate-600);
+  border-radius: 0.3rem;
+  color: var(--slate-100);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.has-terrain .view-switch:hover {
+  border-color: var(--slate-300);
+}
+
+/* Navigation de carte en carte */
+.card-arrows {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.1rem;
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Flèches de carte : un cercle fin comme les repères latéraux, une tige et une tête ouvertes */
+.card-arrow {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--slate-600);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--slate-950) 70%, transparent);
+  color: var(--slate-300);
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.card-arrow-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.card-arrow-origin {
+  fill: currentColor;
+  stroke: none;
+  opacity: 0.7;
+}
+
+.card-arrow-motion {
+  transition: transform 220ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.card-arrow-stem {
+  stroke-dasharray: 9;
+  stroke-dashoffset: -3;
+  transition: stroke-dashoffset 220ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.card-arrow:hover:not(:disabled),
+.card-arrow:focus-visible {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 16%, var(--slate-950));
+  color: var(--slate-50);
+}
+
+.card-arrow:hover:not(:disabled) .card-arrow-motion,
+.card-arrow:focus-visible .card-arrow-motion {
+  transform: translateY(-1.5px);
+}
+
+.card-arrow:hover:not(:disabled) .card-arrow-stem,
+.card-arrow:focus-visible .card-arrow-stem {
+  stroke-dashoffset: 0;
+}
+
+.card-arrow:hover:not(:disabled) .card-arrow-origin,
+.card-arrow:focus-visible .card-arrow-origin {
+  fill: var(--blue);
+  opacity: 1;
+}
+
+.card-arrow:active:not(:disabled) {
+  background: color-mix(in srgb, var(--blue) 34%, var(--slate-950));
+}
+
+.card-arrow:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.card-arrow:disabled {
+  border-color: var(--slate-800);
+  color: var(--slate-700);
+  cursor: default;
+}
+
+.has-terrain .card-nav {
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
+  border-top-color: var(--slate-700);
+}
+
+.has-terrain .card-nav .step-button {
+  border-color: var(--slate-600);
+  color: var(--slate-100);
+}
+
+.has-terrain .card-nav .step-button:hover {
+  border-color: var(--slate-300);
+}
+
+.has-terrain .card-nav .is-next {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 30%, transparent);
+  color: var(--slate-50);
+}
+
+.card-rail {
+  position: fixed;
+  z-index: 25;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.3rem 0.15rem;
+  border: 1px solid color-mix(in srgb, var(--slate-600) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--slate-950) 62%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.has-scenario .scenario-panel {
+  right: 3.5rem;
+}
+
+.card-rail ol {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card-rail ol::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  width: 1px;
+  background: var(--slate-700);
+}
+
+.card-dot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.card-dot:hover::before,
+.card-dot:focus-visible::before {
+  border-color: var(--blue);
+}
+
+.card-dot:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+  border-radius: 50%;
+}
+
+.card-dot::before {
+  content: "";
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1px solid var(--slate-300);
+  border-radius: 50%;
+  background: var(--slate-950);
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    transform 200ms ease;
+}
+
+.card-dot[aria-current="true"]::before {
+  border-color: var(--blue);
+  background: var(--blue);
+  transform: scale(1.35);
+}
+
+.card-dot-label {
+  position: absolute;
+  right: calc(100% + 0.4rem);
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--slate-600);
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--slate-950) 92%, transparent);
+  color: var(--slate-100);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.card-dot:hover .card-dot-label,
+.card-dot:focus-visible .card-dot-label,
+.is-beyond .card-dot[aria-current="true"] .card-dot-label {
+  opacity: 1;
+}
+
+.card-rail:hover .card-dot[aria-current="true"]:not(:hover) .card-dot-label {
+  opacity: 0;
+}
+
+@media (max-width: 760px) {
+  .has-terrain {
+    --arrival: calc(var(--masthead) + 0.75rem);
+  }
+
+  .has-terrain {
+    --lead-in: 6svh;
+    --between: 5svh;
+  }
+
+  .has-terrain .section-inner,
+  .has-terrain #documentation .section-inner {
+    margin: 0 1.9rem 0 0.75rem;
+    padding: 1.25rem 1rem 1.25rem;
+  }
+
+  .has-terrain .section-card-install {
+    margin-top: 0.75rem;
+  }
+
+  .has-terrain .section-head,
+  .has-terrain .install-head {
+    padding-right: 0;
+  }
+
+  .has-terrain .section-axis {
+    padding-right: 5.5rem;
+  }
+
+  .card-arrows {
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+
+  .card-rail {
+    right: 0.3rem;
+  }
+
+  .has-terrain .intro {
+    padding-right: 2.75rem;
+  }
+
+  .has-scenario .terrain,
+  .has-terrain:not(.is-beyond) .terrain {
+    z-index: 6;
+  }
+
+  .has-scenario .card-rail {
+    top: 25%;
+  }
+
+  .has-scenario .scenario-panel {
+    right: 0;
+  }
+
+  .card-dot-label {
+    display: none;
+  }
+
+  .has-terrain .download-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .has-terrain .download-actions {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .has-terrain .install-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .has-terrain .install-step {
+    padding-left: 2.9rem;
+  }
+
+  .has-terrain .site-footer {
+    padding: 0.75rem 1.9rem 0.75rem 0.75rem;
+  }
+
+  .has-terrain .footer-bar {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 1.1rem 1rem;
+  }
+
+  .has-terrain .footer-bar p:last-child {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-arrow,
+  .card-arrow-motion,
+  .card-arrow-stem,
+  .card-dot::before {
+    transition: none;
+  }
+
+  .has-terrain .terrain::after,
+  .has-terrain .install-steps::after,
+  .has-terrain .install-step::before,
+  .place-bar,
+  .terrain-credit {
+    transition: none;
+  }
+}

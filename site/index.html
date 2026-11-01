@@ -10,9 +10,9 @@
     />
     <title>Hall, gestion de l’activité communale</title>
   </head>
-  <body>
+  <body id="haut">
     <header class="masthead" data-testid="site-header">
-      <a class="brand" href="#decouvrir" aria-label="Hall, haut de la page">
+      <a class="brand" href="#haut" data-testid="brand-home" aria-label="Hall, retour au début de la page">
         <span class="brand-mark" aria-hidden="true">H</span>
         <span class="brand-name">Hall</span>
         <span class="brand-qualification">Gestion de l’activité communale</span>
@@ -57,14 +57,15 @@
         </div>
 
         <div class="plain" data-testid="plain-view" hidden></div>
-      </section>
-
+        <div class="scene-sentinel" aria-hidden="true"></div>
       <section id="telecharger" class="page-section" data-testid="section-telecharger"></section>
 
       <section id="documentation" class="page-section" data-testid="section-documentation">
         <div class="section-inner">
           <header class="section-head">
+            <p class="section-axis">Guide et versions</p>
             <h2>Documentation</h2>
+            <p class="section-where">Lieu du récit : la tour de guet nord, où les veilleurs tiennent le registre.</p>
             <p class="section-lead">
               Le guide de chaque écran de Hall, de la préparation des affaires à la rédaction des actes, et les
               versions publiées de l’application.
@@ -86,9 +87,8 @@
           </ul>
         </div>
       </section>
-    </main>
-
     <footer class="site-footer">
+      <div class="footer-bar">
       <p class="site-signature" data-testid="site-signature">Hall, le conseil municipal en séance</p>
       <p>
         Hall, gestion de l’activité communale. Les personnes, les affaires et les délibérations de la démonstration sont
@@ -101,7 +101,12 @@
       <p>
         <button type="button" class="view-switch" data-testid="view-switch"></button>
       </p>
+      </div>
     </footer>
+      </section>
+
+    </main>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
