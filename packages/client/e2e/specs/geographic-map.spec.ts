@@ -332,8 +332,7 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   const inlineDropId = await dropOn(writingArea, "chene-fiche.png");
   await expect(card.locator(`[data-resource-id="${inlineDropId}"] img`)).toBeVisible();
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(inlineDropId);
-  await writingArea.click();
-  await page.keyboard.press("End");
+  await writingArea.press("End");
   const inlinePasteId = await pasteInto(writingArea, "chene-colle.png");
   await expect(card.locator(`[data-resource-id="${inlinePasteId}"] img`)).toBeVisible();
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(inlinePasteId);
@@ -343,15 +342,13 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
     await card.getByTestId(button).click();
     await (await chooser).setFiles({ name, mimeType: "image/png", buffer: Buffer.from(png) });
   };
-  await writingArea.click();
-  await page.keyboard.press("End");
+  await writingArea.press("End");
   const uploadedImage = nextUpload();
   await chooseFile("editor-upload-image", "chene-bouton.png");
   const buttonImageId = await uploadedId(uploadedImage);
   await expect(card.locator(`[data-resource-id="${buttonImageId}"] img`)).toBeVisible();
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(buttonImageId);
-  await writingArea.click();
-  await page.keyboard.press("End");
+  await writingArea.press("End");
   const desktopViewport = page.viewportSize()!;
   await page.setViewportSize({ width: 390, height: 844 });
   const importedPhoto = page.waitForResponse(
@@ -367,7 +364,8 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(photoFile.id);
   await page.setViewportSize(desktopViewport);
 
-  await writingArea.click();
+  await writingArea.focus();
+  await expect(page.getByTestId("resource-preview")).toHaveCount(0);
   await card.getByTestId("editor-open-enriched").click();
   const enriched = page.getByTestId("markdown-editor-enriched");
   await expect(enriched).toBeVisible();

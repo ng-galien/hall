@@ -1,10 +1,10 @@
 import { mkdir, readFile } from "node:fs/promises";
 import { expect, test } from "../fixtures/application";
 
-test.beforeEach(async ({ appPage: page }) => {
+async function createSeedFolder(page: import("@playwright/test").Page) {
   const created = await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: "seed" } });
   expect(created.status()).toBe(201);
-});
+}
 
 // @verifies-requirement HALL-FR-WSP-240
 test("opens a business from the workspace list with one click", async ({ appPage: page }) => {
@@ -373,6 +373,7 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
 test("creates a documentary resource from a business and preserves its explicit association", async ({
   appPage: page,
 }) => {
+  await createSeedFolder(page);
   await page.goto("/app/workspace?path=seed");
   await page.getByTestId("workspace-create-menu").click();
   await page.getByTestId("workspace-create-councilMatter").click();
@@ -567,6 +568,7 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
 });
 
 test("imports a CSV file as an editable spreadsheet resource", async ({ appPage: page }) => {
+  await createSeedFolder(page);
   await page.goto("/app/workspace?path=seed");
   await expect(page.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
   await page.getByTestId("workspace-tree-root").click({ button: "right" });
@@ -623,6 +625,7 @@ test.describe("workspace explorer", () => {
     const renamedName = `note-renommee-${suffix}`;
     const content = `Contenu autosauvegarde ${suffix}`;
 
+    await createSeedFolder(page);
     await page.goto("/app/workspace?path=seed");
     await createInCurrentFolder(page, "folder", folderName);
     const created = (await createInCurrentFolder(page, "text", initialName)).properties;
