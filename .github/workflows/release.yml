@@ -54,6 +54,9 @@ jobs:
         run: npm run desktop:make
         env:
           HALL_DESKTOP_EDITION: demonstration
+      - name: Build the standalone server and MCP package
+        if: runner.os == 'Linux'
+        run: npm run pack:distribution
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -64,6 +67,7 @@ jobs:
             packages/desktop/out/make/**/*.dmg
             packages/desktop/out/make/**/*.deb
             packages/desktop/out/make/**/*.rpm
+            dist/npm/*.tgz*
           if-no-files-found: error
 
   draft-release:
@@ -90,6 +94,7 @@ jobs:
             find "$directory" -type f | while read -r file; do
               name="$(basename "$file")"
               case "$name" in
+                ng-galien-hall-*.tgz|ng-galien-hall-*.tgz.sha256) cp "$file" "release/$name" ;;
                 RELEASES) cp "$file" "release/RELEASES-$platform" ;;
                 *) cp "$file" "release/$platform-$name" ;;
               esac

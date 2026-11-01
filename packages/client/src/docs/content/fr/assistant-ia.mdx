@@ -43,15 +43,15 @@ Vous devez disposer :
 
 - de Node.js **22.12 ou ultérieur** et de npm sur l’ordinateur qui lance votre client MCP ; vérifiez leurs versions avec `node --version` et `npm --version` dans le terminal ;
 - d’une instance Hall en fonctionnement, de son origine exacte et d’un compte Hall autorisé sur cette instance ;
-- de l’archive du paquet serveur Hall, par exemple `ng-galien-hall-0.1.0.tgz`, remise par la personne qui vous fournit Hall ;
+- de l’archive du paquet serveur Hall, `ng-galien-hall-1.0.0.tgz`, proposée dans les fichiers d’une [version de Hall sur GitHub](https://github.com/ng-galien/hall/releases) ;
 - d’un client MCP local qui sait lancer une commande stdio sous votre compte système.
 
-**Disponibilité actuelle : le paquet est préparé et testé localement ; aucun téléchargement public ni release publiée n’est annoncé par ce guide.** Demandez l’archive à la personne qui vous fournit Hall. Le dépôt source n’est pas nécessaire. Si vous ne disposez pas encore de cette archive, la connexion ne peut pas commencer avec la seule adresse de l’instance.
+Dans la page des versions, ouvrez les fichiers de la version choisie et téléchargez l’archive du **paquet serveur** qui se termine par `.tgz`. Les installateurs de la démonstration (`.dmg`, `.exe`, `.deb`, `.rpm`) ne remplacent pas cette archive pour la procédure ci-dessous. Le dépôt source n’est pas nécessaire. Si aucune archive serveur n’est encore proposée, la connexion stdio ne peut pas être installée avec la seule adresse de l’instance.
 
-Sur macOS, ouvrez un terminal et installez l’archive dans un répertoire de votre compte. Voici la procédure pour le paquet `0.1.0` vérifié ; remplacez le chemin de l’archive par celui du fichier reçu :
+Sur macOS, ouvrez un terminal et installez l’archive dans un répertoire de votre compte. Voici la procédure pour le paquet `1.0.0` vérifié ; remplacez le chemin de l’archive par celui du fichier téléchargé :
 
 ```sh
-npm install --prefix "$HOME/Applications/hall-mcp" --ignore-scripts --no-audit --no-fund "/chemin/vers/ng-galien-hall-0.1.0.tgz"
+npm install --prefix "$HOME/Applications/hall-mcp" --ignore-scripts --no-audit --no-fund "/chemin/vers/ng-galien-hall-1.0.0.tgz"
 "$HOME/Applications/hall-mcp/node_modules/.bin/hall-workspace-mcp" --help
 ```
 
