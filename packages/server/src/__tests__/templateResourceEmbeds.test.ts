@@ -288,7 +288,16 @@ describe("authoritative resource presentation rendering", () => {
       })
     ).data;
     const markdown = `::resource-embed[Lien]{#${remote.id} presentation="link"}`;
-    const authoritativePreview = await container.cradle.templateRenderingService.preview(template(markdown));
+    const configured = (await container.cradle.contentTemplateService.list()).find(
+      (entry) => entry.documentType === "document-print",
+    );
+    expect(configured).toBeDefined();
+    const authoritativePreview = await container.cradle.templateRenderingService.preview({
+      ...template(markdown),
+      stylesheet: configured!.stylesheet,
+      headerHtml: configured!.headerHtml,
+      footerHtml: configured!.footerHtml,
+    });
 
     await expect(container.cradle.contentTemplateService.previewPdf(markdown, {})).resolves.toEqual(Buffer.from("pdf"));
 

@@ -1,3 +1,4 @@
+import { defaultDocumentTemplates } from "@hall/domain";
 import { type APIRequestContext, type Browser, expect, type Locator, type Page, test } from "@playwright/test";
 import { clearTestDatabase } from "../fixtures/application";
 
@@ -411,9 +412,11 @@ test("gives council members read access and a personal folder that only they and
   });
 
   await test.step("a council member follows a meeting in progress and reads a vote result without conduct controls", async () => {
+    const noticeTemplate = defaultDocumentTemplates.find((entry) => entry.documentType === "meeting-notice");
+    expect(noticeTemplate).toBeDefined();
     await created(
       await admin.request.post("/api/templates", {
-        data: { kind: "pdf", documentType: "meeting-notice", name: "Convocation", bodyMarkdown: "::meeting-notice" },
+        data: { ...noticeTemplate, name: "Convocation" },
       }),
     );
     const meeting = await created<{ id: string }>(await admin.request.post("/api/council-meetings", { data: {} }));
