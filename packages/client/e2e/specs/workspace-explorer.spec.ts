@@ -1,6 +1,11 @@
 import { mkdir, readFile } from "node:fs/promises";
 import { expect, test } from "../fixtures/application";
 
+test.beforeEach(async ({ appPage: page }) => {
+  const created = await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: "seed" } });
+  expect(created.status()).toBe(201);
+});
+
 // @verifies-requirement HALL-FR-WSP-240
 test("opens a business from the workspace list with one click", async ({ appPage: page }) => {
   const response = await page.request.post("/api/council-business", {
@@ -411,6 +416,7 @@ test("creates a documentary resource from a business and preserves its explicit 
 });
 
 async function createInCurrentFolder(page: import("@playwright/test").Page, kind: "folder" | "text", name: string) {
+  await expect(page.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
   await page.getByTestId("workspace-tree-root").click({ button: "right" });
   await page.getByTestId("workspace-tree-create").press("ArrowRight");
   await page.getByTestId(`workspace-tree-create-${kind}`).press("Enter");
@@ -562,6 +568,7 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
 
 test("imports a CSV file as an editable spreadsheet resource", async ({ appPage: page }) => {
   await page.goto("/app/workspace?path=seed");
+  await expect(page.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
   await page.getByTestId("workspace-tree-root").click({ button: "right" });
   await page.getByTestId("workspace-tree-create").press("ArrowRight");
   const fileChooserPromise = page.waitForEvent("filechooser");

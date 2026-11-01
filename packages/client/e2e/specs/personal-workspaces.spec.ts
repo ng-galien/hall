@@ -34,6 +34,7 @@ async function importThroughMenu(
 }
 
 async function createInCurrentFolder(page: Page, kind: "folder" | "text", name: string) {
+  await expect(page.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
   await page.getByTestId("workspace-tree-root").click({ button: "right" });
   await page.getByTestId("workspace-tree-create").press("ArrowRight");
   await page.getByTestId(`workspace-tree-create-${kind}`).press("Enter");
@@ -223,6 +224,7 @@ test("gives council members read access and a personal folder that only they and
     ).toContainText("Alice Martin");
     await alicePage.keyboard.press("Escape");
     await alicePage.goto(workspaceAt(aliceFolder));
+    await expect(alicePage.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
     await alicePage.getByTestId("workspace-tree-root").click({ button: "right" });
     await expect(alicePage.getByTestId("workspace-tree-create")).toBeVisible();
     await expect(alicePage.getByTestId("workspace-tree-import-bundle")).toHaveCount(0);

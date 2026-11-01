@@ -40,6 +40,7 @@ test("exports a business archive and imports an incoming archive with duplicate 
   ).toBeTruthy();
   const openImport = async () => {
     await page.goto("/app/workspace?path=seed");
+    await expect(page.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
     await page.getByTestId("workspace-tree-root").click({ button: "right" });
     await page.getByTestId("workspace-tree-import-bundle").click();
   };

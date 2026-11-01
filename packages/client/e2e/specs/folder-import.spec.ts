@@ -173,6 +173,8 @@ test("warns on identical file bytes across names and retains folder import error
 
 test("preserves empty folders through the native folder picker", async ({ appPage: page }) => {
   await page.goto("/app/workspace?path=seed");
+  await expect(page.getByTestId("workspace-folder-input")).toBeEnabled();
+  await expect(page.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
   await page.evaluate(() => {
     const directory = (name: string, children: unknown[]) => ({
       kind: "directory",
