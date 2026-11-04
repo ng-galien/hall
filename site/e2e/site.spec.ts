@@ -480,15 +480,30 @@ test.describe("mise en page du texte d’accueil", () => {
 });
 
 test.describe("version sans 3D", () => {
-  test("préférence pour moins de mouvement", async ({ page }) => {
+  test("3D par défaut avec moins de mouvement", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(() => {
+      for (const prototype of [WebGLRenderingContext.prototype, WebGL2RenderingContext.prototype]) {
+        const original = prototype.getParameter;
+        prototype.getParameter = function (parameter: number) {
+          const value = original.call(this, parameter);
+          return typeof value === "string" && /swiftshader|llvmpipe|software/i.test(value)
+            ? "Hardware renderer for reduced-motion verification"
+            : value;
+        };
+      }
+    });
     await page.goto("./");
+    await sceneReady(page);
+    await expect(page.locator("html")).toHaveAttribute("data-view", "terrain");
+    await expect(page.getByTestId("terrain-canvas")).toBeVisible();
+    await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-motion", "done");
+    await choose(page, "grenier");
+    await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-motion", "done");
+    await page.getByTestId("scenario-close").click();
+    await page.getByTestId("view-switch").click();
     await expect(page.locator("html")).toHaveAttribute("data-view", "plain");
     await expect(page.getByTestId("terrain-canvas")).toHaveCount(0);
-    await expect(page.getByTestId("view-switch")).toBeVisible();
-    await expectLinks(page);
-    for (const id of order) await expect(page.getByTestId(`scenario-${id}`)).toBeVisible();
-    for (const id of withCaptures) await expectCapturesLoaded(page, `#lieu-${id}`);
     await expectNoHorizontalScroll(page);
   });
 

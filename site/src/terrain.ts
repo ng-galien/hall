@@ -255,6 +255,8 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   const { stage, labels, places, frame: freeFrame, onSelect } = options;
   const ground = await loadGround(import.meta.env.BASE_URL);
   const software = softwareRendering();
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const instantMotion = software || reducedMotion;
   const renderer = new THREE.WebGLRenderer({ antialias: !software });
   const compact = software || stage.clientWidth < 760 || window.matchMedia("(pointer: coarse)").matches;
   renderer.setPixelRatio(software ? 1 : Math.min(window.devicePixelRatio, compact ? 1.5 : 2));
@@ -271,7 +273,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   scene.background = color(palette.slate950);
   const camera = new THREE.PerspectiveCamera(30, 1, 5, 7000);
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
+  controls.enableDamping = !reducedMotion;
   controls.dampingFactor = 0.07;
   controls.enablePan = false;
   controls.minPolarAngle = 0.25;
@@ -403,7 +405,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   }
 
   function fly(queue: Flight[]) {
-    if (software) {
+    if (instantMotion) {
       const last = queue.at(-1);
       if (last) land(last);
       flights = [];
@@ -450,7 +452,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   }
   function reframe() {
     wanted = desiredOffset();
-    if (software) {
+    if (instantMotion) {
       offset.x = wanted.x;
       offset.y = wanted.y;
       applyShift();
@@ -572,7 +574,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   }
 
   function shown(item: MarkItem): boolean {
-    return software || shotClock >= item.delay;
+    return instantMotion || shotClock >= item.delay;
   }
 
   function revealMarks(): boolean {
@@ -618,7 +620,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   }
 
   let frame = 0;
-  let reveal = software ? 1.2 : 0;
+  let reveal = instantMotion ? 1.2 : 0;
   terrain.material.uniforms.uReveal.value = reveal;
 
   const timer = new THREE.Timer();

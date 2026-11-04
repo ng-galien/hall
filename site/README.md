@@ -5,6 +5,10 @@ Chaux-des-Crotenay (Jura). The story follows the council of Alésia, the fiction
 municipality, during the siege: the places of the story are those of the oppidum on the plateau and of
 the plain of Syam, never present-day buildings.
 
+The default view is 3D when WebGL is available. Reduced-motion preferences keep the
+3D view with immediate camera transitions. Visitors can choose the text view with
+the view switch or `?vue=sans-3d`; devices without WebGL use that view automatically.
+
 ## Commands
 
 Run from this directory:

@@ -591,9 +591,8 @@ async function renderTerrain(root: HTMLElement) {
 
 async function start() {
   const webgl = supportsWebGL();
-  const reduced = prefersReducedMotion();
   const requested = requestedMode();
-  const mode: ViewMode = webgl && (requested === "terrain" || (requested === null && !reduced)) ? "terrain" : "plain";
+  const mode: ViewMode = webgl && requested !== "plain" ? "terrain" : "plain";
   document.documentElement.dataset.view = mode;
 
   renderSections();
