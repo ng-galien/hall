@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createInterface } from "node:readline/promises";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { DemonstrationWorkspaceClient } from "./demonstration.js";
 import { createWorkspaceMcp, WorkspaceClient } from "./server.js";
 import { hallOrigin, loadSession, loginSession, logoutSession, sessionStatus } from "./session.js";
 
@@ -42,6 +43,10 @@ async function privatePassword(): Promise<string> {
 async function main() {
   const args = process.argv.slice(2);
   const origin = hallOrigin(process.env.HALL_URL ?? "http://127.0.0.1:3100");
+  if (args.length === 1 && args[0] === "--demonstration") {
+    await createWorkspaceMcp(new DemonstrationWorkspaceClient()).connect(new StdioServerTransport());
+    return;
+  }
   if (!args.length) {
     const token = process.env.HALL_SESSION_TOKEN ?? (await loadSession(origin))?.token;
     await createWorkspaceMcp(new WorkspaceClient(origin, token)).connect(new StdioServerTransport());
@@ -50,7 +55,7 @@ async function main() {
   const [command, flag, url] = args;
   if (command === "--help") {
     console.log(
-      "Hall MCP stdio server. Session commands: hall-workspace-mcp login|status|logout [--url <origin>]. Login requires a private interactive terminal. Configure only HALL_URL in the MCP client. Session storage currently supports POSIX; Windows login is unavailable.",
+      "Hall MCP stdio server. Session commands: hall-workspace-mcp login|status|logout [--url <origin>]. Login requires a private interactive terminal. Configure only HALL_URL in the MCP client. Session storage currently supports POSIX; Windows login is unavailable. hall-workspace-mcp --demonstration follows the Hall demonstration desktop application running on this computer, without login, token or port.",
     );
     return;
   }
@@ -58,7 +63,7 @@ async function main() {
     !["login", "status", "logout"].includes(command) ||
     (args.length !== 1 && (args.length !== 3 || flag !== "--url"))
   )
-    throw new Error("Use hall-workspace-mcp login|status|logout [--url <origin>], or --help.");
+    throw new Error("Use hall-workspace-mcp login|status|logout [--url <origin>], --demonstration, or --help.");
   const selectedOrigin = url ? hallOrigin(url) : origin;
   if (command === "login") {
     if (process.platform === "win32")

@@ -168,11 +168,7 @@ export async function openDemonstration(profile: DemonstrationProfile): Promise<
   return { server, state: ready };
 }
 
-/** Opens a session of the demonstration administrator through the public login endpoint. */
-export async function signInToDemonstration(
-  server: HttpServerHandle,
-  state: DemonstrationState,
-): Promise<SessionCookie> {
+async function logIn(server: HttpServerHandle, state: DemonstrationState): Promise<string> {
   const response = await fetch(new URL("/api/auth/login", server.url), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -181,8 +177,59 @@ export async function signInToDemonstration(
   if (!response.ok) {
     throw new Error(`La connexion à la démonstration a échoué : ${response.status} ${await response.text()}`);
   }
-  const cookie = response.headers.get("set-cookie")?.split(";", 1)[0];
-  const separator = cookie?.indexOf("=") ?? -1;
-  if (!cookie || separator <= 0) throw new Error("La connexion à la démonstration n’a pas ouvert de session.");
+  const cookie = response.headers.get("set-cookie");
+  if (!cookie) throw new Error("La connexion à la démonstration n’a pas ouvert de session.");
+  return cookie;
+}
+
+/** Opens a session of the demonstration administrator through the public login endpoint. */
+export async function signInToDemonstration(
+  server: HttpServerHandle,
+  state: DemonstrationState,
+): Promise<SessionCookie> {
+  const cookie = (await logIn(server, state)).split(";", 1)[0];
+  const separator = cookie.indexOf("=");
+  if (separator <= 0) throw new Error("La connexion à la démonstration n’a pas ouvert de session.");
   return { name: cookie.slice(0, separator), value: cookie.slice(separator + 1) };
+}
+
+/** Renouvellement de la session publiée pour le MCP, bien avant ses douze heures. */
+const mcpSessionRenewalMilliseconds = 6 * 60 * 60 * 1000;
+
+/**
+ * Publie pour le MCP local l'origine de boucle locale de la démonstration et une session qui lui est propre,
+ * la renouvelle tant que le serveur tourne ; la fonction rendue arrête le renouvellement et retire la publication.
+ * @implements-requirement HALL-FR-WSP-470
+ */
+export async function publishDemonstrationForMcp(
+  server: HttpServerHandle,
+  state: DemonstrationState,
+): Promise<() => Promise<void>> {
+  const { publishDemonstrationConnection, withdrawDemonstrationConnection } = await import("@hall/mcp");
+  const origin = new URL(server.url).origin;
+  const publish = async () => {
+    const cookie = await logIn(server, state);
+    const pair = cookie.split(";", 1)[0];
+    const maxAge = /;\s*Max-Age=(\d+)/i.exec(cookie)?.[1];
+    if (!pair.startsWith("hall_session=") || !maxAge)
+      throw new Error("La session de démonstration pour le MCP est incomplète.");
+    await publishDemonstrationConnection({
+      origin,
+      token: decodeURIComponent(pair.slice("hall_session=".length)),
+      expiresAt: new Date(Date.now() + Number(maxAge) * 1000).toISOString(),
+    });
+  };
+  await publish();
+  const timer = setInterval(
+    () =>
+      void publish().catch((error: unknown) =>
+        process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`),
+      ),
+    mcpSessionRenewalMilliseconds,
+  );
+  timer.unref();
+  return async () => {
+    clearInterval(timer);
+    await withdrawDemonstrationConnection(origin);
+  };
 }

@@ -14,12 +14,16 @@ export function hallOrigin(value: string) {
   return new URL(value).origin;
 }
 
+export function sessionDirectory() {
+  return join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "hall", "mcp");
+}
+
 function location(origin: string) {
-  const directory = join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "hall", "mcp");
+  const directory = sessionDirectory();
   return { directory, file: join(directory, `${createHash("sha256").update(origin).digest("hex")}.json`) };
 }
 
-async function checkPrivate(path: string, directory = false) {
+export async function checkPrivate(path: string, directory = false) {
   const entry = await lstat(path);
   if (process.platform === "win32")
     throw new Error("Private MCP session storage is not implemented on Windows. No session was stored.");
@@ -35,14 +39,21 @@ async function checkPrivate(path: string, directory = false) {
 // @implements-requirement HALL-FR-WSP-470
 export async function loadSession(origin: string) {
   const { directory, file } = location(origin);
+  const content = await readPrivateJson(directory, file);
+  if (content === undefined) return undefined;
+  const value = storedSessionSchema.parse(content);
+  if (value.origin !== origin) throw new Error("Hall MCP session origin mismatch.");
+  return value;
+}
+
+/** Reads a JSON file of the private session directory; undefined when it does not exist. */
+export async function readPrivateJson(directory: string, file: string): Promise<unknown> {
   try {
     await checkPrivate(directory, true);
     await checkPrivate(file);
     const handle = await open(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     try {
-      const value = storedSessionSchema.parse(JSON.parse(await handle.readFile("utf8")));
-      if (value.origin !== origin) throw new Error("Hall MCP session origin mismatch.");
-      return value;
+      return JSON.parse(await handle.readFile("utf8"));
     } finally {
       await handle.close();
     }
@@ -52,8 +63,8 @@ export async function loadSession(origin: string) {
   }
 }
 
-async function saveSession(value: z.infer<typeof storedSessionSchema>) {
-  const { directory, file } = location(value.origin);
+/** Atomically writes a file readable by this user only (file 600 in a directory 700). */
+export async function writePrivateJson(directory: string, file: string, value: unknown) {
   if (process.platform === "win32")
     throw new Error("Private MCP session storage is not implemented on Windows. No session was stored.");
   await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -62,7 +73,7 @@ async function saveSession(value: z.infer<typeof storedSessionSchema>) {
   const temporary = `${file}.${randomUUID()}.tmp`;
   const handle = await open(temporary, "wx", 0o600);
   try {
-    await handle.writeFile(`${JSON.stringify(storedSessionSchema.parse(value))}\n`);
+    await handle.writeFile(`${JSON.stringify(value)}\n`);
   } finally {
     await handle.close();
   }
@@ -71,6 +82,11 @@ async function saveSession(value: z.infer<typeof storedSessionSchema>) {
   } finally {
     await rm(temporary, { force: true });
   }
+}
+
+async function saveSession(value: z.infer<typeof storedSessionSchema>) {
+  const { directory, file } = location(value.origin);
+  await writePrivateJson(directory, file, storedSessionSchema.parse(value));
 }
 
 async function auth(origin: string, path: "login" | "session" | "logout", token?: string, body?: unknown) {

@@ -29,7 +29,9 @@ async function report(operation: () => Promise<unknown>) {
 
 // @implements-requirement HALL-FR-CFG-020
 // @implements-requirement HALL-FR-WSP-470
-export function createWorkspaceMcp(client: WorkspaceClient) {
+export type WorkspaceAccess = Pick<WorkspaceClient, "read" | "execute" | "binary">;
+
+export function createWorkspaceMcp(client: WorkspaceAccess) {
   const server = new McpServer({ name: "hall-workspace", version: "1.0.0" });
   server.registerTool(
     "hall_learn",
@@ -175,4 +177,9 @@ export async function handleWorkspaceMcp(
   await transport.handleRequest(request, response, body);
 }
 
+export {
+  DemonstrationWorkspaceClient,
+  publishDemonstrationConnection,
+  withdrawDemonstrationConnection,
+} from "./demonstration.js";
 export { WorkspaceClient };

@@ -1,11 +1,12 @@
 import type { HttpServerHandle } from "@hall/server";
-import { openDemonstration, signInToDemonstration } from "./demonstration.js";
+import { openDemonstration, publishDemonstrationForMcp, signInToDemonstration } from "./demonstration.js";
 import type { ServerCommand, ServerEvent, StartupPhase } from "./startupProtocol.js";
 
 type StartCommand = Extract<ServerCommand, { type: "start" }>;
 
 let server: HttpServerHandle | null = null;
 let starting: Promise<void> | null = null;
+let withdrawMcp: (() => Promise<void>) | null = null;
 
 function send(event: ServerEvent): void {
   process.parentPort.postMessage(event);
@@ -48,11 +49,21 @@ async function start(command: StartCommand): Promise<void> {
   });
   server = opened;
   const cookie = await signInToDemonstration(opened, state);
+  if (process.platform !== "win32") {
+    withdrawMcp = await publishDemonstrationForMcp(opened, state).catch((error: unknown) => {
+      process.stderr.write(
+        `Connexion MCP de la démonstration non publiée : ${error instanceof Error ? error.message : String(error)}\n`,
+      );
+      return null;
+    });
+  }
   send({ type: "ready", url: opened.url, cookie });
 }
 
 async function close(): Promise<void> {
   await starting?.catch(() => undefined);
+  await withdrawMcp?.().catch(() => undefined);
+  withdrawMcp = null;
   const handle = server;
   server = null;
   await handle?.close();

@@ -29,6 +29,29 @@ Les thèmes sont `connection`, `model`, `documents`, `configuration`, `meetings`
 
 Pour rechercher un document, l’agent appelle `workspace_discover`, puis `workspace_search` avec votre recherche, et suit les liens avec `workspace_read`. Pour les modèles, il commence par `configuration_discover`, puis `configuration_read` sur `/api/templates`. Il lit la ressource avant de modifier une action annoncée par Hall, puis la relit pour vérifier le résultat. Un conflit de version doit être résolu après relecture, sans écrasement automatique.
 
+## Avec l’application de démonstration
+
+L’application de démonstration de Hall contient déjà le serveur MCP. Collez une seule fois cette entrée dans la configuration des serveurs MCP de votre client (macOS, Hall installé dans le dossier Applications) :
+
+```json
+{
+  "mcpServers": {
+    "hall-demo": {
+      "command": "/Applications/Hall.app/Contents/MacOS/Hall",
+      "args": [
+        "/Applications/Hall.app/Contents/Resources/app/node_modules/@hall/mcp/dist/index.js",
+        "--demonstration"
+      ],
+      "env": { "ELECTRON_RUN_AS_NODE": "1" }
+    }
+  }
+}
+```
+
+Ouvrez ensuite Hall : l’agent travaille sur les données fictives d’Alésia. Il n’y a ni commande de connexion, ni jeton, ni adresse à saisir, et rien à changer quand vous relancez l’application. Si l’application est fermée, l’outil répond qu’il faut ouvrir la démonstration.
+
+À chaque démarrage, l’application de démonstration dépose son adresse locale et une session du compte de démonstration dans un fichier privé de votre compte système, `~/.config/hall/mcp/demonstration.json`, et le retire à sa fermeture. Ce mode ne vise que la démonstration ouverte sur le même ordinateur ; une instance réelle se connecte par la commande stdio et sa connexion décrites ci-dessous. Il n’est pas disponible sous Windows.
+
 ## Connexions disponibles et limite actuelle
 
 Un client MCP externe est nécessaire : Hall n’intègre pas de fenêtre de conversation ni de fournisseur d’IA. Aucun client de fournisseur particulier n’est actuellement déclaré compatible par ce guide. Vérifiez que votre client sait lancer une commande **stdio**, ou gérer une session Hall pour le transport **HTTP**.
@@ -90,7 +113,7 @@ Un client ne sachant pas conserver cette session ne peut pas se connecter simple
 
 ### Démonstration et compte réel
 
-La démonstration locale peut utiliser un administrateur de développement sans session utilisateur, sur l’ordinateur local. Les données d’Alésia sont fictives. Ce fonctionnement ne prouve pas une connexion authentifiée à une commune réelle. N’activez pas le mode démonstration pour contourner un refus sur une instance partagée.
+L’entrée de démonstration agit avec le compte administrateur de la démonstration, sur les données fictives d’Alésia et seulement sur l’ordinateur local. Ce fonctionnement ne prouve pas une connexion authentifiée à une commune réelle. N’utilisez pas le mode démonstration pour contourner un refus sur une instance partagée.
 
 ## Identité, droits et déconnexion
 
