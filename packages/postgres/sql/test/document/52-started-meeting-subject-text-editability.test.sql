@@ -192,7 +192,7 @@ SELECT throws_ok(
     'openQuestion'
   ),
   'HV810',
-  'an examined prepared subject cannot be inscribed again',
+  'a treated prepared subject cannot be inscribed again',
   'the database refuses to inscribe a completed prepared question in the next meeting'
 )
 FROM source_editability_successor AS successor
@@ -373,8 +373,11 @@ SELECT is((SELECT count(*)::INTEGER FROM hall.agenda_subject_text_lock), 4,
 SELECT ok(NOT hall.agenda_subject_text_is_editable(id),
   kind || ' started subject stays locked after the data migration')
 FROM source_editability_resources WHERE kind IN ('decision', 'open');
-SELECT ok(hall.agenda_subject_text_is_editable(id),
-  'a never-started subject remains editable after the data migration')
+SELECT ok(NOT EXISTS (SELECT FROM hall.agenda_subject_text_lock WHERE resource = id),
+  'the data migration creates no lock for a never-started subject')
+FROM source_editability_resources WHERE kind IN ('carried', 'carried-decision');
+SELECT ok(NOT hall.agenda_subject_text_is_editable(id),
+  'a never-started subject programmed in a meeting marked stale counts as treated')
 FROM source_editability_resources WHERE kind IN ('carried', 'carried-decision');
 
 SET LOCAL session_replication_role = replica;

@@ -35,7 +35,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
     'agenda', jsonb_build_object(
       'state', CASE
         WHEN agenda_item.id IS NULL THEN 'notScheduled'
-        WHEN agenda_item.completed_at IS NOT NULL THEN 'examined'
+        WHEN agenda_item.treated THEN 'examined'
         WHEN agenda_item.adjourned_at IS NOT NULL THEN 'adjourned'
         WHEN agenda_item.started_at IS NOT NULL THEN 'started'
         ELSE 'scheduled'
@@ -65,7 +65,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
   JOIN hall.resource AS content_resource ON content_resource.id = subject.text_resource
   JOIN hall.text_resource AS content ON content.id = subject.text_resource
   LEFT JOIN LATERAL (
-    SELECT item.id, item.started_at, item.completed_at, item.adjourned_at, meeting.id AS meeting_id, meeting.number AS meeting_number, meeting.scheduled_at AS meeting_scheduled_at, meeting.started_at AS meeting_started_at
+    SELECT item.id, item.started_at, hall.council_agenda_item_is_treated(item) AS treated, item.adjourned_at, meeting.id AS meeting_id, meeting.number AS meeting_number, meeting.scheduled_at AS meeting_scheduled_at, meeting.started_at AS meeting_started_at
     FROM hall.council_agenda_item AS item
     JOIN hall.council_meetings AS meeting ON meeting.id = item.council_meeting
     WHERE item.position > 0
@@ -98,7 +98,9 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ha
     AND meeting.closed_at IS NULL AND NOT meeting.stale AND meeting.started_at IS NULL
     AND NOT EXISTS(SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting=target_meeting)))
   AND NOT EXISTS(SELECT FROM hall.council_agenda_item item WHERE item.council_meeting=target_meeting AND item.position>0
-    AND item.subject_kind::TEXT=subject.kind AND (item.council_decision_proposal=subject.id OR item.open_question=subject.id));
+    AND item.subject_kind::TEXT=subject.kind AND (item.council_decision_proposal=subject.id OR item.open_question=subject.id))
+  AND (target_meeting IS NULL OR NOT EXISTS(SELECT FROM hall.council_agenda_item item WHERE hall.council_agenda_item_is_treated(item)
+    AND item.subject_kind::TEXT=subject.kind AND (item.council_decision_proposal=subject.id OR item.open_question=subject.id)));
 $$;
 CREATE FUNCTION hall_api.open_prepared_council_subject(target_id UUID,target_kind TEXT)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
@@ -144,10 +146,10 @@ BEGIN
   END IF;
   SELECT * INTO subject FROM hall.prepared_council_subject WHERE id=target_subject AND kind=target_kind;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='HV910',MESSAGE='unknown prepared subject'; END IF;
-  IF EXISTS(SELECT FROM hall.council_agenda_item item WHERE item.completed_at IS NOT NULL
+  IF EXISTS(SELECT FROM hall.council_agenda_item item WHERE hall.council_agenda_item_is_treated(item)
     AND item.subject_kind::TEXT=target_kind
     AND (item.council_decision_proposal=target_subject OR item.open_question=target_subject)) THEN
-    RAISE EXCEPTION USING ERRCODE='HV810',MESSAGE='an examined prepared subject cannot be inscribed again';
+    RAISE EXCEPTION USING ERRCODE='HV810',MESSAGE='a treated prepared subject cannot be inscribed again';
   END IF;
   SELECT id INTO existing FROM hall.council_agenda_item WHERE council_meeting=target_meeting
     AND subject_kind::TEXT=target_kind AND (council_decision_proposal=target_subject OR open_question=target_subject);

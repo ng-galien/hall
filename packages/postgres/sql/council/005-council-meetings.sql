@@ -6,6 +6,7 @@ CREATE TABLE hall.council_meetings (
   id UUID PRIMARY KEY,
 
   -- TODO REMOVE_STALE: temporary import marker and deferred active-meeting uniqueness.
+  -- A stale meeting was held outside Hall: its programmed items count as treated.
   -- @implements-requirement HALL-FR-MTG-310
   stale BOOLEAN NOT NULL DEFAULT false,
   active_slot SMALLINT GENERATED ALWAYS AS (

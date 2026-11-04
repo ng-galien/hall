@@ -251,6 +251,7 @@ END;
 $function$;
 
 -- TODO REMOVE_STALE: temporary succession for incomplete historical records, no PV or votes.
+-- The programmed items of the stale meeting then count as treated.
 CREATE FUNCTION hall_api.mark_council_meeting_stale(target_meeting UUID)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER
 SET search_path=pg_catalog,hall AS $$

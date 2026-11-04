@@ -1,6 +1,7 @@
 -- A prepared subject remains editable while its meeting is being prepared.
 -- Opening the meeting temporarily locks every subject on the frozen agenda;
--- starting an item permanently locks that subject's title and content.
+-- starting an item permanently locks that subject's title and content, as
+-- does a programmed occurrence in a meeting marked stale.
 -- The lock covers the subject text only: the business report and attachments
 -- stay editable after the vote.
 
@@ -120,6 +121,16 @@ AS $function$
         FROM hall.council_agenda_addition AS addition
         WHERE addition.agenda_item = item.id
       )
+  )
+  AND NOT EXISTS (
+    SELECT
+    FROM hall.council_agenda_item AS item
+    LEFT JOIN hall.council_decision_proposal_workspace AS proposal
+      ON proposal.council_decision_proposal = item.council_decision_proposal
+    LEFT JOIN hall.open_question_workspace AS question
+      ON question.open_question = item.open_question
+    WHERE coalesce(proposal.text_resource, question.text_resource) = target_resource
+      AND hall.council_agenda_item_is_treated(item)
   )
 $function$;
 

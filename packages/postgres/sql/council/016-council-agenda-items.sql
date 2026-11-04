@@ -75,3 +75,20 @@ CREATE INDEX council_agenda_item_business_membership ON hall.council_agenda_item
 CREATE INDEX council_agenda_item_decision_business_membership ON hall.council_agenda_item USING btree (council_decision_proposal, council_business) WHERE (council_decision_proposal IS NOT NULL);
 
 CREATE INDEX council_agenda_item_open_question_business_membership ON hall.council_agenda_item USING btree (open_question, council_business) WHERE (open_question IS NOT NULL);
+
+-- An occurrence is treated once completed, or once programmed in a meeting
+-- marked stale: such a meeting was held outside Hall.
+CREATE FUNCTION hall.council_agenda_item_is_treated(item hall.council_agenda_item)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT item.completed_at IS NOT NULL
+    OR (item.position > 0 AND EXISTS (
+      SELECT
+      FROM hall.council_meetings AS meeting
+      WHERE meeting.id = item.council_meeting
+        AND meeting.stale
+    ))
+$function$;
