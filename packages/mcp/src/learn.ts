@@ -30,8 +30,21 @@ const topics = {
     guidance: [
       "Read the representation and follow its links. workspace_discover lists exact action schemas. workspace_execute receives the representation href advertising the action, not the mutation endpoint.",
       "Prepare only what the user requested. Preserve existing content and provenance. Distinguish an observed source from a draft or inference; a legal-reference search result is not a human legal validation.",
-      "Available actions include text/resources, files, document replacement, legal-reference lookup and refresh, affairs/prepared subjects, and resource associations. Availability is conditional: the current Siren representation and server remain authoritative.",
+      "Available actions include text/resources, files, document replacement, legal-reference lookup and refresh, affairs/prepared subjects, resource associations, and affair reorganization (subject move, affair merge, with preview). Availability is conditional: the current Siren representation and server remain authoritative.",
       "For a requested change, use its exact schema and current context, retain expectedVersion, execute, then read the result. Do not automatically overwrite a conflict. Ask for a decision if the requested business outcome is unresolved.",
+    ],
+  },
+  reorganization: {
+    purpose: "Put each prepared subject under the right long-running affair, and merge scattered affairs.",
+    nextCalls: [
+      { tool: "workspace_read", arguments: { href: "/api/council-business" } },
+      { tool: "workspace_read", arguments: { href: "/api/council-business/prepared-subjects" } },
+    ],
+    guidance: [
+      "council-business.move-subject is advertised on a prepared subject (/api/council-business/prepared-subjects/{kind}/{id}). Input: targetCouncilBusinessId, preview. The subject, its own text (moved to the target affair folder under the same name), the proposal text attachment and the affair copied in its agenda items move together, whatever the subject state, voted included.",
+      "council-business.merge is advertised on the affair to absorb (/api/council-business/{reference}). Input: targetCouncilBusinessId, preview. Every subject moves as above; attachments, committees and folder content join the target affair; a non-empty report becomes an attachment of the target named after the absorbed affair; the absorbed affair is then removed.",
+      "Always call with preview true first and show the plan: subjects, agenda occurrences, text paths, attachments, folder content, report, blockers. Apply with preview false only after the user's decision. A plan with blockers is refused as a whole (sameBusiness, meetingInProgress, nameTaken); nothing is written.",
+      "Voted texts, ballots, decisions, meeting snapshots, minutes, frozen agendas and notices are never rewritten: they keep citing the affair as it was during the meeting. Each applied gesture is recorded in the audit journal of both affairs and in the history of every moved resource.",
     ],
   },
   configuration: {

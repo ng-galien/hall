@@ -91,6 +91,28 @@ export const reorderCouncilBusinessResourcesSchema = z
     path: ["resourceIds"],
   });
 
+/** Subject move and business merge: the business that receives, and whether to preview only. */
+export const reorganizeCouncilBusinessSchema = z
+  .object({ targetCouncilBusinessId: resourceIdSchema, preview: z.boolean().default(false) })
+  .strict();
+export type ReorganizeCouncilBusiness = z.infer<typeof reorganizeCouncilBusinessSchema>;
+export const moveCouncilSubjectSchema = reorganizeCouncilBusinessSchema;
+export const mergeCouncilBusinessSchema = reorganizeCouncilBusinessSchema;
+
+const councilBusinessReorganizationSideSchema = z
+  .object({ id: resourceIdSchema, title: z.string(), folderPath: z.string() })
+  .passthrough();
+export const councilBusinessReorganizationPlanSchema = z
+  .object({
+    from: councilBusinessReorganizationSideSchema,
+    to: councilBusinessReorganizationSideSchema,
+    blockers: z.array(z.string()),
+    applied: z.boolean(),
+    movedResourceIds: z.array(resourceIdSchema).optional(),
+  })
+  .passthrough();
+export type CouncilBusinessReorganizationPlan = z.infer<typeof councilBusinessReorganizationPlanSchema>;
+
 export const councilBusinessAgendaHistoryQuerySchema = z
   .object({ councilBusinessIds: z.array(resourceIdSchema).min(1).max(100) })
   .strict()

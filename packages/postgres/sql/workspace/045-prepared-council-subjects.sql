@@ -1,9 +1,13 @@
 -- A prepared subject owns its content and business before any meeting inscription.
+-- Its identity is immutable; its business changes only through the controlled
+-- move of workspace/046.
+-- @implements-requirement HALL-FR-BUS-050
 CREATE FUNCTION hall.enforce_prepared_subject_identity()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path=pg_catalog,hall AS $$
 BEGIN
-  IF NEW.id IS DISTINCT FROM OLD.id OR NEW.council_business IS DISTINCT FROM OLD.council_business THEN
-    RAISE EXCEPTION USING ERRCODE='HV809', MESSAGE='prepared subject identity and business are immutable';
+  IF NEW.id IS DISTINCT FROM OLD.id
+    OR (NEW.council_business IS DISTINCT FROM OLD.council_business AND NOT hall.prepared_subject_is_moving(OLD.id)) THEN
+    RAISE EXCEPTION USING ERRCODE='HV809', MESSAGE='prepared subject identity and business are immutable outside a subject move';
   END IF;
   RETURN NEW;
 END;

@@ -315,6 +315,8 @@ GRANT EXECUTE ON FUNCTION hall_api.list_council_decisions(),hall_api.open_counci
 GRANT EXECUTE ON FUNCTION hall_api.meeting_documents(UUID), hall_api.meeting_document_resource(UUID, UUID), hall_api.meeting_document_content(UUID, UUID, UUID) TO hall_api_authenticated, hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.delete_council_business(UUID) TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.move_prepared_council_subject(UUID, TEXT, UUID, BOOLEAN),
+  hall_api.merge_council_business(UUID, UUID, BOOLEAN) TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.deletable_council_businesses(UUID[]) TO hall_api_authenticated, hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.list_council_delegations(BOOLEAN),

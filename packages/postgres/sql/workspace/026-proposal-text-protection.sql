@@ -64,14 +64,20 @@ CREATE TRIGGER ballot_seals_proposal_text AFTER INSERT OR UPDATE ON hall.ballots
 FOR EACH ROW EXECUTE FUNCTION hall.seal_voted_proposal_text();
 
 -- @implements-requirement HALL-FR-WSP-220
+-- The text stays in the folder and among the pieces of the proposal's current
+-- business; only the proposal move of workspace/046 carries it to another one.
 CREATE FUNCTION hall.protect_proposal_workspace()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
   IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
     RAISE EXCEPTION USING ERRCODE = 'HV820', MESSAGE = 'a proposal text ownership is permanent';
   END IF;
-  IF TG_OP = 'UPDATE' AND NEW IS DISTINCT FROM OLD THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV820', MESSAGE = 'a proposal text ownership is permanent';
+  IF TG_OP = 'UPDATE' AND NEW IS DISTINCT FROM OLD AND NOT (
+    hall.prepared_subject_is_moving(OLD.council_decision_proposal)
+    AND NEW.council_decision_proposal = OLD.council_decision_proposal
+    AND NEW.text_resource = OLD.text_resource
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV820', MESSAGE = 'a proposal text ownership changes only with its proposal move';
   END IF;
   IF NOT EXISTS (
     SELECT FROM hall.council_decision_proposal proposal
@@ -141,7 +147,9 @@ BEGIN
   PERFORM hall.lock_proposal_text(resource_id);
   SELECT folder.full_path INTO expected_path
   FROM hall.council_decision_proposal_workspace workspace
-  JOIN hall.council_business_workspace business USING (council_business)
+  JOIN hall.council_decision_proposal proposal ON proposal.id = workspace.council_decision_proposal
+  JOIN hall.council_business_workspace business ON business.council_business = CASE
+    WHEN hall.prepared_subject_is_moving(proposal.id) THEN proposal.council_business ELSE workspace.council_business END
   JOIN hall.resource folder ON folder.id = business.folder_resource
   WHERE workspace.text_resource = resource_id;
   IF expected_path IS NULL THEN

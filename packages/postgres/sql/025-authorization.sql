@@ -178,6 +178,8 @@ CREATE VIEW hall.action_access AS
       ('council-business.associate-resource', 'council-business.write'),
       ('council-business.dissociate-resource', 'council-business.write'),
       ('council-business.reorder-resources', 'council-business.write'),
+      ('council-business.move-subject', 'council-business.write'),
+      ('council-business.merge', 'council-business.delete'),
       ('council-business.delete', 'council-business.delete'),
       ('resource.create', 'common-resource.write'),
       ('resource.create-document', 'common-resource.write'),

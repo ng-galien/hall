@@ -6,8 +6,10 @@ import {
   ballotResultPreviewSchema,
   ballotSchema,
   ballotVoteSchema,
+  type CouncilBusinessReorganizationPlan,
   type CreateCouncilBusiness,
   councilBusinessCommitteeLinkSchema,
+  councilBusinessReorganizationPlanSchema,
   councilBusinessResourceAssociationSchema,
   councilBusinessResourceItemSchema,
   councilBusinessSchema,
@@ -123,6 +125,20 @@ export function createPostgresCouncilClient({
     };
   }
 
+  async function reorganization(
+    operation: () => Promise<Record<string, unknown>>,
+  ): Promise<CouncilBusinessReorganizationPlan> {
+    try {
+      return councilBusinessReorganizationPlanSchema.parse(await call(operation));
+    } catch (error) {
+      if (error instanceof HallPostgresError && ["HV826", "HV827"].includes(error.sqlState))
+        throw new DomainError("council_business_reorganization_refused", 409, error.message, error.message);
+      if (error instanceof HallPostgresError && error.sqlState === "HV609")
+        throw new DomainError("council_business_not_found", 404, error.message);
+      throw error;
+    }
+  }
+
   async function call<Result>(operation: () => Promise<Result>): Promise<Result> {
     try {
       return await operation();
@@ -227,6 +243,10 @@ export function createPostgresCouncilClient({
         throw error;
       }
     },
+    moveSubject: (id, kind, input) =>
+      reorganization(() => postgresCouncil.moveSubject(currentRequest(), id, kind, input)),
+    mergeBusiness: (sourceBusinessId, input) =>
+      reorganization(() => postgresCouncil.mergeBusiness(currentRequest(), sourceBusinessId, input)),
     async listDeletableBusinesses(businessIds) {
       if (businessIds.length === 0) return [];
       return call(() => postgresCouncil.listDeletableBusinesses(currentRequest(), businessIds));

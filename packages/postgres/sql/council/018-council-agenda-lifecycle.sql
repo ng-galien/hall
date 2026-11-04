@@ -1,7 +1,8 @@
 -- Lifecycle: an agenda item is prepared against an existing meeting, starts at
--- most once when positively programmed, and completes at most once. Its root
--- and subject mapping never change; its meeting and signed position may be
--- adjusted while it remains unstarted.
+-- most once when positively programmed, and completes at most once. Its subject
+-- mapping never changes and its copied business only follows a subject move
+-- (workspace/046); its meeting and signed position may be adjusted while it
+-- remains unstarted.
 CREATE FUNCTION hall.enforce_council_agenda_item_lifecycle()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -17,6 +18,10 @@ BEGIN
     RAISE EXCEPTION USING
       ERRCODE = 'HV213',
       MESSAGE = 'council agenda history cannot be truncated';
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND hall.agenda_item_follows_subject_move(OLD, NEW) THEN
+    RETURN NEW;
   END IF;
 
   -- @implements-requirement HALL-FR-AGI-270

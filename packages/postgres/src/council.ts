@@ -50,7 +50,7 @@ import {
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
 } from "@hall/domain";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
 import { recordAuditEvent } from "./audit.js";
 import type { PostgresCallContext, PostgresRequest } from "./callContext.js";
@@ -392,6 +392,57 @@ function attendanceDeclarationsPayload(declarations: PostgresMeetingAttendanceDe
       }),
     }),
   );
+}
+
+const postgresCouncilReorganizationSideSchema = z
+  .object({ id: resourceIdSchema, title: z.string(), folderPath: z.string() })
+  .passthrough();
+
+export const postgresCouncilReorganizationPlanSchema = z
+  .object({
+    from: postgresCouncilReorganizationSideSchema,
+    to: postgresCouncilReorganizationSideSchema,
+    blockers: z.array(z.string()),
+    applied: z.boolean(),
+    movedResourceIds: z.array(resourceIdSchema).optional(),
+  })
+  .passthrough();
+export type PostgresCouncilReorganizationPlan = z.infer<typeof postgresCouncilReorganizationPlanSchema>;
+
+async function recordReorganization(
+  client: PoolClient,
+  gesture: "moveSubject" | "mergeBusiness",
+  plan: PostgresCouncilReorganizationPlan,
+): Promise<void> {
+  const subjectIds =
+    gesture === "moveSubject"
+      ? [plan.subjectId]
+      : Array.isArray(plan.subjects)
+        ? plan.subjects.map((subject) => (subject as { subjectId?: unknown }).subjectId)
+        : [];
+  const details = {
+    gesture,
+    fromCouncilBusinessId: plan.from.id,
+    fromTitle: plan.from.title,
+    toCouncilBusinessId: plan.to.id,
+    toTitle: plan.to.title,
+    subjectIds,
+    movedResourceIds: plan.movedResourceIds ?? [],
+  };
+  for (const businessId of [plan.from.id, plan.to.id])
+    await recordAuditEvent(client, {
+      targetType: "council-business",
+      targetId: businessId,
+      outcome: "succeeded",
+      details,
+    });
+  for (const resourceId of plan.movedResourceIds ?? [])
+    await recordAuditEvent(client, {
+      targetType: "resource",
+      targetId: resourceId,
+      outcome: "succeeded",
+      details: { gesture, fromTitle: plan.from.title, toTitle: plan.to.title },
+    });
 }
 
 export class PostgresCouncil {
@@ -742,6 +793,56 @@ export class PostgresCouncil {
         });
         await recordAuditEvent(client, { targetType: "council-business", targetId: id, outcome: "succeeded" });
         return business;
+      },
+    );
+  }
+
+  /** Moves a prepared subject with its text to another business, or previews the move. */
+  moveSubject(
+    request: PostgresCouncilRequest,
+    subjectId: string,
+    kind: PreparedCouncilSubject["kind"],
+    input: { targetCouncilBusinessId: string; preview: boolean },
+  ): Promise<PostgresCouncilReorganizationPlan> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.move-subject") },
+      async (client) => {
+        const plan = await callJson(client, {
+          text: "SELECT hall_api.move_prepared_council_subject($1::uuid,$2::text,$3::uuid,$4::boolean) AS payload",
+          values: [
+            resourceIdSchema.parse(subjectId),
+            preparedCouncilSubjectKindSchema.parse(kind),
+            resourceIdSchema.parse(input.targetCouncilBusinessId),
+            input.preview,
+          ],
+          schema: postgresCouncilReorganizationPlanSchema,
+        });
+        if (plan.applied) await recordReorganization(client, "moveSubject", plan);
+        return plan;
+      },
+    );
+  }
+
+  /** Merges a business into another one and removes it, or previews the merge. */
+  mergeBusiness(
+    request: PostgresCouncilRequest,
+    sourceBusinessId: string,
+    input: { targetCouncilBusinessId: string; preview: boolean },
+  ): Promise<PostgresCouncilReorganizationPlan> {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "council-business.merge") },
+      async (client) => {
+        const plan = await callJson(client, {
+          text: "SELECT hall_api.merge_council_business($1::uuid,$2::uuid,$3::boolean) AS payload",
+          values: [
+            resourceIdSchema.parse(sourceBusinessId),
+            resourceIdSchema.parse(input.targetCouncilBusinessId),
+            input.preview,
+          ],
+          schema: postgresCouncilReorganizationPlanSchema,
+        });
+        if (plan.applied) await recordReorganization(client, "mergeBusiness", plan);
+        return plan;
       },
     );
   }

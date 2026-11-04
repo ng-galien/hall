@@ -46,6 +46,8 @@ export const workspaceActions = {
     fileRequired: false,
   },
   "council-business.reorder-resources": { schema: contract.reorderCouncilBusinessResourcesSchema, fileRequired: false },
+  "council-business.move-subject": { schema: contract.moveCouncilSubjectSchema, fileRequired: false },
+  "council-business.merge": { schema: contract.mergeCouncilBusinessSchema, fileRequired: false },
 } satisfies Partial<Record<contract.ApiActionName, { schema: z.ZodType; fileRequired: boolean }>>;
 export type WorkspaceAction = keyof typeof workspaceActions;
 export const workspaceActionSchema = z.enum(Object.keys(workspaceActions) as [WorkspaceAction, ...WorkspaceAction[]]);

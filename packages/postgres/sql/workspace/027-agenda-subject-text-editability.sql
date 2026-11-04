@@ -178,13 +178,15 @@ BEGIN
         'full_path',
         'is_folder',
         'container_path',
-        'container_is_folder'
+        'container_is_folder',
+        'updated_at'
       ]) = (to_jsonb(OLD) - ARRAY[
         'path',
         'full_path',
         'is_folder',
         'container_path',
-        'container_is_folder'
+        'container_is_folder',
+        'updated_at'
       ]);
   END IF;
 
@@ -244,6 +246,10 @@ SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
   IF TG_OP = 'UPDATE' AND NEW IS NOT DISTINCT FROM OLD THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'UPDATE' AND hall.prepared_subject_is_moving(OLD.open_question)
+    AND NEW.open_question = OLD.open_question AND NEW.text_resource = OLD.text_resource THEN
     RETURN NEW;
   END IF;
 

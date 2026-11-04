@@ -3,6 +3,7 @@ import { documentFormatSchema, matchLiteral } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
 import { documentPreviewMode } from "../domain/documentPolicy.js";
 import { canExecute } from "../security/authorization.js";
+import { councilBusinessReorganizationActions } from "./councilBusinessReorganizationActions.js";
 import { canFollowReadHref } from "./readAuthorization.js";
 import { collectionActions, objectActions, withConductAuthorization } from "./sirenActionPolicy.js";
 import {
@@ -167,7 +168,10 @@ function embeddedEntity(
   value: Record<string, unknown>,
 ): SirenEmbeddedEntity {
   value = withConductAuthorization(request, value) as Record<string, unknown>;
-  const actions = objectActions(request, entityClass, value);
+  const actions = [
+    ...objectActions(request, entityClass, value),
+    ...councilBusinessReorganizationActions(request, entityClass, value),
+  ];
   return {
     rel: ["item"],
     class: [entityClass],
@@ -188,7 +192,12 @@ export function toSirenRepresentation(request: Request, input: unknown): SirenEn
       : { items: payload }
     : (payload as Record<string, unknown>);
   const links: SirenLink[] = objectLinks(request, entityClass, collection ? null : payload);
-  const actions = collection ? collectionActions(request, entityClass) : objectActions(request, entityClass, payload);
+  const actions = collection
+    ? collectionActions(request, entityClass)
+    : [
+        ...objectActions(request, entityClass, payload),
+        ...councilBusinessReorganizationActions(request, entityClass, payload),
+      ];
   return {
     class: [collection ? `${entityClass}-collection` : entityClass],
     properties,

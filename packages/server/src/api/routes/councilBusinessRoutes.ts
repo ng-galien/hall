@@ -5,6 +5,8 @@ import {
   createCouncilBusinessSchema,
   createPreparedCouncilSubjectSchema,
   dissociateCouncilBusinessResourceSchema,
+  mergeCouncilBusinessSchema,
+  moveCouncilSubjectSchema,
   preparedCouncilSubjectKindSchema,
   reorderCouncilBusinessResourcesSchema,
   scheduleCouncilBusinessSubjectSchema,
@@ -76,6 +78,24 @@ export function createCouncilBusinessRouter({
     const subject = await councilClient.openPreparedSubject(routeParameter(request.params.id), kind);
     if (!subject) throw new DomainError("prepared_subject_not_found", 404);
     response.json(subject);
+  });
+  router.post(
+    "/prepared-subjects/:kind/:id/move",
+    requireActionPermission("council-business.move-subject"),
+    async (request, response) => {
+      const kind = preparedCouncilSubjectKindSchema.parse(request.params.kind);
+      response.json(
+        await councilClient.moveSubject(
+          z.string().uuid().parse(request.params.id),
+          kind,
+          moveCouncilSubjectSchema.parse(request.body),
+        ),
+      );
+    },
+  );
+  router.post("/:businessId/merge", requireActionPermission("council-business.merge"), async (request, response) => {
+    const business = await councilBusinessWorkspaceService.get(routeParameter(request.params.businessId));
+    response.json(await councilClient.mergeBusiness(business.id, mergeCouncilBusinessSchema.parse(request.body)));
   });
   router.post(
     "/:businessId/prepared-subjects",

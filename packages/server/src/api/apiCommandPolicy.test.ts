@@ -247,6 +247,22 @@ const auditCases = [
   ],
   [
     "POST",
+    "/api/council-business/prepared-subjects/councilDecisionProposal/subject-1/move",
+    { targetCouncilBusinessId: "business-2", preview: true },
+    "council-business.move-subject",
+    "council-business",
+    null,
+  ],
+  [
+    "POST",
+    "/api/council-business/business-1/merge",
+    { targetCouncilBusinessId: "business-2", preview: false },
+    "council-business.merge",
+    "council-business",
+    "business-1",
+  ],
+  [
+    "POST",
     "/api/council-business/business-1/agenda-items/council-decision-proposals",
     { councilMeetingId: "meeting-1", position: 2 },
     "council-business.schedule-decision-proposal",

@@ -12,6 +12,7 @@ import type {
   CouncilBusiness,
   CouncilBusinessBundleManifest,
   CouncilBusinessCommitteeLink,
+  CouncilBusinessReorganizationPlan,
   CouncilBusinessResourceAssociation,
   CouncilBusinessResourceItem,
   CouncilBusinessWorkspaceItem,
@@ -38,6 +39,7 @@ import type {
   RecordMeetingReconvocation,
   ReorderCouncilAgenda,
   ReorderCouncilBusinessResources,
+  ReorganizeCouncilBusiness,
   ReprogramAgendaItem,
   ScheduleAgendaItem,
   ScheduleCouncilBusinessSubject,
@@ -120,6 +122,12 @@ export interface CouncilClient {
   openBusiness(id: string): Promise<CouncilBusiness | null>;
   createBusiness(input: CreateCouncilBusiness): Promise<CouncilBusiness>;
   deleteBusiness(id: string): Promise<CouncilBusiness>;
+  moveSubject(
+    id: string,
+    kind: PreparedCouncilSubject["kind"],
+    input: ReorganizeCouncilBusiness,
+  ): Promise<CouncilBusinessReorganizationPlan>;
+  mergeBusiness(sourceBusinessId: string, input: ReorganizeCouncilBusiness): Promise<CouncilBusinessReorganizationPlan>;
   listDeletableBusinesses(businessIds: readonly string[]): Promise<string[]>;
   listBusinessCommittees(businessId: string): Promise<CouncilBusinessCommitteeLink[]>;
   listCommitteeBusinesses(committeeId: string): Promise<CouncilCommitteeBusinessLink[]>;

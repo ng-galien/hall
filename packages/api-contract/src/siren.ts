@@ -55,6 +55,8 @@ export const apiActionNames = [
   "council-business.associate-resource",
   "council-business.dissociate-resource",
   "council-business.reorder-resources",
+  "council-business.move-subject",
+  "council-business.merge",
   "council-business.schedule-decision-proposal",
   "council-business.schedule-open-question",
   "meeting.provision-initial",

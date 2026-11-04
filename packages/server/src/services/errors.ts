@@ -85,6 +85,7 @@ export type ErrorCode =
   | "meeting_notice_recipients_incomplete"
   | "prepared_subject_immutable"
   | "prepared_subject_unavailable"
+  | "council_business_reorganization_refused"
   | "prepared_subject_not_found"
   | "agenda_frozen"
   | "preparation_history_immutable"

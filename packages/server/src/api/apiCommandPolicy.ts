@@ -86,6 +86,8 @@ export const apiCommandPolicies = {
   "council-business.associate-resource": { auditTargetType: "council-business" },
   "council-business.dissociate-resource": { auditTargetType: "council-business" },
   "council-business.reorder-resources": { auditTargetType: "council-business" },
+  "council-business.move-subject": { auditTargetType: "council-business" },
+  "council-business.merge": { auditTargetType: "council-business" },
   "council-business.schedule-decision-proposal": { auditTargetType: "agenda-item" },
   "council-business.schedule-open-question": { auditTargetType: "agenda-item" },
   "meeting.provision-initial": { auditTargetType: "council-meeting" },

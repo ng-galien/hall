@@ -110,6 +110,19 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
   }
   if (root === "council-business") {
     if (method === "DELETE" && id && !child) return auditIntent("council-business.delete", id);
+    if (method === "POST" && id === "prepared-subjects" && child && childId && operation === "move")
+      return auditIntent("council-business.move-subject", null, {
+        subjectId: childId,
+        kind: child,
+        targetCouncilBusinessId: body?.targetCouncilBusinessId,
+        preview: body?.preview,
+      });
+    if (method === "POST" && id && child === "merge" && !childId)
+      return auditIntent(
+        "council-business.merge",
+        id,
+        body && { targetCouncilBusinessId: body.targetCouncilBusinessId, preview: body.preview },
+      );
     if (method === "POST" && id && child === "prepared-subjects" && !childId)
       return auditIntent("council-business.create-prepared-subject", id);
     if (method === "POST" && id && child === "committees" && !childId)

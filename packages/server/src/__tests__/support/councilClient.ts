@@ -106,6 +106,12 @@ export function createTestCouncilClient(
     async deleteBusiness() {
       throw new Error("Business removal is verified against isolated PostgreSQL-compatible runtime");
     },
+    async moveSubject() {
+      throw new Error("Subject moves are verified against PostgreSQL");
+    },
+    async mergeBusiness() {
+      throw new Error("Business merges are verified against PostgreSQL");
+    },
     async importBusinessBundle() {
       throw new Error("Bundle import is verified against the isolated PostgreSQL-compatible runtime");
     },
