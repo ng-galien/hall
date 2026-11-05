@@ -239,6 +239,23 @@ SELECT throws_ok(
   'HV827',NULL,'a merge with a blocked subject is refused as a whole'
 );
 SELECT ok(EXISTS(SELECT FROM council_business WHERE id=pg_temp.reorg('source')),'a refused merge writes nothing');
+INSERT INTO reorg VALUES ('clash', (hall_api.create_council_business('seed','Clash affair','Clash report','Clash evidence')->>'id')::UUID);
+INSERT INTO reorg SELECT 'clash-document', (hall_api.create_text_resource('seed/Clash affair','Clash note','Clash')->>'id')::UUID;
+INSERT INTO reorg SELECT 'clash-twin', (hall_api.create_text_resource(pg_temp.folder('target'),'CLASH NOTE','Twin')->>'id')::UUID;
+SELECT is(
+  hall_api.merge_council_business(pg_temp.reorg('clash'),pg_temp.reorg('target'),true)->'blockers',
+  '["nameTaken:Clash note"]'::JSONB,
+  'the merge preview reports a folder name already used in the target folder, whatever its case'
+);
+SELECT throws_ok(
+  format('SELECT hall_api.merge_council_business(%L,%L,false)',pg_temp.reorg('clash'),pg_temp.reorg('target')),
+  'HV827',NULL,'a name conflict refuses the merge'
+);
+SELECT ok(
+  EXISTS(SELECT FROM council_business WHERE id=pg_temp.reorg('clash'))
+  AND (SELECT path FROM resource WHERE id=pg_temp.reorg('clash-document'))='seed/Clash affair',
+  'a merge refused for a taken name writes nothing'
+);
 SET CONSTRAINTS ALL IMMEDIATE;
 SELECT pass('every deferred workspace and agenda constraint holds after the gestures');
 SELECT is(
