@@ -238,6 +238,21 @@ SELECT throws_ok(
 SELECT ok(EXISTS(SELECT FROM council_business WHERE id=pg_temp.reorg('source')),'a refused merge writes nothing');
 SET CONSTRAINTS ALL IMMEDIATE;
 SELECT pass('every deferred workspace and agenda constraint holds after the gestures');
+SELECT is(
+  merged_report_content(E'Target evidence', 'Absorbed affair', E'#  absorbed   AFFAIR \n\nIntro\n\n## Detail'),
+  E'Target evidence\n\n# Absorbed affair\n\nIntro\n\n### Detail',
+  'an absorbed report that opens with its own title keeps a single title'
+);
+SELECT is(
+  merged_report_content(E'Target evidence', 'Absorbed affair', E'## Other title\n\nIntro'),
+  E'Target evidence\n\n# Absorbed affair\n\n### Other title\n\nIntro',
+  'an absorbed report that opens with another title keeps it under the affair title'
+);
+SELECT is(
+  merged_report_content(E'Target evidence', 'Absorbed affair', E'# Absorbed affair'),
+  E'Target evidence\n\n# Absorbed affair',
+  'an absorbed report made of its title alone adds the title once'
+);
 
 SELECT * FROM finish();
 ROLLBACK;

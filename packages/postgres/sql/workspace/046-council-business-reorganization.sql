@@ -155,10 +155,22 @@ $$;
 -- business, its own Markdown headings one level down, after the target report.
 CREATE FUNCTION hall.merged_report_content(target_content TEXT, source_title TEXT, source_content TEXT)
 RETURNS TEXT LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
+  WITH source AS (
+    SELECT btrim(source_content, E'\n') AS content
+  ), body AS (
+    SELECT CASE
+      WHEN lower(regexp_replace(btrim(substring(content FROM '^#{1,6}[ \t]+([^\n]*)')), '\s+', ' ', 'g'))
+        = lower(regexp_replace(btrim(source_title), '\s+', ' ', 'g'))
+      THEN btrim(regexp_replace(content, '^[^\n]*', ''), E'\n')
+      ELSE content
+    END AS content
+    FROM source
+  )
   SELECT concat_ws(E'\n\n',
     nullif(rtrim(target_content), ''),
     '# ' || source_title,
-    regexp_replace(btrim(source_content, E'\n'), '^(#{1,5}) ', '#\1 ', 'gn'));
+    nullif(regexp_replace(body.content, '^(#{1,5}) ', '#\1 ', 'gn'), ''))
+  FROM body;
 $$;
 
 CREATE FUNCTION hall.council_business_merge_plan(source_business UUID, target_business UUID)
