@@ -25,7 +25,7 @@ INSERT INTO reorg VALUES
   ('next-meeting', (SELECT (payload#>>'{nextMeeting,id}')::UUID FROM reorg_closure)),
   ('source', (hall_api.create_council_business('seed','Source affair','Source report','Source evidence')->>'id')::UUID),
   ('target', (hall_api.create_council_business('seed','Target affair','Target report','Target evidence')->>'id')::UUID),
-  ('absorbed', (hall_api.create_council_business('seed','Absorbed affair','Absorbed report','Absorbed evidence')->>'id')::UUID),
+  ('absorbed', (hall_api.create_council_business('seed','Absorbed affair','Absorbed report',E'## Context\nAbsorbed evidence')->>'id')::UUID),
   ('empty', (hall_api.create_council_business('seed','Empty affair','Empty report','')->>'id')::UUID);
 INSERT INTO reorg SELECT 'fresh', (hall_api.create_prepared_council_subject(id,'councilDecisionProposal','Fresh proposal','Fresh text')->>'id')::UUID FROM reorg WHERE key='source';
 INSERT INTO reorg SELECT 'taken', (hall_api.create_prepared_council_subject(id,'openQuestion','Taken title','Source question')->>'id')::UUID FROM reorg WHERE key='source';
@@ -157,19 +157,27 @@ SELECT is(
 );
 
 -- Business merge.
+INSERT INTO reorg SELECT 'absorbed-report', report_resource FROM council_business_workspace WHERE council_business=pg_temp.reorg('absorbed');
+INSERT INTO reorg SELECT 'target-report', report_resource FROM council_business_workspace WHERE council_business=pg_temp.reorg('target');
+INSERT INTO reorg SELECT 'absorbed-image', (hall_api.create_editor_asset(pg_temp.reorg('absorbed-report'),'Plan','plan.png','image/png','\x89504e470d0a1a0a'::BYTEA)->>'id')::UUID;
 SELECT is(
-  (SELECT jsonb_build_object('report',plan->'report'->'fate','reportName',plan->'report'->'newName','blockers',plan->'blockers',
+  (SELECT jsonb_build_object('report',plan->'report'->'fate','heading',plan->'report'->'heading',
+    'targetReport',plan#>>'{report,targetReportResourceId}'=pg_temp.reorg('target-report')::TEXT,'blockers',plan->'blockers',
     'subjects',jsonb_array_length(plan->'subjects'),'transferred',jsonb_array_length(plan#>'{resources,transferred}'),
     'alreadyAttached',jsonb_array_length(plan#>'{resources,alreadyAttached}'),'folderContent',plan->'folderContent'->0->'name')
    FROM (SELECT hall_api.merge_council_business(pg_temp.reorg('absorbed'),pg_temp.reorg('target'),true) plan) preview),
-  '{"report":"attachedToTarget","reportName":"Absorbed affair","blockers":[],"subjects":1,"transferred":1,"alreadyAttached":1,"folderContent":"Absorbed note"}'::JSONB,
-  'the merge preview lists subjects, pieces, folder content and the report fate'
+  '{"report":"appendedToTargetReport","heading":"# Absorbed affair","targetReport":true,"blockers":[],"subjects":1,"transferred":1,"alreadyAttached":1,"folderContent":"Absorbed note"}'::JSONB,
+  'the merge preview lists subjects, pieces, folder content and the report appended to the target report'
 );
-SELECT ok(EXISTS(SELECT FROM council_business WHERE id=pg_temp.reorg('absorbed')),'the merge preview writes nothing');
+SELECT ok(
+  EXISTS(SELECT FROM council_business WHERE id=pg_temp.reorg('absorbed'))
+  AND (SELECT content FROM text_resource WHERE id=pg_temp.reorg('target-report'))='Target evidence',
+  'the merge preview writes nothing'
+);
 SELECT is(
-  hall_api.merge_council_business(pg_temp.reorg('absorbed'),pg_temp.reorg('target'),false)->>'applied',
-  'true',
-  'a business merges into another one'
+  (SELECT plan->'updatedResourceIds' FROM (SELECT hall_api.merge_council_business(pg_temp.reorg('absorbed'),pg_temp.reorg('target'),false) plan) applied),
+  jsonb_build_array(pg_temp.reorg('target-report')),
+  'a business merges into another one and reports the updated target report'
 );
 SELECT ok(
   NOT EXISTS(SELECT FROM council_business WHERE id=pg_temp.reorg('absorbed'))
@@ -183,20 +191,40 @@ SELECT is(
 );
 SELECT is(
   (SELECT array_agg(r.name ORDER BY r.name) FROM council_business_resource link JOIN resource r ON r.id=link.resource
-   WHERE link.council_business=pg_temp.reorg('target') AND r.name IN ('Absorbed affair','Absorbed note','Shared note')),
-  ARRAY['Absorbed affair','Absorbed note','Shared note'],
-  'its pieces join the target without duplicate, and its report becomes a target piece'
+   WHERE link.council_business=pg_temp.reorg('target') AND r.name IN ('Absorbed note','Shared note')),
+  ARRAY['Absorbed note','Shared note'],
+  'its pieces join the target without duplicate'
 );
 SELECT is(
-  (SELECT array_agg(r.path ORDER BY r.name) FROM resource r WHERE r.id IN (pg_temp.reorg('absorbed-document'))
-   OR r.name='Absorbed affair' AND NOT r.is_folder),
-  ARRAY[pg_temp.folder('target'),pg_temp.folder('target')],
-  'its folder content and its report move into the target folder'
+  (SELECT r.path FROM resource r WHERE r.id=pg_temp.reorg('absorbed-document')),
+  pg_temp.folder('target'),
+  'its folder content moves into the target folder'
 );
 SELECT is(
-  hall_api.merge_council_business(pg_temp.reorg('empty'),pg_temp.reorg('target'),false)#>>'{report,fate}',
+  (SELECT content FROM text_resource WHERE id=pg_temp.reorg('target-report')),
+  E'Target evidence\n\n# Absorbed affair\n\n### Context\nAbsorbed evidence',
+  'its report is appended to the target report under its title, its headings one level down'
+);
+SELECT ok(
+  NOT EXISTS(SELECT FROM resource WHERE id=pg_temp.reorg('absorbed-report'))
+  AND NOT EXISTS(SELECT FROM text_resource WHERE id=pg_temp.reorg('absorbed-report'))
+  AND NOT EXISTS(SELECT FROM resource WHERE path=pg_temp.folder('target') AND name='Absorbed affair'),
+  'the absorbed report file is removed'
+);
+SELECT is(
+  (SELECT owner_text_resource_id FROM editor_asset WHERE id=pg_temp.reorg('absorbed-image')),
+  pg_temp.reorg('target-report'),
+  'the images of the absorbed report belong to the target report'
+);
+SELECT is(
+  hall_api.merge_council_business(pg_temp.reorg('empty'),pg_temp.reorg('target'),false)->'report'->>'fate',
   'deleted',
   'an empty report is deleted with its business'
+);
+SELECT is(
+  (SELECT content FROM text_resource WHERE id=pg_temp.reorg('target-report')),
+  E'Target evidence\n\n# Absorbed affair\n\n### Context\nAbsorbed evidence',
+  'an empty report adds nothing to the target report'
 );
 SELECT ok(NOT EXISTS(SELECT FROM resource WHERE path='seed/Empty affair' OR full_path='seed/Empty affair'),'nothing of the empty business remains');
 SELECT throws_ok(

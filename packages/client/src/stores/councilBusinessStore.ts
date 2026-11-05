@@ -52,6 +52,8 @@ interface CouncilBusinessStoreState {
   resourceItemsLoadedById: Record<string, boolean>;
   resourceItemsErrorById: Record<string, ApiErrorCode | null>;
   load(): Promise<void>;
+  /** Rereads every business after another session or the MCP changed them; the selected one is hydrated again. */
+  reloadAfterExternalChange(selectedId: string | null): Promise<void>;
   loadSelected(id: string): Promise<CouncilBusinessView | null>;
   adoptReport(id: string, report: Extract<ResourceDetail, { kind: "text" }>): void;
   refresh(id: string): Promise<CouncilBusinessView | null>;
@@ -219,6 +221,31 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
     } catch (error) {
       set({ error: apiErrorCode(error), loading: false });
     }
+  },
+  async reloadAfterExternalChange(selectedId) {
+    let result: Awaited<ReturnType<typeof listCouncilBusinesses>>;
+    try {
+      result = await listCouncilBusinesses();
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+      return;
+    }
+    set((state) => ({
+      businesses: result.data.map((business) => {
+        const current = state.businesses.find((entry) => entry.id === business.id);
+        return current ? { ...current, ...business, resources: current.resources } : { ...business, resources: [] };
+      }),
+      canImportBundle: Boolean(
+        result.representation && findSirenAction(result.representation, "council-business.import-bundle"),
+      ),
+      canCreate: Boolean(result.representation && findSirenAction(result.representation, "council-business.create")),
+      capabilitiesById: {},
+      representationsById: {},
+      resourceItemsLoadedById: {},
+      resourceItemsErrorById: {},
+    }));
+    await get().loadPreparedSubjects();
+    if (selectedId && result.data.some((business) => business.id === selectedId)) await get().refresh(selectedId);
   },
   async loadSelected(id) {
     const existing = pendingSelectedLoads.get(id);

@@ -285,18 +285,7 @@ export function PathContents({
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matches = (title: string) => !normalizedQuery || title.toLocaleLowerCase().includes(normalizedQuery);
   const visibleBusinesses = businesses.filter((business) => mode !== "resources" && matches(business.title));
-  const representedResourceIds = new Set(
-    visibleBusinesses.flatMap((business) => [
-      business.reportResourceId,
-      ...business.resources.map((resource) => resource.id),
-      ...councilBusinessStore.preparedSubjects
-        .filter((subject) => subject.councilBusinessId === business.id)
-        .map((subject) => subject.textResourceId),
-    ]),
-  );
-  const visibleResources = resources.filter(
-    (resource) => mode !== "businesses" && matches(resource.name) && !representedResourceIds.has(resource.id),
-  );
+  const visibleResources = resources.filter((resource) => mode !== "businesses" && matches(resource.name));
   const refresh = () => onSelect(selection);
   const hasDirectItems = useCallback(
     (folderPath: string) =>

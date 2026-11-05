@@ -4,6 +4,7 @@ import { handleWorkspaceMcp, WorkspaceClient } from "@hall/mcp";
 import type { AwilixContainer } from "awilix";
 import express from "express";
 import type { Cradle } from "../core/container.js";
+import { publishWorkspaceChanges } from "../realtime/workspaceChanges.js";
 import { SESSION_COOKIE_NAME } from "../services/authService.js";
 import {
   auditApiRequest,
@@ -107,6 +108,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use("/api/users", createUsersRouter(container.cradle));
   app.use("/api/audit-events", createAuditRouter(container.cradle));
   app.use("/api", requireApplicationReading);
+  app.use(["/api/council-business", "/api/resources"], publishWorkspaceChanges(container.cradle));
   app.use("/api/ballot-previews", createBallotPreviewsRouter(container.cradle));
   app.use("/api/ballots", createBallotsRouter(container.cradle));
   app.use("/api/contacts", createContactsRouter(container.cradle));

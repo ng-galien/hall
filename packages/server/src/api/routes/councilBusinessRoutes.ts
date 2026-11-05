@@ -19,6 +19,7 @@ import { slugify } from "../../repositories/publicIdentifiers.js";
 import { DomainError } from "../../services/errors.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { committeeLinkCollection, committeeLinkResult } from "../councilBusinessCommitteeRepresentation.js";
+import { councilBusinessReorganizationRepresentation } from "../councilBusinessReorganizationActions.js";
 import { routeParameter } from "../routeParameter.js";
 
 export function createCouncilBusinessRouter({
@@ -26,6 +27,7 @@ export function createCouncilBusinessRouter({
   councilClient,
   councilBusinessBundleExportService,
   councilBusinessBundleImportService,
+  realtimeEvents,
   requestContext,
 }: Cradle): Router {
   const router = Router();
@@ -84,18 +86,26 @@ export function createCouncilBusinessRouter({
     requireActionPermission("council-business.move-subject"),
     async (request, response) => {
       const kind = preparedCouncilSubjectKindSchema.parse(request.params.kind);
-      response.json(
-        await councilClient.moveSubject(
-          z.string().uuid().parse(request.params.id),
-          kind,
-          moveCouncilSubjectSchema.parse(request.body),
-        ),
+      const plan = await councilClient.moveSubject(
+        z.string().uuid().parse(request.params.id),
+        kind,
+        moveCouncilSubjectSchema.parse(request.body),
       );
+      response.json(councilBusinessReorganizationRepresentation("moveSubject", plan));
     },
   );
   router.post("/:businessId/merge", requireActionPermission("council-business.merge"), async (request, response) => {
     const business = await councilBusinessWorkspaceService.get(routeParameter(request.params.businessId));
-    response.json(await councilClient.mergeBusiness(business.id, mergeCouncilBusinessSchema.parse(request.body)));
+    const plan = await councilClient.mergeBusiness(business.id, mergeCouncilBusinessSchema.parse(request.body));
+    const principal = request.principal;
+    if (principal)
+      for (const resourceId of plan.updatedResourceIds ?? [])
+        realtimeEvents.publish({
+          type: "resource.changed",
+          resourceId,
+          actor: { id: principal.id, displayName: principal.displayName },
+        });
+    response.json(councilBusinessReorganizationRepresentation("mergeBusiness", plan));
   });
   router.post(
     "/:businessId/prepared-subjects",

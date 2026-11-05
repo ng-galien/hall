@@ -151,17 +151,14 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION hall.merged_report_name(source_title TEXT, target_path TEXT, arriving_names TEXT[])
-RETURNS TEXT LANGUAGE plpgsql STABLE SET search_path = pg_catalog, hall AS $$
-DECLARE base TEXT := left(source_title, 240); candidate TEXT := base; ordinal INTEGER := 1;
-BEGIN
-  WHILE EXISTS (SELECT FROM hall.resource WHERE path = target_path AND lower(name) = lower(candidate))
-    OR lower(candidate) = ANY (SELECT lower(name) FROM unnest(arriving_names) name) LOOP
-    ordinal := ordinal + 1;
-    candidate := base || ' (' || ordinal::TEXT || ')';
-  END LOOP;
-  RETURN candidate;
-END;
+-- The absorbed report under a level-one heading named after the absorbed
+-- business, its own Markdown headings one level down, after the target report.
+CREATE FUNCTION hall.merged_report_content(target_content TEXT, source_title TEXT, source_content TEXT)
+RETURNS TEXT LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
+  SELECT concat_ws(E'\n\n',
+    nullif(rtrim(target_content), ''),
+    '# ' || source_title,
+    regexp_replace(btrim(source_content, E'\n'), '^(#{1,5}) ', '#\1 ', 'gn'));
 $$;
 
 CREATE FUNCTION hall.council_business_merge_plan(source_business UUID, target_business UUID)
@@ -220,10 +217,10 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'folderContent', (SELECT coalesce(jsonb_agg(jsonb_build_object('resourceId', arrival.id, 'name', arrival.name, 'isFolder', arrival.is_folder) ORDER BY arrival.name), '[]'::JSONB)
       FROM arrivals arrival WHERE arrival.role = 'folderContent'),
     'report', (SELECT jsonb_build_object('resourceId', source.report_resource, 'name', source.report_name,
-      'fate', CASE WHEN source.report_kept THEN 'attachedToTarget' ELSE 'deleted' END,
-      'newName', CASE WHEN source.report_kept THEN hall.merged_report_name(
-        (SELECT folder.name FROM hall.resource folder WHERE folder.id = source.folder_resource), target.folder_path,
-        ARRAY(SELECT arrival.name FROM arrivals arrival)) END) FROM source CROSS JOIN target),
+      'fate', CASE WHEN source.report_kept THEN 'appendedToTargetReport' ELSE 'deleted' END,
+      'targetReportResourceId', target.report_resource,
+      'heading', CASE WHEN source.report_kept THEN '# ' || (SELECT folder.name FROM hall.resource folder WHERE folder.id = source.folder_resource) END)
+      FROM source CROSS JOIN target),
     'blockers', to_jsonb(array_remove(ARRAY[
         CASE WHEN source_business = target_business THEN 'sameBusiness' END,
         CASE WHEN EXISTS (SELECT FROM subjects WHERE subjects.plan->'blockers' ? 'meetingInProgress') THEN 'meetingInProgress' END
@@ -235,7 +232,8 @@ $$;
 CREATE FUNCTION hall_api.merge_council_business(source_business UUID, target_business UUID, preview BOOLEAN)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE plan JSONB; subject RECORD; link RECORD; child RECORD; source hall.council_business_workspace;
-  target_path TEXT; report_kept BOOLEAN; moved UUID[] := '{}';
+  target_path TEXT; target_report UUID; target_text hall.text_resource; source_title TEXT;
+  report_kept BOOLEAN; moved UUID[] := '{}';
 BEGIN
   PERFORM hall.lock_council_businesses_for_reorganization(source_business, target_business);
   plan := hall.council_business_merge_plan(source_business, target_business);
@@ -247,10 +245,11 @@ BEGIN
       MESSAGE = format('the council business cannot merge: %s', plan->'blockers'), DETAIL = plan::TEXT;
   END IF;
   SELECT * INTO STRICT source FROM hall.council_business_workspace WHERE council_business = source_business;
-  SELECT folder.full_path INTO STRICT target_path
+  SELECT folder.full_path, workspace.report_resource INTO STRICT target_path, target_report
   FROM hall.council_business_workspace workspace JOIN hall.resource folder ON folder.id = workspace.folder_resource
   WHERE workspace.council_business = target_business;
-  report_kept := plan#>>'{report,fate}' = 'attachedToTarget';
+  SELECT name INTO STRICT source_title FROM hall.resource WHERE id = source.folder_resource;
+  report_kept := plan#>>'{report,fate}' = 'appendedToTargetReport';
   FOR subject IN SELECT id, kind, text_resource FROM hall.prepared_council_subject WHERE council_business = source_business ORDER BY id LOOP
     PERFORM hall.apply_prepared_subject_move(subject.id, subject.kind, target_business);
     moved := moved || subject.text_resource;
@@ -276,14 +275,17 @@ BEGIN
   DELETE FROM hall.council_business_workspace WHERE council_business = source_business;
   DELETE FROM hall.council_business WHERE id = source_business;
   IF report_kept THEN
-    PERFORM hall.relocate_resource(source.report_resource, target_path, hall.merged_report_name(
-      (SELECT name FROM hall.resource WHERE id = source.folder_resource), target_path, '{}'::TEXT[]));
-    PERFORM hall_api.associate_council_business_resource(target_business, source.report_resource);
-    moved := moved || source.report_resource;
-  ELSE
-    PERFORM hall_api.delete_resource(source.report_resource);
+    UPDATE hall.editor_asset SET owner_text_resource_id = target_report
+    WHERE owner_text_resource_id = source.report_resource;
+    SELECT * INTO STRICT target_text FROM hall.text_resource WHERE id = target_report;
+    PERFORM hall.update_text_resource(target_report, target_text.version,
+      hall.merged_report_content(target_text.content, source_title,
+        (SELECT content FROM hall.text_resource WHERE id = source.report_resource)),
+      ARRAY(SELECT id FROM hall.editor_asset WHERE owner_text_resource_id = target_report));
   END IF;
+  PERFORM hall_api.delete_resource(source.report_resource);
   PERFORM hall_api.delete_resource(source.folder_resource);
-  RETURN plan || jsonb_build_object('applied', true, 'movedResourceIds', to_jsonb(moved));
+  RETURN plan || jsonb_build_object('applied', true, 'movedResourceIds', to_jsonb(moved),
+    'updatedResourceIds', CASE WHEN report_kept THEN jsonb_build_array(target_report) ELSE '[]'::JSONB END);
 END;
 $$;

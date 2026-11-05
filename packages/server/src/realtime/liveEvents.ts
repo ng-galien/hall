@@ -3,7 +3,7 @@ import { matchDiscriminated } from "@hall/domain";
 import { logger } from "../core/logger.js";
 import type { RequestContextStore } from "../security/requestContext.js";
 
-export type LiveSubscription = { kind: "meeting" | "resource"; id: string };
+export type LiveSubscription = { kind: "meeting" | "resource"; id: string } | { kind: "workspace" };
 type LiveEventListener = (event: LiveEvent) => void;
 
 export interface LiveEventPublisher {
@@ -14,12 +14,13 @@ export interface LiveEventBus extends LiveEventPublisher {
   subscribe(target: LiveSubscription, listener: LiveEventListener): () => void;
 }
 
-const topic = (target: LiveSubscription) => `${target.kind}:${target.id}`;
+const topic = (target: LiveSubscription) => (target.kind === "workspace" ? "workspace" : `${target.kind}:${target.id}`);
 
 function eventTopic(event: LiveEventPublication): string {
   return matchDiscriminated(event, "type", {
     "meeting.changed": ({ meetingId }) => topic({ kind: "meeting", id: meetingId }),
     "resource.changed": ({ resourceId }) => topic({ kind: "resource", id: resourceId }),
+    "workspace.changed": () => topic({ kind: "workspace" }),
   });
 }
 

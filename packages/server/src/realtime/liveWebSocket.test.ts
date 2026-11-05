@@ -90,7 +90,13 @@ function nextMessage(socket: WebSocket): Promise<unknown> {
   });
 }
 
-async function rejected(base: string, origin: string, kind: "meeting" | "resource", id: string, token?: string) {
+async function rejected(
+  base: string,
+  origin: string,
+  kind: "meeting" | "resource" | "workspace",
+  id: string,
+  token?: string,
+) {
   return new Promise<number>((resolve, reject) => {
     const socket = new WebSocket(`${base}?kind=${kind}&id=${id}`, {
       headers: { Origin: origin, ...(token ? { Cookie: `hall_session=${token}` } : {}) },
@@ -128,6 +134,26 @@ it("delivers resource invalidations with the authenticated author identity", asy
   };
   bus.publish(event);
   await expect(expected).resolves.toEqual({ ...event, origin: null });
+});
+
+// @verifies-requirement HALL-TR-LIV-010
+it("delivers workspace changes to every workspace subscriber, without an identifier", async () => {
+  const { base, origin, bus } = await fixture();
+  const subscriber = await new Promise<WebSocket>((resolve, reject) => {
+    const socket = new WebSocket(`${base}?kind=workspace`, {
+      headers: { Origin: origin, Cookie: "hall_session=reader" },
+    });
+    sockets.push(socket);
+    socket.once("open", () => resolve(socket));
+    socket.once("error", reject);
+  });
+  const meeting = await connect(base, origin, "meeting", meetingId, "reader");
+  const expected = nextMessage(subscriber);
+  const event = { type: "workspace.changed" as const, actor: { id: "mcp", displayName: "Agent" } };
+  bus.publish(event);
+  await expect(expected).resolves.toEqual({ ...event, origin: null });
+  expect(meeting.readyState).toBe(WebSocket.OPEN);
+  await expect(rejected(base, origin, "workspace", meetingId, "reader")).resolves.toBe(400);
 });
 
 it("rejects unauthenticated, insufficiently authorized and cross-origin subscriptions", async () => {

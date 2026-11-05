@@ -21,6 +21,7 @@ import {
 } from "./features/resources/ResourceEmbedPresentation";
 import { openSessionResource } from "./features/resources/useResourceSession";
 import { useApplicationData } from "./hooks/useApplicationData";
+import { useWorkspaceLiveUpdates } from "./hooks/useWorkspaceLiveUpdates";
 import { useI18n } from "./i18n/I18nProvider";
 import { documentaryBinaryReferenceContentHref } from "./services/resourcesApi";
 import { useContactsStore } from "./stores/contactsStore";
@@ -99,6 +100,7 @@ function LiveFallback() {
 
 function AuthenticatedApplication() {
   useApplicationData();
+  useWorkspaceLiveUpdates();
   return (
     <Routes>
       <Route

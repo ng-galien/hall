@@ -405,6 +405,7 @@ export const postgresCouncilReorganizationPlanSchema = z
     blockers: z.array(z.string()),
     applied: z.boolean(),
     movedResourceIds: z.array(resourceIdSchema).optional(),
+    updatedResourceIds: z.array(resourceIdSchema).optional(),
   })
   .passthrough();
 export type PostgresCouncilReorganizationPlan = z.infer<typeof postgresCouncilReorganizationPlanSchema>;
@@ -428,6 +429,7 @@ async function recordReorganization(
     toTitle: plan.to.title,
     subjectIds,
     movedResourceIds: plan.movedResourceIds ?? [],
+    updatedResourceIds: plan.updatedResourceIds ?? [],
   };
   for (const businessId of [plan.from.id, plan.to.id])
     await recordAuditEvent(client, {
@@ -436,7 +438,7 @@ async function recordReorganization(
       outcome: "succeeded",
       details,
     });
-  for (const resourceId of plan.movedResourceIds ?? [])
+  for (const resourceId of [...(plan.movedResourceIds ?? []), ...(plan.updatedResourceIds ?? [])])
     await recordAuditEvent(client, {
       targetType: "resource",
       targetId: resourceId,

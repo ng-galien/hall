@@ -109,6 +109,7 @@ export const councilBusinessReorganizationPlanSchema = z
     blockers: z.array(z.string()),
     applied: z.boolean(),
     movedResourceIds: z.array(resourceIdSchema).optional(),
+    updatedResourceIds: z.array(resourceIdSchema).optional(),
   })
   .passthrough();
 export type CouncilBusinessReorganizationPlan = z.infer<typeof councilBusinessReorganizationPlanSchema>;

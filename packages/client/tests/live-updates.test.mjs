@@ -86,6 +86,26 @@ test("live subscriptions admit only the selected topic and resynchronize on conn
       { type: "meeting.changed", meetingId, origin: null },
     ]);
     unsubscribe();
+
+    const workspaceEvents = [];
+    let workspaceConnections = 0;
+    const unsubscribeWorkspace = subscribeLiveUpdates(
+      { kind: "workspace" },
+      (event) => workspaceEvents.push(event),
+      () => workspaceConnections++,
+    );
+    const workspaceSocket = sockets.at(-1);
+    assert.equal(workspaceSocket.url.href, "wss://hall.example/api/live?kind=workspace");
+    const actor = { id: "mcp", displayName: "Agent" };
+    workspaceSocket.emit("message", { data: JSON.stringify({ type: "meeting.changed", meetingId, origin: null }) });
+    workspaceSocket.emit("message", {
+      data: JSON.stringify({ type: "workspace.changed", actor, origin: liveOrigin }),
+    });
+    workspaceSocket.emit("message", { data: JSON.stringify({ type: "workspace.changed", actor, origin: null }) });
+    workspaceSocket.emit("open");
+    assert.equal(workspaceConnections, 1);
+    assert.deepEqual(workspaceEvents, [{ type: "workspace.changed", actor, origin: null }]);
+    unsubscribeWorkspace();
   } finally {
     globalThis.window = previousWindow;
     globalThis.WebSocket = previousWebSocket;

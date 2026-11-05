@@ -10,7 +10,10 @@ import type { AuthorizeReading } from "../security/authorization.js";
 import { type AuthService, SESSION_COOKIE_NAME } from "../services/authService.js";
 import type { LiveEventBus, LiveSubscription } from "./liveEvents.js";
 
-const subscriptionSchema = z.object({ kind: z.enum(["meeting", "resource"]), id: z.uuid() }).strict();
+const subscriptionSchema = z.union([
+  z.object({ kind: z.enum(["meeting", "resource"]), id: z.uuid() }).strict(),
+  z.object({ kind: z.literal("workspace") }).strict(),
+]);
 
 function rejectUpgrade(socket: Duplex, status: number): void {
   const message =
@@ -35,9 +38,8 @@ function subscription(request: IncomingMessage): LiveSubscription | null {
     return null;
   }
   if (url.pathname !== "/api/live") return null;
-  if (url.searchParams.size !== 2) return null;
-  const parsed = subscriptionSchema.safeParse({ kind: url.searchParams.get("kind"), id: url.searchParams.get("id") });
-  return parsed.success ? parsed.data : null;
+  const parsed = subscriptionSchema.safeParse(Object.fromEntries(url.searchParams));
+  return parsed.success && url.searchParams.size === Object.keys(parsed.data).length ? parsed.data : null;
 }
 
 export function attachLiveWebSocket(

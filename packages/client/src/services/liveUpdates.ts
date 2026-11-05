@@ -1,7 +1,7 @@
 import { type LiveEvent, liveEventSchema } from "@hall/api-contract";
 import { liveOrigin } from "./liveOrigin";
 
-type LiveTopic = { kind: "meeting" | "resource"; id: string };
+type LiveTopic = { kind: "meeting" | "resource"; id: string } | { kind: "workspace" };
 
 /** One topic per socket; each event from another session invalidates the canonical HTTP/Siren read. */
 // @implements-requirement HALL-TR-LIV-010
@@ -20,7 +20,7 @@ export function subscribeLiveUpdates(
     const url = new URL("/api/live", window.location.origin);
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
     url.searchParams.set("kind", topic.kind);
-    url.searchParams.set("id", topic.id);
+    if (topic.kind !== "workspace") url.searchParams.set("id", topic.id);
     socket = new WebSocket(url);
     socket.addEventListener("open", () => {
       retryDelay = 500;
@@ -42,6 +42,7 @@ export function subscribeLiveUpdates(
       if (topic.kind === "resource" && parsed.data.type === "resource.changed" && parsed.data.resourceId === topic.id) {
         onEvent(parsed.data);
       }
+      if (topic.kind === "workspace" && parsed.data.type === "workspace.changed") onEvent(parsed.data);
     });
     socket.addEventListener("close", () => {
       socket = null;
