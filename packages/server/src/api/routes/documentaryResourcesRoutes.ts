@@ -23,19 +23,11 @@ import { DomainError } from "../../services/errors.js";
 import { parseSpreadsheetImport, spreadsheetMarkdownTable } from "../../services/spreadsheetImportService.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
+import { uploadFileName } from "../uploadFileName.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 // @implements-requirement HALL-FR-DOC-280
-function uploadFileName(name: string): string {
-  if (![...name].every((char) => char.charCodeAt(0) <= 255)) return name;
-  try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(name, "latin1"));
-  } catch {
-    return name;
-  }
-}
-
 export function createDocumentaryResourcesRouter({
   documentaryResourceService,
   councilBusinessWorkspaceService,

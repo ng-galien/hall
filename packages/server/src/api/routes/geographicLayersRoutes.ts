@@ -20,6 +20,7 @@ import { GeographicLayerImportError } from "../../services/geographicLayerImport
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { sendProblem } from "../problemDetails.js";
 import { routeParameter } from "../routeParameter.js";
+import { uploadFileName } from "../uploadFileName.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: GEOGRAPHIC_LAYER_MAX_FILE_BYTES } });
 const gzipAsync = promisify(gzip);
@@ -43,6 +44,7 @@ export function createGeographicLayersRouter({ geographicLayerService, requestCo
   const uploadFile: ReturnType<typeof upload.single> = (request, response, next) => {
     const context = requestContext.current();
     upload.single("file")(request, response, (error) => {
+      if (request.file) request.file.originalname = uploadFileName(request.file.originalname);
       const resume = () => (error ? next(error) : next());
       if (context) requestContext.run(context, resume);
       else resume();

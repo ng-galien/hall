@@ -6,6 +6,7 @@ import { HallPostgresError, preservePostgresError } from "./errors.js";
 const dataMigrationPaths = [
   "sql/migrations/001-agenda-subject-text-lock.sql",
   "sql/migrations/002-authorization-defaults.sql",
+  "sql/migrations/003-resource-name-encoding.sql",
 ] as const;
 
 export async function executeSchemaDataMigrations(client: PoolClient): Promise<void> {
