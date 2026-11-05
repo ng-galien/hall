@@ -92,6 +92,7 @@ AS $function$
   WHERE workspace.text_resource = target_resource
 $function$;
 
+-- @implements-requirement HALL-FR-WSP-280
 CREATE FUNCTION hall.agenda_subject_text_is_editable(target_resource UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -236,9 +237,10 @@ CREATE TRIGGER started_meeting_subject_tags_protected
 BEFORE INSERT OR UPDATE OR DELETE ON hall.resource_tag
 FOR EACH ROW EXECUTE FUNCTION hall.protect_started_agenda_subject_text();
 
--- Replacing the text mapping would bypass the title and content lock. Proposal
--- ownership is already permanent under HALL-FR-WSP-220; the open-question
--- mapping acquires the same protection once its own item has started.
+-- Replacing the text mapping would bypass the title and content lock. The
+-- proposal mapping is protected under HALL-FR-WSP-220; the open-question
+-- mapping acquires the same protection once its own item has started. Both
+-- change business only during the subject move of workspace/046.
 CREATE FUNCTION hall.protect_started_open_question_workspace_mapping()
 RETURNS TRIGGER
 LANGUAGE plpgsql

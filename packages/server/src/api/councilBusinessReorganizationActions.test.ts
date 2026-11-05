@@ -21,6 +21,8 @@ const fields = [
   { name: "preview", type: "checkbox", value: false },
 ];
 
+// @verifies-requirement HALL-FR-BUS-080
+// @verifies-requirement HALL-FR-BUS-090
 describe("council business reorganization actions", () => {
   it("offers the subject move with its preview on a prepared subject", () => {
     const path = "/api/council-business/prepared-subjects/openQuestion/subject-id";

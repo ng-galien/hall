@@ -585,15 +585,23 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "Le sujet d’un point à l’ordre du jour est immuable.",
+      "statement": "Le sujet d’un point à l’ordre du jour est immuable ; l’affaire recopiée dans le point suit seulement le déplacement de ce sujet.",
       "acceptanceCriteria": [
-        "Sujet immuable : P — identité."
+        "Le point garde son identité et son sujet (projet, question ou approbation de procès-verbal) ; toute modification de ce sujet est refusée (HV214).",
+        "Quand son sujet change d’affaire par déplacement ou par fusion, l’affaire recopiée dans chacun de ses points suit, y compris dans une séance close, sans qu’aucune autre donnée du point change.",
+        "Hors de ce déplacement, l’affaire d’un point ne change pas (HV214, et HV223 pour une séance close)."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Sujet immuable : P — identité.",
+          "statement": "Le sujet d’un point est immuable ; seule l’affaire recopiée suit le déplacement contrôlé de ce sujet.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 5 novembre 2026 : déplacer un sujet vers une autre affaire et fusionner deux affaires depuis le MCP ; le catalogue décrit la réorganisation telle que le code la fait.",
           "sourceIds": []
         }
       ]
@@ -925,15 +933,24 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "Les points inachevés sont proposés pour le prochain ordre du jour.",
+      "statement": "Les points inachevés sont proposés pour le prochain ordre du jour ; un point programmé dans une séance marquée stale compte comme traité.",
       "acceptanceCriteria": [
-        "Report automatique des inachevés : P — proposition de prochain agenda, pas convocation automatique."
+        "Report automatique des inachevés : P — proposition de prochain agenda, pas convocation automatique.",
+        "Un point programmé (position positive) dans une séance marquée stale compte comme traité, comme un point achevé : son sujet n’est plus proposé à l’inscription d’une séance suivante et sa réinscription est refusée (HV810).",
+        "Un point déprogrammé de la séance stale ne compte pas comme traité : son sujet reste proposé et peut être inscrit.",
+        "La vue d’une affaire liste toujours tous ses sujets ; aucune donnée de la séance stale n’est modifiée."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
           "statement": "Report automatique des inachevés : P — proposition de prochain agenda, pas convocation automatique.",
+          "sourceIds": []
+        },
+        {
+          "key": "stale-meeting-treated",
+          "origin": "product",
+          "statement": "Décision d’Alexandre du 4 novembre 2026 : « Ce qui a été traité dans une séance passée doit être figé et ne plus être proposé au conseil suivant, même si la séance n’a pas été clôturée faute de pièces ».",
           "sourceIds": []
         }
       ]
@@ -6273,15 +6290,16 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "Les modifications des occurrences d’un sujet sont sérialisées afin de préserver une seule affaire propriétaire.",
+      "statement": "Les modifications des occurrences d’un sujet et son déplacement sont sérialisés afin que toutes ses occurrences portent à tout instant l’affaire courante du sujet.",
       "acceptanceCriteria": [
-        "A prepared subject may occur on several meetings, but always under the same CouncilBusiness. Locking the subject row prevents two transactions from concurrently assigning it to different roots."
+        "Un sujet préparé peut figurer à plusieurs séances ; tous ses points portent son affaire courante.",
+        "L’inscription d’un sujet et son déplacement verrouillent la ligne du sujet ; le déplacement et la fusion verrouillent d’abord l’espace de noms des ressources puis les deux affaires dans l’ordre de leurs identifiants, de sorte qu’une inscription, un déplacement ou une fusion concurrents ne laissent jamais des occurrences sous des affaires différentes."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "A prepared subject may occur on several meetings, but always under the same CouncilBusiness. Locking the subject row prevents two transactions from concurrently assigning it to different roots.",
+          "statement": "Verrou de la ligne du sujet à l’inscription et au déplacement ; verrou de l’espace de noms puis des deux affaires, dans l’ordre des identifiants, au déplacement et à la fusion.",
           "sourceIds": []
         }
       ]
@@ -7761,15 +7779,22 @@
         "state": "accepted",
         "since": "2026-09-07"
       },
-      "statement": "Le projet de délibération et la question ouverte possèdent leur affaire avant toute inscription à une séance.",
+      "statement": "Le projet de délibération et la question ouverte possèdent leur affaire avant toute inscription à une séance ; cette affaire ne change que par le déplacement du sujet ou la fusion de son affaire.",
       "acceptanceCriteria": [
-        "Le projet de délibération et la question ouverte possèdent leur affaire avant toute inscription à une séance."
+        "Le projet de délibération et la question ouverte possèdent leur affaire dès leur création, avant toute inscription à une séance.",
+        "L’identité d’un sujet préparé est immuable ; son affaire ne change que par le déplacement du sujet ou la fusion de son affaire, et toute autre écriture de cette affaire est refusée (HV809)."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Le projet de délibération et la question ouverte possèdent leur affaire avant toute inscription à une séance.",
+          "statement": "Un sujet préparé possède son affaire avant toute inscription ; le déclencheur d’identité n’accepte le changement d’affaire que pour le sujet en cours de déplacement.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 5 novembre 2026 : déplacer un sujet vers une autre affaire et fusionner deux affaires depuis le MCP ; le catalogue décrit la réorganisation telle que le code la fait.",
           "sourceIds": []
         }
       ]
@@ -7829,6 +7854,84 @@
         }
       ]
     },
+    "HALL-FR-BUS-080": {
+      "name": "PREPARED_SUBJECT_MOVES_TO_ANOTHER_BUSINESS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-05"
+      },
+      "statement": "Un projet de délibération ou une question ouverte se déplace vers une autre affaire avec son texte, quel que soit son état, voté compris, après un aperçu qui n’écrit rien.",
+      "acceptanceCriteria": [
+        "L’action council-business.move-subject est offerte sur un sujet préparé, par l’API et par workspace_execute, avec l’affaire d’arrivée et le choix de l’aperçu.",
+        "L’aperçu n’écrit rien et décrit le sujet, les affaires de départ et d’arrivée, l’ancien et le nouveau chemin du texte, si le projet est voté, ses points à l’ordre du jour et les motifs de refus.",
+        "Appliqué, le déplacement fait passer à l’affaire d’arrivée le sujet, le lien de son texte, le fichier du texte (dans le dossier d’arrivée, sous le même nom) et l’affaire recopiée dans ses points ; le texte d’un projet quitte les pièces de l’affaire de départ et rejoint celles de l’affaire d’arrivée.",
+        "Le déplacement est refusé sans aucune écriture (HV826, réponse 409 de l’API) quand l’affaire d’arrivée est déjà celle du sujet, quand le sujet figure à une séance commencée, ni close ni marquée stale, ou quand un autre fichier du dossier d’arrivée porte déjà le nom du texte, sans distinction de casse.",
+        "Les instantanés de séance, procès-verbaux, scrutins et sceaux ne sont pas réécrits ; le texte d’un projet voté reste scellé.",
+        "Le déplacement appliqué est inscrit au journal de l’affaire de départ, de l’affaire d’arrivée et de chaque ressource déplacée.",
+        "Le déplacement demande le droit d’écrire les affaires (council-business.write)."
+      ],
+      "clauses": [
+        {
+          "key": "gesture",
+          "origin": "product",
+          "statement": "Un seul geste contrôlé change l’affaire d’un sujet : aperçu sans écriture, puis application qui déplace ensemble le sujet, son texte, ses pièces et l’affaire recopiée de ses points.",
+          "sourceIds": []
+        },
+        {
+          "key": "refusal",
+          "origin": "product",
+          "statement": "Motifs de refus : sameBusiness, meetingInProgress, nameTaken ; un refus n’écrit rien.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 5 novembre 2026 : déplacer un sujet vers une autre affaire et fusionner deux affaires depuis le MCP ; le catalogue décrit la réorganisation telle que le code la fait.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-BUS-090": {
+      "name": "COUNCIL_BUSINESS_MERGES_INTO_ANOTHER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-05"
+      },
+      "statement": "Une affaire se fusionne dans une autre, puis disparaît, après un aperçu qui n’écrit rien.",
+      "acceptanceCriteria": [
+        "L’action council-business.merge est offerte sur l’affaire à absorber, par l’API et par workspace_execute, avec l’affaire d’arrivée et le choix de l’aperçu.",
+        "L’aperçu n’écrit rien et liste les sujets avec leur propre plan de déplacement, les pièces transférées ou déjà rattachées, les commissions, le contenu du dossier, le sort du rapport et les motifs de refus.",
+        "Appliquée, la fusion déplace chaque sujet comme un déplacement de sujet ; les pièces et les commissions rejoignent l’affaire d’arrivée sans doublon ; le contenu du dossier passe dans le dossier d’arrivée.",
+        "Un rapport non vide est ajouté à la fin du rapport d’arrivée sous un titre de premier niveau au nom de l’affaire absorbée, ses propres titres descendus d’un niveau, un seul titre gardé quand il commence déjà par ce nom ; ses images passent au rapport d’arrivée et le fichier du rapport absorbé est supprimé. Un rapport vide est supprimé.",
+        "L’affaire absorbée et son dossier sont ensuite supprimés.",
+        "La fusion est refusée en bloc sans aucune écriture (HV827, réponse 409 de l’API) quand les deux affaires sont la même, quand un de ses sujets figure à une séance en cours, ou quand un nom est pris : un texte de sujet ou un élément du dossier absorbé (hors rapport) porte le nom d’un élément du dossier d’arrivée, ou deux éléments arrivants portent le même nom, sans distinction de casse.",
+        "Les instantanés de séance, procès-verbaux, scrutins et sceaux ne sont pas réécrits.",
+        "La fusion appliquée est inscrite au journal des deux affaires, de chaque ressource déplacée et du rapport d’arrivée mis à jour.",
+        "La fusion demande le droit de supprimer une affaire (council-business.delete), comme la suppression d’une affaire."
+      ],
+      "clauses": [
+        {
+          "key": "gesture",
+          "origin": "product",
+          "statement": "Aperçu sans écriture, puis fusion en une transaction : sujets, pièces, commissions, contenu du dossier et rapport rejoignent l’affaire d’arrivée, puis l’affaire absorbée disparaît.",
+          "sourceIds": []
+        },
+        {
+          "key": "refusal",
+          "origin": "product",
+          "statement": "Motifs de refus : sameBusiness, meetingInProgress, nameTaken:<nom> ; un refus n’écrit rien.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 5 novembre 2026 : déplacer un sujet vers une autre affaire et fusionner deux affaires depuis le MCP ; le catalogue décrit la réorganisation telle que le code la fait.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-AGI-380": {
       "name": "PREPARED_SUBJECT_INSERTION_PRESERVES_NATURE_AND_SHIFTS_ATOMICALLY",
       "nature": "functional",
@@ -7856,15 +7959,24 @@
         "state": "accepted",
         "since": "2026-09-07"
       },
-      "statement": "Le texte d’un projet appartient durablement à son affaire, même si son dossier est déplacé ou renommé.",
+      "statement": "Le texte d’un projet appartient à l’affaire courante du projet : il reste dans le dossier et parmi les pièces de cette affaire, même si son dossier est déplacé ou renommé, et ne passe à une autre affaire qu’avec le déplacement du projet.",
       "acceptanceCriteria": [
-        "Le texte propre d’un projet reste dans le dossier de son affaire et y demeure associé ; son mapping, sa nature et son identité ne peuvent être retirés ni réaffectés."
+        "Le texte propre d’un projet reste dans le dossier de l’affaire courante du projet et y demeure associé, même si ce dossier est déplacé ou renommé.",
+        "Le lien entre le projet et son texte ne peut être ni retiré ni rattaché à un autre texte ou à un autre projet ; toute écriture de l’affaire de ce lien hors du déplacement du projet est refusée (HV820).",
+        "Le déplacement du projet vers une autre affaire emporte son texte : le fichier passe dans le dossier de l’affaire d’arrivée sous le même nom, quitte les pièces de l’affaire de départ et rejoint celles de l’affaire d’arrivée.",
+        "Le texte d’un projet voté reste scellé après son déplacement (HV821)."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Le texte propre d’un projet reste dans le dossier de son affaire et y demeure associé ; son mapping, sa nature et son identité ne peuvent être retirés ni réaffectés.",
+          "statement": "Le lien texte-projet (council_decision_proposal_workspace) ne change d’affaire que pendant le déplacement contrôlé du projet ; le texte suit l’affaire courante du projet et son dossier.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 5 novembre 2026 : déplacer un sujet vers une autre affaire et fusionner deux affaires depuis le MCP ; le catalogue décrit la réorganisation telle que le code la fait.",
           "sourceIds": []
         }
       ]
@@ -8400,7 +8512,7 @@
         "state": "accepted",
         "since": "2026-09-13"
       },
-      "statement": "Le titre et le contenu d’un sujet préparé restent modifiables pendant la préparation. Ils sont temporairement verrouillés pendant la séance, puis seuls les sujets effectivement commencés demeurent verrouillés après la clôture.",
+      "statement": "Le titre et le contenu d’un sujet préparé restent modifiables pendant la préparation. Ils sont temporairement verrouillés pendant la séance, puis seuls les sujets effectivement commencés, ou programmés dans une séance marquée stale, demeurent verrouillés après la clôture.",
       "acceptanceCriteria": [
         "L’inscription d’un projet de délibération ou d’une question ouverte ne verrouille ni son titre ni son contenu tant que la séance reste en préparation.",
         "Dès l’ouverture de la séance, le backend refuse temporairement toute modification du titre ou du contenu des sujets qui figuraient à son ordre du jour et l’IHM ne propose plus ces actions.",
@@ -8409,7 +8521,8 @@
         "Une question créée depuis la conduite de la séance reste modifiable jusqu’au début effectif de son propre examen.",
         "Le déplacement du dossier de l’affaire et de son rapport principal reste autorisé ; les chemins des textes peuvent suivre ce déplacement sans modifier leur titre ni leur contenu.",
         "Les étiquettes d’un projet de délibération ou d’une question suivent le même verrou que son titre et son contenu : pendant la séance ouverte et dès que le point a commencé, le backend refuse leur ajout, leur changement et leur retrait, y compris par écriture directe en base, avec le même refus que le titre et le contenu.",
-        "Un projet dont l’examen a commencé puis a été ajourné reste figé tel qu’il a été examiné ; une version amendée est présentée par un nouveau projet de délibération."
+        "Un projet dont l’examen a commencé puis a été ajourné reste figé tel qu’il a été examiné ; une version amendée est présentée par un nouveau projet de délibération.",
+        "Un sujet programmé dans une séance marquée stale garde son titre, son contenu et ses étiquettes figés (HV823), comme un sujet commencé ; le dossier de son affaire reste déplaçable et renommable."
       ],
       "clauses": [
         {
@@ -8434,6 +8547,12 @@
           "key": "subject-tags",
           "origin": "product",
           "statement": "Décision du propriétaire du 25 octobre 2026 (a5e6ca98) : les étiquettes d’un projet en cours d’examen ou examiné sont figées comme son titre et son contenu, à l’écran, par l’API et en base.",
+          "sourceIds": []
+        },
+        {
+          "key": "stale-meeting-treated",
+          "origin": "product",
+          "statement": "Décision d’Alexandre du 4 novembre 2026 : ce qui a été traité dans une séance passée non clôturée faute de pièces est figé.",
           "sourceIds": []
         }
       ]

@@ -6,6 +6,7 @@
 -- change. Snapshots, minutes, decisions, ballots and frozen agendas are never
 -- rewritten.
 
+-- @implements-requirement HALL-FR-BUS-050
 CREATE FUNCTION hall.prepared_subject_is_moving(target_subject UUID)
 RETURNS BOOLEAN LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   SELECT target_subject IS NOT NULL
@@ -30,6 +31,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   WHERE workspace.council_business = target_business;
 $$;
 
+-- @implements-requirement HALL-FR-BUS-080
 CREATE FUNCTION hall.prepared_subject_move_plan(target_subject UUID, target_kind TEXT, target_business UUID, check_names BOOLEAN)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   WITH subject AS (
@@ -75,6 +77,9 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   FROM subject;
 $$;
 
+-- @implements-requirement HALL-FR-BUS-080
+-- @implements-requirement HALL-FR-WSP-220
+-- @implements-requirement HALL-TR-CON-120
 CREATE FUNCTION hall.apply_prepared_subject_move(target_subject UUID, target_kind TEXT, target_business UUID)
 RETURNS VOID LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 DECLARE subject hall.prepared_council_subject; destination_path TEXT; text_resource hall.resource;
@@ -114,6 +119,7 @@ BEGIN
 END;
 $$;
 
+-- @implements-requirement HALL-TR-CON-120
 CREATE FUNCTION hall.lock_council_businesses_for_reorganization(first_business UUID, second_business UUID)
 RETURNS VOID LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 DECLARE locked INTEGER;
@@ -128,6 +134,7 @@ BEGIN
 END;
 $$;
 
+-- @implements-requirement HALL-FR-BUS-080
 -- Moves a prepared subject with its text to another business, or previews the move.
 CREATE FUNCTION hall_api.move_prepared_council_subject(target_subject UUID, target_kind TEXT, target_business UUID, preview BOOLEAN)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
@@ -173,6 +180,7 @@ RETURNS TEXT LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
   FROM body;
 $$;
 
+-- @implements-requirement HALL-FR-BUS-090
 CREATE FUNCTION hall.council_business_merge_plan(source_business UUID, target_business UUID)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   WITH source AS (
@@ -240,6 +248,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   );
 $$;
 
+-- @implements-requirement HALL-FR-BUS-090
 -- Merges a business into another one and removes it, or previews the merge.
 CREATE FUNCTION hall_api.merge_council_business(source_business UUID, target_business UUID, preview BOOLEAN)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$

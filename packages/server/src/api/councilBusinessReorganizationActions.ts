@@ -15,6 +15,8 @@ const reorganizationFields = [
   { name: "preview", type: "checkbox", value: false },
 ];
 
+// @implements-requirement HALL-FR-BUS-080
+// @implements-requirement HALL-FR-BUS-090
 /** Subject move and business merge, offered with a preview next to the other entity actions. */
 export function councilBusinessReorganizationActions(
   request: Request,

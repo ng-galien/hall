@@ -34,9 +34,9 @@ FOR EACH ROW
 EXECUTE FUNCTION lock_council_agenda_item_business();
 
 -- @implements-requirement HALL-TR-CON-120
--- A prepared subject may occur on several meetings, but always under the same
--- CouncilBusiness. Locking the subject row prevents two transactions from
--- concurrently assigning it to different roots.
+-- A prepared subject may occur on several meetings; every occurrence carries
+-- its current CouncilBusiness. Locking the subject row serializes scheduling
+-- with the subject move of workspace/046, so occurrences never diverge.
 CREATE FUNCTION hall.lock_council_agenda_item_subject()
 RETURNS TRIGGER
 LANGUAGE plpgsql

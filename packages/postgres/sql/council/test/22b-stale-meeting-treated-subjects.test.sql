@@ -37,6 +37,7 @@ CREATE TEMP TABLE stale_case_text AS
 SELECT stale_case.key, subject.text_resource AS id
 FROM stale_case JOIN prepared_council_subject subject ON subject.id=stale_case.id;
 
+-- @verifies-requirement HALL-FR-AGI-280
 SELECT is(
   (SELECT array_agg(candidate->>'title' ORDER BY candidate->>'title')
    FROM jsonb_array_elements(hall_api.list_prepared_council_subjects(test_uuid('stale-case:target'),NULL)) candidate),
@@ -63,6 +64,7 @@ SELECT throws_ok(
 FROM stale_case JOIN prepared_council_subject subject ON subject.id=stale_case.id
 WHERE stale_case.key IN ('proposal','question','examined') ORDER BY stale_case.key;
 
+-- @verifies-requirement HALL-FR-WSP-280
 SELECT is(
   (SELECT jsonb_object_agg(key,agenda_subject_text_is_editable(id)) FROM stale_case_text),
   '{"proposal":false,"question":false,"withdrawn":true,"examined":false,"fresh":true}'::jsonb,

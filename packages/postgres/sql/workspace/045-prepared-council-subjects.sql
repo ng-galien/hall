@@ -92,6 +92,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
   ) AS schedule_target ON true
   WHERE subject.id = target_id AND subject.kind = target_kind;
 $$;
+-- @implements-requirement HALL-FR-AGI-280
 CREATE FUNCTION hall_api.list_prepared_council_subjects(target_meeting UUID DEFAULT NULL, target_business UUID DEFAULT NULL)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
   SELECT coalesce(jsonb_agg(hall.prepared_council_subject_projection(subject.id,subject.kind) ORDER BY content_resource.created_at DESC, subject.id DESC),'[]'::JSONB)

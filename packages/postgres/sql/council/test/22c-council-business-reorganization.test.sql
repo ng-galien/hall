@@ -53,6 +53,7 @@ CREATE FUNCTION pg_temp.text_path(label TEXT) RETURNS TEXT LANGUAGE sql AS $$
   SELECT r.path FROM prepared_council_subject s JOIN resource r ON r.id=s.text_resource WHERE s.id=pg_temp.reorg(label) $$;
 
 -- Subject move.
+-- @verifies-requirement HALL-FR-BUS-080
 SELECT is(
   hall_api.move_prepared_council_subject(pg_temp.reorg('fresh'),'councilDecisionProposal',pg_temp.reorg('target'),true)
     - ARRAY['subjectId','from','to','text','agenda'],
@@ -118,6 +119,7 @@ SELECT is(
   '{"position":1,"treated":true,"meetingClosed":true,"meetingStale":false,"meetingNumber":1}'::JSONB,
   'a proposal voted in a closed meeting moves'
 );
+-- @verifies-requirement HALL-TR-CON-120
 SELECT is(
   (SELECT array_agg(DISTINCT council_business) FROM council_agenda_item WHERE council_decision_proposal=pg_temp.reorg('voted')),
   ARRAY[pg_temp.reorg('target')],
@@ -157,6 +159,7 @@ SELECT is(
 );
 
 -- Business merge.
+-- @verifies-requirement HALL-FR-BUS-090
 INSERT INTO reorg SELECT 'absorbed-report', report_resource FROM council_business_workspace WHERE council_business=pg_temp.reorg('absorbed');
 INSERT INTO reorg SELECT 'target-report', report_resource FROM council_business_workspace WHERE council_business=pg_temp.reorg('target');
 INSERT INTO reorg SELECT 'absorbed-image', (hall_api.create_editor_asset(pg_temp.reorg('absorbed-report'),'Plan','plan.png','image/png','\x89504e470d0a1a0a'::BYTEA)->>'id')::UUID;

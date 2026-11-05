@@ -410,6 +410,8 @@ export const postgresCouncilReorganizationPlanSchema = z
   .passthrough();
 export type PostgresCouncilReorganizationPlan = z.infer<typeof postgresCouncilReorganizationPlanSchema>;
 
+// @implements-requirement HALL-FR-BUS-080
+// @implements-requirement HALL-FR-BUS-090
 async function recordReorganization(
   client: PoolClient,
   gesture: "moveSubject" | "mergeBusiness",

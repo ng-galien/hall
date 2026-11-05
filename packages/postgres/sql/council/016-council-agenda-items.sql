@@ -78,6 +78,8 @@ CREATE INDEX council_agenda_item_open_question_business_membership ON hall.counc
 
 -- An occurrence is treated once completed, or once programmed in a meeting
 -- marked stale: such a meeting was held outside Hall.
+-- @implements-requirement HALL-FR-AGI-280
+-- @implements-requirement HALL-FR-WSP-280
 CREATE FUNCTION hall.council_agenda_item_is_treated(item hall.council_agenda_item)
 RETURNS BOOLEAN
 LANGUAGE sql

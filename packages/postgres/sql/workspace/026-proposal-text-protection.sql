@@ -70,7 +70,7 @@ CREATE FUNCTION hall.protect_proposal_workspace()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
   IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV820', MESSAGE = 'a proposal text ownership is permanent';
+    RAISE EXCEPTION USING ERRCODE = 'HV820', MESSAGE = 'a proposal text link cannot be removed';
   END IF;
   IF TG_OP = 'UPDATE' AND NEW IS DISTINCT FROM OLD AND NOT (
     hall.prepared_subject_is_moving(OLD.council_decision_proposal)
