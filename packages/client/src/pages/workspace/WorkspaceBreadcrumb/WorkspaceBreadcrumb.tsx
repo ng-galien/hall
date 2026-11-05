@@ -36,11 +36,12 @@ function CrumbMenu({
   businesses: CouncilBusinessView[];
   resources: DocumentaryLeafSummary[];
   currentSelection: WorkspaceSelection;
-  /** Last crumb: a chevron with no folder contents renders nothing. */
+  /** Last crumb: nothing follows it, so no chevron is drawn. */
   trailing: boolean;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
   const { t } = useI18n();
+  if (trailing) return null;
   const prefix = parent ? `${parent}/` : "";
   const children = allPaths
     .filter((candidate) => candidate.startsWith(prefix) && candidate !== parent)
@@ -63,7 +64,6 @@ function CrumbMenu({
     .sort((left, right) => left.name.localeCompare(right.name, "fr"));
   const hasContents = children.length > 0 || directBusinesses.length > 0 || directResources.length > 0;
   if (!hasContents) {
-    if (trailing) return null;
     return (
       <span className="workspace-crumb-sep" aria-hidden="true">
         <ChevronRightIcon />
@@ -333,7 +333,7 @@ export function WorkspaceBreadcrumb({
           return (
             <span className="workspace-crumb-group" key={target}>
               <button
-                className={`workspace-crumb${originPath === target ? " workspace-crumb-origin" : ""}`}
+                className={`workspace-crumb${originPath === target ? " workspace-crumb-origin" : ""}${index === segments.length - 1 && !currentLabel ? " workspace-crumb-here" : ""}`}
                 type="button"
                 onClick={() => onSelect?.(null, target)}
               >
