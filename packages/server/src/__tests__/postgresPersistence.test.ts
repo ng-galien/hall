@@ -203,6 +203,7 @@ postgres("PostgreSQL persistence", () => {
         "council-business.schedule-open-question",
         "council-business.export-bundle",
         "council-business.delete",
+        "council-business.merge",
       ]);
 
       const businessListResponse = await fetch(`${server.url}/api/council-business`);
