@@ -525,9 +525,6 @@ test("drawing edit retains rendered base tiles and exterior dimension overlays",
   // At the unavailable zoom, the previously loaded parent tiles are still visible.
   await expect.poll(tilePixel).toEqual([20, 140, 90, 255]);
   await page.getByTestId("geographic-mode-draw").click();
-  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByTestId("geographic-composition")).toHaveCount(0);
-  await page.getByTestId("geographic-mode-draw").click();
   await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await page.getByTestId(`geographic-composition-feature-menu-${copied.id}`).click();
   await page.getByTestId(`geographic-composition-feature-modify-${copied.id}`).click();

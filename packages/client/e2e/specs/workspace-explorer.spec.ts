@@ -137,6 +137,7 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
       data: { kind: spec.kind, name: conflictingName, content: "" },
     });
     expect(conflictingSubject.status()).toBe(201);
+    await expect(page.getByTestId("business-subject-table")).toContainText(conflictingName);
     await page.getByTestId(`business-subject-rename-${subject.id}`).click();
     const renameInput = page.getByTestId(`business-subject-rename-${subject.id}-name`);
     await expect(renameInput).toBeVisible();

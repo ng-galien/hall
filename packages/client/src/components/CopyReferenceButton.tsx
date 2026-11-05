@@ -26,7 +26,13 @@ export function objectReferenceText(reference: ObjectReference, origin: string):
 const copiedFeedbackMs = 1600;
 
 /** Copies the reference of the object open on the page in one gesture. */
-export function CopyReferenceButton({ reference }: { reference: ObjectReference }) {
+export function CopyReferenceButton({
+  reference,
+  size = "icon",
+}: {
+  reference: ObjectReference;
+  size?: "icon" | "icon-sm";
+}) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const timer = useRef<number | undefined>(undefined);
@@ -38,7 +44,7 @@ export function CopyReferenceButton({ reference }: { reference: ObjectReference 
         <Button
           type="button"
           variant="ghost"
-          size="icon"
+          size={size}
           data-testid="copy-object-reference"
           data-copied={copied ? "true" : undefined}
           aria-label={label}
