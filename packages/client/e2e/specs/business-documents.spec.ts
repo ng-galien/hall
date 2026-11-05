@@ -142,6 +142,8 @@ test("the business documents section folds by its header and opens each document
   await page.getByTestId(`business-document-view-${map.id}`).click();
   await expect(viewer).toBeVisible();
   await expect(viewer).toHaveAttribute("data-resource-mode", "edit");
+  await expect(viewer.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
+  await viewer.getByTestId("geographic-mode-draw").click();
   await expect(viewer.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await viewer.getByTestId("geographic-tool-marker").click();
   const mapBox = await viewer.locator(".geographic-map").boundingBox();

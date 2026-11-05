@@ -225,6 +225,8 @@ test("in Cartes a click selects a drawing and the shape modification is a separa
   if (!box) throw new Error("The map must be rendered");
   const middle = [box.x + box.width / 2, box.y + box.height / 2] as const;
 
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
+  await page.getByTestId("geographic-mode-draw").click();
   await page.mouse.move(...middle, { steps: 2 });
   await expect.poll(cursor).toBe("pointer");
   await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");

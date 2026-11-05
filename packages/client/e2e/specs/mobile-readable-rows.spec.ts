@@ -34,6 +34,21 @@ async function expectReachable(locator: Locator) {
     .toBe(true);
 }
 
+async function expectOpensRecord(row: Locator) {
+  const name = row.locator(".council-member-name");
+  await name.scrollIntoViewIfNeeded();
+  await expect(name).toBeInViewport();
+  await expect
+    .poll(() =>
+      name.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        return !!hit?.closest(".collection-card-link");
+      }),
+    )
+    .toBe(true);
+}
+
 // @verifies-requirement HALL-FR-LAY-010
 test("member list preserves identities beside status and commissions at every responsive width", async ({
   appPage: page,
@@ -52,7 +67,7 @@ test("member list preserves identities beside status and commissions at every re
       expect(nameBox && statusBox).toBeTruthy();
       expect(nameBox!.y + nameBox!.height <= statusBox!.y || nameBox!.x + nameBox!.width <= statusBox!.x).toBe(true);
     }
-    await expectReachable(rows.first().locator(".council-member-edit-action"));
+    await expectOpensRecord(rows.first());
   }
 });
 

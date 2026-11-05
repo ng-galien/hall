@@ -1,7 +1,8 @@
+import type { Locator } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
 // @verifies-requirement HALL-FR-DOC-490
-test("Elements opens by default, and each panel returns to the plain map on a second press", async ({
+test("the plain map opens by default, and each panel returns to the plain map on a second press", async ({
   appPage: page,
 }) => {
   const created = await page.request.post("/api/resources", {
@@ -14,10 +15,12 @@ test("Elements opens by default, and each panel returns to the plain map on a se
   const drawMode = page.getByTestId("geographic-mode-draw");
   const measures = page.getByTestId("geographic-measures");
   const composition = page.getByTestId("geographic-composition");
-  await expect(composition).toBeVisible();
-  await expect(drawMode).toHaveAttribute("aria-pressed", "true");
+  await expect(composition).toHaveCount(0);
+  await expect(measures).toHaveCount(0);
+  await expect(drawMode).toHaveAttribute("aria-pressed", "false");
+  await expect(measureMode).toHaveAttribute("aria-pressed", "false");
   const switchBox = await page.locator(".geographic-mode-switch").boundingBox();
-  expect(switchBox!.height).toBeLessThanOrEqual(33);
+  expect(switchBox!.height).toBeLessThanOrEqual(29);
   for (const control of [
     measureMode,
     drawMode,
@@ -27,10 +30,13 @@ test("Elements opens by default, and each panel returns to the plain map on a se
     page.getByTestId("geographic-fit-drawings"),
   ]) {
     const box = await control.boundingBox();
-    expect(box!.height).toBeGreaterThanOrEqual(32);
-    expect(box!.width).toBeGreaterThanOrEqual(32);
+    expect(box!.height).toBeGreaterThanOrEqual(28);
+    expect(box!.width).toBeGreaterThanOrEqual(28);
   }
 
+  await drawMode.click();
+  await expect(composition).toBeVisible();
+  await expect(drawMode).toHaveAttribute("aria-pressed", "true");
   await drawMode.click();
   await expect(measures).toHaveCount(0);
   await expect(composition).toHaveCount(0);
@@ -67,7 +73,7 @@ test("Elements opens by default, and each panel returns to the plain map on a se
 });
 
 // @verifies-requirement HALL-FR-DOC-490
-test("Elements is selected again for a different map and each modal opening", async ({ appPage: page }) => {
+test("the plain map opens again for a different map and each modal opening", async ({ appPage: page }) => {
   const createMap = async () => {
     const created = await page.request.post("/api/resources", {
       data: { kind: "geographic", name: `Opening mode ${crypto.randomUUID()}`, path: "seed" },
@@ -77,21 +83,27 @@ test("Elements is selected again for a different map and each modal opening", as
   };
   const first = await createMap();
   const second = await createMap();
+  const plain = async (scope: Locator) => {
+    await expect(scope.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
+    await expect(scope.getByTestId("geographic-mode-map")).toHaveAttribute("aria-pressed", "false");
+    await expect(scope.getByTestId("geographic-composition")).toHaveCount(0);
+  };
   await page.goto(`/app/workspace?path=seed&resource=${first}`);
-  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
-  await page.getByTestId("geographic-mode-map").click();
+  await plain(page.locator("body"));
+  await page.getByTestId("geographic-mode-draw").click();
   await page.getByTestId("resource-open-extended").click();
   let dialog = page.getByTestId("resource-preview");
-  await expect(dialog.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await plain(dialog);
   await dialog.getByTestId("geographic-mode-map").click();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await page.getByTestId("resource-open-extended").click();
   dialog = page.getByTestId("resource-preview");
-  await expect(dialog.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await plain(dialog);
   await page.keyboard.press("Escape");
+  await page.getByTestId("geographic-mode-draw").click();
   await page.goto(`/app/workspace?path=seed&resource=${second}`);
-  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await plain(page.locator("body"));
 });
 
 type SirenAction = { name: string; href: string; method: string };
@@ -157,7 +169,7 @@ test("the Composition and Mesures panels take their content height inside the ma
     await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
     const map = page.getByTestId("geographic-resource-map");
     const measures = page.getByTestId("geographic-measures");
-    await expect(composition).toBeVisible();
+    await expect(composition).toHaveCount(0);
     const mapBox = await map.boundingBox();
     await page.getByTestId("geographic-mode-map").click();
     const measuresBox = await measures.boundingBox();
@@ -184,6 +196,7 @@ test("the Composition and Mesures panels take their content height inside the ma
     }
   }
 
+  await composition.evaluate((element) => element.scrollIntoView({ block: "end" }));
   const before = await composition.boundingBox();
   if (!before) throw new Error("The Composition panel must be rendered");
   await page.mouse.move(before.x + before.width - 3, before.y + before.height - 3);
@@ -198,6 +211,8 @@ test("the Composition and Mesures panels take their content height inside the ma
   await expect(composition).toBeVisible();
   expect(Math.round((await composition.boundingBox())!.height)).toBe(Math.round(resized!.height));
   await page.reload();
+  await expect(composition).toHaveCount(0);
+  await page.getByTestId("geographic-mode-draw").click();
   await expect(composition).toBeVisible();
   expect(Math.round((await composition.boundingBox())!.height)).toBe(Math.round(resized!.height));
 

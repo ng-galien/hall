@@ -36,7 +36,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
           decision ? (
             <CopyReferenceButton
               reference={{
-                name: [decision.number, decision.title].filter(Boolean).join(" — "),
+                name: [decision.number, decision.title].filter(Boolean).join(" · "),
                 page: `/app/council-decisions/${id}`,
                 href: `/api/council-decisions/${id}`,
               }}

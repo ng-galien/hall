@@ -4030,11 +4030,11 @@
       "statement": "La barre d’outils d’une carte ouvre et ferme les panneaux « Mesures » et « Composition » d’une pression, et ces panneaux prennent la hauteur de leur contenu dans les limites de la carte.",
       "acceptanceCriteria": [
         "Les boutons « Éléments » et « Mesures », dans cet ordre, sont des bascules : une pression sur le mode actif ferme son panneau et laisse la carte seule, sans mode actif (aria-pressed faux sur les deux boutons) ; une pression sur l’autre mode passe directement à ce mode et à son panneau. Le bouton « Éléments » utilise l’icône de liste d’objets existante.",
-        "Une carte s’ouvre en mode « Éléments », panneau de composition ouvert, à chaque ouverture et changement de carte ; en lecture seule, la liste reste consultable sans commandes d’édition. Sur la carte seule, un clic sur une entité d’une couche liée ouvre sa fiche comme en mode « Mesures ».",
+        "Une carte s’ouvre seule, sans mode actif ni panneau (aria-pressed faux sur « Éléments » et « Mesures »), à chaque ouverture, dans une fenêtre de dialogue comme dans l’espace de travail ou Cartes, et à chaque changement de carte ; « Éléments » ouvre la liste des dessins, qui reste consultable en lecture seule sans commandes d’édition. Sur la carte seule, un clic sur un dessin ou sur une entité d’une couche liée ouvre sa fiche.",
         "Échap garde l’ordre décrit par HALL-FR-DOC-300 et HALL-FR-DOC-410 (dessin ou mesure en cours, fiche, puis fenêtre de dialogue) ; le mode actif et son panneau restent ouverts après Échap.",
         "Les panneaux « Composition » et « Mesures » s’ouvrent à la hauteur de leur contenu, au moins celle de leur en-tête, de leurs outils et d’une ligne, au plus celle de la carte sous la barre d’outils ; au-delà, leur liste défile à l’intérieur du panneau, qui reste dans la carte.",
         "La taille donnée par l’utilisateur à un panneau avec sa poignée de redimensionnement est conservée pendant la session du navigateur, à chaque réouverture du panneau et après un rechargement de la page.",
-        "Le sélecteur « Éléments » / « Mesures », le bouton « Couches » et les outils de zoom forment une barre compacte : sélecteur et outils de zoom sans marge intérieure autour de leurs boutons, hauteur du sélecteur 32 px, icônes à 1 em, libellés à la taille de légende ; chaque bouton offre une cible d’au moins 32 px sur 32 px.",
+        "Le sélecteur « Éléments » / « Mesures », le bouton « Couches » et les outils de zoom forment une barre compacte : sélecteur et outils de zoom sans marge intérieure autour de leurs boutons, contrôles de la petite taille de Hall (28 px sur ordinateur, cible tactile sur téléphone), icônes à la petite taille d’icône, libellés à la taille de légende ; chaque bouton offre une cible d’au moins 28 px sur 28 px.",
         "Le panneau « Éléments » porte deux onglets, « Éléments » (outils et liste des dessins, avec leur nombre) et « Légende » (éditeur de la légende), sur un seul bandeau qui sert aussi de poignée de déplacement ; le panneau « Mesures » porte ses onglets « Mesures » et « Coordonnées » sur le même bandeau ; seule la liste ou la légende défile.",
         "Chaque ligne de dessin porte une poignée de déplacement ; glisser une ligne sur une autre la place à cet endroit, et l’ordre de la liste, qui est l’ordre enregistré dans la collection GeoJSON, est conservé au-delà de neuf dessins.",
         "Le bouton « Mesures » de la barre d’outils porte l’icône de règle.",
@@ -4085,6 +4085,12 @@
           "key": "geographic-row-menu-and-shared-window",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-12 : lignes de dessin compactes avec centrage, couleur et un menu pour l’affichage, la modification, les mesures, les flèches et la suppression ; nom barré pour un dessin masqué ; « Éléments » et « Mesures » réutilisent la même fenêtre et le même en-tête.",
+          "sourceIds": []
+        },
+        {
+          "key": "plain-map-opening",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 5 novembre 2026 : « Ils sont trop gros. Sur la carte, ils sont beaucoup trop gros. Il y a trop de padding. Et le fait que Éléments soit sélectionné quand on ouvre la carte, c’est très désagréable. » Les boutons de la carte prennent la petite taille et la carte s’ouvre sans panneau ni mode sélectionné.",
           "sourceIds": []
         }
       ]

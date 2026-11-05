@@ -211,11 +211,11 @@ test("a reader clicks a drawing and reads its card, measures and note without ed
   };
 
   await page.goto(`/app/workspace?path=seed&resource=${map.id}`);
-  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByTestId("geographic-tool-area")).toHaveCount(0);
   await readCard(".workspace-bench .geographic-map");
   await page.goto(`/app/maps/${map.id}?view=${centre[0]},${centre[1]},16`);
-  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
   await readCard(".maps-surface .geographic-map");
 });
 
@@ -267,7 +267,7 @@ test("a normal point click opens its note in the default map mode and in a nativ
     ).ok(),
   ).toBeTruthy();
   await page.goto(`/app/maps/${map.id}?view=4.50,47.54,16`);
-  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
   let box = await page.locator(".maps-surface .geographic-map").boundingBox();
   if (!box) throw new Error("Map must be visible");
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2 - 8);

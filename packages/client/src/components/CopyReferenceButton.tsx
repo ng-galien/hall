@@ -17,7 +17,7 @@ export interface ObjectReference {
 /** Plain text that names an object for someone else: name and folder, page address, API link. */
 export function objectReferenceText(reference: ObjectReference, origin: string): string {
   return [
-    reference.path ? `${reference.name} — ${reference.path}` : reference.name,
+    reference.path ? `${reference.name} · ${reference.path}` : reference.name,
     new URL(reference.page, origin).href,
     reference.href,
   ].join("\n");

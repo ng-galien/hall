@@ -70,7 +70,7 @@ function MinutesDetail({ id }: { id: string }) {
                     minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null,
                   ]
                     .filter(Boolean)
-                    .join(" — "),
+                    .join(" · "),
                   page: `/app/minutes/${id}`,
                   href: `/api/minutes/${id}`,
                 }}

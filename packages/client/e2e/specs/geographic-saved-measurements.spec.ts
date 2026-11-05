@@ -186,7 +186,7 @@ test("a reader sees the saved measurements in Cartes without saving, renaming or
     await route.fulfill({ response, contentType: "application/vnd.siren+json", body: JSON.stringify(body) });
   });
   await page.goto(`/app/maps/${resource.id}?view=4.501,47.54,16`);
-  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
   await page.getByTestId("geographic-mode-map").click();
   await expect(page.getByTestId(`geographic-measurement-rename-${measurementId}`)).toHaveText("Clôture du stade");
   await expect(page.getByTestId(`geographic-measurement-rename-${measurementId}`)).toBeDisabled();
