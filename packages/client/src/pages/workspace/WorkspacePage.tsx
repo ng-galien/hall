@@ -1,9 +1,11 @@
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { CloseIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { LoadingIndicator } from "../../components/ui/loading-indicator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { emptyEventDocument } from "../../features/calendar/eventDates";
 import {
   BusinessBundleExportDialog,
@@ -25,6 +27,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { type DocumentDuplicate, findDocumentDuplicates } from "../../services/documentDuplicates";
+import { HeaderTrail } from "../../shell/headerTrail";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
@@ -42,6 +45,7 @@ import { ResourceWorkbench } from "./ResourceWorkbench";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
 import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
 import { emptySearch, isSearchActive, WorkspaceSearch, type WorkspaceSearchState } from "./WorkspaceSearch";
+import { WorkbenchControlsContext } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceCreateKind } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
@@ -168,6 +172,43 @@ export function WorkspacePage() {
       : selection?.kind === "councilBusiness"
         ? businessReportSession
         : null;
+
+  const [searchResultsTarget, setSearchResultsTarget] = useState<HTMLElement | null>(null);
+  const openedControls = selection ? (
+    <>
+      {openedSession?.resource && openedSession.canConfigureAutosave ? (
+        <ResourceAutosaveToggle
+          enabled={openedSession.autosaveEnabled}
+          status={openedSession.saveStatus}
+          disabled={openedSession.submitting}
+          onChange={openedSession.updateAutosave}
+        />
+      ) : null}
+      {openedSession?.resource ? (
+        <ResourceChangesControl
+          resourceId={openedSession.resource.id}
+          representation={openedSession.representation}
+          onInvalidated={() => {
+            if (!openedSession.dirty && !openedSession.submitting) void openedSession.reload();
+          }}
+        />
+      ) : null}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            data-testid="workspace-breadcrumb-close"
+            aria-label={t("common.close")}
+            onClick={() => select(null)}
+          >
+            <CloseIcon />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t("common.close")}</TooltipContent>
+      </Tooltip>
+    </>
+  ) : null;
 
   const select = (next: WorkspaceSelection, nextPath?: string) => {
     const params = new URLSearchParams();
@@ -449,10 +490,33 @@ export function WorkspacePage() {
         {submitting ? (
           <LoadingIndicator data-testid="workspace-import-progress">{t("common.saving")}</LoadingIndicator>
         ) : null}
+        <HeaderTrail>
+          <WorkspaceBreadcrumb
+            path={selectedBusiness?.folderPath ?? presentedResource?.path ?? path}
+            currentLabel={selectedBusiness?.title ?? presentedResource?.name}
+            currentIcon={
+              selectedBusiness ? (
+                <CouncilBusinessGlyph business={selectedBusiness} />
+              ) : presentedResource ? (
+                <DocumentaryResourceGlyph resource={presentedResource} />
+              ) : undefined
+            }
+            currentSelection={selection}
+            originPath={selectedBusiness || selection?.kind === "resource" ? path : undefined}
+            onSelect={select}
+            showSaveStatus={false}
+          />
+        </HeaderTrail>
         <div className="workspace-topzone">
           <div className="workspace-bar-row">
             <div className="workspace-bar-search">
-              <WorkspaceSearch search={search} onSearch={setSearch} onSelect={select} context={path} />
+              <WorkspaceSearch
+                search={search}
+                onSearch={setSearch}
+                onSelect={select}
+                context={path}
+                resultsTarget={searchResultsTarget}
+              />
             </div>
             {resourcesStore.personalWorkspacePath ? (
               <Button
@@ -552,57 +616,14 @@ export function WorkspacePage() {
           {!searchActive ? <PinnedRow selection={selection} onSelect={select} /> : null}
         </div>
 
-        {searchActive ? null : (
+        {searchActive ? (
+          <section
+            ref={setSearchResultsTarget}
+            className="workspace-contents workspace-search-results"
+            aria-label={t("common.search")}
+          />
+        ) : (
           <section className="workspace-contents" aria-label={t("workspace.contents")}>
-            <header className="workspace-contents-header">
-              <WorkspaceBreadcrumb
-                path={selectedBusiness?.folderPath ?? presentedResource?.path ?? path}
-                currentLabel={selectedBusiness?.title ?? presentedResource?.name}
-                currentIcon={
-                  selectedBusiness ? (
-                    <CouncilBusinessGlyph business={selectedBusiness} />
-                  ) : presentedResource ? (
-                    <DocumentaryResourceGlyph resource={presentedResource} />
-                  ) : undefined
-                }
-                currentSelection={selection}
-                originPath={selectedBusiness || selection?.kind === "resource" ? path : undefined}
-                onClose={selectedBusiness || selection?.kind === "resource" ? () => select(null) : undefined}
-                onSelect={select}
-                showSaveStatus={false}
-                statusControl={
-                  openedSession?.resource ? (
-                    <>
-                      {openedSession.canConfigureAutosave ? (
-                        <ResourceAutosaveToggle
-                          enabled={openedSession.autosaveEnabled}
-                          status={openedSession.saveStatus}
-                          disabled={openedSession.submitting}
-                          onChange={openedSession.updateAutosave}
-                        />
-                      ) : null}
-                      {openedSession.resource ? (
-                        <ResourceChangesControl
-                          resourceId={openedSession.resource.id}
-                          representation={openedSession.representation}
-                          onInvalidated={() => {
-                            if (!openedSession.dirty && !openedSession.submitting) void openedSession.reload();
-                          }}
-                        />
-                      ) : null}
-                    </>
-                  ) : currentFolder ? (
-                    <ResourceChangesControl
-                      resourceId={currentFolder.id}
-                      representation={resourcesStore.representations[currentFolder.id] ?? null}
-                      onInvalidated={() => {
-                        void resourcesStore.open(currentFolder.id);
-                      }}
-                    />
-                  ) : null
-                }
-              />
-            </header>
             <div className="workspace-container-body">
               <PathContents
                 path={path}
@@ -617,28 +638,43 @@ export function WorkspacePage() {
                 onCreate={createInFolder}
                 onPreview={(resource) => select({ kind: "resource", id: resource.id })}
                 hidden={Boolean(selection)}
+                toolbarControls={
+                  currentFolder ? (
+                    <ResourceChangesControl
+                      resourceId={currentFolder.id}
+                      representation={resourcesStore.representations[currentFolder.id] ?? null}
+                      onInvalidated={() => {
+                        void resourcesStore.open(currentFolder.id);
+                      }}
+                    />
+                  ) : null
+                }
               />
               {selection ? (
-                <section className="workspace-bench workspace-bench-full" aria-label={t("workspace.bench")}>
-                  {selectedBusiness ? (
-                    <CouncilBusinessWorkbench
-                      key={selectedBusiness.id}
-                      business={selectedBusiness}
-                      reportSession={businessReportSession}
-                      onCreate={(kind, title) =>
-                        createInFolder(kind, selectedBusiness.folderPath, title, selectedBusiness)
-                      }
-                    />
-                  ) : selection?.kind === "resource" ? (
-                    <ResourceWorkbench key={selection.id} session={resourceSession} onSelect={select} />
-                  ) : councilBusinessError ? (
-                    <Button onClick={() => void councilBusinessStore.loadSelected(selection.id)}>
-                      {t("common.retry")}
-                    </Button>
-                  ) : (
-                    <LoadingIndicator data-testid="business-selection-loading">{t("common.loading")}</LoadingIndicator>
-                  )}
-                </section>
+                <WorkbenchControlsContext.Provider value={openedControls}>
+                  <section className="workspace-bench workspace-bench-full" aria-label={t("workspace.bench")}>
+                    {selectedBusiness ? (
+                      <CouncilBusinessWorkbench
+                        key={selectedBusiness.id}
+                        business={selectedBusiness}
+                        reportSession={businessReportSession}
+                        onCreate={(kind, title) =>
+                          createInFolder(kind, selectedBusiness.folderPath, title, selectedBusiness)
+                        }
+                      />
+                    ) : selection?.kind === "resource" ? (
+                      <ResourceWorkbench key={selection.id} session={resourceSession} onSelect={select} />
+                    ) : councilBusinessError ? (
+                      <Button onClick={() => void councilBusinessStore.loadSelected(selection.id)}>
+                        {t("common.retry")}
+                      </Button>
+                    ) : (
+                      <LoadingIndicator data-testid="business-selection-loading">
+                        {t("common.loading")}
+                      </LoadingIndicator>
+                    )}
+                  </section>
+                </WorkbenchControlsContext.Provider>
               ) : null}
             </div>
           </section>

@@ -260,6 +260,7 @@ test("gives council members read access and a personal folder that only they and
     await alicePage.goto(`/app/workspace?resource=${budget}`);
     const deletion = alicePage.waitForResponse((response) => response.request().method() === "DELETE");
     await alicePage.getByTestId("resource-delete").click();
+    await alicePage.getByTestId("resource-delete-confirm").click();
     expect((await deletion).ok()).toBeTruthy();
     expect(await folderNames(alicePage, aliceFolder)).toEqual(["Note.pdf", "Projets"]);
     expect(await folderNames(alicePage, `${aliceFolder}/Projets`)).toEqual(["Brouillon v2"]);
@@ -368,6 +369,7 @@ test("gives council members read access and a personal folder that only they and
     await clerkPage.keyboard.press("Escape");
     const deletion = clerkPage.waitForResponse((response) => response.request().method() === "DELETE");
     await clerkPage.getByTestId("resource-delete").click();
+    await clerkPage.getByTestId("resource-delete-confirm").click();
     expect((await deletion).ok()).toBeTruthy();
     const before = await resourceProperties(clerkPage, draftId);
     expect(

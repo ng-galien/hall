@@ -124,6 +124,12 @@ export function CouncilBusinessWorkbench({
           }
           onTitleChange={folderCapabilities.relocate ? renameBusiness : undefined}
           hint={<CouncilBusinessCommittees businessId={business.id} />}
+          reference={{
+            name: business.title,
+            path: business.folderPath || undefined,
+            page: `/app/workspace?${new URLSearchParams({ path: business.folderPath, councilBusiness: business.id })}`,
+            href: `/api/council-business/${business.id}`,
+          }}
           actions={
             <>
               <PdfPreviewButton

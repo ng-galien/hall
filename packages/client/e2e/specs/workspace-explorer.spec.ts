@@ -688,6 +688,7 @@ test.describe("workspace explorer", () => {
       (response) => response.request().method() === "DELETE" && response.url().endsWith(`/${created.slug}`),
     );
     await page.getByTestId("resource-delete").click();
+    await page.getByTestId("resource-delete-confirm").click();
     expect((await deletion).ok()).toBeTruthy();
     await expect.poll(async () => (await page.request.get(`/api/resources/${created.id}`)).status()).toBe(404);
   });
@@ -916,6 +917,7 @@ test("shows one dismissible deletion refusal and preserves the linked document",
     ).ok(),
   ).toBeTruthy();
   await page.getByTestId("resource-delete").click();
+  await page.getByTestId("resource-delete-confirm").click();
   await expect(page.getByRole("alert")).toHaveCount(1);
   await expect(page.getByTestId("resource-workbench").getByRole("alert")).toBeVisible();
   await mkdir("/tmp/hall-document-delete", { recursive: true });
@@ -951,6 +953,7 @@ test("deletes a geographic document from its editable business", async ({ appPag
   await expect(row).toBeVisible();
   await row.click({ button: "right" });
   await page.getByTestId(`business-document-delete-${resource.id}`).click();
+  await page.getByTestId("resource-delete-confirm").click();
   await expect(row).toHaveCount(0);
   expect((await page.request.get(`/api/resources/${resource.id}`)).status()).toBe(404);
   expect((await page.request.get(`/api/council-business/${business.id}`)).ok()).toBeTruthy();

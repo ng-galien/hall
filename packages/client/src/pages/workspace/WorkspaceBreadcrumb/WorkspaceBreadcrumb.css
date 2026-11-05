@@ -28,11 +28,18 @@
   }
 
   .workspace-crumb-root {
-    display: inline-grid;
-    width: var(--hall-size-control-small);
+    display: inline-flex;
     height: var(--hall-size-control-small);
-    padding: 0;
-    place-items: center;
+    align-items: center;
+    gap: var(--hall-space-1-5);
+  }
+  .workspace-crumb-here,
+  .workspace-crumb-here:hover {
+    color: var(--hall-color-text);
+    font-weight: var(--hall-font-weight-semibold);
+  }
+  .workspace-crumb-root svg {
+    flex: none;
     font-size: var(--hall-font-size-icon-small);
   }
 

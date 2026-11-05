@@ -967,6 +967,30 @@
     font-size: var(--hall-font-size-caption);
   }
 
+  .council-member-row,
+  .entity-card-member { position: relative; cursor: pointer; }
+  .council-member-row:hover { background: var(--hall-color-surface-subtle); }
+  .entity-card-member:hover {
+    border-color: var(--hall-color-border-strong);
+    box-shadow: var(--hall-shadow-medium);
+    transform: translateY(calc(var(--hall-motion-distance) * -1));
+  }
+  .collection-card-link { position: absolute; inset: 0; border-radius: inherit; }
+  .collection-card-link:focus-visible {
+    outline: var(--hall-stroke-thick) solid var(--hall-color-focus);
+    outline-offset: calc(-1 * var(--hall-stroke-thick));
+  }
+  .council-member-row a:not(.collection-card-link),
+  .entity-card-member a:not(.collection-card-link) { position: relative; z-index: var(--hall-z-content); }
+  .council-member-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+    align-items: center;
+  }
+  .council-member-record { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr) auto; }
+  .council-member-row > .member-identity { min-width: 0; }
+  .council-member-row > .council-member-list-status { justify-self: end; }
+
   @media (max-width: 1000px) {
     .council-member-row {
       display: grid;

@@ -6,9 +6,10 @@ import { HeaderBreadcrumb } from "./HeaderBreadcrumb";
 interface AppHeaderProps {
   compact: boolean;
   onToggleSidebar(): void;
+  trailSlot(element: HTMLDivElement | null): void;
 }
 
-export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
+export function AppHeader({ compact, onToggleSidebar, trailSlot }: AppHeaderProps) {
   const { phase, error } = useApplicationStatus();
   const { t } = useI18n();
   const connectionLabel = error
@@ -23,7 +24,10 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
   const pending = phase === "initializing" || phase === "synchronizing";
 
   return (
-    <header className="app-header flex h-(--hall-size-header) shrink-0 items-center gap-5 border-b border-border bg-surface px-3">
+    <header
+      className="app-header flex h-(--hall-size-header) shrink-0 items-center gap-5 border-b border-border bg-surface px-3"
+      data-compact={compact ? "true" : "false"}
+    >
       <button
         type="button"
         data-testid="navigation-toggle"
@@ -35,19 +39,20 @@ export function AppHeader({ compact, onToggleSidebar }: AppHeaderProps) {
         {compact ? <SidebarExpandIcon /> : <SidebarCollapseIcon />}
       </button>
 
-      <a href="/app/" className="app-brand flex w-52 shrink-0 items-center gap-2.5" aria-label={t("app.home")}>
+      <a href="/app/" className="app-brand flex shrink-0 items-center gap-2.5" aria-label={t("app.home")}>
         <span className="grid h-7 w-7 place-items-center rounded-(--radius-small) bg-brand text-xs font-bold text-on-brand">
           H
         </span>
         <span className="text-sm font-bold tracking-brand text-text">{t("app.name")}</span>
       </a>
 
-      <div className="app-breadcrumb flex min-w-0 items-center">
+      <div className="app-breadcrumb flex min-w-0 flex-1 items-center">
         <HeaderBreadcrumb />
+        <div ref={trailSlot} className="app-header-trail" />
       </div>
 
       <div
-        className="ml-auto flex shrink-0 items-center gap-2 rounded-(--radius-medium) px-2 py-1 text-xs font-medium text-muted"
+        className="flex shrink-0 items-center gap-2 rounded-(--radius-medium) px-2 py-1 text-xs font-medium text-muted"
         role="status"
         aria-live="polite"
         data-sync-state={phase}

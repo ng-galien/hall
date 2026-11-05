@@ -11,14 +11,23 @@ export function PageHeader({
   title,
   description,
   children,
+  titleAction,
 }: {
   title: string;
   description: string;
   children?: ReactNode;
+  titleAction?: ReactNode;
 }) {
   return (
     <header className="border-b border-border bg-surface px-7 py-4">
-      <h1 className="page-title">{title}</h1>
+      {titleAction ? (
+        <div className="flex items-center gap-2">
+          <h1 className="page-title">{title}</h1>
+          {titleAction}
+        </div>
+      ) : (
+        <h1 className="page-title">{title}</h1>
+      )}
       <p className="mt-1 text-sm text-muted">{description}</p>
       {children}
     </header>
@@ -42,6 +51,43 @@ export function useCollectionView() {
   const [layout, setLayout] = useState<CollectionLayout>("list");
   const [query, setQuery] = useState("");
   return { layout, setLayout, query, setQuery };
+}
+
+/** List or cards switch shared by every collection and the workspace search results. */
+export function CollectionLayoutToggle({
+  layout,
+  onLayoutChange,
+  testIdPrefix = "collection",
+}: {
+  layout: CollectionLayout;
+  onLayoutChange(layout: CollectionLayout): void;
+  testIdPrefix?: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="collection-layout-toggle">
+      <button
+        type="button"
+        aria-pressed={layout === "list"}
+        data-testid={`${testIdPrefix}-layout-list`}
+        aria-label={t("common.layoutList")}
+        className={layout === "list" ? "collection-layout-active" : undefined}
+        onClick={() => onLayoutChange("list")}
+      >
+        <ListViewIcon aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-pressed={layout === "cards"}
+        data-testid={`${testIdPrefix}-layout-cards`}
+        aria-label={t("common.layoutCards")}
+        className={layout === "cards" ? "collection-layout-active" : undefined}
+        onClick={() => onLayoutChange("cards")}
+      >
+        <CardViewIcon aria-hidden="true" />
+      </button>
+    </div>
+  );
 }
 
 export function CollectionToolbar({
@@ -72,28 +118,7 @@ export function CollectionToolbar({
         />
       </div>
       <div className="collection-toolbar-side">
-        <div className="collection-layout-toggle">
-          <button
-            type="button"
-            aria-pressed={layout === "list"}
-            data-testid="collection-layout-list"
-            aria-label={t("common.layoutList")}
-            className={layout === "list" ? "collection-layout-active" : undefined}
-            onClick={() => onLayoutChange("list")}
-          >
-            <ListViewIcon aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-pressed={layout === "cards"}
-            data-testid="collection-layout-cards"
-            aria-label={t("common.layoutCards")}
-            className={layout === "cards" ? "collection-layout-active" : undefined}
-            onClick={() => onLayoutChange("cards")}
-          >
-            <CardViewIcon aria-hidden="true" />
-          </button>
-        </div>
+        <CollectionLayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
         {children}
       </div>
     </div>

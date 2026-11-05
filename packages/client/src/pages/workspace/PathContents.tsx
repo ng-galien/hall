@@ -43,6 +43,7 @@ import {
   type DocumentaryLeafSummary,
   DocumentaryResourceGlyph,
 } from "../../features/documents/DocumentaryResourceGlyph";
+import { ToneGlyph } from "../../features/documents/ResourceGlyph";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
@@ -51,7 +52,7 @@ import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { isUnderPath, listCatalogPaths } from "./paths";
-import { type WorkspaceCreateKind, workspaceCreateKindIcons } from "./workspaceCreateKind";
+import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKindTones } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { DRAG_TYPE, type DragPayload, decodeDragPayload, encodeDragPayload, moveToPath } from "./workspaceOrg";
 
@@ -210,6 +211,7 @@ export function PathContents({
   onExportBundle,
   onDeleteBusiness,
   hidden = false,
+  toolbarControls,
 }: {
   path: string;
   businesses: CouncilBusinessView[];
@@ -228,6 +230,7 @@ export function PathContents({
   onDeleteBusiness(business: CouncilBusinessView): void;
   onPreview(resource: DocumentaryLeafSummary): void;
   hidden?: boolean;
+  toolbarControls?: ReactNode;
 }) {
   const { t, formatDate } = useI18n();
   const councilBusinessStore = useCouncilBusinessStore();
@@ -661,9 +664,13 @@ export function PathContents({
       <li className="workspace-explorer-item workspace-explorer-creating workspace-explorer-selected">
         <div className="workspace-explorer-row">
           <span className="workspace-explorer-primary">
-            <span className="workspace-glyph" aria-hidden="true">
-              <Icon />
-            </span>
+            {target.kind === "councilMatter" ? (
+              <span className="workspace-glyph workspace-glyph-business" aria-hidden="true">
+                <Icon />
+              </span>
+            ) : (
+              <ToneGlyph tone={workspaceCreateKindTones[target.kind]} />
+            )}
             <span className="workspace-explorer-copy">
               <InlineRenameField
                 value={proposedName(target.kind)}
@@ -1282,6 +1289,7 @@ export function PathContents({
             onChange={(event) => setQuery(event.currentTarget.value)}
           />
         </label>
+        {toolbarControls ? <span className="workspace-explorer-toolbar-controls">{toolbarControls}</span> : null}
       </div>
       <RequestErrorBanner error={renameError ?? moveError} />
       <p className="sr-only" aria-live="polite">

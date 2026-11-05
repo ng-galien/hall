@@ -205,6 +205,7 @@
   justify-content: space-between;
   gap: var(--hall-space-3);
 }
+.maps-context-title-row > .maps-context-title + button { margin-inline-end: auto; }
 
 .maps-context-title {
   overflow: hidden;

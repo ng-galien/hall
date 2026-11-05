@@ -22,8 +22,9 @@ export function HeaderBreadcrumb() {
   const delegations = useCouncilDelegationsStore((state) => state.bodies);
   const resourceSummaries = useWorkspaceResourcesStore((state) => state.summaries);
 
-  const items: BreadcrumbItem[] = [{ label: t("app.name"), to: "/" }];
+  const items: BreadcrumbItem[] = [];
   const segments = location.pathname.split("/").filter(Boolean);
+  if (segments[0] === "workspace") return null;
 
   if (segments.length === 0) {
     items.push({ label: t("navigation.overview") });
@@ -82,8 +83,6 @@ export function HeaderBreadcrumb() {
     items.push({ label: t("navigation.documentation") });
   } else if (segments[0] === "calendar") {
     items.push({ label: t("navigation.calendar") });
-  } else if (segments[0] === "workspace") {
-    items.push({ label: t("navigation.workspace") });
   }
 
   return <Breadcrumb items={items} />;

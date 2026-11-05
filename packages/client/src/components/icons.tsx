@@ -98,6 +98,7 @@ export {
   Sidebar as SidebarExpandIcon,
   SidebarSimple as SidebarCollapseIcon,
   Sigma as SumIcon,
+  SortAscending as SortIcon,
   SquaresFour as CardViewIcon,
   Stack as LayersIcon,
   Stamp as TemplateIcon,

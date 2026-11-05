@@ -126,3 +126,16 @@ export function ResourceGlyph({ resource, large }: { resource: Resource; large?:
     </span>
   );
 }
+
+/** Badge for a resource tone, the single glyph shape and colour of each resource type. */
+export function ToneGlyph({ tone, large }: { tone: ResourceTone; large?: boolean }) {
+  const Icon = toneIcons[tone];
+  return (
+    <span
+      className={`workspace-glyph workspace-glyph-${tone}${large ? " workspace-glyph-large" : ""}`}
+      aria-hidden="true"
+    >
+      <Icon />
+    </span>
+  );
+}

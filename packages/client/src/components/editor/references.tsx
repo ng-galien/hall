@@ -6,6 +6,7 @@ import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/sugges
 import { Children, createContext, forwardRef, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { ResourceTone } from "../../features/documents/ResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Searchable } from "../../lib/search";
 import type { MemberIcon } from "../icons";
@@ -287,6 +288,10 @@ export const Reference = Node.create({
 /** A searchable entity that can be inserted as a reference. */
 export interface Mentionable extends Searchable {
   icon?: typeof MemberIcon;
+  /** Resource type presentation, the same glyph and colour as in the workspace tree. */
+  tone?: ResourceTone;
+  /** Last change, or creation for files, used to order search results by date. */
+  updatedAt?: string;
   metaLabel?: string;
   stateLabel?: string;
   mediaLabel?: string;

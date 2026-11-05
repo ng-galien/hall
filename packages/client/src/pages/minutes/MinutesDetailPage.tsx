@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CopyReferenceButton } from "../../components/CopyReferenceButton";
 import { ArrowDownIcon, CalendarIcon, PdfIcon, VisibleIcon } from "../../components/icons";
 import { ShareButton } from "../../components/ShareButton";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
@@ -59,6 +60,22 @@ function MinutesDetail({ id }: { id: string }) {
                   .filter(Boolean)
                   .join(" · ")
               : t("minutes.detailDescription")
+          }
+          titleAction={
+            minutes ? (
+              <CopyReferenceButton
+                reference={{
+                  name: [
+                    t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) }),
+                    minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" — "),
+                  page: `/app/minutes/${id}`,
+                  href: `/api/minutes/${id}`,
+                }}
+              />
+            ) : null
           }
         >
           {minutes ? (

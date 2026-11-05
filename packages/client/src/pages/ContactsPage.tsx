@@ -4,8 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AddIcon, EditIcon } from "../components/icons";
+import { AddIcon } from "../components/icons";
 import {
   CollectionToolbar,
   EmptyState,
@@ -63,16 +62,12 @@ export function ContactsPage() {
     const name = `${contact.firstName} ${contact.lastName}`;
     const label = t("contacts.editNamed", { name: name });
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button asChild variant="ghost" size="icon">
-            <Link to={`/contacts/${contact.id}`} aria-label={label} data-testid={`contact-open-${contact.id}`}>
-              <EditIcon />
-            </Link>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
-      </Tooltip>
+      <Link
+        className="collection-card-link"
+        to={`/contacts/${contact.id}`}
+        aria-label={label}
+        data-testid={`contact-open-${contact.id}`}
+      />
     );
   };
   const contactDetails = (contact: Contact) => (

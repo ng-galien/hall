@@ -14,11 +14,13 @@ export function WorkspaceSearch({
   onSearch,
   onSelect,
   context,
+  resultsTarget,
 }: {
   search: WorkspaceSearchState;
   onSearch(next: WorkspaceSearchState): void;
   onSelect(selection: WorkspaceSelection, path?: string): void;
   context?: string;
+  resultsTarget: HTMLElement | null;
 }) {
   const wasActive = useRef(false);
   useEffect(() => {
@@ -36,6 +38,7 @@ export function WorkspaceSearch({
         autoFocus={false}
         allowLayout
         hideResultsWhenEmpty
+        resultsTarget={resultsTarget}
         onPick={(item) => {
           if (item.kind !== "resource" && item.kind !== "councilBusiness") return;
           onSearch(emptySearch);

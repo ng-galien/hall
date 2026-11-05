@@ -1,6 +1,6 @@
 import { type ReferenceEntityKind, referenceEntityKinds } from "@hall/domain";
 import type { TranslationKey } from "../../i18n/en";
-import { CalendarIcon, ContactIcon, FileIcon, GavelIcon, MemberIcon, TextDocumentIcon } from "../icons";
+import { CalendarIcon, ContactIcon, CouncilBusinessIcon, FileIcon, GavelIcon, MemberIcon } from "../icons";
 
 export interface ReferenceKindPresentation {
   labelKey: TranslationKey;
@@ -16,7 +16,7 @@ export const referenceKindPresentations: Record<ReferenceEntityKind, ReferenceKi
   councilBusiness: {
     labelKey: "editor.kind.councilBusiness",
     groupLabelKey: "editor.group.councilBusiness",
-    icon: TextDocumentIcon,
+    icon: CouncilBusinessIcon,
   },
   decision: { labelKey: "editor.kind.decision", groupLabelKey: "editor.group.decision", icon: GavelIcon },
   meeting: { labelKey: "editor.kind.meeting", groupLabelKey: "editor.group.meeting", icon: CalendarIcon },

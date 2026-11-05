@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { CollapseIcon, ExpandIcon, FolderIcon } from "../../components/icons";
+import { CollapseIcon, ExpandIcon } from "../../components/icons";
 import { matchesQuery } from "../../components/Ui";
 import { ExplorerTree, ExplorerTreeBranch } from "../../components/ui/explorer-tree";
 import { SearchInput } from "../../components/ui/search-input";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
+import { FolderGlyph } from "../../features/documents/FolderGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -81,15 +82,7 @@ function FolderBranch({
       title={node.name}
       testId={`maps-tree-folder-${encodeURIComponent(node.path)}`}
       defaultOpen
-      icon={
-        node.business ? (
-          <CouncilBusinessGlyph business={node.business} />
-        ) : (
-          <span className="workspace-glyph">
-            <FolderIcon />
-          </span>
-        )
-      }
+      icon={node.business ? <CouncilBusinessGlyph business={node.business} /> : <FolderGlyph />}
       meta={<span className="maps-tree-count">{node.mapCount}</span>}
     >
       {node.children.map((child) => (

@@ -66,6 +66,9 @@ test("Escape cancels a drawing in progress before it closes the resource dialog"
   await page.getByTestId("resource-open-extended").click();
   const dialog = page.getByTestId("resource-preview");
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
+  await expect(dialog.getByTestId("geographic-composition")).toHaveCount(0);
+  await dialog.getByTestId("geographic-mode-draw").click();
   await expect(dialog.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   const features = dialog.locator(
     '[data-testid="geographic-composition"] li[data-testid^="geographic-composition-feature-"]',
@@ -168,6 +171,9 @@ test("a drawn area too small on screen becomes a selectable marker and its geome
   expect(created.ok()).toBeTruthy();
   const resource = (await created.json()).properties;
   await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("geographic-composition")).toHaveCount(0);
+  await page.getByTestId("geographic-mode-draw").click();
   await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   const map = await page.locator(".geographic-map").boundingBox();
   if (!map) throw new Error("The map must be rendered");
@@ -238,6 +244,9 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
     } else await route.continue();
   });
   await page.goto(`/app/workspace?path=seed&resource=${map.id}`);
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("geographic-composition")).toHaveCount(0);
+  await page.getByTestId("geographic-mode-draw").click();
   await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   const box = await page.locator(".geographic-map").boundingBox();
   if (!box) throw new Error("The map must be rendered");
@@ -381,6 +390,9 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(enrichedPasteId);
 
   await page.reload();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("geographic-composition")).toHaveCount(0);
+  await page.getByTestId("geographic-mode-draw").click();
   await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await rows.first().locator(".geographic-composition-feature-select").click();
   await expect(card.getByTestId("editor-writing-area")).toContainText("Chêne à conserver");
@@ -512,6 +524,9 @@ test("drawing edit retains rendered base tiles and exterior dimension overlays",
   await expect.poll(() => rejectedTileRequests).toBeGreaterThan(0);
   // At the unavailable zoom, the previously loaded parent tiles are still visible.
   await expect.poll(tilePixel).toEqual([20, 140, 90, 255]);
+  await page.getByTestId("geographic-mode-draw").click();
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByTestId("geographic-composition")).toHaveCount(0);
   await page.getByTestId("geographic-mode-draw").click();
   await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "true");
   await page.getByTestId(`geographic-composition-feature-menu-${copied.id}`).click();

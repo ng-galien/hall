@@ -4,8 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AddIcon, EditIcon } from "../components/icons";
+import { AddIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import {
   CollectionToolbar,
@@ -97,20 +96,12 @@ export function UsersPage() {
     });
   };
   const open = (user: ApiUser) => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button asChild variant="ghost" size="icon">
-          <Link
-            to={`/users/${user.id}`}
-            aria-label={t("users.openNamed", { name: user.displayName })}
-            data-testid={`user-open-${user.id}`}
-          >
-            <EditIcon />
-          </Link>
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{t("users.openNamed", { name: user.displayName })}</TooltipContent>
-    </Tooltip>
+    <Link
+      className="collection-card-link"
+      to={`/users/${user.id}`}
+      aria-label={t("users.openNamed", { name: user.displayName })}
+      data-testid={`user-open-${user.id}`}
+    />
   );
   const identity = (user: ApiUser, card = false) => (
     <div className={`member-identity ${card ? "member-identity-card" : ""}`}>

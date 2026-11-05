@@ -1,4 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ToneGlyph } from "../../features/documents/ResourceGlyph";
 import { type ResourceSearchScope, useResourceSearch } from "../../features/search/useResourceSearch";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { SearchType } from "../../lib/search";
@@ -17,6 +19,8 @@ import {
   type SearchBoxState,
   type SearchKeyEvent,
 } from "./SearchBox";
+import { SearchResultsPanel } from "./SearchResultsPanel";
+import { type SearchSort, sortSearchItems } from "./searchSort";
 import "./resource-search.css";
 
 export interface ResourceSearchHandle {
@@ -40,6 +44,8 @@ export interface ResourceSearchProps {
   hideResultsWhenEmpty?: boolean;
   /** Adapts the presentation of each result row for the calling picker. */
   presentItem?(item: Mentionable): Mentionable;
+  /** Element that receives the full results screen, with count, folder filter, sort and layout. */
+  resultsTarget?: HTMLElement | null;
 }
 // @implements-requirement HALL-FR-SRC-030
 export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchProps>(function ResourceSearch(
@@ -60,10 +66,13 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
     allowLayout = false,
     hideResultsWhenEmpty = false,
     presentItem,
+    resultsTarget,
   },
   ref,
 ) {
   const [layout, setLayout] = useState<"list" | "cards">("list");
+  const [sort, setSort] = useState<SearchSort>("relevance");
+  const resultsList = useRef<HTMLDivElement>(null);
   const { t } = useI18n();
   const [local, setLocal] = useState<SearchBoxState<SearchType>>({ ...emptySearchBoxState, query: initialQuery });
   const state = controlled ?? local;
@@ -72,7 +81,15 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
   const [browsing, setBrowsing] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const search = useResourceSearch(effective, scope, items, !hideResultsWhenEmpty || isSearchBoxActive(effective));
-  const shownItems = presentItem ? search.items.map(presentItem) : search.items;
+  const presentedItems = presentItem ? search.items.map(presentItem) : search.items;
+  const typeLabel = (item: Mentionable) =>
+    item.metaLabel ?? (item.kind === "councilBusiness" ? t("editor.kind.councilBusiness") : "");
+  const shownItems = resultsTarget ? sortSearchItems(presentedItems, sort, typeLabel) : presentedItems;
+  const searchMore = search.more;
+  const needsEveryResult = Boolean(resultsTarget) && sort !== "relevance" && search.items.length < search.total;
+  useEffect(() => {
+    if (needsEveryResult && !search.loading) searchMore();
+  }, [needsEveryResult, search.loading, searchMore]);
   const active = Math.min(rawActive, Math.max(shownItems.length - 1, 0));
   const change = (next: SearchBoxState<SearchType>) => {
     setActive(0);
@@ -108,14 +125,27 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
   const keyHandler = useRef<((event: SearchKeyEvent) => boolean) | null>(null);
   useImperativeHandle(ref, () => ({ onKeyDown: (event) => keyHandler.current?.(event) ?? false }));
   useEffect(() => {
-    const list = root.current?.querySelector<HTMLElement>(".shared-search-results");
-    const row = list?.children[active] as HTMLElement | undefined;
+    const list = resultsList.current ?? root.current?.querySelector<HTMLElement>(".shared-search-results");
+    const container = resultsList.current?.querySelector<HTMLElement>("[role='listbox']") ?? list;
+    const row = container?.children[active] as HTMLElement | undefined;
     if (!list || !row) return;
     const listRect = list.getBoundingClientRect(),
       rowRect = row.getBoundingClientRect();
     if (rowRect.top < listRect.top) list.scrollTop += rowRect.top - listRect.top;
     else if (rowRect.bottom > listRect.bottom) list.scrollTop += rowRect.bottom - listRect.bottom;
   }, [active]);
+  const glyph = (item: Mentionable) => {
+    if (item.kind === "resource" && item.tone) return <ToneGlyph tone={item.tone} />;
+    if (item.kind === "resource" || item.kind === "councilBusiness") return <KindGlyph kind={item.kind} />;
+    const Icon = item.icon;
+    return Icon ? (
+      <span className={`workspace-glyph workspace-glyph-kind-${item.kind}`}>
+        <Icon aria-hidden="true" />
+      </span>
+    ) : (
+      <KindGlyph kind={item.kind} />
+    );
+  };
   const folderNodes = folderSections(
     search.options.folders.map((folder) => ({ kind: "resource", folderPath: folder.value })),
     () => "",
@@ -137,7 +167,36 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
         autoFocus={autoFocus}
         testId={testId}
       />
-      {!(inline && facetHashPattern.test(effective.query)) &&
+      {resultsTarget && isSearchBoxActive(effective)
+        ? createPortal(
+            <SearchResultsPanel
+              items={shownItems}
+              total={search.total}
+              loading={search.loading}
+              error={search.error}
+              onRetry={search.retry}
+              onMore={searchMore}
+              active={active}
+              onActive={setActive}
+              onPick={pick}
+              onKey={handleKey}
+              glyph={glyph}
+              typeLabel={typeLabel}
+              folders={search.options.folders.map((option) => option.value)}
+              folder={effective.folders[0] ?? null}
+              onFolder={(folder) => change({ ...effective, folders: folder ? [folder] : [] })}
+              sort={sort}
+              onSort={setSort}
+              layout={layout}
+              onLayout={setLayout}
+              listRef={resultsList}
+              testId={testId}
+            />,
+            resultsTarget,
+          )
+        : null}
+      {!resultsTarget &&
+        !(inline && facetHashPattern.test(effective.query)) &&
         (!hideResultsWhenEmpty || isSearchBoxActive(effective)) && (
           <>
             <div className="shared-search-toolbar">
@@ -209,7 +268,6 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
               aria-busy={search.loading}
             >
               {shownItems.map((item, index) => {
-                const Icon = item.icon;
                 return (
                   <SearchResultRow
                     key={`${item.kind}:${item.id}`}
@@ -225,15 +283,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
                     onMouseDown={(event) => event.preventDefault()}
                     onPick={() => pick(item)}
                     onKeyDown={handleKey}
-                    glyph={
-                      Icon ? (
-                        <span className="workspace-glyph">
-                          <Icon aria-hidden="true" />
-                        </span>
-                      ) : (
-                        <KindGlyph kind={item.kind} />
-                      )
-                    }
+                    glyph={glyph(item)}
                     title={item.label}
                     meta={[item.metaLabel, item.folderPath].filter(Boolean).join(" · ")}
                     badge={selectedIds.includes(item.id) ? <CheckIcon aria-hidden="true" /> : null}

@@ -1786,6 +1786,17 @@ export const en = {
   "municipalProperty.import.empty": "No parcel identifier was found.",
   "municipalProperty.import.done": "{count} parcels saved, {matched} of them present in Hall layers.",
   "municipalProperty.import.ignored": "Ignored values: {values}",
+  "search.folderFilterAll": "All folders",
+  "search.resultsOne": "{count} result",
+  "search.resultsOther": "{count} results",
+  "search.sort": "Sort",
+  "search.sortRelevance": "Relevance",
+  "search.sortName": "Name",
+  "search.sortRecent": "Recently modified",
+  "search.sortType": "Type",
+  "reference.copy": "Copy reference",
+  "reference.copied": "Reference copied",
+  "workspace.deleteResourceConfirm": "Delete “{name}”? This cannot be undone.",
 } as const;
 
 export type TranslationKey = keyof typeof en;

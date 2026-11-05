@@ -57,13 +57,6 @@
   @container (min-width: 760px) {
     .workspace-lists { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start; }
   }
-  .workspace-contents-header {
-    display: flex;
-    flex-direction: column;
-    gap: var(--hall-space-2);
-    padding: var(--hall-space-3);
-    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
-  }
   .workspace-container-body {
     display: flex;
     flex: 1;
@@ -485,6 +478,7 @@
   .workspace-glyph-business,
   .workspace-glyph-kind-councilBusiness { --resource-tone-color: var(--hall-color-council-business); color: var(--hall-color-council-business); background: var(--hall-color-surface-subtle); }
   .workspace-glyph-kind-resource { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
+  .workspace-glyph-folder { color: var(--hall-color-text-muted); background: transparent; }
   .workspace-glyph-decision,
   .workspace-glyph-kind-meeting,
   .workspace-glyph-kind-decision { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
@@ -569,6 +563,9 @@
     background: var(--hall-color-surface-subtle);
   }
   .geographic-map { width: 100%; height: 100%; }
+  .geographic-map-stage { --geographic-map-control: var(--hall-size-control-small); }
+  .geographic-mode-switch svg,
+  .geographic-layers-trigger svg { flex: none; font-size: var(--hall-font-size-icon-small); }
   .geographic-mode-switch,
   .geographic-zoom-tools,
   .geographic-layers,
@@ -594,7 +591,7 @@
   }
   .geographic-mode-switch button {
     display: inline-flex;
-    min-height: var(--hall-size-control);
+    min-height: var(--geographic-map-control);
     align-items: center;
     gap: var(--hall-space-1);
     padding: 0 var(--hall-space-1-5);
@@ -651,18 +648,20 @@
   }
   .geographic-zoom-tools button svg { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); display: block; }
   .geographic-zoom-tools button {
+    width: var(--geographic-map-control);
+    height: var(--geographic-map-control);
     border-radius: var(--hall-radius-medium);
     color: var(--hall-color-text);
     background: transparent;
-    font-size: var(--hall-font-size-title);
+    font-size: var(--hall-font-size-body);
     line-height: 1;
   }
   .geographic-layers-trigger {
     display: flex;
-    min-height: var(--hall-size-control);
+    min-height: var(--geographic-map-control);
     align-items: center;
-    gap: var(--hall-space-1-5);
-    padding: 0 var(--hall-space-2);
+    gap: var(--hall-space-1);
+    padding: 0 var(--hall-space-1-5);
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-medium);
     color: var(--hall-color-text);
@@ -1010,6 +1009,12 @@
     font-size: var(--hall-font-size-caption);
   }
   .geographic-conflict button { flex: none; }
+  .geographic-save-view,
+  .geographic-legend-controls > button {
+    height: var(--geographic-map-control);
+    padding-inline: var(--hall-space-2);
+    font-size: var(--hall-font-size-caption);
+  }
   .geographic-save-view {
     justify-self: start;
     background: var(--hall-color-surface);
@@ -1246,7 +1251,7 @@
     line-height: var(--hall-line-height-body-small);
   }
   .workbench-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--hall-space-3); }
-  .workbench-header-identity { display: flex; flex: 1; align-items: center; gap: var(--hall-space-3); min-width: 0; }
+  .workbench-header-identity { display: flex; flex: 1; align-items: flex-start; gap: var(--hall-space-3); min-width: 0; }
   .workbench-header-copy { flex: 1; min-width: 0; }
   .workbench-title-row {
     display: flex;
@@ -1348,6 +1353,15 @@
   .workbench-document-tile .workspace-row-copy { flex: 1; }
   .workbench-eyebrow { color: var(--hall-color-text-muted); }
   .workbench-header-side { display: flex; flex: none; align-items: center; gap: var(--hall-space-2); }
+  .workbench-header-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--hall-space-1);
+    padding-inline-start: var(--hall-space-2);
+    border-inline-start: var(--hall-stroke-thin) solid var(--hall-color-border);
+  }
+  .workspace-explorer-toolbar-controls { display: inline-flex; align-items: center; gap: var(--hall-space-1); }
+  .workspace-explorer-toolbar > .workspace-explorer-filter { margin-inline-start: auto; }
   .workbench-section { display: grid; gap: var(--hall-space-3); }
   .workbench-section > h2 { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-semibold); }
   .workbench-actions { display: flex; align-items: center; gap: var(--hall-space-2); }

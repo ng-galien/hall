@@ -352,7 +352,8 @@ test("council member collections expose distinct semantic destinations", () => {
   const page = read("src/pages/CouncilMembersPage.tsx");
   assert.match(page, /className="council-member-name"/);
   assert.match(page, /aria-label=\{label\}/);
-  assert.match(page, /<EditIcon \/>/);
+  assert.match(page, /className="collection-card-link"/);
+  assert.doesNotMatch(page, /<EditIcon \/>/);
   assert.match(page, /to={`\/council-members\/\$\{member\.id\}`}/);
   assert.match(page, /href={`mailto:\$\{member\.contact\.email\}`}/);
   assert.match(page, /href={phoneHref\(member\.contact\.phone\)}/);

@@ -2,6 +2,7 @@ import type { ResourceDetail } from "@hall/api-contract";
 import type { GeographicResourceData, GeographicView } from "@hall/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { CopyReferenceButton } from "../../components/CopyReferenceButton";
 import { OpenIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
@@ -270,6 +271,14 @@ export function MapsPage() {
               <h1 className="maps-context-title" data-testid="maps-context-title">
                 {opened.name}
               </h1>
+              <CopyReferenceButton
+                reference={{
+                  name: opened.name,
+                  path: opened.path || undefined,
+                  page: `/app/maps/${opened.id}`,
+                  href: `/api/resources/${opened.slug}`,
+                }}
+              />
               <Link className="maps-context-open" data-testid="maps-open-workspace" to={workspaceResourceHref(opened)}>
                 <OpenIcon />
                 {t("maps.openInWorkspace")}

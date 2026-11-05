@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AddIcon, EditIcon } from "../components/icons";
+import { AddIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import {
   CollectionToolbar,
@@ -90,16 +89,12 @@ export function CouncilMembersPage() {
     const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
     const label = t("members.editNamed", { name: fullName });
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button asChild variant="ghost" size="icon" className="council-member-edit-action">
-            <Link to={`/council-members/${member.id}`} aria-label={label} data-testid={`member-open-${member.id}`}>
-              <EditIcon />
-            </Link>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
-      </Tooltip>
+      <Link
+        className="collection-card-link"
+        to={`/council-members/${member.id}`}
+        aria-label={label}
+        data-testid={`member-open-${member.id}`}
+      />
     );
   };
   const submit = async (event: FormEvent<HTMLFormElement>) => {

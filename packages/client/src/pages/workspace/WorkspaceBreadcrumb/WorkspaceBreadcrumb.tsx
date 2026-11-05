@@ -307,14 +307,14 @@ export function WorkspaceBreadcrumb({
   return (
     <nav className="workspace-breadcrumb" aria-label={t("workspace.pathBreadcrumb")}>
       <button
-        className={`workspace-crumb workspace-crumb-root${originPath === "" ? " workspace-crumb-origin" : ""}`}
+        className={`workspace-crumb workspace-crumb-root${originPath === "" ? " workspace-crumb-origin" : ""}${segments.length === 0 && !currentLabel ? " workspace-crumb-here" : ""}`}
         data-testid="workspace-breadcrumb-root"
         type="button"
         title={t("workspace.allPaths")}
-        aria-label={t("workspace.allPaths")}
         onClick={() => onSelect?.(null, "")}
       >
         <CouncilBusinessIcon aria-hidden="true" data-testid="workspace-root-business-icon" />
+        <span>{t("navigation.workspace")}</span>
       </button>
       <CrumbMenu
         parent=""

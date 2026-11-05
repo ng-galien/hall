@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { CopyReferenceButton } from "../../components/CopyReferenceButton";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { ArrowDownIcon, CalendarIcon, PdfIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
@@ -28,7 +29,21 @@ function CouncilDecisionDetail({ id }: { id: string }) {
   const { decision } = draft;
   return (
     <div className="page" data-testid="decision-detail">
-      <PageHeader title={decision?.title ?? t("decisions.title")} description={decision?.number ?? ""} />
+      <PageHeader
+        title={decision?.title ?? t("decisions.title")}
+        description={decision?.number ?? ""}
+        titleAction={
+          decision ? (
+            <CopyReferenceButton
+              reference={{
+                name: [decision.number, decision.title].filter(Boolean).join(" — "),
+                page: `/app/council-decisions/${id}`,
+                href: `/api/council-decisions/${id}`,
+              }}
+            />
+          ) : null
+        }
+      />
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={draft.error} />
         {draft.loading ? (

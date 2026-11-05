@@ -88,6 +88,7 @@ function ToolbarButton({
   disabled,
   onClick,
   children,
+  tooltipSide,
 }: {
   label: string;
   testId: string;
@@ -95,6 +96,7 @@ function ToolbarButton({
   disabled?: boolean;
   onClick(): void;
   children: ReactNode;
+  tooltipSide?: "top" | "left";
 }) {
   return (
     <Tooltip>
@@ -112,7 +114,9 @@ function ToolbarButton({
           {children}
         </button>
       </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent side={tooltipSide} sideOffset={tooltipSide === "left" ? 6 : undefined}>
+        {label}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -413,7 +417,9 @@ function CompactFormattingMenu({
               </button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
-          <TooltipContent>{t("editor.formatting")}</TooltipContent>
+          <TooltipContent side="left" sideOffset={6}>
+            {t("editor.formatting")}
+          </TooltipContent>
         </Tooltip>
         <DropdownMenuContent
           side="right"
@@ -862,13 +868,19 @@ export function MarkdownEditor({
             <ToolbarButton
               label={t("editor.searchReferences")}
               testId="editor-insert-reference"
+              tooltipSide="left"
               onClick={() => setFullSearch({ query: "" })}
             >
               <ReferenceIcon />
             </ToolbarButton>
           ) : null}
           {readOnly ? null : (
-            <ToolbarButton label={t("editor.enrich")} testId="editor-open-enriched" onClick={() => setEnriched(true)}>
+            <ToolbarButton
+              label={t("editor.enrich")}
+              testId="editor-open-enriched"
+              tooltipSide="left"
+              onClick={() => setEnriched(true)}
+            >
               <FullscreenIcon />
             </ToolbarButton>
           )}

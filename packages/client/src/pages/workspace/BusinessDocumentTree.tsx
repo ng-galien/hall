@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { FolderIcon, FullscreenIcon } from "../../components/icons";
+import { FullscreenIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ContextMenuItem } from "../../components/ui/context-menu";
 import { ExplorerTreeBranch } from "../../components/ui/explorer-tree";
@@ -10,7 +10,9 @@ import {
   type DocumentaryLeafSummary,
   DocumentaryResourceGlyph,
 } from "../../features/documents/DocumentaryResourceGlyph";
+import { FolderGlyph } from "../../features/documents/FolderGlyph";
 import { InlineResourceContent } from "../../features/resources/InlineResourceContent";
+import { ResourceDeleteDialog } from "../../features/resources/ResourceDeleteDialog";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import { useResourceRename } from "../../features/resources/useResourceRename";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -67,11 +69,7 @@ export function BusinessDocumentTree({
             title={documentFolderLabel(basePath, prefix + name, t("navigation.workspace"))}
             testId={`business-document-folder-${encodeURIComponent(prefix + name)}`}
             defaultOpen
-            icon={
-              <span className="workspace-glyph">
-                <FolderIcon />
-              </span>
-            }
+            icon={<FolderGlyph />}
           >
             {renderFolder(prefix + name)}
           </ExplorerTreeBranch>
@@ -102,8 +100,9 @@ function DocumentBranch({
   const canDelete = resourceCapabilities(representation ?? null).deleteResource;
   const { submitting, run } = useSubmitting();
   const [error, setError] = useState<ApiErrorCode | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const remove = () =>
-    void run(async () => {
+    run(async () => {
       setError(null);
       try {
         if (await useWorkspaceResourcesStore.getState().remove(resource.id)) await onRenamed();
@@ -149,7 +148,7 @@ function DocumentBranch({
               <ContextMenuItem
                 data-testid={`business-document-delete-${resource.id}`}
                 disabled={submitting}
-                onSelect={remove}
+                onSelect={() => setConfirmingDelete(true)}
               >
                 {t("workspace.deleteResource")}
               </ContextMenuItem>
@@ -163,6 +162,15 @@ function DocumentBranch({
       </ExplorerTreeBranch>
       <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
       {rename.dialog}
+      {confirmingDelete ? (
+        <ResourceDeleteDialog
+          name={resource.name}
+          onConfirm={async () => {
+            await remove();
+          }}
+          onClose={() => setConfirmingDelete(false)}
+        />
+      ) : null}
     </>
   );
 }

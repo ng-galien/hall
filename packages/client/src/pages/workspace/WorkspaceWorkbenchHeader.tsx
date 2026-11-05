@@ -1,11 +1,15 @@
 // biome-ignore-all lint/a11y/noNoninteractiveTabindex: The focusable title exposes its full-text tooltip to keyboard users.
-import { type ReactNode, useState } from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CopyReferenceButton, type ObjectReference } from "../../components/CopyReferenceButton";
 import { EditIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
+
+/** Controls of the open item supplied by the page that hosts the workbench (save state, changes, close). */
+export const WorkbenchControlsContext = createContext<ReactNode>(null);
 
 export function WorkspaceWorkbenchHeader({
   icon,
@@ -19,6 +23,7 @@ export function WorkspaceWorkbenchHeader({
   onDismissError,
   metadata,
   titleId,
+  reference,
 }: {
   icon?: ReactNode;
   title: string;
@@ -31,8 +36,10 @@ export function WorkspaceWorkbenchHeader({
   onDismissError?(): void;
   metadata?: ReactNode;
   titleId?: string;
+  reference?: ObjectReference;
 }) {
   const { t, formatDate } = useI18n();
+  const controls = useContext(WorkbenchControlsContext);
   const [editingTitle, setEditingTitle] = useState(false);
   const heading = (
     <Tooltip>
@@ -87,7 +94,13 @@ export function WorkspaceWorkbenchHeader({
             {hint}
           </div>
         </div>
-        {actions ? <div className="workbench-header-side">{actions}</div> : null}
+        {actions || reference || controls ? (
+          <div className="workbench-header-side">
+            {actions}
+            {reference ? <CopyReferenceButton reference={reference} /> : null}
+            {controls ? <span className="workbench-header-controls">{controls}</span> : null}
+          </div>
+        ) : null}
       </header>
 
       <RequestErrorBanner error={actionError} onDismiss={onDismissError} />

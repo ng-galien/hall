@@ -63,6 +63,12 @@ export function ResourceWorkbenchHeader({
       titleLabel={t("resources.textTitle")}
       date={documentaryResourceDate(resource)}
       onTitleChange={canUpdate ? onTitleChange : undefined}
+      reference={{
+        name: resource.name,
+        path: resource.path || undefined,
+        page: `/app/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id })}`,
+        href: `/api/resources/${resource.slug}`,
+      }}
       actions={
         <>
           {resource.kind === "geographic" ? (

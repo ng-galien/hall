@@ -2,7 +2,11 @@ import { matchDiscriminated } from "@hall/domain";
 import { preferredResourcePresentation } from "@hall/templating";
 import { createContext, useContext, useMemo } from "react";
 import type { Mentionable } from "../components/editor/references";
-import { type DocumentaryLeafSummary, documentaryResourceTone } from "../features/documents/DocumentaryResourceGlyph";
+import {
+  type DocumentaryLeafSummary,
+  documentaryResourceDate,
+  documentaryResourceTone,
+} from "../features/documents/DocumentaryResourceGlyph";
 import { toneIcons, toneLabelKeys } from "../features/documents/ResourceGlyph";
 import { type SearchHit, useSearchCorpus } from "../features/search/searchCorpus";
 import { domainStatusKeys } from "../features/status/DomainStatusBadge";
@@ -20,6 +24,8 @@ export function resourceMentionable(resource: DocumentaryLeafSummary, t: ReturnT
     folderPath: resource.path,
     tags: resource.tags,
     icon: toneIcons[tone],
+    tone,
+    updatedAt: documentaryResourceDate(resource).value,
     metaLabel: t(toneLabelKeys[tone]),
     media: tone === "image" ? "image" : undefined,
     resourcePresentation:
@@ -32,7 +38,7 @@ export function resourceMentionable(resource: DocumentaryLeafSummary, t: ReturnT
 export function hitMentionable(hit: SearchHit, t: ReturnType<typeof useI18n>["t"]): Mentionable {
   return matchDiscriminated(hit.entity, "entityKind", {
     resource: ({ resource }) => resourceMentionable(resource, t),
-    councilBusiness: () => ({ ...hit }),
+    councilBusiness: ({ business }) => ({ ...hit, updatedAt: business.updatedAt }),
     meeting: ({ meeting }) => ({ ...hit, stateLabel: t(domainStatusKeys[meeting.phase]) }),
     decision: ({ decision }) => ({
       ...hit,

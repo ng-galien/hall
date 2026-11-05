@@ -4,6 +4,7 @@ import { DeleteIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ResourcePreviewWithSession } from "../../features/documents/ResourcePreview";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
+import { ResourceDeleteDialog } from "../../features/resources/ResourceDeleteDialog";
 import { ResourcePresentationBody } from "../../features/resources/ResourcePresentationBody";
 import type { ResourceSession } from "../../features/resources/useResourceSession";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
@@ -25,6 +26,7 @@ export function ResourceWorkbench({
   const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
   const { t } = useI18n();
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const extendedViewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const viewerTransitionRef = useRef(false);
   const resource = session.resource;
@@ -132,7 +134,7 @@ export function ResourceWorkbench({
                 data-testid="resource-delete"
                 variant="ghost"
                 disabled={session.submitting}
-                onClick={() => void remove()}
+                onClick={() => setConfirmingDelete(true)}
               >
                 <DeleteIcon />
                 {t(session.submitting ? "common.saving" : "workspace.deleteResource")}
@@ -140,6 +142,9 @@ export function ResourceWorkbench({
             ) : null}
             <span className="composer-editor-spacer" />
           </div>
+          {confirmingDelete ? (
+            <ResourceDeleteDialog name={resource.name} onConfirm={remove} onClose={() => setConfirmingDelete(false)} />
+          ) : null}
         </section>
       </div>
 

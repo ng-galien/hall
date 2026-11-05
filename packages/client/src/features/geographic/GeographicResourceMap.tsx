@@ -150,7 +150,7 @@ export function GeographicResourceMap({
   const saveRef = useRef<(() => Promise<boolean>) | null>(null);
   const [draft, setDraft] = useState<GeographicResourceData>(normalizedData);
   const [savedSignature, setSavedSignature] = useState(() => geographicDataSignature(normalizedData));
-  const [workspaceMode, setWorkspaceMode] = useState<GeographicWorkspaceMode>("draw");
+  const [workspaceMode, setWorkspaceMode] = useState<GeographicWorkspaceMode>("map");
   const [drawTool, setDrawTool] = useState<GeographicDrawTool>("select");
   const [hallLayerVisible, setHallLayerVisible] = useState(true);
   const [editingFeatureId, setEditingFeatureId] = useState<string | null>(null);
@@ -178,7 +178,7 @@ export function GeographicResourceMap({
   const [measuredDrawingIds, setMeasuredDrawingIds] = useState<ReadonlySet<string>>(() => new Set());
 
   useEffect(() => {
-    setWorkspaceMode("draw");
+    setWorkspaceMode("map");
     setDrawTool("select");
     setMeasuredDrawingIds(new Set());
   }, [resource.id]);
