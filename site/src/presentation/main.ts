@@ -117,8 +117,8 @@ export function goTo(index: number) {
   hooks.jump?.(p);
 }
 
-/** Durée de base d'une sous-étape, entre 0,9 et 1,4 seconde selon son poids. */
-const stepMs = (weight: number) => Math.min(1400, 750 + 270 * weight);
+/** Durée de base d'une sous-étape, proportionnée à son poids (0,7 s à 1,6 s), puis à son réglage propre `pace`. */
+const stepMs = (step: { weight: number; pace?: number }) => (400 + 500 * step.weight) * (step.pace ?? 1);
 /** Multiplicateur de la durée de base pour une commande explicite : flèches et glissement de la carte, clavier,
     flèche d'ouverture. */
 const CONTROL_STEP_RATIO = 3;
@@ -135,7 +135,7 @@ function stepTo(index: number, ratio: number) {
   const current = currentStep();
   const through = subSteps[Math.max(0, index > current ? index : Math.min(subSteps.length - 1, index + 1))];
   hooks.keyIndex = index;
-  play(index < 0 ? 0 : at(subSteps[index].id, 0.97), ratio * stepMs(through.weight));
+  play(index < 0 ? 0 : at(subSteps[index].id, 0.97), ratio * stepMs(through));
   /* Les flèches de la carte restent grisées jusqu'à la fin de la sous-étape jouée, quel que soit le déclencheur */
   requestAnimationFrame(() => afterStep());
 }

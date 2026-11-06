@@ -32,6 +32,8 @@ export interface SubStep {
   /** Définition d'un terme de Hall, montrée en encadré dans le panneau d'étape. */
   definition?: string;
   weight: number;
+  /** Réglage propre à la sous-étape de la durée de lecture par flèche ou molette : 1 par défaut, 1,5 = moitié plus long. */
+  pace?: number;
 }
 
 export const places: Place[] = [
@@ -151,6 +153,7 @@ export const subSteps: SubStep[] = [
     icon: "share",
     place: 2,
     weight: 2.4,
+    pace: 1.5,
     title: "Votre assistant IA, relié à vos dossiers",
     shortTitle: "Assistant IA",
     text: "",
