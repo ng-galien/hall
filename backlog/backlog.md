@@ -103,6 +103,7 @@ The user decides business rules, data-model changes, product behavior, UI design
 ## Performance and local distribution
 
 - [ ] `[OPS]` Verify the standalone installation and update on the chosen municipal target; local artifact checks do not establish target acceptance. @tracks-requirement HALL-TR-DST-010
+- [ ] `[OPS]` Make Hall reachable from the municipal local network (town-hall laptop in the meeting room), not only through Tailscale. On 2026-11-06 the attempt failed twice: a non-loopback `SERVER_HOST` requires `HALL_BOOTSTRAP_TOKEN` (`packages/server/src/core/config.ts:100-106`), and with `HALL_BEHIND_TLS_PROXY=true` the session cookie is `Secure`, so no login succeeds over plain HTTP on the LAN; the exposure was reverted the same night. The user asks for it to work. Options to decide with the user: Tailscale on each municipal device, or a local TLS endpoint on the secretariat PC with a certificate the laptops trust; plain HTTP on the LAN is not an option for a session cookie.
 
 - [ ] `[FULL]` Define the local dump-loading and restore journey; no synchronization or database merge is currently decided.
 - [ ] `[FULL]` Measure transferred volumes and aggregation size before introducing selective loading.
