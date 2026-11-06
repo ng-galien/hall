@@ -64,17 +64,44 @@ const riverNames: Record<string, [number, number]> = {
   "l’Ain": [-2418, 3882],
 };
 
+/** Fichier embarqué compressé en gzip ; un serveur qui l'a déjà décompressé le livre tel quel. */
+async function inflate(url: string): Promise<ArrayBuffer> {
+  const response = await fetch(url);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) return bytes.buffer;
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return new Response(stream).arrayBuffer();
+}
+
+/** Altitudes de terrain.bin.gz : écarts à la prédiction plane, en deux plans d'octets (voir prepare-geodata.py). */
+function decodeHeights(buffer: ArrayBuffer, cols: number, rows: number): Uint16Array {
+  const planes = new Uint8Array(buffer);
+  const count = cols * rows;
+  const out = new Uint16Array(count);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      const left = c > 0 ? out[i - 1] : 0;
+      const up = r > 0 ? out[i - cols] : 0;
+      const prediction = r === 0 ? left : c === 0 ? up : left + up - out[i - cols - 1];
+      out[i] = (planes[i] | (planes[count + i] << 8)) + prediction;
+    }
+  }
+  return out;
+}
+
 export async function loadGround(base: string): Promise<Ground> {
-  const [data, heightBuffer, coverBuffer] = await Promise.all([
-    fetch(`${base}terrain/terrain.json`).then((r) => r.json() as Promise<TerrainData>),
-    fetch(`${base}terrain/terrain.bin`).then((r) => r.arrayBuffer()),
-    fetch(`${base}terrain/landcover.bin`).then((r) => r.arrayBuffer()),
+  const [dataBuffer, heightBuffer, coverBuffer] = await Promise.all([
+    inflate(`${base}terrain/terrain.json.gz`),
+    inflate(`${base}terrain/terrain.bin.gz`),
+    inflate(`${base}terrain/landcover.bin.gz`),
   ]);
-  const raw = new Uint16Array(heightBuffer);
+  const data = JSON.parse(new TextDecoder().decode(dataBuffer)) as TerrainData;
+  const { cols, rows, width, height, x: cx = 0, y: cy = 0 } = data.grid;
+  const raw = decodeHeights(heightBuffer, cols, rows);
   const heights = new Float32Array(raw.length);
   for (let i = 0; i < raw.length; i++) heights[i] = raw[i] * data.altitude.unit * SCALE * EXAGGERATION;
   const cover = new Uint8Array(coverBuffer);
-  const { cols, rows, width, height, x: cx = 0, y: cy = 0 } = data.grid;
   const sample = (x: number, y: number) => {
     const fx = Math.min(Math.max(((x - cx + width / 2) / width) * cols - 0.5, 0), cols - 1.001);
     const fy = Math.min(Math.max(((height / 2 - (y - cy)) / height) * rows - 0.5, 0), rows - 1.001);

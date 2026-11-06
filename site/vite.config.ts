@@ -35,6 +35,10 @@ export default defineConfig({
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
         demonstration: fileURLToPath(new URL("./demonstration/index.html", import.meta.url)),
       },
+      output: {
+        /* Three.js dans un module à part, partagé par les deux pages et chargé avec la scène 3D */
+        manualChunks: (id) => (id.includes("/node_modules/three/") ? "three" : undefined),
+      },
     },
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 900,

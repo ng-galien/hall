@@ -63,7 +63,9 @@ Run from this directory:
 - `src/viewer.ts`: full-screen viewer of the Hall captures of a scenario, with pins and their legend,
   navigation between captures, closing by button, Escape or a click outside the image.
 - `src/palette.ts`: scene colours, identical to the CSS variables of `src/styles.css`.
-- `public/terrain/`: embedded geographic data, produced by `scripts/prepare-geodata.py`.
+- `public/terrain/`: embedded geographic data, produced by `scripts/prepare-geodata.py` and compressed in gzip
+  (`terrain.json.gz`, `landcover.bin.gz`, `terrain.bin.gz`, whose heights are stored as residuals of a plane
+  prediction); `src/relief.ts` decompresses them in the browser.
 - `public/captures/`: Hall screenshots shown in each step, taken on a disposable Hall server loaded
   with the Alésia dataset (`npm run seed:dev -w @hall/server -- --dataset alesia`); the convocation
   comes from the `minutes` scenario, the other screens from the `default` scenario. The screens are shown
@@ -72,5 +74,5 @@ Run from this directory:
 ## Geographic data
 
 Sources, licences and the regeneration command are listed in [`SOURCES`](SOURCES). The embedded files
-must stay below 8 MB in total; the Playwright journey checks the size and that the page makes no
+must stay below 2 MB in total (about 0.9 MB today); the Playwright journey checks the size and that the page makes no
 request to another host.

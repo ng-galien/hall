@@ -381,15 +381,15 @@ test.describe("relief en 3D", () => {
     await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
     await page.waitForLoadState("networkidle");
     expect(foreign).toEqual([]);
-    const terrainBytes = await page.evaluate(async () => {
-      let total = 0;
-      for (const name of ["terrain.json", "terrain.bin", "landcover.bin"]) {
-        total += (await (await fetch(`../terrain/${name}`)).arrayBuffer()).byteLength;
-      }
-      return total;
-    });
-    expect(terrainBytes).toBeGreaterThan(1_000_000);
-    expect(terrainBytes).toBeLessThan(8 * 1024 * 1024);
+    /* Octets transférés pour les trois fichiers du relief, tels qu'ils sont embarqués */
+    const terrainBytes = await page.evaluate(() =>
+      performance
+        .getEntriesByType("resource")
+        .filter((entry) => /\/terrain\/(terrain\.json|terrain\.bin|landcover\.bin)\.gz$/.test(entry.name))
+        .reduce((total, entry) => total + (entry as PerformanceResourceTiming).encodedBodySize, 0),
+    );
+    expect(terrainBytes).toBeGreaterThan(500_000);
+    expect(terrainBytes).toBeLessThan(2 * 1024 * 1024);
     await expect(page.getByTestId("terrain-credit")).toContainText("IGN");
   });
 });

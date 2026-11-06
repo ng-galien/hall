@@ -1,10 +1,16 @@
 # Prépare les données géographiques embarquées du site à partir des extractions IGN.
 # Usage : python3 -I scripts/prepare-geodata.py <dossier des téléchargements> <dossier de sortie>
+#         python3 -I scripts/prepare-geodata.py --pack <dossier de sortie> (recompresse des fichiers bruts existants)
 # Entrées : alti-fine.bil (RGE ALTI, WMS-R Géoplateforme, 1634 x 1962 points, EPSG:4326, moyenné 2 x 2 en 817 x 981),
 # couches BD TOPO V3 en GeoJSON (WFS Géoplateforme) et contours communaux geo.api.gouv.fr (commune-<code>.json).
 # Sorties : terrain.bin (altitudes Uint16 en décimètres au-dessus du minimum), landcover.bin (Uint8 :
 # bit 1 forêt, bit 2 eau, bit 4 territoire de Chaux-des-Crotenay), terrain.json (métadonnées et vecteurs simplifiés en mètres locaux, x vers l'est, y vers le nord).
+# Les fichiers embarqués sont compressés en gzip : terrain.json.gz, landcover.bin.gz et terrain.bin.gz. Dans
+# terrain.bin.gz, chaque altitude est remplacée par son écart à la prédiction plane (gauche + haut - haut gauche),
+# modulo 65536, puis les octets faibles et les octets forts sont rangés en deux plans successifs. src/relief.ts
+# relit ce format.
 
+import gzip
 import json
 import math
 import sys
@@ -160,7 +166,35 @@ def label_point(feature: dict) -> tuple[float, float]:
     return local(sum(p[0] for p in points) / len(points), sum(p[1] for p in points) / len(points))
 
 
+def pack(target: Path) -> None:
+    """Remplace terrain.bin, landcover.bin et terrain.json par leurs versions compressées embarquées."""
+    raw = target / "terrain.bin"
+    if raw.exists():
+        heights = np.fromfile(raw, dtype="<u2").astype(np.int64).reshape(ROWS, COLS)
+        left = np.zeros_like(heights)
+        left[:, 1:] = heights[:, :-1]
+        up = np.zeros_like(heights)
+        up[1:, :] = heights[:-1, :]
+        corner = np.zeros_like(heights)
+        corner[1:, 1:] = heights[:-1, :-1]
+        prediction = left + up - corner
+        prediction[0, :] = left[0, :]
+        prediction[1:, 0] = up[1:, 0]
+        residual = ((heights - prediction) % 65536).astype("<u2").ravel()
+        planes = np.concatenate([(residual & 0xFF).astype(np.uint8), (residual >> 8).astype(np.uint8)])
+        (target / "terrain.bin.gz").write_bytes(gzip.compress(planes.tobytes(), 9, mtime=0))
+        raw.unlink()
+    for name in ("landcover.bin", "terrain.json"):
+        path = target / name
+        if path.exists():
+            (target / f"{name}.gz").write_bytes(gzip.compress(path.read_bytes(), 9, mtime=0))
+            path.unlink()
+
+
 def main() -> None:
+    if sys.argv[1] == "--pack":
+        pack(Path(sys.argv[2]))
+        return
     source, target = Path(sys.argv[1]), Path(sys.argv[2])
     target.mkdir(parents=True, exist_ok=True)
     west_x, south_y = local(BBOX["west"], BBOX["south"])
@@ -285,6 +319,7 @@ def main() -> None:
         "toponyms": toponyms,
     }
     (target / "terrain.json").write_text(json.dumps(meta, ensure_ascii=False, separators=(",", ":")))
+    pack(target)
     total = sum(path.stat().st_size for path in target.iterdir())
     print(f"{len(roads)} routes, {len(rivers)} cours d'eau, {len(lakes)} surfaces en eau, {len(buildings)} bâtiments")
     print(f"altitudes {minimum} à {meta['altitude']['maximum']} m ; total {total} octets")
