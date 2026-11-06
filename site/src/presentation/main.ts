@@ -384,7 +384,7 @@ window.requestAnimationFrame(() =>
 const veil = document.createElement("div");
 veil.className = "p-veil";
 document.body.append(veil);
-for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[href^="#"], .p-end a[href^="#"]')) {
+for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[href^="#"]')) {
   link.addEventListener("click", (event) => {
     const id = link.getAttribute("href")?.slice(1) ?? "";
     const target = id === "haut" ? null : document.getElementById(id);
@@ -813,29 +813,6 @@ async function start() {
       }
     });
     scene.add(server);
-  }
-  /* Place de stationnement de la secrétaire, marquage au sol fin */
-  {
-    const bay = new THREE.Group();
-    const line = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const w = 0.62;
-    const l = 1.3;
-    for (const x of [-w / 2, w / 2]) {
-      const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.035, l), line);
-      stripe.rotation.x = -Math.PI / 2;
-      stripe.position.set(x, 0.03, 0);
-      bay.add(stripe);
-    }
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.035, 0.035), line);
-    back.rotation.x = -Math.PI / 2;
-    back.position.set(0, 0.03, -l / 2);
-    bay.add(back);
-    const spot = { x: -948, y: -2284 };
-    bay.position.copy(world(spot, 0.02));
-    bay.scale.setScalar(2.2);
-    /* Alignée sur le dernier tronçon de l'arrivée, ouverte côté route */
-    bay.rotation.y = Math.atan2(spot.x - -958, -(spot.y - -2300));
-    scene.add(bay);
   }
   const serverTop = server.position.clone().add(new THREE.Vector3(0, 5.6, 0));
   const serverRing = new THREE.Mesh(

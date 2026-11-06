@@ -188,31 +188,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  padding: 4rem 1rem 2rem;
-}
-
-.p-end-card {
-  max-width: 36rem;
-  padding: 1.6rem 1.8rem;
-  border-radius: 1rem;
-  background: var(--veil);
-  border: 1px solid var(--border);
-  text-align: center;
-}
-
-.p-end-card h2 {
-  margin: 0 0 0.6rem;
-}
-
-.p-end-card p {
-  color: var(--text-2);
-}
-
-.p-end-actions {
-  display: flex;
-  gap: 0.8rem;
-  justify-content: center;
-  flex-wrap: wrap;
+  padding: 2rem 1rem 1.5rem;
 }
 
 .p-button {
@@ -243,9 +219,6 @@ body {
   margin: 0;
   font-size: 0.68rem;
   color: var(--text-2);
-}
-
-@media (max-width: 760px) {
 }
 
 /* En savoir plus */
@@ -1939,25 +1912,6 @@ body {
   padding-top: 0.55rem;
   border-top: 1px solid var(--border);
   color: var(--text-2);
-}
-
-.p-end-facts {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.3rem 1rem;
-  margin: 1rem auto;
-  max-width: 20rem;
-  text-align: left;
-}
-
-.p-end-facts dt {
-  font-weight: 700;
-  font-variant: all-small-caps;
-  letter-spacing: 0.08em;
-}
-
-.p-end-facts dd {
-  margin: 0;
 }
 
 .is-pending {
