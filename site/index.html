@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0f1723" />
+    <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1723" media="(prefers-color-scheme: dark)" />
     <meta
       name="description"
       content="Hall, gestion de l’activité communale : un logiciel pour gérer l’activité d’une commune, de la préparation du conseil municipal jusqu’à la séance et aux actes, pour le secrétariat de mairie et les élus. Démonstration : la commune fictive d’Alésia, sur le plateau d’Alésia, dans le Jura."
@@ -11,45 +12,32 @@
     <title>Hall, gestion de l’activité communale</title>
   </head>
   <body id="haut">
-    <header class="masthead" data-testid="site-header">
-      <a class="brand" href="#haut" data-testid="brand-home" aria-label="Hall, retour au début de la page">
-        <span class="brand-mark" aria-hidden="true">H</span>
-        <span class="brand-name">Hall</span>
-        <span class="brand-qualification">Gestion de l’activité communale</span>
+    <header class="masthead site-header" data-testid="site-header">
+      <a class="brand site-brand" href="./presentation/" data-testid="brand-home" aria-label="Hall, présentation">
+        <span class="brand-mark site-brand-mark" aria-hidden="true">H</span>
+        <span class="brand-name site-brand-name">Hall</span>
+        <span class="brand-qualification site-brand-qualification">Gestion de l’activité communale</span>
       </a>
-      <nav class="section-nav" aria-label="Sections de la page" data-testid="section-nav">
-        <a data-testid="nav-decouvrir" href="#decouvrir">Découvrir</a>
-        <a data-testid="nav-telecharger" href="#telecharger">Télécharger</a>
-        <a data-testid="nav-documentation" href="#documentation">Documentation</a>
+      <nav class="section-nav site-nav" aria-label="Navigation" data-testid="section-nav">
+        <a data-testid="nav-fonctionnalites" href="./presentation/#en-savoir-plus">Fonctionnalités</a>
+        <a data-testid="nav-demonstration" href="#haut" aria-current="page">Démonstration</a>
+        <a class="site-nav-action" data-testid="nav-telecharger" href="#telecharger">Télécharger</a>
       </nav>
     </header>
 
     <main id="app" data-testid="site-main">
       <section id="decouvrir" class="discover" data-testid="section-decouvrir" aria-label="Découvrir Hall">
         <div class="intro" data-testid="intro">
-          <h1>
-            <span class="intro-name">Hall</span>
-            <span class="intro-qualification" data-testid="intro-qualification">Gestion de l’activité communale</span>
-          </h1>
-          <p>
-            Hall est un logiciel pour gérer l’activité d’une commune, de la préparation du conseil municipal jusqu’à la
-            séance et aux actes.
+          <h1 class="intro-title">Démonstration de Hall sur la commune fictive d’Alésia</h1>
+          <p class="intro-hint intro-hint-scene">
+            Choisissez un scénario dans le menu Alésia, Préparer ou Siéger, en haut de la page.
           </p>
-          <p>
-            Il réunit les dossiers et leurs pièces, les cartes, les tableurs, les convocations, les scrutins, les
-            procès-verbaux et les délibérations.
-          </p>
-          <p>Il sert au secrétariat de mairie et aux élus.</p>
-          <p class="intro-note">
-            La démonstration suit une commune fictive, Alésia, ville des Mandubiens, sur le relief réel du plateau
-            d’Alésia, près de Chaux-des-Crotenay, dans le Jura.
-          </p>
+          <p class="intro-hint intro-hint-plain">Choisissez un scénario dans la liste ci-dessous.</p>
         </div>
 
         <div class="terrain" data-testid="terrain" hidden>
           <div class="terrain-stage" data-testid="terrain-stage"></div>
           <div class="terrain-labels" aria-hidden="true"></div>
-          <div class="place-bar" data-testid="place-bar"></div>
           <p class="terrain-credit" data-testid="terrain-credit">
             Relief RGE ALTI, bâti, routes et eau BD TOPO © IGN, licence ouverte Etalab 2.0
           </p>

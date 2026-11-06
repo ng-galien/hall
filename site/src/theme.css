@@ -1,0 +1,62 @@
+/*
+ * Charte commune du site public de Hall, palette « Ardoise et bleu de séance ».
+ * Thème clair par défaut ; le thème sombre ne s'applique que sur préférence du système.
+ * Les teintes de la scène 3D sont dans src/theme.ts.
+ */
+:root {
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --text: #0f1723;
+  --text-2: #475569;
+  --text-3: #64748b;
+  --border: #cbd5e1;
+  --hairline: rgb(15 23 35 / 0.1);
+  --accent: #1f5fbf;
+  --accent-strong: #174a96;
+  --on-accent: #ffffff;
+  --accent-text: #1f5fbf;
+  --accent-wash: rgb(31 95 191 / 0.08);
+  --veil: rgb(255 255 255 / 0.9);
+  --masthead-veil: rgb(246 248 250 / 0.94);
+  --success: #15803d;
+  --danger: #b91c1c;
+  --glass: linear-gradient(160deg, rgb(255 255 255 / 0.72), rgb(246 248 250 / 0.55));
+  --glass-strong: linear-gradient(160deg, rgb(255 255 255 / 0.9), rgb(246 248 250 / 0.82));
+  --glass-border: rgb(255 255 255 / 0.7);
+  --glass-shadow: 0 1px 0 rgb(255 255 255 / 0.8) inset, 0 20px 50px rgb(15 23 35 / 0.16);
+  --glass-blur: blur(14px) saturate(1.2);
+  --halo: 0 0 4px var(--bg), 0 0 10px var(--bg);
+  --font: "Public Sans", system-ui, sans-serif;
+  --masthead: 4.6rem;
+  /* Une seule échelle : textes et icônes */
+  --fs-xs: 0.72rem;
+  --fs-sm: 0.84rem;
+  --fs-md: 0.95rem;
+  --fs-lg: 1.15rem;
+  --fs-xl: 1.5rem;
+  --ic-sm: 0.95rem;
+  --ic-md: 1.15rem;
+  --ic-lg: 1.5rem;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1723;
+    --surface: #1a2433;
+    --text: #eef2f6;
+    --text-2: #a3b1c2;
+    --text-3: #8494a8;
+    --border: #334155;
+    --hairline: rgb(255 255 255 / 0.1);
+    --accent-text: #6ea0f0;
+    --accent-wash: rgb(110 160 240 / 0.14);
+    --veil: rgb(26 36 51 / 0.92);
+    --masthead-veil: rgb(15 23 35 / 0.92);
+    --glass: linear-gradient(160deg, rgb(26 36 51 / 0.78), rgb(15 23 35 / 0.6));
+    --glass-strong: linear-gradient(160deg, rgb(26 36 51 / 0.92), rgb(15 23 35 / 0.86));
+    --glass-border: rgb(255 255 255 / 0.08);
+    --glass-shadow: 0 20px 50px rgb(0 0 0 / 0.35);
+    color-scheme: dark;
+  }
+}

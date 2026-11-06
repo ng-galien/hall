@@ -19,6 +19,19 @@ import {
   wideLines,
 } from "./relief";
 import type { Mark, MarkTone, Motion, PlaceId, Pose, Spot } from "./scenes";
+import {
+  ACCENT,
+  ACCENT_ON_DARK,
+  dark,
+  look,
+  SUCCESS,
+  themeBuildings,
+  themeNetworks,
+  themeRelief,
+  themeSkirt,
+} from "./theme";
+
+const accent = dark ? ACCENT_ON_DARK : ACCENT;
 
 export interface TerrainPlace {
   id: PlaceId;
@@ -74,7 +87,7 @@ function buildPlaces(ground: Ground, places: TerrainPlace[], labels: HTMLElement
     const radius = PLACE_RADIUS * SCALE;
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(radius * 0.92, radius, 72),
-      new THREE.MeshBasicMaterial({ color: palette.blue, transparent: true, opacity: 0.25, depthTest: false }),
+      new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.25, depthTest: false }),
     );
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(x, groundY + 2, z);
@@ -85,7 +98,7 @@ function buildPlaces(ground: Ground, places: TerrainPlace[], labels: HTMLElement
         new THREE.Vector3(x, groundY, z),
         new THREE.Vector3(x, groundY + beamHeight, z),
       ]),
-      new THREE.LineBasicMaterial({ color: palette.slate200, transparent: true, opacity: 0.7 }),
+      new THREE.LineBasicMaterial({ color: look.lineLight, transparent: true, opacity: 0.7 }),
     );
     const hit = new THREE.Mesh(
       new THREE.CylinderGeometry(
@@ -122,10 +135,10 @@ function buildPlaces(ground: Ground, places: TerrainPlace[], labels: HTMLElement
 }
 
 const markColors: Record<MarkTone, number> = {
-  blue: palette.blue,
-  green: palette.green,
-  light: palette.slate100,
-  slate: palette.slate500,
+  blue: accent,
+  green: SUCCESS,
+  light: look.pin,
+  slate: look.lineSoft,
 };
 
 interface MarkItem {
@@ -166,7 +179,7 @@ function markObjects(ground: Ground, mark: Mark): THREE.Object3D[] {
         base.clone().add(new THREE.Vector3(-2.5, 14, 0)),
         base.clone().add(new THREE.Vector3(2.5, 14, 0)),
       ]),
-      new THREE.LineBasicMaterial({ color: palette.slate200, transparent: true, opacity: 0.9 }),
+      new THREE.LineBasicMaterial({ color: look.lineLight, transparent: true, opacity: 0.9 }),
     );
     return [tower];
   }
@@ -203,7 +216,7 @@ function buildMarks(ground: Ground, motion: Motion, labels: HTMLElement): MarkLa
   });
   if (motion.trace) {
     const flat = motion.trace.points.flatMap((spot) => [spot.x, spot.y]);
-    const line = wideLines(drape(ground, flat, 2.5, 10), palette.blue, 4);
+    const line = wideLines(drape(ground, flat, 2.5, 10), look.trace, 4);
     line.visible = false;
     line.renderOrder = 9;
     group.add(line);
@@ -260,7 +273,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   const renderer = new THREE.WebGLRenderer({ antialias: !software });
   const compact = software || stage.clientWidth < 760 || window.matchMedia("(pointer: coarse)").matches;
   renderer.setPixelRatio(software ? 1 : Math.min(window.devicePixelRatio, compact ? 1.5 : 2));
-  renderer.setClearColor(palette.slate950, 1);
+  renderer.setClearColor(look.clear, 1);
   stage.appendChild(renderer.domElement);
   renderer.domElement.setAttribute("data-testid", "terrain-canvas");
   renderer.domElement.setAttribute("role", "img");
@@ -270,7 +283,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   );
 
   const scene = new THREE.Scene();
-  scene.background = color(palette.slate950);
+  scene.background = color(look.clear);
   const camera = new THREE.PerspectiveCamera(30, 1, 5, 7000);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = !reducedMotion;
@@ -282,17 +295,23 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   controls.maxDistance = 3200;
   controls.rotateSpeed = 0.5;
 
-  scene.add(new THREE.HemisphereLight(palette.slate100, palette.slate800, 1.4));
+  scene.add(new THREE.HemisphereLight(look.hemiSky, look.hemiGround, dark ? 1.4 : 1.7));
   const sun = new THREE.DirectionalLight(palette.slate50, 1.6);
   sun.position.set(-300, 500, -200);
   scene.add(sun);
 
   const terrain = buildRelief(ground);
+  themeRelief(terrain);
   scene.add(terrain.group);
-  scene.add(buildSkirt(ground));
+  const skirt = buildSkirt(ground);
+  themeSkirt(skirt);
+  scene.add(skirt);
   const networks = buildNetworks(ground);
+  themeNetworks(networks);
   scene.add(networks);
-  scene.add(buildBuildings(ground));
+  const buildings = buildBuildings(ground);
+  themeBuildings(buildings);
+  scene.add(buildings);
   const models = buildPlaces(ground, places, labels, scene);
   const toponyms = buildToponyms(ground, labels);
 
@@ -482,7 +501,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       const ringMaterial = model.ring.material as THREE.MeshBasicMaterial;
       ringMaterial.opacity = isActive ? 0.95 : isHovered ? 0.6 : 0.25;
       const beamMaterial = model.beam.material as THREE.LineBasicMaterial;
-      beamMaterial.color.setHex(isActive ? palette.blue : palette.slate200);
+      beamMaterial.color.setHex(isActive ? accent : look.lineLight);
       model.label.classList.toggle("is-active", isActive);
       model.label.classList.toggle("is-hovered", isHovered);
     }

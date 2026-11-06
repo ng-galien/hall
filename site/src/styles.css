@@ -1,36 +1,12 @@
 /*
- * Charte du site public de Hall : gris ardoise, un seul bleu, vert sain, rouge bloquant.
- * Aucune autre teinte n'est utilisée, ni dans la page ni dans la scène 3D (voir src/palette.ts).
+ * Site de démonstration Alésia. Les jetons de couleur, de typographie et de taille sont ceux de src/theme.css,
+ * communs au site de présentation : thème clair par défaut, sombre seulement sur préférence du système.
  */
 :root {
-  --slate-950: #0f1723;
-  --slate-800: #1f2a3a;
-  --slate-700: #334155;
-  --slate-600: #475569;
-  --slate-500: #64748b;
-  --slate-400: #94a3b8;
-  --slate-300: #cbd5e1;
-  --slate-200: #e2e8f0;
-  --slate-100: #eef2f6;
-  --slate-50: #f8fafc;
-  --blue: #2f6fd6;
-  --green: #15803d;
-  --red: #b91c1c;
-
-  --ink: var(--slate-950);
-  --ink-soft: var(--slate-600);
-  --paper: var(--slate-50);
-  --ground: var(--slate-100);
-  --rule: var(--slate-300);
-
-  --font: "Public Sans", system-ui, sans-serif;
-  --step-0: 1rem;
-  --step-1: 1.25rem;
-  --step-2: 1.5625rem;
-  --step-3: clamp(1.9rem, 1.2rem + 2.6vw, 3.05rem);
-  --gutter: clamp(1rem, 0.6rem + 1.6vw, 2rem);
-  --masthead: 4rem;
-  color-scheme: dark;
+  --gutter: clamp(1rem, 3vw, 2.5rem);
+  /* En-tête : la barre de 4,6 rem du site de présentation */
+  --bar: 4.6rem;
+  --masthead: var(--bar);
 }
 
 *,
@@ -46,10 +22,10 @@ html {
 body {
   margin: 0;
   font-family: var(--font);
-  font-size: var(--step-0);
-  line-height: 1.55;
-  color: var(--ink);
-  background: var(--ground);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
   overflow-x: hidden;
 }
 
@@ -59,11 +35,11 @@ img {
 }
 
 a {
-  color: var(--blue);
+  color: var(--accent-text);
 }
 
 :focus-visible {
-  outline: 3px solid var(--blue);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -71,216 +47,110 @@ a {
   display: none;
 }
 
-/* En-tête */
+/* En-tête : styles communs dans src/site-header.css ; ici, la barre collante et la place du menu du récit */
 .masthead {
   position: sticky;
   top: 0;
   z-index: 30;
   height: var(--masthead);
   display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  column-gap: 1.5rem;
+  row-gap: 0;
   padding: 0 var(--gutter);
-  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  background: var(--masthead-veil);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--rule);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
 }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: var(--ink);
-  text-decoration: none;
-  font-weight: 700;
-  font-size: var(--step-1);
-  letter-spacing: -0.01em;
+.masthead > .brand,
+.masthead > .section-nav {
+  height: var(--bar);
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.4rem;
-  background: var(--slate-800);
-  color: var(--paper);
-  font-size: 1rem;
+.masthead > .section-nav {
+  margin-left: auto;
 }
 
-.section-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+/* Le menu du récit se place juste avant les entrées de l'en-tête */
+@media (min-width: 1180px) {
+  .masthead > .discovery {
+    margin-left: auto;
+  }
+
+  .masthead > .discovery + .section-nav {
+    margin-left: 0;
+  }
 }
 
-.section-nav a {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.5rem;
-  padding: 0 0.8rem;
-  border-radius: 0.3rem;
-  color: var(--slate-700);
-  font-weight: 600;
-  font-size: 0.95rem;
-  text-decoration: none;
-  white-space: nowrap;
+@media (min-width: 1180px) and (max-width: 1599px) {
+  .has-terrain .brand-qualification {
+    display: none;
+  }
 }
 
-.section-nav a:hover {
-  background: var(--slate-200);
-}
-
-.section-nav a[aria-current="true"] {
-  color: var(--ink);
-}
-
-.section-nav a[aria-current="true"]::after {
-  content: "";
-  position: absolute;
-  left: 0.8rem;
-  right: 0.8rem;
-  bottom: 0.2rem;
-  height: 2px;
-  background: var(--blue);
-}
-
-/* Introduction */
+/* Encart d'arrivée : deux lignes posées sur la scène, sans fond, comme la gouttière de la présentation */
 .intro {
-  padding: clamp(1.5rem, 1rem + 3vw, 3.5rem) var(--gutter) 1.5rem;
+  padding: 1.5rem var(--gutter);
   max-width: 46rem;
 }
 
-.intro h1 {
-  margin: 0 0 1rem;
-  font-size: var(--step-3);
-  line-height: 1.08;
-  letter-spacing: -0.025em;
+.intro-title {
+  margin: 0 0 0.35rem;
+  color: var(--text);
+  font-size: var(--fs-lg);
   font-weight: 800;
+  line-height: 1.3;
   text-wrap: balance;
 }
 
-.intro p {
-  margin: 0 0 0.75rem;
-  max-width: 38rem;
-  color: var(--slate-700);
-  font-size: 1.0625rem;
-}
-
-.intro .intro-note {
-  color: var(--ink-soft);
-  font-size: 0.95rem;
-}
-
-.intro-name,
-.intro-qualification {
-  display: block;
-}
-
-.intro-qualification {
-  margin-top: 0.3rem;
-  font-size: 0.55em;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--slate-700);
-}
-
-.has-terrain .intro-qualification {
-  color: var(--slate-300);
-}
-
-.brand-qualification {
-  padding-left: 0.6rem;
-  border-left: 1px solid var(--rule);
-  color: var(--slate-700);
-  font-size: 0.9rem;
+.intro-hint {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
   font-weight: 600;
-  white-space: nowrap;
+  line-height: 1.45;
 }
 
-.has-terrain .brand-qualification {
-  border-left-color: var(--slate-700);
-  color: var(--slate-300);
+.intro-hint-plain,
+[data-view="plain"] .intro-hint-scene {
+  display: none;
+}
+
+[data-view="plain"] .intro-hint-plain {
+  display: block;
 }
 
 .site-signature {
   font-style: italic;
 }
 
-/* Scène 3D : le relief est présenté sur fond ardoise sombre, en salle obscure. */
+/* Scène 3D : le relief clair du site de présentation */
 .terrain {
   position: relative;
   height: max(34rem, calc(100svh - var(--masthead)));
   overflow: hidden;
-  background: var(--slate-950);
-}
-
-body.has-terrain {
-  background: var(--slate-950);
-}
-
-.has-terrain .masthead {
-  background: color-mix(in srgb, var(--slate-950) 88%, transparent);
-  border-bottom-color: var(--slate-800);
-}
-
-.has-terrain .brand {
-  color: var(--slate-50);
-}
-
-.has-terrain .brand-mark {
-  background: var(--slate-50);
-  color: var(--slate-950);
-}
-
-.has-terrain .section-nav a {
-  color: var(--slate-300);
-}
-
-.has-terrain .section-nav a:hover {
-  background: var(--slate-800);
-}
-
-.has-terrain .section-nav a[aria-current="true"] {
-  color: var(--slate-50);
+  background: var(--bg);
 }
 
 .has-terrain .intro {
-  padding-bottom: 0.5rem;
-  color: var(--slate-50);
+  position: absolute;
+  z-index: 10;
+  top: calc(var(--masthead) + 1rem);
+  left: 0;
+  max-width: min(24rem, calc(100% - 4rem));
+  padding: 0 0 0 var(--gutter);
+  pointer-events: none;
+  text-shadow: var(--halo);
+  transition: opacity 300ms ease;
 }
 
-.has-terrain .intro h1 {
-  font-size: clamp(1.75rem, 1.1rem + 2vw, 2.6rem);
-}
-
-.has-terrain .intro p {
-  color: var(--slate-300);
-}
-
-.has-terrain .intro .intro-note {
-  color: var(--slate-400);
-}
-
-@media (min-width: 1280px) {
-  .has-terrain .intro {
-    position: absolute;
-    z-index: 10;
-    top: calc(var(--masthead) + 0.5rem);
-    left: 0;
-    pointer-events: none;
-    max-width: 30rem;
-    text-shadow: 0 1px 12px var(--slate-950);
-  }
-
-  .has-terrain.has-scenario .intro {
-    visibility: hidden;
-  }
+.has-terrain.has-scenario .intro,
+.is-beyond .intro {
+  opacity: 0;
 }
 
 .terrain-stage {
@@ -307,6 +177,7 @@ body.has-terrain {
   pointer-events: none;
 }
 
+/* Lieux du récit : un repère cerclé et le nom en texte détouré, sans étiquette */
 .terrain-label {
   position: absolute;
   left: 0;
@@ -314,37 +185,38 @@ body.has-terrain {
   transform: translate(-50%, -100%);
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.15rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--slate-800) 88%, transparent);
-  color: var(--slate-50);
-  border: 1px solid var(--slate-600);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  gap: 0.35rem;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
   white-space: nowrap;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease;
+  text-shadow: var(--halo);
 }
 
 .terrain-label-dot {
-  width: 0.7rem;
-  height: 0.7rem;
+  width: 0.8rem;
+  height: 0.8rem;
   margin: 0.2rem;
   border-radius: 50%;
-  border: 1px solid var(--slate-300);
-  background: var(--slate-950);
+  border: 2px solid var(--text-2);
+  background: var(--surface);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.terrain-label.is-hovered .terrain-label-dot {
+  border-color: var(--text);
 }
 
 .terrain-label.is-active .terrain-label-dot {
-  border-color: var(--paper);
-  background: var(--paper);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--surface);
+  background: var(--accent);
 }
 
 .terrain-label-name {
   display: none;
-  padding-right: 0.5rem;
 }
 
 .terrain-label.is-active .terrain-label-name,
@@ -352,105 +224,119 @@ body.has-terrain {
   display: inline;
 }
 
-.terrain-label.is-hovered {
-  border-color: var(--slate-300);
-}
-
-.terrain-label.is-active {
-  background: var(--blue);
-  border-color: var(--blue);
+.terrain-label.is-active .terrain-label-name {
+  color: var(--accent-text);
 }
 
 .terrain-toponym {
   position: absolute;
   left: 0;
   top: 0;
-  color: var(--slate-400);
-  font-size: 0.75rem;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.02em;
   white-space: nowrap;
-  text-shadow:
-    0 0 4px var(--slate-950),
-    0 0 10px var(--slate-950);
+  text-shadow: var(--halo);
 }
 
 .terrain-toponym.is-major {
-  color: var(--slate-200);
-  font-size: 0.875rem;
+  color: var(--text);
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
 .terrain-toponym.is-site {
-  color: var(--slate-300);
-  font-size: 0.6875rem;
+  color: var(--text-3);
+  font-size: 0.68rem;
   font-weight: 500;
 }
 
 .terrain-toponym.is-river {
-  color: color-mix(in srgb, var(--blue) 55%, var(--slate-50));
+  color: var(--accent-text);
   font-style: italic;
 }
 
 .terrain-credit {
   position: absolute;
   z-index: 11;
-  right: var(--gutter);
-  top: 0.75rem;
-  margin: 0;
-  max-width: 22rem;
-  color: var(--slate-500);
-  font-size: 0.75rem;
-  text-align: right;
-}
-
-.place-bar {
-  position: absolute;
-  z-index: 12;
   left: var(--gutter);
-  bottom: var(--gutter);
-  pointer-events: none;
+  bottom: 0.5rem;
+  margin: 0;
+  max-width: 30rem;
+  color: var(--text-2);
+  font-size: 0.68rem;
+  text-shadow: var(--halo);
 }
 
-/* Menu de découverte du récit : une ligne fermée, un groupe déplié à la fois. */
+/*
+ * Menu de découverte du récit : une ligne fermée, un groupe déplié à la fois. Il est placé dans l'en-tête, visible dès
+ * l'arrivée et pendant tout le défilement ; quand la ligne de l'en-tête est trop étroite, il passe sur une seconde
+ * ligne et la hauteur de l'en-tête (--masthead) la compte.
+ */
 .discovery {
-  pointer-events: auto;
+  position: relative;
+}
+
+@media (max-width: 1179px) {
+  .has-terrain {
+    --masthead: calc(var(--bar) + var(--menu-row));
+    --menu-row: 3.75rem;
+  }
+
+  .has-terrain .masthead > .discovery {
+    order: 1;
+    flex-basis: 100%;
+    display: flex;
+    align-items: flex-start;
+  }
 }
 
 .discovery-bar {
   display: flex;
   align-items: stretch;
-  border: 1px solid var(--slate-600);
-  border-radius: 0.35rem;
-  background: color-mix(in srgb, var(--slate-950) 90%, transparent);
-  backdrop-filter: blur(6px);
+  border-left: 1px solid var(--border);
 }
 
 .discovery-group {
   position: relative;
   display: flex;
-  border-left: 1px solid var(--slate-700);
+  border-left: 1px solid var(--border);
+}
+
+.discovery-bar > .discovery-group:last-child,
+.discovery-bar > :last-child {
+  border-right: 1px solid var(--border);
 }
 
 .discovery-start,
 .discovery-toggle {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   min-height: 3.25rem;
   padding: 0.45rem 1rem;
   border: 0;
   background: transparent;
-  color: var(--slate-50);
+  color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.discovery-start {
-  display: grid;
-  gap: 0;
-  align-content: center;
+.discovery-icon,
+.scenario-axis-icon {
+  display: inline-grid;
+  flex: none;
+  width: var(--ic-md);
+  height: var(--ic-md);
+  color: var(--text-2);
+}
+
+.discovery-icon svg,
+.scenario-axis-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
 }
 
 .discovery-label {
@@ -458,14 +344,14 @@ body.has-terrain {
 }
 
 .discovery-group-name {
-  font-size: 0.975rem;
+  font-size: var(--fs-md);
   font-weight: 700;
   line-height: 1.2;
 }
 
 .discovery-group-state {
-  color: var(--slate-400);
-  font-size: 0.8125rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
   font-weight: 500;
   line-height: 1.3;
   white-space: nowrap;
@@ -473,52 +359,51 @@ body.has-terrain {
 
 .discovery-start:hover,
 .discovery-toggle:hover {
-  background: color-mix(in srgb, var(--slate-700) 45%, transparent);
+  background: var(--accent-wash);
 }
 
 .discovery-start[aria-current="step"],
 .discovery-toggle.is-current {
-  box-shadow: inset 0 -2px 0 var(--blue);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
-.discovery-start[aria-current="step"] .discovery-group-state,
-.discovery-toggle.is-current .discovery-group-state {
-  color: var(--slate-100);
+.discovery-start[aria-current="step"] .discovery-icon,
+.discovery-toggle.is-current .discovery-icon {
+  color: var(--accent-text);
 }
 
 .discovery-toggle[aria-expanded="true"] {
-  background: color-mix(in srgb, var(--slate-700) 55%, transparent);
+  background: var(--accent-wash);
 }
 
 .discovery-chevron {
   width: 0.75rem;
   height: 0.75rem;
   fill: none;
-  stroke: var(--slate-400);
+  stroke: var(--text-2);
   stroke-width: 1.5;
   transition: transform 160ms ease;
 }
 
-.discovery-toggle[aria-expanded="true"] .discovery-chevron {
+.discovery-toggle[aria-expanded="false"] .discovery-chevron {
   transform: rotate(180deg);
 }
 
+/* Liste déroulante : panneau en verre dépoli */
 .discovery-list {
   position: absolute;
   left: -1px;
-  bottom: calc(100% + 0.5rem);
+  top: calc(100% + 0.5rem);
   width: 19rem;
   margin: 0;
-  padding: 0.35rem;
+  padding: 0.4rem;
   list-style: none;
-  border: 1px solid var(--slate-600);
-  border-radius: 0.35rem;
-  background-color: color-mix(in srgb, var(--slate-950) 96%, transparent);
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--slate-700) 30%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--slate-700) 30%, transparent) 1px, transparent 1px);
-  background-size: 2rem 2rem;
-  backdrop-filter: blur(6px);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.8rem;
+  background: var(--glass-strong);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .discovery-list[hidden] {
@@ -527,64 +412,58 @@ body.has-terrain {
 
 .discovery-item {
   display: grid;
-  grid-template-columns: 1.75rem 1fr;
-  column-gap: 0.75rem;
+  grid-template-columns: 1.5rem 1fr;
+  column-gap: 0.6rem;
   align-items: center;
   width: 100%;
   padding: 0.5rem 0.6rem;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: 0.5rem;
   background: transparent;
-  color: var(--slate-100);
+  color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
 .discovery-item:hover {
-  background: color-mix(in srgb, var(--slate-700) 55%, transparent);
+  background: var(--accent-wash);
 }
 
 .discovery-number {
   grid-row: span 2;
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: 1px solid var(--slate-500);
-  border-radius: 50%;
-  color: var(--slate-200);
-  font-size: 0.8125rem;
+  align-self: start;
+  color: var(--text-3);
+  font-size: var(--fs-md);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  text-align: right;
 }
 
 .discovery-name {
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   font-weight: 700;
   line-height: 1.25;
 }
 
 .discovery-place {
-  color: var(--slate-400);
-  font-size: 0.8125rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
   line-height: 1.3;
 }
 
 .discovery-item[aria-current="step"] {
-  background: color-mix(in srgb, var(--blue) 26%, transparent);
+  background: var(--accent-wash);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
-.discovery-item[aria-current="step"] .discovery-number {
-  border-color: var(--blue);
-  background: var(--blue);
-  color: var(--paper);
+.discovery-item[aria-current="step"] .discovery-number,
+.discovery-item[aria-current="step"] .discovery-name {
+  color: var(--accent-text);
 }
 
-.discovery-item[aria-current="step"] .discovery-place {
-  color: var(--slate-200);
-}
-
-/* Panneau de scénario : sur le relief, il reprend le traitement de la scène (ardoise, traits fins de fil de fer). */
+/* Panneau de scénario : verre dépoli posé sur le relief */
 .scenario-panel {
   position: absolute;
   z-index: 20;
@@ -594,16 +473,14 @@ body.has-terrain {
   width: min(31rem, calc(100% - 2rem));
   overflow-y: auto;
   overscroll-behavior: contain;
-  color: var(--slate-200);
-  background-color: color-mix(in srgb, var(--slate-950) 94%, transparent);
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--slate-700) 38%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--slate-700) 38%, transparent) 1px, transparent 1px);
-  background-size: 2rem 2rem;
-  border: 1px solid var(--slate-600);
-  border-radius: 0.35rem;
-  backdrop-filter: blur(6px);
-  scrollbar-color: var(--slate-600) transparent;
+  color: var(--text);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  scrollbar-color: var(--border) transparent;
 }
 
 .scenario {
@@ -620,39 +497,49 @@ body.has-terrain {
 .scenario-axis {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   margin: 0 0 0.5rem;
-  color: var(--ink-soft);
-  font-size: 0.875rem;
-  font-weight: 600;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.scenario h2 {
+.scenario-axis .scenario-axis-icon {
+  width: var(--ic-sm);
+  height: var(--ic-sm);
+  color: var(--accent-text);
+}
+
+.scenario h2,
+.scenario h3 {
   margin: 0 0 0.75rem;
-  font-size: var(--step-2);
-  line-height: 1.15;
-  letter-spacing: -0.015em;
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  line-height: 1.2;
   text-wrap: balance;
 }
 
 .scenario-where {
   margin: 0 0 0.75rem;
-  padding-left: 0.75rem;
-  border-left: 2px solid var(--blue);
-  color: var(--slate-700);
-  font-size: 0.9rem;
+  padding-left: 0.9rem;
+  border-left: 3px solid var(--accent);
+  color: var(--text);
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 
 .scenario-lead {
   margin: 0 0 1.25rem;
-  color: var(--slate-700);
+  color: var(--text);
+  font-size: var(--fs-md);
 }
 
 .scenario-feature {
   margin: 0 0 1.5rem;
-  color: var(--ink-soft);
-  font-size: 0.9rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
 }
 
 .axis-entries {
@@ -666,9 +553,9 @@ body.has-terrain {
   display: grid;
   gap: 0.15rem;
   padding: 0.85rem 1rem;
-  border: 1px solid var(--slate-500);
-  border-radius: 0.3rem;
-  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--surface);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -676,17 +563,17 @@ body.has-terrain {
 }
 
 .axis-entry:hover {
-  border-color: var(--blue);
+  border-color: var(--accent);
 }
 
 .axis-entry-name {
-  font-size: var(--step-1);
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
 .axis-entry-count {
-  color: var(--slate-400);
-  font-size: 0.85rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
 }
 
 .step-nav {
@@ -696,34 +583,36 @@ body.has-terrain {
   gap: 0.5rem;
   margin-top: 1.75rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--slate-200);
+  border-top: 1px solid var(--hairline);
 }
 
 .step-button {
   min-height: 2.5rem;
-  padding: 0 0.85rem;
-  border: 1px solid var(--slate-300);
-  border-radius: 0.3rem;
-  background: transparent;
-  color: var(--slate-800);
+  padding: 0 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   cursor: pointer;
 }
 
 .step-button:hover:not(:disabled) {
-  border-color: var(--slate-500);
+  border-color: var(--text-3);
 }
 
 .step-button:disabled {
-  color: var(--slate-400);
+  color: var(--text-3);
+  background: transparent;
   cursor: default;
 }
 
 .step-button.is-play[aria-pressed="true"] {
-  border-color: var(--blue);
-  color: var(--blue);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .close-button {
@@ -732,16 +621,22 @@ body.has-terrain {
   height: 2.5rem;
   display: grid;
   place-items: center;
-  border: 1px solid var(--slate-300);
-  border-radius: 0.3rem;
-  background: transparent;
-  color: var(--slate-700);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text-2);
   font: inherit;
   font-size: 1.35rem;
   line-height: 1;
   cursor: pointer;
 }
 
+.close-button:hover {
+  border-color: var(--text-3);
+  color: var(--text);
+}
+
+/* Étapes : une ligne fine et des repères cerclés, comme la chronologie du site de présentation */
 .steps {
   list-style: none;
   counter-reset: step;
@@ -753,6 +648,8 @@ body.has-terrain {
   counter-increment: step;
   position: relative;
   padding: 0 0 0.9rem 2.4rem;
+  color: var(--text);
+  font-size: var(--fs-md);
 }
 
 .steps li::before {
@@ -765,32 +662,31 @@ body.has-terrain {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  border: 1px solid var(--slate-400);
-  color: var(--slate-700);
-  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
 .steps li:not(:last-child)::after {
   content: "";
   position: absolute;
-  left: 0.78rem;
+  left: 0.8rem;
   top: 1.8rem;
   bottom: 0.15rem;
   width: 1px;
-  background: var(--slate-300);
+  background: var(--border);
 }
 
 .steps li.tone-valid::before {
-  border-color: var(--green);
-  background: var(--green);
-  color: var(--paper);
+  border-color: var(--success);
+  color: var(--success);
 }
 
 .steps li.tone-blocking::before {
-  border-color: var(--red);
-  background: var(--red);
-  color: var(--paper);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .captures {
@@ -820,16 +716,17 @@ body.has-terrain {
   right: 0.5rem;
   bottom: 0.5rem;
   padding: 0.15rem 0.5rem;
-  border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--slate-950) 86%, transparent);
-  color: var(--slate-50);
-  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  background: var(--veil);
+  color: var(--text);
+  font-size: var(--fs-xs);
   font-weight: 600;
 }
 
 .capture-open:hover img,
 .capture-open:focus-visible img {
-  border-color: var(--blue);
+  border-color: var(--accent);
 }
 
 .capture.is-phone .capture-open {
@@ -839,78 +736,15 @@ body.has-terrain {
 .capture img {
   width: 100%;
   height: auto;
-  border-radius: 0.25rem;
-  border: 1px solid var(--slate-300);
-  background: var(--slate-200);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .capture figcaption {
   margin-top: 0.45rem;
-  color: var(--ink-soft);
-  font-size: 0.875rem;
-}
-
-.scenario-panel h2 {
-  color: var(--slate-50);
-}
-
-.scenario-panel .scenario-axis,
-.scenario-panel .scenario-feature,
-.scenario-panel .capture figcaption {
-  color: var(--slate-400);
-}
-
-.scenario-panel .scenario-where {
-  color: var(--slate-200);
-}
-
-.scenario-panel .scenario-lead,
-.scenario-panel .steps li {
-  color: var(--slate-300);
-}
-
-.scenario-panel .steps li::before {
-  border-color: var(--slate-500);
-  color: var(--slate-200);
-}
-
-.scenario-panel .steps li:not(:last-child)::after {
-  background: var(--slate-700);
-}
-
-.scenario-panel .steps li.tone-valid::before {
-  border-color: var(--green);
-  color: var(--slate-50);
-}
-
-.scenario-panel .capture img {
-  border-color: var(--slate-600);
-  background: var(--slate-800);
-}
-
-.scenario-panel .step-nav {
-  border-top-color: var(--slate-700);
-}
-
-.scenario-panel .step-button,
-.scenario-panel .close-button {
-  border-color: var(--slate-600);
-  color: var(--slate-100);
-}
-
-.scenario-panel .step-button:hover:not(:disabled),
-.scenario-panel .close-button:hover {
-  border-color: var(--slate-300);
-}
-
-.scenario-panel .step-button:disabled {
-  color: var(--slate-600);
-}
-
-.scenario-panel .step-button.is-play[aria-pressed="true"] {
-  border-color: var(--blue);
-  color: var(--slate-50);
-  background: color-mix(in srgb, var(--blue) 30%, transparent);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
 }
 
 /* Repères allumés par chaque scénario sur le relief */
@@ -919,11 +753,11 @@ body.has-terrain {
   left: 0;
   top: 0;
   padding: 0.1rem 0.45rem;
-  border: 1px solid var(--slate-500);
-  border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--slate-950) 82%, transparent);
-  color: var(--slate-100);
-  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  background: var(--veil);
+  color: var(--text);
+  font-size: var(--fs-xs);
   font-weight: 600;
   white-space: nowrap;
   pointer-events: none;
@@ -932,17 +766,14 @@ body.has-terrain {
 .terrain-mark.is-name {
   border-color: transparent;
   background: none;
-  color: var(--slate-50);
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
-  text-shadow:
-    0 0 4px var(--slate-950),
-    0 0 10px var(--slate-950);
+  text-shadow: var(--halo);
 }
 
 .terrain-mark.is-trace {
-  border-color: var(--blue);
-  color: var(--slate-50);
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Version sans 3D */
@@ -954,7 +785,7 @@ body.has-terrain {
   max-width: 72rem;
   margin: 0 auto;
   padding: 2.5rem 0;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--border);
   display: grid;
   gap: 2rem;
   grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
@@ -985,9 +816,11 @@ body.has-terrain {
 
 .plain-index-axis {
   flex: 1 0 100%;
-  color: var(--ink-soft);
-  font-size: 0.875rem;
-  font-weight: 600;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .plain-index a {
@@ -995,21 +828,25 @@ body.has-terrain {
   align-items: center;
   min-height: 2.5rem;
   padding: 0 0.9rem;
-  border: 1px solid var(--slate-300);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--paper);
-  color: var(--slate-800);
+  background: var(--surface);
+  color: var(--text);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   text-decoration: none;
+}
+
+.plain-index a:hover {
+  border-color: var(--accent);
 }
 
 /* Pied de page */
 .site-footer {
   padding: 2rem var(--gutter) 2.5rem;
-  border-top: 1px solid var(--rule);
-  color: var(--ink-soft);
-  font-size: 0.875rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
 }
 
 .site-footer p {
@@ -1017,16 +854,11 @@ body.has-terrain {
   margin: 0 auto 0.4rem;
 }
 
-.has-terrain .site-footer {
-  border-top-color: var(--slate-800);
-  color: var(--slate-400);
-}
-
 .view-switch {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--blue);
+  color: var(--accent-text);
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
@@ -1034,46 +866,14 @@ body.has-terrain {
 
 /* Téléphone */
 @media (max-width: 760px) {
-  :root {
-    --masthead: 3.5rem;
-  }
-
-  .brand-name,
-  .brand-qualification {
-    display: none;
-  }
-
   .masthead {
-    gap: 0.5rem;
-    padding-right: 0;
+    column-gap: 0.5rem;
   }
 
-  .section-nav {
-    gap: 0;
-    padding-right: 0.5rem;
-  }
-
-  .section-nav a {
-    padding: 0 0.6rem;
-    font-size: 0.875rem;
-  }
-
-  .section-nav a[aria-current="true"]::after {
-    left: 0.6rem;
-    right: 0.6rem;
-  }
-
-  .terrain {
-    height: auto;
-  }
-
-  .terrain-stage {
-    position: relative;
-    height: 26rem;
-  }
-
-  .terrain-labels {
-    height: 26rem;
+  /* Un glissement vertical du doigt fait défiler la page ; le glissement horizontal tourne la scène. */
+  .terrain-stage,
+  .terrain-stage canvas {
+    touch-action: pan-y !important;
   }
 
   .terrain-toponym.is-minor,
@@ -1081,47 +881,18 @@ body.has-terrain {
     display: none;
   }
 
-  .terrain-credit {
-    position: static;
-    max-width: none;
-    padding: 0 0.75rem 1rem;
-    text-align: left;
-  }
-
-  .place-bar {
-    position: static;
-    padding: 0.75rem 0.75rem 1rem;
-  }
-
-  .discovery-bar {
-    flex-direction: column;
+  .discovery-start,
+  .discovery-toggle {
+    padding: 0.45rem 0.75rem;
   }
 
   .discovery-group {
-    flex-direction: column-reverse;
-    border-left: 0;
-    border-top: 1px solid var(--slate-700);
-  }
-
-  .discovery-start,
-  .discovery-toggle {
-    width: 100%;
-    justify-content: space-between;
+    position: static;
   }
 
   .discovery-list {
-    position: static;
-    width: auto;
-    margin: 0 0.35rem 0.35rem;
-    border-color: var(--slate-700);
-  }
-
-  .discovery-toggle[aria-expanded="false"] .discovery-chevron {
-    transform: rotate(180deg);
-  }
-
-  .discovery-toggle[aria-expanded="true"] .discovery-chevron {
-    transform: none;
+    left: 0;
+    width: min(19rem, calc(100vw - 2 * var(--gutter)));
   }
 
   .scenario-panel {
@@ -1132,9 +903,9 @@ body.has-terrain {
     bottom: 0;
     width: 100%;
     max-height: 50svh;
-    border-radius: 0.35rem 0.35rem 0 0;
+    border-radius: 1rem 1rem 0 0;
     border-bottom: 0;
-    background-color: var(--slate-950);
+    background: var(--glass-strong);
   }
 
   .axis-entries {
@@ -1152,11 +923,17 @@ body.has-terrain {
   }
 }
 
+@media (max-width: 420px) {
+  .discovery-icon {
+    display: none;
+  }
+}
+
 .plain-notice {
   max-width: 72rem;
   margin: 0 auto 1rem;
-  color: var(--ink-soft);
-  font-size: 0.95rem;
+  color: var(--text-2);
+  font-size: var(--fs-md);
 }
 
 [data-view="plain"] .intro {
@@ -1183,7 +960,7 @@ body.has-terrain {
   scroll-margin-top: calc(var(--masthead) + 0.5rem);
 }
 
-/* Visionneuse plein écran des captures de Hall, au style de la scène */
+/* Visionneuse plein écran des captures de Hall */
 body.has-viewer {
   overflow: hidden;
 }
@@ -1196,12 +973,8 @@ body.has-viewer {
   margin: 0;
   padding: 0;
   border: 0;
-  color: var(--slate-200);
-  background-color: color-mix(in srgb, var(--slate-950) 96%, transparent);
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--slate-700) 26%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--slate-700) 26%, transparent) 1px, transparent 1px);
-  background-size: 2rem 2rem;
+  color: var(--text);
+  background: var(--bg);
 }
 
 .viewer[open] {
@@ -1210,7 +983,7 @@ body.has-viewer {
 }
 
 .viewer::backdrop {
-  background: color-mix(in srgb, var(--slate-950) 80%, transparent);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
 }
 
 .viewer-bar {
@@ -1219,20 +992,23 @@ body.has-viewer {
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem var(--gutter) 0.75rem;
-  border-bottom: 1px solid var(--slate-800);
+  border-bottom: 1px solid var(--border);
+  background: var(--masthead-veil);
 }
 
 .viewer-count {
   margin: 0 0 0.15rem;
-  color: var(--slate-400);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .viewer-title {
   margin: 0;
-  color: var(--slate-50);
-  font-size: var(--step-1);
+  color: var(--text);
+  font-size: var(--fs-lg);
   line-height: 1.25;
   font-weight: 700;
   text-wrap: balance;
@@ -1241,10 +1017,10 @@ body.has-viewer {
 .viewer-close,
 .viewer-step {
   min-height: 2.5rem;
-  border: 1px solid var(--slate-600);
-  border-radius: 0.3rem;
-  background: transparent;
-  color: var(--slate-100);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -1259,16 +1035,17 @@ body.has-viewer {
 
 .viewer-step {
   padding: 0 0.9rem;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
 }
 
 .viewer-close:hover,
 .viewer-step:hover:not(:disabled) {
-  border-color: var(--slate-300);
+  border-color: var(--text-3);
 }
 
 .viewer-step:disabled {
-  color: var(--slate-600);
+  color: var(--text-3);
+  background: transparent;
   cursor: default;
 }
 
@@ -1297,11 +1074,13 @@ body.has-viewer {
   height: auto;
   max-width: 100%;
   max-height: calc(100dvh - 11rem);
-  border: 1px solid var(--slate-600);
-  border-radius: 0.25rem;
-  background: var(--slate-800);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  box-shadow: 0 18px 40px rgb(15 23 35 / 0.16);
 }
 
+/* Repères numérotés posés sur la capture, reliés à la légende */
 .viewer-pin {
   position: absolute;
   z-index: 1;
@@ -1311,15 +1090,15 @@ body.has-viewer {
   height: 1.75rem;
   padding: 0;
   transform: translate(calc(-100% - 0.4rem), -50%);
-  border: 2px solid var(--paper);
+  border: 2px solid var(--surface);
   border-radius: 50%;
-  background: var(--blue);
-  color: var(--paper);
+  background: var(--accent);
+  color: var(--on-accent);
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--slate-950) 45%, transparent);
+  box-shadow: 0 2px 8px rgb(15 23 35 / 0.25);
   cursor: default;
 }
 
@@ -1331,16 +1110,17 @@ body.has-viewer {
   width: 0.5rem;
   height: 0.5rem;
   transform: translateY(-50%);
-  border: 1px solid var(--paper);
+  border: 1px solid var(--surface);
   border-radius: 50%;
-  background: var(--blue);
+  background: var(--accent);
 }
 
 .viewer-pin.is-lit {
   z-index: 2;
+  background: var(--accent-strong);
   box-shadow:
-    0 0 0 3px var(--slate-950),
-    0 0 0 6px var(--blue);
+    0 0 0 3px var(--surface),
+    0 0 0 5px var(--accent);
 }
 
 .viewer-legend {
@@ -1358,18 +1138,18 @@ body.has-viewer {
   gap: 0.75rem;
   align-items: start;
   padding: 0.6rem 0.5rem;
-  border-radius: 0.25rem;
-  color: var(--slate-200);
-  font-size: 0.95rem;
+  border-radius: 0.5rem;
+  color: var(--text);
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
 .viewer-legend-item + .viewer-legend-item {
-  border-top: 1px solid var(--slate-800);
+  border-top: 1px solid var(--hairline);
 }
 
 .viewer-legend-item.is-lit {
-  background: color-mix(in srgb, var(--blue) 22%, transparent);
+  background: var(--accent-wash);
 }
 
 .viewer-legend-number {
@@ -1377,11 +1157,16 @@ body.has-viewer {
   place-items: center;
   width: 1.75rem;
   height: 1.75rem;
+  border: 1px solid var(--accent);
   border-radius: 50%;
-  background: var(--blue);
-  color: var(--paper);
-  font-size: 0.8125rem;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
   font-weight: 700;
+}
+
+.viewer-legend-item.is-lit .viewer-legend-number {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .viewer-nav {
@@ -1389,7 +1174,7 @@ body.has-viewer {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem var(--gutter) 1rem;
-  border-top: 1px solid var(--slate-800);
+  border-top: 1px solid var(--border);
 }
 
 .viewer-nav [hidden] {
@@ -1414,32 +1199,17 @@ body.has-viewer {
   .viewer-pin {
     width: 1.5rem;
     height: 1.5rem;
-    font-size: 0.75rem;
   }
 
   .viewer-title {
-    font-size: 1.0625rem;
+    font-size: var(--fs-md);
   }
 }
 
 /* Sections Télécharger, Installer, Documentation */
-:root {
-  --section-ink: var(--ink);
-  --section-soft: var(--slate-600);
-  --section-rule: var(--slate-300);
-  --section-panel: var(--paper);
-}
-
-.has-terrain {
-  --section-ink: var(--slate-50);
-  --section-soft: var(--slate-400);
-  --section-rule: var(--slate-700);
-  --section-panel: var(--slate-800);
-}
-
 .page-section {
-  border-top: 1px solid var(--section-rule);
-  color: var(--section-ink);
+  border-top: 1px solid var(--border);
+  color: var(--text);
 }
 
 .section-inner {
@@ -1457,21 +1227,20 @@ body.has-viewer {
   margin: 0 0 0.75rem;
   font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.25rem);
   line-height: 1.1;
-  letter-spacing: -0.02em;
   font-weight: 800;
 }
 
 .section-lead {
   margin: 0;
-  color: var(--section-soft);
-  font-size: 1.0625rem;
+  color: var(--text-2);
+  font-size: var(--fs-md);
 }
 
 .download-list {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--section-rule);
+  border-top: 1px solid var(--border);
 }
 
 .download-row {
@@ -1480,20 +1249,20 @@ body.has-viewer {
   gap: 1rem 2rem;
   align-items: center;
   padding: 1.5rem 0;
-  border-bottom: 1px solid var(--section-rule);
+  border-bottom: 1px solid var(--border);
 }
 
 .download-system h3 {
   margin: 0;
-  font-size: var(--step-1);
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
 .download-system p,
 .download-file {
   margin: 0;
-  color: var(--section-soft);
-  font-size: 0.925rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
 }
 
 .download-actions {
@@ -1508,22 +1277,22 @@ body.has-viewer {
   align-items: center;
   min-height: 2.75rem;
   padding: 0 1.1rem;
-  border-radius: 0.3rem;
-  background: var(--blue);
-  color: var(--paper);
+  border-radius: 0.5rem;
+  background: var(--accent);
+  color: var(--on-accent);
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .button-primary:hover {
-  background: color-mix(in srgb, var(--blue) 86%, var(--slate-950));
+  background: var(--accent-strong);
 }
 
 .link-plain {
-  color: var(--section-ink);
-  font-size: 0.9rem;
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-underline-offset: 0.2em;
 }
@@ -1531,16 +1300,16 @@ body.has-viewer {
 .download-warning {
   max-width: 42rem;
   margin: 1.5rem 0 0;
-  padding-left: 0.75rem;
-  border-left: 2px solid var(--blue);
-  color: var(--section-soft);
-  font-size: 0.95rem;
+  padding-left: 0.9rem;
+  border-left: 3px solid var(--accent);
+  color: var(--text);
+  font-size: var(--fs-md);
 }
 
 .install-part {
   margin-top: clamp(3rem, 2rem + 3vw, 4.5rem);
   padding-top: clamp(2rem, 1.5rem + 2vw, 3rem);
-  border-top: 1px solid var(--section-rule);
+  border-top: 1px solid var(--border);
 }
 
 .install-head {
@@ -1560,7 +1329,8 @@ body.has-viewer {
   margin: 0 0 2rem;
   padding: 0;
   list-style: none;
-  color: var(--section-soft);
+  color: var(--text-2);
+  font-size: var(--fs-md);
 }
 
 .install-before li {
@@ -1572,17 +1342,18 @@ body.has-viewer {
   content: "";
   position: absolute;
   left: 0;
-  top: 0.65em;
-  width: 0.4rem;
+  top: 0.75em;
+  width: 0.45rem;
   height: 1px;
-  background: var(--section-soft);
+  background: var(--text-3);
 }
 
 .install-tabs {
   display: inline-flex;
   margin-bottom: 1.75rem;
-  border: 1px solid var(--section-rule);
-  border-radius: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
   overflow: hidden;
 }
 
@@ -1591,19 +1362,23 @@ body.has-viewer {
   padding: 0 1.4rem;
   border: 0;
   background: transparent;
-  color: var(--section-soft);
+  color: var(--text-2);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
 }
 
 .install-tab + .install-tab {
-  border-left: 1px solid var(--section-rule);
+  border-left: 1px solid var(--border);
+}
+
+.install-tab:hover {
+  color: var(--text);
 }
 
 .install-tab[aria-selected="true"] {
-  background: var(--blue);
-  color: var(--paper);
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 .install-facts {
@@ -1612,6 +1387,7 @@ body.has-viewer {
   gap: 0.4rem 1.5rem;
   max-width: 56rem;
   margin: 0 0 2rem;
+  font-size: var(--fs-md);
 }
 
 .install-facts dt {
@@ -1620,7 +1396,7 @@ body.has-viewer {
 
 .install-facts dd {
   margin: 0;
-  color: var(--section-soft);
+  color: var(--text-2);
 }
 
 .install-path {
@@ -1630,7 +1406,7 @@ body.has-viewer {
 .install-path h4,
 .install-notes h4 {
   margin: 0 0 0.9rem;
-  font-size: var(--step-1);
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -1639,7 +1415,7 @@ body.has-viewer {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--section-rule);
+  border-top: 1px solid var(--border);
 }
 
 .install-step {
@@ -1649,7 +1425,8 @@ body.has-viewer {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.5rem 2rem;
   padding: 1rem 0 1rem 3rem;
-  border-bottom: 1px solid var(--section-rule);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-md);
 }
 
 .install-step::before {
@@ -1661,18 +1438,22 @@ body.has-viewer {
   place-items: center;
   width: 1.9rem;
   height: 1.9rem;
-  border: 1px solid var(--section-soft);
+  border: 1px solid var(--border);
   border-radius: 50%;
-  font-size: 0.875rem;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
 .install-label {
   display: block;
   margin-bottom: 0.15rem;
-  color: var(--section-soft);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .guide-text {
@@ -1680,7 +1461,7 @@ body.has-viewer {
 }
 
 .install-sees .guide-text {
-  color: var(--section-soft);
+  color: var(--text-2);
 }
 
 .install-notes ul {
@@ -1691,9 +1472,11 @@ body.has-viewer {
 }
 
 .install-notes li {
-  padding: 0.75rem 0 0.75rem 0.9rem;
-  border-left: 2px solid var(--section-rule);
+  padding: 0.6rem 0 0.6rem 0.9rem;
+  border-left: 3px solid var(--border);
   margin-bottom: 0.5rem;
+  color: var(--text);
+  font-size: var(--fs-md);
 }
 
 .command {
@@ -1707,25 +1490,30 @@ body.has-viewer {
 
 .command code {
   padding: 0.35rem 0.6rem;
-  border: 1px solid var(--section-rule);
-  border-radius: 0.25rem;
-  background: var(--section-panel);
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  background: var(--surface);
+  color: var(--text);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
   overflow-wrap: anywhere;
 }
 
 .copy-button {
   min-height: 2.25rem;
   padding: 0 0.75rem;
-  border: 1px solid var(--section-rule);
-  border-radius: 0.25rem;
-  background: transparent;
-  color: var(--section-ink);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   cursor: pointer;
+}
+
+.copy-button:hover {
+  border-color: var(--text-3);
 }
 
 .doc-links {
@@ -1741,25 +1529,26 @@ body.has-viewer {
   display: grid;
   gap: 0.3rem;
   height: 100%;
-  padding: 1.25rem 1.4rem;
-  border: 1px solid var(--section-rule);
-  border-radius: 0.35rem;
-  color: var(--section-ink);
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
+  color: var(--text);
   text-decoration: none;
 }
 
 .doc-links a:hover {
-  border-color: var(--blue);
+  border-color: var(--accent);
 }
 
 .doc-link-title {
-  font-size: var(--step-1);
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
 .doc-link-text {
-  color: var(--section-soft);
-  font-size: 0.95rem;
+  color: var(--text-2);
+  font-size: var(--fs-md);
 }
 
 @media (max-width: 760px) {

@@ -1,6 +1,6 @@
 /*
  * La scène continue : le relief reste derrière toute la page, chaque section est une carte posée sur la scène
- * et la caméra survole le lieu du récit de la section. Mêmes couleurs que src/styles.css.
+ * et la caméra survole le lieu du récit de la section. Jetons de src/theme.css.
  */
 
 .has-terrain .terrain {
@@ -17,8 +17,8 @@
   pointer-events: none;
   background: linear-gradient(
     to right,
-    color-mix(in srgb, var(--slate-950) 55%, transparent),
-    color-mix(in srgb, var(--slate-950) 10%, transparent) 70%
+    color-mix(in srgb, var(--bg) 55%, transparent),
+    color-mix(in srgb, var(--bg) 10%, transparent) 70%
   );
   opacity: 0;
   transition: opacity 600ms ease;
@@ -28,19 +28,16 @@
   opacity: 1;
 }
 
-.place-bar,
 .terrain-credit,
 .terrain-labels {
   transition: opacity 300ms ease;
 }
 
-.is-beyond .place-bar,
 .is-beyond .terrain-credit {
   opacity: 0;
   pointer-events: none;
 }
 
-.is-beyond .place-bar *,
 .is-beyond .terrain-stage {
   pointer-events: none;
 }
@@ -105,7 +102,6 @@
 
 .has-terrain .install-head h3 {
   font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem);
-  letter-spacing: -0.02em;
 }
 
 .has-terrain .section-inner {
@@ -114,15 +110,13 @@
   margin: 0 auto 0 var(--gutter);
   position: relative;
   padding: 1.6rem 2rem 1.5rem;
-  color: var(--slate-200);
-  background-color: color-mix(in srgb, var(--slate-950) 93%, transparent);
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--slate-700) 38%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--slate-700) 38%, transparent) 1px, transparent 1px);
-  background-size: 2rem 2rem;
-  border: 1px solid var(--slate-600);
-  border-radius: 0.35rem;
-  backdrop-filter: blur(6px);
+  color: var(--text);
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .has-terrain #documentation .section-inner {
@@ -132,9 +126,11 @@
 
 .section-axis {
   margin: 0 0 0.5rem;
-  color: var(--slate-400);
-  font-size: 0.875rem;
-  font-weight: 600;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .has-terrain .section-head {
@@ -164,30 +160,25 @@
 }
 
 .has-terrain .section-head h2 {
-  color: var(--slate-50);
   font-size: clamp(1.75rem, 1.1rem + 2vw, 2.6rem);
   line-height: 1.08;
-  letter-spacing: -0.025em;
 }
 
 .section-where {
   margin: 0 0 0.9rem;
-  padding-left: 0.75rem;
-  border-left: 2px solid var(--blue);
-  color: var(--slate-200);
-  font-size: 0.9rem;
+  padding-left: 0.9rem;
+  border-left: 3px solid var(--accent);
+  color: var(--text);
+  font-size: var(--fs-sm);
   font-weight: 600;
-}
-
-.has-terrain .section-lead {
-  color: var(--slate-300);
 }
 
 /* Fichiers : une barre de systèmes, comme le menu de découverte */
 .has-terrain .download-list {
-  border: 1px solid var(--slate-600);
-  border-radius: 0.35rem;
-  background: color-mix(in srgb, var(--slate-950) 70%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
+  overflow: hidden;
 }
 
 .has-terrain .download-row {
@@ -195,7 +186,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.5rem 1.5rem;
   padding: 1.1rem 1.25rem;
-  border-bottom: 1px solid var(--slate-700);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .has-terrain .download-row:last-child {
@@ -203,31 +194,25 @@
 }
 
 .has-terrain .download-row.is-detected {
-  box-shadow: inset 2px 0 0 var(--blue);
-  background: color-mix(in srgb, var(--blue) 12%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+  background: var(--accent-wash);
 }
 
+/* Système détecté : une mention en petites capitales, sans badge */
 .download-row.is-detected .download-system h3::after {
   content: "Votre système";
   margin-left: 0.75rem;
-  padding: 0.1rem 0.45rem;
-  border: 1px solid var(--blue);
-  border-radius: 0.25rem;
-  color: var(--slate-100);
-  font-size: 0.75rem;
-  font-weight: 600;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   vertical-align: 0.2em;
-}
-
-.has-terrain .download-system h3 {
-  color: var(--slate-50);
 }
 
 .has-terrain .download-file {
   grid-column: 1 / -1;
   grid-row: 2;
-  color: var(--slate-400);
-  font-size: 0.875rem;
 }
 
 .has-terrain .download-actions {
@@ -235,53 +220,27 @@
   grid-column: 2;
 }
 
-.has-terrain .download-warning {
-  color: var(--slate-300);
-}
-
 /* Marche à suivre : une ligne d'étapes qui s'allume au fil de la lecture */
-.has-terrain .install-head h3,
-.has-terrain .install-path h4,
-.has-terrain .install-notes h4 {
-  color: var(--slate-50);
-}
-
 .has-terrain .install-tabs {
   display: flex;
-  border-color: var(--slate-600);
-  background: color-mix(in srgb, var(--slate-950) 70%, transparent);
 }
 
 .has-terrain .install-tab {
   flex: 1;
   min-height: 3.25rem;
-  color: var(--slate-300);
-}
-
-.has-terrain .install-tab + .install-tab {
-  border-left-color: var(--slate-700);
 }
 
 .has-terrain .install-tab:hover {
-  background: color-mix(in srgb, var(--slate-700) 45%, transparent);
-}
-
-.has-terrain .install-tab[aria-selected="true"] {
-  background: transparent;
-  color: var(--slate-50);
-  box-shadow: inset 0 -2px 0 var(--blue);
+  background: var(--accent-wash);
 }
 
 .has-terrain .install-facts {
   grid-template-columns: 10rem minmax(0, 1fr);
   margin-bottom: 1.5rem;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--slate-700);
-  border-radius: 0.35rem;
-}
-
-.has-terrain .install-facts dt {
-  color: var(--slate-100);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
 }
 
 .has-terrain .install-steps {
@@ -298,7 +257,7 @@
   top: 0.5rem;
   width: 1px;
   bottom: 1.5rem;
-  background: var(--slate-700);
+  background: var(--border);
 }
 
 .has-terrain .install-steps::after {
@@ -307,7 +266,7 @@
   margin-left: -0.5px;
   height: max(0px, calc(var(--fill) - 1.5rem));
   max-height: calc(100% - 2rem);
-  background: var(--blue);
+  background: var(--accent);
   transition: height 140ms linear;
 }
 
@@ -321,9 +280,9 @@
 .has-terrain .install-step::before {
   top: 0.25rem;
   z-index: 1;
-  border-color: var(--slate-500);
-  background: var(--slate-950);
-  color: var(--slate-200);
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-2);
   transition:
     background-color 250ms ease,
     border-color 250ms ease,
@@ -331,71 +290,33 @@
 }
 
 .has-terrain .install-step.is-reached::before {
-  border-color: var(--blue);
-  background: var(--blue);
-  color: var(--slate-50);
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 
 .has-terrain .install-step:last-child.is-reached::before {
-  border-color: var(--green);
-  background: var(--green);
-}
-
-.has-terrain .install-label {
-  color: var(--slate-400);
-}
-
-.has-terrain .install-sees .guide-text {
-  color: var(--slate-300);
-}
-
-.has-terrain .install-does .guide-text {
-  color: var(--slate-50);
-}
-
-.has-terrain .install-notes li {
-  border-left-color: var(--slate-600);
-  color: var(--slate-300);
-}
-
-.has-terrain .command code {
-  border-color: var(--slate-600);
-  background: var(--slate-800);
-  color: var(--slate-100);
-}
-
-.has-terrain .copy-button {
-  border-color: var(--slate-600);
-  color: var(--slate-100);
-}
-
-.has-terrain .copy-button:hover {
-  border-color: var(--slate-300);
+  border-color: var(--success);
+  color: var(--success);
 }
 
 /* Documentation : les entrées comme celles de l'ouverture du récit */
 .has-terrain [data-testid="ai-presentation"] {
   margin-bottom: 1.25rem;
   padding: 1.1rem 1.25rem;
-  border: 1px solid var(--slate-700);
-  border-radius: 0.35rem;
-  background: color-mix(in srgb, var(--slate-950) 70%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
 }
 
 .has-terrain [data-testid="ai-presentation"] h3 {
   margin: 0 0 0.6rem;
-  color: var(--slate-50);
-  font-size: var(--step-1);
+  font-size: var(--fs-lg);
 }
 
 .has-terrain [data-testid="ai-presentation"] p {
   margin: 0 0 0.75rem;
-  color: var(--slate-300);
-  font-size: 0.95rem;
-}
-
-.has-terrain .link-plain {
-  color: var(--slate-50);
+  color: var(--text-2);
+  font-size: var(--fs-md);
 }
 
 .has-terrain .doc-links {
@@ -403,19 +324,8 @@
   gap: 0.75rem;
 }
 
-.has-terrain .doc-links a {
-  border-color: var(--slate-500);
-  border-radius: 0.3rem;
-  background: transparent;
-}
-
 .has-terrain .doc-links a:hover {
-  border-color: var(--blue);
-  background: color-mix(in srgb, var(--blue) 14%, transparent);
-}
-
-.has-terrain .doc-link-text {
-  color: var(--slate-400);
+  background: var(--accent-wash);
 }
 
 /* Pied de page : une barre posée au bas du relief */
@@ -439,26 +349,27 @@
   gap: 0.35rem 2rem;
   align-items: end;
   padding: 1.25rem 1.5rem;
-  border: 1px solid var(--slate-600);
-  border-radius: 0.35rem;
-  background: color-mix(in srgb, var(--slate-950) 90%, transparent);
-  backdrop-filter: blur(6px);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  background: var(--glass-strong);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .has-terrain .footer-bar p {
   grid-column: 1;
   margin: 0;
-  color: var(--slate-400);
-  font-size: 0.85rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
 }
 
 .has-terrain .footer-bar .site-signature {
   margin-bottom: 0.35rem;
-  color: var(--slate-50);
-  font-size: clamp(1.25rem, 1rem + 1vw, 1.6rem);
+  color: var(--text);
+  font-size: var(--fs-xl);
   font-style: normal;
   font-weight: 800;
-  letter-spacing: -0.02em;
 }
 
 .has-terrain .footer-bar p:last-child {
@@ -469,17 +380,18 @@
 
 .has-terrain .view-switch {
   min-height: 2.5rem;
-  padding: 0 0.85rem;
-  border: 1px solid var(--slate-600);
-  border-radius: 0.3rem;
-  color: var(--slate-100);
-  font-size: 0.875rem;
+  padding: 0 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-decoration: none;
 }
 
 .has-terrain .view-switch:hover {
-  border-color: var(--slate-300);
+  border-color: var(--text-3);
 }
 
 /* Navigation de carte en carte */
@@ -498,10 +410,10 @@
   width: 2.75rem;
   height: 2.75rem;
   padding: 0;
-  border: 1px solid var(--slate-600);
+  border: 1px solid var(--border);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--slate-950) 70%, transparent);
-  color: var(--slate-300);
+  background: var(--surface);
+  color: var(--text-2);
   cursor: pointer;
   transition:
     border-color 180ms ease,
@@ -538,9 +450,9 @@
 
 .card-arrow:hover:not(:disabled),
 .card-arrow:focus-visible {
-  border-color: var(--blue);
-  background: color-mix(in srgb, var(--blue) 16%, var(--slate-950));
-  color: var(--slate-50);
+  border-color: var(--accent);
+  background: var(--surface);
+  color: var(--accent-text);
 }
 
 .card-arrow:hover:not(:disabled) .card-arrow-motion,
@@ -555,22 +467,23 @@
 
 .card-arrow:hover:not(:disabled) .card-arrow-origin,
 .card-arrow:focus-visible .card-arrow-origin {
-  fill: var(--blue);
+  fill: var(--accent);
   opacity: 1;
 }
 
 .card-arrow:active:not(:disabled) {
-  background: color-mix(in srgb, var(--blue) 34%, var(--slate-950));
+  background: var(--accent-wash);
 }
 
 .card-arrow:focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
 .card-arrow:disabled {
-  border-color: var(--slate-800);
-  color: var(--slate-700);
+  border-color: var(--hairline);
+  background: transparent;
+  color: var(--border);
   cursor: default;
 }
 
@@ -578,24 +491,19 @@
   justify-content: flex-end;
   margin-top: 1.25rem;
   padding-top: 0.9rem;
-  border-top-color: var(--slate-700);
-}
-
-.has-terrain .card-nav .step-button {
-  border-color: var(--slate-600);
-  color: var(--slate-100);
-}
-
-.has-terrain .card-nav .step-button:hover {
-  border-color: var(--slate-300);
 }
 
 .has-terrain .card-nav .is-next {
-  border-color: var(--blue);
-  background: color-mix(in srgb, var(--blue) 30%, transparent);
-  color: var(--slate-50);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
+.has-terrain .card-nav .is-next:hover {
+  background: var(--accent-strong);
+}
+
+/* Repères des cartes : une ligne fine et des repères cerclés, sans cartouche */
 .card-rail {
   position: fixed;
   z-index: 25;
@@ -603,10 +511,6 @@
   top: 50%;
   transform: translateY(-50%);
   padding: 0.3rem 0.15rem;
-  border: 1px solid color-mix(in srgb, var(--slate-600) 55%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--slate-950) 62%, transparent);
-  backdrop-filter: blur(4px);
 }
 
 .has-scenario .scenario-panel {
@@ -629,7 +533,7 @@
   top: 0.75rem;
   bottom: 0.75rem;
   width: 1px;
-  background: var(--slate-700);
+  background: var(--text-3);
 }
 
 .card-dot {
@@ -646,22 +550,22 @@
 
 .card-dot:hover::before,
 .card-dot:focus-visible::before {
-  border-color: var(--blue);
+  border-color: var(--accent);
 }
 
 .card-dot:focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
   border-radius: 50%;
 }
 
 .card-dot::before {
   content: "";
-  width: 0.6rem;
-  height: 0.6rem;
-  border: 1px solid var(--slate-300);
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid var(--text-2);
   border-radius: 50%;
-  background: var(--slate-950);
+  background: var(--surface);
   transition:
     background-color 200ms ease,
     border-color 200ms ease,
@@ -669,21 +573,20 @@
 }
 
 .card-dot[aria-current="true"]::before {
-  border-color: var(--blue);
-  background: var(--blue);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--surface);
+  background: var(--accent);
   transform: scale(1.35);
 }
 
 .card-dot-label {
   position: absolute;
   right: calc(100% + 0.4rem);
-  padding: 0.15rem 0.5rem;
-  border: 1px solid var(--slate-600);
-  border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--slate-950) 92%, transparent);
-  color: var(--slate-100);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  padding: 0.15rem 0;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-shadow: var(--halo);
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
@@ -736,10 +639,6 @@
 
   .card-rail {
     right: 0.3rem;
-  }
-
-  .has-terrain .intro {
-    padding-right: 2.75rem;
   }
 
   .has-scenario .terrain,
@@ -814,7 +713,6 @@
   .has-terrain .terrain::after,
   .has-terrain .install-steps::after,
   .has-terrain .install-step::before,
-  .place-bar,
   .terrain-credit {
     transition: none;
   }

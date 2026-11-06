@@ -2,9 +2,12 @@ import "@fontsource/public-sans/400.css";
 import "@fontsource/public-sans/600.css";
 import "@fontsource/public-sans/700.css";
 import "@fontsource/public-sans/800.css";
+import "./theme.css";
+import "./site-header.css";
 import "./styles.css";
 import "./scene.css";
 import { renderCardNavigation } from "./cards";
+import { type PieceKind, svgIcon } from "./presentation/icons";
 import { type Axis, axes, type Motion, type PlaceId, places, type Scene, type SceneId, scenes } from "./scenes";
 import { renderSections } from "./sections";
 import type { Frame, TerrainView } from "./terrain";
@@ -24,6 +27,15 @@ function element<T extends HTMLElement>(testId: string): T {
 /** Espaces insécables de la typographie française devant : ; ? ! » et après «. */
 function frenchSpacing(text: string): string {
   return text.replace(/ ([:;?!»])/g, "\u202f$1").replace(/« /g, "«\u202f");
+}
+
+/** Icône de Hall de chaque axe du récit, dans les couleurs du texte qui l'entoure. */
+const axisIcons: Record<Axis["id"], PieceKind> = { ouverture: "geographic", preparer: "business", sieger: "committee" };
+
+function axisIcon(axis: Axis["id"], className: string): HTMLElement {
+  const node = html("span", className);
+  node.innerHTML = svgIcon(axisIcons[axis]);
+  return node;
 }
 
 function html(tag: string, className?: string, text?: string): HTMLElement {
@@ -138,7 +150,9 @@ function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: St
   article.dataset.axis = scene.axis;
   const head = html("div", "scenario-head");
   const titles = html("div");
-  titles.append(html("p", "scenario-axis", axisPosition(scene)), html(headingLevel, undefined, scene.title));
+  const kicker = html("p", "scenario-axis");
+  kicker.append(axisIcon(scene.axis, "scenario-axis-icon"), html("span", undefined, axisPosition(scene)));
+  titles.append(kicker, html(headingLevel, undefined, scene.title));
   head.append(titles);
   if (navigation) {
     const close = html("button", "close-button", "×") as HTMLButtonElement;
@@ -162,7 +176,6 @@ function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: St
 
 interface DiscoveryMenu {
   root: HTMLElement;
-  bar: HTMLElement;
   mark: (id: SceneId | null) => void;
   close: () => boolean;
 }
@@ -202,10 +215,12 @@ function renderDiscovery(onChoose: (id: SceneId) => void): DiscoveryMenu {
     const start = html("button", "discovery-start") as HTMLButtonElement;
     start.type = "button";
     start.dataset.testid = `menu-item-${opening.id}`;
-    start.append(
+    const words = html("span", "discovery-label");
+    words.append(
       html("span", "discovery-group-name", opening.short),
       html("span", "discovery-group-state", "Ouverture"),
     );
+    start.append(axisIcon(opening.axis, "discovery-icon"), words);
     start.addEventListener("click", () => {
       collapse();
       onChoose(opening.id);
@@ -227,7 +242,7 @@ function renderDiscovery(onChoose: (id: SceneId) => void): DiscoveryMenu {
     const state = html("span", "discovery-group-state", `${members.length} scénarios`);
     state.dataset.testid = `menu-group-state-${axis.id}`;
     label.append(html("span", "discovery-group-name", axis.name), state);
-    toggle.append(label, chevron());
+    toggle.append(axisIcon(axis.id, "discovery-icon"), label, chevron());
     const list = html("ol", "discovery-list");
     list.id = `menu-list-${axis.id}`;
     list.dataset.testid = `menu-list-${axis.id}`;
@@ -268,7 +283,6 @@ function renderDiscovery(onChoose: (id: SceneId) => void): DiscoveryMenu {
 
   return {
     root,
-    bar,
     mark(id) {
       for (const [sceneId, button] of items) {
         if (sceneId === id) button.setAttribute("aria-current", "step");
@@ -388,7 +402,6 @@ async function renderTerrain(root: HTMLElement) {
   document.body.classList.add("has-terrain");
   root.hidden = false;
   root.dataset.view = "terrain";
-  const bar = element("place-bar");
   const panel = element("scenario-panel");
   const stage = element("terrain-stage");
   const masthead = element("site-header");
@@ -408,13 +421,42 @@ async function renderTerrain(root: HTMLElement) {
       bottom: Math.min(box.bottom, window.innerHeight),
     };
     zone = carve(zone, cover);
-    if (panel.hidden === false) zone = carve(zone, menu.bar.getBoundingClientRect());
     return {
       left: zone.left - box.left,
       top: zone.top - box.top,
       width: Math.max(1, zone.right - zone.left),
       height: Math.max(1, zone.bottom - zone.top),
     };
+  }
+
+  const intro = document.querySelector<HTMLElement>(".intro");
+
+  /** Position de défilement où la scène est à sa place, juste sous l'en-tête et sous le texte d'accueil. */
+  function sceneScrollTop(): number {
+    if (!intro || getComputedStyle(intro).position === "absolute") return 0;
+    return Math.max(0, Math.round(intro.getBoundingClientRect().bottom + window.scrollY - masthead.offsetHeight));
+  }
+
+  /*
+   * Un défilement doux en cours, lancé par un lien de l'en-tête, continue après le retour à la scène : la page est
+   * ramenée sous la scène à chaque image tant qu'elle n'est pas stable, et la scène ouverte n'est pas refermée entre-temps.
+   */
+  let settling = false;
+  function settleOnScene(home: number) {
+    settling = true;
+    let still = 0;
+    const step = () => {
+      if (window.scrollY > home + 1) {
+        window.scrollTo({ top: home, behavior: "instant" });
+        still = 0;
+      } else {
+        bringStageIntoView();
+        still++;
+      }
+      if (still < 12) requestAnimationFrame(step);
+      else settling = false;
+    };
+    step();
   }
 
   function bringStageIntoView() {
@@ -452,7 +494,7 @@ async function renderTerrain(root: HTMLElement) {
   };
 
   const menu = renderDiscovery((id) => open(id));
-  bar.append(menu.root);
+  masthead.insertBefore(menu.root, element("section-nav"));
 
   function open(id: SceneId | null, fromHash = false, fromAutoplay = false) {
     if (!fromAutoplay) stopAutoplay();
@@ -470,8 +512,11 @@ async function renderTerrain(root: HTMLElement) {
     }
     document.body.classList.toggle("has-scenario", Boolean(scene));
     const canvas = stage.querySelector("canvas");
-    if (canvas) canvas.style.touchAction = scene && sheet.matches ? "pan-y" : "none";
-    if (scene) bringStageIntoView();
+    if (canvas) canvas.style.touchAction = sheet.matches ? "pan-y" : "none";
+    if (scene) {
+      /* La scène, collante, reste sous l'en-tête pendant le défilement : la page revient à sa place, sans carte de section par-dessus. */
+      settleOnScene(sceneScrollTop());
+    }
     terrain?.play(scene ? { place: scene.place, motion: scene.motion } : null);
     if (!fromHash) history.replaceState(null, "", id ? `#${id}` : `${location.pathname}${location.search}`);
   }
@@ -479,17 +524,11 @@ async function renderTerrain(root: HTMLElement) {
   function glide(top: number) {
     window.scrollTo({ top, behavior: prefersReducedMotion() ? "instant" : "smooth" });
   }
-  const intro = document.querySelector<HTMLElement>(".intro");
   for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href="#haut"], a[href="#decouvrir"]')) {
     link.addEventListener("click", (event) => {
       event.preventDefault();
       if (current) open(null);
-      if (link.hash === "#haut" || !intro || getComputedStyle(intro).position === "absolute") {
-        glide(0);
-        return;
-      }
-      const sceneTop = intro.getBoundingClientRect().bottom + window.scrollY - masthead.offsetHeight;
-      glide(Math.max(0, Math.round(sceneTop)));
+      glide(link.hash === "#haut" ? 0 : sceneScrollTop());
     });
   }
 
@@ -525,7 +564,7 @@ async function renderTerrain(root: HTMLElement) {
 
   function followSections() {
     const beyond = narrow.matches
-      ? (firstCard?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY) < bar.getBoundingClientRect().top
+      ? (firstCard?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY) < stage.getBoundingClientRect().bottom
       : sentinel
         ? sentinel.getBoundingClientRect().top < window.innerHeight * 0.55
         : false;
@@ -551,7 +590,7 @@ async function renderTerrain(root: HTMLElement) {
     coverElement = cover;
     if (chosen === following) return;
     following = chosen;
-    if (beyond && current) {
+    if (beyond && current && !settling) {
       current = null;
       menu.mark(null);
       panel.hidden = true;

@@ -228,10 +228,10 @@ export const scenes: Scene[] = [
     feature: "Dans Hall : une affaire, ses pièces et une question préparée pour une séance.",
     captures: [
       desktop("preparer-veille.png", "L’affaire « Veille autour de l’oppidum » et ses trois documents.", [
-        [412, 256, "La commission défense et soutien porte l’affaire."],
-        [290, 520, "La question préparée pour la prochaine séance."],
-        [318, 606, "Le registre des observations de la tour nord, en PDF."],
-        [318, 666, "Le tableur des ouvrages romains observés."],
+        [412, 203, "La commission défense et soutien porte l’affaire."],
+        [290, 467, "La question préparée pour la prochaine séance."],
+        [318, 553, "Le registre des observations de la tour nord, en PDF."],
+        [318, 613, "Le tableur des ouvrages romains observés."],
       ]),
     ],
     motion: {
@@ -306,15 +306,15 @@ export const scenes: Scene[] = [
     feature: "Dans Hall : les pièces PDF d’une affaire et la photo prise sur le terrain depuis un téléphone.",
     captures: [
       desktop("preparer-grenier.png", "L’affaire « Réserves et bâtiments », ses éléments préparés et ses documents.", [
-        [285, 560, "Le projet « Affectation du grenier d’Alésia aux réserves »."],
-        [1280, 560, "Inscrit à la séance du 1er septembre."],
-        [345, 674, "L’inventaire du grenier, en PDF."],
-        [320, 764, "L’état des réserves d’Alésia."],
+        [285, 507, "Le projet « Affectation du grenier d’Alésia aux réserves »."],
+        [1280, 507, "Inscrit à la séance du 1er septembre."],
+        [345, 621, "L’inventaire du grenier, en PDF."],
+        [320, 711, "L’état des réserves d’Alésia."],
       ]),
       phone("preparer-photo.png", "Sur téléphone, le menu « Nouveau » propose de prendre une photo.", [
         [275, 83, "Le bouton « Nouveau » de l’espace de travail."],
         [168, 345, "« Prendre une photo » ouvre l’appareil du téléphone."],
-        [72, 519, "Le cliché est rangé dans l’affaire choisie."],
+        [68, 623, "Le cliché est rangé dans l’affaire choisie."],
       ]),
     ],
     motion: {
@@ -348,10 +348,10 @@ export const scenes: Scene[] = [
     feature: "Dans Hall : un tableur importé et rangé dans l’affaire.",
     captures: [
       desktop("preparer-ouvrages.png", "Le tableur « Ouvrages romains observés » ouvert dans Hall.", [
-        [737, 266, "Le tableur est rattaché à l’affaire « Veille autour de l’oppidum »."],
-        [541, 400, "Le poste d’où l’ouvrage a été vu."],
-        [687, 400, "L’ouvrage observé : fossé, tour, camp, palissade."],
-        [1006, 400, "L’effectif romain estimé."],
+        [737, 213, "Le tableur est rattaché à l’affaire « Veille autour de l’oppidum »."],
+        [541, 347, "Le poste d’où l’ouvrage a été vu."],
+        [687, 347, "L’ouvrage observé : fossé, tour, camp, palissade."],
+        [1006, 347, "L’effectif romain estimé."],
       ]),
     ],
     motion: {
@@ -385,10 +385,10 @@ export const scenes: Scene[] = [
     feature: "Dans Hall : une commission, un rapport, un tableur de chiffrage et un projet de délibération.",
     captures: [
       desktop("preparer-chiffrage.png", "Le tableur « Chiffrage de la seconde ligne » : 282 quinaires.", [
-        [809, 266, "Le tableur est rattaché à l’affaire « Défense du plateau »."],
-        [325, 430, "Les secteurs à consolider : porte ouest, courtine nord, abords du grenier."],
-        [896, 406, "Le total de chaque poste, en quinaires."],
-        [1026, 406, "La part livrée suit l’avancement des travaux."],
+        [809, 213, "Le tableur est rattaché à l’affaire « Défense du plateau »."],
+        [325, 377, "Les secteurs à consolider : porte ouest, courtine nord, abords du grenier."],
+        [896, 353, "Le total de chaque poste, en quinaires."],
+        [1026, 353, "La part livrée suit l’avancement des travaux."],
       ]),
     ],
     motion: {
@@ -575,16 +575,16 @@ export const scenes: Scene[] = [
     feature: "Dans Hall : procès-verbal, délibérations, calendrier et courriel préparé depuis un modèle.",
     captures: [
       desktop("sieger-proces-verbal.png", "Le procès-verbal arrêté de la séance du 1er septembre.", [
-        [1239, 81, "Le procès-verbal est arrêté et son document généré."],
-        [266, 432, "Le quorum atteint à l’ouverture."],
-        [266, 610, "Pouvoirs, excusés et absents repris de l’appel."],
-        [314, 785, "Le résultat du vote de chaque point."],
+        [1239, 83, "Le procès-verbal est arrêté et son document généré."],
+        [266, 436, "Le quorum atteint à l’ouverture."],
+        [266, 614, "Pouvoirs, excusés et absents repris de l’appel."],
+        [314, 789, "Le résultat du vote de chaque point."],
       ]),
       desktop("sieger-deliberation.png", "La délibération « Affectation du grenier d’Alésia aux réserves ».", [
-        [441, 178, "La délibération adoptée le 1er septembre."],
-        [300, 381, "Le texte rédigé : visas, considérants, décision."],
-        [407, 727, "« Figer le document » produit sa version définitive."],
-        [266, 773, "Le gel ne vaut ni signature, ni publication, ni transmission."],
+        [441, 182, "La délibération adoptée le 1er septembre."],
+        [300, 385, "Le texte rédigé : visas, considérants, décision."],
+        [407, 731, "« Figer le document » produit sa version définitive."],
+        [266, 777, "Le gel ne vaut ni signature, ni publication, ni transmission."],
       ]),
       desktop("sieger-calendrier.png", "Le calendrier : séances et rendez-vous avec Jules César.", [
         [1095, 194, "Les séances du conseil."],
@@ -596,16 +596,16 @@ export const scenes: Scene[] = [
         "sieger-courrier.png",
         "L’affaire « Correspondance avec le proconsul », son courrier et le rendez-vous.",
         [
-          [288, 303, "La trêve demandée au proconsul, décrite dans l’affaire."],
-          [345, 538, "Le rendez-vous rattaché à l’affaire."],
-          [330, 578, "Le courrier au proconsul."],
+          [288, 250, "La trêve demandée au proconsul, décrite dans l’affaire."],
+          [345, 485, "Le rendez-vous rattaché à l’affaire."],
+          [330, 525, "Le courrier au proconsul."],
         ],
       ),
       desktop("sieger-invitation.png", "Le rendez-vous dans la plaine et la création de l’invitation.", [
-        [757, 267, "Rattaché à l’affaire « Correspondance avec le proconsul »."],
-        [287, 510, "Le lieu : la plaine au pied de l’oppidum."],
-        [276, 587, "Les participants : Vercingétorix et Jules César."],
-        [276, 866, "Le courriel d’invitation est préparé depuis le modèle du conseil."],
+        [757, 214, "Rattaché à l’affaire « Correspondance avec le proconsul »."],
+        [287, 457, "Le lieu : la plaine au pied de l’oppidum."],
+        [276, 534, "Les participants : Vercingétorix et Jules César."],
+        [276, 813, "Le courriel d’invitation est préparé depuis le modèle du conseil."],
       ]),
     ],
     motion: {

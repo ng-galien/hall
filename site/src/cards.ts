@@ -164,14 +164,13 @@ export function renderCardNavigation(masthead: HTMLElement) {
       else dot.removeAttribute("aria-current");
     });
   }
-  window.addEventListener(
-    "scroll",
-    () => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(mark);
-    },
-    { passive: true },
-  );
+  function queue() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(mark);
+  }
+  window.addEventListener("scroll", queue, { passive: true });
+  /* La page change de hauteur quand la scène s'affiche : le repère courant est recalculé. */
+  new ResizeObserver(queue).observe(document.body);
   mark();
 }

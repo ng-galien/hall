@@ -436,29 +436,45 @@ test("le quorum atteint est une étape valide, sans rouge", async ({ page }) => 
   await expect(page.locator(".steps li.tone-blocking")).toHaveCount(0);
 });
 
-test("l’accueil dit ce qu’est Hall avant la démonstration", async ({ page }) => {
+test("l’arrivée dit qu’on visite la démonstration de Hall et comment choisir un scénario", async ({ page }) => {
   await page.goto("./?vue=sans-3d");
   await expect(page).toHaveTitle("Hall, gestion de l’activité communale");
   await expect(page.getByTestId("site-header")).toContainText("Gestion de l’activité communale");
   const intro = page.getByTestId("intro");
-  await expect(intro.locator("h1")).toHaveText(/Hall\s*Gestion de l’activité communale/);
-  await expect(intro).toContainText("un logiciel pour gérer l’activité d’une commune");
-  await expect(intro).toContainText("procès-verbaux");
-  await expect(intro).toContainText("secrétariat de mairie et aux élus");
-  await expect(intro).not.toContainText("de la préparation à l’acte");
+  await expect(intro.locator("h1")).toHaveText("Démonstration de Hall sur la commune fictive d’Alésia");
+  await expect(intro.getByText("Choisissez un scénario dans la liste ci-dessous.")).toBeVisible();
   await expect(page.getByTestId("site-signature")).toHaveText("Hall, le conseil municipal en séance");
+  await page.goto("./");
+  await expect(intro.getByText("Choisissez un scénario dans le menu Alésia, Préparer ou Siéger")).toBeVisible();
+  await expect(intro.getByText("dans la liste ci-dessous")).toBeHidden();
 });
 
-test.describe("mise en page du texte d’accueil", () => {
-  test("à 1024 px le texte est au-dessus de la scène", async ({ page }) => {
-    await page.setViewportSize({ width: 1024, height: 768 });
-    await page.goto("./");
-    await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
-    const intro = await page.getByTestId("intro").boundingBox();
-    const stage = await page.getByTestId("terrain-stage").boundingBox();
-    if (!intro || !stage) throw new Error("Texte ou scène absent");
-    expect(intro.y + intro.height).toBeLessThanOrEqual(stage.y);
-  });
+test.describe("mise en page de l’arrivée", () => {
+  for (const [width, height] of [
+    [1440, 900],
+    [1024, 768],
+    [390, 844],
+  ] as const) {
+    test(`à ${width}×${height}, la scène occupe l’écran d’arrivée sous un encart sans fond, Télécharger vient après`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("./");
+      await sceneReady(page);
+      const header = await page.getByTestId("site-header").boundingBox();
+      const stage = await page.getByTestId("terrain-stage").boundingBox();
+      const intro = await page.getByTestId("intro").boundingBox();
+      const download = await page.getByTestId("section-telecharger").boundingBox();
+      if (!header || !stage || !intro || !download) throw new Error("En-tête, scène, encart ou section absent");
+      expect(Math.abs(stage.y - (header.y + header.height))).toBeLessThanOrEqual(1);
+      expect(stage.y + stage.height).toBeGreaterThanOrEqual(height - 1);
+      expect(download.y).toBeGreaterThanOrEqual(height - 1);
+      expect(intro.y).toBeGreaterThanOrEqual(stage.y);
+      expect(intro.y + intro.height).toBeLessThanOrEqual(stage.y + stage.height / 3);
+      const background = await page.getByTestId("intro").evaluate((node) => getComputedStyle(node).backgroundColor);
+      expect(background).toBe("rgba(0, 0, 0, 0)");
+    });
+  }
 
   test("à 1280 px les repères des lieux ne passent pas sous le texte", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
@@ -555,38 +571,40 @@ test.describe("niveau de détail du relief", () => {
 });
 
 test.describe("sections de la page", () => {
-  test("l’en-tête mène aux sections dans l’ordre et marque la section visible", async ({ page }) => {
+  test("l’en-tête porte les entrées de la présentation, Démonstration soulignée, puis Télécharger", async ({
+    page,
+  }) => {
     await page.goto("./");
-    const ids = ["decouvrir", "telecharger", "documentation"];
-    await expect(page.getByTestId("section-nav").getByRole("link")).toHaveText([
-      "Découvrir",
+    await expect(page.getByTestId("section-nav").locator("a")).toHaveText([
+      "Fonctionnalités",
+      "Démonstration",
       "Télécharger",
-      "Documentation",
     ]);
     await expect(page.getByTestId("section-installer")).toHaveCount(0);
-    await expect(page.getByTestId("nav-accueil")).toHaveCount(0);
-    await expect(page.getByTestId("brand-home")).toHaveAttribute("href", "#haut");
+    await expect(page.getByTestId("brand-home")).toHaveAttribute("href", "./presentation/");
+    await expect(page.getByTestId("nav-fonctionnalites")).toHaveAttribute("href", "./presentation/#en-savoir-plus");
+    await expect(page.getByTestId("nav-contact")).toHaveCount(0);
+    await expect(page.getByTestId("nav-demonstration")).toHaveAttribute("aria-current", "page");
+    await expect(page.getByTestId("nav-telecharger")).toHaveAttribute("href", "#telecharger");
+    await expect(page.getByTestId("site-header")).toContainText("Démonstration");
+    expect(
+      await page.getByTestId("site-header").evaluate((header) => header.textContent?.match(/Démonstration/g)?.length),
+    ).toBe(1);
     const tops: number[] = [];
-    for (const id of ids) {
-      await expect(page.getByTestId(`nav-${id}`)).toHaveAttribute("href", `#${id}`);
+    for (const id of ["decouvrir", "telecharger", "documentation"]) {
       const box = await page.getByTestId(`section-${id}`).boundingBox();
       if (!box) throw new Error(`Section ${id} absente`);
       tops.push(box.y);
     }
     expect([...tops].sort((a, b) => a - b)).toEqual(tops);
-    for (const id of ids.slice(1)) {
-      await page.getByTestId(`nav-${id}`).click();
-      await expect(page.getByTestId(`section-${id}`)).toBeInViewport();
-      await expect(page.getByTestId(`nav-${id}`)).toHaveAttribute("aria-current", "true");
-    }
     await page.getByTestId("nav-telecharger").click();
+    await expect(page.getByTestId("section-telecharger")).toBeInViewport();
     await expect(page.getByTestId("nav-telecharger")).toHaveAttribute("aria-current", "true");
-    await expect(page.getByTestId("nav-documentation")).not.toHaveAttribute("aria-current", "true");
+    await expect(page.getByTestId("nav-demonstration")).toHaveAttribute("aria-current", "page");
     await expectNoHorizontalScroll(page);
-    const header = await page.getByTestId("site-header").boundingBox();
-    const nav = await page.getByTestId("nav-documentation").boundingBox();
+    const nav = await page.getByTestId("nav-telecharger").boundingBox();
     const viewport = page.viewportSize();
-    if (!header || !nav || !viewport) throw new Error("En-tête absent");
+    if (!nav || !viewport) throw new Error("En-tête absent");
     expect(nav.x + nav.width).toBeLessThanOrEqual(viewport.width);
   });
 
@@ -685,7 +703,7 @@ test.describe("la scène continue sous les sections", () => {
     await expect(discover.getByTestId("section-telecharger")).toHaveCount(1);
     await expect(discover.getByTestId("section-documentation")).toHaveCount(1);
     await expect(discover.locator(".site-footer")).toHaveCount(1);
-    await page.getByTestId("nav-documentation").click();
+    await page.getByTestId("card-dot-3").click();
     await expect(page.getByTestId("terrain-stage")).toBeInViewport();
     await expect(page.locator("body")).toHaveClass(/is-beyond/);
     const gap = await page.evaluate(() => {
@@ -697,54 +715,98 @@ test.describe("la scène continue sous les sections", () => {
     expect(gap).toBeLessThanOrEqual(32);
   });
 
-  test("l’en-tête amène chaque carte juste sous l’en-tête et le nom Hall ramène au premier écran", async ({ page }) => {
+  test("l’en-tête amène la carte Télécharger sous l’en-tête et Démonstration ramène au premier écran", async ({
+    page,
+  }) => {
     await page.goto("./");
     await sceneReady(page);
     await page.getByTestId("nav-telecharger").click();
     await expectCardUnderHeader(page, "#telecharger .section-inner");
-    await page.getByTestId("nav-documentation").click();
+    await page.getByTestId("card-dot-3").click();
     await expectCardUnderHeader(page, "#documentation .section-inner");
-    await page.getByTestId("brand-home").click();
+    await page.getByTestId("nav-demonstration").click();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-    await expect(page.getByTestId("nav-decouvrir")).toHaveAttribute("aria-current", "true");
-    await page.getByTestId("nav-decouvrir").click();
-    await expect.poll(() => belowHeader(page, '[data-testid="terrain-stage"]')).toBeLessThanOrEqual(1);
     await expect(page.getByTestId("terrain-stage")).toBeInViewport();
   });
 
-  test("au téléphone, un glissement du doigt remonte le menu au-dessus du scénario ouvert", async ({ page }) => {
-    const viewport = page.viewportSize();
-    test.skip(!viewport || viewport.width > 760, "geste du téléphone");
-    await page.goto("./#carte");
-    await expect(page.getByTestId("scenario-carte")).toBeVisible();
-    await sceneReady(page);
-    await scrollSettled(page);
-    const sieger = page.getByTestId("menu-group-sieger");
-    const panelTop = async () => (await page.getByTestId("scenario-panel").boundingBox())?.y ?? 0;
-    const siegerBottom = async () => {
-      const box = await sieger.boundingBox();
-      return box ? box.y + box.height : Number.POSITIVE_INFINITY;
-    };
-    expect(await siegerBottom()).toBeGreaterThan(await panelTop());
-    const cdp = await page.context().newCDPSession(page);
-    await cdp.send("Input.synthesizeScrollGesture", {
-      x: 200,
-      y: 380,
-      yDistance: -260,
-      gestureSourceType: "touch",
-      speed: 600,
+  for (const [width, height] of [
+    [1440, 900],
+    [1280, 720],
+    [1024, 768],
+    [390, 844],
+  ] as const) {
+    test(`à ${width}×${height}, le menu du récit est en haut dès l’arrivée et le reste pendant le défilement`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("./");
+      await sceneReady(page);
+      const reachable = () =>
+        page.getByTestId("menu-group-sieger").evaluate((button) => {
+          const box = button.getBoundingClientRect();
+          const header = document.querySelector('[data-testid="site-header"]')?.getBoundingClientRect();
+          const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+          return Boolean(header) && box.top >= 0 && box.bottom <= (header?.bottom ?? 0) && button.contains(hit);
+        });
+      expect(await reachable()).toBe(true);
+      await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+      await expect(page.locator("body")).toHaveClass(/is-beyond/);
+      expect(await reachable()).toBe(true);
+      await page.getByTestId("menu-group-preparer").click();
+      await page.getByTestId("menu-item-carte").click();
+      await expect(page.getByTestId("scenario-carte")).toBeInViewport();
+      await expect(page.getByTestId("terrain-stage")).toBeInViewport();
     });
-    await scrollSettled(page);
-    expect(await siegerBottom()).toBeLessThan(await panelTop());
-    const reachable = await sieger.evaluate((button) => {
-      const box = button.getBoundingClientRect();
-      return button.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+  }
+
+  for (const [width, height] of [
+    [1440, 900],
+    [1024, 768],
+    [390, 844],
+  ] as const) {
+    test(`à ${width}×${height}, le menu du récit ramène à la scène depuis n’importe quel défilement, sans carte par-dessus`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("./");
+      await sceneReady(page);
+      const moves = [
+        () => page.getByTestId("nav-telecharger").click(),
+        () => page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" })),
+      ];
+      const choices: [string, () => Promise<void>][] = [
+        ["ouverture", () => page.getByTestId("menu-item-ouverture").click()],
+        [
+          "carte",
+          async () => {
+            await page.getByTestId("menu-group-preparer").click();
+            await page.getByTestId("menu-item-carte").click();
+          },
+        ],
+      ];
+      for (const move of moves) {
+        for (const [id, choose] of choices) {
+          await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+          await move();
+          await choose();
+          await expect(page.getByTestId(`scenario-${id}`)).toBeInViewport();
+          await expect(page.getByTestId("terrain-stage")).toBeInViewport();
+          await expect(page.locator("body")).not.toHaveClass(/is-beyond/);
+          await expect.poll(() => belowHeader(page, '[data-testid="terrain-stage"]')).toBeLessThanOrEqual(1);
+          const covering = await page.evaluate(() =>
+            [...document.querySelectorAll(".section-inner, .footer-bar")].some((card) => {
+              const box = card.getBoundingClientRect();
+              const header = document.querySelector('[data-testid="site-header"]')?.getBoundingClientRect().bottom ?? 0;
+              const hit = document.elementFromPoint(Math.max(box.left, 0) + 20, Math.max(box.top, header) + 20);
+              return box.bottom > header + 5 && box.top < window.innerHeight - 5 && card.contains(hit);
+            }),
+          );
+          expect(covering).toBe(false);
+          await page.keyboard.press("Escape");
+        }
+      }
     });
-    expect(reachable).toBe(true);
-    await sieger.tap();
-    await expect(page.getByTestId("menu-list-sieger")).toBeVisible();
-    await expect(page.getByTestId("scenario-carte")).toBeVisible();
-  });
+  }
 
   test("on passe de carte en carte par les flèches, les repères et le clavier", async ({ page }) => {
     await page.goto("./");

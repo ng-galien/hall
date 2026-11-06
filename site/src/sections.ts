@@ -218,7 +218,9 @@ export function renderSections() {
   document.querySelector(`[data-testid="download-${detectedSystem()}"]`)?.classList.add("is-detected");
 
   const links = new Map<string, HTMLElement>();
-  for (const link of document.querySelectorAll<HTMLAnchorElement>(".section-nav a")) {
+  for (const link of document.querySelectorAll<HTMLAnchorElement>(
+    '.section-nav a[href^="#"]:not([aria-current="page"])',
+  )) {
     links.set(link.hash.slice(1), link);
   }
   const lists = [...document.querySelectorAll<HTMLElement>(".install-steps")];
