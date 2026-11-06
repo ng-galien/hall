@@ -77,7 +77,6 @@ export interface Scene {
   axis: AxisId;
   short: string;
   place: PlaceId | null;
-  where: string;
   title: string;
   lead: string;
   steps: ScenarioStep[];
@@ -192,15 +191,9 @@ export const scenes: Scene[] = [
     axis: "ouverture",
     short: "Alésia",
     place: null,
-    where: "Lieu du récit : l’oppidum d’Alésia, sur le plateau entre la Lemme et la Saine",
     title: "Alésia sur le plateau d’Alésia",
     lead: "Après le combat de cavalerie perdu, Vercingétorix replie l’armée gauloise sur l’oppidum d’Alésia, la ville des Mandubiens. Le conseil de la commune prépare les affaires du siège, puis siège pour les trancher.",
-    steps: [
-      { text: "Préparer : la veille, la carte, le grenier, les ouvrages romains observés, la défense du plateau." },
-      {
-        text: "Siéger : la convocation, l’appel, les scrutins, la motion secrète, les actes et le courrier au proconsul.",
-      },
-    ],
+    steps: [],
     feature: "Vercingétorix est maire d’Alésia ; quinze chefs siègent au conseil, avec deux commissions.",
     captures: [],
     motion: {
@@ -215,7 +208,6 @@ export const scenes: Scene[] = [
     axis: "preparer",
     short: "La veille",
     place: "tour",
-    where: "Lieu du récit : tour de guet nord de l’oppidum, au belvédère des Prés Grillet, face à la plaine de Syam",
     title: "La veille et le registre de la tour nord",
     lead: "Chaque nuit, les veilleurs relèvent les feux, les mouvements et les travaux romains observés dans la plaine.",
     steps: [
@@ -252,7 +244,6 @@ export const scenes: Scene[] = [
     axis: "preparer",
     short: "La carte",
     place: "cornu",
-    where: "Lieu du récit : les chemins du hameau d’Alésia, entre le grenier et les abris",
     title: "La carte des convois et le passage des messagers",
     lead: "Le chemin des convois relie le grenier aux abris. Il est dessiné sur la carte de l’affaire « Accès et convois », sur le plan IGN du plateau.",
     steps: [
@@ -289,7 +280,6 @@ export const scenes: Scene[] = [
     axis: "preparer",
     short: "Le grenier",
     place: "cornu",
-    where: "Lieu du récit : le grenier d’Alésia, et les points d’eau au bord de la Lemme",
     title: "Le grenier d’Alésia et les points d’eau",
     lead: "Vercingétorix fait apporter tout le blé dans l’oppidum. Le grenier d’Alésia contient 120 sacs de céréales, sans affectation décidée.",
     steps: [
@@ -333,7 +323,6 @@ export const scenes: Scene[] = [
     axis: "preparer",
     short: "Les ouvrages",
     place: "plaine",
-    where: "Lieu du récit : la plaine de Syam, au pied de l’éperon",
     title: "Les ouvrages romains observés",
     lead: "César fait creuser des fossés et élever des lignes de fortification avec des tours. Depuis l’oppidum, les veilleurs en suivent l’avancement nuit après nuit.",
     steps: [
@@ -369,7 +358,6 @@ export const scenes: Scene[] = [
     axis: "preparer",
     short: "La défense",
     place: "rempart",
-    where: "Lieu du récit : le rempart ouest de l’oppidum, au-dessus des gorges de la Lemme",
     title: "La défense du plateau : première et seconde ligne",
     lead: "Le bilan de la première ligne relève trois secteurs à consolider : la porte ouest, la courtine nord et les abords du grenier.",
     steps: [
@@ -407,7 +395,6 @@ export const scenes: Scene[] = [
     axis: "sieger",
     short: "La convocation",
     place: "maison",
-    where: "Lieu du récit : la maison commune de l’oppidum, au cœur du plateau d’Alésia",
     title: "La convocation de l’assemblée",
     lead: "Les projets préparés sont inscrits à l’ordre du jour de la séance.",
     steps: [
@@ -440,7 +427,6 @@ export const scenes: Scene[] = [
     axis: "sieger",
     short: "L’appel",
     place: "maison",
-    where: "Lieu du récit : la salle du conseil, dans la maison commune de l’oppidum",
     title: "L’appel des chefs et les pouvoirs",
     lead: "Le conseil siège sous la présidence de Vercingétorix l’Arverne ; Convictolitavis l’Éduen est secrétaire de séance.",
     steps: [
@@ -471,7 +457,6 @@ export const scenes: Scene[] = [
     axis: "sieger",
     short: "Le rationnement",
     place: "maison",
-    where: "Lieu du récit : la salle du conseil, dans la maison commune de l’oppidum",
     title: "Le rationnement débattu et voté",
     lead: "Le blé est distribué par petites rations. La répartition entre habitants et combattants divise le conseil.",
     steps: [
@@ -508,7 +493,6 @@ export const scenes: Scene[] = [
     axis: "sieger",
     short: "La motion secrète",
     place: "belvedere",
-    where: "Lieu du récit : le belvédère des Trois Vallées, au-dessus de Syam, face au nord",
     title: "La motion secrète et l’armée de secours",
     lead: "Le conseil arrête le message aux alliés ; l’assemblée des cités lève une armée de secours.",
     steps: [
@@ -556,7 +540,6 @@ export const scenes: Scene[] = [
     axis: "sieger",
     short: "Les actes",
     place: "place",
-    where: "Lieu du récit : la place de l’assemblée, dans l’oppidum, puis la plaine au pied de l’oppidum",
     title: "Les actes et le courrier au proconsul",
     lead: "Après la séance, Hall rédige les actes à partir des faits enregistrés : présences, pouvoirs et résultat de chaque vote.",
     steps: [
@@ -570,7 +553,7 @@ export const scenes: Scene[] = [
       {
         text: "Le courrier au proconsul est rangé dans l’affaire « Correspondance avec le proconsul » ; le courriel d’invitation est préparé depuis le modèle du conseil, l’envoi reste manuel.",
       },
-      { text: "Le gel d’un document ne vaut ni signature, ni publication, ni transmission au contrôle de légalité." },
+      { text: "Figer un document ne vaut ni signature, ni publication, ni transmission au contrôle de légalité." },
     ],
     feature: "Dans Hall : procès-verbal, délibérations, calendrier et courriel préparé depuis un modèle.",
     captures: [

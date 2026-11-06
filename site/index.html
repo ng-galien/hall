@@ -18,6 +18,7 @@
         <span class="brand-name site-brand-name">Hall</span>
         <span class="brand-qualification site-brand-qualification">Le conseil municipal en séance</span>
       </a>
+      <button type="button" class="view-switch" data-testid="view-switch"></button>
       <nav class="section-nav site-nav" aria-label="Navigation" data-testid="section-nav">
         <a data-testid="nav-fonctionnalites" href="./presentation/#en-savoir-plus">Fonctionnalités</a>
         <a data-testid="nav-demonstration" href="#haut" aria-current="page">Démonstration</a>
@@ -51,51 +52,23 @@
       <section id="documentation" class="page-section" data-testid="section-documentation">
         <div class="section-inner">
           <header class="section-head">
-            <p class="section-axis">Guide et versions</p>
             <h2>Documentation</h2>
-            <p class="section-where">Lieu du récit : la tour de guet nord, où les veilleurs tiennent le registre.</p>
-            <p class="section-lead">
-              Le guide de chaque écran de Hall, de la préparation des affaires à la rédaction des actes, et les
-              versions publiées de l’application.
-            </p>
           </header>
-          <div data-testid="ai-presentation">
-            <h3>Un agent IA connecté par MCP</h3>
-            <p class="section-lead">Un agent d’intelligence artificielle peut rechercher et préparer les documents d’une affaire, ou modifier les modèles autorisés. Le guide hall_learn lui explique Hall sans accès au code source. Les droits de votre compte restent appliqués par le serveur.</p>
-            <p>Les outils actuels ne conduisent pas les séances, ne votent pas, ne signent pas et n’envoient pas les actes. La commande stdio permet une connexion privée avec votre compte Hall, vérifiée sur macOS. La connexion interactive Windows et un parcours HTTP interopérable restent à fournir ; aucun client de fournisseur IA particulier n’est annoncé compatible. Le guide décrit les étapes et les limites.</p>
-            <p><a class="link-plain" data-testid="ai-guide-link" href="./documentation/index.html#/docs/assistant-ia">Capacités et connexion de l’agent IA</a></p>
-          </div>
           <ul class="doc-links">
             <li>
               <a data-testid="documentation-link" href="./documentation/index.html#/docs">
-                <span class="doc-link-title">Documentation utilisateur</span>
-                <span class="doc-link-text">Les écrans, les étapes d’une séance et les documents produits.</span>
-              </a>
-            </li>
-            <li>
-              <a data-testid="releases-link" href="https://github.com/ng-galien/hall/releases">
-                <span class="doc-link-title">Versions de Hall</span>
-                <span class="doc-link-text">Les paquets de chaque version pour Windows, macOS et Linux.</span>
+                <span class="doc-link-title">Guide d’utilisation</span>
+                <span class="doc-link-text">Installer Hall et s’en servir au quotidien.</span>
               </a>
             </li>
           </ul>
         </div>
       </section>
     <footer class="site-footer">
-      <div class="footer-bar">
-      <p class="site-signature" data-testid="site-signature">Hall, le conseil municipal en séance</p>
-      <p>
-        Hall, gestion de l’activité communale. Les personnes, les affaires et les délibérations de la démonstration sont
-        fictives.
+      <p class="site-credit" data-testid="site-credit">
+        Démonstration&#8239;: données fictives. Données géographiques&#8239;: IGN, RGE ALTI et BD TOPO, licence ouverte
+        Etalab 2.0&#8239;; contours communaux de geo.api.gouv.fr.
       </p>
-      <p>
-        Données géographiques&#8239;: IGN, RGE ALTI et BD TOPO, licence ouverte Etalab 2.0&#8239;; contours communaux
-        de geo.api.gouv.fr.
-      </p>
-      <p>
-        <button type="button" class="view-switch" data-testid="view-switch"></button>
-      </p>
-      </div>
     </footer>
       </section>
 

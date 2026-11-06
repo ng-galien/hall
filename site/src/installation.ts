@@ -22,10 +22,8 @@ export interface InstallationGuide {
 
 /** Ce que tout le monde doit savoir avant d'installer la démonstration. */
 export const installationIntroduction: readonly string[] = [
-  "Hall est gratuit. La démonstration fonctionne entièrement sur votre ordinateur. Rien n'est envoyé sur Internet.",
-  "Hall n'est pas signé auprès d'Apple ni de Microsoft. Votre ordinateur affiche donc un avertissement la première fois. C'est normal.",
-  "L'avertissement ne s'affiche qu'une seule fois. Ensuite, Hall s'ouvre comme une application ordinaire.",
-  "Téléchargez Hall uniquement depuis la page officielle des versions de Hall sur GitHub.",
+  "À la première ouverture, votre ordinateur affiche un avertissement, parce que Hall n'est pas signé auprès d'Apple ni de Microsoft. C'est normal, et cela n'arrive qu'une fois : les étapes ci-dessous montrent quoi faire.",
+  "Téléchargez Hall uniquement depuis sa page officielle des versions, sur GitHub.",
 ];
 
 /** Le guide d'installation de la démonstration, système par système. */

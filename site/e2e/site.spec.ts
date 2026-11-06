@@ -62,7 +62,7 @@ async function expectLinks(page: Page) {
     await expect(page.getByTestId(`download-link-${system}`)).toHaveAttribute("href", releases);
   }
   await expect(page.getByTestId("documentation-link")).toHaveAttribute("href", documentation);
-  await expect(page.getByTestId("releases-link")).toHaveAttribute("href", releases);
+  await expect(page.getByTestId("releases-link")).toHaveCount(0);
 }
 
 /** Retire les espaces insécables ajoutés par la typographie française pour comparer au texte du guide. */
@@ -418,9 +418,10 @@ test("le récit reste dans l’oppidum, sans objet contemporain ni sortie du jeu
   expect(description).not.toMatch(outsideTheGame);
   expect(page_text).not.toMatch(/cornu/i);
   expect(description).not.toMatch(/cornu/i);
-  for (const name of ["Alésia", "Jura", "Chaux-des-Crotenay", "Mandubiens", "plaine de Syam", "Lemme"]) {
+  for (const name of ["Alésia", "Mandubiens", "Vercingétorix"]) {
     expect(page_text).toContain(name);
   }
+  expect(description).toContain("Jura");
   for (const id of order) {
     expect(await page.getByTestId(`scenario-${id}`).innerText(), id).not.toMatch(presentDayObjects);
   }
@@ -443,7 +444,8 @@ test("l’arrivée dit qu’on visite la démonstration de Hall et comment chois
   const intro = page.getByTestId("intro");
   await expect(intro.locator("h1")).toHaveText("Démonstration de Hall sur la commune fictive d’Alésia");
   await expect(intro.getByText("Choisissez un scénario dans la liste ci-dessous.")).toBeVisible();
-  await expect(page.getByTestId("site-signature")).toHaveText("Hall, le conseil municipal en séance");
+  await expect(page.getByTestId("site-signature")).toHaveCount(0);
+  await expect(page.getByTestId("site-credit")).toContainText(/Démonstration\s*: données fictives/);
   await page.goto("./");
   await expect(intro.getByText("Choisissez un scénario dans le menu Alésia, Préparer ou Siéger")).toBeVisible();
   await expect(intro.getByText("dans la liste ci-dessous")).toBeHidden();
@@ -708,11 +710,11 @@ test.describe("la scène continue sous les sections", () => {
     await expect(page.locator("body")).toHaveClass(/is-beyond/);
     const gap = await page.evaluate(() => {
       const card = document.querySelector("#documentation .section-inner")?.getBoundingClientRect().bottom ?? 0;
-      const footer = document.querySelector(".footer-bar")?.getBoundingClientRect().top ?? 0;
+      const footer = document.querySelector('[data-testid="site-credit"]')?.getBoundingClientRect().top ?? 0;
       return footer - card;
     });
     expect(gap).toBeGreaterThanOrEqual(0);
-    expect(gap).toBeLessThanOrEqual(32);
+    expect(gap).toBeLessThanOrEqual(64);
   });
 
   test("l’en-tête amène la carte Télécharger sous l’en-tête et Démonstration ramène au premier écran", async ({
@@ -794,7 +796,7 @@ test.describe("la scène continue sous les sections", () => {
           await expect(page.locator("body")).not.toHaveClass(/is-beyond/);
           await expect.poll(() => belowHeader(page, '[data-testid="terrain-stage"]')).toBeLessThanOrEqual(1);
           const covering = await page.evaluate(() =>
-            [...document.querySelectorAll(".section-inner, .footer-bar")].some((card) => {
+            [...document.querySelectorAll(".section-inner")].some((card) => {
               const box = card.getBoundingClientRect();
               const header = document.querySelector('[data-testid="site-header"]')?.getBoundingClientRect().bottom ?? 0;
               const hit = document.elementFromPoint(Math.max(box.left, 0) + 20, Math.max(box.top, header) + 20);

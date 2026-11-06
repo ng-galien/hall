@@ -143,10 +143,6 @@
   padding-right: 5.5rem;
 }
 
-.has-terrain .download-warning {
-  margin-top: 1rem;
-}
-
 .has-terrain .install-before {
   margin-bottom: 1.25rem;
 }
@@ -162,15 +158,6 @@
 .has-terrain .section-head h2 {
   font-size: clamp(1.75rem, 1.1rem + 2vw, 2.6rem);
   line-height: 1.08;
-}
-
-.section-where {
-  margin: 0 0 0.9rem;
-  padding-left: 0.9rem;
-  border-left: 3px solid var(--accent);
-  color: var(--text);
-  font-size: var(--fs-sm);
-  font-weight: 600;
 }
 
 /* Fichiers : une barre de systèmes, comme le menu de découverte */
@@ -234,15 +221,6 @@
   background: var(--accent-wash);
 }
 
-.has-terrain .install-facts {
-  grid-template-columns: 10rem minmax(0, 1fr);
-  margin-bottom: 1.5rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: 0.8rem;
-  background: var(--surface);
-}
-
 .has-terrain .install-steps {
   position: relative;
   border-top: 0;
@@ -300,24 +278,6 @@
 }
 
 /* Documentation : les entrées comme celles de l'ouverture du récit */
-.has-terrain [data-testid="ai-presentation"] {
-  margin-bottom: 1.25rem;
-  padding: 1.1rem 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: 0.8rem;
-  background: var(--surface);
-}
-
-.has-terrain [data-testid="ai-presentation"] h3 {
-  margin: 0 0 0.6rem;
-  font-size: var(--fs-lg);
-}
-
-.has-terrain [data-testid="ai-presentation"] p {
-  margin: 0 0 0.75rem;
-  color: var(--text-2);
-  font-size: var(--fs-md);
-}
 
 .has-terrain .doc-links {
   grid-template-columns: minmax(0, 1fr);
@@ -328,70 +288,20 @@
   background: var(--accent-wash);
 }
 
-/* Pied de page : une barre posée au bas du relief */
+/* Pied de page : une ligne discrète tout en bas, posée sur le relief, sans cadre */
 .has-terrain .site-footer {
   position: relative;
   z-index: 5;
-  padding: 1rem calc(var(--gutter) + 2rem) var(--gutter) var(--gutter);
+  padding: 2rem calc(var(--gutter) + 2rem) 0.75rem var(--gutter);
   border-top: 0;
   pointer-events: none;
 }
 
-.footer-bar {
-  max-width: 72rem;
-  margin: 0 auto;
-}
-
-.has-terrain .footer-bar {
-  pointer-events: auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.35rem 2rem;
-  align-items: end;
-  padding: 1.25rem 1.5rem;
-  border: 1px solid var(--glass-border);
-  border-radius: 1rem;
-  background: var(--glass-strong);
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-}
-
-.has-terrain .footer-bar p {
-  grid-column: 1;
+.has-terrain .site-credit {
   margin: 0;
+  max-width: none;
   color: var(--text-2);
-  font-size: var(--fs-sm);
-}
-
-.has-terrain .footer-bar .site-signature {
-  margin-bottom: 0.35rem;
-  color: var(--text);
-  font-size: var(--fs-xl);
-  font-style: normal;
-  font-weight: 800;
-}
-
-.has-terrain .footer-bar p:last-child {
-  grid-column: 2;
-  grid-row: 1 / span 4;
-  align-self: end;
-}
-
-.has-terrain .view-switch {
-  min-height: 2.5rem;
-  padding: 0 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.has-terrain .view-switch:hover {
-  border-color: var(--text-3);
+  text-shadow: var(--halo);
 }
 
 /* Navigation de carte en carte */
@@ -582,11 +492,13 @@
 .card-dot-label {
   position: absolute;
   right: calc(100% + 0.4rem);
-  padding: 0.15rem 0;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  background: var(--veil);
   color: var(--text);
   font-size: var(--fs-sm);
   font-weight: 700;
-  text-shadow: var(--halo);
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
@@ -678,27 +590,12 @@
     grid-row: 3;
   }
 
-  .has-terrain .install-facts {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .has-terrain .install-step {
     padding-left: 2.9rem;
   }
 
   .has-terrain .site-footer {
-    padding: 0.75rem 1.9rem 0.75rem 0.75rem;
-  }
-
-  .has-terrain .footer-bar {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 1.1rem 1rem;
-  }
-
-  .has-terrain .footer-bar p:last-child {
-    grid-column: 1;
-    grid-row: auto;
-    margin-top: 0.75rem;
+    padding: 1.5rem 1.9rem 0.75rem 0.75rem;
   }
 }
 

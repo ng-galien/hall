@@ -1,9 +1,17 @@
 import { expect, test } from "@playwright/test";
 
-test("presents MCP assistance and opens its rendered, searchable manual", async ({ page }) => {
-  await page.goto("/#documentation");
-  await expect(page.getByTestId("ai-presentation")).toContainText("Un agent IA connecté par MCP");
-  await page.getByTestId("ai-guide-link").click();
+test("the public site stays non-technical and links the user guide", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByTestId("section-documentation")).toBeAttached();
+  const text = (await page.locator("main").textContent()) ?? "";
+  for (const term of [/\bMCP\b/, /\bHTTP\b/, /\bAPI\b/, /\bSiren\b/, /agent IA/, /\bstdio\b/]) {
+    expect(text).not.toMatch(term);
+  }
+  await expect(page.getByTestId("documentation-link")).toContainText("Guide d’utilisation");
+});
+
+test("the rendered manual still documents the MCP assistant", async ({ page }) => {
+  await page.goto("./documentation/index.html#/docs/assistant-ia");
   await expect(page.locator("h1")).toHaveText("Connecter un agent IA par MCP");
   await expect(page.locator("article")).toContainText("terminal privé");
   await expect(page.locator("article")).toContainText("22.12");

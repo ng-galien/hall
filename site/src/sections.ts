@@ -119,14 +119,6 @@ function renderInstall(inner: HTMLElement): InstallTabs {
     panel.id = `installer-${guide.system}`;
     panel.setAttribute("role", "tabpanel");
     panel.setAttribute("aria-labelledby", tab.id);
-    const facts = node("dl", "install-facts");
-    facts.append(
-      node("dt", undefined, "Versions"),
-      node("dd", undefined, guide.versions),
-      node("dt", undefined, "Fichier à télécharger"),
-      node("dd", undefined, guide.download),
-    );
-    panel.append(facts);
     for (const path of guide.paths) {
       const block = node("section", "install-path");
       block.append(node("h4", undefined, path.title));
@@ -169,11 +161,10 @@ function renderDownload(inner: HTMLElement): (install: InstallTabs) => void {
   head.append(
     node("p", "section-axis", "Installation, trois systèmes"),
     node("h2", undefined, "Télécharger la démonstration"),
-    node("p", "section-where", "Lieu du récit : la maison commune de l’oppidum, où siège le conseil d’Alésia."),
     node(
       "p",
       "section-lead",
-      "Hall s’installe sur votre ordinateur avec la commune d’Alésia, son conseil et ses affaires. La démonstration est gratuite et fonctionne sans connexion.",
+      "Hall s’installe sur votre ordinateur avec la commune d’Alésia, son conseil et ses affaires. La démonstration est gratuite et fonctionne sans connexion : rien n’est envoyé sur Internet.",
     ),
   );
   const list = node("ul", "download-list");
@@ -193,12 +184,7 @@ function renderDownload(inner: HTMLElement): (install: InstallTabs) => void {
     row.append(system, file, actions);
     list.append(row);
   }
-  const warning = node(
-    "p",
-    "download-warning",
-    "À la première ouverture, l’ordinateur affiche un avertissement parce que Hall n’est pas signé auprès d’Apple ni de Microsoft. La marche à suivre ci-dessous montre quoi faire, écran par écran.",
-  );
-  inner.append(head, list, warning);
+  inner.append(head, list);
   return (install) => {
     for (const { system, how } of hows) how.addEventListener("click", () => install.select(system));
   };

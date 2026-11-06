@@ -76,12 +76,21 @@ a {
 }
 
 /* Le menu du récit se place juste avant les entrées de l'en-tête */
+/* Sans scène, le passage à la 3D se place juste avant les entrées */
+.masthead > .view-switch {
+  margin-left: auto;
+}
+
+.masthead > .view-switch + .section-nav {
+  margin-left: 0;
+}
+
 @media (min-width: 1180px) {
   .masthead > .discovery {
     margin-left: auto;
   }
 
-  .masthead > .discovery + .section-nav {
+  .masthead > .discovery + .view-switch {
     margin-left: 0;
   }
 }
@@ -122,10 +131,6 @@ a {
 
 [data-view="plain"] .intro-hint-plain {
   display: block;
-}
-
-.site-signature {
-  font-style: italic;
 }
 
 /* Scène 3D : le relief clair du site de présentation */
@@ -283,11 +288,29 @@ a {
     --menu-row: 3.75rem;
   }
 
-  .has-terrain .masthead > .discovery {
+  /* Seconde ligne : le menu du récit, puis le passage à la version sans 3D */
+  .has-terrain .masthead::before {
+    content: "";
     order: 1;
     flex-basis: 100%;
+    height: 0;
+  }
+
+  .has-terrain .masthead > .discovery {
+    order: 2;
     display: flex;
     align-items: flex-start;
+    height: var(--menu-row);
+  }
+
+  .has-terrain .masthead > .view-switch {
+    order: 3;
+    align-self: flex-start;
+    margin: calc((3.25rem - 2.5rem) / 2) 0 0;
+  }
+
+  .has-terrain .masthead > .section-nav {
+    margin-left: auto;
   }
 }
 
@@ -519,15 +542,6 @@ a {
   font-weight: 800;
   line-height: 1.2;
   text-wrap: balance;
-}
-
-.scenario-where {
-  margin: 0 0 0.75rem;
-  padding-left: 0.9rem;
-  border-left: 3px solid var(--accent);
-  color: var(--text);
-  font-size: var(--fs-sm);
-  font-weight: 600;
 }
 
 .scenario-lead {
@@ -843,31 +857,60 @@ a {
 
 /* Pied de page */
 .site-footer {
-  padding: 2rem var(--gutter) 2.5rem;
+  padding: 1.5rem var(--gutter) 1rem;
   border-top: 1px solid var(--border);
   color: var(--text-2);
-  font-size: var(--fs-sm);
 }
 
-.site-footer p {
+.site-credit {
   max-width: 72rem;
-  margin: 0 auto 0.4rem;
+  margin: 0 auto;
+  font-size: var(--fs-xs);
 }
 
+/* Passage à la version sans 3D, dans l'en-tête à côté du menu du récit */
 .view-switch {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--accent-text);
+  flex: none;
+  align-self: center;
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text-2);
   font: inherit;
-  text-decoration: underline;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+.view-switch:hover {
+  border-color: var(--text-3);
+  color: var(--text);
 }
 
 /* Téléphone */
 @media (max-width: 760px) {
   .masthead {
     column-gap: 0.5rem;
+  }
+
+  /* Sur téléphone, le passage sans 3D reste sur la première ligne, juste avant les entrées */
+  .view-switch {
+    min-height: 2.25rem;
+    padding: 0 0.45rem;
+    font-size: var(--fs-xs);
+  }
+
+  .has-terrain .masthead > .view-switch {
+    order: 0;
+    align-self: center;
+    margin: 0 0 0 auto;
+  }
+
+  .has-terrain .masthead > .section-nav {
+    margin-left: 0;
   }
 
   /* Un glissement vertical du doigt fait défiler la page ; le glissement horizontal tourne la scène. */
@@ -888,6 +931,30 @@ a {
 
   .discovery-group {
     position: static;
+  }
+
+  /* La ligne du menu tient dans la largeur : l'état du groupe courant est tronqué plutôt que de déborder */
+  .has-terrain .masthead > .discovery,
+  .discovery-bar {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .discovery-start,
+  .discovery-group,
+  .discovery-toggle,
+  .discovery-label {
+    min-width: 0;
+  }
+
+  .discovery-group-state {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .has-scenario .discovery-start:not([aria-current]) .discovery-group-state,
+  .has-scenario .discovery-toggle:not(.is-current) .discovery-group-state {
+    display: none;
   }
 
   .discovery-list {
@@ -1297,15 +1364,6 @@ body.has-viewer {
   text-underline-offset: 0.2em;
 }
 
-.download-warning {
-  max-width: 42rem;
-  margin: 1.5rem 0 0;
-  padding-left: 0.9rem;
-  border-left: 3px solid var(--accent);
-  color: var(--text);
-  font-size: var(--fs-md);
-}
-
 .install-part {
   margin-top: clamp(3rem, 2rem + 3vw, 4.5rem);
   padding-top: clamp(2rem, 1.5rem + 2vw, 3rem);
@@ -1381,24 +1439,6 @@ body.has-viewer {
   box-shadow: inset 0 -2px 0 var(--accent);
 }
 
-.install-facts {
-  display: grid;
-  grid-template-columns: 11rem minmax(0, 1fr);
-  gap: 0.4rem 1.5rem;
-  max-width: 56rem;
-  margin: 0 0 2rem;
-  font-size: var(--fs-md);
-}
-
-.install-facts dt {
-  font-weight: 700;
-}
-
-.install-facts dd {
-  margin: 0;
-  color: var(--text-2);
-}
-
 .install-path {
   margin-bottom: 2.25rem;
 }
@@ -1450,10 +1490,8 @@ body.has-viewer {
   display: block;
   margin-bottom: 0.15rem;
   color: var(--accent-text);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .guide-text {
@@ -1568,14 +1606,6 @@ body.has-viewer {
   .install-tab {
     flex: 1;
     padding: 0 0.5rem;
-  }
-
-  .install-facts {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .install-facts dd {
-    margin-bottom: 0.6rem;
   }
 
   .install-step {

@@ -162,12 +162,15 @@ function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: St
     close.addEventListener("click", navigation.onClose);
     head.append(close);
   }
-  article.append(head, html("p", "scenario-where", scene.where), html("p", "scenario-lead", scene.lead));
-  const steps = html("ol", "steps");
-  for (const step of scene.steps) {
-    steps.append(html("li", `tone-${step.tone ?? "neutral"}`, step.text));
+  article.append(head, html("p", "scenario-lead", scene.lead));
+  if (scene.steps.length > 0) {
+    const steps = html("ol", "steps");
+    for (const step of scene.steps) {
+      steps.append(html("li", `tone-${step.tone ?? "neutral"}`, step.text));
+    }
+    article.append(steps);
   }
-  article.append(steps, html("p", "scenario-feature", scene.feature));
+  article.append(html("p", "scenario-feature", scene.feature));
   if (scene.axis === "ouverture" && navigation) article.append(renderEntries(navigation));
   if (scene.captures.length > 0) article.append(renderCaptures(scene));
   if (navigation) article.append(renderStepNavigation(scene, navigation));
@@ -494,7 +497,7 @@ async function renderTerrain(root: HTMLElement) {
   };
 
   const menu = renderDiscovery((id) => open(id));
-  masthead.insertBefore(menu.root, element("section-nav"));
+  masthead.insertBefore(menu.root, element("view-switch"));
 
   function open(id: SceneId | null, fromHash = false, fromAutoplay = false) {
     if (!fromAutoplay) stopAutoplay();
@@ -637,16 +640,18 @@ async function start() {
   renderSections();
   const viewSwitch = element<HTMLButtonElement>("view-switch");
   if (mode === "terrain") {
-    viewSwitch.textContent = "Afficher la version sans 3D";
+    viewSwitch.textContent = "Sans 3D";
+    viewSwitch.setAttribute("aria-label", "Afficher la version sans 3D");
     viewSwitch.addEventListener("click", () => setMode("plain"));
     renderCardNavigation(element("site-header"));
     await renderTerrain(element("terrain"));
   } else {
     if (webgl) {
-      viewSwitch.textContent = "Afficher le relief en 3D";
+      viewSwitch.textContent = "Avec 3D";
+      viewSwitch.setAttribute("aria-label", "Afficher le relief en 3D");
       viewSwitch.addEventListener("click", () => setMode("terrain"));
     } else {
-      viewSwitch.parentElement?.remove();
+      viewSwitch.remove();
     }
     renderPlain(
       element("plain-view"),
