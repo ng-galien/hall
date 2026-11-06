@@ -249,10 +249,14 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
     return line;
   });
   const tally = element("div", "b-tally");
-  const counters = ["Pour", "Contre", "Abstentions"].map((label) => {
+  const counters = [
+    ["Pour", "Pour"],
+    ["Contre", "Contre"],
+    ["Abstentions", "Abst."],
+  ].map(([label, short]) => {
     const box = element("div", "b-counter");
     const value = element("strong", "", "0");
-    box.append(value, element("span", "", label));
+    box.append(value, element("span", "b-counter-label", label), element("span", "b-counter-short", short));
     tally.append(box);
     return value;
   });

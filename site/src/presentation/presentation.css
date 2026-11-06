@@ -724,6 +724,10 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   line-height: 1.1;
 }
 
+.b-counter-short {
+  display: none;
+}
+
 .b-counter span {
   font-size: 0.68rem;
   color: var(--text-2);
@@ -3376,7 +3380,8 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     border-radius: 999px;
     transform: none;
     font-size: 0.6rem;
-    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    border: 1px solid var(--border);
     box-shadow: 0 6px 18px rgb(15 23 35 / 0.1);
     backdrop-filter: blur(8px);
     -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1rem), transparent);
@@ -3388,7 +3393,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     flex-direction: column;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.4rem 0 0.6rem;
+    padding: 0.4rem 0 1.1rem;
   }
 
   body:not(#phone)
@@ -3526,7 +3531,14 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-point.is-empty {
-    opacity: 0.25;
+    width: 1.95rem;
+    height: 1.95rem;
+    border: 1.5px dashed color-mix(in srgb, var(--text-2) 45%, transparent);
+    border-radius: 0.5rem;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-point.is-empty > .b-row {
+    display: none;
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-roll {
@@ -3549,8 +3561,10 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-session-item.is-current .b-session-mark {
-    color: #fff;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+    border: 2px solid var(--accent);
+    color: var(--accent-text);
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    box-shadow: none;
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-face:has(.b-current:not([hidden])) .b-roll {
@@ -3570,8 +3584,9 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   body:not(#phone) .p-board:not(.is-expanded) .b-counter {
     display: grid;
     justify-items: center;
-    width: 2.9rem;
+    width: 2.6rem;
     padding: 0.1rem 0 0.15rem;
+    overflow: hidden;
     border-width: 0 0 0 3px;
     border-radius: 0.3rem;
   }
@@ -3586,6 +3601,14 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
 
   body:not(#phone) .p-board:not(.is-expanded) .b-counter strong {
     font-size: 0.85rem;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-counter .b-counter-label {
+    display: none;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-counter .b-counter-short {
+    display: block;
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-counter span {
