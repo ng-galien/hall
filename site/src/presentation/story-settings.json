@@ -741,30 +741,32 @@
     "linkToPrefectureDrawn": {
       "label": "Le lien vers la préfecture se trace",
       "actor": "scene",
-      "step": "transmission",
-      "start": 0.14,
-      "end": 0.42
+      "step": "liste",
+      "start": 0.4,
+      "end": 0.25,
+      "endStep": "pv"
     },
     "resolutionSent": {
       "label": "La délibération part vers la préfecture",
       "actor": "scene",
-      "step": "transmission",
-      "start": 0.2,
-      "end": 0.55
+      "step": "liste",
+      "start": 0.5,
+      "end": 0.22,
+      "endStep": "transmission"
     },
     "prefectureGlowFades": {
       "label": "Arrivée à la préfecture : l'anneau s'atténue",
       "actor": "scene",
       "step": "transmission",
       "start": "resolutionSent.end",
-      "end": 0.75
+      "end": 0.55
     },
     "receiptReturns": {
       "label": "L'accusé de réception revient",
       "actor": "scene",
       "step": "transmission",
-      "start": 0.57,
-      "end": 0.78,
+      "start": 0.42,
+      "end": 0.72,
       "after": "resolutionSent"
     }
   },
@@ -793,10 +795,10 @@
     { "step": "appel", "at": 0.24, "aim": "dais", "az": 194, "el": 42, "dist": 16.5 },
     { "step": "cloture", "at": 0.95, "aim": "dais", "az": 218, "el": 39, "dist": 16 },
     { "step": "gel", "at": 0.22, "aim": "mairieSquare", "az": 200, "el": 30, "dist": 38 },
-    { "step": "pv", "at": 0.95, "aim": "mairieSquare", "az": 212, "el": 31, "dist": 40 },
-    { "step": "transmission", "at": 0.16, "aim": "towardPrefectureNear", "az": 175, "el": 44, "dist": 260 },
-    { "step": "transmission", "at": 0.36, "aim": "towardPrefectureFar", "az": 168, "el": 44, "dist": 380 },
-    { "step": "transmission", "at": 0.53, "aim": "prefecture", "az": 162, "el": 32, "dist": 78 },
+    { "step": "liste", "at": 0.36, "aim": "mairieSquare", "az": 212, "el": 31, "dist": 40 },
+    { "step": "liste", "at": 0.85, "aim": "towardPrefectureNear", "az": 175, "el": 44, "dist": 260 },
+    { "step": "pv", "at": 0.6, "aim": "towardPrefectureFar", "az": 168, "el": 44, "dist": 380 },
+    { "step": "transmission", "at": 0.24, "aim": "prefecture", "az": 162, "el": 32, "dist": 78 },
     { "step": "transmission", "at": 0.97, "aim": "prefecture", "az": 156, "el": 31, "dist": 74 },
     { "p": 1, "aim": "prefecture", "az": 150, "el": 33, "dist": 86 }
   ],
