@@ -4101,11 +4101,9 @@ html[data-scene="ready"] body .p-watermark.is-empty {
     display: none;
   }
 
-  body:not(#phone) .p-watermark .w-kicker {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.1rem;
-    font-size: 0.68rem;
+  /* Lieu et numéro d'étape déjà lus dans la gouttière : le titre prend leur ligne, à côté des flèches */
+  body:not(#phone) .p-watermark .w-words > .w-kicker {
+    display: none;
   }
 
   body:not(#phone) .w-controls {
@@ -4120,8 +4118,15 @@ html[data-scene="ready"] body .p-watermark.is-empty {
   }
 
   body:not(#phone) .p-watermark .p-watermark-title {
+    display: flex;
+    align-items: center;
+    min-height: 2.25rem;
+    padding-right: 5.25rem;
     font-size: 1.12rem;
     line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   body:not(#phone) .p-watermark .p-watermark-points {

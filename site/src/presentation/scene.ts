@@ -1045,7 +1045,7 @@ export async function start() {
     folder: "devis",
     source: () => robotHead(),
     direct: true,
-    fly: between("assistant", 0.8, 0.8),
+    fly: between("assistant", 0.82, 0.82),
   });
 
   const phonePoint = () => {
@@ -1258,8 +1258,8 @@ export async function start() {
     { x: -268, y: -2462 },
     { x: -88, y: -2416 },
   ];
+  /* La voiture de la secrétaire entre dans le plan déjà lancée, à quelques rues de la mairie */
   const roadToMairie: Spot[] = [
-    { x: -1143, y: -2494 },
     { x: -1036, y: -2431 },
     { x: -1012, y: -2420 },
     { x: -988, y: -2412 },
@@ -1273,14 +1273,14 @@ export async function start() {
   const driveAway = polyline(roadAway);
   /* La voiture part pendant « Rendez-vous et invitations » et arrive au chemin au début de « Photos depuis le téléphone » */
   const toChemin: [number, number] = [at("rendezvous", 0.42), range("photo")[0]];
-  const toMairie = between("assistant", 0.06, 0.24);
+  const toMairie = between("assistant", 0.03, 0.15);
   const heading = (route: (f: number) => Spot, f: number) => {
     const a = route(Math.max(0, f - 0.02));
     const b = route(Math.min(1, f + 0.02));
     return Math.atan2(b.x - a.x, -(b.y - a.y));
   };
   const awayWindow = between("cadastre", 0.97, 1);
-  awayWindow[1] = at("assistant", 0.2);
+  awayWindow[1] = at("assistant", 0.12);
   /** Voiture de l'adjoint : bureau → chemin, puis départ hors du récit. */
   function carAt(p: number): { spot: Spot; heading: number; visible: boolean } {
     if (p < toChemin[0]) return { spot: roadToChemin[0], heading: heading(driveToChemin, 0), visible: true };
@@ -1313,7 +1313,9 @@ export async function start() {
       const f = gentle(span(p, leaveMairie[0], leaveMairie[1]));
       return { spot: driveAwayFromMairie(f), heading: heading(driveAwayFromMairie, Math.max(0.01, f)), visible: f < 1 };
     }
-    const f = easeInOut(span(p, toMairie[0], toMairie[1]));
+    /* Déjà en mouvement à l'entrée du plan : la voiture ralentit seulement à l'arrivée */
+    const t = span(p, toMairie[0], toMairie[1]);
+    const f = 1 - (1 - t) * (1 - t);
     return {
       spot: driveToMairie(f),
       heading: heading(driveToMairie, Math.min(0.99, f)),
@@ -1374,11 +1376,11 @@ export async function start() {
       x: carMairie.x + (spots.mairieDoor.x - carMairie.x) * 0.4 - 6,
       y: carMairie.y + (spots.mairieDoor.y - carMairie.y) * 0.4,
     };
-    const pause = toMairie[1] + (at("assistant", 0.27) - toMairie[1]);
+    const pause = toMairie[1] + (at("assistant", 0.19) - toMairie[1]);
     if (p < toMairie[1] + (pause - toMairie[1]) * 0.3)
       return { spot: carMairie, heading: 0, moving: false, inCar: true };
     if (p < pause) return { spot: out, heading: 0.2, moving: false, inCar: false };
-    const k = gentle(span(p, pause, at("assistant", 0.38)));
+    const k = gentle(span(p, pause, at("assistant", 0.28)));
     return k >= 1
       ? { spot: spots.mairieDoor, heading: 0.2, moving: false, inCar: false }
       : walk(out, spots.mairieDoor, k);
@@ -1408,10 +1410,10 @@ export async function start() {
     { p: at("trace", 0.12), aim: cheminCentre, az: 198, el: 47, dist: 70 },
     { p: at("cadastre", 0.1), aim: cheminCentre, az: 186, el: 48, dist: 72 },
     { p: at("cadastre", 0.95), aim: cheminCentre, az: 180, el: 56, dist: 96 },
-    { p: at("assistant", 0.1), aim: "car", az: 190, el: 50, dist: 85 },
-    { p: at("assistant", 0.28), aim: spots.mairieDoor, az: 196, el: 32, dist: 34 },
+    { p: at("assistant", 0.04), aim: "car", az: 192, el: 44, dist: 60 },
+    { p: at("assistant", 0.18), aim: spots.mairieDoor, az: 196, el: 32, dist: 34 },
     {
-      p: at("assistant", 0.38),
+      p: at("assistant", 0.28),
       aim: { x: spots.mairieDoor.x - 2, y: spots.mairieDoor.y - 4 },
       az: 200,
       el: 26,
@@ -1660,7 +1662,7 @@ export async function start() {
         Math.atan2(spots.mairieDoor.x - start.x, -(spots.mairieDoor.y - start.y)) + (leaving ? Math.PI : 0);
       walker.pose(reducedMotion ? null : stridePhase(walker.group, walker.group.scale.x) + delay * 3, 0);
     }
-    const inside = p >= at("assistant", 0.4) && p < range("gel")[0];
+    const inside = p >= at("assistant", 0.3) && p < range("gel")[0];
     character.group.visible = !field && !here.inCar && !inside;
     const vehicle = carAt(p);
     car.position.copy(world(vehicle.spot, 0.05));
@@ -1867,9 +1869,9 @@ export async function start() {
     if (boardP >= at("creer", 0.5)) landed.set("rapport", at("creer", 0.5));
     /* Assistant IA : apparition, lien à la personne, lecture des dossiers un à un */
     const robotShow =
-      smooth(span(p, at("assistant", 0.2), at("assistant", 0.28))) *
+      smooth(span(p, at("assistant", 0.12), at("assistant", 0.2))) *
       (1 - smooth(span(p, at("assistant", 0.92), range("projet")[0])));
-    const scan = span(p, at("assistant", 0.3), at("assistant", 0.72));
+    const scan = span(p, at("assistant", 0.22), at("assistant", 0.74));
     const scanIndex = scan > 0 && scan < 1 ? Math.min(scanOrder.length - 1, Math.floor(scan * scanOrder.length)) : -1;
     const scanning = scanIndex >= 0 && p < range("projet")[0] ? scanOrder[scanIndex] : null;
     const scanTarget = scanning ? board.folderPoint(scanning) : null;
@@ -1881,7 +1883,7 @@ export async function start() {
     const slide = (1 - robotShow) * 12;
     assistantNode.style.transform = `translate(${(boardRect.left - assistantNode.offsetWidth - 12 - slide).toFixed(1)}px, ${(assistantY - 20).toFixed(1)}px)`;
     assistantNode.classList.toggle("is-working", scan > 0 && scan < 1);
-    assistantNode.classList.toggle("is-writing", p >= at("assistant", 0.7) && p < at("assistant", 0.82));
+    assistantNode.classList.toggle("is-writing", p >= at("assistant", 0.72) && p < at("assistant", 0.84));
     assistantNode.style.visibility = robotShow > 0.01 ? "visible" : "hidden";
     /* Trait fin vers la secrétaire : il agit avec son compte */
     const from = robotHead();

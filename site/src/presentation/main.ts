@@ -94,7 +94,7 @@ export function scrollProgress(): number {
 
 /** Instant d'arrivée d'une sous-étape : au début de son action ; pour la première sous-étape d'un lieu, quand la
  * caméra a fini de cadrer le lieu. */
-export const placeLanding: Record<string, number> = { creer: 0.62, photo: 0.4, assistant: 0.3, appel: 0.26, gel: 0.2 };
+export const placeLanding: Record<string, number> = { creer: 0.62, photo: 0.4, assistant: 0.2, appel: 0.26, gel: 0.2 };
 export function landing(index: number): number {
   const step = subSteps[index];
   if (reducedMotion) return at(step.id, 0.97);
@@ -136,10 +136,7 @@ function stepTo(index: number, ratio: number) {
   const through = subSteps[Math.max(0, index > current ? index : Math.min(subSteps.length - 1, index + 1))];
   hooks.keyIndex = index;
   play(index < 0 ? 0 : at(subSteps[index].id, 0.97), ratio * stepMs(through));
-  /* Les flèches de la carte restent grisées jusqu'à la fin de la sous-étape jouée, quel que soit le déclencheur */
-  requestAnimationFrame(() => afterStep());
 }
-let afterStep = () => {};
 
 /* Défilement de la page hors du récit (vers la section du bas et retour) : une seule glissade */
 const GLIDE_MS = 900;
@@ -332,10 +329,12 @@ function refreshArrows() {
   stepPrevious.disabled = playing || shownIndex <= 0;
   stepNext.disabled = playing || shownIndex >= subSteps.length - 1;
 }
+/* L'état des flèches suit toute lecture ou saut, quel qu'en soit le déclencheur (carte, molette, gouttière, menu) */
 function watchPlayback() {
   refreshArrows();
-  if (requested || moving()) requestAnimationFrame(watchPlayback);
+  requestAnimationFrame(watchPlayback);
 }
+requestAnimationFrame(watchPlayback);
 /** Joue la sous-étape voisine, dans le sens de `delta`, si elle existe ; rien tant qu'une autre se joue. */
 function stepBy(delta: number) {
   if (requested || moving()) return;
@@ -344,7 +343,6 @@ function stepBy(delta: number) {
   requested = performance.now();
   stepTo(index, CONTROL_STEP_RATIO);
 }
-afterStep = watchPlayback;
 stepPrevious.addEventListener("click", () => stepBy(-1));
 stepNext.addEventListener("click", () => stepBy(1));
 /** Glissement retenu : au moins 48 px de côté, et nettement plus horizontal que vertical. */

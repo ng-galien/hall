@@ -91,6 +91,7 @@ export const subSteps: SubStep[] = [
     place: 0,
     weight: 0.7,
     title: "Rattachement aux commissions",
+    shortTitle: "Commissions",
     text: "",
     points: ["Choix des commissions concernées par l'affaire", "Dossiers de la commission regroupés sur sa fiche"],
     shortPoints: ["Choix des commissions concernées par l'affaire", "Dossiers regroupés par commission"],
@@ -101,6 +102,7 @@ export const subSteps: SubStep[] = [
     place: 0,
     weight: 0.8,
     title: "Rendez-vous et invitations",
+    shortTitle: "Rendez-vous",
     text: "",
     points: [
       "Rendez-vous au calendrier, relié à l'affaire",
@@ -114,6 +116,7 @@ export const subSteps: SubStep[] = [
     place: 1,
     weight: 1.35,
     title: "Photos depuis le téléphone",
+    shortTitle: "Photos sur place",
     text: "",
     points: [
       "Écrans adaptés à la taille du téléphone",
@@ -220,6 +223,7 @@ export const subSteps: SubStep[] = [
     place: 2,
     weight: 0.8,
     title: "Préparation de la convocation",
+    shortTitle: "Convocation",
     text: "",
     points: [
       "Ordre du jour figé avant la convocation",
@@ -337,6 +341,7 @@ export const subSteps: SubStep[] = [
     place: 4,
     weight: 0.6,
     title: "Rédaction du procès-verbal",
+    shortTitle: "Procès-verbal",
     text: "",
     points: [
       "Notes, vote et rédaction finale pour chaque point",
@@ -351,6 +356,7 @@ export const subSteps: SubStep[] = [
     place: 4,
     weight: 1.7,
     title: "Partage de la délibération",
+    shortTitle: "Délibération partagée",
     text: "",
     points: [
       "Partage du fichier depuis le téléphone",
