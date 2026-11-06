@@ -49,18 +49,27 @@ function place(timeline: Timeline, moment: MomentSettings, start: number, end: n
   }
 }
 
-/** Shifts the moments declared after `name` by the move of its end, recursively. */
+/**
+ * Moves the moments that depend on `name` by the move of the edge they depend on: its end for a moment declared
+ * `after` it, the referenced edge for a moment that starts or ends on it. A dependent moment within one sub-step
+ * moves as a whole; one that spans several sub-steps keeps its end. Recursive.
+ */
 function follow(settings: StorySettings, before: Timeline, name: string, seen: Set<string>) {
   const after = new Timeline(before.order, settings);
-  const delta = after.end(name) - before.end(name);
-  if (Math.abs(delta) < 1e-12) return;
+  const shift = { start: after.start(name) - before.start(name), end: after.end(name) - before.end(name) };
   for (const [key, moment] of Object.entries(settings.moments)) {
-    if (moment.after !== name || seen.has(key)) continue;
+    if (seen.has(key) || moment.within === name) continue;
+    const reference = [moment.start, moment.end]
+      .filter((edge): edge is `${string}.${"start" | "end"}` => typeof edge === "string")
+      .find((edge) => edge.split(".")[0] === name);
+    const delta = moment.after === name ? shift.end : reference ? shift[reference.split(".")[1] as "start" | "end"] : 0;
+    if ((moment.after !== name && !reference) || Math.abs(delta) < 1e-12) continue;
     seen.add(key);
     const [start, end] = before.moment(key);
-    const current = new Timeline(before.order, settings);
     const snapshot = new Timeline(before.order, cloneSettings(settings));
-    place(current, moment, start + delta, end + delta);
+    const spans = moment.endStep !== undefined && moment.endStep !== moment.step;
+    const newStart = start + delta;
+    place(snapshot, moment, newStart, spans ? Math.max(end, newStart) : end + delta);
     follow(settings, snapshot, key, seen);
   }
 }

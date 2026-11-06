@@ -121,7 +121,8 @@ panel.append(bar, ribbon, detail);
 
 const playButton = el("button", "st-button");
 playButton.dataset.testid = "studio-play";
-const replayButton = el("button", "st-button", "Rejouer la sous-étape");
+const replayButton = el("button", "st-button", "Rejouer");
+replayButton.title = "Rejouer la sous-étape comme la flèche de la carte";
 replayButton.dataset.testid = "studio-replay";
 const speedGroup = el("span", "st-group");
 const toolGroup = el("span", "st-group");
@@ -206,7 +207,7 @@ const refreshFrame = choice(
 );
 
 bar.append(
-  el("span", "st-title", "Studio du récit"),
+  el("span", "st-title", "Studio"),
   playButton,
   replayButton,
   speedGroup,
@@ -214,7 +215,6 @@ bar.append(
   cutButton,
   frameGroup,
   clock,
-  el("span", "st-spacer"),
   status,
   undoButton,
   nameInput,
@@ -247,7 +247,12 @@ cutButton.addEventListener("click", () => {
   if (!selection) return;
   const [from, to] = selection;
   const id = stepId();
-  cuts.push({ step: id, from, to, seconds: Math.round((to - from) * stepSeconds() * 100) / 100 });
+  cuts.push({
+    step: id,
+    from: Math.round(from * 10000) / 10000,
+    to: Math.round(to * 10000) / 10000,
+    seconds: Math.round((to - from) * stepSeconds() * 100) / 100,
+  });
   const cut = to - from;
   for (const note of notes)
     if (note.step === id) note.at = (note.at <= from ? note.at : note.at >= to ? note.at - cut : from) / (1 - cut);
@@ -385,7 +390,7 @@ let laneWidth = 1;
 const xOf = (f: number) => ((f - VIEW[0]) / (VIEW[1] - VIEW[0])) * laneWidth;
 const fOf = (x: number) => VIEW[0] + (x / laneWidth) * (VIEW[1] - VIEW[0]);
 const pOf = (x: number) => timeline.at(stepId(), fOf(x));
-const LANE = 24;
+const LANE = 21;
 
 /** Glissement : `make` reçoit le déplacement en pixels et les réglages du début du geste. */
 function drag(event: PointerEvent, make: (dx: number, start: StorySettings) => StorySettings, onClick?: () => void) {
@@ -502,7 +507,7 @@ function momentBlock(name: string, moment: MomentSettings, id: string): Item | n
       handle.addEventListener("pointerdown", (event) => {
         if (tool !== "move") return;
         event.stopPropagation();
-        const x0 = event.clientX - node.parentElement!.getBoundingClientRect().left;
+        const x0 = event.clientX - (node.parentElement?.getBoundingClientRect().left ?? 0);
         drag(
           event,
           (dx, start) => setMomentEdge(start, timeline.order, name, edge, timeline.at(id, fOf(x0 + dx))),

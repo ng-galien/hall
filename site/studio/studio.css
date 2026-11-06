@@ -12,7 +12,7 @@
   --st-block: #dbe5f3;
   --st-block-text: #174a96;
   --st-danger: #b91c1c;
-  --st-panel-height: 360px;
+  --st-panel-height: 390px;
   --st-label: 132px;
   font-family: "Public Sans", system-ui, sans-serif;
   color: var(--st-text);
@@ -95,8 +95,9 @@ input {
 .st-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 12px;
+  white-space: nowrap;
   border-bottom: 1px solid var(--st-hair);
 }
 
@@ -107,6 +108,7 @@ input {
 
 .st-group {
   display: inline-flex;
+  flex: none;
   border: 1px solid var(--st-line);
   border-radius: 7px;
   overflow: hidden;
@@ -116,8 +118,9 @@ input {
 .st-button {
   border: 0;
   background: var(--st-panel);
-  padding: 5px 10px;
+  padding: 4px 8px;
   cursor: pointer;
+  flex: none;
   white-space: nowrap;
 }
 
@@ -159,11 +162,12 @@ input {
 .st-clock {
   font-variant-numeric: tabular-nums;
   color: var(--st-text-2);
-  min-width: 15ch;
+  flex: none;
 }
 
 .st-name {
-  width: 220px;
+  width: 170px;
+  flex: none;
   padding: 5px 8px;
   border: 1px solid var(--st-line);
   border-radius: 7px;
@@ -171,7 +175,9 @@ input {
 
 .st-status {
   color: var(--st-text-2);
-  max-width: 320px;
+  min-width: 0;
+  flex: 1;
+  text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -361,12 +367,12 @@ input {
 
 .st-block {
   position: absolute;
-  height: 20px;
+  height: 18px;
   border-radius: 4px;
   background: var(--st-block);
   color: var(--st-block-text);
   font-size: 11px;
-  line-height: 20px;
+  line-height: 16px;
   padding: 0 6px;
   overflow: hidden;
   white-space: nowrap;
