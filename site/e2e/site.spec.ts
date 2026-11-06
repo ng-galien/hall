@@ -439,7 +439,7 @@ test("le quorum atteint est une étape valide, sans rouge", async ({ page }) => 
 test("l’arrivée dit qu’on visite la démonstration de Hall et comment choisir un scénario", async ({ page }) => {
   await page.goto("./?vue=sans-3d");
   await expect(page).toHaveTitle("Hall, gestion de l’activité communale");
-  await expect(page.getByTestId("site-header")).toContainText("Gestion de l’activité communale");
+  await expect(page.getByTestId("site-header")).toContainText("Le conseil municipal en séance");
   const intro = page.getByTestId("intro");
   await expect(intro.locator("h1")).toHaveText("Démonstration de Hall sur la commune fictive d’Alésia");
   await expect(intro.getByText("Choisissez un scénario dans la liste ci-dessous.")).toBeVisible();
