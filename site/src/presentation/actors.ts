@@ -189,9 +189,9 @@ export function buildCharacter(variant: "man" | "woman" = "woman", custom: Look 
 }
 
 /** Voiture compacte : caisse, habitacle vitré, roues, bandeau au bleu d'accent. */
-export function buildCar(): THREE.Group {
+export function buildCar(color?: number): THREE.Group {
   const group = new THREE.Group();
-  const body = new THREE.MeshLambertMaterial({ color: dark ? 0xe2e8f0 : 0xf8fafc });
+  const body = new THREE.MeshLambertMaterial({ color: color ?? (dark ? 0xe2e8f0 : 0xf8fafc) });
   const trim = new THREE.MeshLambertMaterial({ color: dark ? 0x475569 : 0x334155 });
   const glass = new THREE.MeshLambertMaterial({ color: dark ? 0x1f2a3a : 0x64748b });
   const accent = new THREE.MeshLambertMaterial({ color: ACCENT });
@@ -203,7 +203,7 @@ export function buildCar(): THREE.Group {
   cabin.position.set(0, 0.34, -0.06);
   const roof = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.03, 0.46), body);
   roof.position.set(0, 0.43, -0.07);
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.47, 0.035, 0.96), accent);
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.47, 0.035, 0.96), color === undefined ? accent : trim);
   stripe.position.y = 0.2;
   const bumpers = [0.5, -0.5].map((z) => {
     const bumper = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.06, 0.04), trim);

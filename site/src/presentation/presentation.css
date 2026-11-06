@@ -32,51 +32,6 @@ body {
   backdrop-filter: blur(8px);
 }
 
-.p-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: var(--text);
-  text-decoration: none;
-}
-
-.p-brand-mark {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.4rem;
-  background: var(--accent);
-  color: #fff;
-  font-weight: 800;
-}
-
-.p-brand-name {
-  font-weight: 800;
-  font-size: 1.2rem;
-}
-
-.p-brand-qualification {
-  color: var(--text-2);
-  font-size: 0.9rem;
-}
-
-.p-nav {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.p-nav a {
-  color: var(--text-2);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.p-nav a:hover {
-  color: var(--text);
-}
-
 .p-stage {
   position: fixed;
   inset: 0;
@@ -291,10 +246,6 @@ body {
 }
 
 @media (max-width: 760px) {
-  .p-brand-qualification,
-  .p-nav a:first-child {
-    display: none;
-  }
 }
 
 /* En savoir plus */
@@ -2978,27 +2929,6 @@ body {
 }
 
 /* Barre du haut plus présente */
-.p-brand-mark {
-  width: 2.5rem;
-  height: 2.5rem;
-  font-size: 1.15rem;
-}
-
-.p-brand-name {
-  font-size: 1.4rem;
-}
-
-.p-brand-qualification {
-  font-size: 1rem;
-}
-
-.p-nav {
-  gap: 2rem;
-}
-
-.p-nav a {
-  font-size: 1.08rem;
-}
 
 /* Voile de passage pour les liens du haut */
 .p-veil {
@@ -3028,19 +2958,6 @@ body {
 
 .p-watermark .p-watermark-definition:empty {
   display: none;
-}
-
-.p-hero-definition {
-  max-width: 34rem;
-  margin: 1rem 0 0;
-  padding-left: 0.9rem;
-  border-left: 3px solid var(--accent);
-  font-size: var(--fs-md);
-  line-height: 1.5;
-  color: var(--text);
-  text-shadow:
-    0 0 4px var(--bg),
-    0 0 10px var(--bg);
 }
 
 /* Assistant IA flottant, contre le bord gauche de la fiche : cartouche en verre dépoli */
@@ -3327,4 +3244,103 @@ body {
 .p-watermark.is-empty.is-changing {
   opacity: 0;
   visibility: hidden;
+}
+
+/* Ouverture : identité claire, avec un petit visuel de conseil municipal */
+.p-hero-head {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 2.5vw, 1.75rem);
+}
+
+.p-hero-visual {
+  flex: none;
+  width: clamp(5.5rem, 9vw, 8rem);
+  height: auto;
+  overflow: visible;
+}
+
+.p-hero-table {
+  fill: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  stroke: #334155;
+  stroke-width: 2.5;
+}
+
+.p-hero-urn {
+  fill: none;
+  stroke: #334155;
+  stroke-width: 2;
+}
+
+.p-hero-seat,
+.p-hero-chair {
+  fill: var(--surface);
+  stroke: #334155;
+  stroke-width: 2.5;
+}
+
+.p-hero-chair {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.p-hero-seat {
+  animation: hero-seat 6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.35s);
+}
+
+@keyframes hero-seat {
+  0%,
+  8% {
+    fill: var(--surface);
+  }
+  18%,
+  70% {
+    fill: var(--accent);
+  }
+  85%,
+  100% {
+    fill: var(--surface);
+  }
+}
+
+.p-hero-line {
+  font-size: clamp(1.8rem, 3.4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.p-hero-hint {
+  margin-top: 1.1rem;
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p-hero-seat {
+    animation: none;
+    fill: var(--accent);
+  }
+}
+
+@media (max-width: 760px) {
+  .site-brand-qualification {
+    display: none;
+  }
+  .p-hero-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.p-hero-head {
+  align-items: center;
+}
+
+.p-hero-visual {
+  width: clamp(7rem, 11vw, 10rem);
+}
+
+.p-hero-words h1 {
+  margin: 0;
 }

@@ -3,6 +3,7 @@ import "@fontsource/public-sans/600.css";
 import "@fontsource/public-sans/700.css";
 import "@fontsource/public-sans/800.css";
 import "../theme.css";
+import "../site-header.css";
 import "./presentation.css";
 import * as THREE from "three";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
@@ -466,6 +467,7 @@ async function start() {
     lightBuildings(ground, [
       { ...spots.home, r: 26 },
       { ...spots.mairie, r: 34 },
+      { x: -948, y: -2284, r: 18 },
     ]),
   );
 
@@ -488,10 +490,11 @@ async function start() {
   const person = character.group;
   person.scale.setScalar(PERSON_SCALE * 0.93);
   const CAR_SCALE = 2.2;
-  const car = buildCar();
+  /* Voiture de l'adjoint en bleu, voiture de la secrétaire en rouge brique doux */
+  const car = buildCar(0x2a5fae);
   car.scale.setScalar(CAR_SCALE);
   scene.add(car);
-  const car2 = buildCar();
+  const car2 = buildCar(0xb5584f);
   car2.scale.setScalar(CAR_SCALE);
   scene.add(car2);
   scene.add(person);
@@ -791,12 +794,50 @@ async function start() {
       led.position.set(0.15, 0.24 + i * 0.18, 0.27);
       server.add(slot, led);
     }
-    const serverSpot = { x: spots.mairie.x + 34, y: spots.mairie.y - 22 };
-    server.position.copy(world(serverSpot, -0.05));
-    server.scale.setScalar(2.4);
+    /* Socle sous la baie */
+    const plinth = new THREE.Mesh(
+      new THREE.BoxGeometry(0.66, 0.08, 0.66),
+      new THREE.MeshLambertMaterial({ color: 0x94a3b8 }),
+    );
+    plinth.position.y = -0.02;
+    server.add(plinth);
+    /* À gauche de la mairie, vu depuis la caméra de « Tout le conseil informé » */
+    const serverSpot = { x: spots.mairie.x - 70, y: spots.mairie.y - 10 };
+    server.position.copy(world(serverSpot, 0.02));
+    server.scale.setScalar(6);
+    server.visible = false;
+    server.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        (child.material as THREE.Material).transparent = true;
+        (child.material as THREE.Material & { opacity: number }).opacity = 0;
+      }
+    });
     scene.add(server);
   }
-  const serverTop = server.position.clone().add(new THREE.Vector3(0, 2.4, 0));
+  /* Place de stationnement de la secrétaire, marquage au sol fin */
+  {
+    const bay = new THREE.Group();
+    const line = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const w = 0.62;
+    const l = 1.3;
+    for (const x of [-w / 2, w / 2]) {
+      const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.035, l), line);
+      stripe.rotation.x = -Math.PI / 2;
+      stripe.position.set(x, 0.03, 0);
+      bay.add(stripe);
+    }
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.035, 0.035), line);
+    back.rotation.x = -Math.PI / 2;
+    back.position.set(0, 0.03, -l / 2);
+    bay.add(back);
+    const spot = { x: -948, y: -2284 };
+    bay.position.copy(world(spot, 0.02));
+    bay.scale.setScalar(2.2);
+    /* Alignée sur le dernier tronçon de l'arrivée, ouverte côté route */
+    bay.rotation.y = Math.atan2(spot.x - -958, -(spot.y - -2300));
+    scene.add(bay);
+  }
+  const serverTop = server.position.clone().add(new THREE.Vector3(0, 5.6, 0));
   const serverRing = new THREE.Mesh(
     new THREE.RingGeometry(2.2, 2.6, 48),
     new THREE.MeshBasicMaterial({
@@ -1966,6 +2007,13 @@ async function start() {
     (serverRing.material as THREE.MeshBasicMaterial).opacity =
       sharing && pulse > 0 && pulse < 1 ? 0.8 * (1 - pulse) : 0;
     serverRing.scale.setScalar(1 + pulse * 2.5);
+    /* La baie n'apparaît que pendant « Tout le conseil informé », en fondu */
+    const serverShow =
+      smooth(span(p, shareStart, at("partage", 0.06))) * (1 - smooth(span(p, at("partage", 0.92), shareEnd)));
+    server.visible = serverShow > 0.01;
+    server.traverse((child) => {
+      if (child instanceof THREE.Mesh) (child.material as THREE.Material & { opacity: number }).opacity = serverShow;
+    });
     devices.forEach((device, index) => {
       /* Départs étalés ; chaque lien se trace lentement, avec un seul flux lumineux */
       const start = at("partage", 0.05 + device.delay * 0.5);
