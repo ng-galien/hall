@@ -3147,8 +3147,15 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     display: none;
   }
 
+  /* Assistant IA : pastille compacte à gauche de la colonne de la fiche, à la hauteur du dossier lu */
   .p-assistant {
-    display: none;
+    gap: 0.3rem;
+    padding: 0.3rem 0.5rem 0.3rem 0.3rem;
+    border-radius: 0.7rem;
+  }
+
+  .p-assistant .p-assistant-label {
+    font-size: 0.8rem;
   }
 
   .p-phone {
