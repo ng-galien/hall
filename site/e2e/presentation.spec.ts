@@ -30,3 +30,18 @@ test("la page se charge et se lit sur téléphone", async ({ page }, testInfo) =
   );
   await expect(page.getByTestId("step-panel-title")).not.toHaveText("", { timeout: 15_000 });
 });
+
+/* Carte d'étape : la flèche d'ouverture lance le récit, les flèches de la carte passent d'une sous-étape à l'autre. */
+test("la flèche d’ouverture et les flèches de la carte font avancer le récit", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
+  await page.getByTestId("story-start").click();
+  await expect(page.getByTestId("step-panel-title")).toHaveText("Création de l'affaire", { timeout: 15_000 });
+  await expect(page.getByTestId("step-card-previous")).toBeDisabled();
+  await page.getByTestId("step-card-next").click();
+  await expect(page.getByTestId("step-panel-title")).toHaveText("Devis et budget", { timeout: 15_000 });
+  await page.getByTestId("step-card-previous").click();
+  await expect(page.getByTestId("step-panel-title")).toHaveText("Création de l'affaire", { timeout: 15_000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

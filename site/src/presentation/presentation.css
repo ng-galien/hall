@@ -3345,8 +3345,185 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 }
 
-/* Précédent et Suivant, noms courts des lieux et des dossiers : téléphone seulement */
-.p-step-nav,
+/* Carte d'étape : elle reçoit les flèches et le glissement du doigt ; le défilement vertical reste à la page */
+html[data-scene="ready"] body .p-watermark {
+  pointer-events: auto;
+  touch-action: pan-y;
+}
+
+html[data-scene="ready"] body .p-watermark.is-empty {
+  pointer-events: none;
+}
+
+.p-watermark .w-words > .w-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.6rem;
+  min-height: 2.25rem;
+  padding-right: 5.25rem;
+}
+
+.w-controls {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.w-arrow {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  color: var(--accent-text);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+/* Zone de toucher de 44 px autour de chaque flèche */
+.w-arrow::before {
+  content: "";
+  position: absolute;
+  inset: -0.25rem;
+}
+
+.w-arrow svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.w-arrow:hover:not(:disabled),
+.w-arrow:active:not(:disabled) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.w-arrow:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.w-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Ouverture : flèche fine qui se dessine vers le bas, sous le titre */
+.p-hero-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.6rem;
+  margin-left: -0.35rem;
+  padding: 0.25rem 0.6rem 0.25rem 0.35rem;
+  border: 0;
+  border-radius: 0.45rem;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-shadow:
+    0 0 2px var(--bg),
+    0 0 6px var(--bg),
+    0 0 14px var(--bg);
+}
+
+.p-hero-cue svg {
+  width: 1.5rem;
+  height: 2.5rem;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+
+.p-hero-cue-line {
+  stroke-dasharray: 27;
+  animation: p-cue-line 2.4s ease-in-out infinite;
+}
+
+.p-hero-cue-head {
+  animation: p-cue-head 2.4s ease-in-out infinite;
+}
+
+.p-hero-cue:hover .p-hero-cue-label,
+.p-hero-cue:focus-visible .p-hero-cue-label {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+.p-hero-cue:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@keyframes p-cue-line {
+  0% {
+    stroke-dashoffset: 27;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes p-cue-head {
+  0%,
+  35% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  55% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p-hero-cue-line,
+  .p-hero-cue-head {
+    animation: none;
+  }
+}
+
+/* Noms courts des lieux et des dossiers : téléphone seulement */
 .g-place-short,
 .b-group-short {
   display: none;
@@ -3473,54 +3650,6 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
 
   body:not(#phone) .p-gutter .g-item.g-sub.is-near + .g-place {
     margin-top: 0.2rem;
-  }
-
-  /* Précédent et Suivant, sous le panneau d'étape, à portée de pouce */
-  body:not(#phone) .p-step-nav {
-    position: fixed;
-    z-index: 6;
-    left: 0.5rem;
-    right: 0.5rem;
-    bottom: max(0.5rem, env(safe-area-inset-bottom));
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    transition: opacity 0.3s ease;
-  }
-
-  body:not(#phone) .p-step-nav.is-past {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  body:not(#phone) .p-step-button {
-    height: 2.75rem;
-    border-radius: 0.6rem;
-    border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--surface) 94%, transparent);
-    box-shadow: 0 6px 18px rgb(15 23 35 / 0.1);
-    backdrop-filter: blur(8px);
-    font: inherit;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--accent-text);
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  body:not(#phone) .p-step-button span {
-    font-size: 1.3rem;
-    line-height: 1;
-    vertical-align: -0.08em;
-  }
-
-  body:not(#phone) .p-step-button:active {
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-  }
-
-  body:not(#phone) .p-step-button:disabled {
-    color: var(--text-2);
-    opacity: 0.45;
   }
 
   /* Fiche en colonne le long du bord droit : pictogrammes seuls, l'élément arrivé s'allume */
@@ -3951,7 +4080,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   body:not(#phone) .p-watermark.is-b {
     left: 0.5rem;
     right: 0.5rem;
-    bottom: calc(max(0.5rem, env(safe-area-inset-bottom)) + 3.2rem);
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
     width: auto;
     max-width: none;
     /* biome-ignore lint/complexity/noImportantStyles: remplace la hauteur commune posée par calibrateStepText */
@@ -3977,6 +4106,11 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     gap: 0.5rem;
     margin-bottom: 0.1rem;
     font-size: 0.68rem;
+  }
+
+  body:not(#phone) .w-controls {
+    top: 0.55rem;
+    right: 0.6rem;
   }
 
   body:not(#phone) .p-watermark .w-icon {

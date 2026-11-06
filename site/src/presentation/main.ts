@@ -117,8 +117,13 @@ export function goTo(index: number) {
   hooks.jump?.(p);
 }
 
-/** Durée de lecture d'une sous-étape, entre 0,9 et 1,4 seconde selon son poids. */
+/** Durée de base d'une sous-étape, entre 0,9 et 1,4 seconde selon son poids. */
 const stepMs = (weight: number) => Math.min(1400, 750 + 270 * weight);
+/** Multiplicateur de la durée de base pour une commande explicite : flèches et glissement de la carte, clavier,
+    flèche d'ouverture. */
+const CONTROL_STEP_RATIO = 3;
+/** Multiplicateur de la durée de base pour un geste de molette, de pavé tactile ou de TrackPoint. */
+const WHEEL_STEP_RATIO = 1.5;
 
 function play(p: number, ms: number) {
   if (hooks.play) hooks.play(p, ms);
@@ -126,11 +131,11 @@ function play(p: number, ms: number) {
 }
 
 /** Passe à la sous-étape voisine `index` et la montre dans son état final ; en arrière, le récit se rembobine. */
-function stepTo(index: number) {
+function stepTo(index: number, ratio: number) {
   const current = currentStep();
   const through = subSteps[Math.max(0, index > current ? index : Math.min(subSteps.length - 1, index + 1))];
   hooks.keyIndex = index;
-  play(index < 0 ? 0 : at(subSteps[index].id, 0.97), stepMs(through.weight));
+  play(index < 0 ? 0 : at(subSteps[index].id, 0.97), ratio * stepMs(through.weight));
 }
 
 /* Défilement de la page hors du récit (vers la section du bas et retour) : une seule glissade */
@@ -171,11 +176,11 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "ArrowDown" || event.key === "ArrowRight") {
     if (current >= last) return;
     event.preventDefault();
-    stepTo(current + 1);
+    stepTo(current + 1, CONTROL_STEP_RATIO);
   } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
     if (current <= 0) return;
     event.preventDefault();
-    stepTo(current - 1);
+    stepTo(current - 1, CONTROL_STEP_RATIO);
   } else if (event.key === "Home" || event.key === "End") {
     event.preventDefault();
     goTo(event.key === "Home" ? 0 : last);
@@ -233,8 +238,8 @@ function wheelMove(down: boolean): (() => void) | null {
   const current = currentStep();
   const end = at(subSteps[last].id, 0.97);
   if (down) {
-    if (current < last) return () => stepTo(current + 1);
-    if (scrollProgress() < end - 0.001) return () => stepTo(last);
+    if (current < last) return () => stepTo(current + 1, WHEEL_STEP_RATIO);
+    if (scrollProgress() < end - 0.001) return () => stepTo(last, WHEEL_STEP_RATIO);
     /* Après la dernière sous-étape : la page glisse vers la section du bas, qui défile ensuite normalement */
     return () => {
       leftStory = true;
@@ -246,10 +251,10 @@ function wheelMove(down: boolean): (() => void) | null {
       hooks.keyIndex = last;
       glideTo(end * max);
     };
-  if (current >= last && scrollProgress() > end + 0.001) return () => stepTo(last);
-  if (current > 0) return () => stepTo(current - 1);
+  if (current >= last && scrollProgress() > end + 0.001) return () => stepTo(last, WHEEL_STEP_RATIO);
+  if (current > 0) return () => stepTo(current - 1, WHEEL_STEP_RATIO);
   /* Avant la première sous-étape : retour au titre */
-  if (window.scrollY > 0) return () => stepTo(-1);
+  if (window.scrollY > 0) return () => stepTo(-1, WHEEL_STEP_RATIO);
   return null;
 }
 
@@ -306,21 +311,47 @@ export const watermarkText = watermark.querySelector(".p-watermark-text") as HTM
 export const watermarkPoints = watermark.querySelector(".p-watermark-points") as HTMLElement;
 export const watermarkRule = watermark.querySelector(".p-watermark-rule") as HTMLElement;
 
-/* Téléphone : boutons Précédent et Suivant sous le panneau d'étape, comme les flèches du clavier */
-export const stepNav = document.createElement("nav");
-stepNav.className = "p-step-nav";
-stepNav.setAttribute("aria-label", "Étapes du récit");
-stepNav.innerHTML = `<button type="button" class="p-step-button" data-testid="step-previous"><span aria-hidden="true">‹</span> Précédent</button><button type="button" class="p-step-button" data-testid="step-next">Suivant <span aria-hidden="true">›</span></button>`;
-const [stepPrevious, stepNext] = stepNav.querySelectorAll("button");
-stepPrevious.addEventListener("click", () => {
-  const current = currentStep();
-  if (current > 0) stepTo(current - 1);
+/* Carte d'étape : flèches vers la sous-étape précédente ou suivante, et glissement horizontal du doigt */
+const chevron = (path: string) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>`;
+export const cardControls = document.createElement("div");
+cardControls.className = "w-controls";
+cardControls.innerHTML = `<button type="button" class="w-arrow" data-testid="step-card-previous" aria-label="Étape précédente">${chevron("M14.5 6 8.5 12l6 6")}</button><button type="button" class="w-arrow" data-testid="step-card-next" aria-label="Étape suivante">${chevron("M9.5 6l6 6-6 6")}</button>`;
+watermark.append(cardControls);
+const [stepPrevious, stepNext] = cardControls.querySelectorAll("button");
+/** Joue la sous-étape voisine, dans le sens de `delta`, si elle existe. */
+function stepBy(delta: number) {
+  const index = currentStep() + delta;
+  if (index >= 0 && index < subSteps.length) stepTo(index, CONTROL_STEP_RATIO);
+}
+stepPrevious.addEventListener("click", () => stepBy(-1));
+stepNext.addEventListener("click", () => stepBy(1));
+/** Glissement retenu : au moins 48 px de côté, et nettement plus horizontal que vertical. */
+const SWIPE_MIN = 48;
+let swipeStart: { x: number; y: number } | null = null;
+watermark.addEventListener(
+  "touchstart",
+  (event) => {
+    const touch = event.touches.length === 1 ? event.touches[0] : null;
+    swipeStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  },
+  { passive: true },
+);
+watermark.addEventListener(
+  "touchend",
+  (event) => {
+    if (!swipeStart) return;
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - swipeStart.x;
+    const dy = touch.clientY - swipeStart.y;
+    swipeStart = null;
+    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < 1.5 * Math.abs(dy)) return;
+    stepBy(dx < 0 ? 1 : -1);
+  },
+  { passive: true },
+);
+watermark.addEventListener("touchcancel", () => {
+  swipeStart = null;
 });
-stepNext.addEventListener("click", () => {
-  const current = currentStep();
-  if (current < subSteps.length - 1) stepTo(current + 1);
-});
-watermark.after(stepNav);
 /* Roue de la gouttière : lieux et sous-étapes sur une seule liste ; l'élément courant est grand, au centre,
    ses voisins rétrécissent et s'estompent en s'éloignant. La liste défile avec le récit. */
 export interface WheelItem {
@@ -524,6 +555,18 @@ export function moveHero() {
 window.addEventListener("scroll", moveHero, { passive: true });
 moveHero();
 
+/* Ouverture : une flèche discrète sous le titre ; un toucher ou un clic joue la première sous-étape */
+if (hero) {
+  const cue = document.createElement("button");
+  cue.type = "button";
+  cue.className = "p-hero-cue";
+  cue.dataset.testid = "story-start";
+  cue.setAttribute("aria-label", "Commencer le parcours");
+  cue.innerHTML = `<svg viewBox="0 0 24 40" aria-hidden="true"><path class="p-hero-cue-line" d="M12 5v27"/><path class="p-hero-cue-head" d="m5.5 25.5 6.5 6.5 6.5-6.5"/></svg><span class="p-hero-cue-label">Découvrir</span>`;
+  cue.addEventListener("click", () => stepTo(0, CONTROL_STEP_RATIO));
+  hero.append(cue);
+}
+
 /* Passage vers « En savoir plus » : la scène s'éclaircit et recule, les descriptions glissent en place */
 export const stage = document.querySelector(".p-stage") as HTMLElement;
 export const more = document.querySelector(".p-more") as HTMLElement;
@@ -574,7 +617,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[h
 
 export function markPast() {
   const past = window.scrollY > storyScroll() + viewHeight() * 0.4;
-  for (const node of [gutter, credit, boardNode, phone, watermark, stepNav]) node.classList.toggle("is-past", past);
+  for (const node of [gutter, credit, boardNode, phone, watermark]) node.classList.toggle("is-past", past);
   (document.querySelector(".p-masthead") as HTMLElement).classList.toggle("is-solid", past);
   /* Entrée du menu de la partie affichée : Parcours pendant le récit, Fonctionnalités ensuite */
   for (const link of document.querySelectorAll<HTMLAnchorElement>(".p-masthead a[data-nav]")) {
