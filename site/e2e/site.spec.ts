@@ -411,7 +411,7 @@ test("le fragment d’adresse ouvre le scénario pendant la visite et la fermetu
 });
 
 test("le récit reste dans l’oppidum, sans objet contemporain ni sortie du jeu", async ({ page }) => {
-  await page.goto("./demonstration/?vue=sans-3d");
+  await page.goto("./demonstration/?view=plain");
   const page_text = await page.locator("body").innerText();
   const description = (await page.locator('meta[name="description"]').getAttribute("content")) ?? "";
   expect(page_text).not.toMatch(outsideTheGame);
@@ -430,7 +430,7 @@ test("le récit reste dans l’oppidum, sans objet contemporain ni sortie du jeu
 });
 
 test("le quorum atteint est une étape valide, sans rouge", async ({ page }) => {
-  await page.goto("./demonstration/?vue=sans-3d");
+  await page.goto("./demonstration/?view=plain");
   const steps = page.locator('[data-testid="scenario-appel"] .steps li');
   const quorum = steps.filter({ hasText: "12 présents pour 8 requis" });
   await expect(quorum).toHaveClass(/tone-valid/);
@@ -438,7 +438,7 @@ test("le quorum atteint est une étape valide, sans rouge", async ({ page }) => 
 });
 
 test("l’arrivée dit qu’on visite la démonstration de Hall et comment choisir un scénario", async ({ page }) => {
-  await page.goto("./demonstration/?vue=sans-3d");
+  await page.goto("./demonstration/?view=plain");
   await expect(page).toHaveTitle("Hall, gestion de l’activité communale");
   await expect(page.getByTestId("site-header")).toContainText("Le conseil municipal en séance");
   const intro = page.getByTestId("intro");
@@ -673,7 +673,7 @@ test.describe("sections de la page", () => {
   });
 
   test("la version sans 3D garde les mêmes sections", async ({ page }) => {
-    await page.goto("./demonstration/?vue=sans-3d");
+    await page.goto("./demonstration/?view=plain");
     for (const id of ["decouvrir", "telecharger", "documentation"]) {
       await expect(page.getByTestId(`section-${id}`)).toBeAttached();
     }

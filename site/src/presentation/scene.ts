@@ -91,7 +91,7 @@ export async function start() {
   }
   const ground = await loadGround(siteRoot);
   const light = softwareRenderer();
-  document.body.dataset.rendu = light ? "leger" : "complet";
+  document.body.dataset.render = light ? "light" : "full";
   const renderer = new THREE.WebGLRenderer({ antialias: !light });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, light ? LIGHTER_RATIOS[0] : 1.75));
   renderer.setClearColor(look.clear, 1);
@@ -1584,7 +1584,7 @@ export async function start() {
     start: number;
   }
   let jump: Jump | null = null;
-  const JUMP_MS = 1700;
+  const JUMP_MS = 1200;
   const BOARD_SWAP_MS = 320;
 
   const ballotTime = (i: number) => at("scrutin", 0.08 + (0.62 * i) / SEATS);
@@ -2073,15 +2073,15 @@ export async function start() {
     shown = p;
     dirty = true;
   };
-  /* Passage à la sous-étape suivante au clavier : le récit se joue à vitesse normale jusqu'à son état final */
-  hooks.advance = (index) => {
-    const step = subSteps[index];
-    const to = at(step.id, 0.97);
+  /* Passage à une sous-étape voisine (clavier, molette) : le récit se joue jusqu'à la cible, en avant comme en
+     arrière ; une cible lointaine ou le mouvement réduit donnent un saut */
+  hooks.play = (to, ms) => {
     if (reducedMotion || Math.abs(to - shown) > 0.12) {
-      goTo(index);
+      window.scrollTo({ top: to * (scrollArea.offsetHeight - window.innerHeight), behavior: "auto" });
+      hooks.jump?.(reducedMotion ? reducedProgress(to) : to);
       return;
     }
-    tween = { from: shown, to, start: performance.now(), ms: 1600 + 1900 * step.weight };
+    tween = { from: shown, to, start: performance.now(), ms };
     dirty = true;
   };
   hooks.moving = () => tween !== null || jump !== null || cutting;
@@ -2116,7 +2116,7 @@ export async function start() {
     if (ratio === undefined) return;
     renderer.setPixelRatio(ratio);
     flight.setPixelRatio(ratio);
-    document.body.dataset.rendu = "leger";
+    document.body.dataset.render = "light";
     resize();
   }
   window.addEventListener(

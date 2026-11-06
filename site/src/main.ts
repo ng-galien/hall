@@ -315,15 +315,15 @@ function prefersReducedMotion(): boolean {
 }
 
 function requestedMode(): ViewMode | null {
-  const value = new URLSearchParams(window.location.search).get("vue");
-  if (value === "sans-3d") return "plain";
+  const value = new URLSearchParams(window.location.search).get("view");
+  if (value === "plain") return "plain";
   if (value === "3d") return "terrain";
   return null;
 }
 
 function setMode(mode: ViewMode) {
   const url = new URL(window.location.href);
-  url.searchParams.set("vue", mode === "plain" ? "sans-3d" : "3d");
+  url.searchParams.set("view", mode === "plain" ? "plain" : "3d");
   url.hash = "";
   window.location.assign(url.toString());
 }

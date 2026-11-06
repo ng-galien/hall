@@ -18,7 +18,7 @@ the plain of Syam, never present-day buildings.
 
 The default view is 3D when WebGL is available. Reduced-motion preferences keep the
 3D view with immediate camera transitions. Visitors can choose the text view with
-the view switch or `?vue=sans-3d`; devices without WebGL use that view automatically.
+the view switch or `?view=plain`; devices without WebGL use that view automatically.
 
 ## Commands
 
