@@ -22,7 +22,7 @@ const features: Feature[] = [
     id: "affaires",
     icon: "business",
     title: "Affaires et pièces",
-    lead: "Chaque sujet du conseil a son affaire. Devis, courriers, photos et textes y restent jusqu’au vote, puis pendant les travaux.",
+    lead: "Une affaire est un sujet que la commune suit dans la durée, souvent pendant des mois : la réfection d’un chemin, la rénovation d’un bâtiment, un marché. On y rattache au fil du temps ses documents, ses projets de délibération et les délibérations votées.",
     capture: "affaires.png",
     alt: "Fiche d’une affaire : rapport, commission, projets et documents.",
     points: [
