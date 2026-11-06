@@ -3246,101 +3246,36 @@ body {
   visibility: hidden;
 }
 
-/* Ouverture : identité claire, avec un petit visuel de conseil municipal */
-.p-hero-head {
-  display: flex;
-  align-items: center;
-  gap: clamp(1rem, 2.5vw, 1.75rem);
-}
-
-.p-hero-visual {
-  flex: none;
-  width: clamp(5.5rem, 9vw, 8rem);
-  height: auto;
-  overflow: visible;
-}
-
-.p-hero-table {
-  fill: color-mix(in srgb, var(--accent) 6%, var(--surface));
-  stroke: #334155;
-  stroke-width: 2.5;
-}
-
-.p-hero-urn {
-  fill: none;
-  stroke: #334155;
-  stroke-width: 2;
-}
-
-.p-hero-seat,
-.p-hero-chair {
-  fill: var(--surface);
-  stroke: #334155;
-  stroke-width: 2.5;
-}
-
-.p-hero-chair {
-  fill: var(--accent);
-  stroke: var(--accent);
-}
-
-.p-hero-seat {
-  animation: hero-seat 6s ease-in-out infinite;
-  animation-delay: calc(var(--i) * 0.35s);
-}
-
-@keyframes hero-seat {
-  0%,
-  8% {
-    fill: var(--surface);
-  }
-  18%,
-  70% {
-    fill: var(--accent);
-  }
-  85%,
-  100% {
-    fill: var(--surface);
-  }
-}
-
-.p-hero-line {
-  font-size: clamp(1.8rem, 3.4vw, 2.8rem);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.p-hero-hint {
-  margin-top: 1.1rem;
-  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
-  color: var(--text);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .p-hero-seat {
-    animation: none;
-    fill: var(--accent);
-  }
-}
-
 @media (max-width: 760px) {
   .site-brand-qualification {
     display: none;
   }
-  .p-hero-head {
-    flex-direction: column;
-    align-items: flex-start;
+}
+
+/* Pictogramme de mairie, au trait des icônes de Hall, au-dessus du titre */
+.p-hero-picto {
+  display: block;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-bottom: 0.6rem;
+  fill: var(--accent);
+}
+
+/* Ouverture : halo clair autour du sous-titre et de la ligne, lisibles sur les traits du relief */
+.p-hero-line,
+.p-hero-hint {
+  text-shadow:
+    0 0 2px rgb(246 248 250 / 0.95),
+    0 0 6px rgb(246 248 250 / 0.95),
+    0 0 14px rgb(246 248 250 / 0.85);
+}
+
+@media (prefers-color-scheme: dark) {
+  .p-hero-line,
+  .p-hero-hint {
+    text-shadow:
+      0 0 2px rgb(15 23 35 / 0.95),
+      0 0 6px rgb(15 23 35 / 0.95),
+      0 0 14px rgb(15 23 35 / 0.85);
   }
-}
-
-.p-hero-head {
-  align-items: center;
-}
-
-.p-hero-visual {
-  width: clamp(7rem, 11vw, 10rem);
-}
-
-.p-hero-words h1 {
-  margin: 0;
 }
