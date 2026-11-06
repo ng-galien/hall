@@ -1,4 +1,4 @@
-/* Studio du récit : panneau de réglage en bas, page réelle au-dessus. Palette du site : ardoise et un bleu. */
+/* Studio du récit : la page en haut, le panneau de réglage en bas. */
 :root {
   --st-bg: #eef2f6;
   --st-panel: #ffffff;
@@ -153,10 +153,6 @@ input {
 .st-button:disabled {
   opacity: 0.45;
   cursor: default;
-}
-
-.st-spacer {
-  flex: 1;
 }
 
 .st-clock {

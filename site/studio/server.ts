@@ -27,7 +27,7 @@ function body(request: IncomingMessage): Promise<string> {
 const slug = (name: string) =>
   name
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
@@ -45,10 +45,10 @@ function send(response: ServerResponse, status: number, value: unknown) {
 }
 
 /**
- * /__studio/settings gives the fingerprint of the settings file on disk. /__studio/versions: GET lists the saved
- * versions, the last one with its content; POST writes a new version file named after its date and name, and is
- * refused when the version was made from settings that are no longer those of the file. Served by the development
- * server and by the preview of a studio build, never by the published site.
+ * GET /__studio/settings: fingerprint of the settings file on disk. GET /__studio/versions: saved version files and
+ * the content of the last one. POST /__studio/versions: writes a version file named after its date and name; 409
+ * when its base fingerprint differs from the settings file. Served by the development server and the studio
+ * preview only.
  */
 const handler =
   (settingsFile: string): Connect.NextHandleFunction =>
@@ -89,7 +89,7 @@ const handler =
     }
   };
 
-/** `settingsFile`: absolute path of the story's settings file. */
+/** Studio routes for the dev and preview servers; `settingsFile` is the absolute path of the story settings. */
 export function studioVersions(settingsFile: string): Plugin {
   const handle = handler(settingsFile);
   return {

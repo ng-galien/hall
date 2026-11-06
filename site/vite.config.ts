@@ -61,10 +61,7 @@ async function versionDocumentationCaptures(page: string, capturesDirectory: str
   await writeFile(page, versioned);
 }
 
-/**
- * Le studio du récit (studio/, ?studio) est servi par le serveur de développement et par une construction
- * `--mode studio` ; la construction publiée (`npm run build`) ne le contient pas.
- */
+/** The story studio (studio/, ?studio) is served in development and by a `--mode studio` build, not by `npm run build`. */
 export default defineConfig(({ command, mode }) => ({
   base: "./",
   define: {
@@ -108,7 +105,7 @@ export default defineConfig(({ command, mode }) => ({
         ...(mode === "studio" ? { studio: fileURLToPath(new URL("./studio/index.html", import.meta.url)) } : {}),
       },
       output: {
-        /* Three.js dans un module à part, partagé par les deux pages et chargé avec la scène 3D */
+        /* Three.js in its own chunk, shared by both pages and loaded with the 3D scene */
         manualChunks: (id) => (id.includes("/node_modules/three/") ? "three" : undefined),
       },
     },

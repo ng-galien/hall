@@ -19,9 +19,8 @@ import { TimeBase } from "../src/story/timebase";
 import { Timeline } from "../src/story/timeline";
 
 /*
- * Studio du récit : la page réelle dans un cadre d'ordinateur ou de téléphone, la ligne de temps en bas.
- * Les temps sont ceux de la lecture par les flèches de la carte, en secondes : ce que voit le studio est ce que
- * voit le visiteur.
+ * Studio du récit : la page dans un cadre d'ordinateur ou de téléphone, la ligne de temps en dessous.
+ * Les temps sont en secondes de lecture par les flèches de la carte d'étape.
  */
 
 const FRAMES = {
@@ -85,7 +84,9 @@ const copyState = (from: State): State => ({
   notes: from.notes.map((note) => ({ ...note })),
 });
 const seconds = (value: number, digits = 1) =>
-  `${value.toLocaleString("fr-FR", { minimumFractionDigits: digits, maximumFractionDigits: digits })} s`;
+  `${value.toLocaleString("fr-FR", { minimumFractionDigits: digits, maximumFractionDigits: digits })} s`;
+/** Arrondi au centième de seconde. */
+const hundredths = (value: number) => Math.round(value * 100) / 100;
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text = "") => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -154,7 +155,7 @@ const playButton = el("button", "st-button");
 playButton.dataset.testid = "studio-play";
 const replayButton = el("button", "st-button", "Rejouer");
 replayButton.dataset.testid = "studio-replay";
-replayButton.title = "Rejouer la sous-étape comme la flèche de la carte";
+replayButton.title = "Rejouer la sous-étape comme un appui sur la flèche de la carte d'étape";
 const speedGroup = el("span", "st-group");
 const toolGroup = el("span", "st-group");
 const frameGroup = el("span", "st-group");
@@ -174,7 +175,7 @@ const staleNotice = el("span", "st-stale");
 staleNotice.dataset.testid = "studio-stale";
 const reload = el("button", "st-link-button", "recharger");
 reload.addEventListener("click", () => window.location.reload());
-staleNotice.append("Réglages modifiés depuis l'ouverture du studio : ", reload);
+staleNotice.append("Réglages modifiés depuis l'ouverture du studio : ", reload);
 staleNotice.hidden = true;
 
 function choice<T extends string | number>(
@@ -238,7 +239,7 @@ const refreshFrame = choice(
     const p = host.shown();
     frameKind = value;
     fit();
-    /* La hauteur de défilement change avec la largeur : le même instant est montré une fois la page recalée */
+    /* Remontre le même instant une fois la page recalée à la nouvelle largeur */
     window.setTimeout(() => host.seek(p), 300);
   },
   "studio-frame",
@@ -293,14 +294,14 @@ cutButton.addEventListener("click", () => {
   commit((next) => {
     next.cuts.push({
       step: id,
-      from: Math.round((a - start) * 100) / 100,
-      to: Math.round((b - start) * 100) / 100,
-      seconds: Math.round(cut * 100) / 100,
+      from: hundredths(a - start),
+      to: hundredths(b - start),
+      seconds: hundredths(cut),
     });
     for (const note of next.notes) {
       if (note.step !== id) continue;
       const t = start + note.at;
-      note.at = Math.round(((t <= a ? t : t >= b ? t - cut : a) - start) * 100) / 100;
+      note.at = hundredths((t <= a ? t : t >= b ? t - cut : a) - start);
     }
     next.settings = cutStep(state.settings, order(), index, a, b);
   });
@@ -326,16 +327,16 @@ window.addEventListener("keydown", (event) => {
   } else if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && selected) {
     event.preventDefault();
     const step = (event.shiftKey ? 0.5 : 0.1) * (event.key === "ArrowLeft" ? -1 : 1);
-    const target = selected;
-    if (target.kind === "moment" && typeof state.settings.moments[target.name].start === "string") return;
+    const item = selected;
+    if (item.kind === "moment" && isLocked(item.name)) return;
     commit((next) => {
-      if (target.kind === "moment") {
-        next.settings = moveMoment(state.settings, order(), target.name, step);
-        for (const path of momentPaths(target.name, ["start", "end"])) next.touched.add(path);
+      if (item.kind === "moment") {
+        next.settings = moveMoment(state.settings, order(), item.name, step);
+        for (const path of momentPaths(item.name, ["start", "end"])) next.touched.add(path);
       } else {
-        const key = timeline.cameraKeys()[target.index];
-        next.settings = moveCameraKey(state.settings, order(), target.index, base.time(key.p) + step);
-        next.touched.add(`camera.${target.index}`);
+        const key = timeline.cameraKeys()[item.index];
+        next.settings = moveCameraKey(state.settings, order(), item.index, base.time(key.p) + step);
+        next.touched.add(`camera.${item.index}`);
       }
     });
   }
@@ -343,7 +344,7 @@ window.addEventListener("keydown", (event) => {
 
 /* ------------------------------------------------------------------ Réglages modifiés ailleurs */
 
-/** Le fichier de réglages a changé depuis l'ouverture : avis discret, enregistrement bloqué. */
+/** Si le fichier de réglages a changé depuis l'ouverture : avis affiché, enregistrement bloqué. */
 async function checkSettingsFile() {
   try {
     const response = await fetch("../__studio/settings", { cache: "no-store" });
@@ -354,13 +355,13 @@ async function checkSettingsFile() {
       renderBar();
     }
   } catch {
-    /* Sans serveur du studio, pas de contrôle : l'enregistrement passe par un téléchargement */
+    /* Sans serveur du studio, pas de contrôle */
   }
 }
 
 /* ------------------------------------------------------------------ Enregistrement */
 
-/** Modifications faites à la main : seulement les valeurs des moments, plans et sous-étapes touchés. */
+/** Valeurs modifiées à la main, limitées aux moments, plans et sous-étapes touchés. */
 function changes() {
   const read = (settings: StorySettings, path: string) =>
     path.split(".").reduce<unknown>((value, key) => (value as Record<string, unknown> | undefined)?.[key], settings);
@@ -402,22 +403,22 @@ saveButton.addEventListener("click", async () => {
   }
   if (response?.status === 409) {
     stale = true;
-    status.textContent = "Non enregistré : les réglages ont changé depuis l'ouverture";
+    status.textContent = "Non enregistré : réglages modifiés depuis l'ouverture du studio";
     renderBar();
     return;
   }
   if (response?.ok) {
     const { file } = (await response.json()) as { file: string };
     previousVersion = file;
-    status.textContent = `Enregistré : ${file}`;
+    status.textContent = `Enregistré : ${file}`;
     return;
   }
-  /* Sans le serveur du studio : le fichier est téléchargé, à déposer dans site/studio/versions/ */
+  /* Sans serveur du studio : téléchargement du fichier */
   const link = el("a");
   link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
   link.download = `${date.toISOString().slice(0, 16).replace(/[T:]/g, "-")}-reglages.json`;
   link.click();
-  status.textContent = "Téléchargé : déposer le fichier dans site/studio/versions/";
+  status.textContent = "Téléchargé : déposer le fichier dans site/studio/versions/";
 });
 
 /* ------------------------------------------------------------------ Ruban des lieux et des sous-étapes */
@@ -441,7 +442,7 @@ function renderRibbon() {
     node.title = `${step.title} · ${seconds(playLength(index))}`;
     node.style.width = `${ribbonX(base.starts[index + 1]) - ribbonX(base.starts[index])}%`;
     const edge = el("div", "st-step-edge");
-    edge.title = "Allonger ou raccourcir la sous-étape";
+    edge.title = "Allonger ou raccourcir la lecture de la sous-étape";
     edge.addEventListener("pointerdown", (event) => {
       event.stopPropagation();
       const width = node.getBoundingClientRect().width;
@@ -489,19 +490,19 @@ function follow(t: number) {
 
 /* ------------------------------------------------------------------ Détail de la sous-étape */
 
-/** Fenêtre montrée : la lecture de la sous-étape, un peu de la précédente et de la suivante, hachurées. */
-const window_ = () => [playStart() - 0.05 * playLength(), playStart() + 1.12 * playLength()] as const;
+/** Intervalle montré : la lecture de la sous-étape, un peu de la précédente et de la suivante, hachurées. */
+const detailSpan = () => [playStart() - 0.05 * playLength(), playStart() + 1.12 * playLength()] as const;
 let laneWidth = 1;
 const xOf = (t: number) => {
-  const [a, b] = window_();
+  const [a, b] = detailSpan();
   return ((t - a) / (b - a)) * laneWidth;
 };
 const tOf = (x: number) => {
-  const [a, b] = window_();
+  const [a, b] = detailSpan();
   return a + (x / laneWidth) * (b - a);
 };
 const pxToSeconds = (dx: number) => {
-  const [a, b] = window_();
+  const [a, b] = detailSpan();
   return (dx / laneWidth) * (b - a);
 };
 const LANE = 21;
@@ -510,7 +511,7 @@ const guide = el("div", "st-guide");
 
 /** Temps d'accroche : bords des autres moments, plans de caméra, début et fin de la sous-étape et de sa lecture. */
 function snapTargets(exclude: string | null): number[] {
-  const [a, b] = window_();
+  const [a, b] = detailSpan();
   const id = stepId();
   const targets = [
     playStart(),
@@ -585,6 +586,12 @@ function drag(
   );
 }
 
+const ARROWS_HINT = "flèches : décaler de 0,1 s, de 0,5 s avec Maj";
+/** Libellé d'un moment entre guillemets. */
+const quoted = (name: string) => `« ${state.settings.moments[name]?.label ?? name} »`;
+/** Moment dont le début est lié au bord d'un autre : ni glissement ni flèches. */
+const isLocked = (name: string) => typeof state.settings.moments[name].start === "string";
+
 function describe(name: string): string {
   const moment = timeline.momentSettings(name);
   const [s, e] = timeline.moment(name);
@@ -593,15 +600,15 @@ function describe(name: string): string {
   const to = base.time(e) - start;
   const when =
     s === e ? `à ${seconds(from, 2)}` : `de ${seconds(from, 2)} à ${seconds(to, 2)} (${seconds(to - from, 2)})`;
-  const label = (key: string) => state.settings.moments[key]?.label ?? key;
-  const links: string[] = [];
-  if (moment.after) links.push(`après « ${label(moment.after)} »`);
-  if (moment.within) links.push(`calé sur « ${label(moment.within)} »`);
+  const parts = [moment.label, when];
+  if (moment.after) parts.push(`après ${quoted(moment.after)}`);
+  if (moment.within) parts.push(`calé sur ${quoted(moment.within)}`);
   for (const edge of [moment.start, moment.end])
-    if (typeof edge === "string") links.push(`lié à « ${label(edge.split(".")[0])} »`);
+    if (typeof edge === "string") parts.push(`lié à ${quoted(edge.split(".")[0])}`);
   const followers = dependents(state.settings, name);
-  if (followers.length) links.push(`entraîne ${followers.map((key) => `« ${label(key)} »`).join(", ")}`);
-  return `${moment.label} · ${when}${links.length ? ` · ${links.join(" · ")}` : ""} · flèches : décaler de 0,1 s, Maj : 0,5 s`;
+  if (followers.length) parts.push(`entraîne ${followers.map(quoted).join(", ")}`);
+  if (!isLocked(name)) parts.push(ARROWS_HINT);
+  return parts.join(" · ");
 }
 
 interface Item {
@@ -639,7 +646,7 @@ function momentBlock(name: string, moment: MomentSettings): Item | null {
   const [s, e] = timeline.moment(name);
   const ts = base.time(s);
   const te = base.time(e);
-  const [a, b] = window_();
+  const [a, b] = detailSpan();
   if (te < a || ts > b) return null;
   const instant = moment.end === undefined;
   const from = xOf(Math.max(a, ts));
@@ -654,7 +661,7 @@ function momentBlock(name: string, moment: MomentSettings): Item | null {
   node.classList.toggle("is-clipped-start", ts < a);
   node.classList.toggle("is-clipped-end", te > b);
   node.classList.toggle("is-selected", isSelected(name));
-  const startLocked = typeof moment.start === "string";
+  const startLocked = isLocked(name);
   node.classList.toggle("is-locked", startLocked);
   node.style.left = `${from}px`;
   if (!instant) {
@@ -687,7 +694,7 @@ function momentBlock(name: string, moment: MomentSettings): Item | null {
       if (typeof value === "string") {
         const link = el("div", "st-link");
         link.style[edge === "start" ? "left" : "right"] = "0";
-        link.title = `Lié à « ${state.settings.moments[value.split(".")[0]]?.label} »`;
+        link.title = `Lié à ${quoted(value.split(".")[0])}`;
         node.append(link);
         continue;
       }
@@ -781,10 +788,10 @@ function openNote(at: number, x: number, y: number) {
   const box = el("div", "st-popover");
   box.dataset.testid = "studio-note-editor";
   const area = el("textarea");
-  area.placeholder = `Note à ${seconds(at, 2)} : ce qu'il faut changer ici`;
+  area.placeholder = `Note à ${seconds(at, 2)}`;
   const actions = el("div", "st-actions");
   const cancel = el("button", "st-button", "Fermer");
-  const add = el("button", "st-button is-primary", "Épingler");
+  const add = el("button", "st-button is-primary", "Ajouter");
   add.dataset.testid = "studio-note-save";
   actions.append(cancel, add);
   box.append(area, actions);
@@ -794,7 +801,7 @@ function openNote(at: number, x: number, y: number) {
   add.addEventListener("click", () => {
     const text = area.value.trim();
     closePopover();
-    if (text) commit((next) => next.notes.push({ step: id, at: Math.round(at * 100) / 100, text }));
+    if (text) commit((next) => next.notes.push({ step: id, at: hundredths(at), text }));
   });
 }
 
@@ -832,7 +839,7 @@ function renderDetail() {
     el(
       "span",
       "",
-      `lecture par la flèche : ${seconds(D, 2)}${stepSettings.pace ? ` · cadence ${stepSettings.pace.toLocaleString("fr-FR")}` : ""}`,
+      `lecture par la flèche : ${seconds(D, 2)}${stepSettings.pace ? ` · durée × ${stepSettings.pace.toLocaleString("fr-FR")}` : ""}`,
     ),
   );
   const tracks = el("div", `st-tracks is-${tool}`);
@@ -870,7 +877,7 @@ function renderDetail() {
       const from = xOf(base.time(timeline.at(id, 0)));
       const to = xOf(base.time(timeline.at(id, 1)));
       const card = el("div", "st-block is-card");
-      card.append(el("span", "st-block-label", `Carte : ${step.title}`));
+      card.append(el("span", "st-block-label", `Carte : ${step.title}`));
       card.style.left = `${from}px`;
       card.style.width = `${to - from}px`;
       items.push({ from, to, node: card });
@@ -881,8 +888,8 @@ function renderDetail() {
         node.style.left = `${xOf(t)}px`;
         node.title =
           mark === "landing"
-            ? `Arrivée par le menu : ${seconds(t - start, 2)}`
-            : `Fin de lecture par la flèche : ${seconds(t - start, 2)}`;
+            ? `Arrivée par le menu ou la gouttière : ${seconds(t - start, 2)}`
+            : `Fin de lecture par la flèche : ${seconds(t - start, 2)}`;
         node.addEventListener("pointerdown", (event) => {
           if (tool !== "move") return;
           event.stopPropagation();
@@ -904,7 +911,7 @@ function renderDetail() {
       if (item) items.push(item);
     }
     if (actor === "camera") {
-      const [a, b] = window_();
+      const [a, b] = detailSpan();
       timeline.cameraKeys().forEach((key, index) => {
         const t = base.time(key.p);
         if (t < a || t > b) return;
@@ -936,7 +943,7 @@ function renderDetail() {
   }
   /* Hors de la lecture de la sous-étape, poignée de durée, partie à couper, notes, accroche et tête de lecture */
   const overlay = el("div", "st-overlay");
-  const [a, b] = window_();
+  const [a, b] = detailSpan();
   for (const [from, to] of [
     [a, start],
     [start + D, b],
@@ -975,12 +982,12 @@ function renderDetail() {
     selected?.kind === "moment"
       ? describe(selected.name)
       : selected?.kind === "key"
-        ? `Plan de caméra · ${seconds(base.time(timeline.cameraKeys()[selected.index].p) - start, 2)} · flèches : décaler de 0,1 s, Maj : 0,5 s`
+        ? `Plan de caméra · ${seconds(base.time(timeline.cameraKeys()[selected.index].p) - start, 2)} · ${ARROWS_HINT}`
         : tool === "cut"
-          ? "Couper : glisser sur la ligne de temps pour choisir la partie à retirer ; la suite remonte d'autant."
+          ? "Couper : glisser sur la ligne de temps pour choisir la partie à retirer ; la suite remonte d'autant."
           : tool === "note"
-            ? "Note : cliquer sur la ligne de temps à l'instant voulu."
-            : "Glisser un bloc pour le déplacer, ses bords pour le raccourcir ou l'allonger (Alt : sans accroche) ; glisser ailleurs pour se déplacer dans le temps.";
+            ? "Note : cliquer sur la ligne de temps à l'instant voulu."
+            : "Glisser un bloc pour le déplacer, ses bords pour le raccourcir ou l'allonger (Alt : sans accroche) ; cliquer ou glisser ailleurs pour déplacer la tête de lecture.";
 }
 
 /* ------------------------------------------------------------------ Lecture */
@@ -991,7 +998,7 @@ function tick() {
   const t = base.time(host.shown());
   if (player.playing && !dragging) follow(t);
   ribbonHead.style.left = `${ribbonX(t)}%`;
-  const [a, b] = window_();
+  const [a, b] = detailSpan();
   playhead.style.display = t < a || t > b ? "none" : "block";
   playhead.style.left = `${xOf(t)}px`;
   clock.textContent = `${seconds(Math.min(playLength(), Math.max(0, t - playStart())), 2)} / ${seconds(playLength(), 2)}`;

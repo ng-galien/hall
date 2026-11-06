@@ -75,14 +75,14 @@
       "after": "deputyWalksToDoor"
     },
     "devisTerrassementArrives": {
-      "label": "Devis terrassement : arrivée du courriel",
+      "label": "Devis terrassement : arrivée du courriel",
       "actor": "pieces",
       "step": "devis",
       "start": 0.03,
       "end": 0.13
     },
     "devisTerrassementFiled": {
-      "label": "Devis terrassement : rangé dans la fiche",
+      "label": "Devis terrassement : rangé dans la fiche",
       "actor": "pieces",
       "step": "devis",
       "start": 0.17,
@@ -90,14 +90,14 @@
       "after": "devisTerrassementArrives"
     },
     "devisEnrobeArrives": {
-      "label": "Devis enrobé : arrivée du courriel",
+      "label": "Devis enrobé : arrivée du courriel",
       "actor": "pieces",
       "step": "devis",
       "start": 0.33,
       "end": 0.43
     },
     "devisEnrobeFiled": {
-      "label": "Devis enrobé : rangé dans la fiche",
+      "label": "Devis enrobé : rangé dans la fiche",
       "actor": "pieces",
       "step": "devis",
       "start": 0.47,
@@ -119,14 +119,14 @@
       "after": "deputyEntersOffice"
     },
     "budgetArrives": {
-      "label": "Budget : le tableur monte du bureau",
+      "label": "Budget : le tableur monte du bureau",
       "actor": "pieces",
       "step": "devis",
       "start": 0.64,
       "end": 0.74
     },
     "budgetFiled": {
-      "label": "Budget : rangé dans la fiche",
+      "label": "Budget : rangé dans la fiche",
       "actor": "pieces",
       "step": "devis",
       "start": 0.8,
@@ -134,14 +134,14 @@
       "after": "budgetArrives"
     },
     "planArrives": {
-      "label": "Plan de situation : arrivée",
+      "label": "Plan de situation : arrivée",
       "actor": "pieces",
       "step": "rapport",
       "start": 0.02,
       "end": 0.1
     },
     "planFiled": {
-      "label": "Plan de situation : rangé dans la fiche",
+      "label": "Plan de situation : rangé dans la fiche",
       "actor": "pieces",
       "step": "rapport",
       "start": 0.12,
@@ -149,14 +149,14 @@
       "after": "planArrives"
     },
     "legalTextArrives": {
-      "label": "Texte de référence : arrivée",
+      "label": "Texte de référence : arrivée",
       "actor": "pieces",
       "step": "rapport",
       "start": 0.35,
       "end": 0.43
     },
     "legalTextFiled": {
-      "label": "Texte de référence : rangé dans la fiche",
+      "label": "Texte de référence : rangé dans la fiche",
       "actor": "pieces",
       "step": "rapport",
       "start": 0.46,
@@ -164,14 +164,14 @@
       "after": "legalTextArrives"
     },
     "letterArrives": {
-      "label": "Courrier des riverains : arrivée",
+      "label": "Courrier des riverains : arrivée",
       "actor": "pieces",
       "step": "rapport",
       "start": 0.68,
       "end": 0.74
     },
     "letterFiled": {
-      "label": "Courrier des riverains : rangé dans la fiche",
+      "label": "Courrier des riverains : rangé dans la fiche",
       "actor": "pieces",
       "step": "rapport",
       "start": 0.77,
@@ -179,14 +179,14 @@
       "after": "letterArrives"
     },
     "committeeArrives": {
-      "label": "Commission Voirie : arrivée",
+      "label": "Commission Voirie : arrivée",
       "actor": "pieces",
       "step": "commission",
       "start": 0.04,
       "end": 0.2
     },
     "committeeFiled": {
-      "label": "Commission Voirie : posée sur la fiche",
+      "label": "Commission Voirie : posée sur la fiche",
       "actor": "pieces",
       "step": "commission",
       "start": 0.3,
@@ -194,14 +194,14 @@
       "after": "committeeArrives"
     },
     "appointmentArrives": {
-      "label": "Rendez-vous sur place : arrivée",
+      "label": "Rendez-vous sur place : arrivée",
       "actor": "pieces",
       "step": "rendezvous",
       "start": 0.04,
       "end": 0.2
     },
     "appointmentFiled": {
-      "label": "Rendez-vous sur place : posé sur la fiche",
+      "label": "Rendez-vous sur place : posé sur la fiche",
       "actor": "pieces",
       "step": "rendezvous",
       "start": 0.32,
@@ -209,7 +209,7 @@
       "after": "appointmentArrives"
     },
     "carToChemin": {
-      "label": "Voiture de l'adjoint : du bureau au chemin",
+      "label": "Voiture de l'adjoint : du bureau au chemin",
       "actor": "cars",
       "step": "rendezvous",
       "start": 0.42,
@@ -262,7 +262,7 @@
       "after": "phoneRises"
     },
     "sitePhotoFiled": {
-      "label": "Photo de l'ornière : rangée dans la fiche",
+      "label": "Photo de l'ornière : rangée dans la fiche",
       "actor": "pieces",
       "step": "photo",
       "start": 0.54,
@@ -299,7 +299,7 @@
       "endStep": "projet"
     },
     "mapFiled": {
-      "label": "Carte du chemin : rangée dans la fiche",
+      "label": "Carte du chemin : rangée dans la fiche",
       "actor": "pieces",
       "step": "trace",
       "start": 0.3,
@@ -313,7 +313,7 @@
       "start": 0.56
     },
     "firstPinnedPhotoFiled": {
-      "label": "Photo du fossé : rangée dans la fiche",
+      "label": "Photo du fossé : rangée dans la fiche",
       "actor": "pieces",
       "step": "trace",
       "start": 0.58,
@@ -327,7 +327,7 @@
       "start": 0.76
     },
     "secondPinnedPhotoFiled": {
-      "label": "Photo de l'accotement : entre dans le dossier",
+      "label": "Photo de l'accotement : entre dans son dossier de la fiche",
       "actor": "pieces",
       "step": "trace",
       "start": 0.92,
@@ -358,7 +358,7 @@
       "endStep": "projet"
     },
     "cadastreFiled": {
-      "label": "Parcelles riveraines : rangées dans la fiche",
+      "label": "Parcelles riveraines : rangées dans la fiche",
       "actor": "pieces",
       "step": "cadastre",
       "start": 0.5,
@@ -373,7 +373,7 @@
       "end": "carLeavesChemin.start"
     },
     "carLeavesChemin": {
-      "label": "Voiture de l'adjoint : départ du chemin",
+      "label": "Voiture de l'adjoint : départ du chemin",
       "actor": "cars",
       "step": "cadastre",
       "start": 0.97,
@@ -388,7 +388,7 @@
       "end": 0.2
     },
     "carToMairie": {
-      "label": "Voiture de la secrétaire : arrivée à la mairie",
+      "label": "Voiture de la secrétaire : arrivée à la mairie",
       "actor": "cars",
       "step": "assistant",
       "start": 0.03,
@@ -441,7 +441,7 @@
       "end": 0.84
     },
     "comparisonFiled": {
-      "label": "Comparatif des devis : entre dans le dossier",
+      "label": "Comparatif des devis : entre dans son dossier de la fiche",
       "actor": "pieces",
       "step": "assistant",
       "start": 0.82,
@@ -456,7 +456,7 @@
       "endStep": "projet"
     },
     "draftResolutionFiled": {
-      "label": "Projet de délibération : posé sur la fiche",
+      "label": "Projet de délibération : posé sur la fiche",
       "actor": "pieces",
       "step": "projet",
       "start": 0.12,
@@ -494,7 +494,7 @@
       "end": 0.5
     },
     "questionFiled": {
-      "label": "Question ouverte : posée sur la fiche",
+      "label": "Question ouverte : posée sur la fiche",
       "actor": "pieces",
       "step": "question",
       "start": 0.08,
@@ -513,7 +513,7 @@
     "agendaSecondItem": { "label": "Second point inscrit", "actor": "pieces", "step": "inscription", "start": 0.65 },
     "agendaFrozen": { "label": "Ordre du jour figé", "actor": "pieces", "step": "convocation", "start": 0.12 },
     "convocationFiled": {
-      "label": "Convocation : posée sur la fiche",
+      "label": "Convocation : posée sur la fiche",
       "actor": "pieces",
       "step": "convocation",
       "start": 0.22,
@@ -521,7 +521,7 @@
       "after": "agendaFrozen"
     },
     "meetingFileFiled": {
-      "label": "Dossier de séance : posé sur la fiche",
+      "label": "Dossier de séance : posé sur la fiche",
       "actor": "pieces",
       "step": "dossier",
       "start": 0.08,
@@ -550,7 +550,7 @@
       "end": 0.22
     },
     "rollCall": {
-      "label": "Appel : les présences s'allument",
+      "label": "Appel : les présences s'allument",
       "actor": "scene",
       "step": "appel",
       "start": 0.2,
@@ -649,7 +649,7 @@
       "end": 0.3
     },
     "minutesDraftFiled": {
-      "label": "Projet de procès-verbal : posé sur la fiche",
+      "label": "Projet de procès-verbal : posé sur la fiche",
       "actor": "pieces",
       "step": "cloture",
       "start": 0.14,
@@ -688,7 +688,7 @@
       "after": "secretaryInMairie"
     },
     "resolutionFiled": {
-      "label": "Délibération définitive : posée sur la fiche",
+      "label": "Délibération définitive : posée sur la fiche",
       "actor": "pieces",
       "step": "gel",
       "start": 0.56,
@@ -709,7 +709,7 @@
       "after": "secretaryWalksToCar"
     },
     "carLeavesMairie": {
-      "label": "Voiture de la secrétaire : départ de la mairie",
+      "label": "Voiture de la secrétaire : départ de la mairie",
       "actor": "cars",
       "step": "liste",
       "start": 0.15,
@@ -717,7 +717,7 @@
       "after": "secretaryGetsInCar"
     },
     "resolutionListFiled": {
-      "label": "Liste des délibérations : posée sur la fiche",
+      "label": "Liste des délibérations : posée sur la fiche",
       "actor": "pieces",
       "step": "liste",
       "start": 0.32,
@@ -732,7 +732,7 @@
       "endStep": "pv"
     },
     "minutesFiled": {
-      "label": "Procès-verbal : posé sur la fiche",
+      "label": "Procès-verbal : posé sur la fiche",
       "actor": "pieces",
       "step": "pv",
       "start": 0.1,
@@ -755,7 +755,7 @@
       "endStep": "transmission"
     },
     "prefectureGlowFades": {
-      "label": "Arrivée à la préfecture : l'anneau s'atténue",
+      "label": "Arrivée à la préfecture : l'anneau s'atténue",
       "actor": "scene",
       "step": "transmission",
       "start": "resolutionSent.end",

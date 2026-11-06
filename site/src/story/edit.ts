@@ -4,13 +4,13 @@ import { Timeline } from "./timeline";
 
 /**
  * Edits of story settings, as pure functions: each returns new settings. Instants are given in seconds of
- * playback (TimeBase), so that what the studio shows is what a visitor gets with the card arrows. They are written
- * back as fractions of the sub-step that contains them; an edge that does not move keeps its written value.
- * Moments that depend on an edited moment follow it: a reference ("name.end") or a parent (`within`) is resolved
- * again at reading time, and a moment declared `after` another, or starting on its edge, moves by the same time.
+ * playback (TimeBase) and written back as fractions of the sub-step that contains them; an edge that does not move
+ * keeps its written value. Moments that depend on an edited moment follow it: a reference ("name.end") or a parent
+ * (`within`) is resolved again at reading time, and a moment declared `after` another, or starting on its edge,
+ * moves by the same time.
  */
 
-/** Fractions written with five decimals, playback factors with six: a cut stays exact to the millisecond. */
+/** Fractions rounded to five decimals, pace factors to six. */
 const round = (value: number) => Math.round(value * 100000) / 100000;
 const roundPace = (value: number) => Math.round(value * 1000000) / 1000000;
 const timeBase = (order: string[], settings: StorySettings) => new TimeBase(new Timeline(order, settings));
@@ -183,13 +183,7 @@ export function stretchStep(settings: StorySettings, id: string, factor: number)
  * keep their time, instants after it come t2 − t1 earlier, instants inside it go to t1. Outside the playback of
  * sub-step i nothing moves.
  */
-export function cutRemap(
-  base: TimeBase,
-  i: number,
-  t1: number,
-  t2: number,
-  newDuration: number,
-): (p: number) => number {
+function cutRemap(base: TimeBase, i: number, t1: number, t2: number, newDuration: number): (p: number) => number {
   const from = base.bounds[i];
   const to = base.bounds[i + 1];
   const start = base.starts[i];
@@ -215,10 +209,9 @@ export function cutStep(
 ): StorySettings {
   const base = timeBase(order, settings);
   const start = base.starts[index];
-  const end = start + base.duration(index);
-  const a = Math.max(start, Math.min(t1, t2));
-  const b = Math.min(end, Math.max(t1, t2));
   const duration = base.duration(index);
+  const a = Math.max(start, Math.min(t1, t2));
+  const b = Math.min(start + duration, Math.max(t1, t2));
   if (b - a <= 1e-6 || b - a >= duration) return cloneSettings(settings);
   const id = order[index];
   const next = stretchStep(settings, id, (duration - (b - a)) / duration);

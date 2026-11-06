@@ -90,12 +90,12 @@ export interface StorySettings {
   shapes: Record<string, number>;
 }
 
-/** Deep copy, so that an edited version never shares objects with the loaded one. */
+/** Deep copy of settings. */
 export function cloneSettings(settings: StorySettings): StorySettings {
   return structuredClone(settings);
 }
 
-/** Short fingerprint of settings (FNV-1a of their JSON), to tell whether two copies are the same version. */
+/** Short fingerprint of settings: FNV-1a hash of their JSON. */
 export function settingsFingerprint(settings: StorySettings): string {
   const text = JSON.stringify(settings);
   let hash = 0x811c9dc5;
