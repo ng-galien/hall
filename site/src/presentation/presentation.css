@@ -1729,6 +1729,11 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   border-bottom: 1px solid var(--border);
 }
 
+/* Le filet de la rubrique suivante ferme la liste : pas de second trait sous le dernier point */
+.f-points li:last-child {
+  border-bottom: none;
+}
+
 .f-check {
   width: 0.85rem;
   height: 0.85rem;
