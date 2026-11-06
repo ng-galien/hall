@@ -39,7 +39,6 @@ export interface BoardState {
   closed: boolean;
   acknowledged: boolean;
   sent: number;
-  final: boolean;
   /** Dossier que l'assistant IA parcourt, éclairé pendant sa lecture. */
   scanning?: string | null;
 }
@@ -259,22 +258,12 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   const decision = row("adopted", "Délibération", "Figée, numérotée et datée");
   const list = row("pdf", "Liste des délibérations", "Pour le panneau d’affichage et le site");
   const nextMinutes = row("minutes", "Procès-verbal", "À approuver en début de prochaine séance");
-  const trail = element("ol", "b-trail");
-  const trailItems = ["Prête pour le contrôle de légalité", "Fichier partagé pour la préfecture"].map((label) => {
-    const item = element("li", "", label);
-    trail.append(item);
-    return item;
-  });
-  const final = element("p", "b-final", "Délibération adoptée. L’affaire reste ouverte pour le suivi des travaux.");
-  faces.acts.append(
-    acts.node,
-    decision.node,
-    list.node,
-    nextMinutes.node,
-    element("p", "b-section", "Préfecture"),
-    trail,
-    final,
-  );
+  const sending = row("send", "Envoi à la préfecture", "PDF prêt pour le contrôle de légalité");
+  sending.node.classList.add("b-send");
+  const receipt = element("span", "b-row-check");
+  receipt.innerHTML = svgIcon("check");
+  sending.node.append(receipt);
+  faces.acts.append(acts.node, decision.node, list.node, nextMinutes.node, sending.node);
   targets.set("deliberation", decision.node);
   targets.set("liste", list.node);
   targets.set("pv-suite", nextMinutes.node);
@@ -419,12 +408,11 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
       reveal(decision.node, state, "deliberation");
       reveal(list.node, state, "liste");
       reveal(nextMinutes.node, state, "pv-suite");
-      trailItems.forEach((item, i) => {
-        item.classList.toggle("is-done", i < state.sent);
-        item.classList.toggle("is-current", i === state.sent && state.sent < 2 && state.landed.has("pv-suite"));
-      });
-      final.hidden = !state.final;
-      final.style.setProperty("--glow", state.final ? "1" : "0");
+      /* Envoi à la préfecture : présent avec le procès-verbal, allumé à l'arrivée du flux, coché à l'accusé */
+      sending.node.style.display = state.landed.has("pv-suite") ? "" : "none";
+      sending.node.classList.toggle("is-sent", state.sent >= 1);
+      sending.node.style.setProperty("--glow", state.sent >= 1 && !state.acknowledged ? "1" : "0");
+      receipt.classList.toggle("is-shown", state.acknowledged);
     },
     folderPoint(id: string): Point | null {
       const folder = folderNodes.find((f) => f.id === id);

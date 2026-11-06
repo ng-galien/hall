@@ -2221,7 +2221,6 @@ async function start() {
       closed: boardP >= range("cloture")[0],
       acknowledged: back >= 1,
       sent: back >= 1 ? 2 : arrived ? 1 : 0,
-      final: boardP >= at("transmission", 0.82),
     };
     board.update(state);
     boardNode.style.opacity = smooth(span(p, at("creer", 0), at("creer", 0.35))).toFixed(3);

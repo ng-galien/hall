@@ -541,8 +541,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
 }
 
 .b-agenda,
-.b-session-list,
-.b-trail {
+.b-session-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -742,35 +741,6 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
 
 .b-result.is-adopted {
   color: var(--success);
-}
-
-.b-trail li {
-  position: relative;
-  padding: 0.35rem 0 0.35rem 1.6rem;
-  font-size: 0.85rem;
-  color: var(--text-2);
-}
-
-.b-trail li::before {
-  content: "";
-  position: absolute;
-  left: 0.2rem;
-  top: 0.55rem;
-  width: 0.8rem;
-  height: 0.8rem;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  background: var(--surface);
-}
-
-.b-trail li.is-done {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.b-trail li.is-done::before {
-  border-color: var(--success);
-  background: var(--success);
 }
 
 /* Interactions */
@@ -1473,26 +1443,6 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   background: color-mix(in srgb, var(--success) 12%, var(--surface));
 }
 
-.b-trail li.is-current {
-  color: var(--accent-text);
-  font-weight: 700;
-}
-
-.b-final {
-  margin: 0.8rem 0 0;
-  padding: 0.6rem 0.75rem;
-  border-radius: 0.55rem;
-  font-weight: 700;
-  font-size: 0.88rem;
-  color: var(--success);
-  background: color-mix(in srgb, var(--success) 10%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--success) 35%, var(--surface));
-}
-
-.b-final[hidden] {
-  display: none;
-}
-
 .p-measure {
   position: absolute;
   left: 0;
@@ -1673,14 +1623,6 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   font-variant: all-small-caps;
   letter-spacing: 0.06em;
   color: var(--text-2);
-}
-
-.b-final {
-  border-radius: 0;
-  border: 0;
-  border-top: 1px solid var(--success);
-  background: none;
-  padding: 0.6rem 0 0;
 }
 
 .b-seat {
@@ -3254,4 +3196,41 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
       0 0 6px rgb(15 23 35 / 0.95),
       0 0 14px rgb(15 23 35 / 0.85);
   }
+}
+
+/* Envoi à la préfecture : coche de l'accusé de réception */
+.b-row-check {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--success);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.b-row-check svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: currentColor;
+}
+
+.b-row-check.is-shown {
+  opacity: 1;
+  transform: none;
+}
+
+.b-send {
+  opacity: 0.55;
+  transition: opacity 0.3s ease;
+}
+
+.b-send.is-sent {
+  opacity: 1;
 }
