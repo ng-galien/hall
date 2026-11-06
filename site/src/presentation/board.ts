@@ -122,6 +122,9 @@ const glowOf = (p: number, landedAt: number | undefined) =>
 
 export function createBoard(root: HTMLElement, items: FolderItem[]) {
   root.replaceChildren();
+  root.dataset.testid = "board";
+  /* Sur téléphone, la fiche est une colonne de pictogrammes ; un toucher l'ouvre en version réduite, un autre la referme */
+  root.addEventListener("click", () => root.classList.toggle("is-expanded"));
   const faces: Record<Face, HTMLElement> = {
     business: element("section", "b-face"),
     agenda: element("section", "b-face"),

@@ -3361,13 +3361,216 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     margin-left: 0.15rem;
   }
 
-  /* Fiche réduite dans le coin haut droit */
+  /* Fiche en colonne le long du bord droit : pictogrammes seuls, l'élément arrivé s'allume */
   body:not(#phone) .p-board {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) {
+    left: auto;
+    right: 0.4rem;
+    top: calc(var(--masthead) + 2.45rem);
+    width: 2.7rem;
+    max-height: calc(100svh - var(--masthead) - 2.45rem - 11.5rem);
+    border-radius: 999px;
+    transform: none;
+    font-size: 0.6rem;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    box-shadow: 0 6px 18px rgb(15 23 35 / 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1rem), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 1rem), transparent);
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-face {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0 0.6rem;
+  }
+
+  body:not(#phone)
+    .p-board:not(.is-expanded)
+    :is(
+      .b-head-words,
+      .b-chip,
+      .b-section,
+      .b-row-words,
+      .b-group-label,
+      .b-minis,
+      .b-group-body,
+      .b-number,
+      .b-vote,
+      .b-roll-text,
+      .b-session-item .b-row-words,
+      .b-current-kicker,
+      .b-current-title,
+      .b-stepper,
+      .b-notes,
+      .b-counter span,
+      .b-result,
+      .b-tag > span:not(.b-tag-glyph)
+    ) {
+    display: none;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-head {
+    display: block;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) :is(.b-head-glyph, .p-glyph, .b-folder-glyph, .b-tag-glyph) {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 0.45rem;
+    box-shadow: 0 0 0 calc(var(--glow, 0) * 3px) var(--accent);
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) :is(.b-head-glyph, .p-glyph, .b-folder-glyph, .b-tag-glyph) svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  body:not(#phone)
+    .p-board:not(.is-expanded)
+    :is(
+      .b-row,
+      .b-tag,
+      .b-group,
+      .b-group-head,
+      .b-point,
+      .b-session-item,
+      .b-subjects,
+      .b-groups,
+      .b-agenda,
+      .b-session-list,
+      .b-current
+    ) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    transform: none;
+  }
+
+  body:not(#phone)
+    .p-board:not(.is-expanded)
+    :is(.b-row, .b-tag, .b-group, .b-point, .b-session-item, .b-subjects, .b-current)[hidden],
+  body:not(#phone) .p-board:not(.is-expanded) .b-group[hidden] {
+    display: none;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-group-head {
+    position: relative;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-group .b-folder-glyph {
+    box-shadow: 0 0 0 calc(var(--glow, 0) * 3px) var(--accent);
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-badge {
+    position: absolute;
+    right: -0.35rem;
+    bottom: -0.25rem;
+    min-width: 0;
+    padding: 0 0.2rem;
+    font-size: 0.55rem;
+    line-height: 1.3;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-point.is-empty {
+    opacity: 0.25;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-roll {
+    display: grid;
+    grid-template-columns: repeat(3, 0.45rem);
+    gap: 0.15rem;
+    margin: 0.1rem 0;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-seat {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-width: 1px;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-session-mark {
+    width: 1.4rem;
+    height: 1.4rem;
+    font-size: 0.6rem;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-session-item.is-current .b-session-mark {
+    color: #fff;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-face:has(.b-current:not([hidden])) .b-roll {
+    display: none;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-tally {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-tally[hidden] {
+    display: none;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-counter {
+    display: block;
+    width: 1.7rem;
+    padding: 0.1rem 0;
+    text-align: center;
+    border-width: 0 0 0 3px;
+    border-radius: 0.3rem;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-counter:nth-child(1) {
+    border-color: var(--success);
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-counter:nth-child(2) {
+    border-color: var(--danger);
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-counter strong {
+    font-size: 0.75rem;
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-row-check {
+    position: absolute;
+    margin: 0;
+    width: 0.8rem;
+    height: 0.8rem;
+    transform: translate(0.6rem, 0.55rem);
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-send {
+    position: relative;
+  }
+
+  /* Fiche ouverte d'un toucher sur la colonne : version réduite, au-dessus de la scène */
+  body:not(#phone) .p-board.is-expanded {
     left: auto;
     right: 0.5rem;
     top: calc(var(--masthead) + 2.45rem);
-    width: min(13.5rem, 58vw);
-    max-height: 28vh;
+    width: min(15rem, 72vw);
+    max-height: 55vh;
+    z-index: 12;
     border-radius: 0.7rem;
     transform: none;
     font-size: 0.72rem;
@@ -3376,140 +3579,140 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     mask-image: linear-gradient(to bottom, #000 calc(100% - 1rem), transparent);
   }
 
-  body:not(#phone) .p-board .b-face {
+  body:not(#phone) .p-board.is-expanded .b-face {
     padding: 0.5rem 0.6rem 0.6rem;
   }
 
-  body:not(#phone) .p-board .b-head {
+  body:not(#phone) .p-board.is-expanded .b-head {
     flex-wrap: wrap;
     gap: 0.15rem 0.45rem;
   }
 
-  body:not(#phone) .p-board .b-head {
+  body:not(#phone) .p-board.is-expanded .b-head {
     align-items: flex-start;
   }
 
-  body:not(#phone) .p-board .b-head .b-head-words {
+  body:not(#phone) .p-board.is-expanded .b-head .b-head-words {
     flex: 1 1 calc(100% - 2.1rem);
   }
 
-  body:not(#phone) .p-board .b-head .b-chip {
+  body:not(#phone) .p-board.is-expanded .b-head .b-chip {
     order: 3;
     margin-left: 2.05rem;
   }
 
-  body:not(#phone) .p-board .b-kicker {
+  body:not(#phone) .p-board.is-expanded .b-kicker {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
 
-  body:not(#phone) .p-board .b-face:has(.b-current:not([hidden])) .b-session-list,
-  body:not(#phone) .p-board .b-face:has(.b-current:not([hidden])) .b-roll {
+  body:not(#phone) .p-board.is-expanded .b-face:has(.b-current:not([hidden])) .b-session-list,
+  body:not(#phone) .p-board.is-expanded .b-face:has(.b-current:not([hidden])) .b-roll {
     display: none;
   }
 
-  body:not(#phone) .p-board .b-head-glyph {
+  body:not(#phone) .p-board.is-expanded .b-head-glyph {
     width: 1.6rem;
     height: 1.6rem;
   }
 
-  body:not(#phone) .p-board .b-head-glyph svg {
+  body:not(#phone) .p-board.is-expanded .b-head-glyph svg {
     width: 1rem;
     height: 1rem;
   }
 
-  body:not(#phone) .p-board .b-kicker,
-  body:not(#phone) .p-board .b-chip,
-  body:not(#phone) .p-board .b-section {
+  body:not(#phone) .p-board.is-expanded .b-kicker,
+  body:not(#phone) .p-board.is-expanded .b-chip,
+  body:not(#phone) .p-board.is-expanded .b-section {
     font-size: 0.6rem;
   }
 
-  body:not(#phone) .p-board .b-title {
+  body:not(#phone) .p-board.is-expanded .b-title {
     font-size: 0.82rem;
   }
 
-  body:not(#phone) .p-board .b-chip {
+  body:not(#phone) .p-board.is-expanded .b-chip {
     padding: 0.1rem 0.35rem;
   }
 
-  body:not(#phone) .p-board .b-section {
+  body:not(#phone) .p-board.is-expanded .b-section {
     margin: 0.45rem 0 0.2rem;
   }
 
-  body:not(#phone) .p-board .b-row {
+  body:not(#phone) .p-board.is-expanded .b-row {
     gap: 0.4rem;
     padding: 0.2rem 0.25rem;
   }
 
-  body:not(#phone) .p-board .b-row-title,
-  body:not(#phone) .p-board .b-group-head {
+  body:not(#phone) .p-board.is-expanded .b-row-title,
+  body:not(#phone) .p-board.is-expanded .b-group-head {
     font-size: 0.74rem;
   }
 
-  body:not(#phone) .p-board .b-row-detail,
-  body:not(#phone) .p-board .b-group-body,
-  body:not(#phone) .p-board .b-roll-text,
-  body:not(#phone) .p-board .b-notes,
-  body:not(#phone) .p-board .b-vote,
-  body:not(#phone) .p-board .b-current-kicker,
-  body:not(#phone) .p-board .b-session-item.is-done {
+  body:not(#phone) .p-board.is-expanded .b-row-detail,
+  body:not(#phone) .p-board.is-expanded .b-group-body,
+  body:not(#phone) .p-board.is-expanded .b-roll-text,
+  body:not(#phone) .p-board.is-expanded .b-notes,
+  body:not(#phone) .p-board.is-expanded .b-vote,
+  body:not(#phone) .p-board.is-expanded .b-current-kicker,
+  body:not(#phone) .p-board.is-expanded .b-session-item.is-done {
     display: none;
   }
 
-  body:not(#phone) .p-board .b-row-words {
+  body:not(#phone) .p-board.is-expanded .b-row-words {
     min-width: 0;
   }
 
-  body:not(#phone) .p-board .b-row-title {
+  body:not(#phone) .p-board.is-expanded .b-row-title {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
 
-  body:not(#phone) .p-board .p-glyph,
-  body:not(#phone) .p-board .b-tag-glyph {
+  body:not(#phone) .p-board.is-expanded .p-glyph,
+  body:not(#phone) .p-board.is-expanded .b-tag-glyph {
     width: 1.3rem;
     height: 1.3rem;
   }
 
-  body:not(#phone) .p-board .p-glyph svg {
+  body:not(#phone) .p-board.is-expanded .p-glyph svg {
     width: 0.85rem;
     height: 0.85rem;
   }
 
-  body:not(#phone) .p-board .p-glyph.b-photo {
+  body:not(#phone) .p-board.is-expanded .p-glyph.b-photo {
     width: 1.6rem;
   }
 
-  body:not(#phone) .p-board .b-mini {
+  body:not(#phone) .p-board.is-expanded .b-mini {
     width: 0.95rem;
     height: 0.95rem;
   }
 
-  body:not(#phone) .p-board .b-seat {
+  body:not(#phone) .p-board.is-expanded .b-seat {
     width: 0.7rem;
     height: 0.7rem;
   }
 
-  body:not(#phone) .p-board .b-current {
+  body:not(#phone) .p-board.is-expanded .b-current {
     margin-top: 0.3rem;
     padding: 0.4rem 0.5rem;
   }
 
-  body:not(#phone) .p-board .b-current-title {
+  body:not(#phone) .p-board.is-expanded .b-current-title {
     font-size: 0.78rem;
   }
 
-  body:not(#phone) .p-board .b-stepper li {
+  body:not(#phone) .p-board.is-expanded .b-stepper li {
     font-size: 0.58rem;
   }
 
-  body:not(#phone) .p-board .b-counter strong {
+  body:not(#phone) .p-board.is-expanded .b-counter strong {
     font-size: 0.95rem;
   }
 
-  body:not(#phone) .p-board .b-counter span {
+  body:not(#phone) .p-board.is-expanded .b-counter span {
     font-size: 0.58rem;
   }
 
@@ -3522,6 +3725,8 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     bottom: max(0.5rem, env(safe-area-inset-bottom));
     width: auto;
     max-width: none;
+    /* biome-ignore lint/complexity/noImportantStyles: remplace la hauteur commune posée par calibrateStepText */
+    height: auto !important;
     padding: 0.65rem 0.8rem 0.55rem;
     border-radius: 0.8rem;
   }
