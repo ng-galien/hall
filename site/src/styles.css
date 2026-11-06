@@ -892,14 +892,16 @@ a {
 
 /* Téléphone */
 @media (max-width: 760px) {
+  /* Le logo, le passage sans 3D et les quatre entrées du menu tiennent sur une ligne dès 360 px */
   .masthead {
-    column-gap: 0.5rem;
+    column-gap: 0.35rem;
+    padding: 0 0.75rem;
   }
 
   /* Sur téléphone, le passage sans 3D reste sur la première ligne, juste avant les entrées */
   .view-switch {
     min-height: 2.25rem;
-    padding: 0 0.45rem;
+    padding: 0 0.35rem;
     font-size: var(--fs-xs);
   }
 

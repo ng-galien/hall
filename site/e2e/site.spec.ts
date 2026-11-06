@@ -629,12 +629,14 @@ test.describe("sections de la page", () => {
   }) => {
     await page.goto("./demonstration/");
     await expect(page.getByTestId("section-nav").locator("a")).toHaveText([
+      "Parcours",
       "Fonctionnalités",
       "Démonstration",
       "Télécharger",
     ]);
     await expect(page.getByTestId("section-installer")).toHaveCount(0);
     await expect(page.getByTestId("brand-home")).toHaveAttribute("href", "../");
+    await expect(page.getByTestId("nav-parcours")).toHaveAttribute("href", "../");
     await expect(page.getByTestId("nav-fonctionnalites")).toHaveAttribute("href", "../#en-savoir-plus");
     await expect(page.getByTestId("nav-contact")).toHaveCount(0);
     await expect(page.getByTestId("nav-demonstration")).toHaveAttribute("aria-current", "page");
@@ -650,14 +652,25 @@ test.describe("sections de la page", () => {
       tops.push(box.y);
     }
     expect([...tops].sort((a, b) => a - b)).toEqual(tops);
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error("Fenêtre absente");
+    /* Sur téléphone, Télécharger quitte l'en-tête pour que le menu tienne sur une ligne */
+    if (viewport.width <= 760) {
+      await expect(page.getByTestId("nav-telecharger")).toBeHidden();
+      const header = await page.getByTestId("section-nav").boundingBox();
+      const brand = await page.getByTestId("brand-home").boundingBox();
+      if (!header || !brand) throw new Error("En-tête absent");
+      expect(Math.abs(header.y + header.height / 2 - (brand.y + brand.height / 2))).toBeLessThan(12);
+      await expectNoHorizontalScroll(page);
+      return;
+    }
     await page.getByTestId("nav-telecharger").click();
     await expect(page.getByTestId("section-telecharger")).toBeInViewport();
     await expect(page.getByTestId("nav-telecharger")).toHaveAttribute("aria-current", "true");
     await expect(page.getByTestId("nav-demonstration")).toHaveAttribute("aria-current", "page");
     await expectNoHorizontalScroll(page);
     const nav = await page.getByTestId("nav-telecharger").boundingBox();
-    const viewport = page.viewportSize();
-    if (!nav || !viewport) throw new Error("En-tête absent");
+    if (!nav) throw new Error("En-tête absent");
     expect(nav.x + nav.width).toBeLessThanOrEqual(viewport.width);
   });
 

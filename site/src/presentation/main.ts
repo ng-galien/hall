@@ -576,6 +576,12 @@ export function markPast() {
   const past = window.scrollY > storyScroll() + viewHeight() * 0.4;
   for (const node of [gutter, credit, boardNode, phone, watermark, stepNav]) node.classList.toggle("is-past", past);
   (document.querySelector(".p-masthead") as HTMLElement).classList.toggle("is-solid", past);
+  /* Entrée du menu de la partie affichée : Parcours pendant le récit, Fonctionnalités ensuite */
+  for (const link of document.querySelectorAll<HTMLAnchorElement>(".p-masthead a[data-nav]")) {
+    const current = link.dataset.nav === (past ? "features" : "story");
+    if (current) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
 }
 
 /** Mouvement réduit : chaque sous-étape s'affiche dans son état final, sans trajet animé. */

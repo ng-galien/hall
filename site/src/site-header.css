@@ -1,6 +1,6 @@
 /*
  * En-tête commun aux deux pages du site public : le logo Hall, qui mène à la présentation, puis les mêmes entrées
- * dans le même ordre (Fonctionnalités, Démonstration). L'entrée de la page courante porte
+ * dans le même ordre (Parcours, Fonctionnalités, Démonstration). L'entrée de la page courante porte
  * aria-current="page" et elle est soulignée. Une action propre à la page, comme « Télécharger » sur la
  * démonstration, se place en dernier, sous forme de bouton.
  */
@@ -109,8 +109,8 @@
     flex-direction: column;
     justify-content: center;
     gap: 0.1rem;
-    padding: 0.2rem 0.25rem;
-    font-size: 0.66rem;
+    padding: 0.2rem 0.18rem;
+    font-size: 0.62rem;
     line-height: 1.1;
   }
 
@@ -130,7 +130,8 @@
     padding: 0.45rem;
   }
 
-  .site-nav a.site-nav-action span {
+  /* L'action de la page quitte l'en-tête sur téléphone : sa section reste dans la page */
+  .site-nav a.site-nav-action {
     display: none;
   }
 }
