@@ -1,6 +1,7 @@
 import type { Capture } from "./scenes";
+import { siteRoot } from "./site-root";
 
-const base = import.meta.env.BASE_URL;
+const base = siteRoot;
 
 interface ViewerState {
   captures: Capture[];

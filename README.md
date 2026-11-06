@@ -23,7 +23,7 @@ Hall is an application for French municipal councils. It connects the working do
 | Keep the record | Produce decisions, minutes and PDF documents, keeping frozen documents separate from later edits to their templates. |
 | Configure the application | Manage council members, committees and contacts; adapt document templates, application settings and account permissions. |
 
-The [public site](https://ng-galien.github.io/hall/) shows these workflows with application screenshots. The [user guide](https://ng-galien.github.io/hall/documentation/index.html#/docs) explains how to use them.
+The [public site](https://ng-galien.github.io/hall/) presents these workflows; its [demonstration](https://ng-galien.github.io/hall/demonstration/) shows them with application screenshots. The [user guide](https://ng-galien.github.io/hall/documentation/index.html#/docs) explains how to use them.
 
 ## Try Hall with Alésia
 

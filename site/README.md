@@ -1,6 +1,17 @@
 # Hall public site
 
-Static site that presents Hall on a 3D model of the real terrain around the Cornu plateau and
+Static site with two pages:
+
+- `/` (`index.html`, `src/presentation/`): the presentation of Hall, a scroll-driven 3D story of one
+  municipal business, from the office to the prefecture, followed by the features.
+- `/demonstration/` (`demonstration/index.html`, `src/main.ts`): the Alésia demonstration described below.
+
+Both pages share the header (`src/site-header.css`): the Hall logo leads to `/`, "Fonctionnalités" to
+the features of the presentation and "Démonstration" to `/demonstration/`. Each page declares its depth
+in `data-site-root` on `<html>`; `src/site-root.ts` resolves the shared `public/` files (terrain,
+captures) and the documentation from it.
+
+The demonstration presents Hall on a 3D model of the real terrain around the Cornu plateau and
 Chaux-des-Crotenay (Jura). The story follows the council of Alésia, the fictional demonstration
 municipality, during the siege: the places of the story are those of the oppidum on the plateau and of
 the plain of Syam, never present-day buildings.
@@ -16,8 +27,8 @@ Run from this directory:
 - `npm run build`: type check and build the static site into `dist/`.
 - `npm run preview`: serve `dist/` on http://127.0.0.1:4791/.
 - `npm run lint`, `npm run typecheck`.
-- `npx playwright test e2e/site.spec.ts`: desktop (1280x800) and phone (390x844) journeys, including
-  the version without 3D.
+- `npx playwright test e2e/site.spec.ts`: desktop (1280x800) and phone (390x844) journeys of the
+  demonstration, including the version without 3D; `e2e/presentation.spec.ts` for the presentation.
 
 ## Structure
 
@@ -41,10 +52,10 @@ Run from this directory:
 - `src/main.ts`: page wiring, discovery menu (opening, then "Préparer" and "Siéger" groups that unfold
   into their named scenes, current scene marked), scenario panel, automatic reading of the story, address
   fragment, version without 3D.
-- `index.html`: header and opening text: "Hall" followed by the qualification "Gestion de l'activité
+- `demonstration/index.html`: header and opening text: "Hall" followed by the qualification "Gestion de l'activité
   communale" and three plain sentences on what the software does and for whom; the footer carries the
-  signature "Hall, le conseil municipal en séance". The header navigation is Découvrir, Télécharger,
-  Documentation.
+  signature "Hall, le conseil municipal en séance". The header navigation is Fonctionnalités, Démonstration,
+  Télécharger.
 - `src/sections.ts`: the "Télécharger" section, the file to download for each system followed by the
   step-by-step installation per system (tabs), and the header marking of the visible section. The
   installation text comes from `src/installation.ts`, maintained with the release notes and

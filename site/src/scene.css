@@ -88,6 +88,7 @@
 
 .has-terrain #documentation {
   padding-top: var(--between);
+  min-height: calc(100svh - var(--arrival) + var(--between));
 }
 
 .has-terrain .section-card-install {

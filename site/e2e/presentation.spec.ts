@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 /* Page de présentation : la gouttière montre les cinq lieux, et un clic sur un lieu mène à sa première sous-étape. */
 test("la gouttière mène à la première sous-étape d’un lieu", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "telephone", "La gouttière est masquée sur téléphone.");
-  await page.goto("presentation/");
+  await page.goto("./");
   await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
   /* La gouttière apparaît dès que le récit commence. */
   await page.evaluate(() =>
@@ -21,7 +21,7 @@ test("la gouttière mène à la première sous-étape d’un lieu", async ({ pag
 
 test("la page se charge et se lit sur téléphone", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "telephone", "Parcours téléphone.");
-  await page.goto("presentation/");
+  await page.goto("./");
   await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("the public site stays non-technical and links the user guide", async ({ page }) => {
-  await page.goto("./");
+  await page.goto("./demonstration/");
   await expect(page.getByTestId("section-documentation")).toBeAttached();
   const text = (await page.locator("main").textContent()) ?? "";
   for (const term of [/\bMCP\b/, /\bHTTP\b/, /\bAPI\b/, /\bSiren\b/, /agent IA/, /\bstdio\b/]) {
@@ -16,7 +16,7 @@ test("the rendered manual still documents the MCP assistant", async ({ page }) =
   await expect(page.locator("article")).toContainText("terminal privé");
   await expect(page.locator("article")).toContainText("22.12");
   await expect(page.locator("article")).toContainText("npm install --prefix");
-  await expect(page.locator("article")).toContainText("aucun téléchargement public");
+  await expect(page.locator("article")).toContainText("archive du paquet serveur");
   await expect(page.getByTestId("docs-page-assistant-ia")).toBeVisible();
   await page.getByTestId("docs-search").fill("hall_learn");
   await page.getByTestId("docs-search-result-assistant-ia").click();

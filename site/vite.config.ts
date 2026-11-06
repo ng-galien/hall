@@ -33,7 +33,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
-        presentation: fileURLToPath(new URL("./presentation/index.html", import.meta.url)),
+        demonstration: fileURLToPath(new URL("./demonstration/index.html", import.meta.url)),
       },
     },
     assetsInlineLimit: 0,

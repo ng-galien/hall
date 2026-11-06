@@ -1,3 +1,4 @@
+import { siteRoot } from "../site-root";
 import { glyphs, type PieceKind, svgIcon } from "./icons";
 
 /**
@@ -196,7 +197,7 @@ function capture(feature: Feature): HTMLElement {
     return box;
   }
   const image = element("img", "f-capture");
-  image.src = `./captures/${feature.capture}`;
+  image.src = `${siteRoot}captures/${feature.capture}`;
   image.alt = feature.alt ?? "";
   image.loading = "lazy";
   image.width = 1200;
@@ -306,7 +307,7 @@ export function renderFeatures(variant: "a" | "b") {
     "La démonstration se passe à Alésia, une commune inventée. Élus, affaires, séances et documents y sont fictifs.",
   );
   const demoLink = element("a", "p-button is-quiet", "Ouvrir la démonstration");
-  demoLink.href = "../";
+  demoLink.href = `${siteRoot}demonstration/`;
   demo.append(demoText, demoLink);
   blocks.append(block("La démonstration", "business", demo));
   root.append(blocks);

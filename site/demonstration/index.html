@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr" data-site-root="../">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1723" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="Hall, gestion de l’activité communale : un logiciel pour gérer l’activité d’une commune, de la préparation du conseil municipal jusqu’à la séance et aux actes, pour le secrétariat de mairie et les élus. Démonstration : la commune fictive d’Alésia, sur le plateau d’Alésia, dans le Jura."
+    />
+    <title>Hall, gestion de l’activité communale</title>
+  </head>
+  <body id="haut">
+    <header class="masthead site-header" data-testid="site-header">
+      <a class="brand site-brand" href="../" data-testid="brand-home" aria-label="Hall, accueil">
+        <span class="brand-mark site-brand-mark" aria-hidden="true">H</span>
+        <span class="brand-name site-brand-name">Hall</span>
+        <span class="brand-qualification site-brand-qualification">Le conseil municipal en séance</span>
+      </a>
+      <button type="button" class="view-switch" data-testid="view-switch"></button>
+      <nav class="section-nav site-nav" aria-label="Navigation" data-testid="section-nav">
+        <a data-testid="nav-fonctionnalites" href="../#en-savoir-plus">Fonctionnalités</a>
+        <a data-testid="nav-demonstration" href="#haut" aria-current="page">Démonstration</a>
+        <a class="site-nav-action" data-testid="nav-telecharger" href="#telecharger">Télécharger</a>
+      </nav>
+    </header>
+
+    <main id="app" data-testid="site-main">
+      <section id="decouvrir" class="discover" data-testid="section-decouvrir" aria-label="Découvrir Hall">
+        <div class="intro" data-testid="intro">
+          <h1 class="intro-title">Démonstration de Hall sur la commune fictive d’Alésia</h1>
+          <p class="intro-hint intro-hint-scene">
+            Choisissez un scénario dans le menu Alésia, Préparer ou Siéger, en haut de la page.
+          </p>
+          <p class="intro-hint intro-hint-plain">Choisissez un scénario dans la liste ci-dessous.</p>
+        </div>
+
+        <div class="terrain" data-testid="terrain" hidden>
+          <div class="terrain-stage" data-testid="terrain-stage"></div>
+          <div class="terrain-labels" aria-hidden="true"></div>
+          <p class="terrain-credit" data-testid="terrain-credit">
+            Relief RGE ALTI, bâti, routes et eau BD TOPO © IGN, licence ouverte Etalab 2.0
+          </p>
+          <aside class="scenario-panel" data-testid="scenario-panel" aria-live="polite" hidden></aside>
+        </div>
+
+        <div class="plain" data-testid="plain-view" hidden></div>
+        <div class="scene-sentinel" aria-hidden="true"></div>
+      <section id="telecharger" class="page-section" data-testid="section-telecharger"></section>
+
+      <section id="documentation" class="page-section" data-testid="section-documentation">
+        <div class="section-inner">
+          <header class="section-head">
+            <h2>Documentation</h2>
+          </header>
+          <ul class="doc-links">
+            <li>
+              <a data-testid="documentation-link" href="../documentation/index.html#/docs">
+                <span class="doc-link-title">Guide d’utilisation</span>
+                <span class="doc-link-text">Installer Hall et s’en servir au quotidien.</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+    <footer class="site-footer">
+      <p class="site-credit" data-testid="site-credit">
+        Démonstration&#8239;: données fictives. Données géographiques&#8239;: IGN, RGE ALTI et BD TOPO, licence ouverte
+        Etalab 2.0&#8239;; contours communaux de geo.api.gouv.fr.
+      </p>
+    </footer>
+      </section>
+
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

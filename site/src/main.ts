@@ -1,4 +1,5 @@
 import "@fontsource/public-sans/400.css";
+import { siteRoot } from "./site-root";
 import "@fontsource/public-sans/600.css";
 import "@fontsource/public-sans/700.css";
 import "@fontsource/public-sans/800.css";
@@ -16,7 +17,7 @@ import { supportsWebGL } from "./webgl";
 
 type ViewMode = "terrain" | "plain";
 
-const base = import.meta.env.BASE_URL;
+const base = siteRoot;
 
 function element<T extends HTMLElement>(testId: string): T {
   const found = document.querySelector<T>(`[data-testid="${testId}"]`);

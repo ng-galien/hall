@@ -1,3 +1,4 @@
+import { siteRoot } from "../site-root";
 import "@fontsource/public-sans/400.css";
 import "@fontsource/public-sans/600.css";
 import "@fontsource/public-sans/700.css";
@@ -431,7 +432,7 @@ async function start() {
     window.addEventListener("scroll", update, { passive: true });
     return;
   }
-  const ground = await loadGround(new URL("../", window.location.href).href);
+  const ground = await loadGround(siteRoot);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
   renderer.setClearColor(look.clear, 1);
