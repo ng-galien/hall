@@ -21,6 +21,18 @@ const documentation = "../documentation/index.html#/docs";
 const outsideTheGame = /Berthier|Alise|Foncine|thèse|clin d[’']œil/i;
 const presentDayObjects = /mairie|salle polyvalente|école|église|route nationale|voie ferrée|Pont de la Chaux/i;
 
+/** Sur téléphone la visionneuse n'a pas de barre de boutons : un toucher sur la capture montre les flèches. */
+const phoneViewer = (page: Page) => (page.viewportSize()?.width ?? 1280) <= 900;
+
+async function stepViewer(page: Page, direction: "previous" | "next") {
+  if (!phoneViewer(page)) {
+    await page.getByTestId(`viewer-${direction}`).click();
+    return;
+  }
+  await page.getByTestId("viewer-shot").click({ position: { x: 8, y: 8 } });
+  await page.getByTestId(`viewer-chevron-${direction}`).click();
+}
+
 async function expectCapturesLoaded(page: Page, scope: string) {
   const images = page.locator(`${scope} img`);
   const count = await images.count();
@@ -297,12 +309,13 @@ test.describe("relief en 3D", () => {
     await expect(page.getByTestId("viewer-legend-item").nth(1)).toContainText("Pourparlers avec Jules César");
     await pins.nth(1).focus();
     await expect(page.getByTestId("viewer-legend-item").nth(1)).toHaveClass(/is-lit/);
-    await page.getByTestId("viewer-next").click();
+    await stepViewer(page, "next");
     await expect(page.getByTestId("viewer-count")).toHaveText("Capture 4 sur 5");
     await page.keyboard.press("ArrowRight");
     await expect(page.getByTestId("viewer-count")).toHaveText("Capture 5 sur 5");
-    await expect(page.getByTestId("viewer-next")).toBeDisabled();
-    await page.getByTestId("viewer-previous").click();
+    if (phoneViewer(page)) await expect(page.getByTestId("viewer-chevron-next")).toBeHidden();
+    else await expect(page.getByTestId("viewer-next")).toBeDisabled();
+    await stepViewer(page, "previous");
     await expect(page.getByTestId("viewer-count")).toHaveText("Capture 4 sur 5");
     await page.keyboard.press("Escape");
     await expect(viewer).toBeHidden();
@@ -324,8 +337,11 @@ test.describe("relief en 3D", () => {
     await opener.click();
     const viewer = page.getByTestId("viewer");
     await expect(viewer).toHaveAttribute("data-zoom", "1.00");
-    await expect(page.getByTestId("viewer-zoom-fit")).toBeDisabled();
-    await page.getByTestId("viewer-zoom-in").click();
+    const phone = phoneViewer(page);
+    if (phone) await expect(page.getByTestId("viewer-zoom-in")).toBeHidden();
+    else await expect(page.getByTestId("viewer-zoom-fit")).toBeDisabled();
+    if (phone) await page.keyboard.press("+");
+    else await page.getByTestId("viewer-zoom-in").click();
     await expect.poll(async () => Number(await viewer.getAttribute("data-zoom"))).toBeGreaterThan(1.5);
     const stage = await page.getByTestId("viewer-stage").boundingBox();
     if (!stage) throw new Error("Scène absente");
@@ -337,11 +353,12 @@ test.describe("relief en 3D", () => {
     const after = await page.getByTestId("viewer-shot").boundingBox();
     expect(after?.x).not.toBe(before?.x);
     await expect(viewer).toBeVisible();
-    await page.getByTestId("viewer-zoom-fit").click();
+    if (phone) await page.keyboard.press("0");
+    else await page.getByTestId("viewer-zoom-fit").click();
     await expect(viewer).toHaveAttribute("data-zoom", "1.00");
     await page.mouse.dblclick(stage.x + stage.width / 2, stage.y + stage.height / 2);
     await expect.poll(async () => Number(await viewer.getAttribute("data-zoom"))).toBeGreaterThan(1.5);
-    await page.getByTestId("viewer-next").click();
+    await page.keyboard.press("ArrowRight");
     await expect(page.getByTestId("viewer-count")).toHaveText("Capture 4 sur 5");
     await expect(viewer).toHaveAttribute("data-zoom", "1.00");
     await page.goBack();
@@ -359,7 +376,7 @@ test.describe("relief en 3D", () => {
     await expect(page.getByTestId("viewer-count")).toHaveText("Capture 3 sur 6");
     await expect(page.getByTestId("viewer-title")).toHaveText("Cartes");
     await expect(page.getByTestId("viewer-legend")).toBeHidden();
-    await page.getByTestId("viewer-next").click();
+    await stepViewer(page, "next");
     await expect(page.getByTestId("viewer-title")).toHaveText("Préparation de séance");
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(
       0,
@@ -367,6 +384,41 @@ test.describe("relief en 3D", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("viewer")).toBeHidden();
     await expect(opener).toBeFocused();
+  });
+
+  test("sur téléphone, le pincement agrandit la capture seule et les flèches s’effacent", async ({ page }) => {
+    test.skip(!phoneViewer(page), "visionneuse de téléphone");
+    await page.goto("./demonstration/#actes");
+    await page.getByTestId("capture-open-sieger-calendrier").click();
+    const viewer = page.getByTestId("viewer");
+    await expect(page.getByTestId("viewer-previous")).toBeHidden();
+    const chevron = page.getByTestId("viewer-chevron-next");
+    await expect(chevron).toHaveCSS("opacity", "1");
+    await expect(page.getByTestId("viewer-hint")).toHaveCSS("opacity", "1");
+    await expect(chevron).toHaveCSS("opacity", "0", { timeout: 4000 });
+    await page.getByTestId("viewer-shot").click({ position: { x: 8, y: 8 } });
+    await expect(chevron).toHaveCSS("opacity", "1");
+    const cdp = await page.context().newCDPSession(page);
+    const pinch = async (x: number, y: number) => {
+      const at = (r: number) => [
+        { x: x - r, y, id: 0 },
+        { x: x + r, y, id: 1 },
+      ];
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(30) });
+      for (const r of [50, 70, 90, 110]) {
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(r) });
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    };
+    const bar = await page.getByTestId("viewer-count").boundingBox();
+    if (!bar) throw new Error("Barre absente");
+    await pinch(bar.x + 150, bar.y + bar.height / 2);
+    await expect(viewer).toHaveAttribute("data-zoom", "1.00");
+    const shot = await page.getByTestId("viewer-shot").boundingBox();
+    if (!shot) throw new Error("Capture absente");
+    await pinch(shot.x + shot.width / 2, shot.y + shot.height / 2);
+    await expect.poll(async () => Number(await viewer.getAttribute("data-zoom"))).toBeGreaterThan(2);
+    expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   });
 
   test("chaque capture du récit a des pastilles légendées", async ({ page }) => {

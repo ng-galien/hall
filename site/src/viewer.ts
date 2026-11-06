@@ -25,6 +25,10 @@ interface ViewerParts {
   zoomIn: HTMLButtonElement;
   zoomOut: HTMLButtonElement;
   fit: HTMLButtonElement;
+  frame: HTMLElement;
+  chevronPrevious: HTMLButtonElement;
+  chevronNext: HTMLButtonElement;
+  hint: HTMLElement;
 }
 
 /** Agrandissement courant : échelle et décalage en pixels de la capture par rapport à sa place ajustée. */
@@ -43,6 +47,7 @@ const SWIPE_DISTANCE = 60;
 const TAP_SLOP = 8;
 const DOUBLE_TAP_MS = 320;
 const BUTTON_STEP = 1.6;
+const CUES_MS = 2000;
 
 let parts: ViewerParts | null = null;
 const state: ViewerState = { captures: [], index: 0, opener: null };
@@ -50,6 +55,7 @@ const view: View = { scale: 1, x: 0, y: 0 };
 /** Échelle qui ajuste la capture à la scène, par rapport à sa taille réelle. */
 let fitRatio = 1;
 let pendingHistoryBacks = 0;
+let cuesTimer = 0;
 
 /** Espaces insécables de la typographie française devant : ; ? ! » et après «. */
 function frenchSpacing(text: string): string {
@@ -73,7 +79,19 @@ const icons = {
   plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   minus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>',
   fit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  previous: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+  next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
 };
+
+/** Sur téléphone, les flèches vers les captures voisines apparaissent puis s'effacent ; `hint` y ajoute la consigne des gestes. */
+function showCues(hint: boolean) {
+  if (!parts) return;
+  const { frame } = parts;
+  frame.classList.add("is-cues");
+  frame.classList.toggle("is-hinting", hint);
+  window.clearTimeout(cuesTimer);
+  cuesTimer = window.setTimeout(() => frame.classList.remove("is-cues", "is-hinting"), CUES_MS);
+}
 
 function iconButton(className: string, testId: string, label: string, svg: string): HTMLButtonElement {
   const button = node("button", className, testId);
@@ -316,7 +334,9 @@ function onPointerUp(event: PointerEvent) {
     paint(true);
     return;
   }
-  if (event.pointerType === "mouse" || event.type !== "pointerup") return;
+  if (event.type !== "pointerup") return;
+  showCues(false);
+  if (event.pointerType === "mouse") return;
   const now = event.timeStamp;
   if (lastTap && now - lastTap.time < DOUBLE_TAP_MS && distance(lastTap.at, end) < 30) {
     lastTap = null;
@@ -342,7 +362,7 @@ function onWheel(event: WheelEvent) {
 function render() {
   if (!parts) return;
   const capture = state.captures[state.index];
-  const { count, title, body, shot, image, legend, previous, next } = parts;
+  const { count, title, body, shot, image, legend, previous, next, chevronPrevious, chevronNext, hint } = parts;
   const total = state.captures.length;
   count.textContent = total > 1 ? `Capture ${state.index + 1} sur ${total}` : "Capture de Hall";
   title.textContent = frenchSpacing(capture.caption);
@@ -379,6 +399,10 @@ function render() {
   next.disabled = state.index === total - 1;
   previous.hidden = total < 2;
   next.hidden = total < 2;
+  chevronPrevious.hidden = state.index === 0;
+  chevronNext.hidden = state.index === total - 1;
+  hint.textContent =
+    total > 1 ? "Pincez pour agrandir, glissez pour changer de capture" : "Pincez pour agrandir la capture";
   view.scale = 1;
   view.x = 0;
   view.y = 0;
@@ -390,6 +414,7 @@ function move(step: number) {
   if (target < 0 || target >= state.captures.length) return;
   state.index = target;
   render();
+  showCues(false);
 }
 
 function onKey(event: KeyboardEvent) {
@@ -434,7 +459,18 @@ function build(): ViewerParts {
   zoomIn.addEventListener("click", () => zoomAt(view.scale * BUTTON_STEP, stageCenter(), true));
   fit.addEventListener("click", () => resetView(true));
   zoom.append(zoomOut, zoomIn, fit);
-  frame.append(stage, zoom);
+  const chevronPrevious = iconButton(
+    "viewer-chevron is-previous",
+    "viewer-chevron-previous",
+    "Capture précédente",
+    icons.previous,
+  );
+  const chevronNext = iconButton("viewer-chevron is-next", "viewer-chevron-next", "Capture suivante", icons.next);
+  chevronPrevious.addEventListener("click", () => move(-1));
+  chevronNext.addEventListener("click", () => move(1));
+  const hint = node("p", "viewer-hint", "viewer-hint");
+  hint.setAttribute("aria-hidden", "true");
+  frame.append(stage, zoom, chevronPrevious, chevronNext, hint);
   const legend = node("ol", "viewer-legend", "viewer-legend");
   legend.setAttribute("aria-label", "Ce que montrent les pastilles");
   body.append(frame, legend);
@@ -455,9 +491,21 @@ function build(): ViewerParts {
       return;
     }
     const target = event.target as HTMLElement;
-    if (!target.closest(".viewer-shot, .viewer-legend, .viewer-bar, .viewer-nav, .viewer-zoom")) dialog.close();
+    if (!target.closest(".viewer-shot, .viewer-legend, .viewer-bar, .viewer-nav, .viewer-zoom, .viewer-chevron"))
+      dialog.close();
   });
   dialog.addEventListener("keydown", onKey);
+  /* Le pincement agrandit la capture seule, jamais la page : Safari sur iPhone reçoit ses propres événements de geste */
+  for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+    dialog.addEventListener(type, (event) => event.preventDefault());
+  }
+  dialog.addEventListener(
+    "touchmove",
+    (event) => {
+      if (event.touches.length > 1) event.preventDefault();
+    },
+    { passive: false },
+  );
   stage.addEventListener("pointerdown", onPointerDown);
   stage.addEventListener("pointermove", onPointerMove);
   stage.addEventListener("pointerup", onPointerUp);
@@ -469,6 +517,8 @@ function build(): ViewerParts {
   });
   dialog.addEventListener("close", () => {
     document.body.classList.remove("has-viewer");
+    window.clearTimeout(cuesTimer);
+    frame.classList.remove("is-cues", "is-hinting");
     pointers.clear();
     gesture = null;
     if (history.state?.viewer) {
@@ -490,7 +540,25 @@ function build(): ViewerParts {
     if (dialog.open) layout();
   });
   document.body.append(dialog);
-  return { dialog, count, title, body, stage, shot, image, legend, previous, next, zoomIn, zoomOut, fit };
+  return {
+    dialog,
+    count,
+    title,
+    body,
+    stage,
+    shot,
+    image,
+    legend,
+    previous,
+    next,
+    zoomIn,
+    zoomOut,
+    fit,
+    frame,
+    chevronPrevious,
+    chevronNext,
+    hint,
+  };
 }
 
 /** Indique si la visionneuse est ouverte. */
@@ -508,5 +576,6 @@ export function openViewer(captures: ViewerShot[], index: number, opener: HTMLEl
   parts.dialog.showModal();
   if (!history.state?.viewer) history.pushState({ viewer: true }, "");
   render();
+  showCues(true);
   parts.dialog.querySelector<HTMLButtonElement>(".viewer-close")?.focus();
 }
