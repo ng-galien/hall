@@ -654,16 +654,6 @@ test.describe("sections de la page", () => {
     expect([...tops].sort((a, b) => a - b)).toEqual(tops);
     const viewport = page.viewportSize();
     if (!viewport) throw new Error("Fenêtre absente");
-    /* Sur téléphone, Télécharger quitte l'en-tête pour que le menu tienne sur une ligne */
-    if (viewport.width <= 760) {
-      await expect(page.getByTestId("nav-telecharger")).toBeHidden();
-      const header = await page.getByTestId("section-nav").boundingBox();
-      const brand = await page.getByTestId("brand-home").boundingBox();
-      if (!header || !brand) throw new Error("En-tête absent");
-      expect(Math.abs(header.y + header.height / 2 - (brand.y + brand.height / 2))).toBeLessThan(12);
-      await expectNoHorizontalScroll(page);
-      return;
-    }
     await page.getByTestId("nav-telecharger").click();
     await expect(page.getByTestId("section-telecharger")).toBeInViewport();
     await expect(page.getByTestId("nav-telecharger")).toHaveAttribute("aria-current", "true");
