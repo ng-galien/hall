@@ -102,7 +102,7 @@ export const subSteps: SubStep[] = [
     id: "photo",
     icon: "image",
     place: 1,
-    weight: 1.9,
+    weight: 1.35,
     title: "Photos depuis le téléphone",
     text: "",
     points: [

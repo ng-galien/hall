@@ -28,7 +28,7 @@ import { renderFeatures } from "./features";
 import { discCanvas, glyphs, indexCanvas, type PieceKind, sheetCanvas, svgIcon } from "./icons";
 import { buildBureau, buildMairie, buildPrefecture } from "./landmarks";
 import { lightBuildings } from "./look";
-import { at, between, placeRange, places, range, STORY_END, STORY_START, subStepAt, subSteps } from "./story";
+import { at, between, places, range, STORY_END, STORY_START, subStepAt, subSteps } from "./story";
 
 /* ------------------------------------------------------------------ Lieux */
 
@@ -1403,7 +1403,7 @@ async function start() {
   piece("photo-0", "image", "Ornière, côté est", "Photo prise sur place", undefined, {
     folder: "photos",
     source: phonePoint,
-    fly: between("photo", 0.68, 0.96),
+    fly: between("photo", 0.54, 0.94),
   });
   piece("carte", "geographic", "Carte du chemin communal", "Tracé mesuré", "564 m", {
     folder: "carte",
@@ -1580,20 +1580,17 @@ async function start() {
   const toSpot = (v: THREE.Vector3): Spot => ({ x: v.x / SCALE, y: -v.z / SCALE });
   const garageInside = toSpot(bureau.localToWorld(new THREE.Vector3(-1.25, 0, -0.4)));
   const garageOutside = toSpot(bureau.localToWorld(new THREE.Vector3(-1.25, 0, 3.2)));
+  /* Trajet direct par la seule route qui mène au chemin : peu de virages, l'entrée du chemin prise sans lacet */
   const roadToChemin: Spot[] = [
     garageInside,
     garageOutside,
     { x: -688, y: -2167 },
     { x: -754, y: -2264 },
-    { x: -780, y: -2271 },
-    { x: -813, y: -2263 },
     { x: -841, y: -2283 },
-    { x: -900, y: -2335 },
     { x: -957, y: -2387 },
-    { x: -960, y: -2399 },
-    { x: -988, y: -2412 },
-    { x: -996, y: -2436 },
-    { x: -981, y: -2455 },
+    { x: -973, y: -2428 },
+    { x: -975, y: -2440 },
+    { x: -967, y: -2446 },
     { x: -831, y: -2521 },
     { x: viewpoint.x - 14, y: viewpoint.y - 6 },
   ];
@@ -1622,7 +1619,8 @@ async function start() {
   const driveToChemin = polyline(roadToChemin);
   const driveToMairie = polyline(roadToMairie);
   const driveAway = polyline(roadAway);
-  const toChemin = between("photo", 0.02, 0.3);
+  /* La voiture part pendant « Rendez-vous et invitations » et arrive au chemin au début de « Photos depuis le téléphone » */
+  const toChemin: [number, number] = [at("rendezvous", 0.42), range("photo")[0]];
   const toMairie = between("assistant", 0.08, 0.3);
   const heading = (route: (f: number) => Spot, f: number) => {
     const a = route(Math.max(0, f - 0.02));
@@ -1698,10 +1696,10 @@ async function start() {
           x: carChemin.x + (viewpoint.x - carChemin.x) * 0.35,
           y: carChemin.y + (viewpoint.y - carChemin.y) * 0.35 + 8,
         };
-        const pause = toChemin[1] + (at("photo", 0.38) - toChemin[1]) * 0.25;
+        const pause = toChemin[1] + (at("photo", 0.11) - toChemin[1]) * 0.25;
         if (p < pause)
           return { spot: out, heading: 0.35, moving: false, inCar: p < toChemin[1] + (pause - toChemin[1]) * 0.3 };
-        const k = gentle(span(p, pause, at("photo", 0.4)));
+        const k = gentle(span(p, pause, at("photo", 0.14)));
         return k >= 1 ? { spot: viewpoint, heading: 0.35, moving: false, inCar: false } : walk(out, viewpoint, k);
       }
       const back = span(p, at("cadastre", 0.9), awayWindow[0]);
@@ -1746,15 +1744,14 @@ async function start() {
     el: number;
     dist: number;
   }
-  const [domicileStart, domicileEnd] = placeRange(0);
   const keys: Key[] = [
     { p: 0, aim: village, az: 196, el: 42, dist: 950 },
     { p: STORY_START, aim: village, az: 204, el: 38, dist: 420 },
     { p: at("creer", 0.6), aim: spots.home, az: 214, el: 31, dist: 32 },
-    { p: domicileEnd - (domicileEnd - domicileStart) * 0.05, aim: spots.home, az: 234, el: 33, dist: 33 },
-    { p: at("photo", 0.1), aim: "car", az: 220, el: 44, dist: 60 },
-    { p: at("photo", 0.22), aim: "car", az: 205, el: 50, dist: 85 },
-    { p: at("photo", 0.36), aim: viewpoint, az: 205, el: 30, dist: 26 },
+    { p: at("rendezvous", 0.36), aim: spots.home, az: 234, el: 33, dist: 33 },
+    { p: at("rendezvous", 0.6), aim: "car", az: 220, el: 44, dist: 60 },
+    { p: at("rendezvous", 0.86), aim: "car", az: 205, el: 50, dist: 85 },
+    { p: at("photo", 0.09), aim: viewpoint, az: 205, el: 30, dist: 26 },
     { p: at("photo", 0.96), aim: viewpoint, az: 214, el: 30, dist: 25 },
     { p: at("trace", 0.12), aim: cheminCentre, az: 198, el: 47, dist: 70 },
     { p: at("cadastre", 0.1), aim: cheminCentre, az: 186, el: 48, dist: 72 },
@@ -1944,7 +1941,7 @@ async function start() {
     actor.group.position.copy(world(here.spot));
     actor.group.rotation.y = here.heading;
     const photoGesture =
-      smooth(span(p, at("photo", 0.4), at("photo", 0.5))) * (1 - smooth(span(p, at("photo", 0.88), at("photo", 0.97))));
+      smooth(span(p, at("photo", 0.14), at("photo", 0.29))) * (1 - smooth(span(p, at("photo", 0.83), at("photo", 0.96))));
     const gait = stridePhase(actor.group, actor.group.scale.x);
     actor.pose(here.moving && !reducedMotion ? gait : null, field ? photoGesture : 0);
     adjoint.group.visible = field && !here.inCar;
@@ -2027,11 +2024,11 @@ async function start() {
 
     /* Chemin : téléphone, tracé, photos, cadastre */
     const phoneShow =
-      smooth(span(p, at("photo", 0.42), at("photo", 0.5))) * (1 - smooth(span(p, at("photo", 0.9), at("photo", 0.98))));
+      smooth(span(p, at("photo", 0.17), at("photo", 0.29))) * (1 - smooth(span(p, at("photo", 0.86), at("photo", 0.97))));
     phone.style.opacity = phoneShow.toFixed(3);
     phone.style.transform = `translate(-50%, ${((1 - phoneShow) * 40).toFixed(1)}px)`;
-    phone.classList.toggle("is-captured", p >= at("photo", 0.62));
-    const shutter = Math.abs(p - at("photo", 0.62));
+    phone.classList.toggle("is-captured", p >= at("photo", 0.46));
+    const shutter = Math.abs(p - at("photo", 0.46));
     const pinFlash = Math.min(...[0, 1].map((i) => Math.abs(p - at("trace", 0.56 + i * 0.2))));
     const flashLevel = reducedMotion ? 0 : Math.max(0, 1 - shutter / 0.003, 1 - pinFlash / 0.003);
     flash.style.opacity = (flashLevel * 0.18).toFixed(3);
