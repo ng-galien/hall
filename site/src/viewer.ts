@@ -1,7 +1,5 @@
 import type { Capture } from "./scenes";
-import { siteRoot } from "./site-root";
-
-const base = siteRoot;
+import { publicFileUrl } from "./site-root";
 
 interface ViewerState {
   captures: Capture[];
@@ -55,7 +53,7 @@ function render() {
   const total = state.captures.length;
   count.textContent = total > 1 ? `Capture ${state.index + 1} sur ${total}` : "Capture de Hall";
   title.textContent = frenchSpacing(capture.caption);
-  image.src = `${base}captures/${capture.file}`;
+  image.src = publicFileUrl(`captures/${capture.file}`);
   image.alt = capture.caption;
   image.width = capture.width;
   image.height = capture.height;

@@ -1,10 +1,69 @@
-import { copyFile, cp, mkdir } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { copyFile, cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
+
+const publicDirectory = fileURLToPath(new URL("./public/", import.meta.url));
+const versionsModule = "virtual:public-file-versions";
+const resolvedVersionsModule = `\0${versionsModule}`;
+
+/** Short content hash, appended as ?v= so that a changed file gets a new URL. */
+async function contentVersion(file: string): Promise<string> {
+  return createHash("sha256")
+    .update(await readFile(file))
+    .digest("hex")
+    .slice(0, 10);
+}
+
+async function directoryVersions(directory: string): Promise<Record<string, string>> {
+  const entries = await readdir(directory, { recursive: true, withFileTypes: true });
+  const versions: Record<string, string> = {};
+  for (const entry of entries) {
+    if (!entry.isFile() || entry.name.startsWith(".")) continue;
+    const file = join(entry.parentPath, entry.name);
+    versions[relative(directory, file).split(sep).join("/")] = await contentVersion(file);
+  }
+  return versions;
+}
+
+/** Exposes the content version of every file in public/ to the site code. */
+function publicFileVersions(): Plugin {
+  return {
+    name: "hall-public-file-versions",
+    resolveId: (id) => (id === versionsModule ? resolvedVersionsModule : undefined),
+    async load(id) {
+      if (id !== resolvedVersionsModule) return undefined;
+      return `export default ${JSON.stringify(await directoryVersions(publicDirectory))};`;
+    },
+    configureServer(server) {
+      const refresh = (file: string) => {
+        if (!file.startsWith(publicDirectory)) return;
+        const module = server.moduleGraph.getModuleById(resolvedVersionsModule);
+        if (module) server.moduleGraph.invalidateModule(module);
+        server.ws.send({ type: "full-reload" });
+      };
+      server.watcher.on("add", refresh);
+      server.watcher.on("change", refresh);
+      server.watcher.on("unlink", refresh);
+    },
+  };
+}
+
+/** Appends the content version to the capture URLs written in the documentation page. */
+async function versionDocumentationCaptures(page: string, capturesDirectory: string) {
+  const versions = await directoryVersions(capturesDirectory);
+  const html = await readFile(page, "utf8");
+  const versioned = html.replace(/captures\/([\w./-]+\.(?:png|jpe?g|webp|svg))/g, (match, path: string) =>
+    versions[path] ? `${match}?v=${versions[path]}` : match,
+  );
+  await writeFile(page, versioned);
+}
 
 export default defineConfig({
   base: "./",
   plugins: [
+    publicFileVersions(),
     {
       name: "hall-rendered-documentation",
       async closeBundle() {
@@ -19,6 +78,7 @@ export default defineConfig({
           fileURLToPath(new URL("../packages/client/dist-docs/index.html", import.meta.url)),
           `${target}/index.html`,
         );
+        await versionDocumentationCaptures(`${target}/index.html`, `${target}/captures`);
       },
     },
   ],

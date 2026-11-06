@@ -1,6 +1,6 @@
 import "@fontsource/public-sans/400.css";
 import { revealText } from "./arrival";
-import { siteRoot } from "./site-root";
+import { publicFileUrl } from "./site-root";
 import "@fontsource/public-sans/600.css";
 import "@fontsource/public-sans/700.css";
 import "@fontsource/public-sans/800.css";
@@ -17,8 +17,6 @@ import { openViewer, viewerOpen } from "./viewer";
 import { supportsWebGL } from "./webgl";
 
 type ViewMode = "terrain" | "plain";
-
-const base = siteRoot;
 
 function element<T extends HTMLElement>(testId: string): T {
   const found = document.querySelector<T>(`[data-testid="${testId}"]`);
@@ -129,7 +127,7 @@ function renderCaptures(scene: Scene): HTMLElement {
     open.dataset.testid = `capture-open-${capture.file.replace(/\.png$/, "")}`;
     open.setAttribute("aria-label", frenchSpacing(`Agrandir la capture : ${capture.caption}`));
     const img = document.createElement("img");
-    img.src = `${base}captures/${capture.file}`;
+    img.src = publicFileUrl(`captures/${capture.file}`);
     img.alt = capture.caption;
     img.width = capture.width;
     img.height = capture.height;

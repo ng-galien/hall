@@ -12,7 +12,6 @@ import {
   updateTileLevels,
   wideLines,
 } from "../relief";
-import { siteRoot } from "../site-root";
 import { ACCENT, dark, look, themeNetworks, themeRelief, themeSkirt } from "../theme";
 import { supportsWebGL } from "../webgl";
 import { buildCar, buildCharacter } from "./actors";
@@ -89,7 +88,7 @@ export async function start() {
     window.addEventListener("scroll", update, { passive: true });
     return;
   }
-  const ground = await loadGround(siteRoot);
+  const ground = await loadGround();
   const light = softwareRenderer();
   document.body.dataset.render = light ? "light" : "full";
   const renderer = new THREE.WebGLRenderer({ antialias: !light });

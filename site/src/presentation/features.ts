@@ -1,4 +1,4 @@
-import { siteRoot } from "../site-root";
+import { publicFileUrl, siteRoot } from "../site-root";
 import { glyphs, type PieceKind, svgIcon } from "./icons";
 
 /**
@@ -197,7 +197,7 @@ function capture(feature: Feature): HTMLElement {
     return box;
   }
   const image = element("img", "f-capture");
-  image.src = `${siteRoot}captures/${feature.capture}`;
+  image.src = publicFileUrl(`captures/${feature.capture}`);
   image.alt = feature.alt ?? "";
   image.loading = "lazy";
   image.width = 1200;

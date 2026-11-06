@@ -20,7 +20,6 @@ import {
   wideLines,
 } from "./relief";
 import type { Mark, MarkTone, Motion, PlaceId, Pose, Spot } from "./scenes";
-import { siteRoot } from "./site-root";
 import {
   ACCENT,
   ACCENT_ON_DARK,
@@ -268,7 +267,7 @@ function softwareRendering(): boolean {
 
 export async function createTerrain(options: TerrainOptions): Promise<TerrainView> {
   const { stage, labels, places, frame: freeFrame, onSelect } = options;
-  const ground = await loadGround(siteRoot);
+  const ground = await loadGround();
   const software = softwareRendering();
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const instantMotion = software || reducedMotion;

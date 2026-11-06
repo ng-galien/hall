@@ -385,7 +385,7 @@ test.describe("relief en 3D", () => {
     const terrainBytes = await page.evaluate(() =>
       performance
         .getEntriesByType("resource")
-        .filter((entry) => /\/terrain\/(terrain\.json|terrain\.bin|landcover\.bin)\.gz$/.test(entry.name))
+        .filter((entry) => /\/terrain\/(terrain\.json|terrain\.bin|landcover\.bin)\.gz(\?|$)/.test(entry.name))
         .reduce((total, entry) => total + (entry as PerformanceResourceTiming).encodedBodySize, 0),
     );
     expect(terrainBytes).toBeGreaterThan(500_000);

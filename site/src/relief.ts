@@ -3,6 +3,7 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { palette } from "./palette";
+import { publicFileUrl } from "./site-root";
 
 /**
  * Relief réel de Cornu et de Chaux-des-Crotenay (RGE ALTI et BD TOPO, IGN) : données, maillage à trois niveaux de
@@ -90,11 +91,11 @@ function decodeHeights(buffer: ArrayBuffer, cols: number, rows: number): Uint16A
   return out;
 }
 
-export async function loadGround(base: string): Promise<Ground> {
+export async function loadGround(): Promise<Ground> {
   const [dataBuffer, heightBuffer, coverBuffer] = await Promise.all([
-    inflate(`${base}terrain/terrain.json.gz`),
-    inflate(`${base}terrain/terrain.bin.gz`),
-    inflate(`${base}terrain/landcover.bin.gz`),
+    inflate(publicFileUrl("terrain/terrain.json.gz")),
+    inflate(publicFileUrl("terrain/terrain.bin.gz")),
+    inflate(publicFileUrl("terrain/landcover.bin.gz")),
   ]);
   const data = JSON.parse(new TextDecoder().decode(dataBuffer)) as TerrainData;
   const { cols, rows, width, height, x: cx = 0, y: cy = 0 } = data.grid;
