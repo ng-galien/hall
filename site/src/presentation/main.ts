@@ -94,7 +94,7 @@ export function scrollProgress(): number {
 
 /** Instant d'arrivée d'une sous-étape : au début de son action ; pour la première sous-étape d'un lieu, quand la
  * caméra a fini de cadrer le lieu. */
-export const placeLanding: Record<string, number> = { creer: 0.62, photo: 0.4, assistant: 0.4, appel: 0.26, gel: 0.2 };
+export const placeLanding: Record<string, number> = { creer: 0.62, photo: 0.4, assistant: 0.3, appel: 0.26, gel: 0.2 };
 export function landing(index: number): number {
   const step = subSteps[index];
   if (reducedMotion) return at(step.id, 0.97);
