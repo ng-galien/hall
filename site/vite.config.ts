@@ -22,8 +22,20 @@ export default defineConfig({
       },
     },
   ],
+  server: {
+    allowedHosts: [".ts.net"],
+  },
+  preview: {
+    allowedHosts: [".ts.net"],
+  },
   build: {
     outDir: "dist",
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        presentation: fileURLToPath(new URL("./presentation/index.html", import.meta.url)),
+      },
+    },
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 900,
   },

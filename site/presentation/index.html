@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1723" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="Logiciel du conseil municipal pour les petites communes : affaires, cartes, préparation de séance, vote, délibérations et procès-verbaux."
+    />
+    <title>Hall, de l’affaire à la délibération</title>
+  </head>
+  <body>
+    <header class="p-masthead">
+      <a class="p-brand" href="#haut" aria-label="Hall, retour au début">
+        <span class="p-brand-mark" aria-hidden="true">H</span>
+        <span class="p-brand-name">Hall</span>
+        <span class="p-brand-qualification">Le conseil municipal en séance</span>
+      </a>
+      <nav class="p-nav" aria-label="Navigation">
+        <a href="#en-savoir-plus">Fonctionnalités</a>
+        <a href="../">Démonstration</a>
+      </nav>
+    </header>
+
+    <div class="p-stage" aria-hidden="true">
+      <div class="p-canvas"></div>
+      <div class="p-labels"></div>
+      <div class="p-flash"></div>
+    </div>
+
+    <div class="p-phone" aria-hidden="true">
+      <div class="p-phone-screen">
+        <p class="p-phone-bar"><span class="p-phone-mark">H</span> Hall</p>
+        <p class="p-phone-kicker">Affaire</p>
+        <p class="p-phone-title">Réfection du chemin communal</p>
+        <div class="p-phone-view"><span class="p-phone-photo"></span></div>
+        <p class="p-phone-action"><span class="p-phone-shutter"></span> Prendre une photo</p>
+      </div>
+    </div>
+
+    <aside class="p-board" aria-label="Fiche de l’affaire"></aside>
+
+    <div class="p-watermark" aria-live="polite"></div>
+
+    <nav class="p-gutter is-hidden" aria-label="Chronologie du récit" data-testid="gutter"></nav>
+
+    <p class="p-credit">Relief RGE ALTI, bâti, routes et eau BD TOPO © IGN, licence ouverte Etalab 2.0</p>
+
+    <main class="p-scroll" id="haut">
+      <section class="p-hero">
+        <div class="p-hero-content">
+        <h1>
+          <span class="p-hero-name">Hall</span>
+          <span class="p-hero-line">De l’affaire à la délibération : préparation, séance, vote et actes dans un même logiciel.</span>
+        </h1>
+        <p class="p-hero-definition">
+          Une affaire, c’est un sujet suivi dans la durée : le chemin à refaire, un bâtiment, un marché. Elle réunit pièces, rapport, projets et questions pour le conseil, de la première pièce jusqu’au vote et au-delà.
+        </p>
+        <p class="p-hero-hint">Faites défiler pour suivre une affaire, du terrain jusqu’au vote.</p>
+        </div>
+      </section>
+      <div class="p-track"></div>
+    </main>
+
+    <section class="p-more" id="en-savoir-plus" aria-labelledby="en-savoir-plus-titre">
+      <div class="p-more-inner"></div>
+
+      <div class="p-end" id="fin">
+        <div class="p-end-card">
+          <h2>De l’affaire à la délibération</h2>
+          <p>
+            Le secrétariat de mairie et les élus travaillent dans le même logiciel, de la première pièce jusqu’au
+            procès-verbal.
+          </p>
+          <p class="p-end-actions">
+            <a class="p-button is-quiet" href="../">Ouvrir la démonstration</a>
+          </p>
+        </div>
+        <p class="p-credit-static">Relief RGE ALTI, bâti, routes et eau BD TOPO © IGN, licence ouverte Etalab 2.0</p>
+      </div>
+    </section>
+
+    <script type="module" src="../src/presentation/main.ts"></script>
+  </body>
+</html>
