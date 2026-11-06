@@ -136,7 +136,10 @@ function stepTo(index: number, ratio: number) {
   const through = subSteps[Math.max(0, index > current ? index : Math.min(subSteps.length - 1, index + 1))];
   hooks.keyIndex = index;
   play(index < 0 ? 0 : at(subSteps[index].id, 0.97), ratio * stepMs(through.weight));
+  /* Les flèches de la carte restent grisées jusqu'à la fin de la sous-étape jouée, quel que soit le déclencheur */
+  requestAnimationFrame(() => afterStep());
 }
+let afterStep = () => {};
 
 /* Défilement de la page hors du récit (vers la section du bas et retour) : une seule glissade */
 const GLIDE_MS = 900;
@@ -318,11 +321,30 @@ cardControls.className = "w-controls";
 cardControls.innerHTML = `<button type="button" class="w-arrow" data-testid="step-card-previous" aria-label="Étape précédente">${chevron("M14.5 6 8.5 12l6 6")}</button><button type="button" class="w-arrow" data-testid="step-card-next" aria-label="Étape suivante">${chevron("M9.5 6l6 6-6 6")}</button>`;
 watermark.append(cardControls);
 const [stepPrevious, stepNext] = cardControls.querySelectorAll("button");
-/** Joue la sous-étape voisine, dans le sens de `delta`, si elle existe. */
-function stepBy(delta: number) {
-  const index = currentStep() + delta;
-  if (index >= 0 && index < subSteps.length) stepTo(index, CONTROL_STEP_RATIO);
+/** Sous-étape affichée par le panneau, pour l'état des flèches. */
+let shownIndex = -1;
+/** Flèches grisées pendant qu'une sous-étape se joue, puis selon la position dans le récit. */
+/** Demande partie, sous-étape pas encore lancée par la scène : les flèches sont déjà grisées. */
+let requested = 0;
+function refreshArrows() {
+  if (requested && (moving() || performance.now() - requested > 1500)) requested = 0;
+  const playing = requested > 0 || moving();
+  stepPrevious.disabled = playing || shownIndex <= 0;
+  stepNext.disabled = playing || shownIndex >= subSteps.length - 1;
 }
+function watchPlayback() {
+  refreshArrows();
+  if (requested || moving()) requestAnimationFrame(watchPlayback);
+}
+/** Joue la sous-étape voisine, dans le sens de `delta`, si elle existe ; rien tant qu'une autre se joue. */
+function stepBy(delta: number) {
+  if (requested || moving()) return;
+  const index = currentStep() + delta;
+  if (index < 0 || index >= subSteps.length) return;
+  requested = performance.now();
+  stepTo(index, CONTROL_STEP_RATIO);
+}
+afterStep = watchPlayback;
 stepPrevious.addEventListener("click", () => stepBy(-1));
 stepNext.addEventListener("click", () => stepBy(1));
 /** Glissement retenu : au moins 48 px de côté, et nettement plus horizontal que vertical. */
@@ -512,8 +534,8 @@ export function showStep(p: number) {
     turnWheel(index + clamp01((p - from) / (to - from)) - 0.5);
   } else turnWheel(-1);
   if (index === shownSub) return;
-  stepPrevious.disabled = index <= 0;
-  stepNext.disabled = index >= subSteps.length - 1;
+  shownIndex = index;
+  refreshArrows();
   const first = shownSub === -2;
   /* Saut de plusieurs sous-étapes : le panneau entier s'efface et revient, sans cadre vide entre les deux */
   const leap = Math.abs(index - shownSub) > 1;
