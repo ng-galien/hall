@@ -45,3 +45,91 @@ test("la flèche d’ouverture et les flèches de la carte font avancer le réci
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+/* Molette et pavé tactile : un flux continu fait défiler le récit, ralenti hors Mac ; une molette à crans joue une
+   sous-étape par geste ; sur Mac, le pavé tactile garde le défilement natif. */
+for (const system of ["linux", "mac"] as const) {
+  test(`défilement à la molette et au pavé tactile (${system})`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "telephone", "Gestes de souris et de pavé tactile.");
+    await page.addInitScript((mac) => {
+      Object.defineProperty(navigator, "platform", { get: () => (mac ? "MacIntel" : "Linux x86_64") });
+      Object.defineProperty(navigator, "userAgentData", {
+        get: () => ({ platform: mac ? "macOS" : "Linux", brands: [], mobile: false }),
+      });
+    }, system === "mac");
+    await page.goto("./");
+    await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
+    const max = await page.evaluate(
+      () => (document.querySelector(".p-scroll") as HTMLElement).offsetHeight - document.documentElement.clientHeight,
+    );
+    await page.evaluate((top) => window.scrollTo(0, top), Math.round(max * 0.3));
+    /** La scène rejoint l'avancement de la page, sans lecture de sous-étape vers un autre instant. */
+    const settled = () =>
+      page.waitForFunction(
+        (height) =>
+          Math.abs(
+            (window as unknown as { __presentation: { progress: () => number } }).__presentation.progress() -
+              window.scrollY / height,
+          ) < 1e-4,
+        max,
+        { timeout: 45_000 },
+      );
+    await settled();
+    /** Événements de molette envoyés à la scène ; renvoie la part de ceux dont le défilement natif est empêché. */
+    const wheel = (events: { deltaY: number; wheelDeltaY: number }[]) =>
+      page.evaluate((list) => {
+        let prevented = 0;
+        for (const { deltaY, wheelDeltaY } of list) {
+          const event = new WheelEvent("wheel", { deltaY, deltaMode: 0, bubbles: true, cancelable: true });
+          Object.defineProperty(event, "wheelDeltaY", { value: wheelDeltaY });
+          document.querySelector(".p-canvas")?.dispatchEvent(event);
+          if (event.defaultPrevented) prevented++;
+        }
+        return prevented / list.length;
+      }, events);
+
+    /* Flux continu de pavé tactile : 40 événements de 10 px */
+    const before = await page.evaluate(() => window.scrollY);
+    const stream = Array.from({ length: 40 }, () => ({ deltaY: 10, wheelDeltaY: system === "mac" ? -30 : -12 }));
+    const prevented = await wheel(stream);
+    const moved = (await page.evaluate(() => window.scrollY)) - before;
+    if (system === "mac") {
+      /* Natif : la page n'intercepte rien (un événement synthétique ne fait pas défiler la page) */
+      expect(prevented).toBe(0);
+      expect(moved).toBe(0);
+    } else {
+      expect(prevented).toBe(1);
+      expect(moved).toBeGreaterThanOrEqual(139);
+      expect(moved).toBeLessThanOrEqual(141);
+      /* Pas de lecture de sous-étape : la scène suit l'avancement de la page et s'y arrête */
+      await settled();
+    }
+
+    /* Molette à crans de Chrome sous Linux : deltaY 53,33 pour wheelDeltaY -120, un geste de quatre crans */
+    await page.waitForTimeout(400);
+    const ids = await page
+      .locator("[data-testid^=gutter-sub-]")
+      .evaluateAll((nodes) => nodes.map((node) => (node as HTMLElement).dataset.testid?.slice("gutter-sub-".length)));
+    /** Rang de la sous-étape où se trouve la page. */
+    const stepIndex = () =>
+      page.evaluate((list) => {
+        const story = (window as unknown as { __presentation: { range: (id: string) => [number, number] } })
+          .__presentation;
+        const height =
+          (document.querySelector(".p-scroll") as HTMLElement).offsetHeight - document.documentElement.clientHeight;
+        const p = window.scrollY / height;
+        return list.findIndex((id) => {
+          const [a, b] = story.range(id as string);
+          return p >= a && p < b;
+        });
+      }, ids);
+    const from = await stepIndex();
+    const title = await page.getByTestId("step-panel-title").textContent();
+    const notches = Array.from({ length: 4 }, () => ({ deltaY: 53.33, wheelDeltaY: -120 }));
+    expect(await wheel(notches)).toBe(1);
+    await expect(page.getByTestId("step-panel-title")).not.toHaveText(title ?? "", { timeout: 15_000 });
+    await page.waitForTimeout(3000);
+    /* Un seul pas pour le geste entier */
+    expect((await stepIndex()) - from).toBe(1);
+  });
+}

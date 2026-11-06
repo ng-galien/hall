@@ -1,0 +1,816 @@
+{
+  "storyStart": 0.03,
+  "storyEnd": 0.975,
+  "playback": {
+    "baseMs": 400,
+    "msPerWeight": 500,
+    "controlRatio": 3,
+    "wheelRatio": 1.5,
+    "continuousScrollFactor": { "mac": 1, "other": 0.35 },
+    "landing": 0.008,
+    "rest": 0.97,
+    "jumpMs": 1200,
+    "boardSwapMs": 320,
+    "jumpBeyond": 0.12,
+    "glideMs": 900
+  },
+  "actors": {
+    "camera": "Caméra",
+    "cars": "Voitures",
+    "people": "Personnes",
+    "assistant": "Assistant IA",
+    "pieces": "Fiche et pièces",
+    "scene": "Décor et effets",
+    "card": "Carte d'étape"
+  },
+  "steps": {
+    "creer": { "weight": 1.3, "landing": 0.62 },
+    "devis": { "weight": 2.3 },
+    "rapport": { "weight": 1.3 },
+    "commission": { "weight": 0.7 },
+    "rendezvous": { "weight": 0.8 },
+    "photo": { "weight": 1.35, "landing": 0.4 },
+    "trace": { "weight": 1.8 },
+    "cadastre": { "weight": 0.9 },
+    "assistant": { "weight": 2.4, "pace": 1.5, "landing": 0.2 },
+    "projet": { "weight": 1.3 },
+    "partage": { "weight": 1.0 },
+    "question": { "weight": 0.6 },
+    "inscription": { "weight": 0.8 },
+    "convocation": { "weight": 0.8 },
+    "dossier": { "weight": 0.7 },
+    "appel": { "weight": 1.3, "landing": 0.26 },
+    "debat": { "weight": 0.9 },
+    "scrutin": { "weight": 1.0 },
+    "deliberation": { "weight": 0.8 },
+    "cloture": { "weight": 0.6 },
+    "gel": { "weight": 0.8, "landing": 0.2 },
+    "liste": { "weight": 0.6 },
+    "pv": { "weight": 0.6 },
+    "transmission": { "weight": 1.7 }
+  },
+  "moments": {
+    "deputyWalksToDoor": {
+      "label": "L'adjoint marche jusqu'à la porte du bureau",
+      "actor": "people",
+      "step": "creer",
+      "start": 0.04,
+      "end": 0.82
+    },
+    "ficheAppears": {
+      "label": "La fiche de l'affaire apparaît",
+      "actor": "pieces",
+      "step": "creer",
+      "start": 0,
+      "end": 0.35
+    },
+    "reportCreated": { "label": "Le rapport entre dans la fiche", "actor": "pieces", "step": "creer", "start": 0.5 },
+    "deputyWaitsAtDoor": {
+      "label": "L'adjoint attend devant la porte",
+      "actor": "people",
+      "step": "creer",
+      "start": 0.86,
+      "end": 0.6,
+      "endStep": "devis",
+      "after": "deputyWalksToDoor"
+    },
+    "devisTerrassementArrives": {
+      "label": "Devis terrassement : arrivée du courriel",
+      "actor": "pieces",
+      "step": "devis",
+      "start": 0.03,
+      "end": 0.13
+    },
+    "devisTerrassementFiled": {
+      "label": "Devis terrassement : rangé dans la fiche",
+      "actor": "pieces",
+      "step": "devis",
+      "start": 0.17,
+      "end": 0.33,
+      "after": "devisTerrassementArrives"
+    },
+    "devisEnrobeArrives": {
+      "label": "Devis enrobé : arrivée du courriel",
+      "actor": "pieces",
+      "step": "devis",
+      "start": 0.33,
+      "end": 0.43
+    },
+    "devisEnrobeFiled": {
+      "label": "Devis enrobé : rangé dans la fiche",
+      "actor": "pieces",
+      "step": "devis",
+      "start": 0.47,
+      "end": 0.63,
+      "after": "devisEnrobeArrives"
+    },
+    "deputyEntersOffice": {
+      "label": "L'adjoint entre dans le bureau",
+      "actor": "people",
+      "step": "devis",
+      "start": "deputyWaitsAtDoor.end",
+      "end": 0.65
+    },
+    "deputyGoesInside": {
+      "label": "L'adjoint disparaît à l'intérieur",
+      "actor": "people",
+      "step": "devis",
+      "start": 0.66,
+      "after": "deputyEntersOffice"
+    },
+    "budgetArrives": {
+      "label": "Budget : le tableur monte du bureau",
+      "actor": "pieces",
+      "step": "devis",
+      "start": 0.64,
+      "end": 0.74
+    },
+    "budgetFiled": {
+      "label": "Budget : rangé dans la fiche",
+      "actor": "pieces",
+      "step": "devis",
+      "start": 0.8,
+      "end": 0.97,
+      "after": "budgetArrives"
+    },
+    "planArrives": {
+      "label": "Plan de situation : arrivée",
+      "actor": "pieces",
+      "step": "rapport",
+      "start": 0.02,
+      "end": 0.1
+    },
+    "planFiled": {
+      "label": "Plan de situation : rangé dans la fiche",
+      "actor": "pieces",
+      "step": "rapport",
+      "start": 0.12,
+      "end": 0.32,
+      "after": "planArrives"
+    },
+    "legalTextArrives": {
+      "label": "Texte de référence : arrivée",
+      "actor": "pieces",
+      "step": "rapport",
+      "start": 0.35,
+      "end": 0.43
+    },
+    "legalTextFiled": {
+      "label": "Texte de référence : rangé dans la fiche",
+      "actor": "pieces",
+      "step": "rapport",
+      "start": 0.46,
+      "end": 0.64,
+      "after": "legalTextArrives"
+    },
+    "letterArrives": {
+      "label": "Courrier des riverains : arrivée",
+      "actor": "pieces",
+      "step": "rapport",
+      "start": 0.68,
+      "end": 0.74
+    },
+    "letterFiled": {
+      "label": "Courrier des riverains : rangé dans la fiche",
+      "actor": "pieces",
+      "step": "rapport",
+      "start": 0.77,
+      "end": 0.96,
+      "after": "letterArrives"
+    },
+    "committeeArrives": {
+      "label": "Commission Voirie : arrivée",
+      "actor": "pieces",
+      "step": "commission",
+      "start": 0.04,
+      "end": 0.2
+    },
+    "committeeFiled": {
+      "label": "Commission Voirie : posée sur la fiche",
+      "actor": "pieces",
+      "step": "commission",
+      "start": 0.3,
+      "end": 0.9,
+      "after": "committeeArrives"
+    },
+    "appointmentArrives": {
+      "label": "Rendez-vous sur place : arrivée",
+      "actor": "pieces",
+      "step": "rendezvous",
+      "start": 0.04,
+      "end": 0.2
+    },
+    "appointmentFiled": {
+      "label": "Rendez-vous sur place : posé sur la fiche",
+      "actor": "pieces",
+      "step": "rendezvous",
+      "start": 0.32,
+      "end": 0.88,
+      "after": "appointmentArrives"
+    },
+    "carToChemin": {
+      "label": "Voiture de l'adjoint : du bureau au chemin",
+      "actor": "cars",
+      "step": "rendezvous",
+      "start": 0.42,
+      "end": 0,
+      "endStep": "photo"
+    },
+    "garageOpens": {
+      "label": "La porte du garage s'ouvre",
+      "actor": "cars",
+      "step": "rendezvous",
+      "within": "carToChemin",
+      "start": -0.18,
+      "end": 0.08
+    },
+    "deputyGetsOut": {
+      "label": "L'adjoint descend de la voiture",
+      "actor": "people",
+      "step": "photo",
+      "start": "carToChemin.end",
+      "end": 0.0275,
+      "params": { "leavesCar": 0.3 }
+    },
+    "deputyWalksToViewpoint": {
+      "label": "L'adjoint marche jusqu'au point de vue",
+      "actor": "people",
+      "step": "photo",
+      "start": "deputyGetsOut.end",
+      "end": 0.14
+    },
+    "deputyRaisesPhone": {
+      "label": "L'adjoint lève le téléphone",
+      "actor": "people",
+      "step": "photo",
+      "start": 0.14,
+      "end": 0.29,
+      "after": "deputyWalksToViewpoint"
+    },
+    "phoneRises": {
+      "label": "L'écran du téléphone apparaît",
+      "actor": "scene",
+      "step": "photo",
+      "start": 0.17,
+      "end": 0.29
+    },
+    "photoTaken": {
+      "label": "Photo prise (flash)",
+      "actor": "scene",
+      "step": "photo",
+      "start": 0.46,
+      "after": "phoneRises"
+    },
+    "sitePhotoFiled": {
+      "label": "Photo de l'ornière : rangée dans la fiche",
+      "actor": "pieces",
+      "step": "photo",
+      "start": 0.54,
+      "end": 0.94,
+      "after": "photoTaken"
+    },
+    "deputyLowersPhone": {
+      "label": "L'adjoint baisse le téléphone",
+      "actor": "people",
+      "step": "photo",
+      "start": 0.83,
+      "end": 0.96
+    },
+    "phoneLowers": {
+      "label": "L'écran du téléphone disparaît",
+      "actor": "scene",
+      "step": "photo",
+      "start": 0.86,
+      "end": 0.97
+    },
+    "traceDrawn": {
+      "label": "Le chemin se dessine sur la carte",
+      "actor": "scene",
+      "step": "trace",
+      "start": 0.04,
+      "end": 0.3
+    },
+    "lengthShown": {
+      "label": "Longueur mesurée affichée",
+      "actor": "scene",
+      "step": "trace",
+      "start": 0.28,
+      "end": 0,
+      "endStep": "projet"
+    },
+    "mapFiled": {
+      "label": "Carte du chemin : rangée dans la fiche",
+      "actor": "pieces",
+      "step": "trace",
+      "start": 0.3,
+      "end": 0.5,
+      "after": "traceDrawn"
+    },
+    "firstPhotoPinned": {
+      "label": "Première photo épinglée (flash)",
+      "actor": "scene",
+      "step": "trace",
+      "start": 0.56
+    },
+    "firstPinnedPhotoFiled": {
+      "label": "Photo du fossé : rangée dans la fiche",
+      "actor": "pieces",
+      "step": "trace",
+      "start": 0.58,
+      "end": 0.86,
+      "after": "firstPhotoPinned"
+    },
+    "secondPhotoPinned": {
+      "label": "Seconde photo épinglée (flash)",
+      "actor": "scene",
+      "step": "trace",
+      "start": 0.76
+    },
+    "secondPinnedPhotoFiled": {
+      "label": "Photo de l'accotement : entre dans le dossier",
+      "actor": "pieces",
+      "step": "trace",
+      "start": 0.92,
+      "after": "secondPhotoPinned"
+    },
+    "cadastreDrawn": {
+      "label": "Les parcelles se dessinent",
+      "actor": "scene",
+      "step": "cadastre",
+      "start": 0.04,
+      "end": 0.46,
+      "params": { "communalFrom": 0.6 }
+    },
+    "parcelsTinted": {
+      "label": "Les parcelles se colorent",
+      "actor": "scene",
+      "step": "cadastre",
+      "start": 0.42,
+      "end": 0.82,
+      "params": { "each": 0.35 }
+    },
+    "parcelNumbersShown": {
+      "label": "Numéros des parcelles affichés",
+      "actor": "scene",
+      "step": "cadastre",
+      "start": "cadastreDrawn.end",
+      "end": 0,
+      "endStep": "projet"
+    },
+    "cadastreFiled": {
+      "label": "Parcelles riveraines : rangées dans la fiche",
+      "actor": "pieces",
+      "step": "cadastre",
+      "start": 0.5,
+      "end": 0.94,
+      "after": "cadastreDrawn"
+    },
+    "deputyWalksBackToCar": {
+      "label": "L'adjoint retourne à la voiture",
+      "actor": "people",
+      "step": "cadastre",
+      "start": 0.9,
+      "end": "carLeavesChemin.start"
+    },
+    "carLeavesChemin": {
+      "label": "Voiture de l'adjoint : départ du chemin",
+      "actor": "cars",
+      "step": "cadastre",
+      "start": 0.97,
+      "end": 0.12,
+      "endStep": "assistant"
+    },
+    "parcelsFade": {
+      "label": "Les couleurs des parcelles s'effacent",
+      "actor": "scene",
+      "step": "assistant",
+      "start": 0,
+      "end": 0.2
+    },
+    "carToMairie": {
+      "label": "Voiture de la secrétaire : arrivée à la mairie",
+      "actor": "cars",
+      "step": "assistant",
+      "start": 0.03,
+      "end": 0.15
+    },
+    "assistantAppears": {
+      "label": "L'assistant apparaît",
+      "actor": "assistant",
+      "step": "assistant",
+      "start": 0.12,
+      "end": 0.2
+    },
+    "secretaryGetsOut": {
+      "label": "La secrétaire descend de la voiture",
+      "actor": "people",
+      "step": "assistant",
+      "start": "carToMairie.end",
+      "end": 0.19,
+      "params": { "leavesCar": 0.3 }
+    },
+    "secretaryWalksToDoor": {
+      "label": "La secrétaire marche jusqu'à la porte",
+      "actor": "people",
+      "step": "assistant",
+      "start": "secretaryGetsOut.end",
+      "end": 0.28
+    },
+    "secretaryInMairie": {
+      "label": "La secrétaire est dans la mairie",
+      "actor": "people",
+      "step": "assistant",
+      "start": 0.3,
+      "end": 0,
+      "endStep": "gel",
+      "after": "secretaryWalksToDoor"
+    },
+    "assistantReadsFolders": {
+      "label": "L'assistant lit les dossiers un à un",
+      "actor": "assistant",
+      "step": "assistant",
+      "start": 0.22,
+      "end": 0.74,
+      "after": "assistantAppears"
+    },
+    "assistantWrites": {
+      "label": "L'assistant rédige",
+      "actor": "assistant",
+      "step": "assistant",
+      "start": 0.72,
+      "end": 0.84
+    },
+    "comparisonFiled": {
+      "label": "Comparatif des devis : entre dans le dossier",
+      "actor": "pieces",
+      "step": "assistant",
+      "start": 0.82,
+      "after": "assistantReadsFolders"
+    },
+    "assistantLeaves": {
+      "label": "L'assistant disparaît",
+      "actor": "assistant",
+      "step": "assistant",
+      "start": 0.92,
+      "end": 0,
+      "endStep": "projet"
+    },
+    "draftResolutionFiled": {
+      "label": "Projet de délibération : posé sur la fiche",
+      "actor": "pieces",
+      "step": "projet",
+      "start": 0.12,
+      "end": 0.85
+    },
+    "serverAppears": { "label": "Le serveur apparaît", "actor": "scene", "step": "partage", "start": 0, "end": 0.06 },
+    "devicesAppear": {
+      "label": "Les appareils des élus apparaissent",
+      "actor": "scene",
+      "step": "partage",
+      "start": 0,
+      "end": 0.05
+    },
+    "serverPulse": { "label": "Onde du serveur", "actor": "scene", "step": "partage", "start": 0.03, "end": 0.2 },
+    "linksToDevices": {
+      "label": "Liens vers les appareils, écrans allumés",
+      "actor": "scene",
+      "step": "partage",
+      "start": 0.05,
+      "end": 0.55,
+      "params": { "each": 0.52, "lightFrom": 0.85, "lightTo": 1.35 }
+    },
+    "serverDisappears": {
+      "label": "Le serveur disparaît",
+      "actor": "scene",
+      "step": "partage",
+      "start": 0.92,
+      "end": 1
+    },
+    "devicesFade": {
+      "label": "Les appareils s'effacent",
+      "actor": "scene",
+      "step": "question",
+      "start": 0,
+      "end": 0.5
+    },
+    "questionFiled": {
+      "label": "Question ouverte : posée sur la fiche",
+      "actor": "pieces",
+      "step": "question",
+      "start": 0.08,
+      "end": 0.8
+    },
+    "councillorsArrive": {
+      "label": "Les élus arrivent à pied",
+      "actor": "people",
+      "step": "inscription",
+      "start": 0,
+      "end": 1,
+      "endStep": "convocation",
+      "params": { "stagger": 0.55, "walk": 0.42 }
+    },
+    "agendaFirstItem": { "label": "Premier point inscrit", "actor": "pieces", "step": "inscription", "start": 0.3 },
+    "agendaSecondItem": { "label": "Second point inscrit", "actor": "pieces", "step": "inscription", "start": 0.65 },
+    "agendaFrozen": { "label": "Ordre du jour figé", "actor": "pieces", "step": "convocation", "start": 0.12 },
+    "convocationFiled": {
+      "label": "Convocation : posée sur la fiche",
+      "actor": "pieces",
+      "step": "convocation",
+      "start": 0.22,
+      "end": 0.9,
+      "after": "agendaFrozen"
+    },
+    "meetingFileFiled": {
+      "label": "Dossier de séance : posé sur la fiche",
+      "actor": "pieces",
+      "step": "dossier",
+      "start": 0.08,
+      "end": 0.86
+    },
+    "councilFraming": {
+      "label": "Cadrage de la table du conseil",
+      "actor": "camera",
+      "step": "appel",
+      "start": 0,
+      "end": 0.24
+    },
+    "secretaryCarHidden": {
+      "label": "Voiture de la secrétaire masquée pendant la séance",
+      "actor": "cars",
+      "step": "appel",
+      "start": 0,
+      "end": 0,
+      "endStep": "gel"
+    },
+    "daisAppears": {
+      "label": "La salle du conseil apparaît",
+      "actor": "scene",
+      "step": "appel",
+      "start": 0,
+      "end": 0.22
+    },
+    "rollCall": {
+      "label": "Appel : les présences s'allument",
+      "actor": "scene",
+      "step": "appel",
+      "start": 0.2,
+      "end": 0.52
+    },
+    "proxyShown": { "label": "Pouvoir affiché", "actor": "scene", "step": "appel", "start": 0.56, "after": "rollCall" },
+    "meetingOpened": {
+      "label": "Séance ouverte",
+      "actor": "scene",
+      "step": "appel",
+      "start": 0.66,
+      "after": "proxyShown"
+    },
+    "laptopsLight": {
+      "label": "Les écrans des élus s'allument",
+      "actor": "scene",
+      "step": "appel",
+      "start": 0.72,
+      "end": 0.94,
+      "after": "meetingOpened"
+    },
+    "debateNotes": { "label": "Notes de séance", "actor": "pieces", "step": "debat", "start": 0.05, "end": 0.95 },
+    "reportShownInDebate": {
+      "label": "Le rapport s'affiche au-dessus de la table",
+      "actor": "scene",
+      "step": "debat",
+      "start": 0.1,
+      "end": 0.25
+    },
+    "planShownInDebate": {
+      "label": "Le plan s'affiche au-dessus de la table",
+      "actor": "scene",
+      "step": "debat",
+      "start": 0.25,
+      "end": 0.4
+    },
+    "debateDocumentsHidden": {
+      "label": "Les documents du débat s'effacent",
+      "actor": "scene",
+      "step": "debat",
+      "start": 0.9,
+      "end": 0,
+      "endStep": "scrutin"
+    },
+    "councillorsVote": {
+      "label": "Les élus votent un à un",
+      "actor": "scene",
+      "step": "scrutin",
+      "start": 0.08,
+      "end": 0.7,
+      "params": { "fall": 0.0806451612903226, "glow": 0.0967741935483871, "wave": 0.161290322580645 }
+    },
+    "voteConfirmed": {
+      "label": "Résultat confirmé",
+      "actor": "pieces",
+      "step": "scrutin",
+      "start": 0.86,
+      "after": "councillorsVote"
+    },
+    "draftShown": {
+      "label": "Le projet est présenté sur la table",
+      "actor": "scene",
+      "step": "deliberation",
+      "start": 0,
+      "end": 0.9
+    },
+    "draftEntersTable": {
+      "label": "Le projet descend sur la table",
+      "actor": "scene",
+      "step": "deliberation",
+      "start": 0,
+      "end": 0.14
+    },
+    "draftTurnsAdopted": {
+      "label": "Le projet se retourne en délibération adoptée",
+      "actor": "scene",
+      "step": "deliberation",
+      "start": 0.18,
+      "end": 0.42,
+      "after": "draftEntersTable"
+    },
+    "draftDropsInUrn": {
+      "label": "La délibération tombe dans l'urne",
+      "actor": "scene",
+      "step": "deliberation",
+      "start": 0.55,
+      "end": 0.88,
+      "after": "draftTurnsAdopted"
+    },
+    "questionClosed": { "label": "Question ouverte close", "actor": "pieces", "step": "deliberation", "start": 0.92 },
+    "laptopsOff": {
+      "label": "Les écrans des élus s'éteignent",
+      "actor": "scene",
+      "step": "cloture",
+      "start": 0,
+      "end": 0.3
+    },
+    "minutesDraftFiled": {
+      "label": "Projet de procès-verbal : posé sur la fiche",
+      "actor": "pieces",
+      "step": "cloture",
+      "start": 0.14,
+      "end": 0.86
+    },
+    "councilUnframing": {
+      "label": "Fin du cadrage de la table du conseil",
+      "actor": "camera",
+      "step": "cloture",
+      "start": 0.95,
+      "end": 0.22,
+      "endStep": "gel"
+    },
+    "daisDisappears": {
+      "label": "La salle du conseil disparaît",
+      "actor": "scene",
+      "step": "gel",
+      "start": 0,
+      "end": 0.15
+    },
+    "councillorsLeave": {
+      "label": "Les élus repartent à pied",
+      "actor": "people",
+      "step": "gel",
+      "start": 0,
+      "end": 1,
+      "endStep": "liste",
+      "params": { "stagger": 0.45, "walk": 0.5 }
+    },
+    "secretaryWalksToCar": {
+      "label": "La secrétaire marche jusqu'à sa voiture",
+      "actor": "people",
+      "step": "gel",
+      "start": 0.04,
+      "end": 0.5,
+      "after": "secretaryInMairie"
+    },
+    "resolutionFiled": {
+      "label": "Délibération définitive : posée sur la fiche",
+      "actor": "pieces",
+      "step": "gel",
+      "start": 0.56,
+      "end": 0.97
+    },
+    "noticeAppears": {
+      "label": "La liste s'affiche sur la façade",
+      "actor": "scene",
+      "step": "liste",
+      "start": 0.05,
+      "end": 0.3
+    },
+    "secretaryGetsInCar": {
+      "label": "La secrétaire monte en voiture",
+      "actor": "people",
+      "step": "liste",
+      "start": 0.08,
+      "after": "secretaryWalksToCar"
+    },
+    "carLeavesMairie": {
+      "label": "Voiture de la secrétaire : départ de la mairie",
+      "actor": "cars",
+      "step": "liste",
+      "start": 0.15,
+      "end": 0.95,
+      "after": "secretaryGetsInCar"
+    },
+    "resolutionListFiled": {
+      "label": "Liste des délibérations : posée sur la fiche",
+      "actor": "pieces",
+      "step": "liste",
+      "start": 0.32,
+      "end": 0.92
+    },
+    "noticeDisappears": {
+      "label": "La liste quitte la façade",
+      "actor": "scene",
+      "step": "liste",
+      "start": 0.85,
+      "end": 0,
+      "endStep": "pv"
+    },
+    "minutesFiled": {
+      "label": "Procès-verbal : posé sur la fiche",
+      "actor": "pieces",
+      "step": "pv",
+      "start": 0.1,
+      "end": 0.82
+    },
+    "linkToPrefectureDrawn": {
+      "label": "Le lien vers la préfecture se trace",
+      "actor": "scene",
+      "step": "transmission",
+      "start": 0.14,
+      "end": 0.42
+    },
+    "resolutionSent": {
+      "label": "La délibération part vers la préfecture",
+      "actor": "scene",
+      "step": "transmission",
+      "start": 0.2,
+      "end": 0.55
+    },
+    "prefectureGlowFades": {
+      "label": "Arrivée à la préfecture : l'anneau s'atténue",
+      "actor": "scene",
+      "step": "transmission",
+      "start": "resolutionSent.end",
+      "end": 0.75
+    },
+    "receiptReturns": {
+      "label": "L'accusé de réception revient",
+      "actor": "scene",
+      "step": "transmission",
+      "start": 0.57,
+      "end": 0.78,
+      "after": "resolutionSent"
+    }
+  },
+  "camera": [
+    { "p": 0, "aim": "village", "az": 196, "el": 42, "dist": 950 },
+    { "p": 0.03, "aim": "village", "az": 204, "el": 38, "dist": 420 },
+    { "step": "creer", "at": 0.6, "aim": "home", "az": 214, "el": 31, "dist": 32 },
+    { "step": "rendezvous", "at": 0.36, "aim": "home", "az": 234, "el": 33, "dist": 33 },
+    { "step": "rendezvous", "at": 0.6, "aim": "car", "az": 220, "el": 44, "dist": 60 },
+    { "step": "rendezvous", "at": 0.86, "aim": "car", "az": 205, "el": 50, "dist": 85 },
+    { "step": "photo", "at": 0.09, "aim": "viewpoint", "az": 205, "el": 30, "dist": 26 },
+    { "step": "photo", "at": 0.96, "aim": "viewpoint", "az": 214, "el": 30, "dist": 25 },
+    { "step": "trace", "at": 0.12, "aim": "cheminCentre", "az": 198, "el": 47, "dist": 70 },
+    { "step": "cadastre", "at": 0.1, "aim": "cheminCentre", "az": 186, "el": 48, "dist": 72 },
+    { "step": "cadastre", "at": 0.95, "aim": "cheminCentre", "az": 180, "el": 56, "dist": 96 },
+    { "step": "assistant", "at": 0.04, "aim": "car", "az": 192, "el": 44, "dist": 60 },
+    { "step": "assistant", "at": 0.18, "aim": "mairieDoor", "az": 196, "el": 32, "dist": 34 },
+    { "step": "assistant", "at": 0.28, "aim": "mairieDoorClose", "az": 200, "el": 26, "dist": 24 },
+    { "step": "assistant", "at": 0.96, "aim": "mairieDoorClose", "az": 206, "el": 26, "dist": 25 },
+    { "step": "projet", "at": 0.3, "aim": "mairieDoor", "az": 200, "el": 33, "dist": 34 },
+    { "step": "projet", "at": 0.97, "aim": "mairieDoor", "az": 204, "el": 33, "dist": 36 },
+    { "step": "partage", "at": 0.16, "aim": "councilDevices", "az": 196, "el": 60, "dist": 235 },
+    { "step": "partage", "at": 0.86, "aim": "councilDevices", "az": 206, "el": 60, "dist": 228 },
+    { "step": "question", "at": 0.4, "aim": "mairieDoor", "az": 205, "el": 32, "dist": 34 },
+    { "step": "dossier", "at": 0.95, "aim": "mairieDoor", "az": 214, "el": 33, "dist": 33 },
+    { "step": "appel", "at": 0.24, "aim": "dais", "az": 194, "el": 42, "dist": 16.5 },
+    { "step": "cloture", "at": 0.95, "aim": "dais", "az": 218, "el": 39, "dist": 16 },
+    { "step": "gel", "at": 0.22, "aim": "mairieSquare", "az": 200, "el": 30, "dist": 38 },
+    { "step": "pv", "at": 0.95, "aim": "mairieSquare", "az": 212, "el": 31, "dist": 40 },
+    { "step": "transmission", "at": 0.16, "aim": "towardPrefectureNear", "az": 175, "el": 44, "dist": 260 },
+    { "step": "transmission", "at": 0.36, "aim": "towardPrefectureFar", "az": 168, "el": 44, "dist": 380 },
+    { "step": "transmission", "at": 0.53, "aim": "prefecture", "az": 162, "el": 32, "dist": 78 },
+    { "step": "transmission", "at": 0.97, "aim": "prefecture", "az": 156, "el": 31, "dist": 74 },
+    { "p": 1, "aim": "prefecture", "az": 150, "el": 33, "dist": 86 }
+  ],
+  "margins": {
+    "deputyCarShownBefore": 0.004,
+    "secretaryCarShownBefore": 0.002,
+    "deputyLeavesStoryBefore": 0.0005,
+    "cameraFollowsSecretaryCarBefore": 0.01,
+    "flash": 0.003
+  },
+  "shapes": {
+    "pieceFadeIn": 0.12,
+    "pieceToStage": 0.3,
+    "pieceHold": 0.5,
+    "pieceHoldAfterArrival": 0.12
+  }
+}

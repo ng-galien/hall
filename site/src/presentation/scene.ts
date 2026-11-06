@@ -50,7 +50,7 @@ import {
   viewpoint,
   watermark,
 } from "./main";
-import { at, between, range, STORY_START, subStepAt, subSteps } from "./story";
+import { range, subStepAt, subSteps, timeline as tl } from "./story";
 
 /* ------------------------------------------------------------------ Qualité du rendu */
 
@@ -129,6 +129,11 @@ export async function start() {
       { x: -948, y: -2284, r: 18 },
     ]),
   );
+
+  /** Avancement de p dans un moment du récit, de 0 avant son début à 1 après sa fin. */
+  const during = (p: number, name: string) => span(p, tl.start(name), tl.end(name));
+  const lasting = (name: string) => tl.end(name) - tl.start(name);
+  const isIn = (p: number, name: string) => p >= tl.start(name) && p < tl.end(name);
 
   const world = (s: Spot, lift = 0) => new THREE.Vector3(s.x * SCALE, ground.height(s.x, s.y) + lift, -s.y * SCALE);
 
@@ -917,9 +922,11 @@ export async function start() {
     texture: THREE.CanvasTexture;
     sprite: THREE.Sprite;
     source: () => THREE.Vector3;
-    arrive?: [number, number];
+    /** Moment de l'arrivée en grand au centre, quand la pièce vient d'ailleurs. */
+    arrive?: string;
     envelope?: boolean;
-    fly: [number, number];
+    /** Moment du vol jusqu'à sa place dans la fiche. */
+    fly: string;
     /** Dernière pièce d'un lot : elle entre directement dans son dossier, sans vol. */
     direct?: boolean;
   }
@@ -943,18 +950,17 @@ export async function start() {
   const roof = () => world(spots.home, 2.2);
   const atMairie = () => world(spots.mairieDoor, 2.5);
   const devis = [
-    ["Devis · Terrassement", "4 800 € HT"],
-    ["Devis · Enrobé", "11 900 € HT"],
+    ["Devis · Terrassement", "4 800 € HT", "devisTerrassement"],
+    ["Devis · Enrobé", "11 900 € HT", "devisEnrobe"],
   ] as const;
   /* Deux devis arrivent par courriel et volent vers le dossier Devis */
-  devis.forEach(([name, amount], i) => {
-    const s = 0.03 + i * 0.3;
+  devis.forEach(([name, amount, moment], i) => {
     piece(`devis-${i}`, "pdf", name, "Reçu par courriel", amount, {
       folder: "devis",
       source: sky,
       envelope: true,
-      arrive: between("devis", s, s + 0.1),
-      fly: between("devis", s + 0.14, s + 0.3),
+      arrive: `${moment}Arrives`,
+      fly: `${moment}Filed`,
     });
   });
   /* Tableur du budget : il monte du bureau, s'affiche en grand avec sa grille, puis rejoint le dossier Budget */
@@ -983,39 +989,39 @@ export async function start() {
       sprite,
       folder: "budget",
       source: roof,
-      arrive: between("devis", 0.64, 0.74),
-      fly: between("devis", 0.8, 0.97),
+      arrive: "budgetArrives",
+      fly: "budgetFiled",
     });
   }
 
   piece("plan", "pdf", "Plan de situation", "Cité dans le rapport", undefined, {
     folder: "plans",
     source: roof,
-    arrive: between("rapport", 0.02, 0.1),
-    fly: between("rapport", 0.12, 0.32),
+    arrive: "planArrives",
+    fly: "planFiled",
   });
   /* Texte de référence cité dans le rapport */
   piece("texte-legal", "legal", "Code de la voirie routière · art. L141-8", "Cité dans le rapport", undefined, {
     folder: "textes",
     source: roof,
-    arrive: between("rapport", 0.35, 0.43),
-    fly: between("rapport", 0.46, 0.64),
+    arrive: "legalTextArrives",
+    fly: "legalTextFiled",
   });
   piece("courrier", "document", "Courrier des riverains", "Lettre du 26 octobre", undefined, {
     folder: "courriers",
     source: roof,
-    arrive: between("rapport", 0.68, 0.74),
-    fly: between("rapport", 0.77, 0.96),
+    arrive: "letterArrives",
+    fly: "letterFiled",
   });
   piece("commission", "committee", "Commission Voirie", "Avis sur le dossier", undefined, {
     source: roof,
-    arrive: between("commission", 0.04, 0.2),
-    fly: between("commission", 0.3, 0.9),
+    arrive: "committeeArrives",
+    fly: "committeeFiled",
   });
   piece("rendezvous", "event", "Rendez-vous sur place", "Avec l’entreprise, au chemin", "Mardi 3 novembre, 9 h 30", {
     source: roof,
-    arrive: between("rendezvous", 0.04, 0.2),
-    fly: between("rendezvous", 0.32, 0.88),
+    arrive: "appointmentArrives",
+    fly: "appointmentFiled",
   });
   /* L'assistant flotte en couche d'interface, contre le bord gauche de la fiche */
   const assistantNode = document.createElement("div");
@@ -1045,7 +1051,7 @@ export async function start() {
     folder: "devis",
     source: () => robotHead(),
     direct: true,
-    fly: between("assistant", 0.82, 0.82),
+    fly: "comparisonFiled",
   });
 
   const phonePoint = () => {
@@ -1055,60 +1061,59 @@ export async function start() {
   piece("photo-0", "image", "Ornière, côté est", "Photo prise sur place", undefined, {
     folder: "photos",
     source: phonePoint,
-    fly: between("photo", 0.54, 0.94),
+    fly: "sitePhotoFiled",
   });
   piece("carte", "geographic", "Carte du chemin communal", "Tracé mesuré", "564 m", {
     folder: "carte",
     source: () => world(viewpoint, 4),
-    fly: between("trace", 0.3, 0.5),
+    fly: "mapFiled",
   });
   /* Lot de photos : la première vole, la seconde entre directement dans le dossier */
   photoSpots.forEach((spot, i) => {
-    const s = 0.56 + i * 0.2;
     piece(`photo-${i + 1}`, "image", ["Fossé bouché", "Accotement affaissé"][i], "Photo jointe au dessin", undefined, {
       folder: "photos",
       source: () => world(spot, 4),
       direct: i === 1,
-      fly: i === 1 ? between("trace", 0.92, 0.92) : between("trace", s + 0.02, s + 0.3),
+      fly: i === 1 ? "secondPinnedPhotoFiled" : "firstPinnedPhotoFiled",
     });
   });
   piece("cadastre", "layer", "Parcelles riveraines", "Cadastre autour du chemin", undefined, {
     folder: "carte",
     source: () => world(viewpoint, 6),
-    fly: between("cadastre", 0.5, 0.94),
+    fly: "cadastreFiled",
   });
   piece("projet", "matter", "Réfection du chemin communal", "Projet de délibération", undefined, {
     source: atMairie,
-    fly: between("projet", 0.12, 0.85),
+    fly: "draftResolutionFiled",
   });
   piece("question", "question", "Calendrier des travaux", "Question ouverte", undefined, {
     source: atMairie,
-    fly: between("question", 0.08, 0.8),
+    fly: "questionFiled",
   });
   piece("convocation", "pdf", "Convocation", "À remettre aux élus", "Séance du 12 novembre", {
     source: atMairie,
-    fly: between("convocation", 0.22, 0.9),
+    fly: "convocationFiled",
   });
   piece("dossier", "pdf", "Dossier de séance", "Ordre du jour, rapports et pièces", undefined, {
     source: atMairie,
-    fly: between("dossier", 0.08, 0.86),
+    fly: "meetingFileFiled",
   });
   const tableTop = () => daisCentre.clone().add(new THREE.Vector3(0, 1.3, 0));
   piece("pv", "minutes", "Projet de procès-verbal", "À relire", undefined, {
     source: tableTop,
-    fly: between("cloture", 0.14, 0.86),
+    fly: "minutesDraftFiled",
   });
   piece("deliberation", "adopted", "Délibération n° 2026-031", "Version définitive", "Adoptée", {
     source: atMairie,
-    fly: between("gel", 0.56, 0.97),
+    fly: "resolutionFiled",
   });
   piece("liste", "pdf", "Liste des délibérations", "Pour l’affichage et le site", undefined, {
     source: () => world(spots.mairieDoor, 2.6),
-    fly: between("liste", 0.32, 0.92),
+    fly: "resolutionListFiled",
   });
   piece("pv-suite", "minutes", "Procès-verbal", "À approuver à la prochaine séance", undefined, {
     source: atMairie,
-    fly: between("pv", 0.1, 0.82),
+    fly: "minutesFiled",
   });
 
   const folderItems: FolderItem[] = pieces
@@ -1142,6 +1147,7 @@ export async function start() {
   });
 
   /* Photos épinglées et flash */
+  const pinMoments = ["firstPhotoPinned", "secondPhotoPinned"];
   const pins = photoSpots.map((spot, i) => {
     const pin = new THREE.Group();
     const stem = new THREE.Mesh(
@@ -1271,18 +1277,15 @@ export async function start() {
   const driveToChemin = polyline(roadToChemin);
   const driveToMairie = polyline(roadToMairie);
   const driveAway = polyline(roadAway);
-  /* La voiture part pendant « Rendez-vous et invitations » et arrive au chemin au début de « Photos depuis le téléphone » */
-  const toChemin: [number, number] = [at("rendezvous", 0.42), range("photo")[0]];
-  const toMairie = between("assistant", 0.03, 0.15);
   const heading = (route: (f: number) => Spot, f: number) => {
     const a = route(Math.max(0, f - 0.02));
     const b = route(Math.min(1, f + 0.02));
     return Math.atan2(b.x - a.x, -(b.y - a.y));
   };
-  const awayWindow = between("cadastre", 0.97, 1);
-  awayWindow[1] = at("assistant", 0.12);
   /** Voiture de l'adjoint : bureau → chemin, puis départ hors du récit. */
   function carAt(p: number): { spot: Spot; heading: number; visible: boolean } {
+    const toChemin = tl.moment("carToChemin");
+    const awayWindow = tl.moment("carLeavesChemin");
     if (p < toChemin[0]) return { spot: roadToChemin[0], heading: heading(driveToChemin, 0), visible: true };
     if (p < awayWindow[0]) {
       const f = easeInOut(span(p, toChemin[0], toChemin[1]));
@@ -1307,8 +1310,9 @@ export async function start() {
     { x: -1036, y: -2431 },
     { x: -1143, y: -2494 },
   ]);
-  const leaveMairie = between("liste", 0.15, 0.95);
   function car2At(p: number): { spot: Spot; heading: number; visible: boolean } {
+    const leaveMairie = tl.moment("carLeavesMairie");
+    const toMairie = tl.moment("carToMairie");
     if (p >= leaveMairie[0]) {
       const f = gentle(span(p, leaveMairie[0], leaveMairie[1]));
       return { spot: driveAwayFromMairie(f), heading: heading(driveAwayFromMairie, Math.max(0.01, f)), visible: f < 1 };
@@ -1319,7 +1323,7 @@ export async function start() {
     return {
       spot: driveToMairie(f),
       heading: heading(driveToMairie, Math.min(0.99, f)),
-      visible: p >= toMairie[0] - 0.002,
+      visible: p >= toMairie[0] - tl.margin("secretaryCarShownBefore"),
     };
   }
 
@@ -1335,52 +1339,56 @@ export async function start() {
     const carChemin = roadToChemin[roadToChemin.length - 1];
     const carMairie = roadToMairie[roadToMairie.length - 1];
     /* Adjoint : bureau, voiture, chemin, retour à la voiture */
-    if (p < toMairie[0] - 0.0005) {
+    if (p < tl.start("carToMairie") - tl.margin("deputyLeavesStoryBefore")) {
       const approach = { x: spots.homeDoor.x + 16, y: spots.homeDoor.y - 11 };
       /* Il attend devant la porte pendant l'arrivée des premières pièces, puis entre quand le budget apparaît */
       const nearDoor = { x: spots.homeDoor.x + 5, y: spots.homeDoor.y - 4 };
-      if (p < at("creer", 0.86)) return walk(approach, nearDoor, gentle(span(p, at("creer", 0.04), at("creer", 0.82))));
-      if (p < at("devis", 0.6)) return { spot: nearDoor, heading: -0.6, moving: false, inCar: false };
-      if (p < at("devis", 0.66))
-        return walk(nearDoor, spots.homeDoor, gentle(span(p, at("devis", 0.6), at("devis", 0.65))));
-      if (p < toChemin[1]) return { spot: carStart, heading: 0, moving: false, inCar: true };
-      if (p < at("cadastre", 0.9)) {
+      if (p < tl.start("deputyWaitsAtDoor")) return walk(approach, nearDoor, gentle(during(p, "deputyWalksToDoor")));
+      if (p < tl.end("deputyWaitsAtDoor")) return { spot: nearDoor, heading: -0.6, moving: false, inCar: false };
+      if (p < tl.start("deputyGoesInside"))
+        return walk(nearDoor, spots.homeDoor, gentle(during(p, "deputyEntersOffice")));
+      if (p < tl.end("carToChemin")) return { spot: carStart, heading: 0, moving: false, inCar: true };
+      if (p < tl.start("deputyWalksBackToCar")) {
         /* La voiture s'arrête, courte pause, l'adjoint descend puis marche */
         const out = {
           x: carChemin.x + (viewpoint.x - carChemin.x) * 0.35,
           y: carChemin.y + (viewpoint.y - carChemin.y) * 0.35 + 8,
         };
-        const pause = toChemin[1] + (at("photo", 0.11) - toChemin[1]) * 0.25;
+        const pause = tl.end("deputyGetsOut");
         if (p < pause)
-          return { spot: out, heading: 0.35, moving: false, inCar: p < toChemin[1] + (pause - toChemin[1]) * 0.3 };
-        const k = gentle(span(p, pause, at("photo", 0.14)));
+          return {
+            spot: out,
+            heading: 0.35,
+            moving: false,
+            inCar: p < tl.within("deputyGetsOut", tl.param("deputyGetsOut", "leavesCar")),
+          };
+        const k = gentle(during(p, "deputyWalksToViewpoint"));
         return k >= 1 ? { spot: viewpoint, heading: 0.35, moving: false, inCar: false } : walk(out, viewpoint, k);
       }
-      const back = span(p, at("cadastre", 0.9), awayWindow[0]);
+      const back = during(p, "deputyWalksBackToCar");
       return back >= 1 ? { spot: carChemin, heading: 0, moving: false, inCar: true } : walk(viewpoint, carChemin, back);
     }
     /* Secrétaire, après la séance : sortie de la mairie, marche jusqu'à la voiture, courte pause, départ */
-    if (p >= range("gel")[0]) {
+    if (p >= tl.end("secretaryInMairie")) {
       const toCar = {
         x: carMairie.x + (spots.mairieDoor.x - carMairie.x) * 0.4 - 6,
         y: carMairie.y + (spots.mairieDoor.y - carMairie.y) * 0.4,
       };
-      const k = gentle(span(p, at("gel", 0.04), at("gel", 0.5)));
+      const k = gentle(during(p, "secretaryWalksToCar"));
       if (k < 1) return walk(spots.mairieDoor, toCar, k);
-      return { spot: toCar, heading: 0, moving: false, inCar: p >= at("liste", 0.08) };
+      return { spot: toCar, heading: 0, moving: false, inCar: p >= tl.start("secretaryGetsInCar") };
     }
     /* Secrétaire : arrivée en voiture, puis à pied jusqu'à la porte */
-    if (p < toMairie[1]) return { spot: carMairie, heading: 0, moving: false, inCar: true };
+    if (p < tl.end("carToMairie")) return { spot: carMairie, heading: 0, moving: false, inCar: true };
     /* La voiture s'arrête, courte pause, la secrétaire descend, reste un instant visible, puis marche et entre */
     const out = {
       x: carMairie.x + (spots.mairieDoor.x - carMairie.x) * 0.4 - 6,
       y: carMairie.y + (spots.mairieDoor.y - carMairie.y) * 0.4,
     };
-    const pause = toMairie[1] + (at("assistant", 0.19) - toMairie[1]);
-    if (p < toMairie[1] + (pause - toMairie[1]) * 0.3)
+    if (p < tl.within("secretaryGetsOut", tl.param("secretaryGetsOut", "leavesCar")))
       return { spot: carMairie, heading: 0, moving: false, inCar: true };
-    if (p < pause) return { spot: out, heading: 0.2, moving: false, inCar: false };
-    const k = gentle(span(p, pause, at("assistant", 0.28)));
+    if (p < tl.end("secretaryGetsOut")) return { spot: out, heading: 0.2, moving: false, inCar: false };
+    const k = gentle(during(p, "secretaryWalksToDoor"));
     return k >= 1
       ? { spot: spots.mairieDoor, heading: 0.2, moving: false, inCar: false }
       : walk(out, spots.mairieDoor, k);
@@ -1398,60 +1406,54 @@ export async function start() {
     el: number;
     dist: number;
   }
-  const keys: Key[] = [
-    { p: 0, aim: village, az: 196, el: 42, dist: 950 },
-    { p: STORY_START, aim: village, az: 204, el: 38, dist: 420 },
-    { p: at("creer", 0.6), aim: spots.home, az: 214, el: 31, dist: 32 },
-    { p: at("rendezvous", 0.36), aim: spots.home, az: 234, el: 33, dist: 33 },
-    { p: at("rendezvous", 0.6), aim: "car", az: 220, el: 44, dist: 60 },
-    { p: at("rendezvous", 0.86), aim: "car", az: 205, el: 50, dist: 85 },
-    { p: at("photo", 0.09), aim: viewpoint, az: 205, el: 30, dist: 26 },
-    { p: at("photo", 0.96), aim: viewpoint, az: 214, el: 30, dist: 25 },
-    { p: at("trace", 0.12), aim: cheminCentre, az: 198, el: 47, dist: 70 },
-    { p: at("cadastre", 0.1), aim: cheminCentre, az: 186, el: 48, dist: 72 },
-    { p: at("cadastre", 0.95), aim: cheminCentre, az: 180, el: 56, dist: 96 },
-    { p: at("assistant", 0.04), aim: "car", az: 192, el: 44, dist: 60 },
-    { p: at("assistant", 0.18), aim: spots.mairieDoor, az: 196, el: 32, dist: 34 },
-    {
-      p: at("assistant", 0.28),
-      aim: { x: spots.mairieDoor.x - 2, y: spots.mairieDoor.y - 4 },
-      az: 200,
-      el: 26,
-      dist: 24,
-    },
-    {
-      p: at("assistant", 0.96),
-      aim: { x: spots.mairieDoor.x - 2, y: spots.mairieDoor.y - 4 },
-      az: 206,
-      el: 26,
-      dist: 25,
-    },
-    { p: at("projet", 0.3), aim: spots.mairieDoor, az: 200, el: 33, dist: 34 },
-    { p: at("projet", 0.97), aim: spots.mairieDoor, az: 204, el: 33, dist: 36 },
-
-    { p: at("partage", 0.16), aim: { x: spots.mairie.x - 40, y: spots.mairie.y - 70 }, az: 196, el: 60, dist: 235 },
-    { p: at("partage", 0.86), aim: { x: spots.mairie.x - 40, y: spots.mairie.y - 70 }, az: 206, el: 60, dist: 228 },
-    { p: at("question", 0.4), aim: spots.mairieDoor, az: 205, el: 32, dist: 34 },
-    { p: at("dossier", 0.95), aim: spots.mairieDoor, az: 214, el: 33, dist: 33 },
-    { p: at("appel", 0.24), aim: "dais", az: 194, el: 42, dist: 16.5 },
-    { p: at("cloture", 0.95), aim: "dais", az: 218, el: 39, dist: 16 },
-    { p: at("gel", 0.22), aim: { x: spots.mairieDoor.x + 4, y: spots.mairieDoor.y - 32 }, az: 200, el: 30, dist: 38 },
-    { p: at("pv", 0.95), aim: { x: spots.mairieDoor.x + 4, y: spots.mairieDoor.y - 32 }, az: 212, el: 31, dist: 40 },
-    { p: at("transmission", 0.16), aim: mid(spots.mairie, spots.prefecture, 0.12), az: 175, el: 44, dist: 260 },
-    { p: at("transmission", 0.36), aim: mid(spots.mairie, spots.prefecture, 0.62), az: 168, el: 44, dist: 380 },
-    { p: at("transmission", 0.53), aim: spots.prefecture, az: 162, el: 32, dist: 78 },
-    { p: at("transmission", 0.97), aim: spots.prefecture, az: 156, el: 31, dist: 74 },
-    { p: 1, aim: spots.prefecture, az: 150, el: 33, dist: 86 },
-  ];
+  /** Cibles nommées des plans de caméra (story-settings.json). */
+  const aims: Record<string, Aim> = {
+    village,
+    home: spots.home,
+    car: "car",
+    viewpoint,
+    cheminCentre,
+    mairieDoor: spots.mairieDoor,
+    mairieDoorClose: { x: spots.mairieDoor.x - 2, y: spots.mairieDoor.y - 4 },
+    councilDevices: { x: spots.mairie.x - 40, y: spots.mairie.y - 70 },
+    dais: "dais",
+    mairieSquare: { x: spots.mairieDoor.x + 4, y: spots.mairieDoor.y - 32 },
+    towardPrefectureNear: mid(spots.mairie, spots.prefecture, 0.12),
+    towardPrefectureFar: mid(spots.mairie, spots.prefecture, 0.62),
+    prefecture: spots.prefecture,
+  };
   const daisAim = daisCentre.clone().add(new THREE.Vector3(0, 0.6, 0));
   const aimPoint = (aim: Aim, p: number) =>
     aim === "dais"
       ? daisAim
       : aim === "car"
-        ? world((p >= toMairie[0] - 0.01 ? car2At(p) : carAt(p)).spot, 0)
+        ? world(
+            (p >= tl.start("carToMairie") - tl.margin("cameraFollowsSecretaryCarBefore") ? car2At(p) : carAt(p)).spot,
+            0,
+          )
         : world(aim, 0);
-  const fixedAims = keys.map((key) => (key.aim === "car" ? null : aimPoint(key.aim, 0)));
-  const times = keys.map((key) => key.p);
+  let keys: Key[] = [];
+  let fixedAims: (THREE.Vector3 | null)[] = [];
+  let times: number[] = [];
+  let channels = { az: [] as number[], el: [] as number[], dist: [] as number[] };
+  let keysRevision = -1;
+  /** Plans de caméra relus quand les réglages du récit changent. */
+  function readKeys() {
+    if (keysRevision === tl.revision) return;
+    keysRevision = tl.revision;
+    keys = tl.cameraKeys().map((key) => {
+      const aim = aims[key.aim];
+      if (!aim) throw new Error(`Unknown camera aim: ${key.aim}`);
+      return { p: key.p, aim, az: key.az, el: key.el, dist: key.dist };
+    });
+    fixedAims = keys.map((key) => (key.aim === "car" ? null : aimPoint(key.aim, 0)));
+    times = keys.map((key) => key.p);
+    channels = {
+      az: keys.map((key) => key.az),
+      el: keys.map((key) => key.el),
+      dist: keys.map((key) => Math.log(key.dist)),
+    };
+  }
   function hermite(p: number, values: number[]): number {
     let i = 0;
     while (i < times.length - 2 && times[i + 1] <= p) i++;
@@ -1474,11 +1476,6 @@ export async function start() {
       (t3 - t2) * h * tangent(i + 1)
     );
   }
-  const channels = {
-    az: keys.map((key) => key.az),
-    el: keys.map((key) => key.el),
-    dist: keys.map((key) => Math.log(key.dist)),
-  };
   const controlsTarget = new THREE.Vector3();
   function direction(az: number, el: number): THREE.Vector3 {
     const a = (az * Math.PI) / 180;
@@ -1503,10 +1500,7 @@ export async function start() {
   function frameView(p: number) {
     const width = host.clientWidth;
     const height = host.clientHeight;
-    const council = narrow
-      ? 0
-      : smooth(span(p, range("appel")[0], at("appel", 0.24))) *
-        (1 - smooth(span(p, at("cloture", 0.95), at("gel", 0.22))));
+    const council = narrow ? 0 : smooth(during(p, "councilFraming")) * (1 - smooth(during(p, "councilUnframing")));
     if (council > 0 && (freeZone?.width !== width || freeZone?.height !== height)) measureFreeZone(width, height);
     const zone = council > 0 && freeZone ? freeZone : { x: 0, y: 0, fit: 1 };
     councilFit = 1 + (zone.fit - 1) * council;
@@ -1529,6 +1523,7 @@ export async function start() {
     camera.updateProjectionMatrix();
   }
   function placeCamera(p: number) {
+    readKeys();
     frameView(p);
     const aims = keys.map((key, i) => fixedAims[i] ?? aimPoint(key.aim, p));
     controlsTarget.set(
@@ -1585,10 +1580,7 @@ export async function start() {
     start: number;
   }
   let jump: Jump | null = null;
-  const JUMP_MS = 1200;
-  const BOARD_SWAP_MS = 320;
-
-  const ballotTime = (i: number) => at("scrutin", 0.08 + (0.62 * i) / SEATS);
+  const ballotTime = (i: number) => tl.within("councillorsVote", i / SEATS);
   const faceOf = (p: number): Face =>
     p >= range("gel")[0]
       ? "acts"
@@ -1615,7 +1607,7 @@ export async function start() {
     let boardP = p;
     if (jump) {
       const elapsed = performance.now() - jump.start;
-      const k = easeInOut(clamp01(elapsed / JUMP_MS));
+      const k = easeInOut(clamp01(elapsed / tl.settings.playback.jumpMs));
       const toTarget = controlsTarget.clone();
       const toPosition = camera.position.clone();
       const travel = jump.fromTarget.distanceTo(toTarget);
@@ -1624,8 +1616,8 @@ export async function start() {
       camera.position.y += Math.sin(k * Math.PI) * travel * 0.45;
       camera.lookAt(controlsTarget);
       camera.updateMatrixWorld();
-      if (elapsed < BOARD_SWAP_MS) boardP = jump.fromP;
-      if (elapsed >= JUMP_MS) {
+      if (elapsed < tl.settings.playback.boardSwapMs) boardP = jump.fromP;
+      if (elapsed >= tl.settings.playback.jumpMs) {
         jump = null;
         hooks.keyIndex = null;
       }
@@ -1633,25 +1625,24 @@ export async function start() {
 
     /* Personne */
     const here = personAt(p);
-    const field = p < toMairie[0] - 0.0005;
+    const field = p < tl.start("carToMairie") - tl.margin("deputyLeavesStoryBefore");
     const actor = field ? adjoint : character;
     actor.group.position.copy(world(here.spot));
     actor.group.rotation.y = here.heading;
-    const photoGesture =
-      smooth(span(p, at("photo", 0.14), at("photo", 0.29))) *
-      (1 - smooth(span(p, at("photo", 0.83), at("photo", 0.96))));
+    const photoGesture = smooth(during(p, "deputyRaisesPhone")) * (1 - smooth(during(p, "deputyLowersPhone")));
     const gait = stridePhase(actor.group, actor.group.scale.x);
     actor.pose(here.moving && !reducedMotion ? gait : null, field ? photoGesture : 0);
     adjoint.group.visible = field && !here.inCar;
-    const [walkStart] = range("inscription");
-    const walkEnd = range("convocation")[1];
-    const [outStart, outEnd] = [range("gel")[0], range("liste")[1]];
+    const [walkStart, walkEnd] = tl.moment("councillorsArrive");
+    const [outStart, outEnd] = tl.moment("councillorsLeave");
     for (const { walker, start, delay } of walkers) {
       const leaving = p >= outStart;
       const a = leaving
-        ? outStart + (outEnd - outStart) * delay * 0.45
-        : walkStart + (walkEnd - walkStart) * delay * 0.55;
-      const b = leaving ? a + (outEnd - outStart) * 0.5 : a + (walkEnd - walkStart) * 0.42;
+        ? outStart + (outEnd - outStart) * delay * tl.param("councillorsLeave", "stagger")
+        : walkStart + (walkEnd - walkStart) * delay * tl.param("councillorsArrive", "stagger");
+      const b = leaving
+        ? a + (outEnd - outStart) * tl.param("councillorsLeave", "walk")
+        : a + (walkEnd - walkStart) * tl.param("councillorsArrive", "walk");
       const k = span(p, a, b);
       walker.group.visible = k > 0 && k < 1;
       if (!walker.group.visible) continue;
@@ -1662,41 +1653,37 @@ export async function start() {
         Math.atan2(spots.mairieDoor.x - start.x, -(spots.mairieDoor.y - start.y)) + (leaving ? Math.PI : 0);
       walker.pose(reducedMotion ? null : stridePhase(walker.group, walker.group.scale.x) + delay * 3, 0);
     }
-    const inside = p >= at("assistant", 0.3) && p < range("gel")[0];
+    const inside = isIn(p, "secretaryInMairie");
     character.group.visible = !field && !here.inCar && !inside;
     const vehicle = carAt(p);
     car.position.copy(world(vehicle.spot, 0.05));
     car.rotation.y = vehicle.heading;
-    car.visible = vehicle.visible && p >= toChemin[0] - 0.004;
-    const garage = gentle(
-      span(p, toChemin[0] - (toChemin[1] - toChemin[0]) * 0.18, toChemin[0] + (toChemin[1] - toChemin[0]) * 0.08),
-    );
+    car.visible = vehicle.visible && p >= tl.start("carToChemin") - tl.margin("deputyCarShownBefore");
+    const garage = gentle(during(p, "garageOpens"));
     garageDoor.position.y = 0.45 + 0.82 * garage;
     garageDoor.scale.y = 1 - 0.9 * garage;
     const vehicle2 = car2At(p);
     car2.position.copy(world(vehicle2.spot, 0.05));
     car2.rotation.y = vehicle2.heading;
-    car2.visible = vehicle2.visible && (p < range("appel")[0] || p >= range("gel")[0]);
+    car2.visible = vehicle2.visible && !isIn(p, "secretaryCarHidden");
 
     /* Le conseil informé : liens du serveur vers les appareils, écrans qui s'allument */
-    const [shareStart, shareEnd] = range("partage");
-    const shareFade = 1 - smooth(span(p, range("question")[0], at("question", 0.5)));
-    const sharing = p >= shareStart && shareFade > 0;
-    const pulse = span(p, at("partage", 0.03), at("partage", 0.2));
+    const shareFade = 1 - smooth(during(p, "devicesFade"));
+    const sharing = p >= tl.start("devicesAppear") && shareFade > 0;
+    const pulse = during(p, "serverPulse");
     (serverRing.material as THREE.MeshBasicMaterial).opacity =
       sharing && pulse > 0 && pulse < 1 ? 0.8 * (1 - pulse) : 0;
     serverRing.scale.setScalar(1 + pulse * 2.5);
     /* La baie n'apparaît que pendant « Tout le conseil informé », en fondu */
-    const serverShow =
-      smooth(span(p, shareStart, at("partage", 0.06))) * (1 - smooth(span(p, at("partage", 0.92), shareEnd)));
+    const serverShow = smooth(during(p, "serverAppears")) * (1 - smooth(during(p, "serverDisappears")));
     server.visible = serverShow > 0.01;
     server.traverse((child) => {
       if (child instanceof THREE.Mesh) (child.material as THREE.Material & { opacity: number }).opacity = serverShow;
     });
     devices.forEach((device, index) => {
       /* Départs étalés ; chaque lien se trace lentement, avec un seul flux lumineux */
-      const start = at("partage", 0.05 + device.delay * 0.5);
-      const length = (shareEnd - shareStart) * 0.26;
+      const start = tl.within("linksToDevices", device.delay);
+      const length = lasting("linksToDevices") * tl.param("linksToDevices", "each");
       const k = span(p, start, start + length);
       const drawn = gentle(k);
       device.link.visible = sharing && k > 0;
@@ -1709,10 +1696,16 @@ export async function start() {
         device.pulse.material.opacity = 0.8 * Math.sin(Math.PI * k);
       }
       device.wave.visible = false;
-      const show = sharing ? smooth(span(p, shareStart, at("partage", 0.05))) * shareFade : 0;
+      const show = sharing ? smooth(during(p, "devicesAppear")) * shareFade : 0;
       device.sprite.material.opacity = show;
       device.sprite.material.map = deviceTextures[device.kind].off;
-      const on = gentle(span(p, start + length * 0.85, start + length * 1.35));
+      const on = gentle(
+        span(
+          p,
+          start + length * tl.param("linksToDevices", "lightFrom"),
+          start + length * tl.param("linksToDevices", "lightTo"),
+        ),
+      );
       litSprites[index].material.opacity = show * on;
       litSprites[index].visible = show * on > 0.01;
       (device.stem.material as THREE.LineBasicMaterial).opacity = show * 0.7;
@@ -1721,69 +1714,70 @@ export async function start() {
     });
 
     /* Chemin : téléphone, tracé, photos, cadastre */
-    const phoneShow =
-      smooth(span(p, at("photo", 0.17), at("photo", 0.29))) *
-      (1 - smooth(span(p, at("photo", 0.86), at("photo", 0.97))));
+    const phoneShow = smooth(during(p, "phoneRises")) * (1 - smooth(during(p, "phoneLowers")));
     phone.style.opacity = phoneShow.toFixed(3);
     phone.style.transform = `translate(-50%, ${((1 - phoneShow) * 40).toFixed(1)}px)`;
-    phone.classList.toggle("is-captured", p >= at("photo", 0.46));
-    const shutter = Math.abs(p - at("photo", 0.46));
-    const pinFlash = Math.min(...[0, 1].map((i) => Math.abs(p - at("trace", 0.56 + i * 0.2))));
-    const flashLevel = reducedMotion ? 0 : Math.max(0, 1 - shutter / 0.003, 1 - pinFlash / 0.003);
+    phone.classList.toggle("is-captured", p >= tl.start("photoTaken"));
+    const shutter = Math.abs(p - tl.start("photoTaken"));
+    const pinFlash = Math.min(...pinMoments.map((name) => Math.abs(p - tl.start(name))));
+    const flashSpan = tl.margin("flash");
+    const flashLevel = reducedMotion ? 0 : Math.max(0, 1 - shutter / flashSpan, 1 - pinFlash / flashSpan);
     flash.style.opacity = (flashLevel * 0.18).toFixed(3);
-    const drawn = span(p, at("trace", 0.04), at("trace", 0.3));
+    const drawn = during(p, "traceDrawn");
     trace.geometry.instanceCount = Math.floor(traceCount * drawn);
     trace.visible = drawn > 0;
-    place(measure, world(along(0.5), 5), p >= at("trace", 0.28) && p < range("projet")[0]);
+    place(measure, world(along(0.5), 5), isIn(p, "lengthShown"));
     pins.forEach(({ pin }, i) => {
-      pin.visible = p >= at("trace", 0.56 + i * 0.2);
+      pin.visible = p >= tl.start(pinMoments[i]);
     });
-    const cadastre = span(p, at("cadastre", 0.04), at("cadastre", 0.46));
+    const cadastre = during(p, "cadastreDrawn");
+    const communalFrom = tl.param("cadastreDrawn", "communalFrom");
     parcels.visible = cadastre > 0;
-    const fillOut = 1 - smooth(span(p, range("assistant")[0], at("assistant", 0.2)));
+    const fillOut = 1 - smooth(during(p, "parcelsFade"));
+    const tintLength = lasting("parcelsTinted") * tl.param("parcelsTinted", "each");
     fills.forEach((fill, k) => {
-      const startAt = at("cadastre", 0.42 + (k / Math.max(1, fills.length)) * 0.4);
-      const show = gentle(span(p, startAt, startAt + (range("cadastre")[1] - range("cadastre")[0]) * 0.14)) * fillOut;
+      const startAt = tl.within("parcelsTinted", k / Math.max(1, fills.length));
+      const show = gentle(span(p, startAt, startAt + tintLength)) * fillOut;
       (fill.mesh.material as THREE.MeshBasicMaterial).opacity = fill.strength * show;
       fill.mesh.visible = show > 0.01;
     });
-    communal.visible = cadastre > 0.6;
+    communal.visible = cadastre > communalFrom;
     parcels.geometry.instanceCount = Math.floor(parcelCount * cadastre);
-    communal.geometry.instanceCount = Math.floor(communalCount * span(cadastre, 0.6, 1));
-    for (const entry of parcelNodes) place(entry.node, entry.at, cadastre >= 1 && p < range("projet")[0]);
+    communal.geometry.instanceCount = Math.floor(communalCount * span(cadastre, communalFrom, 1));
+    for (const entry of parcelNodes) place(entry.node, entry.at, cadastre >= 1 && p < tl.end("parcelNumbersShown"));
 
     /* Séance : estrade, appel, écrans, pièces présentées, votes, projet, urne */
-    const daisShow =
-      smooth(span(p, range("appel")[0], at("appel", 0.22))) * (1 - smooth(span(p, range("gel")[0], at("gel", 0.15))));
+    const daisShow = smooth(during(p, "daisAppears")) * (1 - smooth(during(p, "daisDisappears")));
     dais.visible = daisShow > 0.001;
     dais.scale.setScalar(Math.max(0.001, daisShow));
-    const present = Math.floor(10 * span(p, at("appel", 0.2), at("appel", 0.52)));
-    const proxy = p >= at("appel", 0.56);
-    const opened = p >= at("appel", 0.66);
+    const present = Math.floor(10 * during(p, "rollCall"));
+    const proxy = p >= tl.start("proxyShown");
+    const opened = p >= tl.start("meetingOpened");
     seatRings.forEach((ring, i) => {
       (ring.material as THREE.MeshBasicMaterial).opacity = i < present || (proxy && i === 10) ? 0.9 : 0;
     });
     (proxyLine.material as THREE.LineBasicMaterial).opacity = proxy ? 0.9 : 0;
-    const live = span(p, at("appel", 0.72), at("appel", 0.94));
-    const laptopsOut = 1 - span(p, range("cloture")[0], at("cloture", 0.3));
+    const live = during(p, "laptopsLight");
+    const laptopsOut = 1 - during(p, "laptopsOff");
     tablets.forEach((tablet, i) => {
       tablet.material.opacity = clamp01(live * SEATS - i) * laptopsOut;
     });
-    const debate = span(p, at("debat", 0.05), at("debat", 0.95));
+    const debate = during(p, "debateNotes");
     shown3.forEach((sprite, i) => {
       const show =
-        smooth(span(p, at("debat", 0.1 + i * 0.15), at("debat", 0.25 + i * 0.15))) *
-        (1 - smooth(span(p, at("debat", 0.9), range("scrutin")[0])));
+        smooth(during(p, i === 0 ? "reportShownInDebate" : "planShownInDebate")) *
+        (1 - smooth(during(p, "debateDocumentsHidden")));
       sprite.material.opacity = show;
       sprite.visible = show > 0.01;
       sprite.position.set((i - 0.5) * 1.15, 1.45 + show * 0.1, 0);
     });
     let yes = 0;
     let abstain = 0;
+    const voteLength = lasting("councillorsVote");
     ballotsInUrne.forEach((sheet, i) => {
       const t = ballotTime(i);
-      const fall = span(p, t, t + (range("scrutin")[1] - range("scrutin")[0]) * 0.05);
-      sheet.visible = fall > 0 && p < at("cloture", 0.3);
+      const fall = span(p, t, t + voteLength * tl.param("councillorsVote", "fall"));
+      sheet.visible = fall > 0 && p < tl.end("laptopsOff");
       if (!sheet.visible) return;
       const rest = -URNE / 2 + 0.01 + i * 0.008;
       sheet.position.set(
@@ -1807,13 +1801,13 @@ export async function start() {
       /* Le cercle au sol prend doucement la couleur du vote, avec une légère onde */
       const voteColor = i === 7 ? 0x64748b : 0x15803d;
       const t = ballotTime(i);
-      const glow = gentle(span(p, t, t + (range("scrutin")[1] - range("scrutin")[0]) * 0.06));
-      const keep = p < range("cloture")[0];
+      const glow = gentle(span(p, t, t + voteLength * tl.param("councillorsVote", "glow")));
+      const keep = p < tl.start("laptopsOff");
       const ringMaterial = seatRings[i].material as THREE.MeshBasicMaterial;
       ringMaterial.color.setHex(ACCENT).lerp(new THREE.Color(voteColor), keep ? glow : 0);
       if (voted && keep) ringMaterial.opacity = 0.95;
       const wave = seatWaves[i];
-      const k = span(p, t, t + (range("scrutin")[1] - range("scrutin")[0]) * 0.1);
+      const k = span(p, t, t + voteLength * tl.param("councillorsVote", "wave"));
       wave.visible = !reducedMotion && k > 0 && k < 1 && dais.visible;
       if (wave.visible) {
         (wave.material as THREE.MeshBasicMaterial).color.setHex(voteColor);
@@ -1821,41 +1815,40 @@ export async function start() {
         wave.scale.setScalar(1 + gentle(k) * 0.9);
       }
     });
-    const confirmed = p >= at("scrutin", 0.86);
+    const confirmed = p >= tl.start("voteConfirmed");
     const phase = !opened ? 0 : p < range("debat")[0] ? 0 : p < range("scrutin")[0] ? 1 : confirmed ? 3 : 2;
 
     /* Projet présenté puis délibération adoptée, verte, qui tombe dans l'urne */
     const urneIn = daisCentre.clone().add(new THREE.Vector3(0, 0.75, 0));
     projet.visible = false;
-    if (p >= range("deliberation")[0] && p < at("deliberation", 0.9)) {
+    if (isIn(p, "draftShown")) {
       projet.visible = true;
-      const flip = span(p, at("deliberation", 0.18), at("deliberation", 0.42));
+      const flip = during(p, "draftTurnsAdopted");
       projet.material.map = flip >= 0.5 ? adoptedTexture : draftTexture;
-      const enter = easeOut(span(p, range("deliberation")[0], at("deliberation", 0.14)));
-      const fall = easeInOut(span(p, at("deliberation", 0.55), at("deliberation", 0.88)));
+      const enter = easeOut(during(p, "draftEntersTable"));
+      const fall = easeInOut(during(p, "draftDropsInUrn"));
       projet.position.lerpVectors(screenToWorld(board.target("current")), tableTop(), enter).lerp(urneIn, fall);
       screenScale(projet, (0.06 + 0.1 * enter) * (1 - fall * 0.9));
       if (flip > 0 && flip < 1) projet.scale.x *= Math.abs(Math.cos(flip * Math.PI));
     }
 
     /* Actes : affichage, lien réseau, accusé de réception */
-    notice.material.opacity =
-      smooth(span(p, at("liste", 0.05), at("liste", 0.3))) * (1 - smooth(span(p, at("liste", 0.85), range("pv")[0])));
+    notice.material.opacity = smooth(during(p, "noticeAppears")) * (1 - smooth(during(p, "noticeDisappears")));
     notice.visible = notice.material.opacity > 0.01;
-    const linkDrawn = span(p, at("transmission", 0.14), at("transmission", 0.42));
+    const linkDrawn = during(p, "linkToPrefectureDrawn");
     link.visible = linkDrawn > 0;
     link.geometry.instanceCount = Math.floor(linkCount * linkDrawn);
-    const outgoing = span(p, at("transmission", 0.2), at("transmission", 0.55));
-    const back = span(p, at("transmission", 0.57), at("transmission", 0.78));
+    const outgoing = during(p, "resolutionSent");
+    const back = during(p, "receiptReturns");
     pulseOut.visible = outgoing > 0 && outgoing < 1;
     pulseBack.visible = back > 0 && back < 1;
     pulseOut.position.copy(linkCurve.getPoint(easeInOut(outgoing)));
     pulseBack.position.copy(linkCurve.getPoint(1 - easeInOut(back)));
     pulseOut.scale.setScalar(camera.position.distanceTo(pulseOut.position) * 0.05);
     pulseBack.scale.setScalar(camera.position.distanceTo(pulseBack.position) * 0.05);
-    const arrived = p >= at("transmission", 0.55);
+    const arrived = p >= tl.end("resolutionSent");
     (prefectureGlow.material as THREE.MeshBasicMaterial).opacity = arrived
-      ? 0.8 * (1 - span(p, at("transmission", 0.55), at("transmission", 0.75))) + 0.25
+      ? 0.8 * (1 - during(p, "prefectureGlowFades")) + 0.25
       : 0;
     (prefectureGlow.material as THREE.MeshBasicMaterial).color.setHex(back >= 1 ? 0x15803d : ACCENT);
 
@@ -1863,17 +1856,16 @@ export async function start() {
     const landed = new Map<string, number>();
     const coming = new Set<string>();
     for (const entry of pieces) {
-      if (boardP >= entry.fly[1]) landed.set(entry.key, entry.fly[1]);
-      else if (boardP >= (entry.arrive?.[0] ?? entry.fly[0])) coming.add(entry.key);
+      const [flyStart, flyEnd] = tl.moment(entry.fly);
+      if (boardP >= flyEnd) landed.set(entry.key, flyEnd);
+      else if (boardP >= (entry.arrive ? tl.start(entry.arrive) : flyStart)) coming.add(entry.key);
     }
-    if (boardP >= at("creer", 0.5)) landed.set("rapport", at("creer", 0.5));
+    if (boardP >= tl.start("reportCreated")) landed.set("rapport", tl.start("reportCreated"));
     /* Assistant IA : apparition, lien à la personne, lecture des dossiers un à un */
-    const robotShow =
-      smooth(span(p, at("assistant", 0.12), at("assistant", 0.2))) *
-      (1 - smooth(span(p, at("assistant", 0.92), range("projet")[0])));
-    const scan = span(p, at("assistant", 0.22), at("assistant", 0.74));
+    const robotShow = smooth(during(p, "assistantAppears")) * (1 - smooth(during(p, "assistantLeaves")));
+    const scan = during(p, "assistantReadsFolders");
     const scanIndex = scan > 0 && scan < 1 ? Math.min(scanOrder.length - 1, Math.floor(scan * scanOrder.length)) : -1;
-    const scanning = scanIndex >= 0 && p < range("projet")[0] ? scanOrder[scanIndex] : null;
+    const scanning = scanIndex >= 0 && p < tl.end("assistantLeaves") ? scanOrder[scanIndex] : null;
     const scanTarget = scanning ? board.folderPoint(scanning) : null;
     const boardRect = boardNode.getBoundingClientRect();
     const devisPoint = board.folderPoint("devis");
@@ -1883,7 +1875,7 @@ export async function start() {
     const slide = (1 - robotShow) * 12;
     assistantNode.style.transform = `translate(${(boardRect.left - assistantNode.offsetWidth - 12 - slide).toFixed(1)}px, ${(assistantY - 20).toFixed(1)}px)`;
     assistantNode.classList.toggle("is-working", scan > 0 && scan < 1);
-    assistantNode.classList.toggle("is-writing", p >= at("assistant", 0.72) && p < at("assistant", 0.84));
+    assistantNode.classList.toggle("is-writing", isIn(p, "assistantWrites"));
     assistantNode.style.visibility = robotShow > 0.01 ? "visible" : "hidden";
     /* Trait fin vers la secrétaire : il agit avec son compte */
     const from = robotHead();
@@ -1901,9 +1893,9 @@ export async function start() {
       face: faceOf(boardP),
       landed,
       coming,
-      planCited: boardP >= (pieces.find((x) => x.key === "plan")?.fly[1] ?? 1),
-      agendaFilled: boardP >= at("inscription", 0.65) ? 2 : boardP >= at("inscription", 0.3) ? 1 : 0,
-      agendaFrozen: boardP >= at("convocation", 0.12),
+      planCited: boardP >= tl.end("planFiled"),
+      agendaFilled: boardP >= tl.start("agendaSecondItem") ? 2 : boardP >= tl.start("agendaFirstItem") ? 1 : 0,
+      agendaFrozen: boardP >= tl.start("agendaFrozen"),
       present: Math.min(11, present + (proxy ? 1 : 0)),
       proxy,
       opened,
@@ -1913,13 +1905,13 @@ export async function start() {
       yes,
       abstain,
       confirmed,
-      questionDone: boardP >= at("deliberation", 0.92),
+      questionDone: boardP >= tl.start("questionClosed"),
       closed: boardP >= range("cloture")[0],
       acknowledged: back >= 1,
       sent: back >= 1 ? 2 : arrived ? 1 : 0,
     };
     board.update(state);
-    boardNode.style.opacity = smooth(span(p, at("creer", 0), at("creer", 0.35))).toFixed(3);
+    boardNode.style.opacity = smooth(during(p, "ficheAppears")).toFixed(3);
 
     /* Pièces : en grand au centre, puis jusqu'à leur place dans la fiche */
     const boardBox = boardNode.getBoundingClientRect();
@@ -1931,29 +1923,31 @@ export async function start() {
     const BIG = 0.27;
     for (const entry of pieces) {
       const sprite = entry.sprite;
-      const begin = entry.arrive?.[0] ?? entry.fly[0];
-      sprite.visible = !entry.direct && p >= begin && p < entry.fly[1];
+      const fly = tl.moment(entry.fly);
+      const arrive = entry.arrive ? tl.moment(entry.arrive) : undefined;
+      const begin = arrive?.[0] ?? fly[0];
+      sprite.visible = !entry.direct && p >= begin && p < fly[1];
       if (!sprite.visible) continue;
       const SMALL = 0.12;
-      sprite.material.opacity = gentle(span(p, begin, begin + (entry.fly[1] - begin) * 0.12));
-      if (entry.arrive && p < entry.arrive[1]) {
-        const k = gentle(span(p, entry.arrive[0], entry.arrive[1]));
+      sprite.material.opacity = gentle(span(p, begin, begin + (fly[1] - begin) * tl.shape("pieceFadeIn")));
+      if (arrive && p < arrive[1]) {
+        const k = gentle(span(p, arrive[0], arrive[1]));
         sprite.material.map = entry.envelope ? mailTexture : entry.texture;
         sprite.position.lerpVectors(entry.source(), stageWorld, k);
         screenScale(sprite, SMALL + (BIG - SMALL) * k);
         continue;
       }
       sprite.material.map = entry.texture;
-      const d = entry.fly[1] - entry.fly[0];
-      const toStageEnd = entry.arrive ? entry.fly[0] : entry.fly[0] + d * 0.3;
-      const holdEnd = entry.arrive ? entry.fly[0] + d * 0.12 : entry.fly[0] + d * 0.5;
-      if (p < entry.fly[0]) {
+      const d = fly[1] - fly[0];
+      const toStageEnd = arrive ? fly[0] : fly[0] + d * tl.shape("pieceToStage");
+      const holdEnd = arrive ? fly[0] + d * tl.shape("pieceHoldAfterArrival") : fly[0] + d * tl.shape("pieceHold");
+      if (p < fly[0]) {
         sprite.position.copy(stageWorld);
         screenScale(sprite, BIG);
         continue;
       }
       if (p < toStageEnd) {
-        const k = gentle(span(p, entry.fly[0], toStageEnd));
+        const k = gentle(span(p, fly[0], toStageEnd));
         sprite.position.lerpVectors(entry.source(), stageWorld, k);
         screenScale(sprite, SMALL + (BIG - SMALL) * k);
         continue;
@@ -1963,7 +1957,7 @@ export async function start() {
         screenScale(sprite, BIG);
         continue;
       }
-      const k = gentle(span(p, holdEnd, entry.fly[1]));
+      const k = gentle(span(p, holdEnd, fly[1]));
       const target = board.target(entry.key);
       const end = screenToWorld(target);
       const control = screenToWorld({ x: (stagePoint.x + target.x) / 2, y: Math.min(stagePoint.y, target.y) - 40 });
@@ -2049,7 +2043,21 @@ export async function start() {
   let target = scrollProgress();
   let shown = reducedMotion ? reducedProgress(target) : target;
   let tween: { from: number; to: number; start: number; ms: number } | null = null;
+  /* Instant tenu par le studio : le défilement de la page ne le remplace pas tant qu'aucun geste n'intervient */
+  let held = false;
+  hooks.seek = (p) => {
+    tween = null;
+    jump = null;
+    hooks.keyIndex = null;
+    held = true;
+    target = p;
+    shown = p;
+    window.scrollTo({ top: p * storyScroll(), behavior: "auto" });
+    dirty = true;
+  };
+  hooks.shown = () => shown;
   hooks.jump = (p) => {
+    held = false;
     tween = null;
     target = p;
     if (!reducedMotion) {
@@ -2077,7 +2085,8 @@ export async function start() {
   /* Passage à une sous-étape voisine (clavier, molette) : le récit se joue jusqu'à la cible, en avant comme en
      arrière ; une cible lointaine ou le mouvement réduit donnent un saut */
   hooks.play = (to, ms) => {
-    if (reducedMotion || Math.abs(to - shown) > 0.12) {
+    held = false;
+    if (reducedMotion || Math.abs(to - shown) > tl.settings.playback.jumpBeyond) {
       window.scrollTo({ top: to * storyScroll(), behavior: "auto" });
       hooks.jump?.(reducedMotion ? reducedProgress(to) : to);
       return;
@@ -2087,6 +2096,7 @@ export async function start() {
   };
   hooks.moving = () => tween !== null || jump !== null || cutting;
   const cancelTween = () => {
+    held = false;
     tween = null;
     hooks.keyIndex = null;
   };
@@ -2125,7 +2135,7 @@ export async function start() {
     () => {
       markPast();
       /* Pendant la lecture d'une sous-étape, la page défile sous la scène : le récit garde sa propre cible */
-      if (tween) return;
+      if (tween || held) return;
       target = scrollProgress();
       dirty = true;
     },
@@ -2171,7 +2181,7 @@ export async function start() {
       if (Math.abs(goal - shown) < 1e-5) shown = goal;
       dirty = true;
     }
-    if (jump) dirty = true;
+    if (jump || composedRevision !== tl.revision) dirty = true;
     /* Section du bas affichée sur tout l'écran : la scène est couverte, rien à dessiner jusqu'au retour */
     if (!dirty || window.scrollY >= more.offsetTop) {
       renderedAt = -1;
@@ -2180,6 +2190,7 @@ export async function start() {
     dirty = false;
     watchFrame(now);
     showStep(shown);
+    composedRevision = tl.revision;
     compose(shown);
     renderer.render(scene, camera);
     flight.render(overlay, camera);
@@ -2190,6 +2201,7 @@ export async function start() {
   }
   let sceneShown = false;
   let cutting = false;
+  let composedRevision = -1;
   requestAnimationFrame(tick);
   document.body.dataset.ready = "true";
   (window as unknown as { __presentation: unknown }).__presentation = {
@@ -2226,10 +2238,10 @@ export async function start() {
         }
         report[name] = { offHeading: Math.round(offHeading), maxTurn: Math.round(maxTurn), backwards };
       };
-      check("bureau → chemin", carAt, toChemin[0], toChemin[1]);
-      check("chemin → départ", carAt, awayWindow[0], awayWindow[1]);
-      check("arrivée mairie", car2At, toMairie[0], toMairie[1]);
-      check("départ mairie", car2At, leaveMairie[0], leaveMairie[1]);
+      check("bureau → chemin", carAt, ...tl.moment("carToChemin"));
+      check("chemin → départ", carAt, ...tl.moment("carLeavesChemin"));
+      check("arrivée mairie", car2At, ...tl.moment("carToMairie"));
+      check("départ mairie", car2At, ...tl.moment("carLeavesMairie"));
       return report;
     },
     cards: () => [

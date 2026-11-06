@@ -8,7 +8,7 @@ import { revealText } from "../arrival";
 import "./presentation.css";
 import { renderFeatures } from "./features";
 import { glyphs, photoThumb, svgIcon } from "./icons";
-import { at, places, range, STORY_END, STORY_START, subStepAt, subSteps } from "./story";
+import { at, places, range, storyEnd, storyStart, subStepAt, subSteps, timeline } from "./story";
 
 /* ------------------------------------------------------------------ Lieux */
 
@@ -93,12 +93,11 @@ export function scrollProgress(): number {
 }
 
 /** Instant d'arrivée d'une sous-étape : au début de son action ; pour la première sous-étape d'un lieu, quand la
- * caméra a fini de cadrer le lieu. */
-export const placeLanding: Record<string, number> = { creer: 0.62, photo: 0.4, assistant: 0.2, appel: 0.26, gel: 0.2 };
+ * caméra a fini de cadrer le lieu (réglage `landing` de la sous-étape). */
 export function landing(index: number): number {
   const step = subSteps[index];
-  if (reducedMotion) return at(step.id, 0.97);
-  return at(step.id, placeLanding[step.id] ?? 0.008);
+  if (reducedMotion) return at(step.id, timeline.rest(step.id));
+  return at(step.id, timeline.landing(step.id));
 }
 
 /** Saut vers une sous-étape : la scène prend son état, la caméra fait un seul mouvement. */
@@ -108,8 +107,12 @@ export const hooks: {
   play: ((p: number, ms: number) => void) | null;
   /** Vrai tant que la scène joue une transition demandée (lecture d'une sous-étape ou saut). */
   moving: (() => boolean) | null;
+  /** Montre l'instant p sans transition (studio). */
+  seek: ((p: number) => void) | null;
+  /** Instant affiché par la scène. */
+  shown: (() => number) | null;
   keyIndex: number | null;
-} = { jump: null, play: null, moving: null, keyIndex: null };
+} = { jump: null, play: null, moving: null, seek: null, shown: null, keyIndex: null };
 export function goTo(index: number) {
   const max = storyScroll();
   const p = landing(index);
@@ -117,13 +120,11 @@ export function goTo(index: number) {
   hooks.jump?.(p);
 }
 
-/** Durée de base d'une sous-étape, proportionnée à son poids (0,7 s à 1,6 s), puis à son réglage propre `pace`. */
-const stepMs = (step: { weight: number; pace?: number }) => (400 + 500 * step.weight) * (step.pace ?? 1);
-/** Multiplicateur de la durée de base pour une commande explicite : flèches et glissement de la carte, clavier,
-    flèche d'ouverture. */
-const CONTROL_STEP_RATIO = 3;
-/** Multiplicateur de la durée de base pour un geste de molette, de pavé tactile ou de TrackPoint. */
-const WHEEL_STEP_RATIO = 1.5;
+/** Multiplicateur de la durée de base d'une sous-étape (timeline.stepMs) pour une commande explicite : flèches et
+    glissement de la carte, clavier, flèche d'ouverture. */
+const controlRatio = () => timeline.settings.playback.controlRatio;
+/** Multiplicateur de la durée de base pour un geste de molette à crans. */
+const wheelRatio = () => timeline.settings.playback.wheelRatio;
 
 function play(p: number, ms: number) {
   if (hooks.play) hooks.play(p, ms);
@@ -135,11 +136,10 @@ function stepTo(index: number, ratio: number) {
   const current = currentStep();
   const through = subSteps[Math.max(0, index > current ? index : Math.min(subSteps.length - 1, index + 1))];
   hooks.keyIndex = index;
-  play(index < 0 ? 0 : at(subSteps[index].id, 0.97), ratio * stepMs(through));
+  play(index < 0 ? 0 : at(subSteps[index].id, timeline.rest(subSteps[index].id)), ratio * timeline.stepMs(through.id));
 }
 
 /* Défilement de la page hors du récit (vers la section du bas et retour) : une seule glissade */
-const GLIDE_MS = 900;
 let gliding = false;
 function glideTo(top: number) {
   if (reducedMotion) {
@@ -150,7 +150,7 @@ function glideTo(top: number) {
   const start = performance.now();
   gliding = true;
   const frame = (now: number) => {
-    const k = clamp01((now - start) / GLIDE_MS);
+    const k = clamp01((now - start) / timeline.settings.playback.glideMs);
     window.scrollTo({ top: from + (top - from) * easeInOut(k), behavior: "auto" });
     if (k < 1) window.requestAnimationFrame(frame);
     else gliding = false;
@@ -176,20 +176,21 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "ArrowDown" || event.key === "ArrowRight") {
     if (current >= last) return;
     event.preventDefault();
-    stepTo(current + 1, CONTROL_STEP_RATIO);
+    stepTo(current + 1, controlRatio());
   } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
     if (current <= 0) return;
     event.preventDefault();
-    stepTo(current - 1, CONTROL_STEP_RATIO);
+    stepTo(current - 1, controlRatio());
   } else if (event.key === "Home" || event.key === "End") {
     event.preventDefault();
     goTo(event.key === "Home" ? 0 : last);
   }
 });
 
-/* Molette, pavé tactile, défilement au TrackPoint : dans le récit, un geste passe à la sous-étape voisine et la
-   joue. Un geste est une suite d'événements sans pause ; ceux qui arrivent pendant une transition sont ignorés.
-   Sur Mac, le pavé tactile garde le défilement continu et seule une molette à crans est prise en charge. */
+/* Molette à crans : dans le récit, un geste passe à la sous-étape voisine et la joue. Un geste est une suite
+   d'événements sans pause ; ceux qui arrivent pendant une transition sont ignorés. Pavé tactile, TrackPoint et
+   molette sans crans : défilement continu, la scène suit l'avancement ; hors Mac, sa vitesse est réduite
+   (continuousScrollFactor). */
 /** Événements de molette pris en charge ici ; la scène ne doit pas les traiter comme un défilement libre. */
 export const steppedWheel = new WeakSet<WheelEvent>();
 const GESTURE_REST_MS = 300;
@@ -207,11 +208,9 @@ const mac = /mac/i.test(platform);
 function notched(event: WheelEvent, mode: number): boolean {
   if (mode !== 0) return true;
   const legacy = (event as WheelEvent & { wheelDeltaY?: number }).wheelDeltaY ?? 0;
-  /* Chrome et Safari sur Mac donnent wheelDeltaY = -3 × deltaY, pavé comme souris ; une molette à crans donne
-     des multiples de 120 sans ce rapport */
-  return (
-    legacy !== 0 && legacy % 120 === 0 && Number.isInteger(event.deltaY) && Math.abs(legacy + 3 * event.deltaY) > 0.5
-  );
+  /* Chrome et Safari sur Mac donnent wheelDeltaY = -3 × deltaY pour le pavé tactile ; une molette à crans donne
+     des multiples de 120 sans ce rapport (Chrome sous Linux : deltaY 53,33 pour wheelDeltaY 120) */
+  return legacy !== 0 && legacy % 120 === 0 && Math.abs(legacy + 3 * event.deltaY) > 0.5;
 }
 
 function scrollsItself(target: EventTarget | null, horizontal: boolean, forward: boolean): boolean {
@@ -236,10 +235,10 @@ function wheelMove(down: boolean): (() => void) | null {
   const last = subSteps.length - 1;
   const max = storyScroll();
   const current = currentStep();
-  const end = at(subSteps[last].id, 0.97);
+  const end = at(subSteps[last].id, timeline.rest(subSteps[last].id));
   if (down) {
-    if (current < last) return () => stepTo(current + 1, WHEEL_STEP_RATIO);
-    if (scrollProgress() < end - 0.001) return () => stepTo(last, WHEEL_STEP_RATIO);
+    if (current < last) return () => stepTo(current + 1, wheelRatio());
+    if (scrollProgress() < end - 0.001) return () => stepTo(last, wheelRatio());
     /* Après la dernière sous-étape : la page glisse vers la section du bas, qui défile ensuite normalement */
     return () => {
       leftStory = true;
@@ -251,21 +250,39 @@ function wheelMove(down: boolean): (() => void) | null {
       hooks.keyIndex = last;
       glideTo(end * max);
     };
-  if (current >= last && scrollProgress() > end + 0.001) return () => stepTo(last, WHEEL_STEP_RATIO);
-  if (current > 0) return () => stepTo(current - 1, WHEEL_STEP_RATIO);
+  if (current >= last && scrollProgress() > end + 0.001) return () => stepTo(last, wheelRatio());
+  if (current > 0) return () => stepTo(current - 1, wheelRatio());
   /* Avant la première sous-étape : retour au titre */
-  if (window.scrollY > 0) return () => stepTo(-1, WHEEL_STEP_RATIO);
+  if (window.scrollY > 0) return () => stepTo(-1, wheelRatio());
   return null;
+}
+
+/** Reste de défilement continu inférieur au pixel, reporté sur l'événement suivant. */
+let scrollRemainder = 0;
+/** Défilement continu dans le récit, ralenti hors Mac ; `unit` convertit deltaY en pixels. */
+function continuousScroll(event: WheelEvent, unit: number) {
+  const factor = timeline.settings.playback.continuousScrollFactor[mac ? "mac" : "other"];
+  if (factor === 1 || window.scrollY >= storyLimit()) return;
+  event.preventDefault();
+  scrollRemainder += event.deltaY * unit * factor;
+  const whole = Math.trunc(scrollRemainder);
+  scrollRemainder -= whole;
+  if (whole !== 0) window.scrollBy({ top: whole, behavior: "auto" });
 }
 
 window.addEventListener(
   "wheel",
   (event) => {
     if (event.ctrlKey || event.metaKey) return;
+    const mode = event.deltaMode;
     const vertical = event.deltaY !== 0 && Math.abs(event.deltaY) >= Math.abs(event.deltaX);
-    if (mac && !(vertical && notched(event, event.deltaMode))) return;
     const horizontal = !vertical;
     if (scrollsItself(event.target, horizontal, horizontal ? event.deltaX > 0 : event.deltaY > 0)) return;
+    if (!vertical) return;
+    if (!notched(event, mode)) {
+      continuousScroll(event, mode === 1 ? 16 : mode === 2 ? viewHeight() : 1);
+      return;
+    }
     /* Heure de l'événement à sa source : une image lente ne crée pas de fausse pause entre deux événements */
     const now = event.timeStamp || performance.now();
     const rested = now - lastWheelAt >= GESTURE_REST_MS;
@@ -279,11 +296,11 @@ window.addEventListener(
     if (window.scrollY >= storyLimit()) return;
     if (rested) gestureSpent = false;
     lastWheelAt = now;
-    const move = vertical ? wheelMove(event.deltaY > 0) : null;
-    if (vertical && !move) return;
+    const move = wheelMove(event.deltaY > 0);
+    if (!move) return;
     steppedWheel.add(event);
     event.preventDefault();
-    if (!move || gestureSpent) return;
+    if (gestureSpent) return;
     gestureSpent = true;
     if (!moving()) move();
   },
@@ -341,7 +358,7 @@ function stepBy(delta: number) {
   const index = currentStep() + delta;
   if (index < 0 || index >= subSteps.length) return;
   requested = performance.now();
-  stepTo(index, CONTROL_STEP_RATIO);
+  stepTo(index, controlRatio());
 }
 stepPrevious.addEventListener("click", () => stepBy(-1));
 stepNext.addEventListener("click", () => stepBy(1));
@@ -526,7 +543,7 @@ export let shownSub = -2;
 export let detailTimer = 0;
 export function showStep(p: number) {
   const index = subStepAt(p);
-  gutter.classList.toggle("is-hidden", p < STORY_START * 0.6);
+  gutter.classList.toggle("is-hidden", p < storyStart() * 0.6);
   if (index >= 0) {
     const [from, to] = range(subSteps[index].id);
     turnWheel(index + clamp01((p - from) / (to - from)) - 0.5);
@@ -583,7 +600,7 @@ if (hero) {
   cue.dataset.testid = "story-start";
   cue.setAttribute("aria-label", "Commencer le parcours");
   cue.innerHTML = `<svg viewBox="0 0 24 40" aria-hidden="true"><path class="p-hero-cue-line" d="M12 5v27"/><path class="p-hero-cue-head" d="m5.5 25.5 6.5 6.5 6.5-6.5"/></svg><span class="p-hero-cue-label">Découvrir</span>`;
-  cue.addEventListener("click", () => stepTo(0, CONTROL_STEP_RATIO));
+  cue.addEventListener("click", () => stepTo(0, controlRatio()));
   hero.append(cue);
 }
 
@@ -649,9 +666,9 @@ export function markPast() {
 
 /** Mouvement réduit : chaque sous-étape s'affiche dans son état final, sans trajet animé. */
 export function reducedProgress(p: number): number {
-  if (p > STORY_END) return 1;
+  if (p > storyEnd()) return 1;
   const index = subStepAt(p);
-  return index < 0 ? 0.01 : at(subSteps[index].id, 0.97);
+  return index < 0 ? 0.01 : at(subSteps[index].id, timeline.rest(subSteps[index].id));
 }
 
 /* La scène 3D se charge après le texte, dans un module à part */

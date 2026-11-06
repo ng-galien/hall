@@ -1,8 +1,12 @@
+import type { StorySettings } from "../story/settings";
+import { Timeline } from "../story/timeline";
 import type { PieceKind } from "./icons";
+import settings from "./story-settings.json";
 
 /**
  * Récit de la page de présentation : cinq lieux, chacun découpé en sous-étapes. Chaque sous-étape montre une
- * fonctionnalité de Hall ; ses bornes de défilement sont dérivées de son poids.
+ * fonctionnalité de Hall. Les poids, les moments et la caméra sont dans story-settings.json ; les bornes de
+ * défilement en sont dérivées par la ligne de temps.
  */
 
 export interface Place {
@@ -31,9 +35,6 @@ export interface SubStep {
   rule?: string;
   /** Définition d'un terme de Hall, montrée en encadré dans le panneau d'étape. */
   definition?: string;
-  weight: number;
-  /** Réglage propre à la sous-étape de la durée de lecture par flèche ou molette : 1 par défaut, 1,5 = moitié plus long. */
-  pace?: number;
 }
 
 export const places: Place[] = [
@@ -49,7 +50,6 @@ export const subSteps: SubStep[] = [
     id: "creer",
     icon: "business",
     place: 0,
-    weight: 1.3,
     title: "Création de l'affaire",
     text: "",
     points: ["Dossier et rapport prêts dès la création", "Pièces, textes et rendez-vous réunis au même endroit"],
@@ -61,7 +61,6 @@ export const subSteps: SubStep[] = [
     id: "devis",
     icon: "pdf",
     place: 0,
-    weight: 2.3,
     title: "Devis et budget",
     text: "",
     points: [
@@ -75,7 +74,6 @@ export const subSteps: SubStep[] = [
     id: "rapport",
     icon: "draft",
     place: 0,
-    weight: 1.3,
     title: "Rédaction du rapport",
     text: "",
     points: [
@@ -89,7 +87,6 @@ export const subSteps: SubStep[] = [
     id: "commission",
     icon: "committee",
     place: 0,
-    weight: 0.7,
     title: "Rattachement aux commissions",
     shortTitle: "Commissions",
     text: "",
@@ -100,7 +97,6 @@ export const subSteps: SubStep[] = [
     id: "rendezvous",
     icon: "event",
     place: 0,
-    weight: 0.8,
     title: "Rendez-vous et invitations",
     shortTitle: "Rendez-vous",
     text: "",
@@ -114,7 +110,6 @@ export const subSteps: SubStep[] = [
     id: "photo",
     icon: "image",
     place: 1,
-    weight: 1.35,
     title: "Photos depuis le téléphone",
     shortTitle: "Photos sur place",
     text: "",
@@ -128,7 +123,6 @@ export const subSteps: SubStep[] = [
     id: "trace",
     icon: "geographic",
     place: 1,
-    weight: 1.8,
     title: "Dessin sur la carte",
     text: "",
     points: [
@@ -142,7 +136,6 @@ export const subSteps: SubStep[] = [
     id: "cadastre",
     icon: "layer",
     place: 1,
-    weight: 0.9,
     title: "Couche du cadastre",
     text: "",
     points: [
@@ -155,8 +148,6 @@ export const subSteps: SubStep[] = [
     id: "assistant",
     icon: "share",
     place: 2,
-    weight: 2.4,
-    pace: 1.5,
     title: "Votre assistant IA, relié à vos dossiers",
     shortTitle: "Assistant IA",
     text: "",
@@ -171,7 +162,6 @@ export const subSteps: SubStep[] = [
     id: "projet",
     icon: "matter",
     place: 2,
-    weight: 1.3,
     title: "Projet de délibération",
     text: "",
     points: [
@@ -185,7 +175,6 @@ export const subSteps: SubStep[] = [
     id: "partage",
     icon: "committee",
     place: 2,
-    weight: 1.0,
     title: "Tout le conseil informé",
     text: "",
     points: [
@@ -199,7 +188,6 @@ export const subSteps: SubStep[] = [
     id: "question",
     icon: "question",
     place: 2,
-    weight: 0.6,
     title: "Question ouverte",
     text: "",
     points: ["Question préparée dans l'affaire, avec son texte", "Débat sans scrutin ni délibération"],
@@ -208,7 +196,6 @@ export const subSteps: SubStep[] = [
     id: "inscription",
     icon: "agenda",
     place: 2,
-    weight: 0.8,
     title: "Ordre du jour",
     text: "",
     points: [
@@ -221,7 +208,6 @@ export const subSteps: SubStep[] = [
     id: "convocation",
     icon: "pdf",
     place: 2,
-    weight: 0.8,
     title: "Préparation de la convocation",
     shortTitle: "Convocation",
     text: "",
@@ -238,7 +224,6 @@ export const subSteps: SubStep[] = [
     id: "dossier",
     icon: "pdf",
     place: 2,
-    weight: 0.7,
     title: "Dossier de séance",
     text: "",
     points: [
@@ -251,7 +236,6 @@ export const subSteps: SubStep[] = [
     id: "appel",
     icon: "committee",
     place: 3,
-    weight: 1.3,
     title: "Appel et quorum",
     text: "",
     points: [
@@ -266,7 +250,6 @@ export const subSteps: SubStep[] = [
     id: "debat",
     icon: "minutes",
     place: 3,
-    weight: 0.9,
     title: "Débat en séance",
     text: "",
     points: [
@@ -279,7 +262,6 @@ export const subSteps: SubStep[] = [
     id: "scrutin",
     icon: "matter",
     place: 3,
-    weight: 1.0,
     title: "Vote du conseil",
     text: "",
     points: [
@@ -293,7 +275,6 @@ export const subSteps: SubStep[] = [
     id: "deliberation",
     icon: "adopted",
     place: 3,
-    weight: 0.8,
     title: "Brouillon de délibération",
     text: "",
     points: ["Brouillon ouvert dès la confirmation du vote", "Texte voté, quorum et résultat conservés tels quels"],
@@ -303,7 +284,6 @@ export const subSteps: SubStep[] = [
     id: "cloture",
     icon: "minutes",
     place: 3,
-    weight: 0.6,
     title: "Clôture de séance",
     text: "",
     points: ["Projet de procès-verbal à la clôture", "Séance suivante créée, prête à préparer"],
@@ -312,7 +292,6 @@ export const subSteps: SubStep[] = [
     id: "gel",
     icon: "adopted",
     place: 4,
-    weight: 0.8,
     title: "Délibération définitive",
     text: "",
     points: [
@@ -326,7 +305,6 @@ export const subSteps: SubStep[] = [
     id: "liste",
     icon: "pdf",
     place: 4,
-    weight: 0.6,
     title: "Liste des délibérations",
     text: "",
     points: [
@@ -339,7 +317,6 @@ export const subSteps: SubStep[] = [
     id: "pv",
     icon: "minutes",
     place: 4,
-    weight: 0.6,
     title: "Rédaction du procès-verbal",
     shortTitle: "Procès-verbal",
     text: "",
@@ -354,7 +331,6 @@ export const subSteps: SubStep[] = [
     id: "transmission",
     icon: "share",
     place: 4,
-    weight: 1.7,
     title: "Partage de la délibération",
     shortTitle: "Délibération partagée",
     text: "",
@@ -366,43 +342,31 @@ export const subSteps: SubStep[] = [
   },
 ];
 
-/** Bornes du récit dans le défilement : ouverture avant, invitation à la fin. */
-export const STORY_START = 0.03;
-export const STORY_END = 0.975;
+/** Ligne de temps du récit, réglée par story-settings.json. */
+export const timeline = new Timeline(
+  subSteps.map((step) => step.id),
+  settings as StorySettings,
+);
 
-const total = subSteps.reduce((sum, step) => sum + step.weight, 0);
-const bounds = new Map<string, [number, number]>();
-{
-  let cursor = STORY_START;
-  for (const step of subSteps) {
-    const length = ((STORY_END - STORY_START) * step.weight) / total;
-    bounds.set(step.id, [cursor, cursor + length]);
-    cursor += length;
-  }
-}
+/** Bornes du récit dans le défilement : ouverture avant, invitation à la fin. */
+export const storyStart = () => timeline.settings.storyStart;
+export const storyEnd = () => timeline.settings.storyEnd;
 
 export function range(id: string): [number, number] {
-  const value = bounds.get(id);
-  if (!value) throw new Error(`Sous-étape inconnue : ${id}`);
-  return value;
+  return timeline.range(id);
 }
 
 /** Instant situé à la fraction f de la sous-étape. */
 export function at(id: string, f: number): number {
-  const [a, b] = range(id);
-  return a + (b - a) * f;
+  return timeline.at(id, f);
 }
 
 export function between(id: string, from: number, to: number): [number, number] {
-  return [at(id, from), at(id, to)];
+  return timeline.between(id, from, to);
 }
 
 export function subStepAt(p: number): number {
-  let index = -1;
-  subSteps.forEach((step, i) => {
-    if (p >= range(step.id)[0]) index = i;
-  });
-  return index;
+  return timeline.stepAt(p);
 }
 
 export function placeRange(place: number): [number, number] {

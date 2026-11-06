@@ -6,6 +6,11 @@ Static site with two pages:
   municipal business, from the office to the prefecture, followed by the features.
 - `/demonstration/` (`demonstration/index.html`, `src/main.ts`): the Alésia demonstration described below.
 
+The presentation's choreography is data: `src/presentation/story-settings.json` holds the weight and pace of each
+sub-step, the named moments (start and end as fractions of a sub-step, or tied to another moment), the camera
+keys and the playback durations. `src/story/` is the story engine that reads it (timeline, edits, playback);
+`src/presentation/scene.ts` only refers to moments by name.
+
 Both pages share the header (`src/site-header.css`): the Hall logo leads to `/`, "Fonctionnalités" to
 the features of the presentation and "Démonstration" to `/demonstration/`. Each page declares its depth
 in `data-site-root` on `<html>`; `src/site-root.ts` resolves the shared `public/` files (terrain,
