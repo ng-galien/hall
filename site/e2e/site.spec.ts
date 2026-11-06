@@ -318,6 +318,57 @@ test.describe("relief en 3D", () => {
     await expect(page.getByTestId("scenario-actes")).toBeVisible();
   });
 
+  test("la capture en plein écran s’agrandit, se déplace et se ferme par le retour", async ({ page }) => {
+    await page.goto("./demonstration/#actes");
+    const opener = page.getByTestId("capture-open-sieger-calendrier");
+    await opener.click();
+    const viewer = page.getByTestId("viewer");
+    await expect(viewer).toHaveAttribute("data-zoom", "1.00");
+    await expect(page.getByTestId("viewer-zoom-fit")).toBeDisabled();
+    await page.getByTestId("viewer-zoom-in").click();
+    await expect.poll(async () => Number(await viewer.getAttribute("data-zoom"))).toBeGreaterThan(1.5);
+    const stage = await page.getByTestId("viewer-stage").boundingBox();
+    if (!stage) throw new Error("Scène absente");
+    const before = await page.getByTestId("viewer-shot").boundingBox();
+    await page.mouse.move(stage.x + stage.width / 2, stage.y + stage.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(stage.x + stage.width / 2 + 60, stage.y + stage.height / 2 + 40, { steps: 6 });
+    await page.mouse.up();
+    const after = await page.getByTestId("viewer-shot").boundingBox();
+    expect(after?.x).not.toBe(before?.x);
+    await expect(viewer).toBeVisible();
+    await page.getByTestId("viewer-zoom-fit").click();
+    await expect(viewer).toHaveAttribute("data-zoom", "1.00");
+    await page.mouse.dblclick(stage.x + stage.width / 2, stage.y + stage.height / 2);
+    await expect.poll(async () => Number(await viewer.getAttribute("data-zoom"))).toBeGreaterThan(1.5);
+    await page.getByTestId("viewer-next").click();
+    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 4 sur 5");
+    await expect(viewer).toHaveAttribute("data-zoom", "1.00");
+    await page.goBack();
+    await expect(viewer).toBeHidden();
+    await expect(page).toHaveURL(/demonstration\/#actes$/);
+    await expect(page.getByTestId("scenario-actes")).toBeVisible();
+  });
+
+  test("une capture des Fonctionnalités s’ouvre en plein écran et mène aux suivantes", async ({ page }) => {
+    await page.goto("./");
+    const opener = page.getByTestId("feature-capture-cartes");
+    await opener.scrollIntoViewIfNeeded();
+    await opener.click();
+    await expect(page.getByTestId("viewer")).toBeVisible();
+    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 3 sur 6");
+    await expect(page.getByTestId("viewer-title")).toHaveText("Cartes");
+    await expect(page.getByTestId("viewer-legend")).toBeHidden();
+    await page.getByTestId("viewer-next").click();
+    await expect(page.getByTestId("viewer-title")).toHaveText("Préparation de séance");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(
+      0,
+    );
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("viewer")).toBeHidden();
+    await expect(opener).toBeFocused();
+  });
+
   test("chaque capture du récit a des pastilles légendées", async ({ page }) => {
     await page.goto("./demonstration/");
     await sceneReady(page);

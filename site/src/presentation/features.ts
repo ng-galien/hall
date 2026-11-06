@@ -1,4 +1,5 @@
 import { publicFileUrl, siteRoot } from "../site-root";
+import { openViewer, type ViewerShot } from "../viewer";
 import { glyphs, type PieceKind, svgIcon } from "./icons";
 
 /**
@@ -142,6 +143,16 @@ const teamwork = {
   ],
 };
 
+/** Les captures de la section, dans l'ordre des fonctionnalités, pour passer de l'une à l'autre en plein écran. */
+const shots: ViewerShot[] = features.flatMap((feature) =>
+  feature.capture
+    ? [{ file: feature.capture, caption: feature.title, alt: feature.alt, width: 1200, height: 750, pins: [] }]
+    : [],
+);
+
+const zoomGlyph =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M10.5 8v5M8 10.5h5"/></svg>';
+
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -202,8 +213,18 @@ function capture(feature: Feature): HTMLElement {
   image.loading = "lazy";
   image.width = 1200;
   image.height = 750;
+  const open = element("button", "f-zoom");
+  open.type = "button";
+  open.dataset.testid = `feature-capture-${feature.id}`;
+  open.setAttribute("aria-label", `Agrandir la capture\u202f: ${feature.title}`);
+  const hint = element("span", "f-zoom-hint");
+  hint.setAttribute("aria-hidden", "true");
+  hint.innerHTML = zoomGlyph;
+  open.append(image, hint);
+  const index = shots.findIndex((shot) => shot.file === feature.capture);
+  open.addEventListener("click", () => openViewer(shots, index, open));
   const figure = element("figure", "f-figure");
-  figure.append(image, element("figcaption", "f-caption", "Application de démonstration, données fictives"));
+  figure.append(open, element("figcaption", "f-caption", "Application de démonstration, données fictives"));
   return figure;
 }
 

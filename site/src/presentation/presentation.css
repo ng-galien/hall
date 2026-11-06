@@ -2792,6 +2792,67 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   margin: 0;
 }
 
+/* Capture agrandissable : un toucher ou un clic l'ouvre en plein écran */
+.f-zoom {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: zoom-in;
+}
+
+.f-zoom:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.f-zoom-hint {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--masthead-veil);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgb(15 23 35 / 0.14);
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+.f-zoom-hint svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.f-zoom:hover .f-zoom-hint,
+.f-zoom:focus-visible .f-zoom-hint {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .f-zoom-hint {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .f-zoom-hint {
+    transition: none;
+  }
+}
+
 .f-caption {
   margin-top: 0.45rem;
   font-size: var(--fs-xs);

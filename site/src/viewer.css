@@ -1,0 +1,351 @@
+/* Visionneuse plein écran des captures de Hall, commune à la présentation et à la démonstration */
+body.has-viewer {
+  overflow: hidden;
+}
+
+.viewer {
+  --viewer-gutter: var(--gutter, clamp(1rem, 3vw, 2.5rem));
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font, inherit);
+  overflow: hidden;
+}
+
+.viewer *,
+.viewer *::before,
+.viewer *::after {
+  box-sizing: border-box;
+}
+
+.viewer[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.viewer::backdrop {
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+}
+
+.viewer-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem var(--viewer-gutter) 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--masthead-veil);
+}
+
+.viewer-count {
+  margin: 0 0 0.15rem;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.viewer-title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-lg);
+  line-height: 1.25;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.viewer-close,
+.viewer-step,
+.viewer-zoom-button {
+  min-height: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.viewer-close {
+  flex: none;
+  width: 2.5rem;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.viewer-step {
+  padding: 0 0.9rem;
+  font-size: var(--fs-sm);
+}
+
+.viewer-close:hover,
+.viewer-step:hover:not(:disabled),
+.viewer-zoom-button:hover:not(:disabled) {
+  border-color: var(--text-3);
+}
+
+.viewer-step:disabled {
+  color: var(--text-3);
+  background: transparent;
+  cursor: default;
+}
+
+.viewer-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  gap: 1.5rem;
+  min-height: 0;
+  padding: 1.25rem var(--viewer-gutter);
+}
+
+.viewer-body.is-bare {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Cadre de la capture : la scène où elle s'agrandit et se déplace, et les boutons d'agrandissement */
+.viewer-frame {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.viewer-stage {
+  position: relative;
+  grid-area: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.viewer-shot {
+  position: relative;
+  line-height: 0;
+  transform-origin: 0 0;
+  cursor: zoom-in;
+}
+
+.viewer-stage.is-zoomed .viewer-shot {
+  cursor: grab;
+}
+
+.viewer-stage.is-zoomed .viewer-shot:active {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .viewer-shot.is-settling {
+    transition: transform 0.22s ease-out;
+  }
+}
+
+.viewer-image {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  box-shadow: 0 18px 40px rgb(15 23 35 / 0.16);
+  pointer-events: none;
+}
+
+/* Sur grand écran, les boutons d'agrandissement se rangent sous la capture, à droite */
+.viewer-zoom {
+  grid-area: 2 / 1;
+  justify-self: end;
+  z-index: 3;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--masthead-veil);
+  box-shadow: 0 4px 14px rgb(15 23 35 / 0.12);
+}
+
+.viewer-zoom-button {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  padding: 0;
+}
+
+.viewer-zoom-button svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.viewer-zoom-button:disabled {
+  color: var(--text-3);
+  cursor: default;
+}
+
+/* Repères numérotés posés sur la capture, reliés à la légende ; ils gardent leur taille quand elle s'agrandit */
+.viewer-pin {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  transform-origin: 0 0;
+  transform: scale(calc(1 / var(--zoom, 1))) translate(calc(-100% - 0.4rem), -50%);
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgb(15 23 35 / 0.25);
+  cursor: default;
+}
+
+.viewer-pin::after {
+  content: "";
+  position: absolute;
+  left: calc(100% + 0.15rem);
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  transform: translateY(-50%);
+  border: 1px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.viewer-pin.is-lit {
+  z-index: 2;
+  background: var(--accent-strong);
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 0 0 5px var(--accent);
+}
+
+.viewer-legend {
+  align-self: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+.viewer-legend[hidden] {
+  display: none;
+}
+
+.viewer-legend-item {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.6rem 0.5rem;
+  border-radius: 0.5rem;
+  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+}
+
+.viewer-legend-item + .viewer-legend-item {
+  border-top: 1px solid var(--hairline);
+}
+
+.viewer-legend-item.is-lit {
+  background: var(--accent-wash);
+}
+
+.viewer-legend-number {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.viewer-legend-item.is-lit .viewer-legend-number {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.viewer-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem var(--viewer-gutter) 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.viewer-nav [hidden] {
+  display: none;
+}
+
+/* Téléphone et tablette : la capture occupe la hauteur libre, la légende défile en dessous */
+@media (max-width: 900px) {
+  .viewer-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(12rem, 1fr) auto;
+    gap: 0.75rem;
+    padding: 0.75rem var(--viewer-gutter);
+  }
+
+  .viewer-body.is-bare {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  /* Sur téléphone, ils flottent dans le coin de la capture pour lui laisser toute la hauteur */
+  .viewer-frame {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .viewer-zoom {
+    grid-area: 1 / 1;
+    align-self: end;
+    margin: 0 0.5rem 0.5rem 0;
+  }
+
+  .viewer-legend {
+    align-self: stretch;
+    max-height: 36dvh;
+  }
+
+  .viewer-legend-item {
+    padding: 0.45rem 0.4rem;
+    font-size: var(--fs-sm);
+  }
+
+  .viewer-pin {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .viewer-title {
+    font-size: var(--fs-md);
+  }
+}
