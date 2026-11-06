@@ -3266,41 +3266,44 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   width: 2.3rem;
 }
 
-/* ---- Téléphone : la scène d'abord, une bande de chronologie, une fiche réduite, un panneau d'étape léger ---- */
+/* Précédent et Suivant n'existent que sur téléphone */
+.p-step-nav {
+  display: none;
+}
+
+/* ---- Téléphone : la scène d'abord, la chronologie à gauche, la fiche à droite, un panneau d'étape léger ---- */
 /* body:not(#phone) place ces règles au-dessus des variantes empilées plus haut, sans !important */
 @media (max-width: 760px) {
-  /* Gouttière en bande sous l'en-tête : lieux en points, le lieu courant nommé, ses sous-étapes en repères */
+  /* Gouttière en colonne le long du bord gauche : les cinq lieux, le lieu courant ouvert sur ses sous-étapes */
   body:not(#phone) .p-gutter {
     display: block;
     position: fixed;
-    left: 0.5rem;
-    right: 0.5rem;
-    top: calc(var(--masthead) + 0.15rem);
+    left: 0.4rem;
+    right: auto;
+    top: calc(var(--masthead) + 0.4rem);
     bottom: auto;
-    width: auto;
+    width: 3.4rem;
     max-width: none;
     /* biome-ignore lint/complexity/noImportantStyles: remplace le style en ligne posé par turnWheel */
     height: auto !important;
     max-height: none;
-    padding: 0.3rem 0.7rem;
+    padding: 0.45rem 0 0.5rem;
     overflow: hidden;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
     border: 1px solid var(--border);
     box-shadow: 0 6px 18px rgb(15 23 35 / 0.1);
     backdrop-filter: blur(8px);
     -webkit-mask-image: none;
     mask-image: none;
-    font-size: 0.8rem;
   }
 
   body:not(#phone) .p-gutter .g-wheel {
     position: static;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    min-height: 1.4rem;
+    gap: 0.15rem;
   }
 
   body:not(#phone) .p-gutter .g-wheel::before {
@@ -3310,9 +3313,8 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   body:not(#phone) .p-gutter .g-item {
     position: static;
     flex: none;
-    gap: 0.35rem;
     height: auto;
-    padding: 0;
+    max-width: 100%;
     /* biome-ignore lint/complexity/noImportantStyles: remplace le style en ligne posé par turnWheel */
     transform: none !important;
     /* biome-ignore lint/complexity/noImportantStyles: remplace le style en ligne posé par turnWheel */
@@ -3330,46 +3332,109 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 
   body:not(#phone) .p-gutter .g-item.g-place {
-    padding: 0.35rem 0.15rem;
+    flex-direction: column;
+    gap: 0.15rem;
+    width: 100%;
+    padding: 0.3rem 0.15rem;
   }
 
   body:not(#phone) .p-gutter .g-item.g-place .g-dot {
-    width: 0.7rem;
-    height: 0.7rem;
+    width: 1rem;
+    height: 1rem;
   }
 
   body:not(#phone) .p-gutter .g-item.g-place.is-current .g-dot {
-    border-width: 2px;
+    border-width: 3px;
+  }
+
+  body:not(#phone) .p-gutter .g-item.g-place .g-place-words {
+    display: block;
+    width: 100%;
   }
 
   body:not(#phone) .p-gutter .g-item.g-place .g-place-name {
-    display: none;
-    font-size: 0.82rem;
+    display: block;
+    font-size: 0.56rem;
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    white-space: normal;
+    color: var(--text-2);
   }
 
   body:not(#phone) .p-gutter .g-item.g-place.is-current .g-place-name {
-    display: inline;
+    color: var(--accent-text);
+    font-weight: 800;
   }
 
   body:not(#phone) .p-gutter .g-item.g-sub {
-    padding: 0.35rem 0.05rem;
+    padding: 0.12rem 0;
   }
 
   body:not(#phone) .p-gutter .g-item.g-sub .g-tick {
-    width: 0.45rem;
-    height: 0.45rem;
+    width: 0.5rem;
+    height: 0.5rem;
     border-width: 1.5px;
   }
 
   body:not(#phone) .p-gutter .g-item.g-sub.is-current .g-tick {
-    width: 1.1rem;
+    height: 1.1rem;
     border-radius: 999px;
+    border-color: var(--accent);
     background: var(--accent);
     box-shadow: none;
   }
 
-  body:not(#phone) .p-gutter .g-item.g-place.is-current + .g-sub {
-    margin-left: 0.15rem;
+  body:not(#phone) .p-gutter .g-item.g-sub.is-near + .g-place {
+    margin-top: 0.2rem;
+  }
+
+  /* Précédent et Suivant, sous le panneau d'étape, à portée de pouce */
+  body:not(#phone) .p-step-nav {
+    position: fixed;
+    z-index: 6;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    transition: opacity 0.3s ease;
+  }
+
+  body:not(#phone) .p-step-nav.is-past {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  body:not(#phone) .p-step-button {
+    height: 2.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    box-shadow: 0 6px 18px rgb(15 23 35 / 0.1);
+    backdrop-filter: blur(8px);
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent-text);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body:not(#phone) .p-step-button span {
+    font-size: 1.3rem;
+    line-height: 1;
+    vertical-align: -0.08em;
+  }
+
+  body:not(#phone) .p-step-button:active {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  }
+
+  body:not(#phone) .p-step-button:disabled {
+    color: var(--text-2);
+    opacity: 0.45;
   }
 
   /* Fiche en colonne le long du bord droit : pictogrammes seuls, l'élément arrivé s'allume */
@@ -3381,9 +3446,9 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   body:not(#phone) .p-board:not(.is-expanded) {
     left: auto;
     right: 0.4rem;
-    top: calc(var(--masthead) + 2.45rem);
+    top: calc(var(--masthead) + 0.4rem);
     width: 3.4rem;
-    max-height: calc(100svh - var(--masthead) - 2.45rem - 11rem);
+    max-height: calc(100svh - var(--masthead) - 0.4rem - 14rem);
     border-radius: 999px;
     transform: none;
     font-size: 0.6rem;
@@ -3639,7 +3704,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   body:not(#phone) .p-board.is-expanded {
     left: auto;
     right: 0.5rem;
-    top: calc(var(--masthead) + 2.45rem);
+    top: calc(var(--masthead) + 0.4rem);
     width: min(15rem, 72vw);
     max-height: 55vh;
     z-index: 12;
@@ -3794,7 +3859,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   body:not(#phone) .p-watermark.is-b {
     left: 0.5rem;
     right: 0.5rem;
-    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    bottom: calc(max(0.5rem, env(safe-area-inset-bottom)) + 3.2rem);
     width: auto;
     max-width: none;
     /* biome-ignore lint/complexity/noImportantStyles: remplace la hauteur commune posée par calibrateStepText */
@@ -3808,12 +3873,18 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     align-items: center;
   }
 
-  body:not(#phone) .p-watermark .w-kicker,
   body:not(#phone) .p-watermark .w-progress,
   body:not(#phone) .p-watermark .p-watermark-definition,
   body:not(#phone) .p-watermark .p-watermark-rule,
   body:not(#phone) .p-watermark .p-watermark-points li:nth-child(n + 3) {
     display: none;
+  }
+
+  body:not(#phone) .p-watermark .w-kicker {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.1rem;
+    font-size: 0.68rem;
   }
 
   body:not(#phone) .p-watermark .w-icon {

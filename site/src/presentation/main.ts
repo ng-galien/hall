@@ -295,6 +295,22 @@ watermarkTitle.dataset.testid = "step-panel-title";
 export const watermarkText = watermark.querySelector(".p-watermark-text") as HTMLElement;
 export const watermarkPoints = watermark.querySelector(".p-watermark-points") as HTMLElement;
 export const watermarkRule = watermark.querySelector(".p-watermark-rule") as HTMLElement;
+
+/* Téléphone : boutons Précédent et Suivant sous le panneau d'étape, comme les flèches du clavier */
+export const stepNav = document.createElement("nav");
+stepNav.className = "p-step-nav";
+stepNav.setAttribute("aria-label", "Étapes du récit");
+stepNav.innerHTML = `<button type="button" class="p-step-button" data-testid="step-previous"><span aria-hidden="true">‹</span> Précédent</button><button type="button" class="p-step-button" data-testid="step-next">Suivant <span aria-hidden="true">›</span></button>`;
+const [stepPrevious, stepNext] = stepNav.querySelectorAll("button");
+stepPrevious.addEventListener("click", () => {
+  const current = currentStep();
+  if (current > 0) stepTo(current - 1);
+});
+stepNext.addEventListener("click", () => {
+  const current = currentStep();
+  if (current < subSteps.length - 1) stepTo(current + 1);
+});
+watermark.after(stepNav);
 /* Roue de la gouttière : lieux et sous-étapes sur une seule liste ; l'élément courant est grand, au centre,
    ses voisins rétrécissent et s'estompent en s'éloignant. La liste défile avec le récit. */
 export interface WheelItem {
@@ -450,6 +466,8 @@ export function showStep(p: number) {
     turnWheel(index + clamp01((p - from) / (to - from)) - 0.5);
   } else turnWheel(-1);
   if (index === shownSub) return;
+  stepPrevious.disabled = index <= 0;
+  stepNext.disabled = index >= subSteps.length - 1;
   const first = shownSub === -2;
   /* Saut de plusieurs sous-étapes : le panneau entier s'efface et revient, sans cadre vide entre les deux */
   const leap = Math.abs(index - shownSub) > 1;
@@ -541,7 +559,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[h
 
 export function markPast() {
   const past = window.scrollY > scrollArea.offsetHeight - window.innerHeight * 0.6;
-  for (const node of [gutter, credit, boardNode, phone, watermark]) node.classList.toggle("is-past", past);
+  for (const node of [gutter, credit, boardNode, phone, watermark, stepNav]) node.classList.toggle("is-past", past);
   (document.querySelector(".p-masthead") as HTMLElement).classList.toggle("is-solid", past);
 }
 
