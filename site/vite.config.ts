@@ -3,6 +3,7 @@ import { copyFile, cp, mkdir, readdir, readFile, writeFile } from "node:fs/promi
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
+import { studioVersions } from "./studio/server";
 
 const publicDirectory = fileURLToPath(new URL("./public/", import.meta.url));
 const versionsModule = "virtual:public-file-versions";
@@ -60,10 +61,18 @@ async function versionDocumentationCaptures(page: string, capturesDirectory: str
   await writeFile(page, versioned);
 }
 
-export default defineConfig({
+/**
+ * Le studio du récit (studio/, ?studio) est servi par le serveur de développement et par une construction
+ * `--mode studio` ; la construction publiée (`npm run build`) ne le contient pas.
+ */
+export default defineConfig(({ command, mode }) => ({
   base: "./",
+  define: {
+    __HALL_STUDIO__: JSON.stringify(command === "serve" || mode === "studio"),
+  },
   plugins: [
     publicFileVersions(),
+    ...(command === "serve" || mode === "studio" ? [studioVersions()] : []),
     {
       name: "hall-rendered-documentation",
       async closeBundle() {
@@ -94,6 +103,7 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
         demonstration: fileURLToPath(new URL("./demonstration/index.html", import.meta.url)),
+        ...(mode === "studio" ? { studio: fileURLToPath(new URL("./studio/index.html", import.meta.url)) } : {}),
       },
       output: {
         /* Three.js dans un module à part, partagé par les deux pages et chargé avec la scène 3D */
@@ -103,4 +113,4 @@ export default defineConfig({
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 900,
   },
-});
+}));

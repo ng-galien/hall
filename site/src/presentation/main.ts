@@ -10,6 +10,9 @@ import { renderFeatures } from "./features";
 import { glyphs, photoThumb, svgIcon } from "./icons";
 import { at, places, range, storyEnd, storyStart, subStepAt, subSteps, timeline } from "./story";
 
+/* Studio du récit : ?studio ouvre l'outil de réglage, hors du site publié */
+if (__HALL_STUDIO__ && new URLSearchParams(window.location.search).has("studio")) window.location.replace("studio/");
+
 /* ------------------------------------------------------------------ Lieux */
 
 export type Spot = { x: number; y: number };
@@ -669,6 +672,23 @@ export function reducedProgress(p: number): number {
   if (p > storyEnd()) return 1;
   const index = subStepAt(p);
   return index < 0 ? 0.01 : at(subSteps[index].id, timeline.rest(subSteps[index].id));
+}
+
+/* Page encadrée par le studio du récit : réglages, instant montré */
+if (__HALL_STUDIO__) {
+  window.__story = {
+    steps: subSteps.map((step) => ({ id: step.id, title: step.title, place: step.place })),
+    places: places.map((place) => place.name),
+    settings: () => structuredClone(timeline.settings),
+    apply: (settings) => {
+      const p = hooks.shown?.() ?? scrollProgress();
+      timeline.set(settings);
+      hooks.seek?.(p);
+    },
+    seek: (p) => hooks.seek?.(p),
+    shown: () => hooks.shown?.() ?? scrollProgress(),
+    ready: () => document.body.dataset.ready === "true" && hooks.seek !== null,
+  };
 }
 
 /* La scène 3D se charge après le texte, dans un module à part */

@@ -3,7 +3,7 @@
   "root": true,
   "vcs": { "enabled": false },
   "files": {
-    "includes": ["src/**", "e2e/**", "*.ts", "*.json", "index.html", "demonstration/index.html"]
+    "includes": ["src/**", "studio/**", "e2e/**", "*.ts", "*.json", "index.html", "demonstration/index.html"]
   },
   "formatter": {
     "enabled": true,
