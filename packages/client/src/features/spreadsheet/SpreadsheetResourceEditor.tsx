@@ -30,7 +30,7 @@ export function SpreadsheetResourceEditor({
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
 }) {
   const { locale, t } = useI18n();
-  const { setStatus: setSaveStatus } = useResourceSaveStatus(resource.id);
+  const { status: saveStatus, setStatus: setSaveStatus } = useResourceSaveStatus(resource.id);
   const [draft, setDraft] = useState(document);
   const [storedVersion, setStoredVersion] = useState(resource.version);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -153,7 +153,7 @@ export function SpreadsheetResourceEditor({
           }
         }}
       />
-      <div className="spreadsheet-editor" data-testid="spreadsheet-editor">
+      <div className="spreadsheet-editor" data-testid="spreadsheet-editor" data-save-status={saveStatus}>
         {dirty && saveFailed ? (
           <div className="spreadsheet-save-error">
             <Button type="button" variant="ghost" data-testid="spreadsheet-retry-save" onClick={() => void save()}>

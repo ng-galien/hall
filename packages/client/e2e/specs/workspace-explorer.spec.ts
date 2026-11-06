@@ -501,7 +501,8 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   const grid = page.getByTestId("spreadsheet-grid");
   await expect(grid).toBeVisible({ timeout: 15_000 });
   await expect(grid).toHaveAttribute("aria-readonly", "false");
-  await page.waitForTimeout(1_500);
+  // Opening the workbook publishes Univer's normalized snapshot, which the editor autosaves before any edit.
+  await expect(page.getByTestId("spreadsheet-editor")).toHaveAttribute("data-save-status", "saved");
   await page.route("**/api/resources/*/content", async (route) => {
     if (route.request().method() !== "PUT" || route.request().postDataJSON().kind !== "spreadsheet") {
       await route.continue();
