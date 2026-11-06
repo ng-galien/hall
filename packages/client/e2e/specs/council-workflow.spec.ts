@@ -770,6 +770,7 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   expect(new URL(page.url()).searchParams.get("councilBusiness")).toBe(businesses[0]!.id);
 });
 
+// @verifies-requirement HALL-FR-MTG-360
 test("conducts public and secret ballots and leaves an unexamined previous PV unsettled", async ({
   appPage: page,
 }, testInfo) => {
@@ -817,6 +818,20 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
       data: { kind: "openQuestion", councilBusinessId: businesses[0]!.id, position: 3 },
     }),
   );
+  const documentReference = `:resource[contrat-discussion.txt]{#${discussionDocument.id}}`;
+  const writeSubjectText = async (agendaItemId: string, content: string) => {
+    const item = await sirenProperties<{ subject: { textResourceId: string } }>(
+      await page.request.get(`/api/council-meetings/${meeting!.slug}/agenda-items/${agendaItemId}`),
+    );
+    const text = await sirenProperties<{ version: number }>(
+      await page.request.get(`/api/resources/${item.subject.textResourceId}`),
+    );
+    const written = await page.request.put(`/api/resources/${item.subject.textResourceId}/content`, {
+      data: { kind: "text", expectedVersion: text.version, content },
+    });
+    expect(written.ok()).toBeTruthy();
+  };
+  await writeSubjectText(deferredItem.id, `Open question text citing the contract ${documentReference}.`);
   await page.goto(`/app/meetings/${meeting!.slug}`);
   await page.getByTestId(`agenda-item-expand-${publicItem.id}`).click();
   await page
@@ -884,6 +899,14 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   await expect(page.getByTestId("live-attendance-adjust")).toBeEnabled();
   await expect(page.getByTestId("live-agenda-add")).toBeEnabled();
   await expect(page.getByTestId("conduct-blockers-add-agenda-item")).toHaveCount(0);
+  const proposalBlock = page.getByTestId("live-proposal-toggle").locator("..");
+  await expect(proposalBlock).toHaveAttribute("open", "");
+  await expect(proposalBlock).toContainText("Proposal text distinct from the report");
+  await page.screenshot({
+    path: testInfo.outputPath("conduct-proposal-text.png"),
+    fullPage: true,
+    animations: "disabled",
+  });
   await page.screenshot({
     path: testInfo.outputPath("conduct-presentation.png"),
     fullPage: true,
@@ -1026,6 +1049,22 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
 
   await page.getByTestId(`live-agenda-item-${deferredItem.id}`).click();
+  await expect(page.getByTestId("live-proposal-toggle")).toHaveCount(0);
+  const openQuestionBlock = page.getByTestId("live-open-question-toggle").locator("..");
+  await expect(openQuestionBlock).toHaveAttribute("open", "");
+  await expect(page.getByTestId("live-open-question-toggle")).toContainText("Open question");
+  await expect(openQuestionBlock).toContainText("Open question text citing the contract");
+  const questionDocumentLink = openQuestionBlock.getByTestId(`editor-resource-reference-${discussionDocument.id}`);
+  await expect(questionDocumentLink).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath("conduct-open-question-text.png"),
+    fullPage: true,
+    animations: "disabled",
+  });
+  await questionDocumentLink.click();
+  await expect(page.getByTestId("resource-preview")).toBeVisible();
+  await page.getByTestId("resource-preview-close").click();
+  await expect(page.getByTestId("resource-preview")).toHaveCount(0);
   await page.getByTestId("live-agenda-start").click();
   await expect(page.getByTestId("live-agenda-start")).toBeHidden();
   await expect(page.getByTestId("live-ballot-open")).toBeHidden();

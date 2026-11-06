@@ -9947,6 +9947,28 @@
         }
       ]
     },
+    "HALL-FR-MTG-360": {
+      "name": "MEETING_CONDUCT_SHOWS_AGENDA_SUBJECT_TEXT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-06"
+      },
+      "statement": "Pendant la conduite de séance, le point sélectionné affiche le texte de son sujet, avec les pièces qu’il cite, qu’il s’agisse d’un projet de délibération ou d’une question ouverte.",
+      "acceptanceCriteria": [
+        "Pour un point dont le sujet est un projet de délibération, l’écran de conduite affiche le texte du projet dans un bloc repliable « Projet de délibération » ; un texte vide affiche le message de texte incomplet.",
+        "Pour un point dont le sujet est une question ouverte, préparée dans l’espace de travail ou ajoutée pendant la séance, l’écran de conduite affiche le texte de la question au même emplacement, dans le même bloc repliable, avec le même rendu Markdown, sous le titre « Question ouverte » ; une question au texte vide n’affiche pas ce bloc.",
+        "Une pièce citée dans le texte d’un projet ou d’une question s’ouvre depuis ce texte dans la visionneuse partagée."
+      ],
+      "clauses": [
+        {
+          "key": "subject-text-in-conduct",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 2026-11-06 : pendant le déroulement de la séance, les pièces sont dans le texte du point ; le texte d’une question ouverte s’affiche exactement comme le texte d’un projet de délibération.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-DOC-560": {
       "name": "USER_DOCUMENTATION_PDF_IS_GENERATED_ON_DEMAND",
       "nature": "functional",

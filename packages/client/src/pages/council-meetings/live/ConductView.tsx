@@ -1,4 +1,4 @@
-import { matchLiteral } from "@hall/domain";
+import { matchDiscriminated, matchLiteral } from "@hall/domain";
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -53,11 +53,13 @@ import { useAgendaItemRecusals } from "../../../hooks/useAgendaItemRecusals";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../../hooks/useSubmitting";
+import type { TranslationKey } from "../../../i18n/en";
 import { useI18n } from "../../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../../models/directory";
 import type {
   LiveMeetingAgendaItem as AgendaItem,
   LiveAgendaItemStatus,
+  LiveMeetingCouncilDecision,
   LiveMeetingPresentation,
 } from "../../../models/liveMeeting";
 import { agendaItemDecisionId, pendingBallotDecisions } from "../ballotDecisionPolicy";
@@ -104,6 +106,34 @@ function elapsedSince(startedAt: string, now: number): string {
   const remainder = seconds % 60;
   const parts = hours > 0 ? [hours, minutes, remainder] : [minutes, remainder];
   return parts.map((value) => String(value).padStart(2, "0")).join(":");
+}
+
+// @implements-requirement HALL-FR-MTG-360
+interface ConductSubjectText {
+  title: TranslationKey;
+  markdown: string | null;
+  toggleTestId: string;
+}
+
+function conductSubjectText(
+  subject: AgendaItem["subject"],
+  decision: LiveMeetingCouncilDecision | null,
+): ConductSubjectText | null {
+  return matchDiscriminated(subject, "kind", {
+    councilDecisionProposal: (): ConductSubjectText | null =>
+      decision
+        ? { title: "meeting.draftDecision", markdown: decision.draftText || null, toggleTestId: "live-proposal-toggle" }
+        : null,
+    openQuestion: ({ content }): ConductSubjectText | null =>
+      content.trim()
+        ? {
+            title: agendaSubjectPresentation.openQuestion.label,
+            markdown: content,
+            toggleTestId: "live-open-question-toggle",
+          }
+        : null,
+    minutesApproval: (): ConductSubjectText | null => null,
+  });
 }
 
 // @implements-requirement HALL-FR-MTG-320
@@ -223,6 +253,7 @@ export function ConductView({
   const selectedDecision = selectedDecisionId
     ? (aggregate.councilDecisions.find((decision) => decision.id === selectedDecisionId) ?? null)
     : null;
+  const subjectText = conductSubjectText(selectedItem.subject, selectedDecision);
   const selectedBallot = ballotForItem(selectedItem);
   const itemResources = selectedItem.business.resources;
   const hasVotingStage = Boolean(selectedDecisionId) || selectedItem.business.kind === "minutesApproval";
@@ -774,18 +805,18 @@ export function ConductView({
               </details>
             ) : null}
 
-            {selectedDecision ? (
+            {subjectText ? (
               <details
                 className="conduct-block conduct-draft-decision"
                 open={!voteOpen}
-                key={`decision-${selectedItem.id}-${voteOpen}`}
+                key={`subject-text-${selectedItem.id}-${voteOpen}`}
               >
-                <summary data-testid="live-proposal-toggle">
-                  <ConductBlockTitle title={t("meeting.draftDecision")} />
+                <summary data-testid={subjectText.toggleTestId}>
+                  <ConductBlockTitle title={t(subjectText.title)} />
                 </summary>
                 <blockquote>
-                  {selectedDecision.draftText ? (
-                    <MarkdownView markdown={selectedDecision.draftText} />
+                  {subjectText.markdown ? (
+                    <MarkdownView markdown={subjectText.markdown} />
                   ) : (
                     t("decisions.textIncomplete")
                   )}
