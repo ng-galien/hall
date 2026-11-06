@@ -284,7 +284,7 @@ export function renderFeatures(variant: "a" | "b") {
   root.replaceChildren();
   root.dataset.variant = variant;
   const kicker = element("p", "f-kicker", "En savoir plus");
-  const heading2 = element("h2", "f-heading", "Les fonctions de Hall");
+  const heading2 = element("h2", "f-heading", "Fonctionnalités");
   heading2.id = "en-savoir-plus-titre";
   root.append(kicker, heading2);
   const list = element("div", "f-list");
