@@ -95,8 +95,10 @@ export function landing(index: number): number {
 export const hooks: {
   jump: ((p: number) => void) | null;
   advance: ((index: number) => void) | null;
+  /** Vrai tant que la scène joue une transition demandée (lecture d'une sous-étape ou saut). */
+  moving: (() => boolean) | null;
   keyIndex: number | null;
-} = { jump: null, advance: null, keyIndex: null };
+} = { jump: null, advance: null, moving: null, keyIndex: null };
 export function goTo(index: number) {
   const max = scrollArea.offsetHeight - window.innerHeight;
   const p = landing(index);
@@ -127,10 +129,72 @@ window.addEventListener("keydown", (event) => {
   else if (event.key === "End") next = last;
   if (next === null) return;
   event.preventDefault();
+  stepTo(next, forward);
+});
+
+function stepTo(next: number, forward: boolean) {
   hooks.keyIndex = next;
   if (forward && hooks.advance) hooks.advance(next);
   else goTo(next);
-});
+}
+
+/* Molette à crans : un geste (un cran ou une rafale) passe à la sous-étape voisine et la joue comme les flèches.
+   Le pavé tactile garde le défilement continu. */
+/** Événements de molette pris en charge ici ; la scène ne doit pas les traiter comme un défilement libre. */
+export const steppedWheel = new WeakSet<WheelEvent>();
+let lastWheelStep = -Infinity;
+const WHEEL_REST_MS = 350;
+
+/** `mode` est deltaMode, lu avant tout delta : Firefox livre alors des lignes pour une molette au lieu de pixels. */
+function notched(event: WheelEvent, mode: number): boolean {
+  if (mode !== 0) return true;
+  const legacy = (event as WheelEvent & { wheelDeltaY?: number }).wheelDeltaY ?? 0;
+  /* Chrome et Safari sur Mac donnent wheelDeltaY = -3 × deltaY, pavé comme souris ; une molette Windows ou Linux
+     donne des multiples de 120 sans ce rapport */
+  return (
+    legacy !== 0 && legacy % 120 === 0 && Number.isInteger(event.deltaY) && Math.abs(legacy + 3 * event.deltaY) > 0.5
+  );
+}
+
+function scrollsItself(target: EventTarget | null, down: boolean): boolean {
+  for (
+    let node = target instanceof Element ? target : null;
+    node && node !== document.body;
+    node = node.parentElement
+  ) {
+    if (node.scrollHeight <= node.clientHeight + 1) continue;
+    const overflow = getComputedStyle(node).overflowY;
+    if (overflow !== "auto" && overflow !== "scroll") continue;
+    if (down ? node.scrollTop + node.clientHeight < node.scrollHeight - 1 : node.scrollTop > 0) return true;
+  }
+  return false;
+}
+
+window.addEventListener(
+  "wheel",
+  (event) => {
+    const mode = event.deltaMode;
+    if (event.ctrlKey || event.metaKey || event.deltaY === 0 || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+    if (!notched(event, mode)) return;
+    const down = event.deltaY > 0;
+    if (scrollsItself(event.target, down)) return;
+    if (window.scrollY >= scrollArea.offsetHeight - window.innerHeight * 0.6) return;
+    const last = subSteps.length - 1;
+    const p = scrollProgress();
+    const current = hooks.keyIndex ?? subStepAt(p);
+    /* Au bout du récit, la molette reprend le défilement de la page : vers le haut au début, vers la suite à la fin */
+    if (down && current >= last && p >= landing(last)) return;
+    if (!down && current <= 0) return;
+    steppedWheel.add(event);
+    event.preventDefault();
+    const now = performance.now();
+    if (now - lastWheelStep < WHEEL_REST_MS || hooks.moving?.()) return;
+    lastWheelStep = now;
+    if (down) stepTo(Math.min(last, current + 1), true);
+    else stepTo(p > STORY_END ? last : current - 1, false);
+  },
+  { passive: false },
+);
 
 /* Gouttière : les lieux, leurs sous-étapes, et la description de la sous-étape courante */
 /* Texte de la sous-étape : variante a éditoriale, variante b en panneau de Hall (?texte=a|b) */

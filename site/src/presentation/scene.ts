@@ -47,10 +47,33 @@ import {
   span,
   spots,
   stage,
+  steppedWheel,
   viewpoint,
   watermark,
 } from "./main";
 import { at, between, range, STORY_START, subStepAt, subSteps } from "./story";
+
+/* ------------------------------------------------------------------ Qualité du rendu */
+
+/** Rendu logiciel (SwiftShader, llvmpipe, pilote de base) : chaque image coûte au processeur. */
+function softwareRenderer(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    const gl = (canvas.getContext("webgl2") ?? canvas.getContext("webgl")) as WebGLRenderingContext | null;
+    if (!gl) return false;
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    const name = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return /swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic|gdi generic/i.test(name);
+  } catch {
+    return false;
+  }
+}
+
+/** Densités de pixels essayées l'une après l'autre quand les images restent trop lentes. */
+const LIGHTER_RATIOS = [1, 0.75, 0.6];
+/** Durée d'image au-delà de laquelle la scène s'allège (environ 22 images par seconde). */
+const SLOW_FRAME_MS = 45;
 
 /* ------------------------------------------------------------------ Scène */
 
@@ -67,12 +90,14 @@ export async function start() {
     return;
   }
   const ground = await loadGround(siteRoot);
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+  const light = softwareRenderer();
+  document.body.dataset.rendu = light ? "leger" : "complet";
+  const renderer = new THREE.WebGLRenderer({ antialias: !light });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, light ? LIGHTER_RATIOS[0] : 1.75));
   renderer.setClearColor(look.clear, 1);
   host.append(renderer.domElement);
   /* Les pièces en vol sont dessinées dans un second calque, au-dessus de la fiche de l'affaire. */
-  const flight = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  const flight = new THREE.WebGLRenderer({ antialias: !light, alpha: true });
   flight.setPixelRatio(renderer.getPixelRatio());
   flight.setClearColor(0x000000, 0);
   flight.domElement.className = "p-flight";
@@ -2049,7 +2074,6 @@ export async function start() {
     dirty = true;
   };
   /* Passage à la sous-étape suivante au clavier : le récit se joue à vitesse normale jusqu'à son état final */
-  let ownScroll = 0;
   hooks.advance = (index) => {
     const step = subSteps[index];
     const to = at(step.id, 0.97);
@@ -2060,20 +2084,47 @@ export async function start() {
     tween = { from: shown, to, start: performance.now(), ms: 1600 + 1900 * step.weight };
     dirty = true;
   };
+  hooks.moving = () => tween !== null || jump !== null || cutting;
   const cancelTween = () => {
     tween = null;
     hooks.keyIndex = null;
   };
-  window.addEventListener("wheel", cancelTween, { passive: true });
+  window.addEventListener(
+    "wheel",
+    (event) => {
+      if (!steppedWheel.has(event)) cancelTween();
+    },
+    { passive: true },
+  );
   window.addEventListener("touchstart", cancelTween, { passive: true });
+
+  /* Images trop lentes sur la durée : la densité de pixels baisse d'un cran, jusqu'au plus léger */
+  const frameTimes: number[] = [];
+  let renderedAt = -1;
+  /* Les premières images (compilation des shaders, chargement) ne comptent pas */
+  let watchFrom = -1;
+  function watchFrame(now: number) {
+    if (watchFrom < 0) watchFrom = now + 1500;
+    if (now < watchFrom) return;
+    if (renderedAt >= 0) frameTimes.push(now - renderedAt);
+    renderedAt = now;
+    if (frameTimes.length < 12) return;
+    const median = frameTimes.sort((a, b) => a - b)[frameTimes.length >> 1];
+    frameTimes.length = 0;
+    if (median < SLOW_FRAME_MS) return;
+    const ratio = LIGHTER_RATIOS.find((value) => value < renderer.getPixelRatio() - 0.01);
+    if (ratio === undefined) return;
+    renderer.setPixelRatio(ratio);
+    flight.setPixelRatio(ratio);
+    document.body.dataset.rendu = "leger";
+    resize();
+  }
   window.addEventListener(
     "scroll",
     () => {
       markPast();
-      if (ownScroll > 0) {
-        ownScroll--;
-        return;
-      }
+      /* Pendant la lecture d'une sous-étape, la page défile sous la scène : le récit garde sa propre cible */
+      if (tween) return;
       target = scrollProgress();
       dirty = true;
     },
@@ -2093,7 +2144,6 @@ export async function start() {
       shown = tween.from + (tween.to - tween.from) * easeInOut(k);
       target = shown;
       const max = scrollArea.offsetHeight - window.innerHeight;
-      ownScroll++;
       window.scrollTo({ top: shown * max, behavior: "auto" });
       if (k >= 1) {
         tween = null;
@@ -2122,8 +2172,12 @@ export async function start() {
     }
     if (jump) dirty = true;
     /* Section du bas affichée sur tout l'écran : la scène est couverte, rien à dessiner jusqu'au retour */
-    if (!dirty || window.scrollY >= more.offsetTop) return;
+    if (!dirty || window.scrollY >= more.offsetTop) {
+      renderedAt = -1;
+      return;
+    }
     dirty = false;
+    watchFrame(now);
     showStep(shown);
     compose(shown);
     renderer.render(scene, camera);
