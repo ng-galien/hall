@@ -16,6 +16,7 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[FULL]` Verify the established previous-minutes workflow (approval, rejection, unanimous abstention and postponement); any extension requires a new decision.
 - [ ] `[FRONT]` Keep meeting context when navigating between screens and links.
 - [ ] `[FRONT]` Improve the conducted-meeting and projector layouts at the target resolutions.
+- [ ] `[FRONT]` Hold one dedicated interface session with the user on the responsive layouts (phone and tablet sizes) across the application, and collect the interface details noted during the meeting of 2026-11-06. Requested by the user on 2026-11-07.
 - [ ] `[BACK]` Revalidate summons dates, clear-day calculation, and timezone handling.
 - [ ] `[FULL]` Decide which clock dates meeting-conduct observations before changing it. The conducting browser dates each observation (attendance, auxiliary attendance, quorum, opening, agenda item start and completion, closing) and the server refuses a time later than its own clock (`HV143`, shown as `conduct_chronology_invalid`). At the meeting of 2026-11-06 a server clock 33 seconds late refused two auxiliary-attendance declarations and the meeting opening until the server clock was set. Options to arbitrate: server time as the authority, an accepted tolerance, or an error message that names the clock gap.
 - [ ] `[OPS]` Check the server clock synchronisation in the installation and readiness procedure: the Windows time service was stopped on the municipal server on 2026-11-06.
@@ -82,6 +83,7 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[FULL]` Confirm the municipality fields to expose and implement the screen using authenticated reading and administrator-only updates. @tracks-requirement HALL-FR-COM-010
 - [ ] `[FULL]` Clarify whether predefined rooms belong in municipal settings before changing the model.
 - [ ] `[FULL]` Audit and rationalize RBAC, permissions, and roles; define the actions that need separate read, update, and delete rights.
+- [ ] `[FULL]` **Due Monday 2026-11-09 evening (user training and installation).** The Hall MCP server must work with user authentication from the municipal local network and through Tailscale, in particular authentication through Tailscale; the user expects the authentication to be shared with the front-end rather than a second mechanism. Requested by the user on 2026-11-07.
 - [ ] `[FULL]` Assess Microsoft account and Active Directory authentication options before selecting a provider.
 - [ ] `[FULL]` Decide how SSO-derived authorizations map to Hall permissions.
 - [ ] `[FULL]` Define the membership rule for a personalized “my businesses” view and distinguish personalization from access control.
