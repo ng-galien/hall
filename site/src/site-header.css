@@ -55,6 +55,17 @@
   white-space: nowrap;
 }
 
+.site-nav-icon {
+  display: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .site-nav a:hover,
 .site-nav a[aria-current] {
   color: var(--text);
@@ -85,28 +96,42 @@
 
 @media (max-width: 760px) {
   .site-brand-name,
-  .site-brand-qualification,
-  .site-nav a:first-child {
+  .site-brand-qualification {
     display: none;
   }
 
   .site-nav {
-    gap: 0.15rem;
+    gap: 0;
   }
 
+  /* Téléphone : chaque entrée devient un onglet, icône au-dessus d'un libellé court */
   .site-nav a {
-    padding: 0 0.4rem;
-    font-size: var(--fs-md);
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.1rem;
+    padding: 0.2rem 0.25rem;
+    font-size: 0.66rem;
+    line-height: 1.1;
+  }
+
+  .site-nav-icon {
+    display: block;
   }
 
   .site-nav a[aria-current="page"]::after {
-    left: 0.4rem;
-    right: 0.4rem;
+    left: 0.35rem;
+    right: 0.35rem;
+    bottom: -0.1rem;
   }
 
+  /* L'action de la page se réduit à son icône pour que l'en-tête tienne sur une ligne */
   .site-nav a.site-nav-action {
-    margin-left: 0.25rem;
-    padding: 0 0.65rem;
+    margin-left: 0.2rem;
+    padding: 0.45rem;
+  }
+
+  .site-nav a.site-nav-action span {
+    display: none;
   }
 }
 
