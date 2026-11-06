@@ -615,3 +615,12 @@
     transition: none;
   }
 }
+
+/* Avant les premières images du relief : rien de la scène à l'écran, puis un fondu */
+html[data-view="terrain"]:not([data-scene="ready"]) :is(.terrain-stage, .terrain-labels) {
+  opacity: 0 !important;
+}
+
+html[data-scene="ready"] :is(.terrain-stage, .terrain-labels) {
+  animation: site-arrive 0.7s ease-out;
+}

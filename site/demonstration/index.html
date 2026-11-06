@@ -10,6 +10,15 @@
       content="Hall, gestion de l’activité communale : un logiciel pour gérer l’activité d’une commune, de la préparation du conseil municipal jusqu’à la séance et aux actes, pour le secrétariat de mairie et les élus. Démonstration : la commune fictive d’Alésia, sur le plateau d’Alésia, dans le Jura."
     />
     <title>Hall, gestion de l’activité communale</title>
+    <style>
+      html { background: #f6f8fa; color-scheme: light; }
+      @media (prefers-color-scheme: dark) { html { background: #0f1723; color-scheme: dark; } }
+      html.is-arriving body { opacity: 0; }
+    </style>
+    <script>
+      document.documentElement.classList.add("is-arriving");
+      setTimeout(() => document.documentElement.classList.remove("is-arriving"), 2500);
+    </script>
   </head>
   <body id="haut">
     <header class="masthead site-header" data-testid="site-header">

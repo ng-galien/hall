@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
+import { crossfade, revealScene } from "./arrival";
 import { palette } from "./palette";
 import {
   buildBuildings,
@@ -427,8 +428,11 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   function fly(queue: Flight[]) {
     if (instantMotion) {
       const last = queue.at(-1);
-      if (last) land(last);
       flights = [];
+      if (!last) return;
+      /* Sans mouvement, le plan change d'un coup : fondu court plutôt qu'une coupure */
+      if (reducedMotion && !software && stage.dataset.ready === "true") crossfade([stage, labels], () => land(last));
+      else land(last);
       return;
     }
     flights = queue;
@@ -690,6 +694,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     placeLabels();
   }
   tick();
+  revealScene();
   stage.dataset.ready = "true";
 
   return {

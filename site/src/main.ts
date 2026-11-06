@@ -1,4 +1,5 @@
 import "@fontsource/public-sans/400.css";
+import { revealText } from "./arrival";
 import { siteRoot } from "./site-root";
 import "@fontsource/public-sans/600.css";
 import "@fontsource/public-sans/700.css";
@@ -664,3 +665,4 @@ async function start() {
 }
 
 void start();
+revealText();

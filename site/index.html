@@ -10,6 +10,15 @@
       content="Logiciel du conseil municipal pour les petites communes : affaires, cartes, préparation de séance, vote, délibérations et procès-verbaux."
     />
     <title>Hall, le logiciel du conseil municipal</title>
+    <style>
+      html { background: #f6f8fa; color-scheme: light; }
+      @media (prefers-color-scheme: dark) { html { background: #0f1723; color-scheme: dark; } }
+      html.is-arriving body { opacity: 0; }
+    </style>
+    <script>
+      document.documentElement.classList.add("is-arriving");
+      setTimeout(() => document.documentElement.classList.remove("is-arriving"), 2500);
+    </script>
   </head>
   <body>
     <header class="p-masthead">

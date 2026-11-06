@@ -109,3 +109,33 @@
     padding: 0 0.65rem;
   }
 }
+
+/* Arrivée et passage d'une page à l'autre : fondu court, sans coupure */
+body {
+  transition: opacity 0.25s ease-out;
+}
+
+.is-leaving body {
+  opacity: 0;
+  transition-duration: 0.18s;
+}
+
+@keyframes site-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
+.can-cut {
+  transition: opacity var(--cut-ms, 150ms) ease-in-out;
+}
+
+.can-cut.is-cutting {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+}

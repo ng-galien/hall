@@ -5,6 +5,7 @@ import "@fontsource/public-sans/700.css";
 import "@fontsource/public-sans/800.css";
 import "../theme.css";
 import "../site-header.css";
+import { crossfade, revealScene, revealText } from "../arrival";
 import "./presentation.css";
 import * as THREE from "three";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
@@ -34,6 +35,8 @@ import { at, between, placeRange, places, range, STORY_END, STORY_START, subStep
 type Spot = { x: number; y: number };
 
 /** Positions en mètres autour du centre de l'emprise, x vers l'est, y vers le nord. */
+revealText();
+
 const spots = {
   home: { x: -608, y: -2110 },
   homeDoor: { x: -600, y: -2132 },
@@ -320,6 +323,8 @@ function showStep(p: number) {
   } else turnWheel(-1);
   if (index === shownSub) return;
   const first = shownSub === -2;
+  /* Saut de plusieurs sous-étapes : le panneau entier s'efface et revient, sans cadre vide entre les deux */
+  const leap = Math.abs(index - shownSub) > 1;
   shownSub = index;
   const step = subSteps[Math.max(0, index)];
   for (const item of wheelItems) {
@@ -335,12 +340,13 @@ function showStep(p: number) {
   }
   const write = () => {
     renderStepText(index);
-    watermark.classList.remove("is-changing");
+    watermark.classList.remove("is-changing", "is-leaping");
   };
   window.clearTimeout(detailTimer);
   if (reducedMotion || first) write();
   else {
     watermark.classList.add("is-changing");
+    watermark.classList.toggle("is-leaping", leap);
     detailTimer = window.setTimeout(write, 260);
   }
 }
@@ -2361,6 +2367,14 @@ async function start() {
       boardNode.classList.remove("is-jumping");
       void boardNode.offsetWidth;
       boardNode.classList.add("is-jumping");
+    } else if (sceneShown && !cutting) {
+      cutting = true;
+      crossfade([stage, flight.domElement], () => {
+        shown = p;
+        cutting = false;
+        dirty = true;
+      });
+      return;
     }
     shown = p;
     dirty = true;
@@ -2419,8 +2433,20 @@ async function start() {
       dirty = true;
     }
     const goal = reducedMotion ? reducedProgress(target) : target;
-    if (reducedMotion) shown = goal;
-    else if (Math.abs(goal - shown) > 1e-5) {
+    if (reducedMotion) {
+      /* Sans mouvement, le plan change d'une étape à l'autre : fondu court plutôt qu'une coupure */
+      if (goal !== shown && !cutting) {
+        if (!sceneShown) shown = goal;
+        else {
+          cutting = true;
+          crossfade([stage, flight.domElement], () => {
+            shown = reducedProgress(target);
+            cutting = false;
+            dirty = true;
+          });
+        }
+      }
+    } else if (Math.abs(goal - shown) > 1e-5) {
       shown += (goal - shown) * Math.min(1, dt * 2.6);
       if (Math.abs(goal - shown) < 1e-5) shown = goal;
       dirty = true;
@@ -2432,7 +2458,13 @@ async function start() {
     compose(shown);
     renderer.render(scene, camera);
     flight.render(overlay, camera);
+    if (!sceneShown) {
+      sceneShown = true;
+      revealScene();
+    }
   }
+  let sceneShown = false;
+  let cutting = false;
   requestAnimationFrame(tick);
   document.body.dataset.ready = "true";
   (window as unknown as { __presentation: unknown }).__presentation = {
