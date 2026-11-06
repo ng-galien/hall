@@ -1779,8 +1779,8 @@ async function start() {
     { p: at("partage", 0.86), aim: { x: spots.mairie.x - 40, y: spots.mairie.y - 70 }, az: 206, el: 60, dist: 228 },
     { p: at("question", 0.4), aim: spots.mairieDoor, az: 205, el: 32, dist: 34 },
     { p: at("dossier", 0.95), aim: spots.mairieDoor, az: 214, el: 33, dist: 33 },
-    { p: at("appel", 0.24), aim: "dais", az: 194, el: 40, dist: 14 },
-    { p: at("cloture", 0.95), aim: "dais", az: 218, el: 37, dist: 13.5 },
+    { p: at("appel", 0.24), aim: "dais", az: 194, el: 42, dist: 16.5 },
+    { p: at("cloture", 0.95), aim: "dais", az: 218, el: 39, dist: 16 },
     { p: at("gel", 0.22), aim: { x: spots.mairieDoor.x + 4, y: spots.mairieDoor.y - 32 }, az: 200, el: 30, dist: 38 },
     { p: at("pv", 0.95), aim: { x: spots.mairieDoor.x + 4, y: spots.mairieDoor.y - 32 }, az: 212, el: 31, dist: 40 },
     { p: at("transmission", 0.16), aim: mid(spots.mairie, spots.prefecture, 0.12), az: 175, el: 44, dist: 260 },
@@ -1831,7 +1831,51 @@ async function start() {
     const e = (el * Math.PI) / 180;
     return new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e)).normalize();
   }
+  /* Cadre de l'image : la scène décalée à droite de la gouttière. Pendant la séance, la table du conseil se place
+     au centre de la partie libre, entre la gouttière, la fiche, l'en-tête et le panneau d'étape, à une distance qui
+     la fait tenir dans cette partie. La partie libre est mesurée une fois par taille de fenêtre, pendant la séance. */
+  let framedCouncil = -1;
+  let councilFit = 1;
+  let freeZone: { width: number; height: number; x: number; y: number; fit: number } | null = null;
+  function measureFreeZone(width: number, height: number) {
+    const left = gutter.getBoundingClientRect().right;
+    const right = boardNode.getBoundingClientRect().left;
+    const top = (document.querySelector(".p-masthead") as HTMLElement).getBoundingClientRect().bottom;
+    const bottom = watermark.getBoundingClientRect().top;
+    /* Référence : à 1440 × 900, la table tient à la distance de ses plans quand la partie libre fait 440 px de haut */
+    const fit = Math.min(1.6, Math.max(1, height / Math.max(120, bottom - top) / (900 / 440)));
+    freeZone = { width, height, x: width / 2 - (left + right) / 2, y: height / 2 - (top + bottom) / 2, fit };
+  }
+  function frameView(p: number) {
+    const width = host.clientWidth;
+    const height = host.clientHeight;
+    const council = narrow
+      ? 0
+      : smooth(span(p, range("appel")[0], at("appel", 0.24))) *
+        (1 - smooth(span(p, at("cloture", 0.95), at("gel", 0.22))));
+    if (council > 0 && (freeZone?.width !== width || freeZone?.height !== height)) measureFreeZone(width, height);
+    const zone = council > 0 && freeZone ? freeZone : { x: 0, y: 0, fit: 1 };
+    councilFit = 1 + (zone.fit - 1) * council;
+    if (
+      Math.abs(council - framedCouncil) < 1e-4 &&
+      camera.view?.fullWidth === width &&
+      camera.view?.fullHeight === height
+    )
+      return;
+    framedCouncil = council;
+    const baseX = narrow ? 0 : -width * 0.06;
+    camera.setViewOffset(
+      width,
+      height,
+      baseX + (zone.x - baseX) * council,
+      narrow ? height * 0.12 : zone.y * council,
+      width,
+      height,
+    );
+    camera.updateProjectionMatrix();
+  }
   function placeCamera(p: number) {
+    frameView(p);
     const aims = keys.map((key, i) => fixedAims[i] ?? aimPoint(key.aim, p));
     controlsTarget.set(
       hermite(
@@ -1847,7 +1891,7 @@ async function start() {
         aims.map((v) => v.z),
       ),
     );
-    const dist = Math.exp(hermite(p, channels.dist));
+    const dist = Math.exp(hermite(p, channels.dist)) * councilFit;
     camera.position
       .copy(controlsTarget)
       .addScaledVector(direction(hermite(p, channels.az), hermite(p, channels.el)), dist);
@@ -1862,8 +1906,7 @@ async function start() {
     flight.setSize(width, height, false);
     camera.aspect = width / height;
     narrow = width < 760;
-    camera.setViewOffset(width, height, narrow ? 0 : -width * 0.06, narrow ? height * 0.12 : 0, width, height);
-    camera.updateProjectionMatrix();
+    frameView(shown);
     for (const line of [trace, parcels, communal, link, scanLine, ...devices.map((device) => device.link)])
       (line.material as { resolution: THREE.Vector2 }).resolution.set(width, height);
     dirty = true;
@@ -1941,7 +1984,8 @@ async function start() {
     actor.group.position.copy(world(here.spot));
     actor.group.rotation.y = here.heading;
     const photoGesture =
-      smooth(span(p, at("photo", 0.14), at("photo", 0.29))) * (1 - smooth(span(p, at("photo", 0.83), at("photo", 0.96))));
+      smooth(span(p, at("photo", 0.14), at("photo", 0.29))) *
+      (1 - smooth(span(p, at("photo", 0.83), at("photo", 0.96))));
     const gait = stridePhase(actor.group, actor.group.scale.x);
     actor.pose(here.moving && !reducedMotion ? gait : null, field ? photoGesture : 0);
     adjoint.group.visible = field && !here.inCar;
@@ -2024,7 +2068,8 @@ async function start() {
 
     /* Chemin : téléphone, tracé, photos, cadastre */
     const phoneShow =
-      smooth(span(p, at("photo", 0.17), at("photo", 0.29))) * (1 - smooth(span(p, at("photo", 0.86), at("photo", 0.97))));
+      smooth(span(p, at("photo", 0.17), at("photo", 0.29))) *
+      (1 - smooth(span(p, at("photo", 0.86), at("photo", 0.97))));
     phone.style.opacity = phoneShow.toFixed(3);
     phone.style.transform = `translate(-50%, ${((1 - phoneShow) * 40).toFixed(1)}px)`;
     phone.classList.toggle("is-captured", p >= at("photo", 0.46));
