@@ -7,6 +7,8 @@ import type { PieceKind } from "./icons";
 
 export interface Place {
   name: string;
+  /** Nom court, sur une ligne, pour la gouttière des téléphones. */
+  short: string;
   feature: string;
 }
 
@@ -29,11 +31,11 @@ export interface SubStep {
 }
 
 export const places: Place[] = [
-  { name: "Bureau", feature: "Affaires et pièces" },
-  { name: "Chemin communal", feature: "Terrain et cartes" },
-  { name: "Mairie", feature: "Préparation du conseil" },
-  { name: "Séance", feature: "Séance et vote" },
-  { name: "Préfecture", feature: "Actes du conseil" },
+  { name: "Bureau", short: "Bureau", feature: "Affaires et pièces" },
+  { name: "Chemin communal", short: "Chemin", feature: "Terrain et cartes" },
+  { name: "Mairie", short: "Mairie", feature: "Préparation du conseil" },
+  { name: "Séance", short: "Séance", feature: "Séance et vote" },
+  { name: "Préfecture", short: "Préfecture", feature: "Actes du conseil" },
 ];
 
 export const subSteps: SubStep[] = [

@@ -3345,8 +3345,10 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 }
 
-/* Précédent et Suivant n'existent que sur téléphone */
-.p-step-nav {
+/* Précédent et Suivant, noms courts des lieux et des dossiers : téléphone seulement */
+.p-step-nav,
+.g-place-short,
+.b-group-short {
   display: none;
 }
 
@@ -3361,14 +3363,14 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     right: auto;
     top: calc(var(--masthead) + 0.4rem);
     bottom: auto;
-    width: 3.4rem;
+    width: 3.9rem;
     max-width: none;
     /* biome-ignore lint/complexity/noImportantStyles: remplace le style en ligne posé par turnWheel */
     height: auto !important;
     max-height: none;
     padding: 0.45rem 0 0.5rem;
     overflow: hidden;
-    border-radius: 999px;
+    border-radius: 0.6rem;
     background: color-mix(in srgb, var(--surface) 94%, transparent);
     border: 1px solid var(--border);
     box-shadow: 0 6px 18px rgb(15 23 35 / 0.1);
@@ -3432,16 +3434,21 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 
   body:not(#phone) .p-gutter .g-item.g-place .g-place-name {
-    display: block;
-    font-size: 0.56rem;
-    font-weight: 700;
-    line-height: 1.1;
-    text-align: center;
-    white-space: normal;
-    color: var(--text-2);
+    display: none;
   }
 
-  body:not(#phone) .p-gutter .g-item.g-place.is-current .g-place-name {
+  body:not(#phone) .p-gutter .g-item.g-place .g-place-short {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  body:not(#phone) .p-gutter .g-item.g-place.is-current .g-place-short {
     color: var(--accent-text);
     font-weight: 800;
   }
@@ -3488,7 +3495,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
 
   body:not(#phone) .p-step-button {
     height: 2.75rem;
-    border-radius: 999px;
+    border-radius: 0.6rem;
     border: 1px solid var(--border);
     background: color-mix(in srgb, var(--surface) 94%, transparent);
     box-shadow: 0 6px 18px rgb(15 23 35 / 0.1);
@@ -3526,9 +3533,9 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     left: auto;
     right: 0.4rem;
     top: calc(var(--masthead) + 0.4rem);
-    width: 3.4rem;
+    width: 3.9rem;
     max-height: calc(100svh - var(--masthead) - 0.4rem - 14rem);
-    border-radius: 999px;
+    border-radius: 0.6rem;
     transform: none;
     font-size: 0.6rem;
     background: color-mix(in srgb, var(--surface) 94%, transparent);
@@ -3579,7 +3586,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   body:not(#phone) .p-board:not(.is-expanded) :is(.b-head-glyph, .p-glyph, .b-folder-glyph, .b-tag-glyph) {
     width: 1.95rem;
     height: 1.95rem;
-    border-radius: 0.5rem;
+    border-radius: 0.4rem;
     box-shadow:
       inset 0 0 0 1px rgb(15 23 35 / 0.08),
       0 0 0 calc(var(--glow, 0) * 3px) var(--accent);
@@ -3595,7 +3602,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-folder {
-    border-radius: 0.5rem;
+    border-radius: 0.4rem;
     background: color-mix(in srgb, var(--accent) 7%, var(--surface));
   }
 
@@ -3604,18 +3611,19 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-group-label {
-    flex: none;
-    max-width: 3.1rem;
-    overflow: hidden;
-    font-size: 0.52rem;
-    font-weight: 700;
-    line-height: 1.1;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    color: var(--text-2);
+    display: none;
   }
 
-  body:not(#phone) .p-board:not(.is-expanded) .b-group.is-open .b-group-label {
+  body:not(#phone) .p-board:not(.is-expanded) .b-group-short {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  body:not(#phone) .p-board:not(.is-expanded) .b-group.is-open .b-group-short {
     color: var(--accent-text);
   }
 
@@ -3677,6 +3685,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     right: -0.35rem;
     min-width: 0.95rem;
     padding: 0 0.2rem;
+    border-radius: 0.3rem;
     font-size: 0.56rem;
     line-height: 1.5;
   }
@@ -3685,7 +3694,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     width: 1.95rem;
     height: 1.95rem;
     border: 1.5px dashed color-mix(in srgb, var(--text-2) 45%, transparent);
-    border-radius: 0.5rem;
+    border-radius: 0.4rem;
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-point.is-empty > .b-row {
@@ -3708,6 +3717,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   body:not(#phone) .p-board:not(.is-expanded) .b-session-mark {
     width: 1.8rem;
     height: 1.8rem;
+    border-radius: 0.4rem;
     font-size: 0.72rem;
   }
 
@@ -3735,7 +3745,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   body:not(#phone) .p-board:not(.is-expanded) .b-counter {
     display: grid;
     justify-items: center;
-    width: 2.6rem;
+    width: 3.1rem;
     padding: 0.1rem 0 0.15rem;
     overflow: hidden;
     border-width: 0 0 0 3px;
@@ -3763,8 +3773,11 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-counter span {
-    font-size: 0.48rem;
-    line-height: 1.1;
+    font-size: 0.6rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--text);
   }
 
   body:not(#phone) .p-board:not(.is-expanded) .b-row-check {
@@ -3944,7 +3957,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     /* biome-ignore lint/complexity/noImportantStyles: remplace la hauteur commune posée par calibrateStepText */
     height: auto !important;
     padding: 0.65rem 0.8rem 0.55rem;
-    border-radius: 0.8rem;
+    border-radius: 0.6rem;
   }
 
   body:not(#phone) .p-watermark .w-head {

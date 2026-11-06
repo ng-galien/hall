@@ -339,8 +339,9 @@ places.forEach((place, placeIndex) => {
   link.className = "g-item g-place";
   link.dataset.testid = `gutter-place-${placeIndex}`;
   link.href = `#lieu-${placeIndex + 1}`;
-  link.innerHTML = `<span class="g-dot" aria-hidden="true"></span><span class="g-place-words"><span class="g-place-name"></span><span class="g-place-feature"></span></span>`;
+  link.innerHTML = `<span class="g-dot" aria-hidden="true"></span><span class="g-place-words"><span class="g-place-name"></span><span class="g-place-short"></span><span class="g-place-feature"></span></span>`;
   (link.querySelector(".g-place-name") as HTMLElement).textContent = place.name;
+  (link.querySelector(".g-place-short") as HTMLElement).textContent = place.short;
   (link.querySelector(".g-place-feature") as HTMLElement).textContent = place.feature;
   link.addEventListener("click", (event) => {
     event.preventDefault();

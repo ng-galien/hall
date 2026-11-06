@@ -48,14 +48,15 @@ export interface Point {
   y: number;
 }
 
-export const folders: { id: string; label: string }[] = [
-  { id: "devis", label: "Devis" },
-  { id: "budget", label: "Budget" },
-  { id: "plans", label: "Plans" },
-  { id: "textes", label: "Textes de référence" },
-  { id: "courriers", label: "Courriers" },
-  { id: "photos", label: "Photos" },
-  { id: "carte", label: "Carte" },
+/** `short` : nom sur une ligne pour la colonne de la fiche sur téléphone. */
+export const folders: { id: string; label: string; short: string }[] = [
+  { id: "devis", label: "Devis", short: "Devis" },
+  { id: "budget", label: "Budget", short: "Budget" },
+  { id: "plans", label: "Plans", short: "Plans" },
+  { id: "textes", label: "Textes de référence", short: "Textes" },
+  { id: "courriers", label: "Courriers", short: "Courriers" },
+  { id: "photos", label: "Photos", short: "Photos" },
+  { id: "carte", label: "Carte", short: "Carte" },
 ];
 
 /** Vignette d'une photo à la place d'un pictogramme. */
@@ -151,7 +152,13 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
     const icon = element("span", "b-folder");
     const minis = element("span", "b-minis");
     const badge = element("span", "b-badge");
-    header.append(icon, element("span", "b-group-label", folder.label), minis, badge);
+    header.append(
+      icon,
+      element("span", "b-group-label", folder.label),
+      element("span", "b-group-short", folder.short),
+      minis,
+      badge,
+    );
     const body = element("div", "b-group-body");
     node.append(header, body);
     folderList.append(node);
