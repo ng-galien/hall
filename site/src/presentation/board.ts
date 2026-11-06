@@ -1,4 +1,4 @@
-import { glyphs, type PieceKind, svgIcon } from "./icons";
+import { glyphs, type PieceKind, photoThumb, svgIcon } from "./icons";
 
 /**
  * Fiche persistante de l'affaire. Elle reste en haut à droite et prend tour à tour l'apparence des vues de Hall :
@@ -58,6 +58,14 @@ export const folders: { id: string; label: string }[] = [
   { id: "carte", label: "Carte" },
 ];
 
+/** Vignette d'une photo à la place d'un pictogramme. */
+function photoTile(title: string, className: string): HTMLElement {
+  const tile = document.createElement("span");
+  tile.className = className;
+  tile.style.backgroundImage = `url("${photoThumb(title)}")`;
+  return tile;
+}
+
 export function glyphTile(kind: PieceKind, className = "p-glyph"): HTMLElement {
   const tile = document.createElement("span");
   tile.className = className;
@@ -87,7 +95,7 @@ function row(kind: PieceKind, title: string, detail: string, className = "b-row"
   const titleNode = element("span", "b-row-title", title);
   const detailNode = element("span", "b-row-detail", detail);
   words.append(titleNode, detailNode);
-  const glyph = glyphTile(kind);
+  const glyph = kind === "image" ? photoTile(title, "p-glyph b-photo") : glyphTile(kind);
   node.append(glyph, words);
   return { node, glyph, title: titleNode, detail: detailNode };
 }
@@ -150,7 +158,7 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
     const entry = row(item.kind, item.name, item.detail);
     const folder = folderNodes.find((f) => f.id === item.folder);
     folder?.body.append(entry.node);
-    const mini = glyphTile(item.kind, "b-mini");
+    const mini = item.kind === "image" ? photoTile(item.name, "b-mini b-photo") : glyphTile(item.kind, "b-mini");
     folder?.minis.append(mini);
     targets.set(item.key, entry.node);
     return { item, entry, mini, folder };

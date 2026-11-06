@@ -25,7 +25,7 @@ import { supportsWebGL } from "../webgl";
 import { buildCar, buildCharacter } from "./actors";
 import { type BoardState, createBoard, type Face, type FolderItem, type Point } from "./board";
 import { renderFeatures } from "./features";
-import { discCanvas, glyphs, indexCanvas, type PieceKind, sheetCanvas, svgIcon } from "./icons";
+import { discCanvas, glyphs, indexCanvas, type PieceKind, photoThumb, sheetCanvas, svgIcon } from "./icons";
 import { buildBureau, buildMairie, buildPrefecture } from "./landmarks";
 import { lightBuildings } from "./look";
 import { at, between, places, range, STORY_END, STORY_START, subStepAt, subSteps } from "./story";
@@ -91,6 +91,9 @@ const gutter = document.querySelector(".p-gutter") as HTMLElement;
 const credit = document.querySelector(".p-credit") as HTMLElement;
 const boardNode = document.querySelector(".p-board") as HTMLElement;
 const phone = document.querySelector(".p-phone") as HTMLElement;
+/* Le viseur du téléphone montre le paysage de la photo qu'il va prendre */
+for (const node of phone.querySelectorAll<HTMLElement>(".p-phone-view, .p-phone-photo"))
+  node.style.backgroundImage = `url("${photoThumb("Ornière, côté est")}")`;
 const flash = document.querySelector(".p-flash") as HTMLElement;
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 

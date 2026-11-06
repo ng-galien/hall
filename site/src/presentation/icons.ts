@@ -214,6 +214,123 @@ export function discCanvas(fill: string, ring: string): HTMLCanvasElement {
 }
 
 /** Fiche d'une pièce, format intercalaire : bandeau de tête avec icône et titre, corps avec type, mention et lignes. 16:10. */
+/*
+ * Photo prise sur le terrain, en vignette : ciel, relief au loin, prés et chemin qui file vers l'horizon, dans les
+ * teintes de la palette. Le titre de la photo choisit la variante : ornière, fossé ou accotement.
+ */
+export function drawPhoto(ctx: CanvasRenderingContext2D, title: string, x: number, y: number, w: number, h: number) {
+  let seed = 0;
+  for (const char of title) seed = (seed * 31 + char.charCodeAt(0)) >>> 0;
+  const variant = /foss/i.test(title) ? 1 : /accotement/i.test(title) ? 2 : 0;
+  const shift = ((seed % 7) - 3) / 30;
+  const horizon = y + h * (0.42 + ((seed >> 3) % 5) / 100);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  const sky = ctx.createLinearGradient(0, y, 0, horizon);
+  sky.addColorStop(0, "#c9d9ea");
+  sky.addColorStop(1, "#eef3f8");
+  ctx.fillStyle = sky;
+  ctx.fillRect(x, y, w, h);
+  /* Relief au loin, puis colline plus proche */
+  const ridge = (base: number, amp: number, phase: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24;
+      const wave = Math.sin(t * 5.2 + phase) * 0.55 + Math.sin(t * 11.3 + phase * 2) * 0.25;
+      ctx.lineTo(x + t * w, base - amp * (0.6 + wave * 0.5));
+    }
+    ctx.lineTo(x + w, y + h);
+    ctx.closePath();
+    ctx.fill();
+  };
+  ridge(horizon, h * 0.18, seed % 10, "#a9bccf");
+  ridge(horizon + h * 0.06, h * 0.08, (seed >> 2) % 10, "#8fae9b");
+  const meadow = ctx.createLinearGradient(0, horizon, 0, y + h);
+  meadow.addColorStop(0, "#9dbca6");
+  meadow.addColorStop(1, "#7a9e86");
+  ctx.fillStyle = meadow;
+  ctx.fillRect(x, horizon + h * 0.05, w, h);
+  /* Chemin : de large au premier plan à un point vers l'horizon */
+  const far = { x: x + w * (0.5 + shift), y: horizon + h * 0.06 };
+  const nearLeft = x + w * (0.14 + shift / 2);
+  const nearRight = x + w * (0.86 + shift / 2);
+  ctx.fillStyle = "#d5dde6";
+  ctx.beginPath();
+  ctx.moveTo(far.x - w * 0.015, far.y);
+  ctx.lineTo(far.x + w * 0.015, far.y);
+  ctx.lineTo(nearRight, y + h);
+  ctx.lineTo(nearLeft, y + h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#a3b1c2";
+  ctx.lineWidth = Math.max(1, w / 160);
+  ctx.stroke();
+  const along = (side: number, t: number) => ({
+    x: far.x + ((side < 0 ? nearLeft : nearRight) - far.x) * t + side * w * 0.015 * (1 - t),
+    y: far.y + (y + h - far.y) * t,
+  });
+  if (variant === 0) {
+    /* Ornières : deux traces sombres dans le chemin */
+    ctx.strokeStyle = "#7b8a9c";
+    ctx.lineWidth = Math.max(1.5, w / 70);
+    for (const lane of [0.36, 0.64]) {
+      ctx.beginPath();
+      ctx.moveTo(far.x, far.y + 2);
+      const end = nearLeft + (nearRight - nearLeft) * lane;
+      ctx.quadraticCurveTo(far.x + (end - far.x) * 0.4 + w * 0.02, far.y + (y + h - far.y) * 0.6, end, y + h);
+      ctx.stroke();
+    }
+  } else if (variant === 1) {
+    /* Fossé bouché : une ligne d'eau stagnante le long du bord, avec des touffes */
+    ctx.strokeStyle = "#5b86c4";
+    ctx.lineWidth = Math.max(2, w / 45);
+    ctx.beginPath();
+    const a = along(1, 0.05);
+    const b = along(1, 1);
+    ctx.moveTo(a.x + w * 0.02, a.y);
+    ctx.lineTo(b.x + w * 0.06, b.y);
+    ctx.stroke();
+    ctx.fillStyle = "#5f8a6c";
+    for (let i = 1; i < 6; i++) {
+      const p = along(1, i / 6);
+      ctx.beginPath();
+      ctx.arc(p.x + w * 0.05, p.y, (w / 70) * (0.5 + i / 6), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    /* Accotement affaissé : le bord du chemin s'effondre en creux */
+    ctx.fillStyle = "#94a3b8";
+    const a = along(-1, 0.45);
+    const b = along(-1, 0.85);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.quadraticCurveTo(a.x + w * 0.09, (a.y + b.y) / 2, b.x + w * 0.02, b.y);
+    ctx.lineTo(b.x - w * 0.05, b.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+const photoUrls = new Map<string, string>();
+/** Vignette d'une photo, en image, pour les lignes et les pastilles de la fiche. */
+export function photoThumb(title: string): string {
+  let url = photoUrls.get(title);
+  if (!url) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 120;
+    canvas.height = 90;
+    drawPhoto(canvas.getContext("2d") as CanvasRenderingContext2D, title, 0, 0, 120, 90);
+    url = canvas.toDataURL("image/png");
+    photoUrls.set(title, url);
+  }
+  return url;
+}
+
 export function indexCanvas(kind: PieceKind, title: string, detail: string, mark?: string): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = 640;
@@ -241,6 +358,18 @@ export function indexCanvas(kind: PieceKind, title: string, detail: string, mark
   let line = title;
   while (ctx.measureText(line).width > 530 && line.length > 4) line = `${line.slice(0, -2)}…`;
   ctx.fillText(line, 92, 58);
+  if (kind === "image") {
+    /* Une photo : la vignette remplit le corps de la carte, sa légende en dessous */
+    ctx.save();
+    roundRect(ctx, 24, 104, 592, 232, 14);
+    ctx.clip();
+    drawPhoto(ctx, title, 24, 104, 592, 232);
+    ctx.restore();
+    ctx.fillStyle = "#475569";
+    ctx.font = "700 24px 'Public Sans', system-ui, sans-serif";
+    ctx.fillText(detail.toUpperCase(), 32, 372);
+    return canvas;
+  }
   ctx.fillStyle = "#475569";
   ctx.font = "700 26px 'Public Sans', system-ui, sans-serif";
   ctx.fillText(detail.toUpperCase(), 32, 140);
