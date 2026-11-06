@@ -17,6 +17,8 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[FRONT]` Keep meeting context when navigating between screens and links.
 - [ ] `[FRONT]` Improve the conducted-meeting and projector layouts at the target resolutions.
 - [ ] `[BACK]` Revalidate summons dates, clear-day calculation, and timezone handling.
+- [ ] `[FULL]` Decide which clock dates meeting-conduct observations before changing it. The conducting browser dates each observation (attendance, auxiliary attendance, quorum, opening, agenda item start and completion, closing) and the server refuses a time later than its own clock (`HV143`, shown as `conduct_chronology_invalid`). At the meeting of 2026-11-06 a server clock 33 seconds late refused two auxiliary-attendance declarations and the meeting opening until the server clock was set. Options to arbitrate: server time as the authority, an accepted tolerance, or an error message that names the clock gap.
+- [ ] `[OPS]` Check the server clock synchronisation in the installation and readiness procedure: the Windows time service was stopped on the municipal server on 2026-11-06.
 - [ ] `[BACK]` Model evidence of delivery and publication.
 - [ ] `[BACK]` Add population and urgency variants only after legal validation.
 
