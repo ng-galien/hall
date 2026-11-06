@@ -14,10 +14,15 @@ import {
 } from "../src/story/edit";
 import type { StoryHost } from "../src/story/host";
 import { Player } from "../src/story/playback";
-import { cloneSettings, type MomentSettings, type StorySettings } from "../src/story/settings";
+import { cloneSettings, type MomentSettings, type StorySettings, settingsFingerprint } from "../src/story/settings";
+import { TimeBase } from "../src/story/timebase";
 import { Timeline } from "../src/story/timeline";
 
-/* Studio du récit : la page réelle dans un cadre d'ordinateur ou de téléphone, la ligne de temps en bas. */
+/*
+ * Studio du récit : la page réelle dans un cadre d'ordinateur ou de téléphone, la ligne de temps en bas.
+ * Les temps sont ceux de la lecture par les flèches de la carte, en secondes : ce que voit le studio est ce que
+ * voit le visiteur.
+ */
 
 const FRAMES = {
   desktop: { width: 1440, height: 900 },
@@ -25,17 +30,28 @@ const FRAMES = {
 } as const;
 type FrameKind = keyof typeof FRAMES;
 type Tool = "move" | "cut" | "note";
+/** Élément sélectionné : un moment, ou un plan de caméra par son rang. */
+type Selection = { kind: "moment"; name: string } | { kind: "key"; index: number } | null;
 
 interface Cut {
   step: string;
+  /** Début et fin de la partie retirée, en secondes depuis le début de la lecture de la sous-étape. */
   from: number;
   to: number;
   seconds: number;
 }
 interface Note {
   step: string;
+  /** Secondes depuis le début de la lecture de la sous-étape. */
   at: number;
   text: string;
+}
+/** État annulable : réglages, chemins modifiés à la main, coupes et notes. */
+interface State {
+  settings: StorySettings;
+  touched: Set<string>;
+  cuts: Cut[];
+  notes: Note[];
 }
 
 const iframe = document.querySelector("iframe") as HTMLIFrameElement;
@@ -45,31 +61,41 @@ const panel = document.querySelector(".st-panel") as HTMLElement;
 
 let host: StoryHost;
 let timeline: Timeline;
+let base: TimeBase;
 let player: Player;
-let base: StorySettings;
-let settings: StorySettings;
+let opened: StorySettings;
+let openedFingerprint = "";
+let stale = false;
 let previousVersion: string | null = null;
-const history: StorySettings[] = [];
-const cuts: Cut[] = [];
-const notes: Note[] = [];
+let state: State;
+const history: State[] = [];
 let current = 0;
 let tool: Tool = "move";
 let frameKind: FrameKind = "desktop";
-let selection: [number, number] | null = null;
-let selected: string | null = null;
+let range: [number, number] | null = null;
+let selected: Selection = null;
 let dragging = false;
 
-const seconds = (value: number) =>
-  `${value.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s`;
+const order = () => timeline.order;
+const stepId = () => order()[current];
+const copyState = (from: State): State => ({
+  settings: from.settings,
+  touched: new Set(from.touched),
+  cuts: from.cuts.map((cut) => ({ ...cut })),
+  notes: from.notes.map((note) => ({ ...note })),
+});
+const seconds = (value: number, digits = 1) =>
+  `${value.toLocaleString("fr-FR", { minimumFractionDigits: digits, maximumFractionDigits: digits })} s`;
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text = "") => {
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text) node.textContent = text;
   return node;
 };
-const stepId = () => timeline.order[current];
-/** Durée réelle de la sous-étape courante, lue par la flèche de la carte à vitesse normale, en secondes. */
-const stepSeconds = (id = stepId()) => player.stepDuration(id) / 1000;
+/** Début et durée de la lecture de la sous-étape i, en secondes. */
+const playStart = (i = current) => base.starts[i];
+const playLength = (i = current) => base.duration(i);
+const stepIndex = (id: string) => order().indexOf(id);
 
 /* ------------------------------------------------------------------ Cadre */
 
@@ -90,25 +116,30 @@ fit();
 /* ------------------------------------------------------------------ Réglages */
 
 /** Montre des réglages dans la page sans les inscrire dans l'historique (pendant un glissement). */
-function preview(next: StorySettings) {
-  settings = next;
-  timeline.set(next);
-  host.apply(cloneSettings(next));
+function preview(settings: StorySettings) {
+  state.settings = settings;
+  timeline.set(settings);
+  base = new TimeBase(timeline);
+  host.apply(cloneSettings(settings));
   renderRibbon();
   renderDetail();
 }
 
-/** Adopte des réglages ; `before` entre dans l'historique d'annulation. */
-function commit(next: StorySettings, before = settings) {
+/** Adopte un nouvel état ; `before` entre dans l'historique d'annulation. */
+function commit(change: (next: State) => void, before = copyState(state)) {
   history.push(before);
-  preview(next);
+  const next = copyState(state);
+  change(next);
+  state = next;
+  preview(next.settings);
   renderBar();
 }
 
 function undo() {
   const last = history.pop();
   if (!last) return;
-  preview(last);
+  state = last;
+  preview(last.settings);
   renderBar();
 }
 
@@ -122,8 +153,8 @@ panel.append(bar, ribbon, detail);
 const playButton = el("button", "st-button");
 playButton.dataset.testid = "studio-play";
 const replayButton = el("button", "st-button", "Rejouer");
-replayButton.title = "Rejouer la sous-étape comme la flèche de la carte";
 replayButton.dataset.testid = "studio-replay";
+replayButton.title = "Rejouer la sous-étape comme la flèche de la carte";
 const speedGroup = el("span", "st-group");
 const toolGroup = el("span", "st-group");
 const frameGroup = el("span", "st-group");
@@ -138,6 +169,13 @@ nameInput.placeholder = "Nom de la version";
 const saveButton = el("button", "st-button is-primary", "Enregistrer");
 saveButton.dataset.testid = "studio-save";
 const status = el("span", "st-status");
+status.dataset.testid = "studio-status";
+const staleNotice = el("span", "st-stale");
+staleNotice.dataset.testid = "studio-stale";
+const reload = el("button", "st-link-button", "recharger");
+reload.addEventListener("click", () => window.location.reload());
+staleNotice.append("Réglages modifiés depuis l'ouverture du studio : ", reload);
+staleNotice.hidden = true;
 
 function choice<T extends string | number>(
   group: HTMLElement,
@@ -184,7 +222,7 @@ const refreshTool = choice(
   () => tool,
   (value) => {
     tool = value;
-    selection = null;
+    range = null;
     renderDetail();
   },
   "studio-tool",
@@ -216,6 +254,7 @@ bar.append(
   frameGroup,
   clock,
   status,
+  staleNotice,
   undoButton,
   nameInput,
   saveButton,
@@ -227,16 +266,16 @@ function renderBar() {
   refreshTool();
   refreshFrame();
   cutButton.hidden = tool !== "cut";
-  cutButton.disabled = !selection;
-  cutButton.textContent = selection
-    ? `Couper ${seconds((selection[1] - selection[0]) * stepSeconds())}`
-    : "Couper la sélection";
+  cutButton.disabled = !range;
+  cutButton.textContent = range ? `Couper ${seconds(range[1] - range[0], 2)}` : "Couper la sélection";
   undoButton.disabled = history.length === 0;
+  staleNotice.hidden = !stale;
+  saveButton.disabled = stale;
 }
 
 playButton.addEventListener("click", () => {
   if (player.playing) player.stop();
-  else player.play(host.shown(), renderBar);
+  else player.play(base.time(host.shown()), renderBar);
   renderBar();
 });
 replayButton.addEventListener("click", () => {
@@ -244,22 +283,31 @@ replayButton.addEventListener("click", () => {
   renderBar();
 });
 cutButton.addEventListener("click", () => {
-  if (!selection) return;
-  const [from, to] = selection;
+  if (!range) return;
+  const [a, b] = range;
   const id = stepId();
-  cuts.push({
-    step: id,
-    from: Math.round(from * 10000) / 10000,
-    to: Math.round(to * 10000) / 10000,
-    seconds: Math.round((to - from) * stepSeconds() * 100) / 100,
+  const index = current;
+  const start = playStart();
+  const cut = b - a;
+  range = null;
+  commit((next) => {
+    next.cuts.push({
+      step: id,
+      from: Math.round((a - start) * 100) / 100,
+      to: Math.round((b - start) * 100) / 100,
+      seconds: Math.round(cut * 100) / 100,
+    });
+    for (const note of next.notes) {
+      if (note.step !== id) continue;
+      const t = start + note.at;
+      note.at = Math.round(((t <= a ? t : t >= b ? t - cut : a) - start) * 100) / 100;
+    }
+    next.settings = cutStep(state.settings, order(), index, a, b);
   });
-  const cut = to - from;
-  for (const note of notes)
-    if (note.step === id) note.at = (note.at <= from ? note.at : note.at >= to ? note.at - cut : from) / (1 - cut);
-  selection = null;
-  commit(cutStep(settings, id, from, to));
 });
 undoButton.addEventListener("click", undo);
+
+/* Clavier : espace pour lire, flèches pour décaler l'élément sélectionné (Maj : par demi-seconde) */
 window.addEventListener("keydown", (event) => {
   const target = event.target as HTMLElement;
   if (/^(INPUT|TEXTAREA)$/.test(target.tagName)) return;
@@ -269,87 +317,144 @@ window.addEventListener("keydown", (event) => {
   } else if (event.key === " ") {
     event.preventDefault();
     playButton.click();
+  } else if (event.key === "Escape") {
+    selected = null;
+    range = null;
+    closePopover();
+    renderDetail();
+    renderBar();
+  } else if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && selected) {
+    event.preventDefault();
+    const step = (event.shiftKey ? 0.5 : 0.1) * (event.key === "ArrowLeft" ? -1 : 1);
+    const target = selected;
+    if (target.kind === "moment" && typeof state.settings.moments[target.name].start === "string") return;
+    commit((next) => {
+      if (target.kind === "moment") {
+        next.settings = moveMoment(state.settings, order(), target.name, step);
+        for (const path of momentPaths(target.name, ["start", "end"])) next.touched.add(path);
+      } else {
+        const key = timeline.cameraKeys()[target.index];
+        next.settings = moveCameraKey(state.settings, order(), target.index, base.time(key.p) + step);
+        next.touched.add(`camera.${target.index}`);
+      }
+    });
   }
 });
 
+/* ------------------------------------------------------------------ Réglages modifiés ailleurs */
+
+/** Le fichier de réglages a changé depuis l'ouverture : avis discret, enregistrement bloqué. */
+async function checkSettingsFile() {
+  try {
+    const response = await fetch("../__studio/settings", { cache: "no-store" });
+    if (!response.ok) return;
+    const { fingerprint } = (await response.json()) as { fingerprint: string };
+    if (fingerprint !== openedFingerprint && !stale) {
+      stale = true;
+      renderBar();
+    }
+  } catch {
+    /* Sans serveur du studio, pas de contrôle : l'enregistrement passe par un téléchargement */
+  }
+}
+
 /* ------------------------------------------------------------------ Enregistrement */
 
+/** Modifications faites à la main : seulement les valeurs des moments, plans et sous-étapes touchés. */
+function changes() {
+  const read = (settings: StorySettings, path: string) =>
+    path.split(".").reduce<unknown>((value, key) => (value as Record<string, unknown> | undefined)?.[key], settings);
+  return [...state.touched]
+    .sort()
+    .flatMap((path) => diffSettings(read(opened, path), read(state.settings, path), path));
+}
+
 saveButton.addEventListener("click", async () => {
+  if (stale) return;
   const date = new Date();
   const name = nameInput.value.trim() || `Réglages du ${date.toLocaleString("fr-FR")}`;
   const version = {
     name,
     date: date.toISOString(),
     base: "site/src/presentation/story-settings.json",
+    baseFingerprint: openedFingerprint,
     previous: previousVersion,
-    changes: diffSettings(base, settings),
-    cuts,
-    notes: notes.map((note) => ({
-      ...note,
-      seconds: Math.round(note.at * stepSeconds(note.step) * 100) / 100,
+    changes: changes(),
+    cuts: state.cuts,
+    notes: state.notes.map((note) => ({
+      step: note.step,
       title: host.steps.find((step) => step.id === note.step)?.title,
+      seconds: note.at,
+      text: note.text,
     })),
-    settings,
+    settings: state.settings,
   };
   const text = `${JSON.stringify(version, null, 2)}\n`;
+  let response: Response | null = null;
   try {
-    const response = await fetch("../__studio/versions", {
+    response = await fetch("../__studio/versions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: text,
     });
-    if (!response.ok) throw new Error(String(response.status));
+  } catch {
+    response = null;
+  }
+  if (response?.status === 409) {
+    stale = true;
+    status.textContent = "Non enregistré : les réglages ont changé depuis l'ouverture";
+    renderBar();
+    return;
+  }
+  if (response?.ok) {
     const { file } = (await response.json()) as { file: string };
     previousVersion = file;
     status.textContent = `Enregistré : ${file}`;
-  } catch {
-    /* Sans le serveur du studio : le fichier est téléchargé, à déposer dans site/studio/versions/ */
-    const link = el("a");
-    link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-    link.download = `${date.toISOString().slice(0, 16).replace(/[T:]/g, "-")}-reglages.json`;
-    link.click();
-    status.textContent = "Téléchargé : déposer le fichier dans site/studio/versions/";
+    return;
   }
+  /* Sans le serveur du studio : le fichier est téléchargé, à déposer dans site/studio/versions/ */
+  const link = el("a");
+  link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  link.download = `${date.toISOString().slice(0, 16).replace(/[T:]/g, "-")}-reglages.json`;
+  link.click();
+  status.textContent = "Téléchargé : déposer le fichier dans site/studio/versions/";
 });
 
 /* ------------------------------------------------------------------ Ruban des lieux et des sous-étapes */
 
-const ribbonX = (p: number) => {
-  const { storyStart, storyEnd } = settings;
-  return ((p - storyStart) / (storyEnd - storyStart)) * 100;
-};
+/** Position dans le ruban, en pour cent de la durée totale de lecture. */
+const ribbonX = (t: number) => (t / base.starts[base.starts.length - 1]) * 100;
 const ribbonHead = el("div", "st-ribbon-head");
 
 function renderRibbon() {
   const places = el("div", "st-places");
   const steps = el("div", "st-steps");
   host.places.forEach((name, place) => {
-    const ids = host.steps.filter((step) => step.place === place).map((step) => step.id);
-    const [a] = timeline.range(ids[0]);
-    const [, b] = timeline.range(ids[ids.length - 1]);
+    const indexes = host.steps.flatMap((step, i) => (step.place === place ? [i] : []));
     const node = el("div", "st-place", name);
-    node.style.width = `${ribbonX(b) - ribbonX(a)}%`;
+    node.style.width = `${ribbonX(base.starts[indexes[indexes.length - 1] + 1]) - ribbonX(base.starts[indexes[0]])}%`;
     places.append(node);
   });
   host.steps.forEach((step, index) => {
-    const [a, b] = timeline.range(step.id);
     const node = el("div", `st-step${index === current ? " is-current" : ""}`, step.title);
     node.dataset.testid = `studio-step-${step.id}`;
-    node.title = `${step.title} · ${seconds(stepSeconds(step.id))}`;
-    node.style.width = `${ribbonX(b) - ribbonX(a)}%`;
+    node.title = `${step.title} · ${seconds(playLength(index))}`;
+    node.style.width = `${ribbonX(base.starts[index + 1]) - ribbonX(base.starts[index])}%`;
     const edge = el("div", "st-step-edge");
     edge.title = "Allonger ou raccourcir la sous-étape";
     edge.addEventListener("pointerdown", (event) => {
       event.stopPropagation();
       const width = node.getBoundingClientRect().width;
-      drag(event, (dx, start) => stretchStep(start, step.id, Math.max(0.2, (width + dx) / width)));
+      drag(event, (dx, start) => stretchStep(start.settings, step.id, Math.max(0.2, (width + dx) / width)), [
+        `steps.${step.id}.pace`,
+      ]);
     });
     node.append(edge);
     steps.append(node);
   });
-  const marks = notes.map((note) => {
+  const marks = state.notes.map((note) => {
     const dot = el("div", "st-ribbon-note");
-    dot.style.left = `${ribbonX(timeline.at(note.step, note.at))}%`;
+    dot.style.left = `${ribbonX(playStart(stepIndex(note.step)) + note.at)}%`;
     dot.title = note.text;
     return dot;
   });
@@ -359,11 +464,11 @@ function renderRibbon() {
 ribbon.addEventListener("pointerdown", (event) => {
   const box = ribbon.getBoundingClientRect();
   const scrub = (x: number) => {
-    const { storyStart, storyEnd } = settings;
-    const p = storyStart + ((x - box.left) / box.width) * (storyEnd - storyStart);
+    const total = base.starts[base.starts.length - 1];
+    const t = Math.min(total, Math.max(0, ((x - box.left) / box.width) * total));
     player.stop();
-    host.seek(Math.min(storyEnd, Math.max(0, p)));
-    follow(p);
+    host.seek(base.progress(t));
+    follow(t);
   };
   scrub(event.clientX);
   const move = (e: PointerEvent) => scrub(e.clientX);
@@ -371,12 +476,12 @@ ribbon.addEventListener("pointerdown", (event) => {
   window.addEventListener("pointerup", () => window.removeEventListener("pointermove", move), { once: true });
 });
 
-/** Sous-étape suivie par le détail : celle de l'instant p. */
-function follow(p: number) {
-  const index = Math.max(0, timeline.stepAt(p));
+/** Sous-étape suivie par le détail : celle dont la lecture contient le temps t. */
+function follow(t: number) {
+  const index = base.playbackAt(t);
   if (index === current) return;
   current = index;
-  selection = null;
+  range = null;
   renderRibbon();
   renderDetail();
   renderBar();
@@ -384,25 +489,83 @@ function follow(p: number) {
 
 /* ------------------------------------------------------------------ Détail de la sous-étape */
 
-/** Partie de la sous-étape montrée : un peu avant son début et après sa fin, hachurés. */
-const VIEW: [number, number] = [-0.04, 1.12];
+/** Fenêtre montrée : la lecture de la sous-étape, un peu de la précédente et de la suivante, hachurées. */
+const window_ = () => [playStart() - 0.05 * playLength(), playStart() + 1.12 * playLength()] as const;
 let laneWidth = 1;
-const xOf = (f: number) => ((f - VIEW[0]) / (VIEW[1] - VIEW[0])) * laneWidth;
-const fOf = (x: number) => VIEW[0] + (x / laneWidth) * (VIEW[1] - VIEW[0]);
-const pOf = (x: number) => timeline.at(stepId(), fOf(x));
+const xOf = (t: number) => {
+  const [a, b] = window_();
+  return ((t - a) / (b - a)) * laneWidth;
+};
+const tOf = (x: number) => {
+  const [a, b] = window_();
+  return a + (x / laneWidth) * (b - a);
+};
+const pxToSeconds = (dx: number) => {
+  const [a, b] = window_();
+  return (dx / laneWidth) * (b - a);
+};
 const LANE = 21;
+const SNAP_PX = 6;
+const guide = el("div", "st-guide");
 
-/** Glissement : `make` reçoit le déplacement en pixels et les réglages du début du geste. */
-function drag(event: PointerEvent, make: (dx: number, start: StorySettings) => StorySettings, onClick?: () => void) {
+/** Temps d'accroche : bords des autres moments, plans de caméra, début et fin de la sous-étape et de sa lecture. */
+function snapTargets(exclude: string | null): number[] {
+  const [a, b] = window_();
+  const id = stepId();
+  const targets = [
+    playStart(),
+    playStart() + playLength(),
+    base.time(timeline.at(id, 0)),
+    base.time(timeline.at(id, 1)),
+  ];
+  for (const name of Object.keys(state.settings.moments)) {
+    if (name === exclude) continue;
+    const [s, e] = timeline.moment(name);
+    targets.push(base.time(s), base.time(e));
+  }
+  for (const key of timeline.cameraKeys()) targets.push(base.time(key.p));
+  return targets.filter((t) => t >= a && t <= b);
+}
+
+/** Temps accroché au repère le plus proche à moins de SNAP_PX ; Alt désactive l'accroche. */
+function snap(times: number[], exclude: string | null, free: boolean): number {
+  guide.style.display = "none";
+  if (free) return 0;
+  let best = Number.POSITIVE_INFINITY;
+  let shift = 0;
+  let at = 0;
+  for (const target of snapTargets(exclude))
+    for (const t of times) {
+      const distance = Math.abs(xOf(target) - xOf(t));
+      if (distance < SNAP_PX && distance < best) {
+        best = distance;
+        shift = target - t;
+        at = target;
+      }
+    }
+  if (best < Number.POSITIVE_INFINITY) {
+    guide.style.display = "block";
+    guide.style.left = `${xOf(at)}px`;
+  }
+  return shift;
+}
+
+/** Glissement : `make` reçoit le déplacement en pixels, l'état du début du geste et la touche Alt. */
+function drag(
+  event: PointerEvent,
+  make: (dx: number, start: State, free: boolean) => StorySettings,
+  touches: string[],
+  onClick?: () => void,
+) {
   event.preventDefault();
-  const start = settings;
+  const start = copyState(state);
   const x0 = event.clientX;
   let moved = false;
   dragging = true;
   const move = (e: PointerEvent) => {
     if (!moved && Math.abs(e.clientX - x0) < 3) return;
     moved = true;
-    preview(make(e.clientX - x0, start));
+    preview(make(e.clientX - x0, start, e.altKey));
   };
   window.addEventListener("pointermove", move);
   window.addEventListener(
@@ -410,8 +573,11 @@ function drag(event: PointerEvent, make: (dx: number, start: StorySettings) => S
     () => {
       window.removeEventListener("pointermove", move);
       dragging = false;
+      guide.style.display = "none";
       if (moved) {
         history.push(start);
+        for (const path of touches) state.touched.add(path);
+        renderDetail();
         renderBar();
       } else onClick?.();
     },
@@ -422,21 +588,20 @@ function drag(event: PointerEvent, make: (dx: number, start: StorySettings) => S
 function describe(name: string): string {
   const moment = timeline.momentSettings(name);
   const [s, e] = timeline.moment(name);
-  const id = stepId();
-  const D = stepSeconds();
+  const start = playStart();
+  const from = base.time(s) - start;
+  const to = base.time(e) - start;
   const when =
-    s === e
-      ? `à ${seconds(timeline.fraction(id, s) * D)}`
-      : `de ${seconds(timeline.fraction(id, s) * D)} à ${seconds(timeline.fraction(id, e) * D)}`;
+    s === e ? `à ${seconds(from, 2)}` : `de ${seconds(from, 2)} à ${seconds(to, 2)} (${seconds(to - from, 2)})`;
+  const label = (key: string) => state.settings.moments[key]?.label ?? key;
   const links: string[] = [];
-  const label = (key: string) => settings.moments[key]?.label ?? key;
   if (moment.after) links.push(`après « ${label(moment.after)} »`);
   if (moment.within) links.push(`calé sur « ${label(moment.within)} »`);
   for (const edge of [moment.start, moment.end])
     if (typeof edge === "string") links.push(`lié à « ${label(edge.split(".")[0])} »`);
-  const followers = dependents(settings, name);
+  const followers = dependents(state.settings, name);
   if (followers.length) links.push(`entraîne ${followers.map((key) => `« ${label(key)} »`).join(", ")}`);
-  return `${moment.label} · ${when} (dans la sous-étape)${links.length ? ` · ${links.join(" · ")}` : ""}`;
+  return `${moment.label} · ${when}${links.length ? ` · ${links.join(" · ")}` : ""} · flèches : décaler de 0,1 s, Maj : 0,5 s`;
 }
 
 interface Item {
@@ -460,37 +625,61 @@ function stack(items: Item[]): number {
   return Math.max(1, ends.length);
 }
 
-function momentBlock(name: string, moment: MomentSettings, id: string): Item | null {
+/** Valeurs d'un moment changées à la main : ses bords, avec la sous-étape où chacun est compté. */
+const momentPaths = (name: string, edges: ("start" | "end")[]) =>
+  edges.flatMap((edge) =>
+    edge === "start"
+      ? [`moments.${name}.start`, `moments.${name}.step`]
+      : [`moments.${name}.end`, `moments.${name}.endStep`],
+  );
+
+const isSelected = (name: string) => selected?.kind === "moment" && selected.name === name;
+
+function momentBlock(name: string, moment: MomentSettings): Item | null {
   const [s, e] = timeline.moment(name);
-  const fs = timeline.fraction(id, s);
-  const fe = timeline.fraction(id, e);
-  if (fe < VIEW[0] || fs > VIEW[1]) return null;
+  const ts = base.time(s);
+  const te = base.time(e);
+  const [a, b] = window_();
+  if (te < a || ts > b) return null;
   const instant = moment.end === undefined;
-  const from = xOf(Math.max(VIEW[0], fs));
-  const to = xOf(Math.min(VIEW[1], fe));
-  const node = el("div", "st-block", instant ? "" : moment.label);
+  const from = xOf(Math.max(a, ts));
+  const to = xOf(Math.min(b, te));
+  const node = el("div", "st-block");
   node.dataset.testid = `studio-moment-${name}`;
-  node.title = moment.label;
+  const start = playStart();
+  node.title = instant
+    ? `${moment.label} · ${seconds(ts - start, 2)}`
+    : `${moment.label} · ${seconds(ts - start, 2)} → ${seconds(te - start, 2)}`;
   node.classList.toggle("is-instant", instant);
-  node.classList.toggle("is-clipped-start", fs < VIEW[0]);
-  node.classList.toggle("is-clipped-end", fe > VIEW[1]);
-  node.classList.toggle("is-selected", selected === name);
+  node.classList.toggle("is-clipped-start", ts < a);
+  node.classList.toggle("is-clipped-end", te > b);
+  node.classList.toggle("is-selected", isSelected(name));
   const startLocked = typeof moment.start === "string";
   node.classList.toggle("is-locked", startLocked);
   node.style.left = `${from}px`;
-  if (!instant) node.style.width = `${Math.max(4, to - from)}px`;
-  else node.style.left = `${from}px`;
+  if (!instant) {
+    node.style.width = `${Math.max(4, to - from)}px`;
+    node.append(el("span", "st-block-label", moment.label));
+  }
   const select = () => {
-    selected = name;
+    selected = { kind: "moment", name };
     renderDetail();
   };
-  const perP = (VIEW[1] - VIEW[0]) / laneWidth;
-  const [a, b] = timeline.range(id);
   node.addEventListener("pointerdown", (event) => {
     if (tool !== "move") return;
     event.stopPropagation();
     if (startLocked) return select();
-    drag(event, (dx, start) => moveMoment(start, timeline.order, name, dx * perP * (b - a)), select);
+    selected = { kind: "moment", name };
+    drag(
+      event,
+      (dx, begin, free) => {
+        const delta = pxToSeconds(dx);
+        const shift = snap([ts + delta, te + delta], name, free);
+        return moveMoment(begin.settings, order(), name, delta + shift);
+      },
+      momentPaths(name, ["start", "end"]),
+      select,
+    );
   });
   if (!instant) {
     for (const edge of ["start", "end"] as const) {
@@ -498,19 +687,24 @@ function momentBlock(name: string, moment: MomentSettings, id: string): Item | n
       if (typeof value === "string") {
         const link = el("div", "st-link");
         link.style[edge === "start" ? "left" : "right"] = "0";
-        link.title = `Lié à « ${settings.moments[value.split(".")[0]]?.label} »`;
+        link.title = `Lié à « ${state.settings.moments[value.split(".")[0]]?.label} »`;
         node.append(link);
         continue;
       }
-      if ((edge === "start" && fs < VIEW[0]) || (edge === "end" && fe > VIEW[1])) continue;
+      if ((edge === "start" && ts < a) || (edge === "end" && te > b)) continue;
       const handle = el("div", `st-handle is-${edge}`);
       handle.addEventListener("pointerdown", (event) => {
         if (tool !== "move") return;
         event.stopPropagation();
-        const x0 = event.clientX - (node.parentElement?.getBoundingClientRect().left ?? 0);
+        selected = { kind: "moment", name };
+        const t0 = edge === "start" ? ts : te;
         drag(
           event,
-          (dx, start) => setMomentEdge(start, timeline.order, name, edge, timeline.at(id, fOf(x0 + dx))),
+          (dx, begin, free) => {
+            const t = t0 + pxToSeconds(dx);
+            return setMomentEdge(begin.settings, order(), name, edge, t + snap([t], name, free));
+          },
+          momentPaths(name, [edge]),
           select,
         );
       });
@@ -526,19 +720,21 @@ function lane(className = "st-lane"): HTMLElement {
   return node;
 }
 
-/** Clic ou glissement sur une ligne : déplacement de l'instant, sélection à couper, note. */
+/** Clic ou glissement sur une ligne : déplacement de l'instant, partie à couper, note. */
 function laneDown(event: PointerEvent, node: HTMLElement) {
   const box = node.getBoundingClientRect();
-  const x = event.clientX - box.left;
-  const clampF = (f: number) => Math.min(1, Math.max(0, f));
-  if (tool === "note") return openNote(fOf(x), event.clientX, event.clientY);
+  const start = playStart();
+  const end = start + playLength();
+  const clamp = (t: number) => Math.min(end, Math.max(start, t));
+  const at = (clientX: number) => tOf(clientX - box.left);
+  if (tool === "note") return openNote(clamp(at(event.clientX)) - start, event.clientX, event.clientY);
   if (tool === "cut") {
-    const f0 = clampF(fOf(x));
-    selection = [f0, f0];
+    const t0 = clamp(at(event.clientX));
+    range = [t0, t0];
     renderDetail();
     const move = (e: PointerEvent) => {
-      const f = clampF(fOf(e.clientX - box.left));
-      selection = [Math.min(f0, f), Math.max(f0, f)];
+      const t = clamp(at(e.clientX));
+      range = [Math.min(t0, t), Math.max(t0, t)];
       renderDetail();
       renderBar();
     };
@@ -547,7 +743,7 @@ function laneDown(event: PointerEvent, node: HTMLElement) {
       "pointerup",
       () => {
         window.removeEventListener("pointermove", move);
-        if (selection && selection[1] - selection[0] < 0.002) selection = null;
+        if (range && range[1] - range[0] < 0.02) range = null;
         renderDetail();
         renderBar();
       },
@@ -556,11 +752,12 @@ function laneDown(event: PointerEvent, node: HTMLElement) {
     return;
   }
   selected = null;
-  const scrub = (cx: number) => {
+  const scrub = (clientX: number) => {
     player.stop();
-    host.seek(pOf(cx - box.left));
+    host.seek(base.progress(at(clientX)));
   };
   scrub(event.clientX);
+  renderDetail();
   const move = (e: PointerEvent) => scrub(e.clientX);
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", () => window.removeEventListener("pointermove", move), { once: true });
@@ -579,12 +776,12 @@ function placePopover(node: HTMLElement, x: number, y: number) {
   node.style.top = `${Math.max(8, y - node.offsetHeight - 12)}px`;
 }
 
-function openNote(f: number, x: number, y: number) {
+function openNote(at: number, x: number, y: number) {
   const id = stepId();
   const box = el("div", "st-popover");
   box.dataset.testid = "studio-note-editor";
   const area = el("textarea");
-  area.placeholder = `Note à ${seconds(Math.max(0, f) * stepSeconds())} : ce qu'il faut changer ici`;
+  area.placeholder = `Note à ${seconds(at, 2)} : ce qu'il faut changer ici`;
   const actions = el("div", "st-actions");
   const cancel = el("button", "st-button", "Fermer");
   const add = el("button", "st-button is-primary", "Épingler");
@@ -596,16 +793,14 @@ function openNote(f: number, x: number, y: number) {
   cancel.addEventListener("click", closePopover);
   add.addEventListener("click", () => {
     const text = area.value.trim();
-    if (text) notes.push({ step: id, at: Math.round(f * 10000) / 10000, text });
     closePopover();
-    renderRibbon();
-    renderDetail();
+    if (text) commit((next) => next.notes.push({ step: id, at: Math.round(at * 100) / 100, text }));
   });
 }
 
 function showNote(note: Note, x: number, y: number) {
   const box = el("div", "st-popover");
-  box.append(el("p", "", note.text));
+  box.append(el("p", "", `${seconds(note.at, 2)} · ${note.text}`));
   const actions = el("div", "st-actions");
   const remove = el("button", "st-button", "Retirer");
   const close = el("button", "st-button", "Fermer");
@@ -614,10 +809,9 @@ function showNote(note: Note, x: number, y: number) {
   placePopover(box, x, y);
   close.addEventListener("click", closePopover);
   remove.addEventListener("click", () => {
-    notes.splice(notes.indexOf(note), 1);
     closePopover();
-    renderRibbon();
-    renderDetail();
+    const index = state.notes.indexOf(note);
+    commit((next) => next.notes.splice(index, 1));
   });
 }
 
@@ -628,8 +822,9 @@ function renderDetail() {
   if (!host) return;
   const id = stepId();
   const step = host.steps[current];
-  const D = stepSeconds();
-  const stepSettings = settings.steps[id];
+  const D = playLength();
+  const start = playStart();
+  const stepSettings = state.settings.steps[id];
   const head = el("div", "st-head");
   head.append(
     el("strong", "", step.title),
@@ -637,29 +832,28 @@ function renderDetail() {
     el(
       "span",
       "",
-      `${seconds(D)} à vitesse normale · poids ${stepSettings.weight.toLocaleString("fr-FR")}${stepSettings.pace ? ` · cadence ${stepSettings.pace.toLocaleString("fr-FR")}` : ""}`,
+      `lecture par la flèche : ${seconds(D, 2)}${stepSettings.pace ? ` · cadence ${stepSettings.pace.toLocaleString("fr-FR")}` : ""}`,
     ),
   );
   const tracks = el("div", `st-tracks is-${tool}`);
-  detail.replaceChildren(head, tracks, info);
-  /* Largeur des lignes connue une fois la grille posée */
-  const probe = lane();
-  tracks.append(el("div", "st-row-label", "Temps"), probe);
-  laneWidth = Math.max(200, probe.getBoundingClientRect().width);
-
-  /* Règle : secondes de la sous-étape, notes, poignée de fin */
-  const ruler = probe;
+  detail.replaceChildren(head, info, tracks);
+  const ruler = lane();
   ruler.classList.add("st-ruler");
+  tracks.append(el("div", "st-row-label", "Temps"), ruler);
+  laneWidth = Math.max(200, ruler.getBoundingClientRect().width);
+
+  /* Règle : secondes depuis le début de la lecture de la sous-étape, notes */
   const every = D > 12 ? 2 : D > 5 ? 1 : 0.5;
   for (let t = 0; t <= D + 1e-6; t += every) {
     const tick = el("div", "st-tick");
-    tick.style.left = `${xOf(t / D)}px`;
+    tick.style.left = `${xOf(start + t)}px`;
     tick.append(el("span", "", seconds(t).replace(",0", "")));
     ruler.append(tick);
   }
-  for (const note of notes.filter((entry) => entry.step === id)) {
+  for (const note of state.notes.filter((entry) => entry.step === id)) {
     const pin = el("div", "st-note-pin", "N");
-    pin.style.left = `${xOf(note.at)}px`;
+    pin.dataset.testid = "studio-note-pin";
+    pin.style.left = `${xOf(start + note.at)}px`;
     pin.title = note.text;
     pin.addEventListener("pointerdown", (event) => {
       event.stopPropagation();
@@ -668,52 +862,70 @@ function renderDetail() {
     ruler.append(pin);
   }
 
-  const rows: [string, string][] = Object.entries(settings.actors);
-  const laneNodes: HTMLElement[] = [ruler];
-  for (const [actor, label] of rows) {
+  for (const [actor, label] of Object.entries(state.settings.actors)) {
     const row = lane();
     row.dataset.testid = `studio-row-${actor}`;
     const items: Item[] = [];
     if (actor === "card") {
-      const card = el("div", "st-block is-card", `Carte : ${step.title}`);
-      card.style.left = `${xOf(0)}px`;
-      card.style.width = `${xOf(1) - xOf(0)}px`;
-      items.push({ from: xOf(0), to: xOf(1), node: card });
+      const from = xOf(base.time(timeline.at(id, 0)));
+      const to = xOf(base.time(timeline.at(id, 1)));
+      const card = el("div", "st-block is-card");
+      card.append(el("span", "st-block-label", `Carte : ${step.title}`));
+      card.style.left = `${from}px`;
+      card.style.width = `${to - from}px`;
+      items.push({ from, to, node: card });
       for (const mark of ["landing", "rest"] as const) {
         const f = mark === "landing" ? timeline.landing(id) : timeline.rest(id);
+        const t = base.time(timeline.at(id, f));
         const node = el("div", `st-mark is-${mark}`);
-        node.style.left = `${xOf(f)}px`;
+        node.style.left = `${xOf(t)}px`;
         node.title =
           mark === "landing"
-            ? `Arrivée par le menu : ${seconds(f * D)}`
-            : `Fin de lecture par la flèche : ${seconds(f * D)}`;
+            ? `Arrivée par le menu : ${seconds(t - start, 2)}`
+            : `Fin de lecture par la flèche : ${seconds(t - start, 2)}`;
         node.addEventListener("pointerdown", (event) => {
           if (tool !== "move") return;
           event.stopPropagation();
-          const x0 = xOf(f);
-          drag(event, (dx, start) => setStepMark(start, id, mark, fOf(x0 + dx)));
+          drag(
+            event,
+            (dx, begin) => {
+              const p = base.progress(t + pxToSeconds(dx));
+              return setStepMark(begin.settings, id, mark, timeline.fraction(id, p));
+            },
+            [`steps.${id}.${mark}`],
+          );
         });
         row.append(node);
       }
     }
-    for (const [name, moment] of Object.entries(settings.moments)) {
+    for (const [name, moment] of Object.entries(state.settings.moments)) {
       if (moment.actor !== actor) continue;
-      const item = momentBlock(name, moment, id);
+      const item = momentBlock(name, moment);
       if (item) items.push(item);
     }
     if (actor === "camera") {
+      const [a, b] = window_();
       timeline.cameraKeys().forEach((key, index) => {
-        const f = timeline.fraction(id, key.p);
-        if (f < VIEW[0] || f > VIEW[1]) return;
+        const t = base.time(key.p);
+        if (t < a || t > b) return;
         const node = el("div", "st-key");
         node.dataset.testid = `studio-camera-key-${index}`;
-        node.style.left = `${xOf(f)}px`;
-        node.title = `Plan de caméra : ${key.aim}, ${seconds(f * D)}`;
+        node.classList.toggle("is-selected", selected?.kind === "key" && selected.index === index);
+        node.style.left = `${xOf(t)}px`;
+        node.title = `Plan de caméra vers ${key.aim} · ${seconds(t - start, 2)}`;
         node.addEventListener("pointerdown", (event) => {
           if (tool !== "move" || key.step === undefined) return;
           event.stopPropagation();
-          const x0 = xOf(f);
-          drag(event, (dx, start) => moveCameraKey(start, timeline.order, index, timeline.at(id, fOf(x0 + dx))));
+          selected = { kind: "key", index };
+          drag(
+            event,
+            (dx, begin, free) => {
+              const target = t + pxToSeconds(dx);
+              return moveCameraKey(begin.settings, order(), index, target + snap([target], null, free));
+            },
+            [`camera.${index}`],
+            () => renderDetail(),
+          );
         });
         row.append(node);
       });
@@ -721,50 +933,54 @@ function renderDetail() {
     for (const item of items) row.append(item.node);
     row.style.height = `${stack(items) * LANE + 4}px`;
     tracks.append(el("div", "st-row-label", label), row);
-    laneNodes.push(row);
   }
-  /* Hors de la sous-étape, poignée de durée, sélection, notes et tête de lecture sur toutes les lignes */
-  const overlay = el("div", "st-lane");
-  overlay.style.cssText = "position:absolute;left:var(--st-label);right:0;top:0;bottom:0;pointer-events:none;border:0";
-  for (const [a, b] of [
-    [VIEW[0], 0],
-    [1, VIEW[1]],
+  /* Hors de la lecture de la sous-étape, poignée de durée, partie à couper, notes, accroche et tête de lecture */
+  const overlay = el("div", "st-overlay");
+  const [a, b] = window_();
+  for (const [from, to] of [
+    [a, start],
+    [start + D, b],
   ]) {
     const zone = el("div", "st-outside");
-    zone.style.left = `${xOf(a)}px`;
-    zone.style.width = `${xOf(b) - xOf(a)}px`;
+    zone.style.left = `${xOf(from)}px`;
+    zone.style.width = `${xOf(to) - xOf(from)}px`;
     overlay.append(zone);
   }
-  if (selection) {
+  if (range) {
     const zone = el("div", "st-selection");
-    zone.style.left = `${xOf(selection[0])}px`;
-    zone.style.width = `${xOf(selection[1]) - xOf(selection[0])}px`;
+    zone.style.left = `${xOf(range[0])}px`;
+    zone.style.width = `${xOf(range[1]) - xOf(range[0])}px`;
     overlay.append(zone);
   }
-  for (const note of notes.filter((entry) => entry.step === id)) {
+  for (const note of state.notes.filter((entry) => entry.step === id)) {
     const line = el("div", "st-note");
-    line.style.left = `${xOf(note.at)}px`;
+    line.style.left = `${xOf(start + note.at)}px`;
     overlay.append(line);
   }
   const end = el("div", "st-end-handle");
   end.dataset.testid = "studio-step-end";
-  end.title = "Allonger ou raccourcir la sous-étape";
-  end.style.left = `${xOf(1)}px`;
-  end.style.pointerEvents = "auto";
+  end.title = "Allonger ou raccourcir la lecture de la sous-étape";
+  end.style.left = `${xOf(start + D)}px`;
   end.addEventListener("pointerdown", (event) => {
     event.stopPropagation();
-    const x0 = xOf(1) - xOf(0);
-    drag(event, (dx, start) => stretchStep(start, id, Math.max(0.2, (x0 + dx) / x0)));
+    const width = xOf(start + D) - xOf(start);
+    drag(event, (dx, begin) => stretchStep(begin.settings, id, Math.max(0.2, (width + dx) / width)), [
+      `steps.${id}.pace`,
+    ]);
   });
-  overlay.append(end, playhead);
+  guide.style.display = "none";
+  overlay.append(end, guide, playhead);
   tracks.append(overlay);
-  info.textContent = selected
-    ? describe(selected)
-    : tool === "cut"
-      ? "Couper : glisser sur la ligne de temps pour choisir la partie à retirer ; la suite remonte d'autant."
-      : tool === "note"
-        ? "Note : cliquer sur la ligne de temps à l'instant voulu."
-        : "Glisser un bloc pour le déplacer, ses bords pour le raccourcir ou l'allonger ; glisser ailleurs pour se déplacer dans le temps.";
+  info.textContent =
+    selected?.kind === "moment"
+      ? describe(selected.name)
+      : selected?.kind === "key"
+        ? `Plan de caméra · ${seconds(base.time(timeline.cameraKeys()[selected.index].p) - start, 2)} · flèches : décaler de 0,1 s, Maj : 0,5 s`
+        : tool === "cut"
+          ? "Couper : glisser sur la ligne de temps pour choisir la partie à retirer ; la suite remonte d'autant."
+          : tool === "note"
+            ? "Note : cliquer sur la ligne de temps à l'instant voulu."
+            : "Glisser un bloc pour le déplacer, ses bords pour le raccourcir ou l'allonger (Alt : sans accroche) ; glisser ailleurs pour se déplacer dans le temps.";
 }
 
 /* ------------------------------------------------------------------ Lecture */
@@ -772,17 +988,27 @@ function renderDetail() {
 function tick() {
   requestAnimationFrame(tick);
   if (!host) return;
-  const p = host.shown();
-  if (player.playing && !dragging) follow(p);
-  ribbonHead.style.left = `${ribbonX(p)}%`;
-  const f = timeline.fraction(stepId(), p);
-  playhead.style.display = f < VIEW[0] || f > VIEW[1] ? "none" : "block";
-  playhead.style.left = `${xOf(f)}px`;
-  const D = stepSeconds();
-  clock.textContent = `${seconds(Math.max(0, f) * D)} / ${seconds(D)}`;
+  const t = base.time(host.shown());
+  if (player.playing && !dragging) follow(t);
+  ribbonHead.style.left = `${ribbonX(t)}%`;
+  const [a, b] = window_();
+  playhead.style.display = t < a || t > b ? "none" : "block";
+  playhead.style.left = `${xOf(t)}px`;
+  clock.textContent = `${seconds(Math.min(playLength(), Math.max(0, t - playStart())), 2)} / ${seconds(playLength(), 2)}`;
 }
 
 /* ------------------------------------------------------------------ Connexion à la page */
+
+/** Page rechargée (réglages changés sur le disque, serveur relancé) : mêmes réglages, ou avis de rechargement. */
+function reconnect(story: StoryHost) {
+  host = story;
+  if (settingsFingerprint(story.settings()) !== openedFingerprint) {
+    stale = true;
+    renderBar();
+    return;
+  }
+  host.apply(cloneSettings(state.settings));
+}
 
 async function connect() {
   const page = iframe.contentWindow as Window | null;
@@ -791,27 +1017,40 @@ async function connect() {
     window.setTimeout(connect, 300);
     return;
   }
+  if (host) return reconnect(story);
   host = story;
-  base = cloneSettings(story.settings());
-  settings = cloneSettings(base);
+  opened = cloneSettings(story.settings());
+  openedFingerprint = settingsFingerprint(opened);
+  state = { settings: cloneSettings(opened), touched: new Set(), cuts: [], notes: [] };
   timeline = new Timeline(
     story.steps.map((step) => step.id),
-    settings,
+    state.settings,
   );
-  player = new Player(timeline, (p) => host.seek(p));
+  base = new TimeBase(timeline);
+  player = new Player(
+    () => base,
+    (p) => host.seek(p),
+  );
   try {
     const response = await fetch("../__studio/versions");
     if (response.ok) previousVersion = ((await response.json()) as { files: string[] }).files.at(-1) ?? null;
   } catch {
     previousVersion = null;
   }
-  current = Math.max(0, timeline.stepAt(host.shown()));
+  current = base.playbackAt(base.time(host.shown()));
   stage.classList.add("is-ready");
   renderBar();
   renderRibbon();
   renderDetail();
   new ResizeObserver(() => renderDetail()).observe(detail);
   requestAnimationFrame(tick);
-  (window as unknown as { __studio: unknown }).__studio = { settings: () => settings, cuts, notes };
+  void checkSettingsFile();
+  window.setInterval(checkSettingsFile, 4000);
+  (window as unknown as { __studio: unknown }).__studio = {
+    settings: () => state.settings,
+    state: () => state,
+    base: () => base,
+    changes,
+  };
 }
 iframe.addEventListener("load", () => connect());

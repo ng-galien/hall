@@ -1,10 +1,9 @@
-import type { Timeline } from "./timeline";
-
-const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+import type { TimeBase } from "./timebase";
 
 /**
- * Playback of a story for the studio: continuous reading at the speed of each sub-step, or the replay of one
- * sub-step exactly as the card arrow plays it. `seek` shows an instant; `speed` slows the reading down.
+ * Playback of a story for the studio, on the time base of the card arrows: reading on plays the sub-steps one
+ * after the other as successive arrow presses would; replaying a sub-step plays it exactly as one arrow press.
+ * `speed` slows the reading down.
  */
 export class Player {
   speed = 1;
@@ -12,7 +11,7 @@ export class Player {
   private onStop: (() => void) | null = null;
 
   constructor(
-    private readonly timeline: Timeline,
+    private readonly base: () => TimeBase,
     private readonly seek: (p: number) => void,
   ) {}
 
@@ -28,49 +27,32 @@ export class Player {
     done?.();
   }
 
-  /** Real duration of a sub-step played by an explicit command, in milliseconds. */
-  stepDuration(id: string): number {
-    return this.timeline.settings.playback.controlRatio * this.timeline.stepMs(id);
-  }
-
-  /** Reads on from p to the end of the story; each sub-step lasts its real duration divided by the speed. */
-  play(from: number, onStop?: () => void) {
+  /** Plays from time `from` to time `to` (seconds), then calls onStop. */
+  private run(from: number, to: number, onStop?: () => void) {
     this.stop();
     this.onStop = onStop ?? null;
-    let p = from;
+    let t = from;
     let last = performance.now();
-    const end = this.timeline.settings.storyEnd;
+    this.seek(this.base().progress(t));
     const step = (now: number) => {
-      const dt = Math.min(100, now - last) * this.speed;
+      t = Math.min(to, t + (Math.max(0, now - last) / 1000) * this.speed);
       last = now;
-      const index = Math.max(0, this.timeline.stepAt(p));
-      const id = this.timeline.order[index];
-      const [a, b] = this.timeline.range(id);
-      p = Math.min(end, p + ((b - a) * dt) / this.stepDuration(id));
-      this.seek(p);
-      if (p >= end) return this.stop();
+      this.seek(this.base().progress(t));
+      if (t >= to) return this.stop();
       this.frame = requestAnimationFrame(step);
     };
     this.frame = requestAnimationFrame(step);
   }
 
-  /** Replays a sub-step from the rest of the previous one, eased, as the card arrow does. */
-  replay(index: number, onStop?: () => void) {
-    this.stop();
-    this.onStop = onStop ?? null;
-    const order = this.timeline.order;
-    const id = order[index];
-    const from = index > 0 ? this.timeline.at(order[index - 1], this.timeline.rest(order[index - 1])) : 0;
-    const to = this.timeline.at(id, this.timeline.rest(id));
-    const ms = this.stepDuration(id) / this.speed;
-    const start = performance.now();
-    this.seek(from);
-    const step = (now: number) => {
-      const k = Math.min(1, (now - start) / ms);
-      this.seek(from + (to - from) * easeInOut(k));
-      if (k >= 1) return this.stop();
-      this.frame = requestAnimationFrame(step);
-    };
-    this.frame = requestAnimationFrame(step);
+  /** Reads on from time t to the end of the story. */
+  play(t: number, onStop?: () => void) {
+    const base = this.base();
+    this.run(t, base.starts[base.starts.length - 1], onStop);
+  }
+
+  /** Replays sub-step i from the rest instant of the previous one to its own. */
+  replay(i: number, onStop?: () => void) {
+    const base = this.base();
+    this.run(base.starts[i], base.starts[i + 1], onStop);
   }
 }

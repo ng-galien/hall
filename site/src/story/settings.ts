@@ -94,3 +94,14 @@ export interface StorySettings {
 export function cloneSettings(settings: StorySettings): StorySettings {
   return structuredClone(settings);
 }
+
+/** Short fingerprint of settings (FNV-1a of their JSON), to tell whether two copies are the same version. */
+export function settingsFingerprint(settings: StorySettings): string {
+  const text = JSON.stringify(settings);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}

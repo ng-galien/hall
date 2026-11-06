@@ -72,7 +72,9 @@ export default defineConfig(({ command, mode }) => ({
   },
   plugins: [
     publicFileVersions(),
-    ...(command === "serve" || mode === "studio" ? [studioVersions()] : []),
+    ...(command === "serve" || mode === "studio"
+      ? [studioVersions(fileURLToPath(new URL("./src/presentation/story-settings.json", import.meta.url)))]
+      : []),
     {
       name: "hall-rendered-documentation",
       async closeBundle() {
