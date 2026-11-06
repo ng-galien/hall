@@ -21,8 +21,12 @@ export interface SubStep {
   title: string;
   /** Une phrase de contexte du récit. */
   text: string;
+  /** Titre court, sur une ligne, pour le panneau d'étape des téléphones. */
+  shortTitle?: string;
   /** Ce que Hall fait concrètement, d'après le catalogue des exigences. */
   points: string[];
+  /** Les deux points montrés sur téléphone, chacun sur une ligne, quand les deux premiers sont trop longs. */
+  shortPoints?: string[];
   /** Règle du droit des collectivités que Hall applique, quand elle éclaire la sous-étape. */
   rule?: string;
   /** Définition d'un terme de Hall, montrée en encadré dans le panneau d'étape. */
@@ -47,6 +51,7 @@ export const subSteps: SubStep[] = [
     title: "Création de l'affaire",
     text: "",
     points: ["Dossier et rapport prêts dès la création", "Pièces, textes et rendez-vous réunis au même endroit"],
+    shortPoints: ["Dossier et rapport prêts dès la création", "Pièces, textes et rendez-vous réunis"],
     definition:
       "Une affaire, c’est un sujet suivi dans la durée : le chemin à refaire, un bâtiment, un marché. Elle réunit pièces, rapport, projets et questions pour le conseil, de la première pièce jusqu’au vote et au-delà.",
   },
@@ -86,6 +91,7 @@ export const subSteps: SubStep[] = [
     title: "Rattachement aux commissions",
     text: "",
     points: ["Choix des commissions concernées par l'affaire", "Dossiers de la commission regroupés sur sa fiche"],
+    shortPoints: ["Choix des commissions concernées par l'affaire", "Dossiers regroupés par commission"],
   },
   {
     id: "rendezvous",
@@ -146,6 +152,7 @@ export const subSteps: SubStep[] = [
     place: 2,
     weight: 2.4,
     title: "Votre assistant IA, relié à vos dossiers",
+    shortTitle: "Assistant IA",
     text: "",
     points: [
       "Il lit les pièces de l’affaire et vous aide à rédiger",
@@ -166,6 +173,7 @@ export const subSteps: SubStep[] = [
       "Projet rangé dans l'affaire avant toute inscription",
       "Corrections libres pendant la préparation",
     ],
+    shortPoints: ["Texte propre, distinct du rapport", "Rangé dans l'affaire avant l'inscription"],
   },
   {
     id: "partage",
@@ -216,6 +224,7 @@ export const subSteps: SubStep[] = [
       "Rappel du délai sur la fiche de séance",
       "Réouverture de l'ordre du jour avant la séance",
     ],
+    shortPoints: ["Ordre du jour figé avant la convocation", "Convocation sur le modèle de la commune"],
     rule: "Délai de convocation compté en jours francs",
   },
   {
@@ -244,6 +253,7 @@ export const subSteps: SubStep[] = [
       "Président et secrétaire présents exigés à l'ouverture",
       "Point en cours affiché sur l'écran des élus",
     ],
+    shortPoints: ["Présences, pouvoirs et quorum sur un écran", "Quorum calculé sans les pouvoirs"],
   },
   {
     id: "debat",
@@ -280,6 +290,7 @@ export const subSteps: SubStep[] = [
     title: "Brouillon de délibération",
     text: "",
     points: ["Brouillon ouvert dès la confirmation du vote", "Texte voté, quorum et résultat conservés tels quels"],
+    shortPoints: ["Brouillon ouvert dès la confirmation du vote", "Texte, quorum et résultat conservés"],
   },
   {
     id: "cloture",
@@ -329,6 +340,7 @@ export const subSteps: SubStep[] = [
       "Nom de chaque élu dans les votes publics",
       "Approbation en premier point de la séance suivante",
     ],
+    shortPoints: ["Notes, vote et rédaction pour chaque point", "Nom de chaque élu dans les votes publics"],
   },
   {
     id: "transmission",

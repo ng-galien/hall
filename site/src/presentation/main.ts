@@ -409,10 +409,14 @@ export function turnWheel(c: number) {
   gutter.style.height = `${y + 8}px`;
 }
 
+/** Téléphone : titre et points courts, chacun sur une ligne */
+const phoneLayout = window.matchMedia("(max-width: 760px)");
+
 /** Écrit le texte d'une sous-étape dans le bloc du bas ; index < 0 le vide. */
 export function renderStepText(index: number) {
   const step = subSteps[Math.max(0, index)];
-  watermarkTitle.textContent = index < 0 ? "" : step.title;
+  const phone = phoneLayout.matches;
+  watermarkTitle.textContent = index < 0 ? "" : phone ? (step.shortTitle ?? step.title) : step.title;
   watermarkText.textContent = index < 0 ? "" : step.text;
   watermark.classList.toggle("is-empty", index < 0);
   const siblings = subSteps.filter((entry) => entry.place === step.place);
@@ -442,7 +446,7 @@ export function renderStepText(index: number) {
     watermarkRule.append(icon, words);
   }
   watermarkPoints.replaceChildren(
-    ...(index < 0 ? [] : step.points).map((point) => {
+    ...(index < 0 ? [] : phone ? (step.shortPoints ?? step.points) : step.points).map((point) => {
       const item = document.createElement("li");
       const tick = document.createElement("span");
       tick.className = "w-tick";
