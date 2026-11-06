@@ -290,7 +290,7 @@ export const subSteps: SubStep[] = [
     title: "Brouillon de délibération",
     text: "",
     points: ["Brouillon ouvert dès la confirmation du vote", "Texte voté, quorum et résultat conservés tels quels"],
-    shortPoints: ["Brouillon ouvert dès la confirmation du vote", "Texte, quorum et résultat conservés"],
+    shortPoints: ["Brouillon ouvert dès la confirmation du vote", "Texte voté, quorum et résultat gardés"],
   },
   {
     id: "cloture",
