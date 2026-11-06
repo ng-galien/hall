@@ -3327,6 +3327,24 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   width: 2.3rem;
 }
 
+/* Écrans tactiles : la scène prend la hauteur de la plus grande vue, pour que le repli de la barre d'adresse ne la
+   redimensionne pas pendant le défilement ; la page ne glisse ni de côté ni au-delà de ses bords. */
+@media (pointer: coarse) {
+  html,
+  body {
+    overflow-x: clip;
+    overscroll-behavior: none;
+  }
+
+  @supports (height: 100lvh) {
+    .p-stage,
+    .p-flight {
+      bottom: auto;
+      height: 100lvh;
+    }
+  }
+}
+
 /* Précédent et Suivant n'existent que sur téléphone */
 .p-step-nav {
   display: none;

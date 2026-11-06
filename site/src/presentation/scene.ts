@@ -39,7 +39,6 @@ import {
   reducedMotion,
   reducedProgress,
   type Spot,
-  scrollArea,
   scrollProgress,
   showStep,
   smooth,
@@ -47,6 +46,7 @@ import {
   spots,
   stage,
   steppedWheel,
+  storyScroll,
   viewpoint,
   watermark,
 } from "./main";
@@ -2076,7 +2076,7 @@ export async function start() {
      arrière ; une cible lointaine ou le mouvement réduit donnent un saut */
   hooks.play = (to, ms) => {
     if (reducedMotion || Math.abs(to - shown) > 0.12) {
-      window.scrollTo({ top: to * (scrollArea.offsetHeight - window.innerHeight), behavior: "auto" });
+      window.scrollTo({ top: to * storyScroll(), behavior: "auto" });
       hooks.jump?.(reducedMotion ? reducedProgress(to) : to);
       return;
     }
@@ -2142,7 +2142,7 @@ export async function start() {
       const k = clamp01((now - tween.start) / tween.ms);
       shown = tween.from + (tween.to - tween.from) * easeInOut(k);
       target = shown;
-      const max = scrollArea.offsetHeight - window.innerHeight;
+      const max = storyScroll();
       window.scrollTo({ top: shown * max, behavior: "auto" });
       if (k >= 1) {
         tween = null;

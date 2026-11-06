@@ -77,8 +77,18 @@ for (const node of phone.querySelectorAll<HTMLElement>(".p-phone-view, .p-phone-
 export const flash = document.querySelector(".p-flash") as HTMLElement;
 export const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/**
+ * Course du récit en pixels de défilement. La hauteur de vue est celle du bloc conteneur initial : elle ne change pas
+ * quand la barre d'adresse d'un navigateur mobile se replie, contrairement à window.innerHeight.
+ */
+export const viewHeight = () => document.documentElement.clientHeight;
+
+export function storyScroll(): number {
+  return scrollArea.offsetHeight - viewHeight();
+}
+
 export function scrollProgress(): number {
-  const max = scrollArea.offsetHeight - window.innerHeight;
+  const max = storyScroll();
   return max > 0 ? clamp01(window.scrollY / max) : 0;
 }
 
@@ -101,7 +111,7 @@ export const hooks: {
   keyIndex: number | null;
 } = { jump: null, play: null, moving: null, keyIndex: null };
 export function goTo(index: number) {
-  const max = scrollArea.offsetHeight - window.innerHeight;
+  const max = storyScroll();
   const p = landing(index);
   window.scrollTo({ top: p * max, behavior: "auto" });
   hooks.jump?.(p);
@@ -112,7 +122,7 @@ const stepMs = (weight: number) => Math.min(1400, 750 + 270 * weight);
 
 function play(p: number, ms: number) {
   if (hooks.play) hooks.play(p, ms);
-  else window.scrollTo({ top: p * (scrollArea.offsetHeight - window.innerHeight), behavior: "auto" });
+  else window.scrollTo({ top: p * storyScroll(), behavior: "auto" });
 }
 
 /** Passe à la sous-étape voisine `index` et la montre dans son état final ; en arrière, le récit se rembobine. */
@@ -148,7 +158,7 @@ const moving = () => gliding || (hooks.moving?.() ?? false);
 function currentStep(): number {
   return moving() && hooks.keyIndex !== null ? hooks.keyIndex : subStepAt(scrollProgress());
 }
-const storyLimit = () => scrollArea.offsetHeight - window.innerHeight * 0.6;
+const storyLimit = () => storyScroll() + viewHeight() * 0.4;
 
 /* Clavier : flèches pour la sous-étape suivante ou précédente, Début et Fin pour la première et la dernière */
 window.addEventListener("keydown", (event) => {
@@ -219,7 +229,7 @@ function scrollsItself(target: EventTarget | null, horizontal: boolean, forward:
 /** Mouvement d'un geste vers le bas ou vers le haut, ou null quand la page n'a rien à faire. */
 function wheelMove(down: boolean): (() => void) | null {
   const last = subSteps.length - 1;
-  const max = scrollArea.offsetHeight - window.innerHeight;
+  const max = storyScroll();
   const current = currentStep();
   const end = at(subSteps[last].id, 0.97);
   if (down) {
@@ -501,7 +511,7 @@ export function showStep(p: number) {
 export const hero = document.querySelector(".p-hero-content") as HTMLElement | null;
 export function moveHero() {
   if (!hero) return;
-  const k = clamp01(window.scrollY / (window.innerHeight * 0.3));
+  const k = clamp01(window.scrollY / (viewHeight() * 0.3));
   hero.style.opacity = (1 - k).toFixed(3);
   hero.style.transform = reducedMotion ? "" : `translateY(${(k * 18).toFixed(2)}vh)`;
   hero.style.visibility = k >= 1 ? "hidden" : "visible";
@@ -513,8 +523,8 @@ moveHero();
 export const stage = document.querySelector(".p-stage") as HTMLElement;
 export const more = document.querySelector(".p-more") as HTMLElement;
 export function handOver() {
-  const start = scrollArea.offsetHeight - window.innerHeight;
-  const t = clamp01((window.scrollY - start + window.innerHeight * 0.2) / (window.innerHeight * 0.9));
+  const start = storyScroll();
+  const t = clamp01((window.scrollY - start + viewHeight() * 0.2) / (viewHeight() * 0.9));
   stage.style.opacity = (1 - 0.75 * t).toFixed(3);
   stage.style.transform = reducedMotion ? "" : `scale(${(1 - 0.05 * t).toFixed(4)})`;
   stage.style.filter = t > 0 ? `saturate(${(1 - 0.6 * t).toFixed(3)}) brightness(${(1 + 0.12 * t).toFixed(3)})` : "";
@@ -558,7 +568,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[h
 }
 
 export function markPast() {
-  const past = window.scrollY > scrollArea.offsetHeight - window.innerHeight * 0.6;
+  const past = window.scrollY > storyScroll() + viewHeight() * 0.4;
   for (const node of [gutter, credit, boardNode, phone, watermark, stepNav]) node.classList.toggle("is-past", past);
   (document.querySelector(".p-masthead") as HTMLElement).classList.toggle("is-solid", past);
 }
