@@ -116,6 +116,8 @@ INSERT INTO council_meetings(id,number) VALUES(test_uuid('preparation:other'),2)
 SELECT reprogram_council_agenda_item((SELECT id FROM preparation WHERE key='quick-item'),test_uuid('preparation:other'),1);
 SELECT throws_ok($$SELECT hall_api.reset_council_agenda_revision(test_uuid('preparation:meeting'))$$,'HV813',NULL,'a point moved to another meeting makes reset fail');
 SELECT reprogram_council_agenda_item(id,test_uuid('preparation:meeting'),position) FROM established_positions WHERE id=(SELECT id FROM preparation WHERE key='quick-item');
+-- @verifies-requirement HALL-TR-NOT-010
+SELECT throws_ok($$SELECT hall_api.generate_meeting_notice(test_uuid('preparation:meeting'),jsonb_build_object('meeting',jsonb_set(hall_api.meeting_notice_draft_facts(test_uuid('preparation:meeting')),'{location}','"Elsewhere"'),'hall',jsonb_build_object('name','Commune','timeZone','Europe/Paris')),convert_to('%PDF-stale','UTF8'))$$,'HV805',NULL,'generation refuses facts that differ from the meeting');
 INSERT INTO notice_versions SELECT hall_api.generate_meeting_notice(test_uuid('preparation:meeting'),jsonb_build_object('meeting',hall_api.meeting_notice_draft_facts(test_uuid('preparation:meeting')),'hall',jsonb_build_object('name','Commune','timeZone','Europe/Paris')),convert_to('%PDF-second','UTF8'));
 SELECT is((SELECT notice->>'revision' FROM notice_versions ORDER BY (notice->>'version')::int DESC LIMIT 1),'2','the next notice belongs to revision two');
 -- @verifies-requirement HALL-FR-NOT-030
@@ -127,6 +129,8 @@ SELECT is((SELECT count(*)::int FROM council_agenda_freeze WHERE council_meeting
 SELECT is(jsonb_array_length(hall_api.list_meeting_notices(test_uuid('preparation:meeting'))),2,'one notice is listed per established revision');
 SELECT lives_ok($$SELECT start_council_meeting(test_uuid('preparation:meeting'),'2026-01-01 18:00Z')$$,'an established revision permits start');
 SELECT throws_ok($$SELECT hall_api.reopen_council_agenda(test_uuid('preparation:meeting'))$$,'HV808',NULL,'started meeting cannot open another revision');
+-- @verifies-requirement HALL-FR-NOT-060
+SELECT throws_ok($$SELECT hall_api.generate_meeting_notice(test_uuid('preparation:meeting'),jsonb_build_object('meeting',hall_api.meeting_notice_draft_facts(test_uuid('preparation:meeting')),'hall',jsonb_build_object('name','Commune','timeZone','Europe/Paris')),convert_to('%PDF-after-start','UTF8'))$$,'HV804',NULL,'generation is refused once the meeting has started');
 SELECT is((SELECT count(*)::int FROM minutes),0,'preparation and start do not create the current meeting minutes');
 SELECT * FROM finish();
 ROLLBACK;
