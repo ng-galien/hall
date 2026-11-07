@@ -76,12 +76,14 @@ export function createMeetingNoticeService({
       if (preparation.missingEmailMemberIds.length > 0 || preparation.recipients.length === 0)
         throw new DomainError("meeting_notice_recipients_incomplete", 409);
       if (!preparation.canGenerate) throw new DomainError("meeting_notice_unavailable", 409);
+      // @implements-requirement HALL-FR-NOT-100
+      // Only the notice of the established revision is sent; earlier notices are only opened.
+      if (preparation.noticeId !== noticeId) throw new DomainError("meeting_notice_unavailable", 409);
       const notice = await councilClient.openNotice(noticeId);
       if (!notice || notice.councilMeetingId !== meetingId) throw new DomainError("meeting_notice_not_found", 404);
       const content = await councilClient.noticeContent(noticeId);
       if (!content) throw new DomainError("meeting_notice_not_found", 404);
-      // The dossier follows the established revision; the notice of an earlier revision travels alone.
-      const dossier = preparation.noticeId === noticeId ? await meetingDossierService.dossier(meetingId) : null;
+      const dossier = await meetingDossierService.dossier(meetingId);
       const message = await contentTemplateService.generateFromTemplate(
         await template("message", "meeting-notice-message"),
         {
@@ -95,16 +97,12 @@ export function createMeetingNoticeService({
               mediaType: "application/pdf",
               content,
             },
-            ...(dossier
-              ? [
-                  {
-                    id: `${notice.id}-dossier`,
-                    fileName: dossier.fileName,
-                    mediaType: "application/pdf",
-                    content: dossier.content,
-                  },
-                ]
-              : []),
+            {
+              id: `${notice.id}-dossier`,
+              fileName: dossier.fileName,
+              mediaType: "application/pdf",
+              content: dossier.content,
+            },
           ],
           to: [
             ...new Set(

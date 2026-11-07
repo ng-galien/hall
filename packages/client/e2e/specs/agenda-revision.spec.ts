@@ -94,16 +94,20 @@ test("establishes, revises and resets the agenda revision with its notices", asy
   await page.getByTestId("meeting-reset-agenda-revision").click();
   const resetResponse = await reset;
   expect(resetResponse.ok(), await resetResponse.text()).toBeTruthy();
-  await expect(state).toHaveAttribute("data-state", "open");
-  await expect(state).toHaveAttribute("data-number", "2");
+  await expect(state).toHaveAttribute("data-state", "established");
+  await expect(state).toHaveAttribute("data-number", "1");
+  await expect(page.getByTestId("meeting-agenda-revision-notice")).toBeVisible();
   const restored = await sirenItems<{ id: string; position: number }>(
     await page.request.get(`/api/council-meetings/${scheduled.slug}/agenda-items`),
   );
   expect(restored.find((item) => item.id === added[0])?.position).toBeGreaterThan(0);
-  await expect(page.getByTestId("meeting-generate-notice")).toBeEnabled();
+  await expect(page.getByTestId("meeting-revise-agenda")).toBeEnabled();
   await expect(page.getByTestId(`agenda-item-open-business-${added[0]}`)).toBeVisible();
   await capture(page, "4-apres-reinitialiser");
 
+  await page.getByTestId("meeting-revise-agenda").click();
+  await expect(state).toHaveAttribute("data-state", "open");
+  await expect(state).toHaveAttribute("data-number", "2");
   await page.getByTestId("meeting-generate-notice").click();
   await expect(state).toHaveAttribute("data-state", "established");
   await expect(state).toHaveAttribute("data-number", "2");

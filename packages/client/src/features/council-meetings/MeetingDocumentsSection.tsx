@@ -1,6 +1,5 @@
 // biome-ignore-all lint/correctness/useExhaustiveDependencies: Notice and minutes changes intentionally reload their state.
 import { findSirenLink, type MeetingNotice, type MeetingNoticeMessagePreparation } from "@hall/api-contract";
-import type { DocumentaryResource, DocumentCategory } from "@hall/domain";
 import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,6 @@ import { ShareButton } from "../../components/ShareButton";
 import { RequestErrorBanner } from "../../components/Ui";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
-import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { type ApiErrorCode, apiErrorCode, SirenCapabilityUnavailable } from "../../services/apiClient";
@@ -23,21 +21,10 @@ import {
   prepareMeetingNoticeMessage,
 } from "../../services/meetingNoticesApi";
 import { openMinutes } from "../../services/minutesApi";
-import { listResources } from "../../services/resourcesApi";
 import { liveBusinessTitle } from "../council-business/presentation";
 import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
-import { ResourcePreview } from "../documents/ResourcePreview";
 import { MeetingProxyFormDialog } from "./MeetingProxyFormDialog";
 import { formatMeetingLabel } from "./meetingPresentation";
-
-export const documentCategoryKeys: Record<DocumentCategory, TranslationKey> = {
-  supporting: "documentCategory.supporting",
-  report: "documentCategory.report",
-  draftCouncilDecision: "documentCategory.draftCouncilDecision",
-  meetingNotice: "documentCategory.meetingNotice",
-  minutes: "documentCategory.minutes",
-  proxy: "documentCategory.proxy",
-};
 
 type DocumentTone = "done" | "todo" | "error" | "neutral";
 
@@ -87,7 +74,7 @@ export function MeetingDocumentsSection({
   meetingActions: ReturnType<typeof useCouncilMeeting>;
   aggregate: LiveMeetingPresentation;
 }) {
-  const { t, plural, formatDate, formatDateTime, formatFileSize, formatNumber } = useI18n();
+  const { t, plural, formatDate, formatDateTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const meeting = meetingActions.workspace!.meeting;
   const status = aggregate.meeting.status;
@@ -196,30 +183,6 @@ export function MeetingDocumentsSection({
     }
   };
 
-  // Pieces already filed on the meeting stay listed; filing new ones is not offered here.
-  const [attachments, setAttachments] = useState<DocumentaryResource[]>([]);
-  useEffect(() => {
-    let active = true;
-    void listResources({ meetingId: meeting.id, kind: "document", usage: "document" }).then(
-      (resources) => {
-        if (!active) return;
-        setAttachments(
-          resources.filter(
-            (resource): resource is DocumentaryResource =>
-              resource.kind === "document" && resource.usage === "document" && resource.meetingId === meeting.id,
-          ),
-        );
-      },
-      (failure) => {
-        if (active) setError(apiErrorCode(failure));
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [meeting.id]);
-  const [viewedAttachment, setViewedAttachment] = useState<DocumentaryResource | null>(null);
-
   const attendanceSheetHref = meetingActions.link("attendance-sheet");
   const proxyFormHref = meetingActions.link("proxy-form");
   const deliberationListHref = meetingActions.link("deliberation-list");
@@ -305,7 +268,7 @@ export function MeetingDocumentsSection({
                       })
                     }
                   >
-                    {t("meeting.notice.regenerate")}
+                    {t(submitting ? "common.saving" : "meeting.notice.regenerate")}
                   </Button>
                 ) : null}
                 {canExportNotice && message && preparing && currentNotice ? (
@@ -411,39 +374,6 @@ export function MeetingDocumentsSection({
               ) : undefined
             }
           />
-        ) : null}
-
-        {attachments.length ? (
-          <DocumentRow
-            testId="meeting-document-attachments"
-            icon={<FileIcon />}
-            name={t("meeting.documents.attachments")}
-            state={`${formatNumber(attachments.length)} ${plural(attachments.length, "meeting.documents.attachmentCount.one", "meeting.documents.attachmentCount.other")}`}
-          >
-            {attachments.length ? (
-              <ul className="meeting-document-sublist">
-                {attachments.map((document) => (
-                  <li key={document.id}>
-                    <span className="meeting-document-sublist-copy">
-                      <span>{document.fileName}</span>
-                      <span className="meeting-document-note">
-                        {t(documentCategoryKeys[document.category])} · {formatFileSize(document.byteSize)}
-                      </span>
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      aria-label={t("meeting.viewDocument", { name: document.fileName })}
-                      onClick={() => setViewedAttachment(document)}
-                    >
-                      <OpenIcon />
-                      {t("meeting.documents.open")}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </DocumentRow>
         ) : null}
 
         {attendanceSheetHref ? (
@@ -590,9 +520,6 @@ export function MeetingDocumentsSection({
           mediaType="application/pdf"
           onClose={() => setViewer(null)}
         />
-      ) : null}
-      {viewedAttachment ? (
-        <ResourcePreview resourceId={viewedAttachment.id} onClose={() => setViewedAttachment(null)} />
       ) : null}
     </CollapsibleSection>
   );

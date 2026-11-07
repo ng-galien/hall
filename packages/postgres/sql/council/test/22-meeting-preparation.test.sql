@@ -86,6 +86,7 @@ INSERT INTO notice_versions SELECT hall_api.generate_meeting_notice(test_uuid('p
 SELECT is((SELECT count(DISTINCT agenda_freeze)::int FROM meeting_notice WHERE council_meeting=test_uuid('preparation:meeting')),1,'regeneration keeps the established revision');
 SELECT is((SELECT jsonb_agg(jsonb_build_object('revision',entry->'revision','version',entry->'version')) FROM jsonb_array_elements(hall_api.list_meeting_notices(test_uuid('preparation:meeting'))) entry),
   '[{"revision":1,"version":2}]'::jsonb,'the notice list shows the last PDF of each revision');
+SELECT throws_ok($$SELECT hall_api.reset_council_agenda_revision(test_uuid('preparation:meeting'))$$,'HV812',NULL,'an established revision cannot be reset');
 -- @verifies-requirement HALL-FR-NOT-100
 SELECT hall_api.reopen_council_agenda(test_uuid('preparation:meeting'));
 SELECT is(hall.council_agenda_revision_projection(test_uuid('preparation:meeting')),'{"number":2,"establishedAt":null,"noticeId":null}'::jsonb,'revising opens revision two');
@@ -101,7 +102,15 @@ SELECT is((SELECT array_agg(item.position ORDER BY item.id) FROM council_agenda_
   (SELECT array_agg(position ORDER BY id) FROM established_positions),'reset restores the programmed points and their positions');
 SELECT is((SELECT jsonb_build_object('scheduledAt',scheduled_at,'location',location) FROM council_meetings WHERE id=test_uuid('preparation:meeting')),
   jsonb_build_object('scheduledAt','2026-01-01 18:00Z'::timestamptz,'location','Council chamber'),'reset restores date and location');
-SELECT is(hall.council_agenda_revision_projection(test_uuid('preparation:meeting'))->>'number','2','the agenda stays on the open revision after reset');
+SELECT is(hall.council_agenda_revision_projection(test_uuid('preparation:meeting')),
+  jsonb_build_object('number',1,'establishedAt',(SELECT frozen_at FROM council_agenda_freeze WHERE council_meeting=test_uuid('preparation:meeting')),
+    'noticeId',(SELECT notice->>'id' FROM notice_versions ORDER BY (notice->>'version')::int DESC LIMIT 1)),
+  'reset brings the meeting back to revision one established with its notice');
+SELECT is((SELECT count(*)::int FROM council_agenda_freeze WHERE council_meeting=test_uuid('preparation:meeting')),1,'reset establishes no new revision');
+SELECT throws_ok($$SELECT hall_api.deprogram_council_agenda_item((SELECT id FROM preparation WHERE key='quick-item'))$$,'HV801',NULL,'the restored revision is established again');
+SELECT throws_ok($$DELETE FROM council_agenda_reopening_cancellation$$,'HV802',NULL,'a reset is recorded immutably');
+SELECT hall_api.reopen_council_agenda(test_uuid('preparation:meeting'));
+SELECT is(hall.council_agenda_revision_projection(test_uuid('preparation:meeting'))->>'number','2','revising again after reset opens revision two');
 SELECT throws_ok($$SELECT hall_api.reset_council_agenda_revision(gen_random_uuid())$$,'HV901',NULL,'reset requires a known meeting');
 INSERT INTO council_meetings(id,number) VALUES(test_uuid('preparation:other'),2);
 SELECT reprogram_council_agenda_item((SELECT id FROM preparation WHERE key='quick-item'),test_uuid('preparation:other'),1);

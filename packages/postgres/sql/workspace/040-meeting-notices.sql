@@ -155,9 +155,9 @@ BEGIN
 END;
 $$;
 
--- Brings the open revision back to the last established one: its programmed
--- points and their positions, its date and its location. A point of that
--- revision moved to another meeting cannot come back.
+-- Brings the meeting back to the last established revision as it was: its
+-- programmed points and their positions, its date, its location and its
+-- notice. A point of that revision moved to another meeting cannot come back.
 -- @implements-requirement HALL-FR-NOT-150
 CREATE FUNCTION hall_api.reset_council_agenda_revision(target_meeting UUID)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
@@ -225,6 +225,11 @@ BEGIN
   IF revision.scheduled_at IS NOT NULL AND revision.location IS NOT NULL THEN
     PERFORM hall.schedule_council_meeting(target_meeting, revision.scheduled_at, revision.location);
   END IF;
+  -- The established revision is active again, with its notice; no new revision is opened.
+  INSERT INTO hall.council_agenda_reopening_cancellation(reopening)
+  SELECT reopening.id FROM hall.council_agenda_reopening reopening
+  WHERE reopening.agenda_freeze = revision.id
+    AND NOT EXISTS (SELECT FROM hall.council_agenda_reopening_cancellation cancellation WHERE cancellation.reopening = reopening.id);
   SELECT * INTO meeting FROM hall.council_meetings WHERE id = target_meeting;
   RETURN hall.council_meeting_projection(meeting);
 END;

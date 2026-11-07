@@ -14,13 +14,22 @@ CREATE TABLE hall.council_agenda_freeze (
   location TEXT
 );
 
+-- "Réviser" records a reopening of the established revision. Resetting the
+-- next revision cancels that reopening: the established revision is active again.
 CREATE TABLE hall.council_agenda_reopening (
-  agenda_freeze UUID PRIMARY KEY REFERENCES hall.council_agenda_freeze(id),
-  reopened_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
+  agenda_freeze UUID NOT NULL REFERENCES hall.council_agenda_freeze(id),
+  reopened_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+);
+-- @implements-requirement HALL-FR-NOT-150
+CREATE TABLE hall.council_agenda_reopening_cancellation (
+  reopening UUID PRIMARY KEY REFERENCES hall.council_agenda_reopening(id),
+  cancelled_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
 );
 CREATE VIEW hall.active_council_agenda_freeze AS
 SELECT frozen.* FROM hall.council_agenda_freeze frozen
-WHERE NOT EXISTS (SELECT FROM hall.council_agenda_reopening reopening WHERE reopening.agenda_freeze = frozen.id);
+WHERE NOT EXISTS (SELECT FROM hall.council_agenda_reopening reopening WHERE reopening.agenda_freeze = frozen.id
+  AND NOT EXISTS (SELECT FROM hall.council_agenda_reopening_cancellation cancellation WHERE cancellation.reopening = reopening.id));
 
 CREATE FUNCTION hall.council_agenda_revision_number(target hall.council_agenda_freeze)
 RETURNS INTEGER LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
@@ -93,6 +102,10 @@ CREATE TRIGGER council_agenda_reopening_immutable BEFORE UPDATE OR DELETE ON hal
 FOR EACH ROW EXECUTE FUNCTION hall.reject_preparation_history_change();
 CREATE TRIGGER council_agenda_reopening_no_truncate BEFORE TRUNCATE ON hall.council_agenda_reopening
 FOR EACH STATEMENT EXECUTE FUNCTION hall.reject_preparation_history_change();
+CREATE TRIGGER council_agenda_reopening_cancellation_immutable BEFORE UPDATE OR DELETE ON hall.council_agenda_reopening_cancellation
+FOR EACH ROW EXECUTE FUNCTION hall.reject_preparation_history_change();
+CREATE TRIGGER council_agenda_reopening_cancellation_no_truncate BEFORE TRUNCATE ON hall.council_agenda_reopening_cancellation
+FOR EACH STATEMENT EXECUTE FUNCTION hall.reject_preparation_history_change();
 
 CREATE FUNCTION hall.meeting_notice_meeting_facts(target_meeting UUID)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
@@ -114,6 +127,10 @@ CREATE TABLE hall.meeting_notice (
   agenda_freeze UUID REFERENCES hall.council_agenda_freeze(id),
   UNIQUE(council_meeting,version)
 );
+-- Every notice belongs to its revision. The constraint is declared NOT VALID:
+-- the schema upgrade adds it before migration 006 links the existing notices.
+ALTER TABLE hall.meeting_notice ADD CONSTRAINT meeting_notice_agenda_freeze_required
+  CHECK (agenda_freeze IS NOT NULL) NOT VALID;
 CREATE TRIGGER meeting_notice_immutable BEFORE UPDATE OR DELETE ON hall.meeting_notice
 FOR EACH ROW EXECUTE FUNCTION hall.reject_preparation_history_change();
 CREATE TRIGGER meeting_notice_no_truncate BEFORE TRUNCATE ON hall.meeting_notice

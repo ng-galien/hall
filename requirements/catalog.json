@@ -7697,8 +7697,8 @@
       "statement": "Avant l’ouverture de la séance, « Réviser » ouvre la révision suivante, modifiable ; les révisions établies précédentes et leurs convocations restent consultables.",
       "acceptanceCriteria": [
         "« Réviser » est refusé (HV808) après l’ouverture ou sans révision établie.",
-        "La séance liste une convocation par révision établie, la dernière générée sous elle, avec « Convocation n° k, révision k établie le … » ; chacune s’ouvre et son courriel reste téléchargeable.",
-        "Le courriel de la convocation de la révision établie joint le dossier de séance ; celui d’une révision précédente joint la seule convocation."
+        "La séance liste une convocation par révision établie, la dernière générée sous elle, avec « Convocation n° k, révision k établie le … » et « Ouvrir ».",
+        "Seule la convocation de la révision établie courante a un courriel aux conseillers, qui joint le dossier de séance ; le courriel d’une convocation d’une révision précédente est refusé (meeting_notice_unavailable)."
       ],
       "clauses": [
         {
@@ -9981,7 +9981,7 @@
       },
       "statement": "La page d’une séance en préparation ou en cours produit la feuille d’émargement que les conseillers présents signent en arrivant, document PDF d’après un modèle de type « Feuille d’émargement ».",
       "acceptanceCriteria": [
-        "Depuis la page d’une séance en préparation (brouillon sans date ni ordre du jour figé, programmée ou convoquée) ou en cours, tout lecteur de la séance produit en PDF la feuille d’émargement : nom de la commune, titre « Feuille d’émargement », numéro de la séance, date et heure quand elles sont fixées, lieu.",
+        "Depuis la page d’une séance en préparation (sans date, programmée, en révision ouverte ou établie) ou en cours, tout lecteur de la séance produit en PDF la feuille d’émargement : nom de la commune, titre « Feuille d’émargement », numéro de la séance, date et heure quand elles sont fixées, lieu.",
         "Une fois la séance close, la page ne propose plus la feuille d’émargement : la représentation Siren de la séance ne porte plus le lien attendance-sheet et le serveur refuse sa production avec le code meeting_attendance_documents_closed (409). La production n’enregistre rien et ne crée aucune ressource.",
         "La feuille contient un tableau de deux colonnes, « Nom et prénom » et « Signature » : une ligne par membre du conseil en mandat, prénom puis nom comme dans l’annuaire, dans l’ordre du tableau du conseil (rang enregistré ; sans rang, le maire, puis les adjoints, puis les conseillers) ; la colonne Signature, vide, est la plus large et chaque ligne mesure au moins 12 mm.",
         "La feuille ne porte ni qualité, ni pouvoir, ni présence enregistrée dans Hall, ni décompte, ni bloc de signature du maire ; le pouvoir est un document distinct.",
@@ -10891,9 +10891,9 @@
       "statement": "La page d’une séance rassemble ses documents dans une section repliable « Documents de la séance » : une ligne par document, avec son nom, son état et les actions que la représentation Siren offre à l’utilisateur.",
       "acceptanceCriteria": [
         "La section apparaît dans la vue de préparation, la vue d’une séance en cours et le compte rendu d’une séance close ; elle est dépliée à l’ouverture de la page et se replie par son titre.",
-        "Les lignes suivent cet ordre : Convocation, Dossier de séance (en préparation), Pièces jointes (seulement si la séance a des pièces déposées), Feuille d’émargement et Pouvoir (en préparation et en cours), puis, après clôture, Procès-verbal, Liste des délibérations et Délibérations.",
+        "Les lignes suivent cet ordre : Convocation, Dossier de séance (en préparation), Feuille d’émargement et Pouvoir (en préparation et en cours), puis, après clôture, Procès-verbal, Liste des délibérations et Délibérations.",
         "La ligne Convocation indique la révision ouverte et la convocation à générer, ou la convocation de la révision établie avec la date de son PDF ; sous une révision établie elle porte « Ouvrir », « Régénérer le PDF » et « Télécharger le courriel », chacune seulement quand Siren l’offre, et elle liste les convocations des révisions précédentes.",
-        "La ligne Pièces jointes n’apparaît que si la séance a des pièces déposées : elle les liste avec leur catégorie et leur taille, chacune avec « Ouvrir » ; la section n’offre pas de dépôt de pièce.",
+        "La section ne liste pas de pièces jointes et n’offre pas de dépôt de pièce : les pièces se déposent sur l’affaire.",
         "Après clôture, la ligne Procès-verbal indique brouillon ou document généré et mène à sa page ; la ligne Délibérations liste les points délibérés, chacun avec le lien vers sa délibération.",
         "Un conseiller voit les mêmes lignes et ouvre ou génère les PDF en lecture ; les actions d’écriture n’apparaissent que si la capacité existe. À 800 px de large, la section ne déborde pas de la page."
       ],
@@ -10913,7 +10913,7 @@
         {
           "key": "owner-attachments",
           "origin": "product",
-          "statement": "Décision du propriétaire du 7 novembre 2026 : la ligne « Pièces jointes » n’offre plus de dépôt et n’apparaît que si la séance a déjà des pièces déposées, qu’elle liste avec « Ouvrir ».",
+          "statement": "Décision du propriétaire du 7 novembre 2026 : la section des documents de la séance n’offre plus de dépôt de pièce. Aucune pièce n’étant rattachée à une séance, la ligne « Pièces jointes » est retirée.",
           "sourceIds": []
         }
       ]
@@ -10953,10 +10953,11 @@
         "state": "accepted",
         "since": "2026-11-07"
       },
-      "statement": "« Réinitialiser la révision » ramène l’ordre du jour, la date et le lieu d’une révision ouverte à ceux de la dernière révision établie ; la révision reste ouverte.",
+      "statement": "« Réinitialiser la révision » ramène la séance à la dernière révision établie, telle quelle : son ordre du jour, sa date, son lieu et sa convocation.",
       "acceptanceCriteria": [
         "L’action n’est offerte qu’en révision ouverte, avant l’ouverture de la séance, quand une révision établie la précède ; sinon elle est refusée (HV812).",
         "Les points de la révision établie reprennent leur position ; les autres points de la séance sont déprogrammés ; la date et le lieu reprennent ceux de la révision établie.",
+        "Après la réinitialisation, la séance est de nouveau en révision n établie, avec la convocation n ; aucune convocation n’est générée et le numéro de révision n’augmente pas. « Réviser » rouvre ensuite la révision n+1.",
         "Si un point de la révision établie est inscrit à une autre séance, l’action échoue sans rien modifier (HV813, problème agenda_revision_item_moved) et l’interface nomme ce point."
       ],
       "clauses": [
@@ -10970,6 +10971,12 @@
           "key": "owner-reset",
           "origin": "product",
           "statement": "Mots d’Alexandre du 7 novembre 2026 : « On engage une révision ; si on la reset, on revient au début. »",
+          "sourceIds": []
+        },
+        {
+          "key": "coordinator-reading",
+          "origin": "product",
+          "statement": "Décision du coordinateur du 7 novembre 2026 sur « si on la reset, on revient au début » : la réinitialisation ramène la séance à la révision établie précédente telle quelle, révision n établie avec sa convocation n, et non une révision n+1 ouverte au contenu identique.",
           "sourceIds": []
         }
       ]

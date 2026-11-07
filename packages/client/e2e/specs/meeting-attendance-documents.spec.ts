@@ -74,9 +74,7 @@ test("the documents of a closed meeting no longer offer the attendance sheet or 
 });
 
 // @verifies-requirement HALL-FR-MTG-390
-test("the documents of a meeting without filed pieces show no attachment row and offer no filing", async ({
-  appPage: page,
-}) => {
+test("the documents of a meeting list no attachment and offer no filing", async ({ appPage: page }) => {
   const meetings = await items<{ id: string; startedAt: string | null }>(page, "/api/council-meetings");
   const preparing = meetings.find((meeting) => !meeting.startedAt)!;
   await page.goto(`/app/meetings/${preparing.id}`);

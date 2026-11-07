@@ -232,20 +232,15 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
       const regenerated = (await json(`/council-meetings/${meeting.id}/notices`, "POST", {}, 201)).properties;
       expect(regenerated).toMatchObject({ version: 2, revision: 1 });
       await json(`/council-meetings/${meeting.id}/agenda-reopening`, "POST", {});
-      // The notice of an established revision stays exportable after revising, without the dossier.
-      const previousMessage = await fetch(`${server.url}/api/council-meetings/${meeting.id}/notice-message`, {
-        method: "POST",
-        headers: { "content-type": "application/json", origin: server.url },
-        body: JSON.stringify({ noticeId: notice.id }),
-      });
-      expect(previousMessage.status).toBe(200);
-      expect(Buffer.from(await previousMessage.arrayBuffer()).toString()).not.toContain("dossier-seance-");
+      // Only the notice of the established revision has an email; an earlier notice is only opened.
+      await json(`/council-meetings/${meeting.id}/notice-message`, "POST", { noticeId: notice.id }, 409);
       await pool.query(
         "SELECT hall_api.schedule_council_meeting($1,TIMESTAMPTZ '2026-01-01 18:00:00+00','Salle du conseil')",
         [meeting.id],
       );
       const second = (await json(`/council-meetings/${meeting.id}/notices`, "POST", {}, 201)).properties;
       expect(second).toMatchObject({ version: 3, revision: 2 });
+      await json(`/council-meetings/${meeting.id}/notice-message`, "POST", { noticeId: notice.id }, 409);
       const memberIds = preparation.recipients.map((r: { councilMemberId: string }) => r.councilMemberId);
       const opening = {
         chairMemberId: memberIds[0],

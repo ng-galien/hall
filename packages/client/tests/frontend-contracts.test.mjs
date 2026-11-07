@@ -264,10 +264,6 @@ test("editor images keep immutable resource references and follow document capab
   );
 });
 
-test("document category translations are exhaustive over the domain type", () => {
-  assert.match(read("src/features/council-meetings/MeetingDocumentsSection.tsx"), /Record<DocumentCategory, TranslationKey>/);
-});
-
 test("the complete ballot contract is exposed through the meeting UI", () => {
   const votePanel = read("src/pages/council-meetings/live/VotePanel.tsx");
   const meetingProceedings = read("src/pages/council-meetings/MeetingProceedings.tsx");
@@ -296,10 +292,8 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   assert.match(preparation, /aggregate\.rosterMemberIds\.includes\(member\.id\)/);
   assert.match(preparation, /meetingActions\.can\("meeting\.reorder-agenda"\)/);
   assert.match(preparation, /meetingActions\.can\("meeting\.prepare"\)/);
-  assert.match(
-    read("src/features/council-meetings/MeetingDocumentsSection.tsx"),
-    /findSirenAction\(representation, "resource\.create-document"\)/,
-  );
+  // The meeting documents list generated documents; filing a document is done on a council business.
+  assert.doesNotMatch(read("src/features/council-meetings/MeetingDocumentsSection.tsx"), /resource\.create-document/);
   const pathContents = read("src/pages/workspace/PathContents.tsx");
   assert.match(pathContents, /capabilities\.createCouncilBusiness \?/);
   // Creation affordances come from the Siren actions of each listed folder.

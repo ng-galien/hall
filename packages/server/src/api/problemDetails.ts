@@ -15,7 +15,7 @@ const titles: Record<string, string> = {
   council_business_report_not_deletable: "A council business report is deleted only with its council business",
   council_business_folder_not_deletable: "A council business folder is deleted only with its council business",
   meeting_cited_document_not_deletable: "A document cited by a council meeting is never deleted",
-  meeting_dossier_unavailable: "The meeting dossier needs a frozen agenda",
+  meeting_dossier_unavailable: "The meeting dossier needs an established agenda revision",
   deliberation_list_unavailable: "The list of deliberations needs a closed meeting",
   proxy_form_invalid: "A proxy names a grantor in mandate and, optionally, another member in mandate as holder",
   councillor_requires_active_member: "A council member account requires a contact with an active mandate",
