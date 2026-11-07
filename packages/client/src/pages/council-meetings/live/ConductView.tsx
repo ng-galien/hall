@@ -1082,6 +1082,7 @@ export function ConductView({
                 data-testid="live-adjourn-confirm"
                 onClick={() =>
                   void run(async () => {
+                    if (!(await notesAutosave.flush())) return false;
                     const adjourned = await meetingActions.adjournAgendaItem(selectedItem.id);
                     if (adjourned) setAdjournConfirming(false);
                     return adjourned;

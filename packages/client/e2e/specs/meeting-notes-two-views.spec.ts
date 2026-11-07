@@ -209,3 +209,43 @@ test("a ballot preview stays confirmable when notes are saved before its confirm
   await expect(page.getByTestId("live-ballot-result")).toBeVisible();
   expect(await storedNotes(page, slug, itemId)).toBe(laterNotes);
 });
+
+// @verifies-requirement HALL-FR-MTG-380
+test("notes typed without a pause are kept when another conduct view completes the item", async ({
+  appPage: writer,
+  browser,
+}) => {
+  test.setTimeout(150_000);
+  const { slug, itemId } = await openMeetingWithStartedItem(writer, "openQuestion");
+  const chairContext = await browser.newContext();
+  try {
+    const chair = await chairContext.newPage();
+    const chairSaves = recordNotesSaves(chair, itemId);
+    await chair.goto(`/app/meetings/${slug}/live`);
+    await chair.getByTestId(`live-agenda-item-${itemId}`).click();
+    await expect(chair.getByTestId("live-agenda-complete")).toBeVisible();
+
+    const writerSaves = recordNotesSaves(writer, itemId);
+    const continuousNotes = `${typedNotes}${continuedNotes}${continuedNotes}`;
+    await writer.getByTestId("live-agenda-notes").getByTestId("editor-writing-area").click();
+    const typing = writer.keyboard.type(continuousNotes, { delay: 60 });
+    await writer.waitForTimeout(1_500);
+    const completion = chair.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" && response.url().endsWith(`/agenda-items/${itemId}/complete`),
+    );
+    await chair.getByTestId("live-agenda-complete").click();
+    expect((await completion).ok()).toBeTruthy();
+    await typing;
+    await expect(writer.getByTestId("live-agenda-notes")).toBeHidden();
+    await expect
+      .poll(async () => (await storedNotes(writer, slug, itemId)).length, { timeout: 15_000 })
+      .toBeGreaterThan(10);
+    const stored = await storedNotes(writer, slug, itemId);
+    expect(continuousNotes.startsWith(stored), "the stored notes are the text typed before completion").toBe(true);
+    expect(writerSaves.length).toBeGreaterThanOrEqual(1);
+    expect(chairSaves, "the view that completed the item sent no notes").toHaveLength(0);
+  } finally {
+    await chairContext.close();
+  }
+});

@@ -170,7 +170,7 @@ DECLARE
 BEGIN
   SELECT discussion_summary INTO recorded_notes FROM hall.council_agenda_item WHERE id = target_agenda_item FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV904', MESSAGE = 'unknown council agenda item'; END IF;
-  IF notes = '' AND recorded_notes <> '' AND clear_confirmed IS NOT TRUE THEN
+  IF notes !~ '[^[:space:]]' AND recorded_notes ~ '[^[:space:]]' AND clear_confirmed IS NOT TRUE THEN
     RAISE EXCEPTION USING ERRCODE = 'HV237', MESSAGE = 'clearing recorded agenda item notes requires an explicit confirmation';
   END IF;
   UPDATE hall.council_agenda_item SET discussion_summary = notes WHERE id = target_agenda_item;

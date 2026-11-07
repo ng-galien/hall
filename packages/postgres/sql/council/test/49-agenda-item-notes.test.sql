@@ -15,6 +15,7 @@ SELECT lives_ok($$SELECT hall_api.update_council_agenda_item_notes(test_uuid('no
 SELECT lives_ok($$SELECT hall_api.update_council_agenda_item_notes(test_uuid('notes:a:agenda-item'),'Le maire présente le projet.')$$,'typed notes are saved');
 SELECT throws_ok($$SELECT hall_api.update_council_agenda_item_notes(test_uuid('notes:a:agenda-item'),'')$$,'HV237',NULL,'an empty text without confirmation is refused over recorded notes');
 SELECT throws_ok($$SELECT hall_api.update_council_agenda_item_notes(test_uuid('notes:a:agenda-item'),'',false)$$,'HV237',NULL,'an empty text with a refused confirmation is refused over recorded notes');
+SELECT throws_ok($$SELECT hall_api.update_council_agenda_item_notes(test_uuid('notes:a:agenda-item'),E'  \n ')$$,'HV237',NULL,'a text of spaces only is refused over recorded notes');
 SELECT is((SELECT discussion_summary FROM council_agenda_item WHERE id=test_uuid('notes:a:agenda-item')),'Le maire présente le projet.','a refused clear keeps the recorded notes');
 SELECT lives_ok($$SELECT hall_api.update_council_agenda_item_notes(test_uuid('notes:a:agenda-item'),'Notes corrigées.')$$,'a non-empty text replaces notes without confirmation');
 SELECT lives_ok($$SELECT hall_api.update_council_agenda_item_notes(test_uuid('notes:a:agenda-item'),'',true)$$,'an empty text with confirmation clears recorded notes');
@@ -37,6 +38,25 @@ SELECT start_council_agenda_item(test_uuid('presence:a:agenda-item'),'2026-01-01
 CREATE TEMP TABLE presence_fingerprint AS SELECT hall.ballot_preview_fingerprint(test_uuid('presence:a:agenda-item')) fingerprint;
 INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) VALUES(test_uuid('presence:att:3'),'2026-01-01 09:02Z','absent');
 SELECT isnt(hall.ballot_preview_fingerprint(test_uuid('presence:a:agenda-item')),(SELECT fingerprint FROM presence_fingerprint),'a departure changes the preview fingerprint');
+
+SELECT pg_temp.quorum_case('recused',4,4);
+SELECT test_prepare_notice(test_uuid('recused:meeting'));
+SELECT start_council_meeting(test_uuid('recused:meeting'),'2026-01-01 09:00Z');
+SELECT start_council_agenda_item(test_uuid('recused:a:agenda-item'),'2026-01-01 09:01Z');
+CREATE TEMP TABLE recused_preview AS SELECT hall_api.create_ballot_result_preview(test_uuid('recused:a:agenda-item'),pg_temp.public_candidate('recused',4,3)) payload;
+INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
+  VALUES(test_uuid('recused:a:agenda-item'),test_uuid('recused:member:4'),'personalInterest','2026-01-01 09:02Z');
+SELECT throws_ok($$SELECT hall_api.confirm_ballot_result_preview((SELECT (payload->>'id')::uuid FROM recused_preview))$$,'HV422',NULL,'a recusal after the preview makes it stale');
+
+SELECT pg_temp.quorum_case('proxied',4,4);
+SELECT test_prepare_notice(test_uuid('proxied:meeting'));
+SELECT start_council_meeting(test_uuid('proxied:meeting'),'2026-01-01 09:00Z');
+SELECT start_council_agenda_item(test_uuid('proxied:a:agenda-item'),'2026-01-01 09:01Z');
+CREATE TEMP TABLE proxied_preview AS SELECT hall_api.create_ballot_result_preview(test_uuid('proxied:a:agenda-item'),pg_temp.public_candidate('proxied',4,3)) payload;
+SELECT test_ensure_document_resource(test_uuid('proxied:document'));
+INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status,proxy_holder,proxy_document)
+  VALUES(test_uuid('proxied:att:4'),'2026-01-01 09:02Z','represented',test_uuid('proxied:att:2'),test_uuid('proxied:document'));
+SELECT throws_ok($$SELECT hall_api.confirm_ballot_result_preview((SELECT (payload->>'id')::uuid FROM proxied_preview))$$,'HV422',NULL,'a proxy given after the preview makes it stale');
 
 -- @verifies-requirement HALL-FR-MTG-370
 -- an agenda item is dated at reception, never before the latest observation of its meeting.

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const AGENDA_ITEM_NOTES_AUTOSAVE_DELAY_MS = 2000;
+export const AGENDA_ITEM_NOTES_AUTOSAVE_MAX_WAIT_MS = 10_000;
 
 export type AgendaItemNotesSave = (
   itemId: string,
@@ -17,12 +18,29 @@ export interface AgendaItemNotesAutosave {
   flush(): Promise<boolean>;
 }
 
+interface NotesState {
+  itemId: string | null;
+  /** Text shown in this view. */
+  text: string;
+  /** Last text known to be recorded on the server, as adopted or saved by this view. */
+  recorded: string;
+  revision: number;
+  savedRevision: number;
+  /** Instant of the first unsaved change since the last save. */
+  pendingSince: number | null;
+}
+
+function initialState(itemId: string | null, serverText: string): NotesState {
+  return { itemId, text: serverText, recorded: serverText, revision: 0, savedRevision: 0, pendingSince: null };
+}
+
 /**
  * Discussion notes of the agenda item selected in a conduct view.
  *
- * Only a change typed in this view is sent to the server. While nothing typed
- * remains unsaved, the view shows the server text. Saving stops when another
- * item is selected or the item is no longer in discussion.
+ * Only a change typed in this view is sent to the server: two seconds after the
+ * last keystroke, at least every ten seconds while typing continues, and once
+ * more when the item leaves discussion, another item is selected or the view
+ * closes. While nothing typed remains unsaved, the view shows the server text.
  *
  * @implements-requirement HALL-FR-MTG-380
  */
@@ -34,12 +52,12 @@ export function useAgendaItemNotesAutosave({
 }: {
   itemId: string | null;
   serverText: string;
-  /** The item is in discussion; its notes are saved while it is. */
+  /** The item is in discussion; typing is accepted and saved while it is. */
   active: boolean;
   save: AgendaItemNotesSave;
 }): AgendaItemNotesAutosave {
   const [text, setText] = useState(serverText);
-  const current = useRef({ itemId, text: serverText, revision: 0, savedRevision: 0, clearedByUser: false });
+  const current = useRef<NotesState>(initialState(itemId, serverText));
   const timer = useRef<number | null>(null);
   const saveRef = useRef(save);
   saveRef.current = save;
@@ -50,56 +68,77 @@ export function useAgendaItemNotesAutosave({
     timer.current = null;
   }, []);
 
-  const send = useCallback(async (): Promise<boolean> => {
-    cancelTimer();
-    const state = current.current;
+  /** Sends the unsaved text of the given state; a later state for the same item is not marked saved. */
+  const sendState = useCallback(async (state: NotesState): Promise<boolean> => {
     if (state.itemId === null || state.revision === state.savedRevision) return true;
-    const { itemId: target, text: sent, revision, clearedByUser } = state;
-    const saved = await saveRef.current(target, sent, { clearConfirmed: sent === "" && clearedByUser });
-    if (saved && current.current.itemId === target && current.current.revision === revision) {
-      current.current.savedRevision = revision;
+    const { itemId: target, text: sent, revision, recorded } = state;
+    state.pendingSince = null;
+    if (sent === recorded) {
+      state.savedRevision = revision;
+      return true;
+    }
+    const saved = await saveRef.current(target, sent, { clearConfirmed: sent.trim() === "" && recorded.trim() !== "" });
+    if (saved && state.revision === revision) {
+      state.savedRevision = revision;
+      state.recorded = sent;
     }
     return saved;
-  }, [cancelTimer]);
+  }, []);
+
+  const send = useCallback((): Promise<boolean> => {
+    cancelTimer();
+    return sendState(current.current);
+  }, [cancelTimer, sendState]);
 
   useEffect(() => {
     if (current.current.itemId === itemId) return;
     cancelTimer();
-    current.current = { itemId, text: serverText, revision: 0, savedRevision: 0, clearedByUser: false };
+    void sendState(current.current);
+    current.current = initialState(itemId, serverText);
     setText(serverText);
-  }, [itemId, serverText, cancelTimer]);
+  }, [itemId, serverText, cancelTimer, sendState]);
 
   useEffect(() => {
     const state = current.current;
-    if (state.itemId !== itemId || state.revision !== state.savedRevision || state.text === serverText) return;
-    current.current.text = serverText;
-    current.current.clearedByUser = false;
+    if (state.itemId !== itemId || state.revision !== state.savedRevision) return;
+    state.recorded = serverText;
+    if (state.text === serverText) return;
+    state.text = serverText;
     setText(serverText);
   }, [itemId, serverText]);
 
   useEffect(() => {
-    if (active) return;
-    cancelTimer();
-    current.current.savedRevision = current.current.revision;
-  }, [active, cancelTimer]);
+    if (!active) void send();
+  }, [active, send]);
 
-  useEffect(() => cancelTimer, [cancelTimer]);
+  useEffect(() => {
+    const onPageHide = () => void send();
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      void send();
+    };
+  }, [send]);
 
   const edit = useCallback(
     (next: string) => {
       const state = current.current;
       if (!active || state.itemId === null || next === state.text) return;
-      state.clearedByUser = next === "" && state.text !== "";
       state.text = next;
       state.revision += 1;
+      state.pendingSince ??= Date.now();
       setText(next);
       cancelTimer();
-      timer.current = window.setTimeout(() => {
-        timer.current = null;
-        void send();
-      }, AGENDA_ITEM_NOTES_AUTOSAVE_DELAY_MS);
+      const untilMaximum = state.pendingSince + AGENDA_ITEM_NOTES_AUTOSAVE_MAX_WAIT_MS - Date.now();
+      timer.current = window.setTimeout(
+        () => {
+          timer.current = null;
+          void sendState(state);
+        },
+        Math.max(0, Math.min(AGENDA_ITEM_NOTES_AUTOSAVE_DELAY_MS, untilMaximum)),
+      );
     },
-    [active, cancelTimer, send],
+    [active, cancelTimer, sendState],
   );
 
   return { text, edit, flush: send };

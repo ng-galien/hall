@@ -15,6 +15,7 @@ let temporary;
 let originals;
 let useAgendaItemNotesAutosave;
 let delay;
+let maximumWait;
 
 beforeAll(async () => {
   temporary = mkdtempSync(join(clientRoot, ".tmp-agenda-notes-"));
@@ -22,7 +23,7 @@ beforeAll(async () => {
   const output = join(temporary, "entry.mjs");
   writeFileSync(
     entry,
-    `export { useAgendaItemNotesAutosave, AGENDA_ITEM_NOTES_AUTOSAVE_DELAY_MS } from ${JSON.stringify(join(clientRoot, "src/hooks/useAgendaItemNotesAutosave.ts"))};\n`,
+    `export { useAgendaItemNotesAutosave, AGENDA_ITEM_NOTES_AUTOSAVE_DELAY_MS, AGENDA_ITEM_NOTES_AUTOSAVE_MAX_WAIT_MS } from ${JSON.stringify(join(clientRoot, "src/hooks/useAgendaItemNotesAutosave.ts"))};\n`,
   );
   await build({
     entryPoints: [entry],
@@ -33,9 +34,11 @@ beforeAll(async () => {
     packages: "external",
     logLevel: "silent",
   });
-  ({ useAgendaItemNotesAutosave, AGENDA_ITEM_NOTES_AUTOSAVE_DELAY_MS: delay } = await import(
-    pathToFileURL(output).href
-  ));
+  ({
+    useAgendaItemNotesAutosave,
+    AGENDA_ITEM_NOTES_AUTOSAVE_DELAY_MS: delay,
+    AGENDA_ITEM_NOTES_AUTOSAVE_MAX_WAIT_MS: maximumWait,
+  } = await import(pathToFileURL(output).href));
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: "http://localhost/app/" });
   originals = Object.fromEntries(names.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries({
@@ -113,30 +116,64 @@ test("typed text is saved once after the delay, then the view follows the server
   await notes.unmount();
 });
 
-test("only a deliberate clear by the user carries the clear confirmation", async () => {
+test("only a deliberate clear of recorded notes carries the clear confirmation", async () => {
   const notes = mountNotes({ itemId: "item-1", serverText: "Notes", active: true });
   await notes.render();
   await act(async () => notes.view.current.edit(""));
   assert.equal(await act(() => notes.view.current.flush()), true);
   assert.deepEqual(notes.saves, [{ itemId: "item-1", notes: "", clearConfirmed: true }]);
   await notes.unmount();
+
+  const own = mountNotes({ itemId: "item-2", serverText: "", active: true });
+  await own.render();
+  await act(async () => own.view.current.edit("Frappe"));
+  await act(async () => own.view.current.edit(""));
+  await act(() => own.view.current.flush());
+  assert.deepEqual(own.saves, [], "erasing one's own unsaved typing in an empty field sends nothing");
+  await act(async () => own.view.current.edit("Frappe"));
+  await act(async () => own.view.current.edit("  "));
+  await act(() => own.view.current.flush());
+  assert.deepEqual(own.saves, [{ itemId: "item-2", notes: "  ", clearConfirmed: false }]);
+  await own.unmount();
 });
 
-test("no save leaves after the item leaves discussion or another item is selected", async () => {
+test("pending typing is saved once more when the item leaves discussion, then nothing leaves", async () => {
   const notes = mountNotes({ itemId: "item-1", serverText: "", active: true });
   await notes.render();
-  await act(async () => notes.view.current.edit("Saisie avant clôture"));
-  assert.equal(await act(() => notes.view.current.flush()), true, "the typed text is saved before completion");
-  assert.equal(notes.saves.length, 1);
-  await act(async () => notes.view.current.edit("Saisie tardive"));
+  await act(async () => notes.view.current.edit("Saisie pendant la fin du point"));
   await notes.render({ active: false });
+  await wait(50);
+  assert.deepEqual(notes.saves, [{ itemId: "item-1", notes: "Saisie pendant la fin du point", clearConfirmed: false }]);
+  await act(async () => notes.view.current.edit("Saisie tardive"));
   await wait(delay + 200);
   assert.equal(notes.saves.length, 1, "a completed item receives no further save");
-  await notes.render({ active: true, itemId: "item-2", serverText: "Point suivant" });
-  await act(async () => notes.view.current.edit("Point suivant, notes"));
-  await notes.render({ itemId: "item-3", serverText: "" });
+  await notes.unmount();
+  assert.equal(notes.saves.length, 1);
+});
+
+test("pending typing is saved for its item when another item is selected", async () => {
+  const notes = mountNotes({ itemId: "item-1", serverText: "", active: true });
+  await notes.render();
+  await act(async () => notes.view.current.edit("Notes du premier point"));
+  await notes.render({ itemId: "item-2", serverText: "Point suivant" });
   await wait(delay + 200);
-  assert.equal(notes.saves.length, 1, "changing the selected item cancels the pending save");
-  assert.equal(notes.view.current.text, "");
+  assert.deepEqual(notes.saves, [{ itemId: "item-1", notes: "Notes du premier point", clearConfirmed: false }]);
+  assert.equal(notes.view.current.text, "Point suivant");
   await notes.unmount();
 });
+
+test("continuous typing is saved at least every ten seconds", async () => {
+  const notes = mountNotes({ itemId: "item-1", serverText: "", active: true });
+  await notes.render();
+  const started = Date.now();
+  let typed = "";
+  while (Date.now() - started < maximumWait + 1500) {
+    typed += "a";
+    const next = typed;
+    await act(async () => notes.view.current.edit(next));
+    await wait(500);
+  }
+  assert.ok(notes.saves.length >= 1, "a save leaves while typing continues");
+  await notes.unmount();
+  assert.equal(notes.saves.at(-1).notes, typed, "closing the view saves the last typing");
+}, 30_000);
