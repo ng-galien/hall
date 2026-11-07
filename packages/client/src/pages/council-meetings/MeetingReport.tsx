@@ -1,32 +1,28 @@
 import { useState } from "react";
-import { FileIcon, SearchIcon } from "../../components/icons";
+import { SearchIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
-import { MeetingAttendanceDocuments } from "../../features/council-meetings/MeetingAttendanceDocuments";
+import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
-import { DocumentObjectViewer } from "../../features/documents/DocumentObjectViewer";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
+import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { councilMemberName } from "./ballotParticipants";
-import { MeetingMinutesAccess } from "./MeetingMinutesAccess";
 import { MeetingProceedings } from "./MeetingProceedings";
 
 export function MeetingReport({
   aggregate,
-  deliberationListHref,
-  attendanceSheetHref,
+  meetingActions,
 }: {
   aggregate: LiveMeetingPresentation;
-  deliberationListHref: string | null;
-  attendanceSheetHref: string | null;
+  meetingActions: ReturnType<typeof useCouncilMeeting>;
 }) {
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { members } = useCouncilMembersStore();
   const { meeting } = aggregate;
   const [attendanceVisible, setAttendanceVisible] = useState(false);
-  const [deliberationListOpen, setDeliberationListOpen] = useState(false);
   const attendanceCounts = aggregate.attendance.reduce(
     (counts, attendance) => {
       counts[attendance.status] += 1;
@@ -53,22 +49,6 @@ export function MeetingReport({
           title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
           description={meeting.location ?? ""}
         >
-          {meeting.minutesId ? <MeetingMinutesAccess key={meeting.minutesId} id={meeting.minutesId} /> : null}
-          {deliberationListHref ? (
-            <Button
-              variant="outline"
-              data-testid="meeting-deliberation-list-open"
-              onClick={() => setDeliberationListOpen(true)}
-            >
-              <FileIcon aria-hidden="true" />
-              {t("meeting.deliberationList")}
-            </Button>
-          ) : null}
-          <MeetingAttendanceDocuments
-            meetingLabel={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
-            attendanceSheetHref={attendanceSheetHref}
-            proxyFormHref={null}
-          />
           <dl className="meeting-facts" data-testid="meeting-report-facts">
             <div>
               <dt>{t("calendar.start")}</dt>
@@ -120,6 +100,7 @@ export function MeetingReport({
       </div>
       <div className="page-content meeting-page-content">
         <div className="report-main">
+          <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
           <section className="meeting-side-section" aria-label={t("meeting.attendance")}>
             <div className="report-attendance-overview">
               <Button
@@ -166,14 +147,6 @@ export function MeetingReport({
           <MeetingProceedings aggregate={aggregate} defaultCollapsed />
         </div>
       </div>
-      {deliberationListHref && deliberationListOpen ? (
-        <DocumentObjectViewer
-          title={`${t("meeting.deliberationList")} · ${formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}`}
-          objectUrl={deliberationListHref}
-          mediaType="application/pdf"
-          onClose={() => setDeliberationListOpen(false)}
-        />
-      ) : null}
     </div>
   );
 }

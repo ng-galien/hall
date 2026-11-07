@@ -2,19 +2,17 @@
 // TODO REMOVE_STALE: propagate incomplete session marker to canonical status badge.
 
 import type { PreparedCouncilSubject } from "@hall/api-contract";
-import type { DocumentaryResource } from "@hall/domain";
 import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { EditIcon, FileIcon, PlayIcon } from "../../components/icons";
+import { EditIcon, PlayIcon } from "../../components/icons";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
-import { MeetingAttendanceDocuments } from "../../features/council-meetings/MeetingAttendanceDocuments";
+import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
 import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
 import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
-import { MeetingNoticeActions } from "../../features/council-meetings/MeetingNoticeActions";
 import { MeetingNoticeDeadline } from "../../features/council-meetings/MeetingNoticeDeadline";
 import {
   formatMeetingLabel,
@@ -30,9 +28,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listPreparedCouncilSubjects } from "../../services/councilBusinessApi";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
-import { useResourcesStore } from "../../stores/resourcesStore";
 import { AgendaComposer } from "./AgendaComposer";
-import { MeetingDetailsCard } from "./MeetingDetailsCard";
 import { MeetingStageBar } from "./MeetingStageBar";
 import { type MeetingDetailsField, meetingDetailsSubmission } from "./meetingDetailsPolicy";
 
@@ -47,7 +43,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const [preparedSubjects, setPreparedSubjects] = useState<PreparedCouncilSubject[]>([]);
   const [preparedSubjectsError, setPreparedSubjectsError] = useState<ApiErrorCode | null>(null);
   const [preparedSubjectsLoading, setPreparedSubjectsLoading] = useState(false);
-  const { resources, canUpload } = useResourcesStore();
   const rosterMembers = useMemo(
     () =>
       meeting.status === "draft"
@@ -82,7 +77,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const attendanceRecorded = aggregate.attendance.length;
   const [editOpen, setEditOpen] = useState(false);
   const [detailsErrors, setDetailsErrors] = useState<Partial<Record<MeetingDetailsField, TranslationKey>>>({});
-  const [documentsOpen, setDocumentsOpen] = useState(false);
   const { settings, error: settingsError } = useMeetingSettings();
   const detailsEditable = meetingActions.can("meeting.prepare");
   const startsAtLocalValue = settings ? meetingScheduleInputValue(meeting.scheduledAt, settings.timeZone) : "";
@@ -175,16 +169,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               ) : null}
             </div>
             <div className="meeting-prep-actions">
-              <MeetingNoticeActions meetingActions={meetingActions} />
-              <MeetingAttendanceDocuments
-                meetingLabel={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
-                attendanceSheetHref={meetingActions.link("attendance-sheet")}
-                proxyFormHref={meetingActions.link("proxy-form")}
-              />
-              <Button variant="outline" data-testid="meeting-open-documents" onClick={() => setDocumentsOpen(true)}>
-                <FileIcon />
-                {t("meeting.meetingDocuments")}
-              </Button>
               {detailsEditable ? (
                 <Button
                   data-testid="meeting-edit-details"
@@ -322,6 +306,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
           </form>
         </Modal>
 
+        <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
         <div className="meeting-prep-layout">
           <AgendaComposer
             agendaItems={aggregate.agendaItems}
@@ -341,18 +326,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             onReorder={meetingActions.reorderAgenda}
           />
         </div>
-        <Modal open={documentsOpen} title={t("meeting.meetingDocuments")} onClose={() => setDocumentsOpen(false)}>
-          <MeetingDetailsCard
-            embedded
-            aggregate={aggregate}
-            documents={resources.filter(
-              (resource): resource is DocumentaryResource =>
-                resource.kind === "document" && resource.usage === "document" && resource.meetingId === meeting.id,
-            )}
-            documentsEditable={canUpload}
-            dossierAvailable={meetingActions.can("meeting.generate-dossier")}
-          />
-        </Modal>
       </div>
     </div>
   );

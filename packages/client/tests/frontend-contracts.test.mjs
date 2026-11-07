@@ -32,7 +32,7 @@ test("every visible mutation prevents duplicate submissions and reports progress
     "src/pages/CouncilMembersPage.tsx",
     "src/pages/workspace/CouncilBusinessWorkbench.tsx",
     "src/pages/council-meetings/AgendaComposer.tsx",
-    "src/pages/council-meetings/MeetingDetailsCard.tsx",
+    "src/features/council-meetings/MeetingDocumentsSection.tsx",
     "src/pages/council-meetings/MeetingPreparation.tsx",
     "src/pages/council-meetings/live/ConductView.tsx",
     "src/pages/council-meetings/live/RollCallView.tsx",
@@ -265,7 +265,7 @@ test("editor images keep immutable resource references and follow document capab
 });
 
 test("document category translations are exhaustive over the domain type", () => {
-  assert.match(read("src/pages/council-meetings/MeetingDetailsCard.tsx"), /Record<DocumentCategory, TranslationKey>/);
+  assert.match(read("src/features/council-meetings/MeetingDocumentsSection.tsx"), /Record<DocumentCategory, TranslationKey>/);
 });
 
 test("the complete ballot contract is exposed through the meeting UI", () => {
@@ -296,7 +296,10 @@ test("meeting mutations follow the lifecycle and fixed roster", () => {
   assert.match(preparation, /aggregate\.rosterMemberIds\.includes\(member\.id\)/);
   assert.match(preparation, /meetingActions\.can\("meeting\.reorder-agenda"\)/);
   assert.match(preparation, /meetingActions\.can\("meeting\.prepare"\)/);
-  assert.match(preparation, /documentsEditable=\{canUpload\}/);
+  assert.match(
+    read("src/features/council-meetings/MeetingDocumentsSection.tsx"),
+    /findSirenAction\(representation, "resource\.create-document"\)/,
+  );
   const pathContents = read("src/pages/workspace/PathContents.tsx");
   assert.match(pathContents, /capabilities\.createCouncilBusiness \?/);
   // Creation affordances come from the Siren actions of each listed folder.

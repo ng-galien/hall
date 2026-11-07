@@ -3,6 +3,7 @@ import { documentFormatSchema, matchLiteral } from "@hall/domain";
 import type { NextFunction, Request, Response } from "express";
 import { documentPreviewMode } from "../domain/documentPolicy.js";
 import { canExecute } from "../security/authorization.js";
+import { meetingAttendanceDocumentsAvailable } from "../services/meetingAttendanceDocumentService.js";
 import { councilBusinessReorganizationActions } from "./councilBusinessReorganizationActions.js";
 import { canFollowReadHref } from "./readAuthorization.js";
 import { collectionActions, objectActions, withConductAuthorization } from "./sirenActionPolicy.js";
@@ -75,17 +76,22 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
             { rel: ["documents"], href: `/api/council-meetings/${reference}/documents`, type: SIREN_MEDIA_TYPE },
             { rel: ["conduct"], href: `/api/council-meetings/${reference}/conduct`, type: SIREN_MEDIA_TYPE },
             { rel: ["notices"], href: `/api/council-meetings/${reference}/notices`, type: SIREN_MEDIA_TYPE },
-            {
-              rel: ["attendance-sheet"],
-              href: `/api/council-meetings/${reference}/attendance-sheet.pdf`,
-              type: "application/pdf",
-            },
-            {
-              rel: ["proxy-form"],
-              href: `/api/council-meetings/${reference}/proxy-form.pdf`,
-              title: "Query parameters: grantorMemberId (member in mandate), optional holderMemberId (another one)",
-              type: "application/pdf",
-            },
+            ...(primary && meetingAttendanceDocumentsAvailable(primary)
+              ? [
+                  {
+                    rel: ["attendance-sheet"],
+                    href: `/api/council-meetings/${reference}/attendance-sheet.pdf`,
+                    type: "application/pdf",
+                  },
+                  {
+                    rel: ["proxy-form"],
+                    href: `/api/council-meetings/${reference}/proxy-form.pdf`,
+                    title:
+                      "Query parameters: grantorMemberId (member in mandate), optional holderMemberId (another one)",
+                    type: "application/pdf",
+                  },
+                ]
+              : []),
             ...(primary?.closedAt && primary.minutesId
               ? [
                   {

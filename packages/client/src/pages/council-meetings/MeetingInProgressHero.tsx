@@ -2,18 +2,19 @@
 import { Link } from "react-router-dom";
 import { PlayIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
-import { MeetingAttendanceDocuments } from "../../features/council-meetings/MeetingAttendanceDocuments";
+import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
+import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 
 export function MeetingInProgressHero({
   aggregate,
-  attendanceSheetHref,
+  meetingActions,
 }: {
   aggregate: LiveMeetingPresentation;
-  attendanceSheetHref: string | null;
+  meetingActions: ReturnType<typeof useCouncilMeeting>;
 }) {
   const { t, formatDate, formatDateTime, formatNumber, formatTime } = useI18n();
   const { meeting } = aggregate;
@@ -23,13 +24,7 @@ export function MeetingInProgressHero({
       <PageHeader
         title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
         description={`${formatDateTime(meeting.startsAt)} · ${meeting.location}`}
-      >
-        <MeetingAttendanceDocuments
-          meetingLabel={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
-          attendanceSheetHref={attendanceSheetHref}
-          proxyFormHref={null}
-        />
-      </PageHeader>
+      />
       <div className="page-content">
         <section className="live-resume-hero">
           <span className="live-indicator" aria-hidden="true" />
@@ -49,6 +44,7 @@ export function MeetingInProgressHero({
             {t("meeting.resumeLiveMode")}
           </Link>
         </section>
+        <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
       </div>
     </div>
   );

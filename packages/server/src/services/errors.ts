@@ -110,6 +110,7 @@ export type ErrorCode =
   | "meeting_dossier_unavailable"
   | "deliberation_list_unavailable"
   | "proxy_form_invalid"
+  | "meeting_attendance_documents_closed"
   | "councillor_requires_active_member"
   | "proxy_invalid"
   | "quorum_not_reached"

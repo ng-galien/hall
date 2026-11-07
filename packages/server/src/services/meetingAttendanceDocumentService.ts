@@ -17,6 +17,13 @@ export interface MeetingAttendanceDocumentService {
   proxyForm(meetingReference: string, grantorMemberId: string, holderMemberId: string | null): Promise<Buffer>;
 }
 
+// @implements-requirement HALL-FR-ATT-170
+// @implements-requirement HALL-FR-ATT-180
+/** The attendance sheet and the proxy form are produced while the meeting is in preparation or in progress. */
+export function meetingAttendanceDocumentsAvailable(meeting: { closedAt?: unknown }): boolean {
+  return !meeting.closedAt;
+}
+
 export function meetingDocumentMeeting(meeting: CouncilMeeting): MeetingDocumentMeeting {
   return { number: meeting.number, startsAt: meeting.startedAt ?? meeting.scheduledAt, location: meeting.location };
 }
@@ -79,6 +86,7 @@ export function createMeetingAttendanceDocumentService({
   async function meeting(reference: string): Promise<CouncilMeeting> {
     const found = await councilClient.openMeeting(reference);
     if (!found) throw new DomainError("meeting_not_found", 404);
+    if (!meetingAttendanceDocumentsAvailable(found)) throw new DomainError("meeting_attendance_documents_closed", 409);
     return found;
   }
   async function generate(
