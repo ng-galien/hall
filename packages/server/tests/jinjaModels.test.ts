@@ -88,18 +88,7 @@ const context = {
   generated: { bodyMarkdown: "Document rédigé", subject: "Invitation" },
   attendanceSheet: {
     meeting: { number: 7, startsAt: meeting.startedAt, location: "Mairie" },
-    members: [
-      { id: "m1", name: "Maire <Un>", role: "mayor", status: "present", proxyHolder: null },
-      {
-        id: "m2",
-        name: "Adjointe | Deux",
-        role: "deputyMayor",
-        status: "represented",
-        proxyHolder: { name: "Maire <Un>" },
-      },
-      { id: "m3", name: "Conseiller Trois", role: "councillor", status: "excused", proxyHolder: null },
-    ],
-    counts: { present: 1, represented: 1, excused: 1, absent: 0 },
+    members: [{ name: "Maire <Un>" }, { name: "Adjointe | Deux" }, { name: "Conseiller Trois" }],
   },
   proxy: {
     meeting: { number: 7, startsAt: meeting.startedAt, location: "Mairie" },
@@ -216,31 +205,21 @@ describe("editable Markdown/Jinja default models", () => {
   });
 
   // @verifies-requirement HALL-FR-ATT-170
-  it("lists every member on the attendance sheet with the recorded attendance, proxies and counts", () => {
-    const output = renderJinja(jinjaBody("attendance-sheet"), context);
-    const html = renderHtml(parse(output));
+  it("lists every member on the attendance sheet with a blank signature column only", () => {
+    const html = renderHtml(parse(renderJinja(jinjaBody("attendance-sheet"), context)));
     expect(html).toContain("<h1>Feuille d’émargement</h1>");
     expect(html).toContain("Séance du conseil municipal n° 7 du vendredi 9 octobre 2026 à 20:00");
-    expect(html.match(/<th>/g)?.length).toBe(5);
-    expect(html).toContain("<th>Nom</th><th>Qualité</th><th>Présence</th><th>Pouvoir donné à</th><th>Signature</th>");
-    expect(html).toContain("<td>Maire &#x3C;Un></td><td>Maire</td><td>Présent(e)</td><td></td><td></td>");
-    expect(html).toContain(
-      "<td>Adjointe | Deux</td><td>Adjoint</td><td>Représenté(e)</td><td>Maire &#x3C;Un></td><td></td>",
-    );
-    expect(html).toContain("<td>Conseiller Trois</td><td>Conseiller</td><td>Excusé(e)</td>");
-    expect(html).toContain("Présents : 1 — Pouvoirs : 1 — Excusés : 1</p>");
-    expect(html).not.toContain("hall-signatures");
-    const blank = renderJinja(jinjaBody("attendance-sheet"), {
+    expect(html).toContain("<th>Nom et prénom</th><th>Signature</th>");
+    expect(html.match(/<th>/g)).toHaveLength(2);
+    expect(html).toContain("<td>Maire &#x3C;Un></td><td></td>");
+    expect(html).toContain("<td>Adjointe | Deux</td><td></td>");
+    expect(html).toContain("<td>Conseiller Trois</td><td></td>");
+    expect(html).not.toMatch(/Qualité|Pouvoir|Présent|hall-signatures/);
+    const unscheduled = renderJinja(jinjaBody("attendance-sheet"), {
       ...context,
-      attendanceSheet: {
-        ...context.attendanceSheet,
-        members: context.attendanceSheet.members.map((entry) => ({ ...entry, status: null, proxyHolder: null })),
-        counts: null,
-      },
+      attendanceSheet: { ...context.attendanceSheet, meeting: { number: 8, startsAt: null, location: null } },
     });
-    const blankHtml = renderHtml(parse(blank));
-    expect(blankHtml).toContain("<td>Maire &#x3C;Un></td><td>Maire</td><td></td><td></td><td></td>");
-    expect(blankHtml).not.toContain("Présents :");
+    expect(unscheduled).toContain("Séance du conseil municipal n° 8  \nLieu : Non renseigné");
   });
 
   // @verifies-requirement HALL-FR-ATT-180

@@ -8,7 +8,7 @@ import { createTestServer, domainBody } from "./testServer.js";
 describe("attendance sheet and proxy form of a meeting", () => {
   // @verifies-requirement HALL-FR-ATT-170
   // @verifies-requirement HALL-FR-ATT-180
-  it("produces the blank attendance sheet and a proxy form between two distinct members in mandate", async () => {
+  it("produces the attendance sheet of a draft meeting and a proxy form between two distinct members in mandate", async () => {
     const renderer = createDocumentRenderer();
     const renderedHtml: string[] = [];
     const { agent, container } = await createTestServer({
@@ -61,9 +61,9 @@ describe("attendance sheet and proxy form of a meeting", () => {
     expect((await PDFDocument.load(sheet.body)).getPageCount()).toBeGreaterThan(0);
     const sheetHtml = renderedHtml.at(-1)!;
     expect(sheetHtml).toContain("Feuille d’émargement");
-    expect(sheetHtml.indexOf("<td>Martine Test</td><td>Maire</td><td></td>")).toBeGreaterThan(0);
+    expect(sheetHtml).toContain("<th>Nom et prénom</th><th>Signature</th>");
+    expect(sheetHtml.indexOf("<td>Martine Test</td><td></td>")).toBeGreaterThan(0);
     expect(sheetHtml.indexOf("<td>Martine Test</td>")).toBeLessThan(sheetHtml.indexOf("<td>Claire Test</td>"));
-    expect(sheetHtml).not.toContain("Présents :");
 
     await agent
       .get(`/api/council-meetings/${meeting.id}/proxy-form.pdf`)

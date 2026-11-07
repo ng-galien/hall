@@ -1,4 +1,4 @@
-import type { CouncilMeeting, MeetingAttendance } from "@hall/api-contract";
+import type { CouncilMeeting } from "@hall/api-contract";
 import { describe, expect, it } from "vitest";
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import { attendanceSheetData, membersInMandate, proxyFormData } from "./meetingAttendanceDocumentService.js";
@@ -26,8 +26,6 @@ const directory = {
   ],
 } as unknown as DirectoryClient;
 
-const attendance = (entries: Array<Partial<MeetingAttendance>>) => entries as MeetingAttendance[];
-
 // @verifies-requirement HALL-FR-ATT-170
 describe("attendance sheet data", () => {
   it("lists the members in mandate in council table order: rank, then mayor, deputies, councillors", async () => {
@@ -40,28 +38,12 @@ describe("attendance sheet data", () => {
     ]);
   });
 
-  it("is blank before attendance is recorded and reflects attendance, proxies and counts afterwards", async () => {
+  it("carries the meeting and the member names only", async () => {
     const members = await membersInMandate(directory);
-    const blank = attendanceSheetData(meeting, members, []);
-    expect(blank.meeting).toEqual({ number: 4, startsAt: "2026-11-20T19:00:00Z", location: "Salle du conseil" });
-    expect(blank.members.every((entry) => entry.status === null && entry.proxyHolder === null)).toBe(true);
-    expect(blank.counts).toBeNull();
-
-    const recorded = attendanceSheetData(
-      meeting,
-      members,
-      attendance([
-        { councilMemberId: "m1", status: "present", proxyHolderCouncilMemberId: null },
-        { councilMemberId: "d1", status: "present", proxyHolderCouncilMemberId: null },
-        { councilMemberId: "c1", status: "represented", proxyHolderCouncilMemberId: "m1" },
-        { councilMemberId: "r2", status: "excused", proxyHolderCouncilMemberId: null },
-      ]),
-    );
-    expect(recorded.members.find((entry) => entry.id === "c1")).toMatchObject({
-      status: "represented",
-      proxyHolder: { name: "Marie Maire" },
-    });
-    expect(recorded.counts).toEqual({ present: 2, represented: 1, excused: 1, absent: 0 });
+    const sheet = attendanceSheetData(meeting, members);
+    expect(sheet.meeting).toEqual({ number: 4, startsAt: "2026-11-20T19:00:00Z", location: "Salle du conseil" });
+    expect(sheet.members).toEqual(members.map((member) => ({ name: member.name })));
+    expect(Object.keys(sheet).sort()).toEqual(["meeting", "members"]);
   });
 });
 

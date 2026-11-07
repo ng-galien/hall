@@ -9965,14 +9965,13 @@
         "state": "accepted",
         "since": "2026-11-07"
       },
-      "statement": "La page d’une séance produit la feuille d’émargement de la séance, document PDF d’après un modèle de type « Feuille d’émargement ».",
+      "statement": "La page d’une séance produit, dès sa création, la feuille d’émargement que les conseillers présents signent en arrivant, document PDF d’après un modèle de type « Feuille d’émargement ».",
       "acceptanceCriteria": [
-        "Depuis la page d’une séance, en préparation, en cours ou close, Hall produit en PDF la feuille d’émargement : nom de la commune, titre « Feuille d’émargement », numéro, date et heure de la séance, lieu.",
-        "La feuille contient un tableau de tous les membres du conseil en mandat dans l’ordre du tableau du conseil (rang enregistré ; sans rang, le maire, puis les adjoints, puis les conseillers), avec les colonnes Nom, Qualité (« Maire », « Adjoint », « Conseiller »), Présence, Pouvoir donné à et Signature ; la colonne Signature est la plus large et chaque ligne mesure au moins 12 mm.",
-        "Les colonnes Présence (« Présent(e) », « Représenté(e) », « Excusé(e) », « Absent(e) ») et Pouvoir donné à reprennent les présences et pouvoirs enregistrés pour la séance au moment de la génération ; sans présence enregistrée elles restent vides. La feuille ne porte pas de bloc de signature du maire.",
-        "Quand des présences sont enregistrées, la feuille se termine par « Présents : n », suivi de « Pouvoirs : n », « Excusés : n » et « Absents : n », chaque compte nul étant omis ; les excusés sont distincts des absents non représentés.",
+        "Depuis la page d’une séance, dans tous ses états, y compris un brouillon sans date ni ordre du jour figé, Hall produit en PDF la feuille d’émargement : nom de la commune, titre « Feuille d’émargement », numéro de la séance, date et heure quand elles sont fixées, lieu.",
+        "La feuille contient un tableau de deux colonnes, « Nom et prénom » et « Signature » : une ligne par membre du conseil en mandat, prénom puis nom comme dans l’annuaire, dans l’ordre du tableau du conseil (rang enregistré ; sans rang, le maire, puis les adjoints, puis les conseillers) ; la colonne Signature, vide, est la plus large et chaque ligne mesure au moins 12 mm.",
+        "La feuille ne porte ni qualité, ni pouvoir, ni présence enregistrée dans Hall, ni décompte, ni bloc de signature du maire ; le pouvoir est un document distinct.",
         "Le procès-verbal liste les présences dans le même ordre du tableau du conseil que la feuille d’émargement.",
-        "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `attendanceSheet` affichées dans l’aperçu d’après une séance réelle."
+        "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `attendanceSheet` (`meeting`, `members` : `name`) affichées dans l’aperçu d’après une séance réelle."
       ],
       "clauses": [
         {
@@ -9984,13 +9983,25 @@
         {
           "key": "document",
           "origin": "product",
-          "statement": "La feuille d’émargement est produite à la demande depuis la page de la séance et n’enregistre rien ; imprimée avant la séance elle est vierge, imprimée après elle reflète les constats enregistrés. Les états de présence prennent la forme des formulaires administratifs (« Présent(e) »), Hall ne connaissant pas le genre des élus.",
+          "statement": "La feuille d’émargement est signée par les conseillers en arrivant, avant toute saisie dans Hall : elle se produit à la demande depuis la page de la séance, sans attendre son ouverture, n’enregistre rien et ne reflète jamais les constats de séance.",
           "sourceIds": []
         },
         {
           "key": "table-order",
           "origin": "product",
           "statement": "L’ordre des membres suit le tableau du conseil, comme le procès-verbal : rang enregistré, puis maire, adjoints et conseillers.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-correction",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « La feuille d’émargement, c’est au début. Donc, feuille d’émargement, à la rigueur, qu’il y ait les noms, prénoms, mais les gens doivent signer. Et faut qu’on puisse la générer indépendamment. Faut pas attendre que la séance soit démarrée pour émarger. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-correction-present-members",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « la feuille d’émargement, c’est les gens qui sont présents. Donc il n’y a pas de sortes de pouvoir, de machin, etc. Dissocie les sujets. »",
           "sourceIds": []
         }
       ]

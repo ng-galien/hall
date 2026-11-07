@@ -72,11 +72,10 @@ export function createTemplatePreviewContextService({
           sourceLabel: String(meeting.number),
         };
         if (documentType === "attendance-sheet") {
-          const attendance = await councilClient.listAttendance(meeting.id);
           selected.generated = {
             bodyMarkdown: "",
             subject: null,
-            data: { attendanceSheet: attendanceSheetData(meeting, members, attendance) },
+            data: { attendanceSheet: attendanceSheetData(meeting, members) },
           };
         } else {
           selected.generated = {

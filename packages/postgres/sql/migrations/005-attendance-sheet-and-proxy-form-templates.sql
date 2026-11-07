@@ -9,25 +9,19 @@ BEGIN
     SELECT gen_random_uuid()::text, 'pdf', 'attendance-sheet', 'Feuille d’émargement',
       '{# hall:jinja #}
 {% set sheet = attendanceSheet %}
-{% set qualities = {''mayor'': ''Maire'', ''deputyMayor'': ''Adjoint'', ''councillor'': ''Conseiller''} %}
-{% set statuses = {''present'': ''Présent(e)'', ''represented'': ''Représenté(e)'', ''excused'': ''Excusé(e)'', ''absent'': ''Absent(e)''} %}
 {{ hall.name | text }}
 
 # Feuille d’émargement
 
-Séance du conseil municipal n° {{ sheet.meeting.number }} du {{ sheet.meeting.startsAt | datetime(''full'') }}  
+Séance du conseil municipal n° {{ sheet.meeting.number }}{% if sheet.meeting.startsAt %} du {{ sheet.meeting.startsAt | datetime(''full'') }}{% endif %}  
 Lieu : {{ (sheet.meeting.location or ''Non renseigné'') | text }}
 
-| Nom | Qualité | Présence | Pouvoir donné à | Signature |
-| --- | --- | --- | --- | --- |
+| Nom et prénom | Signature |
+| --- | --- |
 {% for entry in sheet.members -%}
-| {{ entry.name | text }} | {{ qualities[entry.role] }} | {{ statuses[entry.status] if entry.status else '''' }} | {{ (entry.proxyHolder.name if entry.proxyHolder else '''') | text }} |   |
+| {{ entry.name | text }} |   |
 {% endfor %}
-
-{% if sheet.counts %}
-Présents : {{ sheet.counts.present }}{% if sheet.counts.represented %} — Pouvoirs : {{ sheet.counts.represented }}{% endif %}{% if sheet.counts.excused %} — Excusés : {{ sheet.counts.excused }}{% endif %}{% if sheet.counts.absent %} — Absents : {{ sheet.counts.absent }}{% endif %}
-{% endif %}
-', NULL, 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-document-body table { width: 100%; table-layout: fixed; border-collapse: collapse; break-inside: auto; } .hall-document-body th, .hall-document-body td { border: 1px solid #000; padding: 1.5mm 2mm; font-size: 10pt; text-align: left; vertical-align: middle; overflow-wrap: break-word; } .hall-document-body td { height: 12mm; } .hall-document-body tr { break-inside: avoid; } .hall-document-body table + p { break-before: avoid; } .hall-document-body th:nth-child(1) { width: 21%; } .hall-document-body th:nth-child(2) { width: 12%; } .hall-document-body th:nth-child(3) { width: 16%; } .hall-document-body th:nth-child(4) { width: 19%; } .hall-document-body th:nth-child(5) { width: 32%; }', '{{ hall.name | text }}', 'Page :page-number / :page-count', clock_timestamp()::text, clock_timestamp()::text
+', NULL, 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-document-body table { width: 100%; table-layout: fixed; border-collapse: collapse; break-inside: auto; } .hall-document-body th, .hall-document-body td { border: 1px solid #000; padding: 1.5mm 2mm; font-size: 10pt; text-align: left; vertical-align: middle; overflow-wrap: break-word; } .hall-document-body td { height: 12mm; } .hall-document-body tr { break-inside: avoid; } .hall-document-body th:nth-child(1) { width: 45%; } .hall-document-body th:nth-child(2) { width: 55%; }', '{{ hall.name | text }}', 'Page :page-number / :page-count', clock_timestamp()::text, clock_timestamp()::text
     WHERE NOT EXISTS (SELECT FROM templates WHERE kind = 'pdf' AND document_type = 'attendance-sheet');
     INSERT INTO templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
     SELECT gen_random_uuid()::text, 'pdf', 'proxy-form', 'Pouvoir',

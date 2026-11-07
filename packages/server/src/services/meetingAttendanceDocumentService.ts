@@ -1,4 +1,4 @@
-import type { CouncilMeeting, CouncilMember, MeetingAttendance } from "@hall/api-contract";
+import type { CouncilMeeting, CouncilMember } from "@hall/api-contract";
 import type { ContentTemplate } from "@hall/domain";
 import type { CouncilClient } from "../clients/councilClient.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
@@ -37,34 +37,12 @@ export async function membersInMandate(directoryClient: DirectoryClient): Promis
 }
 
 // @implements-requirement HALL-FR-ATT-170
-/** The sheet lists every member in mandate; attendance and proxies appear once recorded for the meeting. */
+/** The sheet names every member in mandate; the members present sign it on arrival. */
 export function attendanceSheetData(
   meeting: CouncilMeeting,
   members: readonly MeetingDocumentMember[],
-  attendance: readonly MeetingAttendance[],
 ): AttendanceSheetData {
-  const byMember = new Map(attendance.map((entry) => [entry.councilMemberId, entry]));
-  const names = new Map(members.map((member) => [member.id, member.name]));
-  return {
-    meeting: meetingDocumentMeeting(meeting),
-    members: members.map((member) => {
-      const entry = byMember.get(member.id);
-      const holder = entry?.proxyHolderCouncilMemberId ?? null;
-      return {
-        ...member,
-        status: entry?.status ?? null,
-        proxyHolder: holder ? { name: names.get(holder) ?? "" } : null,
-      };
-    }),
-    counts: attendance.length
-      ? {
-          present: attendance.filter((entry) => entry.status === "present").length,
-          represented: attendance.filter((entry) => entry.status === "represented").length,
-          excused: attendance.filter((entry) => entry.status === "excused").length,
-          absent: attendance.filter((entry) => entry.status === "absent").length,
-        }
-      : null,
-  };
+  return { meeting: meetingDocumentMeeting(meeting), members: members.map((member) => ({ name: member.name })) };
 }
 
 // @implements-requirement HALL-FR-ATT-180
@@ -121,12 +99,9 @@ export function createMeetingAttendanceDocumentService({
   return {
     async attendanceSheet(reference) {
       const target = await meeting(reference);
-      const [members, attendance] = await Promise.all([
-        membersInMandate(directoryClient),
-        councilClient.listAttendance(target.id),
-      ]);
+      const members = await membersInMandate(directoryClient);
       return generate("attendance-sheet", target, {
-        attendanceSheet: attendanceSheetData(target, members, attendance),
+        attendanceSheet: attendanceSheetData(target, members),
       });
     },
     async proxyForm(reference, grantorMemberId, holderMemberId) {

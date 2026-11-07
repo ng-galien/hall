@@ -76,18 +76,12 @@ export interface MeetingDocumentMeeting {
 }
 
 /**
- * `attendanceSheet`: every member in mandate, in council table order, with the attendance and the
- * proxy holder recorded for the meeting when the sheet is generated; `counts` is null until recorded.
+ * `attendanceSheet`: the name of every member in mandate, in council table order, first name then last name.
+ * The members present sign it on arrival; it carries nothing recorded in Hall.
  */
 export interface AttendanceSheetData {
   meeting: MeetingDocumentMeeting;
-  members: Array<
-    MeetingDocumentMember & {
-      status: "present" | "represented" | "excused" | "absent" | null;
-      proxyHolder: { name: string } | null;
-    }
-  >;
-  counts: { present: number; represented: number; excused: number; absent: number } | null;
+  members: Array<{ name: string }>;
 }
 
 /** `proxy`: the member giving the proxy (`grantor`) and the member receiving it (`holder`). */

@@ -17,7 +17,7 @@ The server supplies these read-only values:
 | Minutes | `minutes.meeting`, `minutes.attendance`, `minutes.conduct`, `minutes.points`, `minutes.signatories` |
 | Council decision | `decision.title`, `decision.content`, `decision.facts`, `decision.totals` |
 | Deliberation list | `deliberations`: `agendaNumber`, `title`, `outcome` |
-| Attendance sheet | `attendanceSheet.meeting` (`number`, `startsAt`, `location`), `attendanceSheet.members`: `name`, `role`, `status`, `proxyHolder`; `attendanceSheet.counts` |
+| Attendance sheet | `attendanceSheet.meeting` (`number`, `startsAt`, `location`), `attendanceSheet.members`: `name` |
 | Proxy form | `proxy.meeting`, `proxy.grantor` and `proxy.holder`: `name`, `role` |
 | Meeting dossier | `dossier.meeting`, `dossier.point`: `title`, `report`, `subjectText`, `pieces` |
 | Invitation | `event.name`, `event.content`, `event.schedule`, `event.location`, `event.method` |
@@ -110,11 +110,13 @@ with « Le mandant » under a line « Fait à …, le … » whose two zones
 
 ## Attendance sheet and proxy form
 
-The attendance sheet lists every member in mandate in council table order: recorded rank,
-then the mayor, the deputies and the councillors. The minutes list attendance in the same
-order. `status` (`present`, `represented`, `excused`, `absent`) and `proxyHolder.name` are the
-attendance recorded for the meeting when the sheet is generated, null before; `counts` gives
-`present`, `represented`, `excused` and `absent`, or is null before attendance is recorded.
+The attendance sheet is signed by the members as they arrive, before anything is recorded in
+Hall; it can be generated from the meeting page in every state of the meeting, including a
+draft. It lists every member in mandate in council table order: recorded rank, then the mayor,
+the deputies and the councillors; the minutes list attendance in the same order. `name` is the
+first name then the last name, as in the directory. The sheet has two columns, « Nom et
+prénom » and « Signature », left blank for the members present to sign; it carries no quality,
+proxy or recorded attendance. The proxy form is a separate document.
 The proxy form names the member giving the proxy and the member receiving it; it records
 nothing. Both are generated from the meeting page.
 

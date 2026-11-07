@@ -267,26 +267,20 @@ ${jinjaSignatureBlock(
 )}`;
 
 // @implements-requirement HALL-FR-ATT-170
-/** Attendance sheet of a meeting: every council member in council table order, with a signature column. */
+/** Attendance sheet signed by the members present on arrival: every member in council table order, with a signature column. */
 export const jinjaAttendanceSheet = `{% set sheet = attendanceSheet %}
-{% set qualities = {'mayor': 'Maire', 'deputyMayor': 'Adjoint', 'councillor': 'Conseiller'} %}
-{% set statuses = {'present': 'Présent(e)', 'represented': 'Représenté(e)', 'excused': 'Excusé(e)', 'absent': 'Absent(e)'} %}
 {{ hall.name | text }}
 
 # Feuille d’émargement
 
-Séance du conseil municipal n° {{ sheet.meeting.number }} du {{ sheet.meeting.startsAt | datetime('full') }}  
+Séance du conseil municipal n° {{ sheet.meeting.number }}{% if sheet.meeting.startsAt %} du {{ sheet.meeting.startsAt | datetime('full') }}{% endif %}  
 Lieu : {{ (sheet.meeting.location or 'Non renseigné') | text }}
 
-| Nom | Qualité | Présence | Pouvoir donné à | Signature |
-| --- | --- | --- | --- | --- |
+| Nom et prénom | Signature |
+| --- | --- |
 {% for entry in sheet.members -%}
-| {{ entry.name | text }} | {{ qualities[entry.role] }} | {{ statuses[entry.status] if entry.status else '' }} | {{ (entry.proxyHolder.name if entry.proxyHolder else '') | text }} |   |
+| {{ entry.name | text }} |   |
 {% endfor %}
-
-{% if sheet.counts %}
-Présents : {{ sheet.counts.present }}{% if sheet.counts.represented %} — Pouvoirs : {{ sheet.counts.represented }}{% endif %}{% if sheet.counts.excused %} — Excusés : {{ sheet.counts.excused }}{% endif %}{% if sheet.counts.absent %} — Absents : {{ sheet.counts.absent }}{% endif %}
-{% endif %}
 `;
 
 // @implements-requirement HALL-FR-ATT-180

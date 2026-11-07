@@ -67,7 +67,7 @@ it("previews the eleven configured families from real Alésia records as HTML an
     "council-decision": /Fait à Alésia, le .+ Le maire .*Secrétariat de séance \S/,
     "meeting-notice": /Fait à Alésia, le .+ Le maire \S/,
     "deliberation-list": /Fait à Alésia, le .+ Le maire \S/,
-    "attendance-sheet": /Nom Qualité Présence Pouvoir donné à Signature/,
+    "attendance-sheet": /Nom et prénom Signature/,
     "proxy-form": /Fait à , le Le mandant \S/,
   };
   let noticeMeetingNumber = "";

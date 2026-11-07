@@ -46,7 +46,7 @@ const signedDocumentTypes: readonly string[] = [
 
 /** One row per member with room for a signature; the signature column is the widest. */
 const attendanceSheetStylesheet =
-  " .hall-document-body table { width: 100%; table-layout: fixed; border-collapse: collapse; break-inside: auto; } .hall-document-body th, .hall-document-body td { border: 1px solid #000; padding: 1.5mm 2mm; font-size: 10pt; text-align: left; vertical-align: middle; overflow-wrap: break-word; } .hall-document-body td { height: 12mm; } .hall-document-body tr { break-inside: avoid; } .hall-document-body table + p { break-before: avoid; } .hall-document-body th:nth-child(1) { width: 21%; } .hall-document-body th:nth-child(2) { width: 12%; } .hall-document-body th:nth-child(3) { width: 16%; } .hall-document-body th:nth-child(4) { width: 19%; } .hall-document-body th:nth-child(5) { width: 32%; }";
+  " .hall-document-body table { width: 100%; table-layout: fixed; border-collapse: collapse; break-inside: auto; } .hall-document-body th, .hall-document-body td { border: 1px solid #000; padding: 1.5mm 2mm; font-size: 10pt; text-align: left; vertical-align: middle; overflow-wrap: break-word; } .hall-document-body td { height: 12mm; } .hall-document-body tr { break-inside: avoid; } .hall-document-body th:nth-child(1) { width: 45%; } .hall-document-body th:nth-child(2) { width: 55%; }";
 
 const familyStylesheet = (documentType: string): string =>
   pdfStylesheet +

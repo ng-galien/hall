@@ -13,7 +13,7 @@ Municipality owns identity, address, population, contact details and document ti
 | Minutes PDF | `minutes` | Body, CSS, PDF header/footer | Minutes service |
 | Council decision PDF | `council-decision` | Body, CSS, PDF header/footer | Decision service and frozen facts |
 | Examined deliberations PDF | `deliberation-list` | Body, CSS, PDF header/footer | Closed meeting facts |
-| Attendance sheet PDF | `attendance-sheet` | Body, CSS, PDF header/footer | Members in mandate and attendance recorded for the meeting |
+| Attendance sheet PDF | `attendance-sheet` | Body, CSS, PDF header/footer | Meeting and members in mandate |
 | Proxy form PDF | `proxy-form` | Body, CSS, PDF header/footer | Meeting, and the two members chosen on the meeting page |
 | Document print PDF | `document-print` | Body, CSS, PDF header/footer | Current editor document and linked PDFs |
 | Meeting dossier cover | `meeting-dossier-cover` | Body, CSS, PDF header/footer | Meeting dossier service |
