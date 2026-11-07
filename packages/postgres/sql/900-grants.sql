@@ -201,7 +201,7 @@ GRANT EXECUTE ON FUNCTION hall_api.create_and_schedule_council_decision_proposal
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.create_and_schedule_open_question(TEXT, TEXT, TEXT, TEXT, UUID, INTEGER)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.adjourn_council_agenda_item(UUID, TIMESTAMPTZ)
+GRANT EXECUTE ON FUNCTION hall_api.adjourn_council_agenda_item(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.deprogram_council_agenda_item(UUID)
   TO hall_api_authenticated, hall_api_worker;
@@ -209,9 +209,9 @@ GRANT EXECUTE ON FUNCTION hall_api.reprogram_council_agenda_item(UUID, UUID, INT
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.reorder_council_agenda(UUID, UUID[])
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.start_council_agenda_item(UUID, TIMESTAMPTZ)
+GRANT EXECUTE ON FUNCTION hall_api.start_council_agenda_item(UUID)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.complete_non_voting_agenda_item(UUID, TIMESTAMPTZ)
+GRANT EXECUTE ON FUNCTION hall_api.complete_non_voting_agenda_item(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.open_council_meeting(UUID)
   TO hall_api_authenticated, hall_api_worker;
@@ -275,7 +275,7 @@ GRANT EXECUTE ON FUNCTION hall_api.delete_resource(UUID)
   TO hall_api_authenticated, hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.agenda_item_recusals(UUID),
-  hall_api.record_agenda_item_recusal(UUID, UUID, TEXT, TIMESTAMPTZ)
+  hall_api.record_agenda_item_recusal(UUID, UUID, TEXT)
   TO hall_api_authenticated, hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.list_ballot_non_participations(UUID) TO hall_api_authenticated,hall_api_worker;

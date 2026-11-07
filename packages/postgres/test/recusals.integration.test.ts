@@ -174,7 +174,7 @@ postgresDescribe("agenda item recusals", () => {
     try {
       await first.query("BEGIN");
       await first.query("SET LOCAL hall.actor_id='concurrent-clerk'");
-      await first.query("SELECT hall_api.record_agenda_item_recusal($1,$2,'personalInterest',clock_timestamp())", [
+      await first.query("SELECT hall_api.record_agenda_item_recusal($1,$2,'personalInterest')", [
         item.id,
         members[1].id,
       ]);

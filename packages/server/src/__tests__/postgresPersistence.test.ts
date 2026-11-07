@@ -780,11 +780,11 @@ postgres("PostgreSQL persistence", () => {
         "SELECT id::text, council_member = $2 AS chair FROM hall.meeting_attendance WHERE council_meeting = $1 ORDER BY council_member",
         [meetingId, memberIds[0]],
       );
-      await setup.query("SELECT hall_api.start_council_agenda_item($1, clock_timestamp())", [openQuestionAgendaItemId]);
-      await setup.query("SELECT hall_api.complete_non_voting_agenda_item($1, clock_timestamp())", [
+      await setup.query("SELECT hall_api.start_council_agenda_item($1)", [openQuestionAgendaItemId]);
+      await setup.query("SELECT hall_api.complete_non_voting_agenda_item($1)", [
         openQuestionAgendaItemId,
       ]);
-      await setup.query("SELECT hall_api.start_council_agenda_item($1, clock_timestamp())", [agendaItemId]);
+      await setup.query("SELECT hall_api.start_council_agenda_item($1)", [agendaItemId]);
 
       const [attendanceResponse, agendaResponse] = await Promise.all([
         fetch(`${server.url}/api/council-meetings/${meetingId}/attendance`),

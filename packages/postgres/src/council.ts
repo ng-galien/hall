@@ -1074,8 +1074,7 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "agenda-item.record-recusal") },
       async (client) => {
         const result = await callJson(client, {
-          // @implements-requirement HALL-FR-MTG-370
-          text: "SELECT hall_api.record_agenda_item_recusal($1::uuid, $2::uuid, $3::text, clock_timestamp()) AS payload",
+          text: "SELECT hall_api.record_agenda_item_recusal($1::uuid, $2::uuid, $3::text) AS payload",
           values: [itemId, parsed.councilMemberId, parsed.legalBasis],
           schema: postgresAgendaItemRecusalsSchema,
         });
@@ -1618,8 +1617,7 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "agenda-item.adjourn") },
       async (client) => {
         const agendaItem = await callJson(client, {
-          // @implements-requirement HALL-FR-MTG-370
-          text: "SELECT hall_api.adjourn_council_agenda_item($1::uuid, clock_timestamp()) AS payload",
+          text: "SELECT hall_api.adjourn_council_agenda_item($1::uuid) AS payload",
           values: [parsedAgendaItemId],
           schema: postgresCouncilAgendaItemSchema,
         });
@@ -1707,8 +1705,7 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "agenda-item.start") },
       async (client) => {
         const agendaItem = await callJson(client, {
-          // @implements-requirement HALL-FR-MTG-370
-          text: "SELECT hall_api.start_council_agenda_item($1::uuid, clock_timestamp()) AS payload",
+          text: "SELECT hall_api.start_council_agenda_item($1::uuid) AS payload",
           values: [parsed.agendaItemId],
           schema: postgresCouncilAgendaItemSchema,
         });
@@ -1731,8 +1728,7 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "agenda-item.complete-open-question") },
       async (client) => {
         const agendaItem = await callJson(client, {
-          // @implements-requirement HALL-FR-MTG-370
-          text: "SELECT hall_api.complete_non_voting_agenda_item($1::uuid, clock_timestamp()) AS payload",
+          text: "SELECT hall_api.complete_non_voting_agenda_item($1::uuid) AS payload",
           values: [parsed.agendaItemId],
           schema: postgresCouncilAgendaItemSchema,
         });

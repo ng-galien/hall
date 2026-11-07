@@ -410,9 +410,10 @@ BEGIN
 END
 $function$;
 
+-- @implements-requirement HALL-FR-MTG-370
+-- Start, completion, adjournment and recusal are dated by the server clock at reception.
 CREATE FUNCTION hall_api.start_council_agenda_item(
-  target_agenda_item UUID,
-  start_time TIMESTAMPTZ
+  target_agenda_item UUID
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -423,14 +424,13 @@ AS $function$
 DECLARE
   changed hall.council_agenda_item;
 BEGIN
-  changed := hall.start_council_agenda_item(target_agenda_item, start_time);
+  changed := hall.start_council_agenda_item(target_agenda_item, clock_timestamp());
   RETURN hall.council_agenda_item_projection(changed);
 END
 $function$;
 
 CREATE FUNCTION hall_api.complete_non_voting_agenda_item(
-  target_agenda_item UUID,
-  completion_time TIMESTAMPTZ
+  target_agenda_item UUID
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -441,16 +441,16 @@ AS $function$
 DECLARE
   changed hall.council_agenda_item;
 BEGIN
-  changed := hall.complete_non_voting_agenda_item(target_agenda_item, completion_time);
+  changed := hall.complete_non_voting_agenda_item(target_agenda_item, clock_timestamp());
   RETURN hall.council_agenda_item_projection(changed);
 END
 $function$;
 
-CREATE FUNCTION hall_api.adjourn_council_agenda_item(target_agenda_item UUID, adjournment_time TIMESTAMPTZ)
+CREATE FUNCTION hall_api.adjourn_council_agenda_item(target_agenda_item UUID)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE changed hall.council_agenda_item;
 BEGIN
-  changed := hall.adjourn_council_agenda_item(target_agenda_item, adjournment_time);
+  changed := hall.adjourn_council_agenda_item(target_agenda_item, clock_timestamp());
   RETURN hall.council_agenda_item_projection(changed);
 END;
 $$;
@@ -466,12 +466,13 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
   FROM hall.council_agenda_item item WHERE item.id = target_item;
 $$;
 
+-- @implements-requirement HALL-FR-MTG-370
 CREATE FUNCTION hall_api.record_agenda_item_recusal(target_item UUID, target_member UUID,
-  declared_basis TEXT, declaration_time TIMESTAMPTZ)
+  declared_basis TEXT)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 BEGIN
   INSERT INTO hall.agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
-  VALUES(target_item,target_member,declared_basis::hall.recusal_legal_basis,declaration_time);
+  VALUES(target_item,target_member,declared_basis::hall.recusal_legal_basis,clock_timestamp());
   RETURN hall_api.agenda_item_recusals(target_item);
 END;
 $$;

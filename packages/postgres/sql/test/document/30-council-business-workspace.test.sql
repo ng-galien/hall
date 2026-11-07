@@ -382,27 +382,34 @@ SELECT hall.start_council_meeting(
   '2026-01-01 09:00:00+00'
 );
 SELECT hall_api.start_council_agenda_item(
-  (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'decision'),
-  '2026-01-01 09:05:00+00'
+  (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'decision')
 );
 SELECT is(
   (hall_api.adjourn_council_agenda_item(
-    (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'decision'), '2026-01-01 09:05:30Z'
+    (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'decision')
   ) ->> 'position')::INTEGER,
   -1,
   'adjournment retains the agenda occurrence with its signed position'
 );
 SELECT hall_api.start_council_agenda_item(
-  (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'open'),
-  '2026-01-01 09:06:00+00'
+  (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'open')
 );
 SELECT ok(
   hall_api.complete_non_voting_agenda_item(
-    (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'open'),
-    '2026-01-01 09:07:00+00'
+    (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'open')
   ) ->> 'completedAt' IS NOT NULL,
   'an open question completes through its named action without a ballot'
 );
+-- @verifies-requirement HALL-FR-MTG-370
+-- start, completion, adjournment and recusal take no client instant; the server dates them.
+SELECT ok(
+  (SELECT completed_at >= now() FROM council_agenda_item WHERE id = (SELECT (payload ->> 'id')::UUID FROM agenda_result WHERE kind = 'open')),
+  'an open question completion is dated by the server clock'
+);
+SELECT hasnt_function('hall_api', 'start_council_agenda_item', ARRAY['uuid', 'timestamp with time zone'], 'starting an item accepts no instant');
+SELECT hasnt_function('hall_api', 'complete_non_voting_agenda_item', ARRAY['uuid', 'timestamp with time zone'], 'completing an item accepts no instant');
+SELECT hasnt_function('hall_api', 'adjourn_council_agenda_item', ARRAY['uuid', 'timestamp with time zone'], 'adjourning an item accepts no instant');
+SELECT hasnt_function('hall_api', 'record_agenda_item_recusal', ARRAY['uuid', 'uuid', 'text', 'timestamp with time zone'], 'a recusal accepts no instant');
 
 -- @verifies-requirement HALL-FR-MIN-140
 CREATE TEMP TABLE meeting_closure_result AS
