@@ -11001,6 +11001,71 @@
           "sourceIds": []
         }
       ]
+    },
+    "HALL-TR-SCH-030": {
+      "name": "ACCOUNTS_SETTINGS_AND_TEMPLATES_IN_HALL_SCHEMA",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "Les comptes, leurs rôles, les sessions, les réglages de la commune, les lieux de séance, les modèles de documents et le journal d’audit résident dans le schéma hall et ne sont atteints que par des fonctions hall_api.",
+      "acceptanceCriteria": [
+        "Une installation neuve crée hall.app_user, hall.app_user_role, hall.app_session, hall.settings, hall.meeting_location et hall.document_template par le manifeste du schéma, avec le réglage unique et les modèles par défaut des documents générés ; elle ne crée aucune table dans public.",
+        "Les événements d’audit du serveur et ceux des commandes métier forment un seul journal, hall.audit_event, lu par l’API des événements d’audit.",
+        "La montée d’une base 1.0.4 copie les sept tables du serveur de public dans hall avec leurs identifiants, empreintes de mot de passe, sessions actives, rôles, réglages, lieux, modèles personnalisés et dates ; elle vérifie pour chaque table le nombre de lignes et les identifiants copiés et échoue sans rien changer si une ligne manque.",
+        "Les tables public copiées restent en place, inchangées, et plus aucun code ne les lit ni ne les écrit ; une base où hall détient déjà un compte n’est pas recopiée."
+      ],
+      "clauses": [
+        {
+          "key": "owner-decision",
+          "origin": "product",
+          "statement": "Constat et décision du coordinateur, point 1 : le serveur avait deux accès à la base, un pool propre sur search_path=public pour six tables (comptes, rôles, sessions, réglages, gabarits, audit) et le gestionnaire de transactions du schéma hall ; un seul accès doit rester. Décision du propriétaire du 7 novembre 2026 : les tables public restent en place après la copie, leur suppression est reportée à une version ultérieure, une fois la montée en mairie constatée saine.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-SCH-040": {
+      "name": "ONE_POSTGRESQL_ACCESS",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "Le serveur atteint PostgreSQL par un seul pool, enregistré une fois dans le conteneur et partagé par tous les dépôts et clients ; une requête qui écrit un compte et une donnée métier forme une seule transaction.",
+      "acceptanceCriteria": [
+        "Pendant des requêtes qui touchent les comptes, les réglages, les modèles et l’annuaire, toutes les connexions de l’application à la base appartiennent au pool du conteneur.",
+        "Une unité de travail qui crée un compte puis un contact et échoue ensuite n’enregistre ni l’un ni l’autre ; réussie, elle enregistre les deux.",
+        "Le contrôle de santé interroge la base par ce même pool."
+      ],
+      "clauses": [
+        {
+          "key": "coordinator-decision",
+          "origin": "product",
+          "statement": "Constat et décision du coordinateur, point 1 : le serveur avait deux accès à la base, un pool propre sur search_path=public pour six tables (comptes, rôles, sessions, réglages, gabarits, audit) et le gestionnaire de transactions du schéma hall ; un seul accès doit rester.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-SCH-050": {
+      "name": "SERVER_TESTS_USE_PRODUCTION_WIRING",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "Les tests serveur construisent le conteneur comme le point d’entrée du serveur, à partir de l’adresse de la base de test, sans pool injecté.",
+      "acceptanceCriteria": [
+        "Le serveur de test enregistre son propre pool depuis l’adresse de la base, installe ou vérifie le schéma comme au démarrage, et réinitialise les données entre deux tests."
+      ],
+      "clauses": [
+        {
+          "key": "coordinator-decision",
+          "origin": "product",
+          "statement": "Constat et décision du coordinateur, point 1 : le serveur avait deux accès à la base, un pool propre sur search_path=public pour six tables (comptes, rôles, sessions, réglages, gabarits, audit) et le gestionnaire de transactions du schéma hall ; un seul accès doit rester.",
+          "sourceIds": []
+        }
+      ]
     }
   }
 }

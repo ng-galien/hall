@@ -60,7 +60,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   if (config.behindTlsProxy) app.set("trust proxy", 1);
   app.get("/api/health", async (_request, response) => {
     try {
-      await container.cradle.sqlExecutor.get("health.check");
+      await container.cradle.postgresClient.health();
       response.json({ status: "ok", version: config.version ?? "unidentified" });
     } catch {
       response.status(503).json({ status: "unavailable", version: config.version ?? "unidentified" });

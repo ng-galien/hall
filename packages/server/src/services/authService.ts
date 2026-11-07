@@ -117,16 +117,13 @@ export function createAuthService({
       if ((await securityRepository.countUsers()) !== 0) throw new DomainError("bootstrap_unavailable", 409);
       const passwordHash = await hashPassword(input.password);
       return unitOfWork.execute(async () => {
-        if ((await securityRepository.countUsers()) !== 0) throw new DomainError("bootstrap_unavailable", 409);
-        const user = publicUser(
-          await securityRepository.createUser({
-            email: input.email,
-            displayName: input.displayName,
-            passwordHash,
-            roles: ["administrator"],
-            contactId: null,
-          }),
-        );
+        const created = await securityRepository.bootstrapAdministrator({
+          email: input.email,
+          displayName: input.displayName,
+          passwordHash,
+        });
+        if (!created) throw new DomainError("bootstrap_unavailable", 409);
+        const user = publicUser(created);
         requestContext.setPrincipal(principalForUser(user));
         return user;
       });

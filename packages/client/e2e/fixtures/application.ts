@@ -47,7 +47,8 @@ BEGIN
   SELECT string_agg(format('%I.%I', schemaname, tablename), ', ' ORDER BY schemaname, tablename)
   INTO tables
   FROM pg_tables
-  WHERE schemaname IN ('hall', 'public') AND tablename NOT IN ('spatial_ref_sys', 'hall_settings');
+  WHERE schemaname IN ('hall', 'public') AND tablename <> 'spatial_ref_sys'
+    AND (schemaname, tablename) NOT IN (('hall', 'settings'), ('public', 'hall_settings'));
   IF tables IS NOT NULL THEN
     EXECUTE 'TRUNCATE TABLE ' || tables || ' RESTART IDENTITY CASCADE';
   END IF;

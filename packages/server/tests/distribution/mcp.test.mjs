@@ -316,7 +316,7 @@ print(output.decode())
     expect((await request("/mcp", { cookie, body: {} })).status).toBe(401);
     const renewed = await request("/api/auth/login", { body: user });
     cookie = renewed.headers.get("set-cookie").split(";", 1)[0];
-    await database.pool.query("UPDATE public.sessions SET expires_at = $1", [new Date(0).toISOString()]);
+    await database.pool.query("UPDATE hall.app_session SET expires_at = $1", [new Date(0).toISOString()]);
     expect((await request("/mcp", { cookie, body: {} })).status).toBe(401);
     console.log(
       "Verified installed guide/stdio/HTTP, real login identity, document create/reread, anonymous/invalid/expired/revoked refusal, same-origin refusal and next-operation permission withdrawal. Disposable test identities only; POSIX checks private login/storage/logout, Windows checks refusal of private session storage.",

@@ -38,7 +38,7 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
     };
     try {
       await pool.query(
-        "UPDATE public.hall_settings SET name='Commune témoin',population=1200,time_zone='Europe/Paris',outbound_email_sender_address='mairie@example.test' WHERE id='hall'",
+        "UPDATE hall.settings SET name='Commune témoin',population=1200,time_zone='Europe/Paris',outbound_email_sender_address='mairie@example.test' WHERE id='hall'",
       );
       await pool.query("SELECT hall_api.configure_active_council_term(15)");
       for (const [index, email] of [

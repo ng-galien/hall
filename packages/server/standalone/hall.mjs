@@ -323,12 +323,7 @@ async function main() {
     try {
       const bootstrap = new PostgresSchemaBootstrap(pool);
       if (command === "migrate") {
-        const { initializeServerSchema } = await import("../src/infrastructure/postgres/executor.ts");
-        const result = await bootstrap.install(async (client) => {
-          await client.query("RESET ROLE");
-          await client.query("SET LOCAL search_path = public");
-          await initializeServerSchema(client);
-        });
+        const result = await bootstrap.install();
         await bootstrap.verify();
         process.stdout.write(`Hall schema ${result}; fingerprint verified. HTTP was not started.\n`);
       } else {

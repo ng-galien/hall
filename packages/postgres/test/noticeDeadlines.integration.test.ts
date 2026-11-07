@@ -25,7 +25,8 @@ postgresDescribe("PostgreSQL clear-day notice deadlines", () => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      await client.query("ALTER TABLE IF EXISTS public.hall_settings RENAME TO hall_settings_outside_test");
+      await client.query("DELETE FROM hall.meeting_location");
+      await client.query("DELETE FROM hall.settings");
       await expectStandaloneSettingsQualification(client);
     } finally {
       await client.query("ROLLBACK");
@@ -49,18 +50,17 @@ async function expectStandaloneSettingsQualification(client: PoolClient): Promis
     (await client.query("SELECT hall.meeting_notice_deadline(m) d FROM hall.council_meetings m WHERE id=$1", [id]))
       .rows[0].d,
   ).toEqual({ status: "indeterminate", reason: "timeZoneUnknown" });
-  await client.query("CREATE TABLE public.hall_settings(id text,population integer,time_zone text)");
-  await client.query("INSERT INTO public.hall_settings VALUES('hall',NULL,'Europe/Paris')");
+  await client.query("INSERT INTO hall.settings (id, population, time_zone) VALUES ('hall', NULL, 'Europe/Paris')");
   const deadline = async () =>
     (await client.query("SELECT hall.meeting_notice_deadline(m) d FROM hall.council_meetings m WHERE id=$1", [id]))
       .rows[0].d;
   expect(await deadline()).toEqual({ status: "indeterminate", reason: "populationUnknown" });
-  await client.query("UPDATE public.hall_settings SET population=3500");
+  await client.query("UPDATE hall.settings SET population=3500");
   expect(await deadline()).toMatchObject({
     status: "qualificationRequired",
     ordinaryReference: { deadlineDate: "2026-09-05", clearDays: 5 },
   });
-  await client.query("UPDATE public.hall_settings SET population=3499");
+  await client.query("UPDATE hall.settings SET population=3499");
   expect(await deadline()).toMatchObject({
     status: "qualificationRequired",
     ordinaryReference: { deadlineDate: "2026-09-07", clearDays: 3 },

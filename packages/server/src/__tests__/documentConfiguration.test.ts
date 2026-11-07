@@ -2,7 +2,6 @@ import type { ContentTemplate, HallSettings } from "@hall/domain";
 import { generatedDocumentTemplates, jinjaBody } from "@hall/domain";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
-import { postgresDocumentConfigurationMigration } from "../infrastructure/postgres/schema.js";
 import type { PdfRenderInput } from "../services/documentRenderer.js";
 import { createTestServer, domainBody } from "./testServer.js";
 
@@ -173,30 +172,15 @@ describe("generated document configuration", () => {
     }
   });
 
-  it("migrates legacy settings and custom templates without loss, then does not recreate a deleted default", async () => {
-    await createTestServer();
+  it("keeps a deleted default template deleted when the server starts again", async () => {
+    const { container } = await createTestServer();
     const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL });
     try {
-      await pool.query("UPDATE templates SET name = 'Existing customization' WHERE document_type = 'document-print'");
-      await pool.query(
-        "ALTER TABLE hall_settings DROP COLUMN outbound_email_signature_markdown, DROP COLUMN outbound_email_footer_markdown",
-      );
-      await pool.query(postgresDocumentConfigurationMigration);
-      expect((await pool.query("SELECT name FROM templates WHERE document_type = 'document-print'")).rows[0].name).toBe(
-        "Existing customization",
-      );
+      await pool.query("DELETE FROM hall.document_template WHERE document_type = 'event-invitation'");
+      await container.cradle.postgresClient.bootstrap.install();
       expect(
-        (
-          await pool.query(
-            "SELECT outbound_email_signature_markdown, outbound_email_footer_markdown FROM hall_settings",
-          )
-        ).rows[0],
-      ).toEqual({ outbound_email_signature_markdown: "", outbound_email_footer_markdown: "" });
-      await pool.query("DELETE FROM templates WHERE document_type = 'event-invitation'");
-      await pool.query(postgresDocumentConfigurationMigration);
-      expect((await pool.query("SELECT id FROM templates WHERE document_type = 'event-invitation'")).rows).toHaveLength(
-        0,
-      );
+        (await pool.query("SELECT id FROM hall.document_template WHERE document_type = 'event-invitation'")).rows,
+      ).toHaveLength(0);
     } finally {
       await pool.end();
     }

@@ -1,14 +1,11 @@
-import { randomUUID } from "node:crypto";
 import { Pool, type QueryResult } from "pg";
 import { expect, it } from "vitest";
-import { meetingLocationsSchema } from "../infrastructure/database/meetingLocationsSchema.js";
 
 const postgresTest = process.env.PGTAP_DATABASE_URL ? it : it.skip;
 
 postgresTest("pgTAP: Hall location integrity and independent meeting snapshots", async () => {
   const pool = new Pool({ connectionString: process.env.PGTAP_DATABASE_URL });
   const client = await pool.connect();
-  const schema = `locations_test_${randomUUID().replaceAll("-", "")}`;
   try {
     await client.query("BEGIN");
     await client.query("CREATE EXTENSION IF NOT EXISTS pgtap");
@@ -18,28 +15,25 @@ postgresTest("pgTAP: Hall location integrity and independent meeting snapshots",
       JOIN pg_namespace AS namespace ON namespace.oid = extension.extnamespace
       WHERE extension.extname = 'pgtap'
     `);
-    await client.query(`CREATE SCHEMA ${schema}`);
-    await client.query("SELECT set_config('search_path', format('%I,%I,public', $1::text, $2::text), true)", [
-      schema,
+    await client.query("SELECT set_config('search_path', format('hall,%I,public', $1::text), true)", [
       extension.rows[0].name,
     ]);
-    await client.query("CREATE TABLE hall_settings (id TEXT PRIMARY KEY); INSERT INTO hall_settings VALUES ('hall')");
-    await client.query(meetingLocationsSchema);
+    await client.query("DELETE FROM hall.meeting_location");
     const results = await client.query(`
       -- @verifies-requirement HALL-FR-LOC-010
       -- @verifies-requirement HALL-FR-LOC-020
       -- @verifies-requirement HALL-FR-LOC-030
       SELECT plan(8);
-      SELECT lives_ok($$INSERT INTO hall_meeting_locations VALUES ('hall', 1, 'Salle A'), ('hall', 2, 'Salle B')$$, 'ordered catalogue');
-      SELECT is((SELECT name FROM hall_meeting_locations ORDER BY position LIMIT 1), 'Salle A', 'first location is the only default');
-      SELECT throws_ok($$INSERT INTO hall_meeting_locations VALUES ('hall', 0, 'Salle C')$$, '23514', NULL, 'positive rank');
-      SELECT throws_ok($$INSERT INTO hall_meeting_locations VALUES ('hall', 1, 'Salle C')$$, '23505', NULL, 'unique rank');
-      SELECT throws_ok($$INSERT INTO hall_meeting_locations VALUES ('hall', 3, 'Salle A')$$, '23505', NULL, 'unique name');
-      SELECT throws_ok($$INSERT INTO hall_meeting_locations VALUES ('hall', 3, ' ')$$, '23514', NULL, 'normalized nonempty name');
-      SELECT throws_ok($$INSERT INTO hall_meeting_locations VALUES ('other', 3, 'Salle C')$$, '23514', NULL, 'Hall singleton ownership');
-      CREATE TABLE meeting_snapshot (location TEXT NOT NULL);
-      INSERT INTO meeting_snapshot SELECT name FROM hall_meeting_locations WHERE position = 1;
-      DELETE FROM hall_meeting_locations WHERE position = 1;
+      SELECT lives_ok($$INSERT INTO hall.meeting_location VALUES ('hall', 1, 'Salle A'), ('hall', 2, 'Salle B')$$, 'ordered catalogue');
+      SELECT is((SELECT name FROM hall.meeting_location ORDER BY position LIMIT 1), 'Salle A', 'first location is the only default');
+      SELECT throws_ok($$INSERT INTO hall.meeting_location VALUES ('hall', 0, 'Salle C')$$, '23514', NULL, 'positive rank');
+      SELECT throws_ok($$INSERT INTO hall.meeting_location VALUES ('hall', 1, 'Salle C')$$, '23505', NULL, 'unique rank');
+      SELECT throws_ok($$INSERT INTO hall.meeting_location VALUES ('hall', 3, 'Salle A')$$, '23505', NULL, 'unique name');
+      SELECT throws_ok($$INSERT INTO hall.meeting_location VALUES ('hall', 3, ' ')$$, '23514', NULL, 'normalized nonempty name');
+      SELECT throws_ok($$INSERT INTO hall.meeting_location VALUES ('other', 3, 'Salle C')$$, '23514', NULL, 'Hall singleton ownership');
+      CREATE TEMPORARY TABLE meeting_snapshot (location TEXT NOT NULL);
+      INSERT INTO meeting_snapshot SELECT name FROM hall.meeting_location WHERE position = 1;
+      DELETE FROM hall.meeting_location WHERE position = 1;
       SELECT is((SELECT location FROM meeting_snapshot), 'Salle A', 'catalogue deletion does not change retained location text');
       SELECT * FROM finish();
     `);

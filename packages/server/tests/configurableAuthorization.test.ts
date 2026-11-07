@@ -184,7 +184,7 @@ describe("configurable authorization through HTTP", () => {
     );
     expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
     const count = await pool.query(
-      "SELECT count(*)::int AS count FROM users u JOIN user_roles r ON r.user_id=u.id WHERE u.status='active' AND r.role='administrator'",
+      "SELECT count(*)::int AS count FROM hall.app_user u JOIN hall.app_user_role r ON r.user_id=u.id WHERE u.status='active' AND r.role='administrator'",
     );
     expect(count.rows[0].count).toBe(1);
   });

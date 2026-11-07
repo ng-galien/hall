@@ -17,8 +17,6 @@ import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { GeographicLayersClient } from "../clients/geographicLayersClient.js";
 import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
-import type { SqlExecutor } from "../infrastructure/database/executor.js";
-import { createSqlExecutor } from "../infrastructure/database/factory.js";
 import { createMarkdownDocumentPreviewConverter } from "../infrastructure/documents/markdownDocumentPreviewConverter.js";
 import { createLegifranceProvider } from "../infrastructure/legal/legifranceProvider.js";
 import {
@@ -33,6 +31,7 @@ import { createPostgresGeographicLayersClient } from "../infrastructure/postgres
 import { logIdleConnectionFailures } from "../infrastructure/postgres/idleConnectionFailures.js";
 import { createPostgresMinutesClient } from "../infrastructure/postgres/minutesClient.js";
 import { createPostgresResourcesClient } from "../infrastructure/postgres/resourcesClient.js";
+import { createPostgresUnitOfWork } from "../infrastructure/postgres/unitOfWork.js";
 import { createLiveEventBus, type LiveEventBus } from "../realtime/liveEvents.js";
 import { createContentTemplateRepository } from "../repositories/contentTemplateRepository.js";
 import type { ContentTemplateRepository, HallSettingsRepository, UnitOfWork } from "../repositories/contracts.js";
@@ -79,18 +78,16 @@ import { createTemplateRenderingService, type TemplateRenderingService } from ".
 import type { ServerConfig } from "./config.js";
 
 export interface ServerCompositionOptions {
-  postgresPool?: Pool;
   postgresSchemaUpgradeMode?: "automatic" | "verify-only";
   schemaInitializationMode?: "automatic" | "verify-only";
 }
 
 export interface Cradle {
   config: ServerConfig;
-  postgresPool: Pool | null;
+  postgresPool: Pool;
   requestContext: RequestContextStore;
   realtimeEvents: LiveEventBus;
-  sqlExecutor: SqlExecutor;
-  postgresClient: PostgresClient | null;
+  postgresClient: PostgresClient;
   postgresAuthorization: PostgresAuthorization;
   authorizationClient: AuthorizationClient;
   authorizeReading: AuthorizeReading;
@@ -136,27 +133,22 @@ export interface Cradle {
   templatePreviewContextService: TemplatePreviewContextService;
 }
 
+// @implements-requirement HALL-TR-SCH-040
+/** Registers one PostgreSQL pool, built from DATABASE_URL, shared by every repository and client. */
 export function buildContainer(config: ServerConfig, options: ServerCompositionOptions = {}): AwilixContainer<Cradle> {
   const container = createContainer<Cradle>({ injectionMode: InjectionMode.PROXY, strict: true });
   container.register({
     config: asValue(config),
-    postgresPool: asValue(options.postgresPool ?? null),
+    postgresPool: asFunction(({ config }: { config: ServerConfig }) =>
+      logIdleConnectionFailures(createPostgresPool({ connectionString: config.database.url })),
+    ).singleton(),
     requestContext: asFunction(() => new RequestContextStore()).singleton(),
     realtimeEvents: asFunction(createLiveEventBus).singleton(),
-    sqlExecutor: asFunction(({ config, requestContext, postgresPool }: Cradle) =>
-      createSqlExecutor({ config, requestContext, postgresPool, schemaUpgradeMode: options.schemaInitializationMode }),
+    postgresClient: asFunction(
+      ({ postgresPool }: { postgresPool: Pool }) =>
+        new PostgresClient(postgresPool, true, options.postgresSchemaUpgradeMode),
     ).singleton(),
-    postgresClient: asFunction(({ config, postgresPool }: { config: ServerConfig; postgresPool: Pool | null }) => {
-      if (config.database.kind !== "postgres") return null;
-      return postgresPool
-        ? new PostgresClient(postgresPool, false, options.postgresSchemaUpgradeMode)
-        : new PostgresClient(
-            logIdleConnectionFailures(createPostgresPool({ connectionString: config.database.url })),
-            true,
-            options.postgresSchemaUpgradeMode,
-          );
-    }).singleton(),
-    unitOfWork: asFunction(({ sqlExecutor }: { sqlExecutor: SqlExecutor }) => sqlExecutor).singleton(),
+    unitOfWork: asFunction(createPostgresUnitOfWork).singleton(),
     hallSettingsRepository: asFunction(createHallSettingsRepository).singleton(),
     contentTemplateRepository: asFunction(createContentTemplateRepository).singleton(),
     securityRepository: asFunction(createSecurityRepository).singleton(),
@@ -185,42 +177,34 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     contentTemplateService: asFunction(createContentTemplateService).singleton(),
     templatePreviewContextService: asFunction(createTemplatePreviewContextService).singleton(),
   });
-  if (config.database.kind === "postgres") {
-    container.register({
-      postgresAuthorization: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Authorization PostgreSQL storage is required");
-        return postgresClient.authorization;
-      }).singleton(),
-      authorizationClient: asFunction(createPostgresAuthorizationClient).singleton(),
-      authorizeReading: asFunction(createPrincipalReadingAuthorization).singleton(),
-      authorizationAdministrationClient: asFunction(createPostgresAuthorizationAdministrationClient).singleton(),
-      postgresCouncil: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Council PostgreSQL storage is required");
-        return postgresClient.council;
-      }).singleton(),
-      postgresDirectory: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Directory PostgreSQL storage is required");
-        return postgresClient.directory;
-      }).singleton(),
-      postgresResources: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Documentary PostgreSQL storage is required");
-        return postgresClient.resources;
-      }).singleton(),
-      resourcesClient: asFunction(createPostgresResourcesClient).singleton(),
-      geographicLayersClient: asFunction(createPostgresGeographicLayersClient).singleton(),
-      postgresMinutes: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Minutes PostgreSQL storage is required");
-        return postgresClient.minutes;
-      }).singleton(),
-      minutesClient: asFunction(createPostgresMinutesClient).singleton(),
-      postgresCouncilDecisions: asFunction(({ postgresClient }: { postgresClient: PostgresClient | null }) => {
-        if (!postgresClient) throw new Error("Decision PostgreSQL storage is required");
-        return postgresClient.councilDecisions;
-      }).singleton(),
-      councilDecisionClient: asFunction(createPostgresCouncilDecisionClient).singleton(),
-      councilClient: asFunction(createPostgresCouncilClient).singleton(),
-      directoryClient: asFunction(createPostgresDirectoryClient).singleton(),
-    });
-  }
+  container.register({
+    postgresAuthorization: asFunction(
+      ({ postgresClient }: { postgresClient: PostgresClient }) => postgresClient.authorization,
+    ).singleton(),
+    authorizationClient: asFunction(createPostgresAuthorizationClient).singleton(),
+    authorizeReading: asFunction(createPrincipalReadingAuthorization).singleton(),
+    authorizationAdministrationClient: asFunction(createPostgresAuthorizationAdministrationClient).singleton(),
+    postgresCouncil: asFunction(
+      ({ postgresClient }: { postgresClient: PostgresClient }) => postgresClient.council,
+    ).singleton(),
+    postgresDirectory: asFunction(
+      ({ postgresClient }: { postgresClient: PostgresClient }) => postgresClient.directory,
+    ).singleton(),
+    postgresResources: asFunction(
+      ({ postgresClient }: { postgresClient: PostgresClient }) => postgresClient.resources,
+    ).singleton(),
+    resourcesClient: asFunction(createPostgresResourcesClient).singleton(),
+    geographicLayersClient: asFunction(createPostgresGeographicLayersClient).singleton(),
+    postgresMinutes: asFunction(
+      ({ postgresClient }: { postgresClient: PostgresClient }) => postgresClient.minutes,
+    ).singleton(),
+    minutesClient: asFunction(createPostgresMinutesClient).singleton(),
+    postgresCouncilDecisions: asFunction(
+      ({ postgresClient }: { postgresClient: PostgresClient }) => postgresClient.councilDecisions,
+    ).singleton(),
+    councilDecisionClient: asFunction(createPostgresCouncilDecisionClient).singleton(),
+    councilClient: asFunction(createPostgresCouncilClient).singleton(),
+    directoryClient: asFunction(createPostgresDirectoryClient).singleton(),
+  });
   return container;
 }

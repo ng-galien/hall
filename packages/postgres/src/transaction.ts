@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { Pool, PoolClient } from "pg";
 import { type AuditIntent, recordAuditEvent } from "./audit.js";
 import { type DatabaseRole, type PostgresCallContext, parseDatabaseRole } from "./callContext.js";
@@ -97,13 +98,72 @@ async function rollback(client: PoolClient): Promise<void> {
   }
 }
 
+type AmbientTransaction = {
+  pool: Pool;
+  client: PoolClient;
+  queue: Promise<void>;
+};
+
+const ambientTransactions = new AsyncLocalStorage<AmbientTransaction>();
+
+/** An error reported by the PostgreSQL server, as opposed to an error of the caller's own operation. */
+function isServerError(error: unknown): boolean {
+  return postgresSqlState(error) !== null && typeof error === "object" && error !== null && "severity" in error;
+}
+
+/**
+ * Every call of a manager opens its own SERIALIZABLE transaction, unless it runs inside `transaction`
+ * on the same pool: it then joins that transaction under its own role and call context, so that the
+ * account and business writes of one request commit or roll back together.
+ */
+// @implements-requirement HALL-TR-SCH-040
 export class PostgresTransactionManager {
   constructor(
     private readonly pool: Pool,
     private readonly statementTimeouts: StatementTimeouts = statementTimeoutsFromEnvironment(),
   ) {}
 
-  async run<Result>(request: TransactionRequest, operation: TransactionOperation<Result>): Promise<Result> {
+  /** True when the caller already runs inside a transaction of this pool. */
+  active(): boolean {
+    return ambientTransactions.getStore()?.pool === this.pool;
+  }
+
+  /** Runs several manager calls of this pool as one transaction, retried as a whole on serialization failure. */
+  transaction<Result>(request: TransactionRequest, operation: () => Promise<Result>): Promise<Result> {
+    if (this.active()) return operation();
+    return this.attempts(
+      request,
+      (client) => ambientTransactions.run({ pool: this.pool, client, queue: Promise.resolve() }, operation),
+      (error) => (isServerError(error) ? preservePostgresError(error) : error),
+    );
+  }
+
+  run<Result>(request: TransactionRequest, operation: TransactionOperation<Result>): Promise<Result> {
+    const ambient = ambientTransactions.getStore();
+    if (ambient?.pool !== this.pool) return this.attempts(request, operation);
+    const joined = ambient.queue.then(async () => {
+      const budget = statementBudgetOf(request.context.action);
+      try {
+        await installCallContext(ambient.client, request.role, request.context, this.statementTimeouts[budget]);
+        const result = await operation(ambient.client);
+        if (request.audit) await recordAuditEvent(ambient.client, request.audit);
+        return result;
+      } catch (error) {
+        throw preservePostgresError(error);
+      }
+    });
+    ambient.queue = joined.then(
+      () => undefined,
+      () => undefined,
+    );
+    return joined;
+  }
+
+  private async attempts<Result>(
+    request: TransactionRequest,
+    operation: TransactionOperation<Result>,
+    failure: (error: unknown) => unknown = preservePostgresError,
+  ): Promise<Result> {
     const maxAttempts = request.maxAttempts ?? 3;
     if (!Number.isInteger(maxAttempts) || maxAttempts < 1)
       throw new RangeError("maxAttempts must be a positive integer");
@@ -123,8 +183,6 @@ export class PostgresTransactionManager {
       } catch (error) {
         await rollback(client);
         if (attempt < maxAttempts && retryableSqlStates.has(postgresSqlState(error) ?? "")) continue;
-        // 57014 is also raised by an explicit cancellation; only an attempt that lasted the whole
-        // timeout is reported as a timeout, whatever the language of the PostgreSQL message.
         if (
           statementTimeoutMs > 0 &&
           postgresSqlState(error) === "57014" &&
@@ -132,7 +190,7 @@ export class PostgresTransactionManager {
         ) {
           throw new StatementTimeoutError(budget, statementTimeoutMs, error);
         }
-        throw preservePostgresError(error);
+        throw failure(error);
       } finally {
         client.release();
       }

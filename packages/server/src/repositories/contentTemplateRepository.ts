@@ -1,6 +1,7 @@
-import { randomUUID } from "node:crypto";
 import { type ContentTemplate, identifierSchema, templateKindSchema } from "@hall/domain";
-import type { SqlExecutor } from "../infrastructure/database/executor.js";
+import type { PostgresClient } from "@hall/postgres";
+import { administrationCall, administrationRequest } from "../infrastructure/postgres/administrationRequest.js";
+import type { RequestContextStore } from "../security/requestContext.js";
 import type { ContentTemplateRepository, SaveContentTemplate } from "./contracts.js";
 import { asNullableString, asString, type DatabaseRow } from "./row.js";
 
@@ -33,39 +34,41 @@ function parameters(input: SaveContentTemplate) {
   };
 }
 
+// @implements-requirement HALL-FR-CFG-020
 export function createContentTemplateRepository({
-  sqlExecutor,
+  postgresClient,
+  requestContext,
 }: {
-  sqlExecutor: SqlExecutor;
+  postgresClient: PostgresClient;
+  requestContext: RequestContextStore;
 }): ContentTemplateRepository {
+  const administration = postgresClient.administration;
+  const request = () => administrationRequest(requestContext);
+  const isIdentifier = (id: string) => identifierSchema.safeParse(id).success;
   return {
-    list() {
-      return sqlExecutor.all("template.list").then((rows) => rows.map(mapTemplate));
+    async list() {
+      return (await administrationCall(() => administration.listDocumentTemplates(request()))).map(mapTemplate);
     },
-    find(id) {
-      return sqlExecutor.get("template.find", { id }).then((row) => (row ? mapTemplate(row) : null));
+    async find(id) {
+      if (!isIdentifier(id)) return null;
+      const row = await administrationCall(() => administration.openDocumentTemplate(request(), id));
+      return row ? mapTemplate(row) : null;
     },
-    create(input) {
-      return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        const now = new Date().toISOString();
-        await sqlExecutor.run("template.insert", { id, ...parameters(input), createdAt: now, updatedAt: now });
-        return mapTemplate((await sqlExecutor.get("template.find", { id }))!);
-      });
+    async create(input) {
+      return mapTemplate(
+        await administrationCall(() => administration.createDocumentTemplate(request(), parameters(input))),
+      );
     },
-    update(id, input) {
-      return sqlExecutor.execute(async () => {
-        const result = await sqlExecutor.run("template.update", {
-          id,
-          ...parameters(input),
-          updatedAt: new Date().toISOString(),
-        });
-        if (result.changes === 0) return null;
-        return mapTemplate((await sqlExecutor.get("template.find", { id }))!);
-      });
+    async update(id, input) {
+      if (!isIdentifier(id)) return null;
+      const row = await administrationCall(() =>
+        administration.updateDocumentTemplate(request(), id, parameters(input)),
+      );
+      return row ? mapTemplate(row) : null;
     },
-    delete(id) {
-      return sqlExecutor.run("template.delete", { id }).then((result) => result.changes > 0);
+    async delete(id) {
+      if (!isIdentifier(id)) return false;
+      return administrationCall(() => administration.deleteDocumentTemplate(request(), id));
     },
   };
 }

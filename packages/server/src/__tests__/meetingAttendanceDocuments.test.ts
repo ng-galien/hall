@@ -27,7 +27,7 @@ describe("attendance sheet and proxy form of a meeting", () => {
       role: "hall_api_authenticated" as const,
       context: { requestId: "attendance-documents", actorId: "test-clerk", roles: ["administrator"], contactId: null },
     };
-    await pool.query("UPDATE public.hall_settings SET name='Commune témoin',time_zone='Europe/Paris' WHERE id='hall'");
+    await pool.query("UPDATE hall.settings SET name='Commune témoin',time_zone='Europe/Paris' WHERE id='hall'");
     await new PostgresDirectory(pool).configureActiveCouncilTerm(databaseRequest, 3);
     const member = async (firstName: string, role: string) => {
       const contact = domainBody<{ id: string }>(

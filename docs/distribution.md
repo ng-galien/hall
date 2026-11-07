@@ -451,6 +451,20 @@ moves to the next, open revision. Closed meetings keep their facts and documents
 The migrations run in `hall migrate` (step 4), not at startup: `hall start`
 refuses an incompatible schema.
 
+The release following 1.0.4 adds
+`packages/postgres/sql/migrations/007-server-tables-into-hall.sql` (requirement
+HALL-TR-SCH-030): it copies the seven server tables of schema `public` (`users`,
+`user_roles`, `sessions`, `hall_settings`, `hall_meeting_locations`, `templates`,
+`audit_events`) into `hall.app_user`, `hall.app_user_role`, `hall.app_session`,
+`hall.settings`, `hall.meeting_location`, `hall.document_template` and
+`hall.audit_event`, with their identifiers, password hashes, active sessions,
+customized templates and dates. Accounts keep their password and open sessions stay
+valid. For each table the migration checks the row count and the copied identifiers;
+any difference fails `hall migrate` and rolls the whole upgrade back. The `public`
+tables stay in place, unchanged, and are no longer read or written; a later release
+drops them once the update is verified in the town hall. Run again, the migration
+copies nothing as soon as `hall.app_user` holds an account.
+
 Session variables, used by every step. The PostgreSQL connection uses the `PG*`
 variables and the protected `pgpass.conf` of
 [Restore the selected backup](municipal-bootstrap.md#restore-the-selected-backup-before-starting-hall);
@@ -512,6 +526,11 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    & $OldHall verify-backup --env-file $Config
    if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed: do not change anything' }
    ```
+
+   This backup is the way back: after migration 007 the previous release still finds
+   its `public` tables, but the accounts, sessions, settings and templates changed
+   afterwards exist only in schema `hall`. Restoring the backup returns to the state
+   before the update.
 
    The archive and its `.json` manifest are in `HALL_BACKUP_DIRECTORY`, or in
    `C:\Hall\config\backups` when the variable is not yet set. Record their names and
@@ -605,7 +624,9 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    psql --dbname=$Database --set=ON_ERROR_STOP=1 --file="$Release\node_modules\@ng-galien\hall\sql\migrations\replace-default-templates-1.0.4.sql"
    ```
 
-   The script keeps each template, its identifier and its name. A template whose body is
+   From the release following 1.0.4, the script of the package acts on
+   `hall.document_template`; run it after `hall migrate`. The script keeps each
+   template, its identifier and its name. A template whose body is
    still the 1.0.3 default receives the current default body and stylesheet. It prints one
    row per template with its outcome: `replaced`, `current` (already the default, such as
    the two templates added by migration 005) or `customized`. A `customized` template is

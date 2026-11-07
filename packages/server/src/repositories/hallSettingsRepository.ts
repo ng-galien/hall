@@ -1,5 +1,8 @@
 import type { HallSettings } from "@hall/domain";
-import type { SqlExecutor } from "../infrastructure/database/executor.js";
+import type { PostgresClient } from "@hall/postgres";
+import { z } from "zod";
+import { administrationCall, administrationRequest } from "../infrastructure/postgres/administrationRequest.js";
+import type { RequestContextStore } from "../security/requestContext.js";
 import type { HallSettingsRepository, UpdateHallSettings } from "./contracts.js";
 import { asNullableInteger, asNullableNumber, asNullableString, asString, type DatabaseRow } from "./row.js";
 
@@ -46,34 +49,39 @@ function mapHallSettings(row: DatabaseRow, meetingLocations: string[]): HallSett
   };
 }
 
-export function createHallSettingsRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }): HallSettingsRepository {
-  const get = async () => {
-    const row = await sqlExecutor.get("settings.get");
+// @implements-requirement HALL-FR-CFG-030
+export function createHallSettingsRepository({
+  postgresClient,
+  requestContext,
+}: {
+  postgresClient: PostgresClient;
+  requestContext: RequestContextStore;
+}): HallSettingsRepository {
+  const administration = postgresClient.administration;
+  const request = () => administrationRequest(requestContext);
+  const mapped = (row: DatabaseRow | null) => {
     if (!row) throw new Error("Hall settings singleton is missing");
-    const locations = await sqlExecutor.all("settings.locations");
-    return mapHallSettings(
-      row,
-      locations.map((location) => asString(location.name, "hall_meeting_locations.name")),
-    );
+    return mapHallSettings(row, z.array(z.string()).parse(row.meeting_locations));
   };
   return {
-    get,
+    async get() {
+      return mapped(await administrationCall(() => administration.hallSettings(request())));
+    },
     async update(input: UpdateHallSettings) {
       const { geographicPosition, meetingLocations, ...settings } = input;
-      return sqlExecutor.execute(async () => {
-        const result = await sqlExecutor.run("settings.update", {
-          ...settings,
-          geographicLongitude: geographicPosition?.[0] ?? null,
-          geographicLatitude: geographicPosition?.[1] ?? null,
-          updatedAt: new Date().toISOString(),
-        });
-        if (result.changes !== 1) throw new Error("Hall settings singleton is missing");
-        await sqlExecutor.run("settings.clearLocations");
-        for (const [index, name] of meetingLocations.entries()) {
-          await sqlExecutor.run("settings.insertLocation", { position: index + 1, name });
-        }
-        return get();
-      });
+      return mapped(
+        await administrationCall(() =>
+          administration.updateHallSettings(
+            request(),
+            {
+              ...settings,
+              geographicLongitude: geographicPosition?.[0] ?? null,
+              geographicLatitude: geographicPosition?.[1] ?? null,
+            },
+            meetingLocations,
+          ),
+        ),
+      );
     },
   };
 }

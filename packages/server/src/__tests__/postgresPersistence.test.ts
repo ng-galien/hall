@@ -43,9 +43,7 @@ async function databaseUrlForHallRole(): Promise<string> {
 
 postgres("PostgreSQL persistence", () => {
   it("serializes schema bootstrap across concurrent server instances", async () => {
-    const setup = new Pool({ connectionString: databaseUrl });
-    await setup.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
-    await setup.end();
+    await resetPostgres();
 
     const config = {
       host: "127.0.0.1",
@@ -56,9 +54,13 @@ postgres("PostgreSQL persistence", () => {
     const first = buildContainer(config);
     const second = buildContainer(config);
     try {
-      await Promise.all([first.cradle.sqlExecutor.ready(), second.cradle.sqlExecutor.ready()]);
+      const results = await Promise.all([
+        first.cradle.postgresClient.bootstrap.install(),
+        second.cradle.postgresClient.bootstrap.install(),
+      ]);
+      expect(results.sort()).toEqual(["installed", "verified"]);
     } finally {
-      await Promise.all([first.cradle.sqlExecutor.close(), second.cradle.sqlExecutor.close()]);
+      await Promise.all([first.cradle.postgresClient.close(), second.cradle.postgresClient.close()]);
     }
   });
 
@@ -781,9 +783,7 @@ postgres("PostgreSQL persistence", () => {
         [meetingId, memberIds[0]],
       );
       await setup.query("SELECT hall_api.start_council_agenda_item($1)", [openQuestionAgendaItemId]);
-      await setup.query("SELECT hall_api.complete_non_voting_agenda_item($1)", [
-        openQuestionAgendaItemId,
-      ]);
+      await setup.query("SELECT hall_api.complete_non_voting_agenda_item($1)", [openQuestionAgendaItemId]);
       await setup.query("SELECT hall_api.start_council_agenda_item($1)", [agendaItemId]);
 
       const [attendanceResponse, agendaResponse] = await Promise.all([

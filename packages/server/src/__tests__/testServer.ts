@@ -123,6 +123,11 @@ export async function createTestMandateContact(agent: TestAgent, firstName = "Le
   return contact.id;
 }
 
+// @implements-requirement HALL-TR-SCH-050
+/**
+ * Builds the container as the server entry point does, from DATABASE_URL to the test database, with its own
+ * single pool; the fixture pool only resets the database and prepares its council term.
+ */
 export async function createTestServer(
   options: {
     devAutoLogin?: boolean;
@@ -136,18 +141,15 @@ export async function createTestServer(
 ) {
   const { databaseUrl, pool: postgresPool } = createPostgresTestPool();
   await resetPostgresTestDatabase(postgresPool);
-  const container = buildContainer(
-    {
-      host: "127.0.0.1",
-      port: 0,
-      database: { kind: "postgres", url: databaseUrl },
-      devAutoLogin: options.devAutoLogin ?? true,
-      allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
-      environment: "test",
-      ...options.config,
-    },
-    { postgresPool },
-  );
+  const container = buildContainer({
+    host: "127.0.0.1",
+    port: 0,
+    database: { kind: "postgres", url: databaseUrl },
+    devAutoLogin: options.devAutoLogin ?? true,
+    allowedOrigins: ["http://localhost:5174", "http://127.0.0.1:5174"],
+    environment: "test",
+    ...options.config,
+  });
   if (options.realClients === false) {
     const resourcesClient = createTestResourcesClient();
     const minutes = createTestMinutesClient();
@@ -178,7 +180,13 @@ export async function createTestServer(
   if (options.legalReferenceProvider) {
     container.register({ legalReferenceProvider: asValue(options.legalReferenceProvider) });
   }
-  await container.cradle.sqlExecutor.ready();
+  try {
+    await container.cradle.postgresClient.bootstrap.install();
+  } catch (error) {
+    await container.cradle.postgresClient.close();
+    await postgresPool.end();
+    throw error;
+  }
   const expectedCouncilMemberCount =
     options.expectedCouncilMemberCount === undefined ? 100 : options.expectedCouncilMemberCount;
   if (expectedCouncilMemberCount !== null) {
@@ -193,7 +201,7 @@ export async function createTestServer(
     try {
       await close(server);
     } finally {
-      await container.cradle.sqlExecutor.close();
+      await container.cradle.postgresClient.close();
       await postgresPool.end();
     }
   });

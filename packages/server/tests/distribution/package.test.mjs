@@ -356,40 +356,13 @@ it(
       expect(await resource(id)).toEqual(before);
       await verifyDocument();
       await stop();
-      // An older public user layout must not be silently migrated by startup,
-      // even when the managed Hall fingerprint already matches.
-      await pool.query("ALTER TABLE public.users RENAME COLUMN contact_id TO council_member_id");
-      const legacyStart = command(process.execPath, [cli, "start", "--env-file", envFile], { timeout: 30_000 });
-      expect(legacyStart.status).not.toBe(0);
-      expect(legacyStart.stderr).toContain("Server user schema requires migration");
-      expect(
-        (
-          await pool.query(
-            "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='users' AND column_name='council_member_id'",
-          )
-        ).rows,
-      ).toHaveLength(1);
+      // @verifies-requirement HALL-TR-SCH-030
+      expect((await pool.query("SELECT to_regclass('public.users') AS value")).rows[0].value).toBeNull();
+      expect((await pool.query("SELECT count(*)::int AS count FROM hall.app_user")).rows[0].count).toBe(2);
       run(process.execPath, [cli, "migrate", "--env-file", envFile]);
       await start();
       cookie = await login();
       expect((await (await request(`/users/${accountBefore.id}`)).json()).properties).toEqual(accountBefore);
-      expect(await resource(id)).toEqual(before);
-      await stop();
-      await pool.query("ALTER TABLE public.user_roles DROP CONSTRAINT user_roles_role_check");
-      const missingInvariantStart = command(process.execPath, [cli, "start", "--env-file", envFile], {
-        timeout: 30_000,
-      });
-      expect(missingInvariantStart.status).not.toBe(0);
-      expect(missingInvariantStart.stderr).toContain("Server schema invariants require migration");
-      expect(
-        (
-          await pool.query(
-            "SELECT conname FROM pg_constraint WHERE conrelid='public.user_roles'::regclass AND conname='user_roles_role_check'",
-          )
-        ).rows,
-      ).toHaveLength(0);
-      run(process.execPath, [cli, "migrate", "--env-file", envFile]);
-      await start();
       expect(await resource(id)).toEqual(before);
       await stop();
       // @verifies-requirement HALL-TR-DST-020

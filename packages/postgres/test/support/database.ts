@@ -35,8 +35,8 @@ async function clearHallTestData(pool: Pool): Promise<void> {
         PERFORM hall.initialize_authorization_defaults();
       END IF;
 
-      IF to_regclass('public.hall_settings') IS NOT NULL THEN
-        INSERT INTO public.hall_settings (id)
+      IF to_regclass('hall.settings') IS NOT NULL THEN
+        INSERT INTO hall.settings (id)
         VALUES ('hall')
         ON CONFLICT (id) DO NOTHING;
       END IF;

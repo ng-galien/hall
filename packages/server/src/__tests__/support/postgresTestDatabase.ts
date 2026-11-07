@@ -1,13 +1,20 @@
-import { generatedDocumentTemplates } from "@hall/domain";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { PostgresDirectory } from "@hall/postgres";
 import { Pool } from "pg";
 
 export function createPostgresTestPool(): { databaseUrl: string; pool: Pool } {
   const databaseUrl = process.env.TEST_DATABASE_URL;
   if (!databaseUrl) throw new Error("TEST_DATABASE_URL is required for backend tests");
-  return { databaseUrl, pool: new Pool({ connectionString: databaseUrl, options: "-c search_path=public" }) };
+  return { databaseUrl, pool: new Pool({ connectionString: databaseUrl }) };
 }
 
+const defaultDocumentTemplatesSql = readFileSync(
+  fileURLToPath(new URL("../../../../postgres/sql/administration/030-default-document-templates.sql", import.meta.url)),
+  "utf8",
+);
+
+/** Empties every Hall table, then restores the settings singleton and the default templates of an installation. */
 export async function resetPostgresTestDatabase(pool: Pool): Promise<void> {
   await pool.query(`
     BEGIN;
@@ -30,33 +37,16 @@ export async function resetPostgresTestDatabase(pool: Pool): Promise<void> {
       IF to_regprocedure('hall.initialize_authorization_defaults()') IS NOT NULL THEN
         PERFORM hall.initialize_authorization_defaults();
       END IF;
-      IF to_regclass('public.hall_settings') IS NOT NULL THEN
-        INSERT INTO public.hall_settings (id)
-        VALUES ('hall')
-        ON CONFLICT (id) DO NOTHING;
+      IF to_regclass('hall.settings') IS NOT NULL THEN
+        INSERT INTO hall.settings (id) VALUES ('hall') ON CONFLICT (id) DO NOTHING;
       END IF;
     END
     $reset$;
 
     COMMIT;
   `);
-  if ((await pool.query("SELECT to_regclass('public.templates') AS present")).rows[0].present) {
-    for (const template of generatedDocumentTemplates)
-      await pool.query(
-        `INSERT INTO public.templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, clock_timestamp()::text, clock_timestamp()::text)`,
-        [
-          template.kind,
-          template.documentType,
-          template.name,
-          template.bodyMarkdown,
-          template.subject,
-          template.stylesheet,
-          template.headerHtml,
-          template.footerHtml,
-        ],
-      );
-  }
+  if ((await pool.query("SELECT to_regclass('hall.document_template') IS NOT NULL AS present")).rows[0].present)
+    await pool.query(defaultDocumentTemplatesSql);
 }
 
 export async function configureTestCouncilTerm(pool: Pool, expectedCouncilMemberCount: number): Promise<void> {

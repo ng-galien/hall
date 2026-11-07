@@ -28,7 +28,7 @@ describe("list of deliberations examined in a closed meeting", () => {
       role: "hall_api_authenticated" as const,
       context: { requestId: "deliberation-list", actorId: "test-clerk", roles: ["administrator"], contactId: null },
     };
-    await pool.query("UPDATE public.hall_settings SET name='Commune témoin',time_zone='Europe/Paris' WHERE id='hall'");
+    await pool.query("UPDATE hall.settings SET name='Commune témoin',time_zone='Europe/Paris' WHERE id='hall'");
     await new PostgresDirectory(pool).configureActiveCouncilTerm(databaseRequest, 1);
     const contact = domainBody<{ id: string }>(
       await agent.post("/api/contacts").send({ firstName: "Martine", lastName: "Test" }).expect(201),

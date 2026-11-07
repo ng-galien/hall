@@ -18,11 +18,8 @@ export async function startHttpServer(
   validateServerConfig(config);
   const container = buildContainer(config, options);
   try {
-    if (container.cradle.postgresClient) {
-      if (options.schemaInitializationMode === "verify-only") await container.cradle.postgresClient.bootstrap.verify();
-      else await container.cradle.postgresClient.bootstrap.install();
-    }
-    await container.cradle.sqlExecutor.ready();
+    if (options.schemaInitializationMode === "verify-only") await container.cradle.postgresClient.bootstrap.verify();
+    else await container.cradle.postgresClient.bootstrap.install();
     const application = createHttpApplication(container);
 
     const server = await new Promise<Server>((resolve, reject) => {
@@ -50,10 +47,7 @@ export async function startHttpServer(
           server.close((error) => {
             if (error) reject(error);
             else {
-              void Promise.all([
-                container.cradle.sqlExecutor.close(),
-                container.cradle.postgresClient?.close() ?? Promise.resolve(),
-              ]).then(() => resolve(), reject);
+              void container.cradle.postgresClient.close().then(() => resolve(), reject);
             }
           });
         });
@@ -61,10 +55,7 @@ export async function startHttpServer(
     };
   } catch (error) {
     try {
-      await Promise.all([
-        container.cradle.sqlExecutor.close(),
-        container.cradle.postgresClient?.close() ?? Promise.resolve(),
-      ]);
+      await container.cradle.postgresClient.close();
     } catch (closeError) {
       logger.error({ closeError }, "Failed to close database after server startup failure");
     }

@@ -1,3 +1,9 @@
+export {
+  PostgresAdministration,
+  type PostgresAdministrationRow,
+  type SavePostgresDocumentTemplate,
+  type UpdatePostgresHallSettings,
+} from "./administration.js";
 export { PostgresAuthorization, type PostgresAuthorizationTarget } from "./authorization.js";
 export { PostgresSchemaBootstrap } from "./bootstrap.js";
 export {
@@ -138,8 +144,10 @@ export {
 export {
   defaultStatementTimeouts,
   documentStatementActions,
+  PostgresTransactionManager,
   type StatementBudget,
   type StatementTimeouts,
   statementBudgetOf,
   statementTimeoutsFromEnvironment,
+  type TransactionRequest,
 } from "./transaction.js";

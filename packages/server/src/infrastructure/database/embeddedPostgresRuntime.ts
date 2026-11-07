@@ -4,13 +4,10 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import EmbeddedPostgres from "embedded-postgres";
-import { Pool } from "pg";
 import { logger } from "../../core/logger.js";
-import { logIdleConnectionFailures } from "../postgres/idleConnectionFailures.js";
 
 export interface LocalDatabaseHandle {
   url: string;
-  pool: Pool;
   close(): Promise<void>;
 }
 
@@ -66,10 +63,9 @@ export async function startEmbeddedPostgresRuntime(directory: string): Promise<L
   });
   if (!initialized) await cluster.initialise();
   await cluster.start();
-  let pool: Pool | undefined;
   let closing: Promise<void> | undefined;
   const close = () => {
-    closing ??= (pool?.end() ?? Promise.resolve()).finally(() => cluster.stop());
+    closing ??= cluster.stop();
     return closing;
   };
   try {
@@ -82,8 +78,7 @@ export async function startEmbeddedPostgresRuntime(directory: string): Promise<L
       await maintenance.end();
     }
     const url = `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${databaseName}`;
-    pool = logIdleConnectionFailures(new Pool({ connectionString: url, options: "-c search_path=public" }));
-    return { url, pool, close };
+    return { url, close };
   } catch (error) {
     await close();
     throw error;

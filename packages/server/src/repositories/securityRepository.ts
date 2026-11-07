@@ -1,9 +1,10 @@
-import { randomUUID } from "node:crypto";
 import { type ApiRole, type ApiUser, apiRoleSchema, apiUserStatusSchema } from "@hall/api-contract";
 import { identifierSchema } from "@hall/domain";
+import type { PostgresClient } from "@hall/postgres";
 import { z } from "zod";
-import type { SqlExecutor } from "../infrastructure/database/executor.js";
-import { asInteger, asNullableString, asString, type DatabaseRow, mapSequential } from "./row.js";
+import { administrationCall, administrationRequest } from "../infrastructure/postgres/administrationRequest.js";
+import type { RequestContextStore } from "../security/requestContext.js";
+import { asNullableString, asString, type DatabaseRow } from "./row.js";
 
 export interface StoredUser extends ApiUser {
   passwordHash: string;
@@ -30,23 +31,22 @@ type AuditOutcome = (typeof auditOutcomes)[number];
 const auditOutcomeSchema = z.enum(auditOutcomes);
 const auditDetailsSchema = z.record(z.string(), z.unknown());
 
-async function mapUser(sqlExecutor: SqlExecutor, row: DatabaseRow): Promise<StoredUser> {
-  const id = identifierSchema.parse(row.id);
-  const roles = (await sqlExecutor.all("security.rolesForUser", { userId: id })).map((role) =>
-    apiRoleSchema.parse(role.role),
-  );
+function mapUser(row: DatabaseRow): StoredUser {
   return {
-    id,
+    id: identifierSchema.parse(row.id),
     email: asString(row.email, "security_user.email"),
     displayName: asString(row.display_name, "security_user.display_name"),
     passwordHash: asString(row.password_hash, "security_user.password_hash"),
     status: apiUserStatusSchema.parse(row.status),
     contactId: identifierSchema.nullable().parse(row.contact_id),
-    roles,
+    roles: z.array(apiRoleSchema).parse(row.roles),
     createdAt: asString(row.created_at, "security_user.created_at"),
     updatedAt: asString(row.updated_at, "security_user.updated_at"),
   };
 }
+
+const optionalUser = (row: DatabaseRow | null) => (row ? mapUser(row) : null);
+const isIdentifier = (value: string) => identifierSchema.safeParse(value).success;
 
 function mapAuditEvent(row: DatabaseRow): AuditEvent {
   const details = auditDetailsSchema.parse(
@@ -65,146 +65,115 @@ function mapAuditEvent(row: DatabaseRow): AuditEvent {
   };
 }
 
-export function createSecurityRepository({ sqlExecutor }: { sqlExecutor: SqlExecutor }) {
-  const findUser = async (
-    name: "security.findUserById" | "security.findUserByEmail" | "security.lockUserForAuthentication",
-    value: string,
-  ) => {
-    const row = await sqlExecutor.get(name, { value });
-    return row ? mapUser(sqlExecutor, row) : null;
-  };
+// @implements-requirement HALL-TR-SCH-030
+export function createSecurityRepository({
+  postgresClient,
+  requestContext,
+}: {
+  postgresClient: PostgresClient;
+  requestContext: RequestContextStore;
+}) {
+  const administration = postgresClient.administration;
+  const request = () => administrationRequest(requestContext);
+  const openUser = async (id: string, lockForUpdate = false) =>
+    isIdentifier(id)
+      ? optionalUser(await administrationCall(() => administration.openUser(request(), id, lockForUpdate)))
+      : null;
   return {
-    countUsers: async () => asInteger((await sqlExecutor.get("security.countUsers"))?.count, "security_user.count"),
-    countActiveAdministrators: async () =>
-      asInteger((await sqlExecutor.get("security.countActiveAdministrators"))?.count, "security_user.admin_count"),
-    lockAdministratorInvariant: () => sqlExecutor.get("security.lockAdministratorInvariant").then(() => undefined),
+    countUsers: () => administrationCall(() => administration.countUsers(request())),
+    countActiveAdministrators: () => administrationCall(() => administration.countActiveAdministrators(request())),
+    lockAdministratorInvariant: () =>
+      administrationCall(() => administration.lockAdministratorInvariant(request())).then(() => undefined),
     async listUsers() {
-      return mapSequential(await sqlExecutor.all("security.listUsers"), (row) => mapUser(sqlExecutor, row));
+      return (await administrationCall(() => administration.listUsers(request()))).map(mapUser);
     },
-    findUserById: (id: string) => findUser("security.findUserById", id),
-    lockUserForAuthentication: (id: string) => findUser("security.lockUserForAuthentication", id),
-    findUserByEmail: (email: string) => findUser("security.findUserByEmail", email.toLowerCase()),
-    createUser(input: {
+    findUserById: (id: string) => openUser(id),
+    lockUserForAuthentication: (id: string) => openUser(id, true),
+    async findUserByEmail(email: string) {
+      return optionalUser(
+        await administrationCall(() => administration.findUserByEmail(request(), email.toLowerCase())),
+      );
+    },
+    async createUser(input: {
       email: string;
       displayName: string;
       passwordHash: string;
       roles: ApiRole[];
       contactId: string | null;
     }) {
-      return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        const now = new Date().toISOString();
-        await sqlExecutor.run("security.insertUser", {
-          id,
-          email: input.email.toLowerCase(),
-          displayName: input.displayName,
-          passwordHash: input.passwordHash,
-          contactId: input.contactId,
-          createdAt: now,
-          updatedAt: now,
-        });
-        for (const role of input.roles) await sqlExecutor.run("security.insertRole", { userId: id, role });
-        return mapUser(sqlExecutor, (await sqlExecutor.get("security.findUserById", { value: id }))!);
-      });
+      return mapUser(
+        await administrationCall(() =>
+          administration.createUser(request(), { ...input, email: input.email.toLowerCase() }),
+        ),
+      );
     },
-    setRoles(id: string, roles: ApiRole[]) {
-      return sqlExecutor.execute(async () => {
-        await sqlExecutor.run("security.deleteRoles", { userId: id });
-        for (const role of roles) await sqlExecutor.run("security.insertRole", { userId: id, role });
-        const row = await sqlExecutor.get("security.findUserById", { value: id });
-        return row ? mapUser(sqlExecutor, row) : null;
-      });
+    async bootstrapAdministrator(input: { email: string; displayName: string; passwordHash: string }) {
+      return optionalUser(
+        await administrationCall(() =>
+          administration.bootstrapAdministrator(request(), { ...input, email: input.email.toLowerCase() }),
+        ),
+      );
+    },
+    async setRoles(id: string, roles: ApiRole[]) {
+      if (!isIdentifier(id)) return null;
+      return optionalUser(await administrationCall(() => administration.setUserRoles(request(), id, roles)));
     },
     async updateUser(id: string, input: { email: string; displayName: string; contactId: string | null }) {
-      await sqlExecutor.run("security.updateUser", {
-        id,
-        ...input,
-        email: input.email.toLowerCase(),
-        updatedAt: new Date().toISOString(),
-      });
-      const row = await sqlExecutor.get("security.findUserById", { value: id });
-      return row ? mapUser(sqlExecutor, row) : null;
+      if (!isIdentifier(id)) return null;
+      return optionalUser(
+        await administrationCall(() =>
+          administration.updateUser(request(), id, { ...input, email: input.email.toLowerCase() }),
+        ),
+      );
     },
-    async updatePassword(id: string, previousHash: string, passwordHash: string) {
-      const result = await sqlExecutor.run("security.updatePassword", {
-        id,
-        previousHash,
-        passwordHash,
-        updatedAt: new Date().toISOString(),
-      });
-      if (result.changes !== 0) await sqlExecutor.run("security.deleteSessionsForUser", { userId: id });
-      return result.changes !== 0;
+    updatePassword(id: string, previousHash: string, passwordHash: string) {
+      return administrationCall(() => administration.replacePassword(request(), id, previousHash, passwordHash));
     },
-    reactivateUser(id: string, passwordHash: string) {
-      return sqlExecutor.execute(async () => {
-        const result = await sqlExecutor.run("security.reactivateUser", {
-          id,
-          passwordHash,
-          updatedAt: new Date().toISOString(),
-        });
-        if (result.changes === 0) return null;
-        return mapUser(sqlExecutor, (await sqlExecutor.get("security.findUserById", { value: id }))!);
-      });
+    async reactivateUser(id: string, passwordHash: string) {
+      if (!isIdentifier(id)) return null;
+      return optionalUser(await administrationCall(() => administration.reactivateUser(request(), id, passwordHash)));
     },
-    disableUser(id: string) {
-      return sqlExecutor.execute(async () => {
-        const result = await sqlExecutor.run("security.disableUser", { id, updatedAt: new Date().toISOString() });
-        await sqlExecutor.run("security.deleteSessionsForUser", { userId: id });
-        if (result.changes === 0) return null;
-        return mapUser(sqlExecutor, (await sqlExecutor.get("security.findUserById", { value: id }))!);
-      });
+    async disableUser(id: string) {
+      if (!isIdentifier(id)) return null;
+      return optionalUser(await administrationCall(() => administration.disableUser(request(), id)));
     },
-    createSession(userId: string, tokenHash: string, expiresAt: string) {
-      return sqlExecutor.execute(async () => {
-        const id = randomUUID();
-        await sqlExecutor.run("security.insertSession", {
-          id,
-          userId,
-          tokenHash,
-          createdAt: new Date().toISOString(),
-          expiresAt,
-        });
-        return { id, userId, expiresAt } satisfies StoredSession;
-      });
+    async createSession(userId: string, tokenHash: string, expiresAt: string) {
+      const row = await administrationCall(() => administration.createSession(request(), userId, tokenHash, expiresAt));
+      return mapSession(row);
     },
     async findSession(tokenHash: string) {
-      const row = await sqlExecutor.get("security.findSession", { tokenHash, now: new Date().toISOString() });
-      return row
-        ? ({
-            id: identifierSchema.parse(row.id),
-            userId: identifierSchema.parse(row.user_id),
-            expiresAt: asString(row.expires_at, "security_session.expires_at"),
-          } satisfies StoredSession)
-        : null;
+      const row = await administrationCall(() => administration.findSession(request(), tokenHash));
+      return row ? mapSession(row) : null;
     },
-    deleteSession(id: string) {
-      return sqlExecutor.run("security.deleteSession", { id }).then(() => undefined);
+    async deleteSession(id: string) {
+      if (isIdentifier(id)) await administrationCall(() => administration.deleteSession(request(), id));
     },
     async listAuditEvents(limit = 200) {
-      return (await sqlExecutor.all("security.listAuditEvents", { limit })).map(mapAuditEvent);
+      return (await administrationCall(() => administration.listAuditEvents(request(), limit))).map(mapAuditEvent);
     },
     async findAuditEvent(id: string) {
-      const row = await sqlExecutor.get("security.findAuditEvent", { id });
+      if (!isIdentifier(id)) return null;
+      const row = await administrationCall(() => administration.openAuditEvent(request(), id));
       return row ? mapAuditEvent(row) : null;
     },
     recordAuditEvent(input: Omit<AuditEvent, "id" | "occurredAt">) {
-      return sqlExecutor.execute(async () => {
-        const actor = input.actorUserId
-          ? await sqlExecutor.get("security.actorExists", { actorUserId: input.actorUserId })
-          : undefined;
-        await sqlExecutor.run("security.insertAuditEvent", {
-          id: randomUUID(),
-          actorUserId: actor ? input.actorUserId : null,
-          requestId: input.requestId,
-          action: input.action,
-          targetType: input.targetType,
-          targetId: input.targetId,
-          outcome: input.outcome,
-          detailsJson: JSON.stringify(input.details),
-          occurredAt: new Date().toISOString(),
-        });
-      });
+      const base = request();
+      return administrationCall(() =>
+        administration.recordAuditEvent(
+          { role: base.role, context: { ...base.context, requestId: input.requestId, actorId: input.actorUserId } },
+          input.action,
+          { targetType: input.targetType, targetId: input.targetId, outcome: input.outcome, details: input.details },
+        ),
+      );
     },
+  };
+}
+
+function mapSession(row: DatabaseRow): StoredSession {
+  return {
+    id: identifierSchema.parse(row.id),
+    userId: identifierSchema.parse(row.user_id),
+    expiresAt: asString(row.expires_at, "security_session.expires_at"),
   };
 }
 

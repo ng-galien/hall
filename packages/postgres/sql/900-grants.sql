@@ -336,3 +336,34 @@ GRANT EXECUTE ON FUNCTION hall_api.authorization_role_options(), hall_api.author
  hall_api.save_authorization_role(TEXT, JSONB), hall_api.delete_authorization_role(TEXT, INTEGER) TO hall_api_authenticated;
 
 GRANT EXECUTE ON FUNCTION hall_api.authorization_requires_personal_workspace(TEXT[]) TO hall_api_authenticated;
+
+-- @implements-requirement HALL-TR-SCH-030
+-- Before authentication the server only checks the first installation, reads
+-- an account to verify its password and opens or resolves a session.
+GRANT EXECUTE ON FUNCTION hall_api.count_app_users(),
+ hall_api.find_app_user_by_email(TEXT),
+ hall_api.open_app_user(UUID, BOOLEAN),
+ hall_api.bootstrap_app_administrator(TEXT, TEXT, TEXT),
+ hall_api.create_app_session(UUID, TEXT, TIMESTAMPTZ),
+ hall_api.find_app_session(TEXT)
+ TO hall_api_anonymous, hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.count_active_administrators(),
+ hall_api.lock_administrator_invariant(),
+ hall_api.list_app_users(),
+ hall_api.create_app_user(TEXT, TEXT, TEXT, UUID, TEXT[]),
+ hall_api.set_app_user_roles(UUID, TEXT[]),
+ hall_api.update_app_user(UUID, TEXT, TEXT, UUID),
+ hall_api.replace_app_user_password(UUID, TEXT, TEXT),
+ hall_api.reactivate_app_user(UUID, TEXT),
+ hall_api.disable_app_user(UUID),
+ hall_api.delete_app_session(UUID),
+ hall_api.list_audit_events(INTEGER),
+ hall_api.open_audit_event(UUID),
+ hall_api.hall_settings(),
+ hall_api.update_hall_settings(JSONB, TEXT[]),
+ hall_api.list_document_templates(),
+ hall_api.open_document_template(UUID),
+ hall_api.create_document_template(JSONB),
+ hall_api.update_document_template(UUID, JSONB),
+ hall_api.delete_document_template(UUID)
+ TO hall_api_authenticated;

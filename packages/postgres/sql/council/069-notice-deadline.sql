@@ -1,14 +1,8 @@
--- HallSettings remains the sole configuration authority. The legacy server
--- creates public.hall_settings; standalone SQL installations may not have it.
+-- HallSettings remains the sole configuration authority.
 CREATE FUNCTION hall.notice_deadline_context()
-RETURNS JSONB LANGUAGE plpgsql STABLE SET search_path = pg_catalog, hall AS $$
-DECLARE result JSONB;
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_class relation JOIN pg_namespace namespace ON namespace.oid=relation.relnamespace
-    WHERE namespace.nspname='public' AND relation.relname='hall_settings') THEN RETURN '{}'::JSONB; END IF;
-  EXECUTE 'SELECT jsonb_build_object(''population'', population, ''timeZone'', time_zone) FROM public.hall_settings WHERE id = ''hall''' INTO result;
-  RETURN coalesce(result, '{}'::JSONB);
-END;
+RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
+  SELECT coalesce((SELECT jsonb_build_object('population', population, 'timeZone', time_zone)
+    FROM hall.settings WHERE id = 'hall'), '{}'::JSONB)
 $$;
 
 -- @implements-requirement HALL-FR-NOT-110

@@ -40,7 +40,7 @@ describe("review security corrections", () => {
   it("reports failed database checks instead of a healthy service", async () => {
     const { rawAgent, container } = await createTestServer({ config: { version: "candidate:test" } });
     expect((await rawAgent.get("/api/health").expect(200)).body).toEqual({ status: "ok", version: "candidate:test" });
-    vi.spyOn(container.cradle.sqlExecutor, "get").mockRejectedValueOnce(new Error("unreachable"));
+    vi.spyOn(container.cradle.postgresClient, "health").mockRejectedValueOnce(new Error("unreachable"));
     expect((await rawAgent.get("/api/health").expect(503)).body).toEqual({
       status: "unavailable",
       version: "candidate:test",
