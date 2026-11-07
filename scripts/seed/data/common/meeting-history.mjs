@@ -16,7 +16,8 @@ export function demonstrationDatabaseUrl(value) {
   if (!value) throw new Error("Une base de démonstration ou de test navigateur est requise pour antidater une séance");
   const url = new URL(value);
   // Connection parameters in the query (host, port, dbname) would override the checked fields.
-  if (url.search || url.hash) throw new Error("Antidatage refusé : l'adresse de la base ne doit porter aucun paramètre");
+  if (url.search || url.hash)
+    throw new Error("Antidatage refusé : l'adresse de la base ne doit porter aucun paramètre");
   const name = decodeURIComponent(url.pathname.slice(1));
   const loopback = ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname);
   const demonstration = url.port === "54329" && name === "hall";
@@ -52,12 +53,25 @@ const rowFilters = `
  * with generated minutes or a frozen decision document is refused: their bytes keep their dates.
  * The chronology is checked after the move and the change is rolled back on a violation.
  */
-export async function backdateMeetingConduct(databaseUrl, meetingId, target, since) {
+export function backdateMeetingConduct(databaseUrl, meetingId, target, since) {
+  return backdateMeetingTimeline(databaseUrl, meetingId, [{ since, target }]);
+}
+
+/**
+ * Applies several moves in one transaction: each step moves the instants recorded at or after its
+ * `since` (by default the opening) and before the next step, so that `since` falls at `target`.
+ * Targets follow the order of their steps.
+ * The chronology is checked once, after all steps.
+ */
+export async function backdateMeetingTimeline(databaseUrl, meetingId, steps) {
   const url = demonstrationDatabaseUrl(databaseUrl);
   if (!uuidPattern.test(meetingId)) throw new Error("Un identifiant de séance est requis");
-  if (!(target instanceof Date) || Number.isNaN(target.getTime())) throw new Error("Une date cible est requise");
-  const from = since === undefined ? null : new Date(since);
-  if (from && Number.isNaN(from.getTime())) throw new Error("Un instant de départ valide est requis");
+  if (!Array.isArray(steps) || steps.length === 0) throw new Error("Au moins une étape est requise");
+  for (const { target, since } of steps) {
+    if (!(target instanceof Date) || Number.isNaN(target.getTime())) throw new Error("Une date cible est requise");
+    if (since !== undefined && Number.isNaN(new Date(since).getTime()))
+      throw new Error("Un instant de départ valide est requis");
+  }
   const pool = new pg.Pool({ connectionString: url.href, max: 1 });
   const client = await pool.connect();
   try {
@@ -75,70 +89,83 @@ export async function backdateMeetingConduct(databaseUrl, meetingId, target, sin
         "Une séance dont le procès-verbal ou une délibération est déjà généré ne peut pas être antidatée",
       );
     }
-    const bounds = await client.query(
-      "SELECT coalesce($2::timestamptz, started_at) AS since FROM hall.council_meetings WHERE id = $1",
-      [meetingId, from?.toISOString() ?? null],
-    );
-    const start = bounds.rows[0]?.since;
-    if (!start) throw new Error("La séance doit être ouverte avant d'être antidatée");
-    const shift = await client.query("SELECT $1::timestamptz - $2::timestamptz AS shift", [
-      start,
-      target.toISOString(),
-    ]);
-    const interval = shift.rows[0].shift;
     const tables = (await client.query(rowFilters)).rows;
     await client.query("CREATE TEMP TABLE backdated_instants(old_value TIMESTAMPTZ PRIMARY KEY) ON COMMIT DROP");
-    for (const { table_name: table, row_filter: filter } of tables) {
-      const columns = (
+    const starts = await client.query(
+      "SELECT ordinality, coalesce(since::timestamptz, (SELECT started_at FROM hall.council_meetings WHERE id = $1)) AS start FROM unnest($2::text[]) WITH ORDINALITY AS step(since, ordinality)",
+      [meetingId, steps.map((step) => (step.since === undefined ? null : new Date(step.since).toISOString()))],
+    );
+    const ordered = starts.rows
+      .map((row) => ({ ...steps[Number(row.ordinality) - 1], start: row.start }))
+      .sort((left, right) => left.start - right.start);
+    // Steps apply from the earliest: each one moves everything recorded after it, so a later step
+    // finds its instants already moved by the accumulated interval and only moves forward.
+    let accumulated = "0";
+    for (const step of ordered) {
+      const shift = (
         await client.query(
-          `SELECT column_name, data_type FROM information_schema.columns
-           WHERE table_schema = 'hall' AND table_name = $1 AND is_generated = 'NEVER'
-             AND data_type IN ('timestamp with time zone', 'jsonb') ORDER BY column_name`,
-          [table],
+          `SELECT ($1::timestamptz - $2::interval) AS start,
+             (($1::timestamptz - $2::interval) - $3::timestamptz)::text AS interval,
+             ($1::timestamptz - $3::timestamptz)::text AS accumulated`,
+          [step.start, accumulated, step.target.toISOString()],
         )
-      ).rows;
-      const instants = columns.filter((column) => column.data_type === "timestamp with time zone");
-      for (const { column_name: column } of instants) {
-        await client.query(
-          `INSERT INTO backdated_instants SELECT DISTINCT "${column}" FROM hall."${table}"
-           WHERE ${filter} AND "${column}" >= $2 ON CONFLICT DO NOTHING`,
-          [meetingId, start],
-        );
-      }
-      if (instants.length > 0) {
-        // All instants of a row move in one statement so that row checks see a consistent chronology.
-        await client.query(
-          `UPDATE hall."${table}" SET ${instants
-            .map(
-              ({ column_name: column }) =>
-                `"${column}" = CASE WHEN "${column}" >= $2 THEN "${column}" - $3::interval ELSE "${column}" END`,
-            )
-            .join(", ")} WHERE ${filter}`,
-          [meetingId, start, interval],
-        );
-      }
-    }
-    const moved = (
-      await client.query(
-        "SELECT to_jsonb(old_value)::text AS old_text, to_jsonb(old_value - $1::interval)::text AS new_text FROM backdated_instants",
-        [interval],
-      )
-    ).rows;
-    for (const { table_name: table, row_filter: filter } of tables) {
-      const documents = (
-        await client.query(
-          `SELECT column_name FROM information_schema.columns
-           WHERE table_schema = 'hall' AND table_name = $1 AND is_generated = 'NEVER' AND data_type = 'jsonb'`,
-          [table],
-        )
-      ).rows;
-      for (const { column_name: column } of documents) {
-        for (const { old_text: oldText, new_text: newText } of moved) {
+      ).rows[0];
+      const start = shift.start;
+      const interval = shift.interval;
+      accumulated = shift.accumulated;
+      await client.query("TRUNCATE backdated_instants");
+      for (const { table_name: table, row_filter: filter } of tables) {
+        const columns = (
           await client.query(
-            `UPDATE hall."${table}" SET "${column}" = replace("${column}"::text, $2, $3)::jsonb
-             WHERE ${filter} AND strpos("${column}"::text, $2) > 0`,
-            [meetingId, oldText, newText],
+            `SELECT column_name, data_type FROM information_schema.columns
+             WHERE table_schema = 'hall' AND table_name = $1 AND is_generated = 'NEVER'
+               AND data_type IN ('timestamp with time zone', 'jsonb') ORDER BY column_name`,
+            [table],
+          )
+        ).rows;
+        const instants = columns.filter((column) => column.data_type === "timestamp with time zone");
+        for (const { column_name: column } of instants) {
+          await client.query(
+            `INSERT INTO backdated_instants SELECT DISTINCT "${column}" FROM hall."${table}"
+             WHERE ${filter} AND "${column}" >= $2 ON CONFLICT DO NOTHING`,
+            [meetingId, start],
           );
+        }
+        if (instants.length > 0) {
+          // All instants of a row move in one statement so that row checks see a consistent chronology.
+          await client.query(
+            `UPDATE hall."${table}" SET ${instants
+              .map(
+                ({ column_name: column }) =>
+                  `"${column}" = CASE WHEN "${column}" >= $2 THEN "${column}" - $3::interval ELSE "${column}" END`,
+              )
+              .join(", ")} WHERE ${filter}`,
+            [meetingId, start, interval],
+          );
+        }
+      }
+      const moved = (
+        await client.query(
+          "SELECT to_jsonb(old_value)::text AS old_text, to_jsonb(old_value - $1::interval)::text AS new_text FROM backdated_instants",
+          [interval],
+        )
+      ).rows;
+      for (const { table_name: table, row_filter: filter } of tables) {
+        const documents = (
+          await client.query(
+            `SELECT column_name FROM information_schema.columns
+             WHERE table_schema = 'hall' AND table_name = $1 AND is_generated = 'NEVER' AND data_type = 'jsonb'`,
+            [table],
+          )
+        ).rows;
+        for (const { column_name: column } of documents) {
+          for (const { old_text: oldText, new_text: newText } of moved) {
+            await client.query(
+              `UPDATE hall."${table}" SET "${column}" = replace("${column}"::text, $2, $3)::jsonb
+               WHERE ${filter} AND strpos("${column}"::text, $2) > 0`,
+              [meetingId, oldText, newText],
+            );
+          }
         }
       }
     }
