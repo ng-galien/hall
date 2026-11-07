@@ -1,4 +1,5 @@
 import type { APIResponse, Page } from "@playwright/test";
+import { backdateMeetingConduct } from "../fixtures/meetingHistory";
 import { capture, conductMemberId, expect, localDateTimeInput, signIn, switchAccount, test } from "./fixtures";
 
 test.setTimeout(4 * 60_000);
@@ -75,7 +76,7 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   await expect(page.getByTestId("live-meeting-start")).toBeEnabled();
   await capture(page, `${journey}/01-appel-sans-quorum`);
 
-  // The roll call is recorded at the date of the first meeting through the opening route of the roll-call screen.
+  // The server dates the roll call now; the fixture moves it to the date of the first meeting.
   await properties(
     await page.request.post(`/api/council-meetings/${first.id}/record-opening`, {
       data: {
@@ -88,6 +89,7 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
       },
     }),
   );
+  await backdateMeetingConduct(first.id, new Date(firstDate.getTime() + 5 * 60_000));
   await page.reload();
   await expect(page.getByText(/Quorum non atteint/).first()).toBeVisible();
   await capture(page, `${journey}/02-quorum-non-atteint`);
@@ -110,16 +112,22 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   await page.getByTestId("live-meeting-close").click();
   await expect(page.getByTestId("live-meeting-close")).toContainText(/Confirmer|non examiné/);
   await capture(page, `${journey}/05-clore-la-premiere-seance`);
-  // The closure is recorded on the evening of the first meeting through the closure route of this button.
-  await properties(
-    await page.request.post(`/api/council-meetings/${first.id}/close`, {
-      data: {},
-    }),
+  // The closure is recorded through the closure route of this button, then moved with the rest of
+  // the first meeting so that it closes on the same evening.
+  const firstClosure = await properties<{ closedMeeting: { closedAt: string } }>(
+    await page.request.post(`/api/council-meetings/${first.id}/close`, { data: {} }),
+  );
+  await backdateMeetingConduct(
+    first.id,
+    new Date(firstDate.getTime() + 75 * 60_000),
+    firstClosure.closedMeeting.closedAt,
   );
 
   const meetings = await items<Meeting>(await page.request.get("/api/council-meetings"));
   const reconvened = meetings.find((meeting) => meeting.previousCouncilMeetingId === first.id)!;
   const closedFirst = meetings.find((meeting) => meeting.id === first.id)!;
+  expect(Date.parse(closedFirst.startedAt!)).toBe(firstDate.getTime() + 5 * 60_000);
+  expect(Math.abs(Date.parse(closedFirst.closedAt!) - (firstDate.getTime() + 75 * 60_000))).toBeLessThan(1_000);
   await signIn(page, "secretariat", `/app/meetings/${reconvened.id}`);
   await expect(page.getByTestId("meeting-reconvened-chip")).toBeVisible();
   await page.waitForLoadState("networkidle");
@@ -131,10 +139,10 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
     chairMemberId: chair!,
     secretaryMemberId: reconvenedSecretary!,
   });
-  // The roll call of the reconvened meeting is recorded at its convened date through the same opening route.
+  // The roll call of the reconvened meeting is recorded through the same opening route; the fixture
+  // moves the whole reconvened meeting to its convened date once it is closed.
   await switchAccount(page, "conduite");
   const reconvenedDate = new Date(reconvened.scheduledAt!);
-  const at = (minutes: number) => new Date(reconvenedDate.getTime() + minutes * 60_000).toISOString();
   await properties(
     await page.request.post(`/api/council-meetings/${reconvened.id}/record-opening`, {
       data: {
@@ -166,17 +174,16 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   ).find((item) => item.position === 2)!;
   await properties(
     await page.request.post(`/api/council-meetings/${reconvened.id}/agenda-items/${carried.id}/start`, {
-      data: { startedAt: at(10) },
+      data: {},
     }),
   );
   await properties(
     await page.request.post(`/api/council-meetings/${reconvened.id}/agenda-items/${carried.id}/adjourn`, {
-      data: { adjournedAt: at(55) },
+      data: {},
     }),
   );
-  await properties(
-    await page.request.post(`/api/council-meetings/${reconvened.id}/close`, { data: { closedAt: at(70) } }),
-  );
+  await properties(await page.request.post(`/api/council-meetings/${reconvened.id}/close`, { data: {} }));
+  await backdateMeetingConduct(reconvened.id, new Date(reconvenedDate.getTime() + 5 * 60_000));
   const reconvenedMinutes = (await items<Meeting>(await page.request.get("/api/council-meetings"))).find(
     (meeting) => meeting.id === reconvened.id,
   )!.minutesId;

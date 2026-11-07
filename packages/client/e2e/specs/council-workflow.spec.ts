@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import type { APIResponse, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
+import { backdateMeetingConduct } from "../fixtures/meetingHistory";
 
 interface SirenItem<T> {
   properties: T;
@@ -1631,7 +1632,7 @@ test("holds the meeting after a second convocation as a new linked meeting under
   await sirenProperties(await page.request.post(`/api/council-meetings/${first.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${first.id}/notices`, { data: {} }));
 
-  // Roll call without quorum and its finding, dated at the first meeting through the roll-call opening route.
+  // Roll call without quorum and its finding: the server dates them now, then the fixture moves them to the first meeting.
   const attendance = members.map((member, index) => ({
     councilMemberId: member.id,
     status: index < 4 ? "present" : "absent",
@@ -1646,6 +1647,7 @@ test("holds the meeting after a second convocation as a new linked meeting under
     }),
   );
   expect(opened.quorumObservations.at(-1)!.facts.verdict).toBe("notMet");
+  await backdateMeetingConduct(first.id, new Date(firstDate.getTime() + 5 * 60_000));
 
   // Second convocation recorded from the conduct, then closure of the first meeting.
   const sentAt = new Date(firstDate.getTime() + 60 * 60_000);
