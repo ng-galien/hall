@@ -252,28 +252,26 @@ HALL_BACKUP_RETENTION=14
 ```
 
 The role of `DATABASE_URL` needs `CREATEDB` for the weekly verification, which
-restores into a temporary database. Run both commands once by hand, then register
-the tasks under the Windows account that runs Hall:
+restores into a temporary database. Generate the registration script with the
+installed release, then run it once in an elevated PowerShell under the Windows
+account that runs Hall:
 
 ```powershell
 $Config = Join-Path $HallRoot 'config\hall.env'
-& $Hall backup --env-file $Config
-if ($LASTEXITCODE -ne 0) { throw 'Backup failed: check DATABASE_URL and the PostgreSQL client tools' }
-& $Hall verify-backup --env-file $Config
-if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed: do not rely on this archive' }
-$Node = (Get-Command node).Source
-$Cli = "$Release\node_modules\@ng-galien\hall\bin\hall.mjs"
-$Log = Join-Path $HallRoot 'logs'
-$Backup = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"`"$Node`" `"$Cli`" backup --env-file `"$Config`" >> `"$Log\backup.log`" 2>&1`""
-$Verify = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"`"$Node`" `"$Cli`" verify-backup --env-file `"$Config`" >> `"$Log\verify-backup.log`" 2>&1`""
-Register-ScheduledTask -TaskName 'Hall - sauvegarde' -Action $Backup -Trigger (New-ScheduledTaskTrigger -Daily -At 2am) -User $env:USERNAME -RunLevel Limited
-Register-ScheduledTask -TaskName 'Hall - verification de sauvegarde' -Action $Verify -Trigger (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 3am) -User $env:USERNAME -RunLevel Limited
+& $Hall windows-tasks --env-file $Config
+if ($LASTEXITCODE -ne 0) { throw 'Task script generation failed' }
+powershell -ExecutionPolicy Bypass -File (Join-Path $HallRoot 'config\register-hall-tasks.ps1')
 ```
 
-`Register-ScheduledTask` asks for the account password when the task must run
-while nobody is signed in. Check `Get-ScheduledTaskInfo 'Hall - sauvegarde'` the
-next morning: `LastTaskResult` is `0` after a successful backup. These commands
-were written for this procedure and have not yet been run on a Windows machine.
+The script stops before registering any task if the first backup or its
+verification fails. It registers **Hall - sauvegarde** every day at 2 h and
+**Hall - verification de sauvegarde** every Sunday at 3 h, with S4U logon (the
+tasks run while nobody is signed in and no password is stored). Each run appends
+its outcome to `backup.log` beside `hall.log`. After installing another release,
+run `hall windows-tasks` again with the new release so that the tasks call it.
+Check `Get-ScheduledTaskInfo 'Hall - sauvegarde'` the next morning: `LastTaskResult`
+is `0` after a successful backup. This script has not yet been run on a Windows
+machine.
 
 ## Pour le secrétariat : sauvegardes
 
@@ -285,8 +283,9 @@ dernières copies et efface les plus anciennes.
 
 Chaque dimanche à 3 h, Hall reprend la dernière copie, la remet en place dans une
 base d essai, vérifie que l application répond avec, puis efface cette base
-d essai. Le résultat est écrit dans `C:\Hall\logs\verify-backup.log` : la ligne
-« Backup verified » dit que la copie est bonne.
+d essai. Chaque sauvegarde et chaque vérification ajoute une ligne au fichier
+`backup.log`, dans le dossier du journal de Hall : `"outcome":"succeeded"` dit que
+l opération a réussi, `"outcome":"failed"` qu elle a échoué, avec le message d erreur.
 
 Si une copie manque ou si la vérification échoue, prévenir la personne chargée de
 l informatique de la mairie. Seule cette personne restaure une copie, en suivant la

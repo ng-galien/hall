@@ -9216,7 +9216,8 @@
       "acceptanceCriteria": [
         "hall backup writes a custom-format pg_dump archive named after the database and the time, checks it with pg_restore --list, records its SHA-256, the Hall name, version and commit and the schema fingerprint in a manifest beside it, and keeps the newest HALL_BACKUP_RETENTION archives in HALL_BACKUP_DIRECTORY.",
         "hall verify-backup refuses an archive that does not match its manifest, restores it without dropping owners or privileges into a temporary database, requires USAGE on hall_api for hall_api_authenticated and hall_api_worker and a matching schema fingerprint, starts the API on that database and requires /api/health and /api/auth/status to answer, then drops the temporary database.",
-        "The Windows installation procedure schedules a nightly backup and a weekly verification under the account that runs Hall."
+        "The Windows installation procedure schedules a nightly backup and a weekly verification under the account that runs Hall: hall windows-tasks writes a PowerShell script that takes and verifies a first backup, then registers the daily task « Hall - sauvegarde » and the weekly task « Hall - verification de sauvegarde », which run without a signed-in user.",
+        "hall backup and hall verify-backup append one JSON line with their outcome, success or failure, to backup.log in the folder of the Hall log."
       ],
       "clauses": [
         {

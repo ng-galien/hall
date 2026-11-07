@@ -310,6 +310,29 @@ The final destination and retention are a decision of the municipality and its
 IT provider; the defaults keep two weeks of nightly archives on the same machine,
 which does not protect against the loss of that machine.
 
+`hall backup` and `hall verify-backup` append one JSON line per run to `backup.log`
+in the folder of the Hall log (`logs/` beside the environment file unless
+`HALL_LOG_FILE` is set): `operation`, `outcome` (`succeeded` or `failed`), the archive
+and its SHA-256, the archives removed by retention, or the error message with database
+credentials redacted.
+
+On Windows, `hall windows-tasks --env-file <file>` writes `register-hall-tasks.ps1`
+beside the environment file. Run once in an elevated PowerShell, the script takes and
+verifies a first backup, then registers under the current account the daily task
+**Hall - sauvegarde** (2 h) and the weekly task **Hall - verification de sauvegarde**
+(Sunday, 3 h). Both run without a signed-in user (S4U logon, no stored password), start
+after a missed run when the computer was off, and call `node.exe` with the release that
+generated the script: run `hall windows-tasks` again after installing another release.
+See [Schedule nightly backups](municipal-bootstrap.md#schedule-nightly-backups).
+
+Restoring a nightly archive, into a new database and never over the database in service:
+
+```sh
+createdb --template=template0 hall_restore_20261107
+pg_restore --exit-on-error --single-transaction --dbname=hall_restore_20261107 <archive>.dump
+hall schema-check --env-file <file pointing DATABASE_URL at hall_restore_20261107>
+```
+
 `hall verify-backup --env-file <file> [--archive <path>]` takes the newest archive
 (or the given one), refuses it when it no longer matches its manifest, restores it
 into a temporary `hall_verify_<time>` database on the same PostgreSQL server

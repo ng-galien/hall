@@ -2,11 +2,12 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { access, mkdir, readdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, realpath, rename, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { loadEnvFile } from "node:process";
 import { fileURLToPath } from "node:url";
+import { appendJsonLine, archivesIn, pruneArchives, windowsTasksScript } from "./operations.mjs";
 
 // @implements-requirement HALL-TR-DST-010
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -18,6 +19,7 @@ Usage:
   hall migrate [--env-file /absolute/path/hall.env]
   hall backup [--env-file /absolute/path/hall.env]
   hall verify-backup [--env-file /absolute/path/hall.env] [--archive /absolute/path/hall-<database>-<date>.dump]
+  hall windows-tasks --env-file /absolute/path/hall.env
   hall install-browser
   hall --version
   hall --help
@@ -34,11 +36,13 @@ HALL_BACKUP_DIRECTORY (default: the backups folder beside the environment file).
 verify-backup restores the newest archive (or --archive) into a temporary database,
 checks the hall_api schema privileges, starts the API on it, then drops it.
 The role of DATABASE_URL needs the CREATEDB privilege for verify-backup.
+backup and verify-backup append their outcome to backup.log beside the Hall log.
+windows-tasks writes register-hall-tasks.ps1 beside the environment file: run it once in
+PowerShell to take a first backup and register the daily backup and weekly verification tasks.
 install-browser explicitly installs Chromium for PDF generation.
 `;
 
 // @implements-requirement HALL-TR-DST-020
-const backupArchivePattern = /^hall-.+\.dump$/;
 const apiRoles = ["hall_api_authenticated", "hall_api_worker"];
 
 function timestamp() {
@@ -80,8 +84,28 @@ function backupSettings(environmentFile) {
   return { directory: resolve(base, process.env.HALL_BACKUP_DIRECTORY ?? "backups"), retention };
 }
 
-async function archivesIn(directory) {
-  return (await readdir(directory)).filter((name) => backupArchivePattern.test(name)).sort();
+function hallLogFile(environmentFile) {
+  return (
+    process.env.HALL_LOG_FILE ?? resolve(environmentFile ? dirname(environmentFile) : process.cwd(), "logs/hall.log")
+  );
+}
+
+function redacted(message) {
+  return message.replace(/(postgres(?:ql)?:\/\/)[^\s/@]+(?::[^\s/@]*)?@/gi, "$1<redacted>@");
+}
+
+/** Runs a backup operation and appends its outcome, success or failure, to backup.log. */
+async function loggedOperation(environmentFile, operation, run) {
+  const log = join(dirname(hallLogFile(environmentFile)), "backup.log");
+  try {
+    const outcome = await run();
+    await appendJsonLine(log, { operation, outcome: "succeeded", ...outcome.log });
+    return outcome;
+  } catch (error) {
+    const message = redacted(error instanceof Error ? error.message : String(error));
+    await appendJsonLine(log, { operation, outcome: "failed", error: message }).catch(() => undefined);
+    throw error;
+  }
 }
 
 async function backupDatabase(config, release, settings) {
@@ -101,13 +125,8 @@ async function backupDatabase(config, release, settings) {
     schemaFingerprint: release.schemaFingerprint ?? null,
   };
   await writeFile(`${archive}.json`, `${JSON.stringify(manifest, null, 2)}\n`);
-  const archives = await archivesIn(settings.directory);
-  const removed = archives.slice(0, Math.max(0, archives.length - settings.retention));
-  for (const name of removed) {
-    await rm(join(settings.directory, name), { force: true });
-    await rm(join(settings.directory, `${name}.json`), { force: true });
-  }
-  return { archive, manifest, removed };
+  const removed = await pruneArchives(settings.directory, settings.retention);
+  return { archive, manifest, removed, log: { archive, sha256, removed } };
 }
 
 async function verifyBackup(config, settings, requestedArchive) {
@@ -156,7 +175,7 @@ async function verifyBackup(config, settings, requestedArchive) {
     } finally {
       await handle.close();
     }
-    return { archive, manifest, database };
+    return { archive, manifest, database, log: { archive, sha256: manifest.sha256 } };
   } finally {
     if (created) await maintenance.query(`DROP DATABASE IF EXISTS "${database}" WITH (FORCE)`);
     await maintenance.end();
@@ -165,6 +184,9 @@ async function verifyBackup(config, settings, requestedArchive) {
 
 function parseOptions(command, args) {
   const allowed = command === "verify-backup" ? ["--env-file", "--archive"] : ["--env-file"];
+  if (command === "windows-tasks" && !args.includes("--env-file")) {
+    throw new Error("windows-tasks requires --env-file with the absolute path of the Hall environment file.");
+  }
   const options = {};
   for (let index = 0; index < args.length; index += 2) {
     const [name, value] = [args[index], args[index + 1]];
@@ -202,7 +224,7 @@ async function main() {
     });
     return;
   }
-  if (!["start", "schema-check", "migrate", "backup", "verify-backup"].includes(command)) {
+  if (!["start", "schema-check", "migrate", "backup", "verify-backup", "windows-tasks"].includes(command)) {
     throw new Error("Invalid command or arguments. Run hall --help.");
   }
   const options = parseOptions(command, args);
@@ -216,20 +238,38 @@ async function main() {
     loadEnvFile(configuration);
   }
   process.env.NODE_ENV ??= "production";
+  if (command === "windows-tasks") {
+    const script = join(dirname(environmentFile), "register-hall-tasks.ps1");
+    const content = windowsTasksScript({
+      node: process.execPath,
+      cli: fileURLToPath(import.meta.url),
+      environmentFile,
+    });
+    // PowerShell 5 reads a script without byte order mark in the ANSI code page.
+    await writeFile(script, `\uFEFF${content.replaceAll("\n", "\r\n")}`);
+    process.stdout.write(
+      `Written: ${script}\nRun it once in an elevated PowerShell: powershell -ExecutionPolicy Bypass -File "${script}"\n`,
+    );
+    return;
+  }
   const { configFromEnvironment, validateServerConfig } = await import("../src/core/config.ts");
   const config = { ...configFromEnvironment(), clientDirectory: resolve(packageRoot, "client") };
   const release = JSON.parse(await readFile(new URL("../release.json", import.meta.url), "utf8"));
   config.version = `${release.version}:${release.source?.commit ?? "unknown"}:${release.source?.dirty ? "dirty" : "clean"}`;
   validateServerConfig(config);
   if (command === "backup") {
-    const { archive, manifest, removed } = await backupDatabase(config, release, backupSettings(environmentFile));
+    const { archive, manifest, removed } = await loggedOperation(environmentFile, "backup", () =>
+      backupDatabase(config, release, backupSettings(environmentFile)),
+    );
     process.stdout.write(
       `Backup written: ${archive}\nSHA-256 ${manifest.sha256}; Hall ${manifest.hall.version}; ${removed.length} older archive(s) removed by retention.\n`,
     );
     return;
   }
   if (command === "verify-backup") {
-    const { archive, database } = await verifyBackup(config, backupSettings(environmentFile), options["--archive"]);
+    const { archive, database } = await loggedOperation(environmentFile, "verify-backup", () =>
+      verifyBackup(config, backupSettings(environmentFile), options["--archive"]),
+    );
     process.stdout.write(
       `Backup verified: ${archive}\nRestored into ${database}, hall_api privileges present, API answered; ${database} dropped.\n`,
     );
@@ -259,7 +299,7 @@ async function main() {
     }
     return;
   }
-  process.env.HALL_LOG_FILE ??= resolve(environmentFile ? dirname(environmentFile) : process.cwd(), "logs/hall.log");
+  process.env.HALL_LOG_FILE = hallLogFile(environmentFile);
   await access(resolve(config.clientDirectory, "index.html"), constants.R_OK);
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({ headless: true });
@@ -302,6 +342,6 @@ async function main() {
 
 main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`${message.replace(/(postgres(?:ql)?:\/\/)[^\s/@]+(?::[^\s/@]*)?@/gi, "$1<redacted>@")}\n`);
+  process.stderr.write(`${redacted(message)}\n`);
   process.exitCode = 1;
 });
