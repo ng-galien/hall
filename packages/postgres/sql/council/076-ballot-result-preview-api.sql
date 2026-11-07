@@ -49,6 +49,6 @@ BEGIN
        (counts->>'abstain')::integer,(counts->>'blank')::integer,(counts->>'invalid')::integer,(counts->>'nonParticipation')::integer);
    END IF;
  END IF;
- PERFORM hall.complete_ballot(b.id,clock_timestamp(),preview.id);
+ PERFORM hall.complete_ballot(b.id,hall.meeting_reception_time(item.council_meeting),preview.id);
  RETURN hall_api.open_ballot(b.id);
 END $$;

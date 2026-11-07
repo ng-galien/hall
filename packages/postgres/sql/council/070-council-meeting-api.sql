@@ -4,6 +4,42 @@
 -- Meeting projections expose lifecycle facts and identities only. Minutes
 -- report content remains an independently fetched documentary resource.
 
+-- @implements-requirement HALL-FR-MTG-370
+-- The reception instant of a conduct action: read after the meeting row is
+-- locked, it never precedes the last recorded observation of the meeting, so
+-- a server clock set back or two concurrent actions keep the chronology.
+CREATE FUNCTION hall.meeting_reception_time(target_meeting UUID)
+RETURNS TIMESTAMPTZ
+LANGUAGE plpgsql
+VOLATILE
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  latest TIMESTAMPTZ;
+BEGIN
+  PERFORM 1 FROM hall.council_meetings WHERE id = target_meeting FOR UPDATE;
+  SELECT max(instant) INTO latest FROM (
+    SELECT started_at AS instant FROM hall.council_meetings WHERE id = target_meeting
+    UNION ALL SELECT observed_at FROM hall.meeting_membership_record WHERE council_meeting = target_meeting
+    UNION ALL SELECT declared_at FROM hall.meeting_attendance WHERE council_meeting = target_meeting
+    UNION ALL SELECT e.observed_at FROM hall.meeting_attendance_event e
+      JOIN hall.meeting_attendance a ON a.id = e.meeting_attendance WHERE a.council_meeting = target_meeting
+    UNION ALL SELECT declared_at FROM hall.meeting_proxy_exception WHERE council_meeting = target_meeting
+    UNION ALL SELECT observed_at FROM hall.meeting_quorum_observation WHERE council_meeting = target_meeting
+    UNION ALL SELECT observed_at FROM hall.meeting_officer_change WHERE council_meeting = target_meeting
+    UNION ALL SELECT observed_at FROM hall.meeting_closed_session WHERE council_meeting = target_meeting
+    UNION ALL SELECT declared_at FROM hall.meeting_auxiliary_attendance WHERE council_meeting = target_meeting
+    UNION ALL SELECT greatest(i.started_at, i.completed_at, i.adjourned_at) FROM hall.council_agenda_item i
+      WHERE i.council_meeting = target_meeting
+    UNION ALL SELECT r.declared_at FROM hall.agenda_item_recusal r
+      JOIN hall.council_agenda_item i ON i.id = r.agenda_item WHERE i.council_meeting = target_meeting
+    UNION ALL SELECT b.completed_at FROM hall.ballots b
+      JOIN hall.council_agenda_item i ON i.id = b.council_agenda_item WHERE i.council_meeting = target_meeting
+  ) observations;
+  RETURN greatest(clock_timestamp(), latest);
+END;
+$function$;
+
 -- @implements-requirement HALL-FR-MTG-220
 -- A scheduled meeting has one readable technical slug derived only from its
 -- UTC calendar date and durable sequence number. An unscheduled next meeting
@@ -263,7 +299,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  PERFORM hall.record_meeting_opening(target_meeting,clock_timestamp(),attendance_declarations,chairman_member,secretary_member);
+  PERFORM hall.record_meeting_opening(target_meeting,hall.meeting_reception_time(target_meeting),attendance_declarations,chairman_member,secretary_member);
   RETURN hall_api.meeting_conduct(target_meeting);
 END;
 $function$;

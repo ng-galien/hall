@@ -10030,6 +10030,7 @@
       "statement": "Le serveur date chaque constat de conduite de séance à sa réception ; le navigateur n’envoie aucun instant.",
       "acceptanceCriteria": [
         "L’ouverture de la séance et son appel, les arrivées, départs et représentations, les constats de quorum, les passations de présidence et de secrétariat, les personnes assistant à la séance, les huis clos, les déports, le début, la fin et l’ajournement d’un point, la confirmation d’un scrutin et la clôture de la séance portent l’heure du serveur au moment où il reçoit l’action.",
+        "L’heure de réception est lue après le verrouillage de la séance et n’est jamais antérieure au dernier constat enregistré de la séance : une horloge du serveur remise en arrière ou deux actions simultanées ne font refuser aucun constat, qui porte alors au plus tôt l’heure de ce dernier constat.",
         "Une requête de conduite qui transmet un instant est refusée comme requête invalide ; aucune comparaison entre l’horloge du navigateur et celle du serveur n’a lieu, et un écart entre ces deux horloges ne bloque aucune action.",
         "Les contrôles de chronologie entre constats successifs restent appliqués : un point commence après l’ouverture, se termine après son début, un mouvement de présence suit le précédent et un quorum suit les constats qu’il intègre.",
         "La date d’envoi d’une seconde convocation reste une date saisie par le secrétariat ; elle ne peut pas être postérieure à l’heure du serveur."
@@ -10039,6 +10040,12 @@
           "key": "server-clock",
           "origin": "product",
           "statement": "Décision de l’utilisateur du 7 novembre 2026 : le serveur date chaque constat de conduite de séance à sa réception ; le navigateur n’envoie plus d’instant et aucune comparaison entre l’horloge du navigateur et celle du serveur ne subsiste. Mots de l’utilisateur : « Comment imaginer qu’on compare deux dates, la date du serveur et la date du browser ? Ça n’existe pas. » Défaut constaté en séance le 6 novembre 2026 : une horloge serveur en retard de 33 secondes a fait refuser deux déclarations d’assistance et l’ouverture de la séance.",
+          "sourceIds": []
+        },
+        {
+          "key": "reception-after-lock",
+          "origin": "product",
+          "statement": "Décision du coordinateur du 7 novembre 2026 sur réserve d’un relecteur distinct : l’heure de réception est prise après le verrou de la séance et ramenée au plus tôt au dernier constat de la séance.",
           "sourceIds": []
         }
       ]

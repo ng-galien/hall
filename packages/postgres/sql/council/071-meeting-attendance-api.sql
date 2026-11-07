@@ -214,5 +214,5 @@ VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
-  SELECT hall.record_meeting_attendance(target_meeting, attendance_declarations, clock_timestamp());
+  SELECT hall.record_meeting_attendance(target_meeting, attendance_declarations, hall.meeting_reception_time(target_meeting));
 $function$;

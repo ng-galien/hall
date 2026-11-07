@@ -199,7 +199,9 @@ AS $function$
 DECLARE
   changed hall.ballots;
 BEGIN
-  changed := hall.complete_ballot(target_ballot, clock_timestamp(), reviewed_preview);
+  changed := hall.complete_ballot(target_ballot, hall.meeting_reception_time((SELECT i.council_meeting
+    FROM hall.ballots b JOIN hall.council_agenda_item i ON i.id = b.council_agenda_item WHERE b.id = target_ballot)),
+    reviewed_preview);
   RETURN hall.ballot_projection(changed);
 END;
 $function$;
