@@ -6,7 +6,7 @@
 
 -- @implements-requirement HALL-FR-MTG-370
 -- The reception instant of a conduct action: read after the meeting row is
--- locked, it never precedes the last recorded observation of the meeting, so
+-- locked, it is later than the last recorded observation of the meeting, so
 -- a server clock set back or two concurrent actions keep the chronology.
 CREATE FUNCTION hall.meeting_reception_time(target_meeting UUID)
 RETURNS TIMESTAMPTZ
@@ -16,6 +16,7 @@ SET search_path = pg_catalog, hall
 AS $function$
 DECLARE
   latest TIMESTAMPTZ;
+  received TIMESTAMPTZ;
 BEGIN
   PERFORM 1 FROM hall.council_meetings WHERE id = target_meeting FOR UPDATE;
   SELECT max(instant) INTO latest FROM (
@@ -36,7 +37,9 @@ BEGIN
     UNION ALL SELECT b.completed_at FROM hall.ballots b
       JOIN hall.council_agenda_item i ON i.id = b.council_agenda_item WHERE i.council_meeting = target_meeting
   ) observations;
-  RETURN greatest(clock_timestamp(), latest);
+  received := clock_timestamp();
+  -- Strictly after the last observation: several observations are unique per instant.
+  RETURN CASE WHEN latest IS NULL OR received > latest THEN received ELSE latest + interval '1 microsecond' END;
 END;
 $function$;
 

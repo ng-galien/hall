@@ -181,7 +181,7 @@ SELECT throws_ok($$SELECT record_meeting_attendance_events(test_uuid('server-clo
 
 -- @verifies-requirement HALL-FR-MTG-370
 -- A server clock set back behind the last recorded observation does not refuse
--- the next one: it is dated at the earliest at that observation.
+-- the next ones: each is dated just after the last observation.
 SELECT pg_temp.quorum_case('clock-back',4,4);
 SELECT test_prepare_notice(test_uuid('clock-back:meeting'));
 SELECT start_council_meeting(test_uuid('clock-back:meeting'),'2026-01-01 09:00Z');
@@ -192,15 +192,24 @@ SELECT lives_ok($$SELECT hall_api.record_meeting_attendance_events(test_uuid('cl
  'councilMemberId',test_uuid('clock-back:member:3'),'status','absent','proxyHolderCouncilMemberId',NULL,'proxyDocumentId',NULL)))$$,
  'a movement is accepted although the last observation is later than the server clock');
 SELECT is((SELECT observed_at FROM meeting_attendance_event WHERE meeting_attendance=test_uuid('clock-back:att:3')),
- (SELECT ahead FROM clock_back),'the movement is dated at the last recorded observation');
+ (SELECT ahead FROM clock_back)+interval '1 microsecond','the movement is dated just after the last recorded observation');
+SELECT lives_ok($$SELECT hall_api.record_meeting_attendance_events(test_uuid('clock-back:meeting'),jsonb_build_array(jsonb_build_object(
+ 'councilMemberId',test_uuid('clock-back:member:3'),'status','present','proxyHolderCouncilMemberId',NULL,'proxyDocumentId',NULL)))$$,
+ 'a second movement of the same member is accepted while the server clock is behind');
+SELECT is((SELECT count(*)::int FROM meeting_attendance_event WHERE meeting_attendance=test_uuid('clock-back:att:3')),2,
+ 'the member keeps both movements at distinct instants');
 SELECT lives_ok($$SELECT hall_api.record_meeting_quorum(test_uuid('clock-back:meeting'),NULL)$$,
  'a quorum check is accepted although the last observation is later than the server clock');
-SELECT ok((SELECT max(observed_at)>=(SELECT ahead FROM clock_back) FROM meeting_quorum_observation
- WHERE council_meeting=test_uuid('clock-back:meeting')),'the quorum check is dated at the earliest at the last observation');
+SELECT ok((SELECT max(observed_at)>(SELECT ahead FROM clock_back) FROM meeting_quorum_observation
+ WHERE council_meeting=test_uuid('clock-back:meeting')),'the quorum check is dated after the last observation');
 SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('clock-back:meeting'),'secretary',test_uuid('clock-back:member:2'))$$,
  'a handover is accepted although the last observation is later than the server clock');
-SELECT ok((SELECT observed_at>=(SELECT ahead FROM clock_back) FROM meeting_officer_change
- WHERE council_meeting=test_uuid('clock-back:meeting')),'the handover is dated at the earliest at the last observation');
+SELECT ok((SELECT observed_at>(SELECT ahead FROM clock_back) FROM meeting_officer_change
+ WHERE council_meeting=test_uuid('clock-back:meeting')),'the handover is dated after the last observation');
+SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('clock-back:meeting'),'secretary',test_uuid('clock-back:member:1'))$$,
+ 'a second handover of the same office is accepted while the server clock is behind');
+SELECT is((SELECT count(DISTINCT observed_at)::int FROM meeting_officer_change WHERE council_meeting=test_uuid('clock-back:meeting')
+ AND office='secretary'),2,'both handovers keep distinct instants');
 
 SELECT * FROM finish();
 ROLLBACK;
