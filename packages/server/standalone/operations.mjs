@@ -109,10 +109,14 @@ function Invoke-HallTask([string]$Name) {
   $Started = (Get-Date).AddSeconds(-1)
   Start-ScheduledTask -TaskName $Name
   $Deadline = (Get-Date).AddHours(2)
+  $StartDeadline = (Get-Date).AddSeconds(60)
   do {
     Start-Sleep -Seconds 5
     $State = (Get-ScheduledTask -TaskName $Name).State
     $Info = Get-ScheduledTaskInfo -TaskName $Name
+    if (($State -eq 'Ready') -and ($Info.LastRunTime -lt $Started) -and ((Get-Date) -gt $StartDeadline)) {
+      throw "$Name did not start within 60 seconds (LastTaskResult $($Info.LastTaskResult)); check the account and its logon right"
+    }
   } while ((($State -eq 'Running') -or ($State -eq 'Queued') -or ($Info.LastRunTime -lt $Started)) -and ((Get-Date) -lt $Deadline))
   if (($State -eq 'Running') -or ($Info.LastRunTime -lt $Started)) { throw "$Name did not finish within two hours" }
   if ($Info.LastTaskResult -ne 0) { throw "$Name failed with LastTaskResult $($Info.LastTaskResult); see $BackupLog" }

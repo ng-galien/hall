@@ -227,7 +227,8 @@ and verify health, login, and representative records. Never run a demo seed or
 `demo:restart` against this installation.
 
 For unattended startup, the operator can create a Windows Task Scheduler task
-under the designated account, with **Run whether user is logged on or not**, a
+named **Hall** under the designated account (the backup script reads the account
+from this task; with another name, `-Account` is required), with **Run whether user is logged on or not**, a
 startup trigger, delayed start after PostgreSQL, restart on failure, and **Do not
 start a new instance**. Disable its execution time limit. Use the full path to
 `node.exe` as the program and these arguments (adapt the release):

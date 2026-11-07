@@ -166,6 +166,10 @@ describe("Windows task registration script", () => {
   it("runs the backup task once through Task Scheduler and removes both tasks when it fails", () => {
     expect(index("Start-ScheduledTask -TaskName $Name")).toBeGreaterThan(0);
     expect(script).toContain("if ($Info.LastTaskResult -ne 0) { throw");
+    expect(script).toContain(
+      "if (($State -eq 'Ready') -and ($Info.LastRunTime -lt $Started) -and ((Get-Date) -gt $StartDeadline)) {",
+    );
+    expect(script).toContain("did not start within 60 seconds (LastTaskResult $($Info.LastTaskResult))");
     expect(index("$Started = Invoke-HallTask $TaskNames[0]")).toBeGreaterThan(index("Register-HallTask $TaskNames[1]"));
     expect(
       index("$NewArchives = @(Get-ChildItem -LiteralPath $BackupDirectory -Filter $ArchiveFilter"),

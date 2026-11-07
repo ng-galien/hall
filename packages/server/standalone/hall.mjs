@@ -71,7 +71,7 @@ function postgresToolPath(bin, program) {
 
 /** The absolute folder of pg_dump: the given one, or the one PATH resolves now. */
 function postgresqlBinFolder(given) {
-  if (given) return given;
+  if (given) return resolve(given);
   const lookup = spawnSync(process.platform === "win32" ? "where" : "which", ["pg_dump"], { encoding: "utf8" });
   const found = lookup.status === 0 ? lookup.stdout.split(/\r?\n/).find((line) => line.trim()) : undefined;
   if (!found)
