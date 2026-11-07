@@ -58,7 +58,11 @@ const historicalMinutes = {
 
 async function readStoredProjection(payload: unknown) {
   // Supply a historical database result to the real transaction and projection decoder.
-  const query = vi.fn().mockResolvedValue({ rows: [{ payload }], rowCount: 1 });
+  const query = vi.fn(async (statement: string, _values?: unknown[]) =>
+    statement === "COMMIT"
+      ? { rows: [], rowCount: null, command: "COMMIT" }
+      : { rows: [{ payload }], rowCount: 1, command: "SELECT" },
+  );
   const pool = {
     connect: async () => ({ query, release: vi.fn() }),
   } as unknown as Pool;
