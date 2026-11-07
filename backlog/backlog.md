@@ -16,7 +16,7 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[FULL]` Verify the established previous-minutes workflow (approval, rejection, unanimous abstention and postponement); any extension requires a new decision.
 - [ ] `[FRONT]` Keep meeting context when navigating between screens and links.
 - [ ] `[FRONT]` Improve the conducted-meeting and projector layouts at the target resolutions.
-- [ ] `[FRONT]` Hold one dedicated interface session with the user on the responsive layouts (phone and tablet sizes) across the application, and collect the interface details noted during the meeting of 2026-11-06. Requested by the user on 2026-11-07.
+- [ ] `[FRONT]` Hold one dedicated interface session with the user on the responsive layouts (phone and tablet sizes) across the application, and collect the interface details noted during the meeting of 2026-11-06. Requested by the user on 2026-11-07. Known: at 800 px the action bar of the meeting preparation overflows and cuts the general properties button.
 - [ ] `[BACK]` Revalidate summons dates, clear-day calculation, and timezone handling.
 - [x] `[FULL]` Decide which clock dates meeting-conduct observations before changing it. At the meeting of 2026-11-06 a server clock 33 seconds late refused two auxiliary-attendance declarations and the meeting opening (`HV143`, `conduct_chronology_invalid`).
   Decided by the user on 2026-11-07: the server clock dates each observation at reception; the browser sends no instant (`HALL-FR-MTG-370`).
@@ -75,7 +75,12 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[BACK]` Link each output to its meeting, template, and generation event.
 - [ ] `[BACK]` Assemble required attachments and prepare an Outlook message scenario without making Microsoft Graph mandatory.
 - [ ] `[FRONT]` Provide preview and generation actions through Siren capabilities.
-- [ ] `[FULL]` Add the remaining proxy, decision-list, decision, subject-report, and minutes templates after the reference template is stable.
+- [x] `[FULL]` Lay out the signature blocks of the generated documents as administrative documents do (place and date, signatory quality, name, blank space; no table), using HTML blocks in the template body. Requested by the user on 2026-11-07 after reading the 1.0.4 PDFs.
+- [x] `[FULL]` Generate the attendance sheet of a meeting: council members in table order with name, quality, a blank proxy column and a wide signature column; signed on arrival, so nothing recorded in Hall is pre-filled, and available at any meeting state. Requested and corrected by the user on 2026-11-07.
+- [x] `[FULL]` Generate the proxy form of a meeting: the user picks the council member giving the proxy and the one receiving it; CGCT L2121-20 wording. Requested by the user on 2026-11-07.
+- [ ] `[FULL]` Once council members have a personal access, let a signed-in member produce their own proxy form with the grantor preset. Follows the personal access work.
+- [ ] `[FULL]` To decide with the user: a posting certificate for the list of deliberations and the minutes (eight-day posting, L2121-25).
+- [ ] `[FULL]` Add the remaining subject-report template after the reference template is stable.
 - [ ] `[FULL]` Identify each template that needs visual refinement and define the expected result before changing it.
 - [x] `[FULL]` Put the names and signature blocks in the generated documents: the minutes carry the name of the meeting chair and of the meeting secretary with their signature lines; review the other templates for the same names and signatures. Requested by the user after the meeting of 2026-11-06.
 
