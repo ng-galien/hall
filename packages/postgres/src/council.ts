@@ -678,15 +678,18 @@ export class PostgresCouncil {
 
   updateAgendaItemNotes(
     request: PostgresCouncilRequest,
-    input: { id: string; discussionSummary: string },
+    input: { id: string; discussionSummary: string; clearConfirmed?: true },
   ): Promise<PostgresCouncilAgendaItem> {
-    const parsed = z.object({ id: resourceIdSchema, discussionSummary: z.string() }).strict().parse(input);
+    const parsed = z
+      .object({ id: resourceIdSchema, discussionSummary: z.string(), clearConfirmed: z.literal(true).optional() })
+      .strict()
+      .parse(input);
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "agenda-item.update-notes") },
       async (client) => {
         const result = await callJson(client, {
-          text: "SELECT hall_api.update_council_agenda_item_notes($1::uuid,$2::text) AS payload",
-          values: [parsed.id, parsed.discussionSummary],
+          text: "SELECT hall_api.update_council_agenda_item_notes($1::uuid,$2::text,$3::boolean) AS payload",
+          values: [parsed.id, parsed.discussionSummary, parsed.clearConfirmed === true],
           schema: postgresCouncilAgendaItemSchema,
         });
         await recordAuditEvent(client, {

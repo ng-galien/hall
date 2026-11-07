@@ -9619,6 +9619,27 @@
         }
       ]
     },
+    "HALL-FR-BAL-350": {
+      "name": "BALLOT_PREVIEW_IGNORES_DISCUSSION_NOTES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "Un aperçu de résultat de vote reste confirmable quand les notes de discussion de son point changent ; il devient périmé quand un fait qui décide du scrutin change.",
+      "acceptanceCriteria": [
+        "L’empreinte de contexte d’un aperçu ne contient pas les notes de discussion du point : un enregistrement de notes entre l’aperçu et sa confirmation n’empêche pas la confirmation.",
+        "L’empreinte contient toujours le point hors notes, la séance, les présences et représentations, les constats de conduite et les déports : un départ ou un déport après l’aperçu rend sa confirmation impossible (HV422, ballot_preview_stale)."
+      ],
+      "clauses": [
+        {
+          "key": "notes-outside-fingerprint",
+          "origin": "product",
+          "statement": "Décision de l’utilisateur du 7 novembre 2026 : l’aperçu de vote ne se périme plus quand les notes du point changent ; les présences, procurations, déports et participants restent dans l’empreinte. Confirmations refusées aux points 4 et 5 de la séance du 6 novembre 2026 pendant l’enregistrement des notes.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MTG-330": {
       "name": "MEETING_CHAIR_HANDOVER_FOLLOWS_STATUTORY_ORDER",
       "nature": "functional",
@@ -10018,6 +10039,30 @@
           "key": "server-clock",
           "origin": "product",
           "statement": "Décision de l’utilisateur du 7 novembre 2026 : le serveur date chaque constat de conduite de séance à sa réception ; le navigateur n’envoie plus d’instant et aucune comparaison entre l’horloge du navigateur et celle du serveur ne subsiste. Mots de l’utilisateur : « Comment imaginer qu’on compare deux dates, la date du serveur et la date du browser ? Ça n’existe pas. » Défaut constaté en séance le 6 novembre 2026 : une horloge serveur en retard de 33 secondes a fait refuser deux déclarations d’assistance et l’ouverture de la séance.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MTG-380": {
+      "name": "MEETING_CONDUCT_NOTES_ARE_SAVED_FROM_THE_VIEW_WHERE_THEY_ARE_TYPED",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "Pendant la conduite de séance, une vue enregistre les notes de discussion d’un point seulement quand l’utilisateur les a tapées dans cette vue ; des notes enregistrées ne sont effacées que par un vidage délibéré.",
+      "acceptanceCriteria": [
+        "Une vue de conduite envoie ses notes au serveur seulement après une saisie de l’utilisateur dans son éditeur, deux secondes après la dernière frappe ou quand il quitte le champ ; un changement des notes reçu du serveur ne déclenche aucun envoi.",
+        "Tant qu’aucune saisie locale n’attend d’enregistrement, la vue affiche les notes enregistrées sur le serveur, y compris celles écrites depuis une autre vue de la même séance.",
+        "Avant la fin du point, un changement de point sélectionné, la prévisualisation et la confirmation du scrutin et la clôture de la séance, le texte saisi et non enregistré est enregistré une dernière fois ; après la fin du point ou un changement de point sélectionné, la vue n’envoie plus de notes pour ce point.",
+        "Le serveur refuse un texte vide qui remplacerait des notes enregistrées non vides, avec le code HV237 et le problème agenda_item_notes_clear_unconfirmed, sauf si la requête porte la confirmation clearConfirmed ; la vue envoie cette confirmation seulement quand l’utilisateur a lui-même vidé un texte non vide.",
+        "Deux vues ouvertes sur le même point, l’une où l’utilisateur tape et l’autre où il ne fait rien, avec un éditeur vide ou rempli, conservent en base les notes tapées ; la seconde vue n’envoie aucun enregistrement."
+      ],
+      "clauses": [
+        {
+          "key": "notes-sent-on-typing",
+          "origin": "product",
+          "statement": "Décision de l’utilisateur du 7 novembre 2026 après la perte des notes de six points sur dix-sept à la séance du 6 novembre 2026 : l’édition concurrente n’est pas traitée ; une vue n’enregistre que ce que l’utilisateur y tape, l’enregistrement cesse à la fin du point, le serveur refuse l’effacement non confirmé de notes, et un test ouvre deux vues de conduite sur le même point. Mots de l’utilisateur : « les notes en séance ne sont pas enregistrées, c’est un énorme problème » ; « on va pas aborder l’édition concurrente ».",
           "sourceIds": []
         }
       ]

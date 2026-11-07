@@ -185,6 +185,7 @@ export function Modal({
 
 export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   ballot_preview_stale: "error.ballot_preview_stale",
+  agenda_item_notes_clear_unconfirmed: "error.agenda_item_notes_clear_unconfirmed",
   ballot_already_confirmed: "error.ballot_already_confirmed",
   ballot_candidate_invalid: "error.ballot_candidate_invalid",
   ballot_preview_not_found: "error.ballot_preview_not_found",

@@ -1449,6 +1449,7 @@ export const en = {
   "error.ballot_not_found": "This ballot no longer exists.",
   "error.agenda_ballot_required": "Record the ballot before closing this council-decision item.",
   "error.agenda_item_not_found": "This agenda item no longer exists.",
+  "error.agenda_item_notes_clear_unconfirmed": "The recorded notes were not erased. Clear the notes field yourself to erase them.",
   "error.agenda_order_invalid":
     "The agenda must list settlement of the minutes first, then votes, information, and finally open questions.",
   "error.agenda_sequence_invalid": "This agenda item cannot be handled at this stage of the meeting.",

@@ -173,7 +173,7 @@ export interface CouncilClient {
   reorderAgenda(meetingId: string, input: ReorderCouncilAgenda): Promise<AgendaItem[]>;
   startAgendaItem(id: string): Promise<AgendaItem>;
   completeAgendaItem(id: string): Promise<AgendaItem>;
-  updateAgendaItemNotes(id: string, input: { discussionSummary: string }): Promise<AgendaItem>;
+  updateAgendaItemNotes(id: string, input: { discussionSummary: string; clearConfirmed?: true }): Promise<AgendaItem>;
   listBallots(meetingId: string): Promise<Ballot[]>;
   openBallot(id: string): Promise<Ballot | null>;
   listBallotParticipations(ballotId: string): Promise<BallotParticipation[]>;

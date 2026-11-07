@@ -44,6 +44,7 @@ export type ErrorCode =
   | "agenda_ballot_required"
   | "agenda_inconsistent"
   | "agenda_item_not_found"
+  | "agenda_item_notes_clear_unconfirmed"
   | "agenda_order_invalid"
   | "agenda_sequence_invalid"
   | "audit_event_not_found"

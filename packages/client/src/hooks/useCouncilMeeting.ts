@@ -107,13 +107,17 @@ export function useCouncilMeeting(meetingReference: string) {
   const notesRequests = useRef(new Map<string, { text: string; promise: Promise<boolean> }>());
   const loadSequence = useRef(0);
   const saveAgendaItemNotes = useCallback(
-    (itemId: string, notes: string): Promise<boolean> => {
+    (
+      itemId: string,
+      notes: string,
+      options: { clearConfirmed: boolean } = { clearConfirmed: false },
+    ): Promise<boolean> => {
       const previous = notesRequests.current.get(itemId);
       if (previous?.text === notes) return previous.promise;
       const save = async () => {
         if (previous) await previous.promise;
         try {
-          const saved = await updateMeetingAgendaItemNotes(meetingReference, itemId, notes);
+          const saved = await updateMeetingAgendaItemNotes(meetingReference, itemId, notes, options);
           setWorkspace((value) =>
             value
               ? { ...value, agendaItems: value.agendaItems.map((item) => (item.id === saved.id ? saved : item)) }

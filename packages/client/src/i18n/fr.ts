@@ -1477,6 +1477,7 @@ export const fr: Messages = {
   "error.ballot_not_found": "Ce scrutin n’existe plus.",
   "error.agenda_ballot_required": "Enregistrez le scrutin avant de clôturer ce point de délibération.",
   "error.agenda_item_not_found": "Ce point de l’ordre du jour n’existe plus.",
+  "error.agenda_item_notes_clear_unconfirmed": "Les notes enregistrées n’ont pas été effacées. Videz vous-même le champ des notes pour les effacer.",
   "error.agenda_order_invalid":
     "L’ordre du jour doit commencer par le PV, puis regrouper les votes, les informations et enfin les questions diverses.",
   "error.agenda_sequence_invalid": "Ce point ne peut pas être traité à cette étape de la séance.",

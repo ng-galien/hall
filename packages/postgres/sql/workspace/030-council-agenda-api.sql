@@ -159,13 +159,21 @@ AS $function$
 $function$;
 
 -- @implements-requirement HALL-FR-MIN-150
+-- @implements-requirement HALL-FR-MTG-380
 -- The agenda lifecycle trigger locks the meeting and rejects every edit after
 -- closure. Notes are copied into the closure snapshot and initial minutes draft.
-CREATE FUNCTION hall_api.update_council_agenda_item_notes(target_agenda_item UUID, notes TEXT)
+-- An empty text replaces recorded notes only with an explicit clear confirmation.
+CREATE FUNCTION hall_api.update_council_agenda_item_notes(target_agenda_item UUID, notes TEXT, clear_confirmed BOOLEAN DEFAULT false)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+DECLARE
+  recorded_notes TEXT;
 BEGIN
-  UPDATE hall.council_agenda_item SET discussion_summary = notes WHERE id = target_agenda_item;
+  SELECT discussion_summary INTO recorded_notes FROM hall.council_agenda_item WHERE id = target_agenda_item FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV904', MESSAGE = 'unknown council agenda item'; END IF;
+  IF notes = '' AND recorded_notes <> '' AND clear_confirmed IS NOT TRUE THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV237', MESSAGE = 'clearing recorded agenda item notes requires an explicit confirmation';
+  END IF;
+  UPDATE hall.council_agenda_item SET discussion_summary = notes WHERE id = target_agenda_item;
   RETURN hall_api.open_council_agenda_item(target_agenda_item);
 END;
 $$;

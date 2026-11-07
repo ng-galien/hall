@@ -16,6 +16,7 @@ export type ApiErrorCode =
   | "authorization_role_changed"
   | "authorization_role_in_use"
   | "ballot_preview_stale"
+  | "agenda_item_notes_clear_unconfirmed"
   | "ballot_already_confirmed"
   | "ballot_candidate_invalid"
   | "ballot_preview_not_found"
@@ -143,6 +144,7 @@ export function apiPathFromHref(href: string): string {
 const apiErrorCodes = new Set<ApiErrorCode>([
   "recusal_already_recorded",
   "ballot_preview_stale",
+  "agenda_item_notes_clear_unconfirmed",
   "ballot_already_confirmed",
   "ballot_candidate_invalid",
   "ballot_preview_not_found",

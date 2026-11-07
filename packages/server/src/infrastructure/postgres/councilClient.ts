@@ -95,6 +95,7 @@ const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV234: "recusal_occurrence_locked",
   HV305: "recused_member_cannot_participate",
   HV236: "recusal_member_not_present",
+  HV237: "agenda_item_notes_clear_unconfirmed",
   HV410: "ballot_chair_invalid",
   HV415: "ballot_officers_not_present",
   HV127: "meeting_officer_change_invalid",

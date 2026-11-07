@@ -49,6 +49,7 @@ import { recusalBasisLabel } from "../../../features/council-meetings/recusalPre
 import { DocumentaryResourceGlyph } from "../../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../../features/documents/ResourcePreview";
 import { useResourceImageUpload } from "../../../features/documents/useResourceImageUpload";
+import { useAgendaItemNotesAutosave } from "../../../hooks/useAgendaItemNotesAutosave";
 import { useAgendaItemRecusals } from "../../../hooks/useAgendaItemRecusals";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useReferenceMentionables } from "../../../hooks/useReferenceMentionables";
@@ -159,7 +160,6 @@ export function ConductView({
     });
   const [adjournConfirming, setAdjournConfirming] = useState(false);
   const [ballotActionContainer, setBallotActionContainer] = useState<HTMLDivElement | null>(null);
-  const [notes, setNotes] = useState("");
   const mentionables = useReferenceMentionables();
   const [voteOpen, setVoteOpen] = useState(false);
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
@@ -214,7 +214,6 @@ export function ConductView({
   selectedItemRef.current = selectedItem;
   useEffect(() => {
     if (selectedItemRef.current?.id !== selectedItemId2) return;
-    setNotes(selectedItemRef.current?.discussionSummary ?? "");
     setVoteOpen(false);
     setRecusalOpen(false);
     setRecusalDetailsOpen(false);
@@ -225,15 +224,13 @@ export function ConductView({
     return () => window.clearInterval(timer);
   }, []);
 
-  const savedSummary = selectedItem?.discussionSummary;
-  const saveNotesRef = meetingActions.saveAgendaItemNotes;
-  useEffect(() => {
-    if (selectedItemId2 === null || notes === savedSummary) return;
-    const timer = window.setTimeout(() => {
-      void saveNotesRef(selectedItemId2, notes);
-    }, 2000);
-    return () => window.clearTimeout(timer);
-  }, [notes, savedSummary, selectedItemId2, saveNotesRef]);
+  const notesAutosave = useAgendaItemNotesAutosave({
+    itemId: selectedItemId2,
+    serverText: selectedItem?.discussionSummary ?? "",
+    active: selectedItem?.status === "inProgress",
+    save: meetingActions.saveAgendaItemNotes,
+  });
+  const notes = notesAutosave.text;
 
   if (!selectedItem) {
     return (
@@ -304,11 +301,7 @@ export function ConductView({
 
   const completeItem = (status: Extract<LiveAgendaItemStatus, "examined">) =>
     run(async () => {
-      if (
-        notes !== selectedItem.discussionSummary &&
-        !(await meetingActions.saveAgendaItemNotes(selectedItem.id, notes))
-      )
-        return false;
+      if (!(await notesAutosave.flush())) return false;
       const completed = await meetingActions.completeAgendaItem(selectedItem.id, {
         discussionSummary: notes,
         status,
@@ -330,11 +323,7 @@ export function ConductView({
       return;
     }
     void run(async () => {
-      if (
-        notes !== selectedItem.discussionSummary &&
-        !(await meetingActions.saveAgendaItemNotes(selectedItem.id, notes))
-      )
-        return false;
+      if (!(await notesAutosave.flush())) return false;
       const closed = await meetingActions.close();
       if (closed) navigate("/meetings");
       return closed;
@@ -414,12 +403,7 @@ export function ConductView({
                 aria-current={!openingSelected && selectedItem.id === item.id ? "true" : undefined}
                 onClick={() =>
                   void run(async () => {
-                    if (
-                      selectedItem &&
-                      notes !== selectedItem.discussionSummary &&
-                      !(await meetingActions.saveAgendaItemNotes(selectedItem.id, notes))
-                    )
-                      return false;
+                    if (!(await notesAutosave.flush())) return false;
                     setOpeningSelected(false);
                     setSelectedItemId(item.id);
                     return true;
@@ -876,11 +860,9 @@ export function ConductView({
                   }
                   markdown={notes}
                   placeholder={t("meeting.observationsDescription")}
-                  onChange={setNotes}
+                  onChange={notesAutosave.edit}
                   onBlur={() => {
-                    if (notes !== selectedItem.discussionSummary) {
-                      void meetingActions.saveAgendaItemNotes(selectedItem.id, notes);
-                    }
+                    void notesAutosave.flush();
                   }}
                 />
               </details>
@@ -902,14 +884,13 @@ export function ConductView({
                 open={voteOpen}
                 onOpenChange={setVoteOpen}
                 onPreview={async (input) => {
-                  if (
-                    notes !== selectedItem.discussionSummary &&
-                    !(await meetingActions.saveAgendaItemNotes(selectedItem.id, notes))
-                  )
-                    throw new Error("The discussion notes could not be saved");
+                  if (!(await notesAutosave.flush())) throw new Error("The discussion notes could not be saved");
                   return meetingActions.previewBallot(input);
                 }}
-                onConfirm={meetingActions.confirmBallot}
+                onConfirm={async (preview) => {
+                  if (!(await notesAutosave.flush())) throw new Error("The discussion notes could not be saved");
+                  return meetingActions.confirmBallot(preview);
+                }}
               />
             ) : null}
 

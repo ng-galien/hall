@@ -15,9 +15,11 @@ CREATE TABLE hall.ballot_result_preview (
 );
 ALTER TABLE hall.ballots ADD COLUMN result_preview UUID UNIQUE REFERENCES hall.ballot_result_preview(id);
 
+-- @implements-requirement HALL-FR-BAL-350
+-- The fingerprint covers the facts that decide a ballot; discussion notes are not among them.
 CREATE FUNCTION hall.ballot_preview_context(target_item UUID)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
- SELECT jsonb_build_object('item',to_jsonb(item),'meeting',to_jsonb(m),
+ SELECT jsonb_build_object('item',to_jsonb(item)-'discussion_summary','meeting',to_jsonb(m),
    'conduct',hall.meeting_conduct_evidence(m.id),
    'recusals',coalesce((SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM hall.agenda_item_recusal r WHERE r.agenda_item=item.id),'[]'::jsonb))
  FROM hall.council_agenda_item item JOIN hall.council_meetings m ON m.id=item.council_meeting WHERE item.id=target_item;

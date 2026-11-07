@@ -14,7 +14,12 @@ import { agendaItemBallotStateSchema, agendaItemRecusalStateSchema } from "./rec
 import { resourceIdSchema, resourceNameSchema, resourcePathSchema } from "./resources.js";
 
 const timestampSchema = z.iso.datetime({ offset: true });
-export const updateAgendaItemNotesSchema = z.object({ discussionSummary: z.string() }).strict();
+// @implements-requirement HALL-FR-MTG-380
+// `clearConfirmed` accompanies an empty text only when the user cleared the notes deliberately.
+export const updateAgendaItemNotesSchema = z
+  .object({ discussionSummary: z.string(), clearConfirmed: z.literal(true).optional() })
+  .strict();
+export type UpdateAgendaItemNotes = z.infer<typeof updateAgendaItemNotesSchema>;
 
 export const councilMeetingSchema = z
   .object({
