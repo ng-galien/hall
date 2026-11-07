@@ -121,7 +121,11 @@ DATABASE_URL=postgresql://DATABASE_ADMIN:ENCODED_PASSWORD@127.0.0.1:5432/hall_mu
 SERVER_HOST=127.0.0.1
 SERVER_PORT=3100
 HALL_ALLOWED_ORIGINS=http://127.0.0.1:3100
+HALL_LOG_FILE=C:\Hall\logs\hall.log
 ```
+
+`HALL_LOG_FILE` keeps the Hall log, and `backup.log` beside it, in `C:\Hall\logs`;
+without it they go to `C:\Hall\config\logs`.
 
 Do not enable `HALL_DEV_AUTO_LOGIN` for this installation. Existing environment
 variables override values in the file: inspect the launching account for old Hall
@@ -244,7 +248,10 @@ this as an interruption requiring the restart checks.
 
 Add the backup settings to `C:\Hall\config\hall.env`. The destination and
 retention below are defaults to confirm with the municipality and the SIDEC; a
-folder on another disk or a network share protects better than `C:\Hall`.
+folder on another local disk protects better than `C:\Hall`. The tasks are
+registered with S4U logon by default, which gives them no network access: a
+folder on a network share requires running the script with `-StorePassword`,
+which stores the password of the account in Task Scheduler.
 
 ```dotenv
 HALL_BACKUP_DIRECTORY=C:\Hall\backups
@@ -252,26 +259,30 @@ HALL_BACKUP_RETENTION=14
 ```
 
 The role of `DATABASE_URL` needs `CREATEDB` for the weekly verification, which
-restores into a temporary database. Generate the registration script with the
-installed release, then run it once in an elevated PowerShell under the Windows
-account that runs Hall:
+restores into a temporary database. The PostgreSQL installer does not add its
+`bin` folder to the machine `PATH`; give it explicitly when generating the
+script, which records its absolute path and refuses a folder without `pg_dump`:
 
 ```powershell
 $Config = Join-Path $HallRoot 'config\hall.env'
-& $Hall windows-tasks --env-file $Config
+& $Hall windows-tasks --env-file $Config --postgresql-bin 'C:\Program Files\PostgreSQL\17\bin'
 if ($LASTEXITCODE -ne 0) { throw 'Task script generation failed' }
 powershell -ExecutionPolicy Bypass -File (Join-Path $HallRoot 'config\register-hall-tasks.ps1')
 ```
 
-The script stops before registering any task if the first backup or its
-verification fails. It registers **Hall - sauvegarde** every day at 2 h and
-**Hall - verification de sauvegarde** every Sunday at 3 h, with S4U logon (the
-tasks run while nobody is signed in and no password is stored). Each run appends
-its outcome to `backup.log` beside `hall.log`. After installing another release,
-run `hall windows-tasks` again with the new release so that the tasks call it.
-Check `Get-ScheduledTaskInfo 'Hall - sauvegarde'` the next morning: `LastTaskResult`
-is `0` after a successful backup. This script has not yet been run on a Windows
-machine.
+Run the script in an elevated PowerShell. It registers the tasks under the account
+of the existing **Hall** task; when that task is absent, or when the elevated
+session belongs to another administrator and the account differs, give the account
+that runs Hall with `-Account COMPUTER\user`. The script prints the account, the
+backup folder and the outcome log it uses, checks that `pg_dump.exe` and
+`pg_restore.exe` exist, registers **Hall - sauvegarde** every day at 2 h and
+**Hall - verification de sauvegarde** every Sunday at 3 h, then runs each task once
+through Task Scheduler. It requires `LastTaskResult` 0 for both and a new archive
+in the backup folder; otherwise it removes both tasks and stops with the error.
+Each run appends its outcome to `C:\Hall\logs\backup.log` (the folder of
+`HALL_LOG_FILE`). After installing another release, run `hall windows-tasks` again
+with the new release so that the tasks call it. This script has not yet been run
+on a Windows machine.
 
 ## Pour le secrétariat : sauvegardes
 
@@ -284,7 +295,7 @@ dernières copies et efface les plus anciennes.
 Chaque dimanche à 3 h, Hall reprend la dernière copie, la remet en place dans une
 base d essai, vérifie que l application répond avec, puis efface cette base
 d essai. Chaque sauvegarde et chaque vérification ajoute une ligne au fichier
-`backup.log`, dans le dossier du journal de Hall : `"outcome":"succeeded"` dit que
+`C:\Hall\logs\backup.log` : `"outcome":"succeeded"` dit que
 l opération a réussi, `"outcome":"failed"` qu elle a échoué, avec le message d erreur.
 
 Si une copie manque ou si la vérification échoue, prévenir la personne chargée de

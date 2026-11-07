@@ -17,9 +17,10 @@ Usage:
   hall start [--env-file /absolute/path/hall.env]
   hall schema-check [--env-file /absolute/path/hall.env]
   hall migrate [--env-file /absolute/path/hall.env]
-  hall backup [--env-file /absolute/path/hall.env]
+  hall backup [--env-file /absolute/path/hall.env] [--postgresql-bin /absolute/path/bin]
   hall verify-backup [--env-file /absolute/path/hall.env] [--archive /absolute/path/hall-<database>-<date>.dump]
-  hall windows-tasks --env-file /absolute/path/hall.env
+                     [--postgresql-bin /absolute/path/bin]
+  hall windows-tasks --env-file /absolute/path/hall.env [--postgresql-bin /absolute/path/bin]
   hall install-browser
   hall --version
   hall --help
@@ -36,9 +37,11 @@ HALL_BACKUP_DIRECTORY (default: the backups folder beside the environment file).
 verify-backup restores the newest archive (or --archive) into a temporary database,
 checks the hall_api schema privileges, starts the API on it, then drops it.
 The role of DATABASE_URL needs the CREATEDB privilege for verify-backup.
+--postgresql-bin names the folder of pg_dump and pg_restore; without it they are taken from PATH.
 backup and verify-backup append their outcome to backup.log beside the Hall log.
-windows-tasks writes register-hall-tasks.ps1 beside the environment file: run it once in
-PowerShell to take a first backup and register the daily backup and weekly verification tasks.
+windows-tasks writes register-hall-tasks.ps1 beside the environment file with the absolute
+PostgreSQL bin folder found now: run it once in an elevated PowerShell to register the daily
+backup and weekly verification tasks and run each once through Task Scheduler.
 install-browser explicitly installs Chromium for PDF generation.
 `;
 
@@ -62,8 +65,28 @@ function postgresEnvironment(databaseUrl, database) {
   };
 }
 
-function postgresTool(program, args, env) {
-  const result = spawnSync(program, args, { env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+function postgresToolPath(bin, program) {
+  return bin ? join(bin, process.platform === "win32" ? `${program}.exe` : program) : program;
+}
+
+/** The absolute folder of pg_dump: the given one, or the one PATH resolves now. */
+function postgresqlBinFolder(given) {
+  if (given) return given;
+  const lookup = spawnSync(process.platform === "win32" ? "where" : "which", ["pg_dump"], { encoding: "utf8" });
+  const found = lookup.status === 0 ? lookup.stdout.split(/\r?\n/).find((line) => line.trim()) : undefined;
+  if (!found)
+    throw new Error(
+      "pg_dump is not on PATH: pass --postgresql-bin with its folder, for example C:\\Program Files\\PostgreSQL\\17\\bin.",
+    );
+  return dirname(found.trim());
+}
+
+function postgresTool(bin, program, args, env) {
+  const result = spawnSync(postgresToolPath(bin, program), args, {
+    env,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   if (result.error)
     throw new Error(`${program} cannot run: ${result.error.message}. Install the PostgreSQL client tools.`);
   if (result.status !== 0) throw new Error(`${program} failed: ${result.stderr.trim()}`);
@@ -76,12 +99,12 @@ async function sha256Of(file) {
     .digest("hex");
 }
 
-function backupSettings(environmentFile) {
+function backupSettings(environmentFile, postgresqlBin) {
   const retention = Number.parseInt(process.env.HALL_BACKUP_RETENTION ?? "14", 10);
   if (!Number.isInteger(retention) || retention < 1)
     throw new Error("HALL_BACKUP_RETENTION must be a positive integer.");
   const base = environmentFile ? dirname(environmentFile) : process.cwd();
-  return { directory: resolve(base, process.env.HALL_BACKUP_DIRECTORY ?? "backups"), retention };
+  return { directory: resolve(base, process.env.HALL_BACKUP_DIRECTORY ?? "backups"), retention, postgresqlBin };
 }
 
 function hallLogFile(environmentFile) {
@@ -113,8 +136,8 @@ async function backupDatabase(config, release, settings) {
   await mkdir(settings.directory, { recursive: true });
   const archive = join(settings.directory, `hall-${database}-${timestamp()}.dump`);
   const env = postgresEnvironment(config.database.url);
-  postgresTool("pg_dump", ["--format=custom", "--file", `${archive}.partial`], env);
-  postgresTool("pg_restore", ["--list", `${archive}.partial`], env);
+  postgresTool(settings.postgresqlBin, "pg_dump", ["--format=custom", "--file", `${archive}.partial`], env);
+  postgresTool(settings.postgresqlBin, "pg_restore", ["--list", `${archive}.partial`], env);
   const sha256 = await sha256Of(`${archive}.partial`);
   await rename(`${archive}.partial`, archive);
   const manifest = {
@@ -125,12 +148,13 @@ async function backupDatabase(config, release, settings) {
     schemaFingerprint: release.schemaFingerprint ?? null,
   };
   await writeFile(`${archive}.json`, `${JSON.stringify(manifest, null, 2)}\n`);
-  const removed = await pruneArchives(settings.directory, settings.retention);
+  const removed = await pruneArchives(settings.directory, database, settings.retention);
   return { archive, manifest, removed, log: { archive, sha256, removed } };
 }
 
 async function verifyBackup(config, settings, requestedArchive) {
-  const archives = requestedArchive ? [] : await archivesIn(settings.directory);
+  const source = decodeURIComponent(new URL(config.database.url).pathname.slice(1));
+  const archives = requestedArchive ? [] : await archivesIn(settings.directory, source);
   const archive = requestedArchive ?? (archives.length ? join(settings.directory, archives.at(-1)) : null);
   if (!archive) throw new Error(`No backup archive in ${settings.directory}.`);
   const manifest = JSON.parse(await readFile(`${archive}.json`, "utf8"));
@@ -145,6 +169,7 @@ async function verifyBackup(config, settings, requestedArchive) {
     await maintenance.query(`CREATE DATABASE "${database}" TEMPLATE template0`);
     created = true;
     postgresTool(
+      settings.postgresqlBin,
       "pg_restore",
       ["--exit-on-error", "--dbname", database, archive],
       postgresEnvironment(config.database.url, database),
@@ -183,7 +208,11 @@ async function verifyBackup(config, settings, requestedArchive) {
 }
 
 function parseOptions(command, args) {
-  const allowed = command === "verify-backup" ? ["--env-file", "--archive"] : ["--env-file"];
+  const allowed = {
+    "verify-backup": ["--env-file", "--archive", "--postgresql-bin"],
+    backup: ["--env-file", "--postgresql-bin"],
+    "windows-tasks": ["--env-file", "--postgresql-bin"],
+  }[command] ?? ["--env-file"];
   if (command === "windows-tasks" && !args.includes("--env-file")) {
     throw new Error("windows-tasks requires --env-file with the absolute path of the Hall environment file.");
   }
@@ -240,15 +269,27 @@ async function main() {
   process.env.NODE_ENV ??= "production";
   if (command === "windows-tasks") {
     const script = join(dirname(environmentFile), "register-hall-tasks.ps1");
+    const postgresqlBin = postgresqlBinFolder(options["--postgresql-bin"]);
+    for (const program of ["pg_dump", "pg_restore"]) {
+      await access(postgresToolPath(postgresqlBin, program), constants.X_OK).catch(() => {
+        throw new Error(`${postgresToolPath(postgresqlBin, program)} does not exist or cannot be run.`);
+      });
+    }
+    if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is missing from the environment file.");
+    const backupLog = join(dirname(hallLogFile(environmentFile)), "backup.log");
     const content = windowsTasksScript({
       node: process.execPath,
       cli: fileURLToPath(import.meta.url),
       environmentFile,
+      postgresqlBin,
+      backupDirectory: backupSettings(environmentFile).directory,
+      database: decodeURIComponent(new URL(process.env.DATABASE_URL).pathname.slice(1)),
+      backupLog,
     });
     // PowerShell 5 reads a script without byte order mark in the ANSI code page.
     await writeFile(script, `\uFEFF${content.replaceAll("\n", "\r\n")}`);
     process.stdout.write(
-      `Written: ${script}\nRun it once in an elevated PowerShell: powershell -ExecutionPolicy Bypass -File "${script}"\n`,
+      `Written: ${script}\nPostgreSQL tools: ${postgresqlBin}\nOutcome log: ${backupLog}\nRun it once in an elevated PowerShell: powershell -ExecutionPolicy Bypass -File "${script}" [-Account COMPUTER\\user] [-StorePassword]\n`,
     );
     return;
   }
@@ -259,7 +300,7 @@ async function main() {
   validateServerConfig(config);
   if (command === "backup") {
     const { archive, manifest, removed } = await loggedOperation(environmentFile, "backup", () =>
-      backupDatabase(config, release, backupSettings(environmentFile)),
+      backupDatabase(config, release, backupSettings(environmentFile, options["--postgresql-bin"])),
     );
     process.stdout.write(
       `Backup written: ${archive}\nSHA-256 ${manifest.sha256}; Hall ${manifest.hall.version}; ${removed.length} older archive(s) removed by retention.\n`,
@@ -268,7 +309,7 @@ async function main() {
   }
   if (command === "verify-backup") {
     const { archive, database } = await loggedOperation(environmentFile, "verify-backup", () =>
-      verifyBackup(config, backupSettings(environmentFile), options["--archive"]),
+      verifyBackup(config, backupSettings(environmentFile, options["--postgresql-bin"]), options["--archive"]),
     );
     process.stdout.write(
       `Backup verified: ${archive}\nRestored into ${database}, hall_api privileges present, API answered; ${database} dropped.\n`,

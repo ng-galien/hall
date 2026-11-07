@@ -316,11 +316,18 @@ in the folder of the Hall log (`logs/` beside the environment file unless
 and its SHA-256, the archives removed by retention, or the error message with database
 credentials redacted.
 
-On Windows, `hall windows-tasks --env-file <file>` writes `register-hall-tasks.ps1`
-beside the environment file. Run once in an elevated PowerShell, the script takes and
-verifies a first backup, then registers under the current account the daily task
-**Hall - sauvegarde** (2 h) and the weekly task **Hall - verification de sauvegarde**
-(Sunday, 3 h). Both run without a signed-in user (S4U logon, no stored password), start
+`--postgresql-bin <folder>` gives `backup` and `verify-backup` the folder of `pg_dump`
+and `pg_restore`; without it they are taken from `PATH`.
+
+On Windows, `hall windows-tasks --env-file <file> [--postgresql-bin <folder>]` writes
+`register-hall-tasks.ps1` beside the environment file, with the absolute PostgreSQL
+`bin` folder, the backup folder and the outcome log computed at generation. Run once in
+an elevated PowerShell, the script registers, under the account of the existing **Hall**
+task or the one given with `-Account`, the daily task **Hall - sauvegarde** (2 h) and the
+weekly task **Hall - verification de sauvegarde** (Sunday, 3 h), then runs each once
+through Task Scheduler and requires `LastTaskResult` 0 and a new archive; on failure it
+removes both tasks. Both run without a signed-in user (S4U logon, no stored password, no
+network access; `-StorePassword` stores the password for a network backup folder), start
 after a missed run when the computer was off, and call `node.exe` with the release that
 generated the script: run `hall windows-tasks` again after installing another release.
 See [Schedule nightly backups](municipal-bootstrap.md#schedule-nightly-backups).
