@@ -49,9 +49,9 @@ describe("meeting dossier", () => {
         chairMemberId: members[0].id,
         secretaryMemberId: members[1].id,
       });
-      await api.post(`/council-meetings/${meeting.id}/agenda-freeze`, {});
-      const frozen = (await api.get(`/council-meetings/${meeting.id}`)).agendaFrozenAt;
-      expect(frozen).toBeTruthy();
+      await api.post(`/council-meetings/${meeting.id}/notices`, {});
+      const established = (await api.get(`/council-meetings/${meeting.id}`)).agendaRevision.establishedAt;
+      expect(established).toBeTruthy();
 
       const response = await fetch(`${baseUrl}/council-meetings/${meeting.id}/dossier`);
       expect(response.status, await response.clone().text()).toBe(200);

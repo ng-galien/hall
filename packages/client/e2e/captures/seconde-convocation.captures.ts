@@ -33,7 +33,6 @@ interface Meeting {
 
 async function prepare(page: Page, meetingId: string, input: Record<string, string>) {
   await properties(await page.request.put(`/api/council-meetings/${meetingId}/prepare`, { data: input }));
-  await properties(await page.request.post(`/api/council-meetings/${meetingId}/agenda-freeze`, { data: {} }));
   await properties(await page.request.post(`/api/council-meetings/${meetingId}/notices`, { data: {} }));
 }
 

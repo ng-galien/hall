@@ -42,7 +42,6 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
         return { councilMemberId: member.id, status: "present" };
       }),
     };
-    await post(`/council-meetings/${meeting.id}/agenda-freeze`, {});
     await post(`/council-meetings/${meeting.id}/notices`, {});
     const opening = await post(`/council-meetings/${meeting.id}/record-opening`, {
       ...declarations,

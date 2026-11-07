@@ -112,7 +112,6 @@ for (const [device, viewport] of [
             secretaryMemberId: secretary!.id,
           },
         ],
-        [`/api/council-meetings/${meeting.id}/agenda-freeze`, {}],
         [`/api/council-meetings/${meeting.id}/notices`, {}],
       ] as const) {
         const response = path.endsWith("/prepare")

@@ -1,17 +1,11 @@
 // biome-ignore-all lint/correctness/useExhaustiveDependencies: Notice and minutes changes intentionally reload their state.
-import {
-  findSirenAction,
-  findSirenLink,
-  type MeetingNotice,
-  type MeetingNoticeMessagePreparation,
-} from "@hall/api-contract";
+import { findSirenLink, type MeetingNotice, type MeetingNoticeMessagePreparation } from "@hall/api-contract";
 import type { DocumentaryResource, DocumentCategory } from "@hall/domain";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DecisionsIcon, FileIcon, MinutesIcon, OpenIcon, PdfIcon, SignIcon, UploadIcon } from "../../components/icons";
+import { DecisionsIcon, FileIcon, MinutesIcon, OpenIcon, PdfIcon, SignIcon } from "../../components/icons";
 import { ShareButton } from "../../components/ShareButton";
 import { RequestErrorBanner } from "../../components/Ui";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
@@ -19,12 +13,7 @@ import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
-import {
-  type ApiErrorCode,
-  apiErrorCode,
-  SirenCapabilityUnavailable,
-  sirenRepresentation,
-} from "../../services/apiClient";
+import { type ApiErrorCode, apiErrorCode, SirenCapabilityUnavailable } from "../../services/apiClient";
 import { apiFile, downloadFile } from "../../services/fileSharing";
 import {
   downloadMeetingNoticeMessage,
@@ -34,7 +23,7 @@ import {
   prepareMeetingNoticeMessage,
 } from "../../services/meetingNoticesApi";
 import { openMinutes } from "../../services/minutesApi";
-import { listResources, uploadResourceDocument } from "../../services/resourcesApi";
+import { listResources } from "../../services/resourcesApi";
 import { liveBusinessTitle } from "../council-business/presentation";
 import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
 import { ResourcePreview } from "../documents/ResourcePreview";
@@ -49,8 +38,6 @@ export const documentCategoryKeys: Record<DocumentCategory, TranslationKey> = {
   minutes: "documentCategory.minutes",
   proxy: "documentCategory.proxy",
 };
-
-const meetingDocumentCategories: DocumentCategory[] = ["meetingNotice", "proxy", "supporting"];
 
 type DocumentTone = "done" | "todo" | "error" | "neutral";
 
@@ -209,16 +196,12 @@ export function MeetingDocumentsSection({
     }
   };
 
+  // Pieces already filed on the meeting stay listed; filing new ones is not offered here.
   const [attachments, setAttachments] = useState<DocumentaryResource[]>([]);
-  const [canUpload, setCanUpload] = useState(false);
-  const [attachmentsRevision, setAttachmentsRevision] = useState(0);
   useEffect(() => {
     let active = true;
-    void Promise.all([
-      listResources({ meetingId: meeting.id, kind: "document", usage: "document" }),
-      sirenRepresentation("/resources"),
-    ]).then(
-      ([resources, representation]) => {
+    void listResources({ meetingId: meeting.id, kind: "document", usage: "document" }).then(
+      (resources) => {
         if (!active) return;
         setAttachments(
           resources.filter(
@@ -226,7 +209,6 @@ export function MeetingDocumentsSection({
               resource.kind === "document" && resource.usage === "document" && resource.meetingId === meeting.id,
           ),
         );
-        setCanUpload(Boolean(findSirenAction(representation, "resource.create-document")));
       },
       (failure) => {
         if (active) setError(apiErrorCode(failure));
@@ -235,29 +217,8 @@ export function MeetingDocumentsSection({
     return () => {
       active = false;
     };
-  }, [meeting.id, attachmentsRevision]);
-  const attachmentsEditable = canUpload && preparing;
+  }, [meeting.id]);
   const [viewedAttachment, setViewedAttachment] = useState<DocumentaryResource | null>(null);
-  const fileInput = useRef<HTMLInputElement | null>(null);
-  const [uploadCategory, setUploadCategory] = useState<DocumentCategory>("meetingNotice");
-  const uploadAttachment = () => {
-    const file = fileInput.current?.files?.[0];
-    if (!file) return;
-    const form = new FormData();
-    form.set("meetingId", meeting.id);
-    form.set("category", uploadCategory);
-    form.set("file", file);
-    void run(async () => {
-      setError(null);
-      try {
-        await uploadResourceDocument(form);
-        if (fileInput.current) fileInput.current.value = "";
-        setAttachmentsRevision((value) => value + 1);
-      } catch (failure) {
-        setError(apiErrorCode(failure));
-      }
-    });
-  };
 
   const attendanceSheetHref = meetingActions.link("attendance-sheet");
   const proxyFormHref = meetingActions.link("proxy-form");
@@ -452,76 +413,38 @@ export function MeetingDocumentsSection({
           />
         ) : null}
 
-        <DocumentRow
-          testId="meeting-document-attachments"
-          icon={<FileIcon />}
-          name={t("meeting.documents.attachments")}
-          state={
-            attachments.length
-              ? `${formatNumber(attachments.length)} ${plural(attachments.length, "meeting.documents.attachmentCount.one", "meeting.documents.attachmentCount.other")}`
-              : t("meeting.meetingDocumentsEmpty")
-          }
-          actions={
-            attachmentsEditable ? (
-              <>
-                <Select value={uploadCategory} onValueChange={(value) => setUploadCategory(value as DocumentCategory)}>
-                  <SelectTrigger size="sm" aria-label={t("documents.category")}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {meetingDocumentCategories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {t(documentCategoryKeys[category])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <input
-                  ref={fileInput}
-                  type="file"
-                  aria-label={t("documents.file")}
-                  onChange={uploadAttachment}
-                  className="visually-hidden-input"
-                  data-testid="meeting-attachment-file"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  data-testid="meeting-attachment-upload"
-                  disabled={submitting}
-                  onClick={() => fileInput.current?.click()}
-                >
-                  <UploadIcon />
-                  {t(submitting ? "common.saving" : "meeting.attachDocument")}
-                </Button>
-              </>
-            ) : undefined
-          }
-        >
-          {attachments.length ? (
-            <ul className="meeting-document-sublist">
-              {attachments.map((document) => (
-                <li key={document.id}>
-                  <span className="meeting-document-sublist-copy">
-                    <span>{document.fileName}</span>
-                    <span className="meeting-document-note">
-                      {t(documentCategoryKeys[document.category])} · {formatFileSize(document.byteSize)}
+        {attachments.length ? (
+          <DocumentRow
+            testId="meeting-document-attachments"
+            icon={<FileIcon />}
+            name={t("meeting.documents.attachments")}
+            state={`${formatNumber(attachments.length)} ${plural(attachments.length, "meeting.documents.attachmentCount.one", "meeting.documents.attachmentCount.other")}`}
+          >
+            {attachments.length ? (
+              <ul className="meeting-document-sublist">
+                {attachments.map((document) => (
+                  <li key={document.id}>
+                    <span className="meeting-document-sublist-copy">
+                      <span>{document.fileName}</span>
+                      <span className="meeting-document-note">
+                        {t(documentCategoryKeys[document.category])} · {formatFileSize(document.byteSize)}
+                      </span>
                     </span>
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    aria-label={t("meeting.viewDocument", { name: document.fileName })}
-                    onClick={() => setViewedAttachment(document)}
-                  >
-                    <OpenIcon />
-                    {t("meeting.documents.open")}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </DocumentRow>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      aria-label={t("meeting.viewDocument", { name: document.fileName })}
+                      onClick={() => setViewedAttachment(document)}
+                    >
+                      <OpenIcon />
+                      {t("meeting.documents.open")}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </DocumentRow>
+        ) : null}
 
         {attendanceSheetHref ? (
           <DocumentRow

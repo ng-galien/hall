@@ -435,13 +435,19 @@ This list applies to the Windows installation described in
 Run the steps in this order in one PowerShell session. Record each output in the
 installation record.
 
-Version 1.0.4 runs two data migrations.
+Version 1.0.4 runs three data migrations.
 `packages/postgres/sql/migrations/004-meeting-snapshot-document-references.sql`
 (requirement HALL-FR-MIN-160) replaces the document bytes and editor images copied
 into `hall.council_meeting_snapshot` by references to the resource and its binary
 object. `packages/postgres/sql/migrations/005-attendance-sheet-and-proxy-form-templates.sql`
 (requirements HALL-FR-ATT-170 and HALL-FR-ATT-180) adds the default templates
 « Feuille d’émargement » and « Pouvoir » when the database has none of that type.
+`packages/postgres/sql/migrations/006-agenda-revisions.sql` (requirements HALL-FR-NOT-100
+and HALL-FR-NOT-140) records the date and location of each agenda freeze, now an
+established agenda revision, from the facts of its last notice or from the meeting,
+and links each notice to the revision active when it was generated. A meeting in
+preparation whose date or location changed after the notice of its active revision
+moves to the next, open revision. Closed meetings keep their facts and documents.
 The migrations run in `hall migrate` (step 4), not at startup: `hall start`
 refuses an incompatible schema.
 

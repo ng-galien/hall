@@ -117,9 +117,9 @@ test.describe("convocation", () => {
     }>(page, "/api/council-meetings");
     const next = meetings.find((meeting) => !meeting.startedAt && !meeting.closedAt)!;
     await page.goto(`/app/meetings/${next.id}`);
-    await page.getByTestId("meeting-freeze-agenda").click();
     await page.getByTestId("meeting-generate-notice").click();
-    // The generated PDF opens in the document viewer; the capture shows the dialog with its current version.
+    // The notice of the established revision opens in the document viewer; the capture shows the meeting with it.
+    await page.getByTestId("meeting-notice-open").click();
     await page.getByTestId("document-object-viewer-close").click();
     await expect(page.getByTestId("document-object-viewer")).toBeHidden();
     await expect(page.getByTestId("meeting-export-notice-message")).toBeVisible({ timeout: 60_000 });

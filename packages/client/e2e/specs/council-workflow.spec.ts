@@ -316,7 +316,6 @@ test("mobile French recusals preserve explicit qualification and show a real ref
   const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   const item = await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
-  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
   await sirenProperties(
     await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
@@ -402,7 +401,6 @@ test("records a secretary handover, other persons present and shows the ballot c
   const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
-  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
   await sirenProperties(
     await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
@@ -483,7 +481,6 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
       data: { kind: "openQuestion", councilBusinessId: businesses[0]!.id, position: 2 },
     }),
   );
-  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
   await page.goto(`/app/meetings/${meeting.id}/live`);
   await inspectInitialRollCall(page, meeting.id);
@@ -701,7 +698,7 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
   await page.screenshot({ path: test.info().outputPath("added-open-question-minutes.png"), animations: "disabled" });
 });
 
-test("shows canonical meeting entry requirements and invalidates entry when the agenda is reopened", async ({
+test("shows canonical meeting entry requirements and blocks entry again when the agenda is revised", async ({
   appPage: page,
 }) => {
   test.setTimeout(90_000);
@@ -725,21 +722,17 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   );
   await page.goto(detailUrl);
   await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
-  await expect(page.getByTestId("meeting-entry-blocker-agendaNotFrozen")).toBeVisible();
-  await expect(page.getByTestId("meeting-entry-blocker-currentNoticeMissing")).toBeVisible();
+  await expect(page.getByTestId("meeting-entry-blocker-agendaRevisionOpen")).toBeVisible();
   await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   await expect(page.getByTestId("live-meeting-start")).toHaveCount(0);
   await page.getByTestId("live-return-preparation").click();
-  const frozen = page.waitForResponse(
-    (response) => response.request().method() === "POST" && response.url().endsWith("/agenda-freeze"),
+  const established = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
   );
-  await page.getByTestId("meeting-freeze-agenda").click();
-  expect((await frozen).ok()).toBeTruthy();
   await page.getByTestId("meeting-generate-notice").click();
-  await expect(page.getByTestId("document-object-viewer")).toBeVisible();
-  await page.getByTestId("document-object-viewer-close").click();
+  expect((await established).ok()).toBeTruthy();
   await expect(page.getByTestId("meeting-live-entry-reason")).toHaveCount(0);
   await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "done");
   await page.getByTestId("meeting-enter-live").click();
@@ -747,11 +740,10 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   await expect(page.getByTestId("meeting-entry-blocker-scheduledTimeNotReached")).toBeVisible();
   await expect(page.getByTestId("live-meeting-start")).toBeDisabled();
   await page.getByTestId("live-meeting-exit").click();
-  await page.getByTestId("meeting-reopen-agenda").click();
-  await expect(page.getByTestId("meeting-freeze-agenda")).toBeVisible();
+  await page.getByTestId("meeting-revise-agenda").click();
+  await expect(page.getByTestId("meeting-generate-notice")).toBeVisible();
   await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
-  await expect(page.getByTestId("meeting-entry-blocker-agendaNotFrozen")).toBeVisible();
-  await expect(page.getByTestId("meeting-entry-blocker-currentNoticeMissing")).toBeVisible();
+  await expect(page.getByTestId("meeting-entry-blocker-agendaRevisionOpen")).toBeVisible();
   await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
@@ -855,7 +847,6 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
     await page.request.get(`/api/council-business/${businesses[0]!.id}`),
   );
   expect(proposal.subject.textResourceId).not.toBe(business.reportResourceId);
-  await page.getByTestId("meeting-freeze-agenda").click();
   await expect(page.getByTestId("meeting-generate-notice")).toBeVisible();
   const noticeResponse = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
@@ -1259,7 +1250,6 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
       data: { scheduledAt: new Date(Date.now() - 60_000).toISOString(), location: "E2E minutes without quorum" },
     }),
   );
-  await sirenProperties(await page.request.post(`/api/council-meetings/${nextId}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${nextId}/notices`, { data: {} }));
   await page.goto(`/app/meetings/${nextId}/live`);
   for (const [index, member] of members.entries()) {
@@ -1417,7 +1407,6 @@ test("uploads a written proxy and selects the created documentary resource", asy
   );
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
-  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
   await page.goto(`/app/meetings/${meeting.id}/live`);
   await page.getByTestId("live-attendance-all-present").click();
@@ -1545,7 +1534,6 @@ test("records the second convocation from the conduct of a meeting opened withou
   ).filter((member) => member.active);
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   const proposal = await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
-  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
 
   await page.goto(`/app/meetings/${meeting.id}/live`);
@@ -1624,7 +1612,6 @@ test("holds the meeting after a second convocation as a new linked meeting under
   ).filter((member) => member.active);
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   const proposal = await scheduleVotingItem(page, first.id, businesses[0]!.id, 1);
-  await sirenProperties(await page.request.post(`/api/council-meetings/${first.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${first.id}/notices`, { data: {} }));
 
   // Roll call without quorum and its finding: the server dates them now, then the fixture moves them to the first meeting.
@@ -1697,7 +1684,6 @@ test("holds the meeting after a second convocation as a new linked meeting under
       },
     }),
   );
-  await sirenProperties(await page.request.post(`/api/council-meetings/${reconvened.id}/agenda-freeze`, { data: {} }));
   await sirenProperties(await page.request.post(`/api/council-meetings/${reconvened.id}/notices`, { data: {} }));
   await page.goto(`/app/meetings/${reconvened.id}`);
   await expect(page.getByTestId("meeting-reconvened-chip")).toBeVisible();

@@ -72,3 +72,15 @@ test("the documents of a closed meeting no longer offer the attendance sheet or 
   await expect(page.getByTestId("meeting-document-attendance-sheet")).toHaveCount(0);
   await expect(page.getByTestId("meeting-document-proxy-form")).toHaveCount(0);
 });
+
+// @verifies-requirement HALL-FR-MTG-390
+test("the documents of a meeting without filed pieces show no attachment row and offer no filing", async ({
+  appPage: page,
+}) => {
+  const meetings = await items<{ id: string; startedAt: string | null }>(page, "/api/council-meetings");
+  const preparing = meetings.find((meeting) => !meeting.startedAt)!;
+  await page.goto(`/app/meetings/${preparing.id}`);
+  await expect(page.getByTestId("meeting-document-notice")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-attachments")).toHaveCount(0);
+  await expect(page.getByTestId("meeting-attachment-upload")).toHaveCount(0);
+});

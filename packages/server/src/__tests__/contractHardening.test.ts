@@ -150,16 +150,19 @@ describe("hardened HTTP and hypermedia contract", () => {
       .send({ kind: "openQuestion", subjectId: subject.id, position: 1 })
       .expect(201);
     const preparation = await rawAgent.get(path).expect(200);
-    expect(actionNames(preparation)).toContain("meeting.freeze-agenda");
+    expect(actionNames(preparation)).toContain("meeting.generate-notice");
+    expect(actionNames(preparation)).not.toContain("meeting.reopen-agenda");
     expect(actionNames(preparation)).not.toContain("meeting.record-opening");
 
     const council = new PostgresCouncil(pool);
     await council.freezeAgenda(context, meeting.id);
     const facts = await council.noticeFacts(context, meeting.id);
-    if (!facts) throw new Error("Frozen notice facts are required");
+    if (!facts) throw new Error("Notice facts of the established revision are required");
     const frozen = await rawAgent.get(path).expect(200);
     expect(actionNames(frozen)).toContain("meeting.generate-notice");
-    expect(actionNames(frozen)).not.toContain("meeting.record-opening");
+    expect(actionNames(frozen)).toContain("meeting.reopen-agenda");
+    expect(actionNames(frozen)).not.toContain("meeting.schedule");
+    expect(actionNames(frozen)).toContain("meeting.record-opening");
     await council.generateNotice(
       context,
       meeting.id,
@@ -236,7 +239,7 @@ describe("hardened HTTP and hypermedia contract", () => {
     const council = new PostgresCouncil(pool);
     await council.freezeAgenda(context, meeting.id);
     const facts = await council.noticeFacts(context, meeting.id);
-    if (!facts) throw new Error("Frozen notice facts are required");
+    if (!facts) throw new Error("Notice facts of the established revision are required");
     await council.generateNotice(
       context,
       meeting.id,

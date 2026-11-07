@@ -268,7 +268,6 @@ for (const [device, viewport] of [
             secretaryMemberId: members[1]!.id,
           },
         ],
-        ["post", `/api/council-meetings/${meeting.id}/agenda-freeze`, {}],
         ["post", `/api/council-meetings/${meeting.id}/notices`, {}],
       ] as const) {
         const response =

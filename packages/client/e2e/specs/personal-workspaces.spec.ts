@@ -438,7 +438,6 @@ test("gives council members read access and a personal folder that only they and
       }),
     );
     await admin.goto(`/app/meetings/${scheduled.slug}`);
-    await admin.getByTestId("meeting-freeze-agenda").click();
     const notice = admin.waitForResponse(
       (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
     );

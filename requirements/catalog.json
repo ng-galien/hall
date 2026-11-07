@@ -7469,17 +7469,18 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-06"
+        "since": "2026-11-07"
       },
-      "statement": "Le gel conserve une copie des questions et de leur ordre, indépendante des modifications ultérieures du dossier.",
+      "statement": "Une révision établie de l’ordre du jour conserve une copie des points et de leur ordre, indépendante des modifications ultérieures du dossier.",
       "acceptanceCriteria": [
-        "Le gel conserve une copie des questions et de leur ordre, indépendante des modifications ultérieures du dossier."
+        "Une révision établie conserve une copie des points programmés, de leur position, de leur numéro et de leur titre ; renommer ou modifier une affaire ensuite ne change pas cette copie.",
+        "Le numéro d’une révision est son rang parmi les révisions établies de la séance, par heure d’établissement ; la révision ouverte porte le numéro suivant ; une séance naît en révision 1 ouverte."
       ],
       "clauses": [
         {
-          "key": "implementation",
+          "key": "owner-request",
           "origin": "product",
-          "statement": "Le gel conserve une copie des questions et de leur ordre, indépendante des modifications ultérieures du dossier.",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
           "sourceIds": []
         }
       ]
@@ -7489,17 +7490,20 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-06"
+        "since": "2026-11-07"
       },
-      "statement": "Le gel interdit la recomposition tout en permettant la conduite et l’ajournement formel.",
+      "statement": "Sous une révision établie, l’ordre du jour, la date et le lieu de la séance ne se modifient plus ; la conduite et l’ajournement formel restent possibles.",
       "acceptanceCriteria": [
-        "Le gel interdit la recomposition tout en permettant la conduite et l’ajournement formel."
+        "Sous une révision établie, l’inscription, le retrait, le réordonnancement et le déplacement d’un point sont refusés (HV801), ainsi que le changement de date ou de lieu de la séance.",
+        "La question diverse ajoutée en séance, le report à la clôture et l’ajournement en séance restent possibles.",
+        "La désignation du président et du secrétaire de séance reste possible sous une révision établie.",
+        "L’interface ne présente ces modifications qu’en révision ouverte ; « Réviser » est la seule action offerte sous une révision établie pour les rendre de nouveau possibles."
       ],
       "clauses": [
         {
-          "key": "implementation",
+          "key": "owner-request",
           "origin": "product",
-          "statement": "Le gel interdit la recomposition tout en permettant la conduite et l’ajournement formel.",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
           "sourceIds": []
         }
       ]
@@ -7529,17 +7533,17 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-06"
+        "since": "2026-11-07"
       },
-      "statement": "Le gel est une action explicite sur une séance programmée non commencée, avec au moins un point.",
+      "statement": "Une révision ne s’établit que sur une séance non commencée qui a une date, un lieu et au moins un point programmé.",
       "acceptanceCriteria": [
-        "Le gel est une action explicite sur une séance programmée non commencée, avec au moins un point."
+        "L’établissement d’une révision est refusé (HV803) sur une séance commencée, sans date, sans lieu, sans point programmé ou dont la révision est déjà établie."
       ],
       "clauses": [
         {
-          "key": "implementation",
+          "key": "owner-request",
           "origin": "product",
-          "statement": "Le gel est une action explicite sur une séance programmée non commencée, avec au moins un point.",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
           "sourceIds": []
         }
       ]
@@ -7549,17 +7553,17 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-06"
+        "since": "2026-11-07"
       },
-      "statement": "Une génération conserve un PDF et ses faits sans déclarer un envoi, une publication ou une réception.",
+      "statement": "Une génération de convocation conserve un PDF et ses faits, liés à la révision établie, sans déclarer un envoi, une publication ou une réception.",
       "acceptanceCriteria": [
-        "Une génération conserve un PDF et ses faits sans déclarer un envoi, une publication ou une réception."
+        "Chaque génération conserve un PDF, ses faits et la révision à laquelle il appartient ; Hall n’enregistre ni envoi, ni publication, ni réception."
       ],
       "clauses": [
         {
-          "key": "implementation",
+          "key": "owner-request",
           "origin": "product",
-          "statement": "Une génération conserve un PDF et ses faits sans déclarer un envoi, une publication ou une réception.",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
           "sourceIds": []
         }
       ]
@@ -7569,17 +7573,18 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-06"
+        "since": "2026-11-07"
       },
-      "statement": "La convocation est générée pendant la préparation à partir de l’ordre du jour figé.",
+      "statement": "La convocation est générée pendant la préparation, à partir de l’ordre du jour, de la date et du lieu de la révision qu’elle établit ou de la révision déjà établie.",
       "acceptanceCriteria": [
-        "La convocation est générée pendant la préparation à partir de l’ordre du jour figé."
+        "La génération est refusée (HV804) après l’ouverture de la séance.",
+        "Les faits de la convocation sont ceux de la révision : points, date et lieu."
       ],
       "clauses": [
         {
-          "key": "implementation",
+          "key": "owner-request",
           "origin": "product",
-          "statement": "La convocation est générée pendant la préparation à partir de l’ordre du jour figé.",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
           "sourceIds": []
         }
       ]
@@ -7666,17 +7671,18 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-07"
+        "since": "2026-11-07"
       },
-      "statement": "Le démarrage exige un PDF généré correspondant à l’ordre du jour figé et aux propriétés imprimées courantes de la séance.",
+      "statement": "L’ouverture de la séance exige une révision établie de l’ordre du jour.",
       "acceptanceCriteria": [
-        "Le démarrage exige un PDF généré correspondant à l’ordre du jour figé et aux propriétés imprimées courantes de la séance."
+        "En révision ouverte, l’ouverture est refusée (HV811) et la séance présente le blocage « Révision de l’ordre du jour ouverte : convocation à générer » (agendaRevisionOpen).",
+        "Après l’ouverture, l’ordre du jour de la séance est celui de la dernière révision établie."
       ],
       "clauses": [
         {
-          "key": "implementation",
+          "key": "owner-request",
           "origin": "product",
-          "statement": "Le démarrage exige un PDF généré correspondant à l’ordre du jour figé et aux propriétés imprimées courantes de la séance.",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
           "sourceIds": []
         }
       ]
@@ -7686,17 +7692,25 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-09-07"
+        "since": "2026-11-07"
       },
-      "statement": "Avant le début de séance, une réouverture explicite permet de modifier et figer à nouveau l’ordre du jour, en conservant tous les PDF précédents.",
+      "statement": "Avant l’ouverture de la séance, « Réviser » ouvre la révision suivante, modifiable ; les révisions établies précédentes et leurs convocations restent consultables.",
       "acceptanceCriteria": [
-        "Avant le début de séance, une réouverture explicite permet de modifier et figer à nouveau l’ordre du jour, en conservant tous les PDF précédents."
+        "« Réviser » est refusé (HV808) après l’ouverture ou sans révision établie.",
+        "La séance liste une convocation par révision établie, la dernière générée sous elle, avec « Convocation n° k, révision k établie le … » ; chacune s’ouvre et son courriel reste téléchargeable.",
+        "Le courriel de la convocation de la révision établie joint le dossier de séance ; celui d’une révision précédente joint la seule convocation."
       ],
       "clauses": [
         {
-          "key": "implementation",
+          "key": "owner-request",
           "origin": "product",
-          "statement": "Avant le début de séance, une réouverture explicite permet de modifier et figer à nouveau l’ordre du jour, en conservant tous les PDF précédents.",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-history",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Il y a plusieurs convocations, on regarde : telle révision, telle révision, avec les dates. Et puis c’est tout. Dans tout le cycle d’après, on est sur l’ordre du jour actuel, qui est la dernière révision. Faut pas complexifier. »",
           "sourceIds": []
         }
       ]
@@ -7746,9 +7760,9 @@
         "state": "accepted",
         "since": "2026-10-28"
       },
-      "statement": "Une fois l’ordre du jour figé, Hall produit à la demande le dossier de séance : un PDF unique qui réunit l’ordre du jour figé puis, point par point dans l’ordre de la séance, le rapport, le texte du projet ou de la question et les pièces de l’affaire.",
+      "statement": "Une fois une révision de l’ordre du jour établie, Hall produit à la demande le dossier de séance : un PDF unique qui réunit l’ordre du jour de cette révision puis, point par point dans l’ordre de la séance, le rapport, le texte du projet ou de la question et les pièces de l’affaire.",
       "acceptanceCriteria": [
-        "Le dossier est proposé dans les pièces de séance d’une séance à l’ordre du jour figé et refusé avant le gel par un message nommé.",
+        "Le dossier est proposé dans les documents d’une séance dont la révision est établie et refusé en révision ouverte par un message nommé.",
         "Les pièces PDF sont insérées à la suite de leur point ; les autres pièces sont nommées avec la mention « consultable dans Hall ».",
         "Le dossier n’est pas conservé : il reflète les pièces des affaires au moment où il est produit.",
         "Le courriel de convocation préparé pour Outlook joint le dossier après la convocation."
@@ -8271,7 +8285,7 @@
       },
       "statement": "Une question ouverte peut être ajoutée à la fin d’une séance en cours sans créer de délibération ni de scrutin.",
       "acceptanceCriteria": [
-        "Une question ouverte peut être ajoutée en fin d’ordre du jour tant que la séance est ouverte, y compris sans quorum ou après examen de tous les points. L’ajout est horodaté, immuable, identifié dans le PV et distinct de la convocation gelée. Il n’introduit aucune délibération ni scrutin.",
+        "Une question ouverte peut être ajoutée en fin d’ordre du jour tant que la séance est ouverte, y compris sans quorum ou après examen de tous les points. L’ajout est horodaté, immuable, identifié dans le PV et distinct de la convocation de la révision établie. Il n’introduit aucune délibération ni scrutin.",
         "Cette question est créée depuis la conduite de la séance. Elle ne réutilise pas un projet de délibération ou une question préparée dans l’espace de travail et n’est pas rattachée à leur affaire du conseil."
       ],
       "clauses": [
@@ -10877,9 +10891,9 @@
       "statement": "La page d’une séance rassemble ses documents dans une section repliable « Documents de la séance » : une ligne par document, avec son nom, son état et les actions que la représentation Siren offre à l’utilisateur.",
       "acceptanceCriteria": [
         "La section apparaît dans la vue de préparation, la vue d’une séance en cours et le compte rendu d’une séance close ; elle est dépliée à l’ouverture de la page et se replie par son titre.",
-        "Les lignes suivent cet ordre : Convocation, Dossier de séance (en préparation), Pièces jointes, Feuille d’émargement et Pouvoir (en préparation et en cours), puis, après clôture, Procès-verbal, Liste des délibérations et Délibérations.",
-        "La ligne Convocation indique l’ordre du jour à figer, le PDF à générer ou la version courante avec sa date ; elle porte les actions figer ou modifier l’ordre du jour, générer ou régénérer le PDF, ouvrir la version courante ou une version antérieure, et télécharger le courriel aux conseillers, chacune seulement quand Siren l’offre.",
-        "La ligne Pièces jointes liste les pièces rattachées à la séance avec leur catégorie et leur taille, chacune consultable ; le dépôt d’une pièce n’apparaît qu’en préparation et quand Siren offre resource.create-document.",
+        "Les lignes suivent cet ordre : Convocation, Dossier de séance (en préparation), Pièces jointes (seulement si la séance a des pièces déposées), Feuille d’émargement et Pouvoir (en préparation et en cours), puis, après clôture, Procès-verbal, Liste des délibérations et Délibérations.",
+        "La ligne Convocation indique la révision ouverte et la convocation à générer, ou la convocation de la révision établie avec la date de son PDF ; sous une révision établie elle porte « Ouvrir », « Régénérer le PDF » et « Télécharger le courriel », chacune seulement quand Siren l’offre, et elle liste les convocations des révisions précédentes.",
+        "La ligne Pièces jointes n’apparaît que si la séance a des pièces déposées : elle les liste avec leur catégorie et leur taille, chacune avec « Ouvrir » ; la section n’offre pas de dépôt de pièce.",
         "Après clôture, la ligne Procès-verbal indique brouillon ou document généré et mène à sa page ; la ligne Délibérations liste les points délibérés, chacun avec le lien vers sa délibération.",
         "Un conseiller voit les mêmes lignes et ouvre ou génère les PDF en lecture ; les actions d’écriture n’apparaissent que si la capacité existe. À 800 px de large, la section ne déborde pas de la page."
       ],
@@ -10894,6 +10908,96 @@
           "key": "owner-precision",
           "origin": "product",
           "statement": "Mots d’Alexandre du 7 novembre 2026 : « faut pas que ça prenne toute la page, faut que ça soit une section, à la rigueur collapsible, qu’on puisse aller consulter les documents. On a la liste des documents, l’état, et si on peut les générer. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-attachments",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 7 novembre 2026 : la ligne « Pièces jointes » n’offre plus de dépôt et n’apparaît que si la séance a déjà des pièces déposées, qu’elle liste avec « Ouvrir ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-140": {
+      "name": "ESTABLISHED_REVISION_CARRIES_DATE_AND_LOCATION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "Une révision établie porte la date et le lieu de la séance au moment de son établissement ; date et lieu ne se modifient qu’en révision ouverte.",
+      "acceptanceCriteria": [
+        "L’établissement d’une révision enregistre ses points, la date et le lieu de la séance.",
+        "En révision ouverte, « Propriétés générales » modifie date, lieu et officiers ; sous une révision établie, il affiche date et lieu de la révision et ne modifie que les officiers.",
+        "L’en-tête de la séance affiche « Révision n ouverte » ou « Révision n établie le … · Convocation n° n »."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-schedule",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Date et lieu doivent faire partie de la révision, modifiables seulement sur une révision ; au niveau de l’IHM, ce rattachement doit être beaucoup plus visible. »",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-150": {
+      "name": "AGENDA_REVISION_RESET_RESTORES_THE_LAST_ESTABLISHED_REVISION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "« Réinitialiser la révision » ramène l’ordre du jour, la date et le lieu d’une révision ouverte à ceux de la dernière révision établie ; la révision reste ouverte.",
+      "acceptanceCriteria": [
+        "L’action n’est offerte qu’en révision ouverte, avant l’ouverture de la séance, quand une révision établie la précède ; sinon elle est refusée (HV812).",
+        "Les points de la révision établie reprennent leur position ; les autres points de la séance sont déprogrammés ; la date et le lieu reprennent ceux de la révision établie.",
+        "Si un point de la révision établie est inscrit à une autre séance, l’action échoue sans rien modifier (HV813, problème agenda_revision_item_moved) et l’interface nomme ce point."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-reset",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « On engage une révision ; si on la reset, on revient au début. »",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-NOT-160": {
+      "name": "NOTICE_GENERATION_ESTABLISHES_THE_REVISION_AND_REGENERATES_UNDER_IT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "« Générer la convocation » établit la révision ouverte et produit sa convocation en une seule action ; sous une révision établie, le PDF se régénère à volonté sous la même révision.",
+      "acceptanceCriteria": [
+        "En révision ouverte, la génération établit la révision et enregistre la convocation dans la même transaction ; si la génération échoue, aucune révision n’est établie.",
+        "Sous une révision établie, « Régénérer le PDF » ajoute une version de la convocation liée à la même révision ; la séance présente la dernière.",
+        "La convocation n porte le numéro de sa révision."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-regenerate",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « On peut régénérer le PDF autant de fois qu’on veut, seulement quand on a figé. »",
           "sourceIds": []
         }
       ]

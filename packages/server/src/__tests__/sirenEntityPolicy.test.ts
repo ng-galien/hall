@@ -478,11 +478,11 @@ describe("meeting opening preparation capabilities", () => {
     scheduledAt: "2026-01-01T18:00:00Z",
     startedAt: null,
     closedAt: null,
-    currentNoticeId: "notice",
+    agendaRevision: { number: 1, establishedAt: "2026-01-01T10:00:00Z", noticeId: "notice" },
   };
   it("uses SQL opening blockers even when a notice is present", () => {
     const actions = objectActions(request(path), "council-meeting", {
-      meeting: { ...meeting, openingBlockers: [{ code: "agendaNotFrozen" }] },
+      meeting: { ...meeting, openingBlockers: [{ code: "agendaRevisionOpen" }] },
     });
     expect(actions.some((action) => action.name === "meeting.record-opening")).toBe(false);
   });

@@ -213,8 +213,6 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
   });
   expect(scheduledMeeting.ok(), await scheduledMeeting.text()).toBeTruthy();
 
-  const freeze = await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} });
-  expect(freeze.ok(), await freeze.text()).toBeTruthy();
   const notice = await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} });
   expect(notice.status(), await notice.text()).toBe(201);
 

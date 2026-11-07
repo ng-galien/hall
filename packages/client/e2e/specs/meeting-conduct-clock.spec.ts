@@ -46,7 +46,6 @@ for (const [label, offset] of [
         data: { kind: "openQuestion", councilBusinessId: businesses[0]!.id, position: 1 },
       }),
     );
-    await properties(await page.request.post(`/api/council-meetings/${scheduled.slug}/agenda-freeze`, { data: {} }));
     await properties(await page.request.post(`/api/council-meetings/${scheduled.slug}/notices`, { data: {} }));
 
     const refusals: string[] = [];

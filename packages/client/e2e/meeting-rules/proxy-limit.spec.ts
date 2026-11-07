@@ -47,7 +47,6 @@ async function holdMeetingWithProxy(
       },
     }),
   );
-  await properties(await page.request.post(`/api/council-meetings/${meeting.id}/agenda-freeze`, { data: {} }));
   await properties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
   await switchAccount(page, "conduite");
   await properties(

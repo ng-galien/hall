@@ -164,11 +164,10 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
         ordinaryReference: { deadlineDate: "2026-09-07", clearDays: 3 },
       });
       expect(before.actions.map((a: { name: string }) => a.name)).not.toContain("meeting.record-opening");
-      await json(`/council-meetings/${meeting.id}/agenda-freeze`, "POST", {});
       const notice = (await json(`/council-meetings/${meeting.id}/notices`, "POST", {}, 201)).properties;
       expect(notice).toMatchObject({
         version: 1,
-        isCurrent: true,
+        revision: 1,
         facts: {
           meeting: {
             agenda: [
@@ -230,15 +229,23 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
       });
       await json(`/council-meetings/${meeting.id}/notice-message`, "POST", { noticeId: notice.id }, 409);
       await pool.query("UPDATE hall.contact SET email='benoit@example.test' WHERE first_name='Benoît'");
+      const regenerated = (await json(`/council-meetings/${meeting.id}/notices`, "POST", {}, 201)).properties;
+      expect(regenerated).toMatchObject({ version: 2, revision: 1 });
       await json(`/council-meetings/${meeting.id}/agenda-reopening`, "POST", {});
-      await json(`/council-meetings/${meeting.id}/notice-message`, "POST", { noticeId: notice.id }, 409);
-      expect((await json(`/meeting-notices/${notice.id}`)).properties.isCurrent).toBe(false);
+      // The notice of an established revision stays exportable after revising, without the dossier.
+      const previousMessage = await fetch(`${server.url}/api/council-meetings/${meeting.id}/notice-message`, {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: server.url },
+        body: JSON.stringify({ noticeId: notice.id }),
+      });
+      expect(previousMessage.status).toBe(200);
+      expect(Buffer.from(await previousMessage.arrayBuffer()).toString()).not.toContain("dossier-seance-");
       await pool.query(
         "SELECT hall_api.schedule_council_meeting($1,TIMESTAMPTZ '2026-01-01 18:00:00+00','Salle du conseil')",
         [meeting.id],
       );
-      await json(`/council-meetings/${meeting.id}/agenda-freeze`, "POST", {});
-      await json(`/council-meetings/${meeting.id}/notices`, "POST", {}, 201);
+      const second = (await json(`/council-meetings/${meeting.id}/notices`, "POST", {}, 201)).properties;
+      expect(second).toMatchObject({ version: 3, revision: 2 });
       const memberIds = preparation.recipients.map((r: { councilMemberId: string }) => r.councilMemberId);
       const opening = {
         chairMemberId: memberIds[0],

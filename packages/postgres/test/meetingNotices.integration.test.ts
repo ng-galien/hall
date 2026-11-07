@@ -3,7 +3,7 @@ import { PostgresCouncil, type PostgresCouncilRequest } from "../src/council.js"
 import { PostgresResources } from "../src/resources.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
 
-postgresDescribe("frozen meeting agenda documents", () => {
+postgresDescribe("agenda revision documents", () => {
   const pool = createTestPool();
   const council = new PostgresCouncil(pool);
   useFreshHallDatabase(pool);
@@ -16,7 +16,7 @@ postgresDescribe("frozen meeting agenda documents", () => {
       roles: ["administrator"],
     },
   };
-  it("freezes actual ordered questions, guards composition and retains immutable PDF versions with observed facts", async () => {
+  it("establishes actual ordered questions, guards the revision and retains immutable PDF versions per revision", async () => {
     const meeting = await council.provisionInitialMeeting(request, {});
     await expect(council.freezeAgenda(request, meeting.id)).rejects.toMatchObject({ sqlState: "HV803" });
     await council.scheduleMeeting(request, {
@@ -41,7 +41,7 @@ postgresDescribe("frozen meeting agenda documents", () => {
         id: meeting.id,
         number: 1,
         scheduledAt: "2026-09-10T18:00:00Z",
-        location: "Council chamber",
+        location: "Elsewhere",
         agendaFrozenAt: "2026-09-06T12:00:00Z",
         agenda: [
           {
@@ -58,9 +58,11 @@ postgresDescribe("frozen meeting agenda documents", () => {
     };
     await expect(
       council.generateNotice(request, meeting.id, unfrozenFacts, Buffer.from("%PDF-test")),
-    ).rejects.toMatchObject({ sqlState: "HV804" });
+    ).rejects.toMatchObject({ sqlState: "HV805" });
+    expect((await pool.query("SELECT count(*)::int n FROM hall.council_agenda_freeze")).rows[0].n).toBe(0);
     const frozen = await council.freezeAgenda(request, meeting.id);
-    expect(frozen.agendaFrozenAt).not.toBeNull();
+    expect(frozen.agendaRevision).toMatchObject({ number: 1, noticeId: null });
+    expect(frozen.agendaRevision.establishedAt).not.toBeNull();
     expect((await council.openAgendaFreeze(request, meeting.id))?.agenda).toEqual([
       { id: item.id, position: 1, agendaNumber: 1, kind: "openQuestion", title: "Lighting & safety" },
     ]);
@@ -83,7 +85,18 @@ postgresDescribe("frozen meeting agenda documents", () => {
       sqlState: "HV806",
     });
     const first = await council.generateNotice(request, meeting.id, facts, Buffer.from("%PDF-first"));
-    expect(first).toMatchObject({ version: 1, isCurrent: true, facts });
+    expect(first).toMatchObject({ version: 1, revision: 1, facts });
+    await expect(
+      council.scheduleMeeting(request, {
+        id: meeting.id,
+        scheduledAt: "2026-09-11T18:00:00Z",
+        location: "New chamber",
+      }),
+    ).rejects.toMatchObject({ sqlState: "HV801" });
+    const regenerated = await council.generateNotice(request, meeting.id, facts, Buffer.from("%PDF-first-again"));
+    expect(regenerated).toMatchObject({ version: 2, revision: 1 });
+    expect((await council.listNotices(request, meeting.id)).map((notice) => notice.version)).toEqual([2]);
+    await council.reopenAgenda(request, meeting.id);
     await council.scheduleMeeting(request, {
       id: meeting.id,
       scheduledAt: "2026-09-11T18:00:00Z",
@@ -92,12 +105,15 @@ postgresDescribe("frozen meeting agenda documents", () => {
     await expect(council.generateNotice(request, meeting.id, facts, Buffer.from("%PDF-stale"))).rejects.toMatchObject({
       sqlState: "HV805",
     });
-    expect((await council.openNotice(request, first.id))?.isCurrent).toBe(false);
     expect(await council.noticeContent(request, first.id)).toEqual(Buffer.from("%PDF-first"));
-    const current = { ...facts, meeting: (await council.noticeFacts(request, meeting.id))! };
+    const current = { ...facts, meeting: (await council.noticeDraftFacts(request, meeting.id))! };
     const second = await council.generateNotice(request, meeting.id, current, Buffer.from("%PDF-second"));
-    expect(second).toMatchObject({ version: 2, isCurrent: true });
-    expect(await council.listNotices(request, meeting.id)).toHaveLength(2);
+    expect(second).toMatchObject({ version: 3, revision: 2 });
+    expect((await council.openMeeting(request, meeting.id))?.agendaRevision).toMatchObject({
+      number: 2,
+      noticeId: second.id,
+    });
+    expect((await council.listNotices(request, meeting.id)).map((notice) => notice.revision)).toEqual([2, 1]);
     await expect(pool.query("DELETE FROM hall.meeting_notice")).rejects.toMatchObject({ code: "HV802" });
     expect((await pool.query("SELECT count(*)::int n FROM hall.minutes")).rows[0].n).toBe(0);
   });

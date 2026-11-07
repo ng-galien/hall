@@ -59,17 +59,14 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
     .scrollIntoViewIfNeeded();
   await shot("04-point-inscrit");
 
-  await page.getByTestId("meeting-documents").scrollIntoViewIfNeeded();
-  await expect(page.getByTestId("meeting-freeze-agenda")).toBeVisible();
-  await shot("05-figer-ordre-du-jour");
-  await page.getByTestId("meeting-freeze-agenda").click();
+  await page.getByTestId("meeting-agenda-revision").scrollIntoViewIfNeeded();
   await expect(page.getByTestId("meeting-generate-notice")).toBeVisible();
-  await shot("06-generer-convocation");
+  await shot("05-revision-ouverte");
   await page.getByTestId("meeting-generate-notice").click();
-  await expect(page.getByText("Visionneuse de document")).toBeVisible({ timeout: 60_000 });
-  await page.keyboard.press("Escape");
-  await expect(page.getByText("Visionneuse de document")).toBeHidden();
-  await expect(page.getByRole("button", { name: /Télécharger le courriel Outlook/ })).toBeVisible();
+  await expect(page.getByTestId("meeting-revise-agenda")).toBeVisible({ timeout: 60_000 });
+  await shot("06-revision-etablie");
+  await page.getByTestId("meeting-documents").scrollIntoViewIfNeeded();
+  await expect(page.getByTestId("meeting-export-notice-message")).toBeVisible();
   await shot("07-convocation-generee");
   await expect(page.getByTestId("meeting-dossier-download")).toBeVisible();
   await shot("07b-dossier-de-seance");

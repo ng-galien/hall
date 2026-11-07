@@ -35,7 +35,6 @@ test("Hall sur un téléphone : séance, appel et vote", async ({ docsPage: page
         secretaryMemberId: await conductMemberId(page),
       },
     ],
-    ["post", `/api/council-meetings/${meeting.id}/agenda-freeze`, {}],
     ["post", `/api/council-meetings/${meeting.id}/notices`, {}],
   ] as const) {
     const response =

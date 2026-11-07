@@ -339,10 +339,9 @@ test("document previews share a contextual frame in both themes without changing
       await noticesLoaded;
       const noticeButtons = page.getByTestId("meeting-notice-open");
       if (!(await noticeButtons.count())) {
-        const freezeAgenda = page.getByTestId("meeting-freeze-agenda");
-        if (await freezeAgenda.isVisible()) await freezeAgenda.click();
         await page.getByTestId("meeting-generate-notice").click();
-      } else await noticeButtons.first().click();
+      }
+      await noticeButtons.first().click();
       await pdfDigest(page, page.getByTestId("document-object-frame"));
       observations.push(await aligned(page, page.getByTestId("document-object-viewer"), `notice-${tone}`));
       await page.getByTestId("document-object-viewer-close").click();

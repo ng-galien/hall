@@ -17,8 +17,8 @@ SELECT hall_api.create_and_schedule_council_decision_proposal('seed','Voting fix
 CREATE FUNCTION pg_temp.opening_declarations(present_count integer) RETURNS jsonb LANGUAGE sql AS $$
  SELECT jsonb_agg(jsonb_build_object('council_member_id',test_uuid('opening:member:'||n),'status',CASE WHEN n<=present_count THEN 'present' ELSE 'absent' END)) FROM generate_series(1,15)n;
 $$;
-SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),pg_temp.opening_declarations(15),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV807',NULL,'atomic opening still requires the generated current notice');
-SELECT is((SELECT count(*)::int FROM meeting_membership_record),0,'missing notice leaves no membership snapshot');
+SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),pg_temp.opening_declarations(15),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV811',NULL,'atomic opening requires an established agenda revision');
+SELECT is((SELECT count(*)::int FROM meeting_membership_record),0,'an open revision leaves no membership snapshot');
 SELECT hall_api.freeze_council_agenda(test_uuid('opening:meeting'));
 SELECT hall_api.generate_meeting_notice(test_uuid('opening:meeting'),jsonb_build_object('meeting',hall.meeting_notice_meeting_facts(test_uuid('opening:meeting')),'hall',jsonb_build_object('name','Commune','timeZone','Europe/Paris')),convert_to('%PDF-opening','UTF8'));
 SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),pg_temp.opening_declarations(15)-2,test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV137',NULL,'omitting an absent active member cannot shrink the electorate');

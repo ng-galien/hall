@@ -99,7 +99,10 @@ postgresDescribe("prepared subjects and atomic insertion", () => {
     ]);
     expect(await council.listPreparedSubjects(request, meeting.id)).toEqual([]);
     await council.reopenAgenda(request, meeting.id);
-    expect((await council.openMeeting(request, meeting.id))?.agendaFrozenAt).toBeNull();
+    expect((await council.openMeeting(request, meeting.id))?.agendaRevision).toMatchObject({
+      number: 2,
+      establishedAt: null,
+    });
     expect((await pool.query("SELECT count(*)::int n FROM hall.council_agenda_freeze")).rows[0].n).toBe(1);
   });
 });

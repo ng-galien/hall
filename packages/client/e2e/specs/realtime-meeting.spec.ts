@@ -49,7 +49,6 @@ test("a second conducting session receives conduct events, keeps its selection a
   const second = await scheduleItem(businesses[1]!.id, 2);
 
   await conductor.goto(`/app/meetings/${scheduled.slug}`);
-  await conductor.getByTestId("meeting-freeze-agenda").click();
   const noticeResponse = conductor.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
   );
