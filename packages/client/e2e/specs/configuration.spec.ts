@@ -88,12 +88,24 @@ test("configuration categories preserve mail settings and expose editable genera
 });
 
 // @verifies-requirement HALL-FR-CFG-020
-test("all nine templates preview real Alésia data with saved presentation", async ({ appPage: page }) => {
+test("all default templates preview real Alésia data with saved presentation", async ({ appPage: page }) => {
   const listing = await page.request.get("/api/templates");
   const templates = (await listing.json()).entities.map(
     (entry: { properties: Record<string, unknown> }) => entry.properties,
   );
-  expect(templates).toHaveLength(9);
+  expect(templates.map(({ documentType, kind }) => `${documentType}:${kind}`).sort()).toEqual([
+    "attendance-sheet:pdf",
+    "council-decision:pdf",
+    "deliberation-list:pdf",
+    "document-print:pdf",
+    "event-invitation:message",
+    "meeting-dossier-cover:pdf",
+    "meeting-dossier-point:pdf",
+    "meeting-notice-message:message",
+    "meeting-notice:pdf",
+    "minutes:pdf",
+    "proxy-form:pdf",
+  ]);
   for (const template of templates) {
     const response = await page.request.post("/api/templates/preview", { data: { ...template, context: {} } });
     expect(response.ok(), JSON.stringify(await response.json())).toBeTruthy();

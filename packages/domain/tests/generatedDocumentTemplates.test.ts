@@ -38,7 +38,12 @@ describe("canonical document template catalogue", () => {
     if (kind === "pdf") {
       expect(template.subject).toBeNull();
       expect(template.stylesheet).toContain("break-after: avoid");
-      expect(template.headerHtml).toContain("{{ hall.name | text }}");
+      if (type === "proxy-form") {
+        expect(template.headerHtml).toBe("");
+        expect(template.bodyMarkdown).toMatch(/^Commune .*\{\{ commune \| text \}\}/m);
+      } else {
+        expect(template.headerHtml).toContain("{{ hall.name | text }}");
+      }
       expect(template.footerHtml).toContain(":page-number / :page-count");
     } else {
       expect(template.stylesheet).toBe("");

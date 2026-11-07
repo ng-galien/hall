@@ -141,6 +141,7 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
     await page.getByTestId(`business-subject-rename-${subject.id}`).click();
     const renameInput = page.getByTestId(`business-subject-rename-${subject.id}-name`);
     await expect(renameInput).toBeVisible();
+    await expect(page.getByTestId("business-create-subject")).toBeVisible();
     const tableHeightBeforeConflict = await page
       .getByTestId("business-subject-table")
       .evaluate((element) => element.clientHeight);
@@ -155,6 +156,7 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
     await expect(renameError).toBeVisible();
     await expect(renameError).toContainText(/already has this name|porte déjà ce nom/);
     expect(await renameError.evaluate((element) => getComputedStyle(element).position)).toBe("absolute");
+    await expect(page.getByTestId("business-create-subject")).toBeVisible();
     expect(await page.getByTestId("business-subject-table").evaluate((element) => element.clientHeight)).toBe(
       tableHeightBeforeConflict,
     );
@@ -499,6 +501,13 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
   const grid = page.getByTestId("spreadsheet-grid");
   await expect(grid).toBeVisible({ timeout: 15_000 });
   await expect(grid).toHaveAttribute("aria-readonly", "false");
+  await expect
+    .poll(() =>
+      grid
+        .locator("canvas")
+        .evaluateAll((canvases) => Math.max(...canvases.map((canvas) => canvas.getBoundingClientRect().height))),
+    )
+    .toBeGreaterThan(200);
   // Opening the workbook publishes Univer's normalized snapshot, which the editor autosaves before any edit.
   await expect(page.getByTestId("spreadsheet-editor")).toHaveAttribute("data-save-status", "saved");
   await page.route("**/api/resources/*/content", async (route) => {
@@ -515,33 +524,28 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
     await route.fulfill({ response });
   });
 
-  const editActiveCell = async (value: string) => {
+  const nameBox = grid.locator('[data-u-comp="defined-name"] input');
+  const cellEditor = page.locator('[data-u-comp="editor"][id$="DOCS_NORMAL"]');
+  const firstRow = 9;
+  const secondRow = 10;
+  const editCell = async (row: number, value: string) => {
+    const address = `A${row + 1}`;
+    await nameBox.fill(address);
+    await nameBox.press("Enter");
+    await expect(nameBox).toHaveValue(address);
     await page.keyboard.press("F2");
-    await page.waitForTimeout(50);
+    await expect(cellEditor).toBeFocused();
     await page.keyboard.insertText(value);
     await page.keyboard.press("Enter");
   };
 
-  await grid.click({ position: { x: 100, y: 265 } });
-  await editActiveCell("Première sauvegarde");
+  await editCell(firstRow, "Première sauvegarde");
   await firstSaveStarted;
-  const firstNextAddress = await grid
-    .locator("input")
-    .evaluateAll((inputs) =>
-      inputs.map((input) => (input as HTMLInputElement).value).find((value) => /^A\d+$/.test(value)),
-    );
-  const firstRow = Number(firstNextAddress?.slice(1)) - 2;
   expect(putBodies[0]!.document.workbook.sheets.defense?.cellData[String(firstRow)]?.["0"]?.v).toBe(
     "Première sauvegarde",
   );
 
-  await editActiveCell("Dernière sauvegarde");
-  const secondNextAddress = await grid
-    .locator("input")
-    .evaluateAll((inputs) =>
-      inputs.map((input) => (input as HTMLInputElement).value).find((value) => /^A\d+$/.test(value)),
-    );
-  const secondRow = Number(secondNextAddress?.slice(1)) - 2;
+  await editCell(secondRow, "Dernière sauvegarde");
   await page.waitForTimeout(1_200);
   expect(putBodies).toHaveLength(1);
   await page.getByTestId("workspace-breadcrumb-close").click();
