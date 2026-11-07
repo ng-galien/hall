@@ -6,33 +6,6 @@ Tags identify the main scope: `[FRONT]`, `[BACK]`, `[FULL]`, or `[OPS]`. Require
 
 The user decides business rules, data-model changes, product behavior, UI design, and ergonomics. Stop at a precise unresolved choice before changing dependent behavior.
 
-## Meeting flow: functional units
-
-Inventory of 2026-11-07 of the rules Hall puts on the meeting flow, grouped by functional unit. A unit is framed and decided as a whole with the user; no rule is changed on its own. Rules kept as law or data integrity are not listed.
-
-### Decided on 2026-11-07
-- Agenda order of examination is kept; adjourning stays the way to skip an item.
-- Adjourning, ending an item, recusing a member stay irreversible; every committing action gets a confirmation dialog.
-- A confirmed ballot is never corrected; the ballot confirmation dialog must show more detail.
-- An adjourned previous-minutes approval is not carried over (earlier decision confirmed).
-- Roll call ticked before opening is recorded as it goes, if simple; opening still validates it.
-
-### Unit 1: preparation (agenda, notice) — in progress
-- Agenda revision cycle, notice per revision (framing 2026-11-07).
-- To frame later in this unit: one non-closed meeting at a time; officers designated together and not removable; previous-minutes approval forced in position 1; notice e-mail refused when one address is missing.
-
-### Unit 2: opening (roll call, proxies, quorum)
-- Roll call recorded as it goes (decided, to do).
-- To frame later: proxy document mandatory at roll call; opening refused before the convened time; meeting secretary required present; initial roll-call error not correctable.
-
-### Unit 3: conduct (items, ballots, recusals, closed session)
-- Confirmation dialogs on every committing action; richer ballot confirmation (decided, to do).
-- To frame later: project text locked at opening (no amendment in session); election or nomination ballot missing; lifting a closed session missing.
-
-### Unit 4: closure and acts (minutes, council decisions)
-- Set aside by the user: new versions of generated minutes before approval; chair in office printed on the council decision after a handover.
-- To frame later: frozen council decision without corrective version; "meeting not held" state missing.
-
 ## Council meetings
 
 - [ ] `[BACK]` Replay opening, attendance, quorum, proxy, ballot, and closing invariants on the demonstration database.
