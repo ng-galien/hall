@@ -57,6 +57,8 @@ SEED_API=http://127.0.0.1:3100/api npm run seed:dev -w @hall/server -- --dataset
 
 The loader requires an empty dedicated database. It does not delete data or start a server. An interrupted load may leave partial data; discard that database instead of loading over it. `npm run demo:restart` resets the shared demonstration runtime and must run only from the checkout that owns it.
 
+The server dates every meeting-conduct observation when it receives it. To give the past meetings of a scenario their historical dates, the loader conducts them through the public API, then moves their recorded observations with `scripts/seed/data/common/meeting-history.mjs` when `SEED_DATABASE_URL` is set. This backdating is demonstration and browser-test tooling outside the Hall API and schema. It accepts only the local demonstration database (`127.0.0.1:54329/hall`) and the dedicated browser-test databases (`127.0.0.1:54330/hall_e2e_*`), and refuses any other database name. It refuses a meeting whose minutes or decision document is already generated, and checks the meeting chronology after the move. `npm run demo:restart` sets `SEED_DATABASE_URL`; without it, the past meetings keep the date of the load. Browser journeys use the same module through `packages/client/e2e/fixtures/meetingHistory.ts`.
+
 Seed orchestration and data modules live under `scripts/seed/`. Common helpers do not choose a dataset. Scenarios receive dataset roles instead of depending on Alésia names. Real municipal data requires an explicit source, authorization, and target state.
 
 ## Imported document previews

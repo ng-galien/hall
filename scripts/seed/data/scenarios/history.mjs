@@ -76,8 +76,13 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
     await patch(`/council-meetings/${meeting.id}/agenda-items/${item.id}/notes`, { discussionSummary });
     await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/complete`, {});
   }
-  async function close(meeting) {
+  /** Moves the conduct of a meeting to its historical opening when the seed has database access. */
+  async function backdate(meeting, openedAt) {
+    await api.backdateMeeting?.(meeting.id, new Date(openedAt));
+  }
+  async function close(meeting, openedAt) {
     const closure = await post(`/council-meetings/${meeting.id}/close`, {});
+    await backdate(meeting, openedAt);
     const draft = await get(`/minutes/${closure.minutes.id}`);
     await post(`/minutes/${draft.id}/generate`, { expectedVersion: draft.version });
     return closure;
@@ -86,7 +91,7 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
     if (date) await put(`/council-meetings/${meeting.id}/schedule`, { scheduledAt: date, location: meetingLocation });
     for (const [index, key] of subjectKeys.entries()) await schedule(meeting, key, index + 2);
   }
-  return { schedule, open, vote, present, close, plan };
+  return { schedule, open, vote, present, close, plan, backdate };
 }
 
 /** First closed meeting: three ballots and one information item, minutes generated. */
@@ -107,7 +112,7 @@ export async function seedFirstMeeting(api, fixture, officers) {
   await conduct.vote(first, items[1], attendance, "public", 4, 8, discussions.rejectedDecision);
   await conduct.vote(first, items[2], attendance, "public", 11, 1, discussions.roadRepairs);
   await conduct.present(first, items[3], discussions.information);
-  const { nextMeeting } = await conduct.close(first);
+  const { nextMeeting } = await conduct.close(first, date);
   return { conduct, proxy, nextMeeting };
 }
 
@@ -115,7 +120,7 @@ export async function seedHistory(api, fixture, { editableMinutes = false } = {}
   const { get, post, put, patch } = api;
   const { discussions } = fixture;
   const { conduct, proxy, nextMeeting: second } = await seedFirstMeeting(api, fixture);
-  const { schedule, vote, close } = conduct;
+  const { schedule, vote, close, backdate } = conduct;
   const open = (meeting, date) => conduct.open(meeting, date, proxy);
 
   const approval1 = (await get(`/council-meetings/${second.id}/agenda-items`))[0];
@@ -131,7 +136,7 @@ export async function seedHistory(api, fixture, { editableMinutes = false } = {}
     discussionSummary: discussions.deferredQuestion,
   });
   await post(`/council-meetings/${second.id}/agenda-items/${deferred.id}/adjourn`, {});
-  const { nextMeeting: current } = await close(second);
+  const { nextMeeting: current } = await close(second, secondDate);
 
   const currentAgenda = await get(`/council-meetings/${current.id}/agenda-items`);
   const lighting = await schedule(current, "currentDecision", 3);
@@ -155,6 +160,7 @@ export async function seedHistory(api, fixture, { editableMinutes = false } = {}
     });
     await post(`/council-meetings/${current.id}/agenda-items/${parking.id}/complete`, {});
     const closure = await post(`/council-meetings/${current.id}/close`, {});
+    await backdate(current, currentDate);
     const draft = await get(`/minutes/${closure.minutes.id}`);
     if (
       draft.generatedAt !== null ||
@@ -174,6 +180,7 @@ export async function seedHistory(api, fixture, { editableMinutes = false } = {}
     );
     return;
   }
+  await backdate(current, currentDate);
   console.log(
     `  Deux séances clôturées, huit scrutins terminés, une séance en cours : /app/meetings/${current.id}/live`,
   );

@@ -71,7 +71,12 @@ function resetAndSeedTestDatabase(seedScenario: "fresh" | "preparation" | "defau
   clearTestDatabase();
   const seed = spawnSync(process.execPath, [join(projectDirectory, "scripts/seed/seed-dev.mjs")], {
     cwd: projectDirectory,
-    env: { ...process.env, SEED_MEETING_SCENARIO: seedScenario, SEED_API: `http://127.0.0.1:${serverPort}/api` },
+    env: {
+      ...process.env,
+      SEED_MEETING_SCENARIO: seedScenario,
+      SEED_API: `http://127.0.0.1:${serverPort}/api`,
+      SEED_DATABASE_URL: process.env.DATABASE_URL,
+    },
     encoding: "utf8",
   });
   if (seed.error || seed.status !== 0) {

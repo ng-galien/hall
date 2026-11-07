@@ -19,11 +19,16 @@ function identifier(value) {
   return `"${value}"`;
 }
 
-function seed(port, scenario, signal) {
+function seed(port, scenario, databaseUrl, signal) {
   return new Promise((accept, reject) => {
     const child = spawn(process.execPath, [resolve(project, "scripts/testing/seed.mjs")], {
       cwd: project,
-      env: { ...process.env, SEED_MEETING_SCENARIO: scenario, SEED_API: `http://127.0.0.1:${port}/api` },
+      env: {
+        ...process.env,
+        SEED_MEETING_SCENARIO: scenario,
+        SEED_API: `http://127.0.0.1:${port}/api`,
+        SEED_DATABASE_URL: databaseUrl,
+      },
       stdio: ["pipe", "pipe", "pipe"],
       signal,
     });
@@ -104,7 +109,7 @@ export function createSeededDatabase({
           await replace(name, schemaTemplate, lock);
           await start(false);
           seedAbort = new AbortController();
-          seeding = seed(port, scenario, seedAbort.signal);
+          seeding = seed(port, scenario, url.href, seedAbort.signal);
           try {
             await seeding;
           } finally {
