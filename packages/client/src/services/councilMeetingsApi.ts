@@ -164,12 +164,13 @@ export async function updateMeetingAgendaItemNotes(
   meetingReference: string,
   itemId: string,
   discussionSummary: string,
-  { clearConfirmed }: { clearConfirmed: boolean } = { clearConfirmed: false },
+  { clearConfirmed, keepalive = false }: { clearConfirmed: boolean; keepalive?: boolean } = { clearConfirmed: false },
 ) {
   const result = await submitSirenActionAt<unknown>(
     `/council-meetings/${encodeURIComponent(meetingReference)}/agenda-items/${encodeURIComponent(itemId)}`,
     "agenda-item.update-notes",
     updateAgendaItemNotesSchema.parse(clearConfirmed ? { discussionSummary, clearConfirmed } : { discussionSummary }),
+    { keepalive },
   );
   return agendaItemSchema.parse(result.data);
 }

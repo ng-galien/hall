@@ -110,7 +110,7 @@ export function useCouncilMeeting(meetingReference: string) {
     (
       itemId: string,
       notes: string,
-      options: { clearConfirmed: boolean } = { clearConfirmed: false },
+      options: { clearConfirmed: boolean; keepalive?: boolean } = { clearConfirmed: false },
     ): Promise<boolean> => {
       const previous = notesRequests.current.get(itemId);
       if (previous?.text === notes) return previous.promise;

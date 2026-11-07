@@ -249,3 +249,49 @@ test("notes typed without a pause are kept when another conduct view completes t
     await chairContext.close();
   }
 });
+
+// @verifies-requirement HALL-FR-MTG-380
+test("notes whose saves failed are saved when another conduct view completes the item", async ({
+  appPage: writer,
+  browser,
+}) => {
+  test.setTimeout(150_000);
+  const { slug, itemId } = await openMeetingWithStartedItem(writer, "openQuestion");
+  let refused = 0;
+  await writer.route(`**/agenda-items/${itemId}/notes`, async (route) => {
+    if (route.request().method() === "PATCH" && refused < 2) {
+      refused += 1;
+      await route.abort();
+      return;
+    }
+    await route.continue();
+  });
+  const chairContext = await browser.newContext();
+  try {
+    const chair = await chairContext.newPage();
+    await chair.goto(`/app/meetings/${slug}/live`);
+    await chair.getByTestId(`live-agenda-item-${itemId}`).click();
+    await expect(chair.getByTestId("live-agenda-complete")).toBeVisible();
+
+    await typeNotes(writer, typedNotes);
+    await expect.poll(() => refused, { timeout: 10_000 }).toBe(1);
+    await writer.getByTestId("live-item-title").click();
+    await expect.poll(() => refused, { timeout: 10_000 }).toBe(2);
+    expect(await storedNotes(writer, slug, itemId)).toBe("");
+
+    await chair.getByTestId("live-agenda-complete").click();
+    await expect(writer.getByTestId("live-agenda-notes")).toBeHidden();
+    await expect.poll(() => storedNotes(writer, slug, itemId), { timeout: 15_000 }).toBe(typedNotes);
+  } finally {
+    await chairContext.close();
+  }
+});
+
+// @verifies-requirement HALL-FR-MTG-380
+test("notes typed just before a page reload are saved", async ({ appPage: page }) => {
+  test.setTimeout(150_000);
+  const { slug, itemId } = await openMeetingWithStartedItem(page, "openQuestion");
+  await typeNotes(page, typedNotes);
+  await page.reload();
+  await expect.poll(() => storedNotes(page, slug, itemId), { timeout: 15_000 }).toBe(typedNotes);
+});

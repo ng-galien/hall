@@ -6,7 +6,7 @@ export const AGENDA_ITEM_NOTES_AUTOSAVE_MAX_WAIT_MS = 10_000;
 export type AgendaItemNotesSave = (
   itemId: string,
   notes: string,
-  options: { clearConfirmed: boolean },
+  options: { clearConfirmed: boolean; keepalive: boolean },
 ) => Promise<boolean>;
 
 export interface AgendaItemNotesAutosave {
@@ -69,7 +69,7 @@ export function useAgendaItemNotesAutosave({
   }, []);
 
   /** Sends the unsaved text of the given state; a later state for the same item is not marked saved. */
-  const sendState = useCallback(async (state: NotesState): Promise<boolean> => {
+  const sendState = useCallback(async (state: NotesState, keepalive = false): Promise<boolean> => {
     if (state.itemId === null || state.revision === state.savedRevision) return true;
     const { itemId: target, text: sent, revision, recorded } = state;
     state.pendingSince = null;
@@ -77,7 +77,10 @@ export function useAgendaItemNotesAutosave({
       state.savedRevision = revision;
       return true;
     }
-    const saved = await saveRef.current(target, sent, { clearConfirmed: sent.trim() === "" && recorded.trim() !== "" });
+    const saved = await saveRef.current(target, sent, {
+      clearConfirmed: sent.trim() === "" && recorded.trim() !== "",
+      keepalive,
+    });
     if (saved && state.revision === revision) {
       state.savedRevision = revision;
       state.recorded = sent;
@@ -112,13 +115,16 @@ export function useAgendaItemNotesAutosave({
   }, [active, send]);
 
   useEffect(() => {
-    const onPageHide = () => void send();
-    window.addEventListener("pagehide", onPageHide);
-    return () => {
-      window.removeEventListener("pagehide", onPageHide);
-      void send();
+    const sendBeforeLeaving = () => {
+      cancelTimer();
+      void sendState(current.current, true);
     };
-  }, [send]);
+    window.addEventListener("pagehide", sendBeforeLeaving);
+    return () => {
+      window.removeEventListener("pagehide", sendBeforeLeaving);
+      sendBeforeLeaving();
+    };
+  }, [cancelTimer, sendState]);
 
   const edit = useCallback(
     (next: string) => {

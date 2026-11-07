@@ -319,11 +319,17 @@ export async function apiSirenRequest<T>(path: string, init?: RequestInit): Prom
   return { data: sirenData<T>(payload), representation: payload };
 }
 
-export async function sirenRepresentation(path: string): Promise<SirenEntity<Record<string, unknown>>> {
+/** Request options a caller may add to a Siren read or action; `keepalive` lets a request outlive the page. */
+export type SirenRequestOptions = Pick<RequestInit, "keepalive">;
+
+export async function sirenRepresentation(
+  path: string,
+  options: SirenRequestOptions = {},
+): Promise<SirenEntity<Record<string, unknown>>> {
   const normalized = path.split("#", 1)[0];
   const cached = representations.get(normalized);
   if (cached) return cached;
-  const result = await apiSirenRequest<unknown>(normalized);
+  const result = await apiSirenRequest<unknown>(normalized, options);
   if (!result.representation) throw new SirenCapabilityUnavailable(normalized);
   return result.representation;
 }
@@ -332,8 +338,9 @@ export async function submitSirenActionAt<T>(
   resourcePath: string,
   name: ApiActionName,
   input?: unknown,
+  options: SirenRequestOptions = {},
 ): Promise<SirenApiResult<T>> {
-  return submitSirenAction<T>(await sirenRepresentation(resourcePath), name, input);
+  return submitSirenAction<T>(await sirenRepresentation(resourcePath, options), name, input, options);
 }
 
 export function followSirenLink<T>(entity: SirenEntity, rel: string): Promise<SirenApiResult<T>> {
@@ -346,6 +353,7 @@ export function submitSirenAction<T>(
   entity: SirenEntity,
   name: ApiActionName,
   input?: unknown,
+  options: SirenRequestOptions = {},
 ): Promise<SirenApiResult<T>> {
   const action = findSirenAction(entity, name);
   if (!action) throw new SirenCapabilityUnavailable(name);
@@ -355,6 +363,7 @@ export function submitSirenAction<T>(
   const body = input ?? (Object.keys(defaults).length > 0 ? defaults : undefined);
   const requestBody = body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body);
   return apiSirenRequest<T>(apiPathFromHref(action.href), {
+    ...options,
     method: action.method ?? "GET",
     body: requestBody,
   });

@@ -63,9 +63,11 @@ afterAll(() => {
 
 function mountNotes(initial) {
   const saves = [];
+  const keepalives = [];
   const view = { current: null, props: { ...initial } };
   const save = async (itemId, notes, options) => {
     saves.push({ itemId, notes, clearConfirmed: options.clearConfirmed });
+    keepalives.push(options.keepalive);
     return true;
   };
   function Probe(props) {
@@ -77,7 +79,7 @@ function mountNotes(initial) {
     view.props = { ...view.props, ...changes };
     await act(async () => root.render(createElement(Probe, view.props)));
   };
-  return { view, saves, render, unmount: () => act(async () => root.unmount()) };
+  return { view, saves, keepalives, render, unmount: () => act(async () => root.unmount()) };
 }
 
 async function wait(milliseconds) {
@@ -176,4 +178,6 @@ test("continuous typing is saved at least every ten seconds", async () => {
   assert.ok(notes.saves.length >= 1, "a save leaves while typing continues");
   await notes.unmount();
   assert.equal(notes.saves.at(-1).notes, typed, "closing the view saves the last typing");
+  assert.equal(notes.keepalives.at(-1), true, "the save of a closing view outlives the page");
+  assert.equal(notes.keepalives[0], false, "an ordinary save is not kept alive");
 }, 30_000);
