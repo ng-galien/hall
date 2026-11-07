@@ -27,11 +27,13 @@ import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
+import type { RequestContextStore } from "../security/requestContext.js";
 import { pdfAttachmentHref } from "./documentRenderer.js";
 import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
 import type { ReferenceEntityResolver } from "./referenceEntityResolver.js";
 import {
   documentTemplateData,
+  emptySignatoryDirectory,
   type GeneratedTemplateData,
   type ResolvedSubjectText,
   type SignatoryDirectory,
@@ -662,6 +664,7 @@ export function createTemplateRenderingService({
   referenceEntityResolver,
   minutesClient,
   directoryClient,
+  requestContext,
 }: {
   hallSettingsRepository: HallSettingsRepository;
   councilClient: CouncilClient;
@@ -670,12 +673,15 @@ export function createTemplateRenderingService({
   referenceEntityResolver: ReferenceEntityResolver;
   minutesClient: MinutesClient;
   directoryClient: DirectoryClient;
+  requestContext?: RequestContextStore;
 }): TemplateRenderingService {
   // @implements-requirement HALL-FR-MIN-280
   // @implements-requirement HALL-FR-NOT-080
   /** Signature blocks name the current mayor and the mandate role of the officers recorded in the minutes. */
   type CouncilRole = CouncilMandate["role"];
+  /** Without an authenticated request the directory is not readable: the blocks keep their offices, unnamed. */
   const loadSignatories = async (minutes: MinutesDetail | null): Promise<SignatoryDirectory> => {
+    if (requestContext && !requestContext.current()?.principal) return emptySignatoryDirectory;
     const mayors = (await directoryClient.listCouncilMembers(true)).filter((member) => member.role === "mayor");
     const officers = minutes ? [minutes.facts.meeting.chair, minutes.facts.meeting.secretary] : [];
     const roles = new Map<string, CouncilRole>();

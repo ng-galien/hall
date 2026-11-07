@@ -4,6 +4,7 @@ import { defaultDocumentTemplates } from "@hall/domain";
 import { PDFDocument } from "pdf-lib";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it, vi } from "vitest";
+import { RequestContextStore } from "../src/security/requestContext.js";
 import { createDocumentRenderer } from "../src/services/documentRenderer.js";
 import { minutesTemplateData } from "../src/services/templateData.js";
 import { createTemplateRenderingService } from "../src/services/templateRendering.js";
@@ -332,6 +333,26 @@ describe("signature blocks of the default PDF documents", () => {
     const { renderer } = service(fixture, []);
     const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
     expect(preview.diagnostics).toEqual([]);
+    expect(preview.resolvedMarkdown).toContain("| Marie Martin | Jean Dupont |");
+    expect(preview.resolvedMarkdown).toContain("| Signature : | Signature : |");
+  });
+
+  // @verifies-requirement HALL-FR-MIN-280
+  it("renders unnamed signature blocks without reading the directory outside an authenticated request", async () => {
+    const listCouncilMembers = vi.fn(async () => mandates);
+    const renderer = createTemplateRenderingService({
+      hallSettingsRepository: { get: async () => ({ name: "Commune test", timeZone: "Europe/Paris" }) },
+      councilClient: {},
+      minutesClient: { open: async () => fixture },
+      resourcesClient: {},
+      geographicMapRenderer: {},
+      referenceEntityResolver: {},
+      directoryClient: { listCouncilMembers },
+      requestContext: new RequestContextStore(),
+    } as unknown as Parameters<typeof createTemplateRenderingService>[0]);
+    const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
+    expect(preview.diagnostics).toEqual([]);
+    expect(listCouncilMembers).not.toHaveBeenCalled();
     expect(preview.resolvedMarkdown).toContain("| Marie Martin | Jean Dupont |");
     expect(preview.resolvedMarkdown).toContain("| Signature : | Signature : |");
   });
