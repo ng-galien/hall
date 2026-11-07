@@ -1,3 +1,6 @@
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -5,7 +8,9 @@ import { HallPostgresError, ProjectionValidationError, StatementTimeoutError } f
 import { callJson } from "../src/jsonCall.js";
 import {
   defaultStatementTimeouts,
+  documentStatementActions,
   PostgresTransactionManager,
+  statementBudgetOf,
   statementTimeoutsFromEnvironment,
 } from "../src/transaction.js";
 import { postgresDescribe, testDatabaseUrl, useFreshHallDatabase } from "./support/database.js";
@@ -241,7 +246,7 @@ postgresDescribe("PostgreSQL transaction authority", () => {
     expect(short).toBe("300ms");
 
     const document = await bounded.run(
-      { role: "hall_api_authenticated", context, statementBudget: "document" },
+      { role: "hall_api_authenticated", context: { ...context, action: "minutes.generate" } },
       async (client) => {
         await client.query("SELECT pg_sleep(0.5)");
         const result = await client.query<{ timeout: string }>(
@@ -251,9 +256,29 @@ postgresDescribe("PostgreSQL transaction authority", () => {
       },
     );
     expect(document).toBe("5s");
+  });
 
-    const after = await pool.query<{ timeout: string }>("SELECT current_setting('statement_timeout') AS timeout");
-    expect(after.rows[0].timeout).toBe("0");
+  it("leaves no statement timeout on the pooled connection after the transaction", async () => {
+    const single = new Pool({ connectionString: testDatabaseUrl, max: 1 });
+    try {
+      const bounded = new PostgresTransactionManager(single, { interactive: 300, document: 5_000 });
+      const inside = await bounded.run({ role: "hall_api_authenticated", context }, async (client) => {
+        const result = await client.query<{ pid: number; timeout: string }>(
+          "SELECT pg_backend_pid() AS pid, current_setting('statement_timeout') AS timeout",
+        );
+        return result.rows[0];
+      });
+      await bounded
+        .run({ role: "hall_api_authenticated", context }, async (client) => client.query("SELECT pg_sleep(2)"))
+        .catch(() => undefined);
+      const after = await single.query<{ pid: number; timeout: string }>(
+        "SELECT pg_backend_pid() AS pid, current_setting('statement_timeout') AS timeout",
+      );
+      expect(inside.timeout).toBe("300ms");
+      expect(after.rows[0]).toEqual({ pid: inside.pid, timeout: "0" });
+    } finally {
+      await single.end();
+    }
   });
 });
 
@@ -267,5 +292,46 @@ describe("statement timeout configuration", () => {
     expect(() => statementTimeoutsFromEnvironment({ HALL_STATEMENT_TIMEOUT_MS: "15s" })).toThrow(
       "HALL_STATEMENT_TIMEOUT_MS must be a whole number of milliseconds",
     );
+  });
+});
+
+// @verifies-requirement HALL-TR-DST-040
+describe("statement budgets", () => {
+  const documentActions = [
+    "meeting.generate-notice",
+    "council-business.import-bundle",
+    "meeting.record-opening",
+    "meeting.close",
+    "decision.freeze",
+    "minutes.generate",
+    "resource.createDocument",
+    "resource.replaceDocumentContent",
+    "editorAsset.create",
+  ];
+
+  it("gives the document budget to exactly the document actions", () => {
+    expect([...documentStatementActions].sort()).toEqual([...documentActions].sort());
+    for (const action of documentActions) expect(statementBudgetOf(action)).toBe("document");
+    for (const action of [
+      "meeting.documents.read",
+      "meeting.agenda.list",
+      "ballot.confirm",
+      "resource.readDocumentContent",
+    ])
+      expect(statementBudgetOf(action)).toBe("interactive");
+  });
+
+  it("names actions that the PostgreSQL adapters actually use", async () => {
+    const directory = fileURLToPath(new URL("../src/", import.meta.url));
+    const sources = (
+      await Promise.all(
+        (
+          await readdir(directory)
+        )
+          .filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts") && name !== "transaction.ts")
+          .map((name) => readFile(join(directory, name), "utf8")),
+      )
+    ).join("\n");
+    for (const action of documentActions) expect(sources, action).toContain(`"${action}"`);
   });
 });

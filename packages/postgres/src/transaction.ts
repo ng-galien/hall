@@ -12,6 +12,23 @@ const retryableSqlStates = new Set(["40001", "40P01"]);
 export const statementBudgets = ["interactive", "document"] as const;
 export type StatementBudget = (typeof statementBudgets)[number];
 
+/** Call-context actions that run under the document budget; every other action is interactive. */
+export const documentStatementActions: ReadonlySet<string> = new Set([
+  "meeting.generate-notice",
+  "council-business.import-bundle",
+  "meeting.record-opening",
+  "meeting.close",
+  "decision.freeze",
+  "minutes.generate",
+  "resource.createDocument",
+  "resource.replaceDocumentContent",
+  "editorAsset.create",
+]);
+
+export function statementBudgetOf(action: string): StatementBudget {
+  return documentStatementActions.has(action) ? "document" : "interactive";
+}
+
 /** Statement timeout per budget in milliseconds; 0 disables the timeout as in PostgreSQL. */
 export type StatementTimeouts = Readonly<Record<StatementBudget, number>>;
 
@@ -41,8 +58,6 @@ export type TransactionRequest = Readonly<{
   context: PostgresCallContext;
   audit?: AuditIntent;
   maxAttempts?: number;
-  /** Defaults to `interactive`. */
-  statementBudget?: StatementBudget;
 }>;
 
 export type TransactionOperation<Result> = (client: PoolClient) => Promise<Result>;
@@ -92,7 +107,7 @@ export class PostgresTransactionManager {
     const maxAttempts = request.maxAttempts ?? 3;
     if (!Number.isInteger(maxAttempts) || maxAttempts < 1)
       throw new RangeError("maxAttempts must be a positive integer");
-    const budget = request.statementBudget ?? "interactive";
+    const budget = statementBudgetOf(request.context.action);
     const statementTimeoutMs = this.statementTimeouts[budget];
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {

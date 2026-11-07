@@ -10617,8 +10617,8 @@
       },
       "statement": "Every statement of a Hall PostgreSQL transaction is bounded by a configurable timeout, and a stopped statement is answered with a named API error.",
       "acceptanceCriteria": [
-        "Each transaction opened by the PostgreSQL adapters sets a transaction-local statement_timeout: HALL_STATEMENT_TIMEOUT_MS (default 15000) for the interactive budget, HALL_DOCUMENT_STATEMENT_TIMEOUT_MS (default 120000) for the document budget; 0 disables a budget and an invalid value stops startup.",
-        "The document budget applies to storing generated notices, minutes and decision documents, uploading or replacing files and editor images, importing a council business bundle and recording the opening and closing of a meeting; every other transaction uses the interactive budget. Schema installation, migrations and backups are not bounded.",
+        "Each transaction opened by the PostgreSQL adapters sets a transaction-local statement_timeout: HALL_STATEMENT_TIMEOUT_MS (default 15000) for the interactive budget, HALL_DOCUMENT_STATEMENT_TIMEOUT_MS (default 120000) for the document budget; 0 disables a budget and an invalid value stops startup. Every statement on the server-owned tables, inside or outside a transaction, carries the interactive timeout in the same transaction-local way.",
+        "The document budget applies to exactly the actions meeting.generate-notice, council-business.import-bundle, meeting.record-opening, meeting.close, decision.freeze, minutes.generate, resource.createDocument, resource.replaceDocumentContent and editorAsset.create; every other transaction uses the interactive budget. Schema installation, migrations and backups are not bounded.",
         "A statement stopped by its timeout is answered with HTTP 503 and the problem code database_statement_timeout, shown in French in the interface; a short statement is unaffected."
       ],
       "clauses": [

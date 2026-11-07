@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
+import { StatementTimeoutError, statementTimeoutsFromEnvironment } from "@hall/postgres";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import { PersistenceError } from "../../repositories/errors.js";
 import type { DatabaseRow } from "../../repositories/row.js";
@@ -104,6 +105,7 @@ export class PostgresExecutor implements SqlExecutor {
     readonly requestContext: RequestContextStore,
     private readonly sharedPool?: Pool,
     private readonly schemaUpgradeMode: "automatic" | "verify-only" = "automatic",
+    private readonly statementTimeoutMs: number = statementTimeoutsFromEnvironment().interactive,
   ) {
     this.#pool =
       sharedPool ?? logIdleConnectionFailures(new Pool({ connectionString, options: "-c search_path=public" }));
@@ -147,9 +149,11 @@ export class PostgresExecutor implements SqlExecutor {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       if (context) context.auditRecorded = auditRecordedBeforeTransaction;
       const client = await this.#pool.connect();
+      const startedAt = performance.now();
       try {
         await client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
         try {
+          await this.#boundStatements(client);
           return await this.#transaction.run({ client, queue: Promise.resolve() }, async () => {
             const result = await operation();
             await this.#recordAudit(result);
@@ -160,7 +164,7 @@ export class PostgresExecutor implements SqlExecutor {
           await client.query("ROLLBACK");
           if (attempt < 3 && isRetryableTransactionError(error)) continue;
           if (context) context.auditRecorded = auditRecordedBeforeTransaction;
-          throw translatePersistenceError(error);
+          throw translatePersistenceError(this.#timeoutOf(error, startedAt));
         }
       } finally {
         client.release();
@@ -180,13 +184,52 @@ export class PostgresExecutor implements SqlExecutor {
 
   #query<Row extends QueryResultRow = QueryResultRow>(text: string, values?: unknown[]) {
     const transaction = this.#transaction.getStore();
-    if (!transaction) return this.#pool.query<Row>(text, values);
+    if (!transaction) return this.#boundedQuery<Row>(text, values);
     const result = transaction.queue.then(() => transaction.client.query<Row>(text, values));
     transaction.queue = result.then(
       () => undefined,
       () => undefined,
     );
     return result;
+  }
+
+  // @implements-requirement HALL-TR-DST-040
+  async #boundStatements(client: PoolClient): Promise<void> {
+    await client.query("SELECT set_config('statement_timeout', $1, true)", [String(this.statementTimeoutMs)]);
+  }
+
+  /** A statement outside `execute` runs in its own transaction so that its timeout stays local. */
+  async #boundedQuery<Row extends QueryResultRow = QueryResultRow>(text: string, values?: unknown[]) {
+    if (this.statementTimeoutMs === 0) return this.#pool.query<Row>(text, values);
+    const client = await this.#pool.connect();
+    const startedAt = performance.now();
+    try {
+      await client.query("BEGIN");
+      await this.#boundStatements(client);
+      const result = await client.query<Row>(text, values);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw this.#timeoutOf(error, startedAt);
+    } finally {
+      client.release();
+    }
+  }
+
+  // 57014 is also raised by an explicit cancellation; only an attempt that lasted the whole
+  // timeout is reported as a timeout.
+  #timeoutOf(error: unknown, startedAt: number): unknown {
+    if (
+      this.statementTimeoutMs > 0 &&
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "57014" &&
+      performance.now() - startedAt >= this.statementTimeoutMs
+    ) {
+      return new StatementTimeoutError("interactive", this.statementTimeoutMs, error);
+    }
+    return error;
   }
 
   async #initialize(): Promise<void> {

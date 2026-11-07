@@ -135,3 +135,11 @@ export {
   type HallSchemaUpgradeStatementKind,
   planHallSchemaUpgrade,
 } from "./schemaUpgrade.js";
+export {
+  defaultStatementTimeouts,
+  documentStatementActions,
+  type StatementBudget,
+  type StatementTimeouts,
+  statementBudgetOf,
+  statementTimeoutsFromEnvironment,
+} from "./transaction.js";

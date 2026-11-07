@@ -30,7 +30,11 @@ server uses external PostgreSQL and serves its bundled client at `/app/`.
 
 Every transaction opened by the PostgreSQL adapters (`packages/postgres/src/transaction.ts`)
 sets a transaction-local `statement_timeout`. Each statement of the transaction is bounded
-by the timeout of its budget:
+by the timeout of its budget. The budget follows the call-context action; the list of
+document actions is `documentStatementActions` in the same file. The statements of the
+server-owned tables (accounts, sessions, settings, audit events;
+`packages/server/src/infrastructure/postgres/executor.ts`) use the interactive budget, also
+inside a transaction-local setting; the startup check of those tables is not bounded.
 
 | Budget | Variable | Default | Operations |
 | --- | --- | --- | --- |
