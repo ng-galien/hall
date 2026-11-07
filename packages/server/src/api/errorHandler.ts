@@ -31,7 +31,7 @@ const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly 
 // @implements-requirement HALL-TR-DST-050
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
   const sqlState = hallSqlState(error);
-  response.locals.sqlState = sqlState;
+  if (response.locals) response.locals.sqlState = sqlState;
   if (statementTimeout(error)) {
     sendProblem(request, response, 503, "database_statement_timeout");
     return;
