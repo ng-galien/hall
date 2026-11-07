@@ -56,6 +56,10 @@ FROM pieces, image;
 SELECT is((SELECT count(*)::integer FROM council_meeting_snapshot), 2, 'opening and closing snapshots exist');
 SELECT ok(NOT EXISTS (SELECT FROM council_meeting_snapshot, pg_temp.json_keys(payload) key WHERE key = 'binary'),
   'no snapshot contains a binary key');
+SELECT ok(NOT EXISTS (SELECT FROM council_meeting_snapshot WHERE payload ? 'businesses'),
+  'no snapshot copies the business structure');
+SELECT is((SELECT payload#>>'{agenda,0,report_resource}' FROM council_meeting_snapshot WHERE phase = 'closing'),
+  (SELECT report::text FROM pieces), 'each point references the business report presented with it');
 SELECT ok(NOT EXISTS (SELECT FROM council_meeting_snapshot, binary_object bytes, referenced
   WHERE bytes.id IN (referenced.attachment_bytes, referenced.image_bytes)
     AND (strpos(payload::text, encode(bytes.content, 'hex')) > 0 OR strpos(payload::text, encode(bytes.content, 'base64')) > 0)),
@@ -109,8 +113,14 @@ UPDATE council_meeting_snapshot snapshot SET payload = snapshot.payload
         FROM jsonb_array_elements(entry->'editorAssets') recorded JOIN editor_asset asset ON asset.id = (recorded->>'id')::UUID
         JOIN binary_object bytes ON bytes.id = asset.binary_object_id)) ORDER BY entry->>'resource')
     FROM jsonb_array_elements(snapshot.payload->'documents') entry))
-  || jsonb_build_object('businesses', (SELECT jsonb_agg(business || jsonb_build_object('folder', resource_detail((business->>'folder_resource')::UUID)))
-    FROM jsonb_array_elements(snapshot.payload->'businesses') business));
+  || jsonb_build_object('agenda', (SELECT jsonb_agg(item - 'report_resource' ORDER BY ordinal)
+    FROM jsonb_array_elements(snapshot.payload->'agenda') WITH ORDINALITY agenda(item, ordinal)))
+  || jsonb_build_object('businesses', (SELECT jsonb_agg(to_jsonb(workspace) || jsonb_build_object(
+      'folder', resource_detail(workspace.folder_resource),
+      'resources', (SELECT coalesce(jsonb_agg(to_jsonb(association) ORDER BY association.position), '[]'::jsonb)
+        FROM council_business_resource association WHERE association.council_business = workspace.council_business)))
+    FROM council_business_workspace workspace WHERE workspace.council_business IN (
+      SELECT (item->>'council_business')::UUID FROM jsonb_array_elements(snapshot.payload->'agenda') item)));
 SET LOCAL session_replication_role = origin;
 SELECT ok((SELECT bool_and(strpos(payload::text, encode(convert_to('Original attachment bytes', 'UTF8'), 'hex')) > 0) FROM council_meeting_snapshot),
   'the copied snapshots hold the file bytes before migration');

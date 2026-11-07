@@ -184,8 +184,9 @@ $$;
 CREATE FUNCTION hall.council_business_merge_plan(source_business UUID, target_business UUID)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   WITH source AS (
-    SELECT workspace.*, folder.full_path AS folder_path, report.name AS report_name,
-      btrim(report_text.content) <> '' AS report_kept
+    SELECT workspace.*, folder.full_path AS folder_path, folder.name AS folder_name, report.name AS report_name,
+      btrim(report_text.content) <> '' AS report_kept,
+      hall.meeting_snapshot_references_resource(workspace.report_resource) AS report_retained
     FROM hall.council_business_workspace workspace
     JOIN hall.resource folder ON folder.id = workspace.folder_resource
     JOIN hall.resource report ON report.id = workspace.report_resource
@@ -208,6 +209,11 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     FROM source JOIN hall.resource resource ON resource.path = source.folder_path
     WHERE resource.id <> source.report_resource
       AND NOT EXISTS (SELECT FROM subjects WHERE subjects.text_resource = resource.id)
+    UNION
+    -- @implements-requirement HALL-FR-BUS-090
+    -- A report referenced by a meeting snapshot is kept under the absorbed business name.
+    SELECT source.report_resource, source.folder_name, false, 'retainedReport'
+    FROM source WHERE source.report_retained
   ), conflicts AS (
     SELECT arrival.name FROM arrivals arrival CROSS JOIN target
     WHERE EXISTS (SELECT FROM hall.resource neighbour WHERE neighbour.path = target.folder_path
@@ -237,7 +243,13 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'folderContent', (SELECT coalesce(jsonb_agg(jsonb_build_object('resourceId', arrival.id, 'name', arrival.name, 'isFolder', arrival.is_folder) ORDER BY arrival.name), '[]'::JSONB)
       FROM arrivals arrival WHERE arrival.role = 'folderContent'),
     'report', (SELECT jsonb_build_object('resourceId', source.report_resource, 'name', source.report_name,
-      'fate', CASE WHEN source.report_kept THEN 'appendedToTargetReport' ELSE 'deleted' END,
+      'fate', CASE
+        WHEN source.report_retained AND source.report_kept THEN 'appendedToTargetReportAndMoved'
+        WHEN source.report_retained THEN 'movedToTargetFolder'
+        WHEN source.report_kept THEN 'appendedToTargetReport'
+        ELSE 'deleted' END,
+      'movedTo', CASE WHEN source.report_retained
+        THEN jsonb_build_object('folderPath', target.folder_path, 'name', source.folder_name) END,
       'targetReportResourceId', target.report_resource,
       'heading', CASE WHEN source.report_kept THEN '# ' || (SELECT folder.name FROM hall.resource folder WHERE folder.id = source.folder_resource) END)
       FROM source CROSS JOIN target),
@@ -270,7 +282,7 @@ BEGIN
   FROM hall.council_business_workspace workspace JOIN hall.resource folder ON folder.id = workspace.folder_resource
   WHERE workspace.council_business = target_business;
   SELECT name INTO STRICT source_title FROM hall.resource WHERE id = source.folder_resource;
-  report_kept := plan#>>'{report,fate}' = 'appendedToTargetReport';
+  report_kept := plan#>>'{report,fate}' IN ('appendedToTargetReport', 'appendedToTargetReportAndMoved');
   FOR subject IN SELECT id, kind, text_resource FROM hall.prepared_council_subject WHERE council_business = source_business ORDER BY id LOOP
     PERFORM hall.apply_prepared_subject_move(subject.id, subject.kind, target_business);
     moved := moved || subject.text_resource;
@@ -304,7 +316,12 @@ BEGIN
         (SELECT content FROM hall.text_resource WHERE id = source.report_resource)),
       ARRAY(SELECT id FROM hall.editor_asset WHERE owner_text_resource_id = target_report));
   END IF;
-  PERFORM hall_api.delete_resource(source.report_resource);
+  IF plan#>'{report,movedTo}' <> 'null'::JSONB THEN
+    PERFORM hall.relocate_resource(source.report_resource, target_path, source_title);
+    moved := moved || source.report_resource;
+  ELSE
+    PERFORM hall_api.delete_resource(source.report_resource);
+  END IF;
   PERFORM hall_api.delete_resource(source.folder_resource);
   RETURN plan || jsonb_build_object('applied', true, 'movedResourceIds', to_jsonb(moved),
     'updatedResourceIds', CASE WHEN report_kept THEN jsonb_build_array(target_report) ELSE '[]'::JSONB END);

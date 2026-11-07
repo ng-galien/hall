@@ -41,10 +41,8 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
       'agendaNumber', (SELECT agenda_number FROM hall.council_agenda_presentation_numbers(target_meeting) WHERE agenda_item = (item->>'id')::UUID),
       'title', item->>'title',
       'report', coalesce((SELECT document #>> '{frozen,content}'
-        FROM jsonb_array_elements(snapshot.payload->'businesses') business
-        JOIN jsonb_array_elements(snapshot.payload->'documents') document
-          ON document ->> 'resource' = business->>'report_resource'
-        WHERE business->>'council_business' = item->>'council_business'), ''),
+        FROM jsonb_array_elements(snapshot.payload->'documents') document
+        WHERE document ->> 'resource' = item->>'report_resource'), ''),
       'proposal', (SELECT proposal->>'content' FROM jsonb_array_elements(snapshot.payload->'proposals') proposal
         WHERE proposal->>'id' = item->>'council_decision_proposal'),
       'kind', CASE WHEN item->>'minutes_approval' IS NOT NULL THEN 'minutesApproval'

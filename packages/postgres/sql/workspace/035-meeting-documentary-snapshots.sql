@@ -33,6 +33,10 @@ BEGIN
     SELECT coalesce(jsonb_agg(recorded.value || jsonb_build_object('title', (
       SELECT hall.council_agenda_item_title(item) FROM hall.council_agenda_item item
       WHERE item.id = (recorded.value->>'id')::UUID
+    ), 'report_resource', (
+      -- The business report presented with the point, cited by reference.
+      SELECT workspace.report_resource FROM hall.council_business_workspace workspace
+      WHERE workspace.council_business = (recorded.value->>'council_business')::UUID
     )) ORDER BY recorded.ordinality), '[]'::JSONB)
     FROM jsonb_array_elements(NEW.payload->'agenda') WITH ORDINALITY recorded
   ));
@@ -42,30 +46,9 @@ BEGIN
     WHERE workspace.council_decision_proposal IN (
       SELECT (item->>'council_decision_proposal')::UUID FROM jsonb_array_elements(NEW.payload->'agenda') item)
   ));
-  NEW.payload := NEW.payload || jsonb_build_object('businesses', (
-    SELECT coalesce(jsonb_agg(to_jsonb(workspace) || jsonb_build_object(
-      'resources', (SELECT coalesce(jsonb_agg(to_jsonb(association) ORDER BY association.position), '[]'::jsonb)
-        FROM hall.council_business_resource association WHERE association.council_business = workspace.council_business)
-    ) ORDER BY workspace.council_business), '[]'::jsonb)
-    FROM hall.council_business_workspace workspace
-    WHERE workspace.council_business IN (SELECT (item->>'council_business')::UUID FROM jsonb_array_elements(NEW.payload->'agenda') item)
-  ));
   NEW.payload := NEW.payload || jsonb_build_object('documents', (
-    WITH businesses AS (
-      SELECT DISTINCT (item->>'council_business')::UUID AS id
-      FROM jsonb_array_elements(NEW.payload->'agenda') item
-    ), resource_ids AS (
-      SELECT workspace.text_resource AS id FROM hall.council_decision_proposal_workspace workspace
-      JOIN businesses ON businesses.id = workspace.council_business
-      UNION
-      SELECT workspace.report_resource AS id FROM hall.council_business_workspace workspace
-      JOIN businesses ON businesses.id = workspace.council_business
-      UNION
-      SELECT association.resource FROM hall.council_business_resource association
-      JOIN businesses ON businesses.id = association.council_business
-    )
-    SELECT coalesce(jsonb_agg(hall.meeting_document_reference(resource_ids.id) ORDER BY resource_ids.id), '[]'::jsonb)
-    FROM resource_ids
+    SELECT coalesce(jsonb_agg(hall.meeting_document_reference(cited.id) ORDER BY cited.id), '[]'::jsonb)
+    FROM hall.meeting_cited_resources(NEW.payload->'agenda') cited
   ));
   RETURN NEW;
 END;

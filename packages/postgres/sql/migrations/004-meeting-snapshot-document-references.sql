@@ -2,9 +2,11 @@
 -- Reduce meeting snapshots captured with copied documents to document
 -- references: resource identity, binary object identity and, for a non-file
 -- resource, its frozen component state. Copied bytes, editor images and resource
--- names are removed. A snapshot already in reference form is left unchanged.
+-- names are removed. The copied business structure is removed; each agenda
+-- point keeps the reference of the business report presented with it. A
+-- snapshot already in reference form is left unchanged.
 UPDATE hall.council_meeting_snapshot snapshot
-SET payload = snapshot.payload
+SET payload = (snapshot.payload - 'businesses')
   || jsonb_build_object('documents', (
     SELECT coalesce(jsonb_agg(CASE WHEN jsonb_typeof(entry->'resource') = 'object' THEN
       jsonb_build_object('resource', entry#>'{resource,id}')
@@ -22,10 +24,11 @@ SET payload = snapshot.payload
         FROM jsonb_array_elements(coalesce(entry->'editorAssets', '[]'::jsonb)) asset))
       ELSE entry END ORDER BY ordinal), '[]'::jsonb)
     FROM jsonb_array_elements(coalesce(snapshot.payload->'documents', '[]'::jsonb)) WITH ORDINALITY documents(entry, ordinal)))
-  || jsonb_build_object('businesses', (
-    SELECT coalesce(jsonb_agg(business - 'folder' ORDER BY ordinal), '[]'::jsonb)
-    FROM jsonb_array_elements(coalesce(snapshot.payload->'businesses', '[]'::jsonb)) WITH ORDINALITY businesses(business, ordinal)))
+  || jsonb_build_object('agenda', (
+    SELECT coalesce(jsonb_agg(item || jsonb_build_object('report_resource', (
+      SELECT business->'report_resource' FROM jsonb_array_elements(coalesce(snapshot.payload->'businesses', '[]'::jsonb)) business
+      WHERE business->>'council_business' = item->>'council_business')) ORDER BY ordinal), '[]'::jsonb)
+    FROM jsonb_array_elements(coalesce(snapshot.payload->'agenda', '[]'::jsonb)) WITH ORDINALITY agenda(item, ordinal)))
 WHERE EXISTS (SELECT FROM jsonb_array_elements(coalesce(snapshot.payload->'documents', '[]'::jsonb)) entry
     WHERE jsonb_typeof(entry->'resource') = 'object')
-  OR EXISTS (SELECT FROM jsonb_array_elements(coalesce(snapshot.payload->'businesses', '[]'::jsonb)) business
-    WHERE business ? 'folder');
+  OR snapshot.payload ? 'businesses';

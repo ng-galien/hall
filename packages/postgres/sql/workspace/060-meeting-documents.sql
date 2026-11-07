@@ -1,3 +1,21 @@
+-- @implements-requirement HALL-FR-MIN-160
+-- The documents cited by the points of an agenda: the subject texts, the report
+-- and the attached documents of each business presented.
+CREATE FUNCTION hall.meeting_cited_resources(agenda JSONB)
+RETURNS TABLE(id UUID) LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
+  WITH businesses AS (
+    SELECT DISTINCT (item->>'council_business')::UUID AS id FROM jsonb_array_elements(agenda) item
+  )
+  SELECT subject.text_resource FROM hall.prepared_council_subject subject
+  JOIN businesses ON businesses.id = subject.council_business
+  UNION
+  SELECT workspace.report_resource FROM hall.council_business_workspace workspace
+  JOIN businesses ON businesses.id = workspace.council_business
+  UNION
+  SELECT association.resource FROM hall.council_business_resource association
+  JOIN businesses ON businesses.id = association.council_business;
+$$;
+
 -- Derived documentary navigation. No new stored identity or document copy.
 CREATE FUNCTION hall.meeting_documentary_context(target_meeting UUID)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
@@ -7,11 +25,9 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   ELSE jsonb_build_object('source',jsonb_build_object('kind','current'),'payload',jsonb_build_object(
     'agenda',(SELECT coalesce(jsonb_agg(to_jsonb(item) ORDER BY abs(item.position),item.id),'[]'::jsonb)
       FROM hall.council_agenda_item item WHERE item.council_meeting=target_meeting AND (item.position>0 OR item.adjourned_at IS NOT NULL)),
-    'businesses',(SELECT coalesce(jsonb_agg(to_jsonb(workspace)||jsonb_build_object(
-      'resources',(SELECT coalesce(jsonb_agg(to_jsonb(association) ORDER BY association.position),'[]'::jsonb)
-        FROM hall.council_business_resource association WHERE association.council_business=workspace.council_business))),'[]'::jsonb)
-      FROM hall.council_business_workspace workspace WHERE workspace.council_business IN (
-        SELECT council_business FROM hall.council_agenda_item WHERE council_meeting=target_meeting AND (position>0 OR adjourned_at IS NOT NULL))),
+    'documents',(SELECT coalesce(jsonb_agg(jsonb_build_object('resource',cited.id) ORDER BY cited.id),'[]'::jsonb)
+      FROM hall.meeting_cited_resources((SELECT coalesce(jsonb_agg(to_jsonb(item)),'[]'::jsonb) FROM hall.council_agenda_item item
+        WHERE item.council_meeting=target_meeting AND (item.position>0 OR item.adjourned_at IS NOT NULL))) cited),
     'attendance',(SELECT coalesce(jsonb_agg(to_jsonb(attendance)),'[]'::jsonb) FROM hall.meeting_attendance attendance WHERE council_meeting=target_meeting),
     'conduct',hall.meeting_conduct_evidence(target_meeting))) END
   FROM hall.council_meetings meeting LEFT JOIN LATERAL (
@@ -20,15 +36,25 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   ) observation ON true WHERE meeting.id=target_meeting;
 $$;
 
+-- @implements-requirement HALL-FR-MIN-160
+-- A meeting references documents, not businesses: the role of each document and
+-- its business are read on the current workspace when the meeting is presented.
 CREATE FUNCTION hall.meeting_documentary_resource_relations(context JSONB)
 RETURNS TABLE(resource_id UUID, business_id UUID, role TEXT)
 LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
-  WITH businesses AS (SELECT value FROM jsonb_array_elements(context#>'{payload,businesses}')),
+  WITH documents AS (SELECT DISTINCT (value->>'resource')::uuid AS id FROM jsonb_array_elements(context#>'{payload,documents}')),
   agenda AS (SELECT value FROM jsonb_array_elements(context#>'{payload,agenda}'))
-  SELECT (value->>'report_resource')::uuid,(value->>'council_business')::uuid,'report' FROM businesses
-  UNION SELECT (association->>'resource')::uuid,(businesses.value->>'council_business')::uuid,'attachment'
-    FROM businesses CROSS JOIN LATERAL jsonb_array_elements(businesses.value->'resources') association
-  UNION SELECT subject.text_resource,(agenda.value->>'council_business')::uuid,'subject'
+  SELECT documents.id,workspace.council_business,'report' FROM documents
+    JOIN hall.council_business_workspace workspace ON workspace.report_resource=documents.id
+  UNION SELECT documents.id,association.council_business,'attachment' FROM documents
+    JOIN hall.council_business_resource association ON association.resource=documents.id
+  UNION SELECT documents.id,subject.council_business,'subject' FROM documents
+    JOIN hall.prepared_council_subject subject ON subject.text_resource=documents.id
+  UNION SELECT documents.id,NULL::uuid,'attachment' FROM documents
+    WHERE NOT EXISTS (SELECT FROM hall.council_business_workspace WHERE report_resource=documents.id)
+      AND NOT EXISTS (SELECT FROM hall.council_business_resource WHERE resource=documents.id)
+      AND NOT EXISTS (SELECT FROM hall.prepared_council_subject WHERE text_resource=documents.id)
+  UNION SELECT subject.text_resource,subject.council_business,'subject'
     FROM agenda JOIN hall.prepared_council_subject subject ON subject.id=coalesce(
       agenda.value->>'council_decision_proposal',agenda.value->>'open_question')::uuid
   UNION SELECT (value->>'proxy_document')::uuid,NULL::uuid,'proxy'
@@ -103,11 +129,15 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
       FROM hall.minutes LEFT JOIN hall.minutes_document document ON document.minutes=minutes.id WHERE minutes.council_meeting=target_meeting)),
     jsonb_build_object('kind','resources','resources',(SELECT coalesce(jsonb_agg(value ORDER BY value->>'title',value->>'id'),'[]'::jsonb) FROM resources WHERE NOT proxy)),
     jsonb_build_object('kind','businesses','businesses',(SELECT coalesce(jsonb_agg(jsonb_build_object(
-      'id',business->>'council_business','title',folder.name,'source',context.value->'source',
-      'agendaItemIds',(SELECT coalesce(jsonb_agg(item->'id' ORDER BY abs((item->>'position')::integer),item->>'id'),'[]'::jsonb)
-        FROM jsonb_array_elements(context.value#>'{payload,agenda}') item WHERE item->>'council_business'=business->>'council_business')) ORDER BY folder.name),'[]'::jsonb)
-      FROM jsonb_array_elements(context.value#>'{payload,businesses}') business
-      LEFT JOIN hall.resource folder ON folder.folder_resource_id=(business->>'folder_resource')::UUID))
+      'id',presented.business,'title',folder.name,'source',context.value->'source',
+      'agendaItemIds',presented.items) ORDER BY folder.name),'[]'::jsonb)
+      FROM (SELECT coalesce(current_item.council_business,(item->>'council_business')::UUID) business,
+          jsonb_agg(item->'id' ORDER BY abs((item->>'position')::integer),item->>'id') items
+        FROM jsonb_array_elements(context.value#>'{payload,agenda}') item
+        LEFT JOIN hall.council_agenda_item current_item ON current_item.id=(item->>'id')::UUID
+        GROUP BY 1) presented
+      LEFT JOIN hall.council_business_workspace workspace ON workspace.council_business=presented.business
+      LEFT JOIN hall.resource folder ON folder.id=workspace.folder_resource))
   )) FROM context WHERE context.value IS NOT NULL;
 $$;
 
