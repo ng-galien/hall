@@ -6,6 +6,16 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5174
+    },
+    {
+      "name": "hall-demo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/development/demo-104.mjs",
+        "--env-file",
+        "/private/tmp/claude-501/-Users-alexandreboyer-dev-projects/01aaba43-e30d-471f-8552-e90d3905e351/scratchpad/demo/hall-demo.env"
+      ],
+      "port": 5184
     }
   ]
 }
