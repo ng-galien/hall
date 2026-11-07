@@ -13,7 +13,7 @@ async function items<T>(page: Page, path: string): Promise<T[]> {
 
 // @verifies-requirement HALL-FR-ATT-170
 // @verifies-requirement HALL-FR-ATT-180
-test("the page of a meeting in preparation opens the attendance sheet and produces a proxy form", async ({
+test("the page of a meeting in preparation opens the attendance sheet and generates a proxy, holder optional", async ({
   appPage: page,
 }) => {
   const meetings = await items<{ id: string; startedAt: string | null }>(page, "/api/council-meetings");
@@ -31,6 +31,19 @@ test("the page of a meeting in preparation opens the attendance sheet and produc
 
   await page.getByTestId("meeting-proxy-form-open").click();
   await expect(page.getByTestId("meeting-proxy-form-submit")).toBeDisabled();
+  await page.getByTestId("meeting-proxy-grantor").click();
+  await page.getByRole("option", { name: /Dumnacos/ }).click();
+  await expect(page.getByTestId("meeting-proxy-form-submit")).toBeEnabled();
+  const blank = page.waitForResponse(
+    (response) => response.url().includes("/proxy-form.pdf?") && !response.url().includes("holderMemberId"),
+  );
+  await page.getByTestId("meeting-proxy-form-submit").click();
+  await expect(page.getByTestId("document-object-viewer")).toBeVisible();
+  expect((await blank).status()).toBe(200);
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("document-object-viewer")).toBeHidden();
+
+  await page.getByTestId("meeting-proxy-form-open").click();
   await page.getByTestId("meeting-proxy-grantor").click();
   await page.getByRole("option", { name: /Dumnacos/ }).click();
   await page.getByTestId("meeting-proxy-holder").click();

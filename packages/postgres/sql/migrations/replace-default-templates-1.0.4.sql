@@ -152,7 +152,7 @@ Seconde convocation envoyée le {{ reconvocation.sentAt | datetime }} pour le {{
 
 {% endfor %}
 {% for entry in minutes.attendance %}
-- {{ entry.member.name | text }} : {{ {''present'': ''Présent'', ''represented'': ''Représenté'', ''excused'': ''Excusé'', ''absent'': ''Absent''}[entry.status] }}{% if entry.proxyHolder %}, pouvoir à {{ entry.proxyHolder.name | text }}{% endif %}
+- {{ entry.member.name | text }} : {{ {''present'': ''Présent(e)'', ''represented'': ''Représenté(e)'', ''excused'': ''Excusé(e)'', ''absent'': ''Absent(e)''}[entry.status] }}{% if entry.proxyHolder %}, pouvoir à {{ entry.proxyHolder.name | text }}{% endif %}
 {% endfor %}
 
 {% if minutes.conduct.auxiliaryAttendances %}
@@ -266,7 +266,7 @@ Secrétariat de séance
 </div>
 </div>
 </div>
-', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; }'),
+', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; } .hall-fill-holder { width: 75mm; }'),
     ('meeting-notice', '{# hall:jinja #}
 {{ notice.hall.name | text }}
 
@@ -320,7 +320,7 @@ Le maire
 </div>
 </div>
 </div>
-', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; }'),
+', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; } .hall-fill-holder { width: 75mm; }'),
     ('council-decision', '{# hall:jinja #}
 {% set facts = decision.facts %}
 {% set attendance = facts.opening.attendance if facts.opening else facts.attendance %}
@@ -443,7 +443,7 @@ Secrétariat de séance
 </div>
 </div>
 </div>
-', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; }'),
+', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; } .hall-fill-holder { width: 75mm; }'),
     ('deliberation-list', '{# hall:jinja #}
 {{ hall.name | text }}
 
@@ -483,7 +483,7 @@ Le maire
 </div>
 </div>
 </div>
-', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; }'),
+', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; } .hall-fill-holder { width: 75mm; }'),
     ('attendance-sheet', '{# hall:jinja #}
 {% set sheet = attendanceSheet %}
 {{ hall.name | text }}
@@ -518,13 +518,14 @@ Lieu : {{ (sheet.meeting.location or ''Non renseigné'') | text }}
 {% set grantor = proxy.grantor %}
 {% set holder = proxy.holder %}
 {% set commune = hall.name or ''……'' %}
+{% set meetingDate = (proxy.meeting.startsAt | date) if proxy.meeting.startsAt else ''<span class="hall-fill hall-fill-date"></span>'' %}
 {{ hall.name | text }}
 
 # Pouvoir
 
-Séance du conseil municipal du {{ proxy.meeting.startsAt | date }}
+Séance du conseil municipal du {{ meetingDate }}
 
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ proxy.meeting.startsAt | date }}.
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à {% if holder %}**{{ holder.name | text }}**, {{ qualities[holder.role] }}{% else %}<span class="hall-fill hall-fill-holder"></span>{% endif %}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
 
 Rappel (article L2121-20 du code général des collectivités territoriales) :
 
@@ -551,13 +552,14 @@ Le mandant
 {% set grantor = proxy.grantor %}
 {% set holder = proxy.holder %}
 {% set commune = hall.name or ''……'' %}
+{% set meetingDate = (proxy.meeting.startsAt | date) if proxy.meeting.startsAt else ''<span class="hall-fill hall-fill-date"></span>'' %}
 {{ hall.name | text }}
 
 # Pouvoir
 
-Séance du conseil municipal du {{ proxy.meeting.startsAt | date }}
+Séance du conseil municipal du {{ meetingDate }}
 
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ proxy.meeting.startsAt | date }}.
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à {% if holder %}**{{ holder.name | text }}**, {{ qualities[holder.role] }}{% else %}<span class="hall-fill hall-fill-holder"></span>{% endif %}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
 
 Rappel (article L2121-20 du code général des collectivités territoriales) :
 
@@ -579,15 +581,15 @@ Le mandant
 </div>
 </div>
 </div>
-', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; }');
+', 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; } .hall-fill-holder { width: 75mm; }');
 CREATE TEMPORARY TABLE hall_template_outcome ON COMMIT DROP AS
   SELECT t.id, t.document_type, t.name,
     CASE WHEN t.body_markdown = d.body AND t.stylesheet = d.stylesheet THEN 'current'
          WHEN t.body_markdown IN (d.former_body, d.body) THEN 'replaced'
          ELSE 'customized' END AS outcome
-  FROM templates t JOIN hall_default_template d ON d.document_type = t.document_type
+  FROM public.templates t JOIN hall_default_template d ON d.document_type = t.document_type
   WHERE t.kind = 'pdf';
-UPDATE templates t SET body_markdown = d.body, stylesheet = d.stylesheet, updated_at = clock_timestamp()::text
+UPDATE public.templates t SET body_markdown = d.body, stylesheet = d.stylesheet, updated_at = clock_timestamp()::text
   FROM hall_default_template d, hall_template_outcome o
   WHERE o.id = t.id AND d.document_type = t.document_type AND o.outcome = 'replaced';
 SELECT document_type, name, id, outcome FROM hall_template_outcome ORDER BY document_type, name;

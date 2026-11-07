@@ -2,12 +2,15 @@ import type { NextFunction, Request, Response } from "express";
 import { canExecute, requireAction } from "../security/authorization.js";
 
 // @implements-requirement HALL-FR-USR-060
-/** Content downloads and generated files are exports; previews and embedded assets are readings. */
+/**
+ * Content downloads and generated files are exports; previews, embedded assets and the blank forms of a
+ * meeting (attendance sheet, proxy) are readings.
+ */
 export function isExportHref(href: string): boolean {
   const path = new URL(href, "http://hall.invalid").pathname;
   if (path.startsWith("/api/resources/editor-assets/") || path.startsWith("/api/resources/binary-references/"))
     return false;
-  return /\/(?:content(?:\.pdf)?|deliberation-list\.pdf|attendance-sheet\.pdf|proxy-form\.pdf|dossier|bundle)$/.test(
+  return /\/(?:content(?:\.pdf)?|deliberation-list\.pdf|dossier|bundle)$/.test(
     path,
   );
 }

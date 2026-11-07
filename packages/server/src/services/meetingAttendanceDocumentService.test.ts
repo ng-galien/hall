@@ -49,12 +49,16 @@ describe("attendance sheet data", () => {
 
 // @verifies-requirement HALL-FR-ATT-180
 describe("proxy form data", () => {
-  it("names two distinct members in mandate and refuses anything else", async () => {
+  it("names a grantor in mandate and an optional distinct holder in mandate, and refuses anything else", async () => {
     const members = await membersInMandate(directory);
     expect(proxyFormData(meeting, members, "c1", "m1")).toMatchObject({
       grantor: { name: "Claire Conseil", role: "councillor" },
       holder: { name: "Marie Maire", role: "mayor" },
     });
+    expect(proxyFormData(meeting, members, "c1", null).holder).toBeNull();
+    expect(() => proxyFormData(meeting, members, "former", null)).toThrow(
+      expect.objectContaining({ code: "proxy_form_invalid" }),
+    );
     expect(() => proxyFormData(meeting, members, "c1", "c1")).toThrow(
       expect.objectContaining({ code: "proxy_form_invalid" }),
     );

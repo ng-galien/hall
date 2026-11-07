@@ -80,16 +80,12 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
               href: `/api/council-meetings/${reference}/attendance-sheet.pdf`,
               type: "application/pdf",
             },
-            ...(primary?.startedAt || primary?.closedAt
-              ? []
-              : [
-                  {
-                    rel: ["proxy-form"],
-                    href: `/api/council-meetings/${reference}/proxy-form.pdf`,
-                    title: "Query parameters: grantorMemberId, holderMemberId (two distinct members in mandate)",
-                    type: "application/pdf",
-                  },
-                ]),
+            {
+              rel: ["proxy-form"],
+              href: `/api/council-meetings/${reference}/proxy-form.pdf`,
+              title: "Query parameters: grantorMemberId (member in mandate), optional holderMemberId (another one)",
+              type: "application/pdf",
+            },
             ...(primary?.closedAt && primary.minutesId
               ? [
                   {

@@ -178,13 +178,13 @@ export function createCouncilMeetingsRouter({
   router.get("/:meetingReference/proxy-form.pdf", async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     const query = z
-      .object({ grantorMemberId: z.string().min(1), holderMemberId: z.string().min(1) })
+      .object({ grantorMemberId: z.string().min(1), holderMemberId: z.string().min(1).optional() })
       .strict()
       .parse(request.query);
     const content = await meetingAttendanceDocumentService.proxyForm(
       meeting.id,
       query.grantorMemberId,
-      query.holderMemberId,
+      query.holderMemberId ?? null,
     );
     response.set("Content-Disposition", `inline; filename="pouvoir-${meeting.number}.pdf"`);
     response.set("Cache-Control", "private, no-store");

@@ -74,6 +74,13 @@ describe("attendance sheet and proxy form of a meeting", () => {
     expect(proxyHtml).toContain("Je soussigné(e) <strong>Claire Test</strong>, membre du conseil municipal");
     expect(proxyHtml).toContain("donne pouvoir à <strong>Martine Test</strong>, maire");
 
+    expect(proxyHtml).toContain("<h1>Pouvoir</h1>");
+    await agent
+      .get(`/api/council-meetings/${meeting.id}/proxy-form.pdf`)
+      .query({ grantorMemberId: councillor.id })
+      .expect(200);
+    expect(renderedHtml.at(-1)!).toContain('donne pouvoir à <span class="hall-fill hall-fill-holder"></span>');
+
     const refused = await agent
       .get(`/api/council-meetings/${meeting.id}/proxy-form.pdf`)
       .query({ grantorMemberId: councillor.id, holderMemberId: councillor.id })

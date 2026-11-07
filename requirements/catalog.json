@@ -10013,13 +10013,13 @@
         "state": "accepted",
         "since": "2026-11-07"
       },
-      "statement": "La page d’une séance non ouverte produit un pouvoir à signer, au nom du conseiller qui donne pouvoir et du conseiller qui le reçoit, d’après un modèle de type « Pouvoir ».",
+      "statement": "La page d’une séance en préparation génère un pouvoir à signer pour le conseiller choisi, d’après un modèle de type « Pouvoir ».",
       "acceptanceCriteria": [
         "Le pouvoir est toujours révocable ; sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.",
-        "Depuis la page d’une séance qui n’est pas encore ouverte, l’action « Pouvoir » ouvre un formulaire où l’utilisateur choisit le mandant et le mandataire parmi les membres du conseil en mandat ; le mandataire est différent du mandant. Le serveur refuse avec le code proxy_form_invalid deux membres identiques ou hors mandat.",
-        "Le PDF porte le nom de la commune, le titre « Pouvoir », la date de la séance, la formule « Je soussigné(e) {mandant}, {qualité} de la commune de {commune}, donne pouvoir à {mandataire}, {qualité}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {date} », le rappel des règles de l’article L2121-20 (un seul pouvoir par porteur, révocable, trois séances consécutives au plus sauf maladie dûment constatée ou congé de maternité), puis « Fait à ……, le …… » à compléter à la main et le bloc de signature « Le mandant » avec son nom.",
+        "Depuis la page d’une séance en préparation, quel que soit l’état de l’ordre du jour, l’action « Générer un pouvoir » ouvre un formulaire où l’utilisateur choisit obligatoirement le conseiller qui donne pouvoir, parmi les membres du conseil en mandat, et facultativement le conseiller qui le reçoit, différent du premier. Tout lecteur de la séance peut le générer. Le serveur refuse avec le code proxy_form_invalid un mandant hors mandat, un mandataire hors mandat ou un mandataire égal au mandant.",
+        "Le PDF porte le nom de la commune, le titre « Pouvoir », la date de la séance, la formule « Je soussigné(e) {mandant}, {qualité} de la commune de {commune}, donne pouvoir à {mandataire}, {qualité}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {date} », le rappel des règles de l’article L2121-20 (un seul pouvoir par porteur, révocable, trois séances consécutives au plus sauf maladie dûment constatée ou congé de maternité), puis « Fait à ……, le …… » à compléter à la main et le bloc de signature « Le mandant » avec son nom. Sans mandataire choisi, une ligne à remplir à la main remplace son nom et sa qualité ; sans date de séance fixée, une ligne à remplir remplace la date.",
         "Le pouvoir n’enregistre rien : les présences et pouvoirs de la séance restent saisis à l’appel.",
-        "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `proxy` affichées dans l’aperçu."
+        "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `proxy` (`meeting`, `grantor`, `holder` facultatif) affichées dans l’aperçu."
       ],
       "clauses": [
         {
@@ -10042,6 +10042,12 @@
           "key": "form-only",
           "origin": "product",
           "statement": "Le pouvoir est un formulaire à signer par le mandant ; Hall ne l’enregistre pas et ne l’associe pas à la séance.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-flow",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Tu choisis le conseiller, et puis voilà. C’est tout. » ; « n’importe qui, en fait, peut imprimer ces documents » ; « c’est pouvoir […] On garde le bon terme. » Le mandataire facultatif, remplacé par une ligne à remplir, est une lecture du coordinateur.",
           "sourceIds": []
         }
       ]

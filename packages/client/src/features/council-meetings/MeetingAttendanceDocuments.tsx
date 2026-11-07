@@ -33,8 +33,8 @@ export function MeetingAttendanceDocuments({
 
   const submitProxy = (event: FormEvent) => {
     event.preventDefault();
-    if (!proxyFormHref || !grantor || !holder || grantor === holder) return;
-    const query = new URLSearchParams({ grantorMemberId: grantor, holderMemberId: holder });
+    if (!proxyFormHref || !grantor || grantor === holder) return;
+    const query = new URLSearchParams({ grantorMemberId: grantor, ...(holder ? { holderMemberId: holder } : {}) });
     setProxyOpen(false);
     setViewer({ title: `${t("meeting.proxyForm")} · ${meetingLabel}`, href: `${proxyFormHref}?${query}` });
   };
@@ -56,7 +56,7 @@ export function MeetingAttendanceDocuments({
       {proxyFormHref ? (
         <Button variant="outline" data-testid="meeting-proxy-form-open" onClick={() => setProxyOpen(true)}>
           <FileIcon aria-hidden="true" />
-          {t("meeting.proxyForm")}
+          {t("meeting.proxyFormOpen")}
         </Button>
       ) : null}
       <Modal open={proxyOpen} title={t("meeting.proxyForm")} onClose={() => setProxyOpen(false)}>
@@ -67,7 +67,10 @@ export function MeetingAttendanceDocuments({
               <EntitySelect
                 type="member"
                 value={grantor}
-                onValueChange={setGrantor}
+                onValueChange={(value) => {
+                  setGrantor(value);
+                  if (value === holder) setHolder("");
+                }}
                 testId="meeting-proxy-grantor"
                 placeholder={t("meeting.proxyFormGrantorPlaceholder")}
                 options={options}
@@ -82,6 +85,7 @@ export function MeetingAttendanceDocuments({
                 testId="meeting-proxy-holder"
                 placeholder={t("meeting.proxyFormHolderPlaceholder")}
                 options={options.filter((option) => option.value !== grantor)}
+                clearLabel={t("meeting.proxyFormHolderClear")}
               />
             </div>
           </div>
@@ -89,7 +93,7 @@ export function MeetingAttendanceDocuments({
             className="justify-self-end"
             data-testid="meeting-proxy-form-submit"
             type="submit"
-            disabled={!grantor || !holder || grantor === holder}
+            disabled={!grantor || grantor === holder}
           >
             {t("meeting.proxyFormGenerate")}
           </Button>

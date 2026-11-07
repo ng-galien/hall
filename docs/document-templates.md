@@ -18,7 +18,7 @@ The server supplies these read-only values:
 | Council decision | `decision.title`, `decision.content`, `decision.facts`, `decision.totals` |
 | Deliberation list | `deliberations`: `agendaNumber`, `title`, `outcome` |
 | Attendance sheet | `attendanceSheet.meeting` (`number`, `startsAt`, `location`), `attendanceSheet.members`: `name` |
-| Proxy form | `proxy.meeting`, `proxy.grantor` and `proxy.holder`: `name`, `role` |
+| Proxy (« Pouvoir ») | `proxy.meeting`, `proxy.grantor` and, when chosen, `proxy.holder`: `name`, `role` |
 | Meeting dossier | `dossier.meeting`, `dossier.point`: `title`, `report`, `subjectText`, `pieces` |
 | Invitation | `event.name`, `event.content`, `event.schedule`, `event.location`, `event.method` |
 | Printing an authored document | `generated.bodyMarkdown` |
@@ -104,7 +104,7 @@ stand side by side. The block is not split across two pages. The minutes are sig
 the meeting; Hall has no gender data, so the headings name the office rather than the person.
 The meeting notice, dated by its issue date, and the examined deliberations list end with « Le
 maire »; the council decision ends with « Le maire » and « Secrétariat de séance », where the
-mayor is named only when the confirmed facts show that the mayor chaired. The proxy form ends
+mayor is named only when the confirmed facts show that the mayor chaired. The proxy ends
 with « Le mandant » under a line « Fait à …, le … » whose two zones
 (`<span class="hall-fill hall-fill-place"></span>`, `hall-fill-date`) are filled in by hand.
 
@@ -117,8 +117,10 @@ the deputies and the councillors; the minutes list attendance in the same order.
 first name then the last name, as in the directory. The sheet has two columns, « Nom et
 prénom » and « Signature », left blank for the members present to sign; it carries no quality,
 proxy or recorded attendance. The proxy form is a separate document.
-The proxy form names the member giving the proxy and the member receiving it; it records
-nothing. Both are generated from the meeting page.
+The proxy (« Pouvoir ») names the member giving it; the member receiving it is optional,
+and without one the document leaves a line to fill in by hand (`hall-fill-holder`), as it does
+for an unset meeting date. It records nothing. Any reader of the meeting generates the sheet
+from the meeting page in every state, and the proxy from the page of a meeting in preparation.
 
 ## Default models
 

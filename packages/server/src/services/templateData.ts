@@ -84,11 +84,11 @@ export interface AttendanceSheetData {
   members: Array<{ name: string }>;
 }
 
-/** `proxy`: the member giving the proxy (`grantor`) and the member receiving it (`holder`). */
+/** `proxy`: the member giving the proxy (`grantor`) and, when chosen, the member receiving it (`holder`). */
 export interface ProxyFormData {
   meeting: MeetingDocumentMeeting;
   grantor: MeetingDocumentMember;
-  holder: MeetingDocumentMember;
+  holder: MeetingDocumentMember | null;
 }
 
 // @implements-requirement HALL-FR-MIN-280

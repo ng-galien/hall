@@ -4,8 +4,8 @@
 -- An existing template of these types is left unchanged.
 DO $migration$
 BEGIN
-  IF to_regclass('templates') IS NOT NULL THEN
-    INSERT INTO templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
+  IF to_regclass('public.templates') IS NOT NULL THEN
+    INSERT INTO public.templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
     SELECT gen_random_uuid()::text, 'pdf', 'attendance-sheet', 'Feuille d’émargement',
       '{# hall:jinja #}
 {% set sheet = attendanceSheet %}
@@ -22,21 +22,22 @@ Lieu : {{ (sheet.meeting.location or ''Non renseigné'') | text }}
 | {{ entry.name | text }} |   |
 {% endfor %}
 ', NULL, 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-document-body table { width: 100%; table-layout: fixed; border-collapse: collapse; break-inside: auto; } .hall-document-body th, .hall-document-body td { border: 1px solid #000; padding: 1.5mm 2mm; font-size: 10pt; text-align: left; vertical-align: middle; overflow-wrap: break-word; } .hall-document-body td { height: 12mm; } .hall-document-body tr { break-inside: avoid; } .hall-document-body th:nth-child(1) { width: 45%; } .hall-document-body th:nth-child(2) { width: 55%; }', '{{ hall.name | text }}', 'Page :page-number / :page-count', clock_timestamp()::text, clock_timestamp()::text
-    WHERE NOT EXISTS (SELECT FROM templates WHERE kind = 'pdf' AND document_type = 'attendance-sheet');
-    INSERT INTO templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
+    WHERE NOT EXISTS (SELECT FROM public.templates WHERE kind = 'pdf' AND document_type = 'attendance-sheet');
+    INSERT INTO public.templates (id, kind, document_type, name, body_markdown, subject, stylesheet, header_html, footer_html, created_at, updated_at)
     SELECT gen_random_uuid()::text, 'pdf', 'proxy-form', 'Pouvoir',
       '{# hall:jinja #}
 {% set qualities = {''mayor'': ''maire'', ''deputyMayor'': ''adjoint au maire'', ''councillor'': ''membre du conseil municipal''} %}
 {% set grantor = proxy.grantor %}
 {% set holder = proxy.holder %}
 {% set commune = hall.name or ''……'' %}
+{% set meetingDate = (proxy.meeting.startsAt | date) if proxy.meeting.startsAt else ''<span class="hall-fill hall-fill-date"></span>'' %}
 {{ hall.name | text }}
 
 # Pouvoir
 
-Séance du conseil municipal du {{ proxy.meeting.startsAt | date }}
+Séance du conseil municipal du {{ meetingDate }}
 
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ proxy.meeting.startsAt | date }}.
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à {% if holder %}**{{ holder.name | text }}**, {{ qualities[holder.role] }}{% else %}<span class="hall-fill hall-fill-holder"></span>{% endif %}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
 
 Rappel (article L2121-20 du code général des collectivités territoriales) :
 
@@ -58,8 +59,8 @@ Le mandant
 </div>
 </div>
 </div>
-', NULL, 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; }', '{{ hall.name | text }}', 'Page :page-number / :page-count', clock_timestamp()::text, clock_timestamp()::text
-    WHERE NOT EXISTS (SELECT FROM templates WHERE kind = 'pdf' AND document_type = 'proxy-form');
+', NULL, 'h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; } .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; } .hall-signatures-handwritten > p { margin: 1.5rem 0 2rem 0; line-height: 2; } .hall-fill { display: inline-block; border-bottom: 1px dotted #000; height: 1em; vertical-align: baseline; } .hall-fill-place { width: 60mm; } .hall-fill-date { width: 45mm; } .hall-fill-holder { width: 75mm; }', '{{ hall.name | text }}', 'Page :page-number / :page-count', clock_timestamp()::text, clock_timestamp()::text
+    WHERE NOT EXISTS (SELECT FROM public.templates WHERE kind = 'pdf' AND document_type = 'proxy-form');
   END IF;
 END
 $migration$;

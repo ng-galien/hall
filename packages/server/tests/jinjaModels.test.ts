@@ -237,8 +237,21 @@ describe("editable Markdown/Jinja default models", () => {
     expect(renderHtml(parse(output))).toContain(
       'Fait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fill hall-fill-date"></span>',
     );
+    expect(renderHtml(parse(output))).toContain("<h1>Pouvoir</h1>");
     const elided = renderJinja(jinjaBody("proxy-form"), { ...context, hall: { ...context.hall, name: "Alésia" } });
     expect(elided).toContain("de la commune d’Alésia");
+  });
+
+  // @verifies-requirement HALL-FR-ATT-180
+  it("leaves the holder and an unset meeting date to be filled in by hand", () => {
+    const blank = renderJinja(jinjaBody("proxy-form"), {
+      ...context,
+      proxy: { ...context.proxy, holder: null, meeting: { number: 8, startsAt: null, location: null } },
+    });
+    const html = renderHtml(parse(blank));
+    expect(html).toContain('donne pouvoir à <span class="hall-fill hall-fill-holder"></span>, pour me représenter');
+    expect(html).toContain('Séance du conseil municipal du <span class="hall-fill hall-fill-date"></span>');
+    expect(html).not.toContain("adjoint au maire");
   });
 
   it("saves exact Jinja whitespace and rejects broken syntax before persistence", async () => {

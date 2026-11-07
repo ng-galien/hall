@@ -20,7 +20,7 @@ Seconde convocation envoyée le {{ reconvocation.sentAt | datetime }} pour le {{
 
 {% endfor %}
 {% for entry in minutes.attendance %}
-- {{ entry.member.name | text }} : {{ {'present': 'Présent', 'represented': 'Représenté', 'excused': 'Excusé', 'absent': 'Absent'}[entry.status] }}{% if entry.proxyHolder %}, pouvoir à {{ entry.proxyHolder.name | text }}{% endif %}
+- {{ entry.member.name | text }} : {{ {'present': 'Présent(e)', 'represented': 'Représenté(e)', 'excused': 'Excusé(e)', 'absent': 'Absent(e)'}[entry.status] }}{% if entry.proxyHolder %}, pouvoir à {{ entry.proxyHolder.name | text }}{% endif %}
 {% endfor %}
 
 {% if minutes.conduct.auxiliaryAttendances %}
@@ -284,18 +284,22 @@ Lieu : {{ (sheet.meeting.location or 'Non renseigné') | text }}
 `;
 
 // @implements-requirement HALL-FR-ATT-180
-/** Proxy form (CGCT L2121-20): a form to sign, it records nothing in Hall. */
+/**
+ * Proxy (CGCT L2121-20): a form to sign, it records nothing in Hall. Without a chosen
+ * holder, or without a meeting date, a blank zone is left to fill in by hand.
+ */
 export const jinjaProxyForm = `${qualities}
 {% set grantor = proxy.grantor %}
 {% set holder = proxy.holder %}
 {% set commune = hall.name or '……' %}
+{% set meetingDate = (proxy.meeting.startsAt | date) if proxy.meeting.startsAt else '<span class="hall-fill hall-fill-date"></span>' %}
 {{ hall.name | text }}
 
 # Pouvoir
 
-Séance du conseil municipal du {{ proxy.meeting.startsAt | date }}
+Séance du conseil municipal du {{ meetingDate }}
 
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ 'd’' if commune[:1] in 'AEIOUYÉÈÊÂÎÔaeiouyéèêâîô' else 'de ' }}{{ commune | text }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ proxy.meeting.startsAt | date }}.
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ 'd’' if commune[:1] in 'AEIOUYÉÈÊÂÎÔaeiouyéèêâîô' else 'de ' }}{{ commune | text }}, donne pouvoir à {% if holder %}**{{ holder.name | text }}**, {{ qualities[holder.role] }}{% else %}<span class="hall-fill hall-fill-holder"></span>{% endif %}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
 
 Rappel (article L2121-20 du code général des collectivités territoriales) :
 
