@@ -134,6 +134,15 @@ authorization_at_server_permission_catalog_target = "target.name = 'apiPermissio
 authorization_at_server_command_policy_target = "target ~ '**/dir:packages/dir:server/dir:src/dir:api/module:apiCommandPolicy/**'"
 templating_grammar_runtime_target = "target ~ '**/external_pkg:unified/**' OR target ~ '**/external_pkg:remark-parse/**' OR target ~ '**/external_pkg:remark-stringify/**' OR target ~ '**/external_pkg:remark-directive/**' OR target ~ '**/external_pkg:remark-gfm/**' OR target ~ '**/external_pkg:remark-rehype/**' OR target ~ '**/external_pkg:rehype-stringify/**'"
 
+database_access_module = "moniker ~ '**/dir:packages/dir:server/dir:src/**' OR moniker ~ '**/dir:packages/dir:postgres/dir:src/**'"
+test_support_module = "moniker ~ '**/dir:__tests__/**'"
+postgres_pool_module = "moniker ~ '**/dir:packages/dir:postgres/dir:src/module:pool'"
+postgres_schema_upgrade_runtime_module = "moniker ~ '**/dir:packages/dir:postgres/dir:src/module:schemaUpgradeRuntime'"
+postgres_schema_upgrade_planner_module = "moniker ~ '**/dir:packages/dir:postgres/dir:src/module:schemaUpgrade' OR moniker ~ '**/dir:packages/dir:postgres/dir:src/module:schemaComparison'"
+postgres_transaction_module = "moniker ~ '**/dir:packages/dir:postgres/dir:src/module:transaction' OR moniker ~ '**/dir:packages/dir:postgres/dir:src/module:bootstrap'"
+postgres_pool_consumer_module = "moniker ~ '**/dir:packages/dir:postgres/dir:src/module:client' OR moniker ~ '**/dir:packages/dir:server/dir:src/dir:core/module:container'"
+string_literal_node = "kind = 'string_fragment' OR kind = 'template_string'"
+
 [[refs.where]]
 id = "templating-client-server-ownership-of-markdown-grammar-is-confined"
 severity = "error"
@@ -175,3 +184,38 @@ severity = "error"
 rationale = "Electron hosts or connects to the HTTP server and loads the built renderer as web assets. A source import from desktop into the React client would couple packaging to renderer internals and blur the same boundary used by remote clients."
 expr = "$desktop_source AND $dependency_import_ref => NOT $client_target"
 message = "Electron must load the client over HTTP instead of importing renderer source."
+
+[[ts.module.where]]
+id = "postgres-ownership-of-connection-pools-is-confined"
+severity = "error"
+rationale = "Hall reaches PostgreSQL through one pool built by packages/postgres/src/pool.ts, so that every request shares the same connection budget, transaction manager, call context and audit. A second pg Pool or Client opened elsewhere doubles the connections, splits one request into several transactions and bypasses roles and audit. The schema upgrade runtime keeps its own short-lived pool and maintenance client because they target a temporary comparison database, never the installed one."
+expr = "$database_access_module AND NOT $test_support_module AND NOT $postgres_pool_module AND NOT $postgres_schema_upgrade_runtime_module => none(ast, kind = 'new_expression' AND text =~ '^new\\s+(pg\\.)?(Pool|Client)\\b')"
+message = "Do not open a PostgreSQL Pool or Client here. Receive the shared pool from the composition root (createPostgresPool in packages/postgres/src/pool.ts) or call a packages/postgres repository."
+
+[[ts.module.where]]
+id = "postgres-ownership-of-pool-factory-calls-is-confined"
+severity = "error"
+rationale = "The pool factory is called once per process: by the server composition root, or by createPostgresClient for a standalone PostgreSQL client. Another call site creates a second pool with its own connections and transactions."
+expr = "$database_access_module AND NOT $test_support_module AND NOT $postgres_pool_module AND NOT $postgres_pool_consumer_module => none(ast, kind = 'call_expression' AND text =~ '^createPostgresPool\\s*[(]')"
+message = "Do not call createPostgresPool here. Inject the pool created by packages/server/src/core/container.ts."
+
+[[ts.module.where]]
+id = "database-ownership-of-ddl-is-confined-to-sql-files"
+severity = "error"
+rationale = "The Hall schema is declared only in packages/postgres/sql, read into the schema manifest and installed or upgraded by catalog comparison. DDL written in TypeScript strings escapes the manifest, the schema qualification rules and the upgrade comparison, and recreates a second schema owner. Only the upgrade planner renders DDL, derived from the SQL manifest, and the comparison capability probe, which is parsed in memory and never executed."
+expr = "$database_access_module AND NOT $test_support_module AND NOT $postgres_schema_upgrade_planner_module => none(ast, ($string_literal_node) AND text =~ '(?i)\\b(CREATE(\\s+OR\\s+REPLACE)?(\\s+UNIQUE)?\\s+(TABLE|INDEX|FUNCTION)|ALTER\\s+TABLE)\\b')"
+message = "Move this CREATE or ALTER statement into a SQL file under packages/postgres/sql (a schema file, or a migration in sql/migrations) and let the schema manifest install it."
+
+[[ts.module.where]]
+id = "database-hygiene-rejects-public-schema-references"
+severity = "error"
+rationale = "Every Hall object lives in a Hall schema and every Hall function pins its search_path to pg_catalog and Hall schemas. A query on public or a connection with search_path=public reaches objects outside the manifest, roles and audit."
+expr = "$database_access_module AND NOT $test_support_module => none(ast, ($string_literal_node) AND text =~ '(?i)(\\bpublic\\.[a-z_\\x22]|search_path\\s*(=|to)\\s*[\\x27\\x22]?public\\b)')"
+message = "Name the Hall schema (hall, hall_api) instead of public, and do not set search_path to public. Reading the former public tables belongs to a migration in packages/postgres/sql/migrations."
+
+[[ts.module.where]]
+id = "postgres-ownership-of-transaction-control-is-confined"
+severity = "error"
+rationale = "packages/postgres/src/transaction.ts opens every Hall transaction with its isolation level, role, call context and audit; bootstrap.ts installs the manifest in its own transaction. BEGIN, COMMIT or ROLLBACK sent from anywhere else forms a second transaction manager without these guarantees and breaks atomicity of a request. The schema upgrade runtime materializes the target schema on its temporary comparison database."
+expr = "$database_access_module AND NOT $test_support_module AND NOT $postgres_transaction_module AND NOT $postgres_schema_upgrade_runtime_module => none(ast, kind = 'string_fragment' AND text =~ '(?i)^\\s*(BEGIN|COMMIT|ROLLBACK|START\\s+TRANSACTION)(\\s|;|$)')"
+message = "Do not send BEGIN, COMMIT or ROLLBACK here. Run the work through the transaction manager of packages/postgres/src/transaction.ts."

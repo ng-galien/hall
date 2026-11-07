@@ -46,7 +46,7 @@
     "requirements:ui": "node scripts/development/requirements-ui.mjs",
     "test:requirements:ui": "vitest run tests/meta/requirements-ui.test.mjs",
     "check:architecture": "npm run test:architecture && code-moniker check .",
-    "test:architecture": "vitest run tests/meta/check-search-architecture.test.mjs tests/meta/exhaustive-dispatch.test.mjs && npm run typecheck -w @hall/domain",
+    "test:architecture": "vitest run tests/meta/check-search-architecture.test.mjs tests/meta/exhaustive-dispatch.test.mjs tests/meta/postgres-single-access.test.mjs && npm run typecheck -w @hall/domain",
     "lint": "biome check packages/*/src packages/*/*.ts packages/client/e2e packages/client/tests scripts tests/meta tests/postgres tests/distribution",
     "lint:fix": "biome check --write packages/*/src packages/*/*.ts packages/client/e2e packages/client/tests scripts tests/meta tests/postgres tests/distribution",
     "typecheck": "npm run build -w @hall/contracts && npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/mcp && npm run build -w @hall/templating && npm run typecheck -w @hall/postgres && npm run typecheck -w @hall/server && npm run typecheck -w @hall/client && npm run build -w @hall/server && npm run typecheck -w @hall/desktop",
