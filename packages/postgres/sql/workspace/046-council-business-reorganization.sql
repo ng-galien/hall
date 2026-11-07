@@ -201,7 +201,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     SELECT subject.id, subject.kind, subject.text_resource,
       hall.prepared_subject_move_plan(subject.id, subject.kind, target_business, false) AS plan
     FROM hall.prepared_council_subject subject WHERE subject.council_business = source_business
-  ), arrivals AS (
+  ), moved_arrivals AS (
     SELECT resource.id, resource.name, resource.is_folder, 'subjectText' AS role
     FROM subjects JOIN hall.resource resource ON resource.id = subjects.text_resource
     UNION
@@ -209,11 +209,26 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     FROM source JOIN hall.resource resource ON resource.path = source.folder_path
     WHERE resource.id <> source.report_resource
       AND NOT EXISTS (SELECT FROM subjects WHERE subjects.text_resource = resource.id)
-    UNION
+  ), retained_report AS (
     -- @implements-requirement HALL-FR-BUS-090
-    -- A report referenced by a meeting snapshot is kept under the absorbed business name.
-    SELECT source.report_resource, source.folder_name, false, 'retainedReport'
-    FROM source WHERE source.report_retained
+    -- A report referenced by a meeting snapshot is kept under the absorbed
+    -- business name, followed by " (n)" when that name is taken, as for a
+    -- subject text.
+    SELECT source.report_resource AS id, candidate.name
+    FROM source CROSS JOIN target CROSS JOIN LATERAL (
+      SELECT CASE WHEN ordinal = 1 THEN source.folder_name
+        ELSE left(source.folder_name, 185) || ' (' || ordinal::TEXT || ')' END AS name, ordinal
+      FROM generate_series(1, 1000) ordinal
+    ) candidate
+    WHERE source.report_retained
+      AND NOT EXISTS (SELECT FROM hall.resource neighbour WHERE neighbour.path = target.folder_path
+        AND lower(neighbour.name) = lower(candidate.name) AND neighbour.id <> source.report_resource)
+      AND NOT EXISTS (SELECT FROM moved_arrivals arrival WHERE lower(arrival.name) = lower(candidate.name))
+    ORDER BY candidate.ordinal LIMIT 1
+  ), arrivals AS (
+    SELECT * FROM moved_arrivals
+    UNION
+    SELECT retained_report.id, retained_report.name, false, 'retainedReport' FROM retained_report
   ), conflicts AS (
     SELECT arrival.name FROM arrivals arrival CROSS JOIN target
     WHERE EXISTS (SELECT FROM hall.resource neighbour WHERE neighbour.path = target.folder_path
@@ -249,7 +264,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
         WHEN source.report_kept THEN 'appendedToTargetReport'
         ELSE 'deleted' END,
       'movedTo', CASE WHEN source.report_retained
-        THEN jsonb_build_object('folderPath', target.folder_path, 'name', source.folder_name) END,
+        THEN jsonb_build_object('folderPath', target.folder_path, 'name', (SELECT name FROM retained_report)) END,
       'targetReportResourceId', target.report_resource,
       'heading', CASE WHEN source.report_kept THEN '# ' || (SELECT folder.name FROM hall.resource folder WHERE folder.id = source.folder_resource) END)
       FROM source CROSS JOIN target),
@@ -329,7 +344,7 @@ BEGIN
       ARRAY(SELECT id FROM hall.editor_asset WHERE owner_text_resource_id = target_report));
   END IF;
   IF plan#>'{report,movedTo}' <> 'null'::JSONB THEN
-    PERFORM hall.relocate_resource(source.report_resource, target_path, source_title);
+    PERFORM hall.relocate_resource(source.report_resource, target_path, plan#>>'{report,movedTo,name}');
     moved := moved || source.report_resource;
   ELSE
     PERFORM hall_api.delete_resource(source.report_resource);

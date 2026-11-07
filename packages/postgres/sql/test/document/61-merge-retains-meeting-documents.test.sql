@@ -38,10 +38,10 @@ CREATE TEMP TABLE snapshots_before AS SELECT council_meeting, phase, payload FRO
 
 SELECT ok(meeting_snapshot_references_resource(report), 'the absorbed report is referenced by the meeting snapshot') FROM absorbed_resources;
 
--- Preview: the report fate announces the move, and its name must be free.
+-- Preview: the report fate announces the move under a free name.
 CREATE TEMP TABLE blocking AS SELECT (hall_api.create_text_resource('Target affair', 'Absorbed affair', 'Same name')->>'id')::UUID AS id;
-SELECT ok((SELECT hall_api.merge_council_business(absorbed, target, true)->'blockers' ? 'nameTaken:Absorbed affair' FROM scenario),
-  'the preview refuses the merge when the target folder already holds the absorbed business name');
+SELECT is((SELECT hall_api.merge_council_business(absorbed, target, true)#>>'{report,movedTo,name}' FROM scenario), 'Absorbed affair (2)',
+  'the preview numbers the kept report name when the target folder already holds the absorbed business name');
 SELECT hall_api.delete_resource(id) FROM blocking;
 SELECT is((SELECT hall_api.merge_council_business(absorbed, target, true)->'report' FROM scenario),
   (SELECT jsonb_build_object('resourceId', report, 'name', 'Absorbed report', 'fate', 'appendedToTargetReportAndMoved',
