@@ -878,7 +878,7 @@
   }
   .meeting-document-row:first-child { border-top: 0; }
   .meeting-document-icon { display: inline-flex; flex: none; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-icon); }
-  .meeting-document-copy { display: grid; flex: 1 1 16rem; min-width: 0; gap: var(--hall-space-0-5); }
+  .meeting-document-copy { display: grid; flex: 1 1 var(--hall-size-relative-16rem); min-width: 0; gap: var(--hall-space-0-5); }
   .meeting-document-copy strong { font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-medium); }
   .meeting-document-state, .meeting-document-note { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .meeting-document-state[data-tone="done"] { color: var(--hall-color-success-strong); }
