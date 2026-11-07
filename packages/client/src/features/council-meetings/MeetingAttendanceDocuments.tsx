@@ -8,8 +8,8 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
 
-// @implements-requirement HALL-FR-ATT-010
-// @implements-requirement HALL-FR-ATT-020
+// @implements-requirement HALL-FR-ATT-170
+// @implements-requirement HALL-FR-ATT-180
 /** The attendance sheet and the proxy form of a meeting, generated on demand and shown in the document viewer. */
 export function MeetingAttendanceDocuments({
   meetingLabel,

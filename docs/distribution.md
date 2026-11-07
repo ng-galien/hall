@@ -435,11 +435,14 @@ This list applies to the Windows installation described in
 Run the steps in this order in one PowerShell session. Record each output in the
 installation record.
 
-Version 1.0.4 runs the data migration
+Version 1.0.4 runs two data migrations.
 `packages/postgres/sql/migrations/004-meeting-snapshot-document-references.sql`
-(requirement HALL-FR-MIN-160). It replaces the document bytes and editor images copied
+(requirement HALL-FR-MIN-160) replaces the document bytes and editor images copied
 into `hall.council_meeting_snapshot` by references to the resource and its binary
-object. The migration runs in `hall migrate` (step 4), not at startup: `hall start`
+object. `packages/postgres/sql/migrations/005-attendance-sheet-and-proxy-form-templates.sql`
+(requirements HALL-FR-ATT-170 and HALL-FR-ATT-180) adds the default templates
+« Feuille d’émargement » and « Pouvoir » when the database has none of that type.
+The migrations run in `hall migrate` (step 4), not at startup: `hall start`
 refuses an incompatible schema.
 
 Session variables, used by every step. The PostgreSQL connection uses the `PG*`
@@ -586,21 +589,25 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    `"outcome":"succeeded"`. Details are in
    [Schedule nightly backups](municipal-bootstrap.md#schedule-nightly-backups).
 
-9. **Document templates with signature blocks.** The four installed PDF templates
-   « Procès-verbal du conseil », « Convocation au conseil municipal », « Délibération
-   du conseil municipal » and « Liste des délibérations examinées » receive the
-   signature blocks only when their body and stylesheet are replaced by those of the
-   current default (see [Default models](document-templates.md#default-models)). After
-   the backup of step 2, for each of these templates, in **Paramètres → Documents** or
-   with the MCP action `template.update`, keep the template and its identifier and
-   replace its body and stylesheet by the current default of the same document type.
-   Hall does not display the default of a type that already has a template: the current
-   default body and stylesheet are those of `defaultDocumentTemplates` in
-   `packages/domain/src/generatedDocumentTemplates.ts` at the commit recorded in
-   `release.json`. When the
-   municipality has customized a template, add the signature block of the default at
-   the end of its body and the signature rules of the default stylesheet instead of
-   replacing its text. Generate a preview of each template.
+9. **Document templates.** The six PDF templates « Procès-verbal du conseil »,
+   « Convocation au conseil municipal », « Délibération du conseil municipal », « Liste
+   des délibérations examinées », « Feuille d’émargement » and « Pouvoir » receive the
+   current defaults (signature blocks without table, attendance sheet, proxy form) with
+   the replacement script of the 1.0.4 package, after the backup of step 2:
+
+   ```powershell
+   psql --dbname=$Database --set=ON_ERROR_STOP=1 --file="$Release\node_modules\@ng-galien\hall\sql\migrations\replace-default-templates-1.0.4.sql"
+   ```
+
+   The script keeps each template, its identifier and its name. A template whose body is
+   still the 1.0.3 default receives the current default body and stylesheet. It prints one
+   row per template with its outcome: `replaced`, `current` (already the default, such as
+   the two templates added by migration 005) or `customized`. A `customized` template is
+   left unchanged: in **Paramètres → Documents**, add the signature block of the current
+   default at the end of its body and the signature rules of the default stylesheet
+   (see [Default models](document-templates.md#default-models)), without replacing the
+   municipality's text. Expected: six rows, none missing. Running the script again
+   changes nothing. Generate a preview of each of the six templates.
 
 10. **Acceptance.** Sign in and open the closed meeting of 6 November 2026: its list of
     points, its meeting documents, one document of the meeting and its minutes (PV).

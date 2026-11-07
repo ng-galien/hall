@@ -166,7 +166,7 @@ export function createCouncilMeetingsRouter({
     response.set("Cache-Control", "private, no-store");
     response.type("application/pdf").send(content);
   });
-  // @implements-requirement HALL-FR-ATT-010
+  // @implements-requirement HALL-FR-ATT-170
   router.get("/:meetingReference/attendance-sheet.pdf", async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     const content = await meetingAttendanceDocumentService.attendanceSheet(meeting.id);
@@ -174,7 +174,7 @@ export function createCouncilMeetingsRouter({
     response.set("Cache-Control", "private, no-store");
     response.type("application/pdf").send(content);
   });
-  // @implements-requirement HALL-FR-ATT-020
+  // @implements-requirement HALL-FR-ATT-180
   router.get("/:meetingReference/proxy-form.pdf", async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     const query = z

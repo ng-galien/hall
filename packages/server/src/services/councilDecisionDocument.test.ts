@@ -213,11 +213,8 @@ it("signs the default decision PDF by the mayor who chaired and the meeting secr
     headerHtml: signed.headerHtml,
     footerHtml: signed.footerHtml,
   });
-  expect(await pdfText(new Uint8Array(bytes))).toContain(
-    "Le maire Secrétariat de séance Marie <Martin> Jean Dupont Signature : Signature :",
-  );
+  expect(await pdfText(new Uint8Array(bytes))).toContain("Le maire Marie <Martin> Secrétariat de séance Jean Dupont");
   const deputy = await renderer.preview(template, {}, undefined, decision({ chairRole: "deputyMayor" }));
-  expect(deputy.resolvedMarkdown).toContain(
-    "| Le maire | Secrétariat de séance |\n| --- | --- |\n|  |  |\n| Signature : | Signature : |",
-  );
+  expect(deputy.resolvedMarkdown).toContain("Le maire\n\n\n\n</div>");
+  expect(deputy.resolvedMarkdown).not.toContain("Signature :");
 }, 30_000);

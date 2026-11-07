@@ -314,27 +314,26 @@ async function renderedPdf(preview: { printHtml: string; headerHtml: string; foo
 
 describe("signature blocks of the default PDF documents", () => {
   // @verifies-requirement HALL-FR-MIN-280
-  it("ends the minutes PDF with the chair and secretary, their mandate roles and signature lines", async () => {
+  it("ends the minutes PDF with the chair and secretary side by side, their mandate roles and no table", async () => {
     const { renderer } = service();
     const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
     expect(preview.diagnostics).toEqual([]);
-    expect(preview.resolvedMarkdown).toContain("| Présidence de séance | Secrétariat de séance |");
-    expect(preview.resolvedMarkdown).toContain("| Marie Martin, maire | Jean Dupont, membre du conseil municipal |");
+    expect(preview.printHtml).toContain('<div class="hall-signatures">');
+    expect(preview.printHtml.slice(preview.printHtml.indexOf("hall-signatures"))).not.toContain("<table");
     const text = await renderedPdf(preview);
-    const signatures = text.slice(text.lastIndexOf("Signatures"));
-    expect(signatures).toContain("Séance du conseil municipal n° 1 du samedi 5 septembre 2026, Salle <A>.");
-    expect(signatures).toMatch(
-      /Présidence de séance Secrétariat de séance Marie Martin, maire Jean Dupont, membre du conseil municipal Signature : Signature :/,
+    expect(text).toMatch(
+      /Fait à Commune test, le 5 septembre 2026 Présidence de séance Marie Martin, maire Secrétariat de séance Jean Dupont, membre du conseil municipal/,
     );
+    expect(text).not.toContain("Signature :");
   }, 30_000);
 
   // @verifies-requirement HALL-FR-MIN-280
-  it("leaves the role and signature line of an officer whose mandate cannot be read", async () => {
+  it("leaves the role of an officer whose mandate cannot be read", async () => {
     const { renderer } = service(fixture, []);
     const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
     expect(preview.diagnostics).toEqual([]);
-    expect(preview.resolvedMarkdown).toContain("| Marie Martin | Jean Dupont |");
-    expect(preview.resolvedMarkdown).toContain("| Signature : | Signature : |");
+    expect(preview.resolvedMarkdown).toContain("Présidence de séance\n\nMarie Martin\n\n</div>");
+    expect(preview.resolvedMarkdown).toContain("Secrétariat de séance\n\nJean Dupont\n\n</div>");
   });
 
   // @verifies-requirement HALL-FR-MIN-280
@@ -353,8 +352,29 @@ describe("signature blocks of the default PDF documents", () => {
     const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
     expect(preview.diagnostics).toEqual([]);
     expect(listCouncilMembers).not.toHaveBeenCalled();
-    expect(preview.resolvedMarkdown).toContain("| Marie Martin | Jean Dupont |");
-    expect(preview.resolvedMarkdown).toContain("| Signature : | Signature : |");
+    expect(preview.resolvedMarkdown).toContain("Présidence de séance\n\nMarie Martin\n\n</div>");
+  });
+
+  // @verifies-requirement HALL-FR-ATT-170
+  it("lists the minutes attendance in council table order, whatever the recorded order", async () => {
+    const reordered: MinutesDetail = {
+      ...fixture,
+      facts: {
+        ...fixture.facts,
+        attendance: [
+          { id: "a1", member: { id: "secretary", name: "Jean Dupont" }, status: "present", proxyHolderId: null },
+          { id: "a2", member: { id: "chair", name: "Marie Martin" }, status: "present", proxyHolderId: null },
+        ],
+      },
+    };
+    const { renderer } = service(reordered, [
+      { id: "secretary", role: "councillor", active: true, contactId: "contact-secretary", rank: null },
+      { id: "chair", role: "mayor", active: true, contactId: "contact-chair", rank: null },
+    ] as never);
+    const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
+    expect(preview.resolvedMarkdown.indexOf("- Marie Martin : Présent")).toBeLessThan(
+      preview.resolvedMarkdown.indexOf("- Jean Dupont : Présent"),
+    );
   });
 
   // @verifies-requirement HALL-FR-MIN-270
@@ -363,7 +383,7 @@ describe("signature blocks of the default PDF documents", () => {
     const { renderer } = service();
     const list = await renderer.preview(defaultTemplate("deliberation-list"), { minutesId: fixture.id });
     expect(list.diagnostics).toEqual([]);
-    expect(await renderedPdf(list)).toContain("Adoptée Le maire Marie Martin Signature :");
+    expect(await renderedPdf(list)).toContain("Adoptée Fait à Commune test, le 5 septembre 2026 Le maire Marie Martin");
     const notice = await renderer.preview(
       defaultTemplate("meeting-notice"),
       {},
@@ -390,11 +410,34 @@ describe("signature blocks of the default PDF documents", () => {
     );
     expect(notice.diagnostics).toEqual([]);
     expect(await renderedPdf(notice)).toContain(
-      "Arrêt du procès-verbal de la séance précédente Le maire Marie Martin Signature :",
+      "Arrêt du procès-verbal de la séance précédente Fait à Commune test, le 28 août 2026 Le maire Marie Martin",
     );
     const vacant = await service(fixture, []).renderer.preview(defaultTemplate("deliberation-list"), {
       minutesId: fixture.id,
     });
-    expect(vacant.resolvedMarkdown).toContain("| Le maire |\n| --- |\n|  |\n| Signature : |");
+    expect(vacant.resolvedMarkdown).toContain("Le maire\n\n\n\n</div>");
+  }, 30_000);
+
+  // @verifies-requirement HALL-FR-ATT-180
+  it("keeps the handwritten place and date zones of the proxy form through the HTML filter", async () => {
+    const { renderer } = service();
+    const preview = await renderer.preview(defaultTemplate("proxy-form"), {}, undefined, undefined, {
+      generated: {
+        bodyMarkdown: "",
+        subject: null,
+        data: {
+          proxy: {
+            meeting: { number: 1, startsAt: "2026-09-05T18:00:00Z", location: "Salle" },
+            grantor: { id: "secretary", name: "Jean Dupont", role: "councillor" },
+            holder: { id: "chair", name: "Marie Martin", role: "mayor" },
+          },
+        },
+      },
+    });
+    expect(preview.diagnostics).toEqual([]);
+    expect(preview.printHtml).toContain(
+      'Fait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fill hall-fill-date"></span>',
+    );
+    expect(await renderedPdf(preview)).toContain("Le mandant Jean Dupont");
   }, 30_000);
 });

@@ -4,11 +4,12 @@ import type { CouncilClient } from "../clients/councilClient.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ContentTemplateService } from "./contentTemplateService.js";
 import { DomainError } from "./errors.js";
-import type {
-  AttendanceSheetData,
-  MeetingDocumentMeeting,
-  MeetingDocumentMember,
-  ProxyFormData,
+import {
+  type AttendanceSheetData,
+  councilTableOrder,
+  type MeetingDocumentMeeting,
+  type MeetingDocumentMember,
+  type ProxyFormData,
 } from "./templateData.js";
 
 export interface MeetingAttendanceDocumentService {
@@ -27,13 +28,7 @@ export async function membersInMandate(directoryClient: DirectoryClient): Promis
     directoryClient.listContacts(true),
   ]);
   const names = new Map(contacts.map((contact) => [contact.id, `${contact.firstName} ${contact.lastName}`]));
-  const roleOrder: Record<CouncilMember["role"], number> = { mayor: 0, deputyMayor: 1, councillor: 2 };
-  // Council table order: the recorded rank; without one, the mayor, then the deputies, then the councillors.
-  const ordered = members.toSorted(
-    (left, right) =>
-      (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER) ||
-      roleOrder[left.role] - roleOrder[right.role],
-  );
+  const ordered = councilTableOrder(members);
   return ordered.map((member: CouncilMember) => ({
     id: member.id,
     name: names.get(member.contactId) ?? "",
@@ -41,7 +36,7 @@ export async function membersInMandate(directoryClient: DirectoryClient): Promis
   }));
 }
 
-// @implements-requirement HALL-FR-ATT-010
+// @implements-requirement HALL-FR-ATT-170
 /** The sheet lists every member in mandate; attendance and proxies appear once recorded for the meeting. */
 export function attendanceSheetData(
   meeting: CouncilMeeting,
@@ -65,13 +60,14 @@ export function attendanceSheetData(
       ? {
           present: attendance.filter((entry) => entry.status === "present").length,
           represented: attendance.filter((entry) => entry.status === "represented").length,
-          absent: attendance.filter((entry) => entry.status === "excused" || entry.status === "absent").length,
+          excused: attendance.filter((entry) => entry.status === "excused").length,
+          absent: attendance.filter((entry) => entry.status === "absent").length,
         }
       : null,
   };
 }
 
-// @implements-requirement HALL-FR-ATT-020
+// @implements-requirement HALL-FR-ATT-180
 /** Both members are in mandate and distinct; the form records nothing. */
 export function proxyFormData(
   meeting: CouncilMeeting,

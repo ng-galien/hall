@@ -32,6 +32,7 @@ import { pdfAttachmentHref } from "./documentRenderer.js";
 import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
 import type { ReferenceEntityResolver } from "./referenceEntityResolver.js";
 import {
+  councilTableOrder,
   documentTemplateData,
   emptySignatoryDirectory,
   type GeneratedTemplateData,
@@ -683,6 +684,11 @@ export function createTemplateRenderingService({
   const loadSignatories = async (minutes: MinutesDetail | null): Promise<SignatoryDirectory> => {
     if (requestContext && !requestContext.current()?.principal) return emptySignatoryDirectory;
     const mayors = (await directoryClient.listCouncilMembers(true)).filter((member) => member.role === "mayor");
+    const tableOrder = minutes
+      ? new Map(
+          councilTableOrder(await directoryClient.listCouncilMembers(false)).map((member, index) => [member.id, index]),
+        )
+      : new Map<string, number>();
     const officers = minutes ? [minutes.facts.meeting.chair, minutes.facts.meeting.secretary] : [];
     const roles = new Map<string, CouncilRole>();
     for (const officer of officers) {
@@ -691,7 +697,7 @@ export function createTemplateRenderingService({
       if (mandate) roles.set(officer.id, mandate.role);
     }
     const mayor = mayors.length === 1 ? await directoryClient.openContact(mayors[0]!.contactId) : null;
-    return { mayor: mayor ? { name: `${mayor.firstName} ${mayor.lastName}` } : null, roles };
+    return { mayor: mayor ? { name: `${mayor.firstName} ${mayor.lastName}` } : null, roles, tableOrder };
   };
 
   const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => {

@@ -1,4 +1,4 @@
-import type { MinutesDetail } from "@hall/api-contract";
+import type { CouncilMember as CouncilMandate, MinutesDetail } from "@hall/api-contract";
 import type { CouncilDecisionDetail, MeetingNoticeFacts } from "@hall/contracts";
 import type { CouncilMember, HallSettings } from "@hall/domain";
 import { matchLiteral } from "@hall/domain";
@@ -19,9 +19,26 @@ export interface SignatoryDirectory {
   mayor: { name: string } | null;
   /** Mandate role of each meeting officer named by the minutes facts, keyed by council member identifier. */
   roles: ReadonlyMap<string, CouncilMember["role"]>;
+  /** Position of each council member, current or former, in the council table order. */
+  tableOrder: ReadonlyMap<string, number>;
 }
 
-export const emptySignatoryDirectory: SignatoryDirectory = { mayor: null, roles: new Map() };
+export const emptySignatoryDirectory: SignatoryDirectory = { mayor: null, roles: new Map(), tableOrder: new Map() };
+
+const roleOrder: Record<CouncilMandate["role"], number> = { mayor: 0, deputyMayor: 1, councillor: 2 };
+
+// @implements-requirement HALL-FR-ATT-170
+/**
+ * Council table order: the recorded rank; without one, the mayor, then the deputies, then the councillors,
+ * each group in the order returned by the directory (rank, then name).
+ */
+export function councilTableOrder<T extends Pick<CouncilMandate, "rank" | "role">>(members: readonly T[]): T[] {
+  return members.toSorted(
+    (left, right) =>
+      (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER) ||
+      roleOrder[left.role] - roleOrder[right.role],
+  );
+}
 
 /**
  * A signature block entry: the name frozen in the facts and the mandate role read when rendering.
@@ -70,7 +87,7 @@ export interface AttendanceSheetData {
       proxyHolder: { name: string } | null;
     }
   >;
-  counts: { present: number; represented: number; absent: number } | null;
+  counts: { present: number; represented: number; excused: number; absent: number } | null;
 }
 
 /** `proxy`: the member giving the proxy (`grantor`) and the member receiving it (`holder`). */
@@ -95,10 +112,17 @@ export function minutesTemplateData(
       chair: signatory(minutes.facts.meeting.chair, directory) satisfies DocumentSignatory | null,
       secretary: signatory(minutes.facts.meeting.secretary, directory) satisfies DocumentSignatory | null,
     },
-    attendance: minutes.facts.attendance.map((entry) => ({
-      ...entry,
-      proxyHolder: minutes.facts.attendance.find((candidate) => candidate.id === entry.proxyHolderId)?.member ?? null,
-    })),
+    /** Attendance in council table order; members unknown to the directory keep the recorded order, last. */
+    attendance: minutes.facts.attendance
+      .toSorted(
+        (left, right) =>
+          (directory.tableOrder.get(left.member.id) ?? Number.MAX_SAFE_INTEGER) -
+          (directory.tableOrder.get(right.member.id) ?? Number.MAX_SAFE_INTEGER),
+      )
+      .map((entry) => ({
+        ...entry,
+        proxyHolder: minutes.facts.attendance.find((candidate) => candidate.id === entry.proxyHolderId)?.member ?? null,
+      })),
     conduct: minutes.facts.conduct,
     points: minutes.facts.agenda.map((item) => {
       const ballot = minutes.facts.ballots.find((candidate) => candidate.agendaItemId === item.id);

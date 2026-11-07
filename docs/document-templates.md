@@ -1,6 +1,6 @@
 # Document templates
 
-Settings → Documents contains the templates for Hall's nine document families.
+Settings → Documents contains the templates for Hall's eleven document families.
 A human edits **Markdown with Jinja**: readable headings, paragraphs, lists and tables,
 with Jinja expressions to choose, order and repeat data. Jinja produces Markdown.
 Hall then renders that Markdown into PDF pages; HTML is an internal rendering step.
@@ -17,6 +17,8 @@ The server supplies these read-only values:
 | Minutes | `minutes.meeting`, `minutes.attendance`, `minutes.conduct`, `minutes.points`, `minutes.signatories` |
 | Council decision | `decision.title`, `decision.content`, `decision.facts`, `decision.totals` |
 | Deliberation list | `deliberations`: `agendaNumber`, `title`, `outcome` |
+| Attendance sheet | `attendanceSheet.meeting` (`number`, `startsAt`, `location`), `attendanceSheet.members`: `name`, `role`, `status`, `proxyHolder`; `attendanceSheet.counts` |
+| Proxy form | `proxy.meeting`, `proxy.grantor` and `proxy.holder`: `name`, `role` |
 | Meeting dossier | `dossier.meeting`, `dossier.point`: `title`, `report`, `subjectText`, `pieces` |
 | Invitation | `event.name`, `event.content`, `event.schedule`, `event.location`, `event.method` |
 | Printing an authored document | `generated.bodyMarkdown` |
@@ -74,18 +76,51 @@ Two values feed the signature blocks:
 The roles and the mayor are not part of the facts frozen at closure: a later change of a
 mandate role changes the next rendering, not a stored PDF.
 
-The default minutes end with a `Signatures` section: meeting number, date and place, then a
-table with the columns « Présidence de séance » and « Secrétariat de séance », each with the
-name, the quality and a « Signature : » row. Hall has no gender data, so the headings name the
-office rather than the person. The meeting notice and the examined deliberations list end with
-a « Le maire » block; the council decision ends with « Le maire » and « Secrétariat de séance »,
-where the mayor is named only when the confirmed facts show that the mayor chaired. In these
-four PDF defaults the stylesheet gives the last row of the final table room for a handwritten
-signature and places a single-signatory block on the right half of the page.
+The signature block is the only HTML written in a default body. It is laid out by the
+stylesheet of the template, without a table or border:
+
+```html
+<div class="hall-signatures">
+
+Fait à {{ hall.name | text }}, le {{ minutes.meeting.startedAt | date }}
+
+<div class="hall-signatories">
+<div class="hall-signature">
+
+Présidence de séance
+
+{{ minutes.signatories.chair.name | text }}
+
+</div>
+</div>
+</div>
+```
+
+Blank lines inside the `div` elements keep the lines in Markdown, so `| text` and `| date`
+apply. Each `hall-signature` gives a quality, a name and at least 25 mm of blank space for the
+handwritten signature. A single signatory occupies the right half of the page; two signatories
+stand side by side. The block is not split across two pages. The minutes are signed by the
+« Présidence de séance » on the left and the « Secrétariat de séance » on the right, dated by
+the meeting; Hall has no gender data, so the headings name the office rather than the person.
+The meeting notice, dated by its issue date, and the examined deliberations list end with « Le
+maire »; the council decision ends with « Le maire » and « Secrétariat de séance », where the
+mayor is named only when the confirmed facts show that the mayor chaired. The proxy form ends
+with « Le mandant » under a line « Fait à …, le … » whose two zones
+(`<span class="hall-fill hall-fill-place"></span>`, `hall-fill-date`) are filled in by hand.
+
+## Attendance sheet and proxy form
+
+The attendance sheet lists every member in mandate in council table order: recorded rank,
+then the mayor, the deputies and the councillors. The minutes list attendance in the same
+order. `status` (`present`, `represented`, `excused`, `absent`) and `proxyHolder.name` are the
+attendance recorded for the meeting when the sheet is generated, null before; `counts` gives
+`present`, `represented`, `excused` and `absent`, or is null before attendance is recorded.
+The proxy form names the member giving the proxy and the member receiving it; it records
+nothing. Both are generated from the meeting page.
 
 ## Default models
 
-The nine generic defaults are shared by the creation screen and the demonstration seed.
+The eleven generic defaults are shared by the creation screen and the demonstration seed.
 They use the municipality and meeting data supplied by Hall, without an embedded place name,
 person or meeting identifier. A municipality changes and saves its own template source.
 The API field `bodyMarkdown` stores Markdown/Jinja; no database format field is introduced.

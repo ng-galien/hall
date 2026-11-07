@@ -119,13 +119,20 @@ interface SignatoryLines {
  * Administrative signature block written in HTML within the Markdown body: the "Fait à" line,
  * then one or two signatories, each with a quality, a name and a blank space for the handwritten
  * signature. Layout belongs to the stylesheet (`.hall-signatures`): a single signatory occupies the
- * right half of the page, two signatories stand side by side.
+ * right half of the page, two signatories stand side by side. Without place and date, the line offers
+ * two blank zones to fill in by hand (`.hall-fill`).
  */
-export function jinjaSignatureBlock(place: string, date: string, signatories: readonly SignatoryLines[]): string {
+export function jinjaSignatureBlock(
+  place: string | null,
+  date: string | null,
+  signatories: readonly SignatoryLines[],
+): string {
   const blocks = signatories
     .map((signatory) => `<div class="hall-signature">\n\n${signatory.quality}\n\n${signatory.name}\n\n</div>`)
     .join("\n");
-  return `<div class="hall-signatures">\n\nFait à ${place}, le ${date}\n\n<div class="hall-signatories">\n${blocks}\n</div>\n</div>\n`;
+  const handwritten = place === null || date === null;
+  const line = `Fait à ${place ?? '<span class="hall-fill hall-fill-place"></span>'}, le ${date ?? '<span class="hall-fill hall-fill-date"></span>'}`;
+  return `<div class="hall-signatures${handwritten ? " hall-signatures-handwritten" : ""}">\n\n${line}\n\n<div class="hall-signatories">\n${blocks}\n</div>\n</div>\n`;
 }
 
 const qualities =
@@ -259,11 +266,11 @@ ${jinjaSignatureBlock(
   ],
 )}`;
 
-// @implements-requirement HALL-FR-ATT-010
+// @implements-requirement HALL-FR-ATT-170
 /** Attendance sheet of a meeting: every council member in council table order, with a signature column. */
 export const jinjaAttendanceSheet = `{% set sheet = attendanceSheet %}
 {% set qualities = {'mayor': 'Maire', 'deputyMayor': 'Adjoint', 'councillor': 'Conseiller'} %}
-{% set statuses = {'present': 'Présent', 'represented': 'Représenté', 'excused': 'Excusé', 'absent': 'Absent'} %}
+{% set statuses = {'present': 'Présent(e)', 'represented': 'Représenté(e)', 'excused': 'Excusé(e)', 'absent': 'Absent(e)'} %}
 {{ hall.name | text }}
 
 # Feuille d’émargement
@@ -278,11 +285,11 @@ Lieu : {{ (sheet.meeting.location or 'Non renseigné') | text }}
 {% endfor %}
 
 {% if sheet.counts %}
-Présents : {{ sheet.counts.present }} — Pouvoirs : {{ sheet.counts.represented }} — Absents : {{ sheet.counts.absent }}
+Présents : {{ sheet.counts.present }}{% if sheet.counts.represented %} — Pouvoirs : {{ sheet.counts.represented }}{% endif %}{% if sheet.counts.excused %} — Excusés : {{ sheet.counts.excused }}{% endif %}{% if sheet.counts.absent %} — Absents : {{ sheet.counts.absent }}{% endif %}
 {% endif %}
 `;
 
-// @implements-requirement HALL-FR-ATT-020
+// @implements-requirement HALL-FR-ATT-180
 /** Proxy form (CGCT L2121-20): a form to sign, it records nothing in Hall. */
 export const jinjaProxyForm = `${qualities}
 {% set grantor = proxy.grantor %}
@@ -300,9 +307,9 @@ Rappel (article L2121-20 du code général des collectivités territoriales) :
 
 - un conseiller municipal ne peut être porteur que d’un seul pouvoir ;
 - le pouvoir est toujours révocable ;
-- sauf cas de maladie dûment constatée, il ne peut être valable pour plus de trois séances consécutives.
+- sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.
 
-${jinjaSignatureBlock(blank, blank, [{ quality: "Le mandant", name: "{{ grantor.name | text }}" }])}`;
+${jinjaSignatureBlock(null, null, [{ quality: "Le mandant", name: "{{ grantor.name | text }}" }])}`;
 
 export const jinjaDocumentBodies: Readonly<Record<string, string>> = {
   "document-print": "{{ generated.bodyMarkdown | markdown }}",

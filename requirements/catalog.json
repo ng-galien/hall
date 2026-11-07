@@ -7634,7 +7634,7 @@
       "statement": "La convocation est faite par le maire et indique les questions portées à l’ordre du jour.",
       "acceptanceCriteria": [
         "La convocation est faite par le maire et indique les questions portées à l’ordre du jour.",
-        "Le modèle par défaut de la convocation se termine par le bloc de signature « Le maire » : nom du maire en exercice au moment du rendu, puis une ligne « Signature : ». Sans maire en exercice, ou avec plusieurs mandats de maire actifs, le nom reste vide. Le message de convocation nomme le maire sans ligne de signature."
+        "Le modèle par défaut de la convocation se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : ligne « Fait à {commune}, le {date} » (date de la convocation), puis, dans la moitié droite de la page, « Le maire », le nom du maire en exercice au moment du rendu et un espace libre d’au moins 25 mm pour la signature manuscrite. Sans maire en exercice, ou avec plusieurs mandats de maire actifs, le nom reste vide. Le message de convocation nomme le maire sans espace de signature."
       ],
       "clauses": [
         {
@@ -7651,6 +7651,12 @@
           "key": "signature-block",
           "origin": "product",
           "statement": "Demande de l’utilisateur du 7 novembre 2026 : « Il faut changer les templates des documents de Hall avec les noms et signatures, par exemple pour le PV, avec le nom du président et du secrétaire de séance. » La convocation est signée par le maire en exercice ; son nom est lu dans l’annuaire au moment du rendu.",
+          "sourceIds": []
+        },
+        {
+          "key": "signature-layout",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « dans les documents classiques, la signature, c’est pas dans un tableau » ; « elles sont pas dans des tableaux comme ça ». Le bloc suit la mise en page d’usage d’un courrier de mairie.",
           "sourceIds": []
         }
       ]
@@ -8183,7 +8189,7 @@
       "acceptanceCriteria": [
         "Les délibérations sont signées par le maire et le ou les secrétaires de séance.",
         "Le gabarit commun distingue ouverture et scrutin, reprend les observations historiques disponibles, laisse absentes les qualités non observées et ne déduit aucune attestation de convocation, signature, conformité ou publication. Les choix typographiques du modèle communal ne constituent pas des obligations légales ; aucune métadonnée manquante ne crée à elle seule un blocage de gel.",
-        "Le modèle par défaut de la délibération se termine par un tableau « Le maire » et « Secrétariat de séance » : le nom du maire figure seulement quand les faits confirmés établissent que la présidence était le maire, le nom du secrétaire de séance quand il est enregistré ; chaque colonne porte une ligne « Signature : »."
+        "Le modèle par défaut de la délibération se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : ligne « Fait à {commune}, le {date} » (date de la séance), puis deux signataires côte à côte, « Le maire » à gauche et « Secrétariat de séance » à droite : le nom du maire figure seulement quand les faits confirmés établissent que la présidence était le maire, le nom du secrétaire de séance quand il est enregistré ; un espace libre est laissé sous chaque nom pour la signature manuscrite."
       ],
       "clauses": [
         {
@@ -8206,6 +8212,12 @@
           "key": "signature-block",
           "origin": "product",
           "statement": "Demande de l’utilisateur du 7 novembre 2026 : « Il faut changer les templates des documents de Hall avec les noms et signatures, par exemple pour le PV, avec le nom du président et du secrétaire de séance. » Pour une délibération, les signataires restent ceux de l’article L2121-23 ; Hall n’ajoute aucun nom que les faits confirmés n’établissent pas.",
+          "sourceIds": []
+        },
+        {
+          "key": "signature-layout",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « dans les documents classiques, la signature, c’est pas dans un tableau » ; « elles sont pas dans des tableaux comme ça ».",
           "sourceIds": []
         }
       ]
@@ -9946,6 +9958,83 @@
         }
       ]
     },
+    "HALL-FR-ATT-170": {
+      "name": "MEETING_ATTENDANCE_SHEET",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "La page d’une séance produit la feuille d’émargement de la séance, document PDF d’après un modèle de type « Feuille d’émargement ».",
+      "acceptanceCriteria": [
+        "Depuis la page d’une séance, en préparation, en cours ou close, Hall produit en PDF la feuille d’émargement : nom de la commune, titre « Feuille d’émargement », numéro, date et heure de la séance, lieu.",
+        "La feuille contient un tableau de tous les membres du conseil en mandat dans l’ordre du tableau du conseil (rang enregistré ; sans rang, le maire, puis les adjoints, puis les conseillers), avec les colonnes Nom, Qualité (« Maire », « Adjoint », « Conseiller »), Présence, Pouvoir donné à et Signature ; la colonne Signature est la plus large et chaque ligne mesure au moins 12 mm.",
+        "Les colonnes Présence (« Présent(e) », « Représenté(e) », « Excusé(e) », « Absent(e) ») et Pouvoir donné à reprennent les présences et pouvoirs enregistrés pour la séance au moment de la génération ; sans présence enregistrée elles restent vides. La feuille ne porte pas de bloc de signature du maire.",
+        "Quand des présences sont enregistrées, la feuille se termine par « Présents : n », suivi de « Pouvoirs : n », « Excusés : n » et « Absents : n », chaque compte nul étant omis ; les excusés sont distincts des absents non représentés.",
+        "Le procès-verbal liste les présences dans le même ordre du tableau du conseil que la feuille d’émargement.",
+        "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `attendanceSheet` affichées dans l’aperçu d’après une séance réelle."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « ce qu’il me faut, c’est générer la feuille de présence en plus ; là, on n’a pas, ça n’existe pas » ; « émargement, pouvoir, ça manque ».",
+          "sourceIds": []
+        },
+        {
+          "key": "document",
+          "origin": "product",
+          "statement": "La feuille d’émargement est produite à la demande depuis la page de la séance et n’enregistre rien ; imprimée avant la séance elle est vierge, imprimée après elle reflète les constats enregistrés. Les états de présence prennent la forme des formulaires administratifs (« Présent(e) »), Hall ne connaissant pas le genre des élus.",
+          "sourceIds": []
+        },
+        {
+          "key": "table-order",
+          "origin": "product",
+          "statement": "L’ordre des membres suit le tableau du conseil, comme le procès-verbal : rang enregistré, puis maire, adjoints et conseillers.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-ATT-180": {
+      "name": "MEETING_PROXY_FORM",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "La page d’une séance non ouverte produit un pouvoir à signer, au nom du conseiller qui donne pouvoir et du conseiller qui le reçoit, d’après un modèle de type « Pouvoir ».",
+      "acceptanceCriteria": [
+        "Le pouvoir est toujours révocable ; sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.",
+        "Depuis la page d’une séance qui n’est pas encore ouverte, l’action « Pouvoir » ouvre un formulaire où l’utilisateur choisit le mandant et le mandataire parmi les membres du conseil en mandat ; le mandataire est différent du mandant. Le serveur refuse avec le code proxy_form_invalid deux membres identiques ou hors mandat.",
+        "Le PDF porte le nom de la commune, le titre « Pouvoir », la date de la séance, la formule « Je soussigné(e) {mandant}, {qualité} de la commune de {commune}, donne pouvoir à {mandataire}, {qualité}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {date} », le rappel des règles de l’article L2121-20 (un seul pouvoir par porteur, révocable, trois séances consécutives au plus sauf maladie dûment constatée ou congé de maternité), puis « Fait à ……, le …… » à compléter à la main et le bloc de signature « Le mandant » avec son nom.",
+        "Le pouvoir n’enregistre rien : les présences et pouvoirs de la séance restent saisis à l’appel.",
+        "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `proxy` affichées dans l’aperçu."
+      ],
+      "clauses": [
+        {
+          "key": "legal-rules",
+          "origin": "regulatory",
+          "statement": "Le pouvoir est toujours révocable ; sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.",
+          "sourceIds": [
+            "S2"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « faut le template de pouvoir, où on sélectionne la personne à qui on donne le pouvoir » ; « émargement, pouvoir, ça manque ».",
+          "sourceIds": []
+        },
+        {
+          "key": "form-only",
+          "origin": "product",
+          "statement": "Le pouvoir est un formulaire à signer par le mandant ; Hall ne l’enregistre pas et ne l’associe pas à la séance.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MTG-350": {
       "name": "CLOSED_SESSION_IS_A_RECORDED_MEETING_DECISION",
       "nature": "functional",
@@ -10198,7 +10287,7 @@
         "Depuis la page d’une séance close, Hall produit en PDF, d’après le modèle unique de type « Liste des délibérations », la liste qui donne le nom de la commune, le numéro et la date de la séance et, pour chaque point terminé sans ajournement, dans l’ordre du jour, son numéro, son titre et son sort : « Adoptée », « Rejetée » ou « Sans vote » pour un point sans scrutin.",
         "Le document se produit à la demande depuis les faits figés à la clôture ; Hall n’enregistre ni date d’affichage, ni date de mise en ligne, ni transmission. Une séance qui n’est pas close ne propose pas le document et le serveur le refuse.",
         "« Nouveau modèle » propose le type « Liste des délibérations » quand il n’a pas de modèle, avec une source Markdown/Jinja qui parcourt les délibérations et affiche leur numéro, titre et sort.",
-        "Le modèle par défaut de la liste se termine par le bloc de signature « Le maire » : nom du maire en exercice au moment du rendu, vide sans maire unique en exercice, puis une ligne « Signature : »."
+        "Le modèle par défaut de la liste se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : ligne « Fait à {commune}, le {date} » (date de la séance), puis, dans la moitié droite de la page, « Le maire », le nom du maire en exercice au moment du rendu, vide sans maire unique en exercice, et un espace libre pour la signature manuscrite."
       ],
       "clauses": [
         {
@@ -10234,6 +10323,12 @@
           "origin": "product",
           "statement": "Demande de l’utilisateur du 7 novembre 2026 : « Il faut changer les templates des documents de Hall avec les noms et signatures, par exemple pour le PV, avec le nom du président et du secrétaire de séance. » La loi ne prescrit pas de signataire pour la liste ; le bloc du maire suit l’usage d’attestation de l’affichage par le maire et peut être retiré du modèle de la commune.",
           "sourceIds": []
+        },
+        {
+          "key": "signature-layout",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « dans les documents classiques, la signature, c’est pas dans un tableau » ; « elles sont pas dans des tableaux comme ça ».",
+          "sourceIds": []
         }
       ]
     },
@@ -10247,8 +10342,8 @@
       "statement": "Le procès-verbal se termine par le bloc des signatures de la présidence et du secrétariat de séance.",
       "acceptanceCriteria": [
         "Le procès-verbal de chaque séance est signé par le maire et le ou les secrétaires.",
-        "Le modèle par défaut du procès-verbal se termine par une section « Signatures » qui rappelle le numéro, la date et le lieu de la séance, puis un tableau à deux colonnes « Présidence de séance » et « Secrétariat de séance » : nom de l’élu enregistré dans les faits de clôture, suivi de sa qualité (« maire », « adjoint au maire » ou « membre du conseil municipal ») et une ligne « Signature : » qui laisse la place de la signature manuscrite.",
-        "La qualité est le rôle du mandat de l’élu lu dans l’annuaire au moment du rendu ; elle n’est pas figée dans les faits de clôture. Sans mandat lisible, le nom figure sans qualité ; sans présidence ou secrétariat enregistré, la colonne garde l’intitulé de l’office et la ligne de signature avec un nom vide. Hall ne connaît pas le genre des élus : les intitulés désignent l’office (« Présidence de séance », « Secrétariat de séance ») plutôt que la personne.",
+        "Le modèle par défaut du procès-verbal se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : ligne « Fait à {commune}, le {date} » (date de la séance), puis deux signataires côte à côte : « Présidence de séance » à gauche et « Secrétariat de séance » à droite, chacun suivi du nom de l’élu enregistré dans les faits de clôture et de sa qualité (« maire », « adjoint au maire » ou « membre du conseil municipal »), puis d’un espace libre d’au moins 25 mm pour la signature manuscrite ; le bloc ne se coupe pas entre deux pages.",
+        "La qualité est le rôle du mandat de l’élu lu dans l’annuaire au moment du rendu ; elle n’est pas figée dans les faits de clôture. Sans mandat lisible, le nom figure sans qualité ; sans présidence ou secrétariat enregistré, le bloc garde l’intitulé de l’office et l’espace de signature avec un nom vide. Hall ne connaît pas le genre des élus : les intitulés désignent l’office (« Présidence de séance », « Secrétariat de séance ») plutôt que la personne.",
         "Les modèles déjà enregistrés ne sont pas modifiés : le bloc apparaît dans un modèle installé après remplacement explicite de son texte et de sa présentation par ceux du modèle par défaut."
       ],
       "clauses": [
@@ -10271,7 +10366,7 @@
         {
           "key": "rendering",
           "origin": "product",
-          "statement": "Le modèle par défaut termine le procès-verbal par la section « Signatures » : numéro, date et lieu de la séance, noms, qualités lues sur le mandat au moment du rendu, et une ligne « Signature : » par signataire.",
+          "statement": "Le modèle par défaut termine le procès-verbal par le bloc de signature administratif : « Fait à », date de la séance, présidence à gauche et secrétariat à droite, noms, qualités lues sur le mandat au moment du rendu, espace de signature manuscrite. Mots d’Alexandre du 7 novembre 2026 : « dans les documents classiques, la signature, c’est pas dans un tableau » ; « elles sont pas dans des tableaux comme ça ».",
           "sourceIds": []
         }
       ]
@@ -10544,10 +10639,10 @@
       "acceptanceCriteria": [
         "Le catalogue couvre convocation, message de convocation, PV, délibération, liste des délibérations, impression de document, couverture et points du dossier de séance, invitation et annulation d’événement.",
         "Le texte et l’objet des messages et le texte, CSS, en-tête et pied de page des PDF sont enregistrés ; les générations suivantes les emploient.",
-        "Les modèles Markdown/Jinja des neuf familles contrôlent la présentation à partir de données structurées, avec titres, listes et tableaux Markdown, boucles, conditions et chemins pointés. Jinja produit du Markdown, ensuite rendu par Hall en PDF ; aucun bloc HTML précomposé ne remplace les points d’un PV, d’une convocation, d’un dossier ou d’une délibération. Le filtre markdown insère les textes rédigés ; leurs références sont résolues par le rendu Markdown existant. Les pièces jointes restent fournies par leur service métier.",
+        "Les modèles Markdown/Jinja des onze familles contrôlent la présentation à partir de données structurées, avec titres, listes et tableaux Markdown, boucles, conditions et chemins pointés. Jinja produit du Markdown, ensuite rendu par Hall en PDF ; aucun bloc HTML précomposé ne remplace les points d’un PV, d’une convocation, d’un dossier ou d’une délibération. Le filtre markdown insère les textes rédigés ; leurs références sont résolues par le rendu Markdown existant. Les pièces jointes restent fournies par leur service métier.",
         "MCP découvre, lit, crée, modifie, supprime et prévisualise via les actions Siren et leurs schémas ; une action non disponible est refusée.",
-        "Les neuf modèles par défaut sont génériques pour toute commune et partagés par la création et le seed. Leur remplacement sur l’instance installée est explicite, après sauvegarde, conserve les identifiants configurés et ne convertit pas les anciennes sources. Aucun adaptateur de lecture des anciennes sources n’est ajouté. Aucun fait, date, vote, rédaction métier ou PDF figé n’est réécrit.",
-        "Les neuf aperçus d’Alésia sont alimentés par des données représentatives réellement stockées via les générateurs existants ; ils affichent provenance, contenu, en-tête/pied et signature configurés.",
+        "Les onze modèles par défaut sont génériques pour toute commune et partagés par la création et le seed. Leur remplacement sur l’instance installée est explicite, après sauvegarde, conserve les identifiants configurés et ne convertit pas les anciennes sources. Aucun adaptateur de lecture des anciennes sources n’est ajouté. Aucun fait, date, vote, rédaction métier ou PDF figé n’est réécrit.",
+        "Les onze aperçus d’Alésia sont alimentés par des données représentatives réellement stockées via les générateurs existants ; ils affichent provenance, contenu, en-tête/pied et signature configurés.",
         "Le seed Alésia fournit des exemples fictifs de présentation ; l’enrichissement de la démonstration existante ne remplit que les champs vides et est idempotent."
       ],
       "clauses": [

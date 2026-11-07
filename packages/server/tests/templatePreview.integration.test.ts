@@ -34,7 +34,7 @@ type Preview = {
 
 // @verifies-requirement HALL-FR-CFG-020
 // @verifies-requirement HALL-FR-DOC-480
-it("previews the nine configured families from real Alésia records as HTML and native PDFs without changing their sources", async () => {
+it("previews the eleven configured families from real Alésia records as HTML and native PDFs without changing their sources", async () => {
   const { agent, url } = await createPostgresHttpTestServer();
   await execute(
     process.execPath,
@@ -48,7 +48,7 @@ it("previews the nine configured families from real Alésia records as HTML and 
     { env: { ...process.env, SEED_API: `${url}/api` }, timeout: 120_000 },
   );
   const templates = domainBody<ContentTemplate[]>(await agent.get("/api/templates").expect(200));
-  expect(templates).toHaveLength(9);
+  expect(templates).toHaveLength(11);
   const headings: Record<string, string> = {
     "meeting-notice": "Convocation au conseil municipal",
     "meeting-notice-message": "Convocation au conseil municipal",
@@ -58,13 +58,17 @@ it("previews the nine configured families from real Alésia records as HTML and 
     "meeting-dossier-cover": "Dossier de séance",
     "meeting-dossier-point": "Point ",
     "document-print": "Situation de l’oppidum",
+    "attendance-sheet": "Feuille d’émargement",
+    "proxy-form": "donne pouvoir à",
   };
   const signatures: Record<string, RegExp> = {
     minutes:
-      /Présidence de séance Secrétariat de séance \S[^|]*?, (?:maire|adjoint au maire|membre du conseil municipal) \S[^|]*?, (?:maire|adjoint au maire|membre du conseil municipal) Signature : Signature :/,
-    "council-decision": /Le maire Secrétariat de séance .*Signature : Signature :/,
-    "meeting-notice": /Le maire \S[^|]* Signature :/,
-    "deliberation-list": /Le maire \S[^|]* Signature :/,
+      /Fait à Alésia, le .+ Présidence de séance \S.*?, (?:maire|adjoint au maire|membre du conseil municipal) Secrétariat de séance \S.*?, (?:maire|adjoint au maire|membre du conseil municipal)/,
+    "council-decision": /Fait à Alésia, le .+ Le maire .*Secrétariat de séance \S/,
+    "meeting-notice": /Fait à Alésia, le .+ Le maire \S/,
+    "deliberation-list": /Fait à Alésia, le .+ Le maire \S/,
+    "attendance-sheet": /Nom Qualité Présence Pouvoir donné à Signature/,
+    "proxy-form": /Fait à , le Le mandant \S/,
   };
   let noticeMeetingNumber = "";
   for (const template of templates) {

@@ -86,7 +86,46 @@ const context = {
     participants: [],
   },
   generated: { bodyMarkdown: "Document rédigé", subject: "Invitation" },
+  attendanceSheet: {
+    meeting: { number: 7, startsAt: meeting.startedAt, location: "Mairie" },
+    members: [
+      { id: "m1", name: "Maire <Un>", role: "mayor", status: "present", proxyHolder: null },
+      {
+        id: "m2",
+        name: "Adjointe | Deux",
+        role: "deputyMayor",
+        status: "represented",
+        proxyHolder: { name: "Maire <Un>" },
+      },
+      { id: "m3", name: "Conseiller Trois", role: "councillor", status: "excused", proxyHolder: null },
+    ],
+    counts: { present: 1, represented: 1, excused: 1, absent: 0 },
+  },
+  proxy: {
+    meeting: { number: 7, startsAt: meeting.startedAt, location: "Mairie" },
+    grantor: { id: "m3", name: "Conseiller Trois", role: "councillor" },
+    holder: { id: "m2", name: "Adjointe Deux", role: "deputyMayor" },
+  },
 };
+
+/** Text of the administrative signature block, in reading order, from the rendered HTML. */
+function signatureBlock(markdown: string): string {
+  const html = renderHtml(parse(markdown));
+  const start = html.indexOf('<div class="hall-signatures');
+  expect(start, "signature block").toBeGreaterThanOrEqual(0);
+  return html
+    .slice(start)
+    .replaceAll(/<[^>]+>/g, " ")
+    .replaceAll(/\s+/g, " ")
+    .trim();
+}
+
+/** The signature block is the only HTML written in the default sources. */
+const withoutSignatureMarkup = (value: string) =>
+  value.replaceAll(
+    /<div class="hall-(?:signature|signatures|signatories)(?: hall-signatures-handwritten)?">|<\/div>|<span class="hall-fill hall-fill-(?:place|date)"><\/span>/g,
+    "",
+  );
 
 // @verifies-requirement HALL-FR-DOC-580
 // @verifies-requirement HALL-FR-CFG-020
@@ -98,11 +137,11 @@ describe("editable Markdown/Jinja default models", () => {
     expect(output.trim()).not.toBe("");
     expect(output).not.toContain("[object Object]");
     expect(source).not.toMatch(/::(?:minutes|council-decision|meeting-notice|generated-content)/);
-    expect(source).not.toMatch(/<\/?(?:h[1-6]|p|div|section|table|ul|li)\b/);
-    expect(output).not.toMatch(/<\/?(?:h[1-6]|p|div|section|table|ul|li)\b/);
+    expect(withoutSignatureMarkup(source)).not.toMatch(/<\/?(?:h[1-6]|p|div|section|table|ul|li)\b/);
+    expect(withoutSignatureMarkup(output)).not.toMatch(/<\/?(?:h[1-6]|p|div|section|table|ul|li)\b/);
     if (type === "deliberation-list") {
       const html = renderHtml(parse(output));
-      expect(html.match(/<tr>/g)).toHaveLength(5);
+      expect(html.match(/<tr>/g)).toHaveLength(2);
       expect(html).toContain("<td>Sujet précis</td>");
     }
     if (type === "minutes") {
@@ -115,17 +154,15 @@ describe("editable Markdown/Jinja default models", () => {
     }
   });
   // @verifies-requirement HALL-FR-MIN-280
-  it("closes the default minutes with the chair and secretary names, mandate roles and signature lines", () => {
+  it("closes the default minutes with the chair and secretary side by side, without a table", () => {
     const output = renderJinja(jinjaBody("minutes"), context);
-    const signatures = output.slice(output.indexOf("## Signatures"));
-    expect(signatures).toContain("Séance du conseil municipal n° 7 du vendredi 9 octobre 2026, Mairie.");
-    expect(signatures).toContain("| Présidence de séance | Secrétariat de séance |");
-    expect(signatures).toContain(
-      "| Présidente \\<Une\\>, adjoint au maire | Secrétaire \\<Un\\>, membre du conseil municipal |",
+    expect(signatureBlock(output)).toBe(
+      "Fait à Commune, le 9 octobre 2026 Présidence de séance Présidente &#x3C;Une>, adjoint au maire Secrétariat de séance Secrétaire &#x3C;Un>, membre du conseil municipal",
     );
-    expect(signatures).toContain("| Signature : | Signature : |");
     const html = renderHtml(parse(output));
-    expect(html.indexOf("Présidence de séance")).toBeGreaterThan(html.indexOf("Rédaction du conseil"));
+    expect(html.indexOf("hall-signatures")).toBeGreaterThan(html.indexOf("Rédaction du conseil"));
+    expect(html.slice(html.indexOf("hall-signatures"))).not.toContain("<table");
+    expect(html.match(/class="hall-signature"/g)).toHaveLength(2);
   });
 
   // @verifies-requirement HALL-FR-MIN-280
@@ -138,34 +175,34 @@ describe("editable Markdown/Jinja default models", () => {
         signatories: { chair: { name: "Présidente", role: null }, secretary: null },
       },
     };
-    const output = renderJinja(jinjaBody("minutes"), unnamed);
-    expect(output).toContain(", lieu non renseigné.");
-    expect(output).toContain("| Présidence de séance | Secrétariat de séance |");
-    expect(output).toContain("| Présidente |  |");
-    expect(output).toContain("| Signature : | Signature : |");
+    expect(signatureBlock(renderJinja(jinjaBody("minutes"), unnamed))).toBe(
+      "Fait à Commune, le 9 octobre 2026 Présidence de séance Présidente Secrétariat de séance",
+    );
   });
 
   // @verifies-requirement HALL-FR-NOT-080
   // @verifies-requirement HALL-FR-MIN-270
   it("signs the notice and the examined deliberations list by the mayor in office, or by the office alone", () => {
-    for (const type of ["meeting-notice", "deliberation-list"]) {
-      const output = renderJinja(jinjaBody(type), context);
-      expect(output, type).toContain("| Le maire |\n| --- |\n| Maire \\<Un\\> |\n| Signature : |");
-      const vacant = renderJinja(jinjaBody(type), { ...context, mayor: null });
-      expect(vacant, type).toContain("| Le maire |\n| --- |\n|  |\n| Signature : |");
-    }
+    const issued = { ...context, notice: { ...context.notice, issuedOn: "2026-10-01" } };
+    expect(signatureBlock(renderJinja(jinjaBody("meeting-notice"), issued))).toBe(
+      "Fait à Commune, le 1 octobre 2026 Le maire Maire &#x3C;Un>",
+    );
+    expect(signatureBlock(renderJinja(jinjaBody("meeting-notice"), { ...context, mayor: null }))).toBe(
+      "Fait à Commune, le …… Le maire",
+    );
+    expect(signatureBlock(renderJinja(jinjaBody("deliberation-list"), context))).toBe(
+      "Fait à Commune, le 9 octobre 2026 Le maire Maire &#x3C;Un>",
+    );
     const message = renderJinja(jinjaBody("meeting-notice-message"), context);
     expect(message).toContain("Le maire  \nMaire \\<Un\\>");
-    expect(message).not.toContain("Signature");
+    expect(message).not.toContain("hall-signature");
   });
 
   // @verifies-requirement HALL-FR-DEC-080
   it("signs the decision by the mayor and the meeting secretary without naming a chair who is not the mayor", () => {
-    const output = renderJinja(jinjaBody("council-decision"), context);
-    expect(output).toContain(
-      "| Le maire | Secrétariat de séance |\n| --- | --- |\n| Élue \\<Une\\> | Élue \\<Une\\> |",
+    expect(signatureBlock(renderJinja(jinjaBody("council-decision"), context))).toBe(
+      "Fait à Commune, le 9 octobre 2026 Le maire Élue &#x3C;Une> Secrétariat de séance Élue &#x3C;Une>",
     );
-    expect(output).toContain("| Signature : | Signature : |");
     const deputy = {
       ...context,
       decision: {
@@ -173,9 +210,56 @@ describe("editable Markdown/Jinja default models", () => {
         facts: { ...context.decision.facts, meeting: { ...meeting, chairRole: "deputyMayor" } },
       },
     };
-    expect(renderJinja(jinjaBody("council-decision"), deputy)).toContain(
-      "| Le maire | Secrétariat de séance |\n| --- | --- |\n|  | Élue \\<Une\\> |",
+    expect(signatureBlock(renderJinja(jinjaBody("council-decision"), deputy))).toBe(
+      "Fait à Commune, le 9 octobre 2026 Le maire Secrétariat de séance Élue &#x3C;Une>",
     );
+  });
+
+  // @verifies-requirement HALL-FR-ATT-170
+  it("lists every member on the attendance sheet with the recorded attendance, proxies and counts", () => {
+    const output = renderJinja(jinjaBody("attendance-sheet"), context);
+    const html = renderHtml(parse(output));
+    expect(html).toContain("<h1>Feuille d’émargement</h1>");
+    expect(html).toContain("Séance du conseil municipal n° 7 du vendredi 9 octobre 2026 à 20:00");
+    expect(html.match(/<th>/g)?.length).toBe(5);
+    expect(html).toContain("<th>Nom</th><th>Qualité</th><th>Présence</th><th>Pouvoir donné à</th><th>Signature</th>");
+    expect(html).toContain("<td>Maire &#x3C;Un></td><td>Maire</td><td>Présent(e)</td><td></td><td></td>");
+    expect(html).toContain(
+      "<td>Adjointe | Deux</td><td>Adjoint</td><td>Représenté(e)</td><td>Maire &#x3C;Un></td><td></td>",
+    );
+    expect(html).toContain("<td>Conseiller Trois</td><td>Conseiller</td><td>Excusé(e)</td>");
+    expect(html).toContain("Présents : 1 — Pouvoirs : 1 — Excusés : 1</p>");
+    expect(html).not.toContain("hall-signatures");
+    const blank = renderJinja(jinjaBody("attendance-sheet"), {
+      ...context,
+      attendanceSheet: {
+        ...context.attendanceSheet,
+        members: context.attendanceSheet.members.map((entry) => ({ ...entry, status: null, proxyHolder: null })),
+        counts: null,
+      },
+    });
+    const blankHtml = renderHtml(parse(blank));
+    expect(blankHtml).toContain("<td>Maire &#x3C;Un></td><td>Maire</td><td></td><td></td><td></td>");
+    expect(blankHtml).not.toContain("Présents :");
+  });
+
+  // @verifies-requirement HALL-FR-ATT-180
+  it("writes the proxy form with the grantor, the holder, the legal reminder and the grantor signature", () => {
+    const output = renderJinja(jinjaBody("proxy-form"), context);
+    const text = renderHtml(parse(output))
+      .replaceAll(/<[^>]+>/g, " ")
+      .replaceAll(/\s+/g, " ");
+    expect(text).toContain(
+      "Je soussigné(e) Conseiller Trois , membre du conseil municipal de la commune de Commune, donne pouvoir à Adjointe Deux , adjoint au maire, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du 9 octobre 2026.",
+    );
+    expect(text).toContain("ne peut être porteur que d’un seul pouvoir");
+    expect(text).toContain("congé de maternité");
+    expect(signatureBlock(output)).toBe("Fait à , le Le mandant Conseiller Trois");
+    expect(renderHtml(parse(output))).toContain(
+      'Fait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fill hall-fill-date"></span>',
+    );
+    const elided = renderJinja(jinjaBody("proxy-form"), { ...context, hall: { ...context.hall, name: "Alésia" } });
+    expect(elided).toContain("de la commune d’Alésia");
   });
 
   it("saves exact Jinja whitespace and rejects broken syntax before persistence", async () => {
