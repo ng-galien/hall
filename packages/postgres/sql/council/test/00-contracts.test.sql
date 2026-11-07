@@ -156,7 +156,8 @@ SELECT set_eq(
     ('ballots.ballot_seals_proposal_text -> seal_voted_proposal_text'),
     ('ballots.ballot_capture_decision_facts -> capture_council_decision_facts'),
     ('council_agenda_item.council_agenda_item_z_freeze_composition -> enforce_frozen_agenda_composition'),
-    ('council_meetings.council_meetings_z_notice_before_start -> require_current_notice_for_start')$$,
+    ('council_meetings.council_meetings_z_revision_before_start -> require_established_revision_for_start'),
+    ('council_meetings.council_meetings_z_revision_schedule -> enforce_established_revision_schedule')$$,
   'each lifecycle authority is wired to its owning relation'
 );
 

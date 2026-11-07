@@ -7,6 +7,11 @@ INSERT INTO council_meetings (id, scheduled_at, location) VALUES
 INSERT INTO meeting_attendance(id, council_member, council_meeting, status)
 VALUES(test_uuid('snapshot:attendance'), test_uuid('snapshot:member'), test_uuid('snapshot:meeting'), 'present');
 SELECT test_confirm_declared_membership(test_uuid('snapshot:meeting'));
+-- The schedule is still on the open revision: only the officer refusal applies.
+-- @verifies-requirement HALL-FR-MTG-260
+SELECT throws_ok($$SELECT hall_api.prepare_council_meeting(test_uuid('snapshot:meeting'), '2026-02-01 09:00Z', 'Other room', test_uuid('missing-officer'), test_uuid('snapshot:member'))$$,
+ 'HV124', NULL, 'failed officer designation rolls the schedule back too');
+SELECT is((SELECT location FROM council_meetings WHERE id=test_uuid('snapshot:meeting')), 'Chamber', 'failed preparation preserves the old location');
 SELECT test_prepare_notice(test_uuid('snapshot:meeting'));
 -- @verifies-requirement HALL-FR-MTG-230
 -- @verifies-requirement HALL-FR-MTG-240
@@ -14,10 +19,6 @@ SELECT test_prepare_notice(test_uuid('snapshot:meeting'));
 SELECT throws_ok($$SELECT start_council_meeting(test_uuid('snapshot:meeting'), '2026-01-01 09:00Z')$$,
  'HV124', NULL, 'start requires designated officers');
 SELECT is((SELECT count(*)::integer FROM council_meeting_snapshot), 0, 'failed start produces no snapshot');
--- @verifies-requirement HALL-FR-MTG-260
-SELECT throws_ok($$SELECT hall_api.prepare_council_meeting(test_uuid('snapshot:meeting'), '2026-02-01 09:00Z', 'Other room', test_uuid('missing-officer'), test_uuid('snapshot:member'))$$,
- 'HV124', NULL, 'failed officer designation rolls the schedule back too');
-SELECT is((SELECT location FROM council_meetings WHERE id=test_uuid('snapshot:meeting')), 'Chamber', 'failed preparation preserves the old location');
 SELECT lives_ok($$SELECT set_council_meeting_officers(test_uuid('snapshot:meeting'), test_uuid('snapshot:member'), test_uuid('snapshot:member'))$$,
  'designate the physically present officers before opening');
 SELECT lives_ok($$SELECT start_council_meeting(test_uuid('snapshot:meeting'), '2026-01-01 09:00Z')$$,
