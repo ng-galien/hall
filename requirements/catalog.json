@@ -11020,7 +11020,7 @@
       "acceptanceCriteria": [
         "Une installation neuve crée hall.app_user, hall.app_user_role, hall.app_session, hall.settings, hall.meeting_location et hall.document_template par le manifeste du schéma, avec le réglage unique et les modèles par défaut des documents générés ; elle ne crée aucune table dans public.",
         "Les événements d’audit du serveur et ceux des commandes métier forment un seul journal, hall.audit_event, lu par l’API des événements d’audit.",
-        "La montée d’une base 1.0.4 copie les sept tables du serveur de public dans hall avec leurs identifiants, empreintes de mot de passe, sessions actives, rôles, réglages, lieux, modèles personnalisés et dates ; elle vérifie pour chaque table le nombre de lignes et les identifiants copiés et échoue sans rien changer si une ligne manque.",
+        "La montée d’une base 1.0.3 copie les sept tables du serveur de public dans hall avec leurs identifiants, empreintes de mot de passe, sessions actives, rôles, réglages, lieux, modèles personnalisés et dates ; elle vérifie pour chaque table le nombre de lignes et les identifiants copiés et échoue sans rien changer si une ligne manque.",
         "Les tables public copiées restent en place, inchangées, et plus aucun code ne les lit ni ne les écrit ; une base où hall détient déjà un compte n’est pas recopiée."
       ],
       "clauses": [
@@ -11039,10 +11039,13 @@
         "state": "accepted",
         "since": "2026-11-07"
       },
-      "statement": "Le serveur atteint PostgreSQL par un seul pool, enregistré une fois dans le conteneur et partagé par tous les dépôts et clients ; une requête qui écrit un compte et une donnée métier forme une seule transaction.",
+      "statement": "Le serveur atteint PostgreSQL par un seul pool, enregistré une fois dans le conteneur et partagé par tous les dépôts et clients ; une unité de travail ouvre une transaction ambiante, et tout ce qu’elle contient, comptes, données métier et fait d’audit, est validé ou annulé ensemble.",
       "acceptanceCriteria": [
         "Pendant des requêtes qui touchent les comptes, les réglages, les modèles et l’annuaire, toutes les connexions de l’application à la base appartiennent au pool du conteneur.",
+        "Les appels faits dans une unité de travail rejoignent sa transaction, y compris ceux lancés sans attente ; la transaction n’est validée qu’après eux, et un échec avalé par l’appelant la fait échouer.",
         "Une unité de travail qui crée un compte puis un contact et échoue ensuite n’enregistre ni l’un ni l’autre ; réussie, elle enregistre les deux.",
+        "Sur la route d’attribution des rôles d’un compte, l’échec du fait d’audit annule le changement de rôles.",
+        "Aucune route actuelle n’écrit un compte et une donnée métier dans la même unité de travail : la création ou le rattachement d’un compte de conseiller crée d’abord son dossier personnel dans sa propre transaction (HALL-FR-DIR-150).",
         "Le contrôle de santé interroge la base par ce même pool."
       ],
       "clauses": [

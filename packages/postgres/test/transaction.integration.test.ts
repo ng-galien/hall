@@ -55,6 +55,36 @@ postgresDescribe("PostgreSQL transaction authority", () => {
     expect(later.row.transaction).not.toBe(joined[0].transaction);
   });
 
+  // @verifies-requirement HALL-TR-SCH-040
+  it("waits for calls started without await before committing the ambient transaction", async () => {
+    const backend = "SELECT txid_current()::text AS transaction";
+    let unawaited: Promise<string> | undefined;
+    const committed = await transactions.transaction({ role: "hall_api_authenticated", context }, async () => {
+      const transaction = await transactions.run(
+        { role: "hall_api_authenticated", context },
+        async (client) => (await client.query<{ transaction: string }>(backend)).rows[0].transaction,
+      );
+      unawaited = transactions.run({ role: "hall_api_authenticated", context }, async (client) => {
+        await client.query("SELECT pg_sleep(0.2)");
+        return (await client.query<{ transaction: string }>(backend)).rows[0].transaction;
+      });
+      return transaction;
+    });
+    expect(await unawaited).toBe(committed);
+  });
+
+  // @verifies-requirement HALL-TR-SCH-040
+  it("fails an ambient transaction that PostgreSQL rolled back after a swallowed error", async () => {
+    await expect(
+      transactions.transaction({ role: "hall_api_authenticated", context }, async () => {
+        await transactions
+          .run({ role: "hall_api_authenticated", context }, (client) => client.query("SELECT 1 / 0"))
+          .catch(() => undefined);
+        return "swallowed";
+      }),
+    ).rejects.toThrow("rolled the transaction back at COMMIT");
+  });
+
   it("sets a closed role and transaction-local call context without leaking either", async () => {
     const sessionIdentity = await pool.query<{ current_user: string }>("SELECT current_user");
 

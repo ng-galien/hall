@@ -339,15 +339,16 @@ GRANT EXECUTE ON FUNCTION hall_api.authorization_requires_personal_workspace(TEX
 
 -- @implements-requirement HALL-TR-SCH-030
 -- Before authentication the server only checks the first installation, reads
--- an account to verify its password and opens or resolves a session.
+-- an account to verify its password and resolves a session; the session of a
+-- verified password is opened under that account.
 GRANT EXECUTE ON FUNCTION hall_api.count_app_users(),
  hall_api.find_app_user_by_email(TEXT),
  hall_api.open_app_user(UUID, BOOLEAN),
  hall_api.bootstrap_app_administrator(TEXT, TEXT, TEXT),
- hall_api.create_app_session(UUID, TEXT, TIMESTAMPTZ),
  hall_api.find_app_session(TEXT)
  TO hall_api_anonymous, hall_api_authenticated;
-GRANT EXECUTE ON FUNCTION hall_api.count_active_administrators(),
+GRANT EXECUTE ON FUNCTION hall_api.create_app_session(UUID, TEXT, TIMESTAMPTZ),
+ hall_api.count_active_administrators(),
  hall_api.lock_administrator_invariant(),
  hall_api.list_app_users(),
  hall_api.create_app_user(TEXT, TEXT, TEXT, UUID, TEXT[]),

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { createTestServer } from "./testServer.js";
 
 const administrator = { email: "admin@example.fr", displayName: "Admin", password: "Admin-password-2026!" };
@@ -90,6 +90,53 @@ it("commits or rolls back an account write and a business write as one transacti
     await write("committed@example.fr", "Validée", false);
     expect(await written("committed@example.fr", "Validée")).toEqual({ accounts: 1, contacts: 1 });
   } finally {
+    await inspection.end();
+  }
+});
+
+// @verifies-requirement HALL-TR-SCH-040
+it("rolls back a role assignment of the production route when its audit fact fails", async () => {
+  const { rawAgent, container } = await createTestServer({ devAutoLogin: false });
+  await rawAgent.post("/api/auth/bootstrap").send(administrator).expect(201);
+  const created = await rawAgent
+    .post("/api/users")
+    .send({
+      email: "roles@example.fr",
+      displayName: "Roles",
+      password: "Roles-password-2026!",
+      roles: ["contributor"],
+      contactId: null,
+    })
+    .expect(201);
+  const userId: string = created.body.properties.id;
+  const inspection = new Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 1 });
+  const roles = async () =>
+    (await inspection.query<{ role: string }>("SELECT role FROM hall.app_user_role WHERE user_id = $1", [userId])).rows;
+  const audited = async () =>
+    (
+      await inspection.query<{ count: number }>(
+        "SELECT count(*)::int AS count FROM hall.audit_event WHERE action = 'user.assign-role' AND outcome = 'succeeded' AND target_id = $1",
+        [userId],
+      )
+    ).rows[0].count;
+  const recordAuditEvent = vi
+    .spyOn(container.cradle.postgresClient.administration, "recordAuditEvent")
+    .mockRejectedValueOnce(new Error("audit fact refused"));
+  try {
+    await rawAgent
+      .put(`/api/users/${userId}/roles`)
+      .send({ roles: ["clerk"] })
+      .expect(500);
+    expect(await roles()).toEqual([{ role: "contributor" }]);
+    expect(await audited()).toBe(0);
+    await rawAgent
+      .put(`/api/users/${userId}/roles`)
+      .send({ roles: ["clerk"] })
+      .expect(200);
+    expect(await roles()).toEqual([{ role: "clerk" }]);
+    expect(await audited()).toBe(1);
+  } finally {
+    recordAuditEvent.mockRestore();
     await inspection.end();
   }
 });

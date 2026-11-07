@@ -451,7 +451,7 @@ moves to the next, open revision. Closed meetings keep their facts and documents
 The migrations run in `hall migrate` (step 4), not at startup: `hall start`
 refuses an incompatible schema.
 
-The release following 1.0.4 adds
+Version 1.0.4 also runs
 `packages/postgres/sql/migrations/007-server-tables-into-hall.sql` (requirement
 HALL-TR-SCH-030): it copies the seven server tables of schema `public` (`users`,
 `user_roles`, `sessions`, `hall_settings`, `hall_meeting_locations`, `templates`,
@@ -461,7 +461,7 @@ HALL-TR-SCH-030): it copies the seven server tables of schema `public` (`users`,
 customized templates and dates. Accounts keep their password and open sessions stay
 valid. For each table the migration checks the row count and the copied identifiers;
 any difference fails `hall migrate` and rolls the whole upgrade back. The `public`
-tables stay in place, unchanged, and are no longer read or written; a later release
+tables stay in place, unchanged, and are no longer read or written; the next release
 drops them once the update is verified in the town hall. Run again, the migration
 copies nothing as soon as `hall.app_user` holds an account.
 
@@ -527,10 +527,11 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed: do not change anything' }
    ```
 
-   This backup is the way back: after migration 007 the previous release still finds
-   its `public` tables, but the accounts, sessions, settings and templates changed
-   afterwards exist only in schema `hall`. Restoring the backup returns to the state
-   before the update.
+   This backup is the only way back. After `hall migrate`, the 1.0.3 package refuses
+   to start (`fingerprint differs`) and its `hall migrate` refuses the 1.0.4 schema;
+   pointing the task back at the 1.0.3 release is not a rollback. To return to 1.0.3,
+   restore this backup, which also discards the accounts, sessions, settings and
+   templates changed after the update.
 
    The archive and its `.json` manifest are in `HALL_BACKUP_DIRECTORY`, or in
    `C:\Hall\config\backups` when the variable is not yet set. Record their names and
@@ -624,8 +625,8 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    psql --dbname=$Database --set=ON_ERROR_STOP=1 --file="$Release\node_modules\@ng-galien\hall\sql\migrations\replace-default-templates-1.0.4.sql"
    ```
 
-   From the release following 1.0.4, the script of the package acts on
-   `hall.document_template`; run it after `hall migrate`. The script keeps each
+   The script of the 1.0.4 package acts on `hall.document_template`, filled by
+   migration 007; run it after `hall migrate`. The script keeps each
    template, its identifier and its name. A template whose body is
    still the 1.0.3 default receives the current default body and stylesheet. It prints one
    row per template with its outcome: `replaced`, `current` (already the default, such as
@@ -642,8 +643,10 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
     database.
 
 Keep the 1.0.3 release and the backup of step 2 until acceptance. To return to 1.0.3,
-follow the code rollback of [Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover):
-the migration is not reversed by reinstalling 1.0.3.
+restore the backup of step 2 as described in
+[Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover), then
+point the **Hall** task at the 1.0.3 release: reinstalling 1.0.3 alone does not reverse
+the migration and 1.0.3 refuses to start on the 1.0.4 schema.
 
 ## Scope of validation
 

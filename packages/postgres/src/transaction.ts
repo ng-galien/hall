@@ -107,6 +107,49 @@ type AmbientTransaction = {
 
 const ambientTransactions = new AsyncLocalStorage<AmbientTransaction>();
 
+/** PostgreSQL ended the transaction with ROLLBACK at COMMIT because a statement of it had failed. */
+export class TransactionRolledBackError extends Error {
+  constructor() {
+    super("PostgreSQL rolled the transaction back at COMMIT after a failed statement");
+    this.name = "TransactionRolledBackError";
+  }
+}
+
+/** Waits for every call joined to the ambient transaction, including calls started without await. */
+async function settled(ambient: AmbientTransaction): Promise<void> {
+  let queue: Promise<void>;
+  do {
+    queue = ambient.queue;
+    await queue;
+  } while (queue !== ambient.queue);
+}
+
+/** A serialization or deadlock failure anywhere in the cause chain makes the whole transaction retryable. */
+function retryable(error: unknown): boolean {
+  for (let current = error; current instanceof Error; current = current.cause) {
+    if (retryableSqlStates.has(postgresSqlState(current) ?? "")) return true;
+  }
+  return false;
+}
+
+// 57014 is also raised by an explicit cancellation; only an attempt that lasted the whole
+// timeout is reported as a timeout, whatever the language of the PostgreSQL message.
+function timeoutOf(
+  error: unknown,
+  budget: StatementBudget,
+  statementTimeoutMs: number,
+  startedAt: number,
+): StatementTimeoutError | undefined {
+  if (error instanceof StatementTimeoutError) return error;
+  if (
+    statementTimeoutMs > 0 &&
+    postgresSqlState(error) === "57014" &&
+    performance.now() - startedAt >= statementTimeoutMs
+  )
+    return new StatementTimeoutError(budget, statementTimeoutMs, error);
+  return undefined;
+}
+
 /** An error reported by the PostgreSQL server, as opposed to an error of the caller's own operation. */
 function isServerError(error: unknown): boolean {
   return postgresSqlState(error) !== null && typeof error === "object" && error !== null && "severity" in error;
@@ -143,7 +186,9 @@ export class PostgresTransactionManager {
       async (client) => {
         const ambient: AmbientTransaction = { pool: this.pool, client, queue: Promise.resolve(), open: true };
         try {
-          return await ambientTransactions.run(ambient, operation);
+          const result = await ambientTransactions.run(ambient, operation);
+          await settled(ambient);
+          return result;
         } finally {
           ambient.open = false;
         }
@@ -157,13 +202,15 @@ export class PostgresTransactionManager {
     if (!ambient) return this.attempts(request, operation);
     const joined = ambient.queue.then(async () => {
       const budget = statementBudgetOf(request.context.action);
+      const statementTimeoutMs = this.statementTimeouts[budget];
+      const startedAt = performance.now();
       try {
-        await installCallContext(ambient.client, request.role, request.context, this.statementTimeouts[budget]);
+        await installCallContext(ambient.client, request.role, request.context, statementTimeoutMs);
         const result = await operation(ambient.client);
         if (request.audit) await recordAuditEvent(ambient.client, request.audit);
         return result;
       } catch (error) {
-        throw preservePostgresError(error);
+        throw timeoutOf(error, budget, statementTimeoutMs, startedAt) ?? preservePostgresError(error);
       }
     });
     ambient.queue = joined.then(
@@ -192,19 +239,14 @@ export class PostgresTransactionManager {
         await installCallContext(client, request.role, request.context, statementTimeoutMs);
         const result = await operation(client);
         if (request.audit) await recordAuditEvent(client, request.audit);
-        await client.query("COMMIT");
+        const commit = await client.query("COMMIT");
+        if (commit.command !== "COMMIT") throw new TransactionRolledBackError();
         return result;
       } catch (error) {
         await rollback(client);
-        if (attempt < maxAttempts && retryableSqlStates.has(postgresSqlState(error) ?? "")) continue;
-        if (
-          statementTimeoutMs > 0 &&
-          postgresSqlState(error) === "57014" &&
-          performance.now() - startedAt >= statementTimeoutMs
-        ) {
-          throw new StatementTimeoutError(budget, statementTimeoutMs, error);
-        }
-        throw failure(error);
+        if (attempt < maxAttempts && retryable(error)) continue;
+        if (error instanceof StatementTimeoutError) throw error;
+        throw timeoutOf(error, budget, statementTimeoutMs, startedAt) ?? failure(error);
       } finally {
         client.release();
       }
