@@ -1,6 +1,6 @@
 import type { MinutesDetail } from "@hall/api-contract";
 import type { CouncilDecisionDetail, MeetingNoticeFacts } from "@hall/contracts";
-import type { HallSettings } from "@hall/domain";
+import type { CouncilMember, HallSettings } from "@hall/domain";
 import { matchLiteral } from "@hall/domain";
 import { councilDecisionVoteTotals } from "./councilDecisionDocument.js";
 import { examinedDeliberations } from "./deliberationListDocument.js";
@@ -10,17 +10,53 @@ export interface ResolvedSubjectText {
   source: "currentResource";
 }
 
+/**
+ * Directory facts read when a document is rendered, for its signature blocks.
+ * They are not part of the facts frozen at meeting closure or decision confirmation.
+ */
+export interface SignatoryDirectory {
+  /** The single active mandate whose role is mayor; null when there is none or more than one. */
+  mayor: { name: string } | null;
+  /** Mandate role of each meeting officer named by the minutes facts, keyed by council member identifier. */
+  roles: ReadonlyMap<string, CouncilMember["role"]>;
+}
+
+export const emptySignatoryDirectory: SignatoryDirectory = { mayor: null, roles: new Map() };
+
+/**
+ * A signature block entry: the name frozen in the facts and the mandate role read when rendering.
+ * `role` is `mayor`, `deputyMayor`, `councillor`, or null when the mandate cannot be read.
+ */
+export interface DocumentSignatory {
+  name: string;
+  role: CouncilMember["role"] | null;
+}
+
+function signatory(person: { id: string; name: string } | null, directory: SignatoryDirectory) {
+  return person ? { name: person.name, role: directory.roles.get(person.id) ?? null } : null;
+}
+
 /** Ephemeral presentation input, never written back into the municipal record. */
 export interface GeneratedTemplateData {
   dossier?: Record<string, unknown>;
   event?: Record<string, unknown>;
 }
 
-export function minutesTemplateData(minutes: MinutesDetail, subjects: ReadonlyMap<string, ResolvedSubjectText>) {
+// @implements-requirement HALL-FR-MIN-280
+export function minutesTemplateData(
+  minutes: MinutesDetail,
+  subjects: ReadonlyMap<string, ResolvedSubjectText>,
+  directory: SignatoryDirectory = emptySignatoryDirectory,
+) {
   return {
     id: minutes.id,
     facts: minutes.facts,
     meeting: { ...minutes.facts.meeting, reconvenedFrom: minutes.facts.meeting.reconvenedFrom ?? null },
+    /** `minutes.signatories.chair` and `.secretary`: officers in office at closure, null when not recorded. */
+    signatories: {
+      chair: signatory(minutes.facts.meeting.chair, directory) satisfies DocumentSignatory | null,
+      secretary: signatory(minutes.facts.meeting.secretary, directory) satisfies DocumentSignatory | null,
+    },
     attendance: minutes.facts.attendance.map((entry) => ({
       ...entry,
       proxyHolder: minutes.facts.attendance.find((candidate) => candidate.id === entry.proxyHolderId)?.member ?? null,
@@ -81,12 +117,16 @@ export function documentTemplateData(input: {
   subjects: ReadonlyMap<string, ResolvedSubjectText>;
   decision: CouncilDecisionDetail | null;
   generated: { bodyMarkdown: string; subject: string | null; data?: GeneratedTemplateData } | null;
+  signatories?: SignatoryDirectory;
 }) {
+  const directory = input.signatories ?? emptySignatoryDirectory;
   return {
     hall: input.hall,
+    /** `mayor.name`: the mayor in office when the document is rendered, or null. */
+    mayor: directory.mayor,
     meeting: input.meeting,
     notice: input.notice,
-    minutes: input.minutes ? minutesTemplateData(input.minutes, input.subjects) : null,
+    minutes: input.minutes ? minutesTemplateData(input.minutes, input.subjects, directory) : null,
     decision: input.decision ? { ...input.decision, totals: councilDecisionVoteTotals(input.decision.facts) } : null,
     deliberations: input.minutes ? examinedDeliberations(input.minutes.facts) : [],
     generated: input.generated,

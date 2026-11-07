@@ -108,7 +108,33 @@ Non arrêté.
 {% endif %}
 {% endfor %}`;
 
-export const jinjaMeetingNotice = `{{ notice.hall.name | text }}
+// @implements-requirement HALL-FR-MIN-280
+/**
+ * Closing signature block of the minutes: the meeting chair and the meeting secretary.
+ * Hall has no gender data: the blocks name the offices ("Présidence de séance",
+ * "Secrétariat de séance") and the mandate role, so the wording does not depend on gender.
+ */
+export const jinjaMinutesSignatures = `{% set qualities = {'mayor': 'maire', 'deputyMayor': 'adjoint au maire', 'councillor': 'membre du conseil municipal'} %}
+{% set chair = minutes.signatories.chair %}
+{% set secretary = minutes.signatories.secretary %}
+Séance du conseil municipal n° {{ minutes.meeting.number }} du {{ minutes.meeting.startedAt | date('full') }}, {{ (minutes.meeting.location or 'lieu non renseigné') | text }}.
+
+| Présidence de séance | Secrétariat de séance |
+| --- | --- |
+| {{ (chair.name if chair else '') | text }}{% if chair and chair.role %}, {{ qualities[chair.role] }}{% endif %} | {{ (secretary.name if secretary else '') | text }}{% if secretary and secretary.role %}, {{ qualities[secretary.role] }}{% endif %} |
+| Signature : | Signature : |
+`;
+
+// @implements-requirement HALL-FR-NOT-080
+// @implements-requirement HALL-FR-MIN-270
+/** Signature block of the mayor in office when the document is rendered. */
+export const jinjaMayorSignature = `| Le maire |
+| --- |
+| {{ (mayor.name if mayor else '') | text }} |
+| Signature : |
+`;
+
+export const jinjaMeetingNoticeBody = `{{ notice.hall.name | text }}
 
 # Convocation au conseil municipal
 
@@ -125,9 +151,10 @@ Lieu : **{{ notice.meeting.location | text }}**.
 {% for point in notice.meeting.agenda %}
 {{ point.agendaNumber }}. {{ ('Arrêt du procès-verbal de la séance précédente' if point.kind == 'minutesApproval' else point.title) | text }}
 {% endfor %}
-
-Le maire
 `;
+
+export const jinjaMeetingNotice = `${jinjaMeetingNoticeBody}
+${jinjaMayorSignature}`;
 
 export const jinjaDeliberationList = `{{ hall.name | text }}
 
@@ -140,7 +167,8 @@ Séance du conseil municipal n° {{ minutes.meeting.number }} du {{ minutes.meet
 {% for entry in deliberations -%}
 | {{ entry.agendaNumber }} | {{ entry.title | text }} | {{ {'adopted': 'Adoptée', 'rejected': 'Rejetée', 'withoutVote': 'Sans vote'}[entry.outcome] }} |
 {% endfor %}
-`;
+
+${jinjaMayorSignature}`;
 
 export const jinjaDecisionFacts = `{% set facts = decision.facts %}
 {% set attendance = facts.opening.attendance if facts.opening else facts.attendance %}
@@ -186,13 +214,15 @@ Délibération n° {{ decision.number | text }}
 {{ decision.content | markdown }}
 `;
 
+// @implements-requirement HALL-FR-DEC-080
 export const jinjaDecisionResult = `**{{ 'Adoptée' if decision.facts.ballot.result == 'approve' else 'Rejetée' }}** · Scrutin {{ 'public' if decision.facts.ballot.mode == 'public' else 'secret' }}
 
 Pour : {{ decision.totals.approve }} · Contre : {{ decision.totals.reject }} · Abstentions : {{ decision.totals.abstain }}{% if decision.facts.ballot.mode == 'secret' %} · Blancs : {{ decision.totals.blank }} · Nuls : {{ decision.totals.invalid }}{% endif %} · Non-participations : {{ decision.totals.nonParticipation }}
 
-| Le secrétaire de séance | Le maire |
+| Le maire | Secrétariat de séance |
 | --- | --- |
-| {{ (decision.facts.meeting.secretary.name if decision.facts.meeting.secretary else '') | text }} | {{ (decision.facts.meeting.chair.name if decision.facts.meeting.chairRole == 'mayor' and decision.facts.meeting.chair else '') | text }} |
+| {{ (decision.facts.meeting.chair.name if decision.facts.meeting.chairRole == 'mayor' and decision.facts.meeting.chair else '') | text }} | {{ (decision.facts.meeting.secretary.name if decision.facts.meeting.secretary else '') | text }} |
+| Signature : | Signature : |
 `;
 
 export const jinjaDocumentBodies: Readonly<Record<string, string>> = {
@@ -252,8 +282,13 @@ Lieu : {{ event.location | text }}
 
 {% endif %}`,
   "meeting-notice": jinjaMeetingNotice,
-  "meeting-notice-message": `${jinjaMeetingNotice}\nLe PDF de la convocation est joint à ce message.\n`,
-  minutes: `# Procès-verbal du conseil\n\n## Séance, présences et pouvoirs\n\n${jinjaMinutesFacts}\n\n## Examen des points\n\n${jinjaMinutesProceedings}`,
+  "meeting-notice-message": `${jinjaMeetingNoticeBody}
+Le maire{% if mayor %}  
+{{ mayor.name | text }}{% endif %}
+
+Le PDF de la convocation est joint à ce message.
+`,
+  minutes: `# Procès-verbal du conseil\n\n## Séance, présences et pouvoirs\n\n${jinjaMinutesFacts}\n\n## Examen des points\n\n${jinjaMinutesProceedings}\n\n## Signatures\n\n${jinjaMinutesSignatures}`,
   "deliberation-list": jinjaDeliberationList,
   "council-decision": [jinjaDecisionFacts, jinjaDecisionContent, jinjaDecisionResult].join("\n\n"),
 };

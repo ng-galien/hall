@@ -1,6 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import type { MinutesDetail } from "@hall/api-contract";
+import { defaultDocumentTemplates } from "@hall/domain";
 import { PDFDocument } from "pdf-lib";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it, vi } from "vitest";
 import { createDocumentRenderer } from "../src/services/documentRenderer.js";
 import { minutesTemplateData } from "../src/services/templateData.js";
@@ -75,7 +77,16 @@ const fixture: MinutesDetail = {
   },
 };
 
-function service(minutes = fixture) {
+const mandates = [
+  { id: "chair", role: "mayor", active: true, contactId: "contact-chair" },
+  { id: "secretary", role: "councillor", active: true, contactId: "contact-secretary" },
+];
+const contacts = [
+  { id: "contact-chair", firstName: "Marie", lastName: "Martin" },
+  { id: "contact-secretary", firstName: "Jean", lastName: "Dupont" },
+];
+
+function service(minutes = fixture, members = mandates) {
   const openAgendaItem = vi.fn(async (id: string) => ({
     id,
     subject: { kind: "openQuestion", content: "Question **actuelle**." },
@@ -87,6 +98,11 @@ function service(minutes = fixture) {
     resourcesClient: {},
     geographicMapRenderer: {},
     referenceEntityResolver: {},
+    directoryClient: {
+      listCouncilMembers: async () => members,
+      openCouncilMember: async (id: string) => members.find((member) => member.id === id) ?? null,
+      openContact: async (id: string) => contacts.find((contact) => contact.id === id) ?? null,
+    },
   } as unknown as Parameters<typeof createTemplateRenderingService>[0];
   return { renderer: createTemplateRenderingService(dependencies), openAgendaItem };
 }
@@ -265,5 +281,99 @@ Paragraphe {{ paragraph }}. Le conseil examine la proposition présentée. Les m
     expect(preview.resolvedMarkdown).not.toContain("<table>");
     expect((await PDFDocument.load(bytes)).getPageCount()).toBe(3);
     if (process.env.HALL_JINJA_PROOF_PATH) await writeFile(process.env.HALL_JINJA_PROOF_PATH, bytes);
+  }, 30_000);
+});
+
+async function pdfText(bytes: Uint8Array): Promise<string> {
+  const loading = getDocument({ data: bytes, useSystemFonts: true });
+  try {
+    const pdf = await loading.promise;
+    const pages: string[] = [];
+    for (let number = 1; number <= pdf.numPages; number++) {
+      const content = await (await pdf.getPage(number)).getTextContent();
+      pages.push(content.items.map((item) => ("str" in item ? item.str + (item.hasEOL ? " " : "") : "")).join(""));
+    }
+    return pages.join(" ").replace(/\s+/g, " ").trim();
+  } finally {
+    await loading.destroy();
+  }
+}
+
+const defaultTemplate = (documentType: string) =>
+  defaultDocumentTemplates.find((entry) => entry.documentType === documentType)!;
+
+async function renderedPdf(preview: { printHtml: string; headerHtml: string; footerHtml: string }) {
+  const bytes = await createDocumentRenderer().pdf({
+    html: preview.printHtml,
+    headerHtml: preview.headerHtml,
+    footerHtml: preview.footerHtml,
+  });
+  return pdfText(new Uint8Array(bytes));
+}
+
+describe("signature blocks of the default PDF documents", () => {
+  // @verifies-requirement HALL-FR-MIN-280
+  it("ends the minutes PDF with the chair and secretary, their mandate roles and signature lines", async () => {
+    const { renderer } = service();
+    const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
+    expect(preview.diagnostics).toEqual([]);
+    expect(preview.resolvedMarkdown).toContain("| Présidence de séance | Secrétariat de séance |");
+    expect(preview.resolvedMarkdown).toContain("| Marie Martin, maire | Jean Dupont, membre du conseil municipal |");
+    const text = await renderedPdf(preview);
+    const signatures = text.slice(text.lastIndexOf("Signatures"));
+    expect(signatures).toContain("Séance du conseil municipal n° 1 du samedi 5 septembre 2026, Salle <A>.");
+    expect(signatures).toMatch(
+      /Présidence de séance Secrétariat de séance Marie Martin, maire Jean Dupont, membre du conseil municipal Signature : Signature :/,
+    );
+  }, 30_000);
+
+  // @verifies-requirement HALL-FR-MIN-280
+  it("leaves the role and signature line of an officer whose mandate cannot be read", async () => {
+    const { renderer } = service(fixture, []);
+    const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
+    expect(preview.diagnostics).toEqual([]);
+    expect(preview.resolvedMarkdown).toContain("| Marie Martin | Jean Dupont |");
+    expect(preview.resolvedMarkdown).toContain("| Signature : | Signature : |");
+  });
+
+  // @verifies-requirement HALL-FR-MIN-270
+  // @verifies-requirement HALL-FR-NOT-080
+  it("signs the examined deliberations list and the notice PDFs by the mayor in office", async () => {
+    const { renderer } = service();
+    const list = await renderer.preview(defaultTemplate("deliberation-list"), { minutesId: fixture.id });
+    expect(list.diagnostics).toEqual([]);
+    expect(await renderedPdf(list)).toContain("Adoptée Le maire Marie Martin Signature :");
+    const notice = await renderer.preview(
+      defaultTemplate("meeting-notice"),
+      {},
+      {
+        issuedOn: "2026-08-28",
+        hall: { name: "Commune test", timeZone: "Europe/Paris" },
+        meeting: {
+          id: "00000000-0000-4000-8000-000000000001",
+          number: 1,
+          scheduledAt: fixture.facts.meeting.scheduledAt!,
+          location: "Salle du conseil",
+          agendaFrozenAt: "2026-08-28T08:00:00Z",
+          agenda: [
+            {
+              id: "00000000-0000-4000-8000-000000000002",
+              position: 1,
+              agendaNumber: 1,
+              title: "",
+              kind: "minutesApproval",
+            },
+          ],
+        },
+      },
+    );
+    expect(notice.diagnostics).toEqual([]);
+    expect(await renderedPdf(notice)).toContain(
+      "Arrêt du procès-verbal de la séance précédente Le maire Marie Martin Signature :",
+    );
+    const vacant = await service(fixture, []).renderer.preview(defaultTemplate("deliberation-list"), {
+      minutesId: fixture.id,
+    });
+    expect(vacant.resolvedMarkdown).toContain("| Le maire |\n| --- |\n|  |\n| Signature : |");
   }, 30_000);
 });

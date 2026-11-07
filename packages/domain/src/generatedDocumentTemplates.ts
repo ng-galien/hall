@@ -23,6 +23,18 @@ const families: ReadonlyArray<Pick<DefaultTemplate, "documentType" | "name" | "k
   { documentType: "event-invitation", name: "Invitation et annulation d’événement", kind: "message" },
 ];
 
+const pdfStylesheet =
+  "h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; }";
+
+/**
+ * The signature block is the last table of these documents: its last row leaves room for the
+ * handwritten signature, and a single signatory occupies the right half of the page.
+ */
+const signatureStylesheet =
+  " .hall-document-body > p:has(+ table:last-child) { break-after: avoid; } .hall-document-body > table:last-child { margin-top: 1.5rem; } .hall-document-body > table:last-child tr:last-child td { height: 25mm; } .hall-document-body > table:last-child:not(:has(th + th)) { width: 50%; margin-left: auto; }";
+
+const signedDocumentTypes: readonly string[] = ["meeting-notice", "minutes", "council-decision", "deliberation-list"];
+
 /** The same readable defaults are used by creation, demonstration seed and the explicit instance replacement. */
 export const defaultDocumentTemplates: ReadonlyArray<DefaultTemplate> = families.map((family) => ({
   ...family,
@@ -35,7 +47,7 @@ export const defaultDocumentTemplates: ReadonlyArray<DefaultTemplate> = families
         : "Convocation au conseil municipal du {{ notice.meeting.scheduledAt | date }}",
   stylesheet:
     family.kind === "pdf"
-      ? "h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; }"
+      ? pdfStylesheet + (signedDocumentTypes.includes(family.documentType) ? signatureStylesheet : "")
       : "",
   headerHtml: family.kind === "pdf" ? "{{ hall.name | text }}" : "",
   footerHtml: family.kind === "pdf" ? "Page :page-number / :page-count" : "",

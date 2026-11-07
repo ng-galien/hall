@@ -1,11 +1,16 @@
 import type { CouncilDecisionDetail, CouncilDecisionFacts } from "@hall/contracts";
+import { defaultDocumentTemplates } from "@hall/domain";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it } from "vitest";
 import {
   renderCouncilDecisionContent,
   renderCouncilDecisionFacts,
   renderCouncilDecisionResult,
 } from "./councilDecisionDocument.js";
+import { createDocumentRenderer } from "./documentRenderer.js";
 import { createTemplateRenderingService } from "./templateRendering.js";
+
+const noDirectory = { listCouncilMembers: async () => [], openCouncilMember: async () => null };
 
 const member = { id: "member", name: "Marie <Martin>" };
 const facts: CouncilDecisionFacts = {
@@ -146,6 +151,7 @@ describe("council decision documentary facts", () => {
 it("uses configured identity only when decision facts have no municipality and never rewrites those facts", async () => {
   const renderer = createTemplateRenderingService({
     hallSettingsRepository: { get: async () => ({ name: "Current municipality", timeZone: "Europe/Paris" }) },
+    directoryClient: noDirectory,
   } as unknown as Parameters<typeof createTemplateRenderingService>[0]);
   const template = {
     bodyMarkdown: "# Commune de {{ decision.facts.hall.name | text }}",
@@ -164,3 +170,54 @@ it("uses configured identity only when decision facts have no municipality and n
   expect(preserved.html).toContain("<h1>Commune de Alésia</h1>");
   expect(preserved.html).not.toContain("Current municipality");
 });
+
+async function pdfText(bytes: Uint8Array): Promise<string> {
+  const loading = getDocument({ data: bytes, useSystemFonts: true });
+  try {
+    const pdf = await loading.promise;
+    const pages: string[] = [];
+    for (let number = 1; number <= pdf.numPages; number++) {
+      const content = await (await pdf.getPage(number)).getTextContent();
+      pages.push(content.items.map((item) => ("str" in item ? item.str + (item.hasEOL ? " " : "") : "")).join(""));
+    }
+    return pages.join(" ").replace(/\s+/g, " ").trim();
+  } finally {
+    await loading.destroy();
+  }
+}
+
+// @verifies-requirement HALL-FR-DEC-080
+it("signs the default decision PDF by the mayor who chaired and the meeting secretary", async () => {
+  const renderer = createTemplateRenderingService({
+    hallSettingsRepository: { get: async () => ({ name: "Alésia", timeZone: "Europe/Paris" }) },
+    directoryClient: noDirectory,
+  } as unknown as Parameters<typeof createTemplateRenderingService>[0]);
+  const template = defaultDocumentTemplates.find((entry) => entry.documentType === "council-decision")!;
+  const decision = (meeting: Partial<CouncilDecisionFacts["meeting"]>) =>
+    ({
+      title: "Objet",
+      number: null,
+      content: "Texte rédigé.",
+      documentDate: null,
+      facts: { ...facts, meeting: { ...facts.meeting, ...meeting } },
+    }) as unknown as CouncilDecisionDetail;
+  const signed = await renderer.preview(
+    template,
+    {},
+    undefined,
+    decision({ chairRole: "mayor", secretary: { id: "secretary", name: "Jean Dupont" } }),
+  );
+  expect(signed.diagnostics).toEqual([]);
+  const bytes = await createDocumentRenderer().pdf({
+    html: signed.printHtml,
+    headerHtml: signed.headerHtml,
+    footerHtml: signed.footerHtml,
+  });
+  expect(await pdfText(new Uint8Array(bytes))).toContain(
+    "Le maire Secrétariat de séance Marie <Martin> Jean Dupont Signature : Signature :",
+  );
+  const deputy = await renderer.preview(template, {}, undefined, decision({ chairRole: "deputyMayor" }));
+  expect(deputy.resolvedMarkdown).toContain(
+    "| Le maire | Secrétariat de séance |\n| --- | --- |\n|  |  |\n| Signature : | Signature : |",
+  );
+}, 30_000);

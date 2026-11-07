@@ -36,6 +36,7 @@ const point = {
 };
 const context = {
   hall: { name: "Commune", timeZone: "Europe/Paris" },
+  mayor: { name: "Maire <Un>" },
   meeting,
   notice: { hall: { name: "Commune" }, issuedOn: null, meeting: { ...meeting, agenda: [point] } },
   minutes: {
@@ -47,6 +48,10 @@ const context = {
       auxiliaryAttendances: [],
       officerChanges: [],
       closedSessions: [],
+    },
+    signatories: {
+      chair: { name: "Présidente <Une>", role: "deputyMayor" },
+      secretary: { name: "Secrétaire <Un>", role: "councillor" },
     },
     points: [point],
   },
@@ -97,7 +102,7 @@ describe("editable Markdown/Jinja default models", () => {
     expect(output).not.toMatch(/<\/?(?:h[1-6]|p|div|section|table|ul|li)\b/);
     if (type === "deliberation-list") {
       const html = renderHtml(parse(output));
-      expect(html.match(/<tr>/g)).toHaveLength(2);
+      expect(html.match(/<tr>/g)).toHaveLength(5);
       expect(html).toContain("<td>Sujet précis</td>");
     }
     if (type === "minutes") {
@@ -109,6 +114,70 @@ describe("editable Markdown/Jinja default models", () => {
       expect(output).toContain("### 1. Sujet précis");
     }
   });
+  // @verifies-requirement HALL-FR-MIN-280
+  it("closes the default minutes with the chair and secretary names, mandate roles and signature lines", () => {
+    const output = renderJinja(jinjaBody("minutes"), context);
+    const signatures = output.slice(output.indexOf("## Signatures"));
+    expect(signatures).toContain("Séance du conseil municipal n° 7 du vendredi 9 octobre 2026, Mairie.");
+    expect(signatures).toContain("| Présidence de séance | Secrétariat de séance |");
+    expect(signatures).toContain(
+      "| Présidente \\<Une\\>, adjoint au maire | Secrétaire \\<Un\\>, membre du conseil municipal |",
+    );
+    expect(signatures).toContain("| Signature : | Signature : |");
+    const html = renderHtml(parse(output));
+    expect(html.indexOf("Présidence de séance")).toBeGreaterThan(html.indexOf("Rédaction du conseil"));
+  });
+
+  // @verifies-requirement HALL-FR-MIN-280
+  it("keeps the minutes signature offices without inventing a missing officer or mandate role", () => {
+    const unnamed = {
+      ...context,
+      minutes: {
+        ...context.minutes,
+        meeting: { ...meeting, location: null },
+        signatories: { chair: { name: "Présidente", role: null }, secretary: null },
+      },
+    };
+    const output = renderJinja(jinjaBody("minutes"), unnamed);
+    expect(output).toContain(", lieu non renseigné.");
+    expect(output).toContain("| Présidence de séance | Secrétariat de séance |");
+    expect(output).toContain("| Présidente |  |");
+    expect(output).toContain("| Signature : | Signature : |");
+  });
+
+  // @verifies-requirement HALL-FR-NOT-080
+  // @verifies-requirement HALL-FR-MIN-270
+  it("signs the notice and the examined deliberations list by the mayor in office, or by the office alone", () => {
+    for (const type of ["meeting-notice", "deliberation-list"]) {
+      const output = renderJinja(jinjaBody(type), context);
+      expect(output, type).toContain("| Le maire |\n| --- |\n| Maire \\<Un\\> |\n| Signature : |");
+      const vacant = renderJinja(jinjaBody(type), { ...context, mayor: null });
+      expect(vacant, type).toContain("| Le maire |\n| --- |\n|  |\n| Signature : |");
+    }
+    const message = renderJinja(jinjaBody("meeting-notice-message"), context);
+    expect(message).toContain("Le maire  \nMaire \\<Un\\>");
+    expect(message).not.toContain("Signature");
+  });
+
+  // @verifies-requirement HALL-FR-DEC-080
+  it("signs the decision by the mayor and the meeting secretary without naming a chair who is not the mayor", () => {
+    const output = renderJinja(jinjaBody("council-decision"), context);
+    expect(output).toContain(
+      "| Le maire | Secrétariat de séance |\n| --- | --- |\n| Élue \\<Une\\> | Élue \\<Une\\> |",
+    );
+    expect(output).toContain("| Signature : | Signature : |");
+    const deputy = {
+      ...context,
+      decision: {
+        ...context.decision,
+        facts: { ...context.decision.facts, meeting: { ...meeting, chairRole: "deputyMayor" } },
+      },
+    };
+    expect(renderJinja(jinjaBody("council-decision"), deputy)).toContain(
+      "| Le maire | Secrétariat de séance |\n| --- | --- |\n|  | Élue \\<Une\\> |",
+    );
+  });
+
   it("saves exact Jinja whitespace and rejects broken syntax before persistence", async () => {
     const create = vi.fn(async (input) => input);
     const service = createContentTemplateService({

@@ -1,4 +1,4 @@
-import type { MinutesDetail, ResourceDetail } from "@hall/api-contract";
+import type { CouncilMember as CouncilMandate, MinutesDetail, ResourceDetail } from "@hall/api-contract";
 import type { CouncilDecisionDetail, MeetingNoticeFacts } from "@hall/contracts";
 import {
   type ContentTemplate,
@@ -23,13 +23,19 @@ import {
 import { jinjaError, renderJinja } from "@hall/templating/jinja";
 import sanitizeHtml from "sanitize-html";
 import type { CouncilClient } from "../clients/councilClient.js";
+import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
 import { pdfAttachmentHref } from "./documentRenderer.js";
 import type { GeographicMapRenderer } from "./geographicMapRenderer.js";
 import type { ReferenceEntityResolver } from "./referenceEntityResolver.js";
-import { documentTemplateData, type GeneratedTemplateData, type ResolvedSubjectText } from "./templateData.js";
+import {
+  documentTemplateData,
+  type GeneratedTemplateData,
+  type ResolvedSubjectText,
+  type SignatoryDirectory,
+} from "./templateData.js";
 
 type AstNode = {
   type: string;
@@ -104,6 +110,7 @@ interface ResolvedContext {
   minutes: MinutesDetail | null;
   hall: HallSettings;
   meeting: Awaited<ReturnType<CouncilClient["openMeeting"]>>;
+  signatories: SignatoryDirectory;
 }
 
 function diagnostic(
@@ -654,6 +661,7 @@ export function createTemplateRenderingService({
   geographicMapRenderer,
   referenceEntityResolver,
   minutesClient,
+  directoryClient,
 }: {
   hallSettingsRepository: HallSettingsRepository;
   councilClient: CouncilClient;
@@ -661,17 +669,39 @@ export function createTemplateRenderingService({
   geographicMapRenderer: GeographicMapRenderer;
   referenceEntityResolver: ReferenceEntityResolver;
   minutesClient: MinutesClient;
+  directoryClient: DirectoryClient;
 }): TemplateRenderingService {
-  const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => ({
-    attachPdfDocuments: true,
-    generated: null,
-    subjects: new Map(),
-    notice: null,
-    councilDecision: null,
-    minutes: context.minutesId ? await minutesClient.open(context.minutesId) : null,
-    hall: await hallSettingsRepository.get(),
-    meeting: context.meetingId ? await councilClient.openMeeting(context.meetingId) : null,
-  });
+  // @implements-requirement HALL-FR-MIN-280
+  // @implements-requirement HALL-FR-NOT-080
+  /** Signature blocks name the current mayor and the mandate role of the officers recorded in the minutes. */
+  type CouncilRole = CouncilMandate["role"];
+  const loadSignatories = async (minutes: MinutesDetail | null): Promise<SignatoryDirectory> => {
+    const mayors = (await directoryClient.listCouncilMembers(true)).filter((member) => member.role === "mayor");
+    const officers = minutes ? [minutes.facts.meeting.chair, minutes.facts.meeting.secretary] : [];
+    const roles = new Map<string, CouncilRole>();
+    for (const officer of officers) {
+      if (!officer || roles.has(officer.id)) continue;
+      const mandate = await directoryClient.openCouncilMember(officer.id);
+      if (mandate) roles.set(officer.id, mandate.role);
+    }
+    const mayor = mayors.length === 1 ? await directoryClient.openContact(mayors[0]!.contactId) : null;
+    return { mayor: mayor ? { name: `${mayor.firstName} ${mayor.lastName}` } : null, roles };
+  };
+
+  const loadContext = async (context: TemplateRenderContext = {}): Promise<ResolvedContext> => {
+    const minutes = context.minutesId ? await minutesClient.open(context.minutesId) : null;
+    return {
+      attachPdfDocuments: true,
+      generated: null,
+      subjects: new Map(),
+      notice: null,
+      councilDecision: null,
+      minutes,
+      hall: await hallSettingsRepository.get(),
+      meeting: context.meetingId ? await councilClient.openMeeting(context.meetingId) : null,
+      signatories: await loadSignatories(minutes),
+    };
+  };
 
   const renderSource = async (
     source: string,
@@ -830,6 +860,7 @@ export function createTemplateRenderingService({
           subjects: context.subjects,
           decision: context.councilDecision,
           generated: context.generated,
+          signatories: context.signatories,
         }),
         { name, timeZone: context.hall.timeZone },
       );

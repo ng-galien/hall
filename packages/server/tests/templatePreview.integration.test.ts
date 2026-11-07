@@ -59,6 +59,13 @@ it("previews the nine configured families from real Alésia records as HTML and 
     "meeting-dossier-point": "Point ",
     "document-print": "Situation de l’oppidum",
   };
+  const signatures: Record<string, RegExp> = {
+    minutes:
+      /Présidence de séance Secrétariat de séance \S[^|]*?, (?:maire|adjoint au maire|membre du conseil municipal) \S[^|]*?, (?:maire|adjoint au maire|membre du conseil municipal) Signature : Signature :/,
+    "council-decision": /Le maire Secrétariat de séance .*Signature : Signature :/,
+    "meeting-notice": /Le maire \S[^|]* Signature :/,
+    "deliberation-list": /Le maire \S[^|]* Signature :/,
+  };
   let noticeMeetingNumber = "";
   for (const template of templates) {
     const input = { ...template, context: {} };
@@ -81,6 +88,9 @@ it("previews the nine configured families from real Alésia records as HTML and 
     const text = await pdfText(new Uint8Array(await response.arrayBuffer()));
     expect(text, template.documentType).toContain("Alésia");
     expect(text, template.documentType).toContain(headings[template.documentType]!);
+    // @verifies-requirement HALL-FR-MIN-280
+    if (signatures[template.documentType])
+      expect(text, template.documentType).toMatch(signatures[template.documentType]!);
   }
 
   const print = templates.find((template) => template.documentType === "document-print")!;

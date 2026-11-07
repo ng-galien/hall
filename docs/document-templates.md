@@ -12,9 +12,9 @@ The server supplies these read-only values:
 
 | Document | Main data |
 | --- | --- |
-| All | `hall`, and `meeting` when a meeting is available |
+| All | `hall`, `mayor`, and `meeting` when a meeting is available |
 | Meeting notice and message | `notice.hall`, `notice.meeting.agenda`, `notice.issuedOn` |
-| Minutes | `minutes.meeting`, `minutes.attendance`, `minutes.conduct`, `minutes.points` |
+| Minutes | `minutes.meeting`, `minutes.attendance`, `minutes.conduct`, `minutes.points`, `minutes.signatories` |
 | Council decision | `decision.title`, `decision.content`, `decision.facts`, `decision.totals` |
 | Deliberation list | `deliberations`: `agendaNumber`, `title`, `outcome` |
 | Meeting dossier | `dossier.meeting`, `dossier.point`: `title`, `report`, `subjectText`, `pieces` |
@@ -60,6 +60,29 @@ municipal document. Message previews show the generated HTML. Syntax errors prev
 missing data is reported during preview and prevents generation. Frozen documents retain
 their original files.
 
+## Signature blocks
+
+Two values feed the signature blocks:
+
+- `mayor.name` is the name of the mayor in office when the document is rendered. `mayor` is
+  null when the directory has no active mandate with the mayor role, or more than one.
+- `minutes.signatories.chair` and `minutes.signatories.secretary` give the `name` of the meeting
+  chair and secretary recorded at closure, and the `role` of their mandate (`mayor`,
+  `deputyMayor` or `councillor`), read from the directory when the document is rendered.
+  `role` is null when the mandate cannot be read; an officer that was not recorded is null.
+
+The roles and the mayor are not part of the facts frozen at closure: a later change of a
+mandate role changes the next rendering, not a stored PDF.
+
+The default minutes end with a `Signatures` section: meeting number, date and place, then a
+table with the columns « Présidence de séance » and « Secrétariat de séance », each with the
+name, the quality and a « Signature : » row. Hall has no gender data, so the headings name the
+office rather than the person. The meeting notice and the examined deliberations list end with
+a « Le maire » block; the council decision ends with « Le maire » and « Secrétariat de séance »,
+where the mayor is named only when the confirmed facts show that the mayor chaired. In these
+four PDF defaults the stylesheet gives the last row of the final table room for a handwritten
+signature and places a single-signatory block on the right half of the page.
+
 ## Default models
 
 The nine generic defaults are shared by the creation screen and the demonstration seed.
@@ -67,7 +90,10 @@ They use the municipality and meeting data supplied by Hall, without an embedded
 person or meeting identifier. A municipality changes and saves its own template source.
 The API field `bodyMarkdown` stores Markdown/Jinja; no database format field is introduced.
 There is no automatic conversion of old template sources. Replacing the configured defaults
-is an explicit deployment operation, after backup, preserving their existing identifiers.
+is an explicit deployment operation, after backup, preserving their existing identifiers:
+an installed template receives the signature blocks only when its body and stylesheet are
+replaced by those of the current default, in Settings → Documents or with the
+`template.update` action.
 
 Current open-question text has `subjectSource: currentResource`; proposals captured in
 minutes retain `closureSnapshot`. Missing historical text is not reconstructed. Templates

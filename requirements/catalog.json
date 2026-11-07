@@ -7626,7 +7626,8 @@
       },
       "statement": "La convocation est faite par le maire et indique les questions portées à l’ordre du jour.",
       "acceptanceCriteria": [
-        "La convocation est faite par le maire et indique les questions portées à l’ordre du jour."
+        "La convocation est faite par le maire et indique les questions portées à l’ordre du jour.",
+        "Le modèle par défaut de la convocation se termine par le bloc de signature « Le maire » : nom du maire en exercice au moment du rendu, puis une ligne « Signature : ». Sans maire en exercice, ou avec plusieurs mandats de maire actifs, le nom reste vide. Le message de convocation nomme le maire sans ligne de signature."
       ],
       "clauses": [
         {
@@ -7638,6 +7639,12 @@
           ],
           "assessment": "verified",
           "interpretation": "direct"
+        },
+        {
+          "key": "signature-block",
+          "origin": "product",
+          "statement": "Demande de l’utilisateur du 7 novembre 2026 : « Il faut changer les templates des documents de Hall avec les noms et signatures, par exemple pour le PV, avec le nom du président et du secrétaire de séance. » La convocation est signée par le maire en exercice ; son nom est lu dans l’annuaire au moment du rendu.",
+          "sourceIds": []
         }
       ]
     },
@@ -8161,7 +8168,8 @@
       "statement": "Le document de délibération reprend les preuves historiques disponibles sans inventer les informations absentes.",
       "acceptanceCriteria": [
         "Les délibérations sont signées par le maire et le ou les secrétaires de séance.",
-        "Le gabarit commun distingue ouverture et scrutin, reprend les observations historiques disponibles, laisse absentes les qualités non observées et ne déduit aucune attestation de convocation, signature, conformité ou publication. Les choix typographiques du modèle communal ne constituent pas des obligations légales ; aucune métadonnée manquante ne crée à elle seule un blocage de gel."
+        "Le gabarit commun distingue ouverture et scrutin, reprend les observations historiques disponibles, laisse absentes les qualités non observées et ne déduit aucune attestation de convocation, signature, conformité ou publication. Les choix typographiques du modèle communal ne constituent pas des obligations légales ; aucune métadonnée manquante ne crée à elle seule un blocage de gel.",
+        "Le modèle par défaut de la délibération se termine par un tableau « Le maire » et « Secrétariat de séance » : le nom du maire figure seulement quand les faits confirmés établissent que la présidence était le maire, le nom du secrétaire de séance quand il est enregistré ; chaque colonne porte une ligne « Signature : »."
       ],
       "clauses": [
         {
@@ -8178,6 +8186,12 @@
           "key": "implementation",
           "origin": "product",
           "statement": "Le gabarit commun distingue ouverture et scrutin, reprend les observations historiques disponibles, laisse absentes les qualités non observées et ne déduit aucune attestation de convocation, signature, conformité ou publication. Les choix typographiques du modèle communal ne constituent pas des obligations légales ; aucune métadonnée manquante ne crée à elle seule un blocage de gel.",
+          "sourceIds": []
+        },
+        {
+          "key": "signature-block",
+          "origin": "product",
+          "statement": "Demande de l’utilisateur du 7 novembre 2026 : « Il faut changer les templates des documents de Hall avec les noms et signatures, par exemple pour le PV, avec le nom du président et du secrétaire de séance. » Pour une délibération, les signataires restent ceux de l’article L2121-23 ; Hall n’ajoute aucun nom que les faits confirmés n’établissent pas.",
           "sourceIds": []
         }
       ]
@@ -10093,7 +10107,8 @@
         "La liste des délibérations examinées par le conseil municipal est affichée à la mairie et mise en ligne sur le site internet de la commune dans un délai d’une semaine.",
         "Depuis la page d’une séance close, Hall produit en PDF, d’après le modèle unique de type « Liste des délibérations », la liste qui donne le nom de la commune, le numéro et la date de la séance et, pour chaque point terminé sans ajournement, dans l’ordre du jour, son numéro, son titre et son sort : « Adoptée », « Rejetée » ou « Sans vote » pour un point sans scrutin.",
         "Le document se produit à la demande depuis les faits figés à la clôture ; Hall n’enregistre ni date d’affichage, ni date de mise en ligne, ni transmission. Une séance qui n’est pas close ne propose pas le document et le serveur le refuse.",
-        "« Nouveau modèle » propose le type « Liste des délibérations » quand il n’a pas de modèle, avec une source Markdown/Jinja qui parcourt les délibérations et affiche leur numéro, titre et sort."
+        "« Nouveau modèle » propose le type « Liste des délibérations » quand il n’a pas de modèle, avec une source Markdown/Jinja qui parcourt les délibérations et affiche leur numéro, titre et sort.",
+        "Le modèle par défaut de la liste se termine par le bloc de signature « Le maire » : nom du maire en exercice au moment du rendu, vide sans maire unique en exercice, puis une ligne « Signature : »."
       ],
       "clauses": [
         {
@@ -10122,6 +10137,51 @@
           "key": "template-type",
           "origin": "product",
           "statement": "« Nouveau modèle » propose le type « Liste des délibérations » quand il n’a pas de modèle, avec une source Markdown/Jinja qui parcourt les délibérations et affiche leur numéro, titre et sort. Révision propriétaire du 1er novembre 2026, source 01a198db-654c-76a1-9771-fbae61490d23.",
+          "sourceIds": []
+        },
+        {
+          "key": "signature-block",
+          "origin": "product",
+          "statement": "Demande de l’utilisateur du 7 novembre 2026 : « Il faut changer les templates des documents de Hall avec les noms et signatures, par exemple pour le PV, avec le nom du président et du secrétaire de séance. » La loi ne prescrit pas de signataire pour la liste ; le bloc du maire suit l’usage d’attestation de l’affichage par le maire et peut être retiré du modèle de la commune.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MIN-280": {
+      "name": "MINUTES_END_WITH_CHAIR_AND_SECRETARY_SIGNATURES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "Le procès-verbal se termine par le bloc des signatures de la présidence et du secrétariat de séance.",
+      "acceptanceCriteria": [
+        "Le procès-verbal de chaque séance est signé par le maire et le ou les secrétaires.",
+        "Le modèle par défaut du procès-verbal se termine par une section « Signatures » qui rappelle le numéro, la date et le lieu de la séance, puis un tableau à deux colonnes « Présidence de séance » et « Secrétariat de séance » : nom de l’élu enregistré dans les faits de clôture, suivi de sa qualité (« maire », « adjoint au maire » ou « membre du conseil municipal ») et une ligne « Signature : » qui laisse la place de la signature manuscrite.",
+        "La qualité est le rôle du mandat de l’élu lu dans l’annuaire au moment du rendu ; elle n’est pas figée dans les faits de clôture. Sans mandat lisible, le nom figure sans qualité ; sans présidence ou secrétariat enregistré, la colonne garde l’intitulé de l’office et la ligne de signature avec un nom vide. Hall ne connaît pas le genre des élus : les intitulés désignent l’office (« Présidence de séance », « Secrétariat de séance ») plutôt que la personne.",
+        "Les modèles déjà enregistrés ne sont pas modifiés : le bloc apparaît dans un modèle installé après remplacement explicite de son texte et de sa présentation par ceux du modèle par défaut."
+      ],
+      "clauses": [
+        {
+          "key": "minutes-signatures",
+          "origin": "regulatory",
+          "statement": "Le procès-verbal de chaque séance est signé par le maire et le ou les secrétaires.",
+          "sourceIds": [
+            "S3"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Demande de l’utilisateur du 7 novembre 2026 : « Il faut changer les templates des documents de Hall avec les noms et signatures, par exemple pour le PV, avec le nom du président et du secrétaire de séance. » Le bloc nomme la présidence de séance et le secrétariat de séance enregistrés à la clôture ; lorsque la présidence n’est pas le maire, le modèle de la commune reste à adapter.",
+          "sourceIds": []
+        },
+        {
+          "key": "rendering",
+          "origin": "product",
+          "statement": "Le modèle par défaut termine le procès-verbal par la section « Signatures » : numéro, date et lieu de la séance, noms, qualités lues sur le mandat au moment du rendu, et une ligne « Signature : » par signataire.",
           "sourceIds": []
         }
       ]
