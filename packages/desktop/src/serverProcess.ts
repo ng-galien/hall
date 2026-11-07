@@ -1,12 +1,13 @@
 import type { HttpServerHandle } from "@hall/server";
 import { openDemonstration, publishDemonstrationForMcp, signInToDemonstration } from "./demonstration.js";
-import type { ServerCommand, ServerEvent, StartupPhase } from "./startupProtocol.js";
+import type { ServerCommand, ServerEvent, SessionCookie, StartupPhase } from "./startupProtocol.js";
 
 type StartCommand = Extract<ServerCommand, { type: "start" }>;
 
 let server: HttpServerHandle | null = null;
 let starting: Promise<void> | null = null;
 let withdrawMcp: (() => Promise<void>) | null = null;
+let renewSession: (() => Promise<SessionCookie>) | null = null;
 
 function send(event: ServerEvent): void {
   process.parentPort.postMessage(event);
@@ -48,7 +49,8 @@ async function start(command: StartCommand): Promise<void> {
     onDataset: (status) => phase("dataset", status),
   });
   server = opened;
-  const cookie = await signInToDemonstration(opened, state);
+  renewSession = () => signInToDemonstration(opened, state);
+  const cookie = await renewSession();
   if (process.platform !== "win32") {
     withdrawMcp = await publishDemonstrationForMcp(opened, state).catch((error: unknown) => {
       process.stderr.write(
@@ -81,7 +83,14 @@ process.parentPort.on("message", (message: { data: ServerCommand }) => {
         stack: error instanceof Error ? (error.stack ?? null) : null,
       });
     });
+  } else if (command.type === "renew-session" && renewSession) {
+    void renewSession().then(
+      (cookie) => send({ type: "session", cookie }),
+      (error: unknown) =>
+        send({ type: "session-failed", message: error instanceof Error ? error.message : String(error) }),
+    );
   } else if (command.type === "close") {
+    renewSession = null;
     void close();
   }
 });

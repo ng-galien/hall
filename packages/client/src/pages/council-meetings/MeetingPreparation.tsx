@@ -4,6 +4,7 @@
 import type { PreparedCouncilSubject } from "@hall/api-contract";
 import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,9 +80,11 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const [generalOpen, setGeneralOpen] = useState(true);
   const [detailsErrors, setDetailsErrors] = useState<Partial<Record<MeetingDetailsField, TranslationKey>>>({});
   const { settings, error: settingsError } = useMeetingSettings();
-  const detailsEditable = meetingActions.can("meeting.prepare") || meetingActions.can("meeting.set-officers");
   const scheduleLocked = !meetingActions.can("meeting.schedule");
-  const detailsInline = detailsEditable && !scheduleLocked;
+  const detailsInline =
+    meetingActions.can("meeting.set-officers") || (!scheduleLocked && meetingActions.can("meeting.prepare"));
+  const detailsReady = scheduleLocked || settings !== null;
+  const detailsStatus = submitting ? "common.saving" : !detailsReady && !settingsError ? "common.loading" : null;
   const agendaRevision = meetingActions.workspace!.meeting.agendaRevision;
   const revisionEstablished = Boolean(agendaRevision.establishedAt);
   const canEstablish = !revisionEstablished && meetingActions.can("meeting.establish-agenda-revision");
@@ -91,11 +94,14 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
 
   const submitDetails = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!settings) return;
+    if (!detailsReady || submitting) return;
     const form = new FormData(event.currentTarget);
     const submission = meetingDetailsSubmission(
       {
-        scheduledAt: meetingScheduleInstant(String(form.get("startsAt") ?? ""), settings.timeZone),
+        scheduledAt:
+          settings && !scheduleLocked
+            ? meetingScheduleInstant(String(form.get("startsAt") ?? ""), settings.timeZone)
+            : null,
         location: String(form.get("location") ?? ""),
         chairMemberId: String(form.get("chairMemberId") ?? ""),
         secretaryMemberId: String(form.get("secretaryMemberId") ?? ""),
@@ -164,7 +170,12 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         description=""
       >
         <div className="meeting-console">
-          {!detailsInline ? (
+          {meeting.isReconvenedMeeting ? (
+            <Badge variant="outline" data-testid="meeting-reconvened-chip">
+              {t("meeting.reconvenedChip")}
+            </Badge>
+          ) : null}
+          {scheduleLocked || !detailsInline ? (
             <dl className="meeting-brief" data-testid="meeting-facts">
               <div>
                 <dt>{t("meeting.facts.time")}</dt>
@@ -174,16 +185,24 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                 <dt>{t("meetings.location")}</dt>
                 <dd>{meeting.location || t("common.none")}</dd>
               </div>
-              <div>
-                <dt>{t("meetings.chair")}</dt>
-                <dd>{meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none")}</dd>
-              </div>
-              <div>
-                <dt>{t("meetings.secretary")}</dt>
-                <dd>
-                  {meeting.secretaryMemberId ? councilMemberName(members, meeting.secretaryMemberId) : t("common.none")}
-                </dd>
-              </div>
+              {!detailsInline ? (
+                <>
+                  <div>
+                    <dt>{t("meetings.chair")}</dt>
+                    <dd>
+                      {meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none")}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t("meetings.secretary")}</dt>
+                    <dd>
+                      {meeting.secretaryMemberId
+                        ? councilMemberName(members, meeting.secretaryMemberId)
+                        : t("common.none")}
+                    </dd>
+                  </div>
+                </>
+              ) : null}
             </dl>
           ) : null}
           <MeetingEntryBlockers blockers={entryBlockers.filter((blocker) => blocker.code !== "agendaRevisionOpen")} />
@@ -222,84 +241,97 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             testId="meeting-general"
             className="meeting-general"
           >
-            <form
-              ref={detailsFormRef}
-              className="meeting-details-inline"
-              data-testid="meeting-details-inline"
-              onSubmit={submitDetails}
-              onChange={(event) => event.currentTarget.requestSubmit()}
-            >
-              <RequestErrorBanner error={meetingActions.actionError} />
-              <div className="form-grid">
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`${detailsFieldId}-startsAt`}>{t("meetings.dateTime")}</Label>
-                  <Input
-                    id={`${detailsFieldId}-startsAt`}
-                    name="startsAt"
-                    data-testid="meeting-edit-starts-at"
-                    type="datetime-local"
-                    defaultValue={startsAtLocalValue}
-                    required
-                    {...detailsFieldInvalid("startsAt")}
-                  />
-                  {detailsFieldError("startsAt")}
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
-                  {settings?.meetingLocations.length || meeting.location ? (
-                    <MeetingLocationSelect
-                      id={`${detailsFieldId}-location`}
-                      testId="meeting-edit-location"
-                      locations={settings?.meetingLocations ?? []}
-                      current={meeting.location}
-                      placeholder={t("meetings.location")}
+            {detailsStatus ? (
+              <p role="status" className="text-xs text-muted" data-testid="meeting-details-status">
+                {t(detailsStatus)}
+              </p>
+            ) : null}
+            {detailsReady ? (
+              <form
+                ref={detailsFormRef}
+                className="meeting-details-inline"
+                data-testid="meeting-details-inline"
+                onSubmit={submitDetails}
+                onChange={(event) => event.currentTarget.requestSubmit()}
+              >
+                <RequestErrorBanner error={meetingActions.actionError} />
+                {!scheduleLocked ? (
+                  <div className="form-grid">
+                    <div className="grid gap-1.5">
+                      <Label htmlFor={`${detailsFieldId}-startsAt`}>{t("meetings.dateTime")}</Label>
+                      <Input
+                        id={`${detailsFieldId}-startsAt`}
+                        name="startsAt"
+                        data-testid="meeting-edit-starts-at"
+                        type="datetime-local"
+                        defaultValue={startsAtLocalValue}
+                        disabled={submitting}
+                        required
+                        {...detailsFieldInvalid("startsAt")}
+                      />
+                      {detailsFieldError("startsAt")}
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
+                      {settings?.meetingLocations.length || meeting.location ? (
+                        <MeetingLocationSelect
+                          id={`${detailsFieldId}-location`}
+                          testId="meeting-edit-location"
+                          locations={settings?.meetingLocations ?? []}
+                          current={meeting.location}
+                          placeholder={t("meetings.location")}
+                          disabled={submitting}
+                        />
+                      ) : (
+                        <p className="text-xs text-muted" data-testid="meeting-edit-location-missing">
+                          {t("meetings.locationsMissing")}{" "}
+                          <Link to="/settings" data-testid="meeting-edit-location-settings">
+                            {t("meetings.locationsConfigure")}
+                          </Link>
+                        </p>
+                      )}
+                      {detailsFieldError("location")}
+                    </div>
+                  </div>
+                ) : null}
+                <div className="form-grid">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
+                    <EntitySelect
+                      type="member"
+                      name="chairMemberId"
+                      defaultValue={meeting.chairMemberId ?? ""}
+                      testId="meeting-edit-chair"
+                      disabled={submitting}
+                      onValueChange={() => setTimeout(() => detailsFormRef.current?.requestSubmit(), 0)}
+                      placeholder={t("meetings.chairUndesignated")}
+                      options={rosterMembers.map((member) => ({
+                        value: member.id,
+                        label: `${member.contact.firstName} ${member.contact.lastName}`,
+                      }))}
                     />
-                  ) : (
-                    <p className="text-xs text-muted" data-testid="meeting-edit-location-missing">
-                      {t("meetings.locationsMissing")}{" "}
-                      <Link to="/settings" data-testid="meeting-edit-location-settings">
-                        {t("meetings.locationsConfigure")}
-                      </Link>
-                    </p>
-                  )}
-                  {detailsFieldError("location")}
+                    {detailsFieldError("chairMemberId")}
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
+                    <EntitySelect
+                      type="member"
+                      name="secretaryMemberId"
+                      defaultValue={meeting.secretaryMemberId ?? ""}
+                      testId="meeting-edit-secretary"
+                      disabled={submitting}
+                      onValueChange={() => setTimeout(() => detailsFormRef.current?.requestSubmit(), 0)}
+                      placeholder={t("meetings.secretaryUndesignated")}
+                      options={rosterMembers.map((member) => ({
+                        value: member.id,
+                        label: `${member.contact.firstName} ${member.contact.lastName}`,
+                      }))}
+                    />
+                    {detailsFieldError("secretaryMemberId")}
+                  </div>
                 </div>
-              </div>
-              <div className="form-grid">
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
-                  <EntitySelect
-                    type="member"
-                    name="chairMemberId"
-                    defaultValue={meeting.chairMemberId ?? ""}
-                    testId="meeting-edit-chair"
-                    onValueChange={() => setTimeout(() => detailsFormRef.current?.requestSubmit(), 0)}
-                    placeholder={t("meetings.chairUndesignated")}
-                    options={rosterMembers.map((member) => ({
-                      value: member.id,
-                      label: `${member.contact.firstName} ${member.contact.lastName}`,
-                    }))}
-                  />
-                  {detailsFieldError("chairMemberId")}
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
-                  <EntitySelect
-                    type="member"
-                    name="secretaryMemberId"
-                    defaultValue={meeting.secretaryMemberId ?? ""}
-                    testId="meeting-edit-secretary"
-                    onValueChange={() => setTimeout(() => detailsFormRef.current?.requestSubmit(), 0)}
-                    placeholder={t("meetings.secretaryUndesignated")}
-                    options={rosterMembers.map((member) => ({
-                      value: member.id,
-                      label: `${member.contact.firstName} ${member.contact.lastName}`,
-                    }))}
-                  />
-                  {detailsFieldError("secretaryMemberId")}
-                </div>
-              </div>
-            </form>
+              </form>
+            ) : null}
           </CollapsibleSection>
         ) : null}
         <div className="meeting-prep-layout">

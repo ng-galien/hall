@@ -285,8 +285,8 @@ Lieu : {{ (sheet.meeting.location or 'Non renseigné') | text }}
 
 // @implements-requirement HALL-FR-ATT-180
 /**
- * Proxy (CGCT L2121-20): a form to sign, it records nothing in Hall. The commune is named once,
- * with its postal code and city; place and date of signature stay blank.
+ * Proxy (CGCT L2121-20): a form to sign with two named members and the statutory reminder.
+ * It records nothing in Hall; place and date of signature stay blank.
  */
 export const jinjaProxyForm = `${qualities}
 {% set grantor = proxy.grantor %}
@@ -298,9 +298,15 @@ Commune {{ 'd’' if commune[:1] in 'AEIOUYÉÈÊÂÎÔaeiouyéèêâîô' else 
 
 # Pouvoir
 
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }}, empêché(e) d’assister à la séance du conseil municipal du {{ meetingDate }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, de voter en mon nom lors de cette séance.
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ 'd’' if commune[:1] in 'AEIOUYÉÈÊÂÎÔaeiouyéèêâîô' else 'de ' }}{{ commune | text }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
 
-${jinjaSignatureBlock(null, null, [{ quality: "Signature", name: "{{ grantor.name | text }}" }])}`;
+Rappel (article L2121-20 du code général des collectivités territoriales) :
+
+- un conseiller municipal ne peut être porteur que d’un seul pouvoir ;
+- le pouvoir est toujours révocable ;
+- sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.
+
+${jinjaSignatureBlock(null, null, [{ quality: "Le mandant", name: "{{ grantor.name | text }}" }])}`;
 
 export const jinjaDocumentBodies: Readonly<Record<string, string>> = {
   "document-print": "{{ generated.bodyMarkdown | markdown }}",

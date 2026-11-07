@@ -65,21 +65,21 @@ describe("attendance sheet and proxy form of a meeting", () => {
     expect(sheetHtml.indexOf("<td>Martine Test</td><td></td>")).toBeGreaterThan(0);
     expect(sheetHtml.indexOf("<td>Martine Test</td>")).toBeLessThan(sheetHtml.indexOf("<td>Claire Test</td>"));
 
-    await agent
+    const proxy = await agent
       .get(`/api/council-meetings/${meeting.id}/proxy-form.pdf`)
       .query({ grantorMemberId: councillor.id, holderMemberId: mayor.id })
       .expect(200)
       .expect("Content-Type", /application\/pdf/);
+    expect((await PDFDocument.load(proxy.body)).getPageCount()).toBe(1);
     const proxyHtml = renderedHtml.at(-1)!;
     expect(proxyHtml).toContain("Je soussigné(e) <strong>Claire Test</strong>, membre du conseil municipal");
     expect(proxyHtml).toContain("donne pouvoir à <strong>Martine Test</strong>, maire");
 
     expect(proxyHtml).toContain("<h1>Pouvoir</h1>");
-    await agent
-      .get(`/api/council-meetings/${meeting.id}/proxy-form.pdf`)
-      .query({ grantorMemberId: councillor.id })
-      .expect(200);
-    expect(renderedHtml.at(-1)!).toContain('donne pouvoir à <span class="hall-fill hall-fill-holder"></span>');
+    for (const query of [{ grantorMemberId: councillor.id }, { holderMemberId: mayor.id }]) {
+      const incomplete = await agent.get(`/api/council-meetings/${meeting.id}/proxy-form.pdf`).query(query).expect(400);
+      expect(incomplete.body.code).toBe("invalid_request");
+    }
 
     const refused = await agent
       .get(`/api/council-meetings/${meeting.id}/proxy-form.pdf`)

@@ -76,6 +76,14 @@ const auditCases = [
   ],
   ["PUT", "/api/council-meetings/meeting-1/prepare", undefined, "meeting.prepare", "council-meeting", "meeting-1"],
   [
+    "POST",
+    "/api/council-meetings/meeting-1/agenda-revision",
+    undefined,
+    "meeting.establish-agenda-revision",
+    "council-meeting",
+    "meeting-1",
+  ],
+  [
     "PUT",
     "/api/council-meetings/meeting-1/officers",
     undefined,

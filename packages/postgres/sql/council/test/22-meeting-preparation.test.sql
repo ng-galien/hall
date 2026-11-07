@@ -65,9 +65,14 @@ SELECT throws_ok($$SELECT start_council_meeting(test_uuid('preparation:meeting')
 SELECT is(hall.council_agenda_revision_projection(test_uuid('preparation:meeting')),'{"number":1,"establishedAt":null,"noticeId":null}'::jsonb,'a meeting starts on revision one, open');
 -- @verifies-requirement HALL-FR-NOT-050
 -- @verifies-requirement HALL-FR-NOT-160
--- generating the notice establishes the open revision in the same transaction.
+SELECT hall_api.freeze_council_agenda(test_uuid('preparation:meeting'));
+CREATE TEMP TABLE revision_before_pdf AS
+SELECT hall.council_agenda_revision_projection(test_uuid('preparation:meeting')) AS revision;
+SELECT ok((SELECT revision->>'establishedAt' IS NOT NULL AND revision->>'noticeId' IS NULL FROM revision_before_pdf),
+  'establishing the revision does not generate the notice');
 SELECT throws_ok($$SELECT hall_api.generate_meeting_notice(test_uuid('preparation:meeting'),jsonb_build_object('meeting',hall_api.meeting_notice_draft_facts(test_uuid('preparation:meeting')),'hall',jsonb_build_object('name','Commune','timeZone','Europe/Paris')),convert_to('not PDF','UTF8'))$$,'HV806',NULL,'artifact must contain PDF bytes');
-SELECT is((SELECT count(*)::int FROM council_agenda_freeze WHERE council_meeting=test_uuid('preparation:meeting')),0,'a refused notice establishes no revision');
+SELECT is(hall.council_agenda_revision_projection(test_uuid('preparation:meeting')),
+  (SELECT revision FROM revision_before_pdf),'a refused PDF leaves the revision established without a notice');
 CREATE TEMP TABLE notice_versions AS SELECT hall_api.generate_meeting_notice(test_uuid('preparation:meeting'),jsonb_build_object('meeting',hall_api.meeting_notice_draft_facts(test_uuid('preparation:meeting')),'hall',jsonb_build_object('name','Commune','timeZone','Europe/Paris')),convert_to('%PDF-first','UTF8')) notice;
 SELECT is((SELECT notice->>'revision' FROM notice_versions),'1','the first notice belongs to revision one');
 SELECT is(hall.council_agenda_revision_projection(test_uuid('preparation:meeting'))->>'noticeId',(SELECT notice->>'id' FROM notice_versions),'the established revision designates its notice');

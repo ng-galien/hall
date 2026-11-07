@@ -1,21 +1,29 @@
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { SIREN_MEDIA_TYPE, sirenData } from "@hall/api-contract";
-import { _electron as electron, expect, type Page, test } from "@playwright/test";
+import { type ElectronApplication, _electron as electron, expect, type Page, test } from "@playwright/test";
+import { Client } from "pg";
 import { openDemonstration } from "../../../desktop/src/demonstration";
 
 const require = createRequire(import.meta.url);
 const desktopDirectory = resolve(import.meta.dirname, "../../../desktop");
 const markerName = "marqueur-remise-a-zero.md";
 
-function launchDemonstration(userDataPath: string) {
+function launchDemonstration(userDataPath: string, env: Record<string, string> = {}) {
   const executable = process.env.HALL_E2E_DESKTOP_EXECUTABLE;
   return electron.launch({
     executablePath: executable ?? (require("electron") as unknown as string),
     args: executable ? [] : [desktopDirectory],
-    env: { ...process.env, HALL_USER_DATA_PATH: userDataPath, HALL_DESKTOP_EDITION: "demonstration" },
+    env: {
+      ...process.env,
+      ...env,
+      HALL_USER_DATA_PATH: userDataPath,
+      HALL_DESKTOP_EDITION: "demonstration",
+      XDG_CONFIG_HOME: join(userDataPath, "config"),
+    },
   });
 }
 
@@ -24,6 +32,34 @@ async function resourcesContainMarker(page: Page): Promise<boolean> {
     async (name) => JSON.stringify(await (await fetch("/api/resources")).json()).includes(name),
     markerName,
   );
+}
+
+async function expireDemonstrationSessions(userDataPath: string, application: ElectronApplication): Promise<void> {
+  const postgres = join(userDataPath, "postgres");
+  const pidFile = await readFile(join(postgres, "cluster", "postmaster.pid"), "utf8");
+  const { password } = JSON.parse(await readFile(join(postgres, "credentials.json"), "utf8"));
+  const database = new Client({
+    host: "127.0.0.1",
+    port: Number(pidFile.split("\n")[3]),
+    user: "hall_local",
+    database: "hall",
+    password,
+  });
+  await database.connect();
+  try {
+    const expired = await database.query("UPDATE hall.app_session SET expires_at = now() WHERE expires_at > now()");
+    expect(expired.rowCount).toBeGreaterThan(0);
+  } finally {
+    await database.end();
+  }
+  await application.evaluate(() => {
+    const realNow = Date.now;
+    Date.now = Object.assign(() => realNow() + 13 * 60 * 60 * 1000, {
+      restore: () => {
+        Date.now = realNow;
+      },
+    });
+  });
 }
 
 /** @verifies-requirement HALL-TR-DSK-020 */
@@ -148,6 +184,97 @@ test("opens Alésia signed in, retains changes on relaunch and resets them from 
     expect(await resourcesContainMarker(window)).toBe(false);
   } finally {
     await application.close();
+    await rm(userDataPath, { recursive: true, force: true });
+  }
+});
+
+async function openWorkspace(application: ElectronApplication): Promise<Page> {
+  await expect
+    .poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:")), { timeout: 15_000 })
+    .toBe(true);
+  const launch = application.windows().find((page) => page.url().startsWith("hall-launch:"))!;
+  await expect(launch.getByTestId("launch-open")).toBeEnabled({ timeout: 120_000 });
+  await launch.getByTestId("launch-open").click();
+  const window = application.windows().find((page) => page.url().includes("/app/"))!;
+  await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible();
+  return window;
+}
+
+/** @verifies-requirement HALL-TR-DSK-030 */
+test("renews the Alésia window session after expiry and opens the embedded workspace after reset", async () => {
+  const userDataPath = await mkdtemp(join(tmpdir(), "hall-demo-session-"));
+  let sharedRequests = 0;
+  const shared = createServer((_request, response) => {
+    sharedRequests += 1;
+    response.writeHead(404).end();
+  });
+  await new Promise<void>((resolve) => shared.listen(0, "127.0.0.1", resolve));
+  const sharedAddress = shared.address();
+  if (typeof sharedAddress !== "object" || !sharedAddress) throw new Error("Missing shared server address");
+  const sharedUrl = `http://127.0.0.1:${sharedAddress.port}/app/`;
+  let application: ElectronApplication | undefined;
+  try {
+    application = await launchDemonstration(userDataPath);
+    let window = await openWorkspace(application);
+    await expireDemonstrationSessions(userDataPath, application);
+    await window.addInitScript(() => {
+      new MutationObserver(() => {
+        if (document.querySelector('[data-testid="auth-submit"]')) {
+          document.documentElement.setAttribute("data-observed-login", "");
+        }
+      }).observe(document, { childList: true, subtree: true });
+    });
+    await window.reload();
+    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible();
+    await expect(window.locator("html")).not.toHaveAttribute("data-observed-login");
+    await application.evaluate(() => {
+      (Date.now as typeof Date.now & { restore(): void }).restore();
+    });
+    expect((await fetch(new URL("/api/auth/session", window.url()))).status).toBe(401);
+    const socketConnected = await window.evaluate(
+      () =>
+        new Promise<boolean>((resolve) => {
+          const url = new URL("/api/live?kind=workspace", location.href);
+          url.protocol = "ws:";
+          const socket = new WebSocket(url);
+          socket.addEventListener("open", () => {
+            resolve(true);
+            socket.close();
+          });
+          socket.addEventListener("error", () => resolve(false));
+        }),
+    );
+    expect(socketConnected).toBe(true);
+
+    await window.route("**/api/auth/session", (route) => route.abort());
+    await window.reload();
+    await expect(window.getByTestId("auth-load-error")).toBeVisible();
+    await expect(window.locator("html")).not.toHaveAttribute("data-observed-login");
+    await window.unroute("**/api/auth/session");
+    await window.getByTestId("auth-retry").click();
+    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible();
+
+    await application.close();
+    application = await launchDemonstration(userDataPath, {
+      HALL_SERVER_URL: sharedUrl,
+      HALL_RENDERER_URL: sharedUrl,
+    });
+    window = await openWorkspace(application);
+    expect(window.url()).not.toBe(sharedUrl);
+    expect(sharedRequests).toBe(0);
+    await application.evaluate(({ dialog, Menu }) => {
+      dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      const reset = Menu.getApplicationMenu()?.getMenuItemById("demonstration-reset");
+      if (!reset) throw new Error("Missing Démonstration reset menu item");
+      reset.click();
+    });
+    await expect.poll(() => window.url(), { timeout: 30_000 }).toMatch(/^data:/);
+    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible({ timeout: 120_000 });
+    expect(window.url()).not.toBe(sharedUrl);
+    expect(sharedRequests).toBe(0);
+  } finally {
+    await application?.close();
+    await new Promise<void>((resolve) => shared.close(() => resolve()));
     await rm(userDataPath, { recursive: true, force: true });
   }
 });

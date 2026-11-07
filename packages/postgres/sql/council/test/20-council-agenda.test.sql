@@ -228,19 +228,15 @@ SELECT throws_ok(
   'minutes approval always occupies absolute position one'
 );
 
-UPDATE council_agenda_item
-SET position = -1
-WHERE minutes_approval = test_uuid('agenda:minutes-approval')
-  AND council_meeting = test_uuid('agenda:meeting');
-SELECT is(
-  (
-    SELECT position
-    FROM council_agenda_item
+SELECT throws_ok(
+  $$SELECT deprogram_council_agenda_item((
+    SELECT id FROM council_agenda_item
     WHERE minutes_approval = test_uuid('agenda:minutes-approval')
       AND council_meeting = test_uuid('agenda:meeting')
-  ),
-  -1,
-  'deprogrammed minutes approval retains absolute position one'
+  ))$$,
+  'HV238',
+  'the previous minutes approval stays on the agenda',
+  'preparation cannot deprogram the previous minutes approval'
 );
 
 -- @verifies-requirement HALL-FR-AGI-040

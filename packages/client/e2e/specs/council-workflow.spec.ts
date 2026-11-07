@@ -761,7 +761,9 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   expect(new URL(page.url()).searchParams.get("councilBusiness")).toBe(businesses[0]!.id);
 });
 
+// @verifies-requirement HALL-FR-MTG-120
 // @verifies-requirement HALL-FR-MTG-360
+// @verifies-requirement HALL-FR-AGI-390
 test("conducts public and secret ballots and leaves an unexamined previous PV unsettled", async ({
   appPage: page,
 }, testInfo) => {
@@ -1289,7 +1291,8 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
       response.request().method() === "POST" && response.url().endsWith(`/agenda-items/${approvalId}/adjourn`),
   );
   await page.getByTestId("live-adjourn-confirm").click();
-  expect((await adjournment).status()).toBe(200);
+  const adjournedApproval = await adjournment;
+  expect(adjournedApproval.status(), await adjournedApproval.text()).toBe(200);
   await expect(page.getByTestId("live-adjourn-dialog")).toBeHidden();
   const pendingApproval = await sirenProperties<{
     position: number;
@@ -1483,23 +1486,75 @@ test("prepares a meeting through its general properties and follows it when its 
   )!;
   expect(meeting).toBeTruthy();
   const slug = (date: string) => `${date}-${String(meeting.number).padStart(3, "0")}`;
-  const saveGeneralProperties = async (startsAt: string, officers: boolean) => {
-    await saveMeetingField(page, () => page.getByTestId("meeting-edit-starts-at").fill(startsAt));
-    if (officers) {
-      await page.getByTestId("meeting-edit-chair").click();
-      await page.getByTestId("meeting-edit-chair-search-result").first().click();
-      await page.getByTestId("meeting-edit-secretary").click();
-      await saveMeetingField(page, () => page.getByTestId("meeting-edit-secretary-search-result").nth(1).click());
-    }
-    await expect(page.getByTestId("meeting-details-inline")).toBeVisible();
-  };
+  const date = page.getByTestId("meeting-edit-starts-at");
+  const detailsStatus = page.getByTestId("meeting-details-status");
+  let releaseSettings!: () => void;
+  const settingsGate = new Promise<void>((resolve) => {
+    releaseSettings = resolve;
+  });
+  await page.route("**/api/settings", async (route) => {
+    await settingsGate;
+    await route.continue();
+  });
 
-  await page.goto(`/app/meetings/${meeting.id}`);
-  await saveGeneralProperties("2026-12-03T12:00", false);
+  try {
+    await page.goto(`/app/meetings/${meeting.id}`, { waitUntil: "domcontentloaded" });
+    await expect(detailsStatus).toBeVisible();
+    await expect(date).toHaveCount(0);
+  } finally {
+    releaseSettings();
+  }
+  await expect(date).toBeEnabled();
+  await saveMeetingField(page, () => date.fill("2026-12-03T12:00"));
   await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-03")}$`));
   await expect(page.getByRole("heading", { level: 1 })).toContainText("03/12/2026");
 
-  await saveGeneralProperties("2026-12-10T12:00", true);
+  let releaseRefresh!: () => void;
+  const refreshGate = new Promise<void>((resolve) => {
+    releaseRefresh = resolve;
+  });
+  let refreshStarted!: () => void;
+  const refreshIntercepted = new Promise<void>((resolve) => {
+    refreshStarted = resolve;
+  });
+  let officersSaved = false;
+  await page.route(`**/api/council-meetings/${slug("2026-12-03")}/agenda-items`, async (route) => {
+    if (route.request().method() === "GET" && officersSaved) {
+      refreshStarted();
+      await refreshGate;
+    }
+    await route.continue();
+  });
+  await page.route(
+    "**/api/council-meetings/*/prepare",
+    async (route) => {
+      const response = await route.fetch();
+      officersSaved = response.ok();
+      await route.fulfill({ response });
+    },
+    { times: 1 },
+  );
+
+  try {
+    await page.getByTestId("meeting-edit-chair").click();
+    await page.getByTestId("meeting-edit-chair-search-result").first().click();
+    await page.getByTestId("meeting-edit-secretary").click();
+    const saved = page.waitForResponse(
+      (response) => response.request().method() === "PUT" && response.url().endsWith("/prepare"),
+    );
+    await page.getByTestId("meeting-edit-secretary-search-result").nth(1).click();
+    expect((await saved).ok()).toBeTruthy();
+    await refreshIntercepted;
+    await expect(detailsStatus).toBeVisible();
+    await expect(date).toBeDisabled();
+    await expect(page.getByTestId("meeting-edit-location")).toBeDisabled();
+    await expect(page.getByTestId("meeting-edit-chair")).toBeDisabled();
+    await expect(page.getByTestId("meeting-edit-secretary")).toBeDisabled();
+  } finally {
+    releaseRefresh();
+  }
+  await expect(date).toBeEnabled();
+  await saveMeetingField(page, () => date.fill("2026-12-10T12:00"));
   await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-10")}$`));
   await expect(page.getByRole("heading", { level: 1 })).toContainText("10/12/2026");
   const prepared = await sirenProperties<{ chairMemberId: string | null; secretaryMemberId: string | null }>(

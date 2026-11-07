@@ -1,4 +1,4 @@
-import type { APIResponse } from "@playwright/test";
+import type { APIResponse, Response } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 import { establishRevision, generateCurrentNotice } from "../fixtures/meetingPreparation";
 
@@ -6,7 +6,7 @@ interface SirenItem<T> {
   properties: T;
 }
 
-async function sirenProperties<T>(response: APIResponse): Promise<T> {
+async function sirenProperties<T>(response: APIResponse | Response): Promise<T> {
   const body = (await response.json()) as SirenItem<T>;
   expect(response.ok(), JSON.stringify(body)).toBeTruthy();
   return body.properties;
@@ -37,9 +37,17 @@ test("establishes, revises and resets the agenda revision with its notices", asy
     await page.request.get("/api/council-meetings"),
   );
   const meeting = meetings.find((candidate) => !candidate.startedAt && !candidate.closedAt)!;
+  const members = (
+    await sirenItems<{ id: string; active: boolean }>(await page.request.get("/api/council-members"))
+  ).filter((member) => member.active);
   const scheduled = await sirenProperties<{ slug: string }>(
-    await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
-      data: { scheduledAt: new Date(Date.now() + 7 * 86_400_000).toISOString(), location: "Salle du conseil" },
+    await page.request.put(`/api/council-meetings/${meeting.id}/prepare`, {
+      data: {
+        scheduledAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+        location: "Salle du conseil",
+        chairMemberId: members[0]!.id,
+        secretaryMemberId: members[1]!.id,
+      },
     }),
   );
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
@@ -118,6 +126,56 @@ test("establishes, revises and resets the agenda revision with its notices", asy
   await page.getByTestId("meeting-notice-previous-toggle").click();
   await expect(page.getByTestId("meeting-notice-previous-list").locator("li")).toHaveCount(1);
   await capture(page, "5-documents-deux-convocations", "meeting-documents");
-  // Opening the current PDF does not replace the existing ability to regenerate it.
-  await expect(page.getByTestId("meeting-notice-regenerate")).toBeVisible();
+
+  const meetingApi = `/api/council-meetings/${meeting.id}`;
+  type Notice = { id: string; version: number; revision: number };
+  const notices = await sirenItems<Notice>(await page.request.get(`${meetingApi}/notices`));
+  const current = notices.find((notice) => notice.revision === 2)!;
+  expect(current).toBeTruthy();
+  const regenerated = page.waitForResponse(
+    (response) => response.request().method() === "POST" && new URL(response.url()).pathname.endsWith("/notices"),
+  );
+  await page.getByTestId("meeting-notice-regenerate").click();
+  const replacement = await sirenProperties<Notice>(await regenerated);
+  expect(replacement).toMatchObject({ revision: current.revision, version: current.version + 1 });
+  expect(replacement.id).not.toBe(current.id);
+  await expect(page.getByTestId("document-object-viewer")).toBeVisible();
+  await page.getByTestId("document-object-viewer-close").click();
+  await expect(state).toHaveAttribute("data-number", "2");
+
+  type MeetingFacts = { scheduledAt: string; location: string; chairMemberId: string; secretaryMemberId: string };
+  const before = await sirenProperties<MeetingFacts>(await page.request.get(meetingApi));
+  await expect(page.getByTestId("meeting-facts")).toBeVisible();
+  await expect(page.getByTestId("meeting-edit-starts-at")).toHaveCount(0);
+  await expect(page.getByTestId("meeting-edit-location")).toHaveCount(0);
+  await page.getByTestId("meeting-edit-chair").click();
+  const saved = page.waitForResponse(
+    (response) => response.request().method() === "PUT" && new URL(response.url()).pathname.endsWith("/officers"),
+  );
+  await page
+    .getByTestId("meeting-edit-chair-search-result")
+    .and(page.locator(`[data-reference-id="${members[2]!.id}"]`))
+    .click();
+  await sirenProperties<MeetingFacts>(await saved);
+  await expect(page.getByTestId("meeting-revise-agenda")).toBeEnabled();
+  await page.reload();
+  await expect(state).toHaveAttribute("data-state", "established");
+  await expect(state).toHaveAttribute("data-number", "2");
+  const persistedNotices = await sirenItems<Notice>(await page.request.get(`${meetingApi}/notices`));
+  expect(persistedNotices).toContainEqual(
+    expect.objectContaining({ id: replacement.id, version: replacement.version, revision: replacement.revision }),
+  );
+  const after = await sirenProperties<MeetingFacts>(await page.request.get(meetingApi));
+  expect(after).toMatchObject({
+    scheduledAt: before.scheduledAt,
+    location: before.location,
+    chairMemberId: members[2]!.id,
+    secretaryMemberId: before.secretaryMemberId,
+  });
+  const afterAgenda = await sirenItems<{ id: string; position: number }>(
+    await page.request.get(`${meetingApi}/agenda-items`),
+  );
+  expect(afterAgenda.map(({ id, position }) => ({ id, position }))).toEqual(
+    restored.map(({ id, position }) => ({ id, position })),
+  );
 });

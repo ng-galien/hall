@@ -524,7 +524,13 @@ Commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' e
 
 # Pouvoir
 
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }}, empêché(e) d’assister à la séance du conseil municipal du {{ meetingDate }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, de voter en mon nom lors de cette séance.
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
+
+Rappel (article L2121-20 du code général des collectivités territoriales) :
+
+- un conseiller municipal ne peut être porteur que d’un seul pouvoir ;
+- le pouvoir est toujours révocable ;
+- sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.
 
 <div class="hall-signatures hall-signatures-handwritten">
 
@@ -533,7 +539,7 @@ Fait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fi
 <div class="hall-signatories">
 <div class="hall-signature">
 
-Signature
+Le mandant
 
 {{ grantor.name | text }}
 
@@ -551,7 +557,13 @@ Commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' e
 
 # Pouvoir
 
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }}, empêché(e) d’assister à la séance du conseil municipal du {{ meetingDate }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, de voter en mon nom lors de cette séance.
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
+
+Rappel (article L2121-20 du code général des collectivités territoriales) :
+
+- un conseiller municipal ne peut être porteur que d’un seul pouvoir ;
+- le pouvoir est toujours révocable ;
+- sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.
 
 <div class="hall-signatures hall-signatures-handwritten">
 
@@ -560,7 +572,7 @@ Fait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fi
 <div class="hall-signatories">
 <div class="hall-signature">
 
-Signature
+Le mandant
 
 {{ grantor.name | text }}
 

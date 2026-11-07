@@ -57,8 +57,14 @@ BEGIN
 
   IF TG_OP = 'UPDATE' THEN
     -- @implements-requirement HALL-FR-AGI-030
-    -- The previous minutes approval is never removed from the agenda: once off the agenda, nothing brings it back.
-    IF OLD.minutes_approval IS NOT NULL AND OLD.position > 0 AND NEW.position < 0 THEN
+    -- Keep the previous minutes approval on the prepared agenda. In conduct,
+    -- the established revision guard allows only adjournment or closure to
+    -- retain this occurrence as negative history.
+    IF OLD.minutes_approval IS NOT NULL AND OLD.position > 0 AND NEW.position < 0
+      AND (meeting_started_at IS NULL OR NOT EXISTS (
+        SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting = OLD.council_meeting
+      ))
+    THEN
       RAISE EXCEPTION USING ERRCODE = 'HV238', MESSAGE = 'the previous minutes approval stays on the agenda';
     END IF;
     IF OLD.adjourned_at IS NOT NULL AND NEW.adjourned_at IS DISTINCT FROM OLD.adjourned_at THEN

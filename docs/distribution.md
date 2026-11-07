@@ -404,9 +404,9 @@ If npm installation is interrupted, discard only the incomplete candidate code
 directory and reinstall it; configuration and PostgreSQL data remain external.
 Do not overwrite the active release while its process is running.
 
-`migrate` runs the Hall schema upgrade and existing server-table initialization
-in one transaction with advisory locks. An error in either initializer rolls back
-both; the installed schema, fingerprint and existing data remain unchanged. Stop
+`migrate` runs the Hall schema upgrade and its data migrations in one transaction
+with advisory locks. If an operation fails, the transaction rolls back and
+preserves the installed schema, fingerprint and existing data. Stop
 writers, retain the error, correct its cause, then rerun the same candidate command.
 A matching schema is verified on retry; no automatic downgrade is attempted.
 If the connection is lost while committing, the outcome may be unknown. Keep

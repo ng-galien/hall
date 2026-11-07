@@ -28,13 +28,14 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
     .click();
   await expect(page.getByTestId("meeting-details-inline")).toBeVisible();
   await waitForPageEntrance(page);
+  const date = page.getByTestId("meeting-edit-starts-at");
+  await expect(date).toHaveValue(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
 
   const startsAt = new Date(Date.now() - 30 * 60_000);
   const scheduledAhead = new Date();
   scheduledAhead.setDate(scheduledAhead.getDate() + 14);
   scheduledAhead.setHours(18, 30, 0, 0);
   await saveMeetingField(page, async () => {
-    const date = page.getByTestId("meeting-edit-starts-at");
     await date.fill(localDateTimeInput(prefix ? scheduledAhead : startsAt));
     await date.blur();
   });
@@ -55,8 +56,8 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
   if (prefix) {
     await expect(page.getByTestId("meeting-notice-deadline-date")).toHaveAttribute("data-reminder", "upcoming");
     await shot("03-seance-programmee");
+    await expect(page.getByTestId("meeting-agenda-revision").getByTestId("meeting-generate-notice")).toBeEnabled();
     await saveMeetingField(page, async () => {
-      const date = page.getByTestId("meeting-edit-starts-at");
       await date.fill(localDateTimeInput(startsAt));
       await date.blur();
     });

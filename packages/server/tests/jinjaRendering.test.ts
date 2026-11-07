@@ -93,7 +93,9 @@ function service(minutes = fixture, members = mandates) {
     subject: { kind: "openQuestion", content: "Question **actuelle**." },
   }));
   const dependencies = {
-    hallSettingsRepository: { get: async () => ({ name: "Commune test", timeZone: "Europe/Paris" }) },
+    hallSettingsRepository: {
+      get: async () => ({ name: "Commune test", postalCode: "", city: "", timeZone: "Europe/Paris" }),
+    },
     councilClient: { openAgendaItem },
     minutesClient: { open: async () => minutes },
     resourcesClient: {},
@@ -438,6 +440,8 @@ describe("signature blocks of the default PDF documents", () => {
     expect(preview.printHtml).toContain(
       'Fait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fill hall-fill-date"></span>',
     );
-    expect(await renderedPdf(preview)).toContain("Le mandant Jean Dupont");
+    const text = await renderedPdf(preview);
+    expect(text).toContain("Le mandant Jean Dupont");
+    expect(text).toContain("article L2121-20");
   }, 30_000);
 });

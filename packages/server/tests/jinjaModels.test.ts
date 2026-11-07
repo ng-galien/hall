@@ -35,7 +35,7 @@ const point = {
   ballot: { mode: "public", result: "approve", completedAt: meeting.closedAt, totals },
 };
 const context = {
-  hall: { name: "Commune", timeZone: "Europe/Paris" },
+  hall: { name: "Commune", postalCode: "", city: "", timeZone: "Europe/Paris" },
   mayor: { name: "Maire <Un>" },
   meeting,
   notice: { hall: { name: "Commune" }, issuedOn: null, meeting: { ...meeting, agenda: [point] } },
@@ -243,15 +243,15 @@ describe("editable Markdown/Jinja default models", () => {
   });
 
   // @verifies-requirement HALL-FR-ATT-180
-  it("leaves the holder and an unset meeting date to be filled in by hand", () => {
+  it("leaves an unset meeting date to be filled in by hand with both councillors identified", () => {
     const blank = renderJinja(jinjaBody("proxy-form"), {
       ...context,
-      proxy: { ...context.proxy, holder: null, meeting: { number: 8, startsAt: null, location: null } },
+      proxy: { ...context.proxy, meeting: { number: 8, startsAt: null, location: null } },
     });
     const html = renderHtml(parse(blank));
-    expect(html).toContain('donne pouvoir à <span class="hall-fill hall-fill-holder"></span>, pour me représenter');
-    expect(html).toContain('Séance du conseil municipal du <span class="hall-fill hall-fill-date"></span>');
-    expect(html).not.toContain("adjoint au maire");
+    expect(html).toContain("donne pouvoir à <strong>Adjointe Deux</strong>, adjoint au maire");
+    expect(html).toContain('séance du conseil municipal du <span class="hall-fill hall-fill-date"></span>');
+    expect(html).not.toContain("hall-fill-holder");
   });
 
   it("saves exact Jinja whitespace and rejects broken syntax before persistence", async () => {

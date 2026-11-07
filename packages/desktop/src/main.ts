@@ -16,7 +16,7 @@ import { type DesktopEdition, eraseDemonstration, resolveDesktopEdition } from "
 import { isSafeExternalUrl } from "./externalUrl.js";
 import { installLaunchProtocol, type LaunchScreen, registerLaunchScheme, showLaunchScreen } from "./launchScreen.js";
 import { alesiaTarget } from "./launchTerritory.js";
-import type { ServerCommand, ServerEvent } from "./startupProtocol.js";
+import type { ServerCommand, ServerEvent, SessionCookie } from "./startupProtocol.js";
 import {
   createStartupTracker,
   readStartupTimings,
@@ -33,6 +33,7 @@ interface EmbeddedServer {
 /** Priorité abaissée du processus serveur et de PostgreSQL embarqué, qui en hérite. */
 const serverProcessNice = 10;
 const serverCloseTimeoutMilliseconds = 15_000;
+const demonstrationSessionRenewalMargin = 60_000;
 
 let mainWindow: BrowserWindow | null = null;
 let embeddedServer: Promise<EmbeddedServer> | null = null;
@@ -76,9 +77,63 @@ function clientDirectory(): string {
   return app.isPackaged ? join(process.resourcesPath, "dist") : join(app.getAppPath(), "../client/dist");
 }
 
+// @implements-requirement HALL-TR-DSK-030
+function attachDemonstrationSession(
+  url: string,
+  initialCookie: SessionCookie,
+  renew: () => Promise<SessionCookie>,
+): () => void {
+  const origin = new URL(url).origin;
+  const socketOrigin = origin.replace(/^http:/, "ws:");
+  const { webRequest } = session.defaultSession;
+  let cookie = initialCookie;
+  let renewal: Promise<SessionCookie> | null = null;
+
+  webRequest.onBeforeSendHeaders({ urls: [`${origin}/api/*`, `${socketOrigin}/api/live*`] }, (details, callback) => {
+    const contents = mainWindow?.webContents;
+    const target = new URL(details.url);
+    const headers = details.requestHeaders;
+    const sameOriginLiveSocket =
+      target.origin === socketOrigin &&
+      target.pathname === "/api/live" &&
+      Object.entries(headers).some(([name, value]) => name.toLowerCase() === "origin" && value === origin);
+    if (
+      !contents?.mainFrame.url.startsWith(`${origin}/`) ||
+      (details.webContentsId !== undefined && details.webContentsId !== contents.id) ||
+      !(sameOriginLiveSocket || (target.origin === origin && details.frame === contents.mainFrame))
+    ) {
+      callback({});
+      return;
+    }
+    const send = ({ name, value }: SessionCookie) => {
+      const cookieKey = Object.keys(headers).find((key) => key.toLowerCase() === "cookie") ?? "Cookie";
+      const cookies = (headers[cookieKey] ?? "")
+        .split(";")
+        .map((entry) => entry.trim())
+        .filter((entry) => entry && !entry.startsWith(`${name}=`));
+      headers[cookieKey] = [`${name}=${value}`, ...cookies].join("; ");
+      callback({ requestHeaders: headers });
+    };
+    if (Date.now() < cookie.expiresAt - demonstrationSessionRenewalMargin) {
+      send(cookie);
+      return;
+    }
+    renewal ??= renew()
+      .then((refreshed) => (cookie = refreshed))
+      .finally(() => {
+        renewal = null;
+      });
+    void renewal.then(send, (error: unknown) => {
+      process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      callback({ cancel: true });
+    });
+  });
+  return () => webRequest.onBeforeSendHeaders(null);
+}
+
 /**
  * Démarre PostgreSQL embarqué et le serveur local dans un processus utilitaire de priorité abaissée,
- * charge la démonstration si besoin et pose sa session ; le processus principal reste libre.
+ * charge la démonstration si besoin et gère la session de sa fenêtre.
  */
 function startEmbeddedServer(tracker: StartupTracker | null): Promise<EmbeddedServer> {
   const command: ServerCommand = {
@@ -94,7 +149,13 @@ function startEmbeddedServer(tracker: StartupTracker | null): Promise<EmbeddedSe
     stdio: "inherit",
   });
   const exited = new Promise<number>((resolveExit) => child.once("exit", resolveExit));
+  let detachSession: (() => void) | undefined;
+  const stopSession = () => {
+    detachSession?.();
+    detachSession = undefined;
+  };
   const close = async () => {
+    stopSession();
     child.postMessage({ type: "close" } satisfies ServerCommand);
     const timeout = new Promise<null>((resolveTimeout) =>
       setTimeout(() => resolveTimeout(null), serverCloseTimeoutMilliseconds),
@@ -107,24 +168,30 @@ function startEmbeddedServer(tracker: StartupTracker | null): Promise<EmbeddedSe
   });
   return new Promise((resolveServer, reject) => {
     let settled = false;
+    let pendingSession: { resolve: (cookie: SessionCookie) => void; reject: (error: Error) => void } | undefined;
+    const renewSession = () =>
+      new Promise<SessionCookie>((resolve, reject) => {
+        pendingSession = { resolve, reject };
+        child.postMessage({ type: "renew-session" } satisfies ServerCommand);
+      }).finally(() => {
+        pendingSession = undefined;
+      });
     child.on("message", (event: ServerEvent) => {
       if (event.type === "plan") tracker?.plan(event.phases);
       else if (event.type === "phase") tracker?.phase(event.phase, event.status);
       else if (event.type === "ready") {
         settled = true;
-        void (async () => {
-          if (event.cookie) {
-            await session.defaultSession.cookies.set({
-              url: new URL("/", event.url).href,
-              name: event.cookie.name,
-              value: event.cookie.value,
-              path: "/",
-              httpOnly: true,
-              sameSite: "strict",
-            });
-          }
+        try {
+          if (event.cookie) detachSession = attachDemonstrationSession(event.url, event.cookie, renewSession);
           resolveServer({ url: event.url, close });
-        })().catch(reject);
+        } catch (error) {
+          child.kill();
+          reject(error);
+        }
+      } else if (event.type === "session") {
+        pendingSession?.resolve(event.cookie);
+      } else if (event.type === "session-failed") {
+        pendingSession?.reject(new Error(event.message));
       } else if (event.type === "failed") {
         settled = true;
         const error = new Error(event.message);
@@ -134,6 +201,8 @@ function startEmbeddedServer(tracker: StartupTracker | null): Promise<EmbeddedSe
       }
     });
     void exited.then((code) => {
+      stopSession();
+      pendingSession?.reject(new Error(`Le serveur embarqué de Hall s’est arrêté (code ${code}).`));
       if (!settled) reject(new Error(`Le serveur embarqué de Hall s’est arrêté pendant le démarrage (code ${code}).`));
     });
   });
@@ -150,7 +219,9 @@ async function resolveRendererUrl(tracker: StartupTracker | null): Promise<strin
   }
   embeddedServer ??= startEmbeddedServer(tracker);
   apiBaseUrl = (await embeddedServer).url;
-  return process.env.HALL_RENDERER_URL ?? applicationUrl(apiBaseUrl);
+  return edition === "local" && process.env.HALL_RENDERER_URL
+    ? process.env.HALL_RENDERER_URL
+    : applicationUrl(apiBaseUrl);
 }
 
 const preparationPage = `data:text/html;charset=utf-8,${encodeURIComponent(

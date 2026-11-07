@@ -18,7 +18,7 @@ function Explained({ title, text, children }: { title: string; text: string; chi
 
 /**
  * The agenda revision as one control beside the meeting title: established, it offers to revise;
- * open, it names the revision and offers to confirm (generate the notice) or to cancel (back to the established one).
+ * open, it names the revision and offers to establish it or return to the previous established revision.
  */
 export function AgendaRevisionControl({
   number,

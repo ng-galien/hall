@@ -5,6 +5,7 @@ import type { HttpServerHandle } from "@hall/server";
 import { selectSeed } from "../../../scripts/seed/data/catalog.mjs";
 import { createSeedApi } from "../../../scripts/seed/data/common/api.mjs";
 import { assertEmptyDatabase } from "../../../scripts/seed/data/common/empty-database.mjs";
+import type { SessionCookie } from "./startupProtocol.js";
 
 export const desktopEditions = ["local", "demonstration"] as const;
 export type DesktopEdition = (typeof desktopEditions)[number];
@@ -18,8 +19,6 @@ type DemonstrationState = {
   email: string;
   password: string;
 };
-
-export type SessionCookie = { name: string; value: string };
 
 export type DemonstrationProfile = {
   userDataPath: string;
@@ -168,11 +167,12 @@ export async function openDemonstration(profile: DemonstrationProfile): Promise<
   return { server, state: ready };
 }
 
-async function logIn(server: HttpServerHandle, state: DemonstrationState): Promise<string> {
+async function logIn(server: HttpServerHandle, state: DemonstrationState, signal?: AbortSignal): Promise<string> {
   const response = await fetch(new URL("/api/auth/login", server.url), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: state.email, password: state.password }),
+    signal,
   });
   if (!response.ok) {
     throw new Error(`La connexion à la démonstration a échoué : ${response.status} ${await response.text()}`);
@@ -187,10 +187,15 @@ export async function signInToDemonstration(
   server: HttpServerHandle,
   state: DemonstrationState,
 ): Promise<SessionCookie> {
-  const cookie = (await logIn(server, state)).split(";", 1)[0];
-  const separator = cookie.indexOf("=");
-  if (separator <= 0) throw new Error("La connexion à la démonstration n’a pas ouvert de session.");
-  return { name: cookie.slice(0, separator), value: cookie.slice(separator + 1) };
+  const startedAt = Date.now();
+  const header = await logIn(server, state, AbortSignal.timeout(15_000));
+  const pair = header.split(";", 1)[0];
+  const separator = pair.indexOf("=");
+  const maxAge = Number(/;\s*Max-Age=(\d+)/i.exec(header)?.[1]);
+  if (separator <= 0 || !pair.slice(separator + 1) || !(maxAge > 0)) {
+    throw new Error("La connexion à la démonstration n’a pas ouvert de session.");
+  }
+  return { name: pair.slice(0, separator), value: pair.slice(separator + 1), expiresAt: startedAt + maxAge * 1000 };
 }
 
 /** Renouvellement de la session publiée pour le MCP, bien avant ses douze heures. */

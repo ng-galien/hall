@@ -111,6 +111,7 @@ function DocumentRow({
  * Every document of a meeting on one list: name, state and the actions its Siren representation offers.
  * One notice per established revision; the notice of the established revision is the current one.
  */
+// @implements-requirement HALL-FR-NOT-160
 export function MeetingDocumentsSection({
   meetingActions,
   aggregate,
@@ -167,10 +168,9 @@ export function MeetingDocumentsSection({
     canExportNotice,
     revision,
   ]);
-  const currentNotice = revisionEstablished
-    ? (notices.find((notice) => notice.revision === agendaRevision.number) ?? null)
-    : null;
-  const previousNotices = notices.filter((notice) => notice !== currentNotice);
+  const currentNotice = notices.find((notice) => notice.id === agendaRevision.noticeId);
+  const hasNotice = Boolean(agendaRevision.noticeId);
+  const previousNotices = notices.filter((notice) => !revisionEstablished || notice.revision !== agendaRevision.number);
 
   const perform = (action: () => Promise<unknown>) => {
     void run(async () => {
@@ -198,7 +198,7 @@ export function MeetingDocumentsSection({
         }),
         tone: "done",
       };
-    if (revisionEstablished && agendaRevision.noticeId) return { text: t("common.loading"), tone: "neutral" };
+    if (hasNotice) return { text: t("common.loading"), tone: "neutral" };
     if (revisionEstablished)
       return {
         text: t("meeting.documents.noticeMissing", { number: formatNumber(agendaRevision.number) }),
@@ -278,10 +278,10 @@ export function MeetingDocumentsSection({
             tone={notice.tone}
             actions={
               <>
-                {revisionEstablished && canGenerateNotice && !currentNotice ? (
+                {revisionEstablished && canGenerateNotice ? (
                   <Button
                     size="sm"
-                    data-testid="meeting-generate-notice"
+                    data-testid={hasNotice ? "meeting-notice-regenerate" : "meeting-generate-notice"}
                     disabled={submitting}
                     onClick={() =>
                       perform(async () => {
@@ -292,7 +292,13 @@ export function MeetingDocumentsSection({
                     }
                   >
                     <GenerateIcon aria-hidden="true" />
-                    {t(submitting ? "common.saving" : "meeting.notice.generate")}
+                    {t(
+                      submitting
+                        ? "common.saving"
+                        : hasNotice
+                          ? "meeting.notice.regenerate"
+                          : "meeting.notice.generate",
+                    )}
                   </Button>
                 ) : null}
                 {canExportNotice && message && preparing && currentNotice ? (

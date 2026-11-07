@@ -9339,6 +9339,29 @@
         }
       ]
     },
+    "HALL-TR-DSK-030": {
+      "name": "DESKTOP_DEMONSTRATION_OPENS_WITHOUT_SIGN_IN",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "The desktop demonstration opens and keeps the Alésia workspace available without requiring the user to sign in.",
+      "acceptanceCriteria": [
+        "The demonstration opens its embedded Alésia workspace with a session even if another Hall server is configured or running.",
+        "The first request after session expiration, including after sleep, uses a renewed session without showing the sign-in form.",
+        "Resetting the demonstration opens the newly seeded workspace signed in.",
+        "The ordinary Hall authentication and session lifetime apply outside the desktop demonstration."
+      ],
+      "clauses": [
+        {
+          "key": "demonstration-session",
+          "origin": "product",
+          "statement": "Owner decision of 2026-11-07: opening Alésia and continuing to use it after twelve hours requires no login.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-LAY-010": {
       "name": "INTERFACE_LAYERING_SCALE",
       "nature": "technical",
@@ -10037,11 +10060,11 @@
       "statement": "La page d’une séance en préparation ou en cours génère un pouvoir à signer pour le conseiller choisi, d’après un modèle de type « Pouvoir ».",
       "acceptanceCriteria": [
         "Le pouvoir est toujours révocable ; sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.",
-        "Depuis la page d’une séance en préparation, quel que soit l’état de l’ordre du jour, ou en cours, l’action « Générer un pouvoir » ouvre un formulaire où l’utilisateur choisit obligatoirement le conseiller qui donne pouvoir, parmi les membres du conseil en mandat, et facultativement le conseiller qui le reçoit, différent du premier. Tout lecteur de la séance peut le générer. Le serveur refuse avec le code proxy_form_invalid un mandant hors mandat, un mandataire hors mandat ou un mandataire égal au mandant.",
+        "Depuis la page d’une séance en préparation, quel que soit l’état de l’ordre du jour, ou en cours, l’action « Générer un pouvoir » ouvre un formulaire où l’utilisateur choisit obligatoirement le conseiller qui donne pouvoir, parmi les membres du conseil en mandat, et obligatoirement le conseiller qui le reçoit, différent du premier. Les deux champs sont nommés « De » et « À ». Tout lecteur de la séance peut le générer. Le serveur refuse avec le code proxy_form_invalid un mandant hors mandat, un mandataire hors mandat ou un mandataire égal au mandant.",
         "Une fois la séance close, la page ne propose plus de pouvoir : la représentation Siren de la séance ne porte plus le lien proxy-form et le serveur refuse sa production avec le code meeting_attendance_documents_closed (409).",
-        "Le PDF porte le nom de la commune, le titre « Pouvoir », la date de la séance, la formule « Je soussigné(e) {mandant}, {qualité} de la commune de {commune}, donne pouvoir à {mandataire}, {qualité}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {date} », le rappel des règles de l’article L2121-20 (un seul pouvoir par porteur, révocable, trois séances consécutives au plus sauf maladie dûment constatée ou congé de maternité), puis « Fait à ……, le …… » à compléter à la main et le bloc de signature « Le mandant » avec son nom. Sans mandataire choisi, une ligne à remplir à la main remplace son nom et sa qualité ; sans date de séance fixée, une ligne à remplir remplace la date.",
+        "Le PDF porte le nom de la commune, le titre « Pouvoir », la date de la séance, la formule « Je soussigné(e) {mandant}, {qualité} de la commune de {commune}, donne pouvoir à {mandataire}, {qualité}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {date} », le rappel des règles de l’article L2121-20 (un seul pouvoir par porteur, révocable, trois séances consécutives au plus sauf maladie dûment constatée ou congé de maternité), puis « Fait à ……, le …… » à compléter à la main et le bloc de signature « Le mandant » avec son nom. Les noms et qualités du mandant et du mandataire figurent dans le document ; sans date de séance fixée, une ligne à remplir remplace la date.",
         "Le pouvoir n’enregistre rien : les présences et pouvoirs de la séance restent saisis à l’appel.",
-        "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `proxy` (`meeting`, `grantor`, `holder` facultatif) affichées dans l’aperçu."
+        "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `proxy` (`meeting`, `grantor`, `holder`) affichées dans l’aperçu."
       ],
       "clauses": [
         {
@@ -10069,7 +10092,7 @@
         {
           "key": "owner-flow",
           "origin": "product",
-          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Tu choisis le conseiller, et puis voilà. C’est tout. » ; « n’importe qui, en fait, peut imprimer ces documents » ; « c’est pouvoir […] On garde le bon terme. » Le mandataire facultatif, remplacé par une ligne à remplir, est une lecture du coordinateur.",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Tu choisis le conseiller, et puis voilà. C’est tout. » ; « n’importe qui, en fait, peut imprimer ces documents » ; « c’est pouvoir […] On garde le bon terme. » Clarification ultérieure du 7 novembre : « Celui qui le reçoit, c’est pas facultatif. » Les champs « De » et « À » sont tous deux obligatoires ; aucune ligne à remplir ne remplace le mandataire dans le document.",
           "sourceIds": []
         },
         {
@@ -10988,17 +11011,18 @@
         "state": "accepted",
         "since": "2026-11-07"
       },
-      "statement": "« Générer la convocation » établit la révision ouverte et produit sa convocation en une seule action ; sous une révision établie, le PDF se régénère à volonté sous la même révision.",
+      "statement": "Dans l’interface, l’utilisateur établit d’abord la révision, puis génère le PDF de sa convocation. Le PDF se régénère à volonté sous la même révision.",
       "acceptanceCriteria": [
-        "En révision ouverte, la génération établit la révision et enregistre la convocation dans la même transaction ; si la génération échoue, aucune révision n’est établie.",
-        "Sous une révision établie, « Régénérer le PDF » ajoute une version de la convocation liée à la même révision ; la séance présente la dernière.",
+        "En révision ouverte, « Valider la révision » établit l’ordre du jour, la date et le lieu sans générer de PDF.",
+        "Sous une révision établie sans convocation, « Générer » produit son premier PDF depuis la ligne Convocation dans Documents. Si la génération échoue, la révision reste établie.",
+        "Sous une révision établie avec convocation, « Régénérer » ajoute une version de la convocation liée à la même révision. La séance présente la dernière version réussie.",
         "La convocation n porte le numéro de sa révision."
       ],
       "clauses": [
         {
-          "key": "owner-request",
+          "key": "owner-separate-actions",
           "origin": "product",
-          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Figé, c’est pas un bon terme. C’est la version de l’ordre du jour qui est liée à la convocation. » « Je compose, je crée la convocation, il est bloqué ; je peux remodifier en enclenchant une révision ; avant le départ de la séance l’ordre du jour doit être figé. Tout va dériver de ce cycle de révision. »",
+          "statement": "Décision du 7 novembre 2026 sur l’interface de convocation. « Deux gestes distincts : établir, puis générer le PDF ».",
           "sourceIds": []
         },
         {

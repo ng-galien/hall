@@ -13,23 +13,24 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthenticationStatus | null>(null);
   const [representation, setRepresentation] = useState<SirenEntity<Record<string, unknown>> | null>(null);
   const [principal, setPrincipal] = useState<ApiPrincipal | null>(null);
+  const [loadError, setLoadError] = useState<ApiErrorCode | null>(null);
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
+      setLoadError(null);
       try {
         const result = await getAuthenticationStatus();
+        const session = await getSession().catch((sessionError: unknown) => {
+          if (!(sessionError instanceof ApiError) || sessionError.status !== 401) throw sessionError;
+          return null;
+        });
         setStatus(result.data);
         setRepresentation(result.representation);
-        try {
-          setPrincipal(await getSession());
-        } catch (sessionError) {
-          if (!(sessionError instanceof ApiError) || sessionError.status !== 401) throw sessionError;
-          setPrincipal(null);
-        }
-      } catch (loadError) {
-        setError(apiErrorCode(loadError));
+        setPrincipal(session);
+      } catch (error) {
+        setLoadError(apiErrorCode(error));
       }
     };
     const authenticationRequired = () => void load();
@@ -62,7 +63,24 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
   };
 
   if (principal) return children;
-  if (!status && !error) return <main className="authentication-shell">{t("common.loading")}</main>;
+  if (loadError) {
+    return (
+      <main className="authentication-shell">
+        <section className="authentication-panel">
+          <p className="form-error" role="alert" data-testid="auth-load-error">
+            {t(errorTranslationKeys[loadError])}
+          </p>
+          <Button
+            data-testid="auth-retry"
+            onClick={() => window.dispatchEvent(new Event(AUTHENTICATION_REQUIRED_EVENT))}
+          >
+            {t("common.retry")}
+          </Button>
+        </section>
+      </main>
+    );
+  }
+  if (!status) return <main className="authentication-shell">{t("common.loading")}</main>;
   return (
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit}>

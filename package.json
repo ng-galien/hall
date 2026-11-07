@@ -29,7 +29,7 @@
     "test:policy:mutation": "npm run test:mutation:policy -w @hall/server",
     "dev": "npm run build -w @hall/contracts && npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/mcp && npm run build -w @hall/templating && concurrently -k -n server,client -c blue,cyan \"npm run dev:server\" \"npm run dev:client\"",
     "demo:restart": "node scripts/development/dev-session.mjs demo-restart",
-    "desktop:dev": "npm run build -w @hall/contracts && npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/mcp && npm run build -w @hall/templating && npm run build -w @hall/postgres && npm run build -w @hall/server && concurrently -k -n client,desktop -c cyan,magenta \"npm run dev -w @hall/client\" \"wait-on http://127.0.0.1:5174 && cross-env HALL_RENDERER_URL=http://127.0.0.1:5174 npm run start -w @hall/desktop\"",
+    "desktop:dev": "npm run build -w @hall/contracts && npm run build -w @hall/api-contract && npm run build -w @hall/domain && npm run build -w @hall/mcp && npm run build -w @hall/templating && npm run build -w @hall/postgres && npm run build -w @hall/server && concurrently -k -n client,desktop -c cyan,magenta \"npm run dev -w @hall/client\" \"wait-on http://127.0.0.1:5174 && cross-env HALL_DESKTOP_EDITION=local HALL_RENDERER_URL=http://127.0.0.1:5174 npm run start -w @hall/desktop\"",
     "desktop:package": "npm run build && npm run package -w @hall/desktop",
     "desktop:make": "npm run build && npm run make -w @hall/desktop",
     "test:e2e": "npm run test:e2e -w @hall/client --",

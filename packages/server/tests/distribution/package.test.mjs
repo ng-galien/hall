@@ -498,23 +498,11 @@ it(
             ).rows,
           ).toHaveLength(0);
           await writeFile(migrationPath, migration);
-          await restored.query("CREATE TABLE public.unexpected_update_probe (id integer)");
-          const failedServerInitialization = command(process.execPath, [cli, "migrate", "--env-file", envFile]);
-          expect(failedServerInitialization.status).not.toBe(0);
-          expect(failedServerInitialization.stderr).toContain("Unsupported PostgreSQL schema");
-          expect(
-            (await restored.query("SELECT manifest_sha256 FROM hall_meta.schema_contract")).rows[0].manifest_sha256,
-          ).toBe("0".repeat(64));
-          expect(
-            (
-              await restored.query(
-                "SELECT column_name FROM information_schema.columns WHERE table_schema='hall_meta' AND table_name='schema_contract' AND column_name='installed_at'",
-              )
-            ).rows,
-          ).toHaveLength(0);
-          await restored.query("DROP TABLE public.unexpected_update_probe");
+          await restored.query("CREATE TABLE public.unexpected_update_probe (id integer NOT NULL)");
+          await restored.query("INSERT INTO public.unexpected_update_probe (id) VALUES (17)");
           expect(run(process.execPath, [cli, "migrate", "--env-file", envFile])).toContain("schema upgraded");
           expect(run(process.execPath, [cli, "migrate", "--env-file", envFile])).toContain("schema verified");
+          expect((await restored.query("SELECT id FROM public.unexpected_update_probe")).rows).toEqual([{ id: 17 }]);
           await start();
           expect(await resource(id)).toEqual(before);
           await verifyDocument();
@@ -528,6 +516,7 @@ it(
           expect(
             (await restored.query("SELECT installed_at FROM hall_meta.schema_contract")).rows[0].installed_at,
           ).toBeTruthy();
+          expect((await restored.query("SELECT id FROM public.unexpected_update_probe")).rows).toEqual([{ id: 17 }]);
         } finally {
           await restored.end();
         }

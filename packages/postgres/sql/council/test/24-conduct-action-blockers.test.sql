@@ -33,8 +33,10 @@ SELECT ok(pg_temp.subject_state('minutesApproval')#>'{conductBlockers,startDiscu
 SELECT ok(pg_temp.subject_state('minutesApproval')#>'{conductBlockers,reviewBallot}' @> '[{"code":"quorumNotMet"},{"code":"discussionNotStarted"},{"code":"minutesDocumentMissing"}]','all applicable ballot blockers are exposed together');
 SELECT ok(pg_temp.subject_state('councilDecisionProposal')#>'{conductBlockers,startDiscussion}' @> '[{"code":"quorumNotMet"},{"code":"earlierAgendaItemPending"}]','proposal explains quorum and preceding minutes item');
 SELECT is(pg_temp.subject_state('minutesApproval')#>'{conductBlockers,adjourn}','[]'::jsonb,'minutes approval may be adjourned without pretending approval');
+SELECT throws_ok($$UPDATE council_agenda_item SET position=-1 WHERE id=(SELECT id FROM blocker_items WHERE subject_kind='minutesApproval')$$,
+  'HV801', NULL, 'a position change alone cannot remove the previous PV during conduct');
 SELECT lives_ok($$SELECT adjourn_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='minutesApproval'),'2026-01-02 18:02Z')$$,'minutes approval can be passed by explicit adjournment');
-SELECT ok((SELECT completed_at IS NULL AND adjourned_at IS NOT NULL FROM council_agenda_item WHERE id=(SELECT id FROM blocker_items WHERE subject_kind='minutesApproval')),'adjourned minutes approval remains unapproved');
+SELECT ok((SELECT position=-1 AND completed_at IS NULL AND adjourned_at IS NOT NULL FROM council_agenda_item WHERE id=(SELECT id FROM blocker_items WHERE subject_kind='minutesApproval')),'adjourned minutes approval remains unapproved in its original slot');
 SELECT is((hall_api.open_council_meeting((SELECT id FROM blocker_meeting))->'closureBlockers'),'[]'::jsonb,
   'an unapproved previous PV does not block closure');
 SELECT lives_ok($$SELECT adjourn_council_agenda_item((SELECT id FROM blocker_items WHERE subject_kind='councilDecisionProposal'),'2026-01-02 18:03Z')$$,'proposal can also be passed without a ballot');

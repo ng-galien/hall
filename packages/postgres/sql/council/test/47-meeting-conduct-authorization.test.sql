@@ -93,6 +93,7 @@ SELECT set_eq($$SELECT action, access FROM hall.action_access$$, $$VALUES
  ('meeting.set-officers','meeting.prepare'),
  ('meeting.create-and-schedule-business','meeting.prepare'),
  ('meeting.reorder-agenda','meeting.prepare'),
+ ('meeting.establish-agenda-revision','meeting.prepare'),
  ('meeting.reopen-agenda','meeting.prepare'),
  ('meeting.reset-agenda-revision','meeting.prepare'),
  ('meeting.generate-notice','meeting.prepare'),
