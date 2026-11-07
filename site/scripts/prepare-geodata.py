@@ -166,8 +166,8 @@ def label_point(feature: dict) -> tuple[float, float]:
     return local(sum(p[0] for p in points) / len(points), sum(p[1] for p in points) / len(points))
 
 
+# Remplace terrain.bin, landcover.bin et terrain.json par leurs versions compressées embarquées.
 def pack(target: Path) -> None:
-    """Remplace terrain.bin, landcover.bin et terrain.json par leurs versions compressées embarquées."""
     raw = target / "terrain.bin"
     if raw.exists():
         heights = np.fromfile(raw, dtype="<u2").astype(np.int64).reshape(ROWS, COLS)

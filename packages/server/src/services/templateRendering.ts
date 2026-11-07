@@ -657,6 +657,12 @@ export interface TemplateRenderingService {
   ): Promise<TemplatePreview>;
 }
 
+// @implements-requirement HALL-FR-MIN-280
+// @implements-requirement HALL-FR-NOT-080
+/**
+ * Signature blocks name the current mayor and the mandate role of the officers recorded in the minutes.
+ * Without an authenticated request the directory is not readable: the blocks keep their offices, unnamed.
+ */
 export function createTemplateRenderingService({
   hallSettingsRepository,
   councilClient,
@@ -676,11 +682,7 @@ export function createTemplateRenderingService({
   directoryClient: DirectoryClient;
   requestContext?: RequestContextStore;
 }): TemplateRenderingService {
-  // @implements-requirement HALL-FR-MIN-280
-  // @implements-requirement HALL-FR-NOT-080
-  /** Signature blocks name the current mayor and the mandate role of the officers recorded in the minutes. */
   type CouncilRole = CouncilMandate["role"];
-  /** Without an authenticated request the directory is not readable: the blocks keep their offices, unnamed. */
   const loadSignatories = async (minutes: MinutesDetail | null): Promise<SignatoryDirectory> => {
     if (requestContext && !requestContext.current()?.principal) return emptySignatoryDirectory;
     const mayors = (await directoryClient.listCouncilMembers(true)).filter((member) => member.role === "mayor");

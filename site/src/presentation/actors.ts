@@ -45,7 +45,6 @@ export function buildCharacter(variant: "man" | "woman" = "woman", custom: Look 
     color: custom.hair ?? (woman ? 0xd9b46a : dark ? 0x64748b : 0x1f2a3a),
   });
 
-  /* Jambes : hanches à 0,46 */
   const hips = 0.46;
   const legLeft = limb(trousers, 0.045, 0.34);
   const legRight = limb(trousers, 0.045, 0.34);
@@ -57,7 +56,6 @@ export function buildCharacter(variant: "man" | "woman" = "woman", custom: Look 
     leg.pivot.add(shoe);
   }
 
-  /* Buste : manteau légèrement évasé, ceinture au bleu d'accent */
   const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.125, 0.34, 18), coat);
   torso.position.y = hips + 0.18;
   const shoulders = new THREE.Mesh(new THREE.SphereGeometry(0.1, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), coat);
@@ -72,7 +70,6 @@ export function buildCharacter(variant: "man" | "woman" = "woman", custom: Look 
   );
   bag.position.set(-0.15, hips + 0.07, 0);
 
-  /* Tête */
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.05, 10), skin);
   neck.position.y = hips + 0.42;
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.075, 20, 14), skin);
@@ -85,7 +82,6 @@ export function buildCharacter(variant: "man" | "woman" = "woman", custom: Look 
   hair.position.copy(head.position).add(new THREE.Vector3(0, 0.008, -0.006));
   hair.scale.set(0.97, 1.05, 1.02);
 
-  /* Bras : épaules à 0,82 ; le bras droit tient le téléphone */
   const shoulderY = hips + 0.34;
   const armLeft = limb(coat, 0.035, 0.27);
   const armRight = limb(coat, 0.035, 0.27);
@@ -112,7 +108,6 @@ export function buildCharacter(variant: "man" | "woman" = "woman", custom: Look 
   shadow.position.y = 0.01;
 
   if (woman) {
-    /* Silhouette plus fine, veste cintrée et jupe ; queue de cheval visible de loin */
     shoulders.scale.x = 1.0;
     torso.scale.set(0.86, 1, 0.9);
     const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 0.2, 18), coat);
@@ -130,7 +125,6 @@ export function buildCharacter(variant: "man" | "woman" = "woman", custom: Look 
     scarf.visible = false;
     bag.visible = false;
     if (custom.shirt !== undefined) {
-      /* Chemise claire visible dans l'ouverture de la veste, col en V */
       const shirt = new THREE.Mesh(
         new THREE.BoxGeometry(0.07, 0.22, 0.02),
         new THREE.MeshLambertMaterial({ color: custom.shirt }),
@@ -175,7 +169,6 @@ export function buildCharacter(variant: "man" | "woman" = "woman", custom: Look 
         if (child !== shadow) child.userData.baseY ??= child.position.y;
         if (child !== shadow) child.position.y = (child.userData.baseY as number) + bob;
       });
-      /* Bras : balancement en marche, puis geste de photo (bras droit levé devant le visage, gauche en appui) */
       const k = photo;
       armLeft.pivot.rotation.x = -swing * 0.55 * (1 - k) - 1.0 * k;
       armLeft.pivot.rotation.z = -0.08 + 0.45 * k;

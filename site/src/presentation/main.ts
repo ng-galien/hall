@@ -207,12 +207,14 @@ const platform =
   "";
 const mac = /mac/i.test(platform);
 
-/** `mode` est deltaMode, lu avant tout delta : Firefox livre alors des lignes pour une molette au lieu de pixels. */
+/**
+ * `mode` est deltaMode, lu avant tout delta : Firefox livre alors des lignes pour une molette au lieu de pixels.
+ * Chrome et Safari sur Mac donnent wheelDeltaY = -3 × deltaY pour le pavé tactile ; une molette à crans donne
+ * des multiples de 120 sans ce rapport (Chrome sous Linux : deltaY 53,33 pour wheelDeltaY 120).
+ */
 function notched(event: WheelEvent, mode: number): boolean {
   if (mode !== 0) return true;
   const legacy = (event as WheelEvent & { wheelDeltaY?: number }).wheelDeltaY ?? 0;
-  /* Chrome et Safari sur Mac donnent wheelDeltaY = -3 × deltaY pour le pavé tactile ; une molette à crans donne
-     des multiples de 120 sans ce rapport (Chrome sous Linux : deltaY 53,33 pour wheelDeltaY 120) */
   return legacy !== 0 && legacy % 120 === 0 && Math.abs(legacy + 3 * event.deltaY) > 0.5;
 }
 
@@ -242,7 +244,6 @@ function wheelMove(down: boolean): (() => void) | null {
   if (down) {
     if (current < last) return () => stepTo(current + 1, wheelRatio());
     if (scrollProgress() < end - 0.001) return () => stepTo(last, wheelRatio());
-    /* Après la dernière sous-étape : la page glisse vers la section du bas, qui défile ensuite normalement */
     return () => {
       leftStory = true;
       glideTo(more.getBoundingClientRect().top + window.scrollY - 56);
@@ -255,7 +256,6 @@ function wheelMove(down: boolean): (() => void) | null {
     };
   if (current >= last && scrollProgress() > end + 0.001) return () => stepTo(last, wheelRatio());
   if (current > 0) return () => stepTo(current - 1, wheelRatio());
-  /* Avant la première sous-étape : retour au titre */
   if (window.scrollY > 0) return () => stepTo(-1, wheelRatio());
   return null;
 }
@@ -555,7 +555,6 @@ export function showStep(p: number) {
   shownIndex = index;
   refreshArrows();
   const first = shownSub === -2;
-  /* Saut de plusieurs sous-étapes : le panneau entier s'efface et revient, sans cadre vide entre les deux */
   const leap = Math.abs(index - shownSub) > 1;
   shownSub = index;
   const step = subSteps[Math.max(0, index)];
@@ -659,7 +658,6 @@ export function markPast() {
   const past = window.scrollY > storyScroll() + viewHeight() * 0.4;
   for (const node of [gutter, credit, boardNode, phone, watermark]) node.classList.toggle("is-past", past);
   (document.querySelector(".p-masthead") as HTMLElement).classList.toggle("is-solid", past);
-  /* Entrée du menu de la partie affichée : Parcours pendant le récit, Fonctionnalités ensuite */
   for (const link of document.querySelectorAll<HTMLAnchorElement>(".p-masthead a[data-nav]")) {
     const current = link.dataset.nav === (past ? "features" : "story");
     if (current) link.setAttribute("aria-current", "page");

@@ -11,11 +11,13 @@ import pg from "pg";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-/** Accepts only the local demonstration database and the dedicated browser-test databases. */
+/**
+ * Accepts only the local demonstration database and the dedicated browser-test databases.
+ * Connection parameters in the query (host, port, dbname) would override the checked fields.
+ */
 export function demonstrationDatabaseUrl(value) {
   if (!value) throw new Error("Une base de démonstration ou de test navigateur est requise pour antidater une séance");
   const url = new URL(value);
-  // Connection parameters in the query (host, port, dbname) would override the checked fields.
   if (url.search || url.hash)
     throw new Error("Antidatage refusé : l'adresse de la base ne doit porter aucun paramètre");
   const name = decodeURIComponent(url.pathname.slice(1));
@@ -61,6 +63,9 @@ export function backdateMeetingConduct(databaseUrl, meetingId, target, since) {
  * Applies several moves in one transaction: each step moves the instants recorded at or after its
  * `since` (by default the opening) and before the next step, so that `since` falls at `target`.
  * Targets follow the order of their steps.
+ * Steps apply from the earliest: each one moves everything recorded after it, so a later step
+ * finds its instants already moved by the accumulated interval and only moves forward.
+ * All instants of a row move in one statement so that row checks see a consistent chronology.
  * The chronology is checked once, after all steps.
  */
 export async function backdateMeetingTimeline(databaseUrl, meetingId, steps) {
@@ -98,8 +103,6 @@ export async function backdateMeetingTimeline(databaseUrl, meetingId, steps) {
     const ordered = starts.rows
       .map((row) => ({ ...steps[Number(row.ordinality) - 1], start: row.start }))
       .sort((left, right) => left.start - right.start);
-    // Steps apply from the earliest: each one moves everything recorded after it, so a later step
-    // finds its instants already moved by the accumulated interval and only moves forward.
     let accumulated = "0";
     for (const step of ordered) {
       const shift = (
@@ -132,7 +135,6 @@ export async function backdateMeetingTimeline(databaseUrl, meetingId, steps) {
           );
         }
         if (instants.length > 0) {
-          // All instants of a row move in one statement so that row checks see a consistent chronology.
           await client.query(
             `UPDATE hall."${table}" SET ${instants
               .map(

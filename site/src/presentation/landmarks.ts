@@ -129,7 +129,6 @@ export function buildMairie(): THREE.Group {
   g.add(hipRoof(m.roof, W + 0.2, D + 0.2, 1.2, W * 0.45, 2.74));
   windowsRow(m, g, 6, W - 0.4, 0.82, D / 2, 0.9);
   windowsRow(m, g, 6, W - 0.4, 1.98, D / 2, 0.9);
-  /* Avant-corps central à fronton */
   g.add(box(m.wall, 1.6, 2.5, 0.3, 0, 1.55, D / 2 + 0.15));
   const pediment = new THREE.Mesh(
     new THREE.ExtrudeGeometry(
@@ -142,7 +141,6 @@ export function buildMairie(): THREE.Group {
   g.add(pediment);
   g.add(box(m.frame, 0.56, 1.05, 0.05, 0, 0.82, D / 2 + 0.31));
   g.add(box(m.glass, 0.44, 0.62, 0.05, 0, 1.98, D / 2 + 0.31));
-  /* Horloge */
   const clock = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.06, 32), m.trim);
   clock.rotation.x = Math.PI / 2;
   clock.position.set(0, 3.05, D / 2 + 0.33);
@@ -150,10 +148,8 @@ export function buildMairie(): THREE.Group {
   dial.rotation.x = Math.PI / 2;
   dial.position.set(0, 3.05, D / 2 + 0.335);
   g.add(clock, dial);
-  /* Perron */
   for (let i = 0; i < 3; i++)
     g.add(box(m.trim, 1.4 - i * 0.2, 0.1, 0.5 - i * 0.12, 0, 0.05 + i * 0.1, D / 2 + 0.55 - i * 0.06));
-  /* Campanile et drapeau */
   g.add(box(m.wall, 0.5, 0.6, 0.5, 0, 3.75, 0));
   g.add(hipRoof(m.roof, 0.6, 0.6, 0.4, 0, 4.05));
   addFlags(g, m, 0, 3.1, D / 2 + 0.42, 0.7);
@@ -176,11 +172,9 @@ export function buildBureau(): THREE.Group {
       g.add(box(m.trim, 0.05, 0.66, 0.06, -(W - 0.6) / 2 + ((W - 0.6) * i) / 8, y, D / 2 + 0.02));
     g.add(box(m.glass, 0.04, 0.62, D - 0.6, W / 2 + 0.01, y, 0));
   }
-  /* Entrée abritée et plaque */
   g.add(box(m.trim, 1.3, 0.08, 0.7, 1.1, 1.35, D / 2 + 0.35));
   g.add(box(m.frame, 0.7, 1.0, 0.05, 1.1, 0.7, D / 2 + 0.03));
   g.add(box(m.accent, 0.5, 0.14, 0.03, -1.4, 1.45, D / 2 + 0.03));
-  /* Locaux techniques en toiture */
   g.add(box(m.trim, 0.8, 0.35, 0.6, -1.2, 3.25, -0.3));
   return g;
 }
@@ -192,14 +186,11 @@ export function buildPrefecture(): THREE.Group {
   const g = new THREE.Group();
   const W = 7.6;
   const D = 3;
-  /* Soubassement et corps */
   g.add(box(m.trim, W + 0.3, 0.4, D + 0.3, 0, 0.2, 0));
   g.add(box(m.wall, W, 2.8, D, 0, 1.8, 0));
   g.add(box(m.trim, W + 0.1, 0.1, D + 0.1, 0, 1.45, 0));
-  /* Corniche et toit d'ardoise en croupe */
   g.add(box(m.trim, W + 0.36, 0.2, D + 0.36, 0, 3.3, 0));
   g.add(hipRoof(m.roof, W + 0.2, D + 0.2, 1.1, W * 0.55, 3.4));
-  /* Ailes : fenêtres hautes régulières sur deux niveaux, encadrées */
   for (const side of [-1, 1]) {
     for (let k = 0; k < 3; k++) {
       const x = side * (1.75 + k * 0.78);
@@ -210,7 +201,6 @@ export function buildPrefecture(): THREE.Group {
       }
     }
   }
-  /* Avant-corps central : quatre colonnes sous fronton triangulaire */
   const bay = 2.6;
   g.add(box(m.wall, bay, 3.1, 0.5, 0, 1.95, D / 2 + 0.25));
   g.add(box(m.trim, bay + 0.2, 0.18, 0.62, 0, 3.4, D / 2 + 0.27));
@@ -235,10 +225,8 @@ export function buildPrefecture(): THREE.Group {
   );
   pediment.position.set(0, 3.4, D / 2);
   g.add(pediment);
-  /* Portes et fenêtres de l'avant-corps */
   g.add(box(m.frame, 0.5, 1.15, 0.05, 0, 1.18, D / 2 + 0.51));
   for (const x of [-0.64, 0.64]) g.add(box(m.glass, 0.3, 0.8, 0.05, x, 2.4, D / 2 + 0.51));
-  /* Perron */
   for (let k = 0; k < 4; k++)
     g.add(box(m.trim, bay + 0.6 - k * 0.2, 0.12, 1.35 - k * 0.22, 0, 0.06 + k * 0.12, D / 2 + 0.95 - k * 0.11));
   addFlags(g, m, 0, 3.55, D / 2 + 0.62, 1);

@@ -528,6 +528,8 @@ function agendaItemActions({ request, primary, id }: ObjectActionContext): Siren
   return authorizedActions(request, actions);
 }
 
+// @implements-requirement HALL-FR-NOT-140
+/** Date, location and agenda change only on the open revision; "Réviser" opens the next one. */
 function councilMeetingActions({ request, value, primary }: ObjectActionContext): SirenAction[] {
   const meeting = primary ?? (value as Record<string, unknown>);
   const meetingId = objectId(meeting);
@@ -578,8 +580,6 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
     );
 
   if (!meeting.startedAt) {
-    // @implements-requirement HALL-FR-NOT-140
-    // Date, location and agenda change only on the open revision; "Réviser" opens the next one.
     const revision = agendaRevisionOf(meeting);
     const established = Boolean(revision?.establishedAt);
     actions.push(action("meeting.set-officers", "PUT", `/api/council-meetings/${meetingReference}/officers`));

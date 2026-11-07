@@ -64,7 +64,13 @@ const staleMeetingRoutePath = "/:meetingReference/stale";
 
 // @implements-requirement HALL-FR-MTG-320
 // @implements-requirement HALL-FR-USR-030
-/** Conduct actions are allowed per meeting: the database checks the officers in office of the meeting of the route. */
+// @implements-requirement HALL-FR-ATT-170
+// @implements-requirement HALL-FR-ATT-180
+// @implements-requirement HALL-FR-MTG-370
+/**
+ * Conduct actions are allowed per meeting: the database checks the officers in office of the meeting of the route.
+ * The closure body carries no instant: the server dates the closure at reception.
+ */
 export function createCouncilMeetingsRouter({
   councilClient,
   deliberationListService,
@@ -166,7 +172,6 @@ export function createCouncilMeetingsRouter({
     response.set("Cache-Control", "private, no-store");
     response.type("application/pdf").send(content);
   });
-  // @implements-requirement HALL-FR-ATT-170
   router.get("/:meetingReference/attendance-sheet.pdf", async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     const content = await meetingAttendanceDocumentService.attendanceSheet(meeting.id);
@@ -174,7 +179,6 @@ export function createCouncilMeetingsRouter({
     response.set("Cache-Control", "private, no-store");
     response.type("application/pdf").send(content);
   });
-  // @implements-requirement HALL-FR-ATT-180
   router.get("/:meetingReference/proxy-form.pdf", async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     const query = z
@@ -436,8 +440,6 @@ export function createCouncilMeetingsRouter({
 
   router.post("/:meetingReference/close", requireActionPermission("meeting.close"), async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-    // @implements-requirement HALL-FR-MTG-370
-    // The body carries no instant: the server dates the closure at reception.
     closeCouncilMeetingSchema.parse(request.body);
     response.json(await changeMeeting(meeting.id, () => councilClient.closeMeeting(meeting.id)));
   });

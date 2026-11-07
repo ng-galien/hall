@@ -66,7 +66,11 @@ function DocumentRow({
 // @implements-requirement HALL-FR-ATT-170
 // @implements-requirement HALL-FR-ATT-180
 // @implements-requirement HALL-FR-MTG-390
-/** Every document of a meeting on one list: name, state and the actions its Siren representation offers. */
+// @implements-requirement HALL-FR-NOT-100
+/**
+ * Every document of a meeting on one list: name, state and the actions its Siren representation offers.
+ * One notice per established revision; the notice of the established revision is the current one.
+ */
 export function MeetingDocumentsSection({
   meetingActions,
   aggregate,
@@ -123,8 +127,6 @@ export function MeetingDocumentsSection({
     canExportNotice,
     revision,
   ]);
-  // @implements-requirement HALL-FR-NOT-100
-  // One notice per established revision; the notice of the established revision is the current one.
   const currentNotice = revisionEstablished
     ? (notices.find((notice) => notice.revision === agendaRevision.number) ?? null)
     : null;

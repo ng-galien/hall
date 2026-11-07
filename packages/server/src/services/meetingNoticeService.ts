@@ -16,6 +16,8 @@ export interface MeetingNoticeService {
   generate(meetingId: string): Promise<MeetingNotice>;
   content(id: string): Promise<Buffer>;
 }
+// @implements-requirement HALL-FR-NOT-100
+/** Only the notice of the established revision is sent; earlier notices are only opened. */
 export function createMeetingNoticeService({
   councilClient,
   hallSettingsService,
@@ -76,8 +78,6 @@ export function createMeetingNoticeService({
       if (preparation.missingEmailMemberIds.length > 0 || preparation.recipients.length === 0)
         throw new DomainError("meeting_notice_recipients_incomplete", 409);
       if (!preparation.canGenerate) throw new DomainError("meeting_notice_unavailable", 409);
-      // @implements-requirement HALL-FR-NOT-100
-      // Only the notice of the established revision is sent; earlier notices are only opened.
       if (preparation.noticeId !== noticeId) throw new DomainError("meeting_notice_unavailable", 409);
       const notice = await councilClient.openNotice(noticeId);
       if (!notice || notice.councilMeetingId !== meetingId) throw new DomainError("meeting_notice_not_found", 404);

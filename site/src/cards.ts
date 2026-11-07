@@ -170,7 +170,6 @@ export function renderCardNavigation(masthead: HTMLElement) {
     requestAnimationFrame(mark);
   }
   window.addEventListener("scroll", queue, { passive: true });
-  /* La page change de hauteur quand la scène s'affiche : le repère courant est recalculé. */
   new ResizeObserver(queue).observe(document.body);
   mark();
 }

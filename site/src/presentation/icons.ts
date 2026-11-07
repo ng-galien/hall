@@ -233,7 +233,6 @@ export function drawPhoto(ctx: CanvasRenderingContext2D, title: string, x: numbe
   sky.addColorStop(1, "#eef3f8");
   ctx.fillStyle = sky;
   ctx.fillRect(x, y, w, h);
-  /* Relief au loin, puis colline plus proche */
   const ridge = (base: number, amp: number, phase: number, color: string) => {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -254,7 +253,6 @@ export function drawPhoto(ctx: CanvasRenderingContext2D, title: string, x: numbe
   meadow.addColorStop(1, "#7a9e86");
   ctx.fillStyle = meadow;
   ctx.fillRect(x, horizon + h * 0.05, w, h);
-  /* Chemin : de large au premier plan à un point vers l'horizon */
   const far = { x: x + w * (0.5 + shift), y: horizon + h * 0.06 };
   const nearLeft = x + w * (0.14 + shift / 2);
   const nearRight = x + w * (0.86 + shift / 2);
@@ -274,7 +272,6 @@ export function drawPhoto(ctx: CanvasRenderingContext2D, title: string, x: numbe
     y: far.y + (y + h - far.y) * t,
   });
   if (variant === 0) {
-    /* Ornières : deux traces sombres dans le chemin */
     ctx.strokeStyle = "#7b8a9c";
     ctx.lineWidth = Math.max(1.5, w / 70);
     for (const lane of [0.36, 0.64]) {
@@ -285,7 +282,6 @@ export function drawPhoto(ctx: CanvasRenderingContext2D, title: string, x: numbe
       ctx.stroke();
     }
   } else if (variant === 1) {
-    /* Fossé bouché : une ligne d'eau stagnante le long du bord, avec des touffes */
     ctx.strokeStyle = "#5b86c4";
     ctx.lineWidth = Math.max(2, w / 45);
     ctx.beginPath();
@@ -302,7 +298,6 @@ export function drawPhoto(ctx: CanvasRenderingContext2D, title: string, x: numbe
       ctx.fill();
     }
   } else {
-    /* Accotement affaissé : le bord du chemin s'effondre en creux */
     ctx.fillStyle = "#94a3b8";
     const a = along(-1, 0.45);
     const b = along(-1, 0.85);
@@ -359,7 +354,6 @@ export function indexCanvas(kind: PieceKind, title: string, detail: string, mark
   while (ctx.measureText(line).width > 530 && line.length > 4) line = `${line.slice(0, -2)}…`;
   ctx.fillText(line, 92, 58);
   if (kind === "image") {
-    /* Une photo : la vignette remplit le corps de la carte, sa légende en dessous */
     ctx.save();
     roundRect(ctx, 24, 104, 592, 232, 14);
     ctx.clip();

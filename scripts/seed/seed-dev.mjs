@@ -7,6 +7,10 @@ import { createSeedApi } from "./data/common/api.mjs";
 import { assertEmptyDatabase } from "./data/common/empty-database.mjs";
 import { backdateMeetingTimeline, demonstrationDatabaseUrl } from "./data/common/meeting-history.mjs";
 
+/**
+ * The server dates conduct at reception; with SEED_DATABASE_URL the past meetings are then moved
+ * to their historical dates in the demonstration or browser-test database (outside the API).
+ */
 export async function main(args = process.argv.slice(2), env = process.env) {
   const { values } = parseArgs({
     args,
@@ -33,8 +37,6 @@ export async function main(args = process.argv.slice(2), env = process.env) {
   const baseUrl = new URL(env.SEED_API ?? "http://127.0.0.1:3100/api");
   if (!["http:", "https:"].includes(baseUrl.protocol)) throw new Error("SEED_API doit être une URL HTTP ou HTTPS");
   const api = createSeedApi(baseUrl.href.replace(/\/$/, ""));
-  // The server dates conduct at reception; with SEED_DATABASE_URL the past meetings are then moved
-  // to their historical dates in the demonstration or browser-test database (outside the API).
   if (env.SEED_DATABASE_URL) {
     const databaseUrl = demonstrationDatabaseUrl(env.SEED_DATABASE_URL).href;
     api.backdateMeeting = (meetingId, steps) => backdateMeetingTimeline(databaseUrl, meetingId, steps);

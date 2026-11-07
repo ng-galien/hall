@@ -199,6 +199,7 @@ function cutRemap(base: TimeBase, i: number, t1: number, t2: number, newDuration
 /**
  * Cuts [t1, t2] seconds out of the playback of sub-step `index`: the playback loses exactly that time, what comes
  * after moves up by as much, and the scroll layout is kept. Instants inside the cut collapse to its start.
+ * Moments without parent are remapped first, then those positioned within a parent, against the remapped parents.
  */
 export function cutStep(
   settings: StorySettings,
@@ -218,7 +219,6 @@ export function cutStep(
   const remap = cutRemap(base, index, a, b, duration - (b - a));
   const timeline = base.timeline;
   const moved = (p: number) => Math.abs(remap(p) - p) > 1e-12;
-  /* Moments without parent first, then those positioned within a parent, against the remapped parents */
   const names = Object.keys(next.moments).sort(
     (x, y) => Number(Boolean(next.moments[x].within)) - Number(Boolean(next.moments[y].within)),
   );

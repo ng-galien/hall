@@ -92,6 +92,10 @@ export interface ProxyFormData {
 }
 
 // @implements-requirement HALL-FR-MIN-280
+/**
+ * `minutes.signatories.chair` and `.secretary`: officers in office at closure, null when not recorded.
+ * Attendance in council table order; members unknown to the directory keep the recorded order, last.
+ */
 export function minutesTemplateData(
   minutes: MinutesDetail,
   subjects: ReadonlyMap<string, ResolvedSubjectText>,
@@ -101,12 +105,10 @@ export function minutesTemplateData(
     id: minutes.id,
     facts: minutes.facts,
     meeting: { ...minutes.facts.meeting, reconvenedFrom: minutes.facts.meeting.reconvenedFrom ?? null },
-    /** `minutes.signatories.chair` and `.secretary`: officers in office at closure, null when not recorded. */
     signatories: {
       chair: signatory(minutes.facts.meeting.chair, directory) satisfies DocumentSignatory | null,
       secretary: signatory(minutes.facts.meeting.secretary, directory) satisfies DocumentSignatory | null,
     },
-    /** Attendance in council table order; members unknown to the directory keep the recorded order, last. */
     attendance: minutes.facts.attendance
       .toSorted(
         (left, right) =>
@@ -165,6 +167,7 @@ export function minutesTemplateData(
   };
 }
 
+/** `mayor.name`: the mayor in office when the document is rendered, or null. */
 export function documentTemplateData(input: {
   hall: HallSettings;
   meeting: unknown;
@@ -178,7 +181,6 @@ export function documentTemplateData(input: {
   const directory = input.signatories ?? emptySignatoryDirectory;
   return {
     hall: input.hall,
-    /** `mayor.name`: the mayor in office when the document is rendered, or null. */
     mayor: directory.mayor,
     meeting: input.meeting,
     notice: input.notice,

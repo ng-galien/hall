@@ -32,6 +32,8 @@ import { AgendaComposer } from "./AgendaComposer";
 import { MeetingStageBar } from "./MeetingStageBar";
 import { type MeetingDetailsField, meetingDetailsSubmission } from "./meetingDetailsPolicy";
 
+// @implements-requirement HALL-FR-NOT-140
+/** Date and location belong to the agenda revision: they change only while it is open. */
 export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
   const { t, plural, formatDate, formatDateTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
@@ -79,8 +81,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const [detailsErrors, setDetailsErrors] = useState<Partial<Record<MeetingDetailsField, TranslationKey>>>({});
   const { settings, error: settingsError } = useMeetingSettings();
   const detailsEditable = meetingActions.can("meeting.prepare") || meetingActions.can("meeting.set-officers");
-  // @implements-requirement HALL-FR-NOT-140
-  // Date and location belong to the agenda revision: they change only while it is open.
   const scheduleLocked = !meetingActions.can("meeting.schedule");
   const agendaRevision = meetingActions.workspace!.meeting.agendaRevision;
   const revisionEstablished = Boolean(agendaRevision.establishedAt);

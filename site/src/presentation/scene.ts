@@ -95,7 +95,6 @@ export async function start() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, light ? LIGHTER_RATIOS[0] : 1.75));
   renderer.setClearColor(look.clear, 1);
   host.append(renderer.domElement);
-  /* Les pièces en vol sont dessinées dans un second calque, au-dessus de la fiche de l'affaire. */
   const flight = new THREE.WebGLRenderer({ antialias: !light, alpha: true });
   flight.setPixelRatio(renderer.getPixelRatio());
   flight.setClearColor(0x000000, 0);
@@ -111,7 +110,6 @@ export async function start() {
   sun.position.set(-300, 500, -200);
   scene.add(sun);
 
-  /* Relief, réseaux, bâti */
   const relief = buildRelief(ground);
   relief.material.uniforms.uReveal.value = 1.2;
   themeRelief(relief);
@@ -130,17 +128,13 @@ export async function start() {
     ]),
   );
 
-  /** Avancement de p dans un moment du récit, de 0 avant son début à 1 après sa fin. */
   const during = (p: number, name: string) => span(p, tl.start(name), tl.end(name));
   const lasting = (name: string) => tl.end(name) - tl.start(name);
   const isIn = (p: number, name: string) => p >= tl.start(name) && p < tl.end(name);
 
   const world = (s: Spot, lift = 0) => new THREE.Vector3(s.x * SCALE, ground.height(s.x, s.y) + lift, -s.y * SCALE);
 
-  /* Personnes */
-
   const PERSON_SCALE = 1.7;
-  /* Deux personnages : l'adjoint aux travaux sur le terrain, puis la secrétaire de mairie */
   const adjoint = buildCharacter("man", {
     skin: 0xe3bfa2,
     coat: 0x4f6f86,
@@ -154,7 +148,6 @@ export async function start() {
   const person = character.group;
   person.scale.setScalar(PERSON_SCALE * 0.93);
   const CAR_SCALE = 2.2;
-  /* Voiture de l'adjoint en bleu, voiture de la secrétaire en rouge brique doux */
   const car = buildCar(0x2a5fae);
   car.scale.setScalar(CAR_SCALE);
   scene.add(car);
@@ -162,7 +155,6 @@ export async function start() {
   car2.scale.setScalar(CAR_SCALE);
   scene.add(car2);
   scene.add(person);
-  /* Salle du conseil : estrade au-dessus de la mairie, table, élus, urne */
   const dais = new THREE.Group();
   const daisCentre = world(spots.mairie, 0);
   daisCentre.y += 5.6;
@@ -178,7 +170,6 @@ export async function start() {
     );
     rim.rotation.x = Math.PI / 2;
     rim.position.y = 0.06;
-    /* Table ovale : plateau un peu épais vert sauge très doux, chant plus clair, piètement discret */
     const top = new THREE.Mesh(
       new THREE.CylinderGeometry(1.25, 1.25, 0.09, 72),
       new THREE.MeshLambertMaterial({ color: dark ? 0x5f7468 : 0xc6d5cb }),
@@ -207,7 +198,6 @@ export async function start() {
       dais.add(leg);
     }
   }
-  /* Urne transparente : boîte de verre cerclée d'un cadre, couvercle à fente ; les bulletins s'y empilent */
   const urne = new THREE.Group();
   const URNE = 0.36;
   const ballotsInUrne: THREE.Mesh[] = [];
@@ -251,8 +241,6 @@ export async function start() {
   const discFor = (fill: string) => new THREE.CanvasTexture(discCanvas(fill, "#ffffff"));
   const discTextures = { idle: discFor("#94a3b8"), yes: discFor("#1f5fbf"), abstain: discFor("#475569") };
   const ballots: THREE.Sprite[] = [];
-  /* Parité et diversité sobre : alternance femmes-hommes, carnations, coiffures et tenues variées.
-     La même fonction sert aux élus qui arrivent à pied et aux élus assis : on les reconnaît. */
   const buildMember = (i: number) => {
     const skins = [0xf1d9c5, 0xd8b49a, 0x8d5f45, 0xe8c4a8, 0xb98565, 0x5e3b2a];
     const coats = [0x334155, 0x475569, 0x1f2a3a, 0x64748b, 0x174a96, 0x94a3b8];
@@ -293,7 +281,6 @@ export async function start() {
   }
   scene.add(dais);
 
-  /* Élus qui arrivent à pied par les rues pendant la préparation et entrent dans la mairie */
   const walkerSeats = [1, 2, 3, 4, 6];
   const walkers = walkerSeats.map((seatIndex, k) => {
     const walker = buildMember(seatIndex);
@@ -305,11 +292,9 @@ export async function start() {
     return { walker, start, delay: k / walkerSeats.length };
   });
 
-  /* Présences : un anneau sous chaque siège, un écran au-dessus */
   const seatRings: THREE.Mesh[] = [];
   const seatWaves: THREE.Mesh[] = [];
   const tablets: { group: THREE.Group; material: THREE.MeshBasicMaterial }[] = [];
-  /* Écrans des élus : point en cours, puis vote de chacun */
   function screenTexture(label: string, color: string) {
     const canvas = document.createElement("canvas");
     canvas.width = 200;
@@ -349,7 +334,6 @@ export async function start() {
     ring.position.set(Math.cos(angle) * 1.65, 0.08, Math.sin(angle) * 1.65);
     dais.add(ring);
     seatRings.push(ring);
-    /* Onde du vote : un anneau qui s'étend puis s'efface sous l'élu */
     const wave = new THREE.Mesh(
       new THREE.RingGeometry(0.26, 0.3, 40),
       new THREE.MeshBasicMaterial({
@@ -365,7 +349,6 @@ export async function start() {
     wave.visible = false;
     dais.add(wave);
     seatWaves.push(wave);
-    /* Portable posé devant l'élu : clavier vers lui, écran face à lui, dos de l'écran vers le centre */
     const laptop = new THREE.Group();
     const shell = new THREE.MeshLambertMaterial({ color: 0x334155, transparent: true, opacity: 0 });
     const base = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.014, 0.2), shell);
@@ -387,7 +370,6 @@ export async function start() {
     laptop.visible = false;
     dais.add(laptop);
     tablets.push({ group: laptop, material });
-    /* Vote reporté en petit au-dessus du portable, lisible depuis la caméra */
     const ballot = ballots[i];
     ballot.position.set(Math.cos(angle) * r, 0.92, Math.sin(angle) * r);
     ballot.scale.setScalar(0.16);
@@ -407,13 +389,11 @@ export async function start() {
     return line;
   })();
 
-  /* Bâtiments détaillés : bureau, mairie, préfecture */
   const facing = (from: Spot, to: Spot) => Math.atan2(to.x - from.x, -(to.y - from.y)) - Math.PI;
   const bureau = buildBureau();
   bureau.position.copy(world(spots.home, -0.2));
   bureau.rotation.y = facing(spots.home, spots.homeDoor) + Math.PI;
   bureau.scale.setScalar(1.15);
-  /* Porte de garage du bureau, qui s'ouvre au départ de la voiture */
   const garageDoor = new THREE.Mesh(
     new THREE.BoxGeometry(1.0, 0.9, 0.04),
     new THREE.MeshLambertMaterial({ color: 0x64748b }),
@@ -436,7 +416,6 @@ export async function start() {
   prefecture.scale.setScalar(2);
   scene.add(bureau, mairie, prefecture);
 
-  /* Serveur de la mairie et appareils des élus : le projet s'affiche chez chacun */
   const server = new THREE.Group();
   {
     const rack = new THREE.Mesh(
@@ -458,14 +437,12 @@ export async function start() {
       led.position.set(0.15, 0.24 + i * 0.18, 0.27);
       server.add(slot, led);
     }
-    /* Socle sous la baie */
     const plinth = new THREE.Mesh(
       new THREE.BoxGeometry(0.66, 0.08, 0.66),
       new THREE.MeshLambertMaterial({ color: 0x94a3b8 }),
     );
     plinth.position.y = -0.02;
     server.add(plinth);
-    /* À gauche de la mairie, vu depuis la caméra de « Tout le conseil informé » */
     const serverSpot = { x: spots.mairie.x - 70, y: spots.mairie.y - 10 };
     server.position.copy(world(serverSpot, 0.02));
     server.scale.setScalar(6);
@@ -549,7 +526,6 @@ export async function start() {
     }),
   ) as Record<DeviceKind, { off: THREE.CanvasTexture; on: THREE.CanvasTexture }>;
 
-  /* Une dizaine d'appareils chez les élus : bâtiments répartis tout autour de la mairie */
   interface Device {
     sprite: THREE.Sprite;
     stem: THREE.Line;
@@ -631,7 +607,6 @@ export async function start() {
         new THREE.BufferGeometry().setFromPoints([base, top]),
         new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0 }),
       );
-      /* Arcs de la même famille : hauteur proportionnelle à la portée */
       const reach = serverTop.distanceTo(top);
       const curve = new THREE.QuadraticBezierCurve3(
         serverTop,
@@ -704,12 +679,9 @@ export async function start() {
     }
   }
 
-  /* Couche cadastrale : un rang de parcelles de chaque côté du chemin, découpé sans chevauchement.
-     Les limites de deux parcelles voisines sont communes : chaque limite suit la bissectrice du chemin. */
   const parcelSegments: number[] = [];
   const communalSegments: number[] = [];
   const parcelLabels: { at: Spot; text: string }[] = [];
-  /* Remplissage translucide des parcelles, posé sur le relief */
   const fills: { mesh: THREE.Mesh; strength: number; delay: number }[] = [];
   const parcelTints = [0xb7d3c4, 0xc4d4e6, 0xd2d8de, 0xa9c7b6, 0xb3c6dd, 0xc9d6cf];
   function fillQuad(a: Spot, b: Spot, c: Spot, d: Spot, hex: number, strength: number) {
@@ -769,7 +741,6 @@ export async function start() {
         inner.push({ x: c.x + n.x * VERGE, y: c.y + n.y * VERGE });
         outer.push({ x: c.x + n.x * depthOf(i), y: c.y + n.y * depthOf(i) });
       }
-      /* Deux limites voisines ne se croisent pas : la profondeur est réduite là où elles se rapprocheraient. */
       for (let i = 0; i < STATIONS; i++) {
         const a = [inner[i], outer[i]];
         const b = [inner[i + 1], outer[i + 1]];
@@ -800,7 +771,6 @@ export async function start() {
           line(inner[i], outer[i], communalSegments);
           line(inner[i + 1], outer[i + 1], communalSegments);
         }
-        /* Quelques parcelles seulement se colorent : celles de la commune, plus marquées, et une sur trois */
         if (communalParcel) fillQuad(inner[i], inner[i + 1], outer[i + 1], outer[i], ACCENT, 0.3);
         else if ((i + (side > 0 ? 1 : 0)) % 3 === 1)
           fillQuad(
@@ -827,7 +797,6 @@ export async function start() {
   const parcelCount = parcelSegments.length / 6;
   const communalCount = communalSegments.length / 6;
 
-  /* Tracé du chemin */
   const traceSegments = drape(
     ground,
     chemin.flatMap((s) => [s.x, s.y]),
@@ -839,7 +808,6 @@ export async function start() {
   const traceCount = traceSegments.length / 6;
   scene.add(trace);
 
-  /* Lien réseau mairie → préfecture */
   const linkStart = world(spots.mairie, 4);
   const linkEnd = world(spots.prefecture, 9);
   const linkControl = linkStart
@@ -891,7 +859,6 @@ export async function start() {
   prefectureGlow.position.copy(world(spots.prefecture, 0.6));
   scene.add(prefectureGlow);
 
-  /* Liste des délibérations affichée sur la façade de la mairie */
   const noticeTexture = (() => {
     const t = new THREE.CanvasTexture(indexCanvas("pdf", "Liste des délibérations", "Affichée en mairie"));
     t.colorSpace = THREE.SRGBColorSpace;
@@ -902,7 +869,6 @@ export async function start() {
   notice.position.copy(world(spots.mairieDoor, 2.6));
   scene.add(notice);
 
-  /* Textures des pièces */
   const texture = (canvas: HTMLCanvasElement) => {
     const t = new THREE.CanvasTexture(canvas);
     t.colorSpace = THREE.SRGBColorSpace;
@@ -912,7 +878,6 @@ export async function start() {
   const CARD_ASPECT = 640 / 400;
   const mailTexture = texture(indexCanvas("mail", "Votre devis en pièce jointe", "Nouveau courriel"));
 
-  /* Pièces : chacune vient d'un lieu, s'affiche en grand au centre, puis se pose à sa place dans la fiche */
   interface Piece {
     key: string;
     kind: PieceKind;
@@ -953,7 +918,6 @@ export async function start() {
     ["Devis · Terrassement", "4 800 € HT", "devisTerrassement"],
     ["Devis · Enrobé", "11 900 € HT", "devisEnrobe"],
   ] as const;
-  /* Deux devis arrivent par courriel et volent vers le dossier Devis */
   devis.forEach(([name, amount, moment], i) => {
     piece(`devis-${i}`, "pdf", name, "Reçu par courriel", amount, {
       folder: "devis",
@@ -963,7 +927,6 @@ export async function start() {
       fly: `${moment}Filed`,
     });
   });
-  /* Tableur du budget : il monte du bureau, s'affiche en grand avec sa grille, puis rejoint le dossier Budget */
   {
     const map = texture(
       sheetCanvas(
@@ -1000,7 +963,6 @@ export async function start() {
     arrive: "planArrives",
     fly: "planFiled",
   });
-  /* Texte de référence cité dans le rapport */
   piece("texte-legal", "legal", "Code de la voirie routière · art. L141-8", "Cité dans le rapport", undefined, {
     folder: "textes",
     source: roof,
@@ -1023,7 +985,6 @@ export async function start() {
     arrive: "appointmentArrives",
     fly: "appointmentFiled",
   });
-  /* L'assistant flotte en couche d'interface, contre le bord gauche de la fiche */
   const assistantNode = document.createElement("div");
   assistantNode.className = "p-assistant";
   assistantNode.setAttribute("aria-hidden", "true");
@@ -1068,7 +1029,6 @@ export async function start() {
     source: () => world(viewpoint, 4),
     fly: "mapFiled",
   });
-  /* Lot de photos : la première vole, la seconde entre directement dans le dossier */
   photoSpots.forEach((spot, i) => {
     piece(`photo-${i + 1}`, "image", ["Fossé bouché", "Accotement affaissé"][i], "Photo jointe au dessin", undefined, {
       folder: "photos",
@@ -1127,7 +1087,6 @@ export async function start() {
     }));
   const board = createBoard(boardNode, folderItems);
 
-  /* Projet en séance : présenté au-dessus de la table, retourné en délibération adoptée, puis à l'urne */
   const draftTexture = texture(indexCanvas("matter", "Réfection du chemin communal", "Projet de délibération"));
   const adoptedTexture = texture(
     indexCanvas("adopted", "Réfection du chemin communal", "Adoptée", "10 pour, 1 abstention"),
@@ -1136,7 +1095,6 @@ export async function start() {
   projet.renderOrder = 35;
   projet.visible = false;
   overlay.add(projet);
-  /* Débat : deux sortes de documents consultés, le rapport (texte) et le plan de situation (PDF) */
   const reportTexture = texture(indexCanvas("draft", "Rapport", "Présentation du projet aux élus"));
   const shown3 = [reportTexture, pieces.find((x) => x.key === "plan")?.texture].map((map) => {
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, opacity: 0 }));
@@ -1146,7 +1104,6 @@ export async function start() {
     return sprite;
   });
 
-  /* Photos épinglées et flash */
   const pinMoments = ["firstPhotoPinned", "secondPhotoPinned"];
   const pins = photoSpots.map((spot, i) => {
     const pin = new THREE.Group();
@@ -1174,7 +1131,6 @@ export async function start() {
     return { pin, card };
   });
 
-  /* Repères écran ↔ scène */
   const DEPTH = 7;
   const depthProbe = new THREE.Vector3();
   function screenToWorld(point: Point, depth = DEPTH): THREE.Vector3 {
@@ -1194,7 +1150,6 @@ export async function start() {
   const ROW_FRACTION = () => 40 / Math.max(1, host.clientHeight);
   let narrow = false;
 
-  /* Étiquettes de lieux, liens vers leur étape */
   function label(textContent: string, kind: string): HTMLElement {
     const node = document.createElement("span");
     node.className = `p-label ${kind}`;
@@ -1203,7 +1158,6 @@ export async function start() {
     return node;
   }
   const firstOf = (placeIndex: number) => subSteps.findIndex((step) => step.place === placeIndex);
-  /* Repères cartographiques des lieux : un point au sol et le nom du lieu à côté */
   interface Marker {
     node: HTMLElement;
     at: THREE.Vector3;
@@ -1233,12 +1187,10 @@ export async function start() {
   const measure = label("564 m", "p-measure");
   const parcelNodes = parcelLabels.map((entry) => ({ node: label(entry.text, "p-parcel"), at: world(entry.at, 1.5) }));
 
-  /* Trajets en voiture : du bureau au chemin par la route, puis du chemin à la mairie */
   bureau.updateMatrixWorld(true);
   const toSpot = (v: THREE.Vector3): Spot => ({ x: v.x / SCALE, y: -v.z / SCALE });
   const garageInside = toSpot(bureau.localToWorld(new THREE.Vector3(-1.25, 0, -0.4)));
   const garageOutside = toSpot(bureau.localToWorld(new THREE.Vector3(-1.25, 0, 3.2)));
-  /* Trajet direct par la seule route qui mène au chemin : peu de virages, l'entrée du chemin prise sans lacet */
   const roadToChemin: Spot[] = [
     garageInside,
     garageOutside,
@@ -1252,7 +1204,6 @@ export async function start() {
     { x: -831, y: -2521 },
     { x: viewpoint.x - 14, y: viewpoint.y - 6 },
   ];
-  /* L'adjoint repart vers l'est ; la secrétaire arrive à la mairie par une autre route */
   const roadAway: Spot[] = [
     roadToChemin[roadToChemin.length - 1],
     ...chemin
@@ -1264,7 +1215,6 @@ export async function start() {
     { x: -268, y: -2462 },
     { x: -88, y: -2416 },
   ];
-  /* La voiture de la secrétaire entre dans le plan déjà lancée, à quelques rues de la mairie */
   const roadToMairie: Spot[] = [
     { x: -1036, y: -2431 },
     { x: -1012, y: -2420 },
@@ -1282,7 +1232,6 @@ export async function start() {
     const b = route(Math.min(1, f + 0.02));
     return Math.atan2(b.x - a.x, -(b.y - a.y));
   };
-  /** Voiture de l'adjoint : bureau → chemin, puis départ hors du récit. */
   function carAt(p: number): { spot: Spot; heading: number; visible: boolean } {
     const toChemin = tl.moment("carToChemin");
     const awayWindow = tl.moment("carLeavesChemin");
@@ -1294,8 +1243,6 @@ export async function start() {
     const f = easeInOut(span(p, awayWindow[0], awayWindow[1]));
     return { spot: driveAway(f), heading: heading(driveAway, f), visible: f < 1 };
   }
-  /** Voiture de la secrétaire : arrive à la mairie et y reste. */
-  /* Départ de la mairie : la voiture garée face au nord fait une seule boucle vers l'est, puis reprend la route vers le sud */
   const driveAwayFromMairie = polyline([
     roadToMairie[roadToMairie.length - 1],
     { x: -940, y: -2268 },
@@ -1317,7 +1264,6 @@ export async function start() {
       const f = gentle(span(p, leaveMairie[0], leaveMairie[1]));
       return { spot: driveAwayFromMairie(f), heading: heading(driveAwayFromMairie, Math.max(0.01, f)), visible: f < 1 };
     }
-    /* Déjà en mouvement à l'entrée du plan : la voiture ralentit seulement à l'arrivée */
     const t = span(p, toMairie[0], toMairie[1]);
     const f = 1 - (1 - t) * (1 - t);
     return {
@@ -1327,7 +1273,6 @@ export async function start() {
     };
   }
 
-  /* Personne : à pied près des lieux, en voiture entre eux */
   function personAt(p: number): { spot: Spot; heading: number; moving: boolean; inCar: boolean } {
     const walk = (a: Spot, b: Spot, k: number) => ({
       spot: { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k },
@@ -1338,10 +1283,8 @@ export async function start() {
     const carStart = roadToChemin[0];
     const carChemin = roadToChemin[roadToChemin.length - 1];
     const carMairie = roadToMairie[roadToMairie.length - 1];
-    /* Adjoint : bureau, voiture, chemin, retour à la voiture */
     if (p < tl.start("carToMairie") - tl.margin("deputyLeavesStoryBefore")) {
       const approach = { x: spots.homeDoor.x + 16, y: spots.homeDoor.y - 11 };
-      /* Il attend devant la porte pendant l'arrivée des premières pièces, puis entre quand le budget apparaît */
       const nearDoor = { x: spots.homeDoor.x + 5, y: spots.homeDoor.y - 4 };
       if (p < tl.start("deputyWaitsAtDoor")) return walk(approach, nearDoor, gentle(during(p, "deputyWalksToDoor")));
       if (p < tl.end("deputyWaitsAtDoor")) return { spot: nearDoor, heading: -0.6, moving: false, inCar: false };
@@ -1349,7 +1292,6 @@ export async function start() {
         return walk(nearDoor, spots.homeDoor, gentle(during(p, "deputyEntersOffice")));
       if (p < tl.end("carToChemin")) return { spot: carStart, heading: 0, moving: false, inCar: true };
       if (p < tl.start("deputyWalksBackToCar")) {
-        /* La voiture s'arrête, courte pause, l'adjoint descend puis marche */
         const out = {
           x: carChemin.x + (viewpoint.x - carChemin.x) * 0.35,
           y: carChemin.y + (viewpoint.y - carChemin.y) * 0.35 + 8,
@@ -1368,7 +1310,6 @@ export async function start() {
       const back = during(p, "deputyWalksBackToCar");
       return back >= 1 ? { spot: carChemin, heading: 0, moving: false, inCar: true } : walk(viewpoint, carChemin, back);
     }
-    /* Secrétaire, après la séance : sortie de la mairie, marche jusqu'à la voiture, courte pause, départ */
     if (p >= tl.end("secretaryInMairie")) {
       const toCar = {
         x: carMairie.x + (spots.mairieDoor.x - carMairie.x) * 0.4 - 6,
@@ -1378,9 +1319,7 @@ export async function start() {
       if (k < 1) return walk(spots.mairieDoor, toCar, k);
       return { spot: toCar, heading: 0, moving: false, inCar: p >= tl.start("secretaryGetsInCar") };
     }
-    /* Secrétaire : arrivée en voiture, puis à pied jusqu'à la porte */
     if (p < tl.end("carToMairie")) return { spot: carMairie, heading: 0, moving: false, inCar: true };
-    /* La voiture s'arrête, courte pause, la secrétaire descend, reste un instant visible, puis marche et entre */
     const out = {
       x: carMairie.x + (spots.mairieDoor.x - carMairie.x) * 0.4 - 6,
       y: carMairie.y + (spots.mairieDoor.y - carMairie.y) * 0.4,
@@ -1394,7 +1333,6 @@ export async function start() {
       : walk(out, spots.mairieDoor, k);
   }
 
-  /* Caméra : un plan par lieu, tenu pendant ses sous-étapes ; un plan aérien entre deux lieux */
   const village = { x: -760, y: -2380 };
   const cheminCentre = { x: -735, y: -2545 };
   const mid = (a: Spot, b: Spot, f = 0.5) => ({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f });
@@ -1406,7 +1344,6 @@ export async function start() {
     el: number;
     dist: number;
   }
-  /** Cibles nommées des plans de caméra (story-settings.json). */
   const aims: Record<string, Aim> = {
     village,
     home: spots.home,
@@ -1437,7 +1374,6 @@ export async function start() {
   let times: number[] = [];
   let channels = { az: [] as number[], el: [] as number[], dist: [] as number[] };
   let keysRevision = -1;
-  /** Plans de caméra relus quand les réglages du récit changent. */
   function readKeys() {
     if (keysRevision === tl.revision) return;
     keysRevision = tl.revision;
@@ -1482,9 +1418,6 @@ export async function start() {
     const e = (el * Math.PI) / 180;
     return new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e)).normalize();
   }
-  /* Cadre de l'image : la scène décalée à droite de la gouttière. Pendant la séance, la table du conseil se place
-     au centre de la partie libre, entre la gouttière, la fiche, l'en-tête et le panneau d'étape, à une distance qui
-     la fait tenir dans cette partie. La partie libre est mesurée une fois par taille de fenêtre, pendant la séance. */
   let framedCouncil = -1;
   let councilFit = 1;
   let freeZone: { width: number; height: number; x: number; y: number; fit: number } | null = null;
@@ -1493,7 +1426,6 @@ export async function start() {
     const right = boardNode.getBoundingClientRect().left;
     const top = (document.querySelector(".p-masthead") as HTMLElement).getBoundingClientRect().bottom;
     const bottom = watermark.getBoundingClientRect().top;
-    /* Référence : à 1440 × 900, la table tient à la distance de ses plans quand la partie libre fait 440 px de haut */
     const fit = Math.min(1.6, Math.max(1, height / Math.max(120, bottom - top) / (900 / 440)));
     freeZone = { width, height, x: width / 2 - (left + right) / 2, y: height / 2 - (top + bottom) / 2, fit };
   }
@@ -1572,7 +1504,6 @@ export async function start() {
     node.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
   }
 
-  /* Saut vers une sous-étape */
   interface Jump {
     fromPosition: THREE.Vector3;
     fromTarget: THREE.Vector3;
@@ -1590,7 +1521,6 @@ export async function start() {
           ? "agenda"
           : "business";
 
-  /** Phase de marche accordée à la distance parcourue : une foulée par longueur de pas, sans glissement des pieds. */
   function stridePhase(object: THREE.Object3D, scale: number): number {
     const last = object.userData.lastPos as THREE.Vector3 | undefined;
     const now = object.position.clone().setY(0);
@@ -1601,7 +1531,6 @@ export async function start() {
     return object.userData.phase as number;
   }
 
-  /* Image d'un instant p du récit : tout dépend de p seul */
   function compose(p: number) {
     placeCamera(p);
     let boardP = p;
@@ -1623,7 +1552,6 @@ export async function start() {
       }
     }
 
-    /* Personne */
     const here = personAt(p);
     const field = p < tl.start("carToMairie") - tl.margin("deputyLeavesStoryBefore");
     const actor = field ? adjoint : character;
@@ -1667,21 +1595,18 @@ export async function start() {
     car2.rotation.y = vehicle2.heading;
     car2.visible = vehicle2.visible && !isIn(p, "secretaryCarHidden");
 
-    /* Le conseil informé : liens du serveur vers les appareils, écrans qui s'allument */
     const shareFade = 1 - smooth(during(p, "devicesFade"));
     const sharing = p >= tl.start("devicesAppear") && shareFade > 0;
     const pulse = during(p, "serverPulse");
     (serverRing.material as THREE.MeshBasicMaterial).opacity =
       sharing && pulse > 0 && pulse < 1 ? 0.8 * (1 - pulse) : 0;
     serverRing.scale.setScalar(1 + pulse * 2.5);
-    /* La baie n'apparaît que pendant « Tout le conseil informé », en fondu */
     const serverShow = smooth(during(p, "serverAppears")) * (1 - smooth(during(p, "serverDisappears")));
     server.visible = serverShow > 0.01;
     server.traverse((child) => {
       if (child instanceof THREE.Mesh) (child.material as THREE.Material & { opacity: number }).opacity = serverShow;
     });
     devices.forEach((device, index) => {
-      /* Départs étalés ; chaque lien se trace lentement, avec un seul flux lumineux */
       const start = tl.within("linksToDevices", device.delay);
       const length = lasting("linksToDevices") * tl.param("linksToDevices", "each");
       const k = span(p, start, start + length);
@@ -1713,7 +1638,6 @@ export async function start() {
       device.stem.visible = show > 0.01;
     });
 
-    /* Chemin : téléphone, tracé, photos, cadastre */
     const phoneShow = smooth(during(p, "phoneRises")) * (1 - smooth(during(p, "phoneLowers")));
     phone.style.opacity = phoneShow.toFixed(3);
     phone.style.transform = `translate(-50%, ${((1 - phoneShow) * 40).toFixed(1)}px)`;
@@ -1746,7 +1670,6 @@ export async function start() {
     communal.geometry.instanceCount = Math.floor(communalCount * span(cadastre, communalFrom, 1));
     for (const entry of parcelNodes) place(entry.node, entry.at, cadastre >= 1 && p < tl.end("parcelNumbersShown"));
 
-    /* Séance : estrade, appel, écrans, pièces présentées, votes, projet, urne */
     const daisShow = smooth(during(p, "daisAppears")) * (1 - smooth(during(p, "daisDisappears")));
     dais.visible = daisShow > 0.001;
     dais.scale.setScalar(Math.max(0.001, daisShow));
@@ -1791,14 +1714,12 @@ export async function start() {
       const voted = p >= ballotTime(i);
       if (voted && i === 7) abstain++;
       else if (voted) yes++;
-      /* Le vote de chaque élu s'allume sur son écran, avant le décompte */
       const tablet = tablets[i];
       tablet.material.map = !voted ? tabletTexture : i === 7 ? voteTextures.abstain : voteTextures.yes;
       if (voted) tablet.material.opacity = Math.max(tablet.material.opacity, laptopsOut);
       (tablet.group.userData.shell as THREE.MeshLambertMaterial).opacity = tablet.material.opacity;
       tablet.group.visible = tablet.material.opacity > 0.01;
       ballots[i].visible = false;
-      /* Le cercle au sol prend doucement la couleur du vote, avec une légère onde */
       const voteColor = i === 7 ? 0x64748b : 0x15803d;
       const t = ballotTime(i);
       const glow = gentle(span(p, t, t + voteLength * tl.param("councillorsVote", "glow")));
@@ -1818,7 +1739,6 @@ export async function start() {
     const confirmed = p >= tl.start("voteConfirmed");
     const phase = !opened ? 0 : p < range("debat")[0] ? 0 : p < range("scrutin")[0] ? 1 : confirmed ? 3 : 2;
 
-    /* Projet présenté puis délibération adoptée, verte, qui tombe dans l'urne */
     const urneIn = daisCentre.clone().add(new THREE.Vector3(0, 0.75, 0));
     projet.visible = false;
     if (isIn(p, "draftShown")) {
@@ -1832,7 +1752,6 @@ export async function start() {
       if (flip > 0 && flip < 1) projet.scale.x *= Math.abs(Math.cos(flip * Math.PI));
     }
 
-    /* Actes : affichage, lien réseau, accusé de réception */
     notice.material.opacity = smooth(during(p, "noticeAppears")) * (1 - smooth(during(p, "noticeDisappears")));
     notice.visible = notice.material.opacity > 0.01;
     const linkDrawn = during(p, "linkToPrefectureDrawn");
@@ -1852,7 +1771,6 @@ export async function start() {
       : 0;
     (prefectureGlow.material as THREE.MeshBasicMaterial).color.setHex(back >= 1 ? 0x15803d : ACCENT);
 
-    /* Fiche persistante : sa forme suit le lieu, les pièces s'y posent */
     const landed = new Map<string, number>();
     const coming = new Set<string>();
     for (const entry of pieces) {
@@ -1861,7 +1779,6 @@ export async function start() {
       else if (boardP >= (entry.arrive ? tl.start(entry.arrive) : flyStart)) coming.add(entry.key);
     }
     if (boardP >= tl.start("reportCreated")) landed.set("rapport", tl.start("reportCreated"));
-    /* Assistant IA : apparition, lien à la personne, lecture des dossiers un à un */
     const robotShow = smooth(during(p, "assistantAppears")) * (1 - smooth(during(p, "assistantLeaves")));
     const scan = during(p, "assistantReadsFolders");
     const scanIndex = scan > 0 && scan < 1 ? Math.min(scanOrder.length - 1, Math.floor(scan * scanOrder.length)) : -1;
@@ -1877,7 +1794,6 @@ export async function start() {
     assistantNode.classList.toggle("is-working", scan > 0 && scan < 1);
     assistantNode.classList.toggle("is-writing", isIn(p, "assistantWrites"));
     assistantNode.style.visibility = robotShow > 0.01 ? "visible" : "hidden";
-    /* Trait fin vers la secrétaire : il agit avec son compte */
     const from = robotHead();
     const toPerson = person.visible
       ? person.position.clone().add(new THREE.Vector3(0, 1.4, 0))
@@ -1913,7 +1829,6 @@ export async function start() {
     board.update(state);
     boardNode.style.opacity = smooth(during(p, "ficheAppears")).toFixed(3);
 
-    /* Pièces : en grand au centre, puis jusqu'à leur place dans la fiche */
     const boardBox = boardNode.getBoundingClientRect();
     const gutterBox = gutter.getBoundingClientRect();
     const stagePoint = narrow
@@ -1971,7 +1886,6 @@ export async function start() {
       sprite.material.opacity = 1 - 0.35 * gentle(span(k, 0.85, 1));
     }
 
-    /* Repères : position suivie à chaque image ; masquage par chevauchement avec hystérésis et fondu */
     const blocked = [boardBox, gutterBox];
     const current = subSteps[Math.max(0, subStepAt(p))].place;
     for (const item of markers) {
@@ -1999,7 +1913,6 @@ export async function start() {
     updateTileLevels(relief.tiles, camera.position);
   }
 
-  /* Interactions : au survol d'une photo épinglée ou du tracé, la carte de sa pièce */
   const preview = document.createElement("div");
   preview.className = "p-preview";
   labels.append(preview);
@@ -2043,7 +1956,6 @@ export async function start() {
   let target = scrollProgress();
   let shown = reducedMotion ? reducedProgress(target) : target;
   let tween: { from: number; to: number; start: number; ms: number } | null = null;
-  /* Instant tenu par le studio : le défilement de la page ne le remplace pas tant qu'aucun geste n'intervient */
   let held = false;
   hooks.seek = (p) => {
     tween = null;
@@ -2082,8 +1994,6 @@ export async function start() {
     shown = p;
     dirty = true;
   };
-  /* Passage à une sous-étape voisine (clavier, molette) : le récit se joue jusqu'à la cible, en avant comme en
-     arrière ; une cible lointaine ou le mouvement réduit donnent un saut */
   hooks.play = (to, ms) => {
     held = false;
     if (reducedMotion || Math.abs(to - shown) > tl.settings.playback.jumpBeyond) {
@@ -2109,10 +2019,8 @@ export async function start() {
   );
   window.addEventListener("touchstart", cancelTween, { passive: true });
 
-  /* Images trop lentes sur la durée : la densité de pixels baisse d'un cran, jusqu'au plus léger */
   const frameTimes: number[] = [];
   let renderedAt = -1;
-  /* Les premières images (compilation des shaders, chargement) ne comptent pas */
   let watchFrom = -1;
   function watchFrame(now: number) {
     if (watchFrom < 0) watchFrom = now + 1500;
@@ -2134,7 +2042,6 @@ export async function start() {
     "scroll",
     () => {
       markPast();
-      /* Pendant la lecture d'une sous-étape, la page défile sous la scène : le récit garde sa propre cible */
       if (tween || held) return;
       target = scrollProgress();
       dirty = true;
@@ -2164,7 +2071,6 @@ export async function start() {
     }
     const goal = reducedMotion ? reducedProgress(target) : target;
     if (reducedMotion) {
-      /* Sans mouvement, le plan change d'une étape à l'autre : fondu court plutôt qu'une coupure */
       if (goal !== shown && !cutting) {
         if (!sceneShown) shown = goal;
         else {
@@ -2182,7 +2088,6 @@ export async function start() {
       dirty = true;
     }
     if (jump || composedRevision !== tl.revision) dirty = true;
-    /* Section du bas affichée sur tout l'écran : la scène est couverte, rien à dessiner jusqu'au retour */
     if (!dirty || window.scrollY >= more.offsetTop) {
       renderedAt = -1;
       return;
@@ -2206,8 +2111,6 @@ export async function start() {
   document.body.dataset.ready = "true";
   (window as unknown as { __presentation: unknown }).__presentation = {
     progress: () => shown,
-    /* Contrôle des trajets : pour chaque voiture, écart maximal entre le cap et le sens réel du déplacement,
-       et plus grand virage d'un échantillon à l'autre (degrés) */
     cars: () => {
       const report: Record<string, { offHeading: number; maxTurn: number; backwards: number }> = {};
       const check = (name: string, at: (p: number) => { spot: Spot; heading: number }, a: number, b: number) => {

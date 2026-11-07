@@ -1,10 +1,14 @@
 import { daysFromNow } from "../common/dates.mjs";
 
-/** Meeting operations shared by the scenarios, bound to the dataset roles of the fixture. */
+/**
+ * Meeting operations shared by the scenarios, bound to the dataset roles of the fixture.
+ * Each step records its server reception instant with the minute of the historical meeting it maps to;
+ * `backdate` moves each recorded step of a meeting to its minute in the historical meeting opened at
+ * `openedAt`, when the seed has database access; otherwise the meeting keeps the load time.
+ */
 export function createMeetingConduct(api, { roster, subjects, meetingLocation }) {
   const { get, post, put, patch } = api;
   const memberList = roster.all;
-  // Server reception instants of each step, with the minute of the historical meeting it maps to.
   const timelines = new Map();
   const mark = (meeting, since, minute) => {
     if (!timelines.has(meeting.id)) timelines.set(meeting.id, []);
@@ -95,10 +99,6 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
     const adjourned = await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/adjourn`, {});
     mark(meeting, adjourned.adjournedAt, minute);
   }
-  /**
-   * Moves each recorded step of a meeting to its minute in the historical meeting opened at
-   * `openedAt`, when the seed has database access; otherwise the meeting keeps the load time.
-   */
   async function backdate(meeting, openedAt) {
     const steps = (timelines.get(meeting.id) ?? []).map(({ since, minute }) => ({
       since,

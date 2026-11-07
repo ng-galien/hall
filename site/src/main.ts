@@ -434,16 +434,11 @@ async function renderTerrain(root: HTMLElement) {
 
   const intro = document.querySelector<HTMLElement>(".intro");
 
-  /** Position de défilement où la scène est à sa place, juste sous l'en-tête et sous le texte d'accueil. */
   function sceneScrollTop(): number {
     if (!intro || getComputedStyle(intro).position === "absolute") return 0;
     return Math.max(0, Math.round(intro.getBoundingClientRect().bottom + window.scrollY - masthead.offsetHeight));
   }
 
-  /*
-   * Un défilement doux en cours, lancé par un lien de l'en-tête, continue après le retour à la scène : la page est
-   * ramenée sous la scène à chaque image tant qu'elle n'est pas stable, et la scène ouverte n'est pas refermée entre-temps.
-   */
   let settling = false;
   function settleOnScene(home: number) {
     settling = true;
@@ -517,7 +512,6 @@ async function renderTerrain(root: HTMLElement) {
     const canvas = stage.querySelector("canvas");
     if (canvas) canvas.style.touchAction = sheet.matches ? "pan-y" : "none";
     if (scene) {
-      /* La scène, collante, reste sous l'en-tête pendant le défilement : la page revient à sa place, sans carte de section par-dessus. */
       settleOnScene(sceneScrollTop());
     }
     terrain?.play(scene ? { place: scene.place, motion: scene.motion } : null);

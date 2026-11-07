@@ -41,6 +41,7 @@ function initialState(itemId: string | null, serverText: string): NotesState {
  * last keystroke, at least every ten seconds while typing continues, and once
  * more when the item leaves discussion, another item is selected or the view
  * closes. While nothing typed remains unsaved, the view shows the server text.
+ * A later state for the same item is not marked saved by an earlier send.
  *
  * @implements-requirement HALL-FR-MTG-380
  */
@@ -68,7 +69,6 @@ export function useAgendaItemNotesAutosave({
     timer.current = null;
   }, []);
 
-  /** Sends the unsaved text of the given state; a later state for the same item is not marked saved. */
   const sendState = useCallback(async (state: NotesState, keepalive = false): Promise<boolean> => {
     if (state.itemId === null || state.revision === state.savedRevision) return true;
     const { itemId: target, text: sent, revision, recorded } = state;

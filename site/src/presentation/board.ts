@@ -124,7 +124,6 @@ const glowOf = (p: number, landedAt: number | undefined) =>
 export function createBoard(root: HTMLElement, items: FolderItem[]) {
   root.replaceChildren();
   root.dataset.testid = "board";
-  /* Sur téléphone, la fiche est une colonne de pictogrammes ; un toucher l'ouvre en version réduite, un autre la referme */
   root.addEventListener("click", () => root.classList.toggle("is-expanded"));
   const faces: Record<Face, HTMLElement> = {
     business: element("section", "b-face"),
@@ -135,7 +134,6 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   for (const face of Object.values(faces)) root.append(face);
   const targets = new Map<string, HTMLElement>();
 
-  /* Fiche d'affaire */
   const business = head("business", "Affaire", "Réfection du chemin communal");
   const committee = element("span", "b-tag");
   committee.append(glyphTile("committee", "b-tag-glyph"), element("span", "", "Commission Voirie"));
@@ -184,7 +182,6 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   targets.set("projet", project.node);
   targets.set("question", question.node);
 
-  /* Ordre du jour */
   const agenda = head("agenda", "Séance du conseil municipal", "Séance n° 4 · jeudi 12 novembre");
   const points: [PieceKind, string, string, boolean][] = [
     ["draft", "Arrêt du procès-verbal", "Séance précédente", true],
@@ -218,7 +215,6 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   targets.set("dossier", pack.node);
   targets.set("agenda-3", agendaRows[2]);
 
-  /* Mode séance */
   const session = head("matter", "Séance du conseil municipal", "Séance n° 4 · jeudi 12 novembre");
   session.chip.classList.add("is-quorum");
   const roll = element("div", "b-roll");
@@ -275,7 +271,6 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   targets.set("pv", minutes.node);
   targets.set("current", currentTitle);
 
-  /* Actes */
   const acts = head("adopted", "Délibération n° 2026-031 · version définitive", "Réfection du chemin communal");
   const decision = row("adopted", "Délibération", "Figée, numérotée et datée");
   const list = row("pdf", "Liste des délibérations", "Pour le panneau d’affichage et le site");
@@ -314,7 +309,6 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
         root.style.height = `${wanted}px`;
       }
 
-      /* Fiche d'affaire */
       business.chip.hidden = true;
       reveal(committee, state, "commission");
       reveal(report.node, state, "rapport");
@@ -365,7 +359,6 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
       docsTitle.hidden = total === 0 && state.coming.size === 0;
       docsCount.textContent = total > 0 ? ` · ${total}` : "";
 
-      /* Ordre du jour */
       agenda.chip.textContent = state.agendaFrozen ? "Ordre du jour figé" : "En préparation";
       agendaRows[2].classList.toggle("is-empty", state.agendaFilled < 1);
       agendaRows[3].classList.toggle("is-empty", state.agendaFilled < 2);
@@ -373,7 +366,6 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
       reveal(pack.node, state, "dossier");
       meetingDocs.hidden = !state.landed.has("convocation") && !state.coming.has("convocation");
 
-      /* Séance */
       session.chip.textContent = state.opened ? `Présents : ${state.present} / 11` : `Appel : ${state.present} / 11`;
       seats.forEach((seat, i) => {
         seat.classList.toggle("is-present", i < state.present);
@@ -424,13 +416,11 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
       result.classList.toggle("is-adopted", state.confirmed);
       reveal(minutes.node, state, "pv");
 
-      /* Actes */
       acts.chip.textContent = "Adoptée";
       acts.chip.classList.add("is-adopted");
       reveal(decision.node, state, "deliberation");
       reveal(list.node, state, "liste");
       reveal(nextMinutes.node, state, "pv-suite");
-      /* Envoi à la préfecture : présent avec le procès-verbal, allumé à l'arrivée du flux, coché à l'accusé */
       sending.node.style.display = state.landed.has("pv-suite") ? "" : "none";
       sending.node.classList.toggle("is-sent", state.sent >= 1);
       sending.node.style.setProperty("--glow", state.sent >= 1 && !state.acknowledged ? "1" : "0");

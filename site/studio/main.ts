@@ -344,7 +344,10 @@ window.addEventListener("keydown", (event) => {
 
 /* ------------------------------------------------------------------ Réglages modifiés ailleurs */
 
-/** Si le fichier de réglages a changé depuis l'ouverture : avis affiché, enregistrement bloqué. */
+/**
+ * Si le fichier de réglages a changé depuis l'ouverture : avis affiché, enregistrement bloqué.
+ * Sans serveur du studio, pas de contrôle.
+ */
 async function checkSettingsFile() {
   try {
     const response = await fetch("../__studio/settings", { cache: "no-store" });
@@ -354,9 +357,7 @@ async function checkSettingsFile() {
       stale = true;
       renderBar();
     }
-  } catch {
-    /* Sans serveur du studio, pas de contrôle */
-  }
+  } catch {}
 }
 
 /* ------------------------------------------------------------------ Enregistrement */
@@ -849,7 +850,6 @@ function renderDetail() {
   tracks.append(el("div", "st-row-label", "Temps"), ruler);
   laneWidth = Math.max(200, ruler.getBoundingClientRect().width);
 
-  /* Règle : secondes depuis le début de la lecture de la sous-étape, notes */
   const every = D > 12 ? 2 : D > 5 ? 1 : 0.5;
   for (let t = 0; t <= D + 1e-6; t += every) {
     const tick = el("div", "st-tick");
@@ -941,7 +941,6 @@ function renderDetail() {
     row.style.height = `${stack(items) * LANE + 4}px`;
     tracks.append(el("div", "st-row-label", label), row);
   }
-  /* Hors de la lecture de la sous-étape, poignée de durée, partie à couper, notes, accroche et tête de lecture */
   const overlay = el("div", "st-overlay");
   const [a, b] = detailSpan();
   for (const [from, to] of [

@@ -429,7 +429,6 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       const last = queue.at(-1);
       flights = [];
       if (!last) return;
-      /* Sans mouvement, le plan change d'un coup : fondu court plutôt qu'une coupure */
       if (reducedMotion && !software && stage.dataset.ready === "true") crossfade([stage, labels], () => land(last));
       else land(last);
       return;

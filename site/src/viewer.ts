@@ -183,7 +183,6 @@ function layout() {
   if (!parts) return;
   const capture = state.captures[state.index];
   const { stage, shot } = parts;
-  /* Sur grand écran, une marge laisse voir l'ombre de la capture ajustée */
   const margin = stage.clientWidth > 600 ? 32 : 0;
   const room = Math.max(1, stage.clientWidth - margin);
   const height = Math.max(1, stage.clientHeight - margin);
@@ -243,14 +242,15 @@ function beginGesture() {
   };
 }
 
-/** Le geste garde ses doigts même hors de la scène ; posé seulement au premier déplacement pour que le clic garde sa cible. */
+/**
+ * Le geste garde ses doigts même hors de la scène ; posé seulement au premier déplacement pour que le clic garde sa cible.
+ * Un pointeur déjà relâché n'est pas capturé.
+ */
 function capture(pointerId: number) {
   if (parts?.stage.hasPointerCapture(pointerId) === false) {
     try {
       parts.stage.setPointerCapture(pointerId);
-    } catch {
-      /* pointeur déjà relâché */
-    }
+    } catch {}
   }
 }
 
@@ -299,7 +299,6 @@ function onPointerMove(event: PointerEvent) {
     clampView();
     paint();
   } else if (!gesture.multi && state.captures.length > 1 && Math.abs(dx) > Math.abs(dy)) {
-    /* Glissement latéral sans agrandissement : la capture suit le doigt, avec résistance aux extrémités */
     const blocked = (dx > 0 && state.index === 0) || (dx < 0 && state.index === state.captures.length - 1);
     view.x = blocked ? dx / 3 : dx;
     view.y = 0;
@@ -425,6 +424,10 @@ function onKey(event: KeyboardEvent) {
   else if (event.key === "0") resetView(true);
 }
 
+/**
+ * Le pincement agrandit la capture seule, jamais la page : Safari sur iPhone reçoit ses propres événements de geste.
+ * Le geste de retour du téléphone ferme la visionneuse au lieu de quitter la page.
+ */
 function build(): ViewerParts {
   const dialog = node("dialog", "viewer", "viewer");
   dialog.setAttribute("aria-labelledby", "viewer-title");
@@ -495,7 +498,6 @@ function build(): ViewerParts {
       dialog.close();
   });
   dialog.addEventListener("keydown", onKey);
-  /* Le pincement agrandit la capture seule, jamais la page : Safari sur iPhone reçoit ses propres événements de geste */
   for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
     dialog.addEventListener(type, (event) => event.preventDefault());
   }
@@ -528,7 +530,6 @@ function build(): ViewerParts {
     state.opener?.focus();
     state.opener = null;
   });
-  /* Le geste de retour du téléphone ferme la visionneuse au lieu de quitter la page */
   window.addEventListener("popstate", () => {
     if (pendingHistoryBacks > 0) {
       pendingHistoryBacks -= 1;

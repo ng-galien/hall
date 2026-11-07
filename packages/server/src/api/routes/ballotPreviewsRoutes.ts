@@ -8,6 +8,7 @@ import { routeParameter } from "../routeParameter.js";
 
 // @implements-requirement HALL-FR-MTG-320
 // @implements-requirement HALL-FR-USR-030
+// @implements-requirement HALL-FR-MTG-370
 /** A ballot is recorded by the officers in office of the meeting of its agenda item. */
 export function createBallotPreviewsRouter({ councilBallotService, councilClient, realtimeEvents }: Cradle): Router {
   const router = Router();
@@ -32,7 +33,6 @@ export function createBallotPreviewsRouter({ councilBallotService, councilClient
     response.json(await councilBallotService.getPreview(routeParameter(request.params.previewId)));
   });
   router.post("/:previewId/confirm", requireActionPermission("ballot.confirm"), async (request, response) => {
-    // @implements-requirement HALL-FR-MTG-370
     confirmBallotResultPreviewSchema.parse(request.body);
     const previewId = routeParameter(request.params.previewId);
     const preview = await councilBallotService.getPreview(previewId);

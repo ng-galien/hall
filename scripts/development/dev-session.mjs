@@ -322,6 +322,7 @@ async function restart() {
   await start();
 }
 
+/** The seed moves its past meetings to their historical dates in this demonstration database. */
 async function demoRestart() {
   requireTmux();
   runtimeConfig = null;
@@ -331,7 +332,6 @@ async function demoRestart() {
   ensurePostgres();
   resetPostgres();
   await start();
-  // The seed moves its past meetings to their historical dates in this demonstration database.
   process.env.SEED_DATABASE_URL = "postgresql://hall:hall-dev-only@127.0.0.1:54329/hall";
   run("npm", ["run", "seed:dev", "-w", "@hall/server"]);
   console.log("Démonstration prête.");
