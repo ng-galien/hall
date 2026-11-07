@@ -143,7 +143,8 @@ postgresDescribe("derived meeting documents", () => {
     expect(historical.groups.find((group) => group.kind === "proxies")?.resources).toEqual([
       expect.objectContaining({
         id: proxy.id,
-        source: expect.objectContaining({ kind: "unavailable", phase: "closing", reason: "notCaptured" }),
+        // @verifies-requirement HALL-FR-MIN-160
+        source: expect.objectContaining({ kind: "snapshot", phase: "closing" }),
       }),
     ]);
     expect(historical.groups.find((group) => group.kind === "businesses")?.businesses[0]?.title).toBe("Roads");
@@ -159,7 +160,9 @@ postgresDescribe("derived meeting documents", () => {
     );
     expect(await council.meetingDocumentContent(request, meeting.id, file.id, image.id)).toBeNull();
     expect(await council.meetingDocumentResource(request, meeting.id, randomUUID())).toBeNull();
-    expect(await council.meetingDocumentContent(request, meeting.id, proxy.id)).toBeNull();
+    expect((await council.meetingDocumentContent(request, meeting.id, proxy.id))?.content).toEqual(
+      Buffer.from("%PDF-proxy"),
+    );
     expect(
       (
         await pool.query("SELECT payload FROM hall.council_meeting_snapshot WHERE council_meeting=$1 ORDER BY phase", [
