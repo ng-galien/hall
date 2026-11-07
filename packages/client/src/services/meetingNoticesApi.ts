@@ -17,9 +17,9 @@ import {
 
 const meetingPath = (reference: string) => `/council-meetings/${encodeURIComponent(reference)}`;
 
-export async function freezeMeetingAgenda(reference: string) {
+export async function resetMeetingAgendaRevision(reference: string) {
   return councilMeetingSchema.parse(
-    (await submitSirenActionAt<unknown>(meetingPath(reference), "meeting.freeze-agenda", {})).data,
+    (await submitSirenActionAt<unknown>(meetingPath(reference), "meeting.reset-agenda-revision", {})).data,
   );
 }
 

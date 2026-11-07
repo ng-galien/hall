@@ -139,13 +139,16 @@ export function createTestCouncilClient(
     async reopenAgenda() {
       throw new Error("Agenda reopening tests require the PostgreSQL fixture");
     },
-    async freezeAgenda() {
-      throw new Error("Agenda freeze tests require the PostgreSQL fixture");
+    async resetAgendaRevision() {
+      throw new Error("Agenda revision reset tests require the PostgreSQL fixture");
     },
     async openAgendaFreeze() {
       return null;
     },
     async noticeFacts() {
+      return null;
+    },
+    async noticeDraftFacts() {
       return null;
     },
     async listNotices() {
@@ -289,20 +292,17 @@ export function createTestCouncilClient(
         previousCouncilMeetingId: null,
         reconvocationId: null,
         minutesId: null,
-        agendaFrozenAt: null,
-        currentNoticeId: null,
+        agendaRevision: { number: 1, establishedAt: null, noticeId: null },
         closureBlockers: [],
         entryBlockers: [
           { code: "meetingNotScheduled" },
           { code: "meetingLocationMissing" },
-          { code: "agendaNotFrozen" },
-          { code: "currentNoticeMissing" },
+          { code: "agendaRevisionOpen" },
         ],
         openingBlockers: [
           { code: "meetingNotScheduled" },
           { code: "meetingLocationMissing" },
-          { code: "agendaNotFrozen" },
-          { code: "currentNoticeMissing" },
+          { code: "agendaRevisionOpen" },
         ],
         noticeDeadline: { status: "indeterminate", reason: "scheduleUnknown" },
         scheduledAt: null,
@@ -435,20 +435,17 @@ export function createTestCouncilClient(
         previousCouncilMeetingId: meeting.id,
         reconvocationId: null,
         minutesId: null,
-        agendaFrozenAt: null,
-        currentNoticeId: null,
+        agendaRevision: { number: 1, establishedAt: null, noticeId: null },
         closureBlockers: [],
         entryBlockers: [
           { code: "meetingNotScheduled" },
           { code: "meetingLocationMissing" },
-          { code: "agendaNotFrozen" },
-          { code: "currentNoticeMissing" },
+          { code: "agendaRevisionOpen" },
         ],
         openingBlockers: [
           { code: "meetingNotScheduled" },
           { code: "meetingLocationMissing" },
-          { code: "agendaNotFrozen" },
-          { code: "currentNoticeMissing" },
+          { code: "agendaRevisionOpen" },
         ],
         noticeDeadline: { status: "indeterminate", reason: "scheduleUnknown" },
         scheduledAt: null,

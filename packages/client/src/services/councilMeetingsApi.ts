@@ -20,9 +20,11 @@ import {
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
   type SchedulePreparedCouncilSubject,
+  type SetCouncilMeetingOfficers,
   scheduleAgendaItemSchema,
   scheduleCouncilMeetingSchema,
   schedulePreparedCouncilSubjectSchema,
+  setCouncilMeetingOfficersSchema,
   startAgendaItemSchema,
   updateAgendaItemNotesSchema,
 } from "@hall/api-contract";
@@ -62,6 +64,15 @@ export async function scheduleCouncilMeeting(meetingReference: string, input: Sc
     `/council-meetings/${encodeURIComponent(meetingReference)}`,
     "meeting.schedule",
     parsed,
+  );
+  return councilMeetingSchema.parse(result.data);
+}
+
+export async function setCouncilMeetingOfficers(meetingReference: string, input: SetCouncilMeetingOfficers) {
+  const result = await submitSirenActionAt<unknown>(
+    `/council-meetings/${encodeURIComponent(meetingReference)}`,
+    "meeting.set-officers",
+    setCouncilMeetingOfficersSchema.parse(input),
   );
   return councilMeetingSchema.parse(result.data);
 }

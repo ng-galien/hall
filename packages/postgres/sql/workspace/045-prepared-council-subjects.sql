@@ -147,7 +147,7 @@ BEGIN
   IF meeting.closed_at IS NOT NULL THEN RAISE EXCEPTION USING ERRCODE = 'HV223',MESSAGE='a closed council meeting cannot receive agenda changes'; END IF;
   IF meeting.started_at IS NOT NULL THEN RAISE EXCEPTION USING ERRCODE='HV810',MESSAGE='prepared subjects require an unstarted meeting'; END IF;
   IF EXISTS(SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting=target_meeting) THEN
-    RAISE EXCEPTION USING ERRCODE='HV801',MESSAGE='the frozen agenda cannot be recomposed';
+    RAISE EXCEPTION USING ERRCODE='HV801',MESSAGE='the established agenda revision cannot be recomposed';
   END IF;
   SELECT * INTO subject FROM hall.prepared_council_subject WHERE id=target_subject AND kind=target_kind;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='HV910',MESSAGE='unknown prepared subject'; END IF;

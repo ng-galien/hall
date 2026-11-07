@@ -17,7 +17,7 @@ export function useBusinessScheduling(businessId: string, revision: number) {
     .sort()
     .join(",");
   const meetingState = meetings
-    .map((meeting) => `${meeting.id}:${meeting.agendaFrozenAt}:${meeting.startedAt}:${meeting.closedAt}`)
+    .map((meeting) => `${meeting.id}:${meeting.agendaRevision.establishedAt}:${meeting.startedAt}:${meeting.closedAt}`)
     .join(",");
   const meetingIds = meetings
     .filter((meeting) => meeting.phase === "draft" || meeting.phase === "scheduled")

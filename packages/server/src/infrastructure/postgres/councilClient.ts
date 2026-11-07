@@ -46,13 +46,14 @@ const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV126: "agenda_inconsistent",
   HV809: "prepared_subject_immutable",
   HV810: "prepared_subject_unavailable",
-  HV807: "meeting_notice_required",
+  HV811: "agenda_revision_required",
+  HV812: "agenda_revision_reset_unavailable",
   HV808: "agenda_reopening_unavailable",
-  HV801: "agenda_frozen",
+  HV801: "agenda_revision_established",
   HV802: "preparation_history_immutable",
-  HV803: "agenda_freeze_unavailable",
+  HV803: "agenda_revision_unavailable",
   HV804: "meeting_notice_unavailable",
-  HV805: "meeting_notice_stale",
+  HV805: "meeting_notice_facts_changed",
   HV806: "meeting_notice_invalid",
   HV416: "ballot_procedure_unsupported",
   HV404: "ballot_candidate_invalid",
@@ -154,6 +155,8 @@ export function createPostgresCouncilClient({
         ) {
           throw new DomainError("workspace_title_conflict", 409);
         }
+        if (error.sqlState === "HV813")
+          throw new DomainError("agenda_revision_item_moved", 409, error.message, error.detail ?? undefined);
         if (error.sqlState === "HV150") {
           const memberName = error.message.split(" has a member attendance")[0];
           throw new DomainError("attendance_outside_membership", 409, error.message, memberName);
@@ -211,9 +214,10 @@ export function createPostgresCouncilClient({
     schedulePreparedSubject: (meetingId, input) =>
       call(() => postgresCouncil.schedulePreparedSubject(currentRequest(), meetingId, input)),
     reopenAgenda: (id) => call(() => postgresCouncil.reopenAgenda(currentRequest(), id)),
-    freezeAgenda: (id) => call(() => postgresCouncil.freezeAgenda(currentRequest(), id)),
+    resetAgendaRevision: (id) => call(() => postgresCouncil.resetAgendaRevision(currentRequest(), id)),
     openAgendaFreeze: (id) => call(() => postgresCouncil.openAgendaFreeze(currentRequest(), id)),
     noticeFacts: (id) => call(() => postgresCouncil.noticeFacts(currentRequest(), id)),
+    noticeDraftFacts: (id) => call(() => postgresCouncil.noticeDraftFacts(currentRequest(), id)),
     listNotices: (id) => call(() => postgresCouncil.listNotices(currentRequest(), id)),
     openNotice: (id) => call(() => postgresCouncil.openNotice(currentRequest(), id)),
     generateNotice: (id, facts, content) =>

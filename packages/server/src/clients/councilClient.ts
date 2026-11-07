@@ -83,9 +83,10 @@ export interface CouncilClient {
   schedulePreparedSubject(meetingId: string, input: SchedulePreparedCouncilSubject): Promise<AgendaItem>;
 
   reopenAgenda(id: string): Promise<CouncilMeeting>;
-  freezeAgenda(id: string): Promise<CouncilMeeting>;
+  resetAgendaRevision(id: string): Promise<CouncilMeeting>;
   openAgendaFreeze(id: string): Promise<MeetingAgendaFreeze | null>;
   noticeFacts(id: string): Promise<MeetingNoticeMeetingFacts | null>;
+  noticeDraftFacts(id: string): Promise<MeetingNoticeMeetingFacts | null>;
   listNotices(id: string): Promise<MeetingNotice[]>;
   openNotice(id: string): Promise<MeetingNotice | null>;
   generateNotice(id: string, facts: MeetingNoticeFacts, content: Buffer): Promise<MeetingNotice>;

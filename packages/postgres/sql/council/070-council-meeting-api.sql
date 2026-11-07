@@ -113,8 +113,7 @@ AS $function$
       WHERE council_meeting = target.previous_council_meeting ORDER BY sent_at DESC LIMIT 1),
     'minutesId', (SELECT id FROM hall.minutes WHERE council_meeting = target.id),
     'noticeDeadline', hall.meeting_notice_deadline(target),
-    'currentNoticeId', hall.current_meeting_notice_id(target.id),
-    'agendaFrozenAt', (SELECT frozen_at FROM hall.active_council_agenda_freeze WHERE council_meeting = target.id),
+    'agendaRevision', hall.council_agenda_revision_projection(target.id),
     'scheduledAt', target.scheduled_at,
     'location', target.location,
     'chairMemberId', target.chair_member,
@@ -279,7 +278,7 @@ DECLARE
 BEGIN
   SELECT * INTO changed FROM hall.council_meetings WHERE id=target_meeting FOR UPDATE;
   IF jsonb_array_length(hall.council_meeting_preparation_blockers(changed)) > 0 THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV807', MESSAGE='meeting start requires the current generated notice';
+    RAISE EXCEPTION USING ERRCODE = 'HV811', MESSAGE='meeting start requires an established agenda revision';
   END IF;
   PERFORM hall.record_meeting_attendance(target_meeting,attendance_declarations,observation_time);
   PERFORM hall.set_council_meeting_officers(target_meeting,chairman_member,secretary_member);

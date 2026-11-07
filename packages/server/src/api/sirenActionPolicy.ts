@@ -8,7 +8,12 @@ import {
   councilDecisionSummarySchema,
   type SirenAction,
 } from "@hall/api-contract";
-import { meetingActionBlockersSchema, meetingOpeningBlockerSchema } from "@hall/contracts";
+import {
+  type MeetingAgendaRevision,
+  meetingActionBlockersSchema,
+  meetingAgendaRevisionSchema,
+  meetingOpeningBlockerSchema,
+} from "@hall/contracts";
 import { matchLiteral } from "@hall/domain";
 import type { Request } from "express";
 import { acceptedDocumentExtensions, acceptedSpreadsheetImportExtensions } from "../domain/documentPolicy.js";
@@ -23,6 +28,11 @@ import {
 
 export function action(name: ApiActionName, method: SirenAction["method"], href: string, title?: string): SirenAction {
   return { name, method, href, type: "application/json", title };
+}
+
+function agendaRevisionOf(meeting: Record<string, unknown> | undefined): MeetingAgendaRevision | null {
+  const parsed = meetingAgendaRevisionSchema.safeParse(meeting?.agendaRevision);
+  return parsed.success ? parsed.data : null;
 }
 
 function canExecuteAction(request: Request, actionName: ApiActionName): boolean {
@@ -472,9 +482,10 @@ function agendaItemActions({ request, primary, id }: ObjectActionContext): Siren
     (meeting ? publicReference("council-meeting", meeting) : null) ?? meetingReferenceFromRequest(request) ?? meetingId;
   if (!meetingReference || primary.completedAt || primary.adjournedAt || meeting?.closedAt) return [];
 
-  if (meeting?.agendaFrozenAt && !meeting?.startedAt) return [];
+  const revisionEstablished = Boolean(agendaRevisionOf(meeting)?.establishedAt);
+  if (revisionEstablished && !meeting?.startedAt) return [];
   if (typeof primary.position === "number" && primary.position < 0) {
-    if (meeting?.agendaFrozenAt) return [];
+    if (revisionEstablished) return [];
     return authorizedActions(request, [
       action(
         "agenda-item.reprogram",
@@ -567,12 +578,15 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
     );
 
   if (!meeting.startedAt) {
-    actions.push(
-      action("meeting.schedule", "PUT", `/api/council-meetings/${meetingReference}/schedule`),
-      action("meeting.set-officers", "PUT", `/api/council-meetings/${meetingReference}/officers`),
-    );
-    if (!meeting.agendaFrozenAt)
+    // @implements-requirement HALL-FR-NOT-140
+    // Date, location and agenda change only on the open revision; "Réviser" opens the next one.
+    const revision = agendaRevisionOf(meeting);
+    const established = Boolean(revision?.establishedAt);
+    actions.push(action("meeting.set-officers", "PUT", `/api/council-meetings/${meetingReference}/officers`));
+    if (!established)
       actions.push(
+        action("meeting.schedule", "PUT", `/api/council-meetings/${meetingReference}/schedule`),
+        action("meeting.prepare", "PUT", `/api/council-meetings/${meetingReference}/prepare`),
         action(
           "meeting.create-and-schedule-business",
           "POST",
@@ -586,17 +600,22 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
         action("agenda-item.schedule", "POST", `/api/council-meetings/${meetingReference}/agenda-items`),
         action("meeting.reorder-agenda", "PUT", `/api/council-meetings/${meetingReference}/agenda-order`),
       );
-    if (meeting.scheduledAt && !meeting.agendaFrozenAt) {
-      actions.push(action("meeting.freeze-agenda", "POST", `/api/council-meetings/${meetingReference}/agenda-freeze`));
-    }
-    if (meeting.agendaFrozenAt) {
+    if (established || (meeting.scheduledAt && meeting.location))
+      actions.push(action("meeting.generate-notice", "POST", `/api/council-meetings/${meetingReference}/notices`));
+    if (established) {
       actions.push(
         action("meeting.reopen-agenda", "POST", `/api/council-meetings/${meetingReference}/agenda-reopening`),
+        action("meeting.generate-dossier", "GET", `/api/council-meetings/${meetingReference}/dossier`),
       );
-      actions.push(action("meeting.generate-notice", "POST", `/api/council-meetings/${meetingReference}/notices`));
-      actions.push(action("meeting.generate-dossier", "GET", `/api/council-meetings/${meetingReference}/dossier`));
+    } else if (revision && revision.number > 1) {
+      actions.push(
+        action(
+          "meeting.reset-agenda-revision",
+          "POST",
+          `/api/council-meetings/${meetingReference}/agenda-revision-reset`,
+        ),
+      );
     }
-    actions.push(action("meeting.prepare", "PUT", `/api/council-meetings/${meetingReference}/prepare`));
     const openingBlockers = meetingOpeningBlockerSchema.array().safeParse(meeting.openingBlockers);
     if (openingBlockers.success && openingBlockers.data.length === 0)
       actions.push(
@@ -604,7 +623,7 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
       );
     if (meeting.scheduledAt) {
       actions.push(action("meeting.record-attendance", "POST", `/api/council-meetings/${meetingReference}/attendance`));
-      if (meeting.currentNoticeId)
+      if (revision?.noticeId)
         actions.push(
           action("meeting.generate-notice-message", "POST", `/api/council-meetings/${meetingReference}/notice-message`),
         );

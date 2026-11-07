@@ -1,10 +1,17 @@
--- The agenda freeze is a preparation decision, independent of meeting conduct.
+-- An established revision of the agenda: its points, date and location as
+-- issued with the meeting notice of that revision. Its number is its rank among
+-- the revisions of the meeting by establishment time. A reopening closes it and
+-- starts the next revision; while no revision is active the agenda, date and
+-- location of the meeting form the open revision.
 -- @implements-requirement HALL-FR-NOT-010
+-- @implements-requirement HALL-FR-NOT-140
 CREATE TABLE hall.council_agenda_freeze (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   council_meeting UUID NOT NULL REFERENCES hall.council_meetings(id),
   frozen_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
-  agenda JSONB NOT NULL CONSTRAINT "council_agenda_freeze_agenda_check" CHECK (jsonb_typeof(agenda) = 'array'::text AND jsonb_array_length(agenda) > 0)
+  agenda JSONB NOT NULL CONSTRAINT "council_agenda_freeze_agenda_check" CHECK (jsonb_typeof(agenda) = 'array'::text AND jsonb_array_length(agenda) > 0),
+  scheduled_at TIMESTAMPTZ,
+  location TEXT
 );
 
 CREATE TABLE hall.council_agenda_reopening (
@@ -14,6 +21,13 @@ CREATE TABLE hall.council_agenda_reopening (
 CREATE VIEW hall.active_council_agenda_freeze AS
 SELECT frozen.* FROM hall.council_agenda_freeze frozen
 WHERE NOT EXISTS (SELECT FROM hall.council_agenda_reopening reopening WHERE reopening.agenda_freeze = frozen.id);
+
+CREATE FUNCTION hall.council_agenda_revision_number(target hall.council_agenda_freeze)
+RETURNS INTEGER LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
+  SELECT count(*)::INTEGER FROM hall.council_agenda_freeze earlier
+  WHERE earlier.council_meeting = target.council_meeting
+    AND (earlier.frozen_at, earlier.id) <= (target.frozen_at, target.id);
+$$;
 
 -- @implements-requirement HALL-FR-NOT-020
 CREATE FUNCTION hall.enforce_frozen_agenda_composition()
@@ -57,7 +71,7 @@ BEGIN
     IF source_started IS NOT NULL AND OLD.position > 0 AND NEW.position = -OLD.position
       AND OLD.adjourned_at IS NULL AND NEW.adjourned_at IS NOT NULL THEN RETURN NEW; END IF;
   END IF;
-  RAISE EXCEPTION USING ERRCODE = 'HV801', MESSAGE = 'the frozen agenda cannot be recomposed';
+  RAISE EXCEPTION USING ERRCODE = 'HV801', MESSAGE = 'the established agenda revision cannot be recomposed';
 END;
 $$;
 CREATE TRIGGER council_agenda_item_z_freeze_composition BEFORE INSERT OR UPDATE OR DELETE ON hall.council_agenda_item
@@ -83,7 +97,7 @@ FOR EACH STATEMENT EXECUTE FUNCTION hall.reject_preparation_history_change();
 CREATE FUNCTION hall.meeting_notice_meeting_facts(target_meeting UUID)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
   SELECT jsonb_build_object('id', meeting.id, 'number', meeting.number,
-    'scheduledAt', meeting.scheduled_at, 'location', meeting.location,
+    'scheduledAt', frozen.scheduled_at, 'location', frozen.location,
     'agendaFrozenAt', frozen.frozen_at, 'agenda', frozen.agenda)
   FROM hall.council_meetings meeting JOIN hall.active_council_agenda_freeze frozen ON frozen.council_meeting = meeting.id
   WHERE meeting.id = target_meeting;
@@ -97,6 +111,7 @@ CREATE TABLE hall.meeting_notice (
   generated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   binary_object UUID NOT NULL REFERENCES hall.binary_object(id),
   facts JSONB NOT NULL CONSTRAINT "meeting_notice_facts_check" CHECK (jsonb_typeof(facts) = 'object'::text),
+  agenda_freeze UUID REFERENCES hall.council_agenda_freeze(id),
   UNIQUE(council_meeting,version)
 );
 CREATE TRIGGER meeting_notice_immutable BEFORE UPDATE OR DELETE ON hall.meeting_notice
@@ -105,12 +120,28 @@ CREATE TRIGGER meeting_notice_no_truncate BEFORE TRUNCATE ON hall.meeting_notice
 FOR EACH STATEMENT EXECUTE FUNCTION hall.reject_preparation_history_change();
 
 
-CREATE FUNCTION hall.current_meeting_notice_id(target_meeting UUID)
+-- The notice of the established revision: the last PDF generated under it.
+CREATE FUNCTION hall.council_agenda_revision_notice_id(target_meeting UUID)
 RETURNS UUID LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
-  SELECT id FROM hall.meeting_notice WHERE council_meeting = target_meeting
-    AND facts->'meeting' = hall.meeting_notice_meeting_facts(target_meeting)
-  ORDER BY version DESC LIMIT 1;
+  SELECT notice.id FROM hall.meeting_notice notice
+  JOIN hall.active_council_agenda_freeze frozen ON frozen.id = notice.agenda_freeze
+  WHERE frozen.council_meeting = target_meeting
+  ORDER BY notice.version DESC LIMIT 1;
 $$;
+
+-- The revision of the agenda a meeting is on: the active established revision,
+-- or the open revision that follows the last established one.
+CREATE FUNCTION hall.council_agenda_revision_projection(target_meeting UUID)
+RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
+  SELECT jsonb_build_object(
+    'number', (SELECT count(*)::INTEGER FROM hall.council_agenda_freeze WHERE council_meeting = target_meeting)
+      + CASE WHEN frozen.id IS NULL THEN 1 ELSE 0 END,
+    'establishedAt', frozen.frozen_at,
+    'noticeId', CASE WHEN frozen.id IS NULL THEN NULL ELSE hall.council_agenda_revision_notice_id(target_meeting) END)
+  FROM (SELECT target_meeting AS id) meeting
+  LEFT JOIN hall.active_council_agenda_freeze frozen ON frozen.council_meeting = meeting.id;
+$$;
+
 CREATE FUNCTION hall.council_meeting_preparation_blockers(target hall.council_meetings)
 RETURNS JSONB LANGUAGE plpgsql STABLE SET search_path=pg_catalog,hall AS $$
 DECLARE blockers JSONB := '[]';
@@ -118,22 +149,37 @@ BEGIN
   IF target.scheduled_at IS NULL THEN blockers := blockers || '[{"code":"meetingNotScheduled"}]'::jsonb; END IF;
   IF target.location IS NULL OR btrim(target.location) = '' THEN blockers := blockers || '[{"code":"meetingLocationMissing"}]'::jsonb; END IF;
   IF NOT EXISTS (SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting=target.id) THEN
-    blockers := blockers || '[{"code":"agendaNotFrozen"}]'::jsonb;
+    blockers := blockers || '[{"code":"agendaRevisionOpen"}]'::jsonb;
   END IF;
-  IF hall.current_meeting_notice_id(target.id) IS NULL THEN blockers := blockers || '[{"code":"currentNoticeMissing"}]'::jsonb; END IF;
   RETURN blockers;
 END $$;
 
 -- @implements-requirement HALL-FR-NOT-090
-CREATE FUNCTION hall.require_current_notice_for_start()
+CREATE FUNCTION hall.require_established_revision_for_start()
 RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
 BEGIN
-  IF OLD.started_at IS NULL AND NEW.started_at IS NOT NULL AND (jsonb_array_length(hall.council_meeting_preparation_blockers(OLD)) > 0
-    OR NEW.scheduled_at IS DISTINCT FROM OLD.scheduled_at OR NEW.location IS DISTINCT FROM OLD.location) THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV807', MESSAGE = 'meeting start requires the current generated notice';
+  IF OLD.started_at IS NULL AND NEW.started_at IS NOT NULL
+    AND jsonb_array_length(hall.council_meeting_preparation_blockers(OLD)) > 0 THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV811', MESSAGE = 'meeting start requires an established agenda revision';
   END IF;
   RETURN NEW;
 END;
 $$;
-CREATE TRIGGER council_meetings_z_notice_before_start BEFORE UPDATE ON hall.council_meetings
-FOR EACH ROW EXECUTE FUNCTION hall.require_current_notice_for_start();
+CREATE TRIGGER council_meetings_z_revision_before_start BEFORE UPDATE ON hall.council_meetings
+FOR EACH ROW EXECUTE FUNCTION hall.require_established_revision_for_start();
+
+-- The date and location belong to the revision: an established revision keeps them.
+-- @implements-requirement HALL-FR-NOT-020
+CREATE FUNCTION hall.enforce_established_revision_schedule()
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = pg_catalog, hall AS $$
+BEGIN
+  IF OLD.started_at IS NULL
+    AND (NEW.scheduled_at IS DISTINCT FROM OLD.scheduled_at OR NEW.location IS DISTINCT FROM OLD.location)
+    AND EXISTS (SELECT FROM hall.active_council_agenda_freeze WHERE council_meeting = OLD.id) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV801', MESSAGE = 'the established revision keeps its date and location';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER council_meetings_z_revision_schedule BEFORE UPDATE ON hall.council_meetings
+FOR EACH ROW EXECUTE FUNCTION hall.enforce_established_revision_schedule();

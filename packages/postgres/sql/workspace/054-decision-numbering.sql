@@ -88,6 +88,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path=pg_catalog,hall AS $$
  SELECT jsonb_build_object('id',notice.id,'councilMeetingId',notice.council_meeting,
    'version',notice.version,'generatedAt',notice.generated_at,'documentId',notice.binary_object,
    'byteSize',bytes.byte_size,'facts',notice.facts||jsonb_build_object('issuedOn',notice.facts->'issuedOn'),
-   'isCurrent',coalesce(notice.facts->'meeting'=hall.meeting_notice_meeting_facts(notice.council_meeting),false))
- FROM hall.binary_object bytes WHERE bytes.id=notice.binary_object;
+   'revision',hall.council_agenda_revision_number(revision),'revisionEstablishedAt',revision.frozen_at)
+ FROM hall.binary_object bytes, hall.council_agenda_freeze revision
+ WHERE bytes.id=notice.binary_object AND revision.id=notice.agenda_freeze;
 $$;

@@ -95,7 +95,7 @@ export const apiCommandPolicies = {
   "meeting.reopen-agenda": { auditTargetType: "council-meeting" },
   "meeting.generate-notice-message": { auditTargetType: "council-meeting" },
   "meeting.generate-dossier": { auditTargetType: null },
-  "meeting.freeze-agenda": { auditTargetType: "council-meeting" },
+  "meeting.reset-agenda-revision": { auditTargetType: "council-meeting" },
   "meeting.generate-notice": { auditTargetType: "council-meeting" },
   "meeting.prepare": { auditTargetType: "council-meeting" },
   "meeting.set-officers": { auditTargetType: "council-meeting" },

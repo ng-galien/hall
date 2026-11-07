@@ -46,9 +46,19 @@ export const meetingNoticeSchema = z
     documentId: id,
     byteSize: z.number().int().positive(),
     facts: meetingNoticeFactsSchema,
-    isCurrent: z.boolean(),
+    revision: z.number().int().positive(),
+    revisionEstablishedAt: time,
   })
   .strict();
+/** The agenda revision a meeting is on: established with its notice, or open for changes. */
+export const meetingAgendaRevisionSchema = z
+  .object({
+    number: z.number().int().positive(),
+    establishedAt: time.nullable(),
+    noticeId: id.nullable(),
+  })
+  .strict();
+export type MeetingAgendaRevision = z.infer<typeof meetingAgendaRevisionSchema>;
 export type MeetingAgendaFreeze = z.infer<typeof meetingAgendaFreezeSchema>;
 export type MeetingNoticeMeetingFacts = z.infer<typeof meetingNoticeMeetingFactsSchema>;
 export type MeetingNoticeHallFacts = z.infer<typeof meetingNoticeHallFactsSchema>;

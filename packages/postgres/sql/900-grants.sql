@@ -300,7 +300,8 @@ GRANT EXECUTE ON FUNCTION hall_api.freeze_council_agenda(UUID), hall_api.open_co
  hall_api.generate_meeting_notice(UUID,JSONB,BYTEA), hall_api.meeting_notice_content(UUID)
  TO hall_api_authenticated,hall_api_worker;
 
-GRANT EXECUTE ON FUNCTION hall_api.reopen_council_agenda(UUID) TO hall_api_authenticated,hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.reopen_council_agenda(UUID), hall_api.reset_council_agenda_revision(UUID),
+ hall_api.meeting_notice_draft_facts(UUID) TO hall_api_authenticated,hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.list_prepared_council_subjects(UUID,UUID), hall_api.open_prepared_council_subject(UUID,TEXT),
  hall_api.create_prepared_council_subject(UUID,TEXT,TEXT,TEXT), hall_api.schedule_prepared_council_subject(UUID,UUID,TEXT,INTEGER)

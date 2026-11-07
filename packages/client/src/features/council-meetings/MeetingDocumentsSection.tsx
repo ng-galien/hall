@@ -5,7 +5,7 @@ import {
   type MeetingNotice,
   type MeetingNoticeMessagePreparation,
 } from "@hall/api-contract";
-import { type DocumentaryResource, type DocumentCategory, meetingAgendaCanChange } from "@hall/domain";
+import type { DocumentaryResource, DocumentCategory } from "@hall/domain";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -113,13 +113,13 @@ export function MeetingDocumentsSection({
   const [proxyOpen, setProxyOpen] = useState(false);
 
   const noticesHref = meetingActions.link("notices");
-  const canFreeze = meetingActions.can("meeting.freeze-agenda");
-  const canReopen = meetingActions.can("meeting.reopen-agenda");
+  const agendaRevision = meeting.agendaRevision;
+  const revisionEstablished = Boolean(agendaRevision.establishedAt);
   const canGenerateNotice = meetingActions.can("meeting.generate-notice");
   const canExportNotice = meetingActions.can("meeting.generate-notice-message");
   const [notices, setNotices] = useState<MeetingNotice[]>([]);
   const [message, setMessage] = useState<MeetingNoticeMessagePreparation | null>(null);
-  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [previousOpen, setPreviousOpen] = useState(false);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
     if (!noticesHref) return;
@@ -140,9 +140,21 @@ export function MeetingDocumentsSection({
     return () => {
       active = false;
     };
-  }, [noticesHref, meeting.reference, meeting.currentNoticeId, meeting.agendaFrozenAt, canExportNotice, revision]);
-  const currentNotice = notices.find((notice) => notice.isCurrent) ?? null;
-  const previousNotices = notices.filter((notice) => !notice.isCurrent);
+  }, [
+    noticesHref,
+    meeting.reference,
+    agendaRevision.number,
+    agendaRevision.establishedAt,
+    agendaRevision.noticeId,
+    canExportNotice,
+    revision,
+  ]);
+  // @implements-requirement HALL-FR-NOT-100
+  // One notice per established revision; the notice of the established revision is the current one.
+  const currentNotice = revisionEstablished
+    ? (notices.find((notice) => notice.revision === agendaRevision.number) ?? null)
+    : null;
+  const previousNotices = notices.filter((notice) => notice !== currentNotice);
 
   const perform = (action: () => Promise<unknown>) => {
     void run(async () => {
@@ -162,15 +174,25 @@ export function MeetingDocumentsSection({
     setViewer({ title: `${t("meeting.notice.title")} · ${meetingLabel}`, href: content.href });
   };
   const noticeState = (): { text: string; tone: DocumentTone } => {
-    if (!meeting.agendaFrozenAt && meetingAgendaCanChange(status))
-      return { text: t("meeting.documents.noticeAgendaToFreeze"), tone: "todo" };
     if (currentNotice)
       return {
-        text: t("meeting.documents.noticeCurrent", { date: formatDateTime(currentNotice.generatedAt) }),
+        text: t("meeting.documents.noticeEstablished", {
+          number: formatNumber(currentNotice.revision),
+          date: formatDateTime(currentNotice.generatedAt),
+        }),
         tone: "done",
       };
-    if (meeting.currentNoticeId) return { text: t("common.loading"), tone: "neutral" };
-    if (preparing) return { text: t("meeting.documents.noticeToGenerate"), tone: "todo" };
+    if (revisionEstablished && agendaRevision.noticeId) return { text: t("common.loading"), tone: "neutral" };
+    if (revisionEstablished)
+      return {
+        text: t("meeting.documents.noticeMissing", { number: formatNumber(agendaRevision.number) }),
+        tone: "todo",
+      };
+    if (preparing)
+      return {
+        text: t("meeting.documents.noticeOpenRevision", { number: formatNumber(agendaRevision.number) }),
+        tone: "todo",
+      };
     return { text: t("meeting.notice.empty"), tone: "neutral" };
   };
 
@@ -273,7 +295,7 @@ export function MeetingDocumentsSection({
     : [];
 
   const notice = noticeState();
-  const showNoticeRow = Boolean(noticesHref) || canFreeze || canReopen || canGenerateNotice;
+  const showNoticeRow = Boolean(noticesHref) || canGenerateNotice;
 
   return (
     <CollapsibleSection
@@ -296,44 +318,6 @@ export function MeetingDocumentsSection({
             tone={notice.tone}
             actions={
               <>
-                {canFreeze ? (
-                  <Button
-                    size="sm"
-                    data-testid="meeting-freeze-agenda"
-                    disabled={submitting}
-                    onClick={() => perform(() => meetingActions.freezeAgenda())}
-                  >
-                    {t("meeting.notice.freeze")}
-                  </Button>
-                ) : null}
-                {canReopen ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    data-testid="meeting-reopen-agenda"
-                    disabled={submitting}
-                    onClick={() => perform(() => meetingActions.reopenAgenda())}
-                  >
-                    {t("meeting.notice.reopen")}
-                  </Button>
-                ) : null}
-                {canGenerateNotice ? (
-                  <Button
-                    size="sm"
-                    variant={meeting.currentNoticeId ? "outline" : "default"}
-                    data-testid="meeting-generate-notice"
-                    disabled={submitting}
-                    onClick={() =>
-                      perform(async () => {
-                        const generated = await generateMeetingNotice(meeting.reference);
-                        await meetingActions.refresh();
-                        await showNotice(generated.data.id);
-                      })
-                    }
-                  >
-                    {t(meeting.currentNoticeId ? "meeting.notice.regenerate" : "meeting.notice.generate")}
-                  </Button>
-                ) : null}
                 {currentNotice ? (
                   <Button
                     size="sm"
@@ -346,13 +330,30 @@ export function MeetingDocumentsSection({
                     {t("meeting.documents.open")}
                   </Button>
                 ) : null}
-                {canExportNotice && message && preparing ? (
+                {revisionEstablished && canGenerateNotice ? (
+                  <Button
+                    size="sm"
+                    variant={currentNotice ? "outline" : "default"}
+                    data-testid="meeting-notice-regenerate"
+                    disabled={submitting}
+                    onClick={() =>
+                      perform(async () => {
+                        const generated = await generateMeetingNotice(meeting.reference);
+                        await meetingActions.refresh();
+                        await showNotice(generated.data.id);
+                      })
+                    }
+                  >
+                    {t("meeting.notice.regenerate")}
+                  </Button>
+                ) : null}
+                {canExportNotice && message && preparing && currentNotice ? (
                   <Button
                     size="sm"
                     variant="outline"
                     data-testid="meeting-export-notice-message"
-                    disabled={submitting || !message.canGenerate || !message.noticeId}
-                    onClick={() => perform(() => downloadMeetingNoticeMessage(meeting.reference, message.noticeId!))}
+                    disabled={submitting || !message.canGenerate}
+                    onClick={() => perform(() => downloadMeetingNoticeMessage(meeting.reference, currentNotice.id))}
                   >
                     {t("meeting.notice.exportEmail")}
                   </Button>
@@ -375,21 +376,26 @@ export function MeetingDocumentsSection({
                   variant="link"
                   size="xs"
                   className="meeting-document-toggle"
-                  aria-expanded={versionsOpen}
-                  data-testid="meeting-notice-versions-toggle"
-                  onClick={() => setVersionsOpen((value) => !value)}
+                  aria-expanded={previousOpen}
+                  data-testid="meeting-notice-previous-toggle"
+                  onClick={() => setPreviousOpen((value) => !value)}
                 >
                   {plural(
                     previousNotices.length,
-                    "meeting.documents.noticeVersions.one",
-                    "meeting.documents.noticeVersions.other",
+                    "meeting.documents.previousNotices.one",
+                    "meeting.documents.previousNotices.other",
                   )}
                 </Button>
-                {versionsOpen ? (
-                  <ul className="meeting-document-sublist">
+                {previousOpen ? (
+                  <ul className="meeting-document-sublist" data-testid="meeting-notice-previous-list">
                     {previousNotices.map((version) => (
                       <li key={version.id}>
-                        <span>{formatDateTime(version.generatedAt)}</span>
+                        <span>
+                          {t("meeting.documents.previousNotice", {
+                            number: formatNumber(version.revision),
+                            date: formatDateTime(version.revisionEstablishedAt),
+                          })}
+                        </span>
                         <Button
                           variant="ghost"
                           size="xs"
@@ -417,9 +423,9 @@ export function MeetingDocumentsSection({
             state={
               dossierState === "failed"
                 ? t("meeting.dossierFailed")
-                : meeting.agendaFrozenAt
+                : revisionEstablished
                   ? t("meeting.dossierDescription")
-                  : t("meeting.documents.dossierAfterFreeze")
+                  : t("meeting.documents.dossierAfterRevision")
             }
             tone={dossierState === "failed" ? "error" : "neutral"}
             actions={

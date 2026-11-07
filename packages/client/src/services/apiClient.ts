@@ -45,6 +45,7 @@ export type ApiErrorCode =
   | "meeting_officer_change_invalid"
   | "auxiliary_attendance_invalid"
   | "attendance_outside_membership"
+  | "agenda_revision_item_moved"
   | "proxy_consecutive_limit"
   | "closed_session_invalid"
   | "recusal_immutable"
@@ -120,6 +121,8 @@ export class ApiError extends Error {
     readonly status: number,
     /** Detailed problem entries (`errors` member of the problem document) when the server provides them. */
     readonly problemErrors: readonly unknown[] = [],
+    /** The `detail` member of the problem document, such as the title of the point a refusal names. */
+    readonly detail: string | null = null,
   ) {
     super(code);
     this.name = "ApiError";
@@ -174,6 +177,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "meeting_officer_change_invalid",
   "auxiliary_attendance_invalid",
   "attendance_outside_membership",
+  "agenda_revision_item_moved",
   "proxy_consecutive_limit",
   "closed_session_invalid",
   "recusal_immutable",
@@ -264,7 +268,11 @@ export async function apiResponse(path: string, init?: RequestInit): Promise<Res
     throw new ApiError("network_unavailable", 0);
   }
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { code?: string; errors?: unknown } | null;
+    const payload = (await response.json().catch(() => null)) as {
+      code?: string;
+      errors?: unknown;
+      detail?: unknown;
+    } | null;
     const code =
       payload?.code && apiErrorCodes.has(payload.code as ApiErrorCode)
         ? (payload.code as ApiErrorCode)
@@ -273,7 +281,12 @@ export async function apiResponse(path: string, init?: RequestInit): Promise<Res
       representations.clear();
       window.dispatchEvent(new Event(AUTHENTICATION_REQUIRED_EVENT));
     }
-    throw new ApiError(code, response.status, Array.isArray(payload?.errors) ? payload.errors : []);
+    throw new ApiError(
+      code,
+      response.status,
+      Array.isArray(payload?.errors) ? payload.errors : [],
+      typeof payload?.detail === "string" ? payload.detail : null,
+    );
   }
   return response;
 }

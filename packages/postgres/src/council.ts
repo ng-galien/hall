@@ -9,6 +9,7 @@ import {
   type MeetingNoticeFacts,
   meetingActionBlockersSchema,
   meetingAgendaFreezeSchema,
+  meetingAgendaRevisionSchema,
   meetingDocumentSourceSchema,
   meetingDocumentsSchema,
   meetingEntryBlockerSchema,
@@ -121,8 +122,7 @@ export const postgresCouncilMeetingSchema = z.object({
   reconvocationId: resourceIdSchema.nullable(),
   minutesId: resourceIdSchema.nullable(),
   noticeDeadline: meetingNoticeDeadlineSchema,
-  currentNoticeId: resourceIdSchema.nullable(),
-  agendaFrozenAt: timestampSchema.nullable(),
+  agendaRevision: meetingAgendaRevisionSchema,
   scheduledAt: timestampSchema.nullable(),
   location: z.string().min(1).nullable(),
   chairMemberId: resourceIdSchema.nullable(),
@@ -596,6 +596,20 @@ export class PostgresCouncil {
       },
     );
   }
+  resetAgendaRevision(request: PostgresCouncilRequest, id: string) {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.reset-agenda-revision") },
+      async (client) => {
+        const result = await callJson(client, {
+          text: "SELECT hall_api.reset_council_agenda_revision($1::uuid) AS payload",
+          values: [resourceIdSchema.parse(id)],
+          schema: postgresCouncilMeetingSchema,
+        });
+        await recordAuditEvent(client, { targetType: "council-meeting", targetId: id, outcome: "succeeded" });
+        return result;
+      },
+    );
+  }
   openAgendaFreeze(request: PostgresCouncilRequest, id: string) {
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "meeting.open-agenda-freeze") },
@@ -613,6 +627,17 @@ export class PostgresCouncil {
       (client) =>
         callJson(client, {
           text: "SELECT hall_api.meeting_notice_facts($1::uuid) AS payload",
+          values: [resourceIdSchema.parse(id)],
+          schema: meetingNoticeMeetingFactsSchema.nullable(),
+        }),
+    );
+  }
+  noticeDraftFacts(request: PostgresCouncilRequest, id: string) {
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "meeting.notice-facts") },
+      (client) =>
+        callJson(client, {
+          text: "SELECT hall_api.meeting_notice_draft_facts($1::uuid) AS payload",
           values: [resourceIdSchema.parse(id)],
           schema: meetingNoticeMeetingFactsSchema.nullable(),
         }),

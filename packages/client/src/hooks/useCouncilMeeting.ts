@@ -15,6 +15,7 @@ import {
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
   type SchedulePreparedCouncilSubject,
+  type SetCouncilMeetingOfficers,
   type SirenEntity,
 } from "@hall/api-contract";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -45,6 +46,7 @@ import {
   scheduleCouncilMeeting,
   scheduleMeetingAgendaItem,
   schedulePreparedCouncilSubject,
+  setCouncilMeetingOfficers,
   startMeetingAgendaItem,
   updateMeetingAgendaItemNotes,
 } from "../services/councilMeetingsApi";
@@ -59,7 +61,7 @@ import {
   recordMeetingQuorum,
   recordMeetingReconvocation,
 } from "../services/meetingConductApi";
-import { freezeMeetingAgenda, reopenMeetingAgenda } from "../services/meetingNoticesApi";
+import { generateMeetingNotice, reopenMeetingAgenda, resetMeetingAgendaRevision } from "../services/meetingNoticesApi";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
@@ -94,6 +96,7 @@ export function useCouncilMeeting(meetingReference: string) {
   const [representations, setRepresentations] = useState<SirenEntity<Record<string, unknown>>[]>([]);
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
+  const [actionErrorDetail, setActionErrorDetail] = useState<string | null>(null);
   const [ballotVotes, setBallotVotes] = useState<ReadonlyMap<string, Awaited<ReturnType<typeof listBallotVotes>>>>(
     new Map(),
   );
@@ -214,12 +217,14 @@ export function useCouncilMeeting(meetingReference: string) {
 
   async function mutate(action: () => Promise<unknown>): Promise<boolean> {
     setActionError(null);
+    setActionErrorDetail(null);
     try {
       await action();
       await Promise.all([load(), useCouncilMeetingsStore.getState().load()]);
       return true;
     } catch (actionFailure) {
       setActionError(apiErrorCode(actionFailure));
+      setActionErrorDetail(actionFailure instanceof ApiError ? actionFailure.detail : null);
       return false;
     }
   }
@@ -344,17 +349,24 @@ export function useCouncilMeeting(meetingReference: string) {
     link,
     error,
     actionError,
+    actionErrorDetail,
     refresh: async () => {
       await load();
     },
-    freezeAgenda() {
-      return mutate(() => freezeMeetingAgenda(meetingReference));
+    generateNotice() {
+      return mutate(() => generateMeetingNotice(meetingReference));
+    },
+    resetAgendaRevision() {
+      return mutate(() => resetMeetingAgendaRevision(meetingReference));
     },
     reopenAgenda() {
       return mutate(() => reopenMeetingAgenda(meetingReference));
     },
     schedule(input: ScheduleCouncilMeeting) {
       return mutate(() => scheduleCouncilMeeting(meetingReference, input));
+    },
+    setOfficers(input: SetCouncilMeetingOfficers) {
+      return mutate(() => setCouncilMeetingOfficers(meetingReference, input));
     },
     prepare(input: PrepareCouncilMeeting) {
       return mutate(() => prepareCouncilMeeting(meetingReference, input));

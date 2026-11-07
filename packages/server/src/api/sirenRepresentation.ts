@@ -101,7 +101,7 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
                   },
                 ]
               : []),
-            ...(primary?.agendaFrozenAt
+            ...((primary?.agendaRevision as { establishedAt?: unknown } | undefined)?.establishedAt
               ? [
                   {
                     rel: ["agenda-freeze"],

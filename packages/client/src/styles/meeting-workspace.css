@@ -577,6 +577,8 @@
   .meeting-preparation .meeting-prep-actions { flex-wrap: wrap; }
   .meeting-prep-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2-5); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .meeting-prep-facts strong { color: var(--hall-color-text); }
+  .meeting-revision-bar { border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
+  .meeting-revision-state { font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-semibold); }
   .meeting-facts {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));

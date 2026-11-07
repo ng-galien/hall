@@ -62,7 +62,7 @@ export const apiActionNames = [
   "meeting.provision-initial",
   "meeting.schedule",
   "meeting.prepare",
-  "meeting.freeze-agenda",
+  "meeting.reset-agenda-revision",
   "meeting.reopen-agenda",
   "meeting.generate-notice-message",
   "meeting.generate-dossier",

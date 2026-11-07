@@ -2,13 +2,7 @@ import { z } from "zod";
 
 export const meetingEntryBlockerSchema = z
   .object({
-    code: z.enum([
-      "meetingClosed",
-      "meetingNotScheduled",
-      "meetingLocationMissing",
-      "agendaNotFrozen",
-      "currentNoticeMissing",
-    ]),
+    code: z.enum(["meetingClosed", "meetingNotScheduled", "meetingLocationMissing", "agendaRevisionOpen"]),
   })
   .strict();
 export type MeetingEntryBlocker = z.infer<typeof meetingEntryBlockerSchema>;

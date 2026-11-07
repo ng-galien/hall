@@ -6,8 +6,7 @@ const labels = {
   meetingClosed: "meeting.entry.meetingClosed",
   meetingNotScheduled: "meeting.entry.meetingNotScheduled",
   meetingLocationMissing: "meeting.entry.meetingLocationMissing",
-  agendaNotFrozen: "meeting.entry.agendaNotFrozen",
-  currentNoticeMissing: "meeting.entry.currentNoticeMissing",
+  agendaRevisionOpen: "meeting.entry.agendaRevisionOpen",
   meetingAlreadyStarted: "meeting.entry.meetingAlreadyStarted",
   scheduledTimeNotReached: "meeting.entry.scheduledTimeNotReached",
 } satisfies Record<MeetingOpeningBlocker["code"], TranslationKey>;

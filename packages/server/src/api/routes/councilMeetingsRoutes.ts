@@ -145,18 +145,18 @@ export function createCouncilMeetingsRouter({
     },
   );
   router.post(
-    "/:meetingReference/agenda-freeze",
-    requireActionPermission("meeting.freeze-agenda"),
+    "/:meetingReference/agenda-revision-reset",
+    requireActionPermission("meeting.reset-agenda-revision"),
     async (request, response) => {
       z.object({}).strict().parse(request.body);
       const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-      response.json(await councilClient.freezeAgenda(meeting.id));
+      response.json(await councilClient.resetAgendaRevision(meeting.id));
     },
   );
   router.get("/:meetingReference/agenda-freeze", async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     const freeze = await councilClient.openAgendaFreeze(meeting.id);
-    if (!freeze) throw new DomainError("agenda_freeze_unavailable", 404);
+    if (!freeze) throw new DomainError("agenda_revision_unavailable", 404);
     response.json(freeze);
   });
   router.get("/:meetingReference/deliberation-list.pdf", async (request, response) => {

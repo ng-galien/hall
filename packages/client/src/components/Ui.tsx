@@ -268,6 +268,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   meeting_officer_change_invalid: "error.meeting_officer_change_invalid",
   auxiliary_attendance_invalid: "error.auxiliary_attendance_invalid",
   attendance_outside_membership: "error.attendance_outside_membership",
+  agenda_revision_item_moved: "error.agenda_revision_item_moved",
   proxy_consecutive_limit: "error.proxy_consecutive_limit",
   closed_session_invalid: "error.closed_session_invalid",
   recusal_immutable: "error.recusal_immutable",

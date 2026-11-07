@@ -1,4 +1,4 @@
-import type { PrepareCouncilMeeting, ScheduleCouncilMeeting } from "@hall/api-contract";
+import type { PrepareCouncilMeeting, ScheduleCouncilMeeting, SetCouncilMeetingOfficers } from "@hall/api-contract";
 import type { TranslationKey } from "../../i18n/en";
 
 export type MeetingDetailsField = "startsAt" | "location" | "chairMemberId" | "secretaryMemberId";
@@ -18,28 +18,37 @@ export interface MeetingDetailsOfficers {
 
 export type MeetingDetailsSubmission =
   | { kind: "schedule"; input: ScheduleCouncilMeeting }
+  | { kind: "officers"; input: SetCouncilMeetingOfficers }
+  | { kind: "unchanged" }
   | { kind: "prepare"; input: PrepareCouncilMeeting }
   | { kind: "invalid"; errors: Partial<Record<MeetingDetailsField, TranslationKey>> };
 
 /**
  * Chooses the meeting action for the general properties form. Date and location are saved alone while
- * the officers are still to be designated; the chair and the secretary are designated together.
+ * the officers are still to be designated; the chair and the secretary are designated together. Under an
+ * established agenda revision the date and location are those of the revision and only the officers change.
  */
 export function meetingDetailsSubmission(
   draft: MeetingDetailsDraft,
   recorded: MeetingDetailsOfficers,
+  scheduleLocked = false,
 ): MeetingDetailsSubmission {
   const location = draft.location.trim();
   const chairMemberId = draft.chairMemberId.trim();
   const secretaryMemberId = draft.secretaryMemberId.trim();
   const errors: Partial<Record<MeetingDetailsField, TranslationKey>> = {};
-  if (!draft.scheduledAt) errors.startsAt = "meetings.invalidLocalTime";
-  if (!location) errors.location = "meetings.locationRequired";
+  if (!scheduleLocked && !draft.scheduledAt) errors.startsAt = "meetings.invalidLocalTime";
+  if (!scheduleLocked && !location) errors.location = "meetings.locationRequired";
   if (!chairMemberId && recorded.chairMemberId) errors.chairMemberId = "meetings.officerCannotBeRemoved";
   else if (!chairMemberId && secretaryMemberId) errors.chairMemberId = "meetings.officersDesignatedTogether";
   if (!secretaryMemberId && recorded.secretaryMemberId) errors.secretaryMemberId = "meetings.officerCannotBeRemoved";
   else if (!secretaryMemberId && chairMemberId) errors.secretaryMemberId = "meetings.officersDesignatedTogether";
-  if (!draft.scheduledAt || Object.keys(errors).length) return { kind: "invalid", errors };
+  if (Object.keys(errors).length) return { kind: "invalid", errors };
+  if (scheduleLocked)
+    return chairMemberId && secretaryMemberId
+      ? { kind: "officers", input: { chairMemberId, secretaryMemberId } }
+      : { kind: "unchanged" };
+  if (!draft.scheduledAt) return { kind: "invalid", errors: { startsAt: "meetings.invalidLocalTime" } };
   const schedule = { scheduledAt: draft.scheduledAt, location };
   return chairMemberId && secretaryMemberId
     ? { kind: "prepare", input: { ...schedule, chairMemberId, secretaryMemberId } }

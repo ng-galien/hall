@@ -26,9 +26,9 @@ const auditCases = [
   ],
   [
     "POST",
-    "/api/council-meetings/meeting-1/agenda-freeze",
+    "/api/council-meetings/meeting-1/agenda-revision-reset",
     undefined,
-    "meeting.freeze-agenda",
+    "meeting.reset-agenda-revision",
     "council-meeting",
     "meeting-1",
   ],

@@ -78,7 +78,15 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const [editOpen, setEditOpen] = useState(false);
   const [detailsErrors, setDetailsErrors] = useState<Partial<Record<MeetingDetailsField, TranslationKey>>>({});
   const { settings, error: settingsError } = useMeetingSettings();
-  const detailsEditable = meetingActions.can("meeting.prepare");
+  const detailsEditable = meetingActions.can("meeting.prepare") || meetingActions.can("meeting.set-officers");
+  // @implements-requirement HALL-FR-NOT-140
+  // Date and location belong to the agenda revision: they change only while it is open.
+  const scheduleLocked = !meetingActions.can("meeting.schedule");
+  const agendaRevision = meetingActions.workspace!.meeting.agendaRevision;
+  const revisionEstablished = Boolean(agendaRevision.establishedAt);
+  const canGenerateNotice = !revisionEstablished && meetingActions.can("meeting.generate-notice");
+  const canRevise = meetingActions.can("meeting.reopen-agenda");
+  const canResetRevision = meetingActions.can("meeting.reset-agenda-revision");
   const startsAtLocalValue = settings ? meetingScheduleInputValue(meeting.scheduledAt, settings.timeZone) : "";
 
   const submitDetails = async (event: FormEvent<HTMLFormElement>) => {
@@ -93,17 +101,24 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         secretaryMemberId: String(form.get("secretaryMemberId") ?? ""),
       },
       meeting,
+      scheduleLocked,
     );
     if (submission.kind === "invalid") {
       setDetailsErrors(submission.errors);
       return;
     }
     setDetailsErrors({});
+    if (submission.kind === "unchanged") {
+      setEditOpen(false);
+      return;
+    }
     await run(async () => {
       const saved =
         submission.kind === "prepare"
           ? await meetingActions.prepare(submission.input)
-          : await meetingActions.schedule(submission.input);
+          : submission.kind === "officers"
+            ? await meetingActions.setOfficers(submission.input)
+            : await meetingActions.schedule(submission.input);
       if (saved) setEditOpen(false);
       return saved;
     });
@@ -200,6 +215,65 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               )}
             </div>
           </div>
+          {meeting.status === "draft" || meeting.status === "scheduled" ? (
+            <div className="meeting-prep-actionbar meeting-revision-bar" data-testid="meeting-agenda-revision">
+              <div className="meeting-prep-facts">
+                <strong
+                  className="meeting-revision-state"
+                  data-testid="meeting-agenda-revision-state"
+                  data-state={revisionEstablished ? "established" : "open"}
+                  data-number={agendaRevision.number}
+                >
+                  {revisionEstablished
+                    ? t("meeting.revision.established", {
+                        number: formatNumber(agendaRevision.number),
+                        date: formatDateTime(agendaRevision.establishedAt!),
+                      })
+                    : t("meeting.revision.open", { number: formatNumber(agendaRevision.number) })}
+                </strong>
+                {revisionEstablished && agendaRevision.noticeId ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span data-testid="meeting-agenda-revision-notice">
+                      {t("meeting.revision.notice", { number: formatNumber(agendaRevision.number) })}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+              <div className="meeting-prep-actions">
+                {canResetRevision ? (
+                  <Button
+                    variant="outline"
+                    data-testid="meeting-reset-agenda-revision"
+                    disabled={submitting}
+                    onClick={() => void run(() => meetingActions.resetAgendaRevision())}
+                  >
+                    {t("meeting.revision.reset")}
+                  </Button>
+                ) : null}
+                {canGenerateNotice ? (
+                  <Button
+                    data-testid="meeting-generate-notice"
+                    disabled={submitting}
+                    onClick={() => void run(() => meetingActions.generateNotice())}
+                  >
+                    {t("meeting.revision.generateNotice")}
+                  </Button>
+                ) : null}
+                {canRevise ? (
+                  <Button
+                    variant="outline"
+                    data-testid="meeting-revise-agenda"
+                    disabled={submitting}
+                    onClick={() => void run(() => meetingActions.reopenAgenda())}
+                  >
+                    <EditIcon />
+                    {t("meeting.revision.revise")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <MeetingEntryBlockers blockers={entryBlockers} />
           {meeting.status === "draft" || meeting.status === "scheduled" ? (
             <MeetingNoticeDeadline deadline={meeting.noticeDeadline} />
@@ -222,46 +296,62 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         </div>
       </PageHeader>
       <div className="page-content meeting-page-content">
-        <RequestErrorBanner error={meetingActions.actionError} />
+        {meetingActions.actionError === "agenda_revision_item_moved" && meetingActions.actionErrorDetail ? (
+          <div className="error-banner" role="alert" data-testid="meeting-reset-agenda-revision-error">
+            {t("meeting.revision.itemMoved", { title: meetingActions.actionErrorDetail })}
+          </div>
+        ) : (
+          <RequestErrorBanner error={meetingActions.actionError} />
+        )}
         <RequestErrorBanner error={settingsError} />
         <Modal open={editOpen} title={t("meeting.generalProperties")} onClose={() => setEditOpen(false)}>
           <form className="modal-form" onSubmit={submitDetails}>
             <RequestErrorBanner error={meetingActions.actionError} />
-            <div className="form-grid">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${detailsFieldId}-startsAt`}>{t("meetings.dateTime")}</Label>
-                <Input
-                  id={`${detailsFieldId}-startsAt`}
-                  name="startsAt"
-                  data-testid="meeting-edit-starts-at"
-                  type="datetime-local"
-                  defaultValue={startsAtLocalValue}
-                  required
-                  {...detailsFieldInvalid("startsAt")}
-                />
-                {detailsFieldError("startsAt")}
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
-                {settings?.meetingLocations.length || meeting.location ? (
-                  <MeetingLocationSelect
-                    id={`${detailsFieldId}-location`}
-                    testId="meeting-edit-location"
-                    locations={settings?.meetingLocations ?? []}
-                    current={meeting.location}
-                    placeholder={t("meetings.location")}
+            {scheduleLocked ? (
+              <p className="text-xs text-muted" data-testid="meeting-edit-schedule-locked">
+                {t("meeting.revision.scheduleLocked", {
+                  date: meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : "",
+                  location: meeting.location ?? "",
+                  number: formatNumber(agendaRevision.number),
+                })}
+              </p>
+            ) : (
+              <div className="form-grid">
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`${detailsFieldId}-startsAt`}>{t("meetings.dateTime")}</Label>
+                  <Input
+                    id={`${detailsFieldId}-startsAt`}
+                    name="startsAt"
+                    data-testid="meeting-edit-starts-at"
+                    type="datetime-local"
+                    defaultValue={startsAtLocalValue}
+                    required
+                    {...detailsFieldInvalid("startsAt")}
                   />
-                ) : (
-                  <p className="text-xs text-muted" data-testid="meeting-edit-location-missing">
-                    {t("meetings.locationsMissing")}{" "}
-                    <Link to="/settings" data-testid="meeting-edit-location-settings">
-                      {t("meetings.locationsConfigure")}
-                    </Link>
-                  </p>
-                )}
-                {detailsFieldError("location")}
+                  {detailsFieldError("startsAt")}
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
+                  {settings?.meetingLocations.length || meeting.location ? (
+                    <MeetingLocationSelect
+                      id={`${detailsFieldId}-location`}
+                      testId="meeting-edit-location"
+                      locations={settings?.meetingLocations ?? []}
+                      current={meeting.location}
+                      placeholder={t("meetings.location")}
+                    />
+                  ) : (
+                    <p className="text-xs text-muted" data-testid="meeting-edit-location-missing">
+                      {t("meetings.locationsMissing")}{" "}
+                      <Link to="/settings" data-testid="meeting-edit-location-settings">
+                        {t("meetings.locationsConfigure")}
+                      </Link>
+                    </p>
+                  )}
+                  {detailsFieldError("location")}
+                </div>
               </div>
-            </div>
+            )}
             <div className="form-grid">
               <div className="grid gap-1.5">
                 <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>

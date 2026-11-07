@@ -209,6 +209,7 @@ CREATE VIEW hall.action_access AS
       ('meeting.reorder-agenda', 'meeting.prepare'),
       ('meeting.freeze-agenda', 'meeting.prepare'),
       ('meeting.reopen-agenda', 'meeting.prepare'),
+      ('meeting.reset-agenda-revision', 'meeting.prepare'),
       ('meeting.generate-notice', 'meeting.prepare'),
       ('meeting.generate-notice-message', 'meeting.prepare'),
       ('agenda-item.schedule', 'agenda-item.prepare'),

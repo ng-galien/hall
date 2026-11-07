@@ -63,27 +63,25 @@ export function createMeetingNoticeService({
       .map((recipient) => recipient.councilMemberId);
     return {
       councilMeetingId: meetingId,
-      noticeId: meeting.currentNoticeId,
+      noticeId: meeting.agendaRevision.noticeId,
       recipients,
       missingEmailMemberIds,
-      canGenerate:
-        !meeting.startedAt && !!meeting.currentNoticeId && recipients.length > 0 && missingEmailMemberIds.length === 0,
+      canGenerate: !meeting.startedAt && recipients.length > 0 && missingEmailMemberIds.length === 0,
     };
   }
   return {
     messagePreparation,
     async generateMessage(meetingId, noticeId) {
       const preparation = await messagePreparation(meetingId);
-      if (preparation.noticeId !== noticeId) throw new DomainError("meeting_notice_stale", 409);
       if (preparation.missingEmailMemberIds.length > 0 || preparation.recipients.length === 0)
         throw new DomainError("meeting_notice_recipients_incomplete", 409);
       if (!preparation.canGenerate) throw new DomainError("meeting_notice_unavailable", 409);
       const notice = await councilClient.openNotice(noticeId);
-      if (!notice?.isCurrent || notice.councilMeetingId !== meetingId)
-        throw new DomainError("meeting_notice_stale", 409);
+      if (!notice || notice.councilMeetingId !== meetingId) throw new DomainError("meeting_notice_not_found", 404);
       const content = await councilClient.noticeContent(noticeId);
       if (!content) throw new DomainError("meeting_notice_not_found", 404);
-      const dossier = await meetingDossierService.dossier(meetingId);
+      // The dossier follows the established revision; the notice of an earlier revision travels alone.
+      const dossier = preparation.noticeId === noticeId ? await meetingDossierService.dossier(meetingId) : null;
       const message = await contentTemplateService.generateFromTemplate(
         await template("message", "meeting-notice-message"),
         {
@@ -93,16 +91,20 @@ export function createMeetingNoticeService({
           attachmentFiles: [
             {
               id: notice.id,
-              fileName: `convocation-${notice.facts.meeting.number}-v${notice.version}.pdf`,
+              fileName: `convocation-${notice.facts.meeting.number}-revision-${notice.revision}.pdf`,
               mediaType: "application/pdf",
               content,
             },
-            {
-              id: `${notice.id}-dossier`,
-              fileName: dossier.fileName,
-              mediaType: "application/pdf",
-              content: dossier.content,
-            },
+            ...(dossier
+              ? [
+                  {
+                    id: `${notice.id}-dossier`,
+                    fileName: dossier.fileName,
+                    mediaType: "application/pdf",
+                    content: dossier.content,
+                  },
+                ]
+              : []),
           ],
           to: [
             ...new Set(
@@ -115,8 +117,6 @@ export function createMeetingNoticeService({
           bcc: [],
         },
       );
-      if ((await councilClient.openMeeting(meetingId))?.currentNoticeId !== noticeId)
-        throw new DomainError("meeting_notice_stale", 409);
       return message;
     },
     list: (meetingId) => councilClient.listNotices(meetingId),
@@ -126,7 +126,7 @@ export function createMeetingNoticeService({
       return notice;
     },
     async generate(meetingId) {
-      const meeting = await councilClient.noticeFacts(meetingId);
+      const meeting = await councilClient.noticeDraftFacts(meetingId);
       if (!meeting) throw new DomainError("meeting_notice_unavailable", 409);
       const settings = await hallSettingsService.get();
       const facts: MeetingNoticeFacts = {
