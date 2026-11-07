@@ -2,6 +2,7 @@ import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startLocalHttpServer } from "@hall/server";
+import { Client } from "pg";
 import { expect, it } from "vitest";
 import { startEmbeddedPostgresRuntime } from "../../server/src/infrastructure/database/embeddedPostgresRuntime.js";
 import { openDemonstration, signInToDemonstration } from "../src/demonstration.js";
@@ -31,7 +32,14 @@ it("recreates an incompatible same-version demonstration and then reuses its com
     await opened.server.close();
     opened = undefined;
     database = await startEmbeddedPostgresRuntime(dataDirectory);
-    await database.pool.query("UPDATE hall_meta.schema_contract SET manifest_sha256=repeat('0',64)");
+    const fixture = new Client({ connectionString: database.url });
+    await fixture.connect();
+    try {
+      const changed = await fixture.query("UPDATE hall_meta.schema_contract SET manifest_sha256=repeat('0',64)");
+      expect(changed.rowCount).toBe(1);
+    } finally {
+      await fixture.end();
+    }
     await database.close();
     database = undefined;
     const onPlan = (await import("vitest")).vi.fn();
