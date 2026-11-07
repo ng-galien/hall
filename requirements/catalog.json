@@ -4583,7 +4583,8 @@
       "statement": "Les faits du procès-verbal sont capturés à la clôture de la séance.",
       "acceptanceCriteria": [
         "Faits capturés à clôture : P — photographie choisie.",
-        "The captured agenda title is the historical point title shown in the meeting proceedings, not the name of the associated business folder. The closing observation retains that title before an unfinished occurrence is carried forward; an in-meeting addition retains its point title even though it is absent from the frozen notice."
+        "The captured agenda title is the historical point title shown in the meeting proceedings, not the name of the associated business folder. The closing observation retains that title before an unfinished occurrence is carried forward; an in-meeting addition retains its point title even though it is absent from the frozen notice.",
+        "Un instantané de séance (ouverture et clôture) contient les données de la séance et, pour chaque pièce, l’identifiant de sa ressource et, pour un fichier ou une image d’éditeur, l’identifiant de son objet binaire ; il ne contient jamais les octets d’un fichier ni d’une image. Le nom, l’emplacement et le type de média se lisent sur la ressource à l’affichage et suivent un renommage ou un déplacement ; le texte d’une ressource texte est conservé tel qu’à la capture. Un objet binaire et une ressource référencés par un instantané ne peuvent être ni modifiés (objet binaire) ni supprimés ; une image d’éditeur référencée reste rattachée à son texte. Les lectures d’une séance close ne lisent aucun contenu de fichier."
       ],
       "clauses": [
         {
@@ -4596,6 +4597,12 @@
           "key": "historical-agenda-point-title",
           "origin": "product",
           "statement": "On 1 November 2026 the user approved correcting the title source for future minutes after comparing the PV with the meeting proceedings. The separate existing-record repair was explicitly limited to council minutes no. 7. Topic Graph mairie declaration 3bcead7b-d3be-46b0-8a3b-8fafb15d3950 and accepted review 40000f03-063a-400f-b739-6811c37dbaa7 record that scope; it does not introduce ordinary editing of immutable facts.",
+          "sourceIds": []
+        },
+        {
+          "key": "snapshot-document-references",
+          "origin": "product",
+          "statement": "Décision de l’utilisateur du 7 novembre 2026 : un instantané de séance référence ses pièces par identifiant (ressource et objet binaire), sans copie des octets ni des noms ; l’intégrité repose sur l’immuabilité des objets binaires et l’interdiction de supprimer une ressource référencée. Les instantanés existants sont ramenés à cette forme par migration.",
           "sourceIds": []
         }
       ]

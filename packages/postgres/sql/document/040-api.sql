@@ -1311,6 +1311,8 @@ DECLARE
   business_id UUID;
   link_count INTEGER;
 BEGIN
+  -- @implements-requirement HALL-FR-MIN-160
+  IF hall.meeting_snapshot_references_resource(resource_id) THEN RETURN FALSE; END IF;
   SELECT count(*), (array_agg(council_business))[1] INTO link_count, business_id
   FROM hall.council_business_resource WHERE resource = resource_id;
   IF link_count = 0 THEN RETURN TRUE; END IF;

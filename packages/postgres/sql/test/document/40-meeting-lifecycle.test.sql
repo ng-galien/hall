@@ -4,7 +4,7 @@ SET LOCAL hall.roles = '["administrator"]';
 \ir ../../council/test/support/helpers.sql
 SELECT no_plan();
 
--- Complete production schema: the snapshots must include documentary content.
+-- Complete production schema: the snapshots reference documentary content.
 CREATE TEMP TABLE scenario AS
 SELECT (provision_initial_council_meeting()).id AS meeting,
   create_council_business_workspace('', 'lifecycle', 'report', 'Opening report') AS business;
@@ -54,8 +54,10 @@ SELECT is((SELECT payload FROM council_meeting_snapshot WHERE phase='opening'), 
 SELECT ok((SELECT payload::text LIKE '%Opening report%' FROM opening), 'opening stores the report content itself');
 
 SELECT hall_api.replace_document_content(id, 'application/pdf', convert_to('Replacement bytes', 'UTF8')) FROM attachment;
-SELECT ok((SELECT payload::text LIKE '%' || encode(convert_to('Original bytes','UTF8'),'hex') || '%' FROM opening),
- 'opening owns the original attachment bytes');
+SELECT ok((SELECT payload::text NOT LIKE '%' || encode(convert_to('Original bytes','UTF8'),'hex') || '%' FROM opening),
+ 'opening references the attachment without copying its bytes');
+SELECT is((SELECT decode(meeting_document_content(meeting, attachment.id)->>'contentBase64','base64') FROM scenario, attachment),
+ convert_to('Original bytes','UTF8'), 'opening serves the attachment version it references');
 SELECT is((SELECT payload FROM council_meeting_snapshot WHERE phase='opening'), (SELECT payload FROM opening),
  'replacing an attachment cannot rewrite its opening version');
 SELECT throws_ok($$SELECT deprogram_council_agenda_item(untouched) FROM items$$,

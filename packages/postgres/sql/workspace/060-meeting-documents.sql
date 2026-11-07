@@ -8,7 +8,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'agenda',(SELECT coalesce(jsonb_agg(to_jsonb(item) ORDER BY abs(item.position),item.id),'[]'::jsonb)
       FROM hall.council_agenda_item item WHERE item.council_meeting=target_meeting AND (item.position>0 OR item.adjourned_at IS NOT NULL)),
     'businesses',(SELECT coalesce(jsonb_agg(to_jsonb(workspace)||jsonb_build_object(
-      'folder',hall.resource_detail(workspace.folder_resource),'resources',(SELECT coalesce(jsonb_agg(to_jsonb(association) ORDER BY association.position),'[]'::jsonb)
+      'resources',(SELECT coalesce(jsonb_agg(to_jsonb(association) ORDER BY association.position),'[]'::jsonb)
         FROM hall.council_business_resource association WHERE association.council_business=workspace.council_business))),'[]'::jsonb)
       FROM hall.council_business_workspace workspace WHERE workspace.council_business IN (
         SELECT council_business FROM hall.council_agenda_item WHERE council_meeting=target_meeting AND (position>0 OR adjourned_at IS NOT NULL))),
@@ -37,30 +37,62 @@ LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     FROM jsonb_array_elements(context#>'{payload,conduct,attendanceEvents}') WHERE value->>'proxyDocumentId' IS NOT NULL;
 $$;
 
+-- @implements-requirement HALL-FR-MIN-160
+-- Presents a document reference: the current name and location of the
+-- resource, with the frozen component state and the binary object recorded by
+-- the reference. Bytes are never read here.
+CREATE FUNCTION hall.meeting_document_presentation(reference JSONB)
+RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
+  SELECT jsonb_build_object(
+    'resource', hall.resource_detail(resource.id) || coalesce(reference->'frozen', '{}'::jsonb)
+      || coalesce((SELECT jsonb_build_object('binary', jsonb_build_object('id', bytes.id, 'mediaType', bytes.media_type,
+          'byteSize', bytes.byte_size, 'contentSha256', bytes.content_sha256))
+        FROM hall.binary_object bytes WHERE bytes.id = (reference->>'binaryObject')::UUID), '{}'::jsonb),
+    'binaryObject', reference->'binaryObject',
+    'editorAssets', (SELECT coalesce(jsonb_agg(jsonb_build_object('id', asset.id, 'title', asset.title,
+        'mediaType', bytes.media_type, 'binaryObject', bytes.id) ORDER BY asset.id), '[]'::jsonb)
+      FROM jsonb_array_elements(reference->'editorAssets') recorded
+      JOIN hall.editor_asset asset ON asset.id = (recorded->>'id')::UUID
+      JOIN hall.binary_object bytes ON bytes.id = (recorded->>'binaryObject')::UUID))
+  FROM hall.resource resource WHERE resource.id = (reference->>'resource')::UUID;
+$$;
+
 CREATE FUNCTION hall.meeting_documentary_resource(context JSONB, target_resource UUID)
 RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
-  SELECT CASE WHEN context#>>'{source,kind}'='snapshot' THEN (
-    SELECT value FROM jsonb_array_elements(context#>'{payload,documents}') WHERE value#>>'{resource,id}'=target_resource::text
-  ) ELSE jsonb_build_object('resource',hall.resource_detail(target_resource),
-    'binary',(SELECT to_jsonb(bytes) FROM hall.document_resource document JOIN hall.binary_object bytes ON bytes.id=document.binary_object_id WHERE document.id=target_resource),
-    'editorAssets',(SELECT coalesce(jsonb_agg(to_jsonb(asset)||jsonb_build_object('binary',to_jsonb(bytes)) ORDER BY asset.id),'[]'::jsonb)
-      FROM hall.editor_asset asset JOIN hall.binary_object bytes ON bytes.id=asset.binary_object_id WHERE asset.owner_text_resource_id=target_resource)) END
+  SELECT hall.meeting_document_presentation(CASE WHEN context#>>'{source,kind}'='snapshot' THEN (
+    SELECT value FROM jsonb_array_elements(context#>'{payload,documents}') WHERE value->>'resource'=target_resource::text
+  ) ELSE hall.meeting_document_reference(target_resource) END)
   WHERE EXISTS (SELECT FROM hall.meeting_documentary_resource_relations(context) WHERE resource_id=target_resource);
 $$;
 
 CREATE FUNCTION hall_api.meeting_documents(target_meeting UUID)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
   WITH context AS (SELECT hall.meeting_documentary_context(target_meeting) value),
-  resources AS (
-    SELECT jsonb_build_object('id',relation.resource_id,'title',document.value#>>'{resource,name}',
-      'mediaType',document.value#>>'{binary,media_type}',
-      'source',CASE WHEN document.value IS NULL THEN context.value->'source'||jsonb_build_object('kind','unavailable','reason','notCaptured') ELSE context.value->'source' END,
-      'roles',to_jsonb(array_agg(DISTINCT relation.role ORDER BY relation.role)),
-      'councilBusinessIds',to_jsonb(coalesce(array_agg(DISTINCT relation.business_id ORDER BY relation.business_id) FILTER (WHERE relation.business_id IS NOT NULL),'{}'::uuid[]))) value,
+  relations AS (
+    SELECT relation.resource_id,
+      to_jsonb(array_agg(DISTINCT relation.role ORDER BY relation.role)) roles,
+      to_jsonb(coalesce(array_agg(DISTINCT relation.business_id ORDER BY relation.business_id) FILTER (WHERE relation.business_id IS NOT NULL),'{}'::uuid[])) business_ids,
       bool_or(relation.role='proxy') proxy
     FROM context CROSS JOIN LATERAL hall.meeting_documentary_resource_relations(context.value) relation
-    CROSS JOIN LATERAL (SELECT hall.meeting_documentary_resource(context.value,relation.resource_id) value) document
-    GROUP BY relation.resource_id,context.value,document.value
+    GROUP BY relation.resource_id
+  ),
+  recorded AS (
+    SELECT entry->>'resource' AS id, entry AS reference
+    FROM context, jsonb_array_elements(CASE WHEN context.value#>>'{source,kind}'='snapshot'
+      THEN context.value#>'{payload,documents}' ELSE '[]'::jsonb END) entry
+  ),
+  resources AS (
+    SELECT jsonb_build_object('id',relations.resource_id,'title',current_resource.name,
+      'mediaType',bytes.media_type,
+      'source',CASE WHEN current_resource.id IS NULL THEN context.value->'source'||jsonb_build_object('kind','unavailable','reason','notCaptured') ELSE context.value->'source' END,
+      'roles',relations.roles,'councilBusinessIds',relations.business_ids) value,
+      relations.proxy
+    FROM context CROSS JOIN relations
+    LEFT JOIN recorded ON recorded.id=relations.resource_id::text
+    CROSS JOIN LATERAL (SELECT CASE WHEN context.value#>>'{source,kind}'='snapshot' THEN recorded.reference
+      ELSE hall.meeting_document_reference(relations.resource_id) END AS value) reference
+    LEFT JOIN hall.resource current_resource ON current_resource.id=relations.resource_id AND reference.value IS NOT NULL
+    LEFT JOIN hall.binary_object bytes ON bytes.id=(reference.value->>'binaryObject')::UUID
   )
   SELECT jsonb_build_object('councilMeetingId',target_meeting,'groups',jsonb_build_array(
     jsonb_build_object('kind','noticeAndAgenda','notices',hall_api.list_meeting_notices(target_meeting),'agendaFreeze',hall_api.open_council_agenda_freeze(target_meeting)),
@@ -71,10 +103,11 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
       FROM hall.minutes LEFT JOIN hall.minutes_document document ON document.minutes=minutes.id WHERE minutes.council_meeting=target_meeting)),
     jsonb_build_object('kind','resources','resources',(SELECT coalesce(jsonb_agg(value ORDER BY value->>'title',value->>'id'),'[]'::jsonb) FROM resources WHERE NOT proxy)),
     jsonb_build_object('kind','businesses','businesses',(SELECT coalesce(jsonb_agg(jsonb_build_object(
-      'id',business->>'council_business','title',business#>>'{folder,name}','source',context.value->'source',
+      'id',business->>'council_business','title',folder.name,'source',context.value->'source',
       'agendaItemIds',(SELECT coalesce(jsonb_agg(item->'id' ORDER BY abs((item->>'position')::integer),item->>'id'),'[]'::jsonb)
-        FROM jsonb_array_elements(context.value#>'{payload,agenda}') item WHERE item->>'council_business'=business->>'council_business')) ORDER BY business#>>'{folder,name}'),'[]'::jsonb)
-      FROM jsonb_array_elements(context.value#>'{payload,businesses}') business))
+        FROM jsonb_array_elements(context.value#>'{payload,agenda}') item WHERE item->>'council_business'=business->>'council_business')) ORDER BY folder.name),'[]'::jsonb)
+      FROM jsonb_array_elements(context.value#>'{payload,businesses}') business
+      LEFT JOIN hall.resource folder ON folder.folder_resource_id=(business->>'folder_resource')::UUID))
   )) FROM context WHERE context.value IS NOT NULL;
 $$;
 
@@ -83,16 +116,16 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
   WITH context AS (SELECT hall.meeting_documentary_context(target_meeting) value),
   document AS (SELECT context.value->'source' source,hall.meeting_documentary_resource(context.value,target_resource) value FROM context)
   SELECT jsonb_build_object('source',source,'resource',value->'resource','editorAssets',(
-    SELECT coalesce(jsonb_agg(jsonb_build_object('id',asset->>'id','title',asset->>'title','mediaType',asset#>>'{binary,media_type}') ORDER BY asset->>'id'),'[]'::jsonb)
+    SELECT coalesce(jsonb_agg(jsonb_build_object('id',asset->>'id','title',asset->>'title','mediaType',asset->>'mediaType') ORDER BY asset->>'id'),'[]'::jsonb)
     FROM jsonb_array_elements(value->'editorAssets') asset)) FROM document WHERE value->'resource' IS NOT NULL AND value->'resource'<>'null'::jsonb;
 $$;
 
 CREATE FUNCTION hall_api.meeting_document_content(target_meeting UUID,target_resource UUID,target_asset UUID DEFAULT NULL)
 RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
   WITH document AS (SELECT hall.meeting_documentary_resource(hall.meeting_documentary_context(target_meeting),target_resource) value),
-  bytes AS (SELECT CASE WHEN target_asset IS NULL THEN value->'binary' ELSE (
-    SELECT asset->'binary' FROM jsonb_array_elements(value->'editorAssets') asset WHERE asset->>'id'=target_asset::text
-  ) END value FROM document)
-  SELECT jsonb_build_object('contentBase64',encode(decode(substr(value->>'content',3),'hex'),'base64'),
-    'mediaType',value->>'media_type') FROM bytes WHERE value->>'content' IS NOT NULL;
+  reference AS (SELECT CASE WHEN target_asset IS NULL THEN value->>'binaryObject' ELSE (
+    SELECT asset->>'binaryObject' FROM jsonb_array_elements(value->'editorAssets') asset WHERE asset->>'id'=target_asset::text
+  ) END::UUID id FROM document)
+  SELECT jsonb_build_object('contentBase64',encode(bytes.content,'base64'),'mediaType',bytes.media_type)
+  FROM reference JOIN hall.binary_object bytes ON bytes.id=reference.id;
 $$;

@@ -1,5 +1,5 @@
 -- Two immutable observations: the programme at opening, the outcome at closure.
--- The workspace boundary enriches these facts with copied documentary content.
+-- The workspace boundary adds document references (resource and binary object identities).
 CREATE TABLE hall.council_meeting_snapshot (
   council_meeting UUID NOT NULL REFERENCES hall.council_meetings(id),
   phase TEXT NOT NULL CONSTRAINT "council_meeting_snapshot_phase_check" CHECK (phase = ANY (ARRAY['opening'::text, 'closing'::text])),

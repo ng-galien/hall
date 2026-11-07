@@ -67,13 +67,31 @@ BEGIN
   RETURN jsonb_build_object('canStartDiscussion',jsonb_array_length(start_blockers)=0,'canReviewBallot',jsonb_array_length(review_blockers)=0,'conductBlockers',blockers);
 END $$;
 
+-- @implements-requirement HALL-FR-MIN-160
+-- Reads the closing snapshot of a meeting once for a whole agenda list: the
+-- presentation number of each item and the proposal text recorded at closure.
+CREATE FUNCTION hall.council_agenda_presentation(target_meeting UUID)
+RETURNS TABLE(item_id UUID, agenda_number INTEGER, recorded_proposal TEXT)
+LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $function$
+  SELECT numbers.agenda_item, numbers.agenda_number, recorded.content
+  FROM hall.council_agenda_presentation_numbers(target_meeting) numbers
+  LEFT JOIN (
+    SELECT item->>'id' AS id, proposal->>'content' AS content
+    FROM hall.council_meeting_snapshot snapshot,
+      jsonb_array_elements(snapshot.payload->'agenda') item,
+      jsonb_array_elements(snapshot.payload->'proposals') proposal
+    WHERE snapshot.council_meeting = target_meeting AND snapshot.phase = 'closing'
+      AND proposal->>'id' = item->>'council_decision_proposal'
+  ) recorded ON recorded.id = numbers.agenda_item::TEXT;
+$function$;
+
 -- @implements-requirement HALL-FR-WSP-060
-CREATE FUNCTION hall.council_agenda_item_projection(target hall.council_agenda_item)
+CREATE FUNCTION hall.council_agenda_item_presented_projection(
+  target hall.council_agenda_item, agenda_number INTEGER, recorded_proposal TEXT)
 RETURNS JSONB
 LANGUAGE sql
 STABLE
 PARALLEL SAFE
-RETURNS NULL ON NULL INPUT
 SET search_path = pg_catalog
 AS $function$
   SELECT jsonb_build_object(
@@ -83,7 +101,7 @@ AS $function$
     'councilMeetingId', target.council_meeting,
     'position', target.position,
     'introducedAt', hall.council_agenda_introduced_at(target.council_meeting,target.id),
-    'agendaNumber', (SELECT agenda_number FROM hall.council_agenda_presentation_numbers(target.council_meeting) WHERE agenda_item = target.id),
+    'agendaNumber', agenda_number,
     'discussionSummary', target.discussion_summary,
     'subject', CASE
       WHEN target.minutes_approval IS NOT NULL THEN jsonb_build_object(
@@ -97,10 +115,7 @@ AS $function$
         'kind', 'councilDecisionProposal',
          'id', target.council_decision_proposal,
         'textResourceId', (SELECT text_resource FROM hall.council_decision_proposal_workspace WHERE council_decision_proposal = target.council_decision_proposal),
-        'content', (SELECT coalesce(
-          (SELECT document #>> '{resource,content}' FROM hall.council_meeting_snapshot snapshot, jsonb_array_elements(snapshot.payload->'documents') document
-            WHERE snapshot.council_meeting = target.council_meeting AND snapshot.phase = 'closing' AND document #>> '{resource,id}' = workspace.text_resource::TEXT),
-          text.content)
+        'content', (SELECT coalesce(recorded_proposal, text.content)
           FROM hall.council_decision_proposal_workspace workspace JOIN hall.text_resource text ON text.id = workspace.text_resource
           WHERE workspace.council_decision_proposal = target.council_decision_proposal)
       )
@@ -115,6 +130,20 @@ AS $function$
     'completedAt', target.completed_at,
     'adjournedAt', target.adjourned_at
   ) || hall.council_agenda_item_capabilities(target)
+$function$;
+
+-- @implements-requirement HALL-FR-WSP-060
+CREATE FUNCTION hall.council_agenda_item_projection(target hall.council_agenda_item)
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+SET search_path = pg_catalog
+AS $function$
+  SELECT hall.council_agenda_item_presented_projection(target, presented.agenda_number, presented.recorded_proposal)
+  FROM (SELECT NULL) present
+  LEFT JOIN hall.council_agenda_presentation(target.council_meeting) presented ON presented.item_id = target.id
 $function$;
 
 CREATE FUNCTION hall_api.open_council_agenda_item(target_agenda_item UUID)
@@ -150,7 +179,7 @@ SET search_path = pg_catalog, hall
 AS $function$
   SELECT coalesce(
     jsonb_agg(
-      hall.council_agenda_item_projection(agenda_item)
+      hall.council_agenda_item_presented_projection(agenda_item, presented.agenda_number, presented.recorded_proposal)
       ORDER BY abs(agenda_item.position), agenda_item.id
     ),
     '[]'::jsonb
@@ -164,6 +193,7 @@ AS $function$
       LATERAL jsonb_populate_recordset(NULL::hall.council_agenda_item, snapshot.payload->'agenda') archived
     WHERE snapshot.council_meeting = target_meeting AND snapshot.phase = 'closing'
   ) AS agenda_item
+  LEFT JOIN hall.council_agenda_presentation(target_meeting) presented ON presented.item_id = agenda_item.id
 $function$;
 
 -- @implements-requirement HALL-FR-WSP-170
@@ -191,18 +221,25 @@ BEGIN
       MESSAGE = 'council business agenda history requires between one and one hundred unique business identities';
   END IF;
 
+  WITH selected AS (
+    SELECT agenda_item FROM hall.council_agenda_item AS agenda_item
+    WHERE agenda_item.council_business = ANY(target_businesses)
+  ), presented AS MATERIALIZED (
+    SELECT presentation.* FROM (SELECT DISTINCT (agenda_item).council_meeting AS id FROM selected) meetings
+    CROSS JOIN LATERAL hall.council_agenda_presentation(meetings.id) presentation
+  )
   SELECT coalesce(
     jsonb_agg(
-      hall.council_agenda_item_projection(agenda_item)
-      ORDER BY meeting.number, abs(agenda_item.position), agenda_item.id
+      hall.council_agenda_item_presented_projection(selected.agenda_item, presented.agenda_number, presented.recorded_proposal)
+      ORDER BY meeting.number, abs((selected.agenda_item).position), (selected.agenda_item).id
     ),
     '[]'::jsonb
   )
   INTO result
-  FROM hall.council_agenda_item AS agenda_item
+  FROM selected
   JOIN hall.council_meetings AS meeting
-    ON meeting.id = agenda_item.council_meeting
-  WHERE agenda_item.council_business = ANY(target_businesses);
+    ON meeting.id = (selected.agenda_item).council_meeting
+  LEFT JOIN presented ON presented.item_id = (selected.agenda_item).id;
 
   RETURN result;
 END
