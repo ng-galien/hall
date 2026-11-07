@@ -6,34 +6,32 @@ Tags identify the main scope: `[FRONT]`, `[BACK]`, `[FULL]`, or `[OPS]`. Require
 
 The user decides business rules, data-model changes, product behavior, UI design, and ergonomics. Stop at a precise unresolved choice before changing dependent behavior.
 
-## Meeting business rules: decisions one by one
+## Meeting flow: functional units
 
-Inventory made on 2026-11-07 of the preconditions Hall puts on the meeting flow. Each line is one decision of the user, taken on the decisions board; the status column follows it here. Rules kept as they are (law or data integrity) are not listed.
+Inventory of 2026-11-07 of the rules Hall puts on the meeting flow, grouped by functional unit. A unit is framed and decided as a whole with the user; no rule is changed on its own. Rules kept as law or data integrity are not listed.
 
-| # | Rule today | Proposed | Status |
-|---|---|---|---|
-| 1 | Only the next agenda item can be opened; skipping one means adjourning it for good | Any untreated item can be opened | to decide |
-| 2 | Adjourning or ending an item is irreversible | Undo possible before closure when no ballot took place | to decide |
-| 3 | A recusal is immutable | Withdrawable before the ballot, with a trace | to decide |
-| 4 | A confirmed ballot cannot be corrected | Correction before closure, previous count kept in history | to decide |
-| 5 | Previous-minutes approval adjourned is lost for ever | Carried over to the next meeting | to decide |
-| 6 | Generated minutes are frozen before approval | New versions until approval, old ones kept | to decide |
-| 7 | Roll call ticked before opening is kept in the browser only | Each tick recorded at once | to decide |
-| 8 | Council decision prints the chair designated before opening | Chair and secretary in office at the ballot | to decide |
-| 9 | Agenda frozen after the notice; reopening invalidates the notice | Agenda revision cycle, notice per revision | in progress |
-| 10 | One non-closed meeting at a time | To review | later |
-| 11 | Officers designated together, not removable | To review | later |
-| 12 | Previous-minutes approval forced in position 1 | To review | later |
-| 13 | Notice e-mail refused when one address is missing | To review | later |
-| 14 | Proxy document mandatory at roll call | To review | later |
-| 15 | Opening refused before the convened time | To review | later |
-| 16 | Meeting secretary required present at opening and ballot | To review | later |
-| 17 | Project text locked at opening, no amendment in session | To review | later |
-| 18 | Initial roll-call error cannot be corrected | To review | later |
-| 19 | Frozen council decision has no corrective version | To review | later |
-| 20 | No election or nomination ballot | Missing | later |
-| 21 | Closed session cannot be lifted | Missing | later |
-| 22 | No "meeting not held" state | Missing | later |
+### Decided on 2026-11-07
+- Agenda order of examination is kept; adjourning stays the way to skip an item.
+- Adjourning, ending an item, recusing a member stay irreversible; every committing action gets a confirmation dialog.
+- A confirmed ballot is never corrected; the ballot confirmation dialog must show more detail.
+- An adjourned previous-minutes approval is not carried over (earlier decision confirmed).
+- Roll call ticked before opening is recorded as it goes, if simple; opening still validates it.
+
+### Unit 1: preparation (agenda, notice) — in progress
+- Agenda revision cycle, notice per revision (framing 2026-11-07).
+- To frame later in this unit: one non-closed meeting at a time; officers designated together and not removable; previous-minutes approval forced in position 1; notice e-mail refused when one address is missing.
+
+### Unit 2: opening (roll call, proxies, quorum)
+- Roll call recorded as it goes (decided, to do).
+- To frame later: proxy document mandatory at roll call; opening refused before the convened time; meeting secretary required present; initial roll-call error not correctable.
+
+### Unit 3: conduct (items, ballots, recusals, closed session)
+- Confirmation dialogs on every committing action; richer ballot confirmation (decided, to do).
+- To frame later: project text locked at opening (no amendment in session); election or nomination ballot missing; lifting a closed session missing.
+
+### Unit 4: closure and acts (minutes, council decisions)
+- Set aside by the user: new versions of generated minutes before approval; chair in office printed on the council decision after a handover.
+- To frame later: frozen council decision without corrective version; "meeting not held" state missing.
 
 ## Council meetings
 
