@@ -7,6 +7,8 @@ const scenarios = new Set(["fresh", "preparation", "default", "minutes"]);
 
 export function isolatedDatabaseUrl(value) {
   const url = new URL(value);
+  // Connection parameters in the query (host, port, dbname) would override the checked fields.
+  if (url.search || url.hash) throw new Error("Seed models require a database URL without query parameters");
   const name = decodeURIComponent(url.pathname.slice(1));
   if (url.hostname !== "127.0.0.1" || url.port !== "54330" || !/^hall_e2e_[a-z0-9_]+$/.test(name)) {
     throw new Error("Seed models require an owned Hall E2E database on 127.0.0.1:54330");

@@ -11,6 +11,7 @@ function testDatabaseName() {
   const value = process.env.DATABASE_URL;
   if (!value) throw new Error("Browser tests require a dedicated PostgreSQL database");
   const url = new URL(value);
+  if (url.search || url.hash) throw new Error("Browser tests require a database URL without query parameters");
   const name = decodeURIComponent(url.pathname.slice(1));
   if (url.hostname !== "127.0.0.1" || url.port !== "54330" || !name.startsWith("hall_e2e_")) {
     throw new Error("Browser tests may reset only a dedicated Hall E2E database");

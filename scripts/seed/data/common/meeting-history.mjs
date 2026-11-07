@@ -15,6 +15,8 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 export function demonstrationDatabaseUrl(value) {
   if (!value) throw new Error("Une base de démonstration ou de test navigateur est requise pour antidater une séance");
   const url = new URL(value);
+  // Connection parameters in the query (host, port, dbname) would override the checked fields.
+  if (url.search || url.hash) throw new Error("Antidatage refusé : l'adresse de la base ne doit porter aucun paramètre");
   const name = decodeURIComponent(url.pathname.slice(1));
   const loopback = ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname);
   const demonstration = url.port === "54329" && name === "hall";
