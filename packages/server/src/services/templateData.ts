@@ -40,6 +40,44 @@ function signatory(person: { id: string; name: string } | null, directory: Signa
 export interface GeneratedTemplateData {
   dossier?: Record<string, unknown>;
   event?: Record<string, unknown>;
+  attendanceSheet?: AttendanceSheetData;
+  proxy?: ProxyFormData;
+}
+
+/** A council member as named on a meeting attendance document; `role` is the mandate role. */
+export interface MeetingDocumentMember {
+  id: string;
+  name: string;
+  role: CouncilMember["role"];
+}
+
+export interface MeetingDocumentMeeting {
+  number: number;
+  /** Opening time once opened, otherwise the scheduled time; null while unscheduled. */
+  startsAt: string | null;
+  location: string | null;
+}
+
+/**
+ * `attendanceSheet`: every member in mandate, in council table order, with the attendance and the
+ * proxy holder recorded for the meeting when the sheet is generated; `counts` is null until recorded.
+ */
+export interface AttendanceSheetData {
+  meeting: MeetingDocumentMeeting;
+  members: Array<
+    MeetingDocumentMember & {
+      status: "present" | "represented" | "excused" | "absent" | null;
+      proxyHolder: { name: string } | null;
+    }
+  >;
+  counts: { present: number; represented: number; absent: number } | null;
+}
+
+/** `proxy`: the member giving the proxy (`grantor`) and the member receiving it (`holder`). */
+export interface ProxyFormData {
+  meeting: MeetingDocumentMeeting;
+  grantor: MeetingDocumentMember;
+  holder: MeetingDocumentMember;
 }
 
 // @implements-requirement HALL-FR-MIN-280
@@ -132,5 +170,7 @@ export function documentTemplateData(input: {
     generated: input.generated,
     dossier: input.generated?.data?.dossier ?? null,
     event: input.generated?.data?.event ?? null,
+    attendanceSheet: input.generated?.data?.attendanceSheet ?? null,
+    proxy: input.generated?.data?.proxy ?? null,
   };
 }

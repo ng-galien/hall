@@ -228,6 +228,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   meeting_cited_document_not_deletable: "error.meeting_cited_document_not_deletable",
   meeting_dossier_unavailable: "error.meeting_dossier_unavailable",
   deliberation_list_unavailable: "error.deliberation_list_unavailable",
+  proxy_form_invalid: "error.proxy_form_invalid",
   ballot_already_recorded: "error.ballot_already_recorded",
   ballot_not_found: "error.ballot_not_found",
   ballot_voters_invalid: "error.ballot_voters_invalid",

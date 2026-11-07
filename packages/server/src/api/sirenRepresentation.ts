@@ -75,6 +75,21 @@ export function objectLinks(request: Request, entityClass: SirenEntityClass, val
             { rel: ["documents"], href: `/api/council-meetings/${reference}/documents`, type: SIREN_MEDIA_TYPE },
             { rel: ["conduct"], href: `/api/council-meetings/${reference}/conduct`, type: SIREN_MEDIA_TYPE },
             { rel: ["notices"], href: `/api/council-meetings/${reference}/notices`, type: SIREN_MEDIA_TYPE },
+            {
+              rel: ["attendance-sheet"],
+              href: `/api/council-meetings/${reference}/attendance-sheet.pdf`,
+              type: "application/pdf",
+            },
+            ...(primary?.startedAt || primary?.closedAt
+              ? []
+              : [
+                  {
+                    rel: ["proxy-form"],
+                    href: `/api/council-meetings/${reference}/proxy-form.pdf`,
+                    title: "Query parameters: grantorMemberId, holderMemberId (two distinct members in mandate)",
+                    type: "application/pdf",
+                  },
+                ]),
             ...(primary?.closedAt && primary.minutesId
               ? [
                   {

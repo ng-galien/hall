@@ -24,10 +24,18 @@ export function CouncilMeetingPage({ meetingReference }: { meetingReference?: st
   if (!aggregate) return <EmptyState>{t("meeting.loading")}</EmptyState>;
 
   if (aggregate.meeting.status === "inProgress") {
-    return <MeetingInProgressHero aggregate={aggregate} />;
+    return (
+      <MeetingInProgressHero aggregate={aggregate} attendanceSheetHref={meetingActions.link("attendance-sheet")} />
+    );
   }
   if (aggregate.meeting.status === "closed" || aggregate.meeting.status === "cancelled") {
-    return <MeetingReport aggregate={aggregate} deliberationListHref={meetingActions.link("deliberation-list")} />;
+    return (
+      <MeetingReport
+        aggregate={aggregate}
+        deliberationListHref={meetingActions.link("deliberation-list")}
+        attendanceSheetHref={meetingActions.link("attendance-sheet")}
+      />
+    );
   }
   return <MeetingPreparation meetingActions={meetingActions} />;
 }

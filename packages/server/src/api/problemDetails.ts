@@ -17,6 +17,7 @@ const titles: Record<string, string> = {
   meeting_cited_document_not_deletable: "A document cited by a council meeting is never deleted",
   meeting_dossier_unavailable: "The meeting dossier needs a frozen agenda",
   deliberation_list_unavailable: "The list of deliberations needs a closed meeting",
+  proxy_form_invalid: "A proxy form names two distinct council members in mandate",
   councillor_requires_active_member: "A council member account requires a contact with an active mandate",
   invalid_credentials: "Invalid credentials",
   invalid_current_password: "Current password is incorrect",

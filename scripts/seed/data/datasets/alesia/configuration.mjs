@@ -14,6 +14,8 @@ const pdfTypes = new Set([
   "minutes",
   "council-decision",
   "deliberation-list",
+  "attendance-sheet",
+  "proxy-form",
   "document-print",
   "meeting-dossier-cover",
   "meeting-dossier-point",

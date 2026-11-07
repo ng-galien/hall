@@ -17,6 +17,8 @@ const families: ReadonlyArray<Pick<DefaultTemplate, "documentType" | "name" | "k
   { documentType: "minutes", name: "Procès-verbal du conseil", kind: "pdf" },
   { documentType: "council-decision", name: "Délibération du conseil municipal", kind: "pdf" },
   { documentType: "deliberation-list", name: "Liste des délibérations examinées", kind: "pdf" },
+  { documentType: "attendance-sheet", name: "Feuille d’émargement", kind: "pdf" },
+  { documentType: "proxy-form", name: "Pouvoir", kind: "pdf" },
   { documentType: "document-print", name: "Impression de document", kind: "pdf" },
   { documentType: "meeting-dossier-cover", name: "Dossier de séance - couverture", kind: "pdf" },
   { documentType: "meeting-dossier-point", name: "Dossier de séance - point", kind: "pdf" },
@@ -27,13 +29,29 @@ const pdfStylesheet =
   "h1, h2, h3, h4 { break-after: avoid; } p:has(+ blockquote) { break-after: avoid; } p, li { orphans: 3; widows: 3; } table { break-inside: avoid; }";
 
 /**
- * The signature block is the last table of these documents: its last row leaves room for the
- * handwritten signature, and a single signatory occupies the right half of the page.
+ * Administrative signature block (`.hall-signatures`, written in the body): no border nor grid,
+ * a single signatory in the right half of the page, two signatories side by side, at least 25 mm
+ * left blank under each name for the handwritten signature, never split across two pages.
  */
 const signatureStylesheet =
-  " .hall-document-body > p:has(+ table:last-child) { break-after: avoid; } .hall-document-body > table:last-child { margin-top: 1.5rem; } .hall-document-body > table:last-child tr:last-child td { height: 25mm; } .hall-document-body > table:last-child:not(:has(th + th)) { width: 50%; margin-left: auto; }";
+  " .hall-signatures { margin-top: 2rem; break-inside: avoid; page-break-inside: avoid; break-before: avoid; } .hall-document-body > :has(+ .hall-signatures) { break-after: avoid; } .hall-signatures p { margin: 0; } .hall-signatures > p { margin: 0 0 1rem 50%; } .hall-signatures:has(.hall-signature + .hall-signature) > p { margin-left: 0; } .hall-signatories { display: flex; justify-content: flex-end; } .hall-signature { box-sizing: border-box; width: 50%; padding-bottom: 25mm; } .hall-signature + .hall-signature { padding-left: 1rem; } .hall-signature p + p { margin-top: 0.25rem; }";
 
-const signedDocumentTypes: readonly string[] = ["meeting-notice", "minutes", "council-decision", "deliberation-list"];
+const signedDocumentTypes: readonly string[] = [
+  "meeting-notice",
+  "minutes",
+  "council-decision",
+  "deliberation-list",
+  "proxy-form",
+];
+
+/** One row per member with room for a signature; the signature column is the widest. */
+const attendanceSheetStylesheet =
+  " .hall-document-body table { width: 100%; table-layout: fixed; border-collapse: collapse; break-inside: auto; } .hall-document-body th, .hall-document-body td { border: 1px solid #000; padding: 1.5mm 2mm; font-size: 10pt; text-align: left; vertical-align: middle; overflow-wrap: break-word; } .hall-document-body td { height: 12mm; } .hall-document-body tr { break-inside: avoid; } .hall-document-body table + p { break-before: avoid; } .hall-document-body th:nth-child(1) { width: 24%; } .hall-document-body th:nth-child(2) { width: 13%; } .hall-document-body th:nth-child(3) { width: 13%; } .hall-document-body th:nth-child(4) { width: 20%; } .hall-document-body th:nth-child(5) { width: 30%; }";
+
+const familyStylesheet = (documentType: string): string =>
+  pdfStylesheet +
+  (signedDocumentTypes.includes(documentType) ? signatureStylesheet : "") +
+  (documentType === "attendance-sheet" ? attendanceSheetStylesheet : "");
 
 /** The same readable defaults are used by creation, demonstration seed and the explicit instance replacement. */
 export const defaultDocumentTemplates: ReadonlyArray<DefaultTemplate> = families.map((family) => ({
@@ -45,10 +63,7 @@ export const defaultDocumentTemplates: ReadonlyArray<DefaultTemplate> = families
       : family.documentType === "event-invitation"
         ? "{{ generated.subject | text }}"
         : "Convocation au conseil municipal du {{ notice.meeting.scheduledAt | date }}",
-  stylesheet:
-    family.kind === "pdf"
-      ? pdfStylesheet + (signedDocumentTypes.includes(family.documentType) ? signatureStylesheet : "")
-      : "",
+  stylesheet: family.kind === "pdf" ? familyStylesheet(family.documentType) : "",
   headerHtml: family.kind === "pdf" ? "{{ hall.name | text }}" : "",
   footerHtml: family.kind === "pdf" ? "Page :page-number / :page-count" : "",
 }));

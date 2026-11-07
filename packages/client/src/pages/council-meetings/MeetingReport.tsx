@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FileIcon, SearchIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { MeetingAttendanceDocuments } from "../../features/council-meetings/MeetingAttendanceDocuments";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { DocumentObjectViewer } from "../../features/documents/DocumentObjectViewer";
 import { StatusBadge } from "../../features/status/DomainStatusBadge";
@@ -15,9 +16,11 @@ import { MeetingProceedings } from "./MeetingProceedings";
 export function MeetingReport({
   aggregate,
   deliberationListHref,
+  attendanceSheetHref,
 }: {
   aggregate: LiveMeetingPresentation;
   deliberationListHref: string | null;
+  attendanceSheetHref: string | null;
 }) {
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { members } = useCouncilMembersStore();
@@ -61,6 +64,11 @@ export function MeetingReport({
               {t("meeting.deliberationList")}
             </Button>
           ) : null}
+          <MeetingAttendanceDocuments
+            meetingLabel={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
+            attendanceSheetHref={attendanceSheetHref}
+            proxyFormHref={null}
+          />
           <dl className="meeting-facts" data-testid="meeting-report-facts">
             <div>
               <dt>{t("calendar.start")}</dt>

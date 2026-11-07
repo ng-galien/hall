@@ -68,6 +68,7 @@ const staleMeetingRoutePath = "/:meetingReference/stale";
 export function createCouncilMeetingsRouter({
   councilClient,
   deliberationListService,
+  meetingAttendanceDocumentService,
   meetingDossierService,
   meetingNoticeService,
   realtimeEvents,
@@ -162,6 +163,30 @@ export function createCouncilMeetingsRouter({
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     const content = await deliberationListService.content(meeting.id);
     response.set("Content-Disposition", `inline; filename="liste-des-deliberations-${meeting.number}.pdf"`);
+    response.set("Cache-Control", "private, no-store");
+    response.type("application/pdf").send(content);
+  });
+  // @implements-requirement HALL-FR-ATT-010
+  router.get("/:meetingReference/attendance-sheet.pdf", async (request, response) => {
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    const content = await meetingAttendanceDocumentService.attendanceSheet(meeting.id);
+    response.set("Content-Disposition", `inline; filename="feuille-d-emargement-${meeting.number}.pdf"`);
+    response.set("Cache-Control", "private, no-store");
+    response.type("application/pdf").send(content);
+  });
+  // @implements-requirement HALL-FR-ATT-020
+  router.get("/:meetingReference/proxy-form.pdf", async (request, response) => {
+    const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+    const query = z
+      .object({ grantorMemberId: z.string().min(1), holderMemberId: z.string().min(1) })
+      .strict()
+      .parse(request.query);
+    const content = await meetingAttendanceDocumentService.proxyForm(
+      meeting.id,
+      query.grantorMemberId,
+      query.holderMemberId,
+    );
+    response.set("Content-Disposition", `inline; filename="pouvoir-${meeting.number}.pdf"`);
     response.set("Cache-Control", "private, no-store");
     response.type("application/pdf").send(content);
   });

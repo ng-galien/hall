@@ -108,31 +108,56 @@ Non arrêté.
 {% endif %}
 {% endfor %}`;
 
+interface SignatoryLines {
+  /** Office or quality of the signatory, written as is. */
+  quality: string;
+  /** Jinja expression rendering the name line; an empty value leaves the line blank. */
+  name: string;
+}
+
+/**
+ * Administrative signature block written in HTML within the Markdown body: the "Fait à" line,
+ * then one or two signatories, each with a quality, a name and a blank space for the handwritten
+ * signature. Layout belongs to the stylesheet (`.hall-signatures`): a single signatory occupies the
+ * right half of the page, two signatories stand side by side.
+ */
+export function jinjaSignatureBlock(place: string, date: string, signatories: readonly SignatoryLines[]): string {
+  const blocks = signatories
+    .map((signatory) => `<div class="hall-signature">\n\n${signatory.quality}\n\n${signatory.name}\n\n</div>`)
+    .join("\n");
+  return `<div class="hall-signatures">\n\nFait à ${place}, le ${date}\n\n<div class="hall-signatories">\n${blocks}\n</div>\n</div>\n`;
+}
+
+const qualities =
+  "{% set qualities = {'mayor': 'maire', 'deputyMayor': 'adjoint au maire', 'councillor': 'membre du conseil municipal'} %}";
+const hallPlace = "{{ (hall.name or '……') | text }}";
+const blank = "……";
+
 // @implements-requirement HALL-FR-MIN-280
 /**
  * Closing signature block of the minutes: the meeting chair and the meeting secretary.
  * Hall has no gender data: the blocks name the offices ("Présidence de séance",
  * "Secrétariat de séance") and the mandate role, so the wording does not depend on gender.
  */
-export const jinjaMinutesSignatures = `{% set qualities = {'mayor': 'maire', 'deputyMayor': 'adjoint au maire', 'councillor': 'membre du conseil municipal'} %}
+export const jinjaMinutesSignatures = `${qualities}
 {% set chair = minutes.signatories.chair %}
 {% set secretary = minutes.signatories.secretary %}
-Séance du conseil municipal n° {{ minutes.meeting.number }} du {{ minutes.meeting.startedAt | date('full') }}, {{ (minutes.meeting.location or 'lieu non renseigné') | text }}.
-
-| Présidence de séance | Secrétariat de séance |
-| --- | --- |
-| {{ (chair.name if chair else '') | text }}{% if chair and chair.role %}, {{ qualities[chair.role] }}{% endif %} | {{ (secretary.name if secretary else '') | text }}{% if secretary and secretary.role %}, {{ qualities[secretary.role] }}{% endif %} |
-| Signature : | Signature : |
-`;
+${jinjaSignatureBlock(hallPlace, "{{ minutes.meeting.startedAt | date }}", [
+  {
+    quality: "Présidence de séance",
+    name: "{{ (chair.name if chair else '') | text }}{% if chair and chair.role %}, {{ qualities[chair.role] }}{% endif %}",
+  },
+  {
+    quality: "Secrétariat de séance",
+    name: "{{ (secretary.name if secretary else '') | text }}{% if secretary and secretary.role %}, {{ qualities[secretary.role] }}{% endif %}",
+  },
+])}`;
 
 // @implements-requirement HALL-FR-NOT-080
 // @implements-requirement HALL-FR-MIN-270
-/** Signature block of the mayor in office when the document is rendered. */
-export const jinjaMayorSignature = `| Le maire |
-| --- |
-| {{ (mayor.name if mayor else '') | text }} |
-| Signature : |
-`;
+/** Signature block of the mayor in office when the document is rendered, dated by the given Jinja expression. */
+export const jinjaMayorSignature = (date: string): string =>
+  jinjaSignatureBlock(hallPlace, date, [{ quality: "Le maire", name: "{{ (mayor.name if mayor else '') | text }}" }]);
 
 export const jinjaMeetingNoticeBody = `{{ notice.hall.name | text }}
 
@@ -154,7 +179,7 @@ Lieu : **{{ notice.meeting.location | text }}**.
 `;
 
 export const jinjaMeetingNotice = `${jinjaMeetingNoticeBody}
-${jinjaMayorSignature}`;
+${jinjaMayorSignature(`{{ notice.issuedOn | date if notice.issuedOn else '${blank}' }}`)}`;
 
 export const jinjaDeliberationList = `{{ hall.name | text }}
 
@@ -168,7 +193,7 @@ Séance du conseil municipal n° {{ minutes.meeting.number }} du {{ minutes.meet
 | {{ entry.agendaNumber }} | {{ entry.title | text }} | {{ {'adopted': 'Adoptée', 'rejected': 'Rejetée', 'withoutVote': 'Sans vote'}[entry.outcome] }} |
 {% endfor %}
 
-${jinjaMayorSignature}`;
+${jinjaMayorSignature("{{ minutes.meeting.startedAt | date }}")}`;
 
 export const jinjaDecisionFacts = `{% set facts = decision.facts %}
 {% set attendance = facts.opening.attendance if facts.opening else facts.attendance %}
@@ -219,11 +244,65 @@ export const jinjaDecisionResult = `**{{ 'Adoptée' if decision.facts.ballot.res
 
 Pour : {{ decision.totals.approve }} · Contre : {{ decision.totals.reject }} · Abstentions : {{ decision.totals.abstain }}{% if decision.facts.ballot.mode == 'secret' %} · Blancs : {{ decision.totals.blank }} · Nuls : {{ decision.totals.invalid }}{% endif %} · Non-participations : {{ decision.totals.nonParticipation }}
 
-| Le maire | Secrétariat de séance |
-| --- | --- |
-| {{ (decision.facts.meeting.chair.name if decision.facts.meeting.chairRole == 'mayor' and decision.facts.meeting.chair else '') | text }} | {{ (decision.facts.meeting.secretary.name if decision.facts.meeting.secretary else '') | text }} |
-| Signature : | Signature : |
+${jinjaSignatureBlock(
+  "{{ ((decision.facts.hall.name if decision.facts.hall else hall.name) or '……') | text }}",
+  "{{ decision.facts.meeting.startedAt | date }}",
+  [
+    {
+      quality: "Le maire",
+      name: "{{ (decision.facts.meeting.chair.name if decision.facts.meeting.chairRole == 'mayor' and decision.facts.meeting.chair else '') | text }}",
+    },
+    {
+      quality: "Secrétariat de séance",
+      name: "{{ (decision.facts.meeting.secretary.name if decision.facts.meeting.secretary else '') | text }}",
+    },
+  ],
+)}`;
+
+// @implements-requirement HALL-FR-ATT-010
+/** Attendance sheet of a meeting: every council member in council table order, with a signature column. */
+export const jinjaAttendanceSheet = `{% set sheet = attendanceSheet %}
+{% set qualities = {'mayor': 'Maire', 'deputyMayor': 'Adjoint', 'councillor': 'Conseiller'} %}
+{% set statuses = {'present': 'Présent', 'represented': 'Représenté', 'excused': 'Excusé', 'absent': 'Absent'} %}
+{{ hall.name | text }}
+
+# Feuille d’émargement
+
+Séance du conseil municipal n° {{ sheet.meeting.number }} du {{ sheet.meeting.startsAt | datetime('full') }}  
+Lieu : {{ (sheet.meeting.location or 'Non renseigné') | text }}
+
+| Nom | Qualité | Présence | Pouvoir donné à | Signature |
+| --- | --- | --- | --- | --- |
+{% for entry in sheet.members -%}
+| {{ entry.name | text }} | {{ qualities[entry.role] }} | {{ statuses[entry.status] if entry.status else '' }} | {{ (entry.proxyHolder.name if entry.proxyHolder else '') | text }} |   |
+{% endfor %}
+
+{% if sheet.counts %}
+Présents : {{ sheet.counts.present }} — Pouvoirs : {{ sheet.counts.represented }} — Absents : {{ sheet.counts.absent }}
+{% endif %}
 `;
+
+// @implements-requirement HALL-FR-ATT-020
+/** Proxy form (CGCT L2121-20): a form to sign, it records nothing in Hall. */
+export const jinjaProxyForm = `${qualities}
+{% set grantor = proxy.grantor %}
+{% set holder = proxy.holder %}
+{% set commune = hall.name or '……' %}
+{{ hall.name | text }}
+
+# Pouvoir
+
+Séance du conseil municipal du {{ proxy.meeting.startsAt | date }}
+
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ 'd’' if commune[:1] in 'AEIOUYÉÈÊÂÎÔaeiouyéèêâîô' else 'de ' }}{{ commune | text }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ proxy.meeting.startsAt | date }}.
+
+Rappel (article L2121-20 du code général des collectivités territoriales) :
+
+- un conseiller municipal ne peut être porteur que d’un seul pouvoir ;
+- le pouvoir est toujours révocable ;
+- sauf cas de maladie dûment constatée, il ne peut être valable pour plus de trois séances consécutives.
+
+${jinjaSignatureBlock(blank, blank, [{ quality: "Le mandant", name: "{{ grantor.name | text }}" }])}`;
 
 export const jinjaDocumentBodies: Readonly<Record<string, string>> = {
   "document-print": "{{ generated.bodyMarkdown | markdown }}",
@@ -288,9 +367,11 @@ Le maire{% if mayor %}
 
 Le PDF de la convocation est joint à ce message.
 `,
-  minutes: `# Procès-verbal du conseil\n\n## Séance, présences et pouvoirs\n\n${jinjaMinutesFacts}\n\n## Examen des points\n\n${jinjaMinutesProceedings}\n\n## Signatures\n\n${jinjaMinutesSignatures}`,
+  minutes: `# Procès-verbal du conseil\n\n## Séance, présences et pouvoirs\n\n${jinjaMinutesFacts}\n\n## Examen des points\n\n${jinjaMinutesProceedings}\n\n${jinjaMinutesSignatures}`,
   "deliberation-list": jinjaDeliberationList,
   "council-decision": [jinjaDecisionFacts, jinjaDecisionContent, jinjaDecisionResult].join("\n\n"),
+  "attendance-sheet": jinjaAttendanceSheet,
+  "proxy-form": jinjaProxyForm,
 };
 
 export const jinjaBody = (type: string): string => `{# hall:jinja #}\n${jinjaDocumentBodies[type] ?? ""}`;

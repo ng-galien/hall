@@ -109,6 +109,7 @@ export type ErrorCode =
   | "meeting_cited_document_not_deletable"
   | "meeting_dossier_unavailable"
   | "deliberation_list_unavailable"
+  | "proxy_form_invalid"
   | "councillor_requires_active_member"
   | "proxy_invalid"
   | "quorum_not_reached"

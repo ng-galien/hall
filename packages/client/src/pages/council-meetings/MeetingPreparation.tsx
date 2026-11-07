@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { EditIcon, FileIcon, PlayIcon } from "../../components/icons";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { MeetingAttendanceDocuments } from "../../features/council-meetings/MeetingAttendanceDocuments";
 import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
 import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
 import { MeetingNoticeActions } from "../../features/council-meetings/MeetingNoticeActions";
@@ -175,6 +176,11 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             </div>
             <div className="meeting-prep-actions">
               <MeetingNoticeActions meetingActions={meetingActions} />
+              <MeetingAttendanceDocuments
+                meetingLabel={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
+                attendanceSheetHref={meetingActions.link("attendance-sheet")}
+                proxyFormHref={meetingActions.link("proxy-form")}
+              />
               <Button variant="outline" data-testid="meeting-open-documents" onClick={() => setDocumentsOpen(true)}>
                 <FileIcon />
                 {t("meeting.meetingDocuments")}

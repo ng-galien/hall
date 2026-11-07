@@ -2,10 +2,12 @@ import type { CouncilDecisionDetail } from "@hall/contracts";
 import type { TemplateRenderContext } from "@hall/domain";
 import type { CouncilClient } from "../clients/councilClient.js";
 import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
+import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
 import { eventInvitationSource } from "./eventInvitationService.js";
+import { attendanceSheetData, membersInMandate, proxyFormData } from "./meetingAttendanceDocumentService.js";
 import { coverMarkdown, type DossierPiece, dossierTemplateData, pointMarkdown } from "./meetingDossierService.js";
 import type { GeneratedTemplateData } from "./templateData.js";
 
@@ -24,12 +26,14 @@ export interface TemplatePreviewContextService {
 export function createTemplatePreviewContextService({
   councilClient,
   councilDecisionClient,
+  directoryClient,
   minutesClient,
   resourcesClient,
   hallSettingsRepository,
 }: {
   councilClient: CouncilClient;
   councilDecisionClient: CouncilDecisionClient;
+  directoryClient: DirectoryClient;
   minutesClient: MinutesClient;
   resourcesClient: ResourcesClient;
   hallSettingsRepository: HallSettingsRepository;
@@ -53,6 +57,35 @@ export function createTemplatePreviewContextService({
               sourceLabel: String(selected.meetingNumber),
             }
           : empty;
+      }
+      if (documentType === "attendance-sheet" || documentType === "proxy-form") {
+        const meetings = await councilClient.listMeetings();
+        const meeting =
+          meetings.find((candidate) => candidate.id === context.meetingId) ??
+          meetings.find((candidate) => candidate.closedAt) ??
+          meetings[0];
+        const members = await membersInMandate(directoryClient);
+        if (!meeting || members.length < 2) return empty;
+        const selected: TemplatePreviewContext = {
+          context: { meetingId: meeting.id },
+          sourceKind: "meeting",
+          sourceLabel: String(meeting.number),
+        };
+        if (documentType === "attendance-sheet") {
+          const attendance = await councilClient.listAttendance(meeting.id);
+          selected.generated = {
+            bodyMarkdown: "",
+            subject: null,
+            data: { attendanceSheet: attendanceSheetData(meeting, members, attendance) },
+          };
+        } else {
+          selected.generated = {
+            bodyMarkdown: "",
+            subject: null,
+            data: { proxy: proxyFormData(meeting, members, members.at(-1)!.id, members[0]!.id) },
+          };
+        }
+        return selected;
       }
       if (documentType === "council-decision") {
         const records = await councilDecisionClient.list();

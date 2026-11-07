@@ -36,6 +36,8 @@ export interface GenerateTemplateInput {
   meetingNoticeFacts?: MeetingNoticeFacts;
   councilDecision?: CouncilDecisionDetail;
   attachmentFiles?: TemplateAttachment[];
+  /** Presentation data computed by the calling use case, such as an attendance sheet or a proxy form. */
+  generatedData?: GeneratedTemplateData;
   context: TemplateRenderContext;
   attachmentResourceIds: string[];
   to: string[];
@@ -309,6 +311,7 @@ export function createContentTemplateService({
           input.context,
           input.meetingNoticeFacts,
           input.councilDecision,
+          input.generatedData ? { generated: { bodyMarkdown: "", subject: null, data: input.generatedData } } : {},
         );
         assertRenderable(preview.diagnostics);
         const selected = [

@@ -63,6 +63,10 @@ import { createGeographicLayerService, type GeographicLayerService } from "../se
 import { createGeographicMapRenderer, type GeographicMapRenderer } from "../services/geographicMapRenderer.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
+import {
+  createMeetingAttendanceDocumentService,
+  type MeetingAttendanceDocumentService,
+} from "../services/meetingAttendanceDocumentService.js";
 import { createMeetingDossierService, type MeetingDossierService } from "../services/meetingDossierService.js";
 import { createMeetingNoticeService, type MeetingNoticeService } from "../services/meetingNoticeService.js";
 import { createMinutesService, type MinutesService } from "../services/minutesService.js";
@@ -103,6 +107,7 @@ export interface Cradle {
   meetingDossierService: MeetingDossierService;
   meetingNoticeService: MeetingNoticeService;
   deliberationListService: DeliberationListService;
+  meetingAttendanceDocumentService: MeetingAttendanceDocumentService;
   directoryClient: DirectoryClient;
   councilClient: CouncilClient;
   unitOfWork: UnitOfWork;
@@ -160,6 +165,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     meetingDossierService: asFunction(createMeetingDossierService).singleton(),
     meetingNoticeService: asFunction(createMeetingNoticeService).singleton(),
     deliberationListService: asFunction(createDeliberationListService).singleton(),
+    meetingAttendanceDocumentService: asFunction(createMeetingAttendanceDocumentService).singleton(),
     councilBallotService: asFunction(createCouncilBallotService).singleton(),
     councilBusinessWorkspaceService: asFunction(createCouncilBusinessWorkspaceService).singleton(),
     councilBusinessBundleExportService: asFunction(createCouncilBusinessBundleExportService).singleton(),

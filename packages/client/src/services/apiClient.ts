@@ -70,6 +70,7 @@ export type ApiErrorCode =
   | "meeting_cited_document_not_deletable"
   | "meeting_dossier_unavailable"
   | "deliberation_list_unavailable"
+  | "proxy_form_invalid"
   | "ballot_already_recorded"
   | "ballot_not_found"
   | "ballot_voters_invalid"
@@ -197,6 +198,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "meeting_cited_document_not_deletable",
   "meeting_dossier_unavailable",
   "deliberation_list_unavailable",
+  "proxy_form_invalid",
   "ballot_already_recorded",
   "ballot_not_found",
   "ballot_voters_invalid",

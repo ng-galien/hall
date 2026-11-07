@@ -8,6 +8,8 @@ const labels: Readonly<Record<string, TranslationKey>> = {
   minutes: "templates.type.minutes",
   "council-decision": "templates.type.councilDecision",
   "deliberation-list": "templates.type.deliberationList",
+  "attendance-sheet": "templates.type.attendanceSheet",
+  "proxy-form": "templates.type.proxyForm",
   "document-print": "templates.type.document-print",
   "meeting-dossier-cover": "templates.type.meeting-dossier-cover",
   "meeting-dossier-point": "templates.type.meeting-dossier-point",
