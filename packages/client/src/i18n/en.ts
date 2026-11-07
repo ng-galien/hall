@@ -1465,6 +1465,7 @@ export const en = {
     "This document is still in a council member’s personal folder: the clerk first moves it into a common folder.",
   "error.council_business_report_not_deletable": "A council business report is deleted only with its council business.",
   "error.council_business_folder_not_deletable": "A council business folder is deleted only with its council business.",
+  "error.meeting_cited_document_not_deletable": "A document cited by a council meeting is never deleted.",
   "error.meeting_dossier_unavailable": "The meeting dossier is produced once the agenda is frozen.",
   "error.deliberation_list_unavailable": "The list of deliberations is produced once the meeting is closed.",
   "error.council_decision_not_found": "The selected council decision no longer exists.",

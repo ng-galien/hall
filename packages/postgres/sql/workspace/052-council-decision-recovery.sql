@@ -44,11 +44,11 @@ BEGIN
      WHERE entry->>'id'=b.id::text AND entry->>'result'=b.result::text AND (entry->>'completed_at')::timestamptz=b.completed_at) THEN
    RAISE EXCEPTION USING ERRCODE='HV742',MESSAGE='recovery requires matching closing snapshot and confirmed review';
  END IF;
- SELECT entry INTO proposal_text FROM jsonb_array_elements(snapshot.payload->'proposals') entry WHERE entry->>'id'=item.council_decision_proposal::text;
  SELECT jsonb_build_object('name',current_resource.name,'content',entry#>>'{frozen,content}') INTO resource
  FROM jsonb_array_elements(snapshot.payload->'documents') entry
  JOIN hall.resource current_resource ON current_resource.id=(entry->>'resource')::UUID
  WHERE entry->>'resource'=(SELECT text_resource::text FROM hall.council_decision_proposal_workspace WHERE council_decision_proposal=item.council_decision_proposal);
+ proposal_text:=jsonb_build_object('content',resource->>'content');
  IF proposal_text->>'content' IS NULL OR resource->>'name' IS NULL OR resource->>'content' IS DISTINCT FROM proposal_text->>'content'
    OR NOT EXISTS(SELECT FROM hall.proposal_text_seal WHERE council_decision_proposal=item.council_decision_proposal AND ballot=b.id AND sealed_at<=b.completed_at) THEN
    RAISE EXCEPTION USING ERRCODE='HV742',MESSAGE='recovery requires the retained sealed proposal title and text';

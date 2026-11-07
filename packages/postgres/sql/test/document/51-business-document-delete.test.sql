@@ -35,7 +35,8 @@ SELECT test_designate_present_officers(meeting) FROM scenario;
 SELECT test_prepare_notice(meeting) FROM scenario;
 UPDATE council_meetings SET started_at='2026-01-01 09:05Z' WHERE id=(SELECT meeting FROM scenario);
 SELECT ok(NOT resource_business_allows_deletion(id),'started council protects document') FROM later_attachment;
-SELECT throws_ok($$SELECT delete_resource(id) FROM later_attachment$$,'HV703',NULL,'deletion after council start refused');
+-- The opening snapshot cites the document: the refusal names that citation.
+SELECT throws_ok($$SELECT delete_resource(id) FROM later_attachment$$,'HV715',NULL,'deletion after council start refused');
 SELECT is((SELECT count(*)::int FROM council_business_resource WHERE resource=(SELECT id FROM later_attachment)),1,'started council document remains attached');
 -- @verifies-requirement HALL-FR-WSP-440 COUNCIL_BUSINESS_REPORT_IS_DELETED_WITH_ITS_BUSINESS:
 CREATE TEMP TABLE reports AS SELECT label, report_resource id FROM council_business_workspace

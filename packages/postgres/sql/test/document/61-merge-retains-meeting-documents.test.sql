@@ -65,6 +65,10 @@ SELECT set_eq($$SELECT council_meeting, phase, payload FROM council_meeting_snap
   $$SELECT council_meeting, phase, payload FROM snapshots_before$$, 'the meeting snapshots are unchanged');
 SELECT is((SELECT meeting_document_resource(meeting, report) #>> '{resource,content}' FROM scenario, absorbed_resources),
   'Absorbed evidence', 'the closed meeting still presents the absorbed report');
+SELECT is((SELECT jsonb_agg(business->>'title') FROM scenario,
+    jsonb_array_elements(meeting_documents(meeting)->'groups') grouped, jsonb_array_elements(grouped->'businesses') business
+  WHERE grouped->>'kind' = 'businesses'), '["Target affair"]'::jsonb,
+  'the meeting documents group the point under its current business, not the deleted folder');
 
 -- A business whose report is not referenced still loses its report.
 CREATE TEMP TABLE unreferenced AS SELECT

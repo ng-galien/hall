@@ -428,6 +428,24 @@ ledger. Its SQL files are separate from the structural manifest fingerprint.
 Rehearsal must cover the exact source and target versions; structural convergence
 alone does not establish data-migration history or semantic correctness.
 
+### Update to 1.0.4: meeting snapshot space
+
+Version 1.0.4 runs the data migration
+`packages/postgres/sql/migrations/004-meeting-snapshot-document-references.sql`,
+which removes the document bytes copied into `hall.council_meeting_snapshot`
+(requirement HALL-FR-MIN-160). PostgreSQL then marks the old snapshot versions as
+free space inside the table, but the database files keep their size. After `migrate`
+and `schema-check` succeed, and before `start`, with Hall stopped and the final
+backup taken, return that space to the system:
+
+```sh
+psql "$DATABASE_URL" -c 'VACUUM (FULL, ANALYZE) hall.council_meeting_snapshot'
+```
+
+`VACUUM FULL` rewrites the table and holds an exclusive lock on it until it
+finishes; no other Hall process may use the database meanwhile. Check the result
+with `SELECT pg_size_pretty(pg_total_relation_size('hall.council_meeting_snapshot'))`.
+
 ## Scope of validation
 
 `npm run test:distribution` builds and installs the actual tarball into a temporary

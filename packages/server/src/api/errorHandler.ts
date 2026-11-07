@@ -24,6 +24,7 @@ const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly 
   ["HV707", { status: 409, code: "personal_workspace_resource_not_associable" }],
   ["HV713", { status: 409, code: "council_business_report_not_deletable" }],
   ["HV714", { status: 409, code: "council_business_folder_not_deletable" }],
+  ["HV715", { status: 409, code: "meeting_cited_document_not_deletable" }],
 ]);
 
 // @implements-requirement HALL-TR-DST-040

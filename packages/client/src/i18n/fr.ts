@@ -1493,6 +1493,7 @@ export const fr: Messages = {
     "Ce document est encore dans le dossier personnel d’un conseiller : le secrétariat le déplace d’abord dans un dossier commun.",
   "error.council_business_report_not_deletable": "Le rapport d’une affaire ne se supprime qu’avec l’affaire.",
   "error.council_business_folder_not_deletable": "Le dossier d’une affaire ne se supprime qu’avec l’affaire.",
+  "error.meeting_cited_document_not_deletable": "Un document cité par une séance ne se supprime pas.",
   "error.meeting_dossier_unavailable": "Le dossier de séance se produit une fois l’ordre du jour figé.",
   "error.deliberation_list_unavailable": "La liste des délibérations se produit une fois la séance close.",
   "error.council_decision_not_found": "La délibération sélectionnée n’existe plus.",

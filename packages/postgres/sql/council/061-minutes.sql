@@ -43,8 +43,8 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
       'report', coalesce((SELECT document #>> '{frozen,content}'
         FROM jsonb_array_elements(snapshot.payload->'documents') document
         WHERE document ->> 'resource' = item->>'report_resource'), ''),
-      'proposal', (SELECT proposal->>'content' FROM jsonb_array_elements(snapshot.payload->'proposals') proposal
-        WHERE proposal->>'id' = item->>'council_decision_proposal'),
+      'proposal', CASE WHEN item->>'council_decision_proposal' IS NOT NULL THEN (SELECT document#>>'{frozen,content}'
+        FROM jsonb_array_elements(snapshot.payload->'documents') document WHERE document->>'resource' = item->>'text_resource') END,
       'kind', CASE WHEN item->>'minutes_approval' IS NOT NULL THEN 'minutesApproval'
         WHEN item->>'council_decision_proposal' IS NOT NULL THEN 'councilDecisionProposal'
         WHEN item->>'open_question' IS NOT NULL THEN 'openQuestion' END,

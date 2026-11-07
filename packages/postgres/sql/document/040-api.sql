@@ -1366,6 +1366,10 @@ BEGIN
   IF EXISTS (SELECT FROM hall.council_business_workspace WHERE folder_resource = target.folder_resource_id) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV714', MESSAGE = 'a council business folder is deleted only with its council business';
   END IF;
+  -- @implements-requirement HALL-FR-MIN-160
+  IF hall.meeting_snapshot_references_resource(resource_id) THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV715', MESSAGE = 'a document cited by a council meeting is never deleted';
+  END IF;
   IF NOT hall.resource_business_allows_deletion(resource_id) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV703', MESSAGE = 'resource is shared or its council business is no longer editable';
   END IF;
