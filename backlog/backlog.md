@@ -75,7 +75,7 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[FRONT]` Provide preview and generation actions through Siren capabilities.
 - [ ] `[FULL]` Add the remaining proxy, decision-list, decision, subject-report, and minutes templates after the reference template is stable.
 - [ ] `[FULL]` Identify each template that needs visual refinement and define the expected result before changing it.
-- [ ] `[FULL]` Put the names and signature blocks in the generated documents: the minutes carry the name of the meeting chair and of the meeting secretary with their signature lines; review the other templates for the same names and signatures. Requested by the user after the meeting of 2026-11-06.
+- [x] `[FULL]` Put the names and signature blocks in the generated documents: the minutes carry the name of the meeting chair and of the meeting secretary with their signature lines; review the other templates for the same names and signatures. Requested by the user after the meeting of 2026-11-06.
 
 ## Municipality, directory, terms, and access
 
