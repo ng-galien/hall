@@ -54,5 +54,6 @@ export function sendProblem(
     requestId: request.requestId,
     ...options,
   };
+  response.locals.problemCode = code;
   response.status(status).type(PROBLEM_MEDIA_TYPE).json(problem);
 }

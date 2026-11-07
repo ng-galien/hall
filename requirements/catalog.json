@@ -10568,6 +10568,27 @@
           "sourceIds": []
         }
       ]
+    },
+    "HALL-TR-DST-050": {
+      "name": "API_LOG_RECORDS_REFUSAL_CODES",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "The server log line of a refused API request carries its problem code and, for a database error, its SQLSTATE, never the request body.",
+      "acceptanceCriteria": [
+        "The API change line (every method other than GET and HEAD) and the API read failed line (GET or HEAD answered with 500 or more) hold requestId, actorUserId, method, path and statusCode, plus problemCode for a problem response and sqlState for a database error.",
+        "Neither line contains the request body, the query string or personal data."
+      ],
+      "clauses": [
+        {
+          "key": "unidentified-409-2026-11-06",
+          "origin": "product",
+          "statement": "Constat du 6 novembre 2026 en mairie : le journal du serveur enregistrait méthode, chemin et statut d'une réponse 409 sans son code d'erreur, si bien qu'un ballot_preview_stale ne pouvait pas être distingué d'un autre conflit. Demande du coordinateur du 7 novembre 2026 (chantier garde-fous d'exploitation).",
+          "sourceIds": []
+        }
+      ]
     }
   }
 }

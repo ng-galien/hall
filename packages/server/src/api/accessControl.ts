@@ -127,20 +127,29 @@ export function prepareAudit(requestContext: RequestContextStore) {
   };
 }
 
+/**
+ * Logs every API change and every failed API read. A refusal carries its problem code and, for a
+ * database error, its SQLSTATE; request bodies are never logged.
+ */
+// @implements-requirement HALL-TR-DST-050
 export function auditApiRequest(request: Request, response: Response, next: NextFunction): void {
   response.once("finish", () => {
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      logger.info(
-        {
-          requestId: request.requestId,
-          actorUserId: request.principal?.id ?? null,
-          method: request.method,
-          path: request.path,
-          statusCode: response.statusCode,
-        },
-        "API change",
-      );
-    }
+    const change = request.method !== "GET" && request.method !== "HEAD";
+    if (!change && response.statusCode < 500) return;
+    const problemCode: unknown = response.locals.problemCode;
+    const sqlState: unknown = response.locals.sqlState;
+    logger.info(
+      {
+        requestId: request.requestId,
+        actorUserId: request.principal?.id ?? null,
+        method: request.method,
+        path: request.path,
+        statusCode: response.statusCode,
+        ...(typeof problemCode === "string" ? { problemCode } : {}),
+        ...(typeof sqlState === "string" ? { sqlState } : {}),
+      },
+      change ? "API change" : "API read failed",
+    );
   });
   next();
 }

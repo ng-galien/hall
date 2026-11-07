@@ -47,7 +47,18 @@ these transactions and have no timeout.
 
 A statement stopped by its timeout is answered with HTTP 503 and the problem code
 `database_statement_timeout`; the interface shows a French message asking to try again and
-to inform the person in charge of IT if it happens again. The server log records the request.
+to inform the person in charge of IT if it happens again. The server log records the line
+described below.
+
+## API log lines
+
+The server log (`HALL_LOG_FILE`, JSON lines) records one line per API change
+(`"msg":"API change"`, every method other than GET and HEAD) and one line per failed API
+read (`"msg":"API read failed"`, GET or HEAD answered with a status of 500 or more). Each
+line holds `requestId`, `actorUserId`, `method`, `path` and `statusCode`; a refused request
+adds `problemCode` (the API problem code, for example `ballot_preview_stale` or
+`conduct_chronology_invalid`) and, for a database error, `sqlState` (for example `HV422`,
+`23505` or `57014`). Request bodies, query strings and personal data are not logged.
 
 ## Desktop
 
