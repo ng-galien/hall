@@ -6,6 +6,35 @@ Tags identify the main scope: `[FRONT]`, `[BACK]`, `[FULL]`, or `[OPS]`. Require
 
 The user decides business rules, data-model changes, product behavior, UI design, and ergonomics. Stop at a precise unresolved choice before changing dependent behavior.
 
+## Meeting business rules: decisions one by one
+
+Inventory made on 2026-11-07 of the preconditions Hall puts on the meeting flow. Each line is one decision of the user, taken on the decisions board; the status column follows it here. Rules kept as they are (law or data integrity) are not listed.
+
+| # | Rule today | Proposed | Status |
+|---|---|---|---|
+| 1 | Only the next agenda item can be opened; skipping one means adjourning it for good | Any untreated item can be opened | to decide |
+| 2 | Adjourning or ending an item is irreversible | Undo possible before closure when no ballot took place | to decide |
+| 3 | A recusal is immutable | Withdrawable before the ballot, with a trace | to decide |
+| 4 | A confirmed ballot cannot be corrected | Correction before closure, previous count kept in history | to decide |
+| 5 | Previous-minutes approval adjourned is lost for ever | Carried over to the next meeting | to decide |
+| 6 | Generated minutes are frozen before approval | New versions until approval, old ones kept | to decide |
+| 7 | Roll call ticked before opening is kept in the browser only | Each tick recorded at once | to decide |
+| 8 | Council decision prints the chair designated before opening | Chair and secretary in office at the ballot | to decide |
+| 9 | Agenda frozen after the notice; reopening invalidates the notice | Agenda revision cycle, notice per revision | in progress |
+| 10 | One non-closed meeting at a time | To review | later |
+| 11 | Officers designated together, not removable | To review | later |
+| 12 | Previous-minutes approval forced in position 1 | To review | later |
+| 13 | Notice e-mail refused when one address is missing | To review | later |
+| 14 | Proxy document mandatory at roll call | To review | later |
+| 15 | Opening refused before the convened time | To review | later |
+| 16 | Meeting secretary required present at opening and ballot | To review | later |
+| 17 | Project text locked at opening, no amendment in session | To review | later |
+| 18 | Initial roll-call error cannot be corrected | To review | later |
+| 19 | Frozen council decision has no corrective version | To review | later |
+| 20 | No election or nomination ballot | Missing | later |
+| 21 | Closed session cannot be lifted | Missing | later |
+| 22 | No "meeting not held" state | Missing | later |
+
 ## Council meetings
 
 - [ ] `[BACK]` Replay opening, attendance, quorum, proxy, ballot, and closing invariants on the demonstration database.
