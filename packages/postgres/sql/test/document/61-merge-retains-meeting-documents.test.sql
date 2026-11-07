@@ -16,6 +16,11 @@ CREATE TEMP TABLE absorbed_resources AS SELECT
   (SELECT report_resource FROM council_business_workspace JOIN scenario ON council_business = absorbed) AS report,
   (hall_api.create_document_resource('Absorbed affair', 'evidence.pdf', 'application/pdf', convert_to('Evidence bytes', 'UTF8'))->>'id')::UUID AS attachment;
 SELECT hall_api.associate_council_business_resource(absorbed, attachment) FROM scenario, absorbed_resources;
+-- The absorbed report shows an image.
+CREATE TEMP TABLE absorbed_image AS SELECT (hall_api.create_editor_asset(report, 'Plan', 'plan.png', 'image/png', convert_to('Plan bytes', 'UTF8'))->>'id')::UUID AS id
+FROM absorbed_resources;
+SELECT hall_api.update_text_resource(report, 1, E'Absorbed evidence\n\n::image[Plan]{#' || absorbed_image.id || '}', ARRAY[absorbed_image.id])
+FROM absorbed_resources, absorbed_image;
 INSERT INTO meeting_attendance (id, council_member, council_meeting, status)
 SELECT test_uuid('merge-retained:attendance'), test_uuid('merge-retained:member'), meeting, 'present' FROM scenario;
 SELECT set_council_meeting_officers(meeting, test_uuid('merge-retained:member'), test_uuid('merge-retained:member')) FROM scenario;
@@ -52,8 +57,22 @@ SELECT lives_ok($$SELECT hall_api.merge_council_business(absorbed, target, false
   'a business presented at a closed meeting merges into another one');
 SELECT is((SELECT full_path FROM resource JOIN absorbed_resources ON resource.id = report), 'Target affair/Absorbed affair',
   'the referenced report is kept in the target folder under the absorbed business name');
-SELECT is((SELECT content FROM text_resource JOIN absorbed_resources ON text_resource.id = report), 'Absorbed evidence',
-  'the kept report keeps its text');
+SELECT is((SELECT content FROM text_resource JOIN absorbed_resources ON text_resource.id = report),
+  (SELECT E'Absorbed evidence\n\n::image[Plan]{#' || id || '}' FROM absorbed_image), 'the kept report keeps its text');
+SELECT is((SELECT owner_text_resource_id FROM editor_asset JOIN absorbed_image USING (id)), (SELECT report FROM absorbed_resources),
+  'the kept report keeps its editor image');
+CREATE TEMP TABLE target_report AS SELECT report_resource AS id FROM council_business_workspace JOIN scenario ON council_business = target;
+CREATE TEMP TABLE copied_image AS SELECT asset.id FROM editor_asset asset JOIN target_report ON asset.owner_text_resource_id = target_report.id;
+SELECT is((SELECT count(*)::integer FROM copied_image), 1, 'the target report receives its own editor image');
+SELECT is((SELECT binary_object_id FROM editor_asset JOIN copied_image USING (id)),
+  (SELECT binary_object_id FROM editor_asset JOIN absorbed_image USING (id)), 'the copied editor image points to the same bytes');
+SELECT ok((SELECT content LIKE '%{#' || copied_image.id || '}%' AND content NOT LIKE '%' || absorbed_image.id || '%'
+  FROM text_resource, target_report, copied_image, absorbed_image WHERE text_resource.id = target_report.id),
+  'the appended copy of the text cites the image of the target report');
+SELECT lives_ok($$SELECT hall_api.update_text_resource(report, version, content, ARRAY[(SELECT id FROM absorbed_image)])
+  FROM absorbed_resources JOIN text_resource ON text_resource.id = report$$, 'the kept report can be saved with its image');
+SELECT lives_ok($$SELECT hall_api.update_text_resource(target_report.id, version, content, ARRAY[(SELECT id FROM copied_image)])
+  FROM target_report JOIN text_resource ON text_resource.id = target_report.id$$, 'the target report can be saved with its image');
 SELECT ok((SELECT content LIKE '%# Absorbed affair%Absorbed evidence%' FROM text_resource
   WHERE id = (SELECT report_resource FROM council_business_workspace JOIN scenario ON council_business = target)),
   'the absorbed report text is appended to the target report');
@@ -64,7 +83,9 @@ SELECT ok(NOT EXISTS (SELECT FROM resource WHERE full_path = 'Absorbed affair'),
 SELECT set_eq($$SELECT council_meeting, phase, payload FROM council_meeting_snapshot$$,
   $$SELECT council_meeting, phase, payload FROM snapshots_before$$, 'the meeting snapshots are unchanged');
 SELECT is((SELECT meeting_document_resource(meeting, report) #>> '{resource,content}' FROM scenario, absorbed_resources),
-  'Absorbed evidence', 'the closed meeting still presents the absorbed report');
+  (SELECT E'Absorbed evidence\n\n::image[Plan]{#' || id || '}' FROM absorbed_image), 'the closed meeting still presents the absorbed report');
+SELECT is((SELECT decode(meeting_document_content(meeting, report, absorbed_image.id)->>'contentBase64', 'base64')
+  FROM scenario, absorbed_resources, absorbed_image), convert_to('Plan bytes', 'UTF8'), 'the closed meeting still serves the absorbed report image');
 SELECT is((SELECT jsonb_agg(business->>'title') FROM scenario,
     jsonb_array_elements(meeting_documents(meeting)->'groups') grouped, jsonb_array_elements(grouped->'businesses') business
   WHERE grouped->>'kind' = 'businesses'), '["Target affair"]'::jsonb,

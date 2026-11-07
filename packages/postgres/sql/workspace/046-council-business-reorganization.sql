@@ -266,7 +266,7 @@ CREATE FUNCTION hall_api.merge_council_business(source_business UUID, target_bus
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE plan JSONB; subject RECORD; link RECORD; child RECORD; source hall.council_business_workspace;
   target_path TEXT; target_report UUID; target_text hall.text_resource; source_title TEXT;
-  report_kept BOOLEAN; moved UUID[] := '{}';
+  report_kept BOOLEAN; moved UUID[] := '{}'; appended_content TEXT; asset RECORD; copied_asset UUID;
 BEGIN
   PERFORM hall.lock_council_businesses_for_reorganization(source_business, target_business);
   plan := hall.council_business_merge_plan(source_business, target_business);
@@ -308,12 +308,24 @@ BEGIN
   DELETE FROM hall.council_business_workspace WHERE council_business = source_business;
   DELETE FROM hall.council_business WHERE id = source_business;
   IF report_kept THEN
-    UPDATE hall.editor_asset SET owner_text_resource_id = target_report
-    WHERE owner_text_resource_id = source.report_resource;
+    SELECT content INTO STRICT appended_content FROM hall.text_resource WHERE id = source.report_resource;
+    IF plan#>'{report,movedTo}' <> 'null'::JSONB THEN
+      -- @implements-requirement HALL-FR-BUS-090
+      -- The kept report keeps its images; the target report receives its own
+      -- editor images on the same bytes, cited by the appended copy of the text.
+      FOR asset IN SELECT * FROM hall.editor_asset WHERE owner_text_resource_id = source.report_resource ORDER BY id LOOP
+        copied_asset := gen_random_uuid();
+        INSERT INTO hall.editor_asset(id, owner_text_resource_id, binary_object_id, title, file_name)
+        VALUES (copied_asset, target_report, asset.binary_object_id, asset.title, asset.file_name);
+        appended_content := replace(appended_content, asset.id::TEXT, copied_asset::TEXT);
+      END LOOP;
+    ELSE
+      UPDATE hall.editor_asset SET owner_text_resource_id = target_report
+      WHERE owner_text_resource_id = source.report_resource;
+    END IF;
     SELECT * INTO STRICT target_text FROM hall.text_resource WHERE id = target_report;
     PERFORM hall.update_text_resource(target_report, target_text.version,
-      hall.merged_report_content(target_text.content, source_title,
-        (SELECT content FROM hall.text_resource WHERE id = source.report_resource)),
+      hall.merged_report_content(target_text.content, source_title, appended_content),
       ARRAY(SELECT id FROM hall.editor_asset WHERE owner_text_resource_id = target_report));
   END IF;
   IF plan#>'{report,movedTo}' <> 'null'::JSONB THEN
