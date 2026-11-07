@@ -102,6 +102,7 @@ type AmbientTransaction = {
   pool: Pool;
   client: PoolClient;
   queue: Promise<void>;
+  open: boolean;
 };
 
 const ambientTransactions = new AsyncLocalStorage<AmbientTransaction>();
@@ -112,9 +113,10 @@ function isServerError(error: unknown): boolean {
 }
 
 /**
- * Every call of a manager opens its own SERIALIZABLE transaction, unless it runs inside `transaction`
+ * Every call of a manager opens its own SERIALIZABLE transaction, unless it runs inside an open `transaction`
  * on the same pool: it then joins that transaction under its own role and call context, so that the
- * account and business writes of one request commit or roll back together.
+ * account and business writes of one request commit or roll back together. Work that outlives the
+ * transaction, such as a callback created during it, opens its own transaction again.
  */
 // @implements-requirement HALL-TR-SCH-040
 export class PostgresTransactionManager {
@@ -125,7 +127,12 @@ export class PostgresTransactionManager {
 
   /** True when the caller already runs inside a transaction of this pool. */
   active(): boolean {
-    return ambientTransactions.getStore()?.pool === this.pool;
+    return this.ambient() !== undefined;
+  }
+
+  private ambient(): AmbientTransaction | undefined {
+    const ambient = ambientTransactions.getStore();
+    return ambient?.pool === this.pool && ambient.open ? ambient : undefined;
   }
 
   /** Runs several manager calls of this pool as one transaction, retried as a whole on serialization failure. */
@@ -133,14 +140,21 @@ export class PostgresTransactionManager {
     if (this.active()) return operation();
     return this.attempts(
       request,
-      (client) => ambientTransactions.run({ pool: this.pool, client, queue: Promise.resolve() }, operation),
+      async (client) => {
+        const ambient: AmbientTransaction = { pool: this.pool, client, queue: Promise.resolve(), open: true };
+        try {
+          return await ambientTransactions.run(ambient, operation);
+        } finally {
+          ambient.open = false;
+        }
+      },
       (error) => (isServerError(error) ? preservePostgresError(error) : error),
     );
   }
 
   run<Result>(request: TransactionRequest, operation: TransactionOperation<Result>): Promise<Result> {
-    const ambient = ambientTransactions.getStore();
-    if (ambient?.pool !== this.pool) return this.attempts(request, operation);
+    const ambient = this.ambient();
+    if (!ambient) return this.attempts(request, operation);
     const joined = ambient.queue.then(async () => {
       const budget = statementBudgetOf(request.context.action);
       try {

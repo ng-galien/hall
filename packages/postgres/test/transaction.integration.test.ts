@@ -30,6 +30,31 @@ postgresDescribe("PostgreSQL transaction authority", () => {
     contactId: null,
   } as const;
 
+  // @verifies-requirement HALL-TR-SCH-040
+  it("joins calls made inside an ambient transaction and lets work that outlives it open its own", async () => {
+    const backend = "SELECT pg_backend_pid() AS pid, txid_current()::text AS transaction";
+    const read = () =>
+      transactions.run(
+        { role: "hall_api_authenticated", context },
+        async (client) => (await client.query<{ pid: number; transaction: string }>(backend)).rows[0],
+      );
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let outliving: Promise<{ active: boolean; row: { pid: number; transaction: string } }> | undefined;
+    const joined = await transactions.transaction({ role: "hall_api_authenticated", context }, async () => {
+      outliving = gate.then(async () => ({ active: transactions.active(), row: await read() }));
+      expect(transactions.active()).toBe(true);
+      return [await read(), await read()];
+    });
+    expect(joined[0]).toEqual(joined[1]);
+    release();
+    const later = await outliving!;
+    expect(later.active).toBe(false);
+    expect(later.row.transaction).not.toBe(joined[0].transaction);
+  });
+
   it("sets a closed role and transaction-local call context without leaking either", async () => {
     const sessionIdentity = await pool.query<{ current_user: string }>("SELECT current_user");
 

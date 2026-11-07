@@ -11,6 +11,8 @@ import { appendJsonLine, archivesIn, pruneArchives, windowsTasksScript } from ".
 
 // @implements-requirement HALL-TR-DST-010
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
+/** PowerShell 5 reads a script without byte order mark in the ANSI code page. */
+const powerShellByteOrderMark = "\uFEFF";
 const help = `Hall standalone server
 
 Usage:
@@ -286,8 +288,7 @@ async function main() {
       database: decodeURIComponent(new URL(process.env.DATABASE_URL).pathname.slice(1)),
       backupLog,
     });
-    // PowerShell 5 reads a script without byte order mark in the ANSI code page.
-    await writeFile(script, `\uFEFF${content.replaceAll("\n", "\r\n")}`);
+    await writeFile(script, `${powerShellByteOrderMark}${content.replaceAll("\n", "\r\n")}`);
     process.stdout.write(
       `Written: ${script}\nPostgreSQL tools: ${postgresqlBin}\nOutcome log: ${backupLog}\nRun it once in an elevated PowerShell: powershell -ExecutionPolicy Bypass -File "${script}" [-Account COMPUTER\\user] [-StorePassword]\n`,
     );
