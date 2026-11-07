@@ -478,6 +478,7 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    $env:PGOPTIONS = '-c default_transaction_read_only=on'
    psql --dbname=$Database --set=ON_ERROR_STOP=1 --file="$Check\package\sql\migrations\control-before-004-meeting-snapshot-document-references.sql"
    psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT pg_size_pretty(pg_total_relation_size('hall.council_meeting_snapshot'))"
+   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT manifest_sha256 FROM hall_meta.schema_contract"
    Remove-Item Env:PGOPTIONS
    ```
 
@@ -485,6 +486,12 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    documents that remain readable. Record the rows and the size of
    `hall.council_meeting_snapshot` before the migration. If a row shows `f`, stop the
    update: the bytes of that document exist only in the snapshot copy.
+   `hall migrate` runs the data migrations only when the stored schema fingerprint
+   differs from the fingerprint of the package. A database of release 1.0.3 stores
+   `c41aefcfa9abe9f2631e28b8f220337e212ed1d20ca5a39cd0d10efb613c06a3`; the
+   `schemaFingerprint` of the 1.0.4 `release.json` is the target. If the stored value
+   already equals the target, migration 004 does not run in step 4: stop and
+   determine which package installed that schema.
 
 2. **Backup.** Stop Hall and every other writer, then back up with the installed
    1.0.3 release, verify the archive, and copy it off the computer:
