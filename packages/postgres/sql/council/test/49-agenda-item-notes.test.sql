@@ -38,5 +38,23 @@ CREATE TEMP TABLE presence_fingerprint AS SELECT hall.ballot_preview_fingerprint
 INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) VALUES(test_uuid('presence:att:3'),'2026-01-01 09:02Z','absent');
 SELECT isnt(hall.ballot_preview_fingerprint(test_uuid('presence:a:agenda-item')),(SELECT fingerprint FROM presence_fingerprint),'a departure changes the preview fingerprint');
 
+-- @verifies-requirement HALL-FR-MTG-370
+-- an agenda item is dated at reception, never before the latest observation of its meeting.
+SELECT pg_temp.quorum_case('ahead',3,3);
+SELECT test_prepare_notice(test_uuid('ahead:meeting'));
+SELECT start_council_meeting(test_uuid('ahead:meeting'),'2026-01-01 09:00Z');
+CREATE TEMP TABLE ahead_observation AS SELECT clock_timestamp() + interval '1 hour' AS observed_at;
+INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status)
+  VALUES(test_uuid('ahead:att:3'),(SELECT observed_at FROM ahead_observation),'absent');
+SELECT lives_ok($$SELECT hall_api.start_council_agenda_item(test_uuid('ahead:a:agenda-item'))$$,'a start is accepted after an observation dated one hour ahead');
+SELECT ok((SELECT started_at >= (SELECT observed_at FROM ahead_observation) FROM council_agenda_item WHERE id=test_uuid('ahead:a:agenda-item')),'the start is dated no earlier than the latest observation');
+SELECT lives_ok($$SELECT hall_api.adjourn_council_agenda_item(test_uuid('ahead:a:agenda-item'))$$,'an adjournment is accepted after the observation ahead');
+SELECT lives_ok($$SELECT hall_api.adjourn_council_agenda_item(test_uuid('ahead:b:agenda-item'))$$,'an unstarted item is adjourned after the observation ahead');
+CREATE TEMP TABLE ahead_question AS SELECT hall_api.add_open_question(test_uuid('ahead:meeting'),'seed','Question après le constat','Texte') item;
+SELECT lives_ok($$SELECT hall_api.start_council_agenda_item((SELECT (item->>'id')::uuid FROM ahead_question))$$,'an open question starts after the observation ahead');
+SELECT lives_ok($$SELECT hall_api.complete_non_voting_agenda_item((SELECT (item->>'id')::uuid FROM ahead_question))$$,'an open question completes after the observation ahead');
+SELECT ok((SELECT started_at >= (SELECT observed_at FROM ahead_observation) AND completed_at >= started_at
+  FROM council_agenda_item WHERE id=(SELECT (item->>'id')::uuid FROM ahead_question)),'start and completion are dated no earlier than the latest observation');
+
 SELECT * FROM finish();
 ROLLBACK;

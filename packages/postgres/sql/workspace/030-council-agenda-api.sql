@@ -411,7 +411,8 @@ END
 $function$;
 
 -- @implements-requirement HALL-FR-MTG-370
--- Start, completion, adjournment and recusal are dated by the server clock at reception.
+-- Start, completion, adjournment and recusal are dated at reception by
+-- hall.meeting_reception_time, which locks the meeting before the item.
 CREATE FUNCTION hall_api.start_council_agenda_item(
   target_agenda_item UUID
 )
@@ -424,7 +425,7 @@ AS $function$
 DECLARE
   changed hall.council_agenda_item;
 BEGIN
-  changed := hall.start_council_agenda_item(target_agenda_item, clock_timestamp());
+  changed := hall.start_council_agenda_item(target_agenda_item, hall.meeting_reception_time((SELECT council_meeting FROM hall.council_agenda_item WHERE id = target_agenda_item)));
   RETURN hall.council_agenda_item_projection(changed);
 END
 $function$;
@@ -441,7 +442,7 @@ AS $function$
 DECLARE
   changed hall.council_agenda_item;
 BEGIN
-  changed := hall.complete_non_voting_agenda_item(target_agenda_item, clock_timestamp());
+  changed := hall.complete_non_voting_agenda_item(target_agenda_item, hall.meeting_reception_time((SELECT council_meeting FROM hall.council_agenda_item WHERE id = target_agenda_item)));
   RETURN hall.council_agenda_item_projection(changed);
 END
 $function$;
@@ -450,7 +451,7 @@ CREATE FUNCTION hall_api.adjourn_council_agenda_item(target_agenda_item UUID)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE changed hall.council_agenda_item;
 BEGIN
-  changed := hall.adjourn_council_agenda_item(target_agenda_item, clock_timestamp());
+  changed := hall.adjourn_council_agenda_item(target_agenda_item, hall.meeting_reception_time((SELECT council_meeting FROM hall.council_agenda_item WHERE id = target_agenda_item)));
   RETURN hall.council_agenda_item_projection(changed);
 END;
 $$;
@@ -472,7 +473,8 @@ CREATE FUNCTION hall_api.record_agenda_item_recusal(target_item UUID, target_mem
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 BEGIN
   INSERT INTO hall.agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
-  VALUES(target_item,target_member,declared_basis::hall.recusal_legal_basis,clock_timestamp());
+  VALUES(target_item,target_member,declared_basis::hall.recusal_legal_basis,
+    hall.meeting_reception_time((SELECT council_meeting FROM hall.council_agenda_item WHERE id = target_item)));
   RETURN hall_api.agenda_item_recusals(target_item);
 END;
 $$;
