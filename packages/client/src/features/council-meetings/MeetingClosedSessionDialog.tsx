@@ -53,7 +53,6 @@ export function MeetingClosedSessionDialog({
         requesterMemberIds: requesterIds,
         approvals: approvalCount,
         scope: wholeMeeting ? { kind: "wholeMeeting" } : { kind: "agendaItems", agendaItemIds: itemIds },
-        observedAt: new Date().toISOString(),
       });
       if (saved) onClose();
     } finally {

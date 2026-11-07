@@ -194,7 +194,6 @@ postgres("role matrix decided by PostgreSQL", () => {
       Buffer.from("%PDF-fixture"),
     );
     const opening = {
-      observedAt: new Date(startsAt.getTime() + 5 * 60_000).toISOString(),
       chairMemberId: alice.memberId,
       secretaryMemberId: bruno.memberId,
       attendance: [
@@ -209,8 +208,7 @@ postgres("role matrix decided by PostgreSQL", () => {
     for (const role of ["clerk", "contributor"] as const)
       await roles[role].post(`/api/council-meetings/${meeting.id}/record-opening`).send(opening).expect(403);
     await roles.councillor.post(`/api/council-meetings/${meeting.id}/record-opening`).send(opening).expect(200);
-    const closedAt = new Date().toISOString();
-    await roles.clerk.post(`/api/council-meetings/${meeting.id}/close`).send({ closedAt }).expect(403);
+    await roles.clerk.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(403);
     expect(await blockers(admin)).not.toContainEqual({ code: "permissionDenied" });
   });
 });

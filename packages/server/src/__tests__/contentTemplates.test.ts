@@ -167,16 +167,12 @@ describe("content templates", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
       })
       .expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${scheduled.id}/start`)
-      .send({ startedAt: "2026-09-10T16:31:00Z" })
-      .expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${scheduled.id}/start`).send({}).expect(200);
     const attendance = await council.listAttendance(databaseRequest, meeting.id);
     const candidate = {
       procedure: "ordinaryMajority",

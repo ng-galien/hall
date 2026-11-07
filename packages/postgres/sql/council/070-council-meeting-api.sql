@@ -223,9 +223,35 @@ BEGIN
 END;
 $function$;
 
-CREATE FUNCTION hall_api.record_meeting_opening(
+CREATE FUNCTION hall.record_meeting_opening(
   target_meeting UUID,
   observation_time TIMESTAMPTZ,
+  attendance_declarations JSONB,
+  chairman_member UUID,
+  secretary_member UUID
+)
+RETURNS VOID
+LANGUAGE plpgsql
+VOLATILE
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  changed hall.council_meetings;
+BEGIN
+  SELECT * INTO changed FROM hall.council_meetings WHERE id=target_meeting FOR UPDATE;
+  IF jsonb_array_length(hall.council_meeting_preparation_blockers(changed)) > 0 THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV807', MESSAGE='meeting start requires the current generated notice';
+  END IF;
+  PERFORM hall.record_meeting_attendance(target_meeting,attendance_declarations,observation_time);
+  PERFORM hall.set_council_meeting_officers(target_meeting,chairman_member,secretary_member);
+  PERFORM hall.start_council_meeting(target_meeting,observation_time);
+END;
+$function$;
+
+-- @implements-requirement HALL-FR-MTG-370
+-- The server clock dates the opening and its roll call at reception.
+CREATE FUNCTION hall_api.record_meeting_opening(
+  target_meeting UUID,
   attendance_declarations JSONB,
   chairman_member UUID,
   secretary_member UUID
@@ -236,16 +262,8 @@ VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
-DECLARE
-  changed hall.council_meetings;
 BEGIN
-  SELECT * INTO changed FROM hall.council_meetings WHERE id=target_meeting FOR UPDATE;
-  IF jsonb_array_length(hall.council_meeting_preparation_blockers(changed)) > 0 THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV807', MESSAGE='meeting start requires the current generated notice';
-  END IF;
-  PERFORM hall_api.record_meeting_attendance(target_meeting,attendance_declarations,observation_time);
-  PERFORM hall.set_council_meeting_officers(target_meeting,chairman_member,secretary_member);
-  PERFORM hall.start_council_meeting(target_meeting,observation_time);
+  PERFORM hall.record_meeting_opening(target_meeting,clock_timestamp(),attendance_declarations,chairman_member,secretary_member);
   RETURN hall_api.meeting_conduct(target_meeting);
 END;
 $function$;

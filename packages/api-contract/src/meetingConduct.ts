@@ -180,9 +180,9 @@ export const meetingConductStateSchema = meetingConductEvidenceSchema
   .strict();
 export type MeetingQuorumObservation = z.infer<typeof meetingQuorumObservationSchema>;
 export type MeetingConductState = z.infer<typeof meetingConductStateSchema>;
+// The server dates every conduct observation at reception; no request carries an instant.
 export const recordMeetingAttendanceEventsSchema = z
   .object({
-    observedAt: time,
     changes: z
       .array(
         z
@@ -206,14 +206,11 @@ export const recordMeetingClosedSessionSchema = z
       z.object({ kind: z.literal("wholeMeeting") }).strict(),
       z.object({ kind: z.literal("agendaItems"), agendaItemIds: z.array(id).min(1) }).strict(),
     ]),
-    observedAt: time,
   })
   .strict();
 export type RecordMeetingClosedSession = z.infer<typeof recordMeetingClosedSessionSchema>;
-export const recordMeetingQuorumSchema = z.object({ agendaItemId: id.nullable(), observedAt: time }).strict();
-export const recordMeetingOfficerChangeSchema = z
-  .object({ office: meetingOfficeSchema, councilMemberId: id, observedAt: time })
-  .strict();
+export const recordMeetingQuorumSchema = z.object({ agendaItemId: id.nullable() }).strict();
+export const recordMeetingOfficerChangeSchema = z.object({ office: meetingOfficeSchema, councilMemberId: id }).strict();
 export type RecordMeetingOfficerChange = z.infer<typeof recordMeetingOfficerChangeSchema>;
 const auxiliaryQuality = z
   .string()
@@ -233,7 +230,6 @@ export const declareMeetingAuxiliaryAttendanceSchema = z
         .strict(),
     ]),
     quality: auxiliaryQuality,
-    declaredAt: time,
   })
   .strict();
 export type DeclareMeetingAuxiliaryAttendance = z.input<typeof declareMeetingAuxiliaryAttendanceSchema>;

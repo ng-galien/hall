@@ -136,7 +136,7 @@
 
 -- HV142 the affair cannot enter discussion without the applicable quorum.
 
--- HV143 a declaration cannot be observed in the future.
+-- HV143 a quorum observation cannot precede its recorded inputs.
 
 -- HV144 renewed convocation requires a recorded quorum failure and valid notice.
 

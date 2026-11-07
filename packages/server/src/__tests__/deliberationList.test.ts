@@ -94,7 +94,6 @@ describe("list of deliberations examined in a closed meeting", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: at(5),
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
@@ -106,11 +105,8 @@ describe("list of deliberations examined in a closed meeting", () => {
     await agent.get(`/api/council-meetings/${meeting.id}/deliberation-list.pdf`).expect(409);
 
     const attendance = await council.listAttendance(databaseRequest, meeting.id);
-    const vote = async (item: { id: string }, minute: number, choice: "approve" | "reject") => {
-      await agent
-        .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
-        .send({ startedAt: at(minute) })
-        .expect(200);
+    const vote = async (item: { id: string }, choice: "approve" | "reject") => {
+      await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`).send({}).expect(200);
       const preview = domainBody<{ id: string }>(
         await agent
           .post("/api/ballot-previews")
@@ -128,19 +124,11 @@ describe("list of deliberations examined in a closed meeting", () => {
       );
       await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(200);
     };
-    await vote(adopted, 10, "approve");
-    await vote(rejected, 20, "reject");
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${question.id}/start`)
-      .send({ startedAt: at(30) })
-      .expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${question.id}/complete`)
-      .send({ completedAt: at(40) })
-      .expect(200);
-    const closure = await agent
-      .post(`/api/council-meetings/${meeting.id}/close`)
-      .send({ closedAt: new Date().toISOString() });
+    await vote(adopted, "approve");
+    await vote(rejected, "reject");
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${question.id}/start`).send({}).expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${question.id}/complete`).send({}).expect(200);
+    const closure = await agent.post(`/api/council-meetings/${meeting.id}/close`).send({});
     expect(closure.status, JSON.stringify(closure.body)).toBe(200);
 
     const closed = await agent.get(`/api/council-meetings/${meeting.id}`).expect(200);
@@ -158,7 +146,9 @@ describe("list of deliberations examined in a closed meeting", () => {
     expect(html).toContain("Commune témoin");
     expect(html).toContain("Liste des délibérations examinées");
     expect(html).toContain(
-      new Intl.DateTimeFormat("fr-FR", { dateStyle: "full", timeZone: "Europe/Paris" }).format(new Date(at(5))),
+      new Intl.DateTimeFormat("fr-FR", { dateStyle: "full", timeZone: "Europe/Paris" }).format(
+        new Date(closed.body.properties.startedAt),
+      ),
     );
     const rows = [...html.matchAll(/<tr><td>([^<]*)<\/td><td>([^<]*)<\/td><td>([^<]*)<\/td><\/tr>/g)].map((row) =>
       row.slice(1),

@@ -88,7 +88,7 @@ BEGIN
   IF meeting.started_at IS NULL OR meeting.closed_at IS NOT NULL THEN
     RAISE EXCEPTION USING ERRCODE = 'HV127', MESSAGE = 'an officer event requires an ongoing meeting';
   END IF;
-  IF NEW.observed_at IS NULL OR NEW.observed_at > clock_timestamp() OR NEW.observed_at < meeting.started_at
+  IF NEW.observed_at IS NULL OR NEW.observed_at < meeting.started_at
     OR EXISTS (SELECT FROM hall.meeting_attendance_event e JOIN hall.meeting_attendance a ON a.id = e.meeting_attendance
       WHERE a.council_meeting = meeting.id AND e.observed_at > NEW.observed_at)
     OR EXISTS (SELECT FROM hall.meeting_officer_change c WHERE c.council_meeting = meeting.id AND c.observed_at > NEW.observed_at)

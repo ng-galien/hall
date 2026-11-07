@@ -106,15 +106,12 @@ postgresTest(
         Buffer.from("%PDF-fixture"),
       );
       const conduct = await send(`/api/council-meetings/${meeting.id}/record-opening`, {
-        observedAt: "2026-01-01T09:00:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
       });
       expect(meetingConductWorkspaceSchema.parse(conduct.properties).meeting.quorum).toBe(1);
-      const started = await send(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, {
-        startedAt: "2026-01-01T09:01:00Z",
-      });
+      const started = await send(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, {});
       expect(started.actions).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: "ballot.preview", href: "/api/ballot-previews" })]),
       );
@@ -214,7 +211,7 @@ postgresTest(
       const draft = councilDecisionDetailSchema.parse(entity.properties);
       expect(draft).toMatchObject({
         state: "draft",
-        number: expect.stringMatching(/^2026-01-\d+$/),
+        number: expect.stringMatching(/^\d{4}-\d{2}-\d+$/),
         ballotId: ballot.id,
       });
       expect(entity.actions.map((a: { name: string }) => a.name)).toEqual(["decision.update-draft", "decision.freeze"]);
@@ -247,7 +244,7 @@ postgresTest(
       const frozen = councilDecisionDetailSchema.parse(
         (await send(decisionPath + "/freeze", { expectedVersion: edited.version })).properties,
       );
-      expect(frozen).toMatchObject({ state: "frozen", number: expect.stringMatching(/^2026-01-\d+$/) });
+      expect(frozen).toMatchObject({ state: "frozen", number: expect.stringMatching(/^\d{4}-\d{2}-\d+$/) });
       const finalEntity = await get(decisionPath);
       expect(finalEntity.actions ?? []).toEqual([]);
       expect(finalEntity.links).toEqual(

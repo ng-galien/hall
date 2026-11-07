@@ -30,11 +30,7 @@ export function MeetingOfficersDialog({
   members: CouncilMemberView[];
   canRecordOfficerChange: boolean;
   error: ApiErrorCode | null;
-  onRecordOfficerChange(input: {
-    office: MeetingOffice;
-    councilMemberId: string;
-    observedAt: string;
-  }): Promise<boolean>;
+  onRecordOfficerChange(input: { office: MeetingOffice; councilMemberId: string }): Promise<boolean>;
   onClose(): void;
 }) {
   const { t, formatTime } = useI18n();
@@ -51,8 +47,7 @@ export function MeetingOfficersDialog({
     if (!successor || submitting) return;
     setSubmitting(true);
     try {
-      if (await onRecordOfficerChange({ office, councilMemberId: successor, observedAt: new Date().toISOString() }))
-        setSuccessor("");
+      if (await onRecordOfficerChange({ office, councilMemberId: successor })) setSuccessor("");
     } finally {
       setSubmitting(false);
     }

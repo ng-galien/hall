@@ -90,7 +90,6 @@ describe("SQL-backed council workflow", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: members[0].id,
         secretaryMemberId: members[1].id,
         attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
@@ -106,10 +105,7 @@ describe("SQL-backed council workflow", () => {
     };
     const premature = await agent.post("/api/ballot-previews").send({ agendaItemId: first.id, candidate });
     expect(premature.status, JSON.stringify(premature.body)).toBe(409);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${first.id}/start`)
-      .send({ startedAt: "2026-09-10T16:31:00Z" })
-      .expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${first.id}/start`).send({}).expect(200);
     const preview = domainBody<{ id: string; calculation: { totals: { approve: number } } }>(
       await agent.post("/api/ballot-previews").send({ agendaItemId: first.id, candidate }).expect(201),
     );
@@ -120,22 +116,13 @@ describe("SQL-backed council workflow", () => {
       await agent.get(`/api/council-meetings/${meeting.id}/agenda-items/${first.id}`).expect(200),
     );
     expect(votedItem.completedAt).not.toBeNull();
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${second.id}/start`)
-      .send({ startedAt: "2026-09-10T16:46:00Z" })
-      .expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${second.id}/adjourn`)
-      .send({ adjournedAt: "2026-09-10T16:50:00Z" })
-      .expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${second.id}/start`).send({}).expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${second.id}/adjourn`).send({}).expect(200);
     await agent
       .post(`/api/council-meetings/${meeting.id}/close`)
       .send({ closedAt: "2026-09-10T17:00:00Z" })
-      .expect(409);
-    const closureResponse = await agent
-      .post(`/api/council-meetings/${meeting.id}/close`)
-      .send({ closedAt: new Date(Date.now() + 60_000).toISOString() })
-      .expect(200);
+      .expect(400);
+    const closureResponse = await agent.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(200);
     const closed = domainBody<{ nextMeeting: { id: string }; minutes: { id: string } }>(closureResponse);
     const nextAgenda = domainBody<Array<{ position: number; subject: { kind: string } }>>(
       await agent.get(`/api/council-meetings/${closed.nextMeeting.id}/agenda-items`).expect(200),
@@ -146,7 +133,9 @@ describe("SQL-backed council workflow", () => {
       await agent.get("/api/council-decisions").expect(200),
     );
     expect(decisions).toEqual(
-      expect.arrayContaining([expect.objectContaining({ title: "Éclairage public", number: "2026-09-01" })]),
+      expect.arrayContaining([
+        expect.objectContaining({ title: "Éclairage public", number: expect.stringMatching(/^\d{4}-\d{2}-01$/) }),
+      ]),
     );
     await agent
       .post(`/api/council-meetings/${meeting.id}/agenda-items/from-prepared`)

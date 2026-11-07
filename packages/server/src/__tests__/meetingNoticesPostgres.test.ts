@@ -241,7 +241,6 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
       await json(`/council-meetings/${meeting.id}/notices`, "POST", {}, 201);
       const memberIds = preparation.recipients.map((r: { councilMemberId: string }) => r.councilMemberId);
       const opening = {
-        observedAt: "2026-01-01T18:01:00Z",
         chairMemberId: memberIds[0],
         secretaryMemberId: memberIds[0],
         attendance: memberIds.map((id: string, index: number) => ({
@@ -309,7 +308,6 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
         `/council-meetings/${meeting.id}/attendance-events`,
         "POST",
         {
-          observedAt: "2026-01-01T18:02:00Z",
           changes: [
             {
               councilMemberId: memberIds[7],
@@ -322,12 +320,7 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
         201,
       );
       const observed = (
-        await json(
-          `/council-meetings/${meeting.id}/quorum-observations`,
-          "POST",
-          { agendaItemId: null, observedAt: "2026-01-01T18:03:00Z" },
-          201,
-        )
+        await json(`/council-meetings/${meeting.id}/quorum-observations`, "POST", { agendaItemId: null }, 201)
       ).properties;
       expect(observed.quorumObservations.map((entry: { facts: { verdict: string } }) => entry.facts.verdict)).toEqual([
         "notMet",

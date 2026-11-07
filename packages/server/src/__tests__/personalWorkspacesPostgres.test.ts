@@ -334,7 +334,6 @@ postgres("council member personal workspaces", () => {
     await admin
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-05T18:05:00.000Z",
         chairMemberId: mayor.memberId,
         secretaryMemberId: mayor.memberId,
         attendance: [

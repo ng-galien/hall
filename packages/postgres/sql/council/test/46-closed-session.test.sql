@@ -40,23 +40,23 @@ CREATE FUNCTION pg_temp.item(v_label TEXT,v_number INTEGER)
 RETURNS UUID LANGUAGE sql IMMUTABLE AS $$ SELECT test_uuid(v_label||':'||v_number||':agenda-item'); $$;
 
 SELECT pg_temp.closed_meeting('huis');
-SELECT throws_ok($$SELECT hall_api.record_meeting_closed_session(test_uuid('huis:meeting'),
+SELECT throws_ok($$SELECT record_meeting_closed_session(test_uuid('huis:meeting'),
  ARRAY[pg_temp.member('huis',2),pg_temp.member('huis',3)],9,true,NULL,'2026-01-01 09:01Z')$$,
  'HV152',NULL,'two members cannot request a closed session');
-SELECT throws_ok($$SELECT hall_api.record_meeting_closed_session(test_uuid('huis:meeting'),
+SELECT throws_ok($$SELECT record_meeting_closed_session(test_uuid('huis:meeting'),
  ARRAY[pg_temp.member('huis',2)],9,true,NULL,'2026-01-01 09:01Z')$$,
  'HV152',NULL,'a single member other than the mayor cannot request a closed session');
-SELECT throws_ok($$SELECT hall_api.record_meeting_closed_session(test_uuid('huis:meeting'),
+SELECT throws_ok($$SELECT record_meeting_closed_session(test_uuid('huis:meeting'),
  ARRAY[pg_temp.member('huis',2),pg_temp.member('huis',3),pg_temp.member('huis',6)],9,true,NULL,'2026-01-01 09:01Z')$$,
  'HV152',NULL,'a represented member cannot take part in the request');
-SELECT throws_ok($$SELECT hall_api.record_meeting_closed_session(test_uuid('huis:meeting'),
+SELECT throws_ok($$SELECT record_meeting_closed_session(test_uuid('huis:meeting'),
  ARRAY[pg_temp.member('huis',1)],4,true,NULL,'2026-01-01 09:01Z')$$,
  'HV152','a closed session requires the absolute majority of the 9 members present or represented',
  'four votes of nine present or represented members are not an absolute majority');
-SELECT throws_ok($$SELECT hall_api.record_meeting_closed_session(test_uuid('huis:meeting'),
+SELECT throws_ok($$SELECT record_meeting_closed_session(test_uuid('huis:meeting'),
  ARRAY[pg_temp.member('huis',2),pg_temp.member('huis',3),pg_temp.member('huis',4)],5,false,ARRAY[]::uuid[],'2026-01-01 09:01Z')$$,
  'HV152',NULL,'a partial closed session designates at least one agenda item');
-SELECT lives_ok($$SELECT hall_api.record_meeting_closed_session(test_uuid('huis:meeting'),
+SELECT lives_ok($$SELECT record_meeting_closed_session(test_uuid('huis:meeting'),
  ARRAY[pg_temp.member('huis',2),pg_temp.member('huis',3),pg_temp.member('huis',4)],5,false,ARRAY[pg_temp.item('huis',2)],'2026-01-01 09:01Z')$$,
  'three members obtain a closed session for one item with five votes of nine');
 SELECT is((meeting_conduct_evidence(test_uuid('huis:meeting'))->'closedSessions'->0)-'id'-'recordedAt'-'councilMeetingId',
@@ -67,9 +67,14 @@ SELECT is((meeting_conduct_evidence(test_uuid('huis:meeting'))->'closedSessions'
   'approvals',5,'presentOrRepresented',9,'wholeMeeting',false,'agendaItemIds',jsonb_build_array(pg_temp.item('huis',2)),
   'observedAt','2026-01-01T09:01:00+00:00'::timestamptz,'recordedBy','fixture-clerk'),
  'the closed session keeps its request, vote and items in the conduct evidence');
+-- @verifies-requirement HALL-FR-MTG-370
+CREATE TEMP TABLE closed_session_reception AS SELECT clock_timestamp() AS received_after;
 SELECT lives_ok($$SELECT hall_api.record_meeting_closed_session(test_uuid('huis:meeting'),
- ARRAY[pg_temp.member('huis',1)],9,true,NULL,'2026-01-01 09:02Z')$$,
+ ARRAY[pg_temp.member('huis',1)],9,true,NULL)$$,
  'the mayor obtains a closed session for the whole meeting');
+SELECT ok((SELECT max(observed_at) BETWEEN (SELECT received_after FROM closed_session_reception) AND clock_timestamp()
+  FROM meeting_closed_session WHERE council_meeting=test_uuid('huis:meeting')),
+ 'the server clock dates the closed session at reception');
 SELECT is(meeting_conduct_evidence(test_uuid('huis:meeting'))#>'{closedSessions,1,agendaItemIds}',
  jsonb_build_array(pg_temp.item('huis',1),pg_temp.item('huis',2),pg_temp.item('huis',3)),
  'the whole meeting covers every agenda item not yet completed');

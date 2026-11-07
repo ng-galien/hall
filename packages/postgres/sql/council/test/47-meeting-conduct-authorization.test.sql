@@ -194,7 +194,7 @@ SELECT ok(hall.allows('meeting.close', jsonb_build_object('meetingId', test_uuid
   'the administrator conducts any meeting');
 SELECT test_prepare_notice(test_uuid('conduct:meeting'));
 SELECT lives_ok($$SELECT start_council_meeting(test_uuid('conduct:meeting'),'2026-01-01 09:00Z')$$, 'the meeting opens');
-SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('conduct:meeting'),'chair',test_uuid('conduct:member:3'),'2026-01-01 09:05Z')$$, 'the chair is handed over');
+SELECT lives_ok($$SELECT record_meeting_officer_change(test_uuid('conduct:meeting'),'chair',test_uuid('conduct:member:3'),'2026-01-01 09:05Z')$$, 'the chair is handed over');
 SELECT pg_temp.act_as('["clerk"]', test_uuid('conduct:member:3'));
 SELECT ok(hall.allows('agenda-item.start', jsonb_build_object('meetingId', test_uuid('conduct:meeting'))),
   'after the handover the new chair conducts the meeting');

@@ -143,7 +143,6 @@ describe("backend business-rule coverage", () => {
       Buffer.from("%PDF-fixture"),
     );
     const selfProxy = await agent.post(`/api/council-meetings/${meeting.id}/record-opening`).send({
-      observedAt: "2026-09-10T16:30:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
       attendance: [
@@ -287,16 +286,12 @@ describe("backend business-rule coverage", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: members[0].id,
         secretaryMemberId: members[1].id,
         attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
       })
       .expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
-      .send({ startedAt: "2026-09-10T16:31:00Z" })
-      .expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`).send({}).expect(200);
     const attendance = await council.listAttendance(context, meeting.id);
     const candidate = {
       procedure: "ordinaryMajority",

@@ -53,7 +53,6 @@ async function holdMeetingWithProxy(
   await properties(
     await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
       data: {
-        observedAt: new Date(scheduledAt.getTime() + 5 * 60_000).toISOString(),
         chairMemberId: chair,
         secretaryMemberId: secretary,
         attendance: members.map((member) =>
@@ -71,7 +70,7 @@ async function holdMeetingWithProxy(
   );
   await properties(
     await page.request.post(`/api/council-meetings/${meeting.id}/close`, {
-      data: { closedAt: new Date(scheduledAt.getTime() + 60 * 60_000).toISOString() },
+      data: {},
     }),
   );
   return meeting.number;

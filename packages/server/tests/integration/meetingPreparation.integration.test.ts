@@ -62,16 +62,12 @@ describe("meeting preparation integration", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
       })
       .expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
-      .send({ startedAt: "2026-09-10T16:31:00Z" })
-      .expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`).send({}).expect(200);
     const before = domainBody<Array<{ id: string }>>(
       await agent.get(`/api/council-meetings/${meeting.id}/agenda-items`).expect(200),
     );
@@ -284,19 +280,18 @@ describe("meeting preparation integration", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
       })
       .expect(200);
     const itemPath = `/api/council-meetings/${meeting.id}/agenda-items/${proposal.id}`;
-    await agent.post(`${itemPath}/start`).send({ startedAt: "2026-09-10T16:31:00Z" }).expect(200);
+    await agent.post(`${itemPath}/start`).send({}).expect(200);
     const notes = domainBody<{ discussionSummary: string }>(
       await agent.patch(`${itemPath}/notes`).send({ discussionSummary: "Présentation consignée" }).expect(200),
     );
     expect(notes.discussionSummary).toBe("Présentation consignée");
-    const prematureCompletion = await agent.post(`${itemPath}/complete`).send({ completedAt: "2026-09-10T16:32:00Z" });
+    const prematureCompletion = await agent.post(`${itemPath}/complete`).send({});
     expect(prematureCompletion.status, JSON.stringify(prematureCompletion.body)).toBe(409);
     const attendance = await council.listAttendance(context, meeting.id);
     const candidate = {
@@ -311,19 +306,13 @@ describe("meeting preparation integration", () => {
     );
     expect(preview.calculation.result).toBe("reject");
     await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(200);
-    await agent
-      .post(`${itemPath}/complete`)
-      .send({ completedAt: new Date(Date.now() + 1_000).toISOString() })
-      .expect(409);
+    await agent.post(`${itemPath}/complete`).send({}).expect(409);
     const questionPath = `/api/council-meetings/${meeting.id}/agenda-items/${question.id}`;
-    const questionStart = await agent.post(`${questionPath}/start`).send({ startedAt: new Date().toISOString() });
+    const questionStart = await agent.post(`${questionPath}/start`).send({});
     expect(questionStart.status, JSON.stringify(questionStart.body)).toBe(200);
     await agent.patch(`${questionPath}/notes`).send({ discussionSummary: "Question examinée" }).expect(200);
-    await agent.post(`${questionPath}/complete`).send({ completedAt: new Date().toISOString() }).expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/close`)
-      .send({ closedAt: new Date().toISOString() })
-      .expect(200);
+    await agent.post(`${questionPath}/complete`).send({}).expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(200);
     const decisions = await agent.get("/api/council-decisions").expect(200);
     expect(decisions.body.entities).toHaveLength(1);
     expect(decisions.body.entities[0].properties.ballotId).toBeTruthy();

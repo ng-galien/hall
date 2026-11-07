@@ -59,10 +59,9 @@ postgresDescribe("agenda item recusals", () => {
         request.context.actorId,
         JSON.stringify(request.context.roles),
       ]);
-      await connection.query("SELECT hall_api.record_meeting_attendance($1,$2::jsonb,$3::timestamptz)", [
+      await connection.query("SELECT hall_api.record_meeting_attendance($1,$2::jsonb)", [
         meeting.id,
         JSON.stringify(members.map((member) => ({ council_member_id: member.id, status: "present" }))),
-        "2026-09-05T08:50:00Z",
       ]);
       await connection.query("COMMIT");
     } catch (error) {
@@ -86,16 +85,13 @@ postgresDescribe("agenda item recusals", () => {
   }
   it("records, reads and audits both regimes through runtime roles, preserving a carried occurrence and minutes", async () => {
     const { meeting, members, item } = await fixture();
-    const declaredAt = "2026-09-05T08:55:00Z";
     await council.recordAgendaItemRecusal(request, item.id, {
       councilMemberId: members[1].id,
       legalBasis: "personalInterest",
-      declaredAt,
     });
     const result = await council.recordAgendaItemRecusal(request, item.id, {
       councilMemberId: members[2].id,
       legalBasis: "designatedRepresentativeConflict",
-      declaredAt,
     });
     expect(result.quorumImpact).toEqual({
       excludedMemberIds: expect.arrayContaining([members[1].id, members[2].id]),
@@ -114,12 +110,11 @@ postgresDescribe("agenda item recusals", () => {
     await prepareMeetingNotice(council, request, meeting.id);
     await council.recordMeetingOpening(request, {
       id: meeting.id,
-      observedAt: "2026-09-05T09:00:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[0].id,
       attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
     });
-    const closure = await council.close(request, { id: meeting.id, closedAt: "2026-09-05T10:00:00Z" });
+    const closure = await council.close(request, { id: meeting.id });
     expect((await council.openAgendaItem(request, item.id))?.councilMeetingId).toBe(meeting.id);
     const next = await council.listAgenda(request, closure.nextMeeting.id);
     const carried = next.find((candidate) => candidate.councilBusinessId === item.councilBusinessId)!;
@@ -134,7 +129,6 @@ postgresDescribe("agenda item recusals", () => {
     await council.recordAgendaItemRecusal(request, item.id, {
       councilMemberId: members[1].id,
       legalBasis: "personalInterest",
-      declaredAt: "2026-09-05T08:55:00Z",
     });
     await council.deprogramAgendaItem(request, item.id);
     const other = await council.createBusiness(request, {
@@ -151,12 +145,11 @@ postgresDescribe("agenda item recusals", () => {
     await prepareMeetingNotice(council, request, meeting.id);
     await council.recordMeetingOpening(request, {
       id: meeting.id,
-      observedAt: "2026-09-05T09:00:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[0].id,
       attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
     });
-    const closure = await council.close(request, { id: meeting.id, closedAt: "2026-09-05T10:00:00Z" });
+    const closure = await council.close(request, { id: meeting.id });
     expect(
       (await council.listAgenda(request, closure.nextMeeting.id)).some(
         (candidate) => candidate.councilBusinessId === item.councilBusinessId,
@@ -169,12 +162,11 @@ postgresDescribe("agenda item recusals", () => {
     await prepareMeetingNotice(council, request, meeting.id);
     await council.recordMeetingOpening(request, {
       id: meeting.id,
-      observedAt: "2026-09-05T09:00:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[0].id,
       attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
     });
-    await council.startAgendaItem(request, { agendaItemId: item.id, startedAt: "2026-09-05T09:01:00Z" });
+    await council.startAgendaItem(request, { agendaItemId: item.id });
     const attendance = await council.listAttendance(request, meeting.id);
     const first = await pool.connect();
     const second = await pool.connect();
@@ -182,7 +174,7 @@ postgresDescribe("agenda item recusals", () => {
     try {
       await first.query("BEGIN");
       await first.query("SET LOCAL hall.actor_id='concurrent-clerk'");
-      await first.query("SELECT hall_api.record_agenda_item_recusal($1,$2,'personalInterest','2026-09-05 09:01Z')", [
+      await first.query("SELECT hall_api.record_agenda_item_recusal($1,$2,'personalInterest',clock_timestamp())", [
         item.id,
         members[1].id,
       ]);

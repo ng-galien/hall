@@ -57,12 +57,11 @@ postgresDescribe("reviewed ballot confirmation", () => {
     await prepareMeetingNotice(council, request, meeting.id);
     await council.recordMeetingOpening(request, {
       id: meeting.id,
-      observedAt: "2026-01-01T09:00:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[0].id,
       attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
     });
-    await council.startAgendaItem(request, { agendaItemId: item.id, startedAt: "2026-01-01T09:01:00Z" });
+    await council.startAgendaItem(request, { agendaItemId: item.id });
     const attendance = await council.listAttendance(request, meeting.id);
     const candidate = {
       procedure: "ordinaryMajority" as const,
@@ -87,7 +86,7 @@ postgresDescribe("reviewed ballot confirmation", () => {
     expect(ballot).toMatchObject({ result: "approve", agendaItemId: item.id });
     expect(ballot.completedAt).not.toBeNull();
     expect((await council.openBallotResultPreview(request, preview.id))?.canConfirm).toBe(false);
-    const closure = await council.close(request, { id: meeting.id, closedAt: new Date().toISOString() });
+    const closure = await council.close(request, { id: meeting.id });
     const minutes = await new PostgresMinutes(pool).open(request, closure.minutes.id);
     expect(minutes?.facts.conduct.quorumObservations).toHaveLength(2);
     expect(minutes?.facts.ballots[0].votes).toHaveLength(3);

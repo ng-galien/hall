@@ -38,7 +38,7 @@ BEGIN
   IF meeting.started_at IS NULL OR meeting.closed_at IS NOT NULL THEN
     RAISE EXCEPTION USING ERRCODE = 'HV152', MESSAGE = 'a closed session is decided during an ongoing meeting';
   END IF;
-  IF NEW.observed_at IS NULL OR NEW.observed_at > clock_timestamp() OR NEW.observed_at < meeting.started_at THEN
+  IF NEW.observed_at IS NULL OR NEW.observed_at < meeting.started_at THEN
     RAISE EXCEPTION USING ERRCODE = 'HV133', MESSAGE = 'a closed session must follow the recorded chronology';
   END IF;
   -- The request: the mayor, or three distinct members, physically present.

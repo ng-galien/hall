@@ -342,7 +342,6 @@ const provisionInitialCouncilMeetingInputSchema = z.object({}).strict();
 
 const recordMeetingOpeningInputSchema = z.object({
   id: resourceIdSchema,
-  observedAt: timestampSchema,
   chairMemberId: resourceIdSchema,
   secretaryMemberId: resourceIdSchema,
   attendance: z.array(postgresMeetingAttendanceDeclarationSchema).min(1),
@@ -350,12 +349,10 @@ const recordMeetingOpeningInputSchema = z.object({
 
 const startAgendaItemInputSchema = z.object({
   agendaItemId: resourceIdSchema,
-  startedAt: timestampSchema,
 });
 
 const completeAgendaItemInputSchema = z.object({
   agendaItemId: resourceIdSchema,
-  completedAt: timestampSchema,
 });
 
 export type ScheduleAgendaItemInput = z.input<typeof scheduleAgendaItemInputSchema>;
@@ -372,7 +369,6 @@ export type CompleteAgendaItemInput = z.input<typeof completeAgendaItemInputSche
 
 const closeCouncilMeetingInputSchema = z.object({
   id: resourceIdSchema,
-  closedAt: timestampSchema,
 });
 
 export type CloseCouncilMeetingInput = z.input<typeof closeCouncilMeetingInputSchema>;
@@ -936,8 +932,8 @@ export class PostgresCouncil {
       request,
       meetingId,
       "meeting.record-attendance-events",
-      "SELECT hall_api.record_meeting_attendance_events($1::uuid,$2::timestamptz,$3::jsonb) AS payload",
-      [value.observedAt, JSON.stringify(value.changes)],
+      "SELECT hall_api.record_meeting_attendance_events($1::uuid,$2::jsonb) AS payload",
+      [JSON.stringify(value.changes)],
     );
   }
   recordMeetingQuorum(
@@ -950,8 +946,8 @@ export class PostgresCouncil {
       request,
       meetingId,
       "meeting.record-quorum",
-      "SELECT hall_api.record_meeting_quorum($1::uuid,$2::uuid,$3::timestamptz) AS payload",
-      [value.agendaItemId, value.observedAt],
+      "SELECT hall_api.record_meeting_quorum($1::uuid,$2::uuid) AS payload",
+      [value.agendaItemId],
     );
   }
   recordMeetingReconvocation(
@@ -987,8 +983,8 @@ export class PostgresCouncil {
       request,
       meetingId,
       "meeting.record-officer-change",
-      "SELECT hall_api.record_meeting_officer_change($1::uuid,$2::text,$3::uuid,$4::timestamptz) AS payload",
-      [value.office, value.councilMemberId, value.observedAt],
+      "SELECT hall_api.record_meeting_officer_change($1::uuid,$2::text,$3::uuid) AS payload",
+      [value.office, value.councilMemberId],
     );
   }
   declareMeetingAuxiliaryAttendance(
@@ -1001,10 +997,10 @@ export class PostgresCouncil {
       request,
       meetingId,
       "meeting.declare-auxiliary-attendance",
-      "SELECT hall_api.declare_meeting_auxiliary_attendance($1::uuid,$2::uuid,$3::text,$4::text,$5::text,$6::timestamptz) AS payload",
+      "SELECT hall_api.declare_meeting_auxiliary_attendance($1::uuid,$2::uuid,$3::text,$4::text,$5::text) AS payload",
       matchDiscriminated(value.person, "kind", {
-        contact: (person) => [person.contactId, null, null, value.quality, value.declaredAt],
-        newContact: (person) => [null, person.firstName, person.lastName, value.quality, value.declaredAt],
+        contact: (person) => [person.contactId, null, null, value.quality],
+        newContact: (person) => [null, person.firstName, person.lastName, value.quality],
       }),
     );
   }
@@ -1018,16 +1014,10 @@ export class PostgresCouncil {
       request,
       meetingId,
       "meeting.record-closed-session",
-      "SELECT hall_api.record_meeting_closed_session($1::uuid,$2::uuid[],$3::integer,$4::boolean,$5::uuid[],$6::timestamptz) AS payload",
+      "SELECT hall_api.record_meeting_closed_session($1::uuid,$2::uuid[],$3::integer,$4::boolean,$5::uuid[]) AS payload",
       matchDiscriminated(value.scope, "kind", {
-        wholeMeeting: () => [value.requesterMemberIds, value.approvals, true, null, value.observedAt],
-        agendaItems: (scope) => [
-          value.requesterMemberIds,
-          value.approvals,
-          false,
-          scope.agendaItemIds,
-          value.observedAt,
-        ],
+        wholeMeeting: () => [value.requesterMemberIds, value.approvals, true, null],
+        agendaItems: (scope) => [value.requesterMemberIds, value.approvals, false, scope.agendaItemIds],
       }),
     );
   }
@@ -1081,8 +1071,9 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "agenda-item.record-recusal") },
       async (client) => {
         const result = await callJson(client, {
-          text: "SELECT hall_api.record_agenda_item_recusal($1::uuid, $2::uuid, $3::text, $4::timestamptz) AS payload",
-          values: [itemId, parsed.councilMemberId, parsed.legalBasis, parsed.declaredAt],
+          // @implements-requirement HALL-FR-MTG-370
+          text: "SELECT hall_api.record_agenda_item_recusal($1::uuid, $2::uuid, $3::text, clock_timestamp()) AS payload",
+          values: [itemId, parsed.councilMemberId, parsed.legalBasis],
           schema: postgresAgendaItemRecusalsSchema,
         });
         await recordAuditEvent(client, { targetType: "agenda-item", targetId: itemId, outcome: "succeeded" });
@@ -1469,10 +1460,9 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "meeting.record-opening") },
       async (client) => {
         const meeting = await callJson(client, {
-          text: "SELECT hall_api.record_meeting_opening($1::uuid, $2::timestamptz, $3::jsonb, $4::uuid, $5::uuid) AS payload",
+          text: "SELECT hall_api.record_meeting_opening($1::uuid, $2::jsonb, $3::uuid, $4::uuid) AS payload",
           values: [
             parsed.id,
-            parsed.observedAt,
             JSON.stringify(attendanceDeclarationsPayload(parsed.attendance)),
             parsed.chairMemberId,
             parsed.secretaryMemberId,
@@ -1619,18 +1609,15 @@ export class PostgresCouncil {
     );
   }
 
-  adjournAgendaItem(
-    request: PostgresCouncilRequest,
-    agendaItemId: string,
-    adjournedAt: string,
-  ): Promise<PostgresCouncilAgendaItem> {
+  adjournAgendaItem(request: PostgresCouncilRequest, agendaItemId: string): Promise<PostgresCouncilAgendaItem> {
     const parsedAgendaItemId = resourceIdSchema.parse(agendaItemId);
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "agenda-item.adjourn") },
       async (client) => {
         const agendaItem = await callJson(client, {
-          text: "SELECT hall_api.adjourn_council_agenda_item($1::uuid, $2::timestamptz) AS payload",
-          values: [parsedAgendaItemId, timestampSchema.parse(adjournedAt)],
+          // @implements-requirement HALL-FR-MTG-370
+          text: "SELECT hall_api.adjourn_council_agenda_item($1::uuid, clock_timestamp()) AS payload",
+          values: [parsedAgendaItemId],
           schema: postgresCouncilAgendaItemSchema,
         });
         await recordAuditEvent(client, {
@@ -1717,8 +1704,9 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "agenda-item.start") },
       async (client) => {
         const agendaItem = await callJson(client, {
-          text: "SELECT hall_api.start_council_agenda_item($1::uuid, $2::timestamptz) AS payload",
-          values: [parsed.agendaItemId, parsed.startedAt],
+          // @implements-requirement HALL-FR-MTG-370
+          text: "SELECT hall_api.start_council_agenda_item($1::uuid, clock_timestamp()) AS payload",
+          values: [parsed.agendaItemId],
           schema: postgresCouncilAgendaItemSchema,
         });
         await recordAuditEvent(client, {
@@ -1740,8 +1728,9 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "agenda-item.complete-open-question") },
       async (client) => {
         const agendaItem = await callJson(client, {
-          text: "SELECT hall_api.complete_non_voting_agenda_item($1::uuid, $2::timestamptz) AS payload",
-          values: [parsed.agendaItemId, parsed.completedAt],
+          // @implements-requirement HALL-FR-MTG-370
+          text: "SELECT hall_api.complete_non_voting_agenda_item($1::uuid, clock_timestamp()) AS payload",
+          values: [parsed.agendaItemId],
           schema: postgresCouncilAgendaItemSchema,
         });
         await recordAuditEvent(client, {
@@ -1839,18 +1828,14 @@ export class PostgresCouncil {
     );
   }
 
-  confirmBallotResultPreview(
-    request: PostgresCouncilRequest,
-    previewId: string,
-    confirmedAt?: string,
-  ): Promise<PostgresBallot> {
+  confirmBallotResultPreview(request: PostgresCouncilRequest, previewId: string): Promise<PostgresBallot> {
     const id = resourceIdSchema.parse(previewId);
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "ballot.confirm") },
       async (client) => {
         const ballot = await callJson(client, {
-          text: "SELECT hall_api.confirm_ballot_result_preview($1::uuid, $2::timestamptz) AS payload",
-          values: [id, confirmedAt ?? null],
+          text: "SELECT hall_api.confirm_ballot_result_preview($1::uuid) AS payload",
+          values: [id],
           schema: postgresBallotSchema,
         });
         await recordAuditEvent(client, {
@@ -1892,10 +1877,8 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "meeting.close") },
       async (client) => {
         const closure = await callJson(client, {
-          text: `SELECT hall_api.close_council_meeting(
-            $1::uuid, $2::timestamptz
-          ) AS payload`,
-          values: [parsed.id, parsed.closedAt],
+          text: "SELECT hall_api.close_council_meeting($1::uuid) AS payload",
+          values: [parsed.id],
           schema: postgresCouncilMeetingClosureSchema,
         });
         await recordAuditEvent(client, {

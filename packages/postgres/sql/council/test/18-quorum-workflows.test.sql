@@ -105,12 +105,9 @@ SELECT throws_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_obse
 -- Legal review1: no synthetic failure before the actual scheduled meeting.
 SELECT pg_temp.quorum_case('bounds',3,1);
 SELECT throws_ok($$SELECT record_meeting_quorum(test_uuid('bounds:meeting'),NULL,'2026-01-01 08:59Z')$$,'HV143',NULL,'a premature observation cannot unlock reconvocation');
-SELECT throws_ok($$SELECT record_meeting_quorum(test_uuid('bounds:meeting'),NULL,clock_timestamp()+interval '1 day')$$,'HV143',NULL,'future observations are refused');
-SELECT throws_ok($$INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids) VALUES(test_uuid('bounds:meeting'),clock_timestamp()+interval '1 day','future roster',ARRAY[test_uuid('bounds:member:1')])$$,'HV133',NULL,'a future membership cannot be attested');
 SELECT is((SELECT count(*)::int FROM meeting_quorum_observation WHERE council_meeting=test_uuid('bounds:meeting')),0,'rejected observations leave no failed-convocation evidence');
 -- Legal review3: recusal evidence cannot be moved behind a purported earlier quorum.
 SELECT pg_temp.quorum_case('recusal-time',3,3);
-SELECT throws_ok($$INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at) VALUES(test_uuid('recusal-time:a:agenda-item'),test_uuid('recusal-time:member:3'),'personalInterest',clock_timestamp()+interval '1 day')$$,'HV143',NULL,'future recusal declarations are refused');
 INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at) VALUES(test_uuid('recusal-time:a:agenda-item'),test_uuid('recusal-time:member:3'),'personalInterest','2026-01-01 09:02Z');
 SELECT throws_ok($$SELECT record_meeting_quorum(test_uuid('recusal-time:meeting'),test_uuid('recusal-time:a:agenda-item'),'2026-01-01 09:01Z')$$,'HV143',NULL,'a quorum cannot predate the recusal it incorporates');
 -- Legal review2: a real failure followed by closure never authorizes a renewed call.
@@ -128,7 +125,7 @@ SELECT test_prepare_notice(test_uuid('replacement:meeting'));
 SELECT start_council_meeting(test_uuid('replacement:meeting'),'2026-01-01 09:00Z');
 SELECT test_ensure_council_member(test_uuid('replacement:member:4'));
 SELECT throws_ok($$INSERT INTO meeting_membership_record(council_meeting,observed_at,source_reference,member_ids) VALUES(test_uuid('replacement:meeting'),'2026-01-01 09:01Z','Replacement during the meeting',ARRAY[test_uuid('replacement:member:1'),test_uuid('replacement:member:2'),test_uuid('replacement:member:4')])$$,'HV136',NULL,'no membership roster can be recorded after the opening');
-SELECT throws_ok($$SELECT hall_api.record_meeting_attendance_events(test_uuid('replacement:meeting'),'2026-01-01 09:01Z',jsonb_build_array(jsonb_build_object('councilMemberId',test_uuid('replacement:member:4'),'status','present','proxyHolderCouncilMemberId',NULL,'proxyDocumentId',NULL)))$$,'HV150',NULL,'a mandate outside the opening roster cannot attend as a member');
+SELECT throws_ok($$SELECT record_meeting_attendance_events(test_uuid('replacement:meeting'),'2026-01-01 09:01Z',jsonb_build_array(jsonb_build_object('councilMemberId',test_uuid('replacement:member:4'),'status','present','proxyHolderCouncilMemberId',NULL,'proxyDocumentId',NULL)))$$,'HV150',NULL,'a mandate outside the opening roster cannot attend as a member');
 SELECT is((SELECT count(*)::int FROM meeting_membership_record WHERE council_meeting=test_uuid('replacement:meeting')),1,'the meeting keeps the opening roster alone');
 
 
@@ -159,6 +156,28 @@ INSERT INTO council_meetings(id,number,scheduled_at,location) VALUES(test_uuid('
 SELECT throws_ok($$SELECT record_meeting_quorum(test_uuid('no-membership:meeting'),NULL,'2026-01-01 09:00Z')$$,'HV140',NULL,'quorum has no inferred roster fallback');
 SELECT throws_ok($$SELECT test_execute_deferred(ARRAY[$q$INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status,proxy_holder,proxy_document) VALUES(test_uuid('power:att:1'),'2026-01-01 09:04Z','represented',test_uuid('ordinary:att:1'),test_uuid('power:document'))$q$])$$,'HV134',NULL,'a proxy holder must belong to the same current meeting');
 SELECT throws_ok($$INSERT INTO meeting_reconvocation(council_meeting,failed_observation,sent_at,scheduled_at,time_zone,first_notice_evidence,renewed_notice_evidence,agenda_item_ids) SELECT test_uuid('power:meeting'),id,'2026-01-01 10:00Z','2026-01-05 09:00Z','Europe/Paris','first','second',ARRAY[test_uuid('power:a:agenda-item')] FROM meeting_quorum_observation WHERE council_meeting=test_uuid('power:meeting') LIMIT 1$$,'HV144',NULL,'a successful quorum cannot unlock exemption');
+
+-- @verifies-requirement HALL-FR-MTG-370
+-- The server clock dates a movement and a quorum check at reception; successive
+-- observations keep their chronology.
+SELECT pg_temp.quorum_case('server-clock',3,3);
+SELECT test_prepare_notice(test_uuid('server-clock:meeting'));
+SELECT start_council_meeting(test_uuid('server-clock:meeting'),'2026-01-01 09:00Z');
+CREATE TEMP TABLE movement_reception AS SELECT clock_timestamp() AS received_after;
+SELECT lives_ok($$SELECT hall_api.record_meeting_attendance_events(test_uuid('server-clock:meeting'),jsonb_build_array(jsonb_build_object(
+ 'councilMemberId',test_uuid('server-clock:member:3'),'status','absent','proxyHolderCouncilMemberId',NULL,'proxyDocumentId',NULL)))$$,
+ 'a departure is recorded without a client instant');
+SELECT ok((SELECT observed_at BETWEEN (SELECT received_after FROM movement_reception) AND clock_timestamp()
+  FROM meeting_attendance_event WHERE meeting_attendance=test_uuid('server-clock:att:3')),'the server clock dates the departure at reception');
+SELECT lives_ok($$SELECT hall_api.record_meeting_quorum(test_uuid('server-clock:meeting'),NULL)$$,'a quorum check is recorded without a client instant');
+SELECT ok((SELECT max(q.observed_at)>=e.observed_at AND max(q.observed_at)<=clock_timestamp()
+  FROM meeting_quorum_observation q, meeting_attendance_event e
+  WHERE q.council_meeting=test_uuid('server-clock:meeting') AND e.meeting_attendance=test_uuid('server-clock:att:3')
+  GROUP BY e.observed_at),
+ 'the quorum check follows the departure it incorporates');
+SELECT throws_ok($$SELECT record_meeting_attendance_events(test_uuid('server-clock:meeting'),'2026-01-01 09:01Z',jsonb_build_array(jsonb_build_object(
+ 'councilMemberId',test_uuid('server-clock:member:3'),'status','present','proxyHolderCouncilMemberId',NULL,'proxyDocumentId',NULL)))$$,
+ 'HV133',NULL,'a movement cannot precede the last recorded movement');
 
 SELECT * FROM finish();
 ROLLBACK;

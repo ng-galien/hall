@@ -411,11 +411,10 @@ export function createCouncilMeetingsRouter({
 
   router.post("/:meetingReference/close", requireActionPermission("meeting.close"), async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
-    response.json(
-      await changeMeeting(meeting.id, () =>
-        councilClient.closeMeeting(meeting.id, closeCouncilMeetingSchema.parse(request.body)),
-      ),
-    );
+    // @implements-requirement HALL-FR-MTG-370
+    // The body carries no instant: the server dates the closure at reception.
+    closeCouncilMeetingSchema.parse(request.body);
+    response.json(await changeMeeting(meeting.id, () => councilClient.closeMeeting(meeting.id)));
   });
 
   router.get("/:meetingReference/attendance", async (request, response) => {
@@ -510,11 +509,8 @@ export function createCouncilMeetingsRouter({
     async (request, response) => {
       const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
       const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
-      response.json(
-        await changeMeeting(meeting.id, () =>
-          councilClient.adjournAgendaItem(item.id, adjournAgendaItemSchema.parse(request.body)),
-        ),
-      );
+      adjournAgendaItemSchema.parse(request.body);
+      response.json(await changeMeeting(meeting.id, () => councilClient.adjournAgendaItem(item.id)));
     },
   );
 
@@ -568,11 +564,8 @@ export function createCouncilMeetingsRouter({
         routeParameter(request.params.agendaItemId),
       );
       response.locals.currentCouncilMeeting = meeting;
-      response.json(
-        await changeMeeting(meeting.id, () =>
-          councilClient.startAgendaItem(agendaItem.id, startAgendaItemSchema.parse(request.body)),
-        ),
-      );
+      startAgendaItemSchema.parse(request.body);
+      response.json(await changeMeeting(meeting.id, () => councilClient.startAgendaItem(agendaItem.id)));
     },
   );
 
@@ -586,11 +579,8 @@ export function createCouncilMeetingsRouter({
         meeting,
         routeParameter(request.params.agendaItemId),
       );
-      response.json(
-        await changeMeeting(meeting.id, () =>
-          councilClient.completeAgendaItem(agendaItem.id, completeAgendaItemSchema.parse(request.body)),
-        ),
-      );
+      completeAgendaItemSchema.parse(request.body);
+      response.json(await changeMeeting(meeting.id, () => councilClient.completeAgendaItem(agendaItem.id)));
     },
   );
 

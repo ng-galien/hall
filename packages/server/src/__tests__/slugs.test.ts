@@ -138,7 +138,6 @@ describe("public slugs and business numbering", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
@@ -146,7 +145,7 @@ describe("public slugs and business numbering", () => {
       .expect(200);
     const started = await agent
       .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
-      .send({ startedAt: "2026-09-10T16:31:00Z" })
+      .send({})
       .expect(200);
     expect(selfHref(started)).toContain(`/agenda-items/${item.id}`);
     const attendance = await council.listAttendance(databaseRequest, meeting.id);
@@ -164,7 +163,10 @@ describe("public slugs and business numbering", () => {
     const list = await agent.get("/api/council-decisions").expect(200);
     expect(list.body.entities).toHaveLength(1);
     const decision = list.body.entities[0].properties as { id: string; number: string; title: string };
-    expect(decision).toMatchObject({ number: "2026-09-01", title: "Subventions aux associations" });
+    expect(decision).toMatchObject({
+      number: expect.stringMatching(/^\d{4}-\d{2}-01$/),
+      title: "Subventions aux associations",
+    });
     const canonical = await agent.get(`/api/council-decisions/${decision.id}`).expect(200);
     expect(selfHref(canonical)).toBe(`/api/council-decisions/${decision.id}`);
     await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(409);

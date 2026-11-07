@@ -13,7 +13,7 @@ INSERT INTO votes(ballot, mode, choice, ballot_participation, count) VALUES
   (test_uuid('reorg:ballot'), 'public', 'approve', test_uuid('reorg:participation:1'), 1),
   (test_uuid('reorg:ballot'), 'public', 'approve', test_uuid('reorg:participation:2'), 1);
 UPDATE ballots SET result_preview=test_review_ballot(id), completed_at='2026-01-01 09:30Z' WHERE id=test_uuid('reorg:ballot');
-CREATE TEMP TABLE reorg_closure AS SELECT hall_api.close_council_meeting(test_uuid('reorg:meeting'), '2026-01-01 10:00Z') payload;
+CREATE TEMP TABLE reorg_closure AS SELECT hall_api.close_council_meeting(test_uuid('reorg:meeting')) payload;
 SET CONSTRAINTS ALL IMMEDIATE;
 SET CONSTRAINTS ALL DEFERRED;
 

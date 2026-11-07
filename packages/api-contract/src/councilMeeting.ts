@@ -101,9 +101,9 @@ export const recordMeetingAttendanceSchema = z
   })
   .strict();
 
+// The server dates every conduct observation at reception; no request carries an instant.
 export const recordMeetingOpeningSchema = recordMeetingAttendanceSchema
   .extend({
-    observedAt: timestampSchema,
     chairMemberId: resourceIdSchema,
     secretaryMemberId: resourceIdSchema,
   })
@@ -197,26 +197,14 @@ export const reorderCouncilAgendaSchema = z
     path: ["agendaItemIds"],
   });
 
-export const startAgendaItemSchema = z
-  .object({
-    startedAt: timestampSchema,
-  })
-  .strict();
+export const startAgendaItemSchema = z.object({}).strict();
 
-export const adjournAgendaItemSchema = z.object({ adjournedAt: timestampSchema }).strict();
+export const adjournAgendaItemSchema = z.object({}).strict();
 export type AdjournAgendaItem = z.infer<typeof adjournAgendaItemSchema>;
 
-export const completeAgendaItemSchema = z
-  .object({
-    completedAt: timestampSchema,
-  })
-  .strict();
+export const completeAgendaItemSchema = z.object({}).strict();
 
-export const closeCouncilMeetingSchema = z
-  .object({
-    closedAt: timestampSchema,
-  })
-  .strict();
+export const closeCouncilMeetingSchema = z.object({}).strict();
 
 const createAndScheduleCouncilBusinessBase = {
   path: resourcePathSchema,

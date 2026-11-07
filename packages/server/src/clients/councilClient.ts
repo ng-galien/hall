@@ -6,8 +6,6 @@ import type {
   BallotParticipation,
   BallotResultPreview,
   BallotVote,
-  CloseCouncilMeeting,
-  CompleteAgendaItem,
   CorrectMeetingAuxiliaryAttendance,
   CouncilBusiness,
   CouncilBusinessBundleManifest,
@@ -46,7 +44,6 @@ import type {
   ScheduleCouncilMeeting,
   SetCouncilMeetingOfficers,
   StaleCouncilMeetingResult,
-  StartAgendaItem,
 } from "@hall/api-contract";
 import type {
   CreatePreparedCouncilSubject,
@@ -96,7 +93,7 @@ export interface CouncilClient {
 
   createBallotResultPreview(input: CreateBallotResultPreview): Promise<BallotResultPreview>;
   openBallotResultPreview(id: string): Promise<BallotResultPreview | null>;
-  confirmBallotResultPreview(id: string, confirmedAt?: string): Promise<Ballot>;
+  confirmBallotResultPreview(id: string): Promise<Ballot>;
 
   addOpenQuestion(meetingId: string, input: AddOpenQuestion): Promise<AgendaItem>;
   meetingConduct(meetingId: string): Promise<MeetingConductWorkspace>;
@@ -162,7 +159,7 @@ export interface CouncilClient {
   recordMeetingOpening(id: string, input: RecordMeetingOpening): Promise<MeetingConductWorkspace>;
   // TODO REMOVE_STALE: temporary transition.
   markMeetingStale(id: string): Promise<StaleCouncilMeetingResult>;
-  closeMeeting(id: string, input: CloseCouncilMeeting): Promise<CouncilMeetingClosure>;
+  closeMeeting(id: string): Promise<CouncilMeetingClosure>;
   listAttendance(meetingId: string): Promise<MeetingAttendance[]>;
   recordAttendance(meetingId: string, input: RecordMeetingAttendance): Promise<MeetingAttendance[]>;
   agendaItemRecusals(id: string): Promise<AgendaItemRecusals>;
@@ -170,12 +167,12 @@ export interface CouncilClient {
   listAgenda(meetingId: string): Promise<AgendaItem[]>;
   openAgendaItem(id: string): Promise<AgendaItem | null>;
   scheduleAgendaItem(meetingId: string, input: ScheduleAgendaItem): Promise<AgendaItem>;
-  adjournAgendaItem(id: string, input: import("@hall/api-contract").AdjournAgendaItem): Promise<AgendaItem>;
+  adjournAgendaItem(id: string): Promise<AgendaItem>;
   deprogramAgendaItem(id: string): Promise<AgendaItem>;
   reprogramAgendaItem(id: string, input: ReprogramAgendaItem): Promise<AgendaItem>;
   reorderAgenda(meetingId: string, input: ReorderCouncilAgenda): Promise<AgendaItem[]>;
-  startAgendaItem(id: string, input: StartAgendaItem): Promise<AgendaItem>;
-  completeAgendaItem(id: string, input: CompleteAgendaItem): Promise<AgendaItem>;
+  startAgendaItem(id: string): Promise<AgendaItem>;
+  completeAgendaItem(id: string): Promise<AgendaItem>;
   updateAgendaItemNotes(id: string, input: { discussionSummary: string }): Promise<AgendaItem>;
   listBallots(meetingId: string): Promise<Ballot[]>;
   openBallot(id: string): Promise<Ballot | null>;

@@ -49,7 +49,6 @@ it("maps recusal storage conflicts to stable API codes without reclassifying unr
             client.recordAgendaItemRecusal("item", {
               councilMemberId: "member",
               legalBasis: "personalInterest",
-              declaredAt: "2026-09-05T09:00:00Z",
             }),
           ).rejects.toMatchObject(code === "conflict" ? { failure: code } : { code, statusCode: 409 });
         }
@@ -90,7 +89,7 @@ it("returns HTTP 409 when PostgreSQL detects a missing previous-PV agenda occurr
         },
       },
       async () => {
-        res.json(await client.closeMeeting(req.params.id, { closedAt: "2026-01-02T18:00:00Z" }));
+        res.json(await client.closeMeeting(req.params.id));
       },
     );
   });

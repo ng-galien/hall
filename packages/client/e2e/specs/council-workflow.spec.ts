@@ -320,7 +320,6 @@ test("mobile French recusals preserve explicit qualification and show a real ref
   await sirenProperties(
     await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
       data: {
-        observedAt: new Date().toISOString(),
         chairMemberId: members[0]!.id,
         secretaryMemberId: members[1]!.id,
         attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
@@ -352,7 +351,7 @@ test("mobile French recusals preserve explicit qualification and show a real ref
   expect(
     (
       await page.request.post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/recusals`, {
-        data: { councilMemberId: members[4]!.id, legalBasis: "personalInterest", declaredAt: new Date().toISOString() },
+        data: { councilMemberId: members[4]!.id, legalBasis: "personalInterest" },
       })
     ).ok(),
   ).toBeTruthy();
@@ -407,7 +406,6 @@ test("records a secretary handover, other persons present and shows the ballot c
   await sirenProperties(
     await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
       data: {
-        observedAt: new Date().toISOString(),
         chairMemberId: members[0]!.id,
         secretaryMemberId: members[1]!.id,
         attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
@@ -520,7 +518,7 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
   expect(
     (
       await page.request.post(`/api/council-meetings/${meeting.id}/agenda-items/${proposal.id}/start`, {
-        data: { startedAt: new Date().toISOString() },
+        data: {},
       })
     ).status(),
   ).toBe(409);
@@ -991,7 +989,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   const lateRecusal = await page.request.post(
     `/api/council-meetings/${meeting!.slug}/agenda-items/${publicItem.id}/recusals`,
     {
-      data: { councilMemberId: members[3]!.id, legalBasis: "personalInterest", declaredAt: new Date().toISOString() },
+      data: { councilMemberId: members[3]!.id, legalBasis: "personalInterest" },
     },
   );
   expect(lateRecusal.status()).toBe(409);
@@ -1290,7 +1288,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   await expect(page.getByTestId("live-ballot-open")).toBeHidden();
   await expect(page.getByTestId("conduct-blocker-continue-quorumNotMet")).toBeVisible();
   const refusedApproval = await page.request.post(`/api/council-meetings/${nextId}/agenda-items/${approvalId}/start`, {
-    data: { startedAt: new Date().toISOString() },
+    data: {},
   });
   expect(refusedApproval.status()).toBe(409);
   await page.getByTestId("live-agenda-adjourn").click();
@@ -1317,7 +1315,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   expect(retainedAgenda.filter((item) => item.subject.kind === "minutesApproval")).toHaveLength(1);
   await expect(page.getByTestId("live-meeting-close")).toBeEnabled();
   const closure = await page.request.post(`/api/council-meetings/${nextId}/close`, {
-    data: { closedAt: new Date().toISOString() },
+    data: {},
   });
   const followingMeeting = await sirenProperties<{ nextMeeting: { id: string } }>(closure);
   const closed = await sirenProperties<{ closedAt: string | null; minutesId: string | null }>(
@@ -1642,7 +1640,6 @@ test("holds the meeting after a second convocation as a new linked meeting under
     await page.request.post(`/api/council-meetings/${first.id}/record-opening`, {
       data: {
         attendance,
-        observedAt: new Date(firstDate.getTime() + 5 * 60_000).toISOString(),
         chairMemberId: members[0]!.id,
         secretaryMemberId: members[1]!.id,
       },
@@ -1732,7 +1729,7 @@ test("holds the meeting after a second convocation as a new linked meeting under
   expect(reopened.meeting.secretaryMemberId).toBe(members[2]!.id);
   expect(reopened.quorumObservations.at(-1)!.facts).toMatchObject({ regime: "secondConvocation", verdict: "exempt" });
   const started = await page.request.post(`/api/council-meetings/${reconvened.id}/agenda-items/${proposal.id}/start`, {
-    data: { startedAt: new Date().toISOString() },
+    data: {},
   });
   expect(started.ok()).toBeTruthy();
 

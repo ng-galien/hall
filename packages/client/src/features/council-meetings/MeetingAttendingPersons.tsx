@@ -66,7 +66,6 @@ export function MeetingAttendingPersons({
           ? { kind: "contact", contactId }
           : { kind: "newContact", firstName: firstName.trim(), lastName: lastName.trim() },
         quality: quality.trim() || null,
-        declaredAt: new Date().toISOString(),
       });
       if (saved) {
         setContactId("");

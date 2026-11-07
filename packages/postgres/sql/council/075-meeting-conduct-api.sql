@@ -33,8 +33,8 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ha
        AND NOT EXISTS(SELECT FROM hall.meeting_reconvocation WHERE failed_observation=o.id)))
  FROM hall.council_meetings m CROSS JOIN LATERAL (SELECT hall.council_meeting_action_blockers(m) value) blockers WHERE m.id=target_meeting;
 $$;
-CREATE FUNCTION hall_api.record_meeting_attendance_events(target_meeting UUID,observation_time TIMESTAMPTZ,changes JSONB)
-RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+CREATE FUNCTION hall.record_meeting_attendance_events(target_meeting UUID,observation_time TIMESTAMPTZ,changes JSONB)
+RETURNS VOID LANGUAGE plpgsql VOLATILE SET search_path=pg_catalog,hall AS $$
 DECLARE change RECORD; attendance_id UUID; holder_id UUID;
 BEGIN
  PERFORM 1 FROM hall.council_meetings WHERE id=target_meeting FOR UPDATE;
@@ -64,12 +64,21 @@ BEGIN
  END LOOP;
  SET CONSTRAINTS meeting_attendance_event_validate_proxies IMMEDIATE;
  SET CONSTRAINTS meeting_attendance_event_validate_proxies DEFERRED;
- RETURN hall_api.meeting_conduct(target_meeting);
 END $$;
-CREATE FUNCTION hall_api.record_meeting_quorum(target_meeting UUID,target_item UUID,observation_time TIMESTAMPTZ)
+
+-- @implements-requirement HALL-FR-MTG-370
+-- Every conduct observation below is dated by the server clock at reception.
+CREATE FUNCTION hall_api.record_meeting_attendance_events(target_meeting UUID,changes JSONB)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
 BEGIN
- PERFORM hall.record_meeting_quorum(target_meeting,target_item,observation_time);
+ PERFORM hall.record_meeting_attendance_events(target_meeting,clock_timestamp(),changes);
+ RETURN hall_api.meeting_conduct(target_meeting);
+END $$;
+-- @implements-requirement HALL-FR-MTG-370
+CREATE FUNCTION hall_api.record_meeting_quorum(target_meeting UUID,target_item UUID)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ PERFORM hall.record_meeting_quorum(target_meeting,target_item,clock_timestamp());
  RETURN hall_api.meeting_conduct(target_meeting);
 END $$;
 CREATE FUNCTION hall_api.record_meeting_reconvocation(target_meeting UUID,failure UUID,notice_sent_at TIMESTAMPTZ,
@@ -84,22 +93,23 @@ END $$;
 
 -- @implements-requirement HALL-FR-MTG-330
 -- @implements-requirement HALL-FR-MTG-340
-CREATE FUNCTION hall_api.record_meeting_officer_change(target_meeting UUID,target_office TEXT,target_member UUID,observation_time TIMESTAMPTZ)
+-- @implements-requirement HALL-FR-MTG-370
+CREATE FUNCTION hall_api.record_meeting_officer_change(target_meeting UUID,target_office TEXT,target_member UUID)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
 BEGIN
  IF target_office IS NULL OR target_office NOT IN ('chair','secretary') THEN
    RAISE EXCEPTION USING ERRCODE = 'HV127',MESSAGE='the office is the chair or the secretary';
  END IF;
- PERFORM hall.record_meeting_officer_change(target_meeting,target_office::hall.meeting_office,target_member,observation_time);
+ PERFORM hall.record_meeting_officer_change(target_meeting,target_office::hall.meeting_office,target_member,clock_timestamp());
  RETURN hall_api.meeting_conduct(target_meeting);
 END $$;
 
 -- @implements-requirement HALL-FR-ATT-140
 -- An attending person is an existing contact or a contact created from the
 -- entered first and last names.
-CREATE FUNCTION hall_api.declare_meeting_auxiliary_attendance(target_meeting UUID,target_contact UUID,
+CREATE FUNCTION hall.declare_meeting_auxiliary_attendance(target_meeting UUID,target_contact UUID,
  contact_first_name TEXT,contact_last_name TEXT,target_quality TEXT,declaration_time TIMESTAMPTZ)
-RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+RETURNS VOID LANGUAGE plpgsql VOLATILE SET search_path=pg_catalog,hall AS $$
 DECLARE person UUID:=target_contact;
 BEGIN
  IF (target_contact IS NULL) = (contact_first_name IS NULL AND contact_last_name IS NULL) THEN
@@ -116,6 +126,16 @@ BEGIN
  END IF;
  INSERT INTO hall.meeting_auxiliary_attendance(council_meeting,contact,quality,declared_at)
  VALUES(target_meeting,person,target_quality,declaration_time);
+END $$;
+
+-- @implements-requirement HALL-FR-ATT-140
+-- @implements-requirement HALL-FR-MTG-370
+CREATE FUNCTION hall_api.declare_meeting_auxiliary_attendance(target_meeting UUID,target_contact UUID,
+ contact_first_name TEXT,contact_last_name TEXT,target_quality TEXT)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ PERFORM hall.declare_meeting_auxiliary_attendance(target_meeting,target_contact,contact_first_name,contact_last_name,
+   target_quality,clock_timestamp());
  RETURN hall_api.meeting_conduct(target_meeting);
 END $$;
 
@@ -139,13 +159,23 @@ BEGIN
 END $$;
 
 -- @implements-requirement HALL-FR-MTG-350
-CREATE FUNCTION hall_api.record_meeting_closed_session(target_meeting UUID,requester_ids UUID[],approval_count INTEGER,
+CREATE FUNCTION hall.record_meeting_closed_session(target_meeting UUID,requester_ids UUID[],approval_count INTEGER,
  covers_whole_meeting BOOLEAN,item_ids UUID[],observation_time TIMESTAMPTZ)
-RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+RETURNS VOID LANGUAGE plpgsql VOLATILE SET search_path=pg_catalog,hall AS $$
 BEGIN
  INSERT INTO hall.meeting_closed_session(council_meeting,requester_member_ids,requesters,approvals,present_or_represented,
    whole_meeting,agenda_item_ids,observed_at)
  VALUES(target_meeting,requester_ids,'[]',approval_count,0,coalesce(covers_whole_meeting,false),
    CASE WHEN covers_whole_meeting THEN '{}'::uuid[] ELSE coalesce(item_ids,'{}'::uuid[]) END,observation_time);
+END $$;
+
+-- @implements-requirement HALL-FR-MTG-350
+-- @implements-requirement HALL-FR-MTG-370
+CREATE FUNCTION hall_api.record_meeting_closed_session(target_meeting UUID,requester_ids UUID[],approval_count INTEGER,
+ covers_whole_meeting BOOLEAN,item_ids UUID[])
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ PERFORM hall.record_meeting_closed_session(target_meeting,requester_ids,approval_count,covers_whole_meeting,item_ids,
+   clock_timestamp());
  RETURN hall_api.meeting_conduct(target_meeting);
 END $$;

@@ -38,7 +38,7 @@ it.each([
     async () => {
       const result =
         operation === "close"
-          ? client.closeMeeting("meeting", { closedAt: "2026-09-11T06:48:49Z" })
+          ? client.closeMeeting("meeting")
           : client.updateAgendaItemNotes("item", { discussionSummary: "Late autosave" });
       await expect(result).rejects.toMatchObject({ code, statusCode: 409 });
     },

@@ -565,7 +565,7 @@ SELECT is((SELECT jsonb_agg(option ORDER BY option->>'councilMemberId') FROM jso
  (SELECT jsonb_agg(jsonb_build_object('councilMemberId',id,'basis','councilDesignation') ORDER BY id::text)
   FROM unnest(ARRAY[test_uuid('officers:member:2'),test_uuid('officers:member:3'),test_uuid('officers:member:5')]) id),
  'without mayor or deputy present, every present councillor can be designated');
-SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('officers:meeting'),'chair',test_uuid('officers:member:3'),'2026-01-01 09:03Z')$$,
+SELECT lives_ok($$SELECT record_meeting_officer_change(test_uuid('officers:meeting'),'chair',test_uuid('officers:member:3'),'2026-01-01 09:03Z')$$,
  'the chair is handed over in the meeting');
 SELECT is(hall_api.meeting_conduct(test_uuid('officers:meeting'))#>>'{currentOfficers,chairMemberId}',test_uuid('officers:member:3')::text,
  'the member who took over is the chair in office');
@@ -591,9 +591,9 @@ SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(pg_temp.item('se
 SELECT is(agenda_item_ballot_officer_blockers(pg_temp.item('secretary-departure',1)),
  jsonb_build_array(jsonb_build_object('code','meetingSecretaryNotPresent','councilMemberId',test_uuid('secretary-departure:member:2'))),
  'the conduct screen receives the absent secretary as a ballot blocker');
-SELECT throws_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('secretary-departure:meeting'),'secretary',test_uuid('secretary-departure:member:2'),'2026-01-01 09:03Z')$$,
+SELECT throws_ok($$SELECT record_meeting_officer_change(test_uuid('secretary-departure:meeting'),'secretary',test_uuid('secretary-departure:member:2'),'2026-01-01 09:03Z')$$,
  'HV127',NULL,'an absent member cannot be nominated secretary');
-SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('secretary-departure:meeting'),'secretary',test_uuid('secretary-departure:member:4'),'2026-01-01 09:03Z')$$,
+SELECT lives_ok($$SELECT record_meeting_officer_change(test_uuid('secretary-departure:meeting'),'secretary',test_uuid('secretary-departure:member:4'),'2026-01-01 09:03Z')$$,
  'the council nominates another present member as secretary');
 SELECT is((SELECT basis::text FROM meeting_officer_change WHERE council_meeting=test_uuid('secretary-departure:meeting')),'councilNomination',
  'the secretary replacement is recorded as a council nomination');

@@ -412,15 +412,8 @@ export function createPostgresCouncilClient({
     async markMeetingStale(id) {
       return staleCouncilMeetingResultSchema.parse(await call(() => postgresCouncil.markStale(currentRequest(), id)));
     },
-    async closeMeeting(id, input) {
-      return councilMeetingClosureSchema.parse(
-        await call(() =>
-          postgresCouncil.close(currentRequest(), {
-            id,
-            closedAt: input.closedAt,
-          }),
-        ),
-      );
+    async closeMeeting(id) {
+      return councilMeetingClosureSchema.parse(await call(() => postgresCouncil.close(currentRequest(), { id })));
     },
     async listAttendance(meetingId) {
       return z
@@ -442,10 +435,8 @@ export function createPostgresCouncilClient({
         .nullable()
         .parse(await call(() => postgresCouncil.openBallotResultPreview(currentRequest(), id)));
     },
-    async confirmBallotResultPreview(id, confirmedAt) {
-      return ballotSchema.parse(
-        await call(() => postgresCouncil.confirmBallotResultPreview(currentRequest(), id, confirmedAt)),
-      );
+    async confirmBallotResultPreview(id) {
+      return ballotSchema.parse(await call(() => postgresCouncil.confirmBallotResultPreview(currentRequest(), id)));
     },
     async meetingConduct(id) {
       return meetingConductWorkspaceSchema.parse(
@@ -526,10 +517,8 @@ export function createPostgresCouncilClient({
       });
       return agendaItemSchema.parse(agendaItem);
     },
-    async adjournAgendaItem(id, input) {
-      return agendaItemSchema.parse(
-        await call(() => postgresCouncil.adjournAgendaItem(currentRequest(), id, input.adjournedAt)),
-      );
+    async adjournAgendaItem(id) {
+      return agendaItemSchema.parse(await call(() => postgresCouncil.adjournAgendaItem(currentRequest(), id)));
     },
     async deprogramAgendaItem(id) {
       return agendaItemSchema.parse(await call(() => postgresCouncil.deprogramAgendaItem(currentRequest(), id)));
@@ -555,24 +544,14 @@ export function createPostgresCouncilClient({
         ),
       );
     },
-    async startAgendaItem(id, input) {
+    async startAgendaItem(id) {
       return agendaItemSchema.parse(
-        await call(() =>
-          postgresCouncil.startAgendaItem(currentRequest(), {
-            agendaItemId: id,
-            startedAt: input.startedAt,
-          }),
-        ),
+        await call(() => postgresCouncil.startAgendaItem(currentRequest(), { agendaItemId: id })),
       );
     },
-    async completeAgendaItem(id, input) {
+    async completeAgendaItem(id) {
       return agendaItemSchema.parse(
-        await call(() =>
-          postgresCouncil.completeAgendaItem(currentRequest(), {
-            agendaItemId: id,
-            completedAt: input.completedAt,
-          }),
-        ),
+        await call(() => postgresCouncil.completeAgendaItem(currentRequest(), { agendaItemId: id })),
       );
     },
     async updateAgendaItemNotes(id, input) {

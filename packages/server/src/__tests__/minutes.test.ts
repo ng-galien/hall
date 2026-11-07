@@ -85,17 +85,13 @@ describe("dedicated minutes HTTP lifecycle", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-05T18:05:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
       })
       .expect(200);
     const closed = domainBody<{ minutes: MinutesSummary; nextMeeting: { id: string } }>(
-      await agent
-        .post(`/api/council-meetings/${meeting.id}/close`)
-        .send({ closedAt: "2026-09-05T20:00:00Z" })
-        .expect(200),
+      await agent.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(200),
     );
     const path = `/api/minutes/${closed.minutes.id}`;
     const opened = await agent.get(path).expect(200);
@@ -204,7 +200,6 @@ describe("dedicated minutes HTTP lifecycle", () => {
     await agent
       .post(`/api/council-meetings/${nextId}/record-opening`)
       .send({
-        observedAt: "2026-10-05T18:05:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
@@ -213,10 +208,7 @@ describe("dedicated minutes HTTP lifecycle", () => {
     const approval = domainBody<Array<{ id: string; subject: { kind: string } }>>(
       await agent.get(`/api/council-meetings/${nextId}/agenda-items`).expect(200),
     ).find((item) => item.subject.kind === "minutesApproval")!;
-    await agent
-      .post(`/api/council-meetings/${nextId}/agenda-items/${approval.id}/start`)
-      .send({ startedAt: "2026-10-05T18:06:00Z" })
-      .expect(200);
+    await agent.post(`/api/council-meetings/${nextId}/agenda-items/${approval.id}/start`).send({}).expect(200);
     const attendance = await council.listAttendance(databaseRequest, nextId);
     const previewVote = domainBody<{ id: string }>(
       await agent
@@ -297,7 +289,6 @@ describe("dedicated minutes HTTP lifecycle", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-05T18:05:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
@@ -306,10 +297,7 @@ describe("dedicated minutes HTTP lifecycle", () => {
     const notesPath = `/api/council-meetings/${meeting.id}/agenda-items/${item.id}/notes`;
     await agent.patch(notesPath).send({ discussionSummary: "La commission présente ses conclusions." }).expect(200);
     const closed = domainBody<{ minutes: MinutesSummary; nextMeeting: { id: string } }>(
-      await agent
-        .post(`/api/council-meetings/${meeting.id}/close`)
-        .send({ closedAt: "2026-09-05T20:00:00Z" })
-        .expect(200),
+      await agent.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(200),
     );
     const minutes = domainBody<MinutesDetail>(await agent.get(`/api/minutes/${closed.minutes.id}`).expect(200));
     expect(minutes.sections).toEqual([{ agendaItemId: item.id, content: "La commission présente ses conclusions." }]);

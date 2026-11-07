@@ -60,7 +60,6 @@ describe("council meeting closure HTTP contract", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-05T18:05:00.000Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
@@ -76,19 +75,14 @@ describe("council meeting closure HTTP contract", () => {
       closedMeeting: { id: string; closedAt: string };
       nextMeeting: { id: string; number: number; previousCouncilMeetingId: string };
       minutes: { id: string };
-    }>(
-      await agent
-        .post(`/api/council-meetings/${meeting.id}/close`)
-        .send({ closedAt: "2026-09-05T20:00:00.000Z" })
-        .expect(200),
-    );
+    }>(await agent.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(200));
 
     expect(closure).toMatchObject({
       closedMeeting: { id: meeting.id },
       nextMeeting: { previousCouncilMeetingId: meeting.id },
       minutes: { id: expect.any(String), generatedAt: null },
     });
-    expect(new Date(closure.closedMeeting.closedAt).getTime()).toBe(Date.parse("2026-09-05T20:00:00.000Z"));
+    expect(new Date(closure.closedMeeting.closedAt).getTime()).toBeLessThanOrEqual(Date.now() + 1000);
     const successor = await pool.query<{
       id: string;
       number: number;
@@ -175,7 +169,7 @@ describe("agenda adjournment HTTP contract", () => {
     const before = await agent.get(path).expect(200);
     expect(before.body.actions.map((action: { name: string }) => action.name)).toContain("agenda-item.deprogram");
     expect(before.body.actions.map((action: { name: string }) => action.name)).not.toContain("agenda-item.adjourn");
-    await agent.post(`${path}/adjourn`).send({ adjournedAt: "2026-09-05T18:10:00Z" }).expect(409);
+    await agent.post(`${path}/adjourn`).send({}).expect(409);
     const council = new PostgresCouncil(pool);
     await council.freezeAgenda(databaseRequest, meeting.id);
     const noticeFacts = await council.noticeFacts(databaseRequest, meeting.id);
@@ -189,7 +183,6 @@ describe("agenda adjournment HTTP contract", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-05T18:05:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
@@ -198,12 +191,11 @@ describe("agenda adjournment HTTP contract", () => {
     const during = await agent.get(path).expect(200);
     expect(during.body.actions.map((action: { name: string }) => action.name)).toContain("agenda-item.adjourn");
     expect(during.body.actions.map((action: { name: string }) => action.name)).not.toContain("agenda-item.deprogram");
-    await agent.post(`${path}/adjourn`).send({ adjournedAt: "invalid" }).expect(400);
-    const adjourned = domainBody(
-      await agent.post(`${path}/adjourn`).send({ adjournedAt: "2026-09-05T18:10:00Z" }).expect(200),
-    );
+    await agent.post(`${path}/adjourn`).send({ adjournedAt: "2026-09-05T18:10:00Z" }).expect(400);
+    const receivedAfter = Date.now();
+    const adjourned = domainBody(await agent.post(`${path}/adjourn`).send({}).expect(200));
     expect(adjourned).toMatchObject({ position: -1, startedAt: null, completedAt: null });
-    expect(new Date(adjourned.adjournedAt).getTime()).toBe(Date.parse("2026-09-05T18:10:00Z"));
+    expect(new Date(adjourned.adjournedAt).getTime()).toBeGreaterThanOrEqual(receivedAfter - 1000);
     const after = await agent.get(path).expect(200);
     expect((after.body.actions ?? []).map((action: { name: string }) => action.name)).not.toContain(
       "agenda-item.adjourn",

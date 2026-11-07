@@ -364,7 +364,8 @@ export function createTestCouncilClient(
     async markMeetingStale() {
       throw new Error("Stale acceptance requires PostgreSQL");
     },
-    async closeMeeting(id, input) {
+    async closeMeeting(id) {
+      const closedAt = new Date().toISOString();
       const meeting = requireMeeting(id);
       if (meeting.quorum === null) throw new Error("Closing with a verified quorum requires PostgreSQL acceptance");
       const minutes: MinutesDetail = {
@@ -372,8 +373,8 @@ export function createTestCouncilClient(
         councilMeetingId: id,
         meetingNumber: meeting.number,
         scheduledAt: meeting.scheduledAt,
-        createdAt: input.closedAt,
-        updatedAt: input.closedAt,
+        createdAt: closedAt,
+        updatedAt: closedAt,
         version: 1,
         generatedAt: null,
         documentId: null,
@@ -387,7 +388,7 @@ export function createTestCouncilClient(
             number: meeting.number,
             scheduledAt: meeting.scheduledAt,
             startedAt: meeting.startedAt!,
-            closedAt: input.closedAt,
+            closedAt,
             location: meeting.location,
             quorum: meeting.quorum,
             chair: null,
@@ -426,7 +427,7 @@ export function createTestCouncilClient(
         },
       };
       minutesEntries.set(minutes.id, minutes);
-      const closedMeeting = { ...meeting, closedAt: input.closedAt };
+      const closedMeeting = { ...meeting, closedAt };
       const nextMeeting: CouncilMeeting = {
         id: randomUUID(),
         slug: null,
@@ -581,7 +582,7 @@ export function createTestCouncilClient(
     async scheduleAgendaItem(meetingId, input) {
       return createAgendaItem(meetingId, input);
     },
-    async adjournAgendaItem(id, input) {
+    async adjournAgendaItem(id) {
       const item = requireAgendaItem(id);
       const meeting = requireMeeting(item.councilMeetingId);
       if (
@@ -592,7 +593,7 @@ export function createTestCouncilClient(
         item.subject.kind === "minutesApproval"
       )
         throw new CouncilClientError("conflict");
-      const adjourned = { ...item, position: -Math.abs(item.position), adjournedAt: input.adjournedAt };
+      const adjourned = { ...item, position: -Math.abs(item.position), adjournedAt: new Date().toISOString() };
       agendaItems.set(id, adjourned);
       return adjourned;
     },
@@ -632,16 +633,16 @@ export function createTestCouncilClient(
         .filter((item) => item.councilMeetingId === meetingId)
         .sort((left, right) => Math.abs(left.position) - Math.abs(right.position));
     },
-    async startAgendaItem(id, input) {
+    async startAgendaItem(id) {
       const item = requireAgendaItem(id);
-      const started = { ...item, startedAt: input.startedAt };
+      const started = { ...item, startedAt: new Date().toISOString() };
       agendaItems.set(id, started);
       return started;
     },
-    async completeAgendaItem(id, input) {
+    async completeAgendaItem(id) {
       const item = requireAgendaItem(id);
       if (item.subject.kind !== "openQuestion") throw new CouncilClientError("conflict");
-      const completed = { ...item, completedAt: input.completedAt };
+      const completed = { ...item, completedAt: new Date().toISOString() };
       agendaItems.set(id, completed);
       return completed;
     },

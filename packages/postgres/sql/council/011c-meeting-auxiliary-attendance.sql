@@ -44,8 +44,8 @@ BEGIN
     OR NEW.declared_at IS DISTINCT FROM OLD.declared_at) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV128', MESSAGE = 'only the quality of an attending person can be corrected';
   END IF;
-  IF TG_OP = 'INSERT' AND (NEW.declared_at IS NULL OR NEW.declared_at > clock_timestamp()) THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV143', MESSAGE = 'a declaration cannot be observed in the future';
+  IF TG_OP = 'INSERT' AND NEW.declared_at IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV128', MESSAGE = 'an attending person requires a declaration time';
   END IF;
   NEW.quality := nullif(btrim(NEW.quality), '');
   SELECT contact.first_name || ' ' || contact.last_name INTO NEW.contact_name

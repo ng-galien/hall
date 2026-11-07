@@ -5,10 +5,10 @@ const memberId = "11111111-1111-4111-8111-111111111111";
 const command = {
   councilMemberId: memberId,
   legalBasis: "personalInterest",
-  declaredAt: "2026-10-03T18:00:00+02:00",
 };
 const recusal = {
   ...command,
+  declaredAt: "2026-10-03T18:00:00+02:00",
   id: "22222222-2222-4222-8222-222222222222",
   agendaItemId: "33333333-3333-4333-8333-333333333333",
   recordedAt: "2026-10-03T18:01:00+02:00",
@@ -29,9 +29,12 @@ describe("agenda item recusal", () => {
     expect(() => recordAgendaItemRecusalSchema.parse({ ...command, legalBasis: "other" })).toThrow();
   });
 
-  it("rejects undeclared fields and a declaration without offset", () => {
+  it("rejects undeclared fields and a client declaration instant", () => {
     expect(() => recordAgendaItemRecusalSchema.parse({ ...command, reason: "x" })).toThrow();
-    expect(() => recordAgendaItemRecusalSchema.parse({ ...command, declaredAt: "2026-10-03T18:00:00" })).toThrow();
+    expect(() =>
+      recordAgendaItemRecusalSchema.parse({ ...command, declaredAt: "2026-10-03T18:00:00+02:00" }),
+    ).toThrow();
+    expect(() => agendaItemRecusalSchema.parse({ ...recusal, declaredAt: "2026-10-03T18:00:00" })).toThrow();
   });
 
   it("accepts a recorded recusal and its quorum impact", () => {

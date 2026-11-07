@@ -7,12 +7,12 @@ export const recordAgendaItemRecusalSchema = z
   .object({
     councilMemberId: z.uuid(),
     legalBasis: recusalLegalBasisSchema,
-    declaredAt: z.iso.datetime({ offset: true }),
   })
   .strict();
 export type RecordAgendaItemRecusal = z.infer<typeof recordAgendaItemRecusalSchema>;
 
 export const agendaItemRecusalSchema = recordAgendaItemRecusalSchema.extend({
+  declaredAt: z.iso.datetime({ offset: true }),
   id: z.uuid(),
   agendaItemId: z.uuid(),
   recordedAt: z.iso.datetime({ offset: true }),

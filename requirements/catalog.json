@@ -7242,7 +7242,7 @@
       "acceptanceCriteria": [
         "La saisie candidate est calculée par SQL et conservée dans un aperçu immuable versionné sans créer scrutin, votes ni résultat définitif. Une correction exige un nouvel aperçu ; seule la confirmation explicite produit ces faits atomiquement.",
         "Choix produit supplémentaire au constat de discussion : le quorum actuel applicable doit permettre le vote au moment de l’aperçu. Un défaut interdit cet aperçu et laisse possible l’ajournement ; il ne réécrit pas le constat juridique initial.",
-        "La confirmation peut porter une heure, comprise entre le début du point et l’heure du serveur ; cette heure devient la fin du scrutin et du point. Sans heure, l’heure du serveur fait foi."
+        "La confirmation ne porte aucune heure : l’heure du serveur à sa réception devient la fin du scrutin et du point."
       ],
       "clauses": [
         {
@@ -7260,7 +7260,7 @@
         {
           "key": "dated-confirmation",
           "origin": "product",
-          "statement": "La confirmation peut porter une heure, comprise entre le début du point et l’heure du serveur ; cette heure devient la fin du scrutin et du point. Sans heure, l’heure du serveur fait foi.",
+          "statement": "La confirmation ne porte aucune heure : l’heure du serveur à sa réception devient la fin du scrutin et du point.",
           "sourceIds": []
         }
       ]
@@ -7925,8 +7925,9 @@
         "L’aperçu n’écrit rien et liste les sujets avec leur propre plan de déplacement, les pièces transférées ou déjà rattachées, les commissions, le contenu du dossier, le sort du rapport et les motifs de refus.",
         "Appliquée, la fusion déplace chaque sujet comme un déplacement de sujet ; les pièces et les commissions rejoignent l’affaire d’arrivée sans doublon ; le contenu du dossier passe dans le dossier d’arrivée.",
         "Un rapport non vide est ajouté à la fin du rapport d’arrivée sous un titre de premier niveau au nom de l’affaire absorbée, ses propres titres descendus d’un niveau, un seul titre gardé quand il commence déjà par ce nom ; ses images passent au rapport d’arrivée et le fichier du rapport absorbé est supprimé. Un rapport vide est supprimé.",
+        "Un rapport absorbé référencé par un instantané de séance n’est jamais supprimé : son texte non vide est ajouté au rapport d’arrivée comme ci-dessus, puis son fichier est déplacé dans le dossier d’arrivée sous le nom de l’affaire absorbée. L’aperçu l’annonce dans le sort du rapport (appendedToTargetReportAndMoved, ou movedToTargetFolder pour un rapport vide, avec movedTo : dossier et nom) ; ce nom suit la règle des noms pris. Les autres éléments du dossier absorbé sont déplacés, jamais supprimés.",
         "L’affaire absorbée et son dossier sont ensuite supprimés.",
-        "La fusion est refusée en bloc sans aucune écriture (HV827, réponse 409 de l’API) quand les deux affaires sont la même, quand un de ses sujets figure à une séance en cours, ou quand un nom est pris : un texte de sujet ou un élément du dossier absorbé (hors rapport) porte le nom d’un élément du dossier d’arrivée, ou deux éléments arrivants portent le même nom, sans distinction de casse.",
+        "La fusion est refusée en bloc sans aucune écriture (HV827, réponse 409 de l’API) quand les deux affaires sont la même, quand un de ses sujets figure à une séance en cours, ou quand un nom est pris : un texte de sujet, un élément du dossier absorbé (hors rapport) ou le rapport absorbé conservé sous le nom de son affaire porte le nom d’un élément du dossier d’arrivée, ou deux éléments arrivants portent le même nom, sans distinction de casse.",
         "Les instantanés de séance, procès-verbaux, scrutins et sceaux ne sont pas réécrits.",
         "La fusion appliquée est inscrite au journal des deux affaires, de chaque ressource déplacée et du rapport d’arrivée mis à jour.",
         "La fusion demande le droit de supprimer une affaire (council-business.delete), comme la suppression d’une affaire."
@@ -7942,6 +7943,12 @@
           "key": "refusal",
           "origin": "product",
           "statement": "Motifs de refus : sameBusiness, meetingInProgress, nameTaken:<nom> ; un refus n’écrit rien.",
+          "sourceIds": []
+        },
+        {
+          "key": "meeting-referenced-report",
+          "origin": "product",
+          "statement": "Décision du coordinateur du 7 novembre 2026, déduite de la règle de l’utilisateur « une pièce citée par une séance ne se supprime pas » : une fusion ne supprime jamais une ressource référencée par un instantané de séance ; le rapport absorbé référencé est déplacé dans le dossier d’arrivée sous le nom de l’affaire absorbée.",
           "sourceIds": []
         },
         {
@@ -9988,6 +9995,29 @@
           "key": "subject-text-in-conduct",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-11-06 : pendant le déroulement de la séance, les pièces sont dans le texte du point ; le texte d’une question ouverte s’affiche exactement comme le texte d’un projet de délibération.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MTG-370": {
+      "name": "MEETING_CONDUCT_OBSERVATIONS_ARE_DATED_BY_THE_SERVER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "Le serveur date chaque constat de conduite de séance à sa réception ; le navigateur n’envoie aucun instant.",
+      "acceptanceCriteria": [
+        "L’ouverture de la séance et son appel, les arrivées, départs et représentations, les constats de quorum, les passations de présidence et de secrétariat, les personnes assistant à la séance, les huis clos, les déports, le début, la fin et l’ajournement d’un point, la confirmation d’un scrutin et la clôture de la séance portent l’heure du serveur au moment où il reçoit l’action.",
+        "Une requête de conduite qui transmet un instant est refusée comme requête invalide ; aucune comparaison entre l’horloge du navigateur et celle du serveur n’a lieu, et un écart entre ces deux horloges ne bloque aucune action.",
+        "Les contrôles de chronologie entre constats successifs restent appliqués : un point commence après l’ouverture, se termine après son début, un mouvement de présence suit le précédent et un quorum suit les constats qu’il intègre.",
+        "La date d’envoi d’une seconde convocation reste une date saisie par le secrétariat ; elle ne peut pas être postérieure à l’heure du serveur."
+      ],
+      "clauses": [
+        {
+          "key": "server-clock",
+          "origin": "product",
+          "statement": "Décision de l’utilisateur du 7 novembre 2026 : le serveur date chaque constat de conduite de séance à sa réception ; le navigateur n’envoie plus d’instant et aucune comparaison entre l’horloge du navigateur et celle du serveur ne subsiste. Mots de l’utilisateur : « Comment imaginer qu’on compare deux dates, la date du serveur et la date du browser ? Ça n’existe pas. » Défaut constaté en séance le 6 novembre 2026 : une horloge serveur en retard de 33 secondes a fait refuser deux déclarations d’assistance et l’ouverture de la séance.",
           "sourceIds": []
         }
       ]

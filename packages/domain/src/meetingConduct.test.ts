@@ -148,14 +148,12 @@ describe("meeting conduct evidence", () => {
       declareMeetingAuxiliaryAttendanceSchema.parse({
         person: { kind: "contact", contactId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
         quality: "  ",
-        declaredAt: time,
       }).quality,
     ).toBeNull();
     expect(() =>
       declareMeetingAuxiliaryAttendanceSchema.parse({
         person: { kind: "newContact", firstName: "Jean", lastName: " " },
         quality: null,
-        declaredAt: time,
       }),
     ).toThrow();
   });
@@ -195,10 +193,9 @@ describe("meeting conduct evidence", () => {
 
 describe("meeting conduct commands", () => {
   it("requires at least one attendance change", () => {
-    expect(() => recordMeetingAttendanceEventsSchema.parse({ observedAt: time, changes: [] })).toThrow();
+    expect(() => recordMeetingAttendanceEventsSchema.parse({ changes: [] })).toThrow();
     expect(
       recordMeetingAttendanceEventsSchema.parse({
-        observedAt: time,
         changes: [
           { councilMemberId: memberId, status: "excused", proxyHolderCouncilMemberId: null, proxyDocumentId: null },
         ],
@@ -207,8 +204,20 @@ describe("meeting conduct commands", () => {
   });
 
   it("records a quorum observation for the meeting or for one agenda item", () => {
-    expect(recordMeetingQuorumSchema.parse({ agendaItemId: null, observedAt: time }).agendaItemId).toBeNull();
-    expect(recordMeetingQuorumSchema.parse({ agendaItemId, observedAt: time }).agendaItemId).toBe(agendaItemId);
+    expect(recordMeetingQuorumSchema.parse({ agendaItemId: null }).agendaItemId).toBeNull();
+    expect(recordMeetingQuorumSchema.parse({ agendaItemId }).agendaItemId).toBe(agendaItemId);
+  });
+
+  it("refuses a client instant in a conduct command", () => {
+    expect(() => recordMeetingQuorumSchema.parse({ agendaItemId: null, observedAt: time })).toThrow();
+    expect(() =>
+      recordMeetingAttendanceEventsSchema.parse({
+        observedAt: time,
+        changes: [
+          { councilMemberId: memberId, status: "excused", proxyHolderCouncilMemberId: null, proxyDocumentId: null },
+        ],
+      }),
+    ).toThrow();
   });
 
   it("requires non-blank notice evidence and at least one agenda item for a reconvocation", () => {

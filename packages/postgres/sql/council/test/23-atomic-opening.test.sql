@@ -17,15 +17,21 @@ SELECT hall_api.create_and_schedule_council_decision_proposal('seed','Voting fix
 CREATE FUNCTION pg_temp.opening_declarations(present_count integer) RETURNS jsonb LANGUAGE sql AS $$
  SELECT jsonb_agg(jsonb_build_object('council_member_id',test_uuid('opening:member:'||n),'status',CASE WHEN n<=present_count THEN 'present' ELSE 'absent' END)) FROM generate_series(1,15)n;
 $$;
-SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),'2026-01-01 18:01Z',pg_temp.opening_declarations(15),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV807',NULL,'atomic opening still requires the generated current notice');
+SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),pg_temp.opening_declarations(15),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV807',NULL,'atomic opening still requires the generated current notice');
 SELECT is((SELECT count(*)::int FROM meeting_membership_record),0,'missing notice leaves no membership snapshot');
 SELECT hall_api.freeze_council_agenda(test_uuid('opening:meeting'));
 SELECT hall_api.generate_meeting_notice(test_uuid('opening:meeting'),jsonb_build_object('meeting',hall.meeting_notice_meeting_facts(test_uuid('opening:meeting')),'hall',jsonb_build_object('name','Commune','timeZone','Europe/Paris')),convert_to('%PDF-opening','UTF8'));
-SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),'2026-01-01 18:01Z',pg_temp.opening_declarations(15)-2,test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV137',NULL,'omitting an absent active member cannot shrink the electorate');
-SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),'2026-01-01 18:01Z',pg_temp.opening_declarations(15)||jsonb_build_array(jsonb_build_object('council_member_id',test_uuid('opening:member:16'),'status','absent')),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV150',NULL,'an ended mandate cannot be added to the opening roster and is refused by name');
-SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),'2026-01-01 18:01Z',jsonb_set(pg_temp.opening_declarations(7),'{14,status}','"represented"'),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV103',NULL,'invalid proxy rolls back opening');
+SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),pg_temp.opening_declarations(15)-2,test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV137',NULL,'omitting an absent active member cannot shrink the electorate');
+SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),pg_temp.opening_declarations(15)||jsonb_build_array(jsonb_build_object('council_member_id',test_uuid('opening:member:16'),'status','absent')),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV150',NULL,'an ended mandate cannot be added to the opening roster and is refused by name');
+SELECT throws_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),jsonb_set(pg_temp.opening_declarations(7),'{14,status}','"represented"'),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'HV103',NULL,'invalid proxy rolls back opening');
 SELECT is((SELECT count(*)::int FROM meeting_membership_record),0,'invalid proxy leaves no roster');
-SELECT lives_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),'2026-01-01 18:01Z',pg_temp.opening_declarations(7),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'seven of fifteen opens the session and records insufficient quorum');
+-- @verifies-requirement HALL-FR-MTG-370
+CREATE TEMP TABLE opening_reception AS SELECT clock_timestamp() AS received_after;
+SELECT lives_ok($$SELECT hall_api.record_meeting_opening(test_uuid('opening:meeting'),pg_temp.opening_declarations(7),test_uuid('opening:member:1'),test_uuid('opening:member:2'))$$,'seven of fifteen opens the session and records insufficient quorum');
+SELECT ok((SELECT started_at BETWEEN (SELECT received_after FROM opening_reception) AND clock_timestamp()
+  FROM council_meetings WHERE id=test_uuid('opening:meeting')),'the server clock dates the opening at reception');
+SELECT is((SELECT count(*)::int FROM meeting_attendance a JOIN council_meetings m ON m.id=a.council_meeting
+  WHERE m.id=test_uuid('opening:meeting') AND a.declared_at=m.started_at),15,'the opening roll call carries the opening instant');
 SELECT is(hall_api.open_council_meeting(test_uuid('opening:meeting'))->'entryBlockers','[]'::jsonb,'started meeting remains enterable despite insufficient quorum');
 SELECT is(hall_api.open_council_meeting(test_uuid('opening:meeting'))->'openingBlockers','[{"code":"meetingAlreadyStarted"}]'::jsonb,'started meeting cannot advertise another opening');
 SELECT is((SELECT count(*)::int FROM meeting_attendance),15,'all active members remain in the recorded call');
@@ -36,17 +42,17 @@ SELECT ok((hall_api.meeting_conduct(test_uuid('opening:meeting'))->>'canRecordRe
 SELECT is((SELECT count(*)::int FROM meeting_reconvocation),0,'no automatic reconvocation');
 CREATE TEMP TABLE opening_items AS SELECT id,subject_kind FROM council_agenda_item WHERE council_meeting=test_uuid('opening:meeting');
 SELECT ok(NOT (hall_api.open_council_agenda_item((SELECT id FROM opening_items WHERE subject_kind='councilDecisionProposal'))->>'canStartDiscussion')::boolean,'formal decision consideration is not advertised without quorum');
-SELECT throws_ok($$SELECT start_council_agenda_item((SELECT id FROM opening_items WHERE subject_kind='councilDecisionProposal'),'2026-01-01 18:02Z')$$,'HV142',NULL,'formal decision consideration retains applicable quorum guard');
-SELECT lives_ok($$SELECT adjourn_council_agenda_item((SELECT id FROM opening_items WHERE subject_kind='councilDecisionProposal'),'2026-01-01 18:02Z')$$,'voting point can be adjourned without a vote');
+SELECT throws_ok($$SELECT start_council_agenda_item((SELECT id FROM opening_items WHERE subject_kind='councilDecisionProposal'),clock_timestamp())$$,'HV142',NULL,'formal decision consideration retains applicable quorum guard');
+SELECT lives_ok($$SELECT adjourn_council_agenda_item((SELECT id FROM opening_items WHERE subject_kind='councilDecisionProposal'),clock_timestamp())$$,'voting point can be adjourned without a vote');
 SELECT ok((hall_api.open_council_agenda_item((SELECT id FROM opening_items WHERE subject_kind='openQuestion'))->>'canStartDiscussion')::boolean,'informational exchanges remain available');
-SELECT lives_ok($$SELECT start_council_agenda_item((SELECT id FROM opening_items WHERE subject_kind='openQuestion'),'2026-01-01 18:03Z')$$,'informational exchanges can begin without quorum');
+SELECT lives_ok($$SELECT start_council_agenda_item((SELECT id FROM opening_items WHERE subject_kind='openQuestion'),clock_timestamp())$$,'informational exchanges can begin without quorum');
 SELECT is((SELECT facts->>'verdict' FROM meeting_quorum_observation WHERE agenda_item=(SELECT id FROM opening_items WHERE subject_kind='openQuestion')),'notMet','discussion preserves its actual quorum observation');
 SELECT ok(NOT (hall_api.open_council_agenda_item((SELECT id FROM opening_items WHERE subject_kind='openQuestion'))->>'canReviewBallot')::boolean,'informational point never advertises a ballot');
 SELECT lives_ok($$SELECT hall_api.update_council_agenda_item_notes((SELECT id FROM opening_items WHERE subject_kind='openQuestion'),'Information exchanged; no decision taken.')$$,'exchanges can be recorded as notes');
-SELECT lives_ok($$SELECT complete_non_voting_agenda_item((SELECT id FROM opening_items WHERE subject_kind='openQuestion'),'2026-01-01 18:04Z')$$,'informational exchanges finish without an adopted act');
+SELECT lives_ok($$SELECT complete_non_voting_agenda_item((SELECT id FROM opening_items WHERE subject_kind='openQuestion'),clock_timestamp())$$,'informational exchanges finish without an adopted act');
 SELECT is((SELECT count(*)::int FROM ballots),0,'session without quorum produces no ballot');
 SELECT is((SELECT count(*)::int FROM meeting_membership_record),1,'one user submission creates one roster snapshot');
-SELECT lives_ok($$SELECT close_council_meeting(test_uuid('opening:meeting'),'2026-01-01 18:05Z')$$,'a first session without quorum can close after exchanges and adjournment');
+SELECT lives_ok($$SELECT close_council_meeting(test_uuid('opening:meeting'),clock_timestamp())$$,'a first session without quorum can close after exchanges and adjournment');
 SELECT is((SELECT count(*)::int FROM council_agenda_item WHERE council_meeting<>test_uuid('opening:meeting') AND council_decision_proposal IS NOT NULL),1,'the deferred voting subject is carried forward without an adopted decision');
 SELECT is(hall_api.open_council_meeting(test_uuid('opening:meeting'))->'entryBlockers','[{"code":"meetingClosed"}]'::jsonb,'closed meeting is no longer available for live conduct');
 SELECT * FROM finish();

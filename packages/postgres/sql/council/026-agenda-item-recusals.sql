@@ -48,9 +48,6 @@ BEGIN
   THEN
     RAISE EXCEPTION USING ERRCODE = 'HV232', MESSAGE = 'the agenda item cannot receive a recusal';
   END IF;
-  IF NEW.declared_at>clock_timestamp() THEN
-    RAISE EXCEPTION USING ERRCODE = 'HV143',MESSAGE='a declaration cannot be observed in the future';
-  END IF;
   -- The declared member must belong to this meeting's recorded attendance.
   IF NOT EXISTS(SELECT FROM hall.meeting_attendance
     WHERE council_meeting = target_meeting AND council_member = NEW.council_member)

@@ -73,7 +73,7 @@ BEGIN
   END IF;
   SELECT * INTO membership FROM hall.meeting_membership_record WHERE council_meeting=target_meeting ORDER BY observed_at DESC LIMIT 1;
   IF membership.id IS NULL THEN RAISE EXCEPTION USING ERRCODE = 'HV140',MESSAGE='a confirmed nominal membership record is required'; END IF;
-  IF observation_time IS NULL OR observation_time>clock_timestamp() OR meeting.scheduled_at IS NULL
+  IF observation_time IS NULL OR meeting.scheduled_at IS NULL
     OR observation_time<meeting.scheduled_at OR observation_time < membership.observed_at
     OR EXISTS(SELECT FROM hall.agenda_item_recusal WHERE agenda_item=target_item AND declared_at>observation_time)
     OR EXISTS(SELECT FROM hall.current_meeting_attendance(target_meeting) WHERE observed_at>observation_time)

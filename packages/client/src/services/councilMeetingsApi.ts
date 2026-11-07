@@ -3,8 +3,6 @@ import {
   addOpenQuestionSchema,
   adjournAgendaItemSchema,
   agendaItemSchema,
-  type CloseCouncilMeeting,
-  type CompleteAgendaItem,
   type CouncilMeeting,
   type CreateAndScheduleCouncilBusiness,
   closeCouncilMeetingSchema,
@@ -22,7 +20,6 @@ import {
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
   type SchedulePreparedCouncilSubject,
-  type StartAgendaItem,
   scheduleAgendaItemSchema,
   scheduleCouncilMeetingSchema,
   schedulePreparedCouncilSubjectSchema,
@@ -120,11 +117,7 @@ export async function schedulePreparedCouncilSubject(meetingReference: string, i
 
 export async function adjournMeetingAgendaItem(meetingReference: string, itemId: string) {
   const path = `/council-meetings/${encodeURIComponent(meetingReference)}/agenda-items/${encodeURIComponent(itemId)}`;
-  const result = await submitSirenActionAt<unknown>(
-    path,
-    "agenda-item.adjourn",
-    adjournAgendaItemSchema.parse({ adjournedAt: new Date().toISOString() }),
-  );
+  const result = await submitSirenActionAt<unknown>(path, "agenda-item.adjourn", adjournAgendaItemSchema.parse({}));
   return agendaItemSchema.parse(result.data);
 }
 
@@ -144,33 +137,25 @@ export async function reorderMeetingAgenda(meetingReference: string, input: Reor
   );
 }
 
-export async function startMeetingAgendaItem(meetingReference: string, agendaItemId: string, input: StartAgendaItem) {
+export async function startMeetingAgendaItem(meetingReference: string, agendaItemId: string) {
   const path = `/council-meetings/${encodeURIComponent(meetingReference)}/agenda-items/${encodeURIComponent(agendaItemId)}`;
   await apiSirenRequest(path);
-  const result = await submitSirenActionAt<unknown>(path, "agenda-item.start", startAgendaItemSchema.parse(input));
+  const result = await submitSirenActionAt<unknown>(path, "agenda-item.start", startAgendaItemSchema.parse({}));
   return agendaItemSchema.parse(result.data);
 }
 
-export async function completeMeetingAgendaItem(
-  meetingReference: string,
-  agendaItemId: string,
-  input: CompleteAgendaItem,
-) {
+export async function completeMeetingAgendaItem(meetingReference: string, agendaItemId: string) {
   const path = `/council-meetings/${encodeURIComponent(meetingReference)}/agenda-items/${encodeURIComponent(agendaItemId)}`;
   await apiSirenRequest(path);
-  const result = await submitSirenActionAt<unknown>(
-    path,
-    "agenda-item.complete",
-    completeAgendaItemSchema.parse(input),
-  );
+  const result = await submitSirenActionAt<unknown>(path, "agenda-item.complete", completeAgendaItemSchema.parse({}));
   return agendaItemSchema.parse(result.data);
 }
 
-export async function closeCouncilMeeting(meetingReference: string, input: CloseCouncilMeeting) {
+export async function closeCouncilMeeting(meetingReference: string) {
   const result = await submitSirenActionAt<unknown>(
     `/council-meetings/${encodeURIComponent(meetingReference)}`,
     "meeting.close",
-    closeCouncilMeetingSchema.parse(input),
+    closeCouncilMeetingSchema.parse({}),
   );
   return councilMeetingClosureSchema.parse(result.data);
 }

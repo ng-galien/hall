@@ -10,7 +10,7 @@ import { RequestContextStore } from "../security/requestContext.js";
 import { createLiveEventBus } from "./liveEvents.js";
 
 const meetingId = "00000000-0000-4000-8000-000000000001";
-const body = { agendaItemId: null, observedAt: "2026-09-18T10:00:00Z" };
+const body = { agendaItemId: null };
 
 function fixture({ permission = true, fails = false } = {}) {
   const requestContext = new RequestContextStore();

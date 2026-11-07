@@ -52,15 +52,14 @@ $function$;
 -- the same transaction. A proxy can therefore name a holder declared in the
 -- same input batch without exposing persistence identities to the caller.
 -- @implements-requirement HALL-FR-MTG-300
-CREATE FUNCTION hall_api.record_meeting_attendance(
+CREATE FUNCTION hall.record_meeting_attendance(
   target_meeting UUID,
   attendance_declarations JSONB,
-  observation_time TIMESTAMPTZ DEFAULT clock_timestamp()
+  observation_time TIMESTAMPTZ
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 VOLATILE
-SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 DECLARE
@@ -205,4 +204,15 @@ BEGIN
 
   RETURN hall_api.list_meeting_attendance(target_meeting);
 END;
+$function$;
+
+-- @implements-requirement HALL-FR-MTG-370
+CREATE FUNCTION hall_api.record_meeting_attendance(target_meeting UUID, attendance_declarations JSONB)
+RETURNS JSONB
+LANGUAGE sql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT hall.record_meeting_attendance(target_meeting, attendance_declarations, clock_timestamp());
 $function$;

@@ -48,10 +48,7 @@ describe("automatic meeting preparation", () => {
       closure.minutes.id,
     ]);
     expect(count.rows[0].count).toBe("1");
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/close`)
-      .send({ closedAt: "2026-09-10T19:00:00Z" })
-      .expect(409);
+    await agent.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(409);
     expect(
       domainBody(await agent.get(`/api/council-meetings/${closure.nextMeeting.id}/agenda-items`).expect(200)),
     ).toEqual(nextAgenda);

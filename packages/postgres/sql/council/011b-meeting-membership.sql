@@ -33,7 +33,7 @@ BEGIN
   IF meeting.started_at IS NOT NULL THEN
     RAISE EXCEPTION USING ERRCODE = 'HV136', MESSAGE='the membership roster is fixed at the opening of the meeting';
   END IF;
-  IF NEW.observed_at > clock_timestamp()
+  IF NEW.observed_at IS NULL
     OR EXISTS(SELECT FROM hall.meeting_attendance_event e JOIN hall.meeting_attendance a ON a.id=e.meeting_attendance WHERE a.council_meeting=meeting.id AND e.observed_at>NEW.observed_at)
     OR EXISTS(SELECT FROM hall.meeting_membership_record WHERE council_meeting=meeting.id AND observed_at>NEW.observed_at)
     OR EXISTS(SELECT FROM hall.meeting_quorum_observation WHERE council_meeting=meeting.id AND observed_at>NEW.observed_at) THEN

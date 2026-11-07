@@ -77,19 +77,19 @@ SELECT is(pg_temp.chair_options('order'),
  'with the mayor gone, every present member can be assigned and the first deputy carries the default proposal');
 SELECT is(hall_api.meeting_conduct(test_uuid('order:meeting'))#>>'{officerHandoverOptions,proposedChairMemberId}',
  pg_temp.member('order',2)::text,'the form proposes the first present deputy by rank');
-SELECT throws_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('order:meeting'),'chair',pg_temp.member('order',6),'2026-01-01 09:02Z')$$,
+SELECT throws_ok($$SELECT record_meeting_officer_change(test_uuid('order:meeting'),'chair',pg_temp.member('order',6),'2026-01-01 09:02Z')$$,
  'HV127',NULL,'a represented member cannot be assigned the chair');
-SELECT throws_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('order:meeting'),'chair',pg_temp.member('order',2),'2026-01-01 09:00:30Z')$$,
+SELECT throws_ok($$SELECT record_meeting_officer_change(test_uuid('order:meeting'),'chair',pg_temp.member('order',2),'2026-01-01 09:00:30Z')$$,
  'HV133',NULL,'a handover cannot precede a recorded attendance movement');
-SELECT throws_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('order:meeting'),'treasurer',pg_temp.member('order',2),'2026-01-01 09:02Z')$$,
+SELECT throws_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('order:meeting'),'treasurer',pg_temp.member('order',2))$$,
  'HV127',NULL,'only the chair and the secretary are meeting offices');
-SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('order:meeting'),'chair',pg_temp.member('order',3),'2026-01-01 09:02Z')$$,
+SELECT lives_ok($$SELECT record_meeting_officer_change(test_uuid('order:meeting'),'chair',pg_temp.member('order',3),'2026-01-01 09:02Z')$$,
  'the secretariat may assign another present member than the proposed deputy');
 SELECT is(current_meeting_officer(test_uuid('order:meeting'),'chair'),pg_temp.member('order',3),'the assigned member is the chair in office');
 INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) VALUES(pg_temp.att('order',1),'2026-01-01 09:04Z','present');
 SELECT ok(pg_temp.chair_options('order') @> jsonb_build_array(jsonb_build_object('councilMemberId',pg_temp.member('order',1),'basis','mayor')),
  'the returning mayor can resume the chair through the same form');
-SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('order:meeting'),'chair',pg_temp.member('order',1),'2026-01-01 09:05Z')$$,
+SELECT lives_ok($$SELECT record_meeting_officer_change(test_uuid('order:meeting'),'chair',pg_temp.member('order',1),'2026-01-01 09:05Z')$$,
  'the mayor resumes the chair');
 SELECT is((SELECT jsonb_agg(jsonb_build_object('member',council_member,'basis',basis,'name',member_name) ORDER BY observed_at)
  FROM meeting_officer_change WHERE council_meeting=test_uuid('order:meeting')),
@@ -119,9 +119,9 @@ SELECT is((SELECT jsonb_agg(option->>'councilMemberId' ORDER BY option->>'counci
  FROM jsonb_array_elements(hall_api.meeting_conduct(test_uuid('unranked:meeting'))#>'{officerHandoverOptions,secretary}') option),
  (SELECT jsonb_agg(id ORDER BY id::text) FROM unnest(ARRAY[pg_temp.member('unranked',2),pg_temp.member('unranked',3),pg_temp.member('unranked',5),pg_temp.member('unranked',7),pg_temp.member('unranked',8),pg_temp.member('unranked',9),pg_temp.member('unranked',10)]) id),
  'every present member other than the secretary in office can be nominated secretary');
-SELECT throws_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('unranked:meeting'),'secretary',pg_temp.member('unranked',6),'2026-01-01 09:03Z')$$,
+SELECT throws_ok($$SELECT record_meeting_officer_change(test_uuid('unranked:meeting'),'secretary',pg_temp.member('unranked',6),'2026-01-01 09:03Z')$$,
  'HV127',NULL,'a represented member cannot be nominated secretary');
-SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('unranked:meeting'),'secretary',pg_temp.member('unranked',5),'2026-01-01 09:03Z')$$,
+SELECT lives_ok($$SELECT record_meeting_officer_change(test_uuid('unranked:meeting'),'secretary',pg_temp.member('unranked',5),'2026-01-01 09:03Z')$$,
  'the council nominates a present member as secretary');
 SELECT is(hall_api.meeting_conduct(test_uuid('unranked:meeting'))->'currentOfficers',
  jsonb_build_object('chairMemberId',pg_temp.member('unranked',1),'secretaryMemberId',pg_temp.member('unranked',5)),
@@ -153,9 +153,9 @@ SELECT ok(NOT pg_temp.chair_options('recused-chair') @> jsonb_build_array(jsonb_
  'a member recused on the item in discussion is not offered');
 SELECT is(hall_api.meeting_conduct(test_uuid('recused-chair:meeting'))#>>'{officerHandoverOptions,proposedChairMemberId}',
  pg_temp.member('recused-chair',3)::text,'the form proposes the first present deputy who is not recused');
-SELECT throws_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('recused-chair:meeting'),'chair',pg_temp.member('recused-chair',2),'2026-01-01 09:01:30Z')$$,
+SELECT throws_ok($$SELECT record_meeting_officer_change(test_uuid('recused-chair:meeting'),'chair',pg_temp.member('recused-chair',2),'2026-01-01 09:01:30Z')$$,
  'HV127',NULL,'a member recused on the item in discussion cannot be assigned the chair');
-SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('recused-chair:meeting'),'chair',pg_temp.member('recused-chair',3),'2026-01-01 09:01:30Z')$$,
+SELECT lives_ok($$SELECT record_meeting_officer_change(test_uuid('recused-chair:meeting'),'chair',pg_temp.member('recused-chair',3),'2026-01-01 09:01:30Z')$$,
  'the secretariat assigns the proposed deputy for the next vote');
 SELECT pg_temp.depart('recused-chair',1,'2026-01-01 09:02Z');
 SELECT lives_ok($$SELECT hall_api.confirm_ballot_result_preview((hall_api.create_ballot_result_preview(pg_temp.item('recused-chair',1),
@@ -171,14 +171,19 @@ SELECT is((SELECT jsonb_build_object('chair',p.meeting_attendance,'result',b.res
 INSERT INTO meeting_attendance_event(meeting_attendance,observed_at,status) VALUES(pg_temp.att('recused-chair',1),clock_timestamp(),'present');
 SELECT is(agenda_item_ballot_chair(pg_temp.item('recused-chair',2))->>'councilMemberId',pg_temp.member('recused-chair',3)::text,
  'the assigned chair stays in office until the next handover');
-SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('recused-chair:meeting'),'chair',pg_temp.member('recused-chair',1),clock_timestamp())$$,
+-- @verifies-requirement HALL-FR-MTG-370
+CREATE TEMP TABLE handover_reception AS SELECT clock_timestamp() AS received_after;
+SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('recused-chair:meeting'),'chair',pg_temp.member('recused-chair',1))$$,
  'the returning mayor resumes the chair through the form');
+SELECT ok((SELECT max(observed_at) BETWEEN (SELECT received_after FROM handover_reception) AND clock_timestamp()
+  FROM meeting_officer_change WHERE council_meeting=test_uuid('recused-chair:meeting')),
+ 'the server clock dates the handover at reception');
 SELECT is(agenda_item_ballot_chair(pg_temp.item('recused-chair',2))->>'councilMemberId',pg_temp.member('recused-chair',1)::text,
  'the mayor chairs the next ballot');
 
 -- 4. The mayor votes and holds a proxy like any member.
 SELECT pg_temp.officers_meeting('mayor-proxy',1);
-SELECT lives_ok($$SELECT hall_api.record_meeting_attendance_events(test_uuid('mayor-proxy:meeting'),'2026-01-01 09:01Z',
+SELECT lives_ok($$SELECT record_meeting_attendance_events(test_uuid('mayor-proxy:meeting'),'2026-01-01 09:01Z',
  jsonb_build_array(jsonb_build_object('councilMemberId',pg_temp.member('mayor-proxy',6),'status','represented',
   'proxyHolderCouncilMemberId',pg_temp.member('mayor-proxy',1),'proxyDocumentId',test_uuid('mayor-proxy:proxy:6'))))$$,
  'the represented member gives the proxy to the mayor');
@@ -191,7 +196,7 @@ SELECT pg_temp.officers_meeting('stale',1);
 SELECT start_council_agenda_item(pg_temp.item('stale',1),'2026-01-01 09:01Z');
 CREATE TEMP TABLE stale_preview AS SELECT hall_api.create_ballot_result_preview(pg_temp.item('stale',1),
  pg_temp.candidate(ARRAY[pg_temp.att('stale',1),pg_temp.att('stale',4)],ARRAY['approve','approve'])) payload;
-SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('stale:meeting'),'secretary',pg_temp.member('stale',5),clock_timestamp())$$,
+SELECT lives_ok($$SELECT hall_api.record_meeting_officer_change(test_uuid('stale:meeting'),'secretary',pg_temp.member('stale',5))$$,
  'the secretary is replaced after the review');
 SELECT throws_ok($$SELECT hall_api.confirm_ballot_result_preview((SELECT (payload->>'id')::uuid FROM stale_preview))$$,
  'HV422',NULL,'a preview reviewed before an officer change must be reviewed again');

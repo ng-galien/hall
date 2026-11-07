@@ -83,7 +83,6 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
           councilMemberId: memberId,
           status: present.has(memberId) ? "present" : "absent",
         })),
-        observedAt: new Date(firstDate.getTime() + 5 * 60_000).toISOString(),
         chairMemberId: chair,
         secretaryMemberId: firstSecretary,
       },
@@ -114,7 +113,7 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   // The closure is recorded on the evening of the first meeting through the closure route of this button.
   await properties(
     await page.request.post(`/api/council-meetings/${first.id}/close`, {
-      data: { closedAt: new Date(firstDate.getTime() + 75 * 60_000).toISOString() },
+      data: {},
     }),
   );
 
@@ -143,7 +142,6 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
           councilMemberId: memberId,
           status: present.has(memberId) ? "present" : "absent",
         })),
-        observedAt: at(5),
         chairMemberId: chair,
         secretaryMemberId: reconvenedSecretary,
       },

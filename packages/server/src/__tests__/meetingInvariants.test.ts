@@ -76,7 +76,6 @@ async function openWithoutQuorumThenExplicitlyClose(agent: TestAgent, pool: Pool
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: members[0].id,
         secretaryMemberId: members[1].id,
         attendance: members.map((member, index) => ({
@@ -102,10 +101,7 @@ async function openWithoutQuorumThenExplicitlyClose(agent: TestAgent, pool: Pool
   );
   expect(successorBeforeClosure.rows).toEqual([]);
   const closure = domainBody<{ nextMeeting: { id: string; previousCouncilMeetingId: string } }>(
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/close`)
-      .send({ closedAt: "2026-09-10T17:30:00Z" })
-      .expect(200),
+    await agent.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(200),
   );
   return { meeting, members, council, context, closure };
 }
@@ -164,7 +160,6 @@ describe("council meeting invariants", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: first.id,
         secretaryMemberId: second.id,
         attendance: [
@@ -202,9 +197,7 @@ describe("council meeting invariants", () => {
     const { agent, pool } = await createPostgresHttpTestServer();
     const { meeting, members } = await createNoticedMeeting(agent, pool);
     const path = `/api/council-meetings/${meeting.id}/record-opening`;
-    const observedAt = "2026-09-10T16:30:00Z";
     const incomplete = await agent.post(path).send({
-      observedAt,
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
       attendance: members.slice(0, 2).map((member) => ({ councilMemberId: member.id, status: "present" })),
@@ -212,24 +205,49 @@ describe("council meeting invariants", () => {
     expect(incomplete.status, JSON.stringify(incomplete.body)).toBe(409);
     const missingOfficers = await agent
       .post(path)
-      .send({
-        observedAt,
-        attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
-      })
+      .send({ attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })) })
       .expect(400);
     expect(missingOfficers.body.code).toBe("invalid_request");
+    const receivedAfter = Date.now();
     const opened = domainBody<{ meeting: { startedAt: string } }>(
       await agent
         .post(path)
         .send({
-          observedAt,
           chairMemberId: members[0].id,
           secretaryMemberId: members[1].id,
           attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
         })
         .expect(200),
     );
-    expect(opened.meeting.startedAt).toBeTruthy();
+    expect(Date.parse(opened.meeting.startedAt)).toBeGreaterThanOrEqual(receivedAfter - 1000);
+  });
+
+  // @verifies-requirement HALL-FR-MTG-370
+  it("refuses a client instant in a meeting-conduct request and dates the observation by the server", async () => {
+    const { agent, pool } = await createPostgresHttpTestServer();
+    const { meeting, members } = await createNoticedMeeting(agent, pool);
+    const path = `/api/council-meetings/${meeting.id}/record-opening`;
+    const opening = {
+      chairMemberId: members[0].id,
+      secretaryMemberId: members[1].id,
+      attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
+    };
+    const browserInFuture = new Date(Date.now() + 5 * 60_000).toISOString();
+    const refused = await agent
+      .post(path)
+      .send({ ...opening, observedAt: browserInFuture })
+      .expect(400);
+    expect(refused.body.code).toBe("invalid_request");
+    const unopened = domainBody<{ startedAt: string | null }>(
+      await agent.get(`/api/council-meetings/${meeting.id}`).expect(200),
+    );
+    expect(unopened.startedAt).toBeNull();
+    const receivedAfter = Date.now();
+    const opened = domainBody<{ meeting: { startedAt: string } }>(await agent.post(path).send(opening).expect(200));
+    const openedAt = Date.parse(opened.meeting.startedAt);
+    expect(openedAt).toBeGreaterThanOrEqual(receivedAfter - 1000);
+    expect(openedAt).toBeLessThanOrEqual(Date.now() + 1000);
+    await agent.post(`/api/council-meetings/${meeting.id}/close`).send({ closedAt: browserInFuture }).expect(400);
   });
 
   it("requires the chair and secretary to be physically present before a meeting starts", async () => {
@@ -240,14 +258,12 @@ describe("council meeting invariants", () => {
       status: index === 0 ? "absent" : "present",
     }));
     const absentChair = await agent.post(`/api/council-meetings/${meeting.id}/record-opening`).send({
-      observedAt: "2026-09-10T16:30:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
       attendance,
     });
     expect(absentChair.status, JSON.stringify(absentChair.body)).toBe(409);
     const presentChair = await agent.post(`/api/council-meetings/${meeting.id}/record-opening`).send({
-      observedAt: "2026-09-10T16:30:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
       attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
@@ -278,14 +294,12 @@ describe("council meeting invariants", () => {
       Buffer.from("%PDF-fixture"),
     );
     const incomplete = await agent.post(`/api/council-meetings/${nextId}/record-opening`).send({
-      observedAt: "2026-09-14T16:30:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
       attendance: members.slice(0, 2).map((member) => ({ councilMemberId: member.id, status: "present" })),
     });
     expect(incomplete.status, JSON.stringify(incomplete.body)).toBe(409);
     const complete = await agent.post(`/api/council-meetings/${nextId}/record-opening`).send({
-      observedAt: "2026-09-14T16:30:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
       attendance: members.map((member, index) => ({
@@ -336,14 +350,12 @@ describe("council meeting invariants", () => {
       { councilMemberId: members[4].id, status: "present" },
     ];
     const duplicate = await agent.post(`/api/council-meetings/${meeting.id}/record-opening`).send({
-      observedAt: "2026-09-10T16:30:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
       attendance,
     });
     expect(duplicate.status, JSON.stringify(duplicate.body)).toBe(409);
     const valid = await agent.post(`/api/council-meetings/${meeting.id}/record-opening`).send({
-      observedAt: "2026-09-10T16:30:00Z",
       chairMemberId: members[0].id,
       secretaryMemberId: members[1].id,
       attendance: attendance.map((entry) =>

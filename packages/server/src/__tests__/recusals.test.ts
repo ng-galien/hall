@@ -50,14 +50,11 @@ describe("recusal HTTP boundary", () => {
       expect.arrayContaining([expect.objectContaining({ name: "agenda-item.record-recusal", href: path })]),
     );
     for (const legalBasis of ["personalInterest", "designatedRepresentativeConflict"]) {
-      const input = { councilMemberId: randomUUID(), legalBasis, declaredAt: "2026-09-05T09:00:00Z" };
+      const input = { councilMemberId: randomUUID(), legalBasis };
       await agent.post(path).send(input).expect(201);
       expect(record).toHaveBeenLastCalledWith(item.id, input);
     }
-    await agent
-      .post(path)
-      .send({ councilMemberId: randomUUID(), legalBasis: "abstain", declaredAt: "2026-09-05T09:00:00Z" })
-      .expect(400);
+    await agent.post(path).send({ councilMemberId: randomUUID(), legalBasis: "abstain" }).expect(400);
     expect(record).toHaveBeenCalledTimes(2);
     result.canRecordRecusal = false;
     const unavailable = await agent.get(path).expect(200);
@@ -75,7 +72,7 @@ describe("recusal HTTP boundary", () => {
       record.mockRejectedValue(new DomainError(code, 409));
       const conflict = await agent
         .post(path)
-        .send({ councilMemberId: randomUUID(), legalBasis: "personalInterest", declaredAt: "2026-09-05T09:00:00Z" })
+        .send({ councilMemberId: randomUUID(), legalBasis: "personalInterest" })
         .expect(409);
       expect(conflict.body.code).toBe(code);
     }

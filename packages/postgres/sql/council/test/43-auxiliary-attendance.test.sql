@@ -23,13 +23,13 @@ INSERT INTO contact(id,first_name,last_name) VALUES
  (test_uuid('aux:contact:archived'),'Anne','Petit');
 UPDATE contact SET archived_at='2025-12-31' WHERE id=test_uuid('aux:contact:archived');
 
-SELECT lives_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:contact:secretary'),NULL,NULL,'secrétaire de mairie','2026-01-01 08:55Z')$$,
+SELECT lives_ok($$SELECT declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:contact:secretary'),NULL,NULL,'secrétaire de mairie','2026-01-01 08:55Z')$$,
  'an existing contact is entered at roll call with a free-text quality');
 SELECT start_council_meeting(test_uuid('aux:meeting'),'2026-01-01 09:00Z');
 CREATE TEMP TABLE quorum_before AS SELECT calculate_meeting_quorum(test_uuid('aux:meeting'),NULL,clock_timestamp())-'attendance' facts;
-SELECT lives_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:contact:expert'),NULL,NULL,NULL,'2026-01-01 09:10Z')$$,
+SELECT lives_ok($$SELECT declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:contact:expert'),NULL,NULL,NULL,'2026-01-01 09:10Z')$$,
  'a person is entered during the meeting without quality');
-SELECT lives_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),NULL,' Jeanne ','Libre','  ','2026-01-01 09:10:30Z')$$,
+SELECT lives_ok($$SELECT declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),NULL,' Jeanne ','Libre','  ','2026-01-01 09:10:30Z')$$,
  'a free name creates the contact');
 SELECT is((SELECT count(*)::int FROM contact WHERE first_name='Jeanne' AND last_name='Libre'),1,'the free name is now a contact');
 SELECT is((SELECT jsonb_agg(entry-'id'-'recordedAt'-'contactId' ORDER BY entry->>'declaredAt') FROM jsonb_array_elements(hall_api.meeting_conduct(test_uuid('aux:meeting'))->'auxiliaryAttendances') entry),
@@ -47,17 +47,15 @@ SELECT is(jsonb_array_length(current_attendance_json(test_uuid('aux:meeting'))),
 SELECT is(jsonb_array_length(meeting_conduct_evidence(test_uuid('aux:meeting'))->'auxiliaryAttendances'),3,
  'attending persons are part of the conduct evidence carried to the minutes');
 
-SELECT throws_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:member:3'),NULL,NULL,NULL,'2026-01-01 09:11Z')$$,
+SELECT throws_ok($$SELECT declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:member:3'),NULL,NULL,NULL,'2026-01-01 09:11Z')$$,
  'HV128',format('Test %s is a council member and attends as a member',test_uuid('aux:member:3')),
  'a council member cannot be entered as another attending person');
-SELECT throws_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:contact:archived'),NULL,NULL,NULL,'2026-01-01 09:11Z')$$,
+SELECT throws_ok($$SELECT declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:contact:archived'),NULL,NULL,NULL,'2026-01-01 09:11Z')$$,
  'HV128',NULL,'an archived contact cannot be entered');
-SELECT throws_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:contact:expert'),NULL,NULL,NULL,'2026-01-01 09:11Z')$$,
+SELECT throws_ok($$SELECT declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:contact:expert'),NULL,NULL,NULL,'2026-01-01 09:11Z')$$,
  '23505',NULL,'a person is entered once per meeting');
-SELECT throws_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),NULL,'Seul',NULL,NULL,'2026-01-01 09:11Z')$$,
+SELECT throws_ok($$SELECT declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),NULL,'Seul',NULL,NULL,'2026-01-01 09:11Z')$$,
  'HV128',NULL,'a new person requires a first and a last name');
-SELECT throws_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),test_uuid('aux:contact:expert'),NULL,NULL,NULL,'2999-01-01 09:11Z')$$,
- 'HV143',NULL,'an entry cannot be in the future');
 SELECT lives_ok($$SELECT hall_api.update_meeting_auxiliary_attendance(test_uuid('aux:meeting'),(SELECT id FROM meeting_auxiliary_attendance WHERE contact=test_uuid('aux:contact:expert')),'expert en urbanisme')$$,
  'the quality is corrected before closure');
 SELECT is((SELECT quality FROM meeting_auxiliary_attendance WHERE contact=test_uuid('aux:contact:expert')),'expert en urbanisme','the corrected quality is kept');
@@ -74,12 +72,20 @@ SELECT throws_ok($$SELECT hall_api.create_ballot_result_preview(test_uuid('aux:1
  'votes',jsonb_build_array(jsonb_build_object('meetingAttendanceId',test_uuid('aux:att:1'),'choice','approve'),
   jsonb_build_object('meetingAttendanceId',(SELECT id FROM meeting_auxiliary_attendance WHERE contact=test_uuid('aux:contact:expert')),'choice','approve')),
  'nonParticipations','[]'::jsonb))$$,'HV305',NULL,'an attending person cannot vote');
-SELECT throws_ok($$SELECT hall_api.record_meeting_attendance_events(test_uuid('aux:meeting'),clock_timestamp(),jsonb_build_array(jsonb_build_object(
+SELECT throws_ok($$SELECT record_meeting_attendance_events(test_uuid('aux:meeting'),clock_timestamp(),jsonb_build_array(jsonb_build_object(
  'councilMemberId',test_uuid('aux:member:3'),'status','represented','proxyHolderCouncilMemberId',test_uuid('aux:contact:expert'),'proxyDocumentId',NULL)))$$,
  'HV134',NULL,'an attending person cannot hold a proxy');
 SELECT throws_ok($$INSERT INTO agenda_item_recusal(agenda_item,council_member,legal_basis,declared_at)
  VALUES(test_uuid('aux:1:agenda-item'),test_uuid('aux:contact:expert'),'personalInterest',clock_timestamp())$$,
  'HV233',NULL,'an attending person cannot recuse');
+
+-- @verifies-requirement HALL-FR-MTG-370
+CREATE TEMP TABLE auxiliary_reception AS SELECT clock_timestamp() AS received_after;
+SELECT lives_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),NULL,'Marc','Tardif',NULL)$$,
+ 'a person is entered without a client instant');
+SELECT ok((SELECT a.declared_at BETWEEN (SELECT received_after FROM auxiliary_reception) AND clock_timestamp()
+  FROM meeting_auxiliary_attendance a JOIN contact c ON c.id=a.contact WHERE c.last_name='Tardif'),
+ 'the server clock dates the entry at reception');
 
 -- Immutable once the meeting is closed.
 UPDATE council_meetings SET closed_at=clock_timestamp() WHERE id=test_uuid('aux:meeting');
@@ -87,7 +93,7 @@ SELECT throws_ok($$SELECT hall_api.update_meeting_auxiliary_attendance(test_uuid
  'HV128',NULL,'a closed meeting keeps its attending persons as recorded');
 SELECT throws_ok($$SELECT hall_api.remove_meeting_auxiliary_attendance(test_uuid('aux:meeting'),(SELECT id FROM meeting_auxiliary_attendance WHERE contact=test_uuid('aux:contact:expert')))$$,
  'HV128',NULL,'an entry of a closed meeting cannot be removed');
-SELECT throws_ok($$SELECT hall_api.declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),NULL,'Tard','Venu',NULL,clock_timestamp())$$,
+SELECT throws_ok($$SELECT declare_meeting_auxiliary_attendance(test_uuid('aux:meeting'),NULL,'Tard','Venu',NULL,clock_timestamp())$$,
  'HV128',NULL,'a closed meeting receives no new attending person');
 
 SELECT * FROM finish();

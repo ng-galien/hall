@@ -115,7 +115,6 @@ it("conducts handovers through the form, attending persons and the ballot chair 
       Buffer.from("%PDF-fixture"),
     );
     await send(`/api/council-meetings/${meeting.id}/record-opening`, {
-      observedAt: "2026-01-01T09:00:00Z",
       chairMemberId: mayor.id,
       secretaryMemberId: councillor.id,
       attendance: [mayor, deputy, councillor].map((member) => ({ councilMemberId: member.id, status: "present" })),
@@ -137,7 +136,7 @@ it("conducts handovers through the form, attending persons and the ballot chair 
 
     const refused = await send(
       `/api/council-meetings/${meeting.id}/officer-changes`,
-      { office: "chair", councilMemberId: mayor.id, observedAt: new Date().toISOString() },
+      { office: "chair", councilMemberId: mayor.id },
       409,
     );
     expect(refused.code).toBe("meeting_officer_change_invalid");
@@ -145,7 +144,7 @@ it("conducts handovers through the form, attending persons and the ballot chair 
       (
         await send(
           `/api/council-meetings/${meeting.id}/officer-changes`,
-          { office: "secretary", councilMemberId: deputy.id, observedAt: new Date().toISOString() },
+          { office: "secretary", councilMemberId: deputy.id },
           201,
         )
       ).properties,
@@ -163,7 +162,6 @@ it("conducts handovers through the form, attending persons and the ballot chair 
           {
             person: { kind: "contact", contactId: secretaryOfTownHall.id },
             quality: "secrétaire de mairie",
-            declaredAt: new Date().toISOString(),
           },
           201,
         )
@@ -180,7 +178,6 @@ it("conducts handovers through the form, attending persons and the ballot chair 
           {
             person: { kind: "newContact", firstName: "Jean", lastName: "Libre" },
             quality: "",
-            declaredAt: new Date().toISOString(),
           },
           201,
         )
@@ -199,7 +196,7 @@ it("conducts handovers through the form, attending persons and the ballot chair 
     expect(removed.auxiliaryAttendances.map((entry) => entry.name)).toEqual(["Claire Martin"]);
     const member = await send(
       auxiliariesPath,
-      { person: { kind: "contact", contactId: mayorContact.id }, quality: null, declaredAt: new Date().toISOString() },
+      { person: { kind: "contact", contactId: mayorContact.id }, quality: null },
       409,
     );
     expect(member.code).toBe("auxiliary_attendance_invalid");
@@ -211,7 +208,6 @@ it("conducts handovers through the form, attending persons and the ballot chair 
         requesterMemberIds: [mayor.id],
         approvals: 1,
         scope: { kind: "agendaItems", agendaItemIds: [item.id] },
-        observedAt: new Date().toISOString(),
       },
       409,
     );
@@ -224,7 +220,6 @@ it("conducts handovers through the form, attending persons and the ballot chair 
             requesterMemberIds: [mayor.id, deputy.id, councillor.id],
             approvals: 2,
             scope: { kind: "agendaItems", agendaItemIds: [item.id] },
-            observedAt: new Date().toISOString(),
           },
           201,
         )
@@ -234,14 +229,8 @@ it("conducts handovers through the form, attending persons and the ballot chair 
       expect.objectContaining({ approvals: 2, presentOrRepresented: 3, wholeMeeting: false, agendaItemIds: [item.id] }),
     ]);
     const recusalsPath = `/api/council-meetings/${meeting.id}/agenda-items/${item.id}/recusals`;
-    await send(
-      recusalsPath,
-      { councilMemberId: mayor.id, legalBasis: "personalInterest", declaredAt: new Date().toISOString() },
-      201,
-    );
-    await send(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, {
-      startedAt: new Date().toISOString(),
-    });
+    await send(recusalsPath, { councilMemberId: mayor.id, legalBasis: "personalInterest" }, 201);
+    await send(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, {});
     const state = agendaItemRecusalsSchema.parse((await send(recusalsPath, undefined, 200, "GET")).properties);
     expect(state.ballotChair).toMatchObject({ councilMemberId: mayor.id, recused: true });
     const attendance = await council.listAttendance(context, meeting.id);
@@ -262,7 +251,7 @@ it("conducts handovers through the form, attending persons and the ballot chair 
       (
         await send(
           `/api/council-meetings/${meeting.id}/officer-changes`,
-          { office: "chair", councilMemberId: councillor.id, observedAt: new Date().toISOString() },
+          { office: "chair", councilMemberId: councillor.id },
           201,
         )
       ).properties,

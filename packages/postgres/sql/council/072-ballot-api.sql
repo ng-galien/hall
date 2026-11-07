@@ -188,10 +188,8 @@ BEGIN
 END;
 $function$;
 
-CREATE FUNCTION hall_api.complete_ballot(
-  target_ballot UUID,
-  completion_time TIMESTAMPTZ, reviewed_preview UUID
-)
+-- @implements-requirement HALL-FR-MTG-370
+CREATE FUNCTION hall_api.complete_ballot(target_ballot UUID, reviewed_preview UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
 VOLATILE
@@ -201,7 +199,7 @@ AS $function$
 DECLARE
   changed hall.ballots;
 BEGIN
-  changed := hall.complete_ballot(target_ballot, completion_time, reviewed_preview);
+  changed := hall.complete_ballot(target_ballot, clock_timestamp(), reviewed_preview);
   RETURN hall.ballot_projection(changed);
 END;
 $function$;

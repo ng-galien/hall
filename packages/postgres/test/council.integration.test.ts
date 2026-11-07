@@ -320,9 +320,10 @@ postgresDescribe("PostgreSQL council client", () => {
       location: "Council chamber",
     });
     await prepareMeetingNotice(council, request, meetingId);
+    // @verifies-requirement HALL-FR-MTG-370
+    const receivedAfter = Date.now();
     const opening = await council.recordMeetingOpening(request, {
       id: meetingId,
-      observedAt: "2026-08-12T09:05:00.000Z",
       chairMemberId: member.id,
       secretaryMemberId: member.id,
       attendance: [{ councilMemberId: member.id, status: "present" }],
@@ -331,23 +332,18 @@ postgresDescribe("PostgreSQL council client", () => {
       id: meetingId,
       scheduledAt: "2026-08-12T09:00:00+00:00",
       location: "Council chamber",
-      startedAt: "2026-08-12T09:05:00+00:00",
       closedAt: null,
     });
-    const startedAgendaItem = await council.startAgendaItem(request, {
-      agendaItemId: agendaItem.id,
-      startedAt: "2026-08-12T09:10:00.000Z",
-    });
-    expect(startedAgendaItem).toMatchObject({ id: agendaItem.id, startedAt: "2026-08-12T09:10:00+00:00" });
-    const completedAgendaItem = await council.completeAgendaItem(request, {
-      agendaItemId: agendaItem.id,
-      completedAt: "2026-08-12T09:20:00.000Z",
-    });
-    expect(completedAgendaItem).toMatchObject({
-      id: agendaItem.id,
-      startedAt: "2026-08-12T09:10:00+00:00",
-      completedAt: "2026-08-12T09:20:00+00:00",
-    });
+    const openedAt = Date.parse(opening.meeting.startedAt!);
+    expect(openedAt).toBeGreaterThanOrEqual(receivedAfter - 1000);
+    expect(openedAt).toBeLessThanOrEqual(Date.now() + 1000);
+    const startedAgendaItem = await council.startAgendaItem(request, { agendaItemId: agendaItem.id });
+    expect(Date.parse(startedAgendaItem.startedAt!)).toBeGreaterThanOrEqual(openedAt);
+    const completedAgendaItem = await council.completeAgendaItem(request, { agendaItemId: agendaItem.id });
+    expect(completedAgendaItem).toMatchObject({ id: agendaItem.id, startedAt: startedAgendaItem.startedAt });
+    expect(Date.parse(completedAgendaItem.completedAt!)).toBeGreaterThanOrEqual(
+      Date.parse(startedAgendaItem.startedAt!),
+    );
     await expect(council.openAgendaItem(request, agendaItem.id)).resolves.toEqual(completedAgendaItem);
   });
 
@@ -426,7 +422,6 @@ postgresDescribe("PostgreSQL council client", () => {
     await prepareMeetingNotice(council, request, meetingId);
     await council.recordMeetingOpening(request, {
       id: meetingId,
-      observedAt: "2026-08-12T09:05:00.000Z",
       chairMemberId: members[0]!.id,
       secretaryMemberId: members[0]!.id,
       attendance: [...declarations],
@@ -519,16 +514,12 @@ postgresDescribe("PostgreSQL council client", () => {
     await prepareMeetingNotice(council, request, meetingId);
     await council.recordMeetingOpening(request, {
       id: meetingId,
-      observedAt: "2026-08-12T09:05:00.000Z",
       chairMemberId: members[0]!.id,
       secretaryMemberId: members[0]!.id,
       attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
     });
     const attendance = await council.listAttendance(request, meetingId);
-    await council.startAgendaItem(request, {
-      agendaItemId: agendaItem.id,
-      startedAt: "2026-08-12T09:10:00.000Z",
-    });
+    await council.startAgendaItem(request, { agendaItemId: agendaItem.id });
     const chairmanAttendance = attendance.find((item) => item.councilMemberId === members[0]!.id)!;
     const preview = await council.createBallotResultPreview(request, {
       agendaItemId: agendaItem.id,
@@ -628,16 +619,12 @@ postgresDescribe("PostgreSQL council client", () => {
     await prepareMeetingNotice(council, request, meetingId);
     await council.recordMeetingOpening(request, {
       id: meetingId,
-      observedAt: "2026-08-13T09:05:00.000Z",
       chairMemberId: members[0]!.id,
       secretaryMemberId: members[0]!.id,
       attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" as const })),
     });
     const attendance = await council.listAttendance(request, meetingId);
-    await council.startAgendaItem(request, {
-      agendaItemId: agendaItem.id,
-      startedAt: "2026-08-13T09:10:00.000Z",
-    });
+    await council.startAgendaItem(request, { agendaItemId: agendaItem.id });
     const preview = await council.createBallotResultPreview(request, {
       agendaItemId: agendaItem.id,
       candidate: {
@@ -702,20 +689,16 @@ postgresDescribe("PostgreSQL council client", () => {
     await prepareMeetingNotice(council, request, meetingId);
     await council.recordMeetingOpening(request, {
       id: meetingId,
-      observedAt: "2026-09-03T09:00:00Z",
       chairMemberId: member.id,
       secretaryMemberId: member.id,
       attendance: [{ councilMemberId: member.id, status: "present" }],
     });
 
-    await council.startAgendaItem(request, { agendaItemId: openingItem.id, startedAt: "2026-09-03T09:05:00Z" });
-    await council.completeAgendaItem(request, { agendaItemId: openingItem.id, completedAt: "2026-09-03T09:10:00Z" });
-    const closure = await council.close(request, {
-      id: meetingId,
-      closedAt: "2026-09-03T10:00:00.000Z",
-    });
+    await council.startAgendaItem(request, { agendaItemId: openingItem.id });
+    await council.completeAgendaItem(request, { agendaItemId: openingItem.id });
+    const closure = await council.close(request, { id: meetingId });
 
-    expect(closure.closedMeeting).toMatchObject({ id: meetingId, closedAt: "2026-09-03T10:00:00+00:00" });
+    expect(closure.closedMeeting).toMatchObject({ id: meetingId, closedAt: expect.any(String) });
     expect(closure.nextMeeting).toMatchObject({
       number: expect.any(Number),
       previousCouncilMeetingId: meetingId,

@@ -84,7 +84,6 @@ describe("council flow", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: members[0].id,
         secretaryMemberId: members[1].id,
         attendance: [
@@ -98,10 +97,7 @@ describe("council flow", () => {
         ],
       })
       .expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
-      .send({ startedAt: "2026-09-10T16:31:00Z" })
-      .expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`).send({}).expect(200);
     const attendance = await council.listAttendance(context, meeting.id);
     const candidate = {
       procedure: "ordinaryMajority",
@@ -130,7 +126,10 @@ describe("council flow", () => {
     await agent.post(`/api/ballot-previews/${preview.id}/confirm`).send({}).expect(409);
     const decision = await agent.get("/api/council-decisions").expect(200);
     expect(decision.body.entities).toHaveLength(1);
-    expect(decision.body.entities[0].properties).toMatchObject({ ballotId: ballot.id, number: "2026-09-01" });
+    expect(decision.body.entities[0].properties).toMatchObject({
+      ballotId: ballot.id,
+      number: expect.stringMatching(/^\d{4}-\d{2}-01$/),
+    });
   });
 
   it("serializes concurrent confirmations so a decision and ballot are recorded exactly once", async () => {
@@ -138,16 +137,12 @@ describe("council flow", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: members[0].id,
         secretaryMemberId: members[1].id,
         attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
       })
       .expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
-      .send({ startedAt: "2026-09-10T16:31:00Z" })
-      .expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`).send({}).expect(200);
     const attendance = await council.listAttendance(context, meeting.id);
     const preview = domainBody<{ id: string }>(
       await agent
@@ -178,16 +173,12 @@ describe("council flow", () => {
     await agent
       .post(`/api/council-meetings/${meeting.id}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: members[0].id,
         secretaryMemberId: members[1].id,
         attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
       })
       .expect(200);
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`)
-      .send({ startedAt: "2026-09-10T16:31:00Z" })
-      .expect(200);
+    await agent.post(`/api/council-meetings/${meeting.id}/agenda-items/${item.id}/start`).send({}).expect(200);
     const attendance = await council.listAttendance(context, meeting.id);
     const candidate = {
       procedure: "ordinaryMajority",

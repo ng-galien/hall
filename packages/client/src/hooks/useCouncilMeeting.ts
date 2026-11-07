@@ -371,9 +371,7 @@ export function useCouncilMeeting(meetingReference: string) {
       return mutate(() => correctMeetingAuxiliaryAttendance(meetingReference, input));
     },
     recordQuorum() {
-      return mutate(() =>
-        recordMeetingQuorum(meetingReference, { agendaItemId: null, observedAt: new Date().toISOString() }),
-      );
+      return mutate(() => recordMeetingQuorum(meetingReference, { agendaItemId: null }));
     },
     scheduleAgendaItem(input: ScheduleAgendaItem) {
       return mutate(() => scheduleMeetingAgendaItem(meetingReference, input));
@@ -395,12 +393,12 @@ export function useCouncilMeeting(meetingReference: string) {
       return saved ? result : null;
     },
     startAgendaItem(itemId: string) {
-      return mutate(() => startMeetingAgendaItem(meetingReference, itemId, { startedAt: new Date().toISOString() }));
+      return mutate(() => startMeetingAgendaItem(meetingReference, itemId));
     },
     async close() {
       setActionError(null);
       try {
-        await closeCouncilMeeting(meetingReference, { closedAt: new Date().toISOString() });
+        await closeCouncilMeeting(meetingReference);
         await useCouncilMeetingsStore.getState().load();
         return true;
       } catch (failure) {
@@ -412,9 +410,7 @@ export function useCouncilMeeting(meetingReference: string) {
       return mutate(() => adjournMeetingAgendaItem(meetingReference, itemId));
     },
     completeAgendaItem(itemId: string, _input?: unknown) {
-      return mutate(() =>
-        completeMeetingAgendaItem(meetingReference, itemId, { completedAt: new Date().toISOString() }),
-      );
+      return mutate(() => completeMeetingAgendaItem(meetingReference, itemId));
     },
     previewBallot: previewLiveBallot,
     async confirmBallot(preview: BallotPreview) {

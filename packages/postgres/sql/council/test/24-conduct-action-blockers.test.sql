@@ -15,7 +15,7 @@ $$;
 INSERT INTO council_meetings(id,number,scheduled_at,location) VALUES(test_uuid('blockers:first'),1,'2026-01-01 18:00Z','Chamber');
 SELECT hall_api.create_and_schedule_open_question('seed','First session','Report','',test_uuid('blockers:first'),1);
 SELECT test_prepare_notice(test_uuid('blockers:first'));
-SELECT hall_api.record_meeting_opening(test_uuid('blockers:first'),'2026-01-01 18:01Z',pg_temp.blocker_attendance(15),test_uuid('blockers:member:1'),test_uuid('blockers:member:2'));
+SELECT record_meeting_opening(test_uuid('blockers:first'),'2026-01-01 18:01Z',pg_temp.blocker_attendance(15),test_uuid('blockers:member:1'),test_uuid('blockers:member:2'));
 SELECT start_council_agenda_item(id,'2026-01-01 18:02Z') FROM council_agenda_item WHERE council_meeting=test_uuid('blockers:first');
 SELECT complete_non_voting_agenda_item(id,'2026-01-01 18:03Z') FROM council_agenda_item WHERE council_meeting=test_uuid('blockers:first');
 CREATE TEMP TABLE blocker_meeting AS SELECT close_council_meeting(test_uuid('blockers:first'),'2026-01-01 18:04Z') id;
@@ -23,7 +23,7 @@ SELECT hall_api.schedule_council_meeting(id,'2026-01-02 18:00Z','Chamber') FROM 
 SELECT hall_api.create_and_schedule_council_decision_proposal('seed','Vote to defer','Report','',(SELECT id FROM blocker_meeting),2);
 SELECT hall_api.create_and_schedule_open_question('seed','Information','Report','',(SELECT id FROM blocker_meeting),3);
 SELECT test_prepare_notice(id) FROM blocker_meeting;
-SELECT hall_api.record_meeting_opening(id,'2026-01-02 18:01Z',pg_temp.blocker_attendance(7),test_uuid('blockers:member:1'),test_uuid('blockers:member:2')) FROM blocker_meeting;
+SELECT record_meeting_opening(id,'2026-01-02 18:01Z',pg_temp.blocker_attendance(7),test_uuid('blockers:member:1'),test_uuid('blockers:member:2')) FROM blocker_meeting;
 CREATE TEMP TABLE blocker_items AS SELECT id,subject_kind FROM council_agenda_item WHERE council_meeting=(SELECT id FROM blocker_meeting);
 CREATE FUNCTION pg_temp.subject_state(kind hall.council_agenda_subject_kind) RETURNS jsonb LANGUAGE sql AS $$
  SELECT hall_api.open_council_agenda_item(id) FROM blocker_items WHERE subject_kind=kind;

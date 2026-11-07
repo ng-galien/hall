@@ -770,30 +770,21 @@ postgres("PostgreSQL persistence", () => {
         )`,
         [meetingId],
       );
-      await setup.query(
-        "SELECT hall_api.record_meeting_opening($1, TIMESTAMPTZ '2026-01-12 09:00:00+00', $2::jsonb, $3, $4)",
-        [
-          meetingId,
-          JSON.stringify(
-            memberIds.map((councilMemberId) => ({ council_member_id: councilMemberId, status: "present" })),
-          ),
-          memberIds[0],
-          memberIds[1],
-        ],
-      );
+      await setup.query("SELECT hall_api.record_meeting_opening($1, $2::jsonb, $3, $4)", [
+        meetingId,
+        JSON.stringify(memberIds.map((councilMemberId) => ({ council_member_id: councilMemberId, status: "present" }))),
+        memberIds[0],
+        memberIds[1],
+      ]);
       const attendances = await setup.query<{ id: string; chair: boolean }>(
         "SELECT id::text, council_member = $2 AS chair FROM hall.meeting_attendance WHERE council_meeting = $1 ORDER BY council_member",
         [meetingId, memberIds[0]],
       );
-      await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:01:00+00')", [
+      await setup.query("SELECT hall_api.start_council_agenda_item($1, clock_timestamp())", [openQuestionAgendaItemId]);
+      await setup.query("SELECT hall_api.complete_non_voting_agenda_item($1, clock_timestamp())", [
         openQuestionAgendaItemId,
       ]);
-      await setup.query("SELECT hall_api.complete_non_voting_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:04:00+00')", [
-        openQuestionAgendaItemId,
-      ]);
-      await setup.query("SELECT hall_api.start_council_agenda_item($1, TIMESTAMPTZ '2026-01-12 09:05:00+00')", [
-        agendaItemId,
-      ]);
+      await setup.query("SELECT hall_api.start_council_agenda_item($1, clock_timestamp())", [agendaItemId]);
 
       const [attendanceResponse, agendaResponse] = await Promise.all([
         fetch(`${server.url}/api/council-meetings/${meetingId}/attendance`),

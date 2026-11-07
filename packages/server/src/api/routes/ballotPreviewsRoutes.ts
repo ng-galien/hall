@@ -32,12 +32,13 @@ export function createBallotPreviewsRouter({ councilBallotService, councilClient
     response.json(await councilBallotService.getPreview(routeParameter(request.params.previewId)));
   });
   router.post("/:previewId/confirm", requireActionPermission("ballot.confirm"), async (request, response) => {
-    const { confirmedAt } = confirmBallotResultPreviewSchema.parse(request.body);
+    // @implements-requirement HALL-FR-MTG-370
+    confirmBallotResultPreviewSchema.parse(request.body);
     const previewId = routeParameter(request.params.previewId);
     const preview = await councilBallotService.getPreview(previewId);
     const item = await councilClient.openAgendaItem(preview.agendaItemId);
     if (!item) throw new DomainError("agenda_item_not_found", 404);
-    const ballot = await councilBallotService.confirmPreview(previewId, confirmedAt);
+    const ballot = await councilBallotService.confirmPreview(previewId);
     realtimeEvents.publish({ type: "meeting.changed", meetingId: item.councilMeetingId });
     response.json(ballot);
   });

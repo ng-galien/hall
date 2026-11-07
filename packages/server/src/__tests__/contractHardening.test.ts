@@ -172,7 +172,6 @@ describe("hardened HTTP and hypermedia contract", () => {
     await rawAgent
       .post(`${path}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: member.id,
         secretaryMemberId: member.id,
         attendance: [{ councilMemberId: member.id, status: "present" }],
@@ -247,7 +246,6 @@ describe("hardened HTTP and hypermedia contract", () => {
     await rawAgent
       .post(`${meetingPath}/record-opening`)
       .send({
-        observedAt: "2026-09-10T16:30:00Z",
         chairMemberId: chair.id,
         secretaryMemberId: secretary.id,
         attendance: [chair, secretary].map((member) => ({ councilMemberId: member.id, status: "present" })),

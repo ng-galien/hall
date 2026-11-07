@@ -240,12 +240,19 @@ describe("shared HTTP contract", () => {
     ).toEqual({ scheduledAt: "2026-09-12T09:00:00Z", location: "Council chamber" });
     expect(
       recordMeetingOpeningSchema.parse({
-        observedAt: "2026-09-12T09:05:00Z",
         chairMemberId: "00000000-0000-4000-8000-000000000001",
         secretaryMemberId: "00000000-0000-4000-8000-000000000001",
         attendance: [{ councilMemberId: "00000000-0000-4000-8000-000000000001", status: "present" }],
       }),
     ).toBeDefined();
+    expect(() =>
+      recordMeetingOpeningSchema.parse({
+        observedAt: "2026-09-12T09:05:00Z",
+        chairMemberId: "00000000-0000-4000-8000-000000000001",
+        secretaryMemberId: "00000000-0000-4000-8000-000000000001",
+        attendance: [{ councilMemberId: "00000000-0000-4000-8000-000000000001", status: "present" }],
+      }),
+    ).toThrow();
     expect(
       scheduleAgendaItemSchema.parse({
         kind: "councilDecisionProposal",
@@ -271,8 +278,10 @@ describe("shared HTTP contract", () => {
     expect(reorderCouncilAgendaSchema.parse({ agendaItemIds: [agendaItemId, businessId] })).toEqual({
       agendaItemIds: [agendaItemId, businessId],
     });
-    expect(startAgendaItemSchema.parse({ startedAt: "2026-09-12T09:10:00Z" })).toBeDefined();
-    expect(completeAgendaItemSchema.parse({ completedAt: "2026-09-12T09:20:00Z" })).toBeDefined();
+    expect(startAgendaItemSchema.parse({})).toEqual({});
+    expect(completeAgendaItemSchema.parse({})).toEqual({});
+    expect(() => startAgendaItemSchema.parse({ startedAt: "2026-09-12T09:10:00Z" })).toThrow();
+    expect(() => completeAgendaItemSchema.parse({ completedAt: "2026-09-12T09:20:00Z" })).toThrow();
     expect(() =>
       scheduleAgendaItemSchema.parse({
         kind: "openQuestion",
@@ -419,12 +428,9 @@ describe("shared HTTP contract", () => {
     ).toThrow();
   });
 
-  it("accepts a ballot confirmation with or without its dated time", () => {
+  it("accepts a ballot confirmation without any client time", () => {
     expect(confirmBallotResultPreviewSchema.parse({})).toEqual({});
-    expect(confirmBallotResultPreviewSchema.parse({ confirmedAt: "2026-09-12T19:40:00+02:00" })).toEqual({
-      confirmedAt: "2026-09-12T19:40:00+02:00",
-    });
-    expect(() => confirmBallotResultPreviewSchema.parse({ confirmedAt: "19:40" })).toThrow();
+    expect(() => confirmBallotResultPreviewSchema.parse({ confirmedAt: "2026-09-12T19:40:00+02:00" })).toThrow();
     expect(() => confirmBallotResultPreviewSchema.parse({ candidate: {} })).toThrow();
   });
 

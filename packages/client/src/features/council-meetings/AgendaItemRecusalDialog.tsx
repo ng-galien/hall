@@ -28,8 +28,7 @@ export function AgendaItemRecusalDialog({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!memberId || !basis) return;
-    if (await controller.record({ councilMemberId: memberId, legalBasis: basis, declaredAt: new Date().toISOString() }))
-      onClose();
+    if (await controller.record({ councilMemberId: memberId, legalBasis: basis })) onClose();
   };
   return (
     <Modal

@@ -20,11 +20,11 @@ SELECT ok(
 SELECT ok(
   has_function_privilege(
     'hall_api_authenticated',
-    'hall_api.close_council_meeting(uuid,timestamp with time zone)',
+    'hall_api.close_council_meeting(uuid)',
     'EXECUTE'
   ) AND NOT has_function_privilege(
     'hall_api_anonymous',
-    'hall_api.close_council_meeting(uuid,timestamp with time zone)',
+    'hall_api.close_council_meeting(uuid)',
     'EXECUTE'
   ),
   'meeting closure is exposed only through the authenticated application surface'
@@ -406,10 +406,7 @@ SELECT ok(
 
 -- @verifies-requirement HALL-FR-MIN-140
 CREATE TEMP TABLE meeting_closure_result AS
-SELECT hall_api.close_council_meeting(
-  '10000000-0000-0000-0000-000000000001',
-  '2026-01-01 10:00:00+00'
-) AS payload;
+SELECT hall_api.close_council_meeting('10000000-0000-0000-0000-000000000001') AS payload;
 
 SET CONSTRAINTS ALL IMMEDIATE;
 SET CONSTRAINTS ALL DEFERRED;

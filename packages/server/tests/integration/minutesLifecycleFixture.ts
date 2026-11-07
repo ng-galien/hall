@@ -56,7 +56,6 @@ export async function createClosedMeetingWithMinutes() {
   await agent
     .post(`/api/council-meetings/${meeting.id}/record-opening`)
     .send({
-      observedAt: "2026-09-10T16:30:00Z",
       chairMemberId: member.id,
       secretaryMemberId: member.id,
       attendance: [{ councilMemberId: member.id, status: "present" }],
@@ -70,11 +69,6 @@ export async function createClosedMeetingWithMinutes() {
     closedMeeting: { id: string };
     nextMeeting: { id: string };
     minutes: { id: string; generatedAt: string | null };
-  }>(
-    await agent
-      .post(`/api/council-meetings/${meeting.id}/close`)
-      .send({ closedAt: "2026-09-10T18:00:00Z" })
-      .expect(200),
-  );
+  }>(await agent.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(200));
   return { agent, pool, meeting, business, subject, agendaItem, closure };
 }

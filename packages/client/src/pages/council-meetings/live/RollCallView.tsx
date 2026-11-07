@@ -223,7 +223,6 @@ export function RollCallView({
     run(async () => {
       if (!meeting.chairMemberId || !meeting.secretaryMemberId) return false;
       const result = await meetingActions.recordOpening({
-        observedAt: new Date().toISOString(),
         chairMemberId: meeting.chairMemberId,
         secretaryMemberId: meeting.secretaryMemberId,
         attendance: draftAttendance.map((entry) =>
@@ -275,7 +274,6 @@ export function RollCallView({
               onClick={() =>
                 void run(async () => {
                   const saved = await meetingActions.recordAttendanceEvents({
-                    observedAt: new Date().toISOString(),
                     changes: draftAttendance.map((entry) => ({
                       councilMemberId: entry.memberId,
                       status: entry.status,

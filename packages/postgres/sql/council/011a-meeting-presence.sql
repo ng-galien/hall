@@ -51,7 +51,7 @@ BEGIN
   SELECT max(event.observed_at) INTO last_observation
   FROM hall.meeting_attendance_event event JOIN hall.meeting_attendance a ON a.id=event.meeting_attendance
   WHERE a.council_meeting=meeting.id;
-  IF NEW.observed_at > clock_timestamp() OR NEW.observed_at < greatest(meeting.started_at,last_observation)
+  IF NEW.observed_at < greatest(meeting.started_at,last_observation)
     OR EXISTS(SELECT FROM hall.meeting_quorum_observation WHERE council_meeting=meeting.id AND observed_at>NEW.observed_at) THEN
     RAISE EXCEPTION USING ERRCODE = 'HV133', MESSAGE='attendance movements must follow the recorded chronology';
   END IF;

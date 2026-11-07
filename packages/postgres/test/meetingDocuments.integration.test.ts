@@ -104,7 +104,6 @@ postgresDescribe("derived meeting documents", () => {
     await prepareMeetingNotice(council, request, meeting.id);
     await council.recordMeetingOpening(request, {
       id: meeting.id,
-      observedAt: "2026-09-05T09:00:00Z",
       chairMemberId: members[0]!.id,
       secretaryMemberId: members[1]!.id,
       attendance: [
@@ -122,7 +121,7 @@ postgresDescribe("derived meeting documents", () => {
       kind: "snapshot",
       phase: "opening",
     });
-    await council.close(request, { id: meeting.id, closedAt: "2026-09-05T10:00:00Z" });
+    await council.close(request, { id: meeting.id });
     const snapshotBefore = (
       await pool.query("SELECT payload FROM hall.council_meeting_snapshot WHERE council_meeting=$1 ORDER BY phase", [
         meeting.id,

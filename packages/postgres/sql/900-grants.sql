@@ -17,7 +17,7 @@ GRANT EXECUTE ON FUNCTION hall_api.import_council_business_bundle(JSONB,JSONB,TE
 REVOKE ALL ON FUNCTION hall_api.create_ballot(UUID,TEXT,UUID[],UUID),
  hall_api.record_public_ballot_votes(UUID,UUID[],TEXT[]),
  hall_api.record_secret_ballot_votes(UUID,INTEGER,INTEGER,INTEGER,INTEGER,INTEGER,INTEGER),
- hall_api.complete_ballot(UUID,TIMESTAMPTZ,UUID),
+ hall_api.complete_ballot(UUID,UUID),
  hall_api.record_public_non_participations(UUID,UUID[],TEXT[])
  FROM hall_api_anonymous,hall_api_authenticated,hall_api_worker;
 REVOKE ALL ON ALL TABLES IN SCHEMA hall, hall_meta FROM hall_api_anonymous, hall_api_authenticated, hall_api_worker;
@@ -230,11 +230,11 @@ GRANT EXECUTE ON FUNCTION hall_api.set_council_meeting_officers(UUID, UUID, UUID
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.prepare_council_meeting(UUID, TIMESTAMPTZ, TEXT, UUID, UUID)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.record_meeting_opening(UUID, TIMESTAMPTZ, JSONB, UUID, UUID)
+GRANT EXECUTE ON FUNCTION hall_api.record_meeting_opening(UUID, JSONB, UUID, UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_meeting_attendance(UUID)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.record_meeting_attendance(UUID, JSONB, TIMESTAMPTZ)
+GRANT EXECUTE ON FUNCTION hall_api.record_meeting_attendance(UUID, JSONB)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.open_ballot(UUID)
   TO hall_api_authenticated, hall_api_worker;
@@ -244,7 +244,7 @@ GRANT EXECUTE ON FUNCTION hall_api.list_ballot_participations(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_ballot_votes(UUID)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.close_council_meeting(UUID, TIMESTAMPTZ)
+GRANT EXECUTE ON FUNCTION hall_api.close_council_meeting(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_minutes(), hall_api.open_minutes(UUID), hall_api.minutes_content(UUID),
   hall_api.update_minutes_draft(UUID, INTEGER, UUID, TEXT), hall_api.generate_minutes(UUID, INTEGER, BYTEA),
@@ -281,18 +281,18 @@ GRANT EXECUTE ON FUNCTION hall_api.agenda_item_recusals(UUID),
 GRANT EXECUTE ON FUNCTION hall_api.list_ballot_non_participations(UUID) TO hall_api_authenticated,hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.meeting_conduct(UUID),
- hall_api.record_meeting_attendance_events(UUID,TIMESTAMPTZ,JSONB),
- hall_api.record_meeting_officer_change(UUID,TEXT,UUID,TIMESTAMPTZ),
- hall_api.declare_meeting_auxiliary_attendance(UUID,UUID,TEXT,TEXT,TEXT,TIMESTAMPTZ),
+ hall_api.record_meeting_attendance_events(UUID,JSONB),
+ hall_api.record_meeting_officer_change(UUID,TEXT,UUID),
+ hall_api.declare_meeting_auxiliary_attendance(UUID,UUID,TEXT,TEXT,TEXT),
  hall_api.update_meeting_auxiliary_attendance(UUID,UUID,TEXT),
- hall_api.record_meeting_closed_session(UUID,UUID[],INTEGER,BOOLEAN,UUID[],TIMESTAMPTZ),
+ hall_api.record_meeting_closed_session(UUID,UUID[],INTEGER,BOOLEAN,UUID[]),
  hall_api.remove_meeting_auxiliary_attendance(UUID,UUID),
- hall_api.record_meeting_quorum(UUID,UUID,TIMESTAMPTZ),
+ hall_api.record_meeting_quorum(UUID,UUID),
  hall_api.record_meeting_reconvocation(UUID,UUID,TIMESTAMPTZ,TIMESTAMPTZ,TEXT,TEXT,TEXT,UUID[])
  TO hall_api_authenticated,hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.create_ballot_result_preview(UUID,JSONB),
- hall_api.open_ballot_result_preview(UUID),hall_api.confirm_ballot_result_preview(UUID,TIMESTAMPTZ)
+ hall_api.open_ballot_result_preview(UUID),hall_api.confirm_ballot_result_preview(UUID)
  TO hall_api_authenticated,hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.freeze_council_agenda(UUID), hall_api.open_council_agenda_freeze(UUID),
