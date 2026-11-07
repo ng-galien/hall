@@ -98,6 +98,7 @@ export type ApiErrorCode =
   | "quorum_not_reached"
   | "request_too_large"
   | "request_failed"
+  | "database_statement_timeout"
   | "resource_content_unavailable"
   | "resource_preview_conversion_failed"
   | "resource_preview_unavailable"
@@ -222,6 +223,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "quorum_not_reached",
   "request_too_large",
   "request_failed",
+  "database_statement_timeout",
   "resource_content_unavailable",
   "resource_preview_conversion_failed",
   "resource_preview_unavailable",

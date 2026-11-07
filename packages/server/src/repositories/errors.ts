@@ -1,4 +1,4 @@
-import { HallPostgresError } from "@hall/postgres";
+import { HallPostgresError, StatementTimeoutError } from "@hall/postgres";
 
 export type PersistenceErrorCode = "conflict";
 
@@ -19,6 +19,14 @@ export class PersistenceError extends Error {
 export function hallSqlState(error: unknown): string | null {
   for (let current = error; current instanceof Error; current = current.cause) {
     if (current instanceof HallPostgresError) return current.sqlState;
+  }
+  return null;
+}
+
+/** The statement timeout carried by an error or one of its causes, or null. */
+export function statementTimeout(error: unknown): StatementTimeoutError | null {
+  for (let current = error; current instanceof Error; current = current.cause) {
+    if (current instanceof StatementTimeoutError) return current;
   }
   return null;
 }

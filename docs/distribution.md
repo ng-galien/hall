@@ -231,7 +231,12 @@ DATABASE_URL=postgresql://hall_admin:REPLACE_ME@127.0.0.1:5432/hall
 SERVER_HOST=127.0.0.1
 SERVER_PORT=3100
 HALL_ALLOWED_ORIGINS=http://127.0.0.1:3100
+HALL_STATEMENT_TIMEOUT_MS=15000
+HALL_DOCUMENT_STATEMENT_TIMEOUT_MS=120000
 ```
+
+The two timeout values are optional; the lines above repeat their defaults. See
+[database statement timeouts](runtime.md#database-statement-timeouts).
 
 Provision the dedicated empty database separately. Do not pass an unrelated
 database to Hall. Run:

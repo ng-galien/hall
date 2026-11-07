@@ -1496,6 +1496,8 @@ export const en = {
   "error.workspace_folder_conflict": "A folder already has this name in this location.",
   "error.workspace_folder_not_found": "This folder no longer exists.",
   "error.request_failed": "The request could not be completed.",
+  "error.database_statement_timeout":
+    "The server stopped an operation that took too long. Try again; if it happens again, tell the person in charge of IT.",
   "error.attendance_not_found": "This attendance record no longer exists.",
   "error.csrf_validation_failed": "The session expired: reload the page and try again.",
   "error.route_not_found": "This address does not exist on the server.",

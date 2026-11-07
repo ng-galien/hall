@@ -20,6 +20,11 @@ export const postgresResourceKinds = [
 ] as const;
 
 const resourceKindSchema = z.enum(postgresResourceKinds);
+/** Commands that store file bytes run under the document statement budget. */
+const documentContentActions: ReadonlySet<string> = new Set([
+  "resource.createDocument",
+  "resource.replaceDocumentContent",
+]);
 export const resourcePathSchema = z
   .string()
   .refine(
@@ -577,7 +582,12 @@ export class PostgresResources {
     councilBusinessId?: string,
     auditBeforeResourceId?: string,
   ): Promise<PostgresPresentedResource<Result>> {
-    return this.transactions.run({ role: request.role, context: this.runContext(request, action) }, async (client) => {
+    const transaction = {
+      role: request.role,
+      context: this.runContext(request, action),
+      statementBudget: documentContentActions.has(action) ? "document" : "interactive",
+    } as const;
+    return this.transactions.run(transaction, async (client) => {
       const before = auditBeforeResourceId
         ? await callJson(client, {
             text: "SELECT hall_api.open_resource($1::uuid) AS payload",
@@ -1201,7 +1211,7 @@ export class PostgresResources {
       })
       .parse(input);
     return this.transactions.run(
-      { role: request.role, context: this.runContext(request, "editorAsset.create") },
+      { role: request.role, context: this.runContext(request, "editorAsset.create"), statementBudget: "document" },
       async (client) => {
         const presented = await callJson(client, {
           text: `SELECT hall_api.present_editor_asset(

@@ -26,6 +26,29 @@ The Vite development server accepts requests for `localhost` and `127.0.0.1`. To
 See [installation, configuration, updates and recovery](distribution.md). The npm
 server uses external PostgreSQL and serves its bundled client at `/app/`.
 
+## Database statement timeouts
+
+Every transaction opened by the PostgreSQL adapters (`packages/postgres/src/transaction.ts`)
+sets a transaction-local `statement_timeout`. Each statement of the transaction is bounded
+by the timeout of its budget:
+
+| Budget | Variable | Default | Operations |
+| --- | --- | --- | --- |
+| `interactive` | `HALL_STATEMENT_TIMEOUT_MS` | `15000` (15 s) | API reads and ordinary commands |
+| `document` | `HALL_DOCUMENT_STATEMENT_TIMEOUT_MS` | `120000` (2 min) | storing a generated notice, minutes or decision document; uploading or replacing a file or an editor image; importing a council business bundle; recording the opening and closing of a meeting (documentary snapshots) |
+
+Values are whole milliseconds; `0` disables the timeout of that budget. An invalid value
+stops the server at startup. An interactive read normally completes in well under a second;
+15 s leaves room for a slow computer while stopping a runaway query before it fills the disk
+with temporary files (on 6 November 2026 one read ran for more than five minutes and wrote
+8.9 GB). PDF rendering and document assembly happen in Node.js outside these statements.
+Schema installation and migrations (`hall migrate`, startup upgrade) and backups do not use
+these transactions and have no timeout.
+
+A statement stopped by its timeout is answered with HTTP 503 and the problem code
+`database_statement_timeout`; the interface shows a French message asking to try again and
+to inform the person in charge of IT if it happens again. The server log records the request.
+
 ## Desktop
 
 In local mode, Electron starts the public `startLocalHttpServer` entry point. It starts an embedded PostgreSQL 17 server (`embedded-postgres`) that listens only on `127.0.0.1` and stores its cluster in the `postgres` folder of the Electron user-data directory, with a generated password in `postgres/credentials.json` (mode 0600). It uses the same HTTP services and SQL contracts as shared Hall, and it stops the PostgreSQL server when the application closes.

@@ -83,6 +83,7 @@ export {
   ProjectionValidationError,
   preservePostgresError,
   SchemaContractError,
+  StatementTimeoutError,
 } from "./errors.js";
 export * from "./minutes.js";
 export { createPostgresPool, type HallPostgresPoolConfig } from "./pool.js";

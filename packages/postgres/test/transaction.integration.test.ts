@@ -1,9 +1,13 @@
 import { Pool } from "pg";
-import { expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { HallPostgresError, ProjectionValidationError } from "../src/errors.js";
+import { HallPostgresError, ProjectionValidationError, StatementTimeoutError } from "../src/errors.js";
 import { callJson } from "../src/jsonCall.js";
-import { PostgresTransactionManager } from "../src/transaction.js";
+import {
+  defaultStatementTimeouts,
+  PostgresTransactionManager,
+  statementTimeoutsFromEnvironment,
+} from "../src/transaction.js";
 import { postgresDescribe, testDatabaseUrl, useFreshHallDatabase } from "./support/database.js";
 
 postgresDescribe("PostgreSQL transaction authority", () => {
@@ -218,5 +222,50 @@ postgresDescribe("PostgreSQL transaction authority", () => {
       table: "unique_probe",
       constraint: "unique_probe_id_unique",
     });
+  });
+
+  // @verifies-requirement HALL-TR-DST-040
+  it("refuses a statement that exceeds its budget with a named timeout and lets a short one pass", async () => {
+    const bounded = new PostgresTransactionManager(pool, { interactive: 300, document: 5_000 });
+
+    const refused = await bounded
+      .run({ role: "hall_api_authenticated", context }, async (client) => client.query("SELECT pg_sleep(2)"))
+      .catch((caught: unknown) => caught);
+    expect(refused).toBeInstanceOf(StatementTimeoutError);
+    expect(refused).toMatchObject({ sqlState: "57014", budget: "interactive", timeoutMs: 300 });
+
+    const short = await bounded.run({ role: "hall_api_authenticated", context }, async (client) => {
+      const result = await client.query<{ timeout: string }>("SELECT current_setting('statement_timeout') AS timeout");
+      return result.rows[0].timeout;
+    });
+    expect(short).toBe("300ms");
+
+    const document = await bounded.run(
+      { role: "hall_api_authenticated", context, statementBudget: "document" },
+      async (client) => {
+        await client.query("SELECT pg_sleep(0.5)");
+        const result = await client.query<{ timeout: string }>(
+          "SELECT current_setting('statement_timeout') AS timeout",
+        );
+        return result.rows[0].timeout;
+      },
+    );
+    expect(document).toBe("5s");
+
+    const after = await pool.query<{ timeout: string }>("SELECT current_setting('statement_timeout') AS timeout");
+    expect(after.rows[0].timeout).toBe("0");
+  });
+});
+
+// @verifies-requirement HALL-TR-DST-040
+describe("statement timeout configuration", () => {
+  it("reads both budgets from the environment and keeps the defaults otherwise", () => {
+    expect(statementTimeoutsFromEnvironment({})).toEqual(defaultStatementTimeouts);
+    expect(
+      statementTimeoutsFromEnvironment({ HALL_STATEMENT_TIMEOUT_MS: "20000", HALL_DOCUMENT_STATEMENT_TIMEOUT_MS: "0" }),
+    ).toEqual({ interactive: 20_000, document: 0 });
+    expect(() => statementTimeoutsFromEnvironment({ HALL_STATEMENT_TIMEOUT_MS: "15s" })).toThrow(
+      "HALL_STATEMENT_TIMEOUT_MS must be a whole number of milliseconds",
+    );
   });
 });

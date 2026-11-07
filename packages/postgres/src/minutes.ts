@@ -80,7 +80,7 @@ export class PostgresMinutes {
   generate(request: PostgresRequest, input: z.input<typeof generateInput>): Promise<MinutesDetail> {
     const parsed = generateInput.parse(input);
     return this.transactions.run(
-      { role: request.role, context: { ...request.context, action: "minutes.generate" } },
+      { role: request.role, context: { ...request.context, action: "minutes.generate" }, statementBudget: "document" },
       async (client) => {
         const result = await callJson(client, {
           text: "SELECT hall_api.generate_minutes($1::uuid,$2::integer,$3::bytea) AS payload",

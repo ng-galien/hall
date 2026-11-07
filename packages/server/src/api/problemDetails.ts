@@ -31,6 +31,7 @@ const titles: Record<string, string> = {
   template_attachments_too_large: "Template attachments are too large",
   template_generation_busy: "Template generation capacity is busy",
   request_failed: "Request failed",
+  database_statement_timeout: "A database statement exceeded its time limit",
   conflict: "Conflict",
   council_business_has_dependencies: "Council business still has resources or linked records",
   bootstrap_unavailable: "Bootstrap unavailable",

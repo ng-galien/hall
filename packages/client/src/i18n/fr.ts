@@ -1524,6 +1524,8 @@ export const fr: Messages = {
   "error.workspace_folder_conflict": "Un dossier porte déjà ce nom à cet emplacement.",
   "error.workspace_folder_not_found": "Ce dossier n’existe plus.",
   "error.request_failed": "La requête n’a pas pu aboutir.",
+  "error.database_statement_timeout":
+    "Le serveur a interrompu une opération trop longue. Réessayez ; si cela se reproduit, prévenez la personne chargée de l’informatique.",
   "error.attendance_not_found": "Cette présence n’existe plus.",
   "error.csrf_validation_failed": "La session a expiré : rechargez la page et réessayez.",
   "error.route_not_found": "Cette adresse n’existe pas sur le serveur.",

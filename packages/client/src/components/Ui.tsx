@@ -270,6 +270,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   recusal_occurrence_locked: "error.recusal_occurrence_locked",
   request_too_large: "error.request_too_large",
   request_failed: "error.request_failed",
+  database_statement_timeout: "error.database_statement_timeout",
   resource_content_unavailable: "error.resource_content_unavailable",
   resource_preview_conversion_failed: "error.resource_preview_conversion_failed",
   resource_preview_unavailable: "error.resource_preview_unavailable",

@@ -3,7 +3,7 @@ import { MulterError } from "multer";
 import { ZodError } from "zod";
 import { CouncilClientError } from "../clients/councilClient.js";
 import { logger } from "../core/logger.js";
-import { hallSqlState, PersistenceError } from "../repositories/errors.js";
+import { hallSqlState, PersistenceError, statementTimeout } from "../repositories/errors.js";
 import { DomainError } from "../services/errors.js";
 import { sendProblem } from "./problemDetails.js";
 
@@ -26,8 +26,13 @@ const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly 
   ["HV714", { status: 409, code: "council_business_folder_not_deletable" }],
 ]);
 
+// @implements-requirement HALL-TR-DST-040
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
   const sqlState = hallSqlState(error);
+  if (statementTimeout(error)) {
+    sendProblem(request, response, 503, "database_statement_timeout");
+    return;
+  }
   const postgresProblem = sqlState === null ? undefined : postgresProblems.get(sqlState);
   if (postgresProblem) {
     sendProblem(request, response, postgresProblem.status, postgresProblem.code);

@@ -647,7 +647,7 @@ export class PostgresCouncil {
   generateNotice(request: PostgresCouncilRequest, id: string, facts: MeetingNoticeFacts, content: Buffer) {
     const parsed = meetingNoticeFactsSchema.parse(facts);
     return this.transactions.run(
-      { role: request.role, context: this.runContext(request, "meeting.generate-notice") },
+      { role: request.role, context: this.runContext(request, "meeting.generate-notice"), statementBudget: "document" },
       async (client) => {
         const result = await callJson(client, {
           text: "SELECT hall_api.generate_meeting_notice($1::uuid,$2::jsonb,$3::bytea) AS payload",
@@ -860,7 +860,11 @@ export class PostgresCouncil {
     },
   ): Promise<PostgresCouncilBusinessWorkspace> {
     return this.transactions.run(
-      { role: request.role, context: this.runContext(request, "council-business.import-bundle") },
+      {
+        role: request.role,
+        context: this.runContext(request, "council-business.import-bundle"),
+        statementBudget: "document",
+      },
       async (client) => {
         const business = await callJson(client, {
           text: "SELECT hall_api.import_council_business_bundle($1::jsonb,$2::jsonb,$3::text) AS payload",
@@ -1466,7 +1470,7 @@ export class PostgresCouncil {
   ): Promise<PostgresMeetingConduct> {
     const parsed = recordMeetingOpeningInputSchema.parse(input);
     return this.transactions.run(
-      { role: request.role, context: this.runContext(request, "meeting.record-opening") },
+      { role: request.role, context: this.runContext(request, "meeting.record-opening"), statementBudget: "document" },
       async (client) => {
         const meeting = await callJson(client, {
           text: "SELECT hall_api.record_meeting_opening($1::uuid, $2::timestamptz, $3::jsonb, $4::uuid, $5::uuid) AS payload",
@@ -1889,7 +1893,7 @@ export class PostgresCouncil {
   close(request: PostgresCouncilRequest, input: CloseCouncilMeetingInput): Promise<PostgresCouncilMeetingClosure> {
     const parsed = closeCouncilMeetingInputSchema.parse(input);
     return this.transactions.run(
-      { role: request.role, context: this.runContext(request, "meeting.close") },
+      { role: request.role, context: this.runContext(request, "meeting.close"), statementBudget: "document" },
       async (client) => {
         const closure = await callJson(client, {
           text: `SELECT hall_api.close_council_meeting(

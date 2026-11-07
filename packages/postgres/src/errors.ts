@@ -31,6 +31,23 @@ export class HallPostgresError extends Error implements DatabaseErrorDetails {
   }
 }
 
+/** A statement of a Hall transaction exceeded the statement timeout of its budget. */
+export class StatementTimeoutError extends HallPostgresError {
+  readonly budget: string;
+  readonly timeoutMs: number;
+
+  constructor(budget: string, timeoutMs: number, cause: unknown) {
+    super(
+      `A database statement exceeded the ${budget} statement timeout of ${timeoutMs} ms`,
+      { sqlState: "57014", constraint: null, table: null, column: null, detail: null, schema: null },
+      cause,
+    );
+    this.name = "StatementTimeoutError";
+    this.budget = budget;
+    this.timeoutMs = timeoutMs;
+  }
+}
+
 export class ProjectionValidationError extends Error {
   constructor(message: string, cause?: unknown) {
     super(message, { cause });

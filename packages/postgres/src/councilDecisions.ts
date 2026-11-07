@@ -91,7 +91,7 @@ export class PostgresCouncilDecisions {
   freeze(request: PostgresRequest, input: z.input<typeof freezeInput>): Promise<CouncilDecisionDetail> {
     const parsed = freezeInput.parse(input);
     return this.transactions.run(
-      { role: request.role, context: { ...request.context, action: "decision.freeze" } },
+      { role: request.role, context: { ...request.context, action: "decision.freeze" }, statementBudget: "document" },
       async (client) => {
         const result = await callJson(client, {
           text: "SELECT hall_api.freeze_council_decision($1::uuid,$2::integer,$3::text,$4::date,$5::bytea) AS payload",
