@@ -5243,13 +5243,20 @@
       },
       "statement": "Une séance ne peut commencer qu’après sa programmation.",
       "acceptanceCriteria": [
-        "Démarrage après programmation : P — précondition de l'automate."
+        "Démarrage après programmation : P — précondition de l'automate.",
+        "Une séance ne s’ouvre pas avant l’heure de convocation saisie dans sa programmation : Hall compare l’heure du serveur à la réception de l’ouverture à cette heure de convocation, et un constat de quorum ne peut précéder cette heure ; aucune heure du navigateur n’intervient."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
           "statement": "Démarrage après programmation : P — précondition de l'automate.",
+          "sourceIds": []
+        },
+        {
+          "key": "no-opening-before-convened-time",
+          "origin": "product",
+          "statement": "Décision du coordinateur du 7 novembre 2026 : l’ouverture avant l’heure de convocation reste refusée ; la règle compare l’heure du serveur à l’heure de convocation saisie, pas à une horloge du navigateur.",
           "sourceIds": []
         }
       ]
