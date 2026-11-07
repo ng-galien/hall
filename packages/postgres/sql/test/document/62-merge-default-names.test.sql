@@ -38,5 +38,13 @@ SELECT is((SELECT full_path FROM resource JOIN texts ON resource.id = report), '
 SELECT set_eq($$SELECT council_meeting, phase, payload FROM council_meeting_snapshot$$,
   $$SELECT council_meeting, phase, payload FROM snapshots_before$$, 'the meeting snapshots are unchanged');
 
+-- The successor meeting opens with the minutes approval, which belongs to no business.
+SELECT ok((SELECT bool_and(business->>'id' IS NOT NULL) FROM council_meetings successor, scenario,
+    jsonb_array_elements(meeting_documents(successor.id)->'groups') grouped, jsonb_array_elements(grouped->'businesses') business
+  WHERE successor.previous_council_meeting = scenario.meeting AND grouped->>'kind' = 'businesses')
+  AND EXISTS (SELECT FROM council_agenda_item item JOIN council_meetings successor ON successor.id = item.council_meeting
+    JOIN scenario ON successor.previous_council_meeting = scenario.meeting WHERE item.minutes_approval IS NOT NULL),
+  'the documents of a meeting with a minutes approval group only business points');
+
 SELECT * FROM finish();
 ROLLBACK;

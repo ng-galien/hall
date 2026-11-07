@@ -156,6 +156,7 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
           jsonb_agg(item->'id' ORDER BY abs((item->>'position')::integer),item->>'id') items
         FROM jsonb_array_elements(context.value#>'{payload,agenda}') item
         LEFT JOIN hall.council_agenda_item current_item ON current_item.id=(item->>'id')::UUID
+        WHERE coalesce(current_item.council_business,(item->>'council_business')::UUID) IS NOT NULL
         GROUP BY 1) presented
       LEFT JOIN hall.council_business_workspace workspace ON workspace.council_business=presented.business
       LEFT JOIN hall.resource folder ON folder.id=workspace.folder_resource))
