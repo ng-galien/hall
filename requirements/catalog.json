@@ -9965,9 +9965,10 @@
         "state": "accepted",
         "since": "2026-11-07"
       },
-      "statement": "La page d’une séance produit, dès sa création, la feuille d’émargement que les conseillers présents signent en arrivant, document PDF d’après un modèle de type « Feuille d’émargement ».",
+      "statement": "La page d’une séance en préparation ou en cours produit la feuille d’émargement que les conseillers présents signent en arrivant, document PDF d’après un modèle de type « Feuille d’émargement ».",
       "acceptanceCriteria": [
-        "Depuis la page d’une séance, dans tous ses états, y compris un brouillon sans date ni ordre du jour figé, Hall produit en PDF la feuille d’émargement : nom de la commune, titre « Feuille d’émargement », numéro de la séance, date et heure quand elles sont fixées, lieu.",
+        "Depuis la page d’une séance en préparation (brouillon sans date ni ordre du jour figé, programmée ou convoquée) ou en cours, tout lecteur de la séance produit en PDF la feuille d’émargement : nom de la commune, titre « Feuille d’émargement », numéro de la séance, date et heure quand elles sont fixées, lieu.",
+        "Une fois la séance close, la page ne propose plus la feuille d’émargement : la représentation Siren de la séance ne porte plus le lien attendance-sheet et le serveur refuse sa production avec le code meeting_attendance_documents_closed (409). La production n’enregistre rien et ne crée aucune ressource.",
         "La feuille contient un tableau de deux colonnes, « Nom et prénom » et « Signature » : une ligne par membre du conseil en mandat, prénom puis nom comme dans l’annuaire, dans l’ordre du tableau du conseil (rang enregistré ; sans rang, le maire, puis les adjoints, puis les conseillers) ; la colonne Signature, vide, est la plus large et chaque ligne mesure au moins 12 mm.",
         "La feuille ne porte ni qualité, ni pouvoir, ni présence enregistrée dans Hall, ni décompte, ni bloc de signature du maire ; le pouvoir est un document distinct.",
         "Le procès-verbal liste les présences dans le même ordre du tableau du conseil que la feuille d’émargement.",
@@ -10003,6 +10004,12 @@
           "origin": "product",
           "statement": "Mots d’Alexandre du 7 novembre 2026 : « la feuille d’émargement, c’est les gens qui sont présents. Donc il n’y a pas de sortes de pouvoir, de machin, etc. Dissocie les sujets. »",
           "sourceIds": []
+        },
+        {
+          "key": "owner-states",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Une séance en préparation, on peut gérer ces deux documents supplémentaires pour la séance […] ou même si la séance est en cours, c’est pas grave. Quand la séance est terminée, on peut plus le faire. » ; « C’est juste de la lecture, tout le monde est capable de générer ces documents, les conseillers pour eux-mêmes ou pour d’autres. » ; « Générer un pouvoir, une feuille d’émargement, est en lecture seule. N’altère pas, ne crée pas de document. »",
+          "sourceIds": []
         }
       ]
     },
@@ -10013,10 +10020,11 @@
         "state": "accepted",
         "since": "2026-11-07"
       },
-      "statement": "La page d’une séance en préparation génère un pouvoir à signer pour le conseiller choisi, d’après un modèle de type « Pouvoir ».",
+      "statement": "La page d’une séance en préparation ou en cours génère un pouvoir à signer pour le conseiller choisi, d’après un modèle de type « Pouvoir ».",
       "acceptanceCriteria": [
         "Le pouvoir est toujours révocable ; sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.",
-        "Depuis la page d’une séance en préparation, quel que soit l’état de l’ordre du jour, l’action « Générer un pouvoir » ouvre un formulaire où l’utilisateur choisit obligatoirement le conseiller qui donne pouvoir, parmi les membres du conseil en mandat, et facultativement le conseiller qui le reçoit, différent du premier. Tout lecteur de la séance peut le générer. Le serveur refuse avec le code proxy_form_invalid un mandant hors mandat, un mandataire hors mandat ou un mandataire égal au mandant.",
+        "Depuis la page d’une séance en préparation, quel que soit l’état de l’ordre du jour, ou en cours, l’action « Générer un pouvoir » ouvre un formulaire où l’utilisateur choisit obligatoirement le conseiller qui donne pouvoir, parmi les membres du conseil en mandat, et facultativement le conseiller qui le reçoit, différent du premier. Tout lecteur de la séance peut le générer. Le serveur refuse avec le code proxy_form_invalid un mandant hors mandat, un mandataire hors mandat ou un mandataire égal au mandant.",
+        "Une fois la séance close, la page ne propose plus de pouvoir : la représentation Siren de la séance ne porte plus le lien proxy-form et le serveur refuse sa production avec le code meeting_attendance_documents_closed (409).",
         "Le PDF porte le nom de la commune, le titre « Pouvoir », la date de la séance, la formule « Je soussigné(e) {mandant}, {qualité} de la commune de {commune}, donne pouvoir à {mandataire}, {qualité}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {date} », le rappel des règles de l’article L2121-20 (un seul pouvoir par porteur, révocable, trois séances consécutives au plus sauf maladie dûment constatée ou congé de maternité), puis « Fait à ……, le …… » à compléter à la main et le bloc de signature « Le mandant » avec son nom. Sans mandataire choisi, une ligne à remplir à la main remplace son nom et sa qualité ; sans date de séance fixée, une ligne à remplir remplace la date.",
         "Le pouvoir n’enregistre rien : les présences et pouvoirs de la séance restent saisis à l’appel.",
         "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `proxy` (`meeting`, `grantor`, `holder` facultatif) affichées dans l’aperçu."
@@ -10048,6 +10056,12 @@
           "key": "owner-flow",
           "origin": "product",
           "statement": "Mots d’Alexandre du 7 novembre 2026 : « Tu choisis le conseiller, et puis voilà. C’est tout. » ; « n’importe qui, en fait, peut imprimer ces documents » ; « c’est pouvoir […] On garde le bon terme. » Le mandataire facultatif, remplacé par une ligne à remplir, est une lecture du coordinateur.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-states",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Une séance en préparation, on peut gérer ces deux documents supplémentaires pour la séance […] ou même si la séance est en cours, c’est pas grave. Quand la séance est terminée, on peut plus le faire. » ; « C’est juste de la lecture, tout le monde est capable de générer ces documents, les conseillers pour eux-mêmes ou pour d’autres. » ; « Générer un pouvoir, une feuille d’émargement, est en lecture seule. N’altère pas, ne crée pas de document. »",
           "sourceIds": []
         }
       ]
@@ -10849,6 +10863,37 @@
           "key": "unidentified-409-2026-11-06",
           "origin": "product",
           "statement": "Constat du 6 novembre 2026 en mairie : le journal du serveur enregistrait méthode, chemin et statut d'une réponse 409 sans son code d'erreur, si bien qu'un ballot_preview_stale ne pouvait pas être distingué d'un autre conflit. Demande du coordinateur du 7 novembre 2026 (chantier garde-fous d'exploitation).",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MTG-390": {
+      "name": "MEETING_DOCUMENTS_SECTION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-07"
+      },
+      "statement": "La page d’une séance rassemble ses documents dans une section repliable « Documents de la séance » : une ligne par document, avec son nom, son état et les actions que la représentation Siren offre à l’utilisateur.",
+      "acceptanceCriteria": [
+        "La section apparaît dans la vue de préparation, la vue d’une séance en cours et le compte rendu d’une séance close ; elle est dépliée à l’ouverture de la page et se replie par son titre.",
+        "Les lignes suivent cet ordre : Convocation, Dossier de séance (en préparation), Pièces jointes, Feuille d’émargement et Pouvoir (en préparation et en cours), puis, après clôture, Procès-verbal, Liste des délibérations et Délibérations.",
+        "La ligne Convocation indique l’ordre du jour à figer, le PDF à générer ou la version courante avec sa date ; elle porte les actions figer ou modifier l’ordre du jour, générer ou régénérer le PDF, ouvrir la version courante ou une version antérieure, et télécharger le courriel aux conseillers, chacune seulement quand Siren l’offre.",
+        "La ligne Pièces jointes liste les pièces rattachées à la séance avec leur catégorie et leur taille, chacune consultable ; le dépôt d’une pièce n’apparaît qu’en préparation et quand Siren offre resource.create-document.",
+        "Après clôture, la ligne Procès-verbal indique brouillon ou document généré et mène à sa page ; la ligne Délibérations liste les points délibérés, chacun avec le lien vers sa délibération.",
+        "Un conseiller voit les mêmes lignes et ouvre ou génère les PDF en lecture ; les actions d’écriture n’apparaissent que si la capacité existe. À 800 px de large, la section ne déborde pas de la page."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « Dans l’écran actuel, il y a pas mal de petits boutons dans tous les sens, voir ceci, voir les documents. Il faut une section bien faite, plutôt dans la vue de détail, une section bien rassemblée avec tous les documents. […] Il faut une expérience utilisateur moins fouillie, une gestion documentaire rattachée à la séance. Dedans, il y a tout l’existant plus les deux choses. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-precision",
+          "origin": "product",
+          "statement": "Mots d’Alexandre du 7 novembre 2026 : « faut pas que ça prenne toute la page, faut que ça soit une section, à la rigueur collapsible, qu’on puisse aller consulter les documents. On a la liste des documents, l’état, et si on peut les générer. »",
           "sourceIds": []
         }
       ]

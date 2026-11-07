@@ -727,12 +727,11 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
   await expect(page.getByTestId("meeting-entry-blocker-agendaNotFrozen")).toBeVisible();
   await expect(page.getByTestId("meeting-entry-blocker-currentNoticeMissing")).toBeVisible();
-  await expect(page.getByTestId("meeting-notice-attention")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   await expect(page.getByTestId("live-meeting-start")).toHaveCount(0);
   await page.getByTestId("live-return-preparation").click();
-  await page.getByTestId("meeting-open-notice").click();
   const frozen = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/agenda-freeze"),
   );
@@ -741,22 +740,19 @@ test("shows canonical meeting entry requirements and invalidates entry when the 
   await page.getByTestId("meeting-generate-notice").click();
   await expect(page.getByTestId("document-object-viewer")).toBeVisible();
   await page.getByTestId("document-object-viewer-close").click();
-  await page.keyboard.press("Escape");
   await expect(page.getByTestId("meeting-live-entry-reason")).toHaveCount(0);
-  await expect(page.getByTestId("meeting-notice-attention")).toHaveCount(0);
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "done");
   await page.getByTestId("meeting-enter-live").click();
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
   await expect(page.getByTestId("meeting-entry-blocker-scheduledTimeNotReached")).toBeVisible();
   await expect(page.getByTestId("live-meeting-start")).toBeDisabled();
   await page.getByTestId("live-meeting-exit").click();
-  await page.getByTestId("meeting-open-notice").click();
   await page.getByTestId("meeting-reopen-agenda").click();
   await expect(page.getByTestId("meeting-freeze-agenda")).toBeVisible();
-  await page.keyboard.press("Escape");
   await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
   await expect(page.getByTestId("meeting-entry-blocker-agendaNotFrozen")).toBeVisible();
   await expect(page.getByTestId("meeting-entry-blocker-currentNoticeMissing")).toBeVisible();
-  await expect(page.getByTestId("meeting-notice-attention")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   const after = await sirenProperties<typeof initial>(await page.request.get(conductUrl));
@@ -859,7 +855,6 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
     await page.request.get(`/api/council-business/${businesses[0]!.id}`),
   );
   expect(proposal.subject.textResourceId).not.toBe(business.reportResourceId);
-  await page.getByTestId("meeting-open-notice").click();
   await page.getByTestId("meeting-freeze-agenda").click();
   await expect(page.getByTestId("meeting-generate-notice")).toBeVisible();
   const noticeResponse = page.waitForResponse(

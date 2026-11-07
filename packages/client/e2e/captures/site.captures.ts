@@ -117,7 +117,6 @@ test.describe("convocation", () => {
     }>(page, "/api/council-meetings");
     const next = meetings.find((meeting) => !meeting.startedAt && !meeting.closedAt)!;
     await page.goto(`/app/meetings/${next.id}`);
-    await page.getByTestId("meeting-open-notice").click();
     await page.getByTestId("meeting-freeze-agenda").click();
     await page.getByTestId("meeting-generate-notice").click();
     // The generated PDF opens in the document viewer; the capture shows the dialog with its current version.

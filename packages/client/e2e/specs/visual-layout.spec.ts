@@ -95,10 +95,8 @@ for (const [device, viewport] of [
       const meeting = await meetingInPreparation(page);
       await page.goto(`/app/meetings/${meeting.id}`);
       await expectLoaded(page);
-      await expect(page.getByTestId("meeting-notice-attention")).toBeVisible();
-      for (const testId of ["meeting-open-notice", "meeting-open-documents", "meeting-edit-details"]) {
-        await expectIconsBesideLabel(page.getByTestId(testId));
-      }
+      await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
+      await expectIconsBesideLabel(page.getByTestId("meeting-edit-details"));
       await expectIconsBesideLabel(page.getByTestId("meeting-enter-live").first());
 
       const [chair, secretary] = (await items<{ id: string; active: boolean }>(page, "/api/council-members")).filter(

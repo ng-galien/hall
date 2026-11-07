@@ -332,13 +332,12 @@ test("document previews share a contextual frame in both themes without changing
       observations.push(await aligned(page, businessPdf, `business-report-${tone}`));
       await page.getByTestId("business-report-pdf-preview-close").click();
       const prepared = meetings.find((entry) => !entry.closedAt)!;
-      await go(`meetings/${prepared.reference ?? prepared.id}`);
       const noticesLoaded = page.waitForResponse(
         (response) => response.request().method() === "GET" && new URL(response.url()).pathname.endsWith("/notices"),
       );
-      await page.getByTestId("meeting-open-notice").click();
+      await go(`meetings/${prepared.reference ?? prepared.id}`);
       await noticesLoaded;
-      const noticeButtons = page.locator('[data-testid^="meeting-notice-preview-"]');
+      const noticeButtons = page.getByTestId("meeting-notice-open");
       if (!(await noticeButtons.count())) {
         const freezeAgenda = page.getByTestId("meeting-freeze-agenda");
         if (await freezeAgenda.isVisible()) await freezeAgenda.click();

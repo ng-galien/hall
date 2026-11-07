@@ -91,6 +91,7 @@ function DocumentRow({
 // @implements-requirement HALL-FR-NOT-120 (the meeting dossier is offered with the meeting documents)
 // @implements-requirement HALL-FR-ATT-170
 // @implements-requirement HALL-FR-ATT-180
+// @implements-requirement HALL-FR-MTG-390
 /** Every document of a meeting on one list: name, state and the actions its Siren representation offers. */
 export function MeetingDocumentsSection({
   meetingActions,

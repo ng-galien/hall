@@ -56,3 +56,19 @@ test("the page of a meeting in preparation opens the attendance sheet and genera
   expect(proxyResponse.status()).toBe(200);
   expect(proxyResponse.headers()["content-type"]).toMatch(/application\/pdf/);
 });
+
+// @verifies-requirement HALL-FR-ATT-170
+// @verifies-requirement HALL-FR-ATT-180
+// @verifies-requirement HALL-FR-MTG-390
+test("the documents of a closed meeting no longer offer the attendance sheet or the proxy", async ({
+  appPage: page,
+}) => {
+  const meetings = await items<{ id: string; closedAt: string | null }>(page, "/api/council-meetings");
+  const closed = meetings.find((meeting) => meeting.closedAt)!;
+  await page.goto(`/app/meetings/${closed.id}`);
+  await expect(page.getByTestId("meeting-document-minutes")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-deliberation-list")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-decisions")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-attendance-sheet")).toHaveCount(0);
+  await expect(page.getByTestId("meeting-document-proxy-form")).toHaveCount(0);
+});

@@ -59,7 +59,7 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
     .scrollIntoViewIfNeeded();
   await shot("04-point-inscrit");
 
-  await page.getByRole("button", { name: "Ordre du jour" }).click();
+  await page.getByTestId("meeting-documents").scrollIntoViewIfNeeded();
   await expect(page.getByTestId("meeting-freeze-agenda")).toBeVisible();
   await shot("05-figer-ordre-du-jour");
   await page.getByTestId("meeting-freeze-agenda").click();
@@ -71,11 +71,8 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
   await expect(page.getByText("Visionneuse de document")).toBeHidden();
   await expect(page.getByRole("button", { name: /Télécharger le courriel Outlook/ })).toBeVisible();
   await shot("07-convocation-generee");
-  await page.keyboard.press("Escape");
-  await page.getByTestId("meeting-open-documents").click();
   await expect(page.getByTestId("meeting-dossier-download")).toBeVisible();
   await shot("07b-dossier-de-seance");
-  await page.keyboard.press("Escape");
 
   await signIn(page, "conduite");
   await expect(page.getByTestId("meeting-enter-live")).toBeEnabled();

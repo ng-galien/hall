@@ -46,7 +46,6 @@ async function openMeetingWithStartedItem(page: Page, kind: "openQuestion" | "co
     }),
   );
   await page.goto(`/app/meetings/${scheduled.slug}`);
-  await page.getByTestId("meeting-open-notice").click();
   await page.getByTestId("meeting-freeze-agenda").click();
   const noticeResponse = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
