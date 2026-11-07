@@ -14,7 +14,7 @@ import {
 
 export interface MeetingAttendanceDocumentService {
   attendanceSheet(meetingReference: string): Promise<Buffer>;
-  proxyForm(meetingReference: string, grantorMemberId: string, holderMemberId: string | null): Promise<Buffer>;
+  proxyForm(meetingReference: string, grantorMemberId: string, holderMemberId: string): Promise<Buffer>;
 }
 
 // @implements-requirement HALL-FR-ATT-170
@@ -53,16 +53,16 @@ export function attendanceSheetData(
 }
 
 // @implements-requirement HALL-FR-ATT-180
-/** The grantor is a member in mandate; the holder, optional, is another member in mandate. The form records nothing. */
+/** The grantor and the holder are two distinct members in mandate. The form records nothing. */
 export function proxyFormData(
   meeting: CouncilMeeting,
   members: readonly MeetingDocumentMember[],
   grantorMemberId: string,
-  holderMemberId: string | null,
+  holderMemberId: string,
 ): ProxyFormData {
   const grantor = members.find((member) => member.id === grantorMemberId);
-  const holder = holderMemberId === null ? null : members.find((member) => member.id === holderMemberId);
-  if (!grantor || holder === undefined || holder?.id === grantor.id) throw new DomainError("proxy_form_invalid", 422);
+  const holder = members.find((member) => member.id === holderMemberId);
+  if (!grantor || !holder || holder.id === grantor.id) throw new DomainError("proxy_form_invalid", 422);
   return { meeting: meetingDocumentMeeting(meeting), grantor, holder };
 }
 

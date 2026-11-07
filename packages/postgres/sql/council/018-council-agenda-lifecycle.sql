@@ -56,6 +56,11 @@ BEGIN
   END IF;
 
   IF TG_OP = 'UPDATE' THEN
+    -- @implements-requirement HALL-FR-AGI-030
+    -- The previous minutes approval is never removed from the agenda: once off the agenda, nothing brings it back.
+    IF OLD.minutes_approval IS NOT NULL AND OLD.position > 0 AND NEW.position < 0 THEN
+      RAISE EXCEPTION USING ERRCODE = 'HV238', MESSAGE = 'the previous minutes approval stays on the agenda';
+    END IF;
     IF OLD.adjourned_at IS NOT NULL AND NEW.adjourned_at IS DISTINCT FROM OLD.adjourned_at THEN
       RAISE EXCEPTION USING ERRCODE = 'HV230', MESSAGE = 'an agenda adjournment is immutable';
     END IF;

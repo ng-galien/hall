@@ -167,6 +167,7 @@ export function createPostgresCouncilClient({
         if (error.sqlState === "HV820") throw new DomainError("council_committee_not_found", 404);
         if (error.sqlState === "HV910") throw new DomainError("prepared_subject_not_found", 404);
         if (error.sqlState === "HV709") throw new DomainError("minutes_not_generated", 409);
+        if (error.sqlState === "HV238") throw new DomainError("minutes_approval_stays_on_agenda", 409);
         if (error.sqlState === "HV607") {
           throw new CouncilClientError("invalidResourceLocation", { cause: error });
         }
@@ -213,6 +214,7 @@ export function createPostgresCouncilClient({
       call(() => postgresCouncil.createPreparedSubject(currentRequest(), businessId, input)),
     schedulePreparedSubject: (meetingId, input) =>
       call(() => postgresCouncil.schedulePreparedSubject(currentRequest(), meetingId, input)),
+    establishAgendaRevision: (id) => call(() => postgresCouncil.freezeAgenda(currentRequest(), id)),
     reopenAgenda: (id) => call(() => postgresCouncil.reopenAgenda(currentRequest(), id)),
     resetAgendaRevision: (id) => call(() => postgresCouncil.resetAgendaRevision(currentRequest(), id)),
     openAgendaFreeze: (id) => call(() => postgresCouncil.openAgendaFreeze(currentRequest(), id)),

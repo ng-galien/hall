@@ -46,3 +46,54 @@ Captures de Hall (public/captures) : écrans de l'application sur le jeu de dém
 Régénération : télécharger les fichiers ci-dessus dans un dossier à part (alti-fine.bil, <couche>.json,
 commune-<code>.json), puis, depuis le dossier site :
   python3 -I scripts/prepare-geodata.py <dossier des téléchargements> public/terrain
+
+Illustrative siege models (src/siege-models.ts)
+
+The Roman fortified area at Syam follows the general setting of the Berthier hypothesis: military
+positions in the plain, below the proposed oppidum, with defensive works protecting its southern
+approaches. The archive notices consulted describe terraces, ditches, fortified positions and the
+circulation between them:
+- Archives André Berthier, inventory of Gaulish and Roman positions (1973), including positions 49–57
+  in the plain of Syam:
+  https://berthier.archeojurasites.org/content/inventaire-et-fiches-descriptives-berthier-1973-des-positions-gauloises-et-romaines-et
+- Archives André Berthier, Jacques Berger's studies of the southern closure of the plain:
+  https://berthier.archeojurasites.org/mots-cles-militaires/voie-de-circulation-rapide
+- Archives André Berthier, notice of Berger's 2004 map plates:
+  https://berthier.archeojurasites.org/content/planches-de-louvrage-alesia-chaux-des-crotenay-pourquoi-de-jacques-berger-2004
+
+Only the public catalogue descriptions were available. Attached survey plans were inaccessible;
+no plan or archaeological footprint has been copied or digitised. The perimeter, tents, gates,
+heights and spacing are original illustrative geometry, not measurements attributed to Berthier.
+Ditches are depicted by terrain-following dark grooves, not excavated from the elevation data.
+
+The earth-and-timber banks, palisades, towers, ditches and tents evoke Roman siege construction.
+Typology reference: MuséoParc Alésia, the reconstructed fortifications and discovery trail:
+https://alesia.com/parcours-decouverte/
+This typological comparison does not transfer the archaeological evidence from Alise-Sainte-Reine
+to Syam. The archaeological identification of Alésia remains Alise-Sainte-Reine.
+
+The watchtower, granaries, rampart, meeting house, assembly and lookout are fictional places of the
+Hall demonstration. Their volumes and heights are enlarged for legibility at map scale. Foundations
+and defensive lines follow the existing IGN elevation surface. No newly added model is presented as
+a surveyed or independently dated archaeological remain. Cornu's houses, lanes and enclosure likewise
+illustrate an inhabited oppidum, without claiming a surveyed settlement plan.
+The two sculptural figures are generated illustrations; references and prompts are recorded in
+public/figures/provenance.md. They are not photographs or archaeological reconstructions.
+
+Narrative text
+
+The siege narrative uses Caesar, Gallic War VII, especially chapters 71–78 (cavalry leaving at
+night, shared grain supplies, fortifications, allied contingents, relief commanders and famine).
+French translation consulted: https://bcs.fltr.ucl.ac.be/CAES/BGVII.html
+The existing Jura interpretation of the setting is retained. The missive is a narrative scene,
+not a quotation or a claim that a particular surviving letter or dated meeting is documented.
+The municipal roles, votes, quorum, quantities and budgets shown in the Hall screenshots belong
+to the demonstration data; they are not stated as historical facts in the narrative.
+
+Local place names: public/terrain/localities.json contains the 82 named inhabited places and neighbourhoods
+intersecting the terrain extent, extracted from IGN BD TOPO V3 zone_d_habitation on 7 November 2026
+(WFS, EPSG:4326, bbox 5.925 E / 46.605 N / 6.065 E / 46.720 N, Licence Ouverte Etalab 2.0).
+Names, identifiers and display importance come from IGN. Border settlements are anchored on their portion
+inside the tile. “Commune des Chalesmes” uses the official commune name “Les Chalesmes”, checked against
+https://geo.api.gouv.fr/departements/39/communes?fields=nom,code,centre.
+Regenerate with scripts/prepare-geodata.py --localities <zone_d_habitation.json> public/terrain.

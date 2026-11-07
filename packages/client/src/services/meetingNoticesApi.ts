@@ -23,6 +23,12 @@ export async function resetMeetingAgendaRevision(reference: string) {
   );
 }
 
+export async function establishMeetingAgendaRevision(reference: string) {
+  return councilMeetingSchema.parse(
+    (await submitSirenActionAt<unknown>(meetingPath(reference), "meeting.establish-agenda-revision", {})).data,
+  );
+}
+
 export async function reopenMeetingAgenda(reference: string) {
   return councilMeetingSchema.parse(
     (await submitSirenActionAt<unknown>(meetingPath(reference), "meeting.reopen-agenda", {})).data,

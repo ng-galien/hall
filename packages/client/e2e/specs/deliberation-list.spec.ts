@@ -17,7 +17,7 @@ test("the page of a closed meeting opens the list of deliberations examined", as
   const closed = meetings.find((meeting) => meeting.closedAt)!;
   await page.goto(`/app/meetings/${closed.id}`);
   const document = page.waitForResponse((response) => response.url().endsWith("/deliberation-list.pdf"));
-  await page.getByTestId("meeting-deliberation-list-open").click();
+  await page.getByTestId("meeting-document-deliberation-list-open").click();
   await expect(page.getByTestId("document-object-viewer")).toBeVisible();
   const response = await document;
   expect(response.status()).toBe(200);

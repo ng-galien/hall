@@ -552,7 +552,11 @@ export function buildNetworks(ground: Ground): THREE.Group {
   return group;
 }
 
-export function buildToponyms(ground: Ground, labels: HTMLElement): { node: HTMLElement; at: THREE.Vector3 }[] {
+export function buildToponyms(
+  ground: Ground,
+  labels: HTMLElement,
+  includeSettlements = true,
+): { node: HTMLElement; at: THREE.Vector3 }[] {
   const items: { node: HTMLElement; at: THREE.Vector3 }[] = [];
   const seen = new Set<string>();
   const add = (text: string, x: number, y: number, kind: string) => {
@@ -564,6 +568,7 @@ export function buildToponyms(ground: Ground, labels: HTMLElement): { node: HTML
     items.push({ node, at: new THREE.Vector3(x * SCALE, ground.height(x, y) + 4, -y * SCALE) });
   };
   for (const toponym of ground.data.toponyms) {
+    if (!includeSettlements && toponym.k === "Lieu-dit habité") continue;
     const kind = shownToponyms.get(toponym.t);
     if (!kind || seen.has(toponym.t)) continue;
     seen.add(toponym.t);

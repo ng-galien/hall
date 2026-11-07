@@ -3,6 +3,9 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { crossfade, revealScene } from "./arrival";
+import { buildHeritage } from "./heritage";
+import { fitLabel, type LabelBox } from "./label-layout";
+import { buildLocalities } from "./localities";
 import { palette } from "./palette";
 import {
   buildBuildings,
@@ -20,6 +23,8 @@ import {
   wideLines,
 } from "./relief";
 import type { Mark, MarkTone, Motion, PlaceId, Pose, Spot } from "./scenes";
+import { buildSiegeLandmark, type SiegeLandmark } from "./siege-models";
+import { buildJourneys } from "./story-journeys";
 import {
   ACCENT,
   ACCENT_ON_DARK,
@@ -39,6 +44,7 @@ export interface TerrainPlace {
   name: string;
   x: number;
   y: number;
+  icons: string;
 }
 
 export interface TerrainOptions {
@@ -70,37 +76,45 @@ export interface TerrainView {
 
 interface PlaceModel {
   place: TerrainPlace;
+  landmark: SiegeLandmark;
   ring: THREE.Mesh;
-  beam: THREE.Line;
   hit: THREE.Mesh;
-  anchor: THREE.Vector3;
   centre: THREE.Vector3;
   label: HTMLElement;
+  leader: SVGPathElement;
+  leaderHalo: SVGPathElement;
+  pin: SVGCircleElement;
+  pinHalo: SVGCircleElement;
 }
 
 const PLACE_RADIUS = 70;
 
-function buildPlaces(ground: Ground, places: TerrainPlace[], labels: HTMLElement, scene: THREE.Scene): PlaceModel[] {
+function buildPlaces(
+  ground: Ground,
+  places: TerrainPlace[],
+  labels: HTMLElement,
+  scene: THREE.Scene,
+  onSelect: (id: PlaceId) => void,
+): PlaceModel[] {
+  const leaders = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  leaders.classList.add("terrain-place-leaders");
+  leaders.setAttribute("aria-hidden", "true");
+  labels.append(leaders);
   return places.map((place, index) => {
-    const groundY = ground.height(place.x, place.y);
+    const landmark = buildSiegeLandmark(ground, place.id, { x: place.x, y: place.y });
+    const groundY = landmark.anchorHeight;
     const x = place.x * SCALE;
     const z = -place.y * SCALE;
     const radius = PLACE_RADIUS * SCALE;
+    const markerRadius = Math.min(radius, 1.8);
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(radius * 0.92, radius, 72),
-      new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.25, depthTest: false }),
+      new THREE.RingGeometry(markerRadius * 0.76, markerRadius, 72),
+      new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.65, depthTest: false }),
     );
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(x, groundY + 2, z);
     ring.renderOrder = 5;
     const beamHeight = 30 + (index % 3) * 18;
-    const beam = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(x, groundY, z),
-        new THREE.Vector3(x, groundY + beamHeight, z),
-      ]),
-      new THREE.LineBasicMaterial({ color: look.lineLight, transparent: true, opacity: 0.7 }),
-    );
     const hit = new THREE.Mesh(
       new THREE.CylinderGeometry(
         Math.min(14, Math.max(5, radius)),
@@ -112,25 +126,44 @@ function buildPlaces(ground: Ground, places: TerrainPlace[], labels: HTMLElement
     );
     hit.position.set(x, groundY + beamHeight / 2, z);
     hit.userData.place = place.id;
-    scene.add(ring, beam, hit);
-    const label = document.createElement("span");
+    scene.add(ring, hit);
+    scene.add(landmark.group);
+    const label = document.createElement("button");
+    label.type = "button";
+    label.addEventListener("click", () => onSelect(place.id));
     label.className = "terrain-label";
     const number = document.createElement("span");
-    number.className = "terrain-label-dot";
+    number.className = "terrain-label-icons";
+    number.innerHTML = place.icons;
+    number.setAttribute("aria-hidden", "true");
     const name = document.createElement("span");
     name.className = "terrain-label-name";
     name.textContent = place.name;
     label.append(number, name);
     label.dataset.testid = `terrain-label-${place.id}`;
     labels.appendChild(label);
+    const leaderHalo = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    leaderHalo.classList.add("terrain-leader-halo");
+    const leader = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    leader.classList.add("terrain-leader");
+    const pinHalo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    pinHalo.classList.add("terrain-pin-halo");
+    pinHalo.setAttribute("r", "8");
+    const pin = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    pin.classList.add("terrain-pin");
+    pin.setAttribute("r", "4");
+    leaders.append(leaderHalo, leader, pinHalo, pin);
     return {
       place,
+      landmark,
       ring,
-      beam,
       hit,
-      anchor: new THREE.Vector3(x, groundY + beamHeight, z),
       centre: new THREE.Vector3(x, groundY + beamHeight * 0.4, z),
       label,
+      leader,
+      leaderHalo,
+      pin,
+      pinHalo,
     };
   });
 }
@@ -145,6 +178,8 @@ const markColors: Record<MarkTone, number> = {
 interface MarkItem {
   objects: THREE.Object3D[];
   node: HTMLElement | null;
+  leader?: SVGPathElement;
+  position?: { x: number; y: number };
   at: THREE.Vector3;
   delay: number;
 }
@@ -173,16 +208,14 @@ function markObjects(ground: Ground, mark: Mark): THREE.Object3D[] {
   const base = groundPoint(ground, mark.at, 1.5);
   if (mark.kind === "label") return [];
   if (mark.kind === "work") {
-    const tower = new THREE.LineSegments(
-      new THREE.BufferGeometry().setFromPoints([
-        base,
-        base.clone().setY(base.y + 14),
-        base.clone().add(new THREE.Vector3(-2.5, 14, 0)),
-        base.clone().add(new THREE.Vector3(2.5, 14, 0)),
-      ]),
-      new THREE.LineBasicMaterial({ color: look.lineLight, transparent: true, opacity: 0.9 }),
+    const footprint = new THREE.Mesh(
+      new THREE.RingGeometry(4, 5.5, 24),
+      new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.65, depthTest: false }),
     );
-    return [tower];
+    footprint.rotation.x = -Math.PI / 2;
+    footprint.position.copy(base);
+    footprint.renderOrder = 8;
+    return [footprint];
   }
   const disc = new THREE.Mesh(
     new THREE.CircleGeometry(mark.label ? 4 : 2.4, 24),
@@ -197,6 +230,10 @@ function markObjects(ground: Ground, mark: Mark): THREE.Object3D[] {
 function buildMarks(ground: Ground, motion: Motion, labels: HTMLElement): MarkLayer {
   const group = new THREE.Group();
   const items: MarkItem[] = [];
+  const leaders = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  leaders.classList.add("terrain-place-leaders", "terrain-action-leaders");
+  leaders.setAttribute("aria-hidden", "true");
+  labels.append(leaders);
   const span = motion.seconds * 0.55;
   const count = motion.marks.length + (motion.trace ? 1 : 0);
   const delayOf = (index: number) => 0.8 + (span * index) / Math.max(1, count);
@@ -229,6 +266,14 @@ function buildMarks(ground: Ground, motion: Motion, labels: HTMLElement): MarkLa
       delay: delayOf(motion.marks.length),
     });
   }
+  for (const item of items) {
+    if (!item.node) continue;
+    const leader = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    leader.classList.add("terrain-action-leader");
+    leader.style.visibility = "hidden";
+    leaders.append(leader);
+    item.leader = leader;
+  }
   return {
     group,
     items,
@@ -240,6 +285,7 @@ function buildMarks(ground: Ground, motion: Motion, labels: HTMLElement): MarkLa
         }
       });
       for (const item of items) item.node?.remove();
+      leaders.remove();
     },
   };
 }
@@ -289,7 +335,9 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = !reducedMotion;
   controls.dampingFactor = 0.07;
-  controls.enablePan = false;
+  controls.enablePan = true;
+  controls.screenSpacePanning = false;
+  controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
   controls.minPolarAngle = 0.25;
   controls.maxPolarAngle = 1.18;
   controls.minDistance = 90;
@@ -313,8 +361,36 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   const buildings = buildBuildings(ground);
   themeBuildings(buildings);
   scene.add(buildings);
-  const models = buildPlaces(ground, places, labels, scene);
-  const toponyms = buildToponyms(ground, labels);
+  const models = buildPlaces(ground, places, labels, scene, onSelect);
+  const walkableMeshes = models.flatMap(({ landmark }) =>
+    landmark.meshes.filter((mesh) => /-(earth|stone)$/.test(mesh.name)),
+  );
+  const supportRay = new THREE.Raycaster();
+  const supportOrigin = new THREE.Vector3();
+  const supportDown = new THREE.Vector3(0, -1, 0);
+  const walkingGround: Ground = {
+    ...ground,
+    height(x, y) {
+      const base = ground.height(x, y);
+      supportOrigin.set(x * SCALE, base + 100, -y * SCALE);
+      supportRay.set(supportOrigin, supportDown);
+      const surfaces = supportRay
+        .intersectObjects(walkableMeshes, false)
+        .filter((hit) => (hit.face?.normal.y ?? 0) > 0.7);
+      return Math.max(base, ...surfaces.map((hit) => hit.point.y));
+    },
+  };
+  stage.dataset.landmarks = JSON.stringify(
+    Object.fromEntries(
+      models.map(({ place, landmark }) => [
+        place.id,
+        { meshes: landmark.meshes.length, triangles: landmark.triangles },
+      ]),
+    ),
+  );
+  const toponyms = buildToponyms(ground, labels, false);
+  const localities = await buildLocalities(ground, labels);
+  const heritage = buildHeritage(ground, labels);
 
   const lineMaterials: LineMaterial[] = [];
   networks.traverse((child) => {
@@ -325,12 +401,12 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   const overview = narrow
     ? {
         target: new THREE.Vector3(-190, 75, -40),
-        direction: new THREE.Vector3(0.08, 1.15, 1).normalize(),
+        direction: new THREE.Vector3().setFromSphericalCoords(1, 1.1328, -2.7673),
         distance: 520,
       }
     : {
-        target: new THREE.Vector3(-90, 40, 30),
-        direction: new THREE.Vector3(0.28, 0.6, 1).normalize(),
+        target: new THREE.Vector3(-378.024, 40, 189.177),
+        direction: new THREE.Vector3().setFromSphericalCoords(1, 1.1328, -2.7673),
         distance: 1500,
       };
   let active: PlaceId | null = null;
@@ -345,6 +421,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   }
   let flights: Flight[] = [];
   let layer: MarkLayer | null = null;
+  let journeys: ReturnType<typeof buildJourneys> | null = null;
   let shotClock = 0;
 
   function fitDistance(base: number): number {
@@ -356,7 +433,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     return base * Math.max(widthFactor, heightFactor);
   }
 
-  camera.position.copy(overview.target).addScaledVector(new THREE.Vector3(0.1, 1.4, 0.5).normalize(), 1500);
+  camera.position.copy(overview.target).addScaledVector(overview.direction, fitDistance(overview.distance) * 1.12);
   controls.target.copy(overview.target);
 
   function poseTarget(pose: Pose): THREE.Vector3 {
@@ -456,6 +533,10 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     dirty = true;
   };
   controls.addEventListener("change", markDirty);
+  const stopFlight = () => {
+    flights = [];
+  };
+  controls.addEventListener("start", stopFlight);
 
   const offset = { x: 0, y: 0 };
   let wanted = { x: 0, y: 0 };
@@ -502,9 +583,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       const isActive = model.place.id === active;
       const isHovered = model.place.id === hovered;
       const ringMaterial = model.ring.material as THREE.MeshBasicMaterial;
-      ringMaterial.opacity = isActive ? 0.95 : isHovered ? 0.6 : 0.25;
-      const beamMaterial = model.beam.material as THREE.LineBasicMaterial;
-      beamMaterial.color.setHex(isActive ? accent : look.lineLight);
+      ringMaterial.opacity = isActive ? 1 : isHovered ? 0.85 : 0.65;
       model.label.classList.toggle("is-active", isActive);
       model.label.classList.toggle("is-hovered", isHovered);
     }
@@ -523,16 +602,23 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(
+    // Keep the existing place targets selectable even where a foreground model overlaps their projection.
+    const anchors = raycaster.intersectObjects(
       models.map((m) => m.hit),
       false,
     );
+    const hits = anchors.length
+      ? anchors
+      : raycaster.intersectObjects(
+          models.flatMap((m) => m.landmark.meshes),
+          false,
+        );
     return (hits[0]?.object.userData.place as PlaceId | undefined) ?? null;
   }
 
   let down: { x: number; y: number } | null = null;
   const onPointerDown = (event: PointerEvent) => {
-    down = { x: event.clientX, y: event.clientY };
+    down = event.button === 0 ? { x: event.clientX, y: event.clientY } : null;
     flights = [];
   };
   const onPointerUp = (event: PointerEvent) => {
@@ -544,7 +630,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     if (id) onSelect(id);
   };
   const onPointerMove = (event: PointerEvent) => {
-    if (event.pointerType !== "mouse" || down) return;
+    if (event.pointerType !== "mouse" || event.buttons !== 0 || down) return;
     const id = pick(event);
     if (id !== hovered) {
       hovered = id;
@@ -560,7 +646,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   observer.observe(stage);
   resize();
   paint();
-  flyTo(overview.target, overview.direction, overview.distance, 3.2);
+  flyTo(overview.target, overview.direction, overview.distance, 2.2);
 
   const projected = new THREE.Vector3();
   function screen(point: THREE.Vector3, width: number, height: number): [number, number, boolean] {
@@ -573,10 +659,92 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     const [tx, ty] = screen(controls.target, width, height);
     stage.dataset.targetX = String(Math.round(tx));
     stage.dataset.targetY = String(Math.round(ty));
-    for (const model of models) {
-      const [x, y, visible] = screen(model.anchor, width, height);
-      model.label.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+    stage.dataset.targetWorldX = controls.target.x.toFixed(3);
+    stage.dataset.targetWorldY = controls.target.y.toFixed(3);
+    stage.dataset.targetWorldZ = controls.target.z.toFixed(3);
+    stage.dataset.azimuth = controls.getAzimuthalAngle().toFixed(4);
+    stage.dataset.polar = controls.getPolarAngle().toFixed(4);
+    stage.dataset.distance = camera.position.distanceTo(controls.target).toFixed(3);
+    const area = freeFrame() ?? { left: 0, top: 0, width, height };
+    const compact = area.width < 620;
+    labels.classList.toggle("is-compact", compact);
+    const maxLabelWidth = compact ? (area.width - 28) / 2 : Math.min(300, area.width - 20);
+    const bounds = { x: area.left + 10, y: area.top + 10, width: area.width - 20, height: area.height - 20 };
+    const occupied: LabelBox[] = [];
+    const intro = document.querySelector<HTMLElement>(".intro");
+    if (intro && !document.body.classList.contains("has-scenario") && !document.body.classList.contains("is-beyond")) {
+      const title = intro.getBoundingClientRect();
+      const stageBox = stage.getBoundingClientRect();
+      occupied.push({
+        x: title.left - stageBox.left,
+        y: title.top - stageBox.top,
+        width: title.width,
+        height: title.height,
+      });
+    }
+    const markers = models
+      .map((model) => {
+        const projected = screen(model.ring.position, width, height);
+        model.label.style.maxWidth = `${maxLabelWidth}px`;
+        const labelWidth = model.label.offsetWidth;
+        const labelHeight = model.label.offsetHeight;
+        const left = area.left + 10;
+        const top = area.top + 10;
+        const right = Math.max(left, area.left + area.width - labelWidth - 10);
+        const bottom = Math.max(top, area.top + area.height - labelHeight - 10);
+        return {
+          model,
+          projected,
+          width: labelWidth,
+          height: labelHeight,
+          left,
+          top,
+          right,
+          bottom,
+          x: THREE.MathUtils.clamp(projected[0] - labelWidth / 2, left, right),
+          y: THREE.MathUtils.clamp(projected[1] - labelHeight - 36, top, bottom),
+        };
+      })
+      .sort((a, b) => b.model.place.y - a.model.place.y);
+    // Keep both ground pins and their existing 3D click targets clear of labels.
+    for (const marker of markers) {
+      if (!marker.projected[2]) continue;
+      const [hitX, hitY] = screen(marker.model.centre, width, height);
+      for (const [x, y] of [marker.projected, [hitX, hitY]]) {
+        occupied.push({ x: x - 10, y: y - 10, width: 20, height: 20 });
+      }
+    }
+    for (const track of journeys?.tracks ?? []) {
+      // Reserve the route, not the moving actor, so labels never jump out of its way.
+      const stride = Math.max(1, Math.floor(track.points.length / 5));
+      for (let index = 0; index < track.points.length; index += stride) {
+        const [x, y, visible] = screen(track.points[index], width, height);
+        if (visible) occupied.push({ x: x - 16, y: y - 28, width: 32, height: 38 });
+      }
+    }
+    for (const marker of markers) {
+      const { model } = marker;
+      const [groundX, groundY, visible] = marker.projected;
+      const box = fitLabel(marker, bounds, occupied);
+      const { x, y } = box;
+      if (visible) occupied.push(box);
+      model.label.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
       model.label.style.visibility = visible ? "visible" : "hidden";
+      const endX = THREE.MathUtils.clamp(groundX, x + 12, x + marker.width - 12);
+      const endY = groundY >= y + marker.height / 2 ? y + marker.height : y;
+      const direction = groundY >= endY ? -1 : 1;
+      const bend = Math.min(48, Math.max(16, Math.abs(groundY - endY) * 0.45));
+      const curveX = Math.min(18, bend * 0.45);
+      const path = `M ${groundX.toFixed(2)} ${groundY.toFixed(2)} C ${(groundX + curveX).toFixed(2)} ${(groundY + direction * bend).toFixed(2)}, ${(endX - curveX).toFixed(2)} ${(endY - direction * bend).toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
+      for (const curve of [model.leader, model.leaderHalo]) {
+        curve.setAttribute("d", path);
+        curve.style.visibility = visible ? "visible" : "hidden";
+      }
+      for (const pin of [model.pin, model.pinHalo]) {
+        pin.setAttribute("cx", String(groundX));
+        pin.setAttribute("cy", String(groundY));
+        pin.style.visibility = visible ? "visible" : "hidden";
+      }
       const [hx, hy] = screen(model.centre, width, height);
       model.label.dataset.hitX = String(Math.round(hx));
       model.label.dataset.hitY = String(Math.round(hy));
@@ -588,11 +756,29 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     }
     for (const item of layer?.items ?? []) {
       if (!item.node) continue;
-      const [x, y, visible] = screen(item.at, width, height);
-      item.node.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
-      item.node.style.visibility =
-        visible && item.objects.every((o) => o.visible) && shown(item) ? "visible" : "hidden";
+      const [anchorX, anchorY, inFront] = screen(item.at, width, height);
+      const visible = inFront && item.objects.every((o) => o.visible) && shown(item);
+      item.node.style.visibility = visible ? "visible" : "hidden";
+      if (item.leader) item.leader.style.visibility = visible ? "visible" : "hidden";
+      if (!visible) continue;
+      item.node.style.maxWidth = `${maxLabelWidth}px`;
+      const w = item.node.offsetWidth;
+      const h = item.node.offsetHeight;
+      const box = fitLabel({ x: anchorX - w / 2, y: anchorY + 18, width: w, height: h }, bounds, occupied);
+      const { x, y } = box;
+      occupied.push(box);
+      item.node.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
+      const endX = THREE.MathUtils.clamp(anchorX, x + 10, x + w - 10);
+      const endY = anchorY < y + h / 2 ? y : y + h;
+      const middleY = (anchorY + endY) / 2;
+      item.leader?.setAttribute(
+        "d",
+        `M ${anchorX} ${anchorY} C ${anchorX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`,
+      );
     }
+    heritage.place((at) => screen(at, width, height), bounds, occupied);
+    localities.place((at) => screen(at, width, height), bounds, occupied, true);
+    localities.place((at) => screen(at, width, height), bounds, occupied, false);
   }
 
   function shown(item: MarkItem): boolean {
@@ -683,8 +869,18 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       shotClock += elapsed;
       if (revealMarks()) dirty = true;
     }
-    stage.dataset.motion = flights.length > 0 || settling ? "running" : "done";
     if (controls.update()) dirty = true;
+    const travelling =
+      journeys?.update(shotClock, camera, stage.clientWidth, stage.clientHeight, reducedMotion) ?? false;
+    if (journeys && (travelling || stage.dataset.motion === "running" || dirty)) dirty = true;
+    stage.dataset.motion = flights.length > 0 || settling || travelling ? "running" : "done";
+    stage.dataset.storyGroups = String(scene.children.filter((child) => child.name === "story-journeys").length);
+    stage.dataset.journeys = JSON.stringify(
+      (journeys?.tracks ?? []).map((track) => {
+        const [x, y, visible] = screen(track.model.position, stage.clientWidth, stage.clientHeight);
+        return { kind: track.journey.kind, progress: track.progress, x, y, visible };
+      }),
+    );
     if (updateDetail()) dirty = true;
     if (!dirty) return;
     dirty = false;
@@ -697,6 +893,9 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
 
   return {
     play(shot) {
+      journeys?.dispose();
+      if (journeys) scene.remove(journeys.group);
+      journeys = null;
       layer?.dispose();
       if (layer) scene.remove(layer.group);
       layer = null;
@@ -709,11 +908,18 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       }
       layer = buildMarks(ground, shot.motion, labels);
       scene.add(layer.group);
+      if (shot.motion.journeys?.length) {
+        journeys = buildJourneys(walkingGround, shot.motion.journeys, shot.motion.seconds);
+        scene.add(journeys.group);
+      }
       shotClock = 0;
       revealMarks();
       const points = [
         ...shot.motion.marks.map((mark) => groundPoint(ground, mark.at, 6)),
         ...(shot.motion.trace?.points ?? []).map((spot) => groundPoint(ground, spot, 3)),
+        ...(shot.motion.journeys ?? []).flatMap((journey) =>
+          journey.points.map((spot) => groundPoint(ground, spot, 12)),
+        ),
       ];
       fly([
         poseFlight(shot.motion.from, 1.6),
@@ -725,8 +931,12 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     dispose() {
       cancelAnimationFrame(frame);
       layer?.dispose();
+      journeys?.dispose();
+      for (const model of models) model.landmark.dispose();
+      heritage.dispose();
       observer.disconnect();
       controls.removeEventListener("change", markDirty);
+      controls.removeEventListener("start", stopFlight);
       controls.dispose();
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);

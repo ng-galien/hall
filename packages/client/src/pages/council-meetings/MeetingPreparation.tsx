@@ -2,24 +2,22 @@
 // TODO REMOVE_STALE: propagate incomplete session marker to canonical status badge.
 
 import type { PreparedCouncilSubject } from "@hall/api-contract";
-import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { EditIcon, PlayIcon } from "../../components/icons";
 import { EntitySelect } from "../../components/search/EntitySelect";
-import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { AgendaRevisionControl } from "../../features/council-meetings/AgendaRevisionControl";
 import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
 import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
 import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
-import { MeetingNoticeDeadline } from "../../features/council-meetings/MeetingNoticeDeadline";
 import {
   formatMeetingLabel,
   meetingScheduleInputValue,
   meetingScheduleInstant,
 } from "../../features/council-meetings/meetingPresentation";
-import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -29,13 +27,14 @@ import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listPreparedCouncilSubjects } from "../../services/councilBusinessApi";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { AgendaComposer } from "./AgendaComposer";
+import { councilMemberName } from "./ballotParticipants";
 import { MeetingStageBar } from "./MeetingStageBar";
 import { type MeetingDetailsField, meetingDetailsSubmission } from "./meetingDetailsPolicy";
 
 // @implements-requirement HALL-FR-NOT-140
 /** Date and location belong to the agenda revision: they change only while it is open. */
 export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
-  const { t, plural, formatDate, formatDateTime, formatNumber } = useI18n();
+  const { t, formatDate, formatDateTime, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const detailsFieldId = useId();
   const aggregate = meetingActions.meeting!;
@@ -76,15 +75,16 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
       active = false;
     };
   }, [meeting.id, canSchedulePrepared, agendaSnapshot]);
-  const attendanceRecorded = aggregate.attendance.length;
-  const [editOpen, setEditOpen] = useState(false);
+  const detailsFormRef = useRef<HTMLFormElement>(null);
+  const [generalOpen, setGeneralOpen] = useState(true);
   const [detailsErrors, setDetailsErrors] = useState<Partial<Record<MeetingDetailsField, TranslationKey>>>({});
   const { settings, error: settingsError } = useMeetingSettings();
   const detailsEditable = meetingActions.can("meeting.prepare") || meetingActions.can("meeting.set-officers");
   const scheduleLocked = !meetingActions.can("meeting.schedule");
+  const detailsInline = detailsEditable && !scheduleLocked;
   const agendaRevision = meetingActions.workspace!.meeting.agendaRevision;
   const revisionEstablished = Boolean(agendaRevision.establishedAt);
-  const canGenerateNotice = !revisionEstablished && meetingActions.can("meeting.generate-notice");
+  const canEstablish = !revisionEstablished && meetingActions.can("meeting.establish-agenda-revision");
   const canRevise = meetingActions.can("meeting.reopen-agenda");
   const canResetRevision = meetingActions.can("meeting.reset-agenda-revision");
   const startsAtLocalValue = settings ? meetingScheduleInputValue(meeting.scheduledAt, settings.timeZone) : "";
@@ -108,10 +108,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
       return;
     }
     setDetailsErrors({});
-    if (submission.kind === "unchanged") {
-      setEditOpen(false);
-      return;
-    }
+    if (submission.kind === "unchanged") return;
     await run(async () => {
       const saved =
         submission.kind === "prepare"
@@ -119,7 +116,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
           : submission.kind === "officers"
             ? await meetingActions.setOfficers(submission.input)
             : await meetingActions.schedule(submission.input);
-      if (saved) setEditOpen(false);
       return saved;
     });
   };
@@ -139,145 +135,58 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   const detailsFieldInvalid = (field: MeetingDetailsField) =>
     detailsErrors[field] ? { "aria-invalid": true, "aria-describedby": `${detailsFieldId}-${field}-error` } : {};
 
+  const revisionToggle =
+    meeting.status === "draft" || meeting.status === "scheduled" ? (
+      <AgendaRevisionControl
+        number={agendaRevision.number}
+        establishedAt={agendaRevision.establishedAt}
+        noticeNumber={revisionEstablished && agendaRevision.noticeId ? agendaRevision.number : null}
+        busy={submitting}
+        onRevise={canRevise ? () => void run(() => meetingActions.reopenAgenda()) : undefined}
+        onConfirm={canEstablish ? () => void run(() => meetingActions.establishAgendaRevision()) : undefined}
+        onCancel={canResetRevision ? () => void run(() => meetingActions.resetAgendaRevision()) : undefined}
+      />
+    ) : null;
+  const headerActions = revisionToggle;
   return (
     <div className="page meeting-preparation">
       <PageHeader
         title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
-        description={[
-          meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : t("workspace.dateToSet"),
-          meeting.location,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
+        titleAction={headerActions}
+        above={
+          <MeetingStageBar
+            status={meeting.status}
+            agendaEstablished={Boolean(meeting.agendaRevision.establishedAt)}
+            liveHref={`/meetings/${meeting.slug || meeting.id}/live`}
+            liveDisabled={entryBlockers.length > 0}
+          />
+        }
+        description=""
       >
         <div className="meeting-console">
-          <MeetingStageBar status={meeting.status} />
-          <div className="meeting-prep-actionbar">
-            <div className="meeting-prep-facts">
-              <span>
-                <strong>{formatNumber(aggregate.agendaItems.length)}</strong>{" "}
-                {plural(aggregate.agendaItems.length, "meeting.agendaCount.one", "meeting.agendaCount.other")}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>
-                <strong>{formatNumber(rosterMembers.length)}</strong> {t("meeting.rosterCount")}
-              </span>
-              {meeting.status === "scheduled" ? (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>
-                    {t("meeting.attendancePrepared", {
-                      recorded: formatNumber(attendanceRecorded),
-                      total: formatNumber(rosterMembers.length),
-                    })}
-                  </span>
-                </>
-              ) : null}
-              <MeetingStatusBadge status={meeting.status} stale={meeting.stale} />
-              {meeting.isReconvenedMeeting ? (
-                <span
-                  className="decision-meeting-chip decision-meeting-chip-none"
-                  data-testid="meeting-reconvened-chip"
-                >
-                  {t("meeting.reconvenedChip")}
-                </span>
-              ) : null}
-            </div>
-            <div className="meeting-prep-actions">
-              {detailsEditable ? (
-                <Button
-                  data-testid="meeting-edit-details"
-                  disabled={submitting || !settings}
-                  variant={meeting.scheduledAt ? "outline" : "default"}
-                  onClick={() => {
-                    setDetailsErrors({});
-                    setEditOpen(true);
-                  }}
-                >
-                  <EditIcon />
-                  {t("meeting.generalProperties")}
-                </Button>
-              ) : null}
-              {entryBlockers.length ? (
-                <Button data-testid="meeting-enter-live" disabled aria-describedby="meeting-live-entry-reason">
-                  <PlayIcon aria-hidden="true" />
-                  {t("meeting.enterLiveMode")}
-                </Button>
-              ) : (
-                <Link
-                  data-testid="meeting-enter-live"
-                  className="live-mode-link"
-                  to={`/meetings/${meeting.slug || meeting.id}/live`}
-                >
-                  <PlayIcon aria-hidden="true" />
-                  {t("meeting.enterLiveMode")}
-                </Link>
-              )}
-            </div>
-          </div>
-          {meeting.status === "draft" || meeting.status === "scheduled" ? (
-            <div className="meeting-prep-actionbar meeting-revision-bar" data-testid="meeting-agenda-revision">
-              <div className="meeting-prep-facts">
-                <strong
-                  className="meeting-revision-state"
-                  data-testid="meeting-agenda-revision-state"
-                  data-state={revisionEstablished ? "established" : "open"}
-                  data-number={agendaRevision.number}
-                >
-                  {revisionEstablished
-                    ? t("meeting.revision.established", {
-                        number: formatNumber(agendaRevision.number),
-                        date: formatDateTime(agendaRevision.establishedAt!),
-                      })
-                    : t("meeting.revision.open", { number: formatNumber(agendaRevision.number) })}
-                </strong>
-                {revisionEstablished && agendaRevision.noticeId ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span data-testid="meeting-agenda-revision-notice">
-                      {t("meeting.revision.notice", { number: formatNumber(agendaRevision.number) })}
-                    </span>
-                  </>
-                ) : null}
+          {!detailsInline ? (
+            <dl className="meeting-brief" data-testid="meeting-facts">
+              <div>
+                <dt>{t("meeting.facts.time")}</dt>
+                <dd>{meeting.scheduledAt ? formatTime(meeting.scheduledAt) : t("workspace.dateToSet")}</dd>
               </div>
-              <div className="meeting-prep-actions">
-                {canResetRevision ? (
-                  <Button
-                    variant="outline"
-                    data-testid="meeting-reset-agenda-revision"
-                    disabled={submitting}
-                    onClick={() => void run(() => meetingActions.resetAgendaRevision())}
-                  >
-                    {t("meeting.revision.reset")}
-                  </Button>
-                ) : null}
-                {canGenerateNotice ? (
-                  <Button
-                    data-testid="meeting-generate-notice"
-                    disabled={submitting}
-                    onClick={() => void run(() => meetingActions.generateNotice())}
-                  >
-                    {t("meeting.revision.generateNotice")}
-                  </Button>
-                ) : null}
-                {canRevise ? (
-                  <Button
-                    variant="outline"
-                    data-testid="meeting-revise-agenda"
-                    disabled={submitting}
-                    onClick={() => void run(() => meetingActions.reopenAgenda())}
-                  >
-                    <EditIcon />
-                    {t("meeting.revision.revise")}
-                  </Button>
-                ) : null}
+              <div>
+                <dt>{t("meetings.location")}</dt>
+                <dd>{meeting.location || t("common.none")}</dd>
               </div>
-            </div>
+              <div>
+                <dt>{t("meetings.chair")}</dt>
+                <dd>{meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none")}</dd>
+              </div>
+              <div>
+                <dt>{t("meetings.secretary")}</dt>
+                <dd>
+                  {meeting.secretaryMemberId ? councilMemberName(members, meeting.secretaryMemberId) : t("common.none")}
+                </dd>
+              </div>
+            </dl>
           ) : null}
-          <MeetingEntryBlockers blockers={entryBlockers} />
-          {meeting.status === "draft" || meeting.status === "scheduled" ? (
-            <MeetingNoticeDeadline deadline={meeting.noticeDeadline} />
-          ) : null}
+          <MeetingEntryBlockers blockers={entryBlockers.filter((blocker) => blocker.code !== "agendaRevisionOpen")} />
           {meeting.status === "draft" && !aggregate.agendaReady && aggregate.requiredMinutesOfMeetingId ? (
             <p className="meeting-evidence">{t("meeting.agendaNotReady")}</p>
           ) : null}
@@ -304,18 +213,23 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
           <RequestErrorBanner error={meetingActions.actionError} />
         )}
         <RequestErrorBanner error={settingsError} />
-        <Modal open={editOpen} title={t("meeting.generalProperties")} onClose={() => setEditOpen(false)}>
-          <form className="modal-form" onSubmit={submitDetails}>
-            <RequestErrorBanner error={meetingActions.actionError} />
-            {scheduleLocked ? (
-              <p className="text-xs text-muted" data-testid="meeting-edit-schedule-locked">
-                {t("meeting.revision.scheduleLocked", {
-                  date: meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : "",
-                  location: meeting.location ?? "",
-                  number: formatNumber(agendaRevision.number),
-                })}
-              </p>
-            ) : (
+
+        {detailsInline ? (
+          <CollapsibleSection
+            title={t("meeting.generalSection")}
+            open={generalOpen}
+            onOpenChange={setGeneralOpen}
+            testId="meeting-general"
+            className="meeting-general"
+          >
+            <form
+              ref={detailsFormRef}
+              className="meeting-details-inline"
+              data-testid="meeting-details-inline"
+              onSubmit={submitDetails}
+              onChange={(event) => event.currentTarget.requestSubmit()}
+            >
+              <RequestErrorBanner error={meetingActions.actionError} />
               <div className="form-grid">
                 <div className="grid gap-1.5">
                   <Label htmlFor={`${detailsFieldId}-startsAt`}>{t("meetings.dateTime")}</Label>
@@ -351,52 +265,43 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                   {detailsFieldError("location")}
                 </div>
               </div>
-            )}
-            <div className="form-grid">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
-                <EntitySelect
-                  type="member"
-                  name="chairMemberId"
-                  defaultValue={meeting.chairMemberId ?? ""}
-                  testId="meeting-edit-chair"
-                  placeholder={t("meetings.chairUndesignated")}
-                  options={rosterMembers.map((member) => ({
-                    value: member.id,
-                    label: `${member.contact.firstName} ${member.contact.lastName}`,
-                  }))}
-                />
-                {detailsFieldError("chairMemberId")}
+              <div className="form-grid">
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
+                  <EntitySelect
+                    type="member"
+                    name="chairMemberId"
+                    defaultValue={meeting.chairMemberId ?? ""}
+                    testId="meeting-edit-chair"
+                    onValueChange={() => setTimeout(() => detailsFormRef.current?.requestSubmit(), 0)}
+                    placeholder={t("meetings.chairUndesignated")}
+                    options={rosterMembers.map((member) => ({
+                      value: member.id,
+                      label: `${member.contact.firstName} ${member.contact.lastName}`,
+                    }))}
+                  />
+                  {detailsFieldError("chairMemberId")}
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
+                  <EntitySelect
+                    type="member"
+                    name="secretaryMemberId"
+                    defaultValue={meeting.secretaryMemberId ?? ""}
+                    testId="meeting-edit-secretary"
+                    onValueChange={() => setTimeout(() => detailsFormRef.current?.requestSubmit(), 0)}
+                    placeholder={t("meetings.secretaryUndesignated")}
+                    options={rosterMembers.map((member) => ({
+                      value: member.id,
+                      label: `${member.contact.firstName} ${member.contact.lastName}`,
+                    }))}
+                  />
+                  {detailsFieldError("secretaryMemberId")}
+                </div>
               </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
-                <EntitySelect
-                  type="member"
-                  name="secretaryMemberId"
-                  defaultValue={meeting.secretaryMemberId ?? ""}
-                  testId="meeting-edit-secretary"
-                  placeholder={t("meetings.secretaryUndesignated")}
-                  options={rosterMembers.map((member) => ({
-                    value: member.id,
-                    label: `${member.contact.firstName} ${member.contact.lastName}`,
-                  }))}
-                />
-                {detailsFieldError("secretaryMemberId")}
-              </div>
-            </div>
-            <Button
-              className="justify-self-end"
-              data-testid="meeting-edit-submit"
-              variant="default"
-              type="submit"
-              disabled={submitting}
-            >
-              {t(submitting ? "common.saving" : "common.save")}
-            </Button>
-          </form>
-        </Modal>
-
-        <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
+            </form>
+          </CollapsibleSection>
+        ) : null}
         <div className="meeting-prep-layout">
           <AgendaComposer
             agendaItems={aggregate.agendaItems}
@@ -416,6 +321,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             onReorder={meetingActions.reorderAgenda}
           />
         </div>
+        <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
       </div>
     </div>
   );

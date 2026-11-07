@@ -12,7 +12,7 @@ export const agendaSubjectPresentation = {
 export function AgendaSubjectGlyph({ kind, tree = false }: { kind: AgendaSubject["kind"]; tree?: boolean }) {
   const Icon = agendaSubjectPresentation[kind].icon;
   return (
-    <span className={tree ? "workspace-glyph" : "composer-subject-glyph"} aria-hidden="true">
+    <span className={tree ? "workspace-glyph" : "composer-subject-glyph"} data-kind={kind} aria-hidden="true">
       <Icon />
     </span>
   );

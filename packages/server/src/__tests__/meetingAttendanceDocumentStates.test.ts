@@ -54,6 +54,6 @@ describe("attendance sheet and proxy form by meeting state", () => {
     });
     const closedRefusal = { code: "meeting_attendance_documents_closed", statusCode: 409 };
     await expect(service.attendanceSheet("2026-11-21-004")).rejects.toMatchObject(closedRefusal);
-    await expect(service.proxyForm("2026-11-21-004", "member", null)).rejects.toMatchObject(closedRefusal);
+    await expect(service.proxyForm("2026-11-21-004", "member", "holder")).rejects.toMatchObject(closedRefusal);
   });
 });

@@ -7,7 +7,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 
 // @implements-requirement HALL-FR-ATT-180
-/** Proxy form choice: the grantor is required, the holder optional; the result is a PDF address, nothing is recorded. */
+/** Proxy form choice: grantor and holder are both required; the result is a PDF address, nothing is recorded. */
 export function MeetingProxyFormDialog({
   open,
   proxyFormHref,
@@ -30,8 +30,8 @@ export function MeetingProxyFormDialog({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!grantor || grantor === holder) return;
-    const query = new URLSearchParams({ grantorMemberId: grantor, ...(holder ? { holderMemberId: holder } : {}) });
+    if (!grantor || !holder || grantor === holder) return;
+    const query = new URLSearchParams({ grantorMemberId: grantor, holderMemberId: holder });
     onGenerate(`${proxyFormHref}?${query}`);
   };
 
@@ -62,7 +62,6 @@ export function MeetingProxyFormDialog({
               testId="meeting-proxy-holder"
               placeholder={t("meeting.proxyFormHolderPlaceholder")}
               options={options.filter((option) => option.value !== grantor)}
-              clearLabel={t("meeting.proxyFormHolderClear")}
             />
           </div>
         </div>
@@ -70,7 +69,7 @@ export function MeetingProxyFormDialog({
           className="justify-self-end"
           data-testid="meeting-proxy-form-submit"
           type="submit"
-          disabled={!grantor || grantor === holder}
+          disabled={!grantor || !holder || grantor === holder}
         >
           {t("meeting.proxyFormGenerate")}
         </Button>

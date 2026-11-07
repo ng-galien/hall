@@ -1,5 +1,6 @@
 # Prépare les données géographiques embarquées du site à partir des extractions IGN.
 # Usage : python3 -I scripts/prepare-geodata.py <dossier des téléchargements> <dossier de sortie>
+#         python3 -I scripts/prepare-geodata.py --localities <zone_d_habitation.json> <dossier de sortie>
 #         python3 -I scripts/prepare-geodata.py --pack <dossier de sortie> (recompresse des fichiers bruts existants)
 # Entrées : alti-fine.bil (RGE ALTI, WMS-R Géoplateforme, 1634 x 1962 points, EPSG:4326, moyenné 2 x 2 en 817 x 981),
 # couches BD TOPO V3 en GeoJSON (WFS Géoplateforme) et contours communaux geo.api.gouv.fr (commune-<code>.json).
@@ -166,6 +167,30 @@ def label_point(feature: dict) -> tuple[float, float]:
     return local(sum(p[0] for p in points) / len(points), sum(p[1] for p in points) / len(points))
 
 
+def write_localities(features: list[dict], target: Path) -> None:
+    """All inhabited names intersecting the tile; preserve the IGN importance for zoom levels."""
+    items = []
+    for feature in features:
+        props = feature["properties"]
+        name = props.get("toponyme")
+        if not name or props.get("nature") not in ("Lieu-dit habité", "Quartier"):
+            continue
+        x, y = label_point(feature)
+        lon, lat = x / MX + LON0, y / MY + LAT0
+        if not (BBOX["west"] <= lon <= BBOX["east"] and BBOX["south"] <= lat <= BBOX["north"]):
+            # A village can straddle the tile: anchor its name on the part that is actually modelled.
+            inside = [c for ring in rings(feature["geometry"]) for c in ring
+                      if BBOX["west"] <= c[0] <= BBOX["east"] and BBOX["south"] <= c[1] <= BBOX["north"]]
+            if not inside:
+                continue
+            x, y = local(sum(c[0] for c in inside) / len(inside), sum(c[1] for c in inside) / len(inside))
+        items.append({"id": props["cleabs"], "name": "Les Chalesmes" if name == "Commune des Chalesmes" else name,
+                      "x": round(x), "y": round(y), "importance": int(props.get("importance") or 4)})
+    items.sort(key=lambda item: (item["importance"], item["name"], item["id"]))
+    target.mkdir(parents=True, exist_ok=True)
+    (target / "localities.json").write_text(json.dumps(items, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+
 # Remplace terrain.bin, landcover.bin et terrain.json par leurs versions compressées embarquées.
 def pack(target: Path) -> None:
     raw = target / "terrain.bin"
@@ -192,6 +217,9 @@ def pack(target: Path) -> None:
 
 
 def main() -> None:
+    if sys.argv[1] == "--localities":
+        write_localities(json.loads(Path(sys.argv[2]).read_text())["features"], Path(sys.argv[3]))
+        return
     if sys.argv[1] == "--pack":
         pack(Path(sys.argv[2]))
         return
@@ -287,6 +315,7 @@ def main() -> None:
         for ring in rings(data["contour"]):
             communes.append({"code": code, "name": name, "main": main_commune, "p": flat(project_ring(ring, 5.0))})
 
+    write_localities(load(source, "zone_d_habitation"), target)
     toponyms = []
     for layer in ("zone_d_habitation", "lieu_dit_non_habite", "detail_orographique", "plan_d_eau", "zone_d_activite_ou_d_interet"):
         for feature in load(source, layer):

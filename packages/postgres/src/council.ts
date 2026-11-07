@@ -584,7 +584,7 @@ export class PostgresCouncil {
   }
   freezeAgenda(request: PostgresCouncilRequest, id: string) {
     return this.transactions.run(
-      { role: request.role, context: this.runContext(request, "meeting.freeze-agenda") },
+      { role: request.role, context: this.runContext(request, "meeting.establish-agenda-revision") },
       async (client) => {
         const result = await callJson(client, {
           text: "SELECT hall_api.freeze_council_agenda($1::uuid) AS payload",

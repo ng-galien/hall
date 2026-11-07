@@ -82,6 +82,7 @@ export interface CouncilClient {
   createPreparedSubject(businessId: string, input: CreatePreparedCouncilSubject): Promise<PreparedCouncilSubject>;
   schedulePreparedSubject(meetingId: string, input: SchedulePreparedCouncilSubject): Promise<AgendaItem>;
 
+  establishAgendaRevision(id: string): Promise<CouncilMeeting>;
   reopenAgenda(id: string): Promise<CouncilMeeting>;
   resetAgendaRevision(id: string): Promise<CouncilMeeting>;
   openAgendaFreeze(id: string): Promise<MeetingAgendaFreeze | null>;

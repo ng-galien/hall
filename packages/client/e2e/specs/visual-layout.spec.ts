@@ -1,10 +1,11 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
+import { saveMeetingField } from "../fixtures/meetingPreparation";
 
 test.use({ seedScenario: "preparation" });
 
 /* Layout assertions on the Alésia screens, on a desktop and on a phone: header buttons whose icons cover their
-   label, pages left on the loading indicator, and the page scrolling under an open dialog. */
+   label, pages left on the loading indicator, and the page scrolling while selecting meeting officers. */
 
 interface Entity<T> {
   properties: T;
@@ -96,7 +97,8 @@ for (const [device, viewport] of [
       await page.goto(`/app/meetings/${meeting.id}`);
       await expectLoaded(page);
       await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
-      await expectIconsBesideLabel(page.getByTestId("meeting-edit-details"));
+      await expect(page.getByTestId("meeting-details-inline")).toBeVisible();
+      await expectIconsBesideLabel(page.getByTestId("meeting-proxy-form-open"));
       await expectIconsBesideLabel(page.getByTestId("meeting-enter-live").first());
 
       const [chair, secretary] = (await items<{ id: string; active: boolean }>(page, "/api/council-members")).filter(
@@ -124,13 +126,12 @@ for (const [device, viewport] of [
       await expect(page.getByTestId("live-rollcall-heading")).toBeVisible();
     });
 
-    test("the page stays still under the general properties dialog", async ({ appPage: page }) => {
+    test("the page stays still when selecting inline meeting officers", async ({ appPage: page }) => {
       const meeting = await meetingInPreparation(page);
       const members = await items<{ id: string; active: boolean }>(page, "/api/council-members");
       const [chair, secretary] = members.filter((member) => member.active);
       await page.goto(`/app/meetings/${meeting.id}`);
       await expectLoaded(page);
-      await page.getByTestId("meeting-edit-details").click();
       await expect(page.getByTestId("meeting-edit-chair")).toBeVisible();
       const before = await scrollPositions(page);
 
@@ -140,10 +141,12 @@ for (const [device, viewport] of [
         .and(page.locator(`[data-reference-id="${chair!.id}"]`))
         .click();
       await page.getByTestId("meeting-edit-secretary").click();
-      await page
-        .getByTestId("meeting-edit-secretary-search-result")
-        .and(page.locator(`[data-reference-id="${secretary!.id}"]`))
-        .click();
+      await saveMeetingField(page, () =>
+        page
+          .getByTestId("meeting-edit-secretary-search-result")
+          .and(page.locator(`[data-reference-id="${secretary!.id}"]`))
+          .click(),
+      );
       await expectLoaded(page);
       expect(await scrollPositions(page)).toEqual(before);
     });

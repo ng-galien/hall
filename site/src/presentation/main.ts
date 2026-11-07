@@ -127,7 +127,7 @@ export function goTo(index: number) {
     glissement de la carte, clavier, flèche d'ouverture. */
 const controlRatio = () => timeline.settings.playback.controlRatio;
 /** Multiplicateur de la durée de base pour un geste de molette à crans. */
-const wheelRatio = () => timeline.settings.playback.wheelRatio;
+const wheelRatio = () => timeline.settings.playback.wheelRatio * (mac ? 3.2 : 1);
 
 function play(p: number, ms: number) {
   if (hooks.play) hooks.play(p, ms);
@@ -262,12 +262,14 @@ function wheelMove(down: boolean): (() => void) | null {
 
 /** Reste de défilement continu inférieur au pixel, reporté sur l'événement suivant. */
 let scrollRemainder = 0;
-/** Défilement continu dans le récit, ralenti hors Mac ; `unit` convertit deltaY en pixels. */
+/** Défilement continu du récit. Les grands deltas Mac sont bornés : certaines molettes
+ * présentent exactement le même rapport de deltas qu’un trackpad. */
 function continuousScroll(event: WheelEvent, unit: number) {
   const factor = timeline.settings.playback.continuousScrollFactor[mac ? "mac" : "other"];
   if (factor === 1 || window.scrollY >= storyLimit()) return;
   event.preventDefault();
-  scrollRemainder += event.deltaY * unit * factor;
+  const delta = event.deltaY * unit * factor;
+  scrollRemainder += mac ? Math.max(-18, Math.min(18, delta)) : delta;
   const whole = Math.trunc(scrollRemainder);
   scrollRemainder -= whole;
   if (whole !== 0) window.scrollBy({ top: whole, behavior: "auto" });
@@ -634,17 +636,35 @@ window.requestAnimationFrame(() =>
 export const veil = document.createElement("div");
 veil.className = "p-veil";
 document.body.append(veil);
+function showSection(hash: string) {
+  const target = hash === "#en-savoir-plus" ? more : hash === "#haut" || hash === "" ? null : undefined;
+  if (target === undefined) return;
+  const header = document.querySelector(".p-masthead") as HTMLElement;
+  const top = target ? target.getBoundingClientRect().top + window.scrollY - header.offsetHeight : 0;
+  window.scrollTo({ top, behavior: "instant" });
+  hooks.jump?.(scrollProgress());
+  veil.classList.remove("is-on");
+  markPast();
+}
+
+function restoreSection() {
+  requestAnimationFrame(() => showSection(window.location.hash));
+}
+window.addEventListener("popstate", restoreSection);
+window.addEventListener("hashchange", restoreSection);
+window.addEventListener("pageshow", restoreSection);
+
 for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[href^="#"]')) {
+  link.dataset.testid = link.dataset.nav === "story" ? "nav-parcours" : "nav-fonctionnalites";
   link.addEventListener("click", (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const id = link.getAttribute("href")?.slice(1) ?? "";
     const target = id === "haut" ? null : document.getElementById(id);
     if (id !== "haut" && !target) return;
     event.preventDefault();
     const go = () => {
-      const top = target ? target.getBoundingClientRect().top + window.scrollY - 56 : 0;
-      window.scrollTo({ top, behavior: "auto" });
-      hooks.jump?.(scrollProgress());
-      veil.classList.remove("is-on");
+      if (window.location.hash !== link.hash) window.history.pushState(null, "", link.hash);
+      showSection(link.hash);
     };
     if (reducedMotion) go();
     else {

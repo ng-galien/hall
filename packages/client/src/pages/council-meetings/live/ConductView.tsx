@@ -777,7 +777,7 @@ export function ConductView({
                 data-testid="live-minutes-link"
               >
                 <FileIcon aria-hidden="true" />
-                {t("minutes.view")}
+                {t("minutes.open")}
               </Link>
             ) : null}
             {selectedItem.business.report ? (

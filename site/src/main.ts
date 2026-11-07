@@ -9,7 +9,7 @@ import "./site-header.css";
 import "./styles.css";
 import "./scene.css";
 import { renderCardNavigation } from "./cards";
-import { type PieceKind, svgIcon } from "./presentation/icons";
+import { glyphs, type PieceKind, svgIcon } from "./presentation/icons";
 import { type Axis, axes, type Motion, type PlaceId, places, type Scene, type SceneId, scenes } from "./scenes";
 import { renderSections } from "./sections";
 import type { Frame, TerrainView } from "./terrain";
@@ -82,7 +82,13 @@ function renderStepNavigation(scene: Scene, navigation: StepNavigation): HTMLEle
     [previous, "Étape précédente", "step-previous"],
     [next, "Étape suivante", "step-next"],
   ] as const) {
-    const button = html("button", "step-button", target ? `${text} : ${target.short}` : text) as HTMLButtonElement;
+    const button = html("button", "step-button") as HTMLButtonElement;
+    const arrow = html("span", `step-arrow${testId === "step-next" ? " is-next" : ""}`);
+    arrow.innerHTML = svgIcon("back");
+    if (testId === "step-previous") button.append(arrow);
+    if (target) button.append(html("span", undefined, target.short));
+    if (testId === "step-next") button.append(arrow);
+    button.setAttribute("aria-label", target ? `${text} : ${target.short}` : text);
     button.type = "button";
     button.dataset.testid = testId;
     button.disabled = !target;
@@ -111,7 +117,10 @@ function renderEntries(navigation: StepNavigation): HTMLElement {
     button.type = "button";
     button.dataset.testid = `entry-${axis.id}`;
     const names = scenes.filter((s) => s.axis === axis.id).map((s) => s.short.toLowerCase());
-    button.append(html("span", "axis-entry-name", axis.name), html("span", "axis-entry-count", names.join(", ")));
+    button.append(
+      html("span", "axis-entry-name", axis.id === "preparer" ? "Le piège" : "Le siège"),
+      html("span", "axis-entry-count", names.join(", ")),
+    );
     button.addEventListener("click", () => navigation.onMove(first.id));
     entries.append(button);
   }
@@ -162,7 +171,26 @@ function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: St
     close.addEventListener("click", navigation.onClose);
     head.append(close);
   }
-  article.append(head, html("p", "scenario-lead", scene.lead));
+  article.append(head);
+  if (scene.axis === "ouverture") {
+    const encounter = html("div", "opening-figures");
+    for (const [file, name] of [
+      ["vercingetorix", "Vercingétorix"],
+      ["caesar", "Jules César"],
+    ]) {
+      const figure = html("figure", "opening-figure");
+      const image = document.createElement("img");
+      image.src = publicFileUrl(`figures/${file}.webp`);
+      image.alt = `Statue de ${name}`;
+      image.width = 1024;
+      image.height = 1536;
+      image.decoding = "async";
+      figure.append(image, html("figcaption", undefined, name));
+      encounter.append(figure);
+    }
+    article.append(encounter);
+  }
+  article.append(html("p", "scenario-lead", scene.lead));
   if (scene.steps.length > 0) {
     const steps = html("ol", "steps");
     for (const step of scene.steps) {
@@ -170,8 +198,30 @@ function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: St
     }
     article.append(steps);
   }
-  article.append(html("p", "scenario-feature", scene.feature));
   if (scene.axis === "ouverture" && navigation) article.append(renderEntries(navigation));
+  if (scene.sources?.length) {
+    const sources = html("details", "scenario-sources");
+    sources.append(html("summary", undefined, "Sources du récit — ArchéoJuraSites"));
+    sources.append(
+      html(
+        "p",
+        undefined,
+        "Cette reconstitution narrative adopte l’hypothèse jurassienne d’Alésia. Les bâtiments sont des évocations, sans restitution archéologique exacte.",
+      ),
+    );
+    const list = html("ul");
+    for (const source of scene.sources) {
+      const item = html("li");
+      const link = html("a", undefined, source.label) as HTMLAnchorElement;
+      link.href = source.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      item.append(link);
+      list.append(item);
+    }
+    sources.append(list);
+    article.append(sources);
+  }
   if (scene.captures.length > 0) article.append(renderCaptures(scene));
   if (navigation) article.append(renderStepNavigation(scene, navigation));
   return article;
@@ -202,7 +252,7 @@ function renderDiscovery(onChoose: (id: SceneId) => void): DiscoveryMenu {
   bar.dataset.testid = "menu-bar";
   root.append(bar);
   const items = new Map<SceneId, HTMLButtonElement>();
-  const groups: { axis: Axis; toggle: HTMLButtonElement; list: HTMLElement; state: HTMLElement }[] = [];
+  const groups: { axis: Axis; toggle: HTMLButtonElement; list: HTMLElement }[] = [];
 
   function collapse(except?: HTMLButtonElement) {
     for (const group of groups) {
@@ -217,12 +267,10 @@ function renderDiscovery(onChoose: (id: SceneId) => void): DiscoveryMenu {
   if (opening) {
     const start = html("button", "discovery-start") as HTMLButtonElement;
     start.type = "button";
+    start.setAttribute("aria-label", opening.short);
     start.dataset.testid = `menu-item-${opening.id}`;
     const words = html("span", "discovery-label");
-    words.append(
-      html("span", "discovery-group-name", opening.short),
-      html("span", "discovery-group-state", "Ouverture"),
-    );
+    words.append(html("span", "discovery-group-name", opening.short));
     start.append(axisIcon(opening.axis, "discovery-icon"), words);
     start.addEventListener("click", () => {
       collapse();
@@ -238,13 +286,12 @@ function renderDiscovery(onChoose: (id: SceneId) => void): DiscoveryMenu {
     group.dataset.axis = axis.id;
     const toggle = html("button", "discovery-toggle") as HTMLButtonElement;
     toggle.type = "button";
+    toggle.setAttribute("aria-label", axis.name);
     toggle.dataset.testid = `menu-group-${axis.id}`;
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-controls", `menu-list-${axis.id}`);
     const label = html("span", "discovery-label");
-    const state = html("span", "discovery-group-state", `${members.length} scénarios`);
-    state.dataset.testid = `menu-group-state-${axis.id}`;
-    label.append(html("span", "discovery-group-name", axis.name), state);
+    label.append(html("span", "discovery-group-name", axis.name));
     toggle.append(axisIcon(axis.id, "discovery-icon"), label, chevron());
     const list = html("ol", "discovery-list");
     list.id = `menu-list-${axis.id}`;
@@ -277,7 +324,7 @@ function renderDiscovery(onChoose: (id: SceneId) => void): DiscoveryMenu {
     });
     group.append(list, toggle);
     bar.append(group);
-    groups.push({ axis, toggle, list, state });
+    groups.push({ axis, toggle, list });
   }
 
   document.addEventListener("pointerdown", (event) => {
@@ -293,11 +340,8 @@ function renderDiscovery(onChoose: (id: SceneId) => void): DiscoveryMenu {
       }
       const scene = scenes.find((s) => s.id === id);
       for (const group of groups) {
-        const members = scenes.filter((s) => s.axis === group.axis.id);
         const inside = scene?.axis === group.axis.id;
         group.toggle.classList.toggle("is-current", inside);
-        group.state.textContent =
-          scene && inside ? `${scene.short}, ${rankOf(scene)} sur ${members.length}` : `${members.length} scénarios`;
       }
     },
     close() {
@@ -327,6 +371,7 @@ function setMode(mode: ViewMode) {
 }
 
 function renderPlain(root: HTMLElement, notice: string) {
+  document.querySelector<HTMLAnchorElement>('[data-testid="intro-discover"]')?.setAttribute("href", "#lieu-ouverture");
   root.hidden = false;
   root.dataset.view = "plain";
   const note = html("p", "plain-notice", notice);
@@ -440,7 +485,13 @@ async function renderTerrain(root: HTMLElement) {
   }
 
   let settling = false;
+  let settleFrame = 0;
+  function cancelSettling() {
+    cancelAnimationFrame(settleFrame);
+    settling = false;
+  }
   function settleOnScene(home: number) {
+    cancelSettling();
     settling = true;
     let still = 0;
     const step = () => {
@@ -451,7 +502,7 @@ async function renderTerrain(root: HTMLElement) {
         bringStageIntoView();
         still++;
       }
-      if (still < 12) requestAnimationFrame(step);
+      if (still < 12) settleFrame = requestAnimationFrame(step);
       else settling = false;
     };
     step();
@@ -493,8 +544,13 @@ async function renderTerrain(root: HTMLElement) {
 
   const menu = renderDiscovery((id) => open(id));
   masthead.insertBefore(menu.root, element("view-switch"));
+  document.querySelector('[data-testid="intro-discover"]')?.addEventListener("click", (event) => {
+    event.preventDefault();
+    open("ouverture");
+  });
 
   function open(id: SceneId | null, fromHash = false, fromAutoplay = false) {
+    cancelSettling();
     if (!fromAutoplay) stopAutoplay();
     current = id;
     menu.mark(id);
@@ -520,6 +576,9 @@ async function renderTerrain(root: HTMLElement) {
 
   function glide(top: number) {
     window.scrollTo({ top, behavior: prefersReducedMotion() ? "instant" : "smooth" });
+  }
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href="#telecharger"], a[href="#documentation"]')) {
+    link.addEventListener("click", cancelSettling);
   }
   for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href="#haut"], a[href="#decouvrir"]')) {
     link.addEventListener("click", (event) => {
@@ -604,7 +663,17 @@ async function renderTerrain(root: HTMLElement) {
   terrain = await createTerrain({
     stage,
     labels: root.querySelector(".terrain-labels") as HTMLElement,
-    places: places.map(({ id, name, at }) => ({ id, name, ...at })),
+    places: places.map(({ id, name, at }) => ({
+      id,
+      name,
+      ...at,
+      icons: [...new Set(scenes.filter((scene) => scene.place === id).map((scene) => scene.axis))]
+        .map(
+          (axis) =>
+            `<span style="--glyph-color:${glyphs[axisIcons[axis]].color};--glyph-surface:${glyphs[axisIcons[axis]].surface}">${svgIcon(axisIcons[axis])}</span>`,
+        )
+        .join(""),
+    })),
     frame: freeFrame,
     onSelect: (placeId) => {
       const scene = scenes.find((s) => s.place === placeId);
@@ -633,16 +702,20 @@ async function start() {
 
   renderSections();
   const viewSwitch = element<HTMLButtonElement>("view-switch");
+  viewSwitch.innerHTML =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5v8l-9 5-9-5V8l9-5Z M3 8l9 5 9-5 M12 13v8 M7.5 5.5l9 5"/></svg>';
   if (mode === "terrain") {
-    viewSwitch.textContent = "Sans 3D";
     viewSwitch.setAttribute("aria-label", "Afficher la version sans 3D");
+    viewSwitch.setAttribute("aria-pressed", "true");
+    viewSwitch.title = "Désactiver la vue 3D";
     viewSwitch.addEventListener("click", () => setMode("plain"));
     renderCardNavigation(element("site-header"));
     await renderTerrain(element("terrain"));
   } else {
     if (webgl) {
-      viewSwitch.textContent = "Avec 3D";
       viewSwitch.setAttribute("aria-label", "Afficher le relief en 3D");
+      viewSwitch.setAttribute("aria-pressed", "false");
+      viewSwitch.title = "Activer la vue 3D";
       viewSwitch.addEventListener("click", () => setMode("terrain"));
     } else {
       viewSwitch.remove();
@@ -655,6 +728,11 @@ async function start() {
     );
   }
 }
+
+const header = element("site-header");
+new ResizeObserver(() => {
+  document.body.style.setProperty("--masthead", `${header.getBoundingClientRect().height}px`);
+}).observe(header);
 
 void start();
 revealText();

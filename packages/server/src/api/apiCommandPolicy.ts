@@ -92,6 +92,7 @@ export const apiCommandPolicies = {
   "council-business.schedule-open-question": { auditTargetType: "agenda-item" },
   "meeting.provision-initial": { auditTargetType: "council-meeting" },
   "meeting.schedule": { auditTargetType: "council-meeting" },
+  "meeting.establish-agenda-revision": { auditTargetType: "council-meeting" },
   "meeting.reopen-agenda": { auditTargetType: "council-meeting" },
   "meeting.generate-notice-message": { auditTargetType: "council-meeting" },
   "meeting.generate-dossier": { auditTargetType: null },

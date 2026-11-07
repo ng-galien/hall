@@ -600,10 +600,17 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
         action("agenda-item.schedule", "POST", `/api/council-meetings/${meetingReference}/agenda-items`),
         action("meeting.reorder-agenda", "PUT", `/api/council-meetings/${meetingReference}/agenda-order`),
       );
-    if (established || (meeting.scheduledAt && meeting.location))
-      actions.push(action("meeting.generate-notice", "POST", `/api/council-meetings/${meetingReference}/notices`));
+    if (!established && meeting.scheduledAt && meeting.location)
+      actions.push(
+        action(
+          "meeting.establish-agenda-revision",
+          "POST",
+          `/api/council-meetings/${meetingReference}/agenda-revision`,
+        ),
+      );
     if (established) {
       actions.push(
+        action("meeting.generate-notice", "POST", `/api/council-meetings/${meetingReference}/notices`),
         action("meeting.reopen-agenda", "POST", `/api/council-meetings/${meetingReference}/agenda-reopening`),
         action("meeting.generate-dossier", "GET", `/api/council-meetings/${meetingReference}/dossier`),
       );

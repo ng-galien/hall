@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { establishRevision, generateCurrentNotice, saveMeetingField } from "../fixtures/meetingPreparation";
 import { capture, expect, localDateTimeInput, signIn, waitForPageEntrance } from "./fixtures";
 
 /**
@@ -25,29 +26,40 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
     .getByRole("link", { name: new RegExp(`Conseil municipal ${meetingNumber}\\b`) })
     .first()
     .click();
-  await expect(page.getByTestId("meeting-edit-details")).toBeVisible();
+  await expect(page.getByTestId("meeting-details-inline")).toBeVisible();
   await waitForPageEntrance(page);
 
   const startsAt = new Date(Date.now() - 30 * 60_000);
   const scheduledAhead = new Date();
   scheduledAhead.setDate(scheduledAhead.getDate() + 14);
   scheduledAhead.setHours(18, 30, 0, 0);
-  await page.getByTestId("meeting-edit-details").click();
-  await page.getByTestId("meeting-edit-starts-at").fill(localDateTimeInput(prefix ? scheduledAhead : startsAt));
+  await saveMeetingField(page, async () => {
+    const date = page.getByTestId("meeting-edit-starts-at");
+    await date.fill(localDateTimeInput(prefix ? scheduledAhead : startsAt));
+    await date.blur();
+  });
   await page.getByTestId("meeting-edit-chair").click();
-  await page.getByRole("option", { name: /Vercingétorix/ }).click();
+  await page
+    .getByTestId("meeting-edit-chair-search-result")
+    .filter({ hasText: /Vercingétorix/ })
+    .click();
   await page.getByTestId("meeting-edit-secretary").click();
-  await page.getByRole("option", { name: /Vercassivellaunos/ }).click();
+  await saveMeetingField(page, () =>
+    page
+      .getByTestId("meeting-edit-secretary-search-result")
+      .filter({ hasText: /Vercassivellaunos/ })
+      .click(),
+  );
   await shot("02-proprietes-generales");
-  await page.getByTestId("meeting-edit-submit").click();
-  await expect(page.getByText("Programmée", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
   if (prefix) {
-    await expect(page.getByTestId("meeting-notice-deadline-date")).toContainText("Cette date est à venir.");
+    await expect(page.getByTestId("meeting-notice-deadline-date")).toHaveAttribute("data-reminder", "upcoming");
     await shot("03-seance-programmee");
-    await page.getByTestId("meeting-edit-details").click();
-    await page.getByTestId("meeting-edit-starts-at").fill(localDateTimeInput(startsAt));
-    await page.getByTestId("meeting-edit-submit").click();
-    await expect(page.getByTestId("meeting-edit-submit")).toBeHidden();
+    await saveMeetingField(page, async () => {
+      const date = page.getByTestId("meeting-edit-starts-at");
+      await date.fill(localDateTimeInput(startsAt));
+      await date.blur();
+    });
   }
 
   const candidate = page.getByTestId(/^agenda-candidate-add-/).first();
@@ -62,13 +74,14 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
   await page.getByTestId("meeting-agenda-revision").scrollIntoViewIfNeeded();
   await expect(page.getByTestId("meeting-generate-notice")).toBeVisible();
   await shot("05-revision-ouverte");
-  await page.getByTestId("meeting-generate-notice").click();
+  await establishRevision(page);
   await expect(page.getByTestId("meeting-revise-agenda")).toBeVisible({ timeout: 60_000 });
   await shot("06-revision-etablie");
+  await generateCurrentNotice(page);
   await page.getByTestId("meeting-documents").scrollIntoViewIfNeeded();
   await expect(page.getByTestId("meeting-export-notice-message")).toBeVisible();
   await shot("07-convocation-generee");
-  await expect(page.getByTestId("meeting-dossier-download")).toBeVisible();
+  await expect(page.getByTestId("meeting-dossier-open")).toBeVisible();
   await shot("07b-dossier-de-seance");
 
   await signIn(page, "conduite");

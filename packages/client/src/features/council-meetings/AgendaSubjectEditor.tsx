@@ -1,11 +1,9 @@
 import { findSirenAction, type ResourceDetail } from "@hall/api-contract";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { MarkdownView } from "../../components/MarkdownView";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -24,7 +22,6 @@ export function AgendaSubjectEditor({
   onCancel(): void;
 }) {
   const { t } = useI18n();
-  const fieldId = useId();
   const [resource, setResource] = useState<Extract<ResourceDetail, { kind: "text" }> | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const [name, setName] = useState("");
@@ -83,17 +80,6 @@ export function AgendaSubjectEditor({
       }}
     >
       <RequestErrorBanner error={error} />
-      <div className="grid gap-1.5">
-        <Label htmlFor={fieldId}>{t("meeting.subject")}</Label>
-        <Input
-          id={fieldId}
-          data-testid="agenda-subject-title"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          disabled={submitting}
-          required
-        />
-      </div>
       <MarkdownEditor
         testId="agenda-subject-editor"
         markdown={resource.content}
@@ -104,21 +90,26 @@ export function AgendaSubjectEditor({
           canUpload ? (file) => uploadImage(file, { kind: "textResourceContent", id: resourceId }) : undefined
         }
       />
-      <div className="composer-editor-actions">
-        <span className="composer-editor-spacer" />
-        <Button
-          variant="outline"
-          type="button"
-          data-testid="agenda-subject-cancel"
-          disabled={submitting}
-          onClick={onCancel}
-        >
-          {t("common.cancel")}
-        </Button>
-        <Button type="submit" data-testid="agenda-item-save" disabled={submitting}>
-          {t(submitting ? "common.saving" : "common.save")}
-        </Button>
-      </div>
+      {content !== resource.content ? (
+        <div className="composer-editor-actions">
+          <span className="composer-editor-spacer" />
+          <Button
+            variant="outline"
+            type="button"
+            data-testid="agenda-subject-cancel"
+            disabled={submitting}
+            onClick={() => {
+              setContent(resource.content);
+              onCancel();
+            }}
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button type="submit" data-testid="agenda-item-save" disabled={submitting}>
+            {t(submitting ? "common.saving" : "common.save")}
+          </Button>
+        </div>
+      ) : null}
     </form>
   );
 }

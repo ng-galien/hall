@@ -2,6 +2,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
+import { establishRevision, generateCurrentNotice } from "../fixtures/meetingPreparation";
 import { test as docs, expect, switchAccount, waitForPageEntrance } from "./fixtures";
 
 /**
@@ -117,9 +118,10 @@ test.describe("convocation", () => {
     }>(page, "/api/council-meetings");
     const next = meetings.find((meeting) => !meeting.startedAt && !meeting.closedAt)!;
     await page.goto(`/app/meetings/${next.id}`);
-    await page.getByTestId("meeting-generate-notice").click();
+    await establishRevision(page);
+    await generateCurrentNotice(page);
     // The notice of the established revision opens in the document viewer; the capture shows the meeting with it.
-    await page.getByTestId("meeting-notice-open").click();
+    await page.getByTestId("meeting-document-notice-open").click();
     await page.getByTestId("document-object-viewer-close").click();
     await expect(page.getByTestId("document-object-viewer")).toBeHidden();
     await expect(page.getByTestId("meeting-export-notice-message")).toBeVisible({ timeout: 60_000 });

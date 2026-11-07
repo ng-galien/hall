@@ -47,16 +47,23 @@ test("la flèche d’ouverture et les flèches de la carte font avancer le réci
 });
 
 /* Molette et pavé tactile : un flux continu fait défiler le récit, ralenti hors Mac ; une molette à crans joue une
-   sous-étape par geste ; sur Mac, le pavé tactile garde le défilement natif. */
-for (const system of ["linux", "mac"] as const) {
+   sous-étape par geste ; sur Mac, le pavé tactile reste continu mais légèrement ralenti. */
+for (const system of ["linux", "windows", "mac"] as const) {
   test(`défilement à la molette et au pavé tactile (${system})`, async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === "telephone", "Gestes de souris et de pavé tactile.");
-    await page.addInitScript((mac) => {
-      Object.defineProperty(navigator, "platform", { get: () => (mac ? "MacIntel" : "Linux x86_64") });
-      Object.defineProperty(navigator, "userAgentData", {
-        get: () => ({ platform: mac ? "macOS" : "Linux", brands: [], mobile: false }),
+    await page.addInitScript((system) => {
+      const mac = system === "mac";
+      Object.defineProperty(navigator, "platform", {
+        get: () => (mac ? "MacIntel" : system === "windows" ? "Win32" : "Linux x86_64"),
       });
-    }, system === "mac");
+      Object.defineProperty(navigator, "userAgentData", {
+        get: () => ({
+          platform: mac ? "macOS" : system === "windows" ? "Windows" : "Linux",
+          brands: [],
+          mobile: false,
+        }),
+      });
+    }, system);
     await page.goto("./");
     await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
     const max = await page.evaluate(
@@ -94,9 +101,19 @@ for (const system of ["linux", "mac"] as const) {
     const prevented = await wheel(stream);
     const moved = (await page.evaluate(() => window.scrollY)) - before;
     if (system === "mac") {
-      /* Natif : la page n'intercepte rien (un événement synthétique ne fait pas défiler la page) */
-      expect(prevented).toBe(0);
-      expect(moved).toBe(0);
+      expect(prevented).toBe(1);
+      expect(moved).toBeGreaterThanOrEqual(129);
+      expect(moved).toBeLessThanOrEqual(131);
+      await settled();
+      // Mac mice can report the same legacy ratio as a trackpad; a large tick must stay bounded.
+      for (const direction of [1, -1]) {
+        const at = await page.evaluate(() => window.scrollY);
+        expect(await wheel([{ deltaY: direction * 120, wheelDeltaY: direction * -360 }])).toBe(1);
+        const jump = (await page.evaluate(() => window.scrollY)) - at;
+        expect(jump * direction).toBeGreaterThan(0);
+        expect(Math.abs(jump)).toBeLessThanOrEqual(18);
+      }
+      await settled();
     } else {
       expect(prevented).toBe(1);
       expect(moved).toBeGreaterThanOrEqual(139);
@@ -128,8 +145,7 @@ for (const system of ["linux", "mac"] as const) {
     const notches = Array.from({ length: 4 }, () => ({ deltaY: 53.33, wheelDeltaY: -120 }));
     expect(await wheel(notches)).toBe(1);
     await expect(page.getByTestId("step-panel-title")).not.toHaveText(title ?? "", { timeout: 15_000 });
-    await page.waitForTimeout(3000);
-    /* Un seul pas pour le geste entier */
-    expect((await stepIndex()) - from).toBe(1);
+    /* Un seul pas pour le geste entier, même avec l’animation Mac plus lente. */
+    await expect.poll(async () => (await stepIndex()) - from, { timeout: 30_000 }).toBe(1);
   });
 }

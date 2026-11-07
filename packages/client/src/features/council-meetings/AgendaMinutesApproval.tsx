@@ -1,8 +1,6 @@
 import { findSirenLink, type MinutesDetail } from "@hall/api-contract";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { CalendarIcon, OpenIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -40,36 +38,35 @@ export function AgendaMinutesApproval({ minutesId, itemId }: { minutesId: string
     };
   }, [minutesId]);
   return (
-    <div className="composer-item-editor" data-testid={`agenda-minutes-details-${itemId}`}>
+    <div className="composer-item-editor composer-minutes-approval" data-testid={`agenda-minutes-details-${itemId}`}>
       <RequestErrorBanner error={error} />
       {!minutes && !error ? <p role="status">{t("common.loading")}</p> : null}
       {minutes ? (
-        <>
-          <Link
-            className="composer-document-link"
-            data-testid={`agenda-minutes-source-${itemId}`}
-            to={`/meetings/${minutes.councilMeetingId}`}
-          >
-            <CalendarIcon aria-hidden="true" />
-            {formatMeetingLabel(
-              { number: minutes.meetingNumber, scheduledAt: minutes.scheduledAt },
-              t("meetings.occurrenceLabel"),
-              formatDate,
-            )}
+        <p className="composer-minutes-line">
+          <Link data-testid={`agenda-minutes-source-${itemId}`} to={`/minutes/${minutesId}`}>
+            {t("minutes.ofMeeting", {
+              meeting: formatMeetingLabel(
+                { number: minutes.meetingNumber, scheduledAt: minutes.scheduledAt },
+                t("meetings.occurrenceLabel"),
+                formatDate,
+              ),
+            })}
           </Link>
-          {!minutes.documentId ? <p className="meeting-evidence">{t("minutes.notGenerated")}</p> : null}
-        </>
+          <span className="composer-minutes-state" data-generated={Boolean(minutes.documentId)}>
+            {t(minutes.documentId ? "minutes.generated" : "minutes.notGenerated")}
+          </span>
+          {contentHref ? (
+            <button
+              type="button"
+              className="meeting-document-link"
+              onClick={() => setPreviewOpen(true)}
+              data-testid={`agenda-minutes-${itemId}`}
+            >
+              {t("minutes.view")}
+            </button>
+          ) : null}
+        </p>
       ) : null}
-      <Button
-        variant="ghost"
-        className="composer-document-link"
-        disabled={!contentHref}
-        onClick={() => setPreviewOpen(true)}
-        data-testid={`agenda-minutes-${itemId}`}
-      >
-        <OpenIcon aria-hidden="true" />
-        {t("minutes.view")}
-      </Button>
       {previewOpen && contentHref ? (
         <DocumentObjectViewer
           title={t("minutes.viewerTitle", {

@@ -151,6 +151,15 @@ export function createCouncilMeetingsRouter({
     },
   );
   router.post(
+    "/:meetingReference/agenda-revision",
+    requireActionPermission("meeting.establish-agenda-revision"),
+    async (request, response) => {
+      z.object({}).strict().parse(request.body);
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response.json(await councilClient.establishAgendaRevision(meeting.id));
+    },
+  );
+  router.post(
     "/:meetingReference/agenda-revision-reset",
     requireActionPermission("meeting.reset-agenda-revision"),
     async (request, response) => {
@@ -182,13 +191,13 @@ export function createCouncilMeetingsRouter({
   router.get("/:meetingReference/proxy-form.pdf", async (request, response) => {
     const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
     const query = z
-      .object({ grantorMemberId: z.string().min(1), holderMemberId: z.string().min(1).optional() })
+      .object({ grantorMemberId: z.string().min(1), holderMemberId: z.string().min(1) })
       .strict()
       .parse(request.query);
     const content = await meetingAttendanceDocumentService.proxyForm(
       meeting.id,
       query.grantorMemberId,
-      query.holderMemberId ?? null,
+      query.holderMemberId,
     );
     response.set("Content-Disposition", `inline; filename="pouvoir-${meeting.number}.pdf"`);
     response.set("Cache-Control", "private, no-store");
@@ -215,7 +224,7 @@ export function createCouncilMeetingsRouter({
     async (request, response) => {
       const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
       const dossier = await meetingDossierService.dossier(meeting.id);
-      response.set("Content-Disposition", `attachment; filename="${dossier.fileName}"`);
+      response.set("Content-Disposition", `inline; filename="${dossier.fileName}"`);
       response.set("Cache-Control", "private, no-store");
       response.type("application/pdf").send(dossier.content);
     },

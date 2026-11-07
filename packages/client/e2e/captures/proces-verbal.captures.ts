@@ -41,6 +41,6 @@ test("procès-verbal après la séance : des faits au PDF arrêté à la séance
   const approvalHref = await approval.getAttribute("href");
   if (approvalHref) await page.goto(approvalHref);
   else await approval.click({ force: true });
-  await expect(page.getByTestId("meeting-edit-details")).toBeVisible();
+  await expect(page.getByTestId("meeting-stages")).toBeVisible();
   await capture(page, `${journey}/07-seance-ou-le-pv-est-arrete`);
 });

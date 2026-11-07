@@ -181,7 +181,7 @@ for (const [device, viewport] of [
       if (closed) {
         await check(page, "closed meeting", `/meetings/${closed.id}`, async () => {
           await expect(page.getByTestId("meeting-report-facts")).toBeVisible();
-          const minutesLink = page.getByTestId("meeting-minutes-link");
+          const minutesLink = page.getByTestId("meeting-document-minutes-open");
           await expect(minutesLink).toBeVisible();
           await expect
             .poll(
@@ -275,9 +275,10 @@ for (const [device, viewport] of [
         expect(response.ok(), path).toBeTruthy();
       }
       await check(page, "meeting preparation", `/meetings/${meeting.id}`);
-      await check(page, "general properties dialog", `/meetings/${meeting.id}`, async () => {
-        await page.getByTestId("meeting-edit-details").tap();
-        await expect(page.getByTestId("meeting-edit-chair")).toBeVisible();
+      await check(page, "established meeting properties", `/meetings/${meeting.id}`, async () => {
+        await expect(page.getByTestId("meeting-facts")).toBeVisible();
+        // Establishing the notice locks the schedule, but officers must remain editable.
+        await expect.soft(page.getByTestId("meeting-edit-chair")).toBeVisible();
       });
       await check(page, "roll call", `/meetings/${meeting.id}/live`, async () => {
         await expect(page.getByTestId("live-rollcall-heading")).toBeVisible();

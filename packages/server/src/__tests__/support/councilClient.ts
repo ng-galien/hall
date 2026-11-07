@@ -136,6 +136,9 @@ export function createTestCouncilClient(
     async schedulePreparedSubject() {
       throw new Error("Prepared subject tests require PostgreSQL");
     },
+    async establishAgendaRevision() {
+      throw new Error("Agenda revision tests require the PostgreSQL fixture");
+    },
     async reopenAgenda() {
       throw new Error("Agenda reopening tests require the PostgreSQL fixture");
     },

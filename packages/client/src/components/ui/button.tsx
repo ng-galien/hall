@@ -17,6 +17,10 @@ const buttonVariants = cva(
         ghost: "hover:bg-[var(--hall-color-brand-subtle)] hover:text-[var(--hall-color-brand)]",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+        success:
+          "bg-[var(--hall-color-success)] text-[var(--hall-color-on-brand)] hover:bg-[var(--hall-color-success-strong)]",
+        "destructive-outline":
+          "border-[var(--hall-color-danger-border)] bg-background text-[var(--hall-color-danger)] hover:border-[var(--hall-color-danger-border-strong)] hover:bg-[var(--hall-color-danger-surface)]",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

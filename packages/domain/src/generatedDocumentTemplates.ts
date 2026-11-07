@@ -64,7 +64,7 @@ export const defaultDocumentTemplates: ReadonlyArray<DefaultTemplate> = families
         ? "{{ generated.subject | text }}"
         : "Convocation au conseil municipal du {{ notice.meeting.scheduledAt | date }}",
   stylesheet: family.kind === "pdf" ? familyStylesheet(family.documentType) : "",
-  headerHtml: family.kind === "pdf" ? "{{ hall.name | text }}" : "",
+  headerHtml: family.kind === "pdf" && family.documentType !== "proxy-form" ? "{{ hall.name | text }}" : "",
   footerHtml: family.kind === "pdf" ? "Page :page-number / :page-count" : "",
 }));
 

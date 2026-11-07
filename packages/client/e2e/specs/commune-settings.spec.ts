@@ -123,8 +123,10 @@ test("a scheduled meeting shows the indicative notice period computed from the p
   await expect(panel).toHaveAttribute("data-status", "qualificationRequired");
   const text = page.getByTestId("meeting-notice-deadline-date");
   await expect(text).toContainText(deadlineDay.toLocaleDateString("en-GB"));
-  await expect(text).toContainText("5 clear days");
-  await expect(text).toContainText("This date is ahead.");
-  await expect(panel).toContainText("Hall checks neither the sending nor the applicable regime.");
-  await expect(panel).not.toContainText(/complian|respect|on time|late/i);
+  await page.getByTestId("meeting-notice-deadline-help").hover();
+  const explanation = page.getByRole("tooltip");
+  await expect(explanation).toContainText("5 clear days");
+  await expect(explanation).toContainText("This date is ahead.");
+  await expect(explanation).toContainText("Hall checks neither the sending nor the applicable regime.");
+  await expect(explanation).not.toContainText(/complian|respect|on time|late/i);
 });

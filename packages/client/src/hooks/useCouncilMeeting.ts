@@ -61,7 +61,12 @@ import {
   recordMeetingQuorum,
   recordMeetingReconvocation,
 } from "../services/meetingConductApi";
-import { generateMeetingNotice, reopenMeetingAgenda, resetMeetingAgendaRevision } from "../services/meetingNoticesApi";
+import {
+  establishMeetingAgendaRevision,
+  generateMeetingNotice,
+  reopenMeetingAgenda,
+  resetMeetingAgendaRevision,
+} from "../services/meetingNoticesApi";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
@@ -355,6 +360,9 @@ export function useCouncilMeeting(meetingReference: string) {
     },
     generateNotice() {
       return mutate(() => generateMeetingNotice(meetingReference));
+    },
+    establishAgendaRevision() {
+      return mutate(() => establishMeetingAgendaRevision(meetingReference));
     },
     resetAgendaRevision() {
       return mutate(() => resetMeetingAgendaRevision(meetingReference));

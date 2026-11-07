@@ -231,7 +231,14 @@ test.describe("relief en 3D", () => {
   test("chaque scénario allume ses repères sur le relief", async ({ page }) => {
     await page.goto("./demonstration/#carte");
     await sceneReady(page);
-    await expect(page.getByTestId("terrain-mark").filter({ hasText: "Chemin des convois, 425 m" })).toBeVisible();
+    await expect
+      .poll(async () =>
+        JSON.parse((await page.getByTestId("terrain-stage").getAttribute("data-journeys")) ?? "[]").map(
+          (journey: { kind: string }) => journey.kind,
+        ),
+      )
+      .toEqual(["grain", "messenger"]);
+    expect((await page.getByTestId("terrain-mark").allTextContents()).join(" ")).not.toContain("425");
     await page.goto("./demonstration/#ouvrages");
     await sceneReady(page);
     await expect(
@@ -239,7 +246,7 @@ test.describe("relief en 3D", () => {
     ).toBeVisible();
     await page.goto("./demonstration/#motion");
     await sceneReady(page);
-    await expect(page.getByTestId("terrain-mark").filter({ hasText: "7 pour, 4 contre" })).toBeVisible();
+    await expect(page.getByTestId("terrain-mark").filter({ hasText: "Vers les cités alliées" }).first()).toBeVisible();
   });
 
   test("le menu de découverte nomme les scénarios de chaque groupe, sans code", async ({ page }) => {
@@ -253,7 +260,7 @@ test.describe("relief en 3D", () => {
     await expect(page.getByTestId("menu-group-preparer")).toHaveAttribute("aria-expanded", "true");
     const list = page.getByTestId("menu-list-preparer");
     await expect(list).toBeVisible();
-    const names = ["La veille", "La carte", "Le grenier", "Les ouvrages", "La défense"];
+    const names = ["La veille", "Les passages", "Le grenier", "Les ouvrages", "La défense"];
     for (const [index, name] of names.entries()) {
       const item = page.getByTestId(`menu-item-${order[index + 1]}`);
       await expect(item).toBeVisible();
@@ -268,9 +275,11 @@ test.describe("relief en 3D", () => {
     await expect(page.getByTestId("menu-list-sieger")).toBeHidden();
     await choose(page, "carte");
     await expect(page.getByTestId("menu-list-preparer")).toBeHidden();
-    await expect(page.getByTestId("menu-group-state-preparer")).toHaveText("La carte, 2 sur 5");
+    await expect(page.getByTestId("menu-group-preparer")).toHaveClass(/is-current/);
+    await expect(page.locator(".discovery-group-state")).toHaveCount(0);
     await expect(page.getByTestId("scenario-carte")).toContainText("Préparer, étape 2 sur 5");
-    await expect(page.getByTestId("step-next")).toHaveText("Étape suivante\u202f: Le grenier");
+    await expect(page.getByTestId("step-next")).toHaveText("Le grenier");
+    await expect(page.getByTestId("step-next").locator("svg")).toBeVisible();
     expect(await page.locator("body").innerText()).not.toMatch(technicalCodes);
     await page.getByTestId("menu-group-preparer").click();
     expect(await page.locator("body").innerText()).not.toMatch(technicalCodes);
@@ -513,13 +522,17 @@ test("le fragment d’adresse ouvre le scénario pendant la visite et la fermetu
   expect(new URL(page.url()).hash).toBe("#actes");
 });
 
-test("le récit reste dans l’oppidum, sans objet contemporain ni sortie du jeu", async ({ page }) => {
+test("le récit d’Alésia suit l’itinéraire jurassien et réserve Hall aux captures", async ({ page }) => {
   await page.goto("./demonstration/?view=plain");
   const page_text = await page.locator("body").innerText();
   const description = (await page.locator('meta[name="description"]').getAttribute("content")) ?? "";
-  expect(page_text).not.toMatch(outsideTheGame);
   expect(description).not.toMatch(outsideTheGame);
-  expect(page_text).not.toMatch(/cornu/i);
+  const opening = page.getByTestId("scenario-ouverture");
+  await expect(opening).toContainText("Genève");
+  await expect(opening).toContainText("Cornu");
+  await expect(opening.locator(".scenario-lead, .steps")).not.toContainText(["Berthier"]);
+  await expect(opening.locator(".scenario-feature")).toHaveCount(0);
+  await expect(opening.locator(".scenario-sources a")).toHaveCount(4);
   expect(description).not.toMatch(/cornu/i);
   for (const name of ["Alésia", "Mandubiens", "Vercingétorix"]) {
     expect(page_text).toContain(name);
@@ -532,26 +545,27 @@ test("le récit reste dans l’oppidum, sans objet contemporain ni sortie du jeu
   await expect(page.locator(".site-footer")).toContainText("licence ouverte Etalab 2.0");
 });
 
-test("le quorum atteint est une étape valide, sans rouge", async ({ page }) => {
+test("le quorum reste expliqué dans la capture, sans entrer dans le récit", async ({ page }) => {
   await page.goto("./demonstration/?view=plain");
   const steps = page.locator('[data-testid="scenario-appel"] .steps li');
-  const quorum = steps.filter({ hasText: "12 présents pour 8 requis" });
-  await expect(quorum).toHaveClass(/tone-valid/);
+  expect((await steps.allTextContents()).join(" ")).not.toMatch(/quorum|12 présents|8 requis/);
+  await expect(page.locator('[data-testid="scenario-appel"] figcaption')).toContainText("quorum");
   await expect(page.locator(".steps li.tone-blocking")).toHaveCount(0);
 });
 
 test("l’arrivée dit qu’on visite la démonstration de Hall et comment choisir un scénario", async ({ page }) => {
   await page.goto("./demonstration/?view=plain");
   await expect(page).toHaveTitle("Hall, gestion de l’activité communale");
-  await expect(page.getByTestId("site-header")).toContainText("Le conseil municipal en séance");
+  await expect(page.getByTestId("site-header")).toContainText("Hall");
   const intro = page.getByTestId("intro");
-  await expect(intro.locator("h1")).toHaveText("Démonstration de Hall sur la commune fictive d’Alésia");
-  await expect(intro.getByText("Choisissez un scénario dans la liste ci-dessous.")).toBeVisible();
+  await expect(intro.locator("h1")).toHaveText("Hall vous donne rendez-vous à Alésia");
+  await expect(page.getByTestId("intro-discover")).toHaveAttribute("href", "#lieu-ouverture");
   await expect(page.getByTestId("site-signature")).toHaveCount(0);
   await expect(page.getByTestId("site-credit")).toContainText(/Démonstration\s*: données fictives/);
   await page.goto("./demonstration/");
-  await expect(intro.getByText("Choisissez un scénario dans le menu Alésia, Préparer ou Siéger")).toBeVisible();
-  await expect(intro.getByText("dans la liste ci-dessous")).toBeHidden();
+  await expect(page.getByTestId("intro-discover")).toBeVisible();
+  await expect(page.getByTestId("intro-discover")).toHaveAttribute("href", "#ouverture");
+  await expect(intro).not.toContainText("Choisissez un scénario");
 });
 
 test.describe("mise en page de l’arrivée", () => {

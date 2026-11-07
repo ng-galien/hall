@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _electron as electron, expect, type Locator, type Page, test } from "@playwright/test";
+import { establishRevision, generateCurrentNotice } from "../fixtures/meetingPreparation";
 
 interface Entry {
   id: string;
@@ -337,9 +338,11 @@ test("document previews share a contextual frame in both themes without changing
       );
       await go(`meetings/${prepared.reference ?? prepared.id}`);
       await noticesLoaded;
-      const noticeButtons = page.getByTestId("meeting-notice-open");
+      const noticeButtons = page.getByTestId("meeting-document-notice-open");
       if (!(await noticeButtons.count())) {
-        await page.getByTestId("meeting-generate-notice").click();
+        if ((await page.getByTestId("meeting-agenda-revision").getAttribute("data-state")) === "open")
+          await establishRevision(page);
+        await generateCurrentNotice(page);
       }
       await noticeButtons.first().click();
       await pdfDigest(page, page.getByTestId("document-object-frame"));
@@ -356,7 +359,7 @@ test("document previews share a contextual frame in both themes without changing
       await page.getByTestId("document-object-viewer-close").click();
       const closed = meetings.find((entry) => entry.closedAt)!;
       await go(`meetings/${closed.reference ?? closed.id}`);
-      await page.getByTestId("meeting-deliberation-list-open").click();
+      await page.getByTestId("meeting-document-deliberation-list-open").click();
       await pdfDigest(page, page.getByTestId("document-object-frame"));
       observations.push(await aligned(page, page.getByTestId("document-object-viewer"), `deliberation-list-${tone}`));
       await page.getByTestId("document-object-viewer-close").click();

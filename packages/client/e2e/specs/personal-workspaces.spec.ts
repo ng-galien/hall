@@ -1,6 +1,7 @@
 import { defaultDocumentTemplates } from "@hall/domain";
 import { type APIRequestContext, type Browser, expect, type Locator, type Page, test } from "@playwright/test";
 import { clearTestDatabase } from "../fixtures/application";
+import { establishRevision, generateCurrentNotice } from "../fixtures/meetingPreparation";
 
 const password = "Hall-personal-2026!";
 const aliceFolder = "Espaces personnels/Alice Martin";
@@ -438,10 +439,11 @@ test("gives council members read access and a personal folder that only they and
       }),
     );
     await admin.goto(`/app/meetings/${scheduled.slug}`);
+    await establishRevision(admin);
     const notice = admin.waitForResponse(
       (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
     );
-    await admin.getByTestId("meeting-generate-notice").click();
+    await generateCurrentNotice(admin);
     const noticeResponse = await notice;
     expect(noticeResponse.ok(), await noticeResponse.text()).toBeTruthy();
     await admin.goto(`/app/meetings/${scheduled.slug}/live`);

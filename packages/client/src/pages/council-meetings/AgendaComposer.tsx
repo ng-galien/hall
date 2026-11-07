@@ -1,20 +1,19 @@
 // biome-ignore-all lint/a11y/noStaticElementInteractions: This drop target has a separate keyboard-accessible subject scheduler.
 import type { PreparedCouncilSubject, SchedulePreparedCouncilSubject } from "@hall/api-contract";
-import { type DragEvent, type FormEvent, useId, useMemo, useState } from "react";
+import { type DragEvent, type FormEvent, type ReactNode, useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DetailTooltip } from "../../components/DetailTooltip";
+import { HelpHint } from "../../components/HelpHint";
 import {
   AddIcon,
   ArrowDownIcon,
   ArrowUpIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
   CouncilBusinessIcon,
   DeleteIcon,
   DragHandleIcon,
-  GavelIcon,
   TextDocumentIcon,
   VisibleIcon,
 } from "../../components/icons";
@@ -29,6 +28,7 @@ import {
   agendaSubjectTextResource,
   preparedSubjectPresentation,
 } from "../../features/council-meetings/AgendaSubjectGlyph";
+import { MinutesReadiness } from "../../features/council-meetings/MinutesReadiness";
 import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -58,8 +58,14 @@ export function AgendaComposer({
   onSubjectSaved,
   onRemove,
   onReorder,
+  status,
+  actions,
+  caption,
 }: {
   agendaItems: AgendaItem[];
+  status?: ReactNode;
+  actions?: ReactNode;
+  caption?: ReactNode;
   preparedSubjects: PreparedCouncilSubject[];
   preparedSubjectsLoading: boolean;
   preparedSubjectsError: ApiErrorCode | null;
@@ -71,12 +77,13 @@ export function AgendaComposer({
   onRemove(itemId: string): Promise<boolean>;
   onReorder(itemIds: string[]): Promise<boolean>;
 }) {
-  const { t } = useI18n();
+  const { t, plural, formatNumber, formatDate } = useI18n();
   const { submitting, run } = useSubmitting();
   const fieldId = useId();
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
+  const [expandedCandidateKey, setExpandedCandidateKey] = useState<string | null>(null);
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [draggedSubject, setDraggedSubject] = useState<PreparedCouncilSubject | null>(null);
   const [subjectSearch, setSubjectSearch] = useState("");
@@ -161,22 +168,37 @@ export function AgendaComposer({
   return (
     <section className="agenda-composer" aria-labelledby="agenda-heading">
       <header className="agenda-composer-heading">
-        <div>
-          <h2 id="agenda-heading">{t("meeting.agenda")}</h2>
-          <p>{t(editable ? "meeting.composerDescription" : "meeting.composerLocked")}</p>
+        <div className="agenda-composer-title">
+          <h2 id="agenda-heading">
+            {t("meeting.agenda")}
+            <span className="agenda-composer-count" data-testid="agenda-composer-count">
+              {" · "}
+              {formatNumber(orderedItems.length)}{" "}
+              {plural(orderedItems.length, "meeting.agendaCount.one", "meeting.agendaCount.other")}
+            </span>
+          </h2>
+          <HelpHint
+            text={t(editable ? "meeting.composerDescription" : "meeting.composerLocked")}
+            testId="agenda-composer-help"
+          />
+          {status}
         </div>
-        {editable && onQuickCreate ? (
-          <Button
-            data-testid="agenda-question-create"
-            variant="outline"
-            size="sm"
-            onClick={() => setQuickAddOpen(true)}
-          >
-            <AddIcon />
-            {t("agendaSubject.openQuestion")}
-          </Button>
-        ) : null}
+        <div className="agenda-composer-actions">
+          {actions}
+          {editable && onQuickCreate ? (
+            <Button
+              data-testid="agenda-question-create"
+              variant="outline"
+              size="sm"
+              onClick={() => setQuickAddOpen(true)}
+            >
+              <AddIcon />
+              {t("agendaSubject.openQuestion")}
+            </Button>
+          ) : null}
+        </div>
       </header>
+      {caption ? <div className="agenda-composer-caption">{caption}</div> : null}
 
       {orderedItems.length === 0 ? (
         <EmptyState>{t("meeting.emptyAgenda")}</EmptyState>
@@ -235,7 +257,13 @@ export function AgendaComposer({
                   <span className="composer-position" data-testid={`agenda-item-position-${item.id}`}>
                     {item.agendaNumber}
                   </span>
-                  <AgendaSubjectGlyph kind={item.subjectKind} />
+                  {business.kind === "minutesApproval" && business.minutesId ? (
+                    <span className="composer-subject-glyph" data-kind="minutesApproval" aria-hidden="false">
+                      <MinutesReadiness minutesId={business.minutesId} testId={`agenda-minutes-readiness-${item.id}`} />
+                    </span>
+                  ) : (
+                    <AgendaSubjectGlyph kind={item.subjectKind} />
+                  )}
                   <button
                     className="composer-item-main"
                     data-testid={`agenda-item-expand-${item.id}`}
@@ -243,20 +271,30 @@ export function AgendaComposer({
                     aria-expanded={expanded}
                     onClick={() => expandItem(expanded ? null : item)}
                   >
-                    <span className="composer-item-copy">
-                      <strong>{liveBusinessTitle(business, t("agendaSubject.minutesApproval"))}</strong>
-                      <span>
-                        {business.kind !== "minutesApproval" ? t(presentation.label) : null}
-                        {business.folderPath ? ` · ${business.folderPath}` : ""}
+                    <DetailTooltip
+                      rows={
+                        business.kind === "minutesApproval"
+                          ? []
+                          : [
+                              { label: t("meeting.hint.kind"), value: t(presentation.label) },
+                              { label: t("meeting.hint.folder"), value: business.folderPath },
+                              {
+                                label: t("meeting.hint.report"),
+                                value: business.reportResourceId ? t("common.yes") : t("common.no"),
+                              },
+                              {
+                                label: t("meeting.hint.pieces"),
+                                value: business.resources.length
+                                  ? formatNumber(business.resources.length)
+                                  : t("common.none"),
+                              },
+                            ]
+                      }
+                    >
+                      <span className="composer-item-copy">
+                        <strong>{liveBusinessTitle(business, t("agendaSubject.minutesApproval"))}</strong>
                       </span>
-                    </span>
-                    {presentation.voted ? (
-                      <span className="composer-vote-indicator">
-                        <GavelIcon aria-hidden="true" />
-                        {t("live.voteRequired")}
-                      </span>
-                    ) : null}
-                    {expanded ? <ChevronDownIcon aria-hidden="true" /> : <ChevronRightIcon aria-hidden="true" />}
+                    </DetailTooltip>
                   </button>
                   {business.kind !== "minutesApproval" ? (
                     <Button asChild variant="ghost" size="icon-sm">
@@ -264,7 +302,11 @@ export function AgendaComposer({
                         data-testid={`agenda-item-open-business-${item.id}`}
                         to={`/workspace?${new URLSearchParams({ councilBusiness: business.id, path: business.folderPath })}`}
                         aria-label={t("meeting.openBusiness")}
-                        title={t("meeting.openBusiness")}
+                        title={
+                          business.folderPath
+                            ? `${t("meeting.openBusiness")} · ${business.folderPath}`
+                            : t("meeting.openBusiness")
+                        }
                       >
                         <CouncilBusinessIcon aria-hidden="true" />
                       </Link>
@@ -300,16 +342,18 @@ export function AgendaComposer({
                       >
                         <ArrowDownIcon />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        data-testid={`agenda-item-remove-${item.id}`}
-                        aria-label={t("meeting.removeItem")}
-                        disabled={submitting}
-                        onClick={() => void run(() => onRemove(item.id))}
-                      >
-                        <DeleteIcon />
-                      </Button>
+                      {business.kind !== "minutesApproval" ? (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          data-testid={`agenda-item-remove-${item.id}`}
+                          aria-label={t("meeting.removeItem")}
+                          disabled={submitting}
+                          onClick={() => void run(() => onRemove(item.id))}
+                        >
+                          <DeleteIcon />
+                        </Button>
+                      ) : null}
                     </span>
                   ) : null}
                 </div>
@@ -387,14 +431,17 @@ export function AgendaComposer({
           </div>
           <section className="composer-add-decisions" aria-labelledby="composer-businesses-heading">
             <h3 id="composer-businesses-heading">{t("meeting.addCouncilBusinessHeading")}</h3>
-            <Label htmlFor={`${fieldId}-subject-search`}>{t("common.search")}</Label>
-            <Input
-              id={`${fieldId}-subject-search`}
-              data-testid="agenda-prepared-search"
-              type="search"
-              value={subjectSearch}
-              onChange={(event) => setSubjectSearch(event.target.value)}
-            />
+            {preparedSubjects.length > 8 || subjectSearch ? (
+              <Input
+                id={`${fieldId}-subject-search`}
+                data-testid="agenda-prepared-search"
+                type="search"
+                aria-label={t("common.search")}
+                placeholder={t("common.search")}
+                value={subjectSearch}
+                onChange={(event) => setSubjectSearch(event.target.value)}
+              />
+            ) : null}
             <RequestErrorBanner error={preparedSubjectsError} />
             {preparedSubjectsLoading ? (
               <p role="status">{t("common.loading")}</p>
@@ -428,17 +475,37 @@ export function AgendaComposer({
                         type="button"
                         className="composer-item-main"
                         data-testid={`agenda-candidate-preview-${candidate.key}`}
-                        onClick={() => setViewedResourceId(candidate.previewResourceId)}
+                        aria-expanded={expandedCandidateKey === candidate.key}
+                        onClick={() =>
+                          setExpandedCandidateKey(expandedCandidateKey === candidate.key ? null : candidate.key)
+                        }
                       >
-                        <span className="composer-item-copy">
-                          <strong>{subject.title}</strong>
-                          <span>
-                            {t(agendaSubjectPresentation[subject.kind].label)}
-                            {subject.folderPath ? ` · ${subject.folderPath}` : ""}
+                        <DetailTooltip
+                          rows={[
+                            { label: t("meeting.hint.kind"), value: t(agendaSubjectPresentation[subject.kind].label) },
+                            { label: t("meeting.hint.folder"), value: subject.folderPath },
+                            { label: t("meeting.hint.created"), value: formatDate(subject.createdAt) },
+                          ]}
+                        >
+                          <span className="composer-item-copy">
+                            <strong>{subject.title}</strong>
                           </span>
-                        </span>
-                        <VisibleIcon aria-hidden="true" />
+                        </DetailTooltip>
                       </button>
+                      <Button asChild variant="ghost" size="icon-sm">
+                        <Link
+                          data-testid={`agenda-candidate-open-business-${candidate.key}`}
+                          to={`/workspace?${new URLSearchParams({ councilBusiness: subject.councilBusinessId, path: subject.folderPath })}`}
+                          aria-label={t("meeting.openBusiness")}
+                          title={
+                            subject.folderPath
+                              ? `${t("meeting.openBusiness")} · ${subject.folderPath}`
+                              : t("meeting.openBusiness")
+                          }
+                        >
+                          <CouncilBusinessIcon aria-hidden="true" />
+                        </Link>
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -449,6 +516,28 @@ export function AgendaComposer({
                         <AddIcon />
                         {t("common.add")}
                       </Button>
+                      {expandedCandidateKey === candidate.key ? (
+                        <div className="composer-candidate-detail">
+                          <AgendaSubjectEditor
+                            key={candidate.previewResourceId}
+                            resourceId={candidate.previewResourceId}
+                            onSaved={onSubjectSaved}
+                            onCancel={() => setExpandedCandidateKey(null)}
+                          />
+                          <div className="composer-item-documents">
+                            <Button
+                              variant="ghost"
+                              className="composer-document-link"
+                              data-testid={`agenda-candidate-report-preview-${candidate.key}`}
+                              onClick={() => setViewedResourceId(subject.reportResourceId)}
+                            >
+                              <TextDocumentIcon />
+                              {t("meeting.report")}
+                              <VisibleIcon />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
                     </li>
                   );
                 })}

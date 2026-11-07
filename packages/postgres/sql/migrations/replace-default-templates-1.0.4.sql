@@ -519,19 +519,12 @@ Lieu : {{ (sheet.meeting.location or ''Non renseigné'') | text }}
 {% set holder = proxy.holder %}
 {% set commune = hall.name or ''……'' %}
 {% set meetingDate = (proxy.meeting.startsAt | date) if proxy.meeting.startsAt else ''<span class="hall-fill hall-fill-date"></span>'' %}
-{{ hall.name | text }}
+Commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}{% if hall.postalCode or hall.city %}  
+{{ hall.postalCode | text }} {{ hall.city | text }}{% endif %}
 
 # Pouvoir
 
-Séance du conseil municipal du {{ meetingDate }}
-
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à {% if holder %}**{{ holder.name | text }}**, {{ qualities[holder.role] }}{% else %}<span class="hall-fill hall-fill-holder"></span>{% endif %}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
-
-Rappel (article L2121-20 du code général des collectivités territoriales) :
-
-- un conseiller municipal ne peut être porteur que d’un seul pouvoir ;
-- le pouvoir est toujours révocable ;
-- sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }}, empêché(e) d’assister à la séance du conseil municipal du {{ meetingDate }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, de voter en mon nom lors de cette séance.
 
 <div class="hall-signatures hall-signatures-handwritten">
 
@@ -540,7 +533,7 @@ Fait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fi
 <div class="hall-signatories">
 <div class="hall-signature">
 
-Le mandant
+Signature
 
 {{ grantor.name | text }}
 
@@ -553,19 +546,12 @@ Le mandant
 {% set holder = proxy.holder %}
 {% set commune = hall.name or ''……'' %}
 {% set meetingDate = (proxy.meeting.startsAt | date) if proxy.meeting.startsAt else ''<span class="hall-fill hall-fill-date"></span>'' %}
-{{ hall.name | text }}
+Commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}{% if hall.postalCode or hall.city %}  
+{{ hall.postalCode | text }} {{ hall.city | text }}{% endif %}
 
 # Pouvoir
 
-Séance du conseil municipal du {{ meetingDate }}
-
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ ''d’'' if commune[:1] in ''AEIOUYÉÈÊÂÎÔaeiouyéèêâîô'' else ''de '' }}{{ commune | text }}, donne pouvoir à {% if holder %}**{{ holder.name | text }}**, {{ qualities[holder.role] }}{% else %}<span class="hall-fill hall-fill-holder"></span>{% endif %}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
-
-Rappel (article L2121-20 du code général des collectivités territoriales) :
-
-- un conseiller municipal ne peut être porteur que d’un seul pouvoir ;
-- le pouvoir est toujours révocable ;
-- sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }}, empêché(e) d’assister à la séance du conseil municipal du {{ meetingDate }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, de voter en mon nom lors de cette séance.
 
 <div class="hall-signatures hall-signatures-handwritten">
 
@@ -574,7 +560,7 @@ Fait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fi
 <div class="hall-signatories">
 <div class="hall-signature">
 
-Le mandant
+Signature
 
 {{ grantor.name | text }}
 

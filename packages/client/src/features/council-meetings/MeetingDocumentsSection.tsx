@@ -4,15 +4,25 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { DecisionsIcon, FileIcon, MinutesIcon, OpenIcon, PdfIcon, SignIcon } from "../../components/icons";
-import { ShareButton } from "../../components/ShareButton";
+import {
+  AttendanceSheetIcon,
+  CheckCircleIcon,
+  DecisionsIcon,
+  DossierIcon,
+  GenerateIcon,
+  MailIcon,
+  MinutesIcon,
+  NoticeIcon,
+  PrintIcon,
+  ProxyIcon,
+  WarningIcon,
+} from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { type ApiErrorCode, apiErrorCode, SirenCapabilityUnavailable } from "../../services/apiClient";
-import { apiFile, downloadFile } from "../../services/fileSharing";
 import {
   downloadMeetingNoticeMessage,
   generateMeetingNotice,
@@ -23,15 +33,19 @@ import {
 import { openMinutes } from "../../services/minutesApi";
 import { liveBusinessTitle } from "../council-business/presentation";
 import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
+import { MeetingNoticeDeadline } from "./MeetingNoticeDeadline";
 import { MeetingProxyFormDialog } from "./MeetingProxyFormDialog";
 import { formatMeetingLabel } from "./meetingPresentation";
 
 type DocumentTone = "done" | "todo" | "error" | "neutral";
 
+type DocumentOpening = { onClick: () => void; disabled?: boolean } | { to: string };
+
 function DocumentRow({
   testId,
   icon,
   name,
+  opening,
   state,
   tone = "neutral",
   actions,
@@ -40,18 +54,44 @@ function DocumentRow({
   testId: string;
   icon: ReactNode;
   name: string;
+  opening?: DocumentOpening;
   state: ReactNode;
   tone?: DocumentTone;
   actions?: ReactNode;
   children?: ReactNode;
 }) {
+  const title = !opening ? (
+    <strong>{name}</strong>
+  ) : "to" in opening ? (
+    <Link className="meeting-document-link" to={opening.to} data-testid={`${testId}-open`}>
+      {name}
+    </Link>
+  ) : (
+    <button
+      type="button"
+      className="meeting-document-link"
+      data-testid={`${testId}-open`}
+      disabled={opening.disabled}
+      onClick={opening.onClick}
+    >
+      {name}
+    </button>
+  );
+  const statusIcon =
+    tone === "done" ? (
+      <CheckCircleIcon aria-hidden="true" />
+    ) : tone === "todo" || tone === "error" ? (
+      <WarningIcon aria-hidden="true" />
+    ) : (
+      icon
+    );
   return (
-    <li className="meeting-document-row" data-testid={testId}>
-      <span className="meeting-document-icon" aria-hidden="true">
-        {icon}
+    <li className="meeting-document-row" data-testid={testId} data-tone={tone}>
+      <span className="meeting-document-icon" data-tone={tone} aria-hidden="true">
+        {statusIcon}
       </span>
       <span className="meeting-document-copy">
-        <strong>{name}</strong>
+        {title}
         <span className="meeting-document-state" data-tone={tone} data-testid={`${testId}-state`}>
           {state}
         </span>
@@ -173,17 +213,7 @@ export function MeetingDocumentsSection({
   };
 
   const canDossier = meetingActions.can("meeting.generate-dossier");
-  const [dossierState, setDossierState] = useState<"idle" | "pending" | "failed">("idle");
-  const dossierFile = () => apiFile(`/council-meetings/${meeting.id}/dossier`, "dossier-seance.pdf", "application/pdf");
-  const downloadDossier = async () => {
-    setDossierState("pending");
-    try {
-      downloadFile(await dossierFile());
-      setDossierState("idle");
-    } catch {
-      setDossierState("failed");
-    }
-  };
+  const dossierHref = `/api/council-meetings/${meeting.id}/dossier`;
 
   const attendanceSheetHref = meetingActions.link("attendance-sheet");
   const proxyFormHref = meetingActions.link("proxy-form");
@@ -226,7 +256,6 @@ export function MeetingDocumentsSection({
   return (
     <CollapsibleSection
       title={t("meeting.documents.title")}
-      icon={<FileIcon />}
       open={open}
       onOpenChange={setOpen}
       testId="meeting-documents"
@@ -238,29 +267,21 @@ export function MeetingDocumentsSection({
         {showNoticeRow ? (
           <DocumentRow
             testId="meeting-document-notice"
-            icon={<PdfIcon />}
+            icon={<NoticeIcon />}
             name={t("meeting.notice.title")}
+            opening={
+              currentNotice
+                ? { onClick: () => perform(() => showNotice(currentNotice.id)), disabled: submitting }
+                : undefined
+            }
             state={notice.text}
             tone={notice.tone}
             actions={
               <>
-                {currentNotice ? (
+                {revisionEstablished && canGenerateNotice && !currentNotice ? (
                   <Button
                     size="sm"
-                    variant="outline"
-                    data-testid="meeting-notice-open"
-                    disabled={submitting}
-                    onClick={() => perform(() => showNotice(currentNotice.id))}
-                  >
-                    <OpenIcon />
-                    {t("meeting.documents.open")}
-                  </Button>
-                ) : null}
-                {revisionEstablished && canGenerateNotice ? (
-                  <Button
-                    size="sm"
-                    variant={currentNotice ? "outline" : "default"}
-                    data-testid="meeting-notice-regenerate"
+                    data-testid="meeting-generate-notice"
                     disabled={submitting}
                     onClick={() =>
                       perform(async () => {
@@ -270,7 +291,8 @@ export function MeetingDocumentsSection({
                       })
                     }
                   >
-                    {t(submitting ? "common.saving" : "meeting.notice.regenerate")}
+                    <GenerateIcon aria-hidden="true" />
+                    {t(submitting ? "common.saving" : "meeting.notice.generate")}
                   </Button>
                 ) : null}
                 {canExportNotice && message && preparing && currentNotice ? (
@@ -281,12 +303,14 @@ export function MeetingDocumentsSection({
                     disabled={submitting || !message.canGenerate}
                     onClick={() => perform(() => downloadMeetingNoticeMessage(meeting.reference, currentNotice.id))}
                   >
+                    <MailIcon aria-hidden="true" />
                     {t("meeting.notice.exportEmail")}
                   </Button>
                 ) : null}
               </>
             }
           >
+            {preparing ? <MeetingNoticeDeadline deadline={meeting.noticeDeadline} /> : null}
             {canExportNotice && message && preparing && message.missingEmailMemberIds.length ? (
               <p className="meeting-document-note" data-testid="meeting-notice-missing-emails">
                 {plural(
@@ -316,22 +340,18 @@ export function MeetingDocumentsSection({
                   <ul className="meeting-document-sublist" data-testid="meeting-notice-previous-list">
                     {previousNotices.map((version) => (
                       <li key={version.id}>
-                        <span>
-                          {t("meeting.documents.previousNotice", {
-                            number: formatNumber(version.revision),
-                            date: formatDateTime(version.revisionEstablishedAt),
-                          })}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="xs"
+                        <button
+                          type="button"
+                          className="meeting-document-link"
                           data-testid={`meeting-notice-preview-${version.id}`}
                           disabled={submitting}
                           onClick={() => perform(() => showNotice(version.id))}
                         >
-                          <OpenIcon />
-                          {t("meeting.documents.open")}
-                        </Button>
+                          {t("meeting.documents.previousNotice", {
+                            number: formatNumber(version.revision),
+                            date: formatDateTime(version.revisionEstablishedAt),
+                          })}
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -344,66 +364,36 @@ export function MeetingDocumentsSection({
         {preparing || canDossier ? (
           <DocumentRow
             testId="meeting-dossier"
-            icon={<PdfIcon />}
+            icon={<DossierIcon />}
             name={t("meeting.dossier")}
-            state={
-              dossierState === "failed"
-                ? t("meeting.dossierFailed")
-                : revisionEstablished
-                  ? t("meeting.dossierDescription")
-                  : t("meeting.documents.dossierAfterRevision")
+            opening={
+              canDossier && revisionEstablished
+                ? {
+                    onClick: () => setViewer({ title: `${t("meeting.dossier")} · ${meetingLabel}`, href: dossierHref }),
+                  }
+                : undefined
             }
-            tone={dossierState === "failed" ? "error" : "neutral"}
-            actions={
-              canDossier ? (
-                <>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    data-testid="meeting-dossier-download"
-                    disabled={dossierState === "pending"}
-                    onClick={() => void downloadDossier()}
-                  >
-                    {t(dossierState === "pending" ? "meeting.dossierPending" : "meeting.dossierDownload")}
-                  </Button>
-                  <ShareButton
-                    size="sm"
-                    testId="meeting-dossier-share"
-                    file={dossierFile}
-                    onError={() => setDossierState("failed")}
-                  />
-                </>
-              ) : undefined
-            }
+            state={revisionEstablished ? t("meeting.dossierDescription") : t("meeting.documents.dossierAfterRevision")}
           />
         ) : null}
 
         {attendanceSheetHref ? (
           <DocumentRow
             testId="meeting-document-attendance-sheet"
-            icon={<SignIcon />}
+            icon={<AttendanceSheetIcon />}
             name={t("meeting.attendanceSheet")}
+            opening={{
+              onClick: () =>
+                setViewer({ title: `${t("meeting.attendanceSheet")} · ${meetingLabel}`, href: attendanceSheetHref }),
+            }}
             state={t("meeting.documents.attendanceSheetState")}
-            actions={
-              <Button
-                size="sm"
-                variant="outline"
-                data-testid="meeting-attendance-sheet-open"
-                onClick={() =>
-                  setViewer({ title: `${t("meeting.attendanceSheet")} · ${meetingLabel}`, href: attendanceSheetHref })
-                }
-              >
-                <OpenIcon />
-                {t("meeting.documents.open")}
-              </Button>
-            }
           />
         ) : null}
 
         {proxyFormHref ? (
           <DocumentRow
             testId="meeting-document-proxy-form"
-            icon={<SignIcon />}
+            icon={<ProxyIcon />}
             name={t("meeting.proxyForm")}
             state={t("meeting.documents.proxyFormState")}
             actions={
@@ -413,6 +403,7 @@ export function MeetingDocumentsSection({
                 data-testid="meeting-proxy-form-open"
                 onClick={() => setProxyOpen(true)}
               >
+                <PrintIcon aria-hidden="true" />
                 {t("meeting.proxyFormOpen")}
               </Button>
             }
@@ -430,36 +421,20 @@ export function MeetingDocumentsSection({
                 : t(minutesGenerated ? "minutes.generated" : "minutes.draft")
             }
             tone={minutesGenerated ? "done" : minutesGenerated === false ? "todo" : "neutral"}
-            actions={
-              <Button size="sm" variant="outline" asChild>
-                <Link to={`/minutes/${meeting.minutesId}`} data-testid="meeting-minutes-link">
-                  <OpenIcon />
-                  {t("meeting.documents.open")}
-                </Link>
-              </Button>
-            }
+            opening={{ to: `/minutes/${meeting.minutesId}` }}
           />
         ) : null}
 
         {deliberationListHref ? (
           <DocumentRow
             testId="meeting-document-deliberation-list"
-            icon={<PdfIcon />}
+            icon={<DecisionsIcon />}
             name={t("meeting.deliberationList")}
+            opening={{
+              onClick: () =>
+                setViewer({ title: `${t("meeting.deliberationList")} · ${meetingLabel}`, href: deliberationListHref }),
+            }}
             state={t("meeting.documents.deliberationListState")}
-            actions={
-              <Button
-                size="sm"
-                variant="outline"
-                data-testid="meeting-deliberation-list-open"
-                onClick={() =>
-                  setViewer({ title: `${t("meeting.deliberationList")} · ${meetingLabel}`, href: deliberationListHref })
-                }
-              >
-                <OpenIcon />
-                {t("meeting.documents.open")}
-              </Button>
-            }
           />
         ) : null}
 
@@ -478,25 +453,18 @@ export function MeetingDocumentsSection({
               <ul className="meeting-document-sublist">
                 {decisions.map((decision) => (
                   <li key={decision.id}>
-                    <span className="meeting-document-sublist-copy">
-                      <span>
-                        {decision.number === null
-                          ? decision.title
-                          : t("meeting.documents.decisionItem", {
-                              number: formatNumber(decision.number),
-                              title: decision.title,
-                            })}
-                      </span>
-                    </span>
-                    <Button variant="ghost" size="xs" asChild>
-                      <Link
-                        to={`/council-decisions/${decision.id}`}
-                        data-testid={`meeting-decision-link-${decision.id}`}
-                      >
-                        <OpenIcon />
-                        {t("meeting.documents.open")}
-                      </Link>
-                    </Button>
+                    <Link
+                      className="meeting-document-link"
+                      to={`/council-decisions/${decision.id}`}
+                      data-testid={`meeting-decision-link-${decision.id}`}
+                    >
+                      {decision.number === null
+                        ? decision.title
+                        : t("meeting.documents.decisionItem", {
+                            number: formatNumber(decision.number),
+                            title: decision.title,
+                          })}
+                    </Link>
                   </li>
                 ))}
               </ul>

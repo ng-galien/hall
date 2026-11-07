@@ -43,7 +43,7 @@ test("Hall sur un téléphone : séance, appel et vote", async ({ docsPage: page
   }
 
   await page.goto(`/app/meetings/${meeting.id}`);
-  await expect(page.getByTestId("meeting-edit-details")).toBeVisible();
+  await expect(page.getByTestId("meeting-stages")).toBeVisible();
   await page.waitForLoadState("networkidle");
   await waitForPageEntrance(page);
   await capture(page, `${journey}/08-telephone-seance`);

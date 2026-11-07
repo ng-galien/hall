@@ -99,6 +99,7 @@ export type ErrorCode =
   | "meeting_notice_not_found"
   | "minutes_not_found"
   | "minutes_not_generated"
+  | "minutes_approval_stays_on_agenda"
   | "minutes_conflict"
   | "official_source_access_denied"
   | "official_source_invalid_response"

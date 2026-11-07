@@ -91,10 +91,10 @@ test("dérouler la séance : examen du point, vote, clôture", async ({ docsPage
     .filter((meeting) => meeting.closedAt)
     .toSorted((left, right) => right.closedAt!.localeCompare(left.closedAt!))[0]!;
   await page.goto(`/app/meetings/${closed.id}`);
-  await expect(page.getByTestId("meeting-deliberation-list-open")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-deliberation-list-open")).toBeVisible();
   await page.waitForLoadState("networkidle");
   await waitForPageEntrance(page);
   await capture(page, `${journey}/13-liste-des-deliberations`);
-  await page.getByTestId("meeting-deliberation-list-open").click();
+  await page.getByTestId("meeting-document-deliberation-list-open").click();
   await expect(page.getByTestId("document-object-viewer")).toBeVisible();
 });

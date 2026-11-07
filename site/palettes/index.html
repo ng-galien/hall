@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hall — étude de palettes pour le site de présentation</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif; background: #eef1f4; color: #141b24; line-height: 1.5; }
+  .page { max-width: 1240px; margin: 0 auto; padding: 40px 24px 80px; }
+  .page > header h1 { font-size: 30px; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .page > header p { margin: 0 0 6px; max-width: 860px; color: #3d4957; }
+  .refs { margin: 18px 0 8px; padding: 16px 20px; background: #fff; border: 1px solid #d3d9e0; border-radius: 8px; font-size: 14px; color: #3d4957; }
+  .refs h2 { font-size: 15px; margin: 0 0 6px; color: #141b24; }
+  .refs ul { margin: 0; padding-left: 18px; }
+  .refs code { font-size: 12.5px; }
+  section.palette { margin-top: 48px; }
+  section.palette > h2 { font-size: 24px; margin: 0 0 4px; }
+  section.palette > p.why { margin: 0 0 16px; max-width: 900px; color: #3d4957; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .pair { grid-template-columns: 1fr; } }
+  .mode-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #5a6676; margin: 0 0 6px; }
+
+  /* Bandeau de démonstration : tout vient des jetons. */
+  .demo { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .demo nav { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border); font-size: 13px; }
+  .demo nav .brand { font-weight: 700; letter-spacing: 0.02em; display: flex; align-items: center; gap: 8px; }
+  .demo nav .brand i { width: 14px; height: 14px; border-radius: 3px; background: var(--accent); display: inline-block; }
+  .demo nav .links { display: flex; gap: 16px; color: var(--text2); }
+  .demo nav .links span:first-child { color: var(--accent); font-weight: 600; }
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 0; }
+  @media (max-width: 560px) { .hero { grid-template-columns: 1fr; } }
+  .hero .copy { padding: 26px 20px 24px; }
+  .hero .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+  .hero h3 { font-size: 23px; line-height: 1.2; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .hero .sub { font-size: 14px; color: var(--text2); margin: 0 0 18px; }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { font: inherit; font-size: 14px; font-weight: 600; padding: 9px 16px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--onAccent); cursor: pointer; }
+  .btn:hover, .btn.pressed { background: var(--accentStrong); border-color: var(--accentStrong); }
+  .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .btn.ghost { background: transparent; color: var(--accent); }
+  .btn.ghost:hover { background: var(--surface); color: var(--accent); }
+  .relief { position: relative; min-height: 230px; border-left: 1px solid var(--border); }
+  @media (max-width: 560px) { .relief { border-left: 0; border-top: 1px solid var(--border); } }
+  .relief canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .card { position: absolute; right: 14px; bottom: 14px; width: 230px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 13px; font-size: 12.5px; box-shadow: 0 6px 18px rgba(10, 16, 24, 0.12); }
+  .card .kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text2); }
+  .card h4 { margin: 2px 0 8px; font-size: 14px; line-height: 1.3; }
+  .card ul { list-style: none; margin: 0 0 8px; padding: 0; color: var(--text2); }
+  .card li { display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding: 4px 0; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+  .badge.ok { color: var(--success); }
+  .badge.ko { color: var(--alert); }
+
+  /* Jetons et contrastes */
+  details { margin-top: 12px; background: #fff; border: 1px solid #d3d9e0; border-radius: 8px; padding: 10px 14px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 10px; }
+  th, td { text-align: left; padding: 5px 8px; border-top: 1px solid #e3e7ec; vertical-align: middle; }
+  th { font-weight: 600; color: #3d4957; }
+  .sw { display: inline-block; width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); vertical-align: -4px; margin-right: 6px; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .pass { color: #15803d; font-weight: 600; }
+  .fail { color: #b91c1c; font-weight: 600; }
+  .note { color: #5a6676; }
+  .reco { margin-top: 56px; padding: 18px 22px; background: #fff; border: 1px solid #d3d9e0; border-left: 4px solid #1f5fbf; border-radius: 8px; }
+  .reco h2 { margin: 0 0 6px; font-size: 18px; }
+  .reco p { margin: 0 0 6px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Palettes pour le site de présentation de Hall</h1>
+    <p>Trois palettes institutionnelles pour un site qui s'adresse à des maires. Contraintes : aucune couleur chaude ; base en gris ardoise ; un seul bleu d'accent ; vert pour l'état sain ; rouge pour un blocage. Chaque palette est appliquée au même bandeau, en clair et en sombre, avec le relief 3D teinté par son jeton.</p>
+    <p>Les contrastes du tableau de chaque palette sont calculés par cette page au chargement, selon la formule de luminance relative des WCAG 2.2 (le RGAA 4.1 reprend les mêmes seuils) : 4,5 pour le texte, 3 pour un objet graphique comme le relief.</p>
+    <div class="refs">
+      <h2>Relevé des sites de référence (couleurs dominantes des pages d'accueil, 5 novembre 2026)</h2>
+      <ul>
+        <li>Éditeurs pour mairies : Berger-Levrault, rouge carmin <code>#ca1d34</code> et indigo <code>#372e95</code> sur fond crème <code>#f7f5f3</code> ; JVS-Mairistem, vert d'eau <code>#00c39b</code> et bleu pétrole <code>#004c66</code> ; Cosoluce, magenta <code>#c4007a</code> ; Libriciel, bleu clair <code>#42a1e8</code> et marine <code>#323675</code>. Ce sont des chartes de marque vives, souvent chaudes ou multicolores, que nos contraintes écartent.</li>
+        <li>Collectivités et associations d'élus : Strasbourg, ardoise très sombre <code>#20272f</code> / <code>#171c22</code> ; Association des maires de France, bleu marine <code>#295290</code> ; Département des Bouches-du-Rhône, bleu profond <code>#01497b</code> sur gris clairs <code>#f7f7f7</code>. Le registre commun est un bleu profond, des gris neutres, peu de couleurs.</li>
+        <li>Système de design de l'État : non copié (réservé aux sites de l'État) ; seuls son registre de sobriété et son exigence de contraste guident ces propositions.</li>
+      </ul>
+    </div>
+  </header>
+
+  <div id="palettes"></div>
+
+  <div class="reco">
+    <h2>Recommandation : « Ardoise et bleu de séance »</h2>
+    <p>Elle prolonge la palette déjà en place dans le site Alésia et dans la scène 3D (gris ardoise <code>#0f1723</code> à <code>#f8fafc</code>, vert <code>#15803d</code>, rouge <code>#b91c1c</code>), ce qui garde une seule famille visuelle entre le site de présentation, la démonstration et l'application. Son bleu <code>#1f5fbf</code>, un peu plus profond que le bleu actuel <code>#2f6fd6</code>, tient le contraste de 4,5 en texte sur fond clair et sous un libellé blanc, ce que le bleu actuel ne fait qu'à la limite. Le registre reste celui des collectivités relevées : un bleu, des gris, rien de vif.</p>
+    <p>« Encre marine » est plus solennelle et convient si le site doit paraître d'abord institutionnel, au prix d'un bouton moins visible. « Pierre bleue » est la plus commerciale et moderne, mais son bleu acier s'éloigne de la scène 3D existante.</p>
+  </div>
+</div>
+
+<script>
+const PALETTES = [
+  {
+    id: "ardoise", name: "Ardoise et bleu de séance",
+    why: "Continuité avec le site actuel : les gris ardoise de l'application, un bleu de séance un peu plus profond que l'actuel pour gagner en contraste. Sobre, lisible, familier à l'usager de Hall.",
+    light: { bg: "#f6f8fa", surface: "#ffffff", text: "#0f1723", text2: "#475569", border: "#cbd5e1", accent: "#1f5fbf", accentStrong: "#174a96", onAccent: "#ffffff", success: "#15803d", alert: "#b91c1c", relief: "#64748b" },
+    dark:  { bg: "#0f1723", surface: "#1a2433", text: "#eef2f6", text2: "#a3b1c2", border: "#334155", accent: "#6ea0f0", accentStrong: "#9cc0f7", onAccent: "#0f1723", success: "#4ade80", alert: "#f87171", relief: "#94a3b8" },
+  },
+  {
+    id: "marine", name: "Encre marine",
+    why: "Registre des associations d'élus et des départements : un bleu marine dense, presque une encre, sur des gris légèrement bleutés. La plus solennelle des trois ; le bouton est moins éclatant, le titre plus officiel.",
+    light: { bg: "#f4f6f9", surface: "#ffffff", text: "#111a2b", text2: "#4a5568", border: "#c9d1dc", accent: "#1d3f7a", accentStrong: "#132c57", onAccent: "#ffffff", success: "#166534", alert: "#a61b1b", relief: "#52627a" },
+    dark:  { bg: "#0b1220", surface: "#141d2e", text: "#e8edf4", text2: "#9aa8bb", border: "#2a3647", accent: "#8fb0e8", accentStrong: "#b7cdf2", onAccent: "#0b1220", success: "#5cc98a", alert: "#f08a8a", relief: "#7d8ea8" },
+  },
+  {
+    id: "pierre", name: "Pierre bleue",
+    why: "Un gris ardoise plus neutre, presque minéral, et un bleu acier tirant vers le pétrole. La plus contemporaine et la plus commerciale ; elle évoque l'outil logiciel plus que l'institution.",
+    light: { bg: "#f5f7f8", surface: "#ffffff", text: "#1b2328", text2: "#4f5b63", border: "#cfd6db", accent: "#0b5f8f", accentStrong: "#08486d", onAccent: "#ffffff", success: "#18794e", alert: "#b4232c", relief: "#5b6b75" },
+    dark:  { bg: "#12181c", surface: "#1c252b", text: "#ecf0f2", text2: "#a6b3bb", border: "#33414a", accent: "#5fb0e0", accentStrong: "#93cbee", onAccent: "#12181c", success: "#4cc38a", alert: "#f47c72", relief: "#8a9ba5" },
+  },
+];
+
+const TOKEN_LABELS = {
+  bg: "Fond", surface: "Surface", text: "Texte", text2: "Texte secondaire", border: "Bordure",
+  accent: "Accent", accentStrong: "Accent appuyé", onAccent: "Texte sur accent",
+  success: "Succès (état sain)", alert: "Alerte (blocage)", relief: "Teinte du relief 3D",
+};
+
+const PAIRS = [
+  ["text", "bg", 4.5, "Texte courant sur le fond"],
+  ["text", "surface", 4.5, "Texte courant sur une carte"],
+  ["text2", "bg", 4.5, "Texte secondaire sur le fond"],
+  ["text2", "surface", 4.5, "Texte secondaire sur une carte"],
+  ["accent", "bg", 4.5, "Lien ou surtitre en accent sur le fond"],
+  ["accent", "surface", 4.5, "Lien en accent sur une carte"],
+  ["onAccent", "accent", 4.5, "Libellé du bouton"],
+  ["onAccent", "accentStrong", 4.5, "Libellé du bouton appuyé"],
+  ["success", "surface", 4.5, "Badge « Voté » sur une carte"],
+  ["alert", "surface", 4.5, "Badge « Bloqué » sur une carte"],
+  ["relief", "bg", 3, "Lignes du relief sur le fond (objet graphique)"],
+  ["border", "surface", null, "Bordure de carte (décorative, sans seuil)"],
+];
+
+function luminance(hex) {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function contrast(a, b) {
+  const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+const fmt = (n) => n.toFixed(2).replace(".", ",");
+
+function demo(tokens) {
+  const style = Object.entries(tokens).map(([k, v]) => `--${k}:${v}`).join(";");
+  return `
+  <div class="demo" style="${style}">
+    <nav>
+      <span class="brand"><i></i>Hall</span>
+      <span class="links"><span>Fonctionnalités</span><span>Démonstration</span><span>Télécharger</span></span>
+    </nav>
+    <div class="hero">
+      <div class="copy">
+        <p class="eyebrow">Le conseil municipal, de l'affaire à la délibération</p>
+        <h3>Préparez, votez et archivez les affaires de votre commune</h3>
+        <p class="sub">Devis, photos du terrain, carte, ordre du jour et vote en séance : chaque affaire du conseil suit son cycle dans un seul outil, installé en mairie.</p>
+        <div class="btns">
+          <button class="btn" type="button">Voir la démonstration</button>
+          <button class="btn pressed" type="button" aria-label="Bouton appuyé">Appuyé</button>
+          <button class="btn ghost" type="button">Fonctionnalités</button>
+        </div>
+      </div>
+      <div class="relief">
+        <canvas data-relief="${tokens.relief}" data-accent="${tokens.accent}" data-bg="${tokens.bg}"></canvas>
+        <div class="card">
+          <div class="kind">Affaire du conseil</div>
+          <h4>Réfection du chemin communal des Prés</h4>
+          <ul>
+            <li><span>Devis</span><span>3 pièces</span></li>
+            <li><span>Photos du terrain</span><span>12</span></li>
+            <li><span>Séance</span><span>14 novembre</span></li>
+          </ul>
+          <div class="badges"><span class="badge ok">Voté</span><span class="badge ko">Bloqué : pièce manquante</span></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tables(p) {
+  const tokenRows = Object.keys(TOKEN_LABELS).map((k) => `
+    <tr><td>${TOKEN_LABELS[k]}</td>
+      <td><span class="sw" style="background:${p.light[k]}"></span><code>${p.light[k]}</code></td>
+      <td><span class="sw" style="background:${p.dark[k]}"></span><code>${p.dark[k]}</code></td></tr>`).join("");
+  const cell = (t, a, b, min) => {
+    const r = contrast(t[a], t[b]);
+    if (min === null) return `<td>${fmt(r)} <span class="note">décoratif</span></td>`;
+    return `<td>${fmt(r)} : <span class="${r >= min ? "pass" : "fail"}">${r >= min ? "conforme" : "insuffisant"}</span></td>`;
+  };
+  const pairRows = PAIRS.map(([a, b, min, label]) => `
+    <tr><td>${label}</td><td>${min === null ? "—" : fmt(min)}</td>${cell(p.light, a, b, min)}${cell(p.dark, a, b, min)}</tr>`).join("");
+  return `
+  <details open>
+    <summary>Jetons de « ${p.name} »</summary>
+    <table><thead><tr><th>Jeton</th><th>Clair</th><th>Sombre</th></tr></thead><tbody>${tokenRows}</tbody></table>
+  </details>
+  <details open>
+    <summary>Contrastes calculés</summary>
+    <table><thead><tr><th>Paire</th><th>Seuil</th><th>Clair</th><th>Sombre</th></tr></thead><tbody>${pairRows}</tbody></table>
+  </details>`;
+}
+
+document.getElementById("palettes").innerHTML = PALETTES.map((p, i) => `
+  <section class="palette" id="${p.id}">
+    <h2>${i + 1}. ${p.name}</h2>
+    <p class="why">${p.why}</p>
+    <div class="pair">
+      <div><p class="mode-label">Clair</p>${demo(p.light)}</div>
+      <div><p class="mode-label">Sombre</p>${demo(p.dark)}</div>
+    </div>
+    ${tables(p)}
+  </section>`).join("");
+
+/* Aperçu du relief : un maillage en perspective cavalière, lignes dans la teinte du relief, le chemin en accent. */
+function height(x, y) {
+  return 0.55 * Math.exp(-((x - 0.62) ** 2 + (y - 0.35) ** 2) / 0.05)
+    + 0.35 * Math.exp(-((x - 0.25) ** 2 + (y - 0.6) ** 2) / 0.08)
+    + 0.06 * Math.sin(x * 11) * Math.cos(y * 9);
+}
+function hexToRgba(hex, a) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${r},${g},${b},${a})`;
+}
+function drawRelief(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = canvas.dataset.bg; ctx.fillRect(0, 0, w, h);
+  const relief = canvas.dataset.relief, accent = canvas.dataset.accent;
+  const N = 34;
+  const project = (u, v) => {
+    const z = height(u, v);
+    return [w * (0.06 + 0.88 * u - 0.18 * v + 0.12), h * (0.12 + 0.62 * v) - z * h * 0.38];
+  };
+  for (let j = 0; j <= N; j++) {
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const [x, y] = project(i / N, j / N);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.strokeStyle = hexToRgba(relief, 0.35 + 0.65 * (j / N));
+    ctx.lineWidth = j % 5 === 0 ? 1.3 : 0.7;
+    ctx.stroke();
+  }
+  for (let i = 0; i <= N; i += 2) {
+    ctx.beginPath();
+    for (let j = 0; j <= N; j++) {
+      const [x, y] = project(i / N, j / N);
+      j ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.strokeStyle = hexToRgba(relief, 0.28);
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  for (let t = 0; t <= 60; t++) {
+    const u = 0.12 + 0.6 * (t / 60), v = 0.82 - 0.5 * (t / 60) + 0.08 * Math.sin(t / 7);
+    const [x, y] = project(u, v);
+    t ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.strokeStyle = accent; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.stroke();
+  const [mx, my] = project(0.72, 0.36);
+  ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI * 2);
+  ctx.fillStyle = accent; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = canvas.dataset.bg; ctx.stroke();
+}
+const draw = () => document.querySelectorAll("canvas[data-relief]").forEach(drawRelief);
+draw();
+window.addEventListener("resize", draw);
+</script>
+</body>
+</html>

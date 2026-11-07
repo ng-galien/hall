@@ -193,6 +193,7 @@ BEGIN
       abs(item.position) IN (SELECT final_position FROM points) AS taken
     FROM hall.council_agenda_item item
     WHERE item.council_meeting = target_meeting AND item.id NOT IN (SELECT id FROM points)
+      AND item.minutes_approval IS NULL
   ), base AS (
     SELECT greatest(coalesce((SELECT max(abs(position)) FROM hall.council_agenda_item WHERE council_meeting = target_meeting), 0),
       (SELECT max(final_position) FROM points)) AS value

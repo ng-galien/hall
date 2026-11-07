@@ -1,5 +1,6 @@
 import type { APIResponse } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
+import { establishRevision, generateCurrentNotice } from "../fixtures/meetingPreparation";
 
 interface SirenItem<T> {
   properties: T;
@@ -61,7 +62,7 @@ test("establishes, revises and resets the agenda revision with its notices", asy
   await page.evaluate(() => localStorage.setItem("mairie.locale", "fr"));
   await page.reload();
 
-  const state = page.getByTestId("meeting-agenda-revision-state");
+  const state = page.getByTestId("meeting-agenda-revision");
   await expect(state).toHaveAttribute("data-state", "open");
   await expect(state).toHaveAttribute("data-number", "1");
   await expect(page.getByTestId("meeting-generate-notice")).toBeVisible();
@@ -69,14 +70,15 @@ test("establishes, revises and resets the agenda revision with its notices", asy
   await expect(page.getByTestId("meeting-reset-agenda-revision")).toHaveCount(0);
   await capture(page, "1-ouverte");
 
-  await page.getByTestId("meeting-generate-notice").click();
+  await establishRevision(page);
+  await generateCurrentNotice(page);
   await expect(state).toHaveAttribute("data-state", "established");
   await expect(state).toHaveAttribute("data-number", "1");
-  await expect(page.getByTestId("meeting-agenda-revision-notice")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-notice-open")).toBeVisible();
   await expect(page.getByTestId("meeting-generate-notice")).toHaveCount(0);
   await expect(page.getByTestId("meeting-revise-agenda")).toBeVisible();
   await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "done");
-  await expect(page.getByTestId("meeting-notice-regenerate")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-notice-open")).toBeEnabled();
   await capture(page, "2-apres-generer");
 
   await page.getByTestId("meeting-revise-agenda").click();
@@ -96,7 +98,7 @@ test("establishes, revises and resets the agenda revision with its notices", asy
   expect(resetResponse.ok(), await resetResponse.text()).toBeTruthy();
   await expect(state).toHaveAttribute("data-state", "established");
   await expect(state).toHaveAttribute("data-number", "1");
-  await expect(page.getByTestId("meeting-agenda-revision-notice")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-notice-open")).toBeVisible();
   const restored = await sirenItems<{ id: string; position: number }>(
     await page.request.get(`/api/council-meetings/${scheduled.slug}/agenda-items`),
   );
@@ -108,11 +110,14 @@ test("establishes, revises and resets the agenda revision with its notices", asy
   await page.getByTestId("meeting-revise-agenda").click();
   await expect(state).toHaveAttribute("data-state", "open");
   await expect(state).toHaveAttribute("data-number", "2");
-  await page.getByTestId("meeting-generate-notice").click();
+  await establishRevision(page);
+  await generateCurrentNotice(page);
   await expect(state).toHaveAttribute("data-state", "established");
   await expect(state).toHaveAttribute("data-number", "2");
-  await expect(page.getByTestId("meeting-agenda-revision-notice")).toBeVisible();
+  await expect(page.getByTestId("meeting-document-notice-open")).toBeVisible();
   await page.getByTestId("meeting-notice-previous-toggle").click();
   await expect(page.getByTestId("meeting-notice-previous-list").locator("li")).toHaveCount(1);
   await capture(page, "5-documents-deux-convocations", "meeting-documents");
+  // Opening the current PDF does not replace the existing ability to regenerate it.
+  await expect(page.getByTestId("meeting-notice-regenerate")).toBeVisible();
 });

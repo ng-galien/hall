@@ -42,16 +42,16 @@
     <main id="app" data-testid="site-main">
       <section id="decouvrir" class="discover" data-testid="section-decouvrir" aria-label="Découvrir Hall">
         <div class="intro" data-testid="intro">
-          <h1 class="intro-title">Démonstration de Hall sur la commune fictive d’Alésia</h1>
-          <p class="intro-hint intro-hint-scene">
-            Choisissez un scénario dans le menu Alésia, Préparer ou Siéger, en haut de la page.
-          </p>
-          <p class="intro-hint intro-hint-plain">Choisissez un scénario dans la liste ci-dessous.</p>
+          <h1 class="intro-title">Hall vous donne rendez-vous à Alésia</h1>
+          <a class="intro-discover" href="#ouverture" data-testid="intro-discover">
+            <span class="intro-portrait" aria-hidden="true"><img src="../figures/vercingetorix.webp" alt="" width="512" height="768"></span>
+            <span>Revivez le siège d’Alésia</span>
+          </a>
         </div>
 
         <div class="terrain" data-testid="terrain" hidden>
           <div class="terrain-stage" data-testid="terrain-stage"></div>
-          <div class="terrain-labels" aria-hidden="true"></div>
+          <section class="terrain-labels" aria-label="Lieux du récit"></section>
           <p class="terrain-credit" data-testid="terrain-credit">
             Relief RGE ALTI, bâti, routes et eau BD TOPO © IGN, licence ouverte Etalab 2.0
           </p>

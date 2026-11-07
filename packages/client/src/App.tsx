@@ -2,6 +2,7 @@ import { matchDiscriminated, matchLiteral, type ReferenceEntityKind } from "@hal
 import { lazy, type ReactNode, Suspense, useCallback } from "react";
 import { createBrowserRouter, Route, RouterProvider, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ApplicationErrorPage } from "./components/ApplicationErrorPage";
 import { AuthenticationGate } from "./components/AuthenticationGate";
 import { ResourceImagePresentationProvider } from "./components/editor/images";
 import { ReferencePresentationProvider, type ReferenceTarget } from "./components/editor/references";
@@ -265,7 +266,7 @@ const applicationRouter = createBrowserRouter(
         </Suspense>
       ),
     },
-    { path: "*", element: <RoutedApplication /> },
+    { path: "*", element: <RoutedApplication />, errorElement: <ApplicationErrorPage /> },
   ],
   { basename: "/app" },
 );

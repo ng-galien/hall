@@ -285,29 +285,22 @@ Lieu : {{ (sheet.meeting.location or 'Non renseigné') | text }}
 
 // @implements-requirement HALL-FR-ATT-180
 /**
- * Proxy (CGCT L2121-20): a form to sign, it records nothing in Hall. Without a chosen
- * holder, or without a meeting date, a blank zone is left to fill in by hand.
+ * Proxy (CGCT L2121-20): a form to sign, it records nothing in Hall. The commune is named once,
+ * with its postal code and city; place and date of signature stay blank.
  */
 export const jinjaProxyForm = `${qualities}
 {% set grantor = proxy.grantor %}
 {% set holder = proxy.holder %}
 {% set commune = hall.name or '……' %}
 {% set meetingDate = (proxy.meeting.startsAt | date) if proxy.meeting.startsAt else '<span class="hall-fill hall-fill-date"></span>' %}
-{{ hall.name | text }}
+Commune {{ 'd’' if commune[:1] in 'AEIOUYÉÈÊÂÎÔaeiouyéèêâîô' else 'de ' }}{{ commune | text }}{% if hall.postalCode or hall.city %}  
+{{ hall.postalCode | text }} {{ hall.city | text }}{% endif %}
 
 # Pouvoir
 
-Séance du conseil municipal du {{ meetingDate }}
+Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }}, empêché(e) d’assister à la séance du conseil municipal du {{ meetingDate }}, donne pouvoir à **{{ holder.name | text }}**, {{ qualities[holder.role] }}, de voter en mon nom lors de cette séance.
 
-Je soussigné(e) **{{ grantor.name | text }}**, {{ qualities[grantor.role] }} de la commune {{ 'd’' if commune[:1] in 'AEIOUYÉÈÊÂÎÔaeiouyéèêâîô' else 'de ' }}{{ commune | text }}, donne pouvoir à {% if holder %}**{{ holder.name | text }}**, {{ qualities[holder.role] }}{% else %}<span class="hall-fill hall-fill-holder"></span>{% endif %}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {{ meetingDate }}.
-
-Rappel (article L2121-20 du code général des collectivités territoriales) :
-
-- un conseiller municipal ne peut être porteur que d’un seul pouvoir ;
-- le pouvoir est toujours révocable ;
-- sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.
-
-${jinjaSignatureBlock(null, null, [{ quality: "Le mandant", name: "{{ grantor.name | text }}" }])}`;
+${jinjaSignatureBlock(null, null, [{ quality: "Signature", name: "{{ grantor.name | text }}" }])}`;
 
 export const jinjaDocumentBodies: Readonly<Record<string, string>> = {
   "document-print": "{{ generated.bodyMarkdown | markdown }}",

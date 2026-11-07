@@ -2,6 +2,7 @@ import { writeFile } from "node:fs/promises";
 import type { APIResponse, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 import { backdateMeetingConduct } from "../fixtures/meetingHistory";
+import { establishRevision, generateCurrentNotice, saveMeetingField } from "../fixtures/meetingPreparation";
 
 interface SirenItem<T> {
   properties: T;
@@ -721,17 +722,19 @@ test("shows canonical meeting entry requirements and blocks entry again when the
     await page.request.get(conductUrl),
   );
   await page.goto(detailUrl);
-  await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
-  await expect(page.getByTestId("meeting-entry-blocker-agendaRevisionOpen")).toBeVisible();
+  await expect(page.getByTestId("meeting-enter-live")).toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByTestId("meeting-enter-live")).not.toHaveAttribute("href");
+  await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
   await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   await expect(page.getByTestId("live-meeting-start")).toHaveCount(0);
   await page.getByTestId("live-return-preparation").click();
+  await establishRevision(page);
   const established = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
   );
-  await page.getByTestId("meeting-generate-notice").click();
+  await generateCurrentNotice(page);
   expect((await established).ok()).toBeTruthy();
   await expect(page.getByTestId("meeting-live-entry-reason")).toHaveCount(0);
   await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "done");
@@ -742,8 +745,9 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   await page.getByTestId("live-meeting-exit").click();
   await page.getByTestId("meeting-revise-agenda").click();
   await expect(page.getByTestId("meeting-generate-notice")).toBeVisible();
-  await expect(page.getByTestId("meeting-enter-live")).toBeDisabled();
-  await expect(page.getByTestId("meeting-entry-blocker-agendaRevisionOpen")).toBeVisible();
+  await expect(page.getByTestId("meeting-enter-live")).toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByTestId("meeting-enter-live")).not.toHaveAttribute("href");
+  await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
   await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
@@ -838,7 +842,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   );
   await page.getByTestId("agenda-item-save").click();
   expect((await savedText).ok()).toBeTruthy();
-  await expect(page.getByTestId("agenda-item-save")).toBeEnabled();
+  await expect(page.getByTestId("agenda-item-save")).toBeHidden();
   const proposal = await sirenProperties<{ subject: { textResourceId: string; content: string } }>(
     await page.request.get(`/api/council-meetings/${meeting!.slug}/agenda-items/${publicItem.id}`),
   );
@@ -848,10 +852,11 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   );
   expect(proposal.subject.textResourceId).not.toBe(business.reportResourceId);
   await expect(page.getByTestId("meeting-generate-notice")).toBeVisible();
+  await establishRevision(page);
   const noticeResponse = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
   );
-  await page.getByTestId("meeting-generate-notice").click();
+  await generateCurrentNotice(page);
   expect((await noticeResponse).ok()).toBeTruthy();
   await page.goto(`/app/meetings/${meeting!.slug}/live`);
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
@@ -1479,16 +1484,14 @@ test("prepares a meeting through its general properties and follows it when its 
   expect(meeting).toBeTruthy();
   const slug = (date: string) => `${date}-${String(meeting.number).padStart(3, "0")}`;
   const saveGeneralProperties = async (startsAt: string, officers: boolean) => {
-    await page.getByTestId("meeting-edit-details").click();
-    await page.getByTestId("meeting-edit-starts-at").fill(startsAt);
+    await saveMeetingField(page, () => page.getByTestId("meeting-edit-starts-at").fill(startsAt));
     if (officers) {
       await page.getByTestId("meeting-edit-chair").click();
-      await page.getByRole("option").first().click();
+      await page.getByTestId("meeting-edit-chair-search-result").first().click();
       await page.getByTestId("meeting-edit-secretary").click();
-      await page.getByRole("option").nth(1).click();
+      await saveMeetingField(page, () => page.getByTestId("meeting-edit-secretary-search-result").nth(1).click());
     }
-    await page.getByTestId("meeting-edit-submit").click();
-    await expect(page.getByTestId("meeting-edit-submit")).toBeHidden();
+    await expect(page.getByTestId("meeting-details-inline")).toBeVisible();
   };
 
   await page.goto(`/app/meetings/${meeting.id}`);
@@ -1697,7 +1700,8 @@ test("holds the meeting after a second convocation as a new linked meeting under
   await expect(page.getByTestId("meeting-notice-deadline-date")).toContainText(
     new Date(`${reconvenedDeadline.deadline.deadlineDate}T12:00:00`).toLocaleDateString("en-GB"),
   );
-  await expect(page.getByTestId("meeting-notice-deadline-date")).toContainText("3 clear days");
+  await page.getByTestId("meeting-notice-deadline-help").hover();
+  await expect(page.getByRole("tooltip")).toContainText("3 clear days");
   await page.goto(`/app/meetings/${reconvened.id}/live`);
   for (const [index, member] of members.entries())
     await page.getByTestId(`live-attendance-${member.id}-${index < 4 ? "present" : "absent"}`).click();

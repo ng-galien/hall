@@ -12,14 +12,17 @@ export function PageHeader({
   description,
   children,
   titleAction,
+  above,
 }: {
   title: string;
   description: string;
   children?: ReactNode;
   titleAction?: ReactNode;
+  above?: ReactNode;
 }) {
   return (
     <header className="border-b border-border bg-surface px-7 py-4">
+      {above}
       {titleAction ? (
         <div className="flex items-center gap-2">
           <h1 className="page-title">{title}</h1>
@@ -28,7 +31,7 @@ export function PageHeader({
       ) : (
         <h1 className="page-title">{title}</h1>
       )}
-      <p className="mt-1 text-sm text-muted">{description}</p>
+      {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
       {children}
     </header>
   );

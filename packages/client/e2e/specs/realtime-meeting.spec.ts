@@ -1,5 +1,6 @@
 import type { APIResponse, WebSocketRoute } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
+import { establishRevision, generateCurrentNotice } from "../fixtures/meetingPreparation";
 
 interface SirenItem<T> {
   properties: T;
@@ -49,10 +50,11 @@ test("a second conducting session receives conduct events, keeps its selection a
   const second = await scheduleItem(businesses[1]!.id, 2);
 
   await conductor.goto(`/app/meetings/${scheduled.slug}`);
+  await establishRevision(conductor);
   const noticeResponse = conductor.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
   );
-  await conductor.getByTestId("meeting-generate-notice").click();
+  await generateCurrentNotice(conductor);
   expect((await noticeResponse).ok()).toBeTruthy();
   await conductor.goto(`/app/meetings/${scheduled.slug}/live`);
   await conductor.getByTestId("live-attendance-all-present").click();

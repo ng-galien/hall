@@ -1,5 +1,6 @@
 import type { APIResponse, Page, Request } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
+import { establishRevision, generateCurrentNotice } from "../fixtures/meetingPreparation";
 
 interface SirenItem<T> {
   properties: T;
@@ -46,10 +47,11 @@ async function openMeetingWithStartedItem(page: Page, kind: "openQuestion" | "co
     }),
   );
   await page.goto(`/app/meetings/${scheduled.slug}`);
+  await establishRevision(page);
   const noticeResponse = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/notices"),
   );
-  await page.getByTestId("meeting-generate-notice").click();
+  await generateCurrentNotice(page);
   expect((await noticeResponse).ok()).toBeTruthy();
   await page.goto(`/app/meetings/${scheduled.slug}/live`);
   await page.getByTestId("live-attendance-all-present").click();
