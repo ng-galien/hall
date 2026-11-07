@@ -10,9 +10,7 @@ export function isExportHref(href: string): boolean {
   const path = new URL(href, "http://hall.invalid").pathname;
   if (path.startsWith("/api/resources/editor-assets/") || path.startsWith("/api/resources/binary-references/"))
     return false;
-  return /\/(?:content(?:\.pdf)?|deliberation-list\.pdf|dossier|bundle)$/.test(
-    path,
-  );
+  return /\/(?:content(?:\.pdf)?|deliberation-list\.pdf|dossier|bundle)$/.test(path);
 }
 
 export function requireApplicationReading(request: Request, response: Response, next: NextFunction): void {

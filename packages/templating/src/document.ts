@@ -147,7 +147,9 @@ const safeHtmlSchema: SanitizeSchema = {
     col: ["style", "width"],
     div: ["className"],
     section: ["className"],
-    span: [["className", "pageNumber", "totalPages", "hall-fill", "hall-fill-place", "hall-fill-date", "hall-fill-holder"]],
+    span: [
+      ["className", "pageNumber", "totalPages", "hall-fill", "hall-fill-place", "hall-fill-date", "hall-fill-holder"],
+    ],
     p: ["className"],
     img: ["alt", "className", "src", "style", "title"],
     li: ["value"],
