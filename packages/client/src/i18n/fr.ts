@@ -1071,7 +1071,8 @@ export const fr: Messages = {
   "meeting.deliberationList": "Liste des délibérations",
   "meeting.attendanceSheet": "Feuille d’émargement",
   "applicationError.title": "Incident technique",
-  "applicationError.description": "L’écran n’a pas pu s’afficher. Rechargez la page ; si l’incident se répète, signalez-le.",
+  "applicationError.description":
+    "L’écran n’a pas pu s’afficher. Rechargez la page ; si l’incident se répète, signalez-le.",
   "applicationError.reload": "Recharger la page",
   "applicationError.home": "Retour à l’accueil",
   "meeting.facts.time": "Heure",

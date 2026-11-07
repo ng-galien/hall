@@ -159,19 +159,19 @@ export const scenes: Scene[] = [
     ],
     sources: [
       {
-        label: "André Berthier — La méthode du portrait-robot (1984)",
+        label: "André Berthier : La méthode du portrait-robot (1984)",
         url: "https://berthier.archeojurasites.org/sites/default/files/ajs_1984_annales-alesia_portrait-robot.pdf",
       },
       {
-        label: "Archives Berthier — L’itinéraire vers Genève",
+        label: "Archives Berthier : L’itinéraire vers Genève",
         url: "https://berthier.archeojurasites.org/content/itineraire-probable-de-cesar-travers-le-jura-pour-atteindre-geneve",
       },
       {
-        label: "ArchéoJuraSites — La progression des légions et le combat de cavalerie",
+        label: "ArchéoJuraSites : La progression des légions et le combat de cavalerie",
         url: "https://www.archeojurasites.org/fichiers/articles-42-229.pdf",
       },
       {
-        label: "Jacques Berger — Planches du siège (2004)",
+        label: "Jacques Berger : Planches du siège (2004)",
         url: "https://berthier.archeojurasites.org/content/planches-de-louvrage-alesia-chaux-des-crotenay-pourquoi-de-jacques-berger-2004",
       },
     ],

@@ -91,7 +91,6 @@ class LandmarkBuilder {
           edge.push({ x: a.x + ((b.x - a.x) * j) / count, y: a.y + ((b.y - a.y) * j) / count });
       }
     }
-    // Include the boundary when choosing the plane (a round footprint can peak between grid samples).
     this.foundation = Math.max(
       this.foundation!,
       ...edge.map((p) => this.ground.height(this.origin.x + p.x, this.origin.y + p.y) + 0.15),
@@ -370,7 +369,6 @@ function romanDefences(b: LandmarkBuilder) {
     1,
   );
   b.line([...romanCampAccess.street, { x: 0, y: 145 }], 28, 1, "earth", 1);
-  // Regular quarters leave the north–south access and the cross street open.
   for (const x of [-270, -195, -120, 120, 195, 270])
     for (const y of [-170, -110, -50, 80, 140, 200, 260]) {
       if (y === 260 && Math.abs(x) === 270) continue;
@@ -428,7 +426,6 @@ function watchtower(b: LandmarkBuilder) {
 }
 
 function granary(b: LandmarkBuilder) {
-  // An inhabited oppidum quarter around the granaries: irregular lanes and a defended edge.
   for (const [x, y, width, depth] of oppidumHomes) b.house(x, y, width, depth);
   const edge = [
     { x: -90, y: -390 },
@@ -624,7 +621,6 @@ const builders: Record<PlaceId, (builder: LandmarkBuilder) => void> = {
 };
 
 export function buildSiegeLandmark(ground: Ground, id: PlaceId, at: Spot): SiegeLandmark {
-  // Compact outlooks retain their proportions and stand on the adjacent natural ledges.
   const footprint = id === "tour" || id === "belvedere" ? 0.65 : 1;
   const base = ground.height(at.x, at.y);
   const localGround =

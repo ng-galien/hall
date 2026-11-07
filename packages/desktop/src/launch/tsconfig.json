@@ -12,5 +12,5 @@
       "three/*": ["../../../../node_modules/@types/three/*"]
     }
   },
-  "include": ["./**/*.ts"]
+  "include": ["./**/*.ts", "../../../../site/src/public-file-versions.d.ts"]
 }

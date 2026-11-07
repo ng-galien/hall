@@ -60,7 +60,7 @@ export function buildHeritage(ground: Ground, labels: HTMLElement) {
     node.setAttribute("aria-label", `${place.name}, photographie du paysage actuel`);
     const photo = link("", place.photo);
     photo.className = "heritage-photo";
-    photo.title = `${place.area} — photographie du paysage actuel. Ouvrir la photo et ses informations.`;
+    photo.title = `${place.area} : photographie du paysage actuel. Ouvrir la photo et ses informations.`;
     const image = document.createElement("span");
     image.className = "heritage-icon";
     image.setAttribute("aria-hidden", "true");
@@ -124,7 +124,6 @@ export function buildHeritage(ground: Ground, labels: HTMLElement) {
             Math.min(box.x + width, other.x + other.width) > Math.max(box.x, other.x) &&
             Math.min(box.y + height, other.y + other.height) > Math.max(box.y, other.y),
         );
-        // Never displace a story label or turn a distant photograph into a false geographic marker.
         if (overlaps || Math.hypot(box.x - desired.x, box.y - desired.y) > 100) {
           node.hidden = true;
           continue;

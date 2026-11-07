@@ -602,7 +602,6 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     raycaster.setFromCamera(pointer, camera);
-    // Keep the existing place targets selectable even where a foreground model overlaps their projection.
     const anchors = raycaster.intersectObjects(
       models.map((m) => m.hit),
       false,
@@ -706,7 +705,6 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
         };
       })
       .sort((a, b) => b.model.place.y - a.model.place.y);
-    // Keep both ground pins and their existing 3D click targets clear of labels.
     for (const marker of markers) {
       if (!marker.projected[2]) continue;
       const [hitX, hitY] = screen(marker.model.centre, width, height);
@@ -715,7 +713,6 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       }
     }
     for (const track of journeys?.tracks ?? []) {
-      // Reserve the route, not the moving actor, so labels never jump out of its way.
       const stride = Math.max(1, Math.floor(track.points.length / 5));
       for (let index = 0; index < track.points.length; index += stride) {
         const [x, y, visible] = screen(track.points[index], width, height);

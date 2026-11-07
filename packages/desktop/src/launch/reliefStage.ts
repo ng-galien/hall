@@ -136,7 +136,7 @@ export async function createReliefStage(
   revealFrom: number,
   list: HTMLElement,
 ): Promise<ReliefStage> {
-  const ground = await loadGround(new URL("./", document.baseURI).href);
+  const ground = await loadGround();
   const toMap = reliefToMap(projection, ground);
   const fromMap = toMap.clone().invert();
 

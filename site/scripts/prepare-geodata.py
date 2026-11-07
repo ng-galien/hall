@@ -168,7 +168,6 @@ def label_point(feature: dict) -> tuple[float, float]:
 
 
 def write_localities(features: list[dict], target: Path) -> None:
-    """All inhabited names intersecting the tile; preserve the IGN importance for zoom levels."""
     items = []
     for feature in features:
         props = feature["properties"]
@@ -178,7 +177,6 @@ def write_localities(features: list[dict], target: Path) -> None:
         x, y = label_point(feature)
         lon, lat = x / MX + LON0, y / MY + LAT0
         if not (BBOX["west"] <= lon <= BBOX["east"] and BBOX["south"] <= lat <= BBOX["north"]):
-            # A village can straddle the tile: anchor its name on the part that is actually modelled.
             inside = [c for ring in rings(feature["geometry"]) for c in ring
                       if BBOX["west"] <= c[0] <= BBOX["east"] and BBOX["south"] <= c[1] <= BBOX["north"]]
             if not inside:

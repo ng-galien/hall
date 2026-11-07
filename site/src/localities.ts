@@ -50,7 +50,6 @@ export async function buildLocalities(ground: Ground, labels: HTMLElement) {
         const width = item.node.offsetWidth;
         const height = item.node.offsetHeight;
         const desired = { x: x - width / 2, y: y + 5, width, height };
-        // Place names stay close to their geographic position, never migrate across the map.
         const reach = villages ? 38 : 18;
         const left = Math.max(area.x, desired.x - reach);
         const top = Math.max(area.y, desired.y - reach);

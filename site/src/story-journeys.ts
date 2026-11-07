@@ -17,7 +17,6 @@ function traveller(kind: Journey["kind"]): THREE.Group {
     return mesh;
   };
   if (kind === "missive") {
-    // Flat, unlit colours keep the small travelling scroll readable over shaded relief.
     const parchment = new THREE.MeshBasicMaterial({ color: 0xfff3d5 });
     const edge = new THREE.MeshBasicMaterial({ color: 0x967a4f });
     const binding = new THREE.MeshBasicMaterial({ color: ACCENT });
@@ -81,7 +80,6 @@ function traveller(kind: Journey["kind"]): THREE.Group {
       add(new THREE.BoxGeometry(0.45, 0.4, 0.035), blue, 1.06, 1.35);
     }
   }
-  // Release materials that this model variant does not use, too.
   group.userData.materials = [blue, wood, linen, ink, ...(group.userData.messageMaterials ?? [])];
   return group;
 }
@@ -133,7 +131,6 @@ export function buildJourneys(ground: Ground, journeys: Journey[], seconds: numb
         track.model.position.lerpVectors(track.points[index - 1], track.points[index], fraction);
         track.route.geometry.instanceCount = reduced ? track.points.length - 1 : Math.max(1, index);
         track.route.material.resolution.set(width, height);
-        // Keep the message legible during the camera move, without growing into a giant landmark.
         const pixels = track.journey.kind === "missive" ? 36 : 18;
         const metresPerPixel =
           (2 * camera.position.distanceTo(track.model.position) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) /

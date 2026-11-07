@@ -201,7 +201,7 @@ function renderScenario(scene: Scene, headingLevel: "h2" | "h3", navigation?: St
   if (scene.axis === "ouverture" && navigation) article.append(renderEntries(navigation));
   if (scene.sources?.length) {
     const sources = html("details", "scenario-sources");
-    sources.append(html("summary", undefined, "Sources du récit — ArchéoJuraSites"));
+    sources.append(html("summary", undefined, "Sources du récit : ArchéoJuraSites"));
     sources.append(
       html(
         "p",

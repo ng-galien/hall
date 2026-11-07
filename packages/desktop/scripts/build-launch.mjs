@@ -18,6 +18,21 @@ const sharedThree = {
   },
 };
 
+// Packaged resources belong to this application build; they need no HTTP cache version.
+const packagedPublicFiles = {
+  name: "packaged-public-files",
+  setup(build) {
+    build.onResolve({ filter: /^virtual:public-file-versions$/ }, () => ({
+      path: "public-file-versions",
+      namespace: "hall-packaged-resources",
+    }));
+    build.onLoad({ filter: /.*/, namespace: "hall-packaged-resources" }, () => ({
+      contents: "export default {};",
+      loader: "js",
+    }));
+  },
+};
+
 await mkdir(outputDirectory, { recursive: true });
 await build({
   entryPoints: [join(desktopRoot, "src", "launch", "main.ts")],
@@ -31,7 +46,7 @@ await build({
   loader: { ".woff2": "file", ".woff": "file" },
   assetNames: "fonts/[name]-[hash]",
   logLevel: "warning",
-  plugins: [sharedThree],
+  plugins: [sharedThree, packagedPublicFiles],
 });
 await copyFile(join(desktopRoot, "src", "launch", "index.html"), join(outputDirectory, "index.html"));
 await cp(join(siteRoot, "public", "terrain"), join(outputDirectory, "terrain"), { recursive: true });
