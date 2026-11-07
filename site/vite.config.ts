@@ -3,6 +3,7 @@ import { copyFile, cp, mkdir, readdir, readFile, writeFile } from "node:fs/promi
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
+import { refreshPublishedPage } from "./src/publication";
 import { studioVersions } from "./studio/server";
 
 const publicDirectory = fileURLToPath(new URL("./public/", import.meta.url));
@@ -51,6 +52,33 @@ function publicFileVersions(): Plugin {
   };
 }
 
+/** Publishes one version for the HTML and checks it before loading its cached bundles. */
+function publicationVersion(): Plugin {
+  return {
+    name: "hall-publication-version",
+    apply: "build",
+    enforce: "post",
+    generateBundle(_options, bundle) {
+      const script = `<script>(${refreshPublishedPage.toString()})();</script>`;
+      const fingerprint = createHash("sha256");
+      fingerprint.update(script);
+      for (const [name, output] of Object.entries(bundle).sort(([left], [right]) => left.localeCompare(right))) {
+        fingerprint.update(name);
+        fingerprint.update(output.type === "chunk" ? output.code : output.source);
+      }
+      const version = fingerprint.digest("hex").slice(0, 16);
+      for (const name of ["index.html", "demonstration/index.html"]) {
+        const page = bundle[name];
+        if (page?.type !== "asset" || typeof page.source !== "string") continue;
+        page.source = page.source
+          .replace("<html ", `<html data-hall-build="${version}" `)
+          .replace("<head>", `<head>${script}`);
+      }
+      this.emitFile({ type: "asset", fileName: "publication.json", source: JSON.stringify({ version }) });
+    },
+  };
+}
+
 /** Appends the content version to the capture URLs written in the documentation page. */
 async function versionDocumentationCaptures(page: string, capturesDirectory: string) {
   const versions = await directoryVersions(capturesDirectory);
@@ -69,6 +97,7 @@ export default defineConfig(({ command, mode }) => ({
   },
   plugins: [
     publicFileVersions(),
+    ...(mode === "studio" ? [] : [publicationVersion()]),
     ...(command === "serve" || mode === "studio"
       ? [studioVersions(fileURLToPath(new URL("./src/presentation/story-settings.json", import.meta.url)))]
       : []),
