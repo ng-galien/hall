@@ -555,7 +555,6 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     view.explore();
     options.onExplore();
   };
-  // Enable OrbitControls before it receives the first gesture after the introduction.
   renderer.domElement.addEventListener("pointerdown", beginExploring, { capture: true });
   renderer.domElement.addEventListener("wheel", beginExploring, { capture: true, passive: true });
 
@@ -920,7 +919,6 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       const target = overview.target.clone().lerp(battleIntro.centre, k);
       camera.lookAt(target);
       camera.updateMatrixWorld();
-      // Normalize clip space before blending: a single camera, no projection switch.
       const distance = camera.position.distanceTo(target);
       const perspective = camera.projectionMatrix.elements;
       const aerial = battleIntro.camera.projectionMatrix.elements;

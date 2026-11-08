@@ -15,7 +15,6 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
   const along = new THREE.Vector3(right.z, 0, -right.x);
   const front: THREE.Vector3[] = [];
   let previous = 0;
-  // Stay between the camps, following lower ground with a continuity penalty.
   for (let i = 0; i < 33; i++) {
     const y = 600 - i * 37.5;
     let chosen = previous;
@@ -242,7 +241,6 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
         const p = at.project(camera);
         return [((p.x + 1) / 2) * width, ((1 - p.y) / 2) * height];
       });
-      // Continue the geographical curve to both viewport edges on tall phones.
       const first = points[0];
       const last = points[points.length - 1];
       if (first[1] > 0) points.unshift([first[0], 0]);
