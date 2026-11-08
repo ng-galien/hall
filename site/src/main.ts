@@ -570,7 +570,8 @@ async function renderTerrain(root: HTMLElement) {
     if (scene) {
       settleOnScene(sceneScrollTop());
     }
-    terrain?.play(scene ? { place: scene.place, motion: scene.motion } : null);
+    if (scene) terrain?.play({ place: scene.place, motion: scene.motion });
+    else terrain?.showIntro();
     if (!fromHash) history.replaceState(null, "", id ? `#${id}` : `${location.pathname}${location.search}`);
   }
 
@@ -583,7 +584,7 @@ async function renderTerrain(root: HTMLElement) {
   for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href="#haut"], a[href="#decouvrir"]')) {
     link.addEventListener("click", (event) => {
       event.preventDefault();
-      if (current) open(null);
+      open(null);
       glide(link.hash === "#haut" ? 0 : sceneScrollTop());
     });
   }
@@ -656,7 +657,8 @@ async function renderTerrain(root: HTMLElement) {
       history.replaceState(null, "", `${location.pathname}${location.search}`);
     }
     if (chosen === "accueil" && current) return;
-    terrain?.play(shot);
+    if (chosen === "accueil") terrain?.showIntro();
+    else terrain?.play(shot);
   }
 
   const { createTerrain } = await import("./terrain");

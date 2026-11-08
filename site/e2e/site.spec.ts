@@ -558,7 +558,7 @@ test("l’arrivée dit qu’on visite la démonstration de Hall et comment chois
   await expect(page).toHaveTitle("Hall, gestion de l’activité communale");
   await expect(page.getByTestId("site-header")).toContainText("Hall");
   const intro = page.getByTestId("intro");
-  await expect(intro.locator("h1")).toHaveText("Hall vous donne rendez-vous à Alésia");
+  await expect(intro.locator("h1")).toHaveText("Le siège d’Alésia");
   await expect(page.getByTestId("intro-discover")).toHaveAttribute("href", "#lieu-ouverture");
   await expect(page.getByTestId("site-signature")).toHaveCount(0);
   await expect(page.getByTestId("site-credit")).toContainText(/Démonstration\s*: données fictives/);

@@ -127,7 +127,7 @@ export function goTo(index: number) {
     glissement de la carte, clavier, flèche d'ouverture. */
 const controlRatio = () => timeline.settings.playback.controlRatio;
 /** Multiplicateur de la durée de base pour un geste de molette à crans. */
-const wheelRatio = () => timeline.settings.playback.wheelRatio * (mac ? 3.2 : 1);
+const wheelRatio = () => timeline.settings.playback.wheelRatio * (mac ? 1.6 : 1);
 
 function play(p: number, ms: number) {
   if (hooks.play) hooks.play(p, ms);
@@ -269,7 +269,7 @@ function continuousScroll(event: WheelEvent, unit: number) {
   if (factor === 1 || window.scrollY >= storyLimit()) return;
   event.preventDefault();
   const delta = event.deltaY * unit * factor;
-  scrollRemainder += mac ? Math.max(-18, Math.min(18, delta)) : delta;
+  scrollRemainder += mac ? Math.max(-36, Math.min(36, delta)) : delta;
   const whole = Math.trunc(scrollRemainder);
   scrollRemainder -= whole;
   if (whole !== 0) window.scrollBy({ top: whole, behavior: "auto" });
@@ -596,14 +596,14 @@ export function moveHero() {
 window.addEventListener("scroll", moveHero, { passive: true });
 moveHero();
 
-/* Ouverture : une flèche discrète sous le titre ; un toucher ou un clic joue la première sous-étape */
+/* The opening button starts the first story step. */
 if (hero) {
   const cue = document.createElement("button");
   cue.type = "button";
-  cue.className = "p-hero-cue";
+  cue.className = "p-hero-cue site-primary-action";
   cue.dataset.testid = "story-start";
   cue.setAttribute("aria-label", "Commencer le parcours");
-  cue.innerHTML = `<svg viewBox="0 0 24 40" aria-hidden="true"><path class="p-hero-cue-line" d="M12 5v27"/><path class="p-hero-cue-head" d="m5.5 25.5 6.5 6.5 6.5-6.5"/></svg><span class="p-hero-cue-label">Découvrir</span>`;
+  cue.textContent = "Découvrir";
   cue.addEventListener("click", () => stepTo(0, controlRatio()));
   hero.append(cue);
 }

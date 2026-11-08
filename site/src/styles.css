@@ -167,27 +167,6 @@ a {
   text-decoration: underline;
 }
 
-.intro-portrait {
-  position: relative;
-  width: 3.5rem;
-  height: 3.5rem;
-  flex: none;
-  overflow: hidden;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  background: color-mix(in srgb, var(--surface) 80%, var(--accent-wash));
-}
-
-.intro-portrait img {
-  position: absolute;
-  width: 8rem;
-  max-width: none;
-  height: auto;
-  left: 50%;
-  top: -0.1rem;
-  transform: translateX(-50%);
-}
-
 /* Scène 3D : le relief clair du site de présentation */
 .terrain {
   position: relative;
@@ -1856,8 +1835,7 @@ a {
   padding: 0 var(--gutter);
   text-align: center;
 }
-.has-battle-intro .intro-title,
-.has-battle-intro .intro-discover .intro-portrait {
+.has-terrain .intro-title {
   display: none;
 }
 .battle-intro-date {
@@ -1873,23 +1851,7 @@ a {
 }
 .has-battle-intro .intro-discover {
   opacity: var(--battle-link-opacity, 0);
-  justify-content: center;
-  max-width: 100%;
-  min-height: 48px;
   margin-top: 0.5rem;
-  padding: 0.8rem 1.4rem;
-  border: 1px solid var(--accent);
-  border-radius: 0.75rem;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: clamp(1rem, 1.6vw, 1.125rem);
-  font-weight: 700;
-  box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 18%, transparent);
-  transition: background 150ms ease;
-}
-.has-battle-intro .intro-discover:hover {
-  background: var(--accent-strong);
-  text-decoration: none;
 }
 .has-battle-intro .intro-discover:focus-visible {
   opacity: 1;

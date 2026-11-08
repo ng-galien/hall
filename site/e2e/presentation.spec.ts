@@ -102,8 +102,8 @@ for (const system of ["linux", "windows", "mac"] as const) {
     const moved = (await page.evaluate(() => window.scrollY)) - before;
     if (system === "mac") {
       expect(prevented).toBe(1);
-      expect(moved).toBeGreaterThanOrEqual(129);
-      expect(moved).toBeLessThanOrEqual(131);
+      expect(moved).toBeGreaterThanOrEqual(259);
+      expect(moved).toBeLessThanOrEqual(261);
       await settled();
       // Mac mice can report the same legacy ratio as a trackpad; a large tick must stay bounded.
       for (const direction of [1, -1]) {
@@ -111,7 +111,7 @@ for (const system of ["linux", "windows", "mac"] as const) {
         expect(await wheel([{ deltaY: direction * 120, wheelDeltaY: direction * -360 }])).toBe(1);
         const jump = (await page.evaluate(() => window.scrollY)) - at;
         expect(jump * direction).toBeGreaterThan(0);
-        expect(Math.abs(jump)).toBeLessThanOrEqual(18);
+        expect(Math.abs(jump)).toBeLessThanOrEqual(36);
       }
       await settled();
     } else {

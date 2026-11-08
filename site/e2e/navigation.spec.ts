@@ -3,12 +3,41 @@ import { expect, test } from "@playwright/test";
 test("discover opens Alésia through the same scene navigation", async ({ page }, testInfo) => {
   await page.goto("./demonstration/?view=3d");
   await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
-  await expect(page.getByTestId("intro").locator("h1")).toHaveText("Hall vous donne rendez-vous à Alésia");
+  await expect(page.getByTestId("intro-discover")).toHaveCSS("opacity", "1", { timeout: 15_000 });
+  await expect(page.getByTestId("battle-intro-gaul")).toHaveCSS("opacity", "1");
   await page.screenshot({ path: testInfo.outputPath("alesia-entry.png") });
   await page.getByTestId("intro-discover").click();
   await expect(page.getByTestId("scenario-ouverture")).toBeVisible();
   await expect(page).toHaveURL(/#ouverture$/);
   await expect(page.getByTestId("menu-item-ouverture")).toHaveAttribute("aria-current", "step");
+});
+
+test("returning from stories restores the current battle introduction", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./#en-savoir-plus");
+  await page.getByTestId("nav-demonstration").click();
+  const stage = page.getByTestId("terrain-stage");
+  await expect(stage).toHaveAttribute("data-intro", "ready");
+  for (const id of ["veille", "ouvrages"]) {
+    await page.getByTestId("menu-group-preparer").click();
+    await page.getByTestId(`menu-item-${id}`).click();
+    await expect(page.getByTestId(`scenario-${id}`)).toBeVisible();
+    await expect(stage).toHaveAttribute("data-intro", "off");
+    await page.getByTestId("nav-demonstration").click();
+    await expect(page.getByTestId("scenario-panel")).toBeHidden();
+    await expect(stage).toHaveAttribute("data-intro", "ready");
+    await expect(page.getByTestId("battle-intro-copy")).toBeVisible();
+    await expect(page.getByTestId("battle-intro-roman")).toBeVisible();
+    await expect(page.getByTestId("battle-intro-gaul")).toBeVisible();
+    await expect(page.getByTestId("intro-discover")).toHaveCSS("opacity", "1");
+  }
+  await page.getByTestId("intro-discover").click();
+  await expect(page.getByTestId("scenario-ouverture")).toBeVisible();
+  await page.getByTestId("nav-telecharger").click();
+  await expect(page.getByTestId("section-telecharger")).toBeInViewport();
+  await page.getByTestId("nav-demonstration").click();
+  await expect(stage).toHaveAttribute("data-intro", "ready");
+  await expect(page.getByTestId("intro-discover")).toBeInViewport();
 });
 
 test("the demonstration header contains its controls and keeps content below", async ({ page }) => {

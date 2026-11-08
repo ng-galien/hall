@@ -6,7 +6,7 @@
     "msPerWeight": 500,
     "controlRatio": 3,
     "wheelRatio": 1.5,
-    "continuousScrollFactor": { "mac": 0.325, "other": 0.35 },
+    "continuousScrollFactor": { "mac": 0.65, "other": 0.35 },
     "landing": 0.008,
     "rest": 0.97,
     "jumpMs": 1200,

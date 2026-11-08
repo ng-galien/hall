@@ -151,12 +151,12 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
   function update() {
     const fade = (start: number, duration = 1) => Math.max(0, Math.min(1, (seconds - start) / duration));
     date.style.opacity = title.style.opacity = String(fade(3, 1.5));
-    host.style.setProperty("--battle-link-opacity", String(fade(12, 2)));
     const drawing = fade(3, 4);
     names.forEach((name, i) => {
       const progress = Math.max(0, Math.min(1, (drawing - 0.06 - i * 0.3) / 0.62));
       const eased = progress * progress * (3 - 2 * progress);
       name.style.opacity = String(eased);
+      if (i === 1) host.style.setProperty("--battle-link-opacity", String(eased));
       name.querySelector(".battle-intro-ring")!.setAttribute("stroke-dashoffset", String(1 - eased));
       name
         .querySelector(".battle-intro-medallion")!

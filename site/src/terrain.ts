@@ -71,6 +71,7 @@ export interface TerrainShot {
 
 export interface TerrainView {
   play: (shot: TerrainShot | null) => void;
+  showIntro: () => void;
   reframe: () => void;
   dispose: () => void;
 }
@@ -918,7 +919,21 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   revealScene();
   stage.dataset.ready = "true";
 
-  return {
+  const view: TerrainView = {
+    showIntro() {
+      if (battleIntro.active) return;
+      view.play(null);
+      flights = [];
+      shotClock = 0;
+      controls.target.copy(overview.target);
+      camera.position.copy(arrivalPosition);
+      camera.up.set(0, 1, 0);
+      camera.lookAt(controls.target);
+      controls.update();
+      controls.enabled = false;
+      battleIntro.start();
+      reframe();
+    },
     play(shot) {
       if (battleIntro.active) {
         battleIntro.stop();
@@ -986,4 +1001,5 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       labels.replaceChildren();
     },
   };
+  return view;
 }
