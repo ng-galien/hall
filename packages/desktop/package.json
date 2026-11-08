@@ -4,7 +4,7 @@
   "description": "Preparation of municipal council business, meetings and records",
   "author": "Alexandre Boyer",
   "homepage": "https://github.com/ng-galien/hall",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "private": true,
   "license": "EUPL-1.2",
   "type": "module",

@@ -10,7 +10,7 @@ PostgreSQL, start Hall, or migrate a database.
 
 The sources, the desktop demonstration downloads and the GitHub Pages site are
 published from the same public repository, `ng-galien/hall`. Desktop demonstration
-executables are built only after pushing a version tag such as `v1.0.4` by
+executables are built only after pushing a version tag such as `v1.1.0` by
 [`.github/workflows/release.yml`](../.github/workflows/release.yml) into a draft
 GitHub release. The workflow rejects a tag that does not match the desktop package
 version and has no manual branch-build trigger. The executables have no publisher
@@ -198,7 +198,7 @@ npm ci
 npm run pack:distribution
 ```
 
-The artifact is `dist/npm/ng-galien-hall-1.0.4.tgz`, with a SHA-256 sidecar. The build
+The artifact is `dist/npm/ng-galien-hall-1.1.0.tgz`, with a SHA-256 sidecar. The build
 bundles the internal Hall modules and declares exact external dependency versions
 from the lockfile. Every runtime dependency must have a registry URL and integrity;
 the build no longer reads a local PostgreSQL catalog archive.
@@ -209,10 +209,10 @@ excluding private configuration, TRUST files and source checkouts.
 Install the tarball into a version-specific directory outside the source tree:
 
 ```sh
-npm install --prefix /srv/hall/releases/1.0.4 \
-  /absolute/path/ng-galien-hall-1.0.4.tgz
-/srv/hall/releases/1.0.4/node_modules/.bin/hall --version
-/srv/hall/releases/1.0.4/node_modules/.bin/hall --help
+npm install --prefix /srv/hall/releases/1.1.0 \
+  /absolute/path/ng-galien-hall-1.1.0.tgz
+/srv/hall/releases/1.1.0/node_modules/.bin/hall --version
+/srv/hall/releases/1.1.0/node_modules/.bin/hall --help
 ```
 
 After an authorized npm publication, an exact package version can replace the
@@ -242,8 +242,8 @@ Provision the dedicated empty database separately. Do not pass an unrelated
 database to Hall. Run:
 
 ```sh
-/srv/hall/releases/1.0.4/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
-/srv/hall/releases/1.0.4/node_modules/.bin/hall start --env-file /etc/hall/hall.env
+/srv/hall/releases/1.1.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
+/srv/hall/releases/1.1.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
 ```
 
 The same process serves the API and the bundled interface at `/app/`. The CLI
@@ -264,7 +264,7 @@ outside `/srv/hall/releases/` and `node_modules/`.
 ## Inspect compatibility before an update
 
 ```sh
-/srv/hall/releases/1.0.4/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
+/srv/hall/releases/1.1.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
 ```
 
 This checks the stored Hall schema fingerprint without starting the HTTP server,
@@ -281,9 +281,9 @@ metadata with the tarball and backup manifest.
 incompatible schema before listening. Install or upgrade the schema explicitly:
 
 ```sh
-/srv/hall/releases/1.0.4/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
-/srv/hall/releases/1.0.4/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
-/srv/hall/releases/1.0.4/node_modules/.bin/hall start --env-file /etc/hall/hall.env
+/srv/hall/releases/1.1.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
+/srv/hall/releases/1.1.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
+/srv/hall/releases/1.1.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
 ```
 
 Use `migrate` only after stopping application writers and verifying recovery from
@@ -428,14 +428,14 @@ ledger. Its SQL files are separate from the structural manifest fingerprint.
 Rehearsal must cover the exact source and target versions; structural convergence
 alone does not establish data-migration history or semantic correctness.
 
-### Update procedure from 1.0.3 to 1.0.4 on the municipal computer
+### Update procedure from 1.0.3 to 1.1.0 on the municipal computer
 
 This list applies to the Windows installation described in
 [Municipal installation and recovery](municipal-bootstrap.md), with `C:\Hall` as root.
 Run the steps in this order in one PowerShell session. Record each output in the
 installation record.
 
-Version 1.0.4 runs three data migrations.
+Version 1.1.0 runs four data migrations (004 through 007).
 `packages/postgres/sql/migrations/004-meeting-snapshot-document-references.sql`
 (requirement HALL-FR-MIN-160) replaces the document bytes and editor images copied
 into `hall.council_meeting_snapshot` by references to the resource and its binary
@@ -451,7 +451,7 @@ moves to the next, open revision. Closed meetings keep their facts and documents
 The migrations run in `hall migrate` (step 4), not at startup: `hall start`
 refuses an incompatible schema.
 
-Version 1.0.4 also runs
+Version 1.1.0 also runs
 `packages/postgres/sql/migrations/007-server-tables-into-hall.sql` (requirement
 HALL-TR-SCH-030): it copies the seven server tables of schema `public` (`users`,
 `user_roles`, `sessions`, `hall_settings`, `hall_meeting_locations`, `templates`,
@@ -461,8 +461,8 @@ HALL-TR-SCH-030): it copies the seven server tables of schema `public` (`users`,
 customized templates and dates. Accounts keep their password and open sessions stay
 valid. For each table the migration checks the row count and the copied identifiers;
 any difference fails `hall migrate` and rolls the whole upgrade back. The `public`
-tables stay in place, unchanged, and are no longer read or written; the next release
-drops them once the update is verified in the town hall. Run again, the migration
+tables stay in place, unchanged, and are no longer read or written. Their removal
+requires a separate migration after the municipal update has been verified. Run again, the migration
 copies nothing as soon as `hall.app_user` holds an account.
 
 Session variables, used by every step. The PostgreSQL connection uses the `PG*`
@@ -474,8 +474,8 @@ variables and the protected `pgpass.conf` of
 $ErrorActionPreference = 'Stop'
 $HallRoot = 'C:\Hall'
 $Config = Join-Path $HallRoot 'config\hall.env'
-$Archive = 'C:\Transfer\ng-galien-hall-1.0.4.tgz'
-$Release = Join-Path $HallRoot 'releases\1.0.4'
+$Archive = 'C:\Transfer\ng-galien-hall-1.1.0.tgz'
+$Release = Join-Path $HallRoot 'releases\1.1.0'
 $PostgresqlBin = 'C:\Program Files\PostgreSQL\17\bin'
 $env:PATH = "$PostgresqlBin;$env:PATH"
 $env:PGHOST = '127.0.0.1'
@@ -488,14 +488,14 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
 
 1. **Read-only control before the migration.** The control query
    `sql/migrations/control-before-004-meeting-snapshot-document-references.sql` is in the
-   1.0.4 package. It lists the documents and editor images copied into a meeting
+   1.1.0 package. It lists the documents and editor images copied into a meeting
    snapshot whose resource or editor image was deleted afterwards, with
    `bytes_present`, the presence of their binary object. After the migration such an
    entry stays readable only from that binary object. Hall can keep running during
    this step; `PGOPTIONS` makes the session read-only.
 
    ```powershell
-   $Check = Join-Path $HallRoot 'releases\control-1.0.4'
+   $Check = Join-Path $HallRoot 'releases\control-1.1.0'
    New-Item -ItemType Directory -Force -Path $Check | Out-Null
    tar -xzf $Archive -C $Check package/sql/migrations/control-before-004-meeting-snapshot-document-references.sql
    $env:PGOPTIONS = '-c default_transaction_read_only=on'
@@ -512,7 +512,7 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    `hall migrate` runs the data migrations only when the stored schema fingerprint
    differs from the fingerprint of the package. A database of release 1.0.3 stores
    `c41aefcfa9abe9f2631e28b8f220337e212ed1d20ca5a39cd0d10efb613c06a3`; the
-   `schemaFingerprint` of the 1.0.4 `release.json` is the target. If the stored value
+   `schemaFingerprint` of the 1.1.0 `release.json` is the target. If the stored value
    already equals the target, migration 004 does not run in step 4: stop and
    determine which package installed that schema.
 
@@ -528,7 +528,7 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    ```
 
    This backup is the only way back. After `hall migrate`, the 1.0.3 package refuses
-   to start (`fingerprint differs`) and its `hall migrate` refuses the 1.0.4 schema;
+   to start (`fingerprint differs`) and its `hall migrate` refuses the 1.1.0 schema;
    pointing the task back at the 1.0.3 release is not a rollback. To return to 1.0.3,
    restore this backup, which also discards the accounts, sessions, settings and
    templates changed after the update.
@@ -538,13 +538,13 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    SHA-256, and copy both files to a medium outside the computer. See
    [Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover).
 
-3. **Install the package** into `C:\Hall\releases\1.0.4`: run the PowerShell block of
+3. **Install the package** into `C:\Hall\releases\1.1.0`: run the PowerShell block of
    [Install the package](municipal-bootstrap.md#install-the-package) with the
    `$Release` and `$Archive` values above. It checks the SHA-256 against the
    `.sha256` file, runs `npm.cmd install --prefix`, `hall --version`, prints
    `release.json` and runs `hall install-browser`. Expected: `hall --version` prints
-   `1.0.4`, and `release.json` gives version `1.0.4` and the commit recorded with the
-   tarball. The block defines `$Hall`, the 1.0.4 command used below.
+   `1.1.0`, and `release.json` gives version `1.1.0` and the commit recorded with the
+   tarball. The block defines `$Hall`, the 1.1.0 command used below.
 
 4. **Migration, Hall stopped.**
 
@@ -580,7 +580,7 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    `HALL_STATEMENT_TIMEOUT_MS=15000` and `HALL_DOCUMENT_STATEMENT_TIMEOUT_MS=120000`
    (see [database statement timeouts](runtime.md#database-statement-timeouts)).
 
-7. **Start 1.0.4.** Point the action of the scheduled task **Hall** at the new
+7. **Start 1.1.0.** Point the action of the scheduled task **Hall** at the new
    release, start it and check the health endpoint:
 
    ```powershell
@@ -591,14 +591,14 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    Invoke-RestMethod http://127.0.0.1:3100/api/health
    ```
 
-   Expected: `status` `ok` and `version` `1.0.4`, and the file `C:\Hall\logs\hall.log`
+   Expected: `status` `ok` and `version` `1.1.0`, and the file `C:\Hall\logs\hall.log`
    appears. When the task runs with a stored password, Windows may require
    `-User` and `-Password` on `Set-ScheduledTask`, or the change of the action in the
    Task Scheduler window. Without a **Hall** task, start Hall in the foreground with
    `& $Hall start --env-file $Config` and check the health endpoint from a second
    terminal.
 
-8. **Daily backup.** Generate the registration script with the 1.0.4 release, then run
+8. **Daily backup.** Generate the registration script with the 1.1.0 release, then run
    it in an elevated PowerShell:
 
    ```powershell
@@ -619,13 +619,13 @@ $OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
    « Convocation au conseil municipal », « Délibération du conseil municipal », « Liste
    des délibérations examinées », « Feuille d’émargement » and « Pouvoir » receive the
    current defaults (signature blocks without table, attendance sheet, proxy form) with
-   the replacement script of the 1.0.4 package, after the backup of step 2:
+   the replacement script of the 1.1.0 package, after the backup of step 2:
 
    ```powershell
    psql --dbname=$Database --set=ON_ERROR_STOP=1 --file="$Release\node_modules\@ng-galien\hall\sql\migrations\replace-default-templates-1.0.4.sql"
    ```
 
-   The script of the 1.0.4 package acts on `hall.document_template`, filled by
+   The script of the 1.1.0 package acts on `hall.document_template`, filled by
    migration 007; run it after `hall migrate`. The script keeps each
    template, its identifier and its name. A template whose body is
    still the 1.0.3 default receives the current default body and stylesheet. It prints one
@@ -646,7 +646,7 @@ Keep the 1.0.3 release and the backup of step 2 until acceptance. To return to 1
 restore the backup of step 2 as described in
 [Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover), then
 point the **Hall** task at the 1.0.3 release: reinstalling 1.0.3 alone does not reverse
-the migration and 1.0.3 refuses to start on the 1.0.4 schema.
+the migration and 1.0.3 refuses to start on the 1.1.0 schema.
 
 ## Scope of validation
 

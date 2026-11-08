@@ -125,6 +125,23 @@ jobs:
           Hall accompagne le travail d’un conseil municipal : préparation des affaires, conduite des séances, procès-verbaux et actes.
 
           Cette version est une démonstration. Au premier lancement, l’application charge la commune fictive d’Alésia et s’ouvre connectée en tant que son administrateur, sans compte à créer ni mot de passe à saisir. Tout fonctionne sur l’ordinateur, avec une base de données embarquée ; rien n’est envoyé à un serveur. Le menu **Démonstration** remet le jeu de données à zéro.
+          NOTICE
+          if [ "$TAG" = "v1.1.0" ]; then
+            cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
+
+          ## Nouveautés de la version 1.1.0
+
+          - Préparation des séances par révisions : établir la révision, puis générer ou régénérer sa convocation PDF.
+          - Documents de séance regroupés, avec feuille d’émargement et formulaire de pouvoir.
+          - Conservation des notes de discussion et corrections de la conduite des séances.
+          - Démonstration utilisable après expiration de sa session, sans retour au formulaire de connexion.
+          - Accès PostgreSQL unifié pour le serveur, ses comptes, ses sessions et ses documents ; snapshots de séance allégés et lectures bornées dans le temps.
+          - Parcours de vérification alignés sur l’interface actuelle.
+
+          Pour un serveur existant en 1.0.3, suivre la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.1.0/docs/distribution.md#update-procedure-from-103-to-110-on-the-municipal-computer). La migration demande un arrêt du serveur et une sauvegarde vérifiée ; revenir en 1.0.3 nécessite de restaurer cette sauvegarde.
+          NOTICE
+          fi
+          cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
 
           ## Téléchargements
 
