@@ -54,6 +54,7 @@ export interface TerrainOptions {
   places: TerrainPlace[];
   frame: () => Frame | null;
   onSelect: (id: PlaceId) => void;
+  onExplore: () => void;
 }
 
 /** Partie de la scène que rien ne couvre, en pixels depuis le coin haut gauche de la scène. */
@@ -72,6 +73,7 @@ export interface TerrainShot {
 export interface TerrainView {
   play: (shot: TerrainShot | null) => void;
   showIntro: () => void;
+  explore: () => void;
   reframe: () => void;
   dispose: () => void;
 }
@@ -341,7 +343,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   controls.enablePan = true;
   controls.screenSpacePanning = false;
   controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-  controls.minPolarAngle = 0.25;
+  controls.minPolarAngle = 0.001;
   controls.maxPolarAngle = 1.18;
   controls.minDistance = 90;
   controls.maxDistance = 3200;
@@ -547,6 +549,14 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     flights = [];
   };
   controls.addEventListener("start", stopFlight);
+  const beginExploring = () => {
+    if (!battleIntro.active || battleIntro.elapsed < 14) return;
+    view.explore();
+    options.onExplore();
+  };
+  // Enable OrbitControls before it receives the first gesture after the introduction.
+  renderer.domElement.addEventListener("pointerdown", beginExploring, { capture: true });
+  renderer.domElement.addEventListener("wheel", beginExploring, { capture: true, passive: true });
 
   const offset = { x: 0, y: 0 };
   let wanted = { x: 0, y: 0 };
@@ -923,6 +933,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     showIntro() {
       if (battleIntro.active) return;
       view.play(null);
+      document.body.classList.remove("is-map-navigable");
       flights = [];
       shotClock = 0;
       controls.target.copy(overview.target);
@@ -934,16 +945,27 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       battleIntro.start();
       reframe();
     },
+    explore() {
+      view.play(null);
+      flights = [];
+      document.body.classList.add("is-map-navigable");
+      dirty = true;
+    },
     play(shot) {
+      document.body.classList.remove("is-map-navigable");
       if (battleIntro.active) {
+        const distance =
+          (battleIntro.camera.top - battleIntro.camera.bottom) /
+          (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
         battleIntro.stop();
         controls.enabled = true;
         camera.up.set(0, 1, 0);
         controls.target.copy(battleIntro.centre);
         camera.position
           .copy(battleIntro.centre)
-          .addScaledVector(battleIntro.camera.up, -2)
-          .add(new THREE.Vector3(0, 950, 0));
+          .addScaledVector(battleIntro.camera.up, -distance * 0.001)
+          .add(new THREE.Vector3(0, distance, 0));
+        camera.updateProjectionMatrix();
         camera.lookAt(controls.target);
         controls.update();
       }
@@ -992,6 +1014,8 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       observer.disconnect();
       controls.removeEventListener("change", markDirty);
       controls.removeEventListener("start", stopFlight);
+      renderer.domElement.removeEventListener("pointerdown", beginExploring, true);
+      renderer.domElement.removeEventListener("wheel", beginExploring, true);
       controls.dispose();
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);

@@ -188,6 +188,7 @@ a {
 }
 
 .has-terrain.has-scenario .intro,
+.has-terrain.is-map-navigable .intro,
 .is-beyond .intro {
   opacity: 0;
   visibility: hidden;
@@ -1335,6 +1336,13 @@ a {
   .terrain-stage,
   .terrain-stage canvas {
     touch-action: pan-y !important;
+  }
+
+  .is-map-navigable .terrain-stage,
+  .is-map-navigable .terrain-stage canvas,
+  .terrain-stage[data-intro="ready"],
+  .terrain-stage[data-intro="ready"] canvas {
+    touch-action: none !important;
   }
 
   .terrain-toponym.is-minor,

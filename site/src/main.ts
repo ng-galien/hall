@@ -478,6 +478,7 @@ async function renderTerrain(root: HTMLElement) {
   }
 
   const intro = document.querySelector<HTMLElement>(".intro");
+  let introduction = true;
 
   function sceneScrollTop(): number {
     if (!intro || getComputedStyle(intro).position === "absolute") return 0;
@@ -570,8 +571,9 @@ async function renderTerrain(root: HTMLElement) {
     if (scene) {
       settleOnScene(sceneScrollTop());
     }
+    introduction = false;
     if (scene) terrain?.play({ place: scene.place, motion: scene.motion });
-    else terrain?.showIntro();
+    else terrain?.explore();
     if (!fromHash) history.replaceState(null, "", id ? `#${id}` : `${location.pathname}${location.search}`);
   }
 
@@ -585,6 +587,8 @@ async function renderTerrain(root: HTMLElement) {
     link.addEventListener("click", (event) => {
       event.preventDefault();
       open(null);
+      introduction = true;
+      terrain?.showIntro();
       glide(link.hash === "#haut" ? 0 : sceneScrollTop());
     });
   }
@@ -657,8 +661,10 @@ async function renderTerrain(root: HTMLElement) {
       history.replaceState(null, "", `${location.pathname}${location.search}`);
     }
     if (chosen === "accueil" && current) return;
-    if (chosen === "accueil") terrain?.showIntro();
-    else terrain?.play(shot);
+    if (chosen === "accueil") {
+      if (introduction) terrain?.showIntro();
+      else terrain?.explore();
+    } else terrain?.play(shot);
   }
 
   const { createTerrain } = await import("./terrain");
@@ -677,6 +683,10 @@ async function renderTerrain(root: HTMLElement) {
         .join(""),
     })),
     frame: freeFrame,
+    onExplore: () => {
+      introduction = false;
+      stopAutoplay();
+    },
     onSelect: (placeId) => {
       const scene = scenes.find((s) => s.place === placeId);
       if (scene) open(scene.id);

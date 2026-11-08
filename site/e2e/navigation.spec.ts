@@ -1,5 +1,23 @@
 import { expect, test } from "@playwright/test";
 
+test("closing a scenario leaves the map navigable without replaying the introduction", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./demonstration/");
+  const stage = page.getByTestId("terrain-stage");
+  await expect(stage).toHaveAttribute("data-intro", "ready");
+  await page.getByTestId("intro-discover").click();
+  await expect(page.getByTestId("scenario-ouverture")).toBeVisible();
+  await page.getByTestId("scenario-close").click();
+  await expect(page.getByTestId("scenario-panel")).toBeHidden();
+  await expect(stage).toHaveAttribute("data-intro", "off");
+  await expect(page.getByTestId("battle-intro-map")).toBeHidden();
+  await expect(page.getByTestId("intro-discover")).toBeHidden();
+  await page.getByTestId("menu-item-ouverture").click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("scenario-panel")).toBeHidden();
+  await expect(stage).toHaveAttribute("data-intro", "off");
+});
+
 test("discover opens Alésia through the same scene navigation", async ({ page }, testInfo) => {
   await page.goto("./demonstration/?view=3d");
   await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
