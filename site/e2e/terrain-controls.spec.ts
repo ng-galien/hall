@@ -63,7 +63,8 @@ test("the first wheel gesture after the animated introduction enters the navigab
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("./demonstration/");
   const stage = page.getByTestId("terrain-stage");
-  await expect(stage).toHaveAttribute("data-intro", "ready", { timeout: 30_000 });
+  await expect(stage).toHaveAttribute("data-ready", "true");
+  await expect(stage).toHaveAttribute("data-intro", "ready", { timeout: 10_000 });
   const canvas = page.getByTestId("terrain-canvas");
   const box = await canvas.boundingBox();
   if (!box) throw new Error("The terrain canvas is not visible");

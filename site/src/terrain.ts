@@ -550,7 +550,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   };
   controls.addEventListener("start", stopFlight);
   const beginExploring = () => {
-    if (!battleIntro.active || battleIntro.elapsed < 14) return;
+    if (!battleIntro.ready) return;
     view.explore();
     options.onExplore();
   };

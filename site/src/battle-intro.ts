@@ -146,6 +146,7 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
   const occupied: LabelBox[] = [];
   let active = false;
   let seconds = 0;
+  const duration = 7;
   let area: Frame = { left: 0, top: 0, width: 1, height: 1 };
   let portraitScale = 1;
   function update() {
@@ -164,7 +165,7 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
     });
     clip.setAttribute("height", String(stage.clientHeight * drawing));
     material.uniforms.uBattleIntro.value = active ? fade(3, 4) : 0;
-    stage.dataset.introProgress = String(Math.min(1, seconds / 14));
+    stage.dataset.introProgress = String(Math.min(1, seconds / duration));
   }
   return {
     camera,
@@ -176,9 +177,12 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
     get elapsed() {
       return seconds;
     },
+    get ready() {
+      return active && seconds >= duration;
+    },
     start() {
       active = true;
-      seconds = reduced ? 14 : 0;
+      seconds = reduced ? duration : 0;
       document.body.classList.add("has-battle-intro");
       document.documentElement.classList.remove("intro-pending");
       svg.style.display = "";
@@ -246,10 +250,10 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
       update();
     },
     tick(delta: number) {
-      if (!active || seconds >= 14) return false;
-      seconds = Math.min(14, seconds + delta);
+      if (!active || seconds >= duration) return false;
+      seconds = Math.min(duration, seconds + delta);
       update();
-      stage.dataset.intro = seconds >= 14 ? "ready" : "running";
+      stage.dataset.intro = seconds >= duration ? "ready" : "running";
       return true;
     },
     dispose() {
