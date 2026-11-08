@@ -28,7 +28,7 @@
     "devis": { "weight": 2.3 },
     "rapport": { "weight": 1.3 },
     "commission": { "weight": 0.7 },
-    "rendezvous": { "weight": 0.8 },
+    "rendezvous": { "weight": 0.8, "pace": 1.546078 },
     "photo": { "weight": 1.35, "landing": 0.4 },
     "trace": { "weight": 1.8 },
     "cadastre": { "weight": 0.9 },
@@ -196,55 +196,58 @@
     "appointmentArrives": {
       "label": "Rendez-vous sur place : arrivée",
       "actor": "pieces",
-      "step": "rendezvous",
-      "start": 0.04,
-      "end": 0.2
+      "step": "commission",
+      "start": 0.97118,
+      "end": 0.77386,
+      "endStep": "rendezvous"
     },
     "appointmentFiled": {
       "label": "Rendez-vous sur place : posé sur la fiche",
       "actor": "pieces",
       "step": "rendezvous",
-      "start": 0.32,
-      "end": 0.88,
+      "start": 0.83326,
+      "end": 0.96948,
       "after": "appointmentArrives"
     },
     "carToChemin": {
       "label": "Voiture de l'adjoint : du bureau au chemin",
       "actor": "cars",
       "step": "rendezvous",
-      "start": 0.42,
-      "end": 0,
-      "endStep": "photo"
+      "start": 0.04553,
+      "end": 0.97007
     },
     "garageOpens": {
       "label": "La porte du garage s'ouvre",
       "actor": "cars",
       "step": "rendezvous",
       "within": "carToChemin",
-      "start": -0.18,
-      "end": 0.08
+      "start": -0.09367,
+      "end": 0.0228
     },
     "deputyGetsOut": {
       "label": "L'adjoint descend de la voiture",
       "actor": "people",
       "step": "photo",
       "start": "carToChemin.end",
-      "end": 0.0275,
-      "params": { "leavesCar": 0.3 }
+      "end": 0.9761,
+      "params": {
+        "leavesCar": 0.3
+      },
+      "endStep": "rendezvous"
     },
     "deputyWalksToViewpoint": {
       "label": "L'adjoint marche jusqu'au point de vue",
       "actor": "people",
       "step": "photo",
       "start": "deputyGetsOut.end",
-      "end": 0.14
+      "end": 0.02063
     },
     "deputyRaisesPhone": {
       "label": "L'adjoint lève le téléphone",
       "actor": "people",
       "step": "photo",
-      "start": 0.14,
-      "end": 0.29,
+      "start": 0.02063,
+      "end": 0.08751,
       "after": "deputyWalksToViewpoint"
     },
     "phoneRises": {
