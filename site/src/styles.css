@@ -188,7 +188,7 @@ a {
 }
 
 .has-terrain.has-scenario .intro,
-.has-terrain.is-map-navigable .intro,
+.has-terrain.is-map-navigable:not(.has-battle-intro) .intro,
 .is-beyond .intro {
   opacity: 0;
   visibility: hidden;
@@ -1838,10 +1838,15 @@ a {
   fill: var(--camp-tone);
 }
 .has-terrain.has-battle-intro .intro {
+  opacity: var(--battle-exit-opacity, 1);
+  transition: none;
   max-width: none;
   width: 100%;
   padding: 0 var(--gutter);
   text-align: center;
+}
+.has-battle-intro.is-map-navigable .intro-discover {
+  pointer-events: none;
 }
 .has-terrain .intro-title {
   display: none;

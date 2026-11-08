@@ -541,6 +541,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   }
 
   let dirty = true;
+  let projectionExit: { from: THREE.Matrix4; seconds: number } | null = null;
   const markDirty = () => {
     dirty = true;
   };
@@ -575,7 +576,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   }
   function reframe() {
     wanted = desiredOffset();
-    if (instantMotion) {
+    if (instantMotion && !projectionExit) {
       offset.x = wanted.x;
       offset.y = wanted.y;
       applyShift();
@@ -862,6 +863,10 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       dirty = true;
     }
     if (battleIntro.tick(elapsed)) dirty = true;
+    if (projectionExit) {
+      projectionExit.seconds = Math.min(0.7, projectionExit.seconds + elapsed);
+      dirty = true;
+    }
     const flight = battleIntro.active ? undefined : flights[0];
     if (flight) {
       flight.from ??= controls.target.clone();
@@ -922,6 +927,17 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       for (let i = 0; i < 16; i++) perspective[i] = (perspective[i] / distance) * (1 - k) + aerial[i] * k;
       camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
     }
+    if (projectionExit && !battleIntro.active) {
+      camera.updateProjectionMatrix();
+      const progress = projectionExit.seconds / 0.7;
+      const k = progress * progress * (3 - 2 * progress);
+      const distance = camera.position.distanceTo(controls.target);
+      const perspective = camera.projectionMatrix.elements;
+      const aerial = projectionExit.from.elements;
+      for (let i = 0; i < 16; i++) perspective[i] = aerial[i] * (1 - k) + (perspective[i] / distance) * k;
+      camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+      if (progress >= 1) projectionExit = null;
+    }
     renderer.render(scene, camera);
     placeLabels();
   }
@@ -929,10 +945,39 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   revealScene();
   stage.dataset.ready = "true";
 
+  function releaseIntro() {
+    if (!battleIntro.active) return;
+    const distance =
+      (battleIntro.camera.top - battleIntro.camera.bottom) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+    if (!reducedMotion) projectionExit = { from: camera.projectionMatrix.clone(), seconds: 0 };
+    battleIntro.stop(true);
+    controls.enabled = true;
+    camera.up.set(0, 1, 0);
+    controls.target.copy(battleIntro.centre);
+    camera.position
+      .copy(battleIntro.centre)
+      .addScaledVector(battleIntro.camera.up, -distance * 0.001)
+      .add(new THREE.Vector3(0, distance, 0));
+    camera.updateProjectionMatrix();
+    camera.lookAt(controls.target);
+    controls.update();
+  }
+
+  function clearScenario() {
+    journeys?.dispose();
+    if (journeys) scene.remove(journeys.group);
+    journeys = null;
+    layer?.dispose();
+    if (layer) scene.remove(layer.group);
+    layer = null;
+    active = null;
+  }
+
   const view: TerrainView = {
     showIntro() {
       if (battleIntro.active) return;
       view.play(null);
+      projectionExit = null;
       document.body.classList.remove("is-map-navigable");
       flights = [];
       shotClock = 0;
@@ -946,35 +991,17 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       reframe();
     },
     explore() {
-      view.play(null);
+      releaseIntro();
+      clearScenario();
       flights = [];
       document.body.classList.add("is-map-navigable");
-      dirty = true;
+      paint();
+      reframe();
     },
     play(shot) {
       document.body.classList.remove("is-map-navigable");
-      if (battleIntro.active) {
-        const distance =
-          (battleIntro.camera.top - battleIntro.camera.bottom) /
-          (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
-        battleIntro.stop();
-        controls.enabled = true;
-        camera.up.set(0, 1, 0);
-        controls.target.copy(battleIntro.centre);
-        camera.position
-          .copy(battleIntro.centre)
-          .addScaledVector(battleIntro.camera.up, -distance * 0.001)
-          .add(new THREE.Vector3(0, distance, 0));
-        camera.updateProjectionMatrix();
-        camera.lookAt(controls.target);
-        controls.update();
-      }
-      journeys?.dispose();
-      if (journeys) scene.remove(journeys.group);
-      journeys = null;
-      layer?.dispose();
-      if (layer) scene.remove(layer.group);
-      layer = null;
+      releaseIntro();
+      clearScenario();
       active = shot?.place ?? null;
       paint();
       reframe();

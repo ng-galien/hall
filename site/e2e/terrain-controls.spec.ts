@@ -31,7 +31,7 @@ test("right drag pans, left drag rotates and tilts, and the wheel zooms without 
     const point = await freePoint();
     await page.mouse.move(point.x, point.y);
     await page.mouse.down({ button });
-    await page.mouse.move(point.x + 60, point.y + 45, { steps: 8 });
+    await page.mouse.move(point.x + 60, point.y + (button === "left" ? -45 : 45), { steps: 8 });
     await page.mouse.up({ button });
   };
   const beforePan = await pose();
@@ -71,6 +71,11 @@ test("the first wheel gesture after the animated introduction enters the navigab
   await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.8);
   await page.mouse.wheel(0, -150);
   await expect(stage).toHaveAttribute("data-intro", "off");
+  const overlay = page.getByTestId("battle-intro-map");
+  await expect
+    .poll(async () => Number(await overlay.evaluate((node) => getComputedStyle(node).opacity)))
+    .toBeLessThan(1);
+  await expect(overlay).toBeHidden();
   await expect(page.getByTestId("intro-discover")).toBeHidden();
   const distance = Number(await stage.getAttribute("data-distance"));
   await page.mouse.wheel(0, -150);

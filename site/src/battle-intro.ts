@@ -147,6 +147,17 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
   let active = false;
   let seconds = 0;
   const duration = 7;
+  let exitSeconds: number | null = null;
+  let exitInk = 0;
+  const exitDuration = 0.7;
+  function finishExit() {
+    exitSeconds = null;
+    document.body.classList.remove("has-battle-intro");
+    svg.style.display = "none";
+    copy.hidden = true;
+    material.uniforms.uBattleIntro.value = 0;
+    host.style.removeProperty("--battle-exit-opacity");
+  }
   let area: Frame = { left: 0, top: 0, width: 1, height: 1 };
   let portraitScale = 1;
   function update() {
@@ -181,6 +192,9 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
       return active && seconds >= duration;
     },
     start() {
+      exitSeconds = null;
+      svg.style.opacity = "1";
+      host.style.removeProperty("--battle-exit-opacity");
       active = true;
       seconds = reduced ? duration : 0;
       document.body.classList.add("has-battle-intro");
@@ -190,13 +204,13 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
       stage.dataset.intro = reduced ? "ready" : "running";
       update();
     },
-    stop() {
+    stop(animate = false) {
       active = false;
-      document.body.classList.remove("has-battle-intro");
-      svg.style.display = "none";
-      copy.hidden = true;
-      material.uniforms.uBattleIntro.value = 0;
       stage.dataset.intro = "off";
+      if (animate && !reduced) {
+        exitInk = material.uniforms.uBattleIntro.value;
+        exitSeconds = 0;
+      } else finishExit();
     },
     layout(width: number, height: number, free: Frame) {
       const head = host.getBoundingClientRect();
@@ -250,6 +264,16 @@ export function buildBattleIntro(stage: HTMLElement, material: THREE.ShaderMater
       update();
     },
     tick(delta: number) {
+      if (exitSeconds !== null) {
+        exitSeconds = Math.min(exitDuration, exitSeconds + delta);
+        const progress = exitSeconds / exitDuration;
+        const opacity = 1 - progress * progress * (3 - 2 * progress);
+        svg.style.opacity = String(opacity);
+        host.style.setProperty("--battle-exit-opacity", String(opacity));
+        material.uniforms.uBattleIntro.value = exitInk * opacity;
+        if (exitSeconds >= exitDuration) finishExit();
+        return true;
+      }
       if (!active || seconds >= duration) return false;
       seconds = Math.min(duration, seconds + delta);
       update();
