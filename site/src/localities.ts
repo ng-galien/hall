@@ -37,6 +37,7 @@ export async function buildLocalities(ground: Ground, labels: HTMLElement) {
       area: LabelBox,
       occupied: LabelBox[],
       villages: boolean,
+      extraClearance = 0,
     ) {
       for (const item of items) {
         if (item.importance <= 2 !== villages) continue;
@@ -50,7 +51,7 @@ export async function buildLocalities(ground: Ground, labels: HTMLElement) {
         const width = item.node.offsetWidth;
         const height = item.node.offsetHeight;
         const desired = { x: x - width / 2, y: y + 5, width, height };
-        const reach = villages ? 38 : 18;
+        const reach = (villages ? 38 : 18) + extraClearance;
         const left = Math.max(area.x, desired.x - reach);
         const top = Math.max(area.y, desired.y - reach);
         const right = Math.min(area.x + area.width, desired.x + width + reach);

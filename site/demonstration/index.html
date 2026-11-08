@@ -17,9 +17,10 @@
       html { background: #f6f8fa; color-scheme: light; }
       @media (prefers-color-scheme: dark) { html { background: #0f1723; color-scheme: dark; } }
       html.is-arriving body { opacity: 0; }
+      html.intro-pending .intro { visibility: hidden; }
     </style>
     <script>
-      document.documentElement.classList.add("is-arriving");
+      document.documentElement.classList.add("is-arriving", "intro-pending");
       setTimeout(() => document.documentElement.classList.remove("is-arriving"), 2500);
     </script>
   </head>

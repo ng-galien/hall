@@ -267,11 +267,6 @@ export const scenes: Scene[] = [
         [345, 621, "L’inventaire du grenier."],
         [320, 711, "L’état des réserves d’Alésia."],
       ]),
-      phone("preparer-photo.png", "Ajout d’une photo à une affaire", [
-        [275, 83, "Le bouton « Nouveau » de l’espace de travail."],
-        [168, 345, "« Prendre une photo » ouvre l’appareil du téléphone."],
-        [68, 623, "Le cliché est rangé dans l’affaire choisie."],
-      ]),
     ],
     motion: {
       from: { at: spots.granary, azimuth: 120, elevation: 45, distance: 1800 },
@@ -299,6 +294,11 @@ export const scenes: Scene[] = [
         [541, 347, "Le poste d’où l’ouvrage a été vu."],
         [687, 347, "L’ouvrage observé : fossé, tour, camp, palissade."],
         [1006, 347, "L’effectif romain estimé."],
+      ]),
+      phone("preparer-photo.png", "Ajout d’une photo à une affaire", [
+        [275, 83, "Le bouton « Nouveau » de l’espace de travail."],
+        [168, 345, "« Prendre une photo » ouvre l’appareil du téléphone."],
+        [68, 623, "Le cliché est rangé dans l’affaire choisie."],
       ]),
     ],
     motion: {

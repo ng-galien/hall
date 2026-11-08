@@ -3,6 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { crossfade, revealScene } from "./arrival";
+import { buildBattleIntro } from "./battle-intro";
 import { buildHeritage } from "./heritage";
 import { fitLabel, type LabelBox } from "./label-layout";
 import { buildLocalities } from "./localities";
@@ -132,6 +133,7 @@ function buildPlaces(
     label.type = "button";
     label.addEventListener("click", () => onSelect(place.id));
     label.className = "terrain-label";
+    label.setAttribute("aria-label", place.name);
     const number = document.createElement("span");
     number.className = "terrain-label-icons";
     number.innerHTML = place.icons;
@@ -352,6 +354,12 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   const terrain = buildRelief(ground);
   themeRelief(terrain);
   scene.add(terrain.group);
+  const battleIntro = buildBattleIntro(stage, terrain.material, reducedMotion, ground);
+  const arrivalIntro = !location.hash || location.hash === "#haut";
+  if (arrivalIntro) {
+    battleIntro.start();
+    controls.enabled = false;
+  } else battleIntro.stop();
   const skirt = buildSkirt(ground);
   themeSkirt(skirt);
   scene.add(skirt);
@@ -435,6 +443,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
 
   camera.position.copy(overview.target).addScaledVector(overview.direction, fitDistance(overview.distance) * 1.12);
   controls.target.copy(overview.target);
+  const arrivalPosition = camera.position.clone();
 
   function poseTarget(pose: Pose): THREE.Vector3 {
     return groundPoint(ground, pose.at, 0);
@@ -601,7 +610,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
-    raycaster.setFromCamera(pointer, camera);
+    raycaster.setFromCamera(pointer, battleIntro.active && battleIntro.elapsed >= 2.5 ? battleIntro.camera : camera);
     const anchors = raycaster.intersectObjects(
       models.map((m) => m.hit),
       false,
@@ -655,6 +664,14 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
   function placeLabels() {
     const width = stage.clientWidth;
     const height = stage.clientHeight;
+    for (const model of models) {
+      const hidden = battleIntro.active || model.place.id !== active;
+      model.label.hidden = hidden;
+      model.ring.visible = !hidden;
+      if (hidden) {
+        for (const node of [model.leader, model.leaderHalo, model.pin, model.pinHalo]) node.style.visibility = "hidden";
+      }
+    }
     const [tx, ty] = screen(controls.target, width, height);
     stage.dataset.targetX = String(Math.round(tx));
     stage.dataset.targetY = String(Math.round(ty));
@@ -667,9 +684,9 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     const area = freeFrame() ?? { left: 0, top: 0, width, height };
     const compact = area.width < 620;
     labels.classList.toggle("is-compact", compact);
-    const maxLabelWidth = compact ? (area.width - 28) / 2 : Math.min(300, area.width - 20);
+    const maxLabelWidth = Math.min(300, area.width - 20);
     const bounds = { x: area.left + 10, y: area.top + 10, width: area.width - 20, height: area.height - 20 };
-    const occupied: LabelBox[] = [];
+    const occupied: LabelBox[] = battleIntro.active ? [...battleIntro.occupied] : [];
     const intro = document.querySelector<HTMLElement>(".intro");
     if (intro && !document.body.classList.contains("has-scenario") && !document.body.classList.contains("is-beyond")) {
       const title = intro.getBoundingClientRect();
@@ -682,6 +699,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       });
     }
     const markers = models
+      .filter((model) => !model.label.hidden)
       .map((model) => {
         const projected = screen(model.ring.position, width, height);
         model.label.style.maxWidth = `${maxLabelWidth}px`;
@@ -703,8 +721,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
           x: THREE.MathUtils.clamp(projected[0] - labelWidth / 2, left, right),
           y: THREE.MathUtils.clamp(projected[1] - labelHeight - 36, top, bottom),
         };
-      })
-      .sort((a, b) => b.model.place.y - a.model.place.y);
+      });
     for (const marker of markers) {
       if (!marker.projected[2]) continue;
       const [hitX, hitY] = screen(marker.model.centre, width, height);
@@ -752,30 +769,12 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       toponym.node.style.visibility = visible ? "visible" : "hidden";
     }
     for (const item of layer?.items ?? []) {
-      if (!item.node) continue;
-      const [anchorX, anchorY, inFront] = screen(item.at, width, height);
-      const visible = inFront && item.objects.every((o) => o.visible) && shown(item);
-      item.node.style.visibility = visible ? "visible" : "hidden";
-      if (item.leader) item.leader.style.visibility = visible ? "visible" : "hidden";
-      if (!visible) continue;
-      item.node.style.maxWidth = `${maxLabelWidth}px`;
-      const w = item.node.offsetWidth;
-      const h = item.node.offsetHeight;
-      const box = fitLabel({ x: anchorX - w / 2, y: anchorY + 18, width: w, height: h }, bounds, occupied);
-      const { x, y } = box;
-      occupied.push(box);
-      item.node.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
-      const endX = THREE.MathUtils.clamp(anchorX, x + 10, x + w - 10);
-      const endY = anchorY < y + h / 2 ? y : y + h;
-      const middleY = (anchorY + endY) / 2;
-      item.leader?.setAttribute(
-        "d",
-        `M ${anchorX} ${anchorY} C ${anchorX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`,
-      );
+      if (item.node) item.node.hidden = true;
+      if (item.leader) item.leader.style.visibility = "hidden";
     }
     heritage.place((at) => screen(at, width, height), bounds, occupied);
-    localities.place((at) => screen(at, width, height), bounds, occupied, true);
-    localities.place((at) => screen(at, width, height), bounds, occupied, false);
+    localities.place((at) => screen(at, width, height), bounds, occupied, true, battleIntro.active ? 64 : 0);
+    localities.place((at) => screen(at, width, height), bounds, occupied, false, battleIntro.active ? 64 : 0);
   }
 
   function shown(item: MarkItem): boolean {
@@ -851,7 +850,8 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       applyShift();
       dirty = true;
     }
-    const flight = flights[0];
+    if (battleIntro.tick(elapsed)) dirty = true;
+    const flight = battleIntro.active ? undefined : flights[0];
     if (flight) {
       flight.from ??= controls.target.clone();
       flight.fromPos ??= camera.position.clone();
@@ -866,7 +866,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       shotClock += elapsed;
       if (revealMarks()) dirty = true;
     }
-    if (controls.update()) dirty = true;
+    if (!battleIntro.active && controls.update()) dirty = true;
     const travelling =
       journeys?.update(shotClock, camera, stage.clientWidth, stage.clientHeight, reducedMotion) ?? false;
     if (journeys && (travelling || stage.dataset.motion === "running" || dirty)) dirty = true;
@@ -881,6 +881,36 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
     if (updateDetail()) dirty = true;
     if (!dirty) return;
     dirty = false;
+    if (battleIntro.active) {
+      battleIntro.layout(
+        stage.clientWidth,
+        stage.clientHeight,
+        freeFrame() ?? { left: 0, top: 0, width: stage.clientWidth, height: stage.clientHeight },
+      );
+      const t = Math.min(1, battleIntro.elapsed / 3.5);
+      const k = t * t * (3 - 2 * t);
+      const view = battleIntro.camera.view!;
+      camera.setViewOffset(
+        stage.clientWidth,
+        stage.clientHeight,
+        offset.x + (view.offsetX - offset.x) * k,
+        offset.y + (view.offsetY - offset.y) * k,
+        stage.clientWidth,
+        stage.clientHeight,
+      );
+      camera.updateProjectionMatrix();
+      camera.position.copy(arrivalPosition).lerp(battleIntro.camera.position, k);
+      camera.up.set(0, 1, 0).lerp(battleIntro.camera.up, k).normalize();
+      const target = overview.target.clone().lerp(battleIntro.centre, k);
+      camera.lookAt(target);
+      camera.updateMatrixWorld();
+      // Normalize clip space before blending: a single camera, no projection switch.
+      const distance = camera.position.distanceTo(target);
+      const perspective = camera.projectionMatrix.elements;
+      const aerial = battleIntro.camera.projectionMatrix.elements;
+      for (let i = 0; i < 16; i++) perspective[i] = (perspective[i] / distance) * (1 - k) + aerial[i] * k;
+      camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+    }
     renderer.render(scene, camera);
     placeLabels();
   }
@@ -890,6 +920,18 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
 
   return {
     play(shot) {
+      if (battleIntro.active) {
+        battleIntro.stop();
+        controls.enabled = true;
+        camera.up.set(0, 1, 0);
+        controls.target.copy(battleIntro.centre);
+        camera.position
+          .copy(battleIntro.centre)
+          .addScaledVector(battleIntro.camera.up, -2)
+          .add(new THREE.Vector3(0, 950, 0));
+        camera.lookAt(controls.target);
+        controls.update();
+      }
       journeys?.dispose();
       if (journeys) scene.remove(journeys.group);
       journeys = null;
@@ -930,6 +972,7 @@ export async function createTerrain(options: TerrainOptions): Promise<TerrainVie
       layer?.dispose();
       journeys?.dispose();
       for (const model of models) model.landmark.dispose();
+      battleIntro.dispose();
       heritage.dispose();
       observer.disconnect();
       controls.removeEventListener("change", markDirty);

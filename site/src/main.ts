@@ -688,6 +688,7 @@ async function renderTerrain(root: HTMLElement) {
   const sceneFromHash = () => scenes.find((s) => `#${s.id}` === window.location.hash)?.id ?? null;
   const initial = sceneFromHash();
   if (initial) open(initial, true);
+  document.documentElement.classList.remove("intro-pending");
   window.addEventListener("hashchange", () => {
     const id = sceneFromHash();
     if (id !== current) open(id, true);
@@ -712,6 +713,7 @@ async function start() {
     renderCardNavigation(element("site-header"));
     await renderTerrain(element("terrain"));
   } else {
+    document.documentElement.classList.remove("intro-pending");
     if (webgl) {
       viewSwitch.setAttribute("aria-label", "Afficher le relief en 3D");
       viewSwitch.setAttribute("aria-pressed", "false");
