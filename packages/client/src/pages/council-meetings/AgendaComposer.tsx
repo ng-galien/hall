@@ -454,6 +454,7 @@ export function AgendaComposer({
                   return (
                     <li
                       key={candidate.key}
+                      className="composer-item-row"
                       data-testid={`agenda-candidate-${candidate.key}`}
                       draggable={!submitting}
                       onDragStart={(event) => {
