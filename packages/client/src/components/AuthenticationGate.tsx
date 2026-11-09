@@ -18,7 +18,10 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    let loading = false;
     const load = async () => {
+      if (loading) return;
+      loading = true;
       setLoadError(null);
       try {
         const result = await getAuthenticationStatus();
@@ -31,6 +34,8 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
         setPrincipal(session);
       } catch (error) {
         setLoadError(apiErrorCode(error));
+      } finally {
+        loading = false;
       }
     };
     const authenticationRequired = () => void load();
