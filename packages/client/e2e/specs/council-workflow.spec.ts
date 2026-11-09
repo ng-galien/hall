@@ -403,6 +403,72 @@ test("records a secretary handover, other persons present and shows the ballot c
   const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
   await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
   await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
+  const contact = await sirenProperties<{ id: string }>(
+    await page.request.post("/api/contacts", { data: { firstName: "Claire", lastName: "Assistante" } }),
+  );
+  await page.evaluate(() => localStorage.setItem("mairie.locale", "fr"));
+  await page.goto(`/app/meetings/${meeting.id}/live`);
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  const attendanceFacts = async () => {
+    const { currentAttendance, quorumObservations } = await sirenProperties<{
+      currentAttendance: unknown[];
+      quorumObservations: unknown[];
+    }>(await page.request.get(`/api/council-meetings/${meeting.id}/conduct`));
+    return { currentAttendance, quorumObservations };
+  };
+  const beforeOpening = await attendanceFacts();
+  const addPerson = page.getByTestId("live-auxiliaries-open");
+  const dialog = page.getByTestId("live-auxiliaries-dialog");
+  const quality = page.getByTestId("live-auxiliaries-quality");
+  await expect(page.getByTestId("live-auxiliaries-form")).toHaveCount(0);
+  const desktopViewport = page.viewportSize()!;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await addPerson.click();
+  await expect(dialog).toBeVisible();
+  await page.getByTestId("live-auxiliaries-new-mode").click();
+  await page.getByTestId("live-auxiliaries-first-name").fill("Annulation");
+  await page.getByTestId("live-auxiliaries-last-name").fill("Test");
+  await expect(page.getByTestId("live-auxiliaries-cancel")).toBeInViewport();
+  await expect(page.getByTestId("live-auxiliaries-submit")).toBeInViewport();
+  await page.screenshot({ path: testInfo.outputPath("meeting-attending-persons-mobile.png") });
+  await page.getByTestId("live-auxiliaries-cancel").click();
+  await expect(dialog).toHaveCount(0);
+  await expect(addPerson).toBeFocused();
+  await expect(page.getByTestId("live-auxiliaries-empty")).toBeVisible();
+  await page.setViewportSize(desktopViewport);
+  await addPerson.click();
+  await expect(page.getByTestId("live-auxiliaries-existing-mode")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("live-auxiliaries-new-mode").click();
+  await expect(page.getByTestId("live-auxiliaries-first-name")).toHaveValue("");
+  await page.keyboard.press("Escape");
+  await expect(addPerson).toBeFocused();
+
+  await addPerson.click();
+  await page.getByTestId("live-auxiliaries-contact").click();
+  await page
+    .getByTestId("live-auxiliaries-contact-search-result")
+    .and(page.locator(`[data-reference-id="${contact.id}"]`))
+    .click();
+  await quality.fill("secrétaire de mairie");
+  await page.route(
+    "**/auxiliary-attendances",
+    (route) => route.fulfill({ status: 500, json: { code: "request_failed" } }),
+    { times: 1 },
+  );
+  await page.getByTestId("live-auxiliaries-submit").click();
+  await expect(dialog.getByRole("alert")).toBeVisible();
+  await expect(quality).toHaveValue("secrétaire de mairie");
+  await expect(page.getByTestId("live-auxiliaries-contact")).toContainText("Claire Assistante");
+  await page.getByTestId("live-auxiliaries-submit").click();
+  await expect(dialog).toHaveCount(0);
+  await expect(addPerson).toBeFocused();
+  const row = page.getByTestId(`live-auxiliary-${contact.id}`);
+  await expect(row).toContainText("Claire Assistante");
+  await expect(page.getByTestId(`live-auxiliary-quality-${contact.id}`)).toHaveValue("secrétaire de mairie");
+  await page.getByTestId(`live-auxiliary-remove-${contact.id}`).click();
+  await expect(row).toHaveCount(0);
+  expect((await page.request.get(`/api/contacts/${contact.id}`)).ok()).toBeTruthy();
+  expect(await attendanceFacts()).toEqual(beforeOpening);
   await sirenProperties(
     await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
       data: {
@@ -412,12 +478,7 @@ test("records a secretary handover, other persons present and shows the ballot c
       },
     }),
   );
-  const contact = await sirenProperties<{ id: string }>(
-    await page.request.post("/api/contacts", { data: { firstName: "Claire", lastName: "Assistante" } }),
-  );
-  await page.evaluate(() => localStorage.setItem("mairie.locale", "fr"));
-  await page.goto(`/app/meetings/${meeting.id}/live`);
-  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  await page.reload();
   await page.getByTestId("live-officers-open").click();
   await expect(page.getByTestId("live-officers-current-secretary")).not.toBeEmpty();
   await page.getByTestId("live-officers-office-secretary").check();
@@ -431,19 +492,16 @@ test("records a secretary handover, other persons present and shows the ballot c
   await page.screenshot({ path: testInfo.outputPath("meeting-officers-dialog.png"), fullPage: true });
   await page.keyboard.press("Escape");
   await page.getByTestId("live-attendance-adjust").click();
-  await page.getByTestId("live-auxiliaries-contact").click();
-  await page
-    .getByTestId("live-auxiliaries-contact-search-result")
-    .and(page.locator(`[data-reference-id="${contact.id}"]`))
-    .click();
-  await page.getByTestId("live-auxiliaries-quality").fill("secrétaire de mairie");
-  await page.getByTestId("live-auxiliaries-submit").click();
-  await expect(page.getByTestId(`live-auxiliary-${contact.id}`)).toContainText("Claire Assistante");
-  await expect(page.getByTestId(`live-auxiliary-quality-${contact.id}`)).toHaveValue("secrétaire de mairie");
+  const duringMeeting = await attendanceFacts();
+  await addPerson.click();
+  await page.getByTestId("live-auxiliaries-new-mode").click();
   await page.getByTestId("live-auxiliaries-first-name").fill("Jean");
   await page.getByTestId("live-auxiliaries-last-name").fill("Libre");
   await page.getByTestId("live-auxiliaries-submit").click();
   await expect(page.getByTestId("live-auxiliaries-list")).toContainText("Jean Libre");
+  await expect(dialog).toHaveCount(0);
+  await expect(addPerson).toBeFocused();
+  expect(await attendanceFacts()).toEqual(duringMeeting);
   await page.screenshot({ path: testInfo.outputPath("meeting-attending-persons.png"), fullPage: true });
   await page.getByTestId("live-attendance-save").click();
   await page

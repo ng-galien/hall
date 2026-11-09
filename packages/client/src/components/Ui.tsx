@@ -135,6 +135,7 @@ export function Modal({
   onClose,
   testId,
   initialFocusRef,
+  returnFocusRef,
   size = "default",
 }: {
   open: boolean;
@@ -143,6 +144,7 @@ export function Modal({
   onClose(): void;
   testId?: string;
   initialFocusRef?: { current: HTMLElement | null };
+  returnFocusRef?: { current: HTMLElement | null };
   size?: "default" | "wide";
 }) {
   const { t } = useI18n();
@@ -157,6 +159,14 @@ export function Modal({
         showCloseButton={false}
         aria-describedby={undefined}
         data-testid={testId}
+        onCloseAutoFocus={
+          returnFocusRef
+            ? (event) => {
+                event.preventDefault();
+                returnFocusRef.current?.focus();
+              }
+            : undefined
+        }
         onOpenAutoFocus={
           initialFocusRef
             ? (event) => {

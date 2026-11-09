@@ -3,13 +3,16 @@ import type {
   DeclareMeetingAuxiliaryAttendance,
   MeetingAuxiliaryAttendance,
 } from "@hall/api-contract";
-import { type FormEvent, useEffect, useId, useState } from "react";
+import { type FormEvent, useEffect, useId, useRef, useState } from "react";
+import { AddIcon, CheckIcon } from "../../components/icons";
 import { EntitySelect } from "../../components/search/EntitySelect";
+import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
+import type { ApiErrorCode } from "../../services/apiClient";
 import { useContactsStore } from "../../stores/contactsStore";
 
 // @implements-requirement HALL-FR-ATT-140
@@ -19,6 +22,7 @@ export function MeetingAttendingPersons({
   members,
   canDeclare,
   canCorrect,
+  error,
   onDeclare,
   onCorrect,
 }: {
@@ -26,11 +30,16 @@ export function MeetingAttendingPersons({
   members: readonly CouncilMemberView[];
   canDeclare: boolean;
   canCorrect: boolean;
+  error: ApiErrorCode | null;
   onDeclare(input: DeclareMeetingAuxiliaryAttendance): Promise<boolean>;
   onCorrect(input: CorrectMeetingAuxiliaryAttendance): Promise<boolean>;
 }) {
   const { t } = useI18n();
   const id = useId();
+  const addButton = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"contact" | "newContact">("contact");
+  const [failed, setFailed] = useState(false);
   const [contactId, setContactId] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -45,8 +54,17 @@ export function MeetingAttendingPersons({
   const candidates = contacts.filter(
     (contact) => !contact.archivedAt && !memberContactIds.has(contact.id) && !enteredContactIds.has(contact.id),
   );
-  const newName = firstName.trim() !== "" && lastName.trim() !== "";
-  const ready = Boolean(contactId) !== newName;
+  const ready = mode === "contact" ? Boolean(contactId) : firstName.trim() !== "" && lastName.trim() !== "";
+
+  const openForm = () => {
+    setMode("contact");
+    setContactId("");
+    setFirstName("");
+    setLastName("");
+    setQuality("");
+    setFailed(false);
+    setOpen(true);
+  };
 
   const run = async (action: () => Promise<boolean>) => {
     if (submitting) return false;
@@ -59,20 +77,18 @@ export function MeetingAttendingPersons({
   };
   const declare = (event: FormEvent) => {
     event.preventDefault();
-    if (!ready) return;
+    if (!ready || submitting) return;
+    setFailed(false);
     void run(async () => {
       const saved = await onDeclare({
-        person: contactId
-          ? { kind: "contact", contactId }
-          : { kind: "newContact", firstName: firstName.trim(), lastName: lastName.trim() },
+        person:
+          mode === "contact"
+            ? { kind: "contact", contactId }
+            : { kind: "newContact", firstName: firstName.trim(), lastName: lastName.trim() },
         quality: quality.trim() || null,
       });
-      if (saved) {
-        setContactId("");
-        setFirstName("");
-        setLastName("");
-        setQuality("");
-      }
+      if (saved) setOpen(false);
+      else setFailed(true);
       return saved;
     });
   };
@@ -96,18 +112,60 @@ export function MeetingAttendingPersons({
         <p data-testid="live-auxiliaries-empty">{t("auxiliary.empty")}</p>
       )}
       {canDeclare ? (
-        <form className="grid gap-3" data-testid="live-auxiliaries-form" onSubmit={declare}>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-contact`}>{t("auxiliary.contact")}</Label>
+        <div>
+          <Button
+            ref={addButton}
+            type="button"
+            variant="outline"
+            data-testid="live-auxiliaries-open"
+            onClick={openForm}
+            disabled={submitting}
+          >
+            <AddIcon aria-hidden="true" />
+            {t("auxiliary.addPerson")}
+          </Button>
+        </div>
+      ) : null}
+      <Modal
+        open={open}
+        title={t("auxiliary.addPerson")}
+        testId="live-auxiliaries-dialog"
+        returnFocusRef={addButton}
+        onClose={() => {
+          if (!submitting) setOpen(false);
+        }}
+      >
+        <form className="modal-form" data-testid="live-auxiliaries-form" onSubmit={declare}>
+          <RequestErrorBanner error={failed ? (error ?? "request_failed") : null} compact />
+          <fieldset className="grid gap-2 sm:grid-cols-2" disabled={submitting}>
+            <legend className="sr-only">{t("auxiliary.contact")}</legend>
+            <Button
+              type="button"
+              variant="outline"
+              aria-pressed={mode === "contact"}
+              data-testid="live-auxiliaries-existing-mode"
+              onClick={() => setMode("contact")}
+            >
+              {mode === "contact" && <CheckIcon aria-hidden="true" />}
+              {t("auxiliary.existingContact")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              aria-pressed={mode === "newContact"}
+              data-testid="live-auxiliaries-new-mode"
+              onClick={() => setMode("newContact")}
+            >
+              {mode === "newContact" && <CheckIcon aria-hidden="true" />}
+              {t("auxiliary.newContact")}
+            </Button>
+          </fieldset>
+          {mode === "contact" ? (
             <EntitySelect
               type="contact"
               testId="live-auxiliaries-contact"
               value={contactId}
-              onValueChange={(value) => {
-                setContactId(value);
-                setFirstName("");
-                setLastName("");
-              }}
+              onValueChange={setContactId}
               disabled={submitting}
               placeholder={t("auxiliary.chooseContact")}
               options={candidates.map((contact) => ({
@@ -115,36 +173,30 @@ export function MeetingAttendingPersons({
                 label: `${contact.firstName} ${contact.lastName}`,
               }))}
             />
-          </div>
-          <p className="text-sm text-muted-foreground">{t("auxiliary.orNewName")}</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-first-name`}>{t("auxiliary.firstName")}</Label>
-              <Input
-                id={`${id}-first-name`}
-                data-testid="live-auxiliaries-first-name"
-                value={firstName}
-                disabled={submitting}
-                onChange={(event) => {
-                  setFirstName(event.currentTarget.value);
-                  setContactId("");
-                }}
-              />
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${id}-first-name`}>{t("auxiliary.firstName")}</Label>
+                <Input
+                  id={`${id}-first-name`}
+                  data-testid="live-auxiliaries-first-name"
+                  value={firstName}
+                  disabled={submitting}
+                  onChange={(event) => setFirstName(event.currentTarget.value)}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${id}-last-name`}>{t("auxiliary.lastName")}</Label>
+                <Input
+                  id={`${id}-last-name`}
+                  data-testid="live-auxiliaries-last-name"
+                  value={lastName}
+                  disabled={submitting}
+                  onChange={(event) => setLastName(event.currentTarget.value)}
+                />
+              </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-last-name`}>{t("auxiliary.lastName")}</Label>
-              <Input
-                id={`${id}-last-name`}
-                data-testid="live-auxiliaries-last-name"
-                value={lastName}
-                disabled={submitting}
-                onChange={(event) => {
-                  setLastName(event.currentTarget.value);
-                  setContactId("");
-                }}
-              />
-            </div>
-          </div>
+          )}
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-quality`}>{t("auxiliary.quality")}</Label>
             <Input
@@ -152,15 +204,25 @@ export function MeetingAttendingPersons({
               data-testid="live-auxiliaries-quality"
               value={quality}
               disabled={submitting}
-              placeholder={t("auxiliary.qualityPlaceholder")}
               onChange={(event) => setQuality(event.currentTarget.value)}
             />
           </div>
-          <Button type="submit" data-testid="live-auxiliaries-submit" disabled={!ready || submitting}>
-            {t(submitting ? "common.saving" : "auxiliary.declare")}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="live-auxiliaries-cancel"
+              disabled={submitting}
+              onClick={() => setOpen(false)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" data-testid="live-auxiliaries-submit" disabled={!ready || submitting || !canDeclare}>
+              {t(submitting ? "common.saving" : "common.add")}
+            </Button>
+          </div>
         </form>
-      ) : null}
+      </Modal>
     </section>
   );
 }
@@ -192,7 +254,6 @@ function AttendingPersonRow({
             aria-label={t("auxiliary.quality")}
             data-testid={`live-auxiliary-quality-${entry.contactId}`}
             value={quality}
-            placeholder={t("auxiliary.qualityPlaceholder")}
             onChange={(event) => setQuality(event.currentTarget.value)}
           />
           <Button

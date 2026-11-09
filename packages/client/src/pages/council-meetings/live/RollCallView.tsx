@@ -422,6 +422,7 @@ export function RollCallView({
               members={members}
               canDeclare={meetingActions.can("meeting.declare-auxiliary-attendance")}
               canCorrect={meetingActions.can("meeting.correct-auxiliary-attendance")}
+              error={meetingActions.actionError}
               onDeclare={meetingActions.declareAuxiliaryAttendance}
               onCorrect={meetingActions.correctAuxiliaryAttendance}
             />

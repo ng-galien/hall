@@ -9829,7 +9829,7 @@
       "acceptanceCriteria": [
         "Le conseil peut adjoindre à ses secrétaires des auxiliaires pris en dehors de ses membres, qui assistent aux séances sans participer aux délibérations.",
         "Les séances sont publiques ; le public n’est ni nommé ni compté par Hall.",
-        "L’écran d’appel, à l’ouverture comme en ajustement des présences, ajoute une personne présente en choisissant un contact existant non archivé ou en saisissant un prénom et un nom, qui créent le contact ; la qualité est un texte libre facultatif ; une personne figure une fois par séance ; un membre du conseil est refusé avec un message qui le nomme.",
+        "À l’ouverture comme en ajustement des présences, le bouton « Ajouter une personne » de l’écran d’appel ouvre une modale. L’utilisateur ajoute une personne présente en choisissant un contact existant non archivé ou en saisissant un prénom et un nom, qui créent le contact ; la qualité est un texte libre facultatif ; une personne figure une fois par séance ; un membre du conseil est refusé avec un message qui le nomme.",
         "Jusqu’à la clôture de la séance, la qualité se modifie et la personne se retire ; après la clôture, la liste est immuable.",
         "La saisie ne crée aucune présence de membre : elle ne change ni le quorum, ni les participants admissibles d’un scrutin, ni les porteurs de pouvoir, ni les déports.",
         "La séance affiche les autres personnes présentes ; le procès-verbal les reprend sous « Assistaient également » avec leur qualité quand elle est renseignée."
@@ -9858,7 +9858,7 @@
         {
           "key": "entry",
           "origin": "product",
-          "statement": "L’écran d’appel, à l’ouverture comme en ajustement des présences, ajoute une personne présente en choisissant un contact existant non archivé ou en saisissant un prénom et un nom, qui créent le contact ; la qualité est un texte libre facultatif ; une personne figure une fois par séance ; un membre du conseil est refusé avec un message qui le nomme.",
+          "statement": "À l’ouverture comme en ajustement des présences, le bouton « Ajouter une personne » de l’écran d’appel ouvre une modale. L’utilisateur ajoute une personne présente en choisissant un contact existant non archivé ou en saisissant un prénom et un nom, qui créent le contact ; la qualité est un texte libre facultatif ; une personne figure une fois par séance ; un membre du conseil est refusé avec un message qui le nomme.",
           "sourceIds": []
         },
         {
