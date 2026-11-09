@@ -1715,6 +1715,8 @@ export const en = {
   "live.addItem": "Add an open question",
   "live.adjournConfirmation": "Confirm the adjournment of this item?",
   "live.addItemTitle": "Add an open question",
+  "live.chooseBusiness": "Choose an existing council business",
+  "live.newBusiness": "New council business",
   "live.addItemHint": "The question is appended to the current meeting’s agenda, without a vote.",
   "live.adjustAttendance": "Attendance",
   "live.confirmClose": "Confirm closing the meeting",

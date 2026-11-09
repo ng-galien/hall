@@ -907,8 +907,14 @@ export class PostgresCouncil {
       { role: request.role, context: this.runContext(request, "meeting.add-open-question") },
       async (client) => {
         const result = await callJson(client, {
-          text: "SELECT hall_api.add_open_question($1::uuid,$2::text,$3::text,$4::text) AS payload",
-          values: [resourceIdSchema.parse(meetingId), value.path, value.name, value.content],
+          text: "SELECT hall_api.add_open_question($1::uuid,$2::text,$3::text,$4::text,$5::uuid) AS payload",
+          values: [
+            resourceIdSchema.parse(meetingId),
+            value.path,
+            value.name,
+            value.content,
+            value.councilBusinessId ?? null,
+          ],
           schema: postgresCouncilAgendaItemSchema,
         });
         await recordAuditEvent(client, {

@@ -24,6 +24,7 @@ import {
   WarningIcon,
 } from "../../../components/icons";
 import { MarkdownView } from "../../../components/MarkdownView";
+import { ResourceSearchField } from "../../../components/search/ResourceSearchField";
 
 const itemStages = [
   { id: "0", icon: <FileIcon /> },
@@ -167,6 +168,11 @@ export function ConductView({
   const [now, setNow] = useState(Date.now());
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
+  const [questionBusiness, setQuestionBusiness] = useState<{ id: string; label: string } | "new" | null>(null);
+  const closeAddItem = () => {
+    setAddItemOpen(false);
+    setQuestionBusiness(null);
+  };
   const [railWidth, setRailWidth] = useState(storedRailWidth);
 
   const startRailResize = (event: ReactPointerEvent) => {
@@ -313,7 +319,7 @@ export function ConductView({
   const createSessionQuestion = (input: Parameters<typeof meetingActions.addOpenQuestion>[0]) =>
     run(async () => {
       const added = await meetingActions.addOpenQuestion(input);
-      if (added) setAddItemOpen(false);
+      if (added) closeAddItem();
       return added;
     });
 
@@ -1137,26 +1143,24 @@ export function ConductView({
         />
       ) : null}
       {addItemOpen ? (
-        <Modal
-          open
-          title={t("live.addItemTitle")}
-          onClose={() => setAddItemOpen(false)}
-          testId="live-add-question-dialog"
-        >
+        <Modal open title={t("live.addItemTitle")} onClose={closeAddItem} testId="live-add-question-dialog">
           <div className="modal-form">
             <p className="text-sm text-muted">{t("live.addItemHint")}</p>
+            <RequestErrorBanner error={meetingActions.actionError} compact />
             <form
               onSubmit={(event) => {
                 event.preventDefault();
+                if (!questionBusiness || submitting) return;
                 const form = new FormData(event.currentTarget);
                 void createSessionQuestion({
+                  ...(questionBusiness === "new" ? {} : { councilBusinessId: questionBusiness.id }),
                   name: String(form.get("title") ?? "").trim(),
                   content: "",
                   path: "",
                 });
               }}
             >
-              <div className="composer-quick-add-fields">
+              <div className="modal-form">
                 <Input
                   name="title"
                   data-testid="live-add-question-name"
@@ -1164,7 +1168,32 @@ export function ConductView({
                   aria-label={t("meeting.subject")}
                   required
                 />
-                <Button variant="default" type="submit" disabled={submitting} data-testid="live-add-question-submit">
+                <ResourceSearchField
+                  testId="live-add-question-business"
+                  label={
+                    questionBusiness && questionBusiness !== "new" ? questionBusiness.label : t("live.chooseBusiness")
+                  }
+                  scope={{ types: ["councilBusiness"] }}
+                  disabled={submitting}
+                  onPick={({ id, label }) => setQuestionBusiness({ id, label })}
+                />
+                <Button
+                  variant="outline"
+                  type="button"
+                  aria-pressed={questionBusiness === "new"}
+                  data-testid="live-add-question-new-business"
+                  disabled={submitting}
+                  onClick={() => setQuestionBusiness("new")}
+                >
+                  {questionBusiness === "new" && <CheckIcon />}
+                  {t("live.newBusiness")}
+                </Button>
+                <Button
+                  variant="default"
+                  type="submit"
+                  disabled={submitting || !questionBusiness}
+                  data-testid="live-add-question-submit"
+                >
                   <AddIcon />
                   {t(submitting ? "common.saving" : "common.add")}
                 </Button>

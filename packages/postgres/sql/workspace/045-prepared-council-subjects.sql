@@ -189,7 +189,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION hall_api.add_open_question(target_meeting UUID,parent_path TEXT,question_name TEXT,question_content TEXT)
+CREATE FUNCTION hall_api.add_open_question(target_meeting UUID,parent_path TEXT,question_name TEXT,question_content TEXT,target_business UUID DEFAULT NULL)
 RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
 DECLARE meeting hall.council_meetings; business_id UUID; question_id UUID; item_id UUID:=gen_random_uuid(); target_position INTEGER;
 BEGIN
@@ -198,7 +198,12 @@ BEGIN
   IF jsonb_array_length(hall.council_meeting_action_blockers(meeting)->'addAgendaItem')>0 THEN
     RAISE EXCEPTION USING ERRCODE='HV235',MESSAGE='an open question addition requires an ongoing meeting';
   END IF;
-  business_id:=hall.create_council_business_workspace(parent_path,question_name,question_name||' (report)','');
+  IF target_business IS NULL THEN
+    business_id:=hall.create_council_business_workspace(parent_path,question_name,question_name||' (report)','');
+  ELSE
+    SELECT id INTO business_id FROM hall.council_business WHERE id=target_business FOR KEY SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='HV905',MESSAGE='unknown council business'; END IF;
+  END IF;
   question_id:=(hall_api.create_prepared_council_subject(business_id,'openQuestion',question_name,question_content)->>'id')::uuid;
   SELECT coalesce(max(abs(position)),0)+1 INTO target_position FROM hall.council_agenda_item WHERE council_meeting=target_meeting;
   INSERT INTO hall.council_agenda_addition(agenda_item,council_meeting) VALUES(item_id,target_meeting);

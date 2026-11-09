@@ -561,6 +561,16 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
   await expect(page.getByTestId("live-add-question-dialog")).toBeVisible();
   const questionName = `Question added during the meeting ${crypto.randomUUID()}`;
   await page.getByTestId("live-add-question-name").fill(questionName);
+  await expect(page.getByTestId("live-add-question-submit")).toBeDisabled();
+  await page.getByTestId("live-add-question-new-business").click();
+  await page.getByTestId("live-add-question-dialog-close").click();
+  expect(
+    await sirenItems<{ id: string }>(await page.request.get(`/api/council-meetings/${meeting.id}/agenda-items`)),
+  ).toHaveLength(resolvedAgenda.length);
+  await page.getByTestId("live-agenda-add").click();
+  await page.getByTestId("live-add-question-name").fill(questionName);
+  await expect(page.getByTestId("live-add-question-submit")).toBeDisabled();
+  await page.getByTestId("live-add-question-new-business").click();
   await page.screenshot({ path: test.info().outputPath("add-open-question-dialog.png"), animations: "disabled" });
   const addingQuestion = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/open-questions"),

@@ -96,8 +96,9 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
     ),
   ).toBe(true);
 
+  const businessName = `Prepared subjects ${Date.now()}`;
   const created = await page.request.post("/api/council-business", {
-    data: { path: "seed", name: `Prepared subjects ${Date.now()}`, reportName: "Report", reportContent: "" },
+    data: { path: "seed", name: businessName, reportName: "Report", reportContent: "" },
   });
   expect(created.status()).toBe(201);
   const business = (await created.json()).properties;
@@ -267,6 +268,12 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
   await page.getByTestId("live-agenda-add").click();
   const questionName = `Live-only question ${crypto.randomUUID()}`;
   await page.getByTestId("live-add-question-name").fill(questionName);
+  await page.getByTestId("live-add-question-business").click();
+  await page.getByTestId("live-add-question-business-search-input").fill(businessName);
+  await page
+    .getByTestId("live-add-question-business-search-result")
+    .and(page.locator(`[data-reference-id="${business.id}"]`))
+    .click();
   const adding = page.waitForResponse(
     (response) => response.request().method() === "POST" && response.url().endsWith("/open-questions"),
   );
@@ -275,7 +282,8 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
   expect(addedResponse.status()).toBe(201);
   const added = (await addedResponse.json()).properties;
   expect(added.subject.kind).toBe("openQuestion");
-  expect(added.councilBusinessId).not.toBe(business.id);
+  expect(added.councilBusinessId).toBe(business.id);
+  expect(added.title).toBe(questionName);
   await expect(page.getByTestId(`live-agenda-item-${added.id}`)).toBeVisible();
 
   await page.getByTestId(`live-agenda-item-${carriedItem.id}`).click();

@@ -8286,13 +8286,13 @@
       "statement": "Une question ouverte peut être ajoutée à la fin d’une séance en cours sans créer de délibération ni de scrutin.",
       "acceptanceCriteria": [
         "Une question ouverte peut être ajoutée en fin d’ordre du jour tant que la séance est ouverte, y compris sans quorum ou après examen de tous les points. L’ajout est horodaté, immuable, identifié dans le PV et distinct de la convocation de la révision établie. Il n’introduit aucune délibération ni scrutin.",
-        "Cette question est créée depuis la conduite de la séance. Elle ne réutilise pas un projet de délibération ou une question préparée dans l’espace de travail et n’est pas rattachée à leur affaire du conseil."
+        "Cette question est créée depuis la conduite de la séance. Elle ne réutilise pas un projet de délibération ou une question préparée dans l’espace de travail et est rattachée à une affaire existante sélectionnée ou à une nouvelle affaire créée explicitement lors de l’ajout."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Une question ouverte créée depuis la conduite de la séance peut être ajoutée en fin d’ordre du jour tant que la séance est ouverte, y compris sans quorum ou après examen de tous les points. Elle ne réutilise aucun sujet préparé ni son affaire. L’ajout est horodaté, immuable, identifié dans le PV et distinct de la convocation gelée. Il n’introduit aucune délibération ni scrutin.",
+          "statement": "Une question ouverte créée depuis la conduite de la séance peut être ajoutée en fin d’ordre du jour tant que la séance est ouverte, y compris sans quorum ou après examen de tous les points. Elle ne réutilise aucun sujet préparé. Son rattachement à une affaire existante préserve le rapport, les ressources et l’historique de celle-ci. La création d’une nouvelle affaire et de la question est atomique. L’ajout est horodaté, immuable, identifié dans le PV et distinct de la convocation gelée. Il n’introduit aucune délibération ni scrutin.",
           "sourceIds": []
         }
       ]

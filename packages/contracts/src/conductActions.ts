@@ -65,6 +65,7 @@ export type MeetingActionBlockers = z.infer<typeof meetingActionBlockersSchema>;
 
 export const addOpenQuestionSchema = z
   .object({
+    councilBusinessId: z.uuid().optional(),
     path: z.string(),
     name: z.string().trim().min(1),
     content: z.string(),

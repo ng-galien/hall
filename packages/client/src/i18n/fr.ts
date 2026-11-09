@@ -1748,6 +1748,8 @@ export const fr: Messages = {
   "live.addItem": "Ajouter une question ouverte",
   "live.adjournConfirmation": "Confirmer l’ajournement de ce point ?",
   "live.addItemTitle": "Ajouter une question ouverte",
+  "live.chooseBusiness": "Choisir une affaire existante",
+  "live.newBusiness": "Nouvelle affaire",
   "live.addItemHint": "La question est ajoutée en fin d’ordre du jour de la séance en cours, sans vote.",
   "live.adjustAttendance": "Présences",
   "live.confirmClose": "Confirmer la clôture de la séance",

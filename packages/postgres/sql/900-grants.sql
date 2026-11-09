@@ -307,7 +307,7 @@ GRANT EXECUTE ON FUNCTION hall_api.list_prepared_council_subjects(UUID,UUID), ha
  hall_api.create_prepared_council_subject(UUID,TEXT,TEXT,TEXT), hall_api.schedule_prepared_council_subject(UUID,UUID,TEXT,INTEGER)
  TO hall_api_authenticated,hall_api_worker;
 
-GRANT EXECUTE ON FUNCTION hall_api.add_open_question(UUID,TEXT,TEXT,TEXT) TO hall_api_authenticated,hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.add_open_question(UUID,TEXT,TEXT,TEXT,UUID) TO hall_api_authenticated,hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.list_council_decisions(),hall_api.open_council_decision(UUID),
  hall_api.update_council_decision_draft(UUID,INTEGER,TEXT),hall_api.freeze_council_decision(UUID,INTEGER,TEXT,DATE,BYTEA),hall_api.council_decision_content(UUID)
