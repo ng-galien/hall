@@ -179,6 +179,61 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     ).toEqual([{ stale_grant: false }]);
   });
 
+  // @verifies-requirement HALL-TR-SCH-060
+  it("appends the options columns of the stable entities to an installed schema without them", async () => {
+    await reset();
+    const bootstrap = new PostgresSchemaBootstrap(pool);
+    await bootstrap.install();
+    const tables = [
+      "app_user",
+      "contact",
+      "council_committee",
+      "council_delegation",
+      "council_member",
+      "document_template",
+      "resource",
+    ];
+    // The installed schema of version 1.2.0 has the read-model view without its trailing options column.
+    const view = await pool.query<{ definition: string }>(
+      "SELECT pg_get_viewdef('hall.resource_read_model'::regclass) AS definition",
+    );
+    const previousView = view.rows[0].definition.replace(/,\s*resource\.options\s+FROM/, "\n   FROM");
+    expect(previousView).not.toContain("resource.options");
+    await pool.query(`
+      DROP VIEW hall.resource_read_model CASCADE;
+      DROP FUNCTION hall_api.update_resource_metadata(uuid, text, text, text[], jsonb) CASCADE;
+      DROP FUNCTION hall.replace_folder_color(uuid, jsonb);
+      DROP FUNCTION hall.resource_options_presentation(jsonb) CASCADE;
+      ${tables.map((table) => `ALTER TABLE hall.${table} DROP COLUMN options;`).join("\n")}
+      CREATE VIEW hall.resource_read_model AS ${previousView.replace(/;\s*$/, "")};
+      DO $owner$ BEGIN
+        EXECUTE format('ALTER VIEW hall.resource_read_model OWNER TO %I',
+          (SELECT pg_catalog.pg_get_userbyid(nspowner) FROM pg_catalog.pg_namespace WHERE nspname = 'hall'));
+      END $owner$;
+      UPDATE hall_meta.schema_contract SET manifest_sha256 = repeat('c', 64);
+    `);
+    await pool.query("INSERT INTO hall.contact (first_name, last_name) VALUES ('Anne', 'Martin')");
+
+    await expect(bootstrap.install()).resolves.toBe("upgraded");
+    await expect(bootstrap.verify()).resolves.toBeUndefined();
+
+    expect(
+      (
+        await pool.query(`
+          SELECT relation.relname AS table, attribute.attnum = (
+            SELECT max(other.attnum) FROM pg_catalog.pg_attribute AS other
+            WHERE other.attrelid = relation.oid AND other.attnum > 0 AND NOT other.attisdropped
+          ) AS last
+          FROM pg_catalog.pg_attribute AS attribute
+          JOIN pg_catalog.pg_class AS relation ON relation.oid = attribute.attrelid
+          WHERE relation.relnamespace = 'hall'::regnamespace AND relation.relkind = 'r'
+            AND attribute.attname = 'options' AND NOT attribute.attisdropped
+          ORDER BY relation.relname`)
+      ).rows,
+    ).toEqual(tables.map((table) => ({ table, last: true })));
+    expect((await pool.query("SELECT options FROM hall.contact")).rows).toEqual([{ options: {} }]);
+  });
+
   it("recreates SQL routines that call each other whatever their catalog order", async () => {
     await reset();
     const bootstrap = new PostgresSchemaBootstrap(pool);

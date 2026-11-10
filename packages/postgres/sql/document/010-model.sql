@@ -230,7 +230,7 @@ END
   options JSONB NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "resource_options_is_object" CHECK (jsonb_typeof(options) = 'object'::text),
 
   CONSTRAINT "resource_options_declared" CHECK ((options - 'color'::text) = '{}'::jsonb),
-  CONSTRAINT "resource_options_color" CHECK (NOT (options ? 'color'::text) OR (folder_resource_id IS NOT NULL AND jsonb_typeof(options -> 'color'::text) = 'string'::text AND (options ->> 'color'::text) ~ '^#[0-9A-F]{6}$'::text)),
+  CONSTRAINT "resource_options_color" CHECK ((options -> 'color'::text) IS NULL OR folder_resource_id IS NOT NULL AND jsonb_typeof(options -> 'color'::text) = 'string'::text AND (options ->> 'color'::text) ~ '^\x23[0-9A-F]{6}$'::text),
 
   CONSTRAINT "resource_path_shape" CHECK (hall.is_normalized_resource_path(path)),
   CONSTRAINT "resource_name_shape" CHECK (hall.is_valid_resource_name(name)),
