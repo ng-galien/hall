@@ -4,10 +4,11 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 import { hallDocsMdx } from "./mdx.mjs";
+import { hallPdfAssets } from "./pdf-assets.mjs";
 import { hallWebApp } from "./web-app.mjs";
 
 export default defineConfig({
-  plugins: [hallDocsMdx(), react(), tailwindcss(), hallWebApp()],
+  plugins: [hallDocsMdx(), react(), tailwindcss(), hallWebApp(), hallPdfAssets()],
   base: "/app/",
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: {

@@ -7,6 +7,7 @@ import { build } from "esbuild";
 import { verifyBuild } from "../testing/build.mjs";
 import { installBuffersNotice } from "./buffers-notice.mjs";
 import { installMinijinjaNotice } from "./minijinja-notice.mjs";
+import { installPdfjsNotice } from "./pdfjs-notice.mjs";
 
 // @implements-requirement HALL-TR-DST-010
 const root = resolve(import.meta.dirname, "../..");
@@ -136,6 +137,11 @@ const buffersNotice = await installBuffersNotice({
 });
 const minijinjaNotice = await installMinijinjaNotice({
   componentDirectory: dirname(requireRuntime.resolve("minijinja-js/package.json")),
+  outputDirectory: stage,
+  artifact: { name: manifest.name, version: manifest.version },
+});
+await installPdfjsNotice({
+  componentDirectory: dirname(requireRuntime.resolve("pdfjs-dist/package.json")),
   outputDirectory: stage,
   artifact: { name: manifest.name, version: manifest.version },
 });

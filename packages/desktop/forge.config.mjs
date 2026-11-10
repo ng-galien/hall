@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { installBuffersNotice } from "../../scripts/distribution/buffers-notice.mjs";
 import { installMinijinjaNotice } from "../../scripts/distribution/minijinja-notice.mjs";
+import { installPdfjsNotice } from "../../scripts/distribution/pdfjs-notice.mjs";
 import MakerDmg from "./scripts/maker-dmg.mjs";
 import { prepareRpmTemplate } from "./scripts/rpm-compatibility.mjs";
 
@@ -104,6 +105,11 @@ async function copyProductionRuntime(buildPath) {
       artifact: { name: "Hall", version: artifact.version },
     });
   }
+  await installPdfjsNotice({
+    componentDirectory: dirname(require.resolve("pdfjs-dist/package.json")),
+    outputDirectory: buildPath,
+    artifact: { name: "Hall", version: JSON.parse(await readFile(join(buildPath, "package.json"), "utf8")).version },
+  });
   await writeFile(
     join(buildPath, "runtime-manifest.json"),
     `${JSON.stringify(

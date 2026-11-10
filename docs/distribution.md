@@ -720,6 +720,10 @@ A different component version or implementation requires a new review rather
 than silently receiving this version-specific notice. Hall's own LICENSE is
 unchanged.
 
+The PDF rendering of the web client bundles pdf.js and its decoders and substitute
+fonts. `licenses/runtime/pdfjs-dist-6.3.289/` carries their licenses under the same
+index, verified against the bundled worker.
+
 ## MCP command
 
 The installed server package also provides `hall-workspace-mcp` (stdio). Configure
