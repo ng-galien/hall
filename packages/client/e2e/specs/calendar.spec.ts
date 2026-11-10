@@ -380,21 +380,24 @@ test("calendar selects ranges and moves and resizes timed appointments", async (
   const readSchedule = async () =>
     (await (await page.request.get(`/api/resources/${id}`)).json()).properties.document.schedule;
   const event = page.getByTestId(`calendar-event-${id}`);
-  await page.getByTestId("calendar-slot-12:30:00").scrollIntoViewIfNeeded();
-  await expect(event).toBeInViewport();
-  const originalBox = await event.boundingBox();
   const halfHour = endBox!.y - startBox!.y;
-  await page.mouse.move(originalBox!.x + originalBox!.width / 2, originalBox!.y + originalBox!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(
-    originalBox!.x + originalBox!.width / 2,
-    originalBox!.y + originalBox!.height / 2 + halfHour * 2,
-    { steps: 15 },
-  );
-  await page.mouse.up();
-  await expect
-    .poll(async () => new Date((await readSchedule()).start).toISOString())
-    .toBe(new Date("2026-09-12T11:00").toISOString());
+  // The new event becomes draggable once its update action is loaded: the move is repeated until it is saved.
+  await expect(async () => {
+    await page.getByTestId("calendar-slot-12:30:00").scrollIntoViewIfNeeded();
+    await expect(event).toBeInViewport();
+    const originalBox = (await event.boundingBox())!;
+    await page.mouse.move(originalBox.x + originalBox.width / 2, originalBox.y + originalBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(
+      originalBox.x + originalBox.width / 2,
+      originalBox.y + originalBox.height / 2 + halfHour * 2,
+      { steps: 15 },
+    );
+    await page.mouse.up();
+    await expect
+      .poll(async () => new Date((await readSchedule()).start).toISOString(), { timeout: 3_000 })
+      .toBe(new Date("2026-09-12T11:00").toISOString());
+  }).toPass({ timeout: 20_000 });
   await page.getByTestId("calendar-slot-12:30:00").scrollIntoViewIfNeeded();
   const moved = await event.boundingBox();
   await page.mouse.move(moved!.x + moved!.width / 2, moved!.y + moved!.height - 2);
