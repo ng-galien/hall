@@ -316,6 +316,11 @@ async function focusMarks(field: Locator, frame: Locator) {
   };
   const before = await frame.evaluate(style);
   await field.focus();
+  // The border colour changes through a short transition: read it once the transition has ended.
+  for (const element of [field, frame])
+    await element.evaluate((node) =>
+      Promise.all(node.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
+    );
   return { before, field: await field.evaluate(style), frame: await frame.evaluate(style) };
 }
 
