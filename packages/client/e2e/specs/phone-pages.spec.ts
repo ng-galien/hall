@@ -99,7 +99,11 @@ test.describe("Hall pages on a phone", () => {
       await page.goto("/app/");
       await page.getByTestId("phone-navigation-meetings").tap();
       await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", "/meetings");
-      await page.getByTestId(`meeting-history-${closed.id}`).tap();
+      // The meeting time is shown to the minute.
+      const row = page.getByTestId(`meeting-history-${closed.id}`);
+      await expect(row).toContainText(/\d{2}:\d{2}/);
+      await expect(row).not.toContainText(/\d{2}:\d{2}:\d{2}/);
+      await row.tap();
       await expect(page).toHaveURL(new RegExp(`/app/meetings/${reference}$`));
       await expect(page.getByTestId("phone-navigation")).toBeVisible();
 

@@ -20,7 +20,9 @@ import {
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 
 export function CouncilMeetingsPage() {
-  const { t, formatDate, formatDateTime } = useI18n();
+  const { t, formatDate, formatTime } = useI18n();
+  // A meeting is called for a day and a time to the minute: the list shows no seconds.
+  const formatMeetingTime = (value: string) => `${formatDate(value)} ${formatTime(value)}`;
   const { meetings, error } = useCouncilMeetingsStore();
   const { layout, setLayout, query, setQuery } = useCollectionView();
   const meetingLabel = (meeting: CouncilMeetingView) =>
@@ -49,7 +51,7 @@ export function CouncilMeetingsPage() {
               <span className="next-meeting-facts">
                 <span>
                   <CalendarIcon aria-hidden="true" />{" "}
-                  {nextMeeting.scheduledAt ? formatDateTime(nextMeeting.scheduledAt) : t("dashboard.toSchedule")}
+                  {nextMeeting.scheduledAt ? formatMeetingTime(nextMeeting.scheduledAt) : t("dashboard.toSchedule")}
                 </span>
                 <span>
                   <LocationIcon aria-hidden="true" /> {nextMeeting.location ?? t("common.none")}
@@ -74,7 +76,7 @@ export function CouncilMeetingsPage() {
                 title={t("meetings.upcoming")}
                 meetings={visibleUpcoming}
                 layout={layout}
-                formatDateTime={formatDateTime}
+                formatDateTime={formatMeetingTime}
                 meetingLabel={meetingLabel}
               />
             ) : null}
@@ -83,7 +85,7 @@ export function CouncilMeetingsPage() {
                 title={t("meetings.past")}
                 meetings={pastMeetings}
                 layout={layout}
-                formatDateTime={formatDateTime}
+                formatDateTime={formatMeetingTime}
                 meetingLabel={meetingLabel}
               />
             ) : null}
