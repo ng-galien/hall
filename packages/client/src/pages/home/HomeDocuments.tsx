@@ -189,11 +189,10 @@ export function HomePersonalSpace({ documents, loaded }: ReadableDocuments) {
   );
 }
 
-/** Latest documents of the council, personal folders excluded. */
+/** Latest documents of the council, without the resources the server marks with the personal-workspace class. */
 export function HomeRecentDocuments({ documents, loaded, error }: ReadableDocuments) {
   const { t } = useI18n();
   const representations = useWorkspaceResourcesStore((state) => state.representations);
-  // The server marks every resource of a personal folder with the personal-workspace class.
   const shared = documents.filter((resource) => !representations[resource.id]?.class?.includes("personal-workspace"));
   return (
     <section className="home-block" data-testid="home-recent">

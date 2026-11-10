@@ -307,7 +307,7 @@ test("phone settings categories stay on one row that scrolls sideways", async ({
   await expectFitsWidth(page);
 });
 
-/** Focus marks of a field and of the element that carries its visible border. */
+/** Focus marks of a field and of the element that carries its visible border, read once their transitions end. */
 async function focusMarks(field: Locator, frame: Locator) {
   const style = (element: Element) => {
     const computed = getComputedStyle(element);
@@ -319,7 +319,6 @@ async function focusMarks(field: Locator, frame: Locator) {
   };
   const before = await frame.evaluate(style);
   await field.focus();
-  // The border colour changes through a short transition: read it once the transition has ended.
   for (const element of [field, frame])
     await element.evaluate((node) =>
       Promise.all(node.getAnimations().map((animation) => animation.finished.catch(() => undefined))),

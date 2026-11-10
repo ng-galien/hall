@@ -19,9 +19,9 @@ import {
 } from "../../models/councilMeeting";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 
+/** List of council meetings, each dated by its day and its time to the minute. */
 export function CouncilMeetingsPage() {
   const { t, formatDate, formatTime } = useI18n();
-  // A meeting is called for a day and a time to the minute: the list shows no seconds.
   const formatMeetingTime = (value: string) => `${formatDate(value)} ${formatTime(value)}`;
   const { meetings, error } = useCouncilMeetingsStore();
   const { layout, setLayout, query, setQuery } = useCollectionView();

@@ -45,6 +45,10 @@ import "./calendar.css";
 // @implements-requirement HALL-FR-CAL-100
 // @implements-requirement HALL-FR-CAL-110
 // @implements-requirement HALL-FR-CAL-130
+/**
+ * Council calendar. On a phone the day view opens half an hour before the current hour, so that the hour label is
+ * whole, and the grid runs from edge to edge with a short date in the title of the day.
+ */
 export function CalendarPage() {
   const { t, locale, formatDate } = useI18n();
   const calendar = useRef<CalendarRef>(null);
@@ -72,7 +76,6 @@ export function CalendarPage() {
   } | null>(null);
   const [phoneWidth] = useState(() => window.matchMedia("(max-width: 600px)").matches);
   const phone = usePhoneLayout();
-  // On a phone the day opens on the current hour, half an hour earlier so that its label is whole.
   const [phoneScrollTime] = useState(() => `${String(Math.max(new Date().getHours() - 1, 0)).padStart(2, "0")}:30:00`);
   const [view, setView] = useState(phoneWidth ? "timeGridDay" : "dayGridMonth");
   useEffect(() => {
@@ -216,7 +219,6 @@ export function CalendarPage() {
         headerToolbar={false}
         height="100%"
         dayHeaderInnerClass="hall-calendar-day-header"
-        // On a phone the grid runs from edge to edge, with a short date in the title of the day.
         {...(phone
           ? {
               borderless: true,

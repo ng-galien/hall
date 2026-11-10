@@ -60,8 +60,9 @@ export function folderColorsByPath(catalog: ResourceCatalogEntry[]): Map<string,
   );
 }
 
-/** Path tree preserving the business identity of its documentary folder.
+/** Path tree preserving the business identity and the colour of its documentary folders.
  * @implements-requirement HALL-FR-WSP-240
+ * @implements-requirement HALL-FR-WSP-480
  */
 export function buildPathTree<TBusiness extends PathBusiness>(
   businesses: TBusiness[],
@@ -74,7 +75,6 @@ export function buildPathTree<TBusiness extends PathBusiness>(
       .filter((entry) => entry.kind === "folder")
       .map((entry) => [entry.fullPath, businessesByFolderId.get(entry.id)]),
   );
-  // @implements-requirement HALL-FR-WSP-480
   const colorsByPath = folderColorsByPath(catalog);
   const knownPaths = new Set(listCatalogPaths(catalog));
   for (const folderPath of [...additionalPaths, ...businesses.map((business) => business.folderPath)]) {

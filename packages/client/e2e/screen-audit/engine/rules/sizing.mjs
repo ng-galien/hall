@@ -388,12 +388,12 @@ export const componentSizeConsistency = {
     severity: "error",
     params: { tolerance: 4, minimumScreens: 2, maximumControlHeight: 64 },
   },
+  /** Compares controls only: multi-line fields and content panels take the height of their content. */
   evaluateAll({ records, params }) {
     const groups = new Map();
     for (const record of records) {
       record.elements.forEach((entry, index) => {
         if (!entry.interactive || entry.insideInteractive || entry.rect.h < 1) return;
-        // Multi-line fields and content panels take the height of their content; only controls are compared.
         if (entry.tag === "textarea" || entry.rect.h > params.maximumControlHeight) return;
         const signature = entry.iconOnly
           ? `icône seule ${entry.iconHash}`

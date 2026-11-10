@@ -19,7 +19,8 @@ export interface ColorPickerNamedPresets {
 // biome-ignore-start lint/suspicious/noArrayIndexKey: two meanings may share one color.
 /**
  * With `anchor`, the picker has no trigger of its own: the popover opens beside the anchor element and its
- * opening is controlled by `open` and `onOpenChange`. An empty `value` means that no colour is chosen.
+ * opening is controlled by `open` and `onOpenChange`. An empty `value` means that no colour is chosen. The popover
+ * renders in a portal and stops its events, which React would otherwise bubble to the anchor's ancestors.
  */
 export function ColorPicker({
   value,
@@ -62,7 +63,6 @@ export function ColorPicker({
     draftRef.current = next;
     setDraftValueState(next);
   };
-  // The popover renders in a portal, but React still bubbles its events to the anchor's ancestors.
   const keepInside = (event: SyntheticEvent) => event.stopPropagation();
   const swatchStyle = (color: string) => ({ "--color-picker-value": color }) as CSSProperties;
 

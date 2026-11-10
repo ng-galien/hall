@@ -50,6 +50,7 @@ export function usePhoneScrollMemory(active: boolean, scroller: HTMLElement | nu
 }
 
 /** A viewer over a phone screen is one step of the history: the back gesture closes it. */
+// biome-ignore-start lint/correctness/useExhaustiveDependencies: the history entry is added once, when the viewer opens.
 export function usePhoneViewerHistory(active: boolean, onClose: () => void): () => void {
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,7 +62,6 @@ export function usePhoneViewerHistory(active: boolean, onClose: () => void): () 
   const state = location.state as { phoneViewer?: string } | null;
   const current = state?.phoneViewer === viewerId;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the entry is added once, when the viewer opens.
   useEffect(() => {
     if (!active || pushed.current) return;
     pushed.current = true;
@@ -82,3 +82,4 @@ export function usePhoneViewerHistory(active: boolean, onClose: () => void): () 
 
   return active ? () => navigate(-1) : onClose;
 }
+// biome-ignore-end lint/correctness/useExhaustiveDependencies: the history entry is added once, when the viewer opens.

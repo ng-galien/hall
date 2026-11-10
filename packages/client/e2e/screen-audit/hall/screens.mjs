@@ -138,8 +138,8 @@ export const screens = [
     id: "document-titre-long",
     title: "Document au titre long",
     scenario: "minutes",
+    /** Creates a temporary document in the disposable database: the dataset has no title longer than a phone header. */
     async open(page) {
-      // Temporary document of the disposable database: the dataset has no title longer than a phone header.
       const response = await page.request.post("/api/resources", {
         data: { kind: "text", path: "Conseil", name: longTitle, content: "Texte du document." },
       });

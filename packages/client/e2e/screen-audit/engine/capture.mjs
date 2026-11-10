@@ -27,9 +27,11 @@ export const defaultCollectOptions = {
   activeSelector: "[aria-current=page], [aria-current=true], [aria-selected=true], [data-state=active]",
 };
 
-/** Waits for finite animations and fonts, so that the measured geometry is the settled one. */
+/**
+ * Waits until the element count and text length stop changing for half a second, then for fonts and finite
+ * animations, so that the measured geometry is the settled one.
+ */
 export async function settle(page) {
-  // The page is taken as rendered once its element count and text length stop changing for half a second.
   await page.evaluate(async () => {
     const signature = () => `${document.querySelectorAll("*").length}:${document.body.innerText.length}`;
     let previous = signature();
@@ -51,7 +53,10 @@ export async function settle(page) {
   });
 }
 
-/** Records the string values of the JSON answers matching `pattern`; texts equal to one of them come from data. */
+/**
+ * Records the string values of the JSON answers matching `pattern`; texts equal to one of them come from data.
+ * An unavailable body (redirect, aborted request) contributes no text.
+ */
 export function recordDataStrings(page, pattern) {
   const strings = new Set();
   const walk = (value) => {
@@ -64,11 +69,7 @@ export function recordDataStrings(page, pattern) {
   page.on("response", async (response) => {
     if (!pattern.test(response.url())) return;
     if (!(response.headers()["content-type"] ?? "").includes("json")) return;
-    try {
-      walk(await response.json());
-    } catch {
-      // A body that is not available (redirect, aborted request) carries no text.
-    }
+    walk(await response.json().catch(() => undefined));
   });
   return strings;
 }
@@ -76,6 +77,7 @@ export function recordDataStrings(page, pattern) {
 /**
  * Measures the current page as one screen at one format and writes `<screen>.json` with its screenshots
  * (`<screen>-0.png` … one per height of the scrolling area, at most four) under `<outputDirectory>/<format>/`.
+ * The scrolling area is located again by its geometry, because the snapshot index has no DOM handle.
  */
 export async function captureScreen(page, { screen, format, outputDirectory, collect }) {
   const directory = join(outputDirectory, "raw", format.id);
@@ -99,7 +101,6 @@ export async function captureScreen(page, { screen, format, outputDirectory, col
       { offset, index: scroller ? scroller.index : null },
     );
     if (part === 0 && scroller) {
-      // The scrolling area is located again by its geometry: the snapshot index has no DOM handle.
       await page.evaluate(
         ({ top, height }) => {
           const candidates = [...document.querySelectorAll("body *")].filter((element) => {

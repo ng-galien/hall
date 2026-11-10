@@ -211,6 +211,7 @@ function ContentRow({
   );
 }
 
+// @implements-requirement HALL-FR-WSP-480
 export function PathContents({
   path,
   businesses,
@@ -548,7 +549,6 @@ export function PathContents({
     }
   };
 
-  // @implements-requirement HALL-FR-WSP-480
   const [colorTarget, setColorTarget] = useState<string | null>(null);
   const folderColorAction = (folderId: string | undefined) =>
     folderId && resourceCapabilities(resourcesStore.representations[folderId] ?? null).updateMetadata

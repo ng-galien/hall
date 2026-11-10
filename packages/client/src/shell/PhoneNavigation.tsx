@@ -14,13 +14,13 @@ export function personalWorkspaceHref(path: string) {
 
 // @implements-requirement HALL-FR-LAY-010
 /** Bottom bar of the phone: the councillor's destinations, the rest under Plus. */
+// biome-ignore-start lint/correctness/useExhaustiveDependencies: the sheet closes whenever the route changes.
 export function PhoneNavigation() {
   const { t } = useI18n();
   const location = useLocation();
   const { available } = useApiRoot();
   const personalPath = useWorkspaceResourcesStore((state) => state.personalWorkspacePath);
   const [moreOpen, setMoreOpen] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the sheet closes whenever the route changes.
   useEffect(() => setMoreOpen(false), [location.pathname, location.search]);
 
   const workspacePath = new URLSearchParams(location.search).get("path") ?? "";
@@ -154,3 +154,4 @@ export function PhoneNavigation() {
     </>
   );
 }
+// biome-ignore-end lint/correctness/useExhaustiveDependencies: the sheet closes whenever the route changes.

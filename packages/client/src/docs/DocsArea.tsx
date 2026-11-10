@@ -31,16 +31,16 @@ import { DocsPdfExport } from "./pdf";
 import { standalone } from "./standalone";
 
 /* The documentation area: contents tree, article, "on this page". Pages are MDX under `content/`;
-   the URL is `/docs/<path>` whatever the locale (the locale only chooses the translation). */
+   the URL is `/docs/<path>` whatever the locale (the locale only chooses the translation). On a phone the contents
+   tree takes the screen in place of the page: it opens on demand and closes with each page. */
 
+// biome-ignore-start lint/correctness/useExhaustiveDependencies: the contents tree closes whenever another page opens.
 export function DocsArea() {
   const { t, locale } = useI18n();
   const params = useParams();
   const phone = usePhoneLayout();
-  // On a phone the contents tree takes the screen in place of the page: it opens on demand and closes with each page.
   const [navOpen, setNavOpen] = useState(!phone);
   const path = (params["*"] ?? "").replace(/\/+$/, "");
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the tree closes whenever another page opens.
   useEffect(() => {
     if (phone) setNavOpen(false);
   }, [phone, path]);
@@ -123,6 +123,7 @@ export function DocsArea() {
     </div>
   );
 }
+// biome-ignore-end lint/correctness/useExhaustiveDependencies: the contents tree closes whenever another page opens.
 
 function DocsBreadcrumb({ path, locale }: { path: string; locale: Locale }) {
   const { t } = useI18n();

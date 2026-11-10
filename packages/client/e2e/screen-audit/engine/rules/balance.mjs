@@ -258,6 +258,7 @@ export const activeStateContrast = {
     "Une commande marquée active (page courante, onglet ou option sélectionnés) se distingue de ses voisines inactives par un contraste de fond ou de couleur inférieur au minimum, sans différence de graisse.",
   unit: ":1",
   defaults: { formats: "all", severity: "indicator", params: { minimum: 3, weightDifference: 200 } },
+  /** A heavier weight counts only for a command with visible text; an icon-only command does not change with it. */
   evaluate({ snapshot, params }) {
     const findings = [];
     snapshot.elements.forEach((entry, index) => {
@@ -270,7 +271,6 @@ export const activeStateContrast = {
       const background = contrast(parseColor(entry.background) ?? white, parseColor(sibling.background) ?? white);
       const foreground = contrast(parseColor(entry.color) ?? white, parseColor(sibling.color) ?? white);
       const value = Math.round(Math.max(background, foreground) * 100) / 100;
-      // A heavier weight shows only on a visible text; an icon-only command does not change with it.
       const hasVisibleText = snapshot.elements.some((other) => {
         if (!other.text) return false;
         for (let current = other.parent; current >= 0; current = snapshot.elements[current].parent)

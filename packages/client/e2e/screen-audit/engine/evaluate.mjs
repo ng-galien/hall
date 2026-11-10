@@ -4,7 +4,7 @@ import { engineRules } from "./rules/index.mjs";
 /**
  * Resolves the project's rule settings over the engine defaults. A setting may give `enabled`, `formats`
  * ("all", "touch", "pointer" or a list of format identifiers), `severity`, `params` (a value, or an object keyed by
- * format identifier) and `excludeScreens`.
+ * format identifier) and `excludeScreens`. A severity of "indicator" lowers a blocking rule to an exploratory one.
  */
 export function resolveRules(config) {
   const settings = config.rules ?? {};
@@ -33,7 +33,6 @@ export function resolveRules(config) {
       params,
       excludeScreens: new Set(setting.excludeScreens ?? []),
       justification: setting.justification ?? "",
-      // A project may lower a blocking rule to an exploratory indicator while it cannot tell intended from faulty.
       exploratory: Boolean(rule.exploratory) || (setting.severity ?? rule.defaults.severity) === "indicator",
     };
   });

@@ -1,6 +1,8 @@
 /**
  * In-page geometry snapshot. This function is passed to `page.evaluate` and must stay self-contained: it reads the
- * rendered document and returns plain data, every rule is then evaluated in Node on that data.
+ * rendered document and returns plain data, every rule is then evaluated in Node on that data. Hidden overflow cuts
+ * its content, while a scrolling axis keeps it reachable; an open modal dialog makes the rest of the page inert, so
+ * only the dialog is measured.
  *
  * @param {{
  *   keyAttribute: string,
@@ -215,7 +217,6 @@ export function collectSnapshot(options) {
     if (isSvg) return;
     let nextClip = clip;
     let nextOwner = clipOwner;
-    // Hidden overflow cuts its content; a scrolling axis keeps its content reachable and is not a cut.
     const cutsX = ["hidden", "clip"].includes(style.overflowX);
     const cutsY = ["hidden", "clip"].includes(style.overflowY);
     const scrolls = ["auto", "scroll"].includes(style.overflowX) || ["auto", "scroll"].includes(style.overflowY);
@@ -234,7 +235,6 @@ export function collectSnapshot(options) {
     for (const child of element.children)
       visit(child, index, nextClip, nextOwner, interactiveAncestor || (visible && interactive));
   };
-  // An open modal dialog makes the rest of the page inert: only the dialog is measured.
   const modals = [
     ...document.querySelectorAll('[aria-modal="true"], dialog[open], [role="dialog"], [role="alertdialog"]'),
   ].filter((element) => element.getClientRects().length > 0);

@@ -319,7 +319,7 @@ function confrontation({ humanDefects, findings, metrics, rulesById, comparison,
       const other = comparison?.[index];
       const cell = (found) =>
         found ? '<span class="state sound">Retrouvé</span>' : '<span class="state new">Manqué</span>';
-      return `<tr><td class="nowrap">${html(screensById.get(entry.screen)?.title ?? entry.screen)}, ${html(entry.format)}</td><td class="prose">${html(entry.defect)}</td><td class="prose">${html(entry.rules.map((rule) => rulesById.get(rule)?.title ?? rule).join(", "))}</td>${comparison ? `<td>${other ? cell(other.found) : "—"}</td>` : ""}<td>${cell(entry.found)}</td><td class="prose">${entry.found ? diagnosis(entry) : ""}</td></tr>`;
+      return `<tr><td class="nowrap">${html(screensById.get(entry.screen)?.title ?? entry.screen)}, ${html(entry.format)}</td><td class="prose">${html(entry.defect)}</td><td class="prose">${html(entry.rules.map((rule) => rulesById.get(rule)?.title ?? rule).join(", "))}</td>${comparison ? `<td>${other ? cell(other.found) : "-"}</td>` : ""}<td>${cell(entry.found)}</td><td class="prose">${entry.found ? diagnosis(entry) : ""}</td></tr>`;
     })
     .join("");
   const found = result.filter((entry) => entry.found).length;
@@ -456,7 +456,7 @@ export function writeReport({ outputDirectory, config, records, missing, evaluat
                 (candidate) =>
                   candidate.rule === entry.rule.id && candidate.format === format.id && candidate.screen === screen.id,
               );
-              if (!metric) return '<td class="zero">—</td>';
+              if (!metric) return '<td class="zero">-</td>';
               const classes = [
                 "num",
                 metric.outside ? "out" : "",

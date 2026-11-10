@@ -45,11 +45,10 @@ async function touchscreen(page: Page) {
     });
 }
 
-/** Rows of an open drop-down menu: height, text size and menu width. */
+/** Rows of an open drop-down menu (height, text size and menu width), measured once its opening animation ends. */
 async function menuMeasures(page: Page, testId: string) {
   const menu = page.getByTestId(testId);
   await expect(menu).toBeVisible();
-  // The menu opens with a short zoom: measure it once the animation has ended.
   await menu.evaluate((element) =>
     Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
   );

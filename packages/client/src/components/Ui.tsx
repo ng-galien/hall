@@ -62,10 +62,10 @@ export function matchesQuery(query: string, ...fields: (string | null | undefine
   return fields.some((field) => field && normalizeForSearch(field).includes(needle));
 }
 
+/** Layout and query of a collection; a phone always shows rows and keeps the choice made on a wider screen. */
 export function useCollectionView() {
   const [layout, setLayout] = useState<CollectionLayout>("list");
   const [query, setQuery] = useState("");
-  // A phone always shows rows; the choice made on a wider screen is kept for it.
   const phone = usePhoneLayout();
   return { layout: phone ? ("list" as const) : layout, setLayout, query, setQuery };
 }

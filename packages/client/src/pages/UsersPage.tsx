@@ -25,6 +25,7 @@ import { generatePassphrase } from "../services/usersApi";
 import { useContactsStore } from "../stores/contactsStore";
 import { useUsersStore } from "../stores/usersStore";
 
+/** User accounts; a refused or failed reading of the collection leaves only its error on the page. */
 export function UsersPage() {
   const { t } = useI18n();
   const { roleName, requiresActiveMember } = useRoleOptions();
@@ -124,7 +125,6 @@ export function UsersPage() {
       <span>{user.roles.map((role) => roleName(role)).join(" · ")}</span>
     </div>
   );
-  // A refused or failed reading of the collection leaves only its error on the page.
   if (!loading && !listed)
     return (
       <div className="page">

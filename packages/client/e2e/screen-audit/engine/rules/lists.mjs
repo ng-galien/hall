@@ -29,7 +29,7 @@ function leavesOf(snapshot, childMap, root) {
   return leaves.filter((leaf) => leaf.rect.w >= 1 && leaf.rect.h >= 1);
 }
 
-/** Repeated list items of the snapshot, grouped by list. */
+/** Repeated list items of the snapshot, grouped by list; the trailing position of a sibling key is ignored. */
 export function listItems(snapshot, params) {
   const childMap = children(snapshot);
   const lists = [];
@@ -39,7 +39,6 @@ export function listItems(snapshot, params) {
     for (const index of indexes) {
       const entry = snapshot.elements[index];
       if (entry.rect.w < snapshot.viewport.width * params.minimumWidth || entry.rect.h < 24) continue;
-      // Siblings without their own key differ only by their position: the position is dropped from the signature.
       const signature = entry.key.replace(/:\d+$/, "");
       if (!byKey.has(signature)) byKey.set(signature, []);
       byKey.get(signature).push(index);
