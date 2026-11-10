@@ -54,8 +54,16 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     await page.getByTestId("phone-navigation-more").tap();
     const sheet = page.getByTestId("phone-more");
     await expect(sheet).toBeVisible();
-    if (destination === "council-decisions")
+    if (destination === "council-decisions") {
       await page.screenshot({ path: testInfo.outputPath("phone-more.png"), animations: "disabled" });
+      // The last row of the sheet keeps a margin above the bottom edge of the screen.
+      await expect
+        .poll(async () => {
+          const last = await sheet.getByTestId("phone-more-account").boundingBox();
+          return last ? 800 - (last.y + last.height) : 0;
+        })
+        .toBeGreaterThanOrEqual(24);
+    }
     await sheet.getByTestId(`phone-more-${destination}`).tap();
     await expect(sheet).toBeHidden();
     await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", new RegExp(`^${route}(/|$)`));

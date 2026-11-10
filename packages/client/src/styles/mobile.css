@@ -137,7 +137,7 @@
   .app-phone-bar-item > [aria-hidden="true"] { display: inline-grid; }
   .app-phone-bar-item > [aria-hidden="true"] svg { width: var(--hall-size-phone-bar-icon); height: var(--hall-size-phone-bar-icon); }
   .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-semibold); }
-  .app-phone-more { padding-bottom: calc(var(--hall-space-4) + env(safe-area-inset-bottom, 0)); }
+  .app-phone-more { padding-bottom: calc(var(--hall-space-6) + env(safe-area-inset-bottom, 0px)); }
   .app-phone-more-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-2); }
   .app-phone-more-list .nav-row {
     min-height: var(--hall-size-phone-more-tile);
