@@ -292,23 +292,9 @@ export function PathContents({
   const visibleResources = resources.filter((resource) => mode !== "businesses" && matches(resource.name));
   const refresh = () => onSelect(selection);
   const phone = usePhoneLayout();
-  const hasDirectItems = useCallback(
-    (folderPath: string) =>
-      businesses.some((business) => business.folderPath === folderPath) ||
-      resources.some((resource) => resource.path === folderPath),
-    [businesses, resources],
-  );
   const isFolderExpanded = useCallback(
-    function expanded(folderPath: string, states = folderExpansion): boolean {
-      const explicitState = states.get(folderPath);
-      if (explicitState !== undefined) return explicitState;
-      if (directChildrenOf(path, [folderPath]).length > 0) return true;
-      const separator = folderPath.lastIndexOf("/");
-      if (separator < 0) return false;
-      const parentPath = folderPath.slice(0, separator);
-      return expanded(parentPath, states) && !hasDirectItems(parentPath);
-    },
-    [folderExpansion, hasDirectItems, path],
+    (folderPath: string, states = folderExpansion): boolean => states.get(folderPath) ?? false,
+    [folderExpansion],
   );
   const toggle = (folderPath: string) => {
     if (!isFolderExpanded(folderPath)) void resourcesStore.loadFolder(folderPath);

@@ -21,6 +21,7 @@ test("opens a business from the workspace list with one click", async ({ appPage
   await expect(page.getByTestId("council-business-workbench")).toBeVisible();
 });
 
+// @verifies-requirement HALL-FR-WSP-270
 test("keeps folder icons upright and navigates workspace rows with the keyboard", async ({ appPage: page }) => {
   const folderName = `Keyboard ${Date.now()}`;
   const path = folderName;
@@ -38,11 +39,15 @@ test("keeps folder icons upright and navigates workspace rows with the keyboard"
   }
   await page.goto("/app/workspace");
   const toggle = page.getByTestId(`workspace-folder-toggle-${path}`);
-  await expect(toggle).toHaveAttribute("aria-expanded", "true");
-  expect(await toggle.evaluate((element) => getComputedStyle(element.querySelector("svg")!).transform)).toBe("none");
-  await toggle.press("ArrowRight");
+  // Folders stay collapsed until the user unfolds them.
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
   const first = page.getByTestId(`workspace-resource-title-${ids[0]}`);
   const second = page.getByTestId(`workspace-resource-title-${ids[1]}`);
+  await expect(first).toBeHidden();
+  expect(await toggle.evaluate((element) => getComputedStyle(element.querySelector("svg")!).transform)).toBe("none");
+  await toggle.press("ArrowRight");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await toggle.press("ArrowRight");
   await expect(first).toBeFocused();
   await first.press("ArrowDown");
   await expect(second).toBeFocused();
@@ -677,7 +682,8 @@ test.describe("workspace explorer", () => {
     await page.getByTestId("workspace-tree-rename-input").fill(renamedFolder);
     await page.getByTestId("workspace-tree-rename-input").press("Enter");
     await expect(page.getByTestId(`workspace-folder-name-seed/${renamedFolder}`)).toBeVisible();
-    // Renaming the containing folder must retain its loaded children in the current tree.
+    // Renaming the containing folder must retain its loaded children; folders stay collapsed until unfolded.
+    await page.getByTestId(`workspace-folder-toggle-seed/${renamedFolder}`).click();
     await expect(page.getByTestId(`workspace-resource-title-${created.id}`)).toBeVisible();
     await page.getByTestId(`workspace-resource-title-${created.id}`).click();
     const lastEdit = `${content}, avant fermeture`;
@@ -753,7 +759,7 @@ test.describe("workspace explorer", () => {
   });
 
   test("presents one filtered tree and previews documents directly", async ({ appPage: page }) => {
-    await page.goto("/app/workspace");
+    await page.goto(`/app/workspace?${new URLSearchParams({ path: "Réserves" })}`);
     const document = page
       .locator('[data-testid^="workspace-resource-title-"]')
       .filter({ hasText: "État des réserves d’Alésia" });
@@ -819,7 +825,7 @@ test("composes an agenda from workspace business with an explicit voting purpose
     await page.getByTestId(`business-subject-meeting-${agenda[0].id}`).click();
     await expect(page.getByTestId(`agenda-item-expand-${agenda[0].id}`)).toBeVisible();
     await expect(page.getByTestId(`agenda-item-position-${agenda[0].id}`)).toHaveText(String(agenda[0].agendaNumber));
-    await page.goto("/app/workspace");
+    await page.goto("/app/workspace?path=seed");
     await expect(page.getByTestId(`workspace-business-title-${business.id}`)).toBeVisible();
   }
 });
