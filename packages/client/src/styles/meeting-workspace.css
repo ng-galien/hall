@@ -343,7 +343,7 @@
     color: var(--hall-color-text);
     background: transparent;
   }
-  .collection-search input:focus-visible { box-shadow: none; }
+  .collection-search input:is(:focus, :focus-visible) { outline: none; box-shadow: none; }
   .collection-toolbar-side { display: flex; align-items: center; gap: var(--hall-space-3); }
   .collection-layout-toggle {
     display: flex;
@@ -1144,7 +1144,7 @@
     cursor: pointer;
   }
   .report-timeline-item-toggle:hover { background: var(--hall-color-surface-subtle); }
-  .report-timeline-item-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: var(--hall-space-0-5); }
+  .report-timeline-item-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
   .report-timeline-item-toggle[aria-expanded="true"] { background: var(--hall-color-brand-subtle); }
   .report-timeline-item-toggle[aria-expanded="true"] .report-timeline-marker { border-width: var(--hall-stroke-thick); border-color: var(--hall-color-brand); color: var(--hall-color-brand); }
   .report-timeline-title { display: grid; gap: var(--hall-space-0-5); min-width: 0; }

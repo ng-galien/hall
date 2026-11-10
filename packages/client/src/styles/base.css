@@ -17,7 +17,15 @@
   button, input, select, textarea { font: inherit; }
   a { color: inherit; text-decoration: none; }
   h1, h2, h3, p { margin: 0; }
-  :focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: var(--hall-space-1); }
+  /* The keyboard mark of a control is drawn inside its own shape, never around it. */
+  :focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
+  /* A field shows focus by one sign only: the border it already has turns to the brand colour. A field without a
+     border of its own lies in a container that takes this state with :focus-within. */
+  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select, [contenteditable="true"]):is(:focus, :focus-visible) {
+    outline: none;
+    box-shadow: none;
+  }
+  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):focus { border-color: var(--hall-color-brand); }
   ::-webkit-scrollbar { width: var(--hall-size-scrollbar); height: var(--hall-size-scrollbar); }
   ::-webkit-scrollbar-thumb {
     border: var(--hall-size-scrollbar-border) solid transparent;

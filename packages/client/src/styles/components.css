@@ -815,7 +815,7 @@
     transition: background-color var(--hall-motion-fast) var(--hall-motion-curve-standard);
   }
   .collapsible-section-toggle:hover { background: var(--hall-color-surface-subtle); }
-  .collapsible-section-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: var(--hall-stroke-thin); }
+  .collapsible-section-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
   .collapsible-section-chevron {
     flex: none;
     width: var(--hall-font-size-icon);

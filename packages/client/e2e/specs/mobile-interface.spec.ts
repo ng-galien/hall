@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
 test.use({ hasTouch: true });
@@ -302,6 +302,48 @@ test("phone settings categories stay on one row that scrolls sideways", async ({
   await last.tap();
   await expect(last).toHaveAttribute("data-state", "active");
   await expectFitsWidth(page);
+});
+
+/** Focus marks of a field and of the element that carries its visible border. */
+async function focusMarks(field: Locator, frame: Locator) {
+  const style = (element: Element) => {
+    const computed = getComputedStyle(element);
+    return {
+      outline: computed.outlineStyle !== "none" && Number.parseFloat(computed.outlineWidth) > 0,
+      shadow: computed.boxShadow,
+      border: computed.borderTopColor,
+    };
+  };
+  const before = await frame.evaluate(style);
+  await field.focus();
+  return { before, field: await field.evaluate(style), frame: await frame.evaluate(style) };
+}
+
+// @verifies-requirement HALL-FR-LAY-010
+test("a focused field shows one sober mark on its own border, without a frame around it", async ({ appPage: page }) => {
+  for (const viewport of [
+    { width: 360, height: 740 },
+    { width: 1440, height: 1000 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/app/meetings");
+    const search = page.getByTestId("collection-search");
+    const searchMarks = await focusMarks(search, page.locator(".collection-search", { has: search }));
+    expect(searchMarks.field.outline, "search field outline").toBe(false);
+    expect(searchMarks.field.shadow, "search field ring").toBe("none");
+    expect(searchMarks.frame.outline, "search container outline").toBe(false);
+    expect(searchMarks.frame.shadow, "search container ring").toBe("none");
+    expect(searchMarks.frame.border, "search container border on focus").not.toBe(searchMarks.before.border);
+
+    await page.goto("/app/contacts");
+    await page.getByTestId("contacts-add").click();
+    const firstName = page.getByTestId("contact-first-name");
+    const fieldMarks = await focusMarks(firstName, firstName);
+    expect(fieldMarks.field.outline, "form field outline").toBe(false);
+    expect(fieldMarks.field.shadow, "form field ring").toBe("none");
+    expect(fieldMarks.field.border, "form field border on focus").not.toBe(fieldMarks.before.border);
+    await page.keyboard.press("Escape");
+  }
 });
 
 // @verifies-requirement HALL-FR-LAY-010

@@ -622,7 +622,7 @@ h4.docs-heading {
 
 .docs-search-field input:focus {
   outline: none;
-  border-color: var(--hall-color-focus);
+  border-color: var(--hall-color-brand);
   background: var(--hall-color-surface);
 }
 

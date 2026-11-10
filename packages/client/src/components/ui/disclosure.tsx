@@ -27,7 +27,7 @@ export function Disclosure({
   return (
     <details open={open} className="[&[open]>summary>svg]:rotate-90" data-testid={testId}>
       <summary
-        className="flex cursor-pointer list-none items-center gap-3 rounded-md py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-[var(--hall-color-surface-subtle)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
+        className="flex cursor-pointer list-none items-center gap-3 rounded-md py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-[var(--hall-color-surface-subtle)] hover:text-foreground [&::-webkit-details-marker]:hidden"
         id={toggleTestId}
         aria-controls={contentId}
         data-active={active || undefined}
