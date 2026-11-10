@@ -155,6 +155,10 @@ test.describe("Hall pages on a phone", () => {
         await page.getByTestId(`editor-${kind}-reference-${id}`).tap();
         await expect(page).toHaveURL(new RegExp(`/app/${route}/${id}$`));
         await expect(page.getByRole("dialog")).toHaveCount(0);
+        if (kind === "contact") {
+          await expect(page.getByTestId("contact-firstName")).toHaveValue(contact.firstName);
+          await expect(page.getByTestId("contact-lastName")).toHaveValue(contact.lastName);
+        } else await expect(page.getByTestId("member-contact-link")).toBeVisible();
         await page.getByTestId("phone-header-back").tap();
         await expect(page).toHaveURL(notePage);
       }

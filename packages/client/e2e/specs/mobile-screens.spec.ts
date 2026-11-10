@@ -183,12 +183,14 @@ for (const [device, viewport] of [
           await expect(page.getByTestId("meeting-report-facts")).toBeVisible();
           const minutesLink = page.getByTestId("meeting-document-minutes-open");
           await expect(minutesLink).toBeVisible();
-          // On a phone the meeting title is in the page header, above the content.
-          if (device === "phone") return;
+          // On a phone the meeting title moves from the page to the phone header.
+          const meetingTitle =
+            device === "phone" ? page.getByTestId("phone-header-title") : page.locator(".meeting-report-header h1");
+          await expect(meetingTitle).toBeVisible();
           await expect
             .poll(
               async () => {
-                const title = await page.locator(".meeting-report-header h1").boundingBox();
+                const title = await meetingTitle.boundingBox();
                 const link = await minutesLink.boundingBox();
                 return Boolean(
                   title &&
