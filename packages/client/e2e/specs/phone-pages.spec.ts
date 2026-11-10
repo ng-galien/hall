@@ -127,6 +127,66 @@ test.describe("Hall pages on a phone", () => {
       await expect(page).toHaveURL(new RegExp(`/app/meetings/${reference}$`));
     });
 
+    // @verifies-requirement HALL-FR-LAY-010
+    test("an agenda item with a vote fits the screen width, even beside a text wider than the screen", async ({
+      appPage: page,
+    }) => {
+      const meetings = await items<{ id: string; closedAt: string | null }>(page, "/api/council-meetings");
+      let voted: { meetingId: string; pointId: string } | null = null;
+      for (const meeting of meetings.filter((entry) => entry.closedAt)) {
+        await page.goto(`/app/meetings/${meeting.id}`);
+        await expect(page.getByTestId(/^meeting-point-open-/).first()).toBeVisible();
+        const pointIds = await page
+          .getByTestId(/^meeting-point-open-/)
+          .evaluateAll((links) =>
+            links.map((link) => link.getAttribute("data-testid")!.replace("meeting-point-open-", "")),
+          );
+        for (const pointId of pointIds.reverse()) {
+          await page.goto(`/app/meetings/${meeting.id}/points/${pointId}`);
+          await expect(page.getByTestId(`meeting-point-${pointId}`)).toBeVisible();
+          if (await page.getByTestId(/^report-ballot-toggle-/).count()) {
+            voted = { meetingId: meeting.id, pointId };
+            break;
+          }
+        }
+        if (voted) break;
+      }
+      expect(voted, "a closed meeting has a point with a vote").toBeTruthy();
+      for (const width of [375, 360]) {
+        await page.setViewportSize({ width, height: 812 });
+        await page.goto(`/app/meetings/${voted!.meetingId}/points/${voted!.pointId}`);
+        const point = page.getByTestId(`meeting-point-${voted!.pointId}`);
+        await expect(page.getByTestId(/^report-ballot-toggle-/)).toBeVisible();
+        // A block of the page wider than the screen (a table, an address, a row of buttons) must not widen the title,
+        // the vote or the texts of the point.
+        await point.evaluate((article) => {
+          const wide = document.createElement("div");
+          wide.style.whiteSpace = "nowrap";
+          wide.textContent = "https://www.legifrance.gouv.fr/".repeat(3);
+          const address = document.createElement("p");
+          address.textContent = "https://www.legifrance.gouv.fr/".repeat(3);
+          const table = document.createElement("table");
+          table.innerHTML = `<tr>${"<td style='white-space:nowrap'>Colonne de tableau</td>".repeat(4)}</tr>`;
+          const section = document.createElement("section");
+          section.className = "phone-point-text";
+          section.append(address, table);
+          article.append(wide, section);
+        });
+        const overflow = await point.evaluate((article) => {
+          const right = document.documentElement.clientWidth;
+          return [
+            article,
+            ...article.querySelectorAll(
+              ".phone-point-heading, .report-ballot, .report-ballot-count, .phone-point-text, .phone-point-text > *",
+            ),
+          ]
+            .filter((element) => element.getBoundingClientRect().right > right + 0.5)
+            .map((element) => `${element.className} ${Math.round(element.getBoundingClientRect().right)}`);
+        });
+        expect(overflow, `content wider than ${width} pixels`).toEqual([]);
+      }
+    });
+
     // @verifies-requirement HALL-FR-SRC-030
     // @verifies-requirement HALL-FR-LAY-010
     test("a contact or member reference opens its page and the back arrow returns to the note", async ({
