@@ -1,0 +1,333 @@
+{
+  "description": "Screen-audit rule settings for Hall. Every rule of the engine is listed. formats: all, touch, pointer or a list of format identifiers; severity: error (blocking, kept in the baseline) or indicator (exploratory, never blocking); a parameter is a value or an object keyed by format identifier.",
+  "rules": {
+    "page-horizontal-scroll": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "tolerance": 1
+      }
+    },
+    "viewport-overflow": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "tolerance": 1
+      }
+    },
+    "clipped-content": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "tolerance": 2
+      }
+    },
+    "touch-target-size": {
+      "enabled": true,
+      "formats": [
+        "telephone"
+      ],
+      "severity": "error",
+      "params": {
+        "minimum": 44
+      },
+      "justification": "Owner decision of 10 November 2026: 44 px for a touch target on a phone (WCAG 2.5.5 AAA and Apple guidelines)."
+    },
+    "text-size": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "minimum": 14
+      },
+      "justification": "Owner decision of 10 November 2026: 14 px for running text."
+    },
+    "action-icon-size": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "minimum": {
+          "telephone": 20,
+          "tablette": 20,
+          "ordinateur": 16
+        }
+      },
+      "justification": "Under a finger the icon is often the only visible sign of a 44 px target: 20 px is the glyph of Apple's 44 pt controls and close to Material's 24 dp icon in a 48 dp target. With a mouse, 16 px is the icon of a 14 px text line."
+    },
+    "truncated-without-ellipsis": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "tolerance": 1
+      }
+    },
+    "nested-scroll": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {}
+    },
+    "chrome-height": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "maximum": {
+          "telephone": 25,
+          "tablette": 20,
+          "ordinateur": 20
+        },
+        "fullWidthRow": 0.6
+      },
+      "excludeScreens": [
+        "menu-nouveau",
+        "menu-plus",
+        "menu-navigation",
+        "mode-seance"
+      ],
+      "justification": "On a 740 px phone a header, a title and one row of tabs use about 150 px (20 %); beyond a quarter of the height the content starts too low."
+    },
+    "chrome-rows": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "maximum": {
+          "telephone": 2,
+          "tablette": 2,
+          "ordinateur": 3
+        },
+        "fullWidthRow": 0.6
+      },
+      "excludeScreens": [
+        "menu-nouveau",
+        "menu-plus",
+        "menu-navigation",
+        "mode-seance"
+      ]
+    },
+    "edge-margin": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "minimum": 8
+      }
+    },
+    "text-line-length": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "minimum": 25,
+        "minimumLines": 3
+      }
+    },
+    "component-size-consistency": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "error",
+      "params": {
+        "tolerance": 4,
+        "minimumScreens": 2,
+        "maximumControlHeight": 64
+      }
+    },
+    "list-item-fill": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "minimumItems": 3,
+        "minimumWidth": 0.5,
+        "minimum": 15
+      }
+    },
+    "list-item-lone-small": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "minimumItems": 3,
+        "minimumWidth": 0.5,
+        "maximumWidth": 32
+      }
+    },
+    "list-item-height-per-row": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "minimumItems": 3,
+        "minimumWidth": 0.5,
+        "maximum": 40
+      }
+    },
+    "list-item-trailing-icon": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "minimumItems": 3,
+        "minimumWidth": 0.5,
+        "edge": 24,
+        "maximumIcon": 24
+      }
+    },
+    "density-coverage": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 15,
+        "high": 60
+      }
+    },
+    "density-elements": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 5,
+        "high": {
+          "telephone": 60,
+          "tablette": 90,
+          "ordinateur": 140
+        }
+      }
+    },
+    "density-text-blocks": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 3,
+        "high": {
+          "telephone": 45,
+          "tablette": 70,
+          "ordinateur": 110
+        }
+      }
+    },
+    "void-largest-gap": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 0,
+        "high": 35
+      }
+    },
+    "void-bottom": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 0,
+        "high": 40
+      }
+    },
+    "void-side-bias": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": -15,
+        "high": 15
+      }
+    },
+    "balance-horizontal": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": -15,
+        "high": 15
+      }
+    },
+    "balance-vertical": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": -25,
+        "high": 15
+      }
+    },
+    "balance-alignment-axes": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 1,
+        "high": {
+          "telephone": 6,
+          "tablette": 9,
+          "ordinateur": 12
+        }
+      }
+    },
+    "balance-spacing-values": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 0,
+        "high": 8
+      }
+    },
+    "load-font-sizes": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 1,
+        "high": 5
+      }
+    },
+    "load-font-weights": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 1,
+        "high": 3
+      }
+    },
+    "load-actions": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "low": 1,
+        "high": {
+          "telephone": 20,
+          "tablette": 30,
+          "ordinateur": 45
+        }
+      }
+    },
+    "active-state-contrast": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "minimum": 3,
+        "weightDifference": 200
+      }
+    },
+    "repeated-text": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "minimumLength": 12
+      }
+    }
+  }
+}
