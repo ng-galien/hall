@@ -80,6 +80,17 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     await expect(sheet).toBeVisible();
     if (destination === "council-decisions") {
       await page.screenshot({ path: testInfo.outputPath("phone-more.png"), animations: "disabled" });
+      // Shapes keep the radius of the cards and fields: the sheet and the active mark are not pills.
+      expect(
+        await sheet.evaluate((element) => Number.parseFloat(getComputedStyle(element).borderTopLeftRadius)),
+      ).toBeLessThanOrEqual(8);
+      expect(
+        await page
+          .getByTestId("phone-navigation-more")
+          .locator('[aria-hidden="true"]')
+          .first()
+          .evaluate((element) => Number.parseFloat(getComputedStyle(element).borderTopLeftRadius)),
+      ).toBeLessThanOrEqual(8);
       // The last row of the sheet keeps a margin above the bottom edge of the screen.
       await expect
         .poll(async () => {

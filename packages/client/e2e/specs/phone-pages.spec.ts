@@ -55,6 +55,7 @@ async function menuMeasures(page: Page, testId: string) {
   );
   return menu.evaluate((element) => ({
     width: element.getBoundingClientRect().width,
+    radius: Number.parseFloat(getComputedStyle(element).borderTopLeftRadius),
     viewport: document.documentElement.clientWidth,
     rows: [...element.querySelectorAll('[data-slot="dropdown-menu-item"]')].map((row) => ({
       height: row.getBoundingClientRect().height,
@@ -67,6 +68,7 @@ async function menuMeasures(page: Page, testId: string) {
 function expectPhoneMenu(measures: Awaited<ReturnType<typeof menuMeasures>>) {
   expect(measures.rows.length).toBeGreaterThan(0);
   expect(measures.width, "menu width").toBeGreaterThanOrEqual(measures.viewport - 40);
+  expect(measures.radius, "menu corner radius").toBeLessThanOrEqual(8);
   for (const row of measures.rows) {
     expect(row.height, "menu row height").toBeGreaterThanOrEqual(44);
     expect(row.font, "menu text size").toBeGreaterThanOrEqual(15);

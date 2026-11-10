@@ -138,9 +138,9 @@
   .app-phone-bar-item > [aria-hidden="true"] svg { width: var(--hall-size-phone-bar-icon); height: var(--hall-size-phone-bar-icon); }
   .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-semibold); }
   /* The active destination carries a tinted pill behind its icon, in addition to the brand colour. */
-  .app-phone-bar-item > [aria-hidden="true"] { padding: var(--hall-space-1) var(--hall-space-4); border-radius: var(--hall-radius-circular); transition: background-color var(--hall-motion-fast) var(--hall-motion-curve-standard); }
+  .app-phone-bar-item > [aria-hidden="true"] { padding: var(--hall-space-1) var(--hall-space-4); border-radius: var(--hall-radius-medium); transition: background-color var(--hall-motion-fast) var(--hall-motion-curve-standard); }
   .app-phone-bar-item[data-active="true"] > [aria-hidden="true"] { background: var(--hall-color-brand-subtle); }
-  .app-phone-more { padding-bottom: calc(var(--hall-space-6) + env(safe-area-inset-bottom, 0px)); }
+  .app-phone-more { padding-bottom: calc(var(--hall-space-6) + env(safe-area-inset-bottom, 0px)); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
   .app-phone-more-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-2); }
   .app-phone-more-list .nav-row {
     min-height: var(--hall-size-phone-more-tile);
@@ -168,11 +168,11 @@
   .app-phone-header-more { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-icon-large); }
   .app-phone-action { min-height: var(--hall-size-touch-control); }
   /* Every icon button of the phone header is a finger-sized target with the icon size of the « ⋯ » menu. */
-  .app-phone-header-actions [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); }
+  .app-phone-header-actions [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); border-radius: var(--hall-radius-medium); }
   .app-phone-header-actions [data-size^="icon"] svg { width: var(--hall-font-size-icon); height: var(--hall-font-size-icon); }
   /* Every drop-down menu of a phone spans the screen width less its margins, with finger-sized rows. */
-  [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"] { width: calc(100vw - 2 * var(--hall-space-4)); max-width: none; padding: var(--hall-space-1); }
-  :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"]) { min-height: var(--hall-size-touch-control); gap: var(--hall-space-3); padding-inline: var(--hall-space-3); font-size: var(--hall-font-size-title); }
+  [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"] { width: calc(100vw - 2 * var(--hall-space-4)); max-width: none; padding: var(--hall-space-1); border-radius: var(--hall-radius-medium); }
+  :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"]) { min-height: var(--hall-size-touch-control); gap: var(--hall-space-3); padding-inline: var(--hall-space-3); border-radius: var(--hall-radius-medium); font-size: var(--hall-font-size-title); }
   :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"]) svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   [data-slot="dropdown-menu-label"] { padding-inline: var(--hall-space-3); font-size: var(--hall-font-size-caption); }
   /* With its search and creation in the header, the documents list starts under the header. */
@@ -222,20 +222,20 @@
   .phone-document-row > span:last-child:not(.phone-subject-copy) { min-width: 0; flex: 1; overflow-wrap: anywhere; }
   .phone-document-list, .phone-document-list > li { min-width: 0; }
   /* The section actions of a business (« + », « ⋯ ») are finger-sized, with the icon size of the phone header. */
-  .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); }
+  .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); border-radius: var(--hall-radius-medium); }
   .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   /* The committee selector of a phone: label above, field over the whole width, list as wide as the field. */
   .app-main .phone-document-information-body > .business-committees { justify-self: stretch; }
   .app-main .business-committees { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: stretch; }
   .app-main .business-committees-items { display: flex; flex-wrap: wrap; gap: var(--hall-space-2); }
-  .app-main .business-committees-items > [data-slot="badge"] { height: auto; min-height: var(--hall-size-touch-control); padding-block: 0; padding-inline-end: 0; font-size: var(--hall-font-size-body); white-space: normal; }
+  .app-main .business-committees-items > [data-slot="badge"] { border-radius: var(--hall-radius-medium); height: auto; min-height: var(--hall-size-touch-control); padding-block: 0; padding-inline-end: 0; font-size: var(--hall-font-size-body); white-space: normal; }
   .app-main .business-committee-link { overflow-wrap: anywhere; }
-  .app-main .business-committee-remove { width: var(--hall-size-touch-control); height: var(--hall-size-touch-control); }
+  .app-main .business-committee-remove { width: var(--hall-size-touch-control); height: var(--hall-size-touch-control); border-radius: var(--hall-radius-medium); }
   .app-main .business-committee-search { width: 100%; flex: 1 0 100%; }
-  .app-main .business-committee-search .business-committee-search-input { height: var(--hall-size-touch-control); padding-right: var(--hall-size-touch-control); font-size: var(--hall-font-size-touch-input); }
+  .app-main .business-committee-search .business-committee-search-input { border-radius: var(--hall-radius-medium); height: var(--hall-size-touch-control); padding-right: var(--hall-size-touch-control); font-size: var(--hall-font-size-touch-input); }
   .app-main .business-committee-search-toggle { width: var(--hall-size-touch-control); height: var(--hall-size-touch-control); }
-  .app-main .business-committee-results { inset-inline: 0; width: auto; min-width: 0; max-width: none; }
-  .app-main .business-committee-result { display: flex; min-height: var(--hall-size-touch-control); align-items: center; font-size: var(--hall-font-size-body); }
+  .app-main .business-committee-results { border-radius: var(--hall-radius-medium); inset-inline: 0; width: auto; min-width: 0; max-width: none; }
+  .app-main .business-committee-result { border-radius: var(--hall-radius-medium); display: flex; min-height: var(--hall-size-touch-control); align-items: center; font-size: var(--hall-font-size-body); }
   .phone-subject-copy { display: grid; min-width: 0; flex: 1; gap: var(--hall-space-0-5); }
   .phone-subject-copy > span { overflow-wrap: anywhere; }
   .phone-subject-copy > small { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
@@ -323,10 +323,10 @@
   .app-main .hall-calendar .calendar-toolbar h1 { order: 2; min-width: 0; overflow: hidden; font-size: var(--hall-font-size-title); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
   .app-main .hall-calendar .calendar-next { order: 3; }
   .app-main .hall-calendar .calendar-today { order: 4; }
-  .app-main .hall-calendar .calendar-toolbar :is(.calendar-previous, .calendar-next, .calendar-today) { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-title); }
+  .app-main .hall-calendar .calendar-toolbar :is(.calendar-previous, .calendar-next, .calendar-today) { border-radius: var(--hall-radius-medium); min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-title); }
   .app-main .hall-calendar .calendar-toolbar-actions { display: block; }
   .app-main .hall-calendar .calendar-toolbar-views { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: var(--hall-space-0-5); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface-subtle); }
-  .app-main .hall-calendar .calendar-toolbar-views > [data-slot="button"] { min-height: var(--hall-size-touch-control); border-radius: var(--hall-radius-small); font-size: var(--hall-font-size-title); }
+  .app-main .hall-calendar .calendar-toolbar-views > [data-slot="button"] { min-height: var(--hall-size-touch-control); border-radius: var(--hall-radius-medium); font-size: var(--hall-font-size-title); }
   .app-main .hall-calendar .calendar-toolbar-views > [data-variant="secondary"] { background: var(--hall-color-surface); box-shadow: var(--hall-shadow-small); color: var(--hall-color-brand); font-weight: var(--hall-font-weight-semibold); }
   .app-main .hall-calendar .calendar-undated { flex: none; flex-wrap: nowrap; overflow-x: auto; padding-inline: var(--hall-space-2); white-space: nowrap; }
   .app-main .hall-calendar .hall-calendar-all-day { white-space: normal; font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-compact); }
