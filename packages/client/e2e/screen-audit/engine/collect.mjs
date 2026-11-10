@@ -228,7 +228,12 @@ export function collectSnapshot(options) {
     for (const child of element.children)
       visit(child, index, nextClip, nextOwner, interactiveAncestor || (visible && interactive));
   };
-  for (const child of document.body.children) visit(child, -1, page, -1, false);
+  // An open modal dialog makes the rest of the page inert: only the dialog is measured.
+  const modals = [
+    ...document.querySelectorAll('[aria-modal="true"], dialog[open], [role="dialog"], [role="alertdialog"]'),
+  ].filter((element) => element.getClientRects().length > 0);
+  const roots = modals.length ? modals : [...document.body.children];
+  for (const root of roots) visit(root, -1, page, -1, false);
 
   const scrollers = elements
     .map((entry, index) => ({ entry, index }))

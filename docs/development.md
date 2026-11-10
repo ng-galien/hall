@@ -41,7 +41,7 @@ Initial database/seed fixture setup has its own 120-second failure bound. Browse
 
 The engine in `packages/client/e2e/screen-audit/engine/` contains no Hall name, route or selector. Hall supplies `hall/config.mjs` (formats, selectors, defects observed by hand), `hall/screens.mjs` (screens and how to open them) and `hall/rules.json` (every rule with its formats, severity and thresholds). A rule is one object in `engine/rules/sizing.mjs`, `engine/rules/lists.mjs` or `engine/rules/balance.mjs`; list and balance rules are exploratory indicators that never fail the command.
 
-The command fails for a sizing finding absent from `hall/baseline.json` or for a screen that could not be opened, lists known findings without failing, and lists baseline lines that no longer match a finding. Options: `--update-baseline`, `--report-only` (re-evaluate the last capture after changing `rules.json`), `--screens=calendrier,aide`, `--formats=telephone`, `--output=<directory>`, `--label=<text>`, `--compare-with=<other report directory>`.
+The command fails for a sizing finding absent from `hall/baseline.json` or for a screen that could not be opened, lists known findings without failing, and lists baseline lines that no longer match a finding. Options: `--update-baseline`, `--report-only` (re-evaluate the last capture after changing `rules.json`), `--screens=calendrier,aide`, `--formats=telephone`, `--output=<directory>`, `--label=<text>`, `--revision=<commit>`, `--compare-with=<other report directory>`. A capture limited by `--screens` or `--formats` replaces only those records. The report is titled « Relevé », the name of the engine.
 
 ## Demonstration dataset
 

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { compareWithBaseline, readBaseline, writeBaseline } from "./baseline.mjs";
@@ -11,7 +12,7 @@ import { extractTexts } from "./texts.mjs";
  * screens and writes their records with `captureScreen`.
  *
  * Options: --report-only (reuse the last capture), --update-baseline, --screens=a,b, --formats=a,b,
- * --output=<directory>, --label=<text>, --compare-with=<directory of another report>.
+ * --output=<directory>, --label=<text>, --revision=<commit>, --compare-with=<directory of another report>.
  */
 
 function parseArguments(argv) {
@@ -41,13 +42,29 @@ function readRecords(outputDirectory) {
   return { records, missing, dataStrings };
 }
 
+/** A partial capture replaces only the records of the selected screens and formats. */
+function removeRecords(outputDirectory, screens, formats) {
+  const raw = join(outputDirectory, "raw");
+  if (!existsSync(raw)) return;
+  for (const format of readdirSync(raw)) {
+    if (formats && !formats.includes(format)) continue;
+    for (const file of readdirSync(join(raw, format))) {
+      const screen = file.replace(/(\.missing)?\.json$|-\d+\.png$/, "");
+      if (!screens || screens.includes(screen)) rmSync(join(raw, format, file));
+    }
+  }
+}
+
 export async function runAudit(config, argv = process.argv.slice(2)) {
   const options = parseArguments(argv);
   const outputDirectory = options.output ?? config.outputDirectory;
   const started = Date.now();
   let captureFailed = false;
   if (!options["report-only"]) {
-    rmSync(outputDirectory, { recursive: true, force: true });
+    const selectedScreens = typeof options.screens === "string" ? options.screens.split(",") : null;
+    const selectedFormats = typeof options.formats === "string" ? options.formats.split(",") : null;
+    if (!selectedScreens && !selectedFormats) rmSync(outputDirectory, { recursive: true, force: true });
+    else removeRecords(outputDirectory, selectedScreens, selectedFormats);
     try {
       await config.capture({
         outputDirectory,
@@ -81,7 +98,23 @@ export async function runAudit(config, argv = process.argv.slice(2)) {
     }
   }
   const label = typeof options.label === "string" ? options.label : undefined;
-  const confrontation = writeReport({ outputDirectory, config, records, missing, evaluation, comparison, label });
+  let revision = typeof options.revision === "string" ? options.revision : config.revision;
+  if (!revision)
+    try {
+      revision = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
+    } catch {
+      revision = undefined;
+    }
+  const confrontation = writeReport({
+    outputDirectory,
+    config,
+    records,
+    missing,
+    evaluation,
+    comparison,
+    label,
+    revision,
+  });
   writeFileSync(
     join(outputDirectory, "confrontation.json"),
     JSON.stringify({ label: label ?? "autre état", result: confrontation }),

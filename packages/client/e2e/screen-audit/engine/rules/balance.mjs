@@ -270,7 +270,14 @@ export const activeStateContrast = {
       const background = contrast(parseColor(entry.background) ?? white, parseColor(sibling.background) ?? white);
       const foreground = contrast(parseColor(entry.color) ?? white, parseColor(sibling.color) ?? white);
       const value = Math.round(Math.max(background, foreground) * 100) / 100;
-      const bolder = Math.abs(entry.fontWeight - sibling.fontWeight) >= params.weightDifference;
+      // A heavier weight shows only on a visible text; an icon-only command does not change with it.
+      const hasVisibleText = snapshot.elements.some((other) => {
+        if (!other.text) return false;
+        for (let current = other.parent; current >= 0; current = snapshot.elements[current].parent)
+          if (snapshot.elements[current] === entry) return true;
+        return other === entry;
+      });
+      const bolder = hasVisibleText && Math.abs(entry.fontWeight - sibling.fontWeight) >= params.weightDifference;
       if (value < params.minimum && !bolder) findings.push({ index, value, threshold: params.minimum });
     });
     return findings;
