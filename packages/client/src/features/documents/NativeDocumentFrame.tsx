@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { DocumentPreviewFailure, DocumentPreviewUnavailable } from "./DocumentPreviewFailure";
 
 function PdfRendererUnavailable() {
@@ -94,6 +95,7 @@ export function NativeDocumentFrame({
   testId?: string;
   onError?(): void;
 }) {
+  const phone = usePhoneLayout();
   const type = mediaType.split(";", 1)[0]?.trim().toLowerCase() ?? "";
   if (type === "text/plain" || type === "text/markdown") {
     return <TextDocumentFrame key={url} url={url} mediaType={type} title={title} testId={testId} />;
@@ -109,7 +111,7 @@ export function NativeDocumentFrame({
     );
   }
   return mediaType === "application/pdf" ? (
-    <iframe data-testid={testId} src={`${url}#navpanes=0`} title={title} onError={onError} />
+    <iframe data-testid={testId} src={phone ? `${url}#navpanes=0` : url} title={title} onError={onError} />
   ) : (
     <object data-testid={testId} data={url} type={mediaType} aria-label={title} onError={onError} />
   );
