@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { mainWindowNavigation, permissionGranted } from "../src/mainWindowPolicy.js";
+import { demonstrationSessionApplies, mainWindowNavigation, permissionGranted } from "../src/mainWindowPolicy.js";
 
 const hall = "http://127.0.0.1:41234/app/council-meetings";
 
@@ -29,4 +29,80 @@ test("device and location permissions are refused while clipboard writing and sa
   expect(permissionGranted("openExternal", "mailto:mairie@example.test")).toBe(true);
   expect(permissionGranted("openExternal", "file:///etc/passwd")).toBe(false);
   expect(permissionGranted("openExternal")).toBe(false);
+});
+
+const origin = "http://127.0.0.1:41234";
+const hallPage = `${origin}/app/templates/minutes`;
+const preview = `${origin}/api/templates/preview-pdf/e8fd593d-06fc-4b29-8d10-6eebfe251c64`;
+
+test("the main frame of Hall receives the demonstration session for its reads and writes", () => {
+  for (const [method, resourceType] of [
+    ["GET", "xhr"],
+    ["POST", "xhr"],
+    ["DELETE", "xhr"],
+  ] as const)
+    expect(
+      demonstrationSessionApplies(origin, {
+        url: `${origin}/api/resources`,
+        method,
+        resourceType,
+        referrer: hallPage,
+        frame: "main",
+      }),
+      method,
+    ).toBe(true);
+  expect(
+    demonstrationSessionApplies(origin, {
+      url: "http://127.0.0.1:9999/api/resources",
+      method: "GET",
+      resourceType: "xhr",
+      referrer: hallPage,
+      frame: "main",
+    }),
+  ).toBe(false);
+});
+
+test("a Hall document loaded by Hall into a frame of the window receives the session", () => {
+  for (const method of ["GET", "HEAD"])
+    expect(
+      demonstrationSessionApplies(origin, {
+        url: preview,
+        method,
+        resourceType: "subFrame",
+        referrer: hallPage,
+        frame: "childOfMain",
+      }),
+      method,
+    ).toBe(true);
+});
+
+test("a third-party frame that reads the Hall API does not receive the session", () => {
+  const thirdParty = "https://example.test/page";
+  for (const request of [
+    { url: `${origin}/api/resources`, method: "GET", resourceType: "xhr", referrer: thirdParty, frame: "childOfMain" },
+    { url: `${origin}/api/resources`, method: "GET", resourceType: "fetch", referrer: hallPage, frame: "childOfMain" },
+    { url: preview, method: "GET", resourceType: "subFrame", referrer: thirdParty, frame: "childOfMain" },
+    { url: preview, method: "GET", resourceType: "subFrame", referrer: hallPage, frame: "other" },
+    { url: `${origin}/api/resources`, method: "GET", resourceType: "image", referrer: thirdParty, frame: "other" },
+  ] as const)
+    expect(demonstrationSessionApplies(origin, request), JSON.stringify(request)).toBe(false);
+});
+
+test("a write issued from a frame other than the main frame never receives the session", () => {
+  for (const method of ["POST", "PUT", "PATCH", "DELETE"])
+    for (const [resourceType, referrer] of [
+      ["xhr", "https://example.test/page"],
+      ["fetch", hallPage],
+      ["subFrame", hallPage],
+    ] as const)
+      expect(
+        demonstrationSessionApplies(origin, {
+          url: `${origin}/api/resources/school/content`,
+          method,
+          resourceType,
+          referrer,
+          frame: "childOfMain",
+        }),
+        `${method} ${resourceType}`,
+      ).toBe(false);
 });

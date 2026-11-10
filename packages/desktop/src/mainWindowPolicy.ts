@@ -29,3 +29,31 @@ export function permissionGranted(permission: string, externalUrl?: string): boo
   if (permission === "openExternal") return externalUrl !== undefined && isSafeExternalUrl(externalUrl);
   return grantedPermissions.has(permission);
 }
+
+/** Place of the requesting frame in the main window: its main frame, a frame placed directly in it, or elsewhere. */
+export type RequestingFrame = "main" | "childOfMain" | "other";
+
+export interface DemonstrationApiRequest {
+  url: string;
+  method: string;
+  resourceType: string;
+  referrer: string;
+  frame: RequestingFrame;
+}
+
+/**
+ * The demonstration session goes with every Hall API request of the main frame. Outside it, only the loading of a
+ * Hall document into a frame that a Hall page placed directly in the window receives it: a GET or HEAD navigation of
+ * that frame, referred by the Hall page. Requests issued by the content of any frame, writes, and frames placed by
+ * other content never receive it.
+ */
+export function demonstrationSessionApplies(origin: string, request: DemonstrationApiRequest): boolean {
+  if (httpOrigin(request.url) !== origin) return false;
+  if (request.frame === "main") return true;
+  return (
+    request.frame === "childOfMain" &&
+    request.resourceType === "subFrame" &&
+    (request.method === "GET" || request.method === "HEAD") &&
+    httpOrigin(request.referrer) === origin
+  );
+}

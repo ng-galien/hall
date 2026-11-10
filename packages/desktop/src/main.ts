@@ -16,7 +16,7 @@ import { type DesktopEdition, eraseDemonstration, resolveDesktopEdition } from "
 import { isSafeExternalUrl } from "./externalUrl.js";
 import { installLaunchProtocol, type LaunchScreen, registerLaunchScheme, showLaunchScreen } from "./launchScreen.js";
 import { alesiaTarget } from "./launchTerritory.js";
-import { mainWindowNavigation, permissionGranted } from "./mainWindowPolicy.js";
+import { demonstrationSessionApplies, mainWindowNavigation, permissionGranted } from "./mainWindowPolicy.js";
 import type { ServerCommand, ServerEvent, SessionCookie } from "./startupProtocol.js";
 import {
   createStartupTracker,
@@ -103,7 +103,18 @@ function attachDemonstrationSession(
       (details.webContentsId !== undefined && details.webContentsId !== contents.id) ||
       !(
         sameOriginLiveSocket ||
-        (target.origin === origin && details.frame?.top?.frameTreeNodeId === contents.mainFrame.frameTreeNodeId)
+        demonstrationSessionApplies(origin, {
+          url: details.url,
+          method: details.method,
+          resourceType: details.resourceType,
+          referrer: details.referrer,
+          frame:
+            details.frame?.frameTreeNodeId === contents.mainFrame.frameTreeNodeId
+              ? "main"
+              : details.frame?.parent?.frameTreeNodeId === contents.mainFrame.frameTreeNodeId
+                ? "childOfMain"
+                : "other",
+        })
       )
     ) {
       callback({});
