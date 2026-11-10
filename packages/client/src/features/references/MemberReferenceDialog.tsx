@@ -6,6 +6,8 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { getContactSiren } from "../../services/contactsApi";
 import { getCouncilMemberSiren } from "../../services/councilMembersApi";
+import { PhonePageOpening } from "../../shell/PhonePageOpening";
+import { usePhoneDocumentPages } from "../../shell/usePhoneLayout";
 import { formatPhoneNumber, phoneHref } from "../council-members/phonePresentation";
 import { StatusBadge } from "../status/DomainStatusBadge";
 import { PersonDetailField, PersonReferenceDialog } from "./PersonReferenceDialog";
@@ -15,9 +17,18 @@ type MemberDetail =
   | { status: "ready"; member: CouncilMember; contact: Contact }
   | { status: "error"; error: ApiErrorCode };
 
+/** Opens a member reference: its own page on a phone, otherwise the reference dialog. */
+export function MemberReferenceDialog({ memberId, onClose }: { memberId: string; onClose(): void }) {
+  return usePhoneDocumentPages() ? (
+    <PhonePageOpening to={`/council-members/${memberId}`} onClose={onClose} />
+  ) : (
+    <MemberReferenceModal memberId={memberId} onClose={onClose} />
+  );
+}
+
 /** Native member references read the member and its contact without mounting the autosaving member page. */
 // @implements-requirement HALL-FR-SRC-030
-export function MemberReferenceDialog({ memberId, onClose }: { memberId: string; onClose(): void }) {
+function MemberReferenceModal({ memberId, onClose }: { memberId: string; onClose(): void }) {
   const { t, formatDate } = useI18n();
   const [detail, setDetail] = useState<MemberDetail>({ status: "loading" });
 

@@ -126,6 +126,39 @@ test.describe("Hall pages on a phone", () => {
       await page.getByTestId("phone-header-back").tap();
       await expect(page).toHaveURL(new RegExp(`/app/meetings/${reference}$`));
     });
+
+    // @verifies-requirement HALL-FR-SRC-030
+    // @verifies-requirement HALL-FR-LAY-010
+    test("a contact or member reference opens its page and the back arrow returns to the note", async ({
+      appPage: page,
+    }) => {
+      const [contact] = await items<{ id: string; firstName: string; lastName: string }>(page, "/api/contacts");
+      const [member] = await items<{ id: string }>(page, "/api/council-members");
+      expect(contact && member).toBeTruthy();
+      const created = await page.request.post("/api/resources", {
+        data: {
+          kind: "text",
+          path: "Conseil",
+          name: `Références ${crypto.randomUUID().slice(0, 8)}`,
+          content: `Voir :contact[Contact]{#${contact.id}} et :member[Conseiller]{#${member.id}}.`,
+        },
+      });
+      expect(created.status()).toBe(201);
+      const note = (await created.json()).properties as { id: string };
+      const notePage = new RegExp(`/app/workspace\\?.*resource=${note.id}`);
+
+      for (const [kind, id, route] of [
+        ["contact", contact.id, "contacts"],
+        ["member", member.id, "council-members"],
+      ] as const) {
+        await page.goto(`/app/workspace?path=Conseil&resource=${note.id}`);
+        await page.getByTestId(`editor-${kind}-reference-${id}`).tap();
+        await expect(page).toHaveURL(new RegExp(`/app/${route}/${id}$`));
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        await page.getByTestId("phone-header-back").tap();
+        await expect(page).toHaveURL(notePage);
+      }
+    });
   });
 
   // @verifies-requirement HALL-FR-DOC-480

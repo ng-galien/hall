@@ -5,6 +5,8 @@ import { LoadingIndicator } from "../../components/ui/loading-indicator";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { getContactSiren } from "../../services/contactsApi";
+import { PhonePageOpening } from "../../shell/PhonePageOpening";
+import { usePhoneDocumentPages } from "../../shell/usePhoneLayout";
 import { formatPhoneNumber, phoneHref } from "../council-members/phonePresentation";
 import { PersonDetailField, PersonReferenceDialog } from "./PersonReferenceDialog";
 
@@ -13,9 +15,18 @@ type ContactDetail =
   | { status: "ready"; contact: Contact }
   | { status: "error"; error: ApiErrorCode };
 
+/** Opens a contact reference: its own page on a phone, otherwise the reference dialog. */
+export function ContactReferenceDialog({ contactId, onClose }: { contactId: string; onClose(): void }) {
+  return usePhoneDocumentPages() ? (
+    <PhonePageOpening to={`/contacts/${contactId}`} onClose={onClose} />
+  ) : (
+    <ContactReferenceModal contactId={contactId} onClose={onClose} />
+  );
+}
+
 /** Contact references consult the HTTP detail without mounting the autosaving contact page. */
 // @implements-requirement HALL-FR-SRC-030
-export function ContactReferenceDialog({ contactId, onClose }: { contactId: string; onClose(): void }) {
+function ContactReferenceModal({ contactId, onClose }: { contactId: string; onClose(): void }) {
   const { t } = useI18n();
   const [detail, setDetail] = useState<ContactDetail>({ status: "loading" });
 

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { ShareButton } from "../../components/ShareButton";
@@ -8,6 +7,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { WorkspaceBreadcrumb } from "../../pages/workspace/WorkspaceBreadcrumb";
 import { WorkspaceWorkbenchHeader } from "../../pages/workspace/WorkspaceWorkbenchHeader";
 import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
+import { PhonePageOpening } from "../../shell/PhonePageOpening";
 import { usePhoneDocumentPages } from "../../shell/usePhoneLayout";
 import { ResourceAutosaveToggle } from "../resources/ResourceAutosaveToggle";
 import { ResourceChangesControl } from "../resources/ResourceChangesControl";
@@ -22,22 +22,10 @@ import "./ResourcePreview.css";
 /** Opens a resource: its own page on a phone, otherwise the common resource modal. */
 export function ResourcePreview({ resourceId, onClose }: { resourceId: string; onClose(): void }) {
   return usePhoneDocumentPages() ? (
-    <ResourcePageOpening resourceId={resourceId} onClose={onClose} />
+    <PhonePageOpening to={`/workspace?${new URLSearchParams({ resource: resourceId })}`} onClose={onClose} />
   ) : (
     <ResourcePreviewModal resourceId={resourceId} onClose={onClose} />
   );
-}
-
-function ResourcePageOpening({ resourceId, onClose }: { resourceId: string; onClose(): void }) {
-  const navigate = useNavigate();
-  const opened = useRef(false);
-  useEffect(() => {
-    if (opened.current) return;
-    opened.current = true;
-    navigate(`/workspace?${new URLSearchParams({ resource: resourceId })}`);
-    onClose();
-  }, [navigate, onClose, resourceId]);
-  return null;
 }
 
 /** Common resource modal. It hosts the same resource session and body as the Workspace, with the user's own rights, and never changes route. */

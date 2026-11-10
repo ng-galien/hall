@@ -8405,9 +8405,10 @@
         "L’insertion d’un PDF, depuis @ ou le bouton de recherche, utilise la référence inline existante (icône et nom cliquable) et non une carte pleine largeur. Le choix de présentation appartient à une seule autorité partagée.",
         "Toutes les références inline partagent le même alignement avec le texte environnant, avec ou sans icône et quel que soit leur type (contact, membre, lien, ressource documentaire ou géographique). L’édition compacte, l’édition enrichie et le rendu utilisent cette présentation commune.",
         "Une référence native conserve le libellé explicitement fourni dans le texte, pour les ressources comme pour les contacts, sans renommer sa cible ; en l’absence de libellé, elle affiche le titre courant de la cible. Son lien et sa présentation inline sont conservés.",
-        "Un clic normal sur une référence native de contact ouvre une fiche contact en lecture dans une modale dédiée, depuis le rapport, l’espace de travail, un document ou son aperçu agrandi. L’affaire, le document et le défilement restent en place ; Échap ou Fermer ferme la fiche et restitue le focus au lien. Les clics modifiés conservent le lien vers la page contact. Le chargement, le contact introuvable et le refus d’accès sont signalés dans la modale.",
+        "Sur ordinateur et tablette, un clic normal sur une référence native de contact ouvre une fiche contact en lecture dans une modale dédiée, depuis le rapport, l’espace de travail, un document ou son aperçu agrandi. L’affaire, le document et le défilement restent en place ; Échap ou Fermer ferme la fiche et restitue le focus au lien. Les clics modifiés conservent le lien vers la page contact. Le chargement, le contact introuvable et le refus d’accès sont signalés dans la modale.",
         "La fiche contact modale reprend la hiérarchie visuelle et les composants de Hall : identité en en-tête, fonction et organisme, coordonnées regroupées, puis notes lisibles. Elle conserve toutes les informations du contact dans une présentation adaptée aux fenêtres étroites et reste en lecture seule.",
-        "Un clic normal sur une référence native de membre du conseil ouvre sa fiche en lecture dans une modale dédiée, depuis l’affaire, sans perdre le document ou le défilement ; elle présente son identité, sa fonction réellement enregistrée, son mandat et ses coordonnées avec les composants de Hall. Échap ou Fermer restitue le focus au lien, les clics modifiés conservent l’accès à la page membre, et les états de chargement, d’absence ou de refus d’accès restent dans la modale.",
+        "Sur ordinateur et tablette, un clic normal sur une référence native de membre du conseil ouvre sa fiche en lecture dans une modale dédiée, depuis l’affaire, sans perdre le document ou le défilement ; elle présente son identité, sa fonction réellement enregistrée, son mandat et ses coordonnées avec les composants de Hall. Échap ou Fermer restitue le focus au lien, les clics modifiés conservent l’accès à la page membre, et les états de chargement, d’absence ou de refus d’accès restent dans la modale.",
+        "Sur un téléphone, hors conduite de la séance en direct, une référence de contact ou de membre du conseil ouvre la page du contact ou du membre, comme une référence de document ouvre sa page ; la flèche de l’en-tête et le retour du téléphone ramènent à l’écran précédent.",
         "L’aperçu ouvert depuis une référence consulte la ressource dans la modale commune. Une ressource web configurée y affiche sa page via le composant d’aperçu web et conserve un lien pour ouvrir le site ; elle n’affiche pas le formulaire de saisie de son adresse à la place de l’aperçu. Ce comportement s’applique aussi à la fiche de l’espace de travail et aux contenus intégrés : le droit de modifier ne remplace pas l’aperçu par le formulaire. L’action explicite Modifier l’adresse ouvre le formulaire existant ; une sauvegarde réussie revient à l’aperçu. La page remplit la hauteur disponible sous l’en-tête jusqu’au bas de la modale, y compris après redimensionnement. L’affichage intégré reste soumis aux restrictions du site distant.",
         "L’aperçu web affiche l’indicateur de chargement commun jusqu’à la fin du chargement de la page. Les indicateurs de chargement de l’application réutilisent le même composant et le même style partagé.",
         "Les types de ressources documentaires sont distincts et les dossiers peuvent être explorés sans quitter le sélecteur.",
@@ -8421,6 +8422,12 @@
           "key": "shared-search",
           "origin": "product",
           "statement": "Les recherches globales, sélecteurs de ressources et insertions de l’éditeur partagent un contrôleur et une présentation communs.",
+          "sourceIds": []
+        },
+        {
+          "key": "phone-person-references",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 10 novembre 2026 : sur téléphone, la petite fenêtre des références à un contact ou à un conseiller disparaît ; ces références s’ouvrent en page entière comme les autres références, le bureau ne change pas.",
           "sourceIds": []
         }
       ]
@@ -9483,7 +9490,7 @@
         "L’import utilise les permissions, formats et stockage existants ; une image importée reste présente après réouverture et un échec est visible sans perte du texte.",
         "L’adaptation mobile conserve les fonctions et les permissions existantes sur ordinateur.",
         "Les commandes « Choisir une photo » et « Prendre une photo » des éditeurs restent réservées à la présentation mobile ; elles ne prennent pas de place dans le texte sur bureau. Le dépôt, le collage et l’import d’image ordinaires sur bureau sont conservés.",
-        "Sur un téléphone, chaque contenu s’ouvre sur sa propre page : document, note, élément préparé, point de séance, délibération et procès-verbal ; les actions du contenu ouvert sont dans le menu ⋯ de l’en-tête.",
+        "Sur un téléphone, chaque contenu s’ouvre sur sa propre page : document, note, élément préparé, point de séance, délibération et procès-verbal ; les actions du contenu ouvert sont dans le menu ⋯ de l’en-tête. Une référence de contact ou de membre du conseil ouvre de même la page du contact ou du membre.",
         "Sur un téléphone, la flèche de l’en-tête et le retour du téléphone ramènent à l’écran précédent, y compris dans les séances ; sans écran précédent, la flèche ouvre la page parente. Chaque page a un seul défilement et retrouve sa position au retour.",
         "Sur un téléphone, la barre du bas est masquée sur la page d’un document, d’une note, d’un élément préparé, d’un point de séance, d’une délibération et d’un procès-verbal.",
         "Sur un téléphone, la page d’une séance présente ses informations et la liste de ses points ; chaque point s’ouvre sur sa page, à l’adresse /meetings/:id/points/:pointId. Le procès-verbal et la délibération d’une séance s’ouvrent sur leur page, leurs actions dans le menu ⋯.",
