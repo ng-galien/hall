@@ -24,9 +24,11 @@ test("a viewport change before the media subscription still removes desktop navi
   const host = document.createElement("div");
   const root = createRoot(host);
   const query = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  const phoneQuery = { matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  const drawerQuery = vi.fn().mockReturnValueOnce({ matches: false }).mockReturnValue(query);
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
-    value: vi.fn().mockReturnValueOnce({ matches: false }).mockReturnValue(query),
+    value: vi.fn((media) => (media === "(max-width: 760px)" ? phoneQuery : drawerQuery())),
   });
   try {
     await act(async () => root.render(h(MemoryRouter, null, h(Layout))));
