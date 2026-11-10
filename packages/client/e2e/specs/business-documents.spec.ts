@@ -1,6 +1,8 @@
 import { crc32 } from "node:zlib";
 import { expect, test } from "../fixtures/application";
 
+test.use({ builtInPdfViewer: true });
+
 const minimalPdf = Buffer.from(
   "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
     "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\n" +

@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { expect, test } from "../fixtures/application";
 
-test.use({ seedScenario: "default" });
+test.use({ seedScenario: "default", builtInPdfViewer: true });
 
 async function previewPdfText(page: Page): Promise<string> {
   const frame = page.getByTestId("template-preview-frame");

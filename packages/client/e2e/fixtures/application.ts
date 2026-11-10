@@ -93,6 +93,8 @@ interface ApplicationFixtures {
 
 interface ApplicationOptions {
   seedScenario: "fresh" | "preparation" | "default" | "minutes";
+  /** Whether the browser reports a built-in PDF viewer; without a value, the browser's own report is kept. */
+  builtInPdfViewer: boolean | undefined;
 }
 
 export const test = base.extend<
@@ -118,6 +120,7 @@ export const test = base.extend<
     { scope: "worker" },
   ],
   seedScenario: ["fresh", { option: true }],
+  builtInPdfViewer: [undefined, { option: true }],
   isolatedDatabase: [
     async ({ seedScenario, seededDatabase }, use) => {
       const clones = process.env.HALL_E2E_SEEDED_CLONES === "true";
@@ -131,9 +134,13 @@ export const test = base.extend<
     },
     { auto: true, timeout: 120_000 },
   ],
-  appPage: async ({ page, isolatedDatabase: _isolatedDatabase }, use) => {
+  appPage: async ({ page, builtInPdfViewer, isolatedDatabase: _isolatedDatabase }, use) => {
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
+    if (builtInPdfViewer !== undefined)
+      await page.addInitScript((enabled) => {
+        Object.defineProperty(Navigator.prototype, "pdfViewerEnabled", { configurable: true, get: () => enabled });
+      }, builtInPdfViewer);
     await page.addInitScript(() => {
       if (window !== window.top) return;
       if (!localStorage.getItem("mairie.locale")) localStorage.setItem("mairie.locale", "en");

@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
-test.use({ seedScenario: "minutes" });
+test.use({ seedScenario: "minutes", builtInPdfViewer: true });
 
 /* Modèles de documents: the templates Hall generates from, edited with an embedded logo, and the missing one created. */
 

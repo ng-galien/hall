@@ -161,6 +161,7 @@ async function dropEditorFile(
 }
 
 test.describe("Markdown editor", () => {
+  test.use({ builtInPdfViewer: true });
   test("keeps asynchronously prepared Lab resources in the editor and rendered Markdown", async ({ appPage: page }) => {
     await openEditorLab(page);
 
