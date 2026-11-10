@@ -261,6 +261,7 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
     "",
   );
   await page.keyboard.press("Enter");
+  await expect(page.getByTestId("geographic-conflict-retry")).toBeVisible();
   await rows.first().locator(".geographic-composition-feature-select").click();
   const card = page.getByTestId("geographic-drawn-element-card");
   await expect(card).toBeVisible();
@@ -359,7 +360,8 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(buttonImageId);
   await writingArea.press("End");
   const desktopViewport = page.viewportSize()!;
-  await page.setViewportSize({ width: 390, height: 844 });
+  // A tablet width offers the photo gallery without replacing the map by the phone page.
+  await page.setViewportSize({ width: 900, height: 844 });
   const importedPhoto = page.waitForResponse(
     (response) => response.url().endsWith("/api/resources/documents") && response.request().method() === "POST",
   );
