@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "paths": {
+      "three": ["../../node_modules/@types/three"],
+      "three/*": ["../../node_modules/@types/three/*"]
+    }
+  },
+  "include": ["tests", "../../site/src/public-file-versions.d.ts"]
+}
