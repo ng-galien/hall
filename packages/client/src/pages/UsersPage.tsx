@@ -30,7 +30,7 @@ export function UsersPage() {
   const { roleName, requiresActiveMember } = useRoleOptions();
   const navigate = useNavigate();
   const { submitting, run } = useSubmitting();
-  const { users, loading, load, create, error, canCreate, canGeneratePassphrase, clearError } = useUsersStore();
+  const { users, listed, loading, load, create, error, canCreate, canGeneratePassphrase, clearError } = useUsersStore();
   const contacts = useContactsStore((state) => state.contacts);
   const [addOpen, setAddOpen] = useState(false);
   const [roles, setRoles] = useState<ApiRole[]>([]);
@@ -124,6 +124,16 @@ export function UsersPage() {
       <span>{user.roles.map((role) => roleName(role)).join(" · ")}</span>
     </div>
   );
+  // A refused or failed reading of the collection leaves only its error on the page.
+  if (!loading && !listed)
+    return (
+      <div className="page">
+        <PageHeader title={t("users.title")} description={t("users.description")} />
+        <div className="page-content">
+          <RequestErrorBanner error={error} />
+        </div>
+      </div>
+    );
   return (
     <div className="page">
       <PageHeader title={t("users.title")} description={t("users.description")} />
@@ -261,7 +271,9 @@ export function UsersPage() {
         {loading ? (
           <EmptyState>{t("common.loading")}</EmptyState>
         ) : visible.length === 0 ? (
-          <EmptyState>{t(users.length === 0 ? "users.empty" : "common.noSearchResults")}</EmptyState>
+          <EmptyState testId="users-empty">
+            {t(users.length === 0 ? "users.empty" : "common.noSearchResults")}
+          </EmptyState>
         ) : layout === "cards" ? (
           <div className="card-grid" data-testid="users-collection">
             {visible.map((user) => (

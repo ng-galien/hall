@@ -5,6 +5,8 @@ import * as api from "../services/usersApi";
 
 interface UsersState {
   users: ApiUser[];
+  /** The user collection was read; false while it loads and after a refused or failed reading. */
+  listed: boolean;
   loading: boolean;
   error: ApiErrorCode | null;
   canCreate: boolean;
@@ -71,6 +73,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
   };
   return {
     users: [],
+    listed: false,
     loading: false,
     error: null,
     canCreate: false,
@@ -87,6 +90,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
         loading: true,
         error: null,
         users: [],
+        listed: false,
         canCreate: false,
         canUpdate: {},
         canAssignRoles: {},
@@ -100,6 +104,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
         const result = await api.listUsersSiren();
         set({
           users: result.data,
+          listed: true,
           canCreate: Boolean(result.representation && findSirenAction(result.representation, "user.create")),
           canGeneratePassphrase: Boolean(
             result.representation && findSirenAction(result.representation, "user.generate-passphrase"),
@@ -116,6 +121,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
         loading: true,
         error: null,
         users: [],
+        listed: false,
         canUpdate: {},
         canAssignRoles: {},
         canResetPassword: {},

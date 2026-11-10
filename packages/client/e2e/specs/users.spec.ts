@@ -166,6 +166,10 @@ test("follows the absence of the users link and actions without deriving roles",
   await expect(page.getByTestId("navigation-users")).toHaveCount(0);
   await page.goto("/app/users");
   await expect(page.getByRole("alert")).toBeVisible();
+  // A refused list shows the refusal alone: no empty list, no search field, no view switch.
+  await expect(page.getByTestId("users-empty")).toHaveCount(0);
+  await expect(page.getByTestId("collection-search")).toHaveCount(0);
+  await expect(page.getByTestId("collection-layout-list")).toHaveCount(0);
   await expect(page.getByTestId("users-add")).toHaveCount(0);
   await expect(page.getByTestId("users-collection")).toHaveCount(0);
   await page.goto(`/app/users/${user.id}`);

@@ -45,8 +45,12 @@ export function PageHeader({
   );
 }
 
-export function EmptyState({ children }: { children: ReactNode }) {
-  return <div className="empty-state">{children}</div>;
+export function EmptyState({ children, testId }: { children: ReactNode; testId?: string }) {
+  return (
+    <div className="empty-state" data-testid={testId}>
+      {children}
+    </div>
+  );
 }
 
 export type CollectionLayout = "list" | "cards";
