@@ -140,7 +140,7 @@
   /* The active destination carries a tinted pill behind its icon, in addition to the brand colour. */
   .app-phone-bar-item > [aria-hidden="true"] { padding: var(--hall-space-1) var(--hall-space-4); border-radius: var(--hall-radius-medium); transition: background-color var(--hall-motion-fast) var(--hall-motion-curve-standard); }
   .app-phone-bar-item[data-active="true"] > [aria-hidden="true"] { background: var(--hall-color-brand-subtle); }
-  .app-phone-more { padding-bottom: calc(var(--hall-space-6) + env(safe-area-inset-bottom, 0px)); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
+  .app-phone-more { padding-bottom: calc(var(--hall-space-6) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
   .app-phone-more-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-2); }
   .app-phone-more-list .nav-row {
     min-height: var(--hall-size-phone-more-tile);
