@@ -138,6 +138,27 @@ describe("spreadsheet import preserves usable workbook facts", () => {
     }
   });
 
+  it("converts a sparse worksheet to a Markdown table without creating its absent cells", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Creuse");
+    sheet.getCell("A1").value = "Début";
+    sheet.getCell(5_000, spreadsheetColumnCeiling).value = "Fin";
+    const content = Buffer.from(await workbook.xlsx.writeBuffer());
+    const rowPrototype = Object.getPrototypeOf(new ExcelJS.Workbook().addWorksheet("Probe").getRow(1));
+    const createdCells = vi.spyOn(rowPrototype, "getCellEx");
+    try {
+      const table = await spreadsheetMarkdownTable({ fileName: "creuse.xlsx", content });
+      expect(table).toMatchObject({ rowCount: 1, includedRowCount: 1 });
+      const [header, , data] = table.markdown.split("\n");
+      expect(header.split(" | ")).toHaveLength(spreadsheetColumnCeiling);
+      expect(header.startsWith("| Début |")).toBe(true);
+      expect(data.endsWith("| Fin |")).toBe(true);
+      expect(createdCells.mock.calls.length).toBeLessThan(10);
+    } finally {
+      createdCells.mockRestore();
+    }
+  });
+
   it("rejects worksheets beyond the row or column ceiling as invalid input", async () => {
     const tall = new ExcelJS.Workbook();
     tall.addWorksheet("Haute").getCell(spreadsheetRowCeiling + 1, 1).value = "Fin";

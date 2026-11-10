@@ -289,21 +289,27 @@ export async function spreadsheetMarkdownTable(
     throw new DomainError("invalid_request", 422);
   }
   if (!worksheet) throw new DomainError("invalid_request", 422);
-  const { rowCount, columnCount } = worksheetDimensions(worksheet);
-  const rows: string[][] = [];
-  for (let index = 1; index <= rowCount; index += 1) {
-    const row = worksheet.getRow(index);
-    const cells = Array.from({ length: columnCount }, (_, column) => markdownCell(row.getCell(column + 1).text));
-    if (cells.some(Boolean)) rows.push(cells);
-  }
-  const width = Math.max(0, ...rows.map((cells) => cells.findLastIndex(Boolean) + 1));
+  worksheetDimensions(worksheet);
+  const rows: Map<number, string>[] = [];
+  let width = 0;
+  worksheet.eachRow({ includeEmpty: false }, (row) => {
+    const cells = new Map<number, string>();
+    row.eachCell({ includeEmpty: false }, (cell, columnNumber) => {
+      const text = markdownCell(cell.text);
+      if (text) cells.set(columnNumber - 1, text);
+    });
+    if (!cells.size) return;
+    rows.push(cells);
+    for (const column of cells.keys()) width = Math.max(width, column + 1);
+  });
   if (!rows.length || width === 0) throw new DomainError("invalid_request", 422);
-  const [header, ...data] = rows.map((cells) => cells.slice(0, width));
-  const included = data.slice(0, spreadsheetTableRowLimit);
+  const dense = (cells: Map<number, string>) => Array.from({ length: width }, (_, column) => cells.get(column) ?? "");
+  const header = dense(rows[0]);
+  const included = rows.slice(1, 1 + spreadsheetTableRowLimit).map(dense);
   const line = (cells: string[]) => `| ${cells.join(" | ")} |`;
   return {
     markdown: [line(header), line(header.map(() => "---")), ...included.map(line)].join("\n"),
-    rowCount: data.length,
+    rowCount: rows.length - 1,
     includedRowCount: included.length,
   };
 }
