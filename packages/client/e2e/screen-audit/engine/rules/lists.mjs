@@ -39,8 +39,10 @@ export function listItems(snapshot, params) {
     for (const index of indexes) {
       const entry = snapshot.elements[index];
       if (entry.rect.w < snapshot.viewport.width * params.minimumWidth || entry.rect.h < 24) continue;
-      if (!byKey.has(entry.key)) byKey.set(entry.key, []);
-      byKey.get(entry.key).push(index);
+      // Siblings without their own key differ only by their position: the position is dropped from the signature.
+      const signature = entry.key.replace(/:\d+$/, "");
+      if (!byKey.has(signature)) byKey.set(signature, []);
+      byKey.get(signature).push(index);
     }
     for (const group of byKey.values()) {
       if (group.length < params.minimumItems) continue;

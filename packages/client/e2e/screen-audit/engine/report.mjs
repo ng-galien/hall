@@ -31,40 +31,42 @@ a{color:var(--blue);text-underline-offset:2px}a:focus-visible,button:focus-visib
 main{max-width:1440px;margin:0 auto;padding:28px 24px 72px}
 h1{font-size:28px;line-height:1.2;margin:0 0 6px;color:var(--ink);letter-spacing:-.01em}h2{font-size:20px;margin:40px 0 10px;color:var(--ink)}h3{font-size:16px;margin:24px 0 8px;color:var(--ink)}
 p{margin:0 0 10px;max-width:78ch}.lead{color:var(--muted)}
-.figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:20px 0 8px}
+.figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:20px 0 8px}
 .figure{background:var(--paper);padding:14px 16px}.figure strong{display:block;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--ink)}.figure span{font-size:14px;color:var(--muted)}
 .figure.block strong{color:var(--red)}.figure.sound strong{color:var(--green)}.figure.explore strong{color:var(--blue)}
-.sections{display:flex;flex-wrap:wrap;gap:4px 18px;margin:16px 0 0;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.sections{display:flex;flex-wrap:wrap;gap:0 18px;margin:16px 0 0;border-bottom:1px solid var(--line);font-size:15px}
+.sections a,.pager a,.brand{display:inline-flex;align-items:center;min-height:44px}
 .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:10px 0;font-size:14px}
 .controls label{display:flex;align-items:center;gap:8px;color:var(--muted)}
-select{font:inherit;font-size:14px;color:var(--text);background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:7px 10px;min-height:36px}
+select{font:inherit;font-size:14px;color:var(--text);background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:7px 10px;min-height:44px}
 .table-wrap{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius)}
 table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:8px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}
 tr:last-child td{border-bottom:0}th{background:#f8fafc;color:var(--muted);font-weight:600;position:sticky;top:0;white-space:nowrap}
-th[data-sort]{cursor:pointer}th[data-sort]::after{content:"";display:inline-block;width:10px}th[aria-sort=ascending]::after{content:" ▲"}th[aria-sort=descending]::after{content:" ▼"}
+th[data-sort]{cursor:pointer;padding-top:12px;padding-bottom:12px}.table-wrap>table{min-width:960px}
+td>a:only-child{display:inline-flex;align-items:center;min-height:44px;min-width:44px}td.prose{min-width:300px}td.params{min-width:420px}td.nowrap{white-space:nowrap}th[data-sort]::after{content:"";display:inline-block;width:10px}th[aria-sort=ascending]::after{content:" ▲"}th[aria-sort=descending]::after{content:" ▼"}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}.zero{color:#94a3b8}
-.state{display:inline-block;padding:1px 7px;border-radius:4px;font-size:14px;font-weight:600;border:1px solid}
+td.rule-cell{min-width:340px}.state{display:inline-block;padding:1px 7px;border-radius:4px;font-size:14px;font-weight:600;border:1px solid}
 .state.new{color:var(--red);background:var(--red-soft);border-color:#fecaca}.state.known{color:var(--muted);background:var(--surface);border-color:var(--line)}
 .state.explore{color:var(--blue);background:var(--blue-soft);border-color:#bfdbfe}.state.sound{color:var(--green);background:var(--green-soft);border-color:#bbf7d0}
 td.out{background:var(--blue-soft);color:var(--blue);font-weight:600}td.outlier{box-shadow:inset 0 0 0 2px var(--blue)}
-.cell-link{display:block;text-decoration:none;color:inherit}.cell-link:hover{text-decoration:underline}
+.cell-link{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;min-height:44px;text-decoration:none;color:inherit}td:has(> .cell-link){padding-top:0;padding-bottom:0}.cell-link:hover{text-decoration:underline}
 .count-new{color:var(--red);font-weight:600}.count-known{color:var(--muted)}.count-explore{color:var(--blue)}
 .screen-layout{display:grid;grid-template-columns:minmax(0,auto) minmax(380px,1fr);gap:28px;align-items:start;margin-top:20px}
 @media (max-width:1100px){.screen-layout{grid-template-columns:1fr}}
 .shots{display:flex;flex-direction:column;gap:16px}.shot{position:relative;margin:0;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
 .shot img{display:block;width:100%;height:auto}.shot svg{position:absolute;left:0;top:0;width:100%}.shot figcaption{font-size:14px;color:var(--muted);padding:6px 10px;border-top:1px solid var(--rule)}
 .shot .box{transition:stroke-width .1s}.shot .box.active{stroke-width:4}
-.findings-panel{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+.findings-panel{min-width:0}
 .finding-row.active td{background:var(--blue-soft)}
 .empty{display:flex;gap:12px;align-items:flex-start;padding:16px;background:var(--paper);border:1px solid #bbf7d0;border-left:4px solid var(--green);border-radius:var(--radius)}
 .empty strong{color:var(--green)}
 .pager{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;font-size:15px}
 .formats{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--paper)}
-.formats a,.formats span{padding:6px 12px;text-decoration:none;font-size:14px;border-right:1px solid var(--line)}.formats :last-child{border-right:0}
+.formats a,.formats span{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;text-decoration:none;font-size:14px;border-right:1px solid var(--line)}.formats :last-child{border-right:0}
 .formats span{background:var(--ink);color:#fff;font-weight:600}
 dl.settings{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;font-size:14px;margin:0}dl.settings dt{color:var(--muted)}dl.settings dd{margin:0}
-code{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--rule);padding:1px 5px;border-radius:4px}
-[hidden]{display:none!important}
+code{font:14px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--rule);padding:1px 5px;border-radius:4px}
+[hidden]{display:none!important}.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 `;
 
 const script = `
@@ -235,7 +237,7 @@ function screenPage({ record, findings, metrics, annotations, rulesById, formats
           : "",
     )
     .join("");
-  const jump = `<label class="controls" style="margin:0">Écran <select onchange="location.href=this.value">${sameFormat
+  const jump = `<label class="controls" style="margin:0"><span class="visually-hidden">Écran</span><select onchange="location.href=this.value">${sameFormat
     .map(
       (screen) =>
         `<option value="${pageName(record.format, screen.id)}"${screen.id === record.screen.id ? " selected" : ""}>${html(screen.title)}</option>`,
@@ -245,7 +247,7 @@ function screenPage({ record, findings, metrics, annotations, rulesById, formats
   return page({
     title: `${record.screen.title}, ${format.label}`,
     context,
-    body: `<nav class="pager" aria-label="Navigation entre écrans"><a href="../index.html">Récapitulatif</a>${previous ? `<a href="${pageName(record.format, previous.id)}">Écran précédent : ${html(previous.title)}</a>` : ""}${next ? `<a href="${pageName(record.format, next.id)}">Écran suivant : ${html(next.title)}</a>` : ""}${jump}<span class="formats">${formatSwitch}</span></nav>
+    body: `<nav class="pager" aria-label="Navigation entre écrans">${previous ? `<a href="${pageName(record.format, previous.id)}" title="${html(previous.title)}">Précédent</a>` : ""}${next ? `<a href="${pageName(record.format, next.id)}" title="${html(next.title)}">Suivant</a>` : ""}${jump}<span class="formats">${formatSwitch}</span></nav>
 <h1 style="margin-top:20px">${html(record.screen.title)}</h1>
 <p class="lead">${html(format.label)} ${format.width} × ${format.height}, adresse <code>${html(record.screen.route)}</code>. ${blocking.filter((finding) => finding.state === "new").length} écarts nouveaux, ${blocking.filter((finding) => finding.state === "known").length} connus, ${numbered.length - blocking.length} signalements exploratoires.</p>
 <div class="screen-layout"><div class="shots">${shots}</div><section class="findings-panel" aria-label="Écarts">${sound}${findingsHtml}</section></div>
@@ -317,7 +319,7 @@ function confrontation({ humanDefects, findings, metrics, rulesById, comparison,
       const other = comparison?.[index];
       const cell = (found) =>
         found ? '<span class="state sound">Retrouvé</span>' : '<span class="state new">Manqué</span>';
-      return `<tr><td>${html(screensById.get(entry.screen)?.title ?? entry.screen)}, ${html(entry.format)}</td><td>${html(entry.defect)}</td><td>${html(entry.rules.map((rule) => rulesById.get(rule)?.title ?? rule).join(", "))}</td>${comparison ? `<td>${other ? cell(other.found) : "—"}</td>` : ""}<td>${cell(entry.found)}</td><td>${entry.found ? diagnosis(entry) : ""}</td></tr>`;
+      return `<tr><td class="nowrap">${html(screensById.get(entry.screen)?.title ?? entry.screen)}, ${html(entry.format)}</td><td class="prose">${html(entry.defect)}</td><td class="prose">${html(entry.rules.map((rule) => rulesById.get(rule)?.title ?? rule).join(", "))}</td>${comparison ? `<td>${other ? cell(other.found) : "—"}</td>` : ""}<td>${cell(entry.found)}</td><td class="prose">${entry.found ? diagnosis(entry) : ""}</td></tr>`;
     })
     .join("");
   const found = result.filter((entry) => entry.found).length;
@@ -332,7 +334,7 @@ function confrontation({ humanDefects, findings, metrics, rulesById, comparison,
     .sort((a, b) => b[1].count - a[1].count)
     .map(
       ([rule, entry]) =>
-        `<tr><td>${html(rulesById.get(rule).title)}</td><td class="num">${entry.count}</td><td>${html([...entry.screens].slice(0, 14).join(", "))}${entry.screens.size > 14 ? ` et ${entry.screens.size - 14} autres` : ""}</td></tr>`,
+        `<tr><td class="prose">${html(rulesById.get(rule).title)}</td><td class="num">${entry.count}</td><td>${html([...entry.screens].slice(0, 14).join(", "))}${entry.screens.size > 14 ? ` et ${entry.screens.size - 14} autres` : ""}</td></tr>`,
     )
     .join("")}</tbody></table></div>`;
   return { section, result };
@@ -425,7 +427,7 @@ export function writeReport({ outputDirectory, config, records, missing, evaluat
         })
         .join("");
       const total = count((finding) => finding.rule === entry.rule.id);
-      return `<tr><td><strong>${html(entry.rule.title)}</strong>${entry.enabled ? "" : " (désactivée)"}<br><span class="count-known">${html(entry.rule.explanation)}</span></td><td>${html(families[entry.rule.family].title)}</td>${cells}<td class="num" data-value="${total}">${total}</td></tr>`;
+      return `<tr><td class="rule-cell"><strong>${html(entry.rule.title)}</strong>${entry.enabled ? "" : " (désactivée)"}<br><span class="count-known">${html(entry.rule.explanation)}</span></td><td>${html(families[entry.rule.family].title)}</td>${cells}<td class="num" data-value="${total}">${total}</td></tr>`;
     })
     .join("");
 
@@ -478,14 +480,14 @@ export function writeReport({ outputDirectory, config, records, missing, evaluat
         .filter((format) => entry.applies(format))
         .map(
           (format) =>
-            `${html(format.label)} : ${html(
+            `<div>${html(format.label)} : ${html(
               Object.entries(entry.params(format.id))
                 .map(([name, item]) => `${name} ${item}`)
                 .join(", "),
-            )}`,
+            )}</div>`,
         )
-        .join("<br>");
-      return `<tr><td><code>${html(entry.rule.id)}</code></td><td>${entry.enabled ? "Active" : "Désactivée"}</td><td>${html(severities[entry.severity] ?? entry.severity)}</td><td>${params || "Aucun format"}</td><td>${html([...entry.excludeScreens].join(", "))}</td></tr>`;
+        .join("");
+      return `<tr><td class="nowrap"><code>${html(entry.rule.id)}</code></td><td>${entry.enabled ? "Active" : "Désactivée"}</td><td>${html(severities[entry.severity] ?? entry.severity)}</td><td class="params">${params || "Aucun format"}</td><td class="prose">${html([...entry.excludeScreens].join(", "))}</td><td class="prose">${html(entry.justification)}</td></tr>`;
     })
     .join("");
   const confronted = confrontation({
@@ -535,7 +537,7 @@ ${metricTables}
 <h3>Définitions</h3><dl class="settings">${definitions}</dl>
 ${confronted.section}
 <h2 id="reglages">Réglage des règles</h2>
-<div class="table-wrap"><table data-sortable><thead><tr><th data-sort>Règle</th><th data-sort>Activation</th><th data-sort>Gravité</th><th>Paramètres par format</th><th>Écrans exclus</th></tr></thead><tbody>${settingsRows}</tbody></table></div>`,
+<div class="table-wrap"><table data-sortable><thead><tr><th data-sort>Règle</th><th data-sort>Activation</th><th data-sort>Gravité</th><th>Paramètres par format</th><th>Écrans exclus</th><th>Raison</th></tr></thead><tbody>${settingsRows}</tbody></table></div>`,
     }),
   );
   return confronted.result;

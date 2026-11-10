@@ -1,5 +1,5 @@
 {
-  "description": "Screen-audit rule settings for Hall. Every rule of the engine is listed. formats: all, touch, pointer or a list of format identifiers; severity: error (blocking, kept in the baseline) or indicator (exploratory, never blocking); a parameter is a value or an object keyed by format identifier.",
+  "description": "Réglage des règles du relevé des écrans pour Hall. Chaque règle du moteur figure ici. formats : all, touch, pointer ou liste d'identifiants de format ; severity : error (bloquant, conservé dans la référence) ou indicator (exploratoire, jamais bloquant) ; un paramètre est une valeur ou un objet par identifiant de format ; justification : raison affichée dans le rapport.",
   "rules": {
     "page-horizontal-scroll": {
       "enabled": true,
@@ -20,10 +20,11 @@
     "clipped-content": {
       "enabled": true,
       "formats": "all",
-      "severity": "error",
+      "severity": "indicator",
       "params": {
         "tolerance": 2
-      }
+      },
+      "justification": "Exploratoire depuis le 10 novembre 2026 : les conteneurs arrondis ou de hauteur limitée coupent volontairement, et la règle ne les distingue pas d'un défaut."
     },
     "touch-target-size": {
       "enabled": true,
@@ -34,16 +35,32 @@
       "params": {
         "minimum": 44
       },
-      "justification": "Owner decision of 10 November 2026: 44 px for a touch target on a phone (WCAG 2.5.5 AAA and Apple guidelines)."
+      "justification": "Décision du propriétaire du 10 novembre 2026 : 44 px pour une zone d'appui sur téléphone (WCAG 2.5.5 AAA, recommandations d'Apple)."
+    },
+    "painted-target-size": {
+      "enabled": true,
+      "formats": [
+        "telephone"
+      ],
+      "severity": "indicator",
+      "params": {
+        "minimum": 32,
+        "maximumRowShare": 0.5
+      },
+      "justification": "Exploratoire : bouton dessiné en 24 px dans une zone d'appui de 44 px."
     },
     "text-size": {
       "enabled": true,
       "formats": "all",
       "severity": "error",
       "params": {
-        "minimum": 14
+        "minimum": {
+          "telephone": 14,
+          "tablette": 14,
+          "ordinateur": 13
+        }
       },
-      "justification": "Owner decision of 10 November 2026: 14 px for running text."
+      "justification": "Décision du propriétaire du 10 novembre 2026 : 13 px sur ordinateur, 14 px sur tablette et sur téléphone."
     },
     "action-icon-size": {
       "enabled": true,
@@ -56,12 +73,20 @@
           "ordinateur": 16
         }
       },
-      "justification": "Under a finger the icon is often the only visible sign of a 44 px target: 20 px is the glyph of Apple's 44 pt controls and close to Material's 24 dp icon in a 48 dp target. With a mouse, 16 px is the icon of a 14 px text line."
+      "justification": "Sous le doigt, l'icône est souvent le seul repère d'une zone de 44 px : 20 px est le glyphe des commandes de 44 pt d'Apple, proche de l'icône de 24 dp de Material dans une cible de 48 dp. À la souris, 16 px est l'icône d'une ligne de texte de 14 px."
     },
     "truncated-without-ellipsis": {
       "enabled": true,
       "formats": "all",
       "severity": "error",
+      "params": {
+        "tolerance": 1
+      }
+    },
+    "truncated-heading": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
       "params": {
         "tolerance": 1
       }
@@ -90,7 +115,7 @@
         "menu-navigation",
         "mode-seance"
       ],
-      "justification": "On a 740 px phone a header, a title and one row of tabs use about 150 px (20 %); beyond a quarter of the height the content starts too low."
+      "justification": "Sur un téléphone de 740 px, un en-tête, un titre et une rangée d'onglets occupent environ 150 px (20 %) ; au-delà d'un quart de la hauteur, le contenu commence trop bas."
     },
     "chrome-rows": {
       "enabled": true,
@@ -140,13 +165,16 @@
     },
     "list-item-fill": {
       "enabled": true,
-      "formats": "all",
+      "formats": [
+        "telephone"
+      ],
       "severity": "indicator",
       "params": {
         "minimumItems": 3,
         "minimumWidth": 0.5,
         "minimum": 15
-      }
+      },
+      "justification": "Téléphone seulement depuis le 10 novembre 2026 : sur tablette et ordinateur, les lignes larges des listes correctes passent sous le seuil."
     },
     "list-item-lone-small": {
       "enabled": true,
@@ -180,13 +208,14 @@
       }
     },
     "density-coverage": {
-      "enabled": true,
+      "enabled": false,
       "formats": "all",
       "severity": "indicator",
       "params": {
         "low": 15,
         "high": 60
-      }
+      },
+      "justification": "Désactivé le 10 novembre 2026 : sur les écrans de Hall, ses valeurs ne séparent pas les écrans jugés fautifs à la main des écrans sains."
     },
     "density-elements": {
       "enabled": true,
@@ -242,25 +271,27 @@
       }
     },
     "balance-horizontal": {
-      "enabled": true,
+      "enabled": false,
       "formats": "all",
       "severity": "indicator",
       "params": {
         "low": -15,
         "high": 15
-      }
+      },
+      "justification": "Désactivé le 10 novembre 2026 : sur les écrans de Hall, ses valeurs ne séparent pas les écrans jugés fautifs à la main des écrans sains."
     },
     "balance-vertical": {
-      "enabled": true,
+      "enabled": false,
       "formats": "all",
       "severity": "indicator",
       "params": {
         "low": -25,
         "high": 15
-      }
+      },
+      "justification": "Désactivé le 10 novembre 2026 : sur les écrans de Hall, ses valeurs ne séparent pas les écrans jugés fautifs à la main des écrans sains."
     },
     "balance-alignment-axes": {
-      "enabled": true,
+      "enabled": false,
       "formats": "all",
       "severity": "indicator",
       "params": {
@@ -270,7 +301,8 @@
           "tablette": 9,
           "ordinateur": 12
         }
-      }
+      },
+      "justification": "Désactivé le 10 novembre 2026 : sur les écrans de Hall, ses valeurs ne séparent pas les écrans jugés fautifs à la main des écrans sains."
     },
     "balance-spacing-values": {
       "enabled": true,
@@ -282,22 +314,24 @@
       }
     },
     "load-font-sizes": {
-      "enabled": true,
+      "enabled": false,
       "formats": "all",
       "severity": "indicator",
       "params": {
         "low": 1,
         "high": 5
-      }
+      },
+      "justification": "Désactivé le 10 novembre 2026 : sur les écrans de Hall, ses valeurs ne séparent pas les écrans jugés fautifs à la main des écrans sains."
     },
     "load-font-weights": {
-      "enabled": true,
+      "enabled": false,
       "formats": "all",
       "severity": "indicator",
       "params": {
         "low": 1,
         "high": 3
-      }
+      },
+      "justification": "Désactivé le 10 novembre 2026 : sur les écrans de Hall, ses valeurs ne séparent pas les écrans jugés fautifs à la main des écrans sains."
     },
     "load-actions": {
       "enabled": true,
@@ -327,7 +361,8 @@
       "severity": "indicator",
       "params": {
         "minimumLength": 12
-      }
+      },
+      "justification": "Exploratoire : les lignes d'une liste répètent volontairement leurs libellés."
     }
   }
 }

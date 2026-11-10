@@ -174,6 +174,12 @@ export function collectSnapshot(options) {
         lineHeight: Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) * 1.2,
         color: style.color,
         background: style.backgroundColor,
+        painted:
+          !/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(style.backgroundColor) ||
+          (Number.parseFloat(style.borderTopWidth) > 0 &&
+            style.borderTopStyle !== "none" &&
+            !/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(style.borderTopColor)) ||
+          style.boxShadow !== "none",
         display: style.display,
         position: style.position,
         overflowX: style.overflowX,

@@ -32,7 +32,9 @@ export function resolveRules(config) {
       severity: setting.severity ?? rule.defaults.severity,
       params,
       excludeScreens: new Set(setting.excludeScreens ?? []),
-      exploratory: Boolean(rule.exploratory),
+      justification: setting.justification ?? "",
+      // A project may lower a blocking rule to an exploratory indicator while it cannot tell intended from faulty.
+      exploratory: Boolean(rule.exploratory) || (setting.severity ?? rule.defaults.severity) === "indicator",
     };
   });
 }

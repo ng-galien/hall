@@ -29,6 +29,17 @@ export const defaultCollectOptions = {
 
 /** Waits for finite animations and fonts, so that the measured geometry is the settled one. */
 export async function settle(page) {
+  // The page is taken as rendered once its element count and text length stop changing for half a second.
+  await page.evaluate(async () => {
+    const signature = () => `${document.querySelectorAll("*").length}:${document.body.innerText.length}`;
+    let previous = signature();
+    for (let attempt = 0, stable = 0; attempt < 30 && stable < 2; attempt++) {
+      await new Promise((done) => setTimeout(done, 250));
+      const current = signature();
+      stable = current === previous ? stable + 1 : 0;
+      previous = current;
+    }
+  });
   await page.evaluate(async () => {
     await document.fonts.ready;
     await Promise.all(

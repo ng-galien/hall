@@ -97,6 +97,62 @@ export const touchTargetSize = {
   },
 };
 
+export const paintedTargetSize = {
+  id: "painted-target-size",
+  family: "sizing",
+  kind: "element",
+  exploratory: true,
+  title: "Bouton dessiné trop petit",
+  explanation:
+    "La forme visible d'une action (son fond, sa bordure ou son ombre, ou ceux de ses descendants) est plus petite que le minimum, même quand sa zone cliquable est assez grande : le doigt vise une cible dessinée trop petite.",
+  unit: "px",
+  defaults: { formats: "touch", severity: "indicator", params: { minimum: 32, maximumRowShare: 0.5 } },
+  evaluate({ snapshot, params }) {
+    const childMap = new Map();
+    snapshot.elements.forEach((entry, index) => {
+      if (!childMap.has(entry.parent)) childMap.set(entry.parent, []);
+      childMap.get(entry.parent).push(index);
+    });
+    return snapshot.elements.flatMap((entry, index) => {
+      if (!entry.interactive || entry.inSentence || entry.isSvg) return [];
+      // A row as wide as the list is drawn by its own frame; a badge or a tile inside it is not its target.
+      if (entry.touchRect.w >= snapshot.viewport.width * params.maximumRowShare) return [];
+      let box = entry.painted ? entry.rect : null;
+      if (!box) {
+        const stack = [...(childMap.get(index) ?? [])];
+        while (stack.length) {
+          const childIndex = stack.pop();
+          const child = snapshot.elements[childIndex];
+          if (child.interactive || child.isSvg) continue;
+          if (child.painted && child.rect.w > 4 && child.rect.h > 4) {
+            box = box
+              ? {
+                  x: Math.min(box.x, child.rect.x),
+                  y: Math.min(box.y, child.rect.y),
+                  w: Math.max(box.x + box.w, child.rect.x + child.rect.w) - Math.min(box.x, child.rect.x),
+                  h: Math.max(box.y + box.h, child.rect.y + child.rect.h) - Math.min(box.y, child.rect.y),
+                }
+              : child.rect;
+          } else stack.push(...(childMap.get(childIndex) ?? []));
+        }
+      }
+      if (!box) return [];
+      const size = Math.min(box.w, box.h);
+      return size < params.minimum - 0.5
+        ? [
+            {
+              index,
+              value: `${Math.round(box.w)} × ${Math.round(box.h)}`,
+              threshold: params.minimum,
+              sortValue: size,
+              detail: `zone cliquable ${Math.round(entry.touchRect.w)} × ${Math.round(entry.touchRect.h)}`,
+            },
+          ]
+        : [];
+    });
+  },
+};
+
 export const textSize = {
   id: "text-size",
   family: "sizing",
@@ -159,6 +215,37 @@ export const truncatedWithoutEllipsis = {
       if (!horizontal && !vertical) return [];
       const hidden = horizontal ? entry.scrollWidth - entry.clientWidth : entry.scrollHeight - entry.clientHeight;
       return [{ index, value: hidden, threshold: params.tolerance, detail: horizontal ? "en largeur" : "en hauteur" }];
+    });
+  },
+};
+
+export const truncatedHeading = {
+  id: "truncated-heading",
+  family: "sizing",
+  kind: "element",
+  exploratory: true,
+  title: "Titre tronqué",
+  explanation:
+    "Un titre (élément de titre ou rôle heading) ne s'affiche pas en entier, même s'il se termine par des points de suspension. La valeur est la largeur (ou hauteur) masquée.",
+  unit: "px",
+  defaults: { formats: "all", severity: "indicator", params: { tolerance: 1 } },
+  evaluate({ snapshot, params }) {
+    return snapshot.elements.flatMap((entry, index) => {
+      const heading = /^h[1-6]$/.test(entry.tag) || entry.role === "heading";
+      if (!heading) return [];
+      const horizontal =
+        cuttingOverflow.has(entry.overflowX) && entry.scrollWidth > entry.clientWidth + params.tolerance;
+      const vertical =
+        cuttingOverflow.has(entry.overflowY) && entry.scrollHeight > entry.clientHeight + params.tolerance + 1;
+      if (!horizontal && !vertical) return [];
+      return [
+        {
+          index,
+          value: horizontal ? entry.scrollWidth - entry.clientWidth : entry.scrollHeight - entry.clientHeight,
+          threshold: params.tolerance,
+          detail: entry.textOverflow === "ellipsis" || entry.lineClamp ? "avec points de suspension" : "sans signe",
+        },
+      ];
     });
   },
 };
@@ -352,9 +439,11 @@ export const sizingRules = [
   viewportOverflow,
   clippedContent,
   touchTargetSize,
+  paintedTargetSize,
   textSize,
   actionIconSize,
   truncatedWithoutEllipsis,
+  truncatedHeading,
   nestedScroll,
   chromeHeight,
   chromeRows,

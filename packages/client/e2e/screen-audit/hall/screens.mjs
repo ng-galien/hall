@@ -49,6 +49,8 @@ export async function ready(page) {
             /^Chargement/.test((element.firstChild?.textContent ?? "").trim()) && element.getClientRects().length > 0,
         );
         if (loading) return false;
+        const main = document.querySelector("[data-testid=application-main]");
+        if (main && !(main.textContent ?? "").trim()) return false;
         return !document.querySelector("[data-testid=loading-indicator], [data-testid$=-loading], [aria-busy=true]");
       },
       undefined,
@@ -58,6 +60,8 @@ export async function ready(page) {
 }
 
 const phone = ["telephone"];
+const longTitle =
+  "Convention de mise à disposition des salles de la maison commune de l’oppidum aux associations de la commune";
 const all = ["telephone", "tablette", "ordinateur"];
 
 export const screens = [
@@ -129,6 +133,20 @@ export const screens = [
       (resource) => `/workspace?resource=${resource.id}`,
       (resource) => resource.kind === "text",
     ),
+  },
+  {
+    id: "document-titre-long",
+    title: "Document au titre long",
+    scenario: "minutes",
+    async open(page) {
+      // Temporary document of the disposable database: the dataset has no title longer than a phone header.
+      const response = await page.request.post("/api/resources", {
+        data: { kind: "text", path: "Conseil", name: longTitle, content: "Texte du document." },
+      });
+      if (!response.ok()) throw new Error(`/api/resources answered ${response.status()}`);
+      const { id } = (await response.json()).properties;
+      await page.goto(`/app/workspace?resource=${id}`);
+    },
   },
   {
     id: "affaire",

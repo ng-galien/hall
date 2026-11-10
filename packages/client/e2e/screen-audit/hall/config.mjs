@@ -48,13 +48,13 @@ export const humanDefects = [
     screen: "affaire",
     format: "telephone",
     defect: "Boutons de 24 px sur la page d'une affaire",
-    rules: ["touch-target-size", "component-size-consistency"],
+    rules: ["touch-target-size", "painted-target-size", "component-size-consistency"],
   },
   {
-    screen: "document-texte",
+    screen: "document-titre-long",
     format: "telephone",
     defect: "Titre du document coupé",
-    rules: ["truncated-without-ellipsis", "clipped-content"],
+    rules: ["truncated-heading", "truncated-without-ellipsis", "clipped-content"],
   },
   {
     screen: "menu-nouveau",
