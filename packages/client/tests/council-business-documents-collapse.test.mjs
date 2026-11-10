@@ -6,7 +6,13 @@ import { test, vi } from "vitest";
 import { CouncilBusinessWorkbench } from "../src/pages/workspace/CouncilBusinessWorkbench.tsx";
 
 vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-vi.mock("../src/components/icons", () => ({
+vi.stubGlobal("matchMedia", () => ({
+  matches: false,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+}));
+vi.mock("../src/components/icons", async (importOriginal) => ({
+  ...(await importOriginal()),
   ChevronRightIcon: () => null,
   FolderIcon: () => null,
   PinIcon: () => null,
@@ -28,7 +34,7 @@ vi.mock("../src/features/documents/useWorkspaceResourceImageUpload", () => ({
 }));
 vi.mock("../src/features/documents/useEditorDocumentUpload", () => ({ useEditorDocumentUpload: () => undefined }));
 vi.mock("../src/hooks/useSubmitting", () => ({ useSubmitting: () => ({ submitting: false }) }));
-vi.mock("../src/i18n/I18nProvider", () => ({ useI18n: () => ({ t: (key) => key }) }));
+vi.mock("../src/i18n/I18nProvider", () => ({ useI18n: () => ({ t: (key) => key, formatDate: String }) }));
 vi.mock("../src/features/resources/resourceCapabilities", () => ({ resourceCapabilities: () => ({}) }));
 vi.mock("../src/stores/councilBusinessStore", () => {
   const state = {
@@ -58,7 +64,10 @@ vi.mock("../src/features/council-business/CouncilBusinessGlyph", () => ({ Counci
 vi.mock("../src/components/editor/MarkdownEditor", () => ({ MarkdownEditor: () => null }));
 vi.mock("../src/components/MarkdownView", () => ({ MarkdownView: () => null }));
 vi.mock("../src/features/documents/ResourcePreview", () => ({ ResourcePreview: () => null }));
-vi.mock("../src/features/documents/PdfPreviewButton", () => ({ PdfPreviewButton: () => null }));
+vi.mock("../src/features/documents/PdfPreviewButton", () => ({
+  PdfPreviewButton: () => null,
+  usePdfPreview: () => ({ referencesDocuments: false, status: "idle", openPreview: () => undefined, view: null }),
+}));
 vi.mock("../src/pages/workspace/AttachmentPicker", () => ({ AttachmentPicker: () => null }));
 vi.mock("../src/pages/workspace/CouncilBusinessSubjects", () => ({ CouncilBusinessSubjects: () => null }));
 vi.mock("../src/pages/workspace/BusinessDocumentTree", () => ({
