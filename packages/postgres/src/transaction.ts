@@ -90,11 +90,13 @@ async function installCallContext(
   );
 }
 
-async function rollback(client: PoolClient): Promise<void> {
+/** Rolls the transaction back and returns the failure of the ROLLBACK itself, if any. */
+async function rollback(client: PoolClient): Promise<Error | undefined> {
   try {
     await client.query("ROLLBACK");
-  } catch {
-    return;
+    return undefined;
+  } catch (error) {
+    return error instanceof Error ? error : new Error(String(error));
   }
 }
 
@@ -234,6 +236,7 @@ export class PostgresTransactionManager {
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       const client = await this.pool.connect();
       const startedAt = performance.now();
+      let rollbackFailure: Error | undefined;
       try {
         await client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
         await installCallContext(client, request.role, request.context, statementTimeoutMs);
@@ -243,12 +246,12 @@ export class PostgresTransactionManager {
         if (commit.command !== "COMMIT") throw new TransactionRolledBackError();
         return result;
       } catch (error) {
-        await rollback(client);
+        rollbackFailure = await rollback(client);
         if (attempt < maxAttempts && retryable(error)) continue;
         if (error instanceof StatementTimeoutError) throw error;
         throw timeoutOf(error, budget, statementTimeoutMs, startedAt) ?? failure(error);
       } finally {
-        client.release();
+        client.release(rollbackFailure);
       }
     }
 
