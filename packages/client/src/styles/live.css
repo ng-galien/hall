@@ -157,12 +157,12 @@
     border-radius: var(--hall-radius-circular);
     color: var(--hall-color-brand);
     background: var(--hall-color-brand-subtle);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-semibold);
     line-height: var(--hall-line-height-caption);
     white-space: nowrap;
   }
-  .rollcall-officer-chip svg { font-size: var(--hall-font-size-caption-small); }
+  .rollcall-officer-chip svg { font-size: var(--hall-font-size-icon-compact); }
   .rollcall-officer-chip-warning { color: var(--hall-color-warning-strong); background: var(--hall-color-warning-surface); }
   .rollcall-avatar {
     display: grid;
@@ -706,7 +706,7 @@
     border-radius: var(--hall-radius-circular);
     color: var(--hall-color-brand);
     background: var(--hall-color-brand-subtle);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-bold);
   }
   .vote-card-copy { display: grid; min-width: 0; }
@@ -720,7 +720,7 @@
   .vote-card-copy span {
     overflow: hidden;
     color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -730,7 +730,7 @@
     border-radius: var(--hall-radius-circular);
     color: var(--hall-color-brand);
     background: var(--hall-color-brand-subtle);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-bold);
   }
   .vote-card-carried { border-style: dashed; }

@@ -379,14 +379,13 @@
    Links inside running text keep their place in the sentence; a check box takes its label as target. */
 @media (pointer: coarse) {
   :root {
-    --hall-font-size-caption-small: var(--hall-font-size-caption);
+    --hall-font-size-icon-compact: var(--hall-font-size-icon-small);
     --hall-size-control: var(--hall-size-touch-control);
     --hall-size-control-small: var(--hall-size-touch-control);
   }
   /* A short event of the day view stays a finger-sized target with readable text; the calendar forbids a minimum
      height on the event itself, so its positioned frame receives it. */
   .hall-calendar :has(> .hall-calendar-event) { min-height: calc(var(--hall-size-touch-control) + var(--hall-stroke-thick)); }
-  .hall-calendar-event-label { font-size: var(--hall-font-size-caption); }
   .univer-spreadsheet input.univer-appearance-none { min-width: 0; min-height: 0; }
   .workspace-explorer-folder-name,
   .univer-spreadsheet button,

@@ -215,6 +215,7 @@ export function CalendarPage() {
         initialView={phoneWidth ? "timeGridDay" : "dayGridMonth"}
         headerToolbar={false}
         height="100%"
+        dayHeaderInnerClass="hall-calendar-day-header"
         // On a phone the grid runs from edge to edge, with a short date in the title of the day.
         {...(phone
           ? {

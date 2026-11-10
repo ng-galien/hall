@@ -72,6 +72,7 @@
   --radius-large: var(--hall-radius-large);
   --spacing: var(--hall-space-unit);
   --text-xs: var(--hall-font-size-caption);
+  --text-xs--line-height: var(--hall-line-height-caption);
   --text-sm: var(--hall-font-size-body);
   --font-weight-medium: var(--hall-font-weight-medium);
   --font-weight-semibold: var(--hall-font-weight-semibold);

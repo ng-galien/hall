@@ -163,12 +163,12 @@
     border-radius: var(--hall-radius-circular);
     color: inherit;
     background: transparent;
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-icon-compact);
     cursor: pointer;
   }
   .tag-chip button:hover { color: var(--hall-color-on-brand); background: var(--hall-color-brand); }
   /* `.app-icon` sizes every icon, so the chip cross is resized here. */
-  .tag-chip button .app-icon { font-size: var(--hall-font-size-caption-small); }
+  .tag-chip button .app-icon { font-size: var(--hall-font-size-icon-compact); }
 
   /* ---- Embedded document preview ---- */
   .document-embed {
@@ -1033,7 +1033,7 @@
     color: var(--hall-color-text-muted);
     background: var(--hall-color-surface);
     font-family: var(--hall-font-family-sans);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
   }
   .geographic-resource .ol-viewport { cursor: grab; }
   .geographic-resource .ol-viewport:active { cursor: grabbing; }
@@ -1131,7 +1131,7 @@
   .legal-reference-metadata > div { display: grid; gap: var(--hall-space-1); min-width: 0; }
   .legal-reference-metadata dt {
     color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-semibold);
     letter-spacing: var(--hall-letter-spacing-section);
     text-transform: uppercase;
@@ -1167,7 +1167,7 @@
     padding-top: var(--hall-space-3);
     border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
     color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
   }
   .legal-reference-history { display: grid; gap: var(--hall-space-3); }
   .legal-reference-history > p { color: var(--hall-color-text-muted); }
@@ -1661,7 +1661,7 @@ fieldset.workspace-explorer-folder-row { min-width: 0; margin: 0; padding: 0; }
 }
 .workspace-business-eyebrow {
   color: var(--hall-color-text-muted);
-  font-size: var(--hall-font-size-caption-small);
+  font-size: var(--hall-font-size-caption);
   font-weight: var(--hall-font-weight-bold);
   letter-spacing: var(--hall-letter-spacing-section);
   text-transform: uppercase;
@@ -1679,7 +1679,7 @@ fieldset.workspace-explorer-folder-row { min-width: 0; margin: 0; padding: 0; }
 .workspace-explorer-document .workspace-explorer-row { color: var(--hall-color-text-muted); }
 .workspace-explorer-copy { display: flex; flex: 1; min-width: 0; align-items: center; gap: var(--hall-space-1-5); }
 .workspace-explorer-copy strong { overflow: hidden; color: var(--hall-color-text); font-weight: var(--hall-font-weight-medium); text-overflow: ellipsis; white-space: nowrap; }
-.workspace-explorer-copy span { color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption-small); }
+.workspace-explorer-copy span { color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption); }
 .workspace-explorer-copy .workspace-resource-state {
   display: inline-flex;
   flex: none;

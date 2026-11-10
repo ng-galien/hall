@@ -618,7 +618,7 @@
     color: var(--hall-color-brand);
     background: var(--hall-color-brand-subtle);
     font: inherit;
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-semibold);
     cursor: pointer;
   }
@@ -743,7 +743,7 @@
     color: var(--hall-color-text-subtle);
     background: var(--hall-color-surface-subtle);
     font-family: var(--hall-font-family-monospace);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
   }
   .searchbox-suggestion {
     display: flex;
@@ -783,7 +783,7 @@
     color: var(--hall-color-text-subtle);
     background: var(--hall-color-surface-subtle);
     font-family: var(--hall-font-family-monospace);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
     opacity: 0;
   }
   .searchbox-suggestion.is-active kbd { opacity: 1; }

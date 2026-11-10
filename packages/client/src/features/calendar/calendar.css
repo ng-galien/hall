@@ -51,6 +51,9 @@
   --fc-monarch-strong-border: var(--hall-color-border-strong);
 }
 .hall-calendar-council { --fc-monarch-event: var(--hall-color-council-business); }
+/* The theme writes the weekday, first line of a day header, and the event label below the caption size. */
+.hall-calendar .hall-calendar-day-header > :first-child,
+.hall-calendar-event-label { font-size: var(--hall-font-size-caption); }
 
 /* Resource form uses the same surface and spacing as the modal header. */
 .resource-preview-content:has(> .event-resource-editor) {

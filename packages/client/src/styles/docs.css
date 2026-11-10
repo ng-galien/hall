@@ -902,7 +902,7 @@ h4.docs-heading {
   border-radius: var(--hall-radius-circular);
   background: var(--hall-color-brand);
   color: var(--hall-color-on-brand);
-  font-size: var(--hall-font-size-caption-small);
+  font-size: var(--hall-font-size-caption);
   font-weight: var(--hall-font-weight-semibold);
 }
 

@@ -1036,7 +1036,7 @@
     border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-circular);
     color: var(--hall-color-brand);
-    font-size: var(--hall-font-size-caption-small);
+    font-size: var(--hall-font-size-caption);
     font-weight: var(--hall-font-weight-semibold);
     text-overflow: ellipsis;
     white-space: nowrap;

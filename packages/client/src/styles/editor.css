@@ -117,7 +117,7 @@
   height: var(--hall-size-table-handle-long);
 }
 .table-handle .app-icon {
-  font-size: var(--hall-font-size-caption-small);
+  font-size: var(--hall-font-size-icon-compact);
 }
 .table-extend {
   width: var(--hall-size-table-extend);
