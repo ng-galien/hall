@@ -27,6 +27,21 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
   // On a phone the bottom bar replaces the drawer; « Plus » opens the other destinations.
   await expect(page.getByTestId("phone-navigation")).toBeVisible();
   await expect(page.getByTestId("navigation-toggle")).toHaveCount(0);
+  // The bar presents home, documents, calendar and meetings in this order, then « Plus ».
+  await expect
+    .poll(() =>
+      page
+        .getByTestId("phone-navigation")
+        .locator(":scope > [data-testid]")
+        .evaluateAll((items) => items.map((item) => item.getAttribute("data-testid"))),
+    )
+    .toEqual([
+      "phone-navigation-home",
+      "phone-navigation-documents",
+      "phone-navigation-calendar",
+      "phone-navigation-meetings",
+      "phone-navigation-more",
+    ]);
   for (const [destination, route] of [
     ["meetings", "/meetings"],
     ["calendar", "/calendar"],

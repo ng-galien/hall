@@ -9489,7 +9489,7 @@
       },
       "statement": "Hall est utilisable depuis un téléphone et permet d’ajouter une image existante ou une photo prise avec le téléphone.",
       "acceptanceCriteria": [
-        "Sur une largeur de téléphone, une barre en bas de l’écran mène à l’accueil, aux séances, au calendrier, aux documents et à l’espace personnel ; son entrée « Plus » ouvre les délibérations, les procès-verbaux, les cartes, les utilisateurs, les contacts, les membres du conseil, les commissions, les délégations, les modèles de documents, l’aide et le compte. Chaque destination y est présentée selon les mêmes droits que dans le menu de l’ordinateur. Sur une largeur de tablette, la navigation principale s’ouvre et se ferme sans occuper en permanence la largeur du contenu ; choisir une destination referme le menu.",
+        "Sur une largeur de téléphone, une barre en bas de l’écran mène, dans cet ordre, à l’accueil, aux documents, au calendrier, aux séances et à l’espace personnel ; son entrée « Plus » ouvre les délibérations, les procès-verbaux, les cartes, les utilisateurs, les contacts, les membres du conseil, les commissions, les délégations, les modèles de documents, l’aide et le compte. Chaque destination y est présentée selon les mêmes droits que dans le menu de l’ordinateur. Sur une largeur de tablette, la navigation principale s’ouvre et se ferme sans occuper en permanence la largeur du contenu ; choisir une destination referme le menu.",
         "Les pages, formulaires, dialogues et commandes partagées restent accessibles sur une largeur de téléphone ; les contenus larges défilent dans leur propre conteneur.",
         "En vue liste des élus, les identités restent lisibles sans chevauchement avec avatar, mandat ou commissions. Les titres et commandes des éléments préparés et de l’ordre du jour restent accessibles dans les séances et les affaires aux formats téléphone, tablette et bureau (correction propriétaire du 16 octobre 2026, Topic Graph 420eb39d-e972-418d-bdaf-cd7b6b433d47) ; sur téléphone, le titre d’un élément préparé ou d’un point ouvre sa page.",
         "Un texte modifiable propose le choix d’une photo existante et la capture depuis le téléphone dans l’éditeur compact comme en plein écran.",
@@ -9526,6 +9526,12 @@
           "key": "phone-chantier-retained",
           "origin": "product",
           "statement": "Chantier d’interface téléphone construit et vérifié à l’écran le 9 novembre 2026, retenu par le propriétaire le 10 novembre 2026 pour la version 1.2.0 : « On a fait quelques évolutions IHM. Mobile surtout. […] Faudrait mettre tout ça dans la release note », puis « je suis d’accord pour la 1.2 ».",
+          "sourceIds": []
+        },
+        {
+          "key": "phone-bar-order",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 10 novembre 2026 sur l’ordre des icônes de la barre du bas du téléphone : « Dernier petit truc au niveau de l’ordre des icônes. Je mettrais donc bon l’accueil. Ensuite, je mettrais les dossiers. Ensuite, le calendrier. Et ensuite seulement la séance. » Le menu de l’ordinateur et de la tablette garde son ordre.",
           "sourceIds": []
         }
       ]

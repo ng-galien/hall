@@ -37,13 +37,13 @@ export function PhoneNavigation() {
       icon: navigationItem("/").icon,
       active: location.pathname === "/",
     },
-    available(meetings.requiredRelation)
+    available(documents.requiredRelation)
       ? {
-          id: "meetings",
-          to: "/meetings",
-          label: t("navigation.meetings"),
-          icon: meetings.icon,
-          active: location.pathname.startsWith("/meetings"),
+          id: "documents",
+          to: "/workspace",
+          label: t("navigation.documents"),
+          icon: <FolderIcon />,
+          active: inWorkspace && !inPersonal,
         }
       : null,
     available(calendar.requiredRelation)
@@ -55,13 +55,13 @@ export function PhoneNavigation() {
           active: location.pathname.startsWith("/calendar"),
         }
       : null,
-    available(documents.requiredRelation)
+    available(meetings.requiredRelation)
       ? {
-          id: "documents",
-          to: "/workspace",
-          label: t("navigation.documents"),
-          icon: <FolderIcon />,
-          active: inWorkspace && !inPersonal,
+          id: "meetings",
+          to: "/meetings",
+          label: t("navigation.meetings"),
+          icon: meetings.icon,
+          active: location.pathname.startsWith("/meetings"),
         }
       : null,
     personalPath
