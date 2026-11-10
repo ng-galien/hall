@@ -18,8 +18,10 @@ import { WorkspaceCreateMenu } from "../workspace/WorkspaceCreateMenu";
 const visibleRows = 5;
 const documentKinds = ["text", "spreadsheet", "document", "remote"] as const;
 const searchPageSize = 100;
+/** The search contract has no order by modification date: the latest documents are taken from at most these pages. */
+const maximumSearchPages = 5;
 
-/** Loads every readable document through the search collection; the store keeps them current afterwards. */
+/** Loads readable documents through the search collection, in a bounded number of requests; the store keeps them current afterwards. */
 export function useReadableDocuments() {
   const hydrate = useWorkspaceResourcesStore((state) => state.hydrate);
   const summaries = useWorkspaceResourcesStore((state) => state.summaries);
@@ -29,7 +31,7 @@ export function useReadableDocuments() {
     let active = true;
     void (async () => {
       let offset = 0;
-      for (;;) {
+      for (let page = 0; page < maximumSearchPages; page += 1) {
         const result = await hydrate({
           query: "",
           paths: [],
