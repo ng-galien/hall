@@ -30,6 +30,12 @@ vi.mock("../src/stores/workspaceCouncilActivityStore", () => ({
 
 import { PathContents } from "../src/pages/workspace/PathContents.tsx";
 
+vi.stubGlobal("matchMedia", () => ({
+  matches: false,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+}));
+
 // @verifies-requirement HALL-FR-WSP-370
 test("a hidden folder panel does not fetch other business documents or mount its rows", async () => {
   const host = document.createElement("div");

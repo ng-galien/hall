@@ -13,6 +13,11 @@ import { getContactSiren } from "../src/services/contactsApi.ts";
 
 vi.mock("../src/services/contactsApi.ts", () => ({ getContactSiren: vi.fn() }));
 vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+vi.stubGlobal("matchMedia", () => ({
+  matches: false,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+}));
 vi.stubGlobal(
   "ResizeObserver",
   class {

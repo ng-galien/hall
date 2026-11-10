@@ -2,11 +2,17 @@
 import assert from "node:assert/strict";
 import { act, createElement as h } from "react";
 import { createRoot } from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, test, vi } from "vitest";
 import { PdfPreviewButton } from "../src/features/documents/PdfPreviewButton.tsx";
 import { previewTemplatePdf } from "../src/services/templatesApi.ts";
 
 vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+vi.stubGlobal("matchMedia", () => ({
+  matches: false,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+}));
 vi.mock("../src/services/templatesApi.ts", () => ({ previewTemplatePdf: vi.fn() }));
 vi.mock("../src/i18n/I18nProvider", () => ({ useI18n: () => ({ t: (key) => key }) }));
 vi.mock("../src/components/icons", () => ({ PdfIcon: () => null, ChevronDownIcon: () => null, CloseIcon: () => null }));
@@ -55,7 +61,7 @@ function mount(testId = "business-report-pdf-preview", viewerTestId) {
   return {
     host,
     render: (markdown, key = "business-a") =>
-      act(async () => root.render(h(PdfPreviewButton, { key, markdown, testId, viewerTestId }))),
+      act(async () => root.render(h(MemoryRouter, null, h(PdfPreviewButton, { key, markdown, testId, viewerTestId })))),
   };
 }
 

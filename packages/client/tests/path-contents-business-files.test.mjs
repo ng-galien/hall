@@ -33,6 +33,12 @@ vi.mock("../src/stores/workspaceCouncilActivityStore", () => ({
 
 import { PathContents } from "../src/pages/workspace/PathContents.tsx";
 
+vi.stubGlobal("matchMedia", () => ({
+  matches: false,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+}));
+
 const folder = "Conseil/Commissions";
 const file = (id, name) => ({
   id,

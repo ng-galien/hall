@@ -15,6 +15,11 @@ import { getCouncilMemberSiren } from "../src/services/councilMembersApi.ts";
 vi.mock("../src/services/contactsApi.ts", () => ({ getContactSiren: vi.fn() }));
 vi.mock("../src/services/councilMembersApi.ts", () => ({ getCouncilMemberSiren: vi.fn() }));
 vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+vi.stubGlobal("matchMedia", () => ({
+  matches: false,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+}));
 vi.stubGlobal(
   "ResizeObserver",
   class {
