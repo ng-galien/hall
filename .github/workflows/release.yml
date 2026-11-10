@@ -126,19 +126,22 @@ jobs:
 
           Cette version est une démonstration. Au premier lancement, l’application charge la commune fictive d’Alésia et s’ouvre connectée en tant que son administrateur, sans compte à créer ni mot de passe à saisir. Tout fonctionne sur l’ordinateur, avec une base de données embarquée ; rien n’est envoyé à un serveur. Le menu **Démonstration** remet le jeu de données à zéro.
           NOTICE
-          if [ "$TAG" = "v1.1.0" ]; then
+          if [ "$TAG" = "v1.2.0" ]; then
             cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
 
-          ## Nouveautés de la version 1.1.0
+          ## Nouveautés de la version 1.2.0
 
-          - Préparation des séances par révisions : établir la révision, puis générer ou régénérer sa convocation PDF.
-          - Documents de séance regroupés, avec feuille d’émargement et formulaire de pouvoir.
-          - Conservation des notes de discussion et corrections de la conduite des séances.
-          - Démonstration utilisable après expiration de sa session, sans retour au formulaire de connexion.
-          - Accès PostgreSQL unifié pour le serveur, ses comptes, ses sessions et ses documents ; snapshots de séance allégés et lectures bornées dans le temps.
-          - Parcours de vérification alignés sur l’interface actuelle.
+          - Affichage pour téléphone : barre de navigation en bas de l’écran, en-tête avec bouton retour et titre de la page, geste retour du téléphone pris en charge.
+          - Nouvelle page d’accueil : la séance en cours ou la prochaine séance avec sa convocation et son ordre du jour, l’espace personnel avec ajout d’une photo ou d’une note, les derniers documents du conseil.
+          - Sur téléphone, documents, affaires, délibérations et procès-verbaux ouverts en pleine page, avec leurs actions réunies dans un menu : modifier, partager, télécharger, aperçu PDF, copier la référence.
+          - Sur téléphone, chaque point de l’ordre du jour d’une séance s’ouvre sur sa propre page : textes, résultat du vote et documents.
+          - Documents PDF affichés page par page sur les téléphones sans lecteur PDF intégré, avec zoom par pincement ou double appui.
+          - Séance : ajout des autres personnes présentes depuis une fenêtre, parmi les contacts existants ou en créant un contact, avec leur qualité.
+          - Séance : une question ouverte ajoutée en cours de séance se rattache à une affaire existante, avec son rapport et ses pièces, ou à une nouvelle affaire.
+          - Corrections d’interface : candidats à l’ordre du jour alignés sur les lignes de l’ordre du jour, écran de connexion qui vérifie la session une seule fois.
+          - Sécurité et robustesse : tableurs de taille excessive refusés, droit d’export exigé pour tous les exports, application de bureau limitée aux pages de Hall avec les liens externes ouverts dans le navigateur, impression de la documentation dans la file de génération des PDF, erreurs détaillées dans le journal, connexion à la base écartée après une annulation en échec.
 
-          Pour un serveur existant en 1.0.3, suivre la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.1.0/docs/distribution.md#update-procedure-from-103-to-110-on-the-municipal-computer). La migration demande un arrêt du serveur et une sauvegarde vérifiée ; revenir en 1.0.3 nécessite de restaurer cette sauvegarde.
+          La version 1.2.0 modifie le schéma de la base de données. Pour un serveur existant en 1.1.0, suivre la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.2.0/docs/distribution.md#update-interruption-and-code-rollback). La mise à jour demande un arrêt du serveur et une sauvegarde vérifiée ; revenir en 1.1.0 nécessite de restaurer cette sauvegarde. Au premier lancement de la nouvelle version, la démonstration recharge la commune d’Alésia ; les modifications faites dans la démonstration précédente ne sont pas conservées.
           NOTICE
           fi
           cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
