@@ -255,7 +255,7 @@ export function MapsPage() {
   );
 
   return (
-    <div className="maps-page" data-testid="maps-page">
+    <div className="maps-page" data-testid="maps-page" data-map-open={opened ? "true" : "false"}>
       <MapsPanel
         maps={maps}
         recentIds={recentIds}

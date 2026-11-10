@@ -203,6 +203,32 @@ test("phone calendar header keeps the date on one line, its buttons apart and th
 });
 
 // @verifies-requirement HALL-FR-LAY-010
+test("phone maps show several rows of the map tree until a map is chosen", async ({ appPage: page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/app/maps");
+  const tree = page.getByTestId("maps-tree");
+  await expect(tree).toBeVisible();
+  await expect(page.getByTestId("maps-context-empty")).toBeVisible();
+  const visibleRows = await tree.evaluate((element) => {
+    const bar = document.querySelector('[data-testid="phone-navigation"]')?.getBoundingClientRect().top ?? innerHeight;
+    let top = 0;
+    let bottom = bar;
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+      if (getComputedStyle(parent).overflowY === "visible") continue;
+      const bounds = parent.getBoundingClientRect();
+      top = Math.max(top, bounds.top);
+      bottom = Math.min(bottom, bounds.bottom);
+    }
+    return [...element.querySelectorAll("[data-testid]")].filter((row) => {
+      const rect = row.getBoundingClientRect();
+      return rect.height > 0 && rect.top >= top - 0.5 && rect.bottom <= bottom + 0.5;
+    }).length;
+  });
+  expect(visibleRows, "map tree rows visible without scrolling").toBeGreaterThanOrEqual(3);
+  await expectFitsWidth(page);
+});
+
+// @verifies-requirement HALL-FR-LAY-010
 test("phone settings categories stay on one row that scrolls sideways", async ({ appPage: page }) => {
   await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
   await page.setViewportSize({ width: 375, height: 812 });

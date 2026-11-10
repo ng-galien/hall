@@ -275,6 +275,9 @@
   .composer-item-row > .composer-item-main { flex: 1 1 var(--hall-size-relative-12rem); }
   /* On a narrow map, the card of the selected element covers the Elements panel instead of sliding under it. */
   .geographic-feature-card { z-index: calc(var(--hall-z-content) + 1); }
+  /* Until a map is chosen, the list of maps keeps its whole height and the page scrolls down to the map. */
+  .app-main .maps-page[data-map-open="false"] { height: auto; min-height: 100%; }
+  .app-main .maps-page[data-map-open="false"] .maps-panel { flex: none; max-height: none; }
   /* The settings categories stay on one row that scrolls sideways. */
   .settings-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
   .settings-tabs > [data-slot="tabs-trigger"] { flex: none; margin-bottom: 0; white-space: nowrap; }
