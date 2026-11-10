@@ -17,7 +17,8 @@ test("prise en main de Hall", async ({ docsPage: page }) => {
   await page.getByTestId("auth-submit").click();
   await expect(page.getByTestId("application-sync-status")).toHaveAttribute("data-sync-state", "synchronized");
   await page.goto("/app/");
-  await expect(page.getByText("Affaires en préparation").first()).toBeVisible();
+  await expect(page.getByTestId("home-meeting")).toBeVisible();
+  await expect(page.getByTestId(/^home-recent-document-/).first()).toBeVisible();
   await page.waitForLoadState("networkidle");
   await waitForPageEntrance(page);
   await capture(page, `${journey}/02-vue-d-ensemble`);
@@ -49,13 +50,14 @@ test("prise en main de Hall", async ({ docsPage: page }) => {
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app/");
-  await expect(page.getByText("Affaires en préparation").first()).toBeVisible();
+  await expect(page.getByTestId("home-meeting")).toBeVisible();
+  await expect(page.getByTestId(/^home-recent-document-/).first()).toBeVisible();
   await page.waitForLoadState("networkidle");
   await waitForPageEntrance(page);
   await capture(page, `${journey}/06-telephone`);
 
-  await page.getByTestId("navigation-toggle").click();
-  await expect(page.getByTestId("mobile-navigation")).toBeVisible();
+  await page.getByTestId("phone-navigation-more").click();
+  await expect(page.getByTestId("phone-more")).toBeVisible();
   await page.waitForTimeout(500);
   await capture(page, `${journey}/07-telephone-menu`);
 });

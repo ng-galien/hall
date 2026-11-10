@@ -14,7 +14,8 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
   };
   await page.waitForLoadState("networkidle");
   if (prefix) {
-    await expect(page.getByText("Affaires en préparation").first()).toBeVisible();
+    await expect(page.getByTestId("home-meeting")).toBeVisible();
+    await expect(page.getByTestId(/^home-recent-document-/).first()).toBeVisible();
     await page.waitForTimeout(1500);
     await capture(page, "ecrans/vue-d-ensemble");
   }
