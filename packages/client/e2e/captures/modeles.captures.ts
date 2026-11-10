@@ -3,7 +3,7 @@ import { getDocument, OPS } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { capture, expect, test, waitForPageEntrance } from "./fixtures";
 
 /** The document templates of Alésia: the list and the meeting notice template with a logo in its header. */
-test.use({ seedScenario: "default" });
+test.use({ seedScenario: "default", builtInPdfViewer: true });
 
 const blason = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAIklEQVR42mNkYPhfz0AEYBxVSF+FjP//ExXGqAqHVjEwhgAAiAgP8WOfu5gAAAAASUVORK5CYII=",

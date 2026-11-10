@@ -134,13 +134,16 @@ export const test = base.extend<
     },
     { auto: true, timeout: 120_000 },
   ],
-  appPage: async ({ page, builtInPdfViewer, isolatedDatabase: _isolatedDatabase }, use) => {
-    const pageErrors: string[] = [];
-    page.on("pageerror", (error) => pageErrors.push(error.message));
+  page: async ({ page, builtInPdfViewer }, use) => {
     if (builtInPdfViewer !== undefined)
       await page.addInitScript((enabled) => {
         Object.defineProperty(Navigator.prototype, "pdfViewerEnabled", { configurable: true, get: () => enabled });
       }, builtInPdfViewer);
+    await use(page);
+  },
+  appPage: async ({ page, isolatedDatabase: _isolatedDatabase }, use) => {
+    const pageErrors: string[] = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.addInitScript(() => {
       if (window !== window.top) return;
       if (!localStorage.getItem("mairie.locale")) localStorage.setItem("mairie.locale", "en");
