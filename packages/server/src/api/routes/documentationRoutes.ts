@@ -23,7 +23,10 @@ export function documentationPrintUrl(config: ServerConfig, request: Request): s
   return config.documentationPrintOrigin ? `${config.documentationPrintOrigin}${DOCUMENTATION_PRINT_PATH}` : null;
 }
 
-export function createDocumentationRouter({ config }: Cradle): Router {
+export function createDocumentationRouter({
+  config,
+  contentTemplateService,
+}: Pick<Cradle, "config" | "contentTemplateService">): Router {
   const router = Router();
   router.get("/pdf", async (request, response) => {
     const url = documentationPrintUrl(config, request);
@@ -31,10 +34,10 @@ export function createDocumentationRouter({ config }: Cradle): Router {
       sendProblem(request, response, 503, "documentation_print_unavailable");
       return;
     }
-    let pdf: Buffer;
-    try {
-      pdf = await printDocumentation({ url, footerHtml });
-    } catch {
+    const pdf = await contentTemplateService.withGenerationSlot(() =>
+      printDocumentation({ url, footerHtml }).catch(() => null),
+    );
+    if (!pdf) {
       sendProblem(request, response, 503, "documentation_print_unavailable");
       return;
     }

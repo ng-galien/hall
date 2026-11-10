@@ -77,6 +77,8 @@ export interface ContentTemplateService {
   ): Promise<Buffer>;
   generate(id: string, input: GenerateTemplateInput): Promise<GeneratedFile>;
   generateFromTemplate(template: ContentTemplate, input: GenerateTemplateInput): Promise<GeneratedFile>;
+  /** Runs a PDF rendering in the bounded generation queue; a full queue refuses it with template_generation_busy. */
+  withGenerationSlot<T>(operation: () => Promise<T>): Promise<T>;
 }
 
 const markdownExpression = (source: string): string => `{{ ${JSON.stringify(source)} | markdown }}`;
@@ -247,6 +249,7 @@ export function createContentTemplateService({
     });
 
   return {
+    withGenerationSlot,
     generatedPreview,
     generatedPdf,
     list: () => contentTemplateRepository.list(),
