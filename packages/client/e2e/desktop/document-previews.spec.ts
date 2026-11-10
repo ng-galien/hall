@@ -36,8 +36,11 @@ async function collection(page: Page, path: string): Promise<Entry[]> {
   }, path);
 }
 
+/** Digest of the PDF shown by a frame, or by the frame inside a viewer container. */
 async function pdfDigest(page: Page, frame: Locator) {
-  const url = await frame.getAttribute("src");
+  const url = await frame.evaluate((element) =>
+    (element instanceof HTMLIFrameElement ? element : element.querySelector("iframe"))?.getAttribute("src"),
+  );
   expect(url).toBeTruthy();
   const result = await page.evaluate(async (href) => {
     const response = await fetch(href!);
@@ -54,7 +57,8 @@ async function pdfDigest(page: Page, frame: Locator) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-async function aligned(page: Page, dialog: Locator, name: string, rich = false) {
+/** On a phone a document viewer is a page: it fills the screen and its back arrow replaces the close button. */
+async function aligned(page: Page, dialog: Locator, name: string, rich = false, phonePage = false) {
   await expect(dialog).toBeVisible();
   await dialog.evaluate((element) =>
     Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
@@ -79,7 +83,12 @@ async function aligned(page: Page, dialog: Locator, name: string, rich = false) 
   expect(Math.abs(layout.x - frame!.x)).toBeLessThanOrEqual(2);
   expect(Math.abs(layout.y - frame!.y)).toBeLessThanOrEqual(2);
   expect(layout.width).toBeGreaterThan(frame!.width - 4);
-  expect(layout.height).toBeGreaterThan(55);
+  expect(layout.height).toBeGreaterThan(phonePage ? 43 : 55);
+  if (phonePage) {
+    expect(frame!.x).toBeCloseTo(0, 0);
+    expect(frame!.y).toBeCloseTo(0, 0);
+    expect(frame!.width).toBeGreaterThanOrEqual(page.viewportSize()!.width - 1);
+  }
   if (!rich) {
     expect(layout.display).toBe("flex");
     expect(layout.padding).not.toBe("0px");
@@ -88,7 +97,13 @@ async function aligned(page: Page, dialog: Locator, name: string, rich = false) 
   expect(content!.y).toBeCloseTo(layout.y + layout.height, 0);
   expect(content!.height).toBeGreaterThan(300);
   const close = dialog
-    .locator(rich ? '[data-testid="resource-preview-close"]' : ".document-viewer-actions button")
+    .locator(
+      rich
+        ? '[data-testid="resource-preview-close"]'
+        : phonePage
+          ? ".document-viewer-back"
+          : ".document-viewer-actions button",
+    )
     .last();
   await expect(close).toBeInViewport();
   const closeBox = await close.boundingBox();
@@ -162,14 +177,11 @@ test("document previews share a contextual frame in both themes without changing
       const agenda = (await (await fetch(`/api/${path}/agenda-items`)).json()).entities;
       for (const entry of agenda) {
         const item = entry.properties;
-        if (!item.completedAt && !item.adjournedAt) {
-          const finishedAt = new Date().toISOString();
-          if (item.startedAt)
-            await command("POST", `${path}/agenda-items/${item.id}/complete`, { completedAt: finishedAt });
-          else await command("POST", `${path}/agenda-items/${item.id}/adjourn`, { adjournedAt: finishedAt });
-        }
+        // The server dates each conduct observation when it receives it.
+        if (!item.completedAt && !item.adjournedAt)
+          await command("POST", `${path}/agenda-items/${item.id}/${item.startedAt ? "complete" : "adjourn"}`, {});
       }
-      return command("POST", `${path}/close`, { closedAt: new Date().toISOString() });
+      return command("POST", `${path}/close`, {});
     }, active);
     const draftMinutesId: string = closure.minutes.id;
     for (const tone of ["light", "dark"] as const) {
@@ -265,9 +277,12 @@ test("document previews share a contextual frame in both themes without changing
         await page.getByTestId("template-preview").click();
         const dialog = page.getByTestId("template-preview-dialog");
         await expect(dialog.locator("header h2")).toContainText(template.name!);
-        await expect(page.frameLocator('[data-testid="template-preview-frame"]').locator("body")).toContainText(
-          "Alésia",
-        );
+        // A document template previews as a PDF in the browser viewer; a message template as HTML.
+        if (template.kind === "message")
+          await expect(page.frameLocator('[data-testid="template-preview-frame"]').locator("body")).toContainText(
+            "Alésia",
+          );
+        else await pdfDigest(page, page.getByTestId("template-preview-frame"));
         observations.push(await aligned(page, dialog, `template-${template.kind}-${tone}`));
         await page.getByTestId("template-preview-close").click();
       }
@@ -339,10 +354,16 @@ test("document previews share a contextual frame in both themes without changing
       await go(`meetings/${prepared.reference ?? prepared.id}`);
       await noticesLoaded;
       const noticeButtons = page.getByTestId("meeting-document-notice-open");
-      if (!(await noticeButtons.count())) {
-        if ((await page.getByTestId("meeting-agenda-revision").getAttribute("data-state")) === "open")
-          await establishRevision(page);
+      // An open revision is established first; an established one shows its notice row once rendered.
+      const revision = page.getByTestId("meeting-agenda-revision");
+      await expect(revision).toHaveAttribute("data-state", /^(open|established)$/);
+      if ((await revision.getAttribute("data-state")) === "open") {
+        await establishRevision(page);
         await generateCurrentNotice(page);
+      } else {
+        const noticeRow = page.getByTestId("meeting-document-notice");
+        await expect(noticeButtons.first().or(noticeRow.getByTestId("meeting-generate-notice"))).toBeVisible();
+        if (!(await noticeButtons.count())) await generateCurrentNotice(page);
       }
       await noticeButtons.first().click();
       await pdfDigest(page, page.getByTestId("document-object-frame"));
@@ -366,8 +387,11 @@ test("document previews share a contextual frame in both themes without changing
       const desktopSize = await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }));
       await page.setViewportSize({ width: 390, height: 844 });
       await go(`minutes/${frozen.id}`);
-      await page.getByTestId("minutes-view-document").click();
-      observations.push(await aligned(page, page.getByTestId("minutes-document-dialog"), `minutes-mobile-${tone}`));
+      // On a phone the desktop record header stays in the page, hidden; the phone header carries the button.
+      await page.getByTestId("minutes-view-document").filter({ visible: true }).click();
+      observations.push(
+        await aligned(page, page.getByTestId("minutes-document-dialog"), `minutes-mobile-${tone}`, false, true),
+      );
       await page.getByTestId("minutes-document-close").click();
       await page.setViewportSize(desktopSize);
     }
