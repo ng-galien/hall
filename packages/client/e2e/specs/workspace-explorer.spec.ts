@@ -450,15 +450,17 @@ async function createInCurrentFolder(page: import("@playwright/test").Page, kind
   return (await response.json()) as { properties: { id: string; slug: string } };
 }
 
+/** The dragged row is held as an element: a completed move may take it out of the tree before the drag ends. */
 async function dragWorkspaceItem(page: import("@playwright/test").Page, sourceTestId: string, targetTestId: string) {
   const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
   const source = page.getByTestId(sourceTestId);
   const target = page.getByTestId(targetTestId);
-  await source.dispatchEvent("dragstart", { dataTransfer });
+  const dragged = await source.elementHandle();
+  await dragged?.dispatchEvent("dragstart", { dataTransfer });
   await target.dispatchEvent("dragenter", { dataTransfer });
   await target.dispatchEvent("dragover", { dataTransfer });
   await target.dispatchEvent("drop", { dataTransfer });
-  await source.dispatchEvent("dragend", { dataTransfer });
+  await dragged?.dispatchEvent("dragend", { dataTransfer });
   await dataTransfer.dispose();
 }
 
