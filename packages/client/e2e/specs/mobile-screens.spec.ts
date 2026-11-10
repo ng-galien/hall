@@ -64,7 +64,7 @@ async function layoutFindings(page: Page) {
       };
       const cut = [...document.querySelectorAll("body *")]
         .filter((element) => visible(element) && cutAtRightEdge(element))
-        .filter((element) => !element.closest("[data-horizontal-scroll], .maplibregl-map, .univer-container, table"))
+        .filter((element) => !element.closest("[data-horizontal-scroll], .maplibregl-map, .univer-spreadsheet, table"))
         .slice(0, 8)
         .map(describe);
       const inSentence = (element: Element) => {
@@ -84,7 +84,7 @@ async function layoutFindings(page: Page) {
         ),
       ]
         .filter(visible)
-        .filter((element) => !element.closest(".maplibregl-map, .univer-container, [contenteditable=true]"))
+        .filter((element) => !element.closest(".maplibregl-map, .univer-spreadsheet, [contenteditable=true]"))
         .filter((element) => !inSentence(element))
         .filter((element) => {
           const rect = touchArea(element);
@@ -92,7 +92,7 @@ async function layoutFindings(page: Page) {
         })
         .map(describe);
       const smallText = [...document.querySelectorAll("body *")]
-        .filter((element) => visible(element) && !element.closest(".maplibregl-map, .univer-container"))
+        .filter((element) => visible(element) && !element.closest(".maplibregl-map, .univer-spreadsheet"))
         .filter((element) =>
           [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? "").trim()),
         )
@@ -100,7 +100,7 @@ async function layoutFindings(page: Page) {
         .slice(0, 8)
         .map(describe);
       const truncatedActions = [...document.querySelectorAll("button, [role=tab], [role=button], [data-slot=button]")]
-        .filter((element) => visible(element) && !element.closest(".maplibregl-map, .univer-container"))
+        .filter((element) => visible(element) && !element.closest(".maplibregl-map, .univer-spreadsheet"))
         .filter((element) => !element.closest("[title]") && !element.querySelector("[title]"))
         .filter((element) => element.scrollWidth > element.clientWidth + 1 && (element.textContent ?? "").trim())
         .slice(0, 8)

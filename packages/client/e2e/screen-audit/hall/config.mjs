@@ -20,7 +20,7 @@ export const formats = [
 
 export const collect = {
   ...defaultCollectOptions,
-  ignoreSelectors: [".ol-viewport", ".univer-container", "[data-testid=application-sync-status]"],
+  ignoreSelectors: [".ol-viewport", ".univer-spreadsheet", "[data-testid=application-sync-status]"],
   chromeSelectors: ["[data-testid=phone-header]", "[data-testid=phone-navigation]", "header.app-header", "aside"],
 };
 
