@@ -142,7 +142,12 @@ export function PhoneNavigation() {
           <div className="app-phone-more-list">
             {moreRows.map(moreRow)}
             {moreRow({ to: "/docs", testId: "help", label: t("navigation.help"), icon: <DocsIcon /> })}
-            {moreRow({ to: "/settings", testId: "account", label: t("navigation.account"), icon: <SettingsIcon /> })}
+            {moreRow({
+              to: "/settings?category=preferences",
+              testId: "account",
+              label: t("navigation.account"),
+              icon: <SettingsIcon />,
+            })}
           </div>
         </DialogContent>
       </Dialog>
