@@ -280,6 +280,93 @@ test.describe("Hall pages on a phone", () => {
     });
   });
 
+  test.describe("in a narrow window without a touch screen", () => {
+    test.use({ seedScenario: "default", hasTouch: false, isMobile: false, viewport: { width: 375, height: 812 } });
+
+    // @verifies-requirement HALL-FR-LAY-010
+    // @verifies-requirement HALL-FR-BUS-070
+    test("a business page offers finger-sized actions, wrapped titles and a full-width committee selector", async ({
+      appPage: page,
+    }) => {
+      const marker = crypto.randomUUID().slice(0, 8);
+      const createdBusiness = await page.request.post("/api/council-business", {
+        data: { path: "seed", name: `Convention ${marker}`, reportName: "Rapport", reportContent: "" },
+      });
+      expect(createdBusiness.ok()).toBeTruthy();
+      const business = (await createdBusiness.json()).properties as { id: string; folderPath: string };
+      const name = `Délibération relative au renouvellement de la convention de mise à disposition ${marker}`;
+      const created = await page.request.post("/api/resources", {
+        data: { kind: "text", path: "seed", name, content: "Texte." },
+      });
+      expect(created.status()).toBe(201);
+      const document = (await created.json()).properties as { id: string };
+      const associated = await page.request.post(`/api/council-business/${business.id}/resources`, {
+        data: { resourceId: document.id },
+      });
+      expect(associated.ok()).toBeTruthy();
+
+      await page.goto(
+        `/app/workspace?${new URLSearchParams({ councilBusiness: business.id, path: business.folderPath })}`,
+      );
+      await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+      const minimumSide = async (testId: string) => {
+        const box = (await page.getByTestId(testId).first().boundingBox())!;
+        return Math.min(box.width, box.height);
+      };
+      for (const testId of ["business-create-subject", "attachment-picker-open", "phone-document-actions"])
+        expect(await minimumSide(testId), `${testId} target`).toBeGreaterThanOrEqual(44);
+
+      const row = page.getByTestId(`business-phone-document-${document.id}`);
+      await expect(row).toBeVisible();
+      const title = await row.evaluate((element) => {
+        const label = element.querySelector(":scope > span:last-child")!;
+        return {
+          right: element.getBoundingClientRect().right,
+          cut: label.scrollWidth > label.clientWidth + 1,
+          lines: Math.round(
+            label.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(label).lineHeight),
+          ),
+          viewport: document.documentElement.clientWidth,
+        };
+      });
+      expect(title.cut, "document title cut").toBe(false);
+      expect(title.lines, "document title wraps").toBeGreaterThan(1);
+      expect(title.right).toBeLessThanOrEqual(title.viewport);
+      expect((await row.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+      await page.getByTestId("phone-document-information-toggle").click();
+      const committees = page.getByTestId("business-committees");
+      const search = page.getByTestId("business-committee-search");
+      await expect(search).toBeVisible();
+      const committeesBox = (await committees.boundingBox())!;
+      const searchBox = (await search.boundingBox())!;
+      expect(searchBox.width, "selector width").toBeGreaterThanOrEqual(committeesBox.width - 1);
+      expect(searchBox.height, "selector height").toBeGreaterThanOrEqual(44);
+      expect(searchBox.y, "selector under its label").toBeGreaterThan(committeesBox.y + 8);
+
+      await page.getByTestId("business-committee-search-input").click();
+      const results = page.getByTestId("business-committee-results");
+      await expect(results).toBeVisible();
+      expect((await results.boundingBox())!.width, "list width").toBeGreaterThanOrEqual(searchBox.width - 1);
+      const choices = page.getByTestId("business-committee-result");
+      await expect(choices.first()).toBeVisible();
+      for (const height of await choices.evaluateAll((elements) =>
+        elements.map((element) => element.getBoundingClientRect().height),
+      ))
+        expect(height, "choice height").toBeGreaterThanOrEqual(44);
+
+      const before = await page.getByTestId("business-committee-badge").count();
+      await choices.first().click();
+      await expect(page.getByTestId("business-committee-badge")).toHaveCount(before + 1);
+      const remove = page.getByTestId("business-committee-remove").last();
+      const removeBox = (await remove.boundingBox())!;
+      expect(Math.min(removeBox.width, removeBox.height), "remove target").toBeGreaterThanOrEqual(44);
+      await remove.click();
+      await expect(page.getByTestId("business-committee-badge")).toHaveCount(before);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+  });
+
   // @verifies-requirement HALL-FR-DOC-480
   test("a PDF reads page by page, zooms by pinch and double tap, and shows its page", async ({ appPage: page }) => {
     const upload = await page.request.post("/api/resources/documents", {
