@@ -121,7 +121,7 @@ export function CalendarPage() {
   return (
     <div className="hall-calendar" data-testid="calendar-page">
       <div className="calendar-toolbar">
-        <div className="flex items-center gap-2">
+        <div className="calendar-toolbar-navigation flex items-center gap-2">
           <Button variant="outline" data-testid="calendar-today" onClick={() => calendar.current?.getApi().today()}>
             {t("calendar.today")}
           </Button>
@@ -141,10 +141,10 @@ export function CalendarPage() {
           >
             ›
           </Button>
-          <h1>{title}</h1>
+          <h1 data-testid="calendar-title">{title}</h1>
         </div>
-        <div className="flex gap-2">
-          <div className="flex">
+        <div className="calendar-toolbar-actions flex gap-2">
+          <div className="calendar-toolbar-views flex">
             {(
               [
                 { id: "dayGridMonth", label: "calendar.month" },
@@ -189,6 +189,8 @@ export function CalendarPage() {
         initialView={phoneWidth ? "timeGridDay" : "dayGridMonth"}
         headerToolbar={false}
         height="100%"
+        // On a phone the day opens half an hour before six so that the first hour label is not under the header.
+        {...(phoneWidth ? { scrollTime: "05:30:00" } : {})}
         events={events}
         firstDay={1}
         nowIndicator
@@ -277,6 +279,9 @@ export function CalendarPage() {
         }}
         dayCellDidMount={(info) => {
           info.el.dataset.testid = `calendar-day-${localDate(info.date)}`;
+        }}
+        slotHeaderDidMount={(info) => {
+          info.el.dataset.testid = "calendar-slot-label";
         }}
         slotLaneDidMount={(info) => {
           info.el.dataset.testid = `calendar-slot-${info.el.dataset.time}`;

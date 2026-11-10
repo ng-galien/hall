@@ -136,6 +136,65 @@ test("phone documentation shows the page over the whole width and opens its cont
 });
 
 // @verifies-requirement HALL-FR-LAY-010
+test("phone calendar header keeps the date on one line, its buttons apart and the first hour whole", async ({
+  appPage: page,
+}) => {
+  // The French labels are the longest ones.
+  await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+  for (const width of [375, 360]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto("/app/calendar");
+    const title = page.getByTestId("calendar-title");
+    await expect(title).not.toBeEmpty();
+    await expect(page.getByTestId("calendar-slot-label").first()).toBeAttached();
+    const header = await page.evaluate(() => {
+      const box = (testId: string) => document.querySelector(`[data-testid="${testId}"]`)!.getBoundingClientRect();
+      const heading = document.querySelector<HTMLElement>('[data-testid="calendar-title"]')!;
+      const controls = [
+        "calendar-today",
+        "calendar-previous",
+        "calendar-next",
+        "calendar-view-dayGridMonth",
+        "calendar-view-timeGridWeek",
+        "calendar-view-timeGridDay",
+        "calendar-new",
+      ].map(box);
+      const overlaps = controls.flatMap((a, index) =>
+        controls
+          .slice(index + 1)
+          .filter((b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5),
+      ).length;
+      const titleBox = heading.getBoundingClientRect();
+      return {
+        titleLines: Math.round(titleBox.height / Number.parseFloat(getComputedStyle(heading).lineHeight)),
+        titleTruncated: heading.scrollWidth > heading.clientWidth + 1,
+        titleOverlaps: controls.filter((b) => titleBox.top < b.bottom - 0.5 && b.top < titleBox.bottom - 0.5).length,
+        overlaps,
+        rightGap: document.documentElement.clientWidth - Math.max(...controls.map((control) => control.right)),
+      };
+    });
+    expect(header.titleLines, "date on one line").toBe(1);
+    expect(header.titleTruncated, "date shown whole").toBe(false);
+    expect(header.titleOverlaps + header.overlaps, "header controls apart").toBe(0);
+    expect(header.rightGap, "space before the right edge").toBeGreaterThanOrEqual(8);
+    // No hour label of the day view is half hidden under the header of the grid.
+    const cutLabels = await page.getByTestId("calendar-slot-label").evaluateAll((labels) =>
+      labels.flatMap((label) => {
+        const rect = label.getBoundingClientRect();
+        let top = rect.top;
+        for (let parent = label.parentElement; parent; parent = parent.parentElement) {
+          if (getComputedStyle(parent).overflowY !== "visible") top = Math.max(top, parent.getBoundingClientRect().top);
+        }
+        const hidden = top - rect.top;
+        return hidden > 0.5 && hidden < rect.height - 0.5 ? [(label.textContent ?? "").trim()] : [];
+      }),
+    );
+    expect(cutLabels, "hour labels cut at the top of the day view").toEqual([]);
+    await expectFitsWidth(page);
+  }
+});
+
+// @verifies-requirement HALL-FR-LAY-010
 test("phone form can be completed and submitted without horizontal overflow", async ({ appPage: page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/app/contacts");

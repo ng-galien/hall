@@ -275,6 +275,12 @@
   .composer-item-row > .composer-item-main { flex: 1 1 var(--hall-size-relative-12rem); }
   /* On a narrow map, the card of the selected element covers the Elements panel instead of sliding under it. */
   .geographic-feature-card { z-index: calc(var(--hall-z-content) + 1); }
+  /* Calendar header on a phone: the date on its own line, then the navigation, then the views and the new event. */
+  .app-main .hall-calendar .calendar-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); }
+  .app-main .hall-calendar .calendar-toolbar-navigation { flex-wrap: wrap; }
+  .app-main .hall-calendar .calendar-toolbar h1 { order: -1; flex: 1 0 100%; min-width: 0; overflow: hidden; font-size: var(--hall-font-size-title); text-overflow: ellipsis; white-space: nowrap; }
+  .app-main .hall-calendar .calendar-toolbar-actions { flex-wrap: wrap; justify-content: space-between; min-width: 0; }
+  .app-main .hall-calendar .calendar-toolbar-views > [data-slot="button"] { padding-inline: var(--hall-space-2); }
   .docs-toolbar { flex-wrap: wrap; height: auto; padding-block: var(--hall-space-2); }
   /* The contents tree, when opened, takes the place of the page under the toolbar. */
   .docs-area { flex-direction: column; }
