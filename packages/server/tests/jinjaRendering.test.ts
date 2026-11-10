@@ -374,9 +374,8 @@ describe("signature blocks of the default PDF documents", () => {
       { id: "chair", role: "mayor", active: true, contactId: "contact-chair", rank: null },
     ] as never);
     const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
-    expect(preview.resolvedMarkdown.indexOf("- Marie Martin : Présent")).toBeLessThan(
-      preview.resolvedMarkdown.indexOf("- Jean Dupont : Présent"),
-    );
+    const markdown = preview.resolvedMarkdown ?? "";
+    expect(markdown.indexOf("- Marie Martin : Présent")).toBeLessThan(markdown.indexOf("- Jean Dupont : Présent"));
   });
 
   // @verifies-requirement HALL-FR-MIN-270

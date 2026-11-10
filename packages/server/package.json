@@ -17,7 +17,7 @@
     "dev": "cross-env HALL_DEV_AUTO_LOGIN=true nodemon --watch src --ext ts --exec 'node --import tsx src/index.ts'",
     "start": "node dist/index.js",
     "seed:dev": "node ../../scripts/seed/seed-dev.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run --config ../../tests/postgres/vitest.config.ts",
     "test:vitest": "vitest run --config ../../tests/postgres/vitest.config.ts",
     "test:integration": "vitest run --config ../../tests/postgres/vitest.config.ts --exclude src/__tests__/postgresPersistence.test.ts",

@@ -31,7 +31,7 @@ function application() {
   return app;
 }
 
-function loggedLines(spy: ReturnType<typeof vi.spyOn>) {
+function loggedLines(spy: { mock: { calls: unknown[][] } }) {
   return spy.mock.calls.map(([fields, message]) => ({ fields: fields as Record<string, unknown>, message }));
 }
 
