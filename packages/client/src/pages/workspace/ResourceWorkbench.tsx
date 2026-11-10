@@ -10,7 +10,9 @@ import type { ResourceSession } from "../../features/resources/useResourceSessio
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
 import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import { ResourcePhoneView } from "./ResourcePhoneView";
 import { ResourceWorkbenchHeader } from "./ResourceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
@@ -25,6 +27,7 @@ export function ResourceWorkbench({
   const mentionables = useReferenceMentionables();
   const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
   const { t } = useI18n();
+  const phone = usePhoneLayout();
   const [viewerOpen, setViewerOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const extendedViewTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -45,6 +48,18 @@ export function ResourceWorkbench({
   );
 
   if (!resource) return <RequestErrorBanner error={session.actionError} />;
+  if (phone) {
+    return (
+      <ResourcePhoneView
+        session={session}
+        relatedBusinesses={relatedBusinesses}
+        mentionables={mentionables}
+        canUploadImage={canUploadImage}
+        uploadImage={(file) => uploadImage(file, { kind: "textResourceContent", id: resource.id })}
+        onSelect={onSelect}
+      />
+    );
+  }
 
   const renameResource = async (nextTitle: string) => {
     session.setTitle(nextTitle);

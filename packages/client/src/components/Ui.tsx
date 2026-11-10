@@ -13,25 +13,32 @@ export function PageHeader({
   children,
   titleAction,
   above,
+  keepTitleOnPhone = false,
 }: {
   title: string;
   description: string;
   children?: ReactNode;
   titleAction?: ReactNode;
   above?: ReactNode;
+  /** The phone header names the section only; a long record title stays on the page. */
+  keepTitleOnPhone?: boolean;
 }) {
   return (
-    <header className="border-b border-border bg-surface px-7 py-4">
+    <header
+      className="page-header border-b border-border bg-surface px-7 py-4"
+      data-phone-title={keepTitleOnPhone ? "page" : "header"}
+      data-phone-empty={!keepTitleOnPhone && !above && !titleAction && !children ? "true" : undefined}
+    >
       {above}
       {titleAction ? (
-        <div className="flex items-center gap-2">
+        <div className="page-header-title-row flex items-center gap-2">
           <h1 className="page-title">{title}</h1>
           {titleAction}
         </div>
       ) : (
         <h1 className="page-title">{title}</h1>
       )}
-      {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
+      {description ? <p className="page-header-description mt-1 text-sm text-muted">{description}</p> : null}
       {children}
     </header>
   );

@@ -125,7 +125,7 @@ test("document previews share a contextual frame in both themes without changing
       .poll(() => app.windows().some((window) => window.url().includes("/app/")), { timeout: 30_000 })
       .toBe(true);
     const page = app.windows().find((window) => window.url().includes("/app/"))!;
-    await expect(page.getByTestId("dashboard-next-meeting")).toBeVisible({ timeout: 480_000 });
+    await expect(page.getByTestId("home-meeting")).toBeVisible({ timeout: 480_000 });
     const origin = new URL(page.url()).origin;
     const go = (path: string) => page.goto(`${origin}/app/${path}`);
     await page.getByTestId("navigation-settings").click();

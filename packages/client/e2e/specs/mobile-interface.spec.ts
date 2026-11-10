@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
 test.use({ hasTouch: true });
@@ -7,55 +8,92 @@ const png = Buffer.from(
   "base64",
 );
 
+async function expectFitsWidth(page: Page) {
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await expect
+    .poll(() =>
+      page.getByTestId("application-main").evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
+    )
+    .toBe(true);
+}
+
 // @verifies-requirement HALL-FR-LAY-010
 test("phone navigation and sections fit the viewport and preserve desktop navigation", async ({
   appPage: page,
 }, testInfo) => {
   test.setTimeout(60_000);
-  for (const width of [360, 768]) {
-    await page.setViewportSize({ width, height: 800 });
-    await page.goto("/app/");
-    for (const destination of [
-      "contacts",
-      "council-members",
-      "meetings",
-      "minutes",
-      "council-decisions",
-      "workspace",
-      "maps",
-      "calendar",
-      "council-committees",
-      "settings",
-    ]) {
-      await page.getByTestId("navigation-toggle").tap();
-      const menu = page.getByTestId("mobile-navigation");
-      await expect(menu).toBeVisible();
-      if (width === 360 && destination === "contacts")
-        await page.screenshot({ path: testInfo.outputPath("phone-menu.png"), animations: "disabled" });
-      const link = menu.getByTestId(`navigation-${destination}`);
-      const route = (await link.getAttribute("href"))?.replace(/^\/app/, "");
-      await link.tap();
-      await expect(menu).toBeHidden();
-      // The layout closes the menu when the route commits: wait for it before reopening the menu.
-      await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", route ?? "");
-      await expect
-        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
-        .toBe(true);
-      if (width === 360 && ["contacts", "maps", "calendar"].includes(destination))
-        await page.screenshot({ path: testInfo.outputPath(`phone-${destination}.png`), animations: "disabled" });
-      await expect
-        .poll(() =>
-          page.getByTestId("application-main").evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
-        )
-        .toBe(true);
-    }
-    await page.getByTestId("navigation-toggle").click();
-    await page.getByTestId("mobile-navigation").getByTestId("dialog-close").click();
-    await expect(page.getByTestId("mobile-navigation")).toBeHidden();
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/app/");
+  // On a phone the bottom bar replaces the drawer; « Plus » opens the other destinations.
+  await expect(page.getByTestId("phone-navigation")).toBeVisible();
+  await expect(page.getByTestId("navigation-toggle")).toHaveCount(0);
+  for (const [destination, route] of [
+    ["meetings", "/meetings"],
+    ["calendar", "/calendar"],
+    ["documents", "/workspace"],
+    ["home", "/"],
+  ] as const) {
+    await page.getByTestId(`phone-navigation-${destination}`).tap();
+    await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", route);
+    await expect(page.getByTestId(`phone-navigation-${destination}`)).toHaveAttribute("aria-current", "page");
+    await expectFitsWidth(page);
   }
+  for (const [destination, route] of [
+    ["council-decisions", "/council-decisions"],
+    ["minutes", "/minutes"],
+    ["maps", "/maps"],
+    ["account", "/settings"],
+    ["help", "/docs"],
+  ] as const) {
+    await page.getByTestId("phone-navigation-more").tap();
+    const sheet = page.getByTestId("phone-more");
+    await expect(sheet).toBeVisible();
+    if (destination === "council-decisions")
+      await page.screenshot({ path: testInfo.outputPath("phone-more.png"), animations: "disabled" });
+    await sheet.getByTestId(`phone-more-${destination}`).tap();
+    await expect(sheet).toBeHidden();
+    await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", new RegExp(`^${route}(/|$)`));
+    // Maps records its view in the address once loaded; wait for it so that the next sheet stays open.
+    if (destination === "maps") await expect(page).toHaveURL(/\/app\/maps\?view=/);
+    if (destination !== "help") await expectFitsWidth(page);
+    if (destination === "maps")
+      await page.screenshot({ path: testInfo.outputPath("phone-maps.png"), animations: "disabled" });
+  }
+
+  await page.setViewportSize({ width: 768, height: 800 });
+  await page.goto("/app/");
+  await expect(page.getByTestId("phone-navigation")).toHaveCount(0);
+  for (const destination of [
+    "contacts",
+    "council-members",
+    "meetings",
+    "minutes",
+    "council-decisions",
+    "workspace",
+    "maps",
+    "calendar",
+    "council-committees",
+    "settings",
+  ]) {
+    await page.getByTestId("navigation-toggle").tap();
+    const menu = page.getByTestId("mobile-navigation");
+    await expect(menu).toBeVisible();
+    const link = menu.getByTestId(`navigation-${destination}`);
+    const route = (await link.getAttribute("href"))?.replace(/^\/app/, "");
+    await link.tap();
+    await expect(menu).toBeHidden();
+    // The layout closes the menu when the route commits: wait for it before reopening the menu.
+    await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", route ?? "");
+    await expectFitsWidth(page);
+  }
+  await page.getByTestId("navigation-toggle").click();
+  await page.getByTestId("mobile-navigation").getByTestId("dialog-close").click();
+  await expect(page.getByTestId("mobile-navigation")).toBeHidden();
+
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(page.getByTestId("navigation-workspace")).toBeVisible();
   await expect(page.getByTestId("mobile-navigation")).toHaveCount(0);
+  await expect(page.getByTestId("phone-navigation")).toHaveCount(0);
 });
 
 // @verifies-requirement HALL-FR-LAY-010
@@ -86,7 +124,12 @@ test("phone photo selection and camera input persist images through the shared e
   expect(created.ok()).toBe(true);
   const resource = (await created.json()).properties as { id: string; slug: string };
   const url = `/app/workspace?path=seed&resource=${resource.id}`;
+  const editNote = async () => {
+    await page.getByTestId("phone-document-actions").click();
+    await page.getByTestId("phone-document-action-edit").click();
+  };
   await page.goto(url);
+  await editNote();
   const compact = page.getByTestId("markdown-editor-compact").first();
   await expect(compact.getByTestId("editor-choose-image")).toBeVisible();
   const chooser = page.waitForEvent("filechooser");
@@ -100,6 +143,7 @@ test("phone photo selection and camera input persist images through the shared e
     )
     .toContain("::image[");
   await page.reload();
+  await editNote();
   await expect(compact.locator(".editor-image-node")).toHaveCount(1);
   await expect(compact.getByTestId("editor-writing-area")).toContainText("Texte conservé.");
   await compact.getByTestId("editor-open-enriched").click();
@@ -121,6 +165,7 @@ test("phone photo selection and camera input persist images through the shared e
     )
     .toBe(2);
   await page.reload();
+  await editNote();
   await expect(compact.locator(".editor-image-node")).toHaveCount(2);
   await expect
     .poll(() =>
@@ -151,6 +196,10 @@ test("phone photo selection and camera input persist images through the shared e
   });
   await page.reload();
   await expect(page.getByTestId("application-main")).toContainText("Texte conservé.");
+  await page.getByTestId("phone-document-actions").click();
+  await expect(page.getByTestId("phone-document-action-copy-reference")).toBeVisible();
+  await expect(page.getByTestId("phone-document-action-edit")).toHaveCount(0);
+  await page.keyboard.press("Escape");
   await expect(page.getByTestId("editor-choose-image")).toHaveCount(0);
   await expect(page.getByTestId("editor-take-photo")).toHaveCount(0);
   await page.unrouteAll({ behavior: "wait" });

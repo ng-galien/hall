@@ -13,20 +13,17 @@ import { previewTemplatePdf } from "../../services/templatesApi";
 import { DocumentViewerDialog } from "./DocumentViewerDialog";
 import { NativeDocumentFrame } from "./NativeDocumentFrame";
 
-// @implements-requirement HALL-FR-WSP-370
-/** Preview the current Markdown through the same Siren PDF action used by the editor Lab. */
-export function PdfPreviewButton({
+/** Generation and viewer of the PDF preview of a Markdown text, presented by a button or a menu. */
+export function usePdfPreview({
   markdown,
   title,
   testId,
   viewerTestId,
-  disabled = false,
 }: {
   markdown: string;
   title: string;
   testId: string;
   viewerTestId?: string;
-  disabled?: boolean;
 }) {
   const { t } = useI18n();
   const [url, setUrl] = useState<string | null>(null);
@@ -61,6 +58,52 @@ export function PdfPreviewButton({
     }
   };
 
+  const view = (
+    <>
+      {status === "failed" ? (
+        <p className="m-0 text-sm !text-[var(--hall-color-danger)]" role="alert">
+          {t("editor.pdfPreviewFailed")}
+        </p>
+      ) : null}
+      {url ? (
+        <DocumentViewerDialog
+          testId={`${testId}-dialog`}
+          titleId={`${testId}-title`}
+          title={title}
+          caption={t("editor.pdfPreview")}
+          closeTestId={`${testId}-close`}
+          onClose={() => {
+            requestSequence.current += 1;
+            setUrl(null);
+          }}
+        >
+          <div className="h-full min-h-0 w-full" data-testid={viewerTestId ?? `${testId}-native-viewer`}>
+            <NativeDocumentFrame url={url} mediaType="application/pdf" title={title} />
+          </div>
+        </DocumentViewerDialog>
+      ) : null}
+    </>
+  );
+  return { referencesDocuments, status, openPreview, view };
+}
+
+// @implements-requirement HALL-FR-WSP-370
+/** Preview the current Markdown through the same Siren PDF action used by the editor Lab. */
+export function PdfPreviewButton({
+  markdown,
+  title,
+  testId,
+  viewerTestId,
+  disabled = false,
+}: {
+  markdown: string;
+  title: string;
+  testId: string;
+  viewerTestId?: string;
+  disabled?: boolean;
+}) {
+  const { t } = useI18n();
+  const { referencesDocuments, status, openPreview, view } = usePdfPreview({ markdown, title, testId, viewerTestId });
   const buttonProps = {
     "data-testid": testId,
     variant: "outline",
@@ -97,28 +140,7 @@ export function PdfPreviewButton({
           {buttonContent}
         </Button>
       )}
-      {status === "failed" ? (
-        <p className="m-0 text-sm !text-[var(--hall-color-danger)]" role="alert">
-          {t("editor.pdfPreviewFailed")}
-        </p>
-      ) : null}
-      {url ? (
-        <DocumentViewerDialog
-          testId={`${testId}-dialog`}
-          titleId={`${testId}-title`}
-          title={title}
-          caption={t("editor.pdfPreview")}
-          closeTestId={`${testId}-close`}
-          onClose={() => {
-            requestSequence.current += 1;
-            setUrl(null);
-          }}
-        >
-          <div className="h-full min-h-0 w-full" data-testid={viewerTestId ?? `${testId}-native-viewer`}>
-            <NativeDocumentFrame url={url} mediaType="application/pdf" title={title} />
-          </div>
-        </DocumentViewerDialog>
-      ) : null}
+      {view}
     </>
   );
 }

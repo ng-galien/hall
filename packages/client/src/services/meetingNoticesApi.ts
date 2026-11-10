@@ -1,6 +1,7 @@
 import {
   councilMeetingSchema,
   findSirenAction,
+  findSirenLink,
   generateMeetingNoticeMessageSchema,
   meetingNoticeMessagePreparationSchema,
   meetingNoticeSchema,
@@ -42,6 +43,14 @@ export async function listMeetingNotices(reference: string) {
 export async function openMeetingNotice(id: string) {
   const result = await apiSirenRequest<unknown>(`/meeting-notices/${encodeURIComponent(id)}`);
   return { ...result, data: meetingNoticeSchema.parse(result.data) };
+}
+
+/** Address of the PDF of a meeting notice, as advertised by its representation. */
+export async function meetingNoticeContentHref(id: string) {
+  const document = await openMeetingNotice(id);
+  const content = document.representation && findSirenLink(document.representation, "content");
+  if (!content) throw new SirenCapabilityUnavailable("content");
+  return content.href;
 }
 
 export async function generateMeetingNotice(reference: string) {

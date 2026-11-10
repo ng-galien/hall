@@ -61,8 +61,11 @@ export function AgendaComposer({
   status,
   actions,
   caption,
+  pointHref,
 }: {
   agendaItems: AgendaItem[];
+  /** Opens each item on its own page instead of unfolding it in the list. */
+  pointHref?(itemId: string): string;
   status?: ReactNode;
   actions?: ReactNode;
   caption?: ReactNode;
@@ -264,39 +267,51 @@ export function AgendaComposer({
                   ) : (
                     <AgendaSubjectGlyph kind={item.subjectKind} />
                   )}
-                  <button
-                    className="composer-item-main"
-                    data-testid={`agenda-item-expand-${item.id}`}
-                    type="button"
-                    aria-expanded={expanded}
-                    onClick={() => expandItem(expanded ? null : item)}
-                  >
-                    <DetailTooltip
-                      rows={
-                        business.kind === "minutesApproval"
-                          ? []
-                          : [
-                              { label: t("meeting.hint.kind"), value: t(presentation.label) },
-                              { label: t("meeting.hint.folder"), value: business.folderPath },
-                              {
-                                label: t("meeting.hint.report"),
-                                value: business.reportResourceId ? t("common.yes") : t("common.no"),
-                              },
-                              {
-                                label: t("meeting.hint.pieces"),
-                                value: business.resources.length
-                                  ? formatNumber(business.resources.length)
-                                  : t("common.none"),
-                              },
-                            ]
-                      }
+                  {pointHref ? (
+                    <Link
+                      className="composer-item-main"
+                      data-testid={`agenda-item-open-${item.id}`}
+                      to={pointHref(item.id)}
                     >
                       <span className="composer-item-copy">
                         <strong>{liveBusinessTitle(business, t("agendaSubject.minutesApproval"))}</strong>
                       </span>
-                    </DetailTooltip>
-                  </button>
-                  {business.kind !== "minutesApproval" ? (
+                    </Link>
+                  ) : (
+                    <button
+                      className="composer-item-main"
+                      data-testid={`agenda-item-expand-${item.id}`}
+                      type="button"
+                      aria-expanded={expanded}
+                      onClick={() => expandItem(expanded ? null : item)}
+                    >
+                      <DetailTooltip
+                        rows={
+                          business.kind === "minutesApproval"
+                            ? []
+                            : [
+                                { label: t("meeting.hint.kind"), value: t(presentation.label) },
+                                { label: t("meeting.hint.folder"), value: business.folderPath },
+                                {
+                                  label: t("meeting.hint.report"),
+                                  value: business.reportResourceId ? t("common.yes") : t("common.no"),
+                                },
+                                {
+                                  label: t("meeting.hint.pieces"),
+                                  value: business.resources.length
+                                    ? formatNumber(business.resources.length)
+                                    : t("common.none"),
+                                },
+                              ]
+                        }
+                      >
+                        <span className="composer-item-copy">
+                          <strong>{liveBusinessTitle(business, t("agendaSubject.minutesApproval"))}</strong>
+                        </span>
+                      </DetailTooltip>
+                    </button>
+                  )}
+                  {business.kind !== "minutesApproval" && !pointHref ? (
                     <Button asChild variant="ghost" size="icon-sm">
                       <Link
                         data-testid={`agenda-item-open-business-${item.id}`}
@@ -472,27 +487,42 @@ export function AgendaComposer({
                         <DragHandleIcon />
                       </span>
                       <AgendaSubjectGlyph kind={subject.kind} />
-                      <button
-                        type="button"
-                        className="composer-item-main"
-                        data-testid={`agenda-candidate-preview-${candidate.key}`}
-                        aria-expanded={expandedCandidateKey === candidate.key}
-                        onClick={() =>
-                          setExpandedCandidateKey(expandedCandidateKey === candidate.key ? null : candidate.key)
-                        }
-                      >
-                        <DetailTooltip
-                          rows={[
-                            { label: t("meeting.hint.kind"), value: t(agendaSubjectPresentation[subject.kind].label) },
-                            { label: t("meeting.hint.folder"), value: subject.folderPath },
-                            { label: t("meeting.hint.created"), value: formatDate(subject.createdAt) },
-                          ]}
+                      {pointHref ? (
+                        <Link
+                          className="composer-item-main"
+                          data-testid={`agenda-candidate-open-${candidate.key}`}
+                          to={`/workspace?${new URLSearchParams({ path: subject.folderPath, resource: candidate.previewResourceId, fromBusiness: subject.councilBusinessId })}`}
                         >
                           <span className="composer-item-copy">
                             <strong>{subject.title}</strong>
                           </span>
-                        </DetailTooltip>
-                      </button>
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          className="composer-item-main"
+                          data-testid={`agenda-candidate-preview-${candidate.key}`}
+                          aria-expanded={expandedCandidateKey === candidate.key}
+                          onClick={() =>
+                            setExpandedCandidateKey(expandedCandidateKey === candidate.key ? null : candidate.key)
+                          }
+                        >
+                          <DetailTooltip
+                            rows={[
+                              {
+                                label: t("meeting.hint.kind"),
+                                value: t(agendaSubjectPresentation[subject.kind].label),
+                              },
+                              { label: t("meeting.hint.folder"), value: subject.folderPath },
+                              { label: t("meeting.hint.created"), value: formatDate(subject.createdAt) },
+                            ]}
+                          >
+                            <span className="composer-item-copy">
+                              <strong>{subject.title}</strong>
+                            </span>
+                          </DetailTooltip>
+                        </button>
+                      )}
                       <Button asChild variant="ghost" size="icon-sm">
                         <Link
                           data-testid={`agenda-candidate-open-business-${candidate.key}`}

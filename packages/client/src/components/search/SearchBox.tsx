@@ -314,7 +314,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
           }}
         >
           <FilterIcon />
-          {t("search.addFilter")}
+          <span className="shared-search-filter-label">{t("search.addFilter")}</span>
         </button>
         {isSearchBoxActive(state) ? (
           <button

@@ -9,7 +9,8 @@ interface AppHeaderProps {
   trailSlot(element: HTMLDivElement | null): void;
 }
 
-export function AppHeader({ compact, onToggleSidebar, trailSlot }: AppHeaderProps) {
+/** Connection state of the application with the server. */
+export function ApplicationConnectionStatus() {
   const { phase, error } = useApplicationStatus();
   const { t } = useI18n();
   const connectionLabel = error
@@ -22,6 +23,25 @@ export function AppHeader({ compact, onToggleSidebar, trailSlot }: AppHeaderProp
         ? t("common.syncing")
         : t("common.serverConnected");
   const pending = phase === "initializing" || phase === "synchronizing";
+  return (
+    <div
+      className="flex shrink-0 items-center gap-2 rounded-(--radius-medium) px-2 py-1 text-xs font-medium text-muted"
+      role="status"
+      aria-live="polite"
+      data-sync-state={phase}
+      data-testid="application-sync-status"
+    >
+      <span
+        aria-hidden="true"
+        className={`h-1.5 w-1.5 rounded-full ${error ? "bg-danger" : pending ? "connection-status-pending bg-warning" : "bg-success"}`}
+      />
+      <span className="app-connection-label">{connectionLabel}</span>
+    </div>
+  );
+}
+
+export function AppHeader({ compact, onToggleSidebar, trailSlot }: AppHeaderProps) {
+  const { t } = useI18n();
 
   return (
     <header
@@ -51,19 +71,7 @@ export function AppHeader({ compact, onToggleSidebar, trailSlot }: AppHeaderProp
         <div ref={trailSlot} className="app-header-trail" />
       </div>
 
-      <div
-        className="flex shrink-0 items-center gap-2 rounded-(--radius-medium) px-2 py-1 text-xs font-medium text-muted"
-        role="status"
-        aria-live="polite"
-        data-sync-state={phase}
-        data-testid="application-sync-status"
-      >
-        <span
-          aria-hidden="true"
-          className={`h-1.5 w-1.5 rounded-full ${error ? "bg-danger" : pending ? "connection-status-pending bg-warning" : "bg-success"}`}
-        />
-        <span className="app-connection-label">{connectionLabel}</span>
-      </div>
+      <ApplicationConnectionStatus />
     </header>
   );
 }

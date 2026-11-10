@@ -5,6 +5,7 @@ import { ColorPicker, type ColorPickerPreset } from "@/components/ui/color-picke
 import { Input } from "@/components/ui/input";
 import { DeleteIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
 // @implements-requirement HALL-FR-DOC-530
 // biome-ignore-start lint/suspicious/noArrayIndexKey: ordered value pairs have no identity; label changes intentionally remount the input.
@@ -16,7 +17,8 @@ export function GeographicLegend({
   actions?: ReactNode;
 }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(true);
+  const phone = usePhoneLayout();
+  const [open, setOpen] = useState(!phone);
   const contentId = useId();
   if (!entries.length) return actions ?? null;
   return (

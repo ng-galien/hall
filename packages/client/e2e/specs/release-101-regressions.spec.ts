@@ -16,6 +16,9 @@ test("photo actions stay on mobile without occupying the desktop text editor", a
   await expect(editor.locator(".editor-image-file-controls")).toBeHidden();
   await page.screenshot({ path: testInfo.outputPath("desktop-photo-controls.png"), animations: "disabled" });
   await page.setViewportSize({ width: 390, height: 844 });
+  // On a phone the note opens for reading; « Modifier » in its actions menu opens the editor.
+  await page.getByTestId("phone-document-actions").click();
+  await page.getByTestId("phone-document-action-edit").click();
   await expect(editor.getByTestId("editor-choose-image")).toBeVisible();
   await expect(editor.getByTestId("editor-take-photo")).toBeVisible();
   await expect(editor.getByTestId("editor-camera-file")).toHaveAttribute("capture", "environment");

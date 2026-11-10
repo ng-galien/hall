@@ -3986,12 +3986,13 @@
       },
       "statement": "Un document s’ouvre dans une seule visionneuse en plein écran, partagée par tous les endroits qui ouvrent un document.",
       "acceptanceCriteria": [
-        "La visionneuse est une fenêtre de dialogue qui occupe presque tout l’écran, avec le titre du document et un bouton de fermeture ; ce bouton la ferme, et Échap la ferme lorsque le focus n’est pas dans un éditeur de texte, où Échap reste à l’éditeur.",
-        "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
-        "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré.",
+        "La visionneuse est une fenêtre de dialogue qui occupe presque tout l’écran, avec le titre du document et un bouton de fermeture ; ce bouton la ferme, et Échap la ferme lorsque le focus n’est pas dans un éditeur de texte, où Échap reste à l’éditeur. Sur un téléphone, hors conduite de la séance en direct, elle occupe tout l’écran avec une flèche de retour à la place du bouton de fermeture ; la flèche et le retour du téléphone la ferment et ramènent à l’écran d’où le document a été ouvert.",
+        "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur, et un PDF s’affiche page après page, dessiné par Hall, dans un navigateur sans lecteur PDF intégré ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
+        "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré. Sur un téléphone, hors conduite de la séance en direct, un document de l’espace de travail ouvert depuis une référence, la recherche, le calendrier ou la composition de l’ordre du jour s’ouvre sur sa propre page.",
         "La visionneuse présente le document avec les droits de l’utilisateur, quel que soit l’endroit d’où il est ouvert : une carte, un texte ou un tableur que l’utilisateur peut modifier y est modifiable avec son propre éditeur, exactement comme dans la ligne dépliée (pour une carte : mode Dessin, mesures, notes et « Enregistrer ce cadrage »), et il y est présenté en lecture sinon.",
         "Les aperçus de PV, délibérations, PDF temporaires et modèles HTML réutilisent le cadre commun, avec un titre identifiant leur document et son contexte ; le corps reste adapté au format. L’en-tête, le contenu et la fermeture sont alignés en clair et sombre, sans changer les octets des documents figés.",
-        "Un tableur ouvert dans la ligne dépliée des documents d’une affaire présente une grille de cellules visible et utilisable, sans devoir passer en plein écran ; les modifications restent enregistrées après réouverture."
+        "Un tableur ouvert dans la ligne dépliée des documents d’une affaire présente une grille de cellules visible et utilisable, sans devoir passer en plein écran ; les modifications restent enregistrées après réouverture.",
+        "Sur un téléphone, les pages d’un PDF défilent l’une sous l’autre, s’agrandissent par pincement ou double appui, et l’indication « Page N / total » s’affiche pendant le défilement."
       ],
       "clauses": [
         {
@@ -4016,6 +4017,12 @@
           "key": "release-101-inline-regression",
           "origin": "product",
           "statement": "Annotation propriétaire du 1 novembre 2026 pour Hall 1.0.1 : hauteur du tableur intégré effondrée dans les documents d’une affaire ; restaurer la grille intégrée, sans substitution par le plein écran.",
+          "sourceIds": []
+        },
+        {
+          "key": "phone-own-pages",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 9 novembre 2026 : sur téléphone, chaque contenu a sa propre page, le retour ramène à l’écran précédent, séances incluses, la barre du bas est masquée en lecture, le lecteur PDF offre zoom et indication de page ; le bureau ne change pas.",
           "sourceIds": []
         }
       ]
@@ -8822,9 +8829,9 @@
       "statement": "La section « Documents » d’une affaire se replie par son en-tête et chaque document s’ouvre en plein écran depuis sa ligne.",
       "acceptanceCriteria": [
         "L’en-tête de la section est un bouton de repli qui porte, sur une seule ligne alignée, le chevron, l’icône, le titre « Documents » et le nombre de documents rattachés ; il change de fond au survol et indique son état ouvert ou replié.",
-        "La section est repliée à l’ouverture d’une affaire et lors du changement d’affaire ; un clic sur l’en-tête la replie ou la rouvre ; une actualisation de la même affaire conserve le choix manuel et les branches de documents dépliées. Les actions de création et de rattachement restent visibles à droite de l’en-tête dans les deux états.",
+        "Sur ordinateur et tablette, la section est repliée à l’ouverture d’une affaire et lors du changement d’affaire ; un clic sur l’en-tête la replie ou la rouvre ; une actualisation de la même affaire conserve le choix manuel et les branches de documents dépliées. Les actions de création et de rattachement restent visibles à droite de l’en-tête dans les deux états.",
         "Chaque ligne de document porte une action « Ouvrir en plein écran », visible avec son infobulle, qui ouvre le document dans la visionneuse partagée avec les droits de l’utilisateur.",
-        "Le contenu d’un document reste aussi consultable dans la ligne dépliée, comme auparavant.",
+        "Sur ordinateur et tablette, le contenu d’un document reste aussi consultable dans la ligne dépliée. Sur un téléphone, la section présente la liste des documents de l’affaire et chaque document s’ouvre sur sa propre page.",
         "Le rapport d’une affaire propose « Aperçu PDF » en lecture comme en édition ; l’action envoie le contenu courant du rapport, y compris les retouches non encore enregistrées, au même aperçu PDF temporaire que le Lab et l’affiche dans la visionneuse native sans modifier l’affaire ni rassembler les documents non référencés de son dossier. Les PDF référencés dans le rapport suivent le traitement du Lab et sont ajoutés à l’aperçu ; le bouton indique la génération et un échec lisible ; fermer l’aperçu ou changer d’affaire conserve le contexte et ne révèle pas un ancien PDF.",
         "Pendant le chargement initial réel du rapport, la section affiche un emplacement stable et un statut de chargement accessible. Dès que la ressource est prête, elle affiche l’éditeur ou le contenu en lecture, y compris lorsque le rapport est vide ; un échec de chargement affiche une erreur avec une action pour réessayer. Les retouches et les enregistrements ultérieurs ne réaffichent pas le chargement initial.",
         "L’ouverture directe d’une affaire charge son identité et son rapport sans attendre la liste des autres affaires, leurs ressources rattachées ni les annuaires sans rapport avec la vue. Les documents de cette affaire chargent séparément pour fournir leur nombre exact ; une section repliée ne construit pas les sous-vues des documents et un panneau de dossier caché ne précharge pas ses autres affaires. L’arbre et la recherche peuvent charger les index globaux lorsque l’utilisateur demande leur contenu complet.",
@@ -8876,6 +8883,12 @@
           "key": "business-page-without-fixed-text",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-12 : retirer de la page d’affaire et des documents les textes fixes ou répétés (« Rapport du sujet », phrase de présentation, « Sauvegarde auto ») ; l’icône porte l’information.",
+          "sourceIds": []
+        },
+        {
+          "key": "phone-own-pages",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 9 novembre 2026 : sur téléphone, chaque contenu a sa propre page, le retour ramène à l’écran précédent, séances incluses, la barre du bas est masquée en lecture, le lecteur PDF offre zoom et indication de page ; le bureau ne change pas.",
           "sourceIds": []
         }
       ]
@@ -9427,7 +9440,7 @@
       "statement": "La carte affiche une légende des couleurs de ses dessins, enregistrée dans leur collection GeoJSON et modifiable dans le panneau Dessin.",
       "acceptanceCriteria": [
         "La collection GeoJSON des dessins porte une liste optionnelle legend de couples color et label ; une carte sans légende continue de fonctionner.",
-        "La légende apparaît par défaut en bandeau horizontal compact en superposition à l’intérieur du bas de la carte, avec retour à la ligne selon la largeur disponible, sans couvrir les contrôles de zoom ni les attributions ; le bouton « Légende » et « Enregistrer ce cadrage » sont côte à côte. Elle est consultable en lecture seule et dans les cartes incorporées, et reste accessible sans défilement externe dans l’aperçu plein écran.",
+        "La légende apparaît par défaut en bandeau horizontal compact en superposition à l’intérieur du bas de la carte, avec retour à la ligne selon la largeur disponible, sans couvrir les contrôles de zoom ni les attributions ; le bouton « Légende » et « Enregistrer ce cadrage » sont côte à côte. Elle est consultable en lecture seule et dans les cartes incorporées, et reste accessible sans défilement externe dans l’aperçu plein écran. Sur un téléphone, la légende est repliée à l’ouverture de la carte et le bouton « Légende » l’affiche.",
         "Dans le panneau Dessin, qui peut modifier la carte ajoute, renomme, recolore et retire les entrées de légende. Les libellés vides, couleurs invalides et listes de plus de 16 entrées sont refusés.",
         "La légende est conservée lors de la modification des dessins, des mesures et du cadrage, après sauvegarde et rechargement, et voyage dans le document de la carte.",
         "Le choix de couleur d’un dessin propose d’abord les couleurs de la légende, chacune avec sa signification, puis les couleurs standard et les couleurs déjà utilisées par les dessins de la carte, y compris les couleurs personnalisées.",
@@ -9445,6 +9458,12 @@
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-12 : retrouver les couleurs de la légende et les couleurs personnalisées déjà utilisées dans le choix de couleur des dessins, et garder la légende dans l’export PDF.",
           "sourceIds": []
+        },
+        {
+          "key": "phone-own-pages",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 9 novembre 2026 : sur téléphone, chaque contenu a sa propre page, le retour ramène à l’écran précédent, séances incluses, la barre du bas est masquée en lecture, le lecteur PDF offre zoom et indication de page ; le bureau ne change pas.",
+          "sourceIds": []
         }
       ]
     },
@@ -9457,13 +9476,19 @@
       },
       "statement": "Hall est utilisable depuis un téléphone et permet d’ajouter une image existante ou une photo prise avec le téléphone.",
       "acceptanceCriteria": [
-        "La navigation principale s’ouvre et se ferme sur petit écran sans occuper en permanence la largeur du contenu ; choisir une destination referme le menu.",
+        "Sur une largeur de téléphone, une barre en bas de l’écran mène aux destinations principales et son entrée « Plus » ouvre les autres. Sur une largeur de tablette, la navigation principale s’ouvre et se ferme sans occuper en permanence la largeur du contenu ; choisir une destination referme le menu.",
         "Les pages, formulaires, dialogues et commandes partagées restent accessibles sur une largeur de téléphone ; les contenus larges défilent dans leur propre conteneur.",
-        "En vue liste des élus, les identités restent lisibles sans chevauchement avec avatar, mandat ou commissions. Les titres et commandes des éléments préparés et de l’ordre du jour restent accessibles dans les séances et les affaires aux formats téléphone, tablette et bureau (correction propriétaire du 16 octobre 2026, Topic Graph 420eb39d-e972-418d-bdaf-cd7b6b433d47).",
+        "En vue liste des élus, les identités restent lisibles sans chevauchement avec avatar, mandat ou commissions. Les titres et commandes des éléments préparés et de l’ordre du jour restent accessibles dans les séances et les affaires aux formats téléphone, tablette et bureau (correction propriétaire du 16 octobre 2026, Topic Graph 420eb39d-e972-418d-bdaf-cd7b6b433d47) ; sur téléphone, le titre d’un élément préparé ou d’un point ouvre sa page.",
         "Un texte modifiable propose le choix d’une photo existante et la capture depuis le téléphone dans l’éditeur compact comme en plein écran.",
         "L’import utilise les permissions, formats et stockage existants ; une image importée reste présente après réouverture et un échec est visible sans perte du texte.",
         "L’adaptation mobile conserve les fonctions et les permissions existantes sur ordinateur.",
-        "Les commandes « Choisir une photo » et « Prendre une photo » des éditeurs restent réservées à la présentation mobile ; elles ne prennent pas de place dans le texte sur bureau. Le dépôt, le collage et l’import d’image ordinaires sur bureau sont conservés."
+        "Les commandes « Choisir une photo » et « Prendre une photo » des éditeurs restent réservées à la présentation mobile ; elles ne prennent pas de place dans le texte sur bureau. Le dépôt, le collage et l’import d’image ordinaires sur bureau sont conservés.",
+        "Sur un téléphone, chaque contenu s’ouvre sur sa propre page : document, note, élément préparé, point de séance, délibération et procès-verbal ; les actions du contenu ouvert sont dans le menu ⋯ de l’en-tête.",
+        "Sur un téléphone, la flèche de l’en-tête et le retour du téléphone ramènent à l’écran précédent, y compris dans les séances ; sans écran précédent, la flèche ouvre la page parente. Chaque page a un seul défilement et retrouve sa position au retour.",
+        "Sur un téléphone, la barre du bas est masquée sur la page d’un document, d’une note, d’un élément préparé, d’un point de séance, d’une délibération et d’un procès-verbal.",
+        "Sur un téléphone, la page d’une séance présente ses informations et la liste de ses points ; chaque point s’ouvre sur sa page, à l’adresse /meetings/:id/points/:pointId. Le procès-verbal et la délibération d’une séance s’ouvrent sur leur page, leurs actions dans le menu ⋯.",
+        "Sur un téléphone, la page d’une séance montre la barre d’étapes et la pastille de révision à l’utilisateur qui peut préparer la séance.",
+        "Sur un téléphone, une carte occupe tout l’écran et une ressource distante présente son adresse avec un bouton qui ouvre le lien."
       ],
       "clauses": [
         {
@@ -9476,6 +9501,12 @@
           "key": "release-101-inline-regression",
           "origin": "product",
           "statement": "Correction propriétaire du 1 novembre 2026 pour Hall 1.0.1 : commandes photo mobiles uniquement, pas de bandeau photo dans l’éditeur compact sur bureau ; aucun nouveau choix de présentation mobile adopté.",
+          "sourceIds": []
+        },
+        {
+          "key": "phone-own-pages",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 9 novembre 2026 : sur téléphone, chaque contenu a sa propre page, le retour ramène à l’écran précédent, séances incluses, la barre du bas est masquée en lecture, le lecteur PDF offre zoom et indication de page ; le bureau ne change pas.",
           "sourceIds": []
         }
       ]
@@ -10833,6 +10864,28 @@
           "key": "owner-dark-theme-and-captures",
           "origin": "product",
           "statement": "Demandes propriétaire du 31 octobre 2026 : revue des styles et thèmes, captures du site en thème sombre, corrections pertinentes autonomes. Topic Graph 3fd076de-d575-4af0-8af3-8305afa738a5,9606843d-3c82-4145-ac1a-d4df0337c916,086063c2-19e0-4f62-9648-4ac6bcae3b8d ; déclaration38df359a-0f41-4a70-ac0e-ee510a473471 acceptée22d6c064-8a2e-4931-a217-65a9f1397100.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-040": {
+      "name": "HOME_OVERVIEW",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-09"
+      },
+      "statement": "La page d’accueil « Vue d’ensemble » présente la séance en cours ou la prochaine séance, l’espace personnel de l’utilisateur et les derniers documents du conseil.",
+      "acceptanceCriteria": [
+        "Pendant une séance en cours, la page présente cette séance avec l’accès à son suivi en direct ; sinon elle présente la prochaine séance, qui s’ouvre d’un clic sur sa date.",
+        "L’espace personnel montre les derniers fichiers et notes de l’utilisateur et propose d’ajouter une photo, prise ou choisie, ou d’écrire une note.",
+        "Les derniers documents du conseil, hors dossiers personnels, sont listés du plus récent au plus ancien et chacun s’ouvre d’un clic."
+      ],
+      "clauses": [
+        {
+          "key": "home-overview",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 9 novembre 2026 : page d’accueil « Vue d’ensemble » refaite, avec la séance en cours ou la prochaine séance, l’espace personnel avec photo ou note, et les derniers documents.",
           "sourceIds": []
         }
       ]

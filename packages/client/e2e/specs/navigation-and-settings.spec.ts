@@ -124,7 +124,7 @@ test("stale meetings stay accessible with a yellow review badge and never become
   await page.reload();
   await expect(page.getByTestId("application-sync-status")).toHaveAttribute("data-sync-state", "synchronized");
   const next = meetings[5].properties.id;
-  await expect(page.getByTestId("dashboard-next-meeting")).toHaveAttribute("href", `/app/meetings/${next}`);
+  await expect(page.getByTestId("home-meeting-open")).toHaveAttribute("href", `/app/meetings/${next}`);
   await page.getByTestId("navigation-meetings").click();
   await expect(page.getByTestId("meeting-next")).toHaveAttribute("href", `/app/meetings/${next}`);
   await expect(page.getByTestId("meeting-needs-review")).toHaveCount(4);

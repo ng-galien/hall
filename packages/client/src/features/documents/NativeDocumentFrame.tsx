@@ -1,8 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
 import { DocumentPreviewFailure, DocumentPreviewUnavailable } from "./DocumentPreviewFailure";
+
+function PdfRendererUnavailable() {
+  return <DocumentPreviewFailure onRetry={() => window.location.reload()} />;
+}
+
+const PdfDocumentPages = lazy(() =>
+  import("./PdfDocumentPages").then(
+    (module) => ({ default: module.PdfDocumentPages }),
+    () => ({ default: PdfRendererUnavailable }),
+  ),
+);
 
 function TextDocumentFrame({
   url,
@@ -52,6 +63,11 @@ function TextDocumentFrame({
   );
 }
 
+function PdfLoading() {
+  const { t } = useI18n();
+  return <LoadingIndicator>{t("common.loading")}</LoadingIndicator>;
+}
+
 /** Media types the browser displays itself; any other file is offered for download. */
 function browserDisplayable(type: string): boolean {
   return (
@@ -85,8 +101,15 @@ export function NativeDocumentFrame({
   if (!browserDisplayable(type)) {
     return <DocumentPreviewUnavailable testId={testId ? `${testId}-unavailable` : undefined} />;
   }
+  if (type === "application/pdf" && navigator.pdfViewerEnabled === false) {
+    return (
+      <Suspense fallback={<PdfLoading />}>
+        <PdfDocumentPages key={url} url={url} title={title} testId={testId} />
+      </Suspense>
+    );
+  }
   return mediaType === "application/pdf" ? (
-    <iframe data-testid={testId} src={url} title={title} onError={onError} />
+    <iframe data-testid={testId} src={`${url}#navpanes=0`} title={title} onError={onError} />
   ) : (
     <object data-testid={testId} data={url} type={mediaType} aria-label={title} onError={onError} />
   );

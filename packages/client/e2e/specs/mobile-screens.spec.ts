@@ -183,6 +183,8 @@ for (const [device, viewport] of [
           await expect(page.getByTestId("meeting-report-facts")).toBeVisible();
           const minutesLink = page.getByTestId("meeting-document-minutes-open");
           await expect(minutesLink).toBeVisible();
+          // On a phone the meeting title is in the page header, above the content.
+          if (device === "phone") return;
           await expect
             .poll(
               async () => {

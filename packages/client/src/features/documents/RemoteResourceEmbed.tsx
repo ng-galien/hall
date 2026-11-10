@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { EditIcon, OpenIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
 /** Direct browser preview for an external web resource; Hall never fetches the remote content server-side. */
 export function RemoteResourceEmbed({
@@ -14,10 +15,30 @@ export function RemoteResourceEmbed({
   onEdit?(): void;
 }) {
   const { t } = useI18n();
+  const phone = usePhoneLayout();
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
   if (resource.target.kind !== "url") return null;
   const url = resource.target.url;
   const loading = loadedUrl !== url;
+  if (phone) {
+    return (
+      <div className="remote-resource-phone" data-testid="resource-presentation-remote-read">
+        <span className="remote-resource-url">{url}</span>
+        <Button asChild>
+          <a href={url} target="_blank" rel="noreferrer" data-testid="remote-resource-open">
+            <OpenIcon aria-hidden="true" />
+            {t("workspace.openRemoteResource")}
+          </a>
+        </Button>
+        {onEdit ? (
+          <Button variant="outline" data-testid="remote-resource-edit" onClick={onEdit}>
+            <EditIcon aria-hidden="true" />
+            {t("workspace.editRemoteUrl")}
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
   return (
     <div className="remote-resource-embed" data-testid="resource-presentation-remote-read">
       <div className="remote-resource-toolbar">

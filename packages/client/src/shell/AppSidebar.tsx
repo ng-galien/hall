@@ -1,35 +1,14 @@
-import { findSirenLink, type SirenEntity } from "@hall/api-contract";
-import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ChevronDownIcon, ChevronRightIcon, DebugIcon, DocsIcon, SettingsIcon } from "../components/icons";
 import { useI18n } from "../i18n/I18nProvider";
 import { useWorkspacePrefsStore } from "../pages/workspace/workspacePrefs";
-import { apiSirenRequest } from "../services/apiClient";
-import { USER_ACCESS_CHANGED_EVENT } from "../services/usersApi";
 import { navigationSections } from "./navigation";
+import { useApiRoot } from "./usePhoneLayout";
 import { WorkspaceTree } from "./WorkspaceTree";
 
 export function AppSidebar({ compact }: { compact: boolean }) {
   const { t } = useI18n();
-  const [apiRoot, setApiRoot] = useState<SirenEntity | null>(null);
-  useEffect(() => {
-    let active = true;
-    const refreshAccess = () => {
-      void apiSirenRequest("")
-        .then(({ representation }) => {
-          if (active) setApiRoot(representation);
-        })
-        .catch(() => {
-          if (active) setApiRoot(null);
-        });
-    };
-    refreshAccess();
-    window.addEventListener(USER_ACCESS_CHANGED_EVENT, refreshAccess);
-    return () => {
-      active = false;
-      window.removeEventListener(USER_ACCESS_CHANGED_EVENT, refreshAccess);
-    };
-  }, []);
+  const { available } = useApiRoot();
   const { treeCollapsed, toggleTree } = useWorkspacePrefsStore();
 
   return (
@@ -45,9 +24,7 @@ export function AppSidebar({ compact }: { compact: boolean }) {
               <span className="mx-auto my-2 h-px w-5 bg-border" />
             ) : null}
             {section.items
-              .filter(
-                (item) => !item.requiredRelation || Boolean(apiRoot && findSirenLink(apiRoot, item.requiredRelation)),
-              )
+              .filter((item) => available(item.requiredRelation))
               .map((item) => (
                 <div className="flex flex-col" key={item.to}>
                   <div className="flex items-center gap-0.5">

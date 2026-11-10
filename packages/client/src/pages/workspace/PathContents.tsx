@@ -48,6 +48,7 @@ import { resourceCapabilities } from "../../features/resources/resourceCapabilit
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -290,6 +291,7 @@ export function PathContents({
   const visibleBusinesses = businesses.filter((business) => mode !== "resources" && matches(business.title));
   const visibleResources = resources.filter((resource) => mode !== "businesses" && matches(resource.name));
   const refresh = () => onSelect(selection);
+  const phone = usePhoneLayout();
   const hasDirectItems = useCallback(
     (folderPath: string) =>
       businesses.some((business) => business.folderPath === folderPath) ||
@@ -1085,7 +1087,7 @@ export function PathContents({
 
   const renderFolder = (folderPath: string): ReactNode => {
     const children = directChildrenOf(folderPath, paths).filter(branchHasVisibleItems);
-    const isExpanded = isFolderExpanded(folderPath) || Boolean(normalizedQuery);
+    const isExpanded = !phone && (isFolderExpanded(folderPath) || Boolean(normalizedQuery));
     const target: RenameTarget = { kind: "folder", path: folderPath };
     const key = itemKey(target);
     const renaming = renameTarget?.kind === "folder" && renameTarget.path === folderPath;
@@ -1094,6 +1096,10 @@ export function PathContents({
         className={`workspace-explorer-folder-row${selectedKeys.has(key) ? " workspace-explorer-selected" : ""}${dropPath === folderPath ? " workspace-explorer-drop" : ""}`}
         data-testid={`workspace-folder-${folderPath}`}
         onClick={(event) => {
+          if (phone) {
+            onSelect(null, folderPath);
+            return;
+          }
           selectTreeItem(key, selectionModifiers(event));
           event.currentTarget
             .querySelector<HTMLButtonElement>("button[data-workspace-tree-node]")
@@ -1301,8 +1307,9 @@ export function PathContents({
           <ul className="workspace-explorer-branch">
             {renderFolderCreation(path)}
             {renderInlineCreation(path)}
+            {phone ? rootChildren.map(renderFolder) : null}
             {renderItems(path)}
-            {rootChildren.map(renderFolder)}
+            {phone ? null : rootChildren.map(renderFolder)}
             {!rootHasDirectItems &&
             rootChildren.length === 0 &&
             creatingFolderParent !== path &&

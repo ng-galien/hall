@@ -2,6 +2,8 @@ import type { Locator } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
 const widths = [360, 390, 768, 852, 1440];
+/** At and below this width Hall uses its phone layout, where each item opens on its own page. */
+const phoneWidth = 760;
 
 async function expectReadable(locator: Locator) {
   await expect(locator).toBeVisible();
@@ -93,10 +95,13 @@ test("prepared and scheduled titles keep their actions reachable in meetings and
     .find((entry: { startedAt: string | null }) => !entry.startedAt);
   expect(meeting).toBeTruthy();
   await page.goto(`/app/meetings/${meeting.id}`);
-  const candidate = page.getByTestId(`agenda-candidate-preview-${subject.id}`);
   const add = page.getByTestId(`agenda-candidate-add-${subject.id}`);
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
+    // On a phone the title opens the page of the prepared subject instead of unfolding it.
+    const candidate = page.getByTestId(
+      width <= phoneWidth ? `agenda-candidate-open-${subject.id}` : `agenda-candidate-preview-${subject.id}`,
+    );
     await expectReadable(candidate.locator("strong"));
     await expectReachable(candidate);
     await expectReachable(add);
@@ -112,9 +117,15 @@ test("prepared and scheduled titles keep their actions reachable in meetings and
     (entry: { properties: { id: string } }) => entry.properties,
   );
   expect(agenda).toHaveLength(1);
-  const scheduled = page.getByTestId(`agenda-item-expand-${agenda[0].id}`);
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
+    if (width <= phoneWidth) {
+      const point = page.getByTestId(`agenda-item-open-${agenda[0].id}`);
+      await expectReadable(point.locator("strong"));
+      await expectReachable(point);
+      continue;
+    }
+    const scheduled = page.getByTestId(`agenda-item-expand-${agenda[0].id}`);
     await expectReadable(scheduled.locator("strong"));
     await expectReachable(scheduled);
     await expectReachable(page.getByTestId(`agenda-item-open-business-${agenda[0].id}`));
@@ -123,14 +134,16 @@ test("prepared and scheduled titles keep their actions reachable in meetings and
   const open = page.getByTestId(`business-subject-${subject.id}-open`);
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
-    await expect(open).toHaveText(title);
-    await expectReadable(open.locator("span"));
+    await expect(open).toContainText(title);
+    await expectReadable(
+      width <= phoneWidth ? open.locator(".phone-subject-copy > span").first() : open.locator("span"),
+    );
     await expectReachable(open);
-    await expectReachable(page.getByTestId(`business-subject-unschedule-${subject.id}`));
+    if (width > phoneWidth) await expectReachable(page.getByTestId(`business-subject-unschedule-${subject.id}`));
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await open.click();
-  await expect(page.getByTestId(`business-inline-resource-${subject.textResourceId}`)).toContainText(
-    "Présentation du sujet préparé.",
-  );
+  await expect(page.getByTestId("resource-phone-view")).toContainText("Présentation du sujet préparé.");
+  await page.getByTestId("phone-document-actions").click();
+  await expect(page.getByTestId("phone-document-action-subject-unschedule")).toBeVisible();
 });

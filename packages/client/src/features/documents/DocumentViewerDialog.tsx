@@ -2,8 +2,10 @@ import { type ReactNode, type RefObject, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { CloseIcon } from "../../components/icons";
+import { BackIcon, CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
+import { usePhoneViewerHistory } from "../../shell/phoneHistory";
+import { usePhoneDocumentPages } from "../../shell/usePhoneLayout";
 import "./DocumentViewer.css";
 
 // @implements-requirement HALL-FR-DOC-480
@@ -50,10 +52,16 @@ export function DocumentViewerDialog({
   const { t } = useI18n();
   const ownCloseButton = useRef<HTMLButtonElement | null>(null);
   const closeButton = closeButtonRef ?? ownCloseButton;
+  const phonePage = usePhoneDocumentPages();
+  const close = usePhoneViewerHistory(phonePage, onClose);
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && close()}>
       <DialogContent
-        className={cn("document-viewer gap-0 p-0 sm:max-w-[var(--hall-size-viewer-width)]", className)}
+        className={cn(
+          "document-viewer gap-0 p-0 sm:max-w-[var(--hall-size-viewer-width)]",
+          phonePage && "document-viewer-phone-page",
+          className,
+        )}
         data-testid={testId}
         data-resource-mode={resourceMode}
         data-document-kind={documentKind}
@@ -73,6 +81,19 @@ export function DocumentViewerDialog({
       >
         {header ?? (
           <header className="document-viewer-header">
+            {phonePage ? (
+              <Button
+                ref={closeButton}
+                data-testid={closeTestId}
+                className="document-viewer-back"
+                size="icon"
+                variant="ghost"
+                aria-label={t("common.back")}
+                onClick={close}
+              >
+                <BackIcon />
+              </Button>
+            ) : null}
             <div>
               {caption ? <span>{caption}</span> : null}
               <DialogTitle id={titleId}>{title}</DialogTitle>
@@ -80,16 +101,18 @@ export function DocumentViewerDialog({
             </div>
             <div className="document-viewer-actions">
               {actions}
-              <Button
-                ref={closeButton}
-                data-testid={closeTestId}
-                size="icon"
-                variant="ghost"
-                aria-label={t("common.close")}
-                onClick={onClose}
-              >
-                <CloseIcon />
-              </Button>
+              {phonePage ? null : (
+                <Button
+                  ref={closeButton}
+                  data-testid={closeTestId}
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t("common.close")}
+                  onClick={close}
+                >
+                  <CloseIcon />
+                </Button>
+              )}
             </div>
           </header>
         )}

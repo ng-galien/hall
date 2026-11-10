@@ -1,5 +1,6 @@
 import { matchLiteral } from "@hall/domain";
 import { type ReactNode, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { InfoIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { Badge } from "../../components/ui/badge";
@@ -19,6 +20,7 @@ import type {
   LiveMeetingPresentation,
   LiveVoteChoice as VoteChoice,
 } from "../../models/liveMeeting";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { agendaItemDecisionId } from "./ballotDecisionPolicy";
 import { councilMemberName } from "./ballotParticipants";
@@ -182,6 +184,18 @@ export function BallotOutcome({
   );
 }
 
+/** The ballot in force on an agenda item, found through the item or its council decision. */
+export function itemBallot(aggregate: LiveMeetingPresentation, item: AgendaItem): Ballot | null {
+  const decisionId = agendaItemDecisionId(item);
+  return (
+    aggregate.ballots.find(
+      (ballot) =>
+        !ballot.cancelledAt &&
+        (ballot.agendaItemId === item.id || (decisionId && ballot.councilDecisionId === decisionId)),
+    ) ?? null
+  );
+}
+
 /** Full proceedings of a meeting: opening, agenda items, ballots and closing. */
 export function MeetingProceedings({
   aggregate,
@@ -192,6 +206,7 @@ export function MeetingProceedings({
   defaultCollapsed?: boolean;
 }) {
   const { t, formatTime } = useI18n();
+  const phone = usePhoneLayout();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(
     () => new Set(defaultCollapsed ? [] : aggregate.agendaItems.map((item) => item.id)),
   );
@@ -208,23 +223,40 @@ export function MeetingProceedings({
     () => [...aggregate.agendaItems].sort((left, right) => left.position - right.position),
     [aggregate.agendaItems],
   );
-  const ballotForItem = (item: AgendaItem) => {
-    const decisionId = agendaItemDecisionId(item);
+  if (phone) {
     return (
-      aggregate.ballots.find(
-        (ballot) =>
-          !ballot.cancelledAt &&
-          (ballot.agendaItemId === item.id || (decisionId && ballot.councilDecisionId === decisionId)),
-      ) ?? null
+      <div className="report-main">
+        <section className="phone-points" data-testid="report-timeline" aria-labelledby="report-timeline-heading">
+          <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
+          <ol className="phone-point-list">
+            {orderedItems.map((item) => (
+              <li key={item.id}>
+                <Link
+                  className="phone-point-row"
+                  data-testid={`meeting-point-open-${item.id}`}
+                  to={`/meetings/${aggregate.meeting.slug || aggregate.meeting.id}/points/${item.id}`}
+                >
+                  <span className="report-timeline-marker">{item.agendaNumber}</span>
+                  <span className="phone-subject-copy">
+                    <span>{liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}</span>
+                    <small>{t(agendaSubjectPresentation[item.subjectKind].label)}</small>
+                  </span>
+                  <AgendaItemStatusBadge status={item.status} />
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </div>
     );
-  };
+  }
   return (
     <div className="report-main">
       <section className="conduct-block report-timeline" data-testid="report-timeline">
         <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
         <ol className="report-timeline-list">
           {orderedItems.map((item) => {
-            const ballot = ballotForItem(item);
+            const ballot = itemBallot(aggregate, item);
             const expanded = expandedItems.has(item.id);
             return (
               <li className="report-timeline-item" key={item.id}>

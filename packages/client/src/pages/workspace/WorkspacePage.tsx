@@ -28,6 +28,7 @@ import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { type DocumentDuplicate, findDocumentDuplicates } from "../../services/documentDuplicates";
 import { HeaderTrail } from "../../shell/headerTrail";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
@@ -54,6 +55,7 @@ export type { WorkspaceSelection } from "./workspaceItemReference";
 /** @implements-requirement HALL-FR-WSP-270 */
 export function WorkspacePage() {
   const { locale, t } = useI18n();
+  const phone = usePhoneLayout();
   const { submitting, run } = useSubmitting();
   const [searchParams, setSearchParams] = useSearchParams();
   const councilBusinessStore = useCouncilBusinessStore();
@@ -92,10 +94,6 @@ export function WorkspacePage() {
 
   const path = searchParams.get("path") ?? "";
   const folderCapabilities = folderCapabilitiesAt(resourcesStore, path);
-  const loadPersonalWorkspace = resourcesStore.loadPersonalWorkspace;
-  useEffect(() => {
-    void loadPersonalWorkspace();
-  }, [loadPersonalWorkspace]);
   const selection: WorkspaceSelection = searchParams.get("councilBusiness")
     ? { kind: "councilBusiness", id: searchParams.get("councilBusiness") as string }
     : searchParams.get("resource")
@@ -228,7 +226,7 @@ export function WorkspacePage() {
       ) {
         return;
       }
-      setSearchParams(params, { replace: true });
+      setSearchParams(params, { replace: !phone || (next === null && selection !== null) });
     })();
   };
 
@@ -507,7 +505,7 @@ export function WorkspacePage() {
             showSaveStatus={false}
           />
         </HeaderTrail>
-        <div className="workspace-topzone">
+        <div className="workspace-topzone" data-item-open={selection ? "true" : undefined}>
           <div className="workspace-bar-row">
             <div className="workspace-bar-search">
               <WorkspaceSearch
@@ -520,6 +518,7 @@ export function WorkspacePage() {
             </div>
             {resourcesStore.personalWorkspacePath ? (
               <Button
+                className="workspace-personal-open"
                 variant="outline"
                 data-testid="workspace-personal-open"
                 onClick={() => select(null, resourcesStore.personalWorkspacePath ?? "")}
@@ -529,6 +528,7 @@ export function WorkspacePage() {
             ) : null}
             {!selectedBusiness ? (
               <WorkspaceCreateMenu
+                compact={phone}
                 getError={() => useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error}
                 clearError={() => {
                   useWorkspaceResourcesStore.setState({ error: null });

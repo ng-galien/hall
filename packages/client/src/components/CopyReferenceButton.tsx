@@ -23,6 +23,10 @@ export function objectReferenceText(reference: ObjectReference, origin: string):
   ].join("\n");
 }
 
+export function copyObjectReference(reference: ObjectReference): Promise<void> {
+  return navigator.clipboard?.writeText(objectReferenceText(reference, window.location.origin)) ?? Promise.reject();
+}
+
 const copiedFeedbackMs = 1600;
 
 /** Copies the reference of the object open on the page in one gesture. */
@@ -49,11 +53,14 @@ export function CopyReferenceButton({
           data-copied={copied ? "true" : undefined}
           aria-label={label}
           onClick={() => {
-            void navigator.clipboard?.writeText(objectReferenceText(reference, window.location.origin)).then(() => {
-              window.clearTimeout(timer.current);
-              setCopied(true);
-              timer.current = window.setTimeout(() => setCopied(false), copiedFeedbackMs);
-            });
+            void copyObjectReference(reference).then(
+              () => {
+                window.clearTimeout(timer.current);
+                setCopied(true);
+                timer.current = window.setTimeout(() => setCopied(false), copiedFeedbackMs);
+              },
+              () => undefined,
+            );
           }}
         >
           {copied ? <CheckIcon /> : <CopyIcon />}

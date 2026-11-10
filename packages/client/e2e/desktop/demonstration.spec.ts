@@ -102,7 +102,7 @@ test("opens Alésia signed in, retains changes on relaunch and resets them from 
       .poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:")), { timeout: 5_000 })
       .toBe(false);
     let window = application.windows().find((page) => page.url().includes("/app/"))!;
-    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible({ timeout: 8 * 60_000 });
+    await expect(window.getByTestId("home-meeting")).toBeVisible({ timeout: 8 * 60_000 });
     expect(new URL(window.url()).pathname).toBe("/app/");
     await window.screenshot({ path: test.info().outputPath("candidate-dashboard.png") });
     const collections = await window.evaluate(async (accept) => {
@@ -168,7 +168,7 @@ test("opens Alésia signed in, retains changes on relaunch and resets them from 
     await relaunch.keyboard.press("Enter");
     await expect.poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:"))).toBe(false);
     window = application.windows().find((page) => page.url().includes("/app/"))!;
-    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible();
+    await expect(window.getByTestId("home-meeting")).toBeVisible();
     expect(await resourcesContainMarker(window)).toBe(true);
 
     await application.evaluate(({ dialog }) => {
@@ -180,7 +180,7 @@ test("opens Alésia signed in, retains changes on relaunch and resets them from 
       reset.click();
     });
     await expect.poll(() => window.url(), { timeout: 30_000 }).toMatch(/^data:/);
-    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible({ timeout: 8 * 60_000 });
+    await expect(window.getByTestId("home-meeting")).toBeVisible({ timeout: 8 * 60_000 });
     expect(await resourcesContainMarker(window)).toBe(false);
   } finally {
     await application.close();
@@ -196,7 +196,7 @@ async function openWorkspace(application: ElectronApplication): Promise<Page> {
   await expect(launch.getByTestId("launch-open")).toBeEnabled({ timeout: 120_000 });
   await launch.getByTestId("launch-open").click();
   const window = application.windows().find((page) => page.url().includes("/app/"))!;
-  await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible();
+  await expect(window.getByTestId("home-meeting")).toBeVisible();
   return window;
 }
 
@@ -225,7 +225,7 @@ test("renews the Alésia window session after expiry and opens the embedded work
       }).observe(document, { childList: true, subtree: true });
     });
     await window.reload();
-    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible();
+    await expect(window.getByTestId("home-meeting")).toBeVisible();
     await expect(window.locator("html")).not.toHaveAttribute("data-observed-login");
     await application.evaluate(() => {
       (Date.now as typeof Date.now & { restore(): void }).restore();
@@ -252,7 +252,7 @@ test("renews the Alésia window session after expiry and opens the embedded work
     await expect(window.locator("html")).not.toHaveAttribute("data-observed-login");
     await window.unroute("**/api/auth/session");
     await window.getByTestId("auth-retry").click();
-    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible();
+    await expect(window.getByTestId("home-meeting")).toBeVisible();
 
     await application.close();
     application = await launchDemonstration(userDataPath, {
@@ -269,7 +269,7 @@ test("renews the Alésia window session after expiry and opens the embedded work
       reset.click();
     });
     await expect.poll(() => window.url(), { timeout: 30_000 }).toMatch(/^data:/);
-    await expect(window.getByTestId("dashboard-next-meeting")).toBeVisible({ timeout: 120_000 });
+    await expect(window.getByTestId("home-meeting")).toBeVisible({ timeout: 120_000 });
     expect(window.url()).not.toBe(sharedUrl);
     expect(sharedRequests).toBe(0);
   } finally {

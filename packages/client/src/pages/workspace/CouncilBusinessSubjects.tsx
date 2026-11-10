@@ -1,7 +1,7 @@
 import { findSirenAction, type PreparedCouncilSubject, type SirenEntity } from "@hall/api-contract";
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { CalendarAddIcon, CloseIcon, EditIcon } from "../../components/icons";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { CalendarAddIcon, CloseIcon, EditIcon, GavelIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -12,8 +12,102 @@ import { InlineResourceContent } from "../../features/resources/InlineResourceCo
 import { useResourceRename } from "../../features/resources/useResourceRename";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode, submitSirenAction } from "../../services/apiClient";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
+import type { PhoneDocumentAction } from "./PhoneDocumentActions";
 import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
+
+function useSubjectMeetingLabel(subject: PreparedCouncilSubject | undefined) {
+  const { t, formatDate } = useI18n();
+  const meeting = subject?.agenda.meeting;
+  if (!meeting?.number) return null;
+  return meeting.scheduledAt
+    ? t("workspace.meetingCompact", { number: String(meeting.number), date: formatDate(meeting.scheduledAt) })
+    : t("workspace.meetingNumberCompact", { number: String(meeting.number) });
+}
+
+function PhoneSubjectRow({ subject, business }: { subject: PreparedCouncilSubject; business: string }) {
+  const folderPath = useCouncilBusinessStore(
+    (state) => state.businesses.find((candidate) => candidate.id === business)?.folderPath ?? "",
+  );
+  const meetingLabel = useSubjectMeetingLabel(subject);
+  return (
+    <li>
+      <Link
+        className="phone-document-row"
+        data-testid={`business-subject-${subject.id}-open`}
+        to={`/workspace?${new URLSearchParams({ path: folderPath, resource: subject.textResourceId, fromBusiness: business })}`}
+      >
+        <AgendaSubjectGlyph kind={subject.kind} tree />
+        <span className="phone-subject-copy">
+          <span>{subject.title}</span>
+          {meetingLabel ? <small>{meetingLabel}</small> : null}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+/** Actions the server grants on a prepared subject, for the page of its text. */
+export function usePreparedSubjectPhoneActions(
+  textResourceId: string | null,
+  businessId: string | null,
+  onError: (error: ApiErrorCode | null) => void,
+): PhoneDocumentAction[] {
+  const { t } = useI18n();
+  const navigate = useNavigate();
+  const subject = useCouncilBusinessStore((state) =>
+    state.preparedSubjects.find((candidate) => candidate.textResourceId === textResourceId),
+  );
+  const representation = useCouncilBusinessStore((state) =>
+    subject ? state.preparedSubjectRepresentations[`${subject.kind}:${subject.id}`] : undefined,
+  );
+  const meetingLabel = useSubjectMeetingLabel(subject);
+  useEffect(() => {
+    if (businessId) void useCouncilBusinessStore.getState().loadPreparedSubjects(businessId);
+  }, [businessId]);
+  if (!subject) return [];
+  const run = (name: "agenda-item.schedule-prepared" | "agenda-item.deprogram") => {
+    if (!representation) return;
+    onError(null);
+    void submitSirenAction(representation, name)
+      .then(() => useCouncilBusinessStore.getState().refreshPreparedSubject(subject))
+      .catch((failure) => onError(apiErrorCode(failure)));
+  };
+  const reference = subject.agenda.meeting?.reference;
+  return [
+    ...(reference && meetingLabel
+      ? [
+          {
+            id: "subject-meeting",
+            label: meetingLabel,
+            icon: <GavelIcon />,
+            onSelect: () => navigate(`/meetings/${reference}`),
+          },
+        ]
+      : []),
+    ...(representation && findSirenAction(representation, "agenda-item.schedule-prepared")
+      ? [
+          {
+            id: "subject-schedule",
+            label: t("workspace.scheduleInMeeting"),
+            icon: <CalendarAddIcon />,
+            onSelect: () => run("agenda-item.schedule-prepared"),
+          },
+        ]
+      : []),
+    ...(representation && findSirenAction(representation, "agenda-item.deprogram")
+      ? [
+          {
+            id: "subject-unschedule",
+            label: t("workspace.unschedule"),
+            icon: <CloseIcon />,
+            onSelect: () => run("agenda-item.deprogram"),
+          },
+        ]
+      : []),
+  ];
+}
 
 function SubjectTableRow({
   subject,
@@ -177,6 +271,7 @@ function SubjectTableRow({
 
 export function CouncilBusinessSubjects({ businessId }: { businessId: string }) {
   const { t } = useI18n();
+  const phone = usePhoneLayout();
   const [expandedSubjectIds, setExpandedSubjectIds] = useState<Set<string>>(() => new Set());
   const subjects = useCouncilBusinessStore((state) => state.preparedSubjects);
   const subjectRepresentations = useCouncilBusinessStore((state) => state.preparedSubjectRepresentations);
@@ -213,31 +308,39 @@ export function CouncilBusinessSubjects({ businessId }: { businessId: string }) 
             <h2>{t("workspace.preparedItems")}</h2>
             <span className="business-content-section-actions">{trigger}</span>
           </header>
-          <table className="business-subject-table">
-            <colgroup>
-              <col className="business-subject-table-type-column" />
-              <col />
-              <col className="business-subject-table-actions-column" />
-            </colgroup>
-            <tbody>
+          {phone ? (
+            <ul className="phone-document-list" data-testid="business-phone-subjects">
               {sortedSubjects.map((subject) => (
-                <SubjectTableRow
-                  key={subject.id}
-                  subject={subject}
-                  expanded={expandedSubjectIds.has(subject.id)}
-                  representation={subjectRepresentations[`${subject.kind}:${subject.id}`]}
-                  onExpand={() =>
-                    setExpandedSubjectIds((current) => {
-                      const next = new Set(current);
-                      if (next.has(subject.id)) next.delete(subject.id);
-                      else next.add(subject.id);
-                      return next;
-                    })
-                  }
-                />
+                <PhoneSubjectRow key={subject.id} subject={subject} business={businessId} />
               ))}
-            </tbody>
-          </table>
+            </ul>
+          ) : (
+            <table className="business-subject-table">
+              <colgroup>
+                <col className="business-subject-table-type-column" />
+                <col />
+                <col className="business-subject-table-actions-column" />
+              </colgroup>
+              <tbody>
+                {sortedSubjects.map((subject) => (
+                  <SubjectTableRow
+                    key={subject.id}
+                    subject={subject}
+                    expanded={expandedSubjectIds.has(subject.id)}
+                    representation={subjectRepresentations[`${subject.kind}:${subject.id}`]}
+                    onExpand={() =>
+                      setExpandedSubjectIds((current) => {
+                        const next = new Set(current);
+                        if (next.has(subject.id)) next.delete(subject.id);
+                        else next.add(subject.id);
+                        return next;
+                      })
+                    }
+                  />
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       )}
     />

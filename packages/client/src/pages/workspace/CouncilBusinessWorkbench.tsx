@@ -1,18 +1,23 @@
-import { useEffect, useState } from "react";
+import { findSirenLink } from "@hall/api-contract";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { copyObjectReference } from "../../components/CopyReferenceButton";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { FolderIcon, PinIcon, PinnedIcon } from "../../components/icons";
+import { CheckIcon, EditIcon, FolderIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ExplorerTree } from "../../components/ui/explorer-tree";
 import { CouncilBusinessCommittees } from "../../features/council-business/CouncilBusinessCommittees";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import { PdfPreviewButton } from "../../features/documents/PdfPreviewButton";
+import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
+import { PdfPreviewButton, usePdfPreview } from "../../features/documents/PdfPreviewButton";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useEditorDocumentUpload } from "../../features/documents/useEditorDocumentUpload";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
+import { ResourceChangesControl } from "../../features/resources/ResourceChangesControl";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import type { ResourceSession } from "../../features/resources/useResourceSession";
 import { ReferenceBusinessContext, useReferenceMentionables } from "../../hooks/useReferenceMentionables";
@@ -20,6 +25,7 @@ import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { ApiErrorCode } from "../../services/apiClient";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
@@ -27,6 +33,13 @@ import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore
 import { AttachmentPicker } from "./AttachmentPicker";
 import { BusinessDocumentTree } from "./BusinessDocumentTree";
 import { CouncilBusinessSubjects } from "./CouncilBusinessSubjects";
+import {
+  type PhoneDocumentAction,
+  PhoneDocumentActions,
+  PhoneRenameDialog,
+  phoneActionIcons,
+  pinIcon,
+} from "./PhoneDocumentActions";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceCreateKind } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -46,7 +59,17 @@ export function CouncilBusinessWorkbench({
   const mentionables = useReferenceMentionables(business.id);
   const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
   const uploadDocument = useEditorDocumentUpload(business.folderPath, business.id);
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
+  const phone = usePhoneLayout();
+  const [phoneEditing, setPhoneEditing] = useState(false);
+  const [phoneRenaming, setPhoneRenaming] = useState(false);
+  const [informationOpen, setInformationOpen] = useState(false);
+  const openReportChanges = useRef<(() => void) | null>(null);
+  const reportPdf = usePdfPreview({
+    markdown: reportSession.content,
+    title: `${t("meeting.report")} · ${business.title}`,
+    testId: "business-report-pdf-preview",
+  });
   const { submitting, run } = useSubmitting();
   const preparedSubjects = useCouncilBusinessStore((state) => state.preparedSubjects);
   const subjectResourceIds = new Set(
@@ -63,7 +86,7 @@ export function CouncilBusinessWorkbench({
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
   const [documentsState, setDocumentsState] = useState({ businessId: business.id, open: false });
-  const documentsOpen = documentsState.businessId === business.id && documentsState.open;
+  const documentsOpen = phone || (documentsState.businessId === business.id && documentsState.open);
   const setDocumentsOpen = (open: boolean) => setDocumentsState({ businessId: business.id, open });
   useEffect(() => {
     setDocumentsState((current) =>
@@ -73,6 +96,7 @@ export function CouncilBusinessWorkbench({
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const pinned = isPinned({ kind: "councilBusiness", id: business.id });
   const editable = reportSession.editable;
+  const showReportEditor = reportSession.editable && (!phone || phoneEditing);
 
   const documentsLoaded = useCouncilBusinessStore((state) => Boolean(state.resourceItemsLoadedById?.[business.id]));
   const documentsError = useCouncilBusinessStore((state) => state.resourceItemsErrorById?.[business.id] ?? null);
@@ -112,56 +136,139 @@ export function CouncilBusinessWorkbench({
     return true;
   };
 
+  const reference = {
+    name: business.title,
+    path: business.folderPath || undefined,
+    page: `/app/workspace?${new URLSearchParams({ path: business.folderPath, councilBusiness: business.id })}`,
+    href: `/api/council-business/${business.id}`,
+  };
+  const phoneDate = editable
+    ? t("workspace.updatedOn", { date: formatDate(business.updatedAt) })
+    : t("workspace.createdOn", { date: formatDate(business.createdAt) });
+  const finishEditing = async () => {
+    await reportSession.flush();
+    if ((reportSession.dirty ? await saveReport() : true) && (await reportSession.reload())) setPhoneEditing(false);
+  };
+  const phoneActions: PhoneDocumentAction[] = [
+    ...(reportSession.editable
+      ? [
+          phoneEditing
+            ? {
+                id: "finish-editing",
+                label: t("workspace.finishEditing"),
+                icon: <CheckIcon />,
+                onSelect: () => void finishEditing(),
+              }
+            : { id: "edit", label: t("common.edit"), icon: <EditIcon />, onSelect: () => setPhoneEditing(true) },
+        ]
+      : []),
+    ...(reportSession.resource
+      ? reportPdf.referencesDocuments
+        ? [
+            {
+              id: "pdf-without-documents",
+              label: `${t("editor.pdfPreview")} · ${t("editor.pdfWithoutDocuments")}`,
+              icon: <phoneActionIcons.pdf />,
+              onSelect: () => void reportPdf.openPreview(false),
+            },
+            {
+              id: "pdf-with-documents",
+              label: `${t("editor.pdfPreview")} · ${t("editor.pdfWithDocuments")}`,
+              icon: <phoneActionIcons.pdf />,
+              onSelect: () => void reportPdf.openPreview(true),
+            },
+          ]
+        : [
+            {
+              id: "pdf",
+              label: t("editor.pdfPreview"),
+              icon: <phoneActionIcons.pdf />,
+              onSelect: () => void reportPdf.openPreview(false),
+            },
+          ]
+      : []),
+    {
+      id: "pin",
+      label: t(pinned ? "workspace.unpinShort" : "workspace.pin"),
+      icon: pinIcon(pinned),
+      onSelect: () => togglePin({ kind: "councilBusiness", id: business.id }),
+    },
+    {
+      id: "copy-reference",
+      label: t("reference.copy"),
+      icon: <phoneActionIcons.copy />,
+      onSelect: () => void copyObjectReference(reference).catch(() => undefined),
+    },
+    ...(reportSession.representation && findSirenLink(reportSession.representation, "changes")
+      ? [
+          {
+            id: "changes",
+            label: t("resourceChanges.open"),
+            icon: <phoneActionIcons.changes />,
+            onSelect: () => openReportChanges.current?.(),
+          },
+        ]
+      : []),
+    ...(folderCapabilities.relocate
+      ? [{ id: "rename", label: t("common.rename"), icon: <EditIcon />, onSelect: () => setPhoneRenaming(true) }]
+      : []),
+  ];
+
   return (
     <ReferenceBusinessContext.Provider value={business.id}>
-      <div className="workbench workspace-business-workbench" data-testid="council-business-workbench">
-        <WorkspaceWorkbenchHeader
-          icon={<CouncilBusinessGlyph business={business} large />}
-          title={business.title}
-          titleLabel={t("meeting.subject")}
-          date={
-            editable ? { kind: "updated", value: business.updatedAt } : { kind: "created", value: business.createdAt }
-          }
-          onTitleChange={folderCapabilities.relocate ? renameBusiness : undefined}
-          hint={<CouncilBusinessCommittees businessId={business.id} />}
-          reference={{
-            name: business.title,
-            path: business.folderPath || undefined,
-            page: `/app/workspace?${new URLSearchParams({ path: business.folderPath, councilBusiness: business.id })}`,
-            href: `/api/council-business/${business.id}`,
-          }}
-          actions={
-            <>
-              <PdfPreviewButton
-                key={business.id}
-                markdown={reportSession.content}
-                title={`${t("meeting.report")} · ${business.title}`}
-                testId="business-report-pdf-preview"
-                disabled={!reportSession.resource}
-              />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
-                    aria-pressed={pinned}
-                    onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
-                  >
-                    {pinned ? <PinnedIcon /> : <PinIcon />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
-              </Tooltip>
-            </>
-          }
-          actionError={actionError ?? reportSession.actionError}
-        />
+      <div
+        className={`workbench workspace-business-workbench${phone ? " phone-business" : ""}`}
+        data-testid="council-business-workbench"
+      >
+        {phone ? (
+          <>
+            <PhoneDocumentActions actions={phoneActions} />
+            <RequestErrorBanner error={actionError ?? reportSession.actionError} />
+          </>
+        ) : (
+          <WorkspaceWorkbenchHeader
+            icon={<CouncilBusinessGlyph business={business} large />}
+            title={business.title}
+            titleLabel={t("meeting.subject")}
+            date={
+              editable ? { kind: "updated", value: business.updatedAt } : { kind: "created", value: business.createdAt }
+            }
+            onTitleChange={folderCapabilities.relocate ? renameBusiness : undefined}
+            hint={<CouncilBusinessCommittees businessId={business.id} />}
+            reference={reference}
+            actions={
+              <>
+                <PdfPreviewButton
+                  key={business.id}
+                  markdown={reportSession.content}
+                  title={`${t("meeting.report")} · ${business.title}`}
+                  testId="business-report-pdf-preview"
+                  disabled={!reportSession.resource}
+                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
+                      aria-pressed={pinned}
+                      onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
+                    >
+                      {pinned ? <PinnedIcon /> : <PinIcon />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
+                </Tooltip>
+              </>
+            }
+            actionError={actionError ?? reportSession.actionError}
+          />
+        )}
 
         <section className="workbench-section" data-testid="business-report" aria-label={t("meeting.report")}>
           <div className="grid gap-1.5">
             {reportSession.resource ? (
-              reportSession.editable ? (
+              showReportEditor ? (
                 <div data-testid="business-report-editor">
                   <MarkdownEditor
                     title={`${t("meeting.report")} : ${business.title}`}
@@ -209,7 +316,7 @@ export function CouncilBusinessWorkbench({
               </div>
             )}
           </div>
-          {reportSession.editable && (!reportSession.autosaveEnabled || reportSession.actionError) ? (
+          {showReportEditor && (!reportSession.autosaveEnabled || reportSession.actionError) ? (
             <div className="workbench-actions">
               <span className="composer-editor-spacer" />
               <Button
@@ -256,6 +363,21 @@ export function CouncilBusinessWorkbench({
             <p className="workspace-list-empty" role="status">
               {t("common.loading")}
             </p>
+          ) : phone && attachedResources.length ? (
+            <ul className="phone-document-list" data-testid="business-phone-documents">
+              {attachedResources.map((resource) => (
+                <li key={resource.id}>
+                  <Link
+                    className="phone-document-row"
+                    data-testid={`business-phone-document-${resource.id}`}
+                    to={`/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id, fromBusiness: business.id })}`}
+                  >
+                    <DocumentaryResourceGlyph resource={resource} />
+                    <span>{resource.name}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           ) : attachedResources.length ? (
             <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
               <BusinessDocumentTree
@@ -273,6 +395,42 @@ export function CouncilBusinessWorkbench({
             </p>
           )}
         </CollapsibleSection>
+
+        {phone ? (
+          <>
+            <CollapsibleSection
+              className="phone-document-information"
+              testId="phone-document-information"
+              title={t("workspace.information")}
+              open={informationOpen}
+              onOpenChange={setInformationOpen}
+            >
+              {informationOpen ? (
+                <div className="phone-document-information-body">
+                  <p>{phoneDate}</p>
+                  <CouncilBusinessCommittees businessId={business.id} />
+                </div>
+              ) : null}
+            </CollapsibleSection>
+            {reportSession.resource ? (
+              <ResourceChangesControl
+                openRef={openReportChanges}
+                resourceId={reportSession.resource.id}
+                representation={reportSession.representation}
+                onInvalidated={() => {
+                  if (!reportSession.dirty && !reportSession.submitting) void reportSession.reload();
+                }}
+              />
+            ) : null}
+            {reportPdf.view}
+            <PhoneRenameDialog
+              open={phoneRenaming}
+              name={business.title}
+              onClose={() => setPhoneRenaming(false)}
+              onRename={renameBusiness}
+            />
+          </>
+        ) : null}
 
         {viewedResourceId ? (
           <ResourcePreview

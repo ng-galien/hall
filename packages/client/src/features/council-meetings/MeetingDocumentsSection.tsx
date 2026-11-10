@@ -1,5 +1,5 @@
 // biome-ignore-all lint/correctness/useExhaustiveDependencies: Notice and minutes changes intentionally reload their state.
-import { findSirenLink, type MeetingNotice, type MeetingNoticeMessagePreparation } from "@hall/api-contract";
+import type { MeetingNotice, MeetingNoticeMessagePreparation } from "@hall/api-contract";
 import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,15 +22,16 @@ import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
-import { type ApiErrorCode, apiErrorCode, SirenCapabilityUnavailable } from "../../services/apiClient";
+import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import {
   downloadMeetingNoticeMessage,
   generateMeetingNotice,
   listMeetingNotices,
-  openMeetingNotice,
+  meetingNoticeContentHref,
   prepareMeetingNoticeMessage,
 } from "../../services/meetingNoticesApi";
 import { openMinutes } from "../../services/minutesApi";
+import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { liveBusinessTitle } from "../council-business/presentation";
 import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
 import { MeetingNoticeDeadline } from "./MeetingNoticeDeadline";
@@ -184,10 +185,7 @@ export function MeetingDocumentsSection({
     });
   };
   const showNotice = async (id: string) => {
-    const document = await openMeetingNotice(id);
-    const content = document.representation && findSirenLink(document.representation, "content");
-    if (!content) throw new SirenCapabilityUnavailable("content");
-    setViewer({ title: `${t("meeting.notice.title")} · ${meetingLabel}`, href: content.href });
+    setViewer({ title: `${t("meeting.notice.title")} · ${meetingLabel}`, href: await meetingNoticeContentHref(id) });
   };
   const noticeState = (): { text: string; tone: DocumentTone } => {
     if (currentNotice)
@@ -234,20 +232,25 @@ export function MeetingDocumentsSection({
     };
   }, [closed, meeting.minutesId]);
 
+  const decisionRecords = useCouncilDecisionsStore((state) => state.councilDecisions);
+  useEffect(() => {
+    if (closed) void useCouncilDecisionsStore.getState().load();
+  }, [closed]);
   const decisions = closed
     ? [...aggregate.agendaItems]
         .sort((left, right) => left.position - right.position)
-        .flatMap((item) =>
-          item.business.councilDecisionId
+        .flatMap((item) => {
+          const record = decisionRecords.find((candidate) => candidate.proposalId === item.business.councilDecisionId);
+          return record
             ? [
                 {
-                  id: item.business.councilDecisionId,
+                  id: record.id,
                   number: item.agendaNumber,
                   title: liveBusinessTitle(item.business, t("agendaSubject.minutesApproval")),
                 },
               ]
-            : [],
-        )
+            : [];
+        })
     : [];
 
   const notice = noticeState();

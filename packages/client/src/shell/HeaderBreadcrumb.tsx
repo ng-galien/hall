@@ -10,8 +10,8 @@ import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useUsersStore } from "../stores/usersStore";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 
-/** Global header breadcrumb derived from the current route. */
-export function HeaderBreadcrumb() {
+/** Trail of the current route; the workspace builds its own from the opened folder. */
+export function useRouteTrail(): BreadcrumbItem[] {
   const { t, formatDate } = useI18n();
   const location = useLocation();
   const { meetings } = useCouncilMeetingsStore();
@@ -24,7 +24,7 @@ export function HeaderBreadcrumb() {
 
   const items: BreadcrumbItem[] = [];
   const segments = location.pathname.split("/").filter(Boolean);
-  if (segments[0] === "workspace") return null;
+  if (segments[0] === "workspace") return items;
 
   if (segments.length === 0) {
     items.push({ label: t("navigation.overview") });
@@ -85,5 +85,11 @@ export function HeaderBreadcrumb() {
     items.push({ label: t("navigation.calendar") });
   }
 
-  return <Breadcrumb items={items} />;
+  return items;
+}
+
+/** Global header breadcrumb derived from the current route. */
+export function HeaderBreadcrumb() {
+  const items = useRouteTrail();
+  return items.length > 0 ? <Breadcrumb items={items} /> : null;
 }

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { CopyReferenceButton } from "../../components/CopyReferenceButton";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { CopyReferenceButton, copyObjectReference } from "../../components/CopyReferenceButton";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { ArrowDownIcon, CalendarIcon, PdfIcon } from "../../components/icons";
+import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { ShareButton } from "../../components/ShareButton";
 import { PageHeader, RequestErrorBanner } from "../../components/Ui";
@@ -13,7 +13,10 @@ import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
-import { apiFile } from "../../services/fileSharing";
+import { apiFile, downloadFile, shareOrDownload } from "../../services/fileSharing";
+import { PhoneHeaderTitle } from "../../shell/headerTrail";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
+import { type PhoneDocumentAction, PhoneDocumentActions, phoneActionIcons } from "../workspace/PhoneDocumentActions";
 import { useCouncilDecisionDraft } from "./useCouncilDecisionDraft";
 import "../../features/documents/DocumentViewer.css";
 
@@ -27,22 +30,69 @@ function CouncilDecisionDetail({ id }: { id: string }) {
   const draft = useCouncilDecisionDraft(id);
   const [confirming, setConfirming] = useState(false);
   const { decision } = draft;
+  const phone = usePhoneLayout();
+  const navigate = useNavigate();
+  const reference = {
+    name: [decision?.number, decision?.title].filter(Boolean).join(" · "),
+    page: `/app/council-decisions/${id}`,
+    href: `/api/council-decisions/${id}`,
+  };
+  const decisionFile = () => apiFile(draft.downloadHref!, `${decision?.title}.pdf`);
+  const phoneActions: PhoneDocumentAction[] = decision
+    ? [
+        ...(draft.canView
+          ? [
+              {
+                id: "decision-view",
+                label: t(decision.state === "frozen" ? "decisionDocument.view" : "minutes.preview"),
+                icon: <PdfIcon />,
+                onSelect: () => void draft.view(),
+              },
+            ]
+          : []),
+        ...(draft.downloadHref
+          ? [
+              {
+                id: "decision-share",
+                label: t("common.share"),
+                icon: <ShareIcon />,
+                onSelect: () => void decisionFile().then(shareOrDownload),
+              },
+              {
+                id: "decision-download",
+                label: t("common.download"),
+                icon: <ArrowDownIcon />,
+                onSelect: () => void decisionFile().then(downloadFile),
+              },
+            ]
+          : []),
+        {
+          id: "decision-source-meeting",
+          label: formatDateTime(decision.facts.meeting.startedAt),
+          icon: <CalendarIcon />,
+          onSelect: () => navigate(`/meetings/${decision.councilMeetingId}`),
+        },
+        {
+          id: "copy-reference",
+          label: t("reference.copy"),
+          icon: <phoneActionIcons.copy />,
+          onSelect: () => void copyObjectReference(reference).catch(() => undefined),
+        },
+      ]
+    : [];
   return (
     <div className="page" data-testid="decision-detail">
+      {phone && decision ? (
+        <>
+          <PhoneHeaderTitle>{decision.number || decision.title}</PhoneHeaderTitle>
+          <PhoneDocumentActions actions={phoneActions} />
+        </>
+      ) : null}
       <PageHeader
+        keepTitleOnPhone
         title={decision?.title ?? t("decisions.title")}
-        description={decision?.number ?? ""}
-        titleAction={
-          decision ? (
-            <CopyReferenceButton
-              reference={{
-                name: [decision.number, decision.title].filter(Boolean).join(" · "),
-                page: `/app/council-decisions/${id}`,
-                href: `/api/council-decisions/${id}`,
-              }}
-            />
-          ) : null
-        }
+        description={phone ? "" : (decision?.number ?? "")}
+        titleAction={decision && !phone ? <CopyReferenceButton reference={reference} /> : null}
       />
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={draft.error} />
@@ -56,12 +106,14 @@ function CouncilDecisionDetail({ id }: { id: string }) {
         {decision ? (
           <>
             <div className="flex flex-wrap items-center gap-3">
-              <Button asChild variant="outline" size="sm">
-                <Link to={`/meetings/${decision.councilMeetingId}`} data-testid="decision-source-meeting">
-                  <CalendarIcon />
-                  {formatDateTime(decision.facts.meeting.startedAt)}
-                </Link>
-              </Button>
+              {phone ? null : (
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/meetings/${decision.councilMeetingId}`} data-testid="decision-source-meeting">
+                    <CalendarIcon />
+                    {formatDateTime(decision.facts.meeting.startedAt)}
+                  </Link>
+                </Button>
+              )}
               <Badge variant={decision.facts.ballot.result === "approve" ? "success" : "destructive"}>
                 {t(decision.facts.ballot.result === "approve" ? "status.adopted" : "status.rejected")}
               </Badge>
@@ -77,7 +129,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
               <MarkdownView markdown={decision.facts.proposal.submittedText} />
             </details>
             <section className="admin-detail-surface admin-record" aria-labelledby="decision-writing-title">
-              <div className="admin-section-heading">
+              <div className="admin-section-heading" hidden={phone && !draft.canEdit}>
                 <div>
                   <h2 id="decision-writing-title">{t("decisionDocument.writing")}</h2>
                   <p>{t("decisionDocument.fidelity")}</p>
@@ -104,7 +156,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
               ) : null}
             </section>
             <div className="flex flex-wrap items-center gap-3">
-              {draft.canView ? (
+              {draft.canView && !phone ? (
                 <Button
                   variant="outline"
                   data-testid="decision-view"
@@ -115,13 +167,13 @@ function CouncilDecisionDetail({ id }: { id: string }) {
                   {t(decision.state === "frozen" ? "decisionDocument.view" : "minutes.preview")}
                 </Button>
               ) : null}
-              {draft.downloadHref ? (
+              {draft.downloadHref && !phone ? (
                 <ShareButton
                   testId="decision-share"
                   file={() => apiFile(draft.downloadHref!, `${decision.title}.pdf`)}
                 />
               ) : null}
-              {draft.downloadHref ? (
+              {draft.downloadHref && !phone ? (
                 <Button asChild variant="outline">
                   <a href={draft.downloadHref} download data-testid="decision-download">
                     <ArrowDownIcon />

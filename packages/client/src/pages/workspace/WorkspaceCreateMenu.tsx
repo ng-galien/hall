@@ -155,10 +155,14 @@ export function WorkspaceCreateMenu({
   extraOptions = [],
   compact = false,
   testId = "workspace-create-menu",
+  label,
+  optionLabels,
   getError,
   clearError,
   render,
 }: {
+  label?: string;
+  optionLabels?: Partial<Record<WorkspaceCreateKind, TranslationKey>>;
   canCreate(kind: WorkspaceCreateKind): boolean;
   onCreate(kind: WorkspaceCreateKind, title?: string): Promise<boolean>;
   extraOptions?: WorkspaceCreationOption[];
@@ -185,7 +189,7 @@ export function WorkspaceCreateMenu({
           data-testid={testId}
         >
           <AddIcon />
-          {compact ? null : t("workspace.new")}
+          {compact ? null : (label ?? t("workspace.new"))}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -212,7 +216,7 @@ export function WorkspaceCreateMenu({
               onSelect={() => creation.start(entry)}
             >
               <Icon className="size-4 shrink-0" />
-              <span className="min-w-0 break-words">{t(workspaceCreateLabels[entry])}</span>
+              <span className="min-w-0 break-words">{t(optionLabels?.[entry] ?? workspaceCreateLabels[entry])}</span>
             </DropdownMenuItem>
           );
         })}

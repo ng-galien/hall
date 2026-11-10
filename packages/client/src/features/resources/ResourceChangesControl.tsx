@@ -1,6 +1,6 @@
 import { findSirenLink, type ResourceChange, type SirenEntity } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { RedoIcon } from "../../components/icons";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
@@ -14,10 +14,13 @@ export function ResourceChangesControl({
   resourceId,
   representation,
   onInvalidated,
+  openRef,
 }: {
   resourceId: string;
   representation: SirenEntity | null;
   onInvalidated(): void;
+  /** Receives the opening command when another control presents the entry; the button is then omitted. */
+  openRef?: RefObject<(() => void) | null>;
 }) {
   const { t, formatDateTime } = useI18n();
   const [changes, setChanges] = useState<ResourceChange[] | null>(null);
@@ -102,6 +105,19 @@ export function ResourceChangesControl({
     if (changeVersion >= 0 && open && stale.current) void loadChanges();
   }, [changeVersion, loadChanges, open]);
 
+  useEffect(() => {
+    if (!openRef) return;
+    openRef.current = available
+      ? () => {
+          setOpen(true);
+          void loadChanges();
+        }
+      : null;
+    return () => {
+      openRef.current = null;
+    };
+  }, [available, loadChanges, openRef]);
+
   if (!available) return null;
 
   const fieldLabel = (field: ResourceChange["fields"][number]) =>
@@ -128,36 +144,40 @@ export function ResourceChangesControl({
     change.fields.length ? change.fields.map(fieldLabel).join(", ") : kindLabel(change.kind);
   const latest = changes?.[0];
 
+  const trigger = openRef ? null : (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          className="resource-changes-trigger"
+          data-testid="resource-changes-trigger"
+          data-unseen={unseen}
+          type="button"
+          aria-label={t("resourceChanges.open")}
+          onPointerEnter={() => void loadChanges()}
+          onFocus={() => void loadChanges()}
+          onClick={() => {
+            setOpen(true);
+            void loadChanges();
+          }}
+        >
+          <RedoIcon aria-hidden="true" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent data-testid="resource-changes-preview" side="bottom" className="resource-changes-preview">
+        {loading && !latest
+          ? t("resourceChanges.loading")
+          : failed
+            ? t("resourceChanges.error")
+            : latest
+              ? `${latest.actor?.displayName ?? t("resourceChanges.unknownAuthor")} · ${detail(latest)} · ${formatDateTime(latest.occurredAt)}`
+              : t("resourceChanges.empty")}
+      </TooltipContent>
+    </Tooltip>
+  );
+
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            className="resource-changes-trigger"
-            data-testid="resource-changes-trigger"
-            data-unseen={unseen}
-            type="button"
-            aria-label={t("resourceChanges.open")}
-            onPointerEnter={() => void loadChanges()}
-            onFocus={() => void loadChanges()}
-            onClick={() => {
-              setOpen(true);
-              void loadChanges();
-            }}
-          >
-            <RedoIcon aria-hidden="true" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent data-testid="resource-changes-preview" side="bottom" className="resource-changes-preview">
-          {loading && !latest
-            ? t("resourceChanges.loading")
-            : failed
-              ? t("resourceChanges.error")
-              : latest
-                ? `${latest.actor?.displayName ?? t("resourceChanges.unknownAuthor")} · ${detail(latest)} · ${formatDateTime(latest.occurredAt)}`
-                : t("resourceChanges.empty")}
-        </TooltipContent>
-      </Tooltip>
+      {trigger}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           placement="right"

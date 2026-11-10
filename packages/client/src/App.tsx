@@ -77,6 +77,9 @@ const CouncilDelegationPage = lazy(() =>
 const CouncilCommitteePage = lazy(() =>
   import("./pages/CouncilCommitteePage").then((module) => ({ default: module.CouncilCommitteePage })),
 );
+const MeetingPointPage = lazy(() =>
+  import("./pages/council-meetings/MeetingPointPage").then((module) => ({ default: module.MeetingPointPage })),
+);
 const CouncilMeetingPage = lazy(() =>
   import("./pages/council-meetings/CouncilMeetingPage").then((module) => ({ default: module.CouncilMeetingPage })),
 );
@@ -116,6 +119,7 @@ function AuthenticatedApplication() {
         <Route index element={<DashboardPage />} />
         <Route path="meetings" element={<CouncilMeetingsPage />} />
         <Route path="meetings/:meetingId" element={<CouncilMeetingPage />} />
+        <Route path="meetings/:meetingId/points/:pointId" element={<MeetingPointPage />} />
         <Route path="minutes" element={<MinutesPage />} />
         <Route path="minutes/:minutesId" element={<MinutesDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />

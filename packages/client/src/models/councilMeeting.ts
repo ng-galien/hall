@@ -42,3 +42,19 @@ export function physicallyPresentCount(attendance: readonly MeetingAttendance[])
 export function councilMeetingIsActive(meeting: CouncilMeetingView): boolean {
   return !meeting.stale && !councilMeetingIsFinished(meeting);
 }
+
+/** Meetings still to hold or in progress, the earliest first. */
+export function upcomingCouncilMeetings(meetings: readonly CouncilMeetingView[]): CouncilMeetingView[] {
+  return meetings
+    .filter(councilMeetingIsActive)
+    .sort((left, right) => (left.scheduledAt ?? "").localeCompare(right.scheduledAt ?? ""));
+}
+
+/** Latest closed meeting that is not marked incomplete. */
+export function lastClosedCouncilMeeting(meetings: readonly CouncilMeetingView[]): CouncilMeetingView | null {
+  return (
+    meetings
+      .filter((meeting) => !meeting.stale && councilMeetingIsFinished(meeting))
+      .sort((left, right) => (right.scheduledAt ?? "").localeCompare(left.scheduledAt ?? ""))[0] ?? null
+  );
+}

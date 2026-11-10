@@ -29,6 +29,14 @@ export interface NavigationSection {
   items: NavigationItem[];
 }
 
+export const phoneMoreDestinations = ["/council-decisions", "/minutes", "/maps"];
+
+export function navigationItem(to: string): NavigationItem {
+  const item = navigationSections.flatMap((section) => section.items).find((candidate) => candidate.to === to);
+  if (!item) throw new Error(`Unknown navigation destination: ${to}`);
+  return item;
+}
+
 export const navigationSections: NavigationSection[] = [
   {
     items: [{ to: "/", labelKey: "navigation.overview", icon: <HomeIcon /> }],

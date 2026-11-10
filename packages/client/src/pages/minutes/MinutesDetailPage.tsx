@@ -1,18 +1,22 @@
-import { useRef } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CopyReferenceButton } from "../../components/CopyReferenceButton";
-import { ArrowDownIcon, CalendarIcon, PdfIcon, VisibleIcon } from "../../components/icons";
+import { CopyReferenceButton, copyObjectReference } from "../../components/CopyReferenceButton";
+import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon, VisibleIcon } from "../../components/icons";
 import { ShareButton } from "../../components/ShareButton";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { CollapsibleSection } from "../../components/ui/collapsible-section";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
-import { apiFile } from "../../services/fileSharing";
+import { apiFile, downloadFile, shareOrDownload } from "../../services/fileSharing";
 import { minutesContentHref } from "../../services/minutesApi";
+import { PhoneHeaderTitle } from "../../shell/headerTrail";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
+import { type PhoneDocumentAction, PhoneDocumentActions, phoneActionIcons } from "../workspace/PhoneDocumentActions";
 import { MinutesFacts } from "./MinutesFacts";
 import { MinutesPoint } from "./MinutesPoint";
 import { MinutesSectionHint } from "./MinutesSectionHint";
@@ -45,10 +49,116 @@ function MinutesDetail({ id }: { id: string }) {
       : "",
   });
   const approvalMeeting = meetings.find((meeting) => meeting.previousCouncilMeetingId === minutes?.councilMeetingId);
+  const phone = usePhoneLayout();
+  const navigate = useNavigate();
+  const [factsOpen, setFactsOpen] = useState(false);
+  const councilLabel = minutes ? t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) }) : "";
+  const dateAndPlace = minutes
+    ? [minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null, minutes.facts.meeting.location]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+  const reference = {
+    name: [councilLabel, minutes?.scheduledAt ? formatDate(minutes.scheduledAt) : null].filter(Boolean).join(" · "),
+    page: `/app/minutes/${id}`,
+    href: `/api/minutes/${id}`,
+  };
+  const minutesFile = () => apiFile(minutesContentHref(id), "proces-verbal.pdf");
+  const phoneActions: PhoneDocumentAction[] = minutes
+    ? [
+        ...(draft.canPreview
+          ? [
+              {
+                id: "minutes-preview",
+                label: t("minutes.preview"),
+                icon: <VisibleIcon />,
+                onSelect: () => void draft.preview(),
+              },
+            ]
+          : []),
+        ...(draft.canGenerate
+          ? [
+              {
+                id: "minutes-generate",
+                label: t("minutes.generate"),
+                icon: <PdfIcon />,
+                onSelect: () => void draft.generate(),
+              },
+            ]
+          : []),
+        ...(minutes.documentId
+          ? [
+              {
+                id: "minutes-share",
+                label: t("common.share"),
+                icon: <ShareIcon />,
+                onSelect: () => void minutesFile().then(shareOrDownload),
+              },
+              {
+                id: "minutes-download",
+                label: t("minutes.download"),
+                icon: <ArrowDownIcon />,
+                onSelect: () => void minutesFile().then(downloadFile),
+              },
+            ]
+          : []),
+        {
+          id: "minutes-source-meeting",
+          label: t("minutes.sourceMeeting"),
+          icon: <CalendarIcon />,
+          onSelect: () => navigate(`/meetings/${minutes.councilMeetingId}`),
+        },
+        ...(approvalMeeting
+          ? [
+              {
+                id: "minutes-approval-meeting",
+                label: `${t("minutes.approvalMeeting")} · ${t("minutes.councilNumber", { number: formatNumber(approvalMeeting.number) })}`,
+                icon: <CalendarIcon />,
+                onSelect: () => navigate(`/meetings/${approvalMeeting.reference}`),
+              },
+            ]
+          : []),
+        {
+          id: "copy-reference",
+          label: t("reference.copy"),
+          icon: <phoneActionIcons.copy />,
+          onSelect: () => void copyObjectReference(reference).catch(() => undefined),
+        },
+      ]
+    : [];
   return (
     <div className="page" data-testid="minutes-detail">
-      <div className="minutes-detail-header">
+      {phone && minutes ? (
+        <>
+          <PhoneHeaderTitle>{councilLabel}</PhoneHeaderTitle>
+          <PhoneDocumentActions actions={phoneActions} />
+          <div className="phone-record-heading">
+            <p>{dateAndPlace}</p>
+            <div className="minutes-header-status">
+              <Badge data-testid="minutes-settlement-status" variant={minutes.settledAt ? "success" : "warning"}>
+                {t(minutes.settledAt ? "minutes.stopped" : "minutes.notStopped")}
+              </Badge>
+              <Badge variant={minutes.generatedAt ? "success" : "warning"}>
+                {t(minutes.generatedAt ? "minutes.generated" : "minutes.draft")}
+              </Badge>
+            </div>
+            {minutes.documentId ? (
+              <Button
+                ref={documentTrigger}
+                className="w-full"
+                data-testid="minutes-view-document"
+                onClick={draft.openDocument}
+              >
+                <VisibleIcon aria-hidden="true" />
+                {t("minutes.viewDocument")}
+              </Button>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+      <div className="minutes-detail-header" hidden={phone}>
         <PageHeader
+          keepTitleOnPhone
           title={
             minutes
               ? t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) })
@@ -183,7 +293,19 @@ function MinutesDetail({ id }: { id: string }) {
         ) : null}
         {minutes ? (
           <div className="admin-detail-surface minutes-editorial-surface">
-            <MinutesFacts facts={minutes.facts} />
+            {phone ? (
+              <CollapsibleSection
+                className="phone-document-information"
+                testId="minutes-phone-facts"
+                title={t("workspace.information")}
+                open={factsOpen}
+                onOpenChange={setFactsOpen}
+              >
+                {factsOpen ? <MinutesFacts facts={minutes.facts} /> : null}
+              </CollapsibleSection>
+            ) : (
+              <MinutesFacts facts={minutes.facts} />
+            )}
             <section className="admin-record" aria-labelledby="minutes-sections-title">
               <div className="admin-section-heading">
                 <div>

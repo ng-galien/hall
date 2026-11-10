@@ -12,7 +12,11 @@ import {
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
-import { type CouncilMeetingView, councilMeetingIsActive, councilMeetingIsFinished } from "../../models/councilMeeting";
+import {
+  type CouncilMeetingView,
+  councilMeetingIsFinished,
+  upcomingCouncilMeetings,
+} from "../../models/councilMeeting";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 
 export function CouncilMeetingsPage() {
@@ -22,9 +26,7 @@ export function CouncilMeetingsPage() {
   const meetingLabel = (meeting: CouncilMeetingView) =>
     formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate);
 
-  const upcomingMeetings = [...meetings]
-    .filter(councilMeetingIsActive)
-    .sort((left, right) => (left.scheduledAt ?? "").localeCompare(right.scheduledAt ?? ""));
+  const upcomingMeetings = upcomingCouncilMeetings(meetings);
   const nextMeeting = upcomingMeetings[0] ?? null;
   const matches = (meeting: CouncilMeetingView) => matchesQuery(query, meetingLabel(meeting), meeting.location);
   const visibleUpcoming = upcomingMeetings.filter((meeting) => meeting.id !== nextMeeting?.id && matches(meeting));

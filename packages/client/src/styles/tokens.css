@@ -177,6 +177,10 @@
   --hall-size-metric-icon: 40px;
   --hall-size-table-column-step: 40px;
   --hall-size-header: 52px;
+  --hall-size-phone-bar: 64px;
+  --hall-size-phone-bar-icon: 28px;
+  --hall-size-phone-more-tile: 96px;
+  --hall-size-phone-explorer-glyph: 32px;
   --hall-size-sidebar-compact: 52px;
   --hall-size-data-row: 56px;
   --hall-size-live-header: 60px;

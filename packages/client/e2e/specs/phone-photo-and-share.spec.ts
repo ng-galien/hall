@@ -35,8 +35,10 @@ async function selectedResourceId(page: Page) {
   return new URL(page.url()).searchParams.get("resource")!;
 }
 
+/** On a phone the history of the opened item is in its actions menu. */
 async function expectCreationInHistory(page: Page) {
-  await page.getByTestId("resource-changes-trigger").first().click();
+  await page.getByTestId("phone-document-actions").click();
+  await page.getByTestId("phone-document-action-changes").click();
   await expect(page.getByTestId("resource-changes-panel").getByTestId("resource-changes-item")).toHaveCount(1);
   await page.keyboard.press("Escape");
 }
@@ -67,7 +69,8 @@ test.describe("Photos and sharing on a phone", () => {
     expect(created.ok()).toBeTruthy();
     const business = (await created.json()).properties as { id: string; folderPath: string };
     await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
-    await page.getByTestId("business-category-documents-toggle").click();
+    // On a phone the documents of a business are listed without unfolding their section.
+    await expect(page.getByTestId("business-category-documents-toggle")).toHaveAttribute("aria-expanded", "true");
     await page.getByTestId("attachment-picker-open").click();
     await expect(page.getByTestId("attachment-picker-create-takePhoto")).toBeVisible();
     await takePhoto(page, page.getByTestId("attachment-picker-create-choosePhoto"));
@@ -124,7 +127,7 @@ test.describe("Photos and sharing on a phone", () => {
     const noteId = (await note.json()).properties.noteId as string;
 
     await page.goto(`/app/workspace?path=seed&resource=${map.id}`);
-    const surface = page.locator(".workspace-bench .geographic-map");
+    const surface = page.getByTestId("resource-phone-view").locator(".geographic-map");
     await expect(surface).toBeVisible();
     const box = await surface.boundingBox();
     if (!box) throw new Error("The map must be rendered");
@@ -168,7 +171,8 @@ test.describe("Photos and sharing on a phone", () => {
     });
     const pdf = await uploadPdf(page);
     await page.goto(`/app/workspace?path=seed&resource=${pdf.id}`);
-    await page.getByTestId("resource-workbench-share").click();
+    await page.getByTestId("phone-document-actions").click();
+    await page.getByTestId("phone-document-action-share").click();
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { sharedFiles: unknown[] }).sharedFiles))
       .toEqual([{ name: "plan.pdf", type: "application/pdf", size: minimalPdf.length, title: "plan.pdf" }]);

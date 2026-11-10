@@ -46,6 +46,8 @@ const dialogPlacementClasses = {
   left: "inset-y-0 left-0 flex h-dvh w-full max-w-sm flex-col overflow-y-auto rounded-none data-open:slide-in-from-left data-closed:slide-out-to-left",
   right:
     "inset-y-0 right-0 flex h-dvh w-full max-w-sm flex-col overflow-y-auto rounded-none data-open:slide-in-from-right data-closed:slide-out-to-right",
+  bottom:
+    "inset-x-0 bottom-0 flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-t-xl data-open:slide-in-from-bottom data-closed:slide-out-to-bottom",
 } as const;
 
 function DialogContent({
@@ -59,7 +61,7 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
   closeLabel?: string;
-  placement?: "center" | "left" | "right";
+  placement?: "center" | "left" | "right" | "bottom";
 }) {
   return (
     <DialogPortal>

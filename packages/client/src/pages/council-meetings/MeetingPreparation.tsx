@@ -3,7 +3,7 @@
 
 import type { PreparedCouncilSubject } from "@hall/api-contract";
 import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Input } from "@/components/ui/input";
@@ -26,9 +26,11 @@ import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listPreparedCouncilSubjects } from "../../services/councilBusinessApi";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { AgendaComposer } from "./AgendaComposer";
 import { councilMemberName } from "./ballotParticipants";
+import { meetingPointHref } from "./MeetingPointPage";
 import { MeetingStageBar } from "./MeetingStageBar";
 import { type MeetingDetailsField, meetingDetailsSubmission } from "./meetingDetailsPolicy";
 
@@ -37,6 +39,7 @@ import { type MeetingDetailsField, meetingDetailsSubmission } from "./meetingDet
 export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
   const { t, formatDate, formatDateTime, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
+  const phone = usePhoneLayout();
   const detailsFieldId = useId();
   const aggregate = meetingActions.meeting!;
   const { meeting } = aggregate;
@@ -154,18 +157,25 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
       />
     ) : null;
   const headerActions = revisionToggle;
+  const phoneReader = phone && !agendaEditable && !detailsInline;
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash === "#agenda") document.getElementById("meeting-agenda")?.scrollIntoView();
+  }, [hash]);
   return (
     <div className="page meeting-preparation">
       <PageHeader
         title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
-        titleAction={headerActions}
+        titleAction={phoneReader ? undefined : headerActions}
         above={
-          <MeetingStageBar
-            status={meeting.status}
-            agendaEstablished={Boolean(meeting.agendaRevision.establishedAt)}
-            liveHref={`/meetings/${meeting.slug || meeting.id}/live`}
-            liveDisabled={entryBlockers.length > 0}
-          />
+          phoneReader ? undefined : (
+            <MeetingStageBar
+              status={meeting.status}
+              agendaEstablished={Boolean(meeting.agendaRevision.establishedAt)}
+              liveHref={`/meetings/${meeting.slug || meeting.id}/live`}
+              liveDisabled={entryBlockers.length > 0}
+            />
+          )
         }
         description=""
       >
@@ -334,7 +344,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             ) : null}
           </CollapsibleSection>
         ) : null}
-        <div className="meeting-prep-layout">
+        <div className="meeting-prep-layout" id="meeting-agenda">
           <AgendaComposer
             agendaItems={aggregate.agendaItems}
             preparedSubjects={preparedSubjects}
@@ -342,6 +352,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             preparedSubjectsError={preparedSubjectsError}
             onSchedulePrepared={canSchedulePrepared ? meetingActions.schedulePreparedSubject : undefined}
             editable={agendaEditable}
+            pointHref={phone ? (itemId) => meetingPointHref(meeting.slug || meeting.id, itemId) : undefined}
             onSubjectSaved={meetingActions.refresh}
             onQuickCreate={
               meetingActions.can("meeting.create-and-schedule-business")
