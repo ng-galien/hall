@@ -168,7 +168,7 @@ test("phone documentation shows the page over the whole width and opens its cont
 });
 
 // @verifies-requirement HALL-FR-LAY-010
-test("phone calendar header keeps the date on one line, its buttons apart and the first hour whole", async ({
+test("phone calendar keeps a two-row toolbar, a header « + » and a single scrolling grid", async ({
   appPage: page,
 }) => {
   // The French labels are the longest ones.
@@ -176,41 +176,60 @@ test("phone calendar header keeps the date on one line, its buttons apart and th
   for (const width of [375, 360]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto("/app/calendar");
-    const title = page.getByTestId("calendar-title");
-    await expect(title).not.toBeEmpty();
+    await expect(page.getByTestId("calendar-title")).not.toBeEmpty();
     await expect(page.getByTestId("calendar-slot-label").first()).toBeAttached();
-    const header = await page.evaluate(() => {
+    // Creation is a « + » of the page header.
+    const create = page.getByTestId("phone-header").getByTestId("calendar-new");
+    await expect(create).toBeVisible();
+    const createBox = (await create.boundingBox())!;
+    expect(Math.min(createBox.width, createBox.height)).toBeGreaterThanOrEqual(44);
+    const toolbar = await page.evaluate(() => {
       const box = (testId: string) => document.querySelector(`[data-testid="${testId}"]`)!.getBoundingClientRect();
       const heading = document.querySelector<HTMLElement>('[data-testid="calendar-title"]')!;
       const controls = [
-        "calendar-today",
         "calendar-previous",
         "calendar-next",
+        "calendar-today",
         "calendar-view-dayGridMonth",
         "calendar-view-timeGridWeek",
         "calendar-view-timeGridDay",
-        "calendar-new",
       ].map(box);
-      const overlaps = controls.flatMap((a, index) =>
-        controls
+      const all = [...controls, heading.getBoundingClientRect()];
+      const overlaps = all.flatMap((a, index) =>
+        all
           .slice(index + 1)
           .filter(
             (b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5,
           ),
       ).length;
-      const titleBox = heading.getBoundingClientRect();
       return {
-        titleLines: Math.round(titleBox.height / Number.parseFloat(getComputedStyle(heading).lineHeight)),
+        rows: new Set(all.map((rect) => Math.round(rect.top + rect.height / 2))).size,
         titleTruncated: heading.scrollWidth > heading.clientWidth + 1,
-        titleOverlaps: controls.filter((b) => titleBox.top < b.bottom - 0.5 && b.top < titleBox.bottom - 0.5).length,
+        smallest: Math.min(...controls.map((rect) => Math.min(rect.width, rect.height))),
         overlaps,
-        rightGap: document.documentElement.clientWidth - Math.max(...controls.map((control) => control.right)),
+        rightGap: document.documentElement.clientWidth - Math.max(...all.map((rect) => rect.right)),
+        legend: document.querySelectorAll(".calendar-legend").length,
       };
     });
-    expect(header.titleLines, "date on one line").toBe(1);
-    expect(header.titleTruncated, "date shown whole").toBe(false);
-    expect(header.titleOverlaps + header.overlaps, "header controls apart").toBe(0);
-    expect(header.rightGap, "space before the right edge").toBeGreaterThanOrEqual(8);
+    expect(toolbar.rows, "toolbar rows").toBeLessThanOrEqual(2);
+    expect(toolbar.titleTruncated, "period shown whole").toBe(false);
+    expect(toolbar.smallest, "toolbar targets").toBeGreaterThanOrEqual(44);
+    expect(toolbar.overlaps, "toolbar controls apart").toBe(0);
+    expect(toolbar.rightGap, "space before the right edge").toBeGreaterThanOrEqual(4);
+    expect(toolbar.legend, "colour legend without action").toBe(0);
+    // A single area scrolls: the grid of the day; the page itself does not.
+    const scrolling = await page.evaluate(
+      () =>
+        [...document.querySelectorAll("body *")].filter((element) => {
+          const style = getComputedStyle(element);
+          return (
+            ["auto", "scroll"].includes(style.overflowY) &&
+            element.scrollHeight > element.clientHeight + 1 &&
+            element.getBoundingClientRect().height > 0
+          );
+        }).length,
+    );
+    expect(scrolling, "vertical scrolling areas").toBe(1);
     // No hour label of the day view is half hidden under the header of the grid.
     const cutLabels = await page.getByTestId("calendar-slot-label").evaluateAll((labels) =>
       labels.flatMap((label) => {

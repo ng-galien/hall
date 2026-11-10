@@ -6,6 +6,7 @@ import themePlugin from "@fullcalendar/react/themes/monarch";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import { type EventDocument, eventDocumentSchema, findSirenAction } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
+import { AddIcon } from "../../components/icons";
 import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
@@ -19,6 +20,8 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CouncilMeetingPage } from "../../pages/council-meetings/CouncilMeetingPage";
+import { PhoneHeaderActions } from "../../shell/headerTrail";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -68,6 +71,9 @@ export function CalendarPage() {
     y: number;
   } | null>(null);
   const [phoneWidth] = useState(() => window.matchMedia("(max-width: 600px)").matches);
+  const phone = usePhoneLayout();
+  // On a phone the day opens on the current hour, half an hour earlier so that its label is whole.
+  const [phoneScrollTime] = useState(() => `${String(Math.max(new Date().getHours() - 1, 0)).padStart(2, "0")}:30:00`);
   const [view, setView] = useState(phoneWidth ? "timeGridDay" : "dayGridMonth");
   useEffect(() => {
     let active = true;
@@ -118,15 +124,39 @@ export function CalendarPage() {
   ];
   const contextResource = contextTarget?.resourceId ? resources.details[contextTarget.resourceId] : null;
   const contextEvent = contextResource?.kind === "event" ? contextResource : null;
+  const startEvent = () => {
+    setName("");
+    setCouncilBusinessId(null);
+    setDraft(emptyEventDocument());
+  };
   return (
     <div className="hall-calendar" data-testid="calendar-page">
+      {phone && resources.collectionCapabilities.create ? (
+        <PhoneHeaderActions>
+          <Button
+            variant="ghost"
+            size="icon"
+            data-testid="calendar-new"
+            aria-label={t("workspace.createEvent")}
+            onClick={startEvent}
+          >
+            <AddIcon />
+          </Button>
+        </PhoneHeaderActions>
+      ) : null}
       <div className="calendar-toolbar">
         <div className="calendar-toolbar-navigation flex items-center gap-2">
-          <Button variant="outline" data-testid="calendar-today" onClick={() => calendar.current?.getApi().today()}>
+          <Button
+            variant="outline"
+            className="calendar-today"
+            data-testid="calendar-today"
+            onClick={() => calendar.current?.getApi().today()}
+          >
             {t("calendar.today")}
           </Button>
           <Button
             variant="ghost"
+            className="calendar-previous"
             data-testid="calendar-previous"
             aria-label={t("calendar.previous")}
             onClick={() => calendar.current?.getApi().prev()}
@@ -135,6 +165,7 @@ export function CalendarPage() {
           </Button>
           <Button
             variant="ghost"
+            className="calendar-next"
             data-testid="calendar-next"
             aria-label={t("calendar.next")}
             onClick={() => calendar.current?.getApi().next()}
@@ -162,24 +193,19 @@ export function CalendarPage() {
               </Button>
             ))}
           </div>
-          {resources.collectionCapabilities.create && (
-            <Button
-              data-testid="calendar-new"
-              onClick={() => {
-                setName("");
-                setCouncilBusinessId(null);
-                setDraft(emptyEventDocument());
-              }}
-            >
+          {resources.collectionCapabilities.create && !phone ? (
+            <Button data-testid="calendar-new" onClick={startEvent}>
               {t("workspace.createEvent")}
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
-      <div className="calendar-legend">
-        <span className="calendar-legend-event">{t("workspace.type.event")}</span>
-        <span className="calendar-legend-council">{t("navigation.meetings")}</span>
-      </div>
+      {phone ? null : (
+        <div className="calendar-legend">
+          <span className="calendar-legend-event">{t("workspace.type.event")}</span>
+          <span className="calendar-legend-council">{t("navigation.meetings")}</span>
+        </div>
+      )}
       {loading && <p role="status">{t("calendar.loading")}</p>}
       {error && <p role="alert">{t("calendar.error")}</p>}
       <FullCalendar
@@ -189,8 +215,15 @@ export function CalendarPage() {
         initialView={phoneWidth ? "timeGridDay" : "dayGridMonth"}
         headerToolbar={false}
         height="100%"
-        // On a phone the day opens half an hour before six so that the first hour label is not under the header.
-        {...(phoneWidth ? { scrollTime: "05:30:00" } : {})}
+        // On a phone the grid runs from edge to edge, with a short date in the title of the day.
+        {...(phone
+          ? {
+              borderless: true,
+              scrollTime: phoneScrollTime,
+              allDayHeaderClass: "hall-calendar-all-day",
+              views: { timeGridDay: { titleFormat: { day: "numeric", month: "short", year: "numeric" } } },
+            }
+          : {})}
         events={events}
         firstDay={1}
         nowIndicator

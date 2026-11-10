@@ -313,12 +313,23 @@
   /* The settings categories stay on one row that scrolls sideways. */
   .settings-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
   .settings-tabs > [data-slot="tabs-trigger"] { flex: none; margin-bottom: 0; white-space: nowrap; }
-  /* Calendar header on a phone: the date on its own line, then the navigation, then the views and the new event. */
-  .app-main .hall-calendar .calendar-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); }
-  .app-main .hall-calendar .calendar-toolbar-navigation { flex-wrap: wrap; }
-  .app-main .hall-calendar .calendar-toolbar h1 { order: -1; flex: 1 0 100%; min-width: 0; overflow: hidden; font-size: var(--hall-font-size-title); text-overflow: ellipsis; white-space: nowrap; }
-  .app-main .hall-calendar .calendar-toolbar-actions { flex-wrap: wrap; justify-content: space-between; min-width: 0; }
-  .app-main .hall-calendar .calendar-toolbar-views > [data-slot="button"] { padding-inline: var(--hall-space-2); }
+  /* Calendar on a phone: the screen fills the space between the header and the bar, the toolbar stays in place on
+     two rows and only the grid scrolls, from edge to edge. */
+  .app-main .hall-calendar { height: 100%; padding: 0; gap: 0; }
+  .app-main .hall-calendar > .fc { min-height: 0; }
+  .app-main .hall-calendar .calendar-toolbar { display: grid; flex: none; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); padding: var(--hall-space-2); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); background: var(--hall-color-surface); }
+  .app-main .hall-calendar .calendar-toolbar-navigation { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: var(--hall-space-1); }
+  .app-main .hall-calendar .calendar-previous { order: 1; }
+  .app-main .hall-calendar .calendar-toolbar h1 { order: 2; min-width: 0; overflow: hidden; font-size: var(--hall-font-size-title); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+  .app-main .hall-calendar .calendar-next { order: 3; }
+  .app-main .hall-calendar .calendar-today { order: 4; }
+  .app-main .hall-calendar .calendar-toolbar :is(.calendar-previous, .calendar-next, .calendar-today) { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-title); }
+  .app-main .hall-calendar .calendar-toolbar-actions { display: block; }
+  .app-main .hall-calendar .calendar-toolbar-views { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: var(--hall-space-0-5); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface-subtle); }
+  .app-main .hall-calendar .calendar-toolbar-views > [data-slot="button"] { min-height: var(--hall-size-touch-control); border-radius: var(--hall-radius-small); font-size: var(--hall-font-size-title); }
+  .app-main .hall-calendar .calendar-toolbar-views > [data-variant="secondary"] { background: var(--hall-color-surface); box-shadow: var(--hall-shadow-small); color: var(--hall-color-brand); font-weight: var(--hall-font-weight-semibold); }
+  .app-main .hall-calendar .calendar-undated { flex: none; flex-wrap: nowrap; overflow-x: auto; padding-inline: var(--hall-space-2); white-space: nowrap; }
+  .app-main .hall-calendar .hall-calendar-all-day { white-space: normal; font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-compact); }
   .docs-toolbar { flex-wrap: wrap; height: auto; padding-block: var(--hall-space-2); }
   /* The contents tree, when opened, takes the place of the page under the toolbar. */
   .docs-area { flex-direction: column; }
