@@ -167,6 +167,11 @@
   /* Every icon button of the phone header is a finger-sized target with the icon size of the « ⋯ » menu. */
   .app-phone-header-actions [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); }
   .app-phone-header-actions [data-size^="icon"] svg { width: var(--hall-font-size-icon); height: var(--hall-font-size-icon); }
+  /* Every drop-down menu of a phone spans the screen width less its margins, with finger-sized rows. */
+  [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"] { width: calc(100vw - 2 * var(--hall-space-4)); max-width: none; padding: var(--hall-space-1); }
+  :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"]) { min-height: var(--hall-size-touch-control); gap: var(--hall-space-3); padding-inline: var(--hall-space-3); font-size: var(--hall-font-size-title); }
+  :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"]) svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
+  [data-slot="dropdown-menu-label"] { padding-inline: var(--hall-space-3); font-size: var(--hall-font-size-caption); }
   /* With its search and creation in the header, the documents list starts under the header. */
   .app-main .workspace > .workspace-topzone:not(:has(> :not(input))) { margin-bottom: calc(-1 * var(--hall-space-3)); }
   /* The workspace search of a phone covers the screen; its results scroll under the field. */

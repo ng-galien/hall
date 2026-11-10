@@ -45,6 +45,35 @@ async function touchscreen(page: Page) {
     });
 }
 
+/** Rows of an open drop-down menu: height, text size and menu width. */
+async function menuMeasures(page: Page, testId: string) {
+  const menu = page.getByTestId(testId);
+  await expect(menu).toBeVisible();
+  // The menu opens with a short zoom: measure it once the animation has ended.
+  await menu.evaluate((element) =>
+    Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
+  );
+  return menu.evaluate((element) => ({
+    width: element.getBoundingClientRect().width,
+    viewport: document.documentElement.clientWidth,
+    rows: [...element.querySelectorAll('[data-slot="dropdown-menu-item"]')].map((row) => ({
+      height: row.getBoundingClientRect().height,
+      font: Number.parseFloat(getComputedStyle(row).fontSize),
+      icon: row.querySelector("svg")?.getBoundingClientRect().width ?? 0,
+    })),
+  }));
+}
+
+function expectPhoneMenu(measures: Awaited<ReturnType<typeof menuMeasures>>) {
+  expect(measures.rows.length).toBeGreaterThan(0);
+  expect(measures.width, "menu width").toBeGreaterThanOrEqual(measures.viewport - 40);
+  for (const row of measures.rows) {
+    expect(row.height, "menu row height").toBeGreaterThanOrEqual(44);
+    expect(row.font, "menu text size").toBeGreaterThanOrEqual(15);
+    expect(row.icon, "menu icon size").toBeGreaterThanOrEqual(20);
+  }
+}
+
 test.describe("Hall pages on a phone", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
@@ -220,14 +249,20 @@ test.describe("Hall pages on a phone", () => {
         }
       }
 
+      // The « Nouveau » menu of the header offers finger-sized rows over the screen width.
+      await page.getByTestId("phone-header").getByTestId("workspace-create-menu").tap();
+      expectPhoneMenu(await menuMeasures(page, "workspace-create-options"));
+      await page.keyboard.press("Escape");
+      await expect(page.getByTestId("workspace-create-options")).toBeHidden();
+
       await page.getByTestId("workspace-search-open").tap();
       const surface = page.getByTestId("workspace-phone-search");
       await expect(surface).toBeVisible();
       const input = surface.getByTestId("workspace-search-input");
       await expect(input).toBeFocused();
-      const box = (await surface.boundingBox())!;
-      expect(box.y).toBeLessThanOrEqual(1);
-      expect(box.width).toBeGreaterThanOrEqual(389);
+      // The surface slides up from the bottom, then covers the screen.
+      await expect.poll(async () => (await surface.boundingBox())?.y ?? 999).toBeLessThanOrEqual(1);
+      expect((await surface.boundingBox())!.width).toBeGreaterThanOrEqual(389);
       await surface.getByTestId("dialog-close").tap();
       await expect(surface).toBeHidden();
       await expect(page).toHaveURL(/\/app\/workspace\?path=seed$/);
@@ -315,6 +350,26 @@ test.describe("Hall pages on a phone", () => {
       };
       for (const testId of ["business-create-subject", "attachment-picker-open", "phone-document-actions"])
         expect(await minimumSide(testId), `${testId} target`).toBeGreaterThanOrEqual(44);
+
+      for (const header of [page.getByTestId("phone-header"), page.getByTestId("business-subject-table")]) {
+        const icon = await header.locator('[data-size^="icon"] svg').first().boundingBox();
+        expect(icon!.width, "action icon size").toBeGreaterThanOrEqual(16);
+      }
+      await page.getByTestId("business-create-subject").click();
+      expectPhoneMenu(await menuMeasures(page, "workspace-create-options"));
+      await page.keyboard.press("Escape");
+      await page.getByTestId("phone-document-actions").click();
+      await expect(page.locator('[data-slot="dropdown-menu-content"][data-state="open"]')).toBeVisible();
+      await page
+        .locator('[data-slot="dropdown-menu-content"][data-state="open"]')
+        .evaluate((element) =>
+          Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
+        );
+      for (const height of await page
+        .locator('[data-slot="dropdown-menu-content"][data-state="open"] [data-slot="dropdown-menu-item"]')
+        .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height)))
+        expect(height, "« ⋯ » menu row height").toBeGreaterThanOrEqual(44);
+      await page.keyboard.press("Escape");
 
       const row = page.getByTestId(`business-phone-document-${document.id}`);
       await expect(row).toBeVisible();
