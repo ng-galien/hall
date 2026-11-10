@@ -5,6 +5,7 @@ import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { normalizeForSearch } from "../lib/search";
 import type { ApiErrorCode } from "../services/apiClient";
+import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { CardViewIcon, CloseIcon, ListViewIcon, SearchIcon } from "./icons";
 
 export function PageHeader({
@@ -60,7 +61,9 @@ export function matchesQuery(query: string, ...fields: (string | null | undefine
 export function useCollectionView() {
   const [layout, setLayout] = useState<CollectionLayout>("list");
   const [query, setQuery] = useState("");
-  return { layout, setLayout, query, setQuery };
+  // A phone always shows rows; the choice made on a wider screen is kept for it.
+  const phone = usePhoneLayout();
+  return { layout: phone ? ("list" as const) : layout, setLayout, query, setQuery };
 }
 
 /** List or cards switch shared by every collection and the workspace search results. */
@@ -114,6 +117,7 @@ export function CollectionToolbar({
   children?: ReactNode;
 }) {
   const { t } = useI18n();
+  const phone = usePhoneLayout();
   return (
     <div className="collection-toolbar">
       <div className="collection-search">
@@ -128,7 +132,7 @@ export function CollectionToolbar({
         />
       </div>
       <div className="collection-toolbar-side">
-        <CollectionLayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
+        {phone ? null : <CollectionLayoutToggle layout={layout} onLayoutChange={onLayoutChange} />}
         {children}
       </div>
     </div>

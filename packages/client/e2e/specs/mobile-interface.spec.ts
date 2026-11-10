@@ -355,6 +355,14 @@ test("a focused field shows one sober mark on its own border, without a frame ar
 test("phone form can be completed and submitted without horizontal overflow", async ({ appPage: page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/app/contacts");
+  // A phone list has no list or cards switch; the search keeps the width beside the creation button.
+  await expect(page.getByTestId("collection-search")).toBeVisible();
+  await expect(page.getByTestId("collection-layout-list")).toHaveCount(0);
+  await expect(page.getByTestId("collection-layout-cards")).toHaveCount(0);
+  const searchBox = (await page.locator(".collection-search").boundingBox())!;
+  const addBox = (await page.getByTestId("contacts-add").boundingBox())!;
+  expect(Math.abs(searchBox.y + searchBox.height / 2 - (addBox.y + addBox.height / 2)), "same row").toBeLessThan(4);
+  expect(searchBox.width + addBox.width, "search and button over the width").toBeGreaterThanOrEqual(360 - 24 - 16);
   await page.getByTestId("contacts-add").tap();
   const form = page.getByTestId("contact-create-form");
   await expect(form).toBeVisible();

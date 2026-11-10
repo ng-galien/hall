@@ -345,6 +345,11 @@
   .workspace-explorer-title-link strong { white-space: normal; overflow-wrap: anywhere; }
   .data-list > .data-row.linked { flex-wrap: wrap; }
   .data-list > .data-row.linked > div { flex: 1 1 100%; }
+  /* Collection toolbar of a phone: rows only, the search over the width, a creation button kept beside it. */
+  .collection-toolbar { flex-wrap: nowrap; gap: var(--hall-space-2); }
+  .collection-toolbar .collection-search { flex: 1 1 auto; min-width: 0; max-width: none; }
+  .collection-toolbar .collection-toolbar-side { width: auto; flex: none; flex-wrap: nowrap; }
+  .collection-toolbar .collection-toolbar-side:empty { display: none; }
   .meeting-prep-actionbar { flex-wrap: wrap; }
   .meeting-prep-actions { flex: 1 1 100%; flex-wrap: wrap; min-width: 0; }
   .docs-search { width: auto; flex: 1 1 auto; min-width: 0; }
