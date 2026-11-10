@@ -137,6 +137,9 @@
   .app-phone-bar-item > [aria-hidden="true"] { display: inline-grid; }
   .app-phone-bar-item > [aria-hidden="true"] svg { width: var(--hall-size-phone-bar-icon); height: var(--hall-size-phone-bar-icon); }
   .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-semibold); }
+  /* The active destination carries a tinted pill behind its icon, in addition to the brand colour. */
+  .app-phone-bar-item > [aria-hidden="true"] { padding: var(--hall-space-1) var(--hall-space-4); border-radius: var(--hall-radius-circular); transition: background-color var(--hall-motion-fast) var(--hall-motion-curve-standard); }
+  .app-phone-bar-item[data-active="true"] > [aria-hidden="true"] { background: var(--hall-color-brand-subtle); }
   .app-phone-more { padding-bottom: calc(var(--hall-space-6) + env(safe-area-inset-bottom, 0px)); }
   .app-phone-more-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-2); }
   .app-phone-more-list .nav-row {

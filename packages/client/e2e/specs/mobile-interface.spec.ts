@@ -51,6 +51,15 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     await page.getByTestId(`phone-navigation-${destination}`).tap();
     await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", route);
     await expect(page.getByTestId(`phone-navigation-${destination}`)).toHaveAttribute("aria-current", "page");
+    // Only the active destination carries a tinted pill behind its icon.
+    await expect
+      .poll(() =>
+        page
+          .getByTestId("phone-navigation")
+          .locator(':scope > [data-testid] > [aria-hidden="true"]')
+          .evaluateAll((icons) => icons.map((icon) => getComputedStyle(icon).backgroundColor !== "rgba(0, 0, 0, 0)")),
+      )
+      .toEqual(["home", "documents", "calendar", "meetings", "more"].map((entry) => entry === destination));
     await expectFitsWidth(page);
   }
   for (const [destination, route] of [
