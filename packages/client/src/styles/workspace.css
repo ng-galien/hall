@@ -38,6 +38,11 @@
   }
   .workspace-tree-link:hover { color: var(--hall-color-text); }
   .workspace-tree-name { overflow: hidden; flex: 1; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
+  /* @implements-requirement HALL-FR-WSP-480 */
+  /* A folder colour paints the folder icon only: no background, frame or badge. */
+  svg.workspace-folder-icon-colored,
+  .workspace-glyph svg.workspace-folder-icon-colored { color: var(--workspace-folder-color); }
+  .workspace-explorer-color-anchor { display: inline-flex; flex: none; }
 
   /* ---- Page ---- */
   .workspace-page { display: flex; flex-direction: column; height: 100%; }

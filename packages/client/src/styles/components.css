@@ -192,6 +192,23 @@
     font-size: var(--hall-font-size-caption);
     cursor: pointer;
   }
+  .color-picker-clear {
+    display: flex;
+    width: 100%;
+    min-height: var(--hall-size-control);
+    align-items: center;
+    margin-top: var(--hall-space-1);
+    padding: var(--hall-space-1) var(--hall-space-2);
+    border: 0;
+    border-radius: var(--hall-radius-medium);
+    background: transparent;
+    color: var(--hall-color-text);
+    font-size: var(--hall-font-size-caption);
+    text-align: left;
+    cursor: pointer;
+  }
+  .color-picker-clear:hover:not(:disabled) { background: var(--hall-color-surface-subtle); }
+  .color-picker-clear:disabled { color: var(--hall-color-text-subtle); cursor: default; }
   .color-picker-custom input {
     width: var(--hall-size-control-small);
     height: var(--hall-size-control-small);

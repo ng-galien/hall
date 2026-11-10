@@ -43,7 +43,7 @@ export const resourceReferenceSchema = z.union([resourceIdSchema, resourceSlugSc
 
 // @implements-requirement HALL-FR-DOC-280
 export const resourceChangeKindSchema = z.enum(["content", "metadata", "location", "creation", "operation"]);
-export const resourceChangeFieldSchema = z.enum(["content", "name", "path", "tags", "autosave"]);
+export const resourceChangeFieldSchema = z.enum(["content", "name", "path", "tags", "autosave", "color"]);
 export const resourceChangeSchema = z
   .object({
     id: z.string().uuid(),
@@ -100,7 +100,11 @@ const resourceIdentitySchema = z.object({
   fullPath: z.string().min(1),
   kind: resourceKindSchema,
 });
-export const resourceCatalogEntrySchema = resourceIdentitySchema;
+// @implements-requirement HALL-FR-WSP-480
+/** Folder colour as stored and presented; any case is accepted on input and stored in upper case. */
+export const folderColorSchema = z.string().regex(/^#[0-9A-F]{6}$/);
+export const folderColorInputSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const resourceCatalogEntrySchema = resourceIdentitySchema.extend({ color: folderColorSchema.optional() });
 
 const versionSchema = z.number().int().positive();
 const resourceTagsSchema = z.array(z.string().trim().min(1));
@@ -548,7 +552,10 @@ export const remoteResourceTargetSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-const folderResourceSummarySchema = resourcePresentationSchema.extend({ kind: z.literal("folder") });
+const folderResourceSummarySchema = resourcePresentationSchema.extend({
+  kind: z.literal("folder"),
+  color: folderColorSchema.optional(),
+});
 const textResourceSummarySchema = resourcePresentationSchema.extend({
   kind: z.literal("text"),
   autosaveEnabled: z.boolean(),
@@ -642,10 +649,17 @@ export const resourceEditingPreferenceSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("fixed") }),
   z.object({ kind: z.literal("autosave"), enabled: z.boolean() }),
 ]);
-export const updateResourceMetadataSchema = relocateResourceSchema.extend({
-  tags: resourceTagsSchema,
-  editing: resourceEditingPreferenceSchema,
-});
+/** An absent colour keeps the folder colour; null removes it. */
+export const updateResourceMetadataSchema = relocateResourceSchema
+  .extend({
+    tags: resourceTagsSchema,
+    color: folderColorInputSchema.nullable().optional(),
+    editing: resourceEditingPreferenceSchema,
+  })
+  .refine((input) => input.editing.kind === "fixed" || input.color === undefined, {
+    message: "Only a folder carries a colour",
+    path: ["color"],
+  });
 
 export const updateResourceContentSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("event"), expectedVersion: versionSchema, document: eventDocumentSchema }),

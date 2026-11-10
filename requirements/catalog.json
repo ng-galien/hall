@@ -8492,7 +8492,8 @@
         "Le clic sur une affaire dans le menu latéral ouvre son espace de travail existant, avec son identité conservée.",
         "Un répertoire ordinaire ouvre toujours son contenu documentaire.",
         "L’affaire ouverte reste identifiable comme sélection active dans l’arbre.",
-        "L’arbre distingue les répertoires et les affaires par leurs icônes communes seules, sans fond, badge ni habillage supplémentaire autour de l’icône d’affaire."
+        "L’arbre distingue les répertoires et les affaires par leurs icônes communes seules, sans fond, badge ni habillage supplémentaire autour de l’icône d’affaire.",
+        "La couleur d’un dossier (HALL-FR-WSP-480) colore seulement le trait de son icône, de répertoire ou d’affaire, sans fond, badge ni habillage ; les deux icônes restent distinctes par leur forme."
       ],
       "clauses": [
         {

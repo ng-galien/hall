@@ -35,7 +35,7 @@ export type ResourceAuditChange = Readonly<{
   id: string;
   actorId: string | null;
   kind: "content" | "metadata" | "location" | "creation" | "operation";
-  changedFields: readonly ("content" | "name" | "path" | "tags" | "autosave")[];
+  changedFields: readonly ("content" | "name" | "path" | "tags" | "autosave" | "color")[];
   occurredAt: string;
 }>;
 

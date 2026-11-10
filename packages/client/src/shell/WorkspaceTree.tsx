@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ChevronDownIcon, ChevronRightIcon, CouncilBusinessIcon, FolderIcon } from "../components/icons";
 import { councilBusinessHref } from "../features/references/referenceNavigation";
 import { useI18n } from "../i18n/I18nProvider";
+import { folderColorIconProps } from "../pages/workspace/folderColor";
 import { buildPathTree, type PathNode } from "../pages/workspace/paths";
 import { DRAG_TYPE, decodeDragPayload, moveToPath } from "../pages/workspace/workspaceOrg";
 import { listCouncilBusinessNavigationIndex } from "../services/councilBusinessApi";
@@ -78,7 +79,11 @@ function TreeNode({
             if (payload) void Promise.all(payload.map((entry) => moveToPath(entry, node.path)));
           }}
         >
-          {node.business ? <CouncilBusinessIcon /> : <FolderIcon />}
+          {node.business ? (
+            <CouncilBusinessIcon {...folderColorIconProps(node.color)} />
+          ) : (
+            <FolderIcon {...folderColorIconProps(node.color)} />
+          )}
           <span className="workspace-tree-name">{node.name}</span>
         </Link>
       </div>

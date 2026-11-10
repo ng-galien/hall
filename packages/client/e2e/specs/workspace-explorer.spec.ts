@@ -1253,3 +1253,129 @@ test("HALL-FR-SRC-030 web workbench previews a configured URL and edits it expli
     expect(removed.ok()).toBeTruthy();
   }
 });
+
+async function iconColor(icon: import("@playwright/test").Locator) {
+  return icon.evaluate((element) => getComputedStyle(element).color);
+}
+
+async function rgbOf(page: import("@playwright/test").Page, hex: string) {
+  return page.evaluate((value) => {
+    const probe = document.createElement("span");
+    probe.style.color = value;
+    document.body.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  }, hex);
+}
+
+// @verifies-requirement HALL-FR-WSP-480
+test("colours a folder icon from its menu, keeps it after reload and removes it", async ({ appPage: page }) => {
+  const name = `Couleur ${Date.now()}`;
+  const created = await page.request.post("/api/resources", { data: { kind: "folder", path: "", name } });
+  expect(created.status()).toBe(201);
+  const child = await page.request.post("/api/resources", { data: { kind: "folder", path: name, name: "Enfant" } });
+  expect(child.status()).toBe(201);
+  await page.goto("/app/workspace");
+  const explorerIcon = page.getByTestId(`workspace-folder-toggle-${name}`).locator("svg");
+  const sidebarIcon = page.locator(`[data-testid="workspace-sidebar-link"][data-path="${name}"] svg`);
+  await expect(explorerIcon).toBeVisible();
+  const greyColor = await iconColor(explorerIcon);
+
+  await page.getByTestId(`workspace-folder-name-${name}`).click({ button: "right" });
+  await page.getByTestId("workspace-tree-folder-color").click();
+  const picker = page.getByTestId("workspace-folder-color-picker");
+  await expect(picker).toBeVisible();
+  const preset = picker.getByTestId("workspace-folder-color-picker-preset").nth(2);
+  const chosen = ((await preset.getAttribute("data-color")) ?? "").toUpperCase();
+  expect(chosen).toMatch(/^#[0-9A-F]{6}$/);
+  await preset.click();
+  await page.keyboard.press("Escape");
+  await expect(picker).toBeHidden();
+
+  const expected = await rgbOf(page, chosen);
+  await expect(explorerIcon).toHaveAttribute("data-folder-color", chosen);
+  await expect(sidebarIcon).toHaveAttribute("data-folder-color", chosen);
+  expect(await iconColor(explorerIcon)).toBe(expected);
+  expect(await iconColor(sidebarIcon)).toBe(expected);
+  await page.screenshot({ path: test.info().outputPath("folder-color-desktop.png") });
+
+  await page.reload();
+  await expect(explorerIcon).toHaveAttribute("data-folder-color", chosen);
+  await expect(sidebarIcon).toHaveAttribute("data-folder-color", chosen);
+  expect(await iconColor(explorerIcon)).toBe(expected);
+  await page.getByTestId(`workspace-folder-toggle-${name}`).click();
+  await expect(page.getByTestId(`workspace-folder-toggle-${name}/Enfant`).locator("svg")).not.toHaveAttribute(
+    "data-folder-color",
+    /.+/,
+  );
+
+  await page.getByTestId(`workspace-folder-name-${name}`).click({ button: "right" });
+  await page.getByTestId("workspace-tree-folder-color").click();
+  await page.getByTestId("workspace-folder-color-picker-clear").click();
+  await expect(page.getByTestId("workspace-folder-color-picker")).toBeHidden();
+  await expect(explorerIcon).not.toHaveAttribute("data-folder-color", /.+/);
+  await expect(sidebarIcon).not.toHaveAttribute("data-folder-color", /.+/);
+  await page.reload();
+  await expect(explorerIcon).not.toHaveAttribute("data-folder-color", /.+/);
+  expect(await iconColor(page.getByTestId(`workspace-folder-toggle-${name}`).locator("svg"))).toBe(greyColor);
+});
+
+// @verifies-requirement HALL-FR-WSP-480
+for (const viewport of [
+  { label: "tablet", width: 820, height: 1180 },
+  { label: "phone", width: 390, height: 844 },
+]) {
+  test.describe(`folder colour on ${viewport.label}`, () => {
+    test.use({ viewport: { width: viewport.width, height: viewport.height }, hasTouch: true });
+
+    test(`paints only the folder icon on ${viewport.label}`, async ({ appPage: page }) => {
+      const name = `Couleur ${viewport.label} ${Date.now()}`;
+      const created = await page.request.post("/api/resources", { data: { kind: "folder", path: "", name } });
+      expect(created.status()).toBe(201);
+      const folder = (await created.json()).properties;
+      const updated = await page.request.patch(`/api/resources/${folder.id}/metadata`, {
+        data: { path: "", name, tags: [], color: "#1f7a4a", editing: { kind: "fixed" } },
+      });
+      expect(updated.status()).toBe(200);
+      expect((await updated.json()).properties.color).toBe("#1F7A4A");
+      await page.goto("/app/workspace");
+      const marker = page.getByTestId(`workspace-folder-toggle-${name}`);
+      const icon = marker.locator("svg");
+      await expect(icon).toHaveAttribute("data-folder-color", "#1F7A4A");
+      expect(await iconColor(icon)).toBe(await rgbOf(page, "#1F7A4A"));
+      expect(await marker.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+      await page.screenshot({ path: test.info().outputPath(`folder-color-${viewport.label}.png`) });
+
+      // A long press under a finger opens the folder menu and its colour picker with finger-sized targets.
+      const box = await marker.boundingBox();
+      if (!box) throw new Error("folder row is not laid out");
+      await marker.dispatchEvent("pointerdown", {
+        pointerType: "touch",
+        isPrimary: true,
+        button: 0,
+        clientX: box.x + box.width / 2,
+        clientY: box.y + box.height / 2,
+      });
+      const colorItem = page.getByTestId("workspace-tree-folder-color");
+      await expect(colorItem).toBeVisible({ timeout: 3_000 });
+      await marker.dispatchEvent("pointerup", { pointerType: "touch", isPrimary: true, button: 0 });
+      // Menus open with a short zoom; the size is read once it has ended.
+      await expect.poll(async () => (await colorItem.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      await colorItem.tap();
+      const picker = page.getByTestId("workspace-folder-color-picker");
+      await expect(picker).toBeVisible();
+      for (const target of [
+        picker.getByTestId("workspace-folder-color-picker-preset").first(),
+        picker.getByTestId("workspace-folder-color-picker-clear"),
+      ]) {
+        await expect.poll(async () => (await target.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+        await expect.poll(async () => (await target.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(44);
+      }
+      await page.screenshot({ path: test.info().outputPath(`folder-color-picker-${viewport.label}.png`) });
+      await picker.getByTestId("workspace-folder-color-picker-clear").tap();
+      await expect(picker).toBeHidden();
+      await expect(icon).not.toHaveAttribute("data-folder-color", /.+/);
+    });
+  });
+}

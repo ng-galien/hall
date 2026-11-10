@@ -13,6 +13,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { standardColorPresets } from "@/components/ui/color-presets";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -26,6 +28,7 @@ import {
 import { type InlineRenameEndReason, InlineRenameField } from "@/components/ui/inline-rename-field";
 import {
   AddIcon,
+  ColorIcon,
   DeleteIcon,
   EditIcon,
   FolderAddIcon,
@@ -52,6 +55,7 @@ import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { folderColorIconProps } from "./folderColor";
 import { isUnderPath, listCatalogPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKindTones } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -77,6 +81,7 @@ function RenameContextMenu({
   onImportFolder,
   onExportBundle,
   onDelete,
+  onColor,
 }: {
   children: ReactElement;
   enabled: boolean;
@@ -85,9 +90,10 @@ function RenameContextMenu({
   onImportFolder?(): void;
   onExportBundle?(): void;
   onDelete?(): void;
+  onColor?(): void;
 }) {
   const { t } = useI18n();
-  if (!enabled && !onAttachDocument && !onImportFolder && !onExportBundle && !onDelete) return children;
+  if (!enabled && !onAttachDocument && !onImportFolder && !onExportBundle && !onDelete && !onColor) return children;
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
@@ -121,6 +127,12 @@ function RenameContextMenu({
             <EditIcon aria-hidden="true" />
             {t("common.rename")}
             <ContextMenuShortcut>F2</ContextMenuShortcut>
+          </ContextMenuItem>
+        ) : null}
+        {onColor ? (
+          <ContextMenuItem data-testid="workspace-tree-folder-color" onSelect={onColor}>
+            <ColorIcon aria-hidden="true" />
+            {t("workspace.folderColor")}
           </ContextMenuItem>
         ) : null}
       </ContextMenuContent>
@@ -536,6 +548,47 @@ export function PathContents({
     }
   };
 
+  // @implements-requirement HALL-FR-WSP-480
+  const [colorTarget, setColorTarget] = useState<string | null>(null);
+  const folderColorAction = (folderId: string | undefined) =>
+    folderId && resourceCapabilities(resourcesStore.representations[folderId] ?? null).updateMetadata
+      ? () => afterContextMenuCloses(() => setColorTarget(folderId))
+      : undefined;
+  const changeFolderColor = async (folderId: string, color: string | null) => {
+    setRenameError(null);
+    const store = useWorkspaceResourcesStore.getState();
+    const folder = store.summaries[folderId] ?? store.details[folderId] ?? (await store.open(folderId))?.data;
+    if (folder?.kind !== "folder") return;
+    const updated = await useWorkspaceResourcesStore.getState().updateMetadata(folderId, {
+      path: folder.path,
+      name: folder.name,
+      tags: folder.tags,
+      color,
+      editing: { kind: "fixed" },
+    });
+    if (!updated) setRenameError(useWorkspaceResourcesStore.getState().error);
+  };
+  const withFolderColorPicker = (folderId: string | undefined, color: string | null, anchor: ReactElement) =>
+    folderId && colorTarget === folderId ? (
+      <ColorPicker
+        anchor={anchor}
+        open
+        value={color ?? ""}
+        presets={standardColorPresets(t)}
+        ariaLabel={t("workspace.folderColor")}
+        customLabel={t("geographic.color.custom")}
+        clearLabel={t("workspace.folderColorClear")}
+        testId="workspace-folder-color-picker"
+        onOpenChange={(open) => {
+          if (!open) setColorTarget(null);
+        }}
+        onValueChange={(value) => void changeFolderColor(folderId, value)}
+        onClear={() => void changeFolderColor(folderId, null)}
+      />
+    ) : (
+      anchor
+    );
+
   const startCreateFolder = (parentPath: string) => {
     setActiveRename(null);
     setRenameError(null);
@@ -682,7 +735,12 @@ export function PathContents({
     );
   };
 
-  const withFolderContextMenu = (children: ReactElement, folderPath: string, onRename?: () => void): ReactElement => {
+  const withFolderContextMenu = (
+    children: ReactElement,
+    folderPath: string,
+    onRename?: () => void,
+    onColor?: () => void,
+  ): ReactElement => {
     const capabilities = folderCapabilitiesAt(resourcesStore, folderPath);
     const canCreateResource = capabilities.create;
     const canCreateLegalReference = canCreateResource && capabilities.searchLegalReferences;
@@ -692,7 +750,8 @@ export function PathContents({
       canCreateLegalReference ||
       capabilities.uploadDocument ||
       capabilities.importSpreadsheet;
-    const hasActions = Boolean(onRename) || hasCreateActions || capabilities.importCouncilBusinessBundle;
+    const hasActions =
+      Boolean(onRename) || Boolean(onColor) || hasCreateActions || capabilities.importCouncilBusinessBundle;
     if (!hasActions) return children;
     return (
       <ContextMenu>
@@ -799,6 +858,12 @@ export function PathContents({
               <ContextMenuShortcut>F2</ContextMenuShortcut>
             </ContextMenuItem>
           ) : null}
+          {onColor ? (
+            <ContextMenuItem data-testid="workspace-tree-folder-color" onSelect={onColor}>
+              <ColorIcon aria-hidden="true" />
+              {t("workspace.folderColor")}
+            </ContextMenuItem>
+          ) : null}
         </ContextMenuContent>
       </ContextMenu>
     );
@@ -885,11 +950,19 @@ export function PathContents({
             resourcesStore.representations[business.folderResourceId] ?? null,
           );
           const renamable = folderCapabilities.relocate;
+          const businessFolderColor =
+            resourcesStore.catalog.find((entry) => entry.id === business.folderResourceId)?.color ?? null;
           const businessCapabilities = councilBusinessStore.capabilitiesById[business.id];
           const rowContents = (
             <>
               <span className="workspace-explorer-primary">
-                <CouncilBusinessGlyph business={business} />
+                {withFolderColorPicker(
+                  business.folderResourceId,
+                  businessFolderColor,
+                  <span className="workspace-explorer-color-anchor">
+                    <CouncilBusinessGlyph business={business} color={businessFolderColor} />
+                  </span>,
+                )}
                 <span className="workspace-explorer-copy">
                   <InlineRenameField
                     value={business.title}
@@ -957,6 +1030,7 @@ export function PathContents({
             >
               <RenameContextMenu
                 enabled={renamable}
+                onColor={folderColorAction(business.folderResourceId)}
                 onDelete={businessCapabilities?.delete ? () => onDeleteBusiness(business) : undefined}
                 onExportBundle={businessCapabilities?.exportBundle ? () => onExportBundle(business) : undefined}
                 onRename={() => startRename(payload)}
@@ -1077,6 +1151,10 @@ export function PathContents({
     const target: RenameTarget = { kind: "folder", path: folderPath };
     const key = itemKey(target);
     const renaming = renameTarget?.kind === "folder" && renameTarget.path === folderPath;
+    const folderEntry = resourcesStore.catalog.find(
+      (entry) => entry.kind === "folder" && entry.fullPath === folderPath,
+    );
+    const folderColor = folderEntry?.color ?? null;
     const row = (
       <fieldset
         className={`workspace-explorer-folder-row${selectedKeys.has(key) ? " workspace-explorer-selected" : ""}${dropPath === folderPath ? " workspace-explorer-drop" : ""}`}
@@ -1142,18 +1220,26 @@ export function PathContents({
         }}
       >
         <span className="workspace-explorer-primary">
-          <button
-            className="workspace-explorer-toggle workspace-explorer-folder-marker"
-            data-workspace-folder-path={folderPath}
-            data-workspace-node-key={key}
-            data-workspace-tree-node
-            data-testid={`workspace-folder-toggle-${folderPath}`}
-            type="button"
-            aria-expanded={isExpanded}
-            aria-label={folderPath.split("/").at(-1) ?? folderPath}
-          >
-            {isExpanded ? <FolderOpenIcon /> : <FolderIcon />}
-          </button>
+          {withFolderColorPicker(
+            folderEntry?.id,
+            folderColor,
+            <button
+              className="workspace-explorer-toggle workspace-explorer-folder-marker"
+              data-workspace-folder-path={folderPath}
+              data-workspace-node-key={key}
+              data-workspace-tree-node
+              data-testid={`workspace-folder-toggle-${folderPath}`}
+              type="button"
+              aria-expanded={isExpanded}
+              aria-label={folderPath.split("/").at(-1) ?? folderPath}
+            >
+              {isExpanded ? (
+                <FolderOpenIcon {...folderColorIconProps(folderColor)} />
+              ) : (
+                <FolderIcon {...folderColorIconProps(folderColor)} />
+              )}
+            </button>,
+          )}
           <InlineRenameField
             value={folderPath.split("/").at(-1) ?? folderPath}
             editing={renaming}
@@ -1190,14 +1276,10 @@ export function PathContents({
         {withFolderContextMenu(
           row,
           folderPath,
-          (() => {
-            const folder = resourcesStore.catalog.find(
-              (entry) => entry.kind === "folder" && entry.fullPath === folderPath,
-            );
-            return folder && resourceCapabilities(resourcesStore.representations[folder.id] ?? null).relocate
-              ? () => startRename(target)
-              : undefined;
-          })(),
+          folderEntry && resourceCapabilities(resourcesStore.representations[folderEntry.id] ?? null).relocate
+            ? () => startRename(target)
+            : undefined,
+          folderColorAction(folderEntry?.id),
         )}
         {isExpanded ? (
           <ul className="workspace-explorer-branch">

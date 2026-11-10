@@ -9,6 +9,8 @@ export interface PathNode<TBusiness extends PathBusiness = CouncilBusinessView> 
   name: string;
   children: PathNode<TBusiness>[];
   business: TBusiness | null;
+  /** Shared colour of the folder resource at this path, when one is set. */
+  color: string | null;
 }
 
 /** All known paths, intermediate segments included, sorted. */
@@ -49,6 +51,15 @@ export function listCatalogPaths(catalog: ResourceCatalogEntry[]): string[] {
   return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
 }
 
+/** Folder colours of the catalogue, keyed by folder full path. */
+export function folderColorsByPath(catalog: ResourceCatalogEntry[]): Map<string, string> {
+  return new Map(
+    catalog.flatMap((entry) =>
+      entry.kind === "folder" && entry.color ? [[entry.fullPath, entry.color] as const] : [],
+    ),
+  );
+}
+
 /** Path tree preserving the business identity of its documentary folder.
  * @implements-requirement HALL-FR-WSP-240
  */
@@ -63,6 +74,8 @@ export function buildPathTree<TBusiness extends PathBusiness>(
       .filter((entry) => entry.kind === "folder")
       .map((entry) => [entry.fullPath, businessesByFolderId.get(entry.id)]),
   );
+  // @implements-requirement HALL-FR-WSP-480
+  const colorsByPath = folderColorsByPath(catalog);
   const knownPaths = new Set(listCatalogPaths(catalog));
   for (const folderPath of [...additionalPaths, ...businesses.map((business) => business.folderPath)]) {
     const segments = folderPath.split("/").filter(Boolean);
@@ -81,6 +94,7 @@ export function buildPathTree<TBusiness extends PathBusiness>(
         path,
         name: businessesByPath.get(path)?.title ?? path.split("/").at(-1) ?? path,
         business: businessesByPath.get(path) ?? null,
+        color: colorsByPath.get(path) ?? null,
         children: childrenOf(path),
       }))
       .sort((left, right) => left.name.localeCompare(right.name, "fr-FR"));

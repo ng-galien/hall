@@ -12,6 +12,7 @@ import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState }
 import "ol/ol.css";
 import { Button } from "@/components/ui/button";
 import type { ColorPickerPreset } from "@/components/ui/color-picker";
+import { standardColorPresets } from "@/components/ui/color-presets";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -67,10 +68,6 @@ const GEOGRAPHIC_SAVE_DEBOUNCE_MS = 1_500;
 
 type GeographicResource = Extract<ResourceDetail, { kind: "geographic" }>;
 type GeographicResourceData = GeographicResource["document"];
-
-function cssToken(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
 
 function viewCenter(view: GeographicView): [number, number] {
   return view.kind === "center"
@@ -480,16 +477,7 @@ export function GeographicResourceMap({
     setEditingFeatureId(null);
     setRenameArmedFeatureId(null);
   };
-  const featureColorPresets: ColorPickerPreset[] = [
-    { value: cssToken("--hall-color-brand"), label: t("geographic.color.blue") },
-    { value: cssToken("--hall-color-focus"), label: t("geographic.color.lightBlue") },
-    { value: cssToken("--hall-color-success"), label: t("geographic.color.green") },
-    { value: cssToken("--hall-color-warning"), label: t("geographic.color.orange") },
-    { value: cssToken("--hall-color-danger"), label: t("geographic.color.red") },
-    { value: cssToken("--hall-color-seal"), label: t("geographic.color.burgundy") },
-    { value: cssToken("--hall-color-text-muted"), label: t("geographic.color.gray") },
-    { value: cssToken("--hall-color-text"), label: t("geographic.color.black") },
-  ];
+  const featureColorPresets = standardColorPresets(t);
   const knownColors = new Set(featureColorPresets.map((preset) => preset.value.toLowerCase()));
   const mapColorPresets: ColorPickerPreset[] = [];
   for (const drawing of drawings) {

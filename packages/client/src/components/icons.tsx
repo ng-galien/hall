@@ -86,6 +86,7 @@ export {
   Minus as RuleIcon,
   Moon as DarkThemeIcon,
   Notebook as MinutesIcon,
+  Palette as ColorIcon,
   Path as LineIcon,
   PencilSimple as EditIcon,
   PencilSimpleLine as SignIcon,

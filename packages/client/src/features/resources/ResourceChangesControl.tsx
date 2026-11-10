@@ -128,6 +128,7 @@ export function ResourceChangesControl({
         path: () => "resourceChanges.field.path" as const,
         tags: () => "resourceChanges.field.tags" as const,
         autosave: () => "resourceChanges.field.autosave" as const,
+        color: () => "resourceChanges.field.color" as const,
       }),
     );
   const kindLabel = (kind: ResourceChange["kind"]) =>

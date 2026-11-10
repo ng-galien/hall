@@ -144,6 +144,7 @@ function catalogEntryFrom(resource: ResourceDetail): ResourceCatalogEntry {
     name: resource.name,
     fullPath: resource.fullPath,
     kind: resource.kind,
+    ...(resource.kind === "folder" && resource.color ? { color: resource.color } : {}),
   };
 }
 

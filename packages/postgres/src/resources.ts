@@ -49,7 +49,7 @@ const resourceAuditChangeSchema = z.object({
   id: z.string().uuid(),
   actorId: z.string().min(1).nullable(),
   kind: z.enum(["content", "metadata", "location", "creation", "operation"]),
-  changedFields: z.array(z.enum(["content", "name", "path", "tags", "autosave"])),
+  changedFields: z.array(z.enum(["content", "name", "path", "tags", "autosave", "color"])),
   occurredAt: z.iso.datetime({ offset: true }),
 });
 export type PostgresResourceAuditChange = z.infer<typeof resourceAuditChangeSchema>;
@@ -85,10 +85,15 @@ const binarySummarySchema = z.object({
   contentSha256: z.string().regex(/^[0-9a-f]{64}$/),
 });
 
-const resourceCatalogEntrySchema = resourceIdentitySchema;
+// @implements-requirement HALL-FR-WSP-480
+const storedFolderColorSchema = z.string().regex(/^#[0-9A-F]{6}$/);
+const resourceCatalogEntrySchema = resourceIdentitySchema.extend({ color: storedFolderColorSchema.optional() });
 export const postgresResourceCatalogSchema = z.array(resourceCatalogEntrySchema);
 
-const folderResourceSummarySchema = resourcePresentationSchema.extend({ kind: z.literal("folder") });
+const folderResourceSummarySchema = resourcePresentationSchema.extend({
+  kind: z.literal("folder"),
+  color: storedFolderColorSchema.optional(),
+});
 const textResourceSummarySchema = resourcePresentationSchema.extend({
   kind: z.literal("text"),
   autosaveEnabled: z.boolean(),
@@ -375,16 +380,26 @@ const replaceDocumentInputSchema = z.object({
   mediaType: z.string().trim().min(1),
   content: z.instanceof(Buffer),
 });
-const updateMetadataInputSchema = z.object({
-  id: resourceIdSchema,
-  path: resourcePathSchema,
-  name: resourceNameSchema,
-  tags: z.array(z.string().trim().min(1)),
-  editing: z.discriminatedUnion("kind", [
-    z.object({ kind: z.literal("fixed") }),
-    z.object({ kind: z.literal("autosave"), enabled: z.boolean() }),
-  ]),
-});
+const updateMetadataInputSchema = z
+  .object({
+    id: resourceIdSchema,
+    path: resourcePathSchema,
+    name: resourceNameSchema,
+    tags: z.array(z.string().trim().min(1)),
+    color: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .nullable()
+      .optional(),
+    editing: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("fixed") }),
+      z.object({ kind: z.literal("autosave"), enabled: z.boolean() }),
+    ]),
+  })
+  .refine((input) => input.editing.kind === "fixed" || input.color === undefined, {
+    message: "Only a folder carries a colour",
+    path: ["color"],
+  });
 
 type CreateFolderInput = z.input<typeof createFolderInputSchema>;
 type CreateTextInput = z.input<typeof createTextInputSchema>;
@@ -544,6 +559,7 @@ function changedResourceFields(before: PostgresResourceDetail, after: PostgresRe
   if (before.tags.slice().sort().join("\u0000") !== after.tags.slice().sort().join("\u0000")) fields.push("tags");
   if ("autosaveEnabled" in before && "autosaveEnabled" in after && before.autosaveEnabled !== after.autosaveEnabled)
     fields.push("autosave");
+  if (before.kind === "folder" && after.kind === "folder" && before.color !== after.color) fields.push("color");
   return fields;
 }
 
@@ -989,9 +1005,15 @@ export class PostgresResources {
       parsed.editing.kind === "fixed"
         ? {
             text: `SELECT hall_api.present_resource(
-              hall_api.update_resource_metadata($1::uuid, $2::text, $3::text, $4::text[])
+              hall_api.update_resource_metadata($1::uuid, $2::text, $3::text, $4::text[], $5::jsonb)
             ) AS payload`,
-            values: [parsed.id, parsed.path, parsed.name, parsed.tags],
+            values: [
+              parsed.id,
+              parsed.path,
+              parsed.name,
+              parsed.tags,
+              parsed.color === undefined ? null : JSON.stringify(parsed.color),
+            ],
           }
         : {
             text: `SELECT hall_api.present_resource(

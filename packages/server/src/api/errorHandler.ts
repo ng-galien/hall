@@ -13,6 +13,7 @@ import { sendProblem } from "./problemDetails.js";
 // @implements-requirement HALL-FR-WSP-440
 // @implements-requirement HALL-FR-WSP-450
 // @implements-requirement HALL-FR-USR-060
+// @implements-requirement HALL-FR-WSP-480
 const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly code: string }> = new Map([
   ["HV801", { status: 409, code: "built_in_administrator_protected" }],
   ["HV802", { status: 400, code: "invalid_authorization_grant" }],
@@ -21,6 +22,7 @@ const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly 
   ["HV614", { status: 403, code: "permission_denied" }],
   ["HV615", { status: 403, code: "permission_denied" }],
   ["HV617", { status: 422, code: "councillor_requires_active_member" }],
+  ["HV618", { status: 400, code: "invalid_request" }],
   ["HV707", { status: 409, code: "personal_workspace_resource_not_associable" }],
   ["HV713", { status: 409, code: "council_business_report_not_deletable" }],
   ["HV714", { status: 409, code: "council_business_folder_not_deletable" }],
