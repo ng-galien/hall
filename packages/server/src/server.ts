@@ -57,7 +57,7 @@ export async function startHttpServer(
     try {
       await container.cradle.postgresClient.close();
     } catch (closeError) {
-      logger.error({ closeError }, "Failed to close database after server startup failure");
+      logger.error({ error: closeError }, "Failed to close database after server startup failure");
     }
     throw error;
   }
