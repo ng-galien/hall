@@ -225,6 +225,12 @@ END
   container_is_folder BOOLEAN GENERATED ALWAYS AS (true) STORED,
   -- Appended after the generated columns so an upgraded table keeps the same column order.
   geographic_layer_resource_id UUID UNIQUE REFERENCES hall.geographic_layer_resource(id) ON DELETE RESTRICT,
+  -- @implements-requirement HALL-TR-SCH-060
+  -- @implements-requirement HALL-FR-WSP-480
+  options JSONB NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "resource_options_is_object" CHECK (jsonb_typeof(options) = 'object'::text),
+
+  CONSTRAINT "resource_options_declared" CHECK ((options - 'color'::text) = '{}'::jsonb),
+  CONSTRAINT "resource_options_color" CHECK (NOT (options ? 'color'::text) OR (folder_resource_id IS NOT NULL AND jsonb_typeof(options -> 'color'::text) = 'string'::text AND (options ->> 'color'::text) ~ '^#[0-9A-F]{6}$'::text)),
 
   CONSTRAINT "resource_path_shape" CHECK (hall.is_normalized_resource_path(path)),
   CONSTRAINT "resource_name_shape" CHECK (hall.is_valid_resource_name(name)),

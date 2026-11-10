@@ -268,6 +268,16 @@ SELECT set_eq(
   'documentary API exposes the named read and mutation surface'
 );
 
+-- @verifies-requirement HALL-FR-WSP-480
+SELECT has_function(
+  'hall_api', 'update_resource_metadata', ARRAY['uuid', 'text', 'text', 'text[]', 'jsonb'],
+  'metadata update takes an optional folder colour after the tags'
+);
+SELECT hasnt_function(
+  'hall_api', 'update_resource_metadata', ARRAY['uuid', 'text', 'text', 'text[]'],
+  'metadata update has a single signature'
+);
+
 SELECT is(
   (
     SELECT count(*)::INTEGER

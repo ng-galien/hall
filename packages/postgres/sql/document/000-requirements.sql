@@ -77,8 +77,10 @@
 
 -- @implements-requirement HALL-FR-DOC-180
 -- The workspace can retrieve every resource identity and location in one
--- flat, deterministic catalogue. The catalogue carries no presentation,
--- content, binary metadata or council aggregate; the client renders its tree.
+-- flat, deterministic catalogue. A catalogue entry carries the identity, the
+-- location and the folder colour (HALL-FR-WSP-480); it carries no other
+-- presentation, content, binary metadata or council aggregate. The client
+-- renders its tree.
 
 -- @implements-requirement HALL-FR-DOC-190
 -- A remote resource exists before it has a target. A configured target is a

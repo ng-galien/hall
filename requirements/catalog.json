@@ -11186,6 +11186,71 @@
           "sourceIds": []
         }
       ]
+    },
+    "HALL-FR-WSP-480": {
+      "name": "WORKSPACE_FOLDER_COLOR",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-10"
+      },
+      "statement": "Un dossier de l’espace de travail peut recevoir une couleur, partagée par tous les utilisateurs, qui colore son icône dans l’arbre latéral et dans la liste de l’explorateur.",
+      "acceptanceCriteria": [
+        "La couleur se choisit depuis le menu d’un dossier, avec le sélecteur de couleur commun, par qui peut modifier les métadonnées du dossier (action resource.update-metadata) ; aucun droit nouveau n’est créé.",
+        "La couleur est enregistrée sur le dossier au format #RRGGBB ; tous les utilisateurs voient la même couleur.",
+        "Un dossier d’affaire se colore comme un autre dossier ; un sous-dossier ne prend pas la couleur de son parent.",
+        "Seule l’icône du dossier prend la couleur, sans fond ni badge, sur ordinateur, tablette et téléphone.",
+        "Retirer la couleur rend au dossier son icône grise d’origine.",
+        "Une couleur mal formée ou demandée pour une ressource qui n’est pas un dossier est refusée."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots du propriétaire, 10 novembre 2026 : « Il y a une [évolution] que je voudrais, c'est la personnalisation de la couleur des folders dans les workspace. »",
+          "sourceIds": []
+        },
+        {
+          "key": "shared-color",
+          "origin": "product",
+          "statement": "Mots du propriétaire, 10 novembre 2026, à la question « la couleur d'un dossier est-elle la même pour tous les utilisateurs ? » : « Oui, la même ».",
+          "sourceIds": []
+        },
+        {
+          "key": "coordinator-decision",
+          "origin": "product",
+          "statement": "Décision du coordinateur, 10 novembre 2026 : choix avec le sélecteur existant ; un dossier d’affaire se colore comme un autre ; pas d’héritage par les sous-dossiers ; même droit que le renommage ; retirer la couleur rend l’icône grise.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-SCH-060": {
+      "name": "STABLE_ENTITY_OPTIONS",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-10"
+      },
+      "statement": "Les entités stables portent un champ d’options JSONB qui reçoit des propriétés supplémentaires déclarées sans migration de données.",
+      "acceptanceCriteria": [
+        "Les tables hall.resource, hall.contact, hall.council_member, hall.council_committee, hall.council_delegation, hall.app_user et hall.document_template ont, en dernière colonne, options JSONB NOT NULL DEFAULT '{}'::jsonb, avec une contrainte qui exige un objet JSON.",
+        "La mise à niveau du schéma ajoute ces colonnes par le mécanisme déclaratif, sans script de migration de données.",
+        "Une propriété n’est lue, écrite et exposée qu’après sa déclaration ; la seule propriété déclarée est la couleur des dossiers sur hall.resource (HALL-FR-WSP-480), et les autres tables gardent un objet vide."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots du propriétaire, 10 novembre 2026 : « si on commence à avoir un peu des entités stables au niveau DB, il y a une technique que j'aime bien, c'est de mettre un champ extra option ou équivalent, extra conf, à chacune de ces entités, comme ça ça permet assez rapidement, sans faire de grosses migrations DB, de rajouter des propriétés. »",
+          "sourceIds": []
+        },
+        {
+          "key": "all-entities",
+          "origin": "product",
+          "statement": "Mots du propriétaire, 10 novembre 2026 : « je pense que c'est mieux de poser sur toutes les ressources. […] au moins, on a un truc déjà unifié. Un truc déjà prévu. Il n'y aura plus qu'à poser les options dessus. » Décision du coordinateur : « toutes les ressources » désigne les sept entités stables nommées dans les critères.",
+          "sourceIds": []
+        }
+      ]
     }
   }
 }

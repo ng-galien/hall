@@ -13,7 +13,9 @@ CREATE TABLE hall.app_user (
   status TEXT NOT NULL DEFAULT 'active'::text CONSTRAINT "app_user_status_check" CHECK (status = ANY (ARRAY['active'::text, 'disabled'::text])),
   contact_id UUID CONSTRAINT "app_user_contact_id_key" UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
+  -- @implements-requirement HALL-TR-SCH-060
+  options JSONB NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "app_user_options_is_object" CHECK (jsonb_typeof(options) = 'object'::text)
 );
 
 CREATE INDEX app_user_by_status ON hall.app_user USING btree (status, display_name);
@@ -92,6 +94,8 @@ CREATE TABLE hall.document_template (
   footer_html TEXT NOT NULL DEFAULT ''::text,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
+  -- @implements-requirement HALL-TR-SCH-060
+  options JSONB NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "document_template_options_is_object" CHECK (jsonb_typeof(options) = 'object'::text),
   CONSTRAINT "document_template_kind_document_type_key" UNIQUE (kind, document_type),
   CONSTRAINT "document_template_subject_by_kind" CHECK (kind = 'message'::text AND subject IS NOT NULL OR kind = 'pdf'::text AND subject IS NULL),
   CONSTRAINT "document_template_presentation_by_kind" CHECK (kind = 'pdf'::text OR stylesheet = ''::text AND header_html = ''::text AND footer_html = ''::text)

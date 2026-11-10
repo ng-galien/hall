@@ -249,7 +249,7 @@ GRANT EXECUTE ON FUNCTION hall_api.close_council_meeting(UUID)
 GRANT EXECUTE ON FUNCTION hall_api.list_minutes(), hall_api.open_minutes(UUID), hall_api.minutes_content(UUID),
   hall_api.update_minutes_draft(UUID, INTEGER, UUID, TEXT), hall_api.generate_minutes(UUID, INTEGER, BYTEA),
   hall_api.update_council_agenda_item_notes(UUID, TEXT, BOOLEAN) TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.update_resource_metadata(UUID, TEXT, TEXT, TEXT[])
+GRANT EXECUTE ON FUNCTION hall_api.update_resource_metadata(UUID, TEXT, TEXT, TEXT[], JSONB)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.update_editable_resource_metadata(UUID, TEXT, TEXT, TEXT[], BOOLEAN)
   TO hall_api_authenticated, hall_api_worker;

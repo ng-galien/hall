@@ -25,6 +25,8 @@ CREATE TABLE hall.contact (
   archived_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
+  -- @implements-requirement HALL-TR-SCH-060
+  options JSONB NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "contact_options_is_object" CHECK (jsonb_typeof(options) = 'object'::text),
   CONSTRAINT "contact_optional_fields_are_not_blank" CHECK ((organization_name IS NULL OR btrim(organization_name) <> ''::text) AND (job_title IS NULL OR btrim(job_title) <> ''::text) AND (email IS NULL OR btrim(email) <> ''::text) AND (phone IS NULL OR btrim(phone) <> ''::text))
 );
 
@@ -40,6 +42,8 @@ CREATE TABLE hall.council_member (
   UNIQUE (council_term, rank),
   term_started_on DATE NOT NULL,
   term_ended_on DATE,
+  -- @implements-requirement HALL-TR-SCH-060
+  options JSONB NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "council_member_options_is_object" CHECK (jsonb_typeof(options) = 'object'::text),
   CONSTRAINT "council_member_dates_are_ordered" CHECK (term_ended_on IS NULL OR term_ended_on >= term_started_on)
 );
 
@@ -155,7 +159,9 @@ CREATE TABLE hall.council_committee (
   description TEXT NOT NULL DEFAULT ''::text,
   archived_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
+  -- @implements-requirement HALL-TR-SCH-060
+  options JSONB NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "council_committee_options_is_object" CHECK (jsonb_typeof(options) = 'object'::text)
 );
 
 CREATE UNIQUE INDEX council_committee_one_active_name ON hall.council_committee USING btree (lower(name)) WHERE (archived_at IS NULL);

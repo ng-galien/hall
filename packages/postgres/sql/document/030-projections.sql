@@ -22,6 +22,23 @@ AS $function$
   END
 $function$;
 
+-- @implements-requirement HALL-FR-WSP-480
+-- The declared resource options projected as presentation fields. The only
+-- declared option is the folder colour, absent when the folder has none.
+CREATE FUNCTION hall.resource_options_presentation(options JSONB)
+RETURNS JSONB
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+SET search_path = pg_catalog
+AS $function$
+  SELECT CASE
+    WHEN options ? 'color' THEN jsonb_build_object('color', options -> 'color')
+    ELSE '{}'::jsonb
+  END
+$function$;
+
 -- @implements-requirement HALL-FR-DOC-180
 CREATE FUNCTION hall.resource_catalog_entry(target hall.resource)
 RETURNS JSONB
@@ -38,7 +55,7 @@ AS $function$
     'name', target.name,
     'fullPath', target.full_path,
     'kind', hall.resource_kind(target)
-  )
+  ) || hall.resource_options_presentation(target.options)
 $function$;
 
 -- @implements-requirement HALL-FR-DOC-200
@@ -91,7 +108,8 @@ SELECT resource.id,
          'mediaType', binary_object.media_type,
          'byteSize', binary_object.byte_size,
          'contentSha256', binary_object.content_sha256
-       ) ELSE NULL END AS binary
+       ) ELSE NULL END AS binary,
+       resource.options
 FROM hall.resource AS resource
 LEFT JOIN hall.text_resource ON text_resource.id = resource.text_resource_id
 LEFT JOIN hall.remote_resource ON remote_resource.id = resource.remote_resource_id
@@ -136,7 +154,7 @@ AS $function$
   END || CASE
     WHEN target.binary IS NOT NULL THEN jsonb_build_object('binary', target.binary)
     ELSE '{}'::jsonb
-  END
+  END || hall.resource_options_presentation(target.options)
 $function$;
 
 -- @implements-requirement HALL-TR-DOC-040

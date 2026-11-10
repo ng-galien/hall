@@ -6,7 +6,9 @@ CREATE TABLE hall.council_delegation (
   description TEXT NOT NULL DEFAULT ''::text,
   archived_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
+  -- @implements-requirement HALL-TR-SCH-060
+  options JSONB NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "council_delegation_options_is_object" CHECK (jsonb_typeof(options) = 'object'::text)
 );
 
 CREATE UNIQUE INDEX council_delegation_one_active_name ON hall.council_delegation USING btree (lower(name)) WHERE (archived_at IS NULL);

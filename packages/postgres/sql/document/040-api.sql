@@ -932,11 +932,47 @@ BEGIN
 END
 $function$;
 
+-- @implements-requirement HALL-FR-WSP-480
+-- A SQL NULL keeps the folder colour, a JSON string #RRGGBB replaces it and a
+-- JSON null removes it. Only a folder carries a colour.
+CREATE FUNCTION hall.replace_folder_color(resource_id UUID, folder_color JSONB)
+RETURNS VOID
+LANGUAGE plpgsql
+VOLATILE
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  target hall.resource;
+BEGIN
+  IF folder_color IS NULL THEN
+    RETURN;
+  END IF;
+  SELECT * INTO target FROM hall.require_resource(resource_id);
+  IF target.folder_resource_id IS NULL THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV609',
+      MESSAGE = 'Resource kind does not support a colour';
+  END IF;
+  IF jsonb_typeof(folder_color) = 'null' THEN
+    UPDATE hall.resource SET options = options - 'color' WHERE id = target.id;
+  ELSIF jsonb_typeof(folder_color) = 'string' AND (folder_color #>> '{}') ~ '^#[0-9A-Fa-f]{6}$' THEN
+    UPDATE hall.resource
+    SET options = options || jsonb_build_object('color', upper(folder_color #>> '{}'))
+    WHERE id = target.id;
+  ELSE
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV618',
+      MESSAGE = 'Folder colour is invalid';
+  END IF;
+END
+$function$;
+
 CREATE FUNCTION hall_api.update_resource_metadata(
   resource_id UUID,
   destination_path TEXT,
   destination_name TEXT,
-  resource_tags TEXT[]
+  resource_tags TEXT[],
+  folder_color JSONB DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -948,6 +984,7 @@ BEGIN
   PERFORM hall.require_relocation_write(resource_id, destination_path, destination_name);
   PERFORM hall.relocate_resource(resource_id, destination_path, destination_name);
   PERFORM hall.replace_resource_tags(resource_id, resource_tags);
+  PERFORM hall.replace_folder_color(resource_id, folder_color);
   PERFORM hall.touch_resource(resource_id);
   RETURN hall.resource_detail(resource_id);
 END

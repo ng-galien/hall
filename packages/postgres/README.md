@@ -7,8 +7,12 @@ for the documentary HTTP surface through Hall's PostgreSQL runtime.
 
 - `install()` creates the complete ordered SQL manifest in a fresh database.
 - `verify()` compares the database fingerprint with the exact local manifest.
-- A mismatch is fatal and requires a fresh database. There is no migration,
-  compatibility adapter, schema repair, or partial upgrade path.
+- A mismatch is fatal at runtime. The server schema upgrade (`hall migrate`
+  or startup upgrade) plans the difference from the installed catalogue
+  (`src/schemaUpgrade.ts`): it adds tables, columns, routines, views,
+  constraints and indexes, and refuses to remove a table, column or type
+  without an explicit migration rule. Desktop local mode only verifies the
+  fingerprint.
 - Runtime calls execute in serializable transactions with a closed PostgreSQL
   role and transaction-local request context.
 - JSONB projections are validated before commit. Binary values remain outside
