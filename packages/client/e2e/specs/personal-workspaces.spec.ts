@@ -498,3 +498,79 @@ test("gives council members read access and a personal folder that only they and
   });
   await alicePage.context().close();
 });
+
+// @verifies-requirement HALL-FR-LAY-040
+test("the home page lists the latest council documents without the personal folders, for every account", async ({
+  page: admin,
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+  const origin = baseURL ?? "";
+  admin.setDefaultTimeout(20_000);
+  await admin.addInitScript(() => localStorage.setItem("mairie.locale", "en"));
+  expect(
+    (
+      await admin.request.post("/api/auth/bootstrap", {
+        data: { displayName: "Administrator", email: "admin@example.test", password },
+      })
+    ).status(),
+  ).toBe(201);
+  expect((await admin.request.put("/api/council-terms", { data: { expectedMemberCount: 5 } })).ok()).toBeTruthy();
+  const contact = await created<{ id: string }>(
+    await admin.request.post("/api/contacts", {
+      data: {
+        firstName: "Alice",
+        lastName: "Martin",
+        organizationName: null,
+        jobTitle: null,
+        email: null,
+        phone: null,
+        notes: "",
+      },
+    }),
+  );
+  await created(
+    await admin.request.post("/api/council-members", {
+      data: { contactId: contact.id, role: "councillor", termStartedOn: "2026-03-22" },
+    }),
+  );
+  await created(
+    await admin.request.post("/api/users", {
+      data: {
+        email: "alice@example.test",
+        displayName: "Alice Martin",
+        password,
+        roles: ["councillor"],
+        contactId: contact.id,
+      },
+    }),
+  );
+  await created(await admin.request.post("/api/resources", { data: { kind: "folder", path: "", name: "Commun" } }));
+  const common = await created<{ id: string }>(
+    await admin.request.post("/api/resources", {
+      data: { kind: "text", path: "Commun", name: "Note commune", content: "Texte commun" },
+    }),
+  );
+  const alicePage = await sessionPage(browser, origin, "alice@example.test");
+  // The personal note is the latest document of Hall.
+  const personal = await created<{ id: string }>(
+    await alicePage.request.post("/api/resources", {
+      data: { kind: "text", path: aliceFolder, name: "Note personnelle", content: "Texte personnel" },
+    }),
+  );
+
+  for (const [account, page] of [
+    ["administrator without a personal folder", admin],
+    ["council member with a personal folder", alicePage],
+  ] as const) {
+    await test.step(`the ${account} sees the common note and not the personal note`, async () => {
+      await page.goto("/app/");
+      const recent = page.getByTestId("home-recent");
+      await expect(recent.getByTestId(`home-recent-document-${common.id}`)).toBeVisible();
+      await expect(recent.getByTestId(`home-recent-document-${personal.id}`)).toHaveCount(0);
+    });
+  }
+  await expect(alicePage.getByTestId(`home-personal-document-${personal.id}`)).toBeVisible();
+  await alicePage.context().close();
+});

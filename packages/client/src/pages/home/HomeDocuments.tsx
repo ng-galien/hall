@@ -192,9 +192,9 @@ export function HomePersonalSpace({ documents, loaded }: ReadableDocuments) {
 /** Latest documents of the council, personal folders excluded. */
 export function HomeRecentDocuments({ documents, loaded, error }: ReadableDocuments) {
   const { t } = useI18n();
-  const personalPath = useWorkspaceResourcesStore((state) => state.personalWorkspacePath);
-  const personalRoot = personalPath?.split("/").slice(0, -1).join("/");
-  const shared = personalRoot ? documents.filter((resource) => !isUnderPath(resource.path, personalRoot)) : documents;
+  const representations = useWorkspaceResourcesStore((state) => state.representations);
+  // The server marks every resource of a personal folder with the personal-workspace class.
+  const shared = documents.filter((resource) => !representations[resource.id]?.class?.includes("personal-workspace"));
   return (
     <section className="home-block" data-testid="home-recent">
       <header className="home-block-heading">
