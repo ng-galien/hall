@@ -43,8 +43,8 @@ use `C:\Hall`; adapt it once, then use the same paths throughout.
 ```powershell
 $ErrorActionPreference = 'Stop'
 $HallRoot = 'C:\Hall'
-$Release = Join-Path $HallRoot 'releases\1.1.0'
-$Archive = 'C:\Transfer\ng-galien-hall-1.1.0.tgz'
+$Release = Join-Path $HallRoot 'releases\1.2.0'
+$Archive = 'C:\Transfer\ng-galien-hall-1.2.0.tgz'
 New-Item -ItemType Directory -Force -Path $Release, "$HallRoot\config", "$HallRoot\backups", "$HallRoot\logs" | Out-Null
 node --version
 npm.cmd --version
@@ -234,7 +234,7 @@ start a new instance**. Disable its execution time limit. Use the full path to
 `node.exe` as the program and these arguments (adapt the release):
 
 ```text
-"C:\Hall\releases\1.1.0\node_modules\@ng-galien\hall\bin\hall.mjs" start --env-file "C:\Hall\config\hall.env"
+"C:\Hall\releases\1.2.0\node_modules\@ng-galien\hall\bin\hall.mjs" start --env-file "C:\Hall\config\hall.env"
 ```
 
 Set its working directory to `C:\Hall`. This is an operator-configured process,
