@@ -24,10 +24,10 @@ import {
 } from "../components/icons";
 import type { Locale } from "../i18n/I18nProvider";
 import { useI18n } from "../i18n/I18nProvider";
+import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { Callout, Compare, Details, Figure, Legend, PageCards, Step, Steps } from "./blocks";
 import { type DocsNode, type DocsPage, findPage, pageSequence, pageTree, searchPages } from "./pages";
 import { DocsPdfExport } from "./pdf";
-import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { standalone } from "./standalone";
 
 /* The documentation area: contents tree, article, "on this page". Pages are MDX under `content/`;

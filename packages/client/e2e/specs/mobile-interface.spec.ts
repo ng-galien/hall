@@ -185,7 +185,9 @@ test("phone calendar header keeps the date on one line, its buttons apart and th
       const overlaps = controls.flatMap((a, index) =>
         controls
           .slice(index + 1)
-          .filter((b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5),
+          .filter(
+            (b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5,
+          ),
       ).length;
       const titleBox = heading.getBoundingClientRect();
       return {
