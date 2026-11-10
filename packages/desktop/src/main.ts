@@ -16,6 +16,7 @@ import { type DesktopEdition, eraseDemonstration, resolveDesktopEdition } from "
 import { isSafeExternalUrl } from "./externalUrl.js";
 import { installLaunchProtocol, type LaunchScreen, registerLaunchScheme, showLaunchScreen } from "./launchScreen.js";
 import { alesiaTarget } from "./launchTerritory.js";
+import { mainWindowNavigation, permissionGranted } from "./mainWindowPolicy.js";
 import type { ServerCommand, ServerEvent, SessionCookie } from "./startupProtocol.js";
 import {
   createStartupTracker,
@@ -303,6 +304,12 @@ async function createMainWindow(): Promise<void> {
     return { action: "deny" };
   });
   const window = mainWindow;
+  window.webContents.on("will-navigate", (event) => {
+    const navigation = mainWindowNavigation(window.webContents.getURL(), event.url);
+    if (navigation === "allow") return;
+    event.preventDefault();
+    if (navigation === "external") void shell.openExternal(event.url);
+  });
   window.on("closed", () => {
     if (mainWindow === window) mainWindow = null;
   });
@@ -391,6 +398,10 @@ function startApplication(): void {
     .then(async () => {
       edition = await resolveDesktopEdition(app.getAppPath());
       installLaunchProtocol();
+      session.defaultSession.setPermissionRequestHandler((_contents, permission, callback, details) =>
+        callback(permissionGranted(permission, "externalURL" in details ? details.externalURL : undefined)),
+      );
+      session.defaultSession.setPermissionCheckHandler((_contents, permission) => permissionGranted(permission));
       if (edition === "demonstration") installDemonstrationMenu();
       await createMainWindow();
     })
