@@ -22,9 +22,12 @@ async function expectReadable(locator: Locator) {
     .toBe(true);
 }
 
+/** Scrolls an action into view, again when the list renders it anew, and checks that a finger reaches it. */
 async function expectReachable(locator: Locator) {
-  await locator.scrollIntoViewIfNeeded();
-  await expect(locator).toBeInViewport();
+  await expect(async () => {
+    await locator.scrollIntoViewIfNeeded({ timeout: 2_000 });
+    await expect(locator).toBeInViewport({ timeout: 1_000 });
+  }).toPass();
   await expect
     .poll(() =>
       locator.evaluate((element) => {
