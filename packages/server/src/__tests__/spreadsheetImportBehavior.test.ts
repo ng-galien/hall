@@ -1,6 +1,11 @@
 import ExcelJS from "exceljs";
-import { describe, expect, it } from "vitest";
-import { parseSpreadsheetImport, spreadsheetMarkdownTable } from "../services/spreadsheetImportService.js";
+import { describe, expect, it, vi } from "vitest";
+import {
+  parseSpreadsheetImport,
+  spreadsheetColumnCeiling,
+  spreadsheetMarkdownTable,
+  spreadsheetRowCeiling,
+} from "../services/spreadsheetImportService.js";
 
 const input = (fileName: string, content: Buffer) => ({ title: "Budget", folderPath: "", tags: [], fileName, content });
 
@@ -108,6 +113,50 @@ describe("spreadsheet import preserves usable workbook facts", () => {
       spreadsheetMarkdownTable({ fileName: "blank.csv", content: Buffer.from(" ; \n ; ") }),
     ).rejects.toMatchObject({ code: "invalid_request" });
     await expect(parseSpreadsheetImport(input("bad.csv", Buffer.from('a,b\n"unterminated')))).rejects.toMatchObject({
+      code: "invalid_request",
+    });
+  });
+
+  it("computes the column count once per worksheet", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Budget");
+    for (let i = 1; i <= 300; i += 1) sheet.addRow([`Ligne ${i}`, i, i * 2]);
+    const content = Buffer.from(await workbook.xlsx.writeBuffer());
+    const worksheetPrototype = Object.getPrototypeOf(new ExcelJS.Workbook().addWorksheet("Probe"));
+    const columnCount = vi.spyOn(worksheetPrototype, "columnCount", "get");
+    try {
+      const table = await spreadsheetMarkdownTable({ fileName: "budget.xlsx", content });
+      expect(table.rowCount).toBe(299);
+      expect(columnCount).toHaveBeenCalledTimes(1);
+      columnCount.mockClear();
+      const imported = await parseSpreadsheetImport(input("budget.xlsx", content));
+      const importedSheet = Object.values(imported.workbook.sheets as Record<string, { columnCount: number }>)[0];
+      expect(importedSheet.columnCount).toBe(8);
+      expect(columnCount).toHaveBeenCalledTimes(1);
+    } finally {
+      columnCount.mockRestore();
+    }
+  });
+
+  it("rejects worksheets beyond the row or column ceiling as invalid input", async () => {
+    const tall = new ExcelJS.Workbook();
+    tall.addWorksheet("Haute").getCell(spreadsheetRowCeiling + 1, 1).value = "Fin";
+    const tallContent = Buffer.from(await tall.xlsx.writeBuffer());
+    const wide = new ExcelJS.Workbook();
+    wide.addWorksheet("Large").getCell(1, spreadsheetColumnCeiling + 1).value = "Fin";
+    const wideContent = Buffer.from(await wide.xlsx.writeBuffer());
+    for (const content of [tallContent, wideContent]) {
+      await expect(parseSpreadsheetImport(input("large.xlsx", content))).rejects.toMatchObject({
+        code: "invalid_request",
+      });
+      await expect(spreadsheetMarkdownTable({ fileName: "large.xlsx", content })).rejects.toMatchObject({
+        code: "invalid_request",
+      });
+    }
+    const wideCsv = Buffer.from(
+      `${Array.from({ length: spreadsheetColumnCeiling + 1 }, (_, i) => `c${i}`).join(";")}\n`,
+    );
+    await expect(spreadsheetMarkdownTable({ fileName: "large.csv", content: wideCsv })).rejects.toMatchObject({
       code: "invalid_request",
     });
   });

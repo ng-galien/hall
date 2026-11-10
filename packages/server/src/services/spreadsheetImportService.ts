@@ -145,7 +145,21 @@ function range(reference: string): JsonObject {
   };
 }
 
+/** Largest number of rows a converted or imported worksheet may span. */
+export const spreadsheetRowCeiling = 100_000;
+/** Largest number of columns a converted or imported worksheet may span. */
+export const spreadsheetColumnCeiling = 1_000;
+
+function worksheetDimensions(worksheet: ExcelJS.Worksheet): { rowCount: number; columnCount: number } {
+  const rowCount = worksheet.rowCount;
+  if (rowCount > spreadsheetRowCeiling) throw new DomainError("invalid_request", 422);
+  const columnCount = worksheet.columnCount;
+  if (columnCount > spreadsheetColumnCeiling) throw new DomainError("invalid_request", 422);
+  return { rowCount, columnCount };
+}
+
 function worksheetData(title: string, worksheet: ExcelJS.Worksheet): { id: string; sheet: JsonObject } {
+  const { rowCount, columnCount } = worksheetDimensions(worksheet);
   const sheetId = randomUUID();
   const cells: Record<string, JsonValue> = {};
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
@@ -158,7 +172,7 @@ function worksheetData(title: string, worksheet: ExcelJS.Worksheet): { id: strin
     if (Object.keys(rowCells).length) cells[String(rowNumber - 1)] = rowCells;
   });
   const rowData: Record<string, JsonValue> = {};
-  for (let index = 1; index <= worksheet.rowCount; index += 1) {
+  for (let index = 1; index <= rowCount; index += 1) {
     const row = worksheet.getRow(index);
     if (row.height || row.hidden)
       rowData[String(index - 1)] = {
@@ -167,7 +181,7 @@ function worksheetData(title: string, worksheet: ExcelJS.Worksheet): { id: strin
       };
   }
   const columnData: Record<string, JsonValue> = {};
-  for (let index = 1; index <= worksheet.columnCount; index += 1) {
+  for (let index = 1; index <= columnCount; index += 1) {
     const column = worksheet.getColumn(index);
     if (column.width || column.hidden) {
       columnData[String(index - 1)] = {
@@ -182,8 +196,8 @@ function worksheetData(title: string, worksheet: ExcelJS.Worksheet): { id: strin
     sheet: {
       id: sheetId,
       name: worksheet.name || title,
-      rowCount: Math.max(20, worksheet.rowCount),
-      columnCount: Math.max(8, worksheet.columnCount),
+      rowCount: Math.max(20, rowCount),
+      columnCount: Math.max(8, columnCount),
       cellData: cells,
       rowData,
       columnData,
@@ -275,12 +289,11 @@ export async function spreadsheetMarkdownTable(
     throw new DomainError("invalid_request", 422);
   }
   if (!worksheet) throw new DomainError("invalid_request", 422);
+  const { rowCount, columnCount } = worksheetDimensions(worksheet);
   const rows: string[][] = [];
-  for (let index = 1; index <= worksheet.rowCount; index += 1) {
+  for (let index = 1; index <= rowCount; index += 1) {
     const row = worksheet.getRow(index);
-    const cells = Array.from({ length: worksheet.columnCount }, (_, column) =>
-      markdownCell(row.getCell(column + 1).text),
-    );
+    const cells = Array.from({ length: columnCount }, (_, column) => markdownCell(row.getCell(column + 1).text));
     if (cells.some(Boolean)) rows.push(cells);
   }
   const width = Math.max(0, ...rows.map((cells) => cells.findLastIndex(Boolean) + 1));
