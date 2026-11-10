@@ -1,4 +1,4 @@
-import type { APIResponse } from "@playwright/test";
+import type { APIResponse, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
 test.use({ seedScenario: "preparation" });
@@ -11,6 +11,18 @@ interface Entity<T> {
 async function entities<T>(response: APIResponse): Promise<Entity<T>[]> {
   expect(response.ok(), response.url()).toBeTruthy();
   return ((await response.json()) as { entities?: Entity<T>[] }).entities ?? [];
+}
+
+/** Workspace address of the folder that lists a business: the parent of its own folder. */
+async function businessListing(page: Page, businessId: string): Promise<string> {
+  const business = (await (await page.request.get(`/api/council-business/${businessId}`)).json()) as {
+    properties: { folderResourceId: string };
+  };
+  const folder = (await (await page.request.get(`/api/resources/${business.properties.folderResourceId}`)).json()) as {
+    properties: { fullPath: string };
+  };
+  const parent = folder.properties.fullPath.split("/").slice(0, -1).join("/");
+  return `/app/workspace?${new URLSearchParams({ path: parent })}`;
 }
 
 // @verifies-requirement HALL-FR-WSP-450
@@ -37,7 +49,7 @@ test("offers business deletion only when Hall accepts it, never for its folder",
   expect(folderDeletion.status()).toBe(409);
   expect(((await folderDeletion.json()) as { code?: string }).code).toBe("council_business_folder_not_deletable");
 
-  await page.goto("/app/workspace");
+  await page.goto(await businessListing(page, examined.properties.id));
   const examinedRow = page.getByTestId(`workspace-business-${examined.properties.id}`);
   await expect(examinedRow.locator('[data-slot="context-menu-trigger"]').first()).toBeVisible();
   await page.getByTestId(`workspace-business-title-${examined.properties.id}`).click({ button: "right" });
@@ -55,7 +67,7 @@ test("offers business deletion only when Hall accepts it, never for its folder",
   await page.getByTestId("workspace-create-submit").click();
   await expect(page).toHaveURL(/councilBusiness=/);
   const createdId = new URL(page.url()).searchParams.get("councilBusiness")!;
-  await page.goto("/app/workspace");
+  await page.goto(await businessListing(page, createdId));
   const createdRow = page.getByTestId(`workspace-business-${createdId}`);
   await expect(createdRow.locator('[data-slot="context-menu-trigger"]').first()).toBeVisible();
   await page.getByTestId(`workspace-business-title-${createdId}`).click({ button: "right" });
