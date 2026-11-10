@@ -47,6 +47,7 @@ test("keeps folder icons upright and navigates workspace rows with the keyboard"
   expect(await toggle.evaluate((element) => getComputedStyle(element.querySelector("svg")!).transform)).toBe("none");
   await toggle.press("ArrowRight");
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(first).toBeVisible();
   await toggle.press("ArrowRight");
   await expect(first).toBeFocused();
   await first.press("ArrowDown");
