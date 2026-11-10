@@ -5,10 +5,13 @@ import pino from "pino";
 const file = process.env.HALL_LOG_FILE;
 if (file) mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
 
+export const loggerOptions: pino.LoggerOptions = {
+  level: process.env.NODE_ENV === "test" ? "silent" : (process.env.LOG_LEVEL ?? "info"),
+  serializers: { error: pino.stdSerializers.err },
+};
+
 export const logger = pino(
-  {
-    level: process.env.NODE_ENV === "test" ? "silent" : (process.env.LOG_LEVEL ?? "info"),
-  },
+  loggerOptions,
   file
     ? pino.multistream([
         { stream: process.stdout },
