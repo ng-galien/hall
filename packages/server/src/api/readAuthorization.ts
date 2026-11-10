@@ -7,7 +7,7 @@ import { canExecute, requireAction } from "../security/authorization.js";
  * meeting (attendance sheet, proxy) are readings.
  */
 export function isExportHref(href: string): boolean {
-  const path = new URL(href, "http://hall.invalid").pathname;
+  const path = new URL(href, "http://hall.invalid").pathname.toLowerCase().replace(/\/+$/, "");
   if (path.startsWith("/api/resources/editor-assets/") || path.startsWith("/api/resources/binary-references/"))
     return false;
   return /\/(?:content(?:\.pdf)?|deliberation-list\.pdf|dossier|bundle)$/.test(path);
