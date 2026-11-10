@@ -4,6 +4,8 @@ import { expect, test } from "../fixtures/application";
 import { backdateMeetingConduct } from "../fixtures/meetingHistory";
 import { establishRevision, generateCurrentNotice, saveMeetingField } from "../fixtures/meetingPreparation";
 
+test.use({ builtInPdfViewer: true });
+
 interface SirenItem<T> {
   properties: T;
 }
