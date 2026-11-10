@@ -90,9 +90,11 @@ test("the tree lists every file of a business folder: report, attachments, subje
     ),
   );
   try {
-    const toggle = host.querySelector(`[data-testid="workspace-folder-${folder}"]`);
-    if (toggle && !host.querySelector(`[data-testid="workspace-resource-report"]`))
+    for (const folderPath of ["Conseil", folder]) {
+      const toggle = host.querySelector(`[data-testid="workspace-folder-${folderPath}"]`);
+      assert.ok(toggle, folderPath);
       await act(async () => toggle.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 })));
+    }
     for (const resource of resources)
       assert.ok(host.querySelector(`[data-testid="workspace-resource-${resource.id}"]`), resource.name);
   } finally {
