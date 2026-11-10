@@ -343,8 +343,18 @@
   .workspace-explorer-copy, .workspace-explorer-title-link { min-width: 0; max-width: 100%; }
   .workspace-explorer-title-link { text-align: left; }
   .workspace-explorer-title-link strong { white-space: normal; overflow-wrap: anywhere; }
-  .data-list > .data-row.linked { flex-wrap: wrap; }
-  .data-list > .data-row.linked > div { flex: 1 1 100%; }
+  /* A linked row of a phone list keeps its texts beside its badge: no row holds an element alone. */
+  .data-list > .data-row.linked { min-height: var(--hall-size-touch-control); flex-wrap: nowrap; gap: var(--hall-space-3); padding: var(--hall-space-2) var(--hall-space-3); }
+  .data-list > .data-row.linked > div { flex: 1 1 auto; min-width: 0; }
+  .data-list > .data-row.linked > :not(div) { flex: none; }
+  /* A minutes row: icon and title on the first line, date and state on the second; the whole row is the link. */
+  .data-list > .data-row.minutes-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icon title title" ". date state"; align-items: center; column-gap: var(--hall-space-3); row-gap: var(--hall-space-0-5); }
+  .data-list > .data-row.minutes-row > div { display: contents; }
+  .data-list > .data-row.minutes-row > svg:first-child { grid-area: icon; width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
+  .data-list > .data-row.minutes-row > div > strong { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
+  .data-list > .data-row.minutes-row > div > span { grid-area: date; }
+  .data-list > .data-row.minutes-row > span { grid-area: state; }
+  .data-list > .data-row.minutes-row > svg:last-child { display: none; }
   /* Collection toolbar of a phone: rows only, the search over the width, a creation button kept beside it. */
   .collection-toolbar { flex-wrap: nowrap; gap: var(--hall-space-2); }
   .collection-toolbar .collection-search { flex: 1 1 auto; min-width: 0; max-width: none; }

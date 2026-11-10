@@ -279,6 +279,49 @@ test.describe("Hall pages on a phone", () => {
       await expect(page.getByTestId("resource-phone-view")).toBeVisible();
     });
 
+    // @verifies-requirement HALL-FR-LAY-010
+    test("phone list rows are compact: minutes and meetings keep their texts beside the icon and the state", async ({
+      appPage: page,
+    }) => {
+      await page.setViewportSize({ width: 360, height: 800 });
+      await page.goto("/app/minutes");
+      const row = page.getByTestId(/^minutes-open-/).first();
+      await expect(row).toBeVisible();
+      const minutes = await row.evaluate((element) => {
+        const box = (node: Element | null) => node!.getBoundingClientRect();
+        const icon = box(element.querySelector("svg"));
+        const title = box(element.querySelector("strong"));
+        const date = box(element.querySelector(":scope > div > span"));
+        const state = box(element.querySelector(":scope > span"));
+        const icons = [...element.querySelectorAll("svg")].filter((svg) => svg.getBoundingClientRect().width > 0);
+        return {
+          height: element.getBoundingClientRect().height,
+          iconBesideTitle: icon.top < title.bottom && title.top < icon.bottom && icon.right <= title.left,
+          dateBesideState: date.top < state.bottom && state.top < date.bottom,
+          visibleIcons: icons.length,
+        };
+      });
+      expect(minutes.height, "minutes row height").toBeGreaterThanOrEqual(44);
+      expect(minutes.height, "minutes row height").toBeLessThanOrEqual(72);
+      expect(minutes.iconBesideTitle, "icon on the title line").toBe(true);
+      expect(minutes.dateBesideState, "date and state on one line").toBe(true);
+      expect(minutes.visibleIcons, "no chevron").toBe(1);
+
+      await page.goto("/app/meetings");
+      const meeting = page.getByTestId(/^meeting-history-/).first();
+      await expect(meeting).toBeVisible();
+      const meetingRow = await meeting.evaluate((element) => {
+        const texts = element.querySelector(":scope > div")!.getBoundingClientRect();
+        const badge = element.lastElementChild!.getBoundingClientRect();
+        return {
+          sameLine: badge.top < texts.bottom && texts.top < badge.bottom,
+          height: element.getBoundingClientRect().height,
+        };
+      });
+      expect(meetingRow.sameLine, "meeting state beside its texts").toBe(true);
+      expect(meetingRow.height).toBeGreaterThanOrEqual(44);
+    });
+
     // @verifies-requirement HALL-FR-SRC-030
     // @verifies-requirement HALL-FR-LAY-010
     test("a contact or member reference opens its page and the back arrow returns to the note", async ({

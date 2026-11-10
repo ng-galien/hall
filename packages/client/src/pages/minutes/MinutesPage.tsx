@@ -55,7 +55,7 @@ export function MinutesPage() {
         <div className="data-list">
           {minutes.map((item) => (
             <Link
-              className="data-row linked"
+              className="data-row linked minutes-row"
               key={item.id}
               to={`/minutes/${item.id}`}
               data-testid={`minutes-open-${item.councilMeetingId}`}
