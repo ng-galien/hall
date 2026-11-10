@@ -6,6 +6,7 @@ import { defaultCollectOptions } from "../engine/capture.mjs";
 import { screens } from "./screens.mjs";
 
 /* Hall configuration of the screen audit: everything the engine needs to know about this application. */
+// @verifies-requirement HALL-FR-LAY-050
 
 const here = import.meta.dirname;
 const clientDirectory = resolve(here, "../../..");

@@ -347,6 +347,8 @@
   .data-list > .data-row.linked { min-height: var(--hall-size-touch-control); flex-wrap: nowrap; gap: var(--hall-space-3); padding: var(--hall-space-2) var(--hall-space-3); }
   .data-list > .data-row.linked > div { flex: 1 1 auto; min-width: 0; }
   .data-list > .data-row.linked > :not(div) { flex: none; }
+  /* Two badges of a phone row stand one above the other, so the title keeps its width. */
+  .data-list > .data-row.linked > span:has(> [data-slot="badge"] + [data-slot="badge"]) { flex-direction: column; align-items: flex-end; gap: var(--hall-space-1); }
   /* A minutes row: icon and title on the first line, date and state on the second; the whole row is the link. */
   .data-list > .data-row.minutes-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icon title title" ". date state"; align-items: center; column-gap: var(--hall-space-3); row-gap: var(--hall-space-0-5); }
   .data-list > .data-row.minutes-row > div { display: contents; }
@@ -379,6 +381,8 @@
    Links inside running text keep their place in the sentence; a check box takes its label as target. */
 @media (pointer: coarse) {
   :root {
+    /* Under a finger no text is smaller than 14 pixels: the caption size joins the body size. */
+    --hall-font-size-caption: var(--hall-font-size-body);
     --hall-font-size-icon-compact: var(--hall-font-size-icon-small);
     --hall-size-control: var(--hall-size-touch-control);
     --hall-size-control-small: var(--hall-size-touch-control);

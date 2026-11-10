@@ -9551,11 +9551,11 @@
         "state": "accepted",
         "since": "2026-10-28"
       },
-      "statement": "Sous un pointeur tactile, chaque écran de Hall tient dans la largeur d’un téléphone sans défilement horizontal ni élément coupé, chaque cible mesure au moins 44 × 44 et aucun texte n’est plus petit que 12 pixels.",
+      "statement": "Sous un pointeur tactile, chaque écran de Hall tient dans la largeur d’un téléphone sans défilement horizontal ni élément coupé, chaque cible mesure au moins 44 × 44 et aucun texte n’est plus petit que 14 pixels.",
       "acceptanceCriteria": [
         "À 390 et à 768 de large, sous pointer: coarse, aucun écran n’a de défilement horizontal du document ni d’élément qui dépasse le bord droit.",
         "Chaque bouton, champ, lien hors d’une phrase, onglet et case (avec son libellé) offre une cible d’au moins 44 × 44 ; un lien dans une phrase garde sa place dans le texte.",
-        "Aucun texte visible n’est plus petit que 12 pixels et aucun libellé d’action n’est coupé.",
+        "Aucun texte visible n’est plus petit que 14 pixels et aucun libellé d’action n’est coupé.",
         "L’appel des membres et la saisie d’un vote se font au toucher.",
         "L’affichage à la souris, au poste de travail, ne change pas."
       ],
@@ -9564,6 +9564,12 @@
           "key": "phone-review",
           "origin": "product",
           "statement": "Premier chantier décidé par le propriétaire le 25 octobre 2026 (sujet hall-mobile) ; demande du coordinateur du 28 octobre 2026 (9e9a0bc9).",
+          "sourceIds": []
+        },
+        {
+          "key": "minimum-text-size-touch",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 10 novembre 2026 sur les tailles de texte : 14 px sur tablette et sur téléphone (« ok, c’était pour un accord effectivement sur les tailles. En pixels. »).",
           "sourceIds": []
         }
       ]
@@ -10920,6 +10926,28 @@
           "key": "home-overview",
           "origin": "product",
           "statement": "Page d’accueil construite dans le chantier d’interface téléphone et vérifiée à l’écran le 9 novembre 2026, retenue par le propriétaire le 10 novembre 2026 pour la version 1.2.0 : « On a fait quelques évolutions IHM. Mobile surtout. […] Faudrait mettre tout ça dans la release note », puis « je suis d’accord pour la 1.2 ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-050": {
+      "name": "MINIMUM_DESKTOP_TEXT_SIZE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-10"
+      },
+      "statement": "À la souris, sur un poste de travail, aucun texte de l’interface de Hall n’est plus petit que 13 pixels.",
+      "acceptanceCriteria": [
+        "Au format ordinateur du relevé des écrans (1440 × 900, pointeur fin), aucun texte visible de l’interface n’est écrit sous 13 pixels.",
+        "Le plus petit pas de l’échelle typographique de l’interface est de 13 pixels sur ordinateur et de 14 pixels sous un pointeur tactile ; les documents générés ne sont pas concernés.",
+        "Un texte passé à 13 pixels ne se coupe pas et ne déborde pas dans les badges, les en-têtes de colonnes, le menu latéral et les onglets."
+      ],
+      "clauses": [
+        {
+          "key": "minimum-text-size-desktop",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 10 novembre 2026 : 13 px sur ordinateur, 14 px sur tablette et sur téléphone (« ok, c’était pour un accord effectivement sur les tailles. En pixels. ») ; à la question d’accepter le texte de 12 pixels sur ordinateur : « Non, agrandir à 13 ».",
           "sourceIds": []
         }
       ]

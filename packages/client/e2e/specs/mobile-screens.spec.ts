@@ -2,13 +2,13 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
 /* Every Hall screen on a phone: no horizontal scrolling, nothing cut at the right edge, touch targets of at least
-   44 points, no text under 12 pixels and no truncated action label. A link inside a sentence is exempt, as in
+   44 points, no text under 14 pixels and no truncated action label. A link inside a sentence is exempt, as in
    WCAG 2.5.8, and a check box or radio button is measured with its label. HALL_MOBILE_AUDIT=report prints the
    findings instead of asserting them. */
 // @verifies-requirement HALL-FR-LAY-020
 
 const minimumTarget = 44;
-const minimumFontSize = 12;
+const minimumFontSize = 14;
 const report = process.env.HALL_MOBILE_AUDIT === "report";
 
 interface Entity<T> {

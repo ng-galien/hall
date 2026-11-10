@@ -100,6 +100,7 @@
   --hall-font-family-sans: "Archivo Variable", Archivo, ui-sans-serif, system-ui, sans-serif;
   --hall-font-family-monospace: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   /* Type scale: 13, 14, 16, 20, 24, 28, 32, 40. */
+  /* @implements-requirement HALL-FR-LAY-050 */
   --hall-font-size-caption: 13px;
   --hall-font-size-body: 14px;
   --hall-font-size-title: 16px;
