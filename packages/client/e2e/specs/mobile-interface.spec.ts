@@ -203,6 +203,26 @@ test("phone calendar header keeps the date on one line, its buttons apart and th
 });
 
 // @verifies-requirement HALL-FR-LAY-010
+test("phone settings categories stay on one row that scrolls sideways", async ({ appPage: page }) => {
+  await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/app/settings");
+  const tabs = page.getByTestId("settings-tabs");
+  const triggers = tabs.getByTestId(/^settings-tab-/);
+  await expect(triggers.first()).toBeVisible();
+  const rows = await triggers.evaluateAll(
+    (elements) => new Set(elements.map((element) => Math.round(element.getBoundingClientRect().top))).size,
+  );
+  expect(rows, "category rows").toBe(1);
+  expect(await tabs.evaluate((element) => getComputedStyle(element).overflowX)).toBe("auto");
+  const last = triggers.last();
+  await last.scrollIntoViewIfNeeded();
+  await last.tap();
+  await expect(last).toHaveAttribute("data-state", "active");
+  await expectFitsWidth(page);
+});
+
+// @verifies-requirement HALL-FR-LAY-010
 test("phone form can be completed and submitted without horizontal overflow", async ({ appPage: page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/app/contacts");

@@ -109,7 +109,11 @@ export function SettingsPage() {
       <div className="page-content">
         <RequestErrorBanner error={settingsError} />
         <Tabs value={category} onValueChange={(value) => setSearchParams({ category: value })}>
-          <TabsList className="w-full flex-wrap" aria-label={t("settings.title")}>
+          <TabsList
+            className="settings-tabs w-full flex-wrap"
+            data-testid="settings-tabs"
+            aria-label={t("settings.title")}
+          >
             {categories.map((value) => (
               <TabsTrigger key={value} value={value} data-testid={`settings-tab-${value}`}>
                 {t(`settings.category.${value}`)}
