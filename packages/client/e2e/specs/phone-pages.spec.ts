@@ -191,6 +191,57 @@ test.describe("Hall pages on a phone", () => {
       }
     });
 
+    // @verifies-requirement HALL-FR-LAY-010
+    test("the documents search and creation sit in the header and the search opens over the screen", async ({
+      appPage: page,
+    }) => {
+      const name = `Note cherchée ${crypto.randomUUID().slice(0, 8)}`;
+      const created = await page.request.post("/api/resources", {
+        data: { kind: "text", path: "seed", name, content: "Texte." },
+      });
+      expect(created.status()).toBe(201);
+      const note = (await created.json()).properties as { id: string };
+
+      for (const address of ["/app/workspace", "/app/workspace?path=seed"]) {
+        await page.goto(address);
+        const header = page.getByTestId("phone-header");
+        await expect(header.getByTestId("workspace-search-open")).toBeVisible();
+        await expect(header.getByTestId("workspace-create-menu")).toBeVisible();
+        await expect(page.getByTestId("workspace-search-input")).toHaveCount(0);
+        // The list of folders starts right under the header.
+        const firstRow = page.getByTestId("application-main").locator(".workspace-contents").first();
+        await expect(firstRow).toBeVisible();
+        const headerBottom = (await header.boundingBox())!;
+        const listTop = (await firstRow.boundingBox())!.y;
+        expect(listTop - (headerBottom.y + headerBottom.height)).toBeLessThanOrEqual(16);
+        for (const control of ["workspace-search-open", "workspace-create-menu"]) {
+          const box = (await header.getByTestId(control).boundingBox())!;
+          expect(Math.min(box.width, box.height), `${control} target`).toBeGreaterThanOrEqual(44);
+        }
+      }
+
+      await page.getByTestId("workspace-search-open").tap();
+      const surface = page.getByTestId("workspace-phone-search");
+      await expect(surface).toBeVisible();
+      const input = surface.getByTestId("workspace-search-input");
+      await expect(input).toBeFocused();
+      const box = (await surface.boundingBox())!;
+      expect(box.y).toBeLessThanOrEqual(1);
+      expect(box.width).toBeGreaterThanOrEqual(389);
+      await surface.getByTestId("dialog-close").tap();
+      await expect(surface).toBeHidden();
+      await expect(page).toHaveURL(/\/app\/workspace\?path=seed$/);
+
+      await page.getByTestId("workspace-search-open").tap();
+      await page.getByTestId("workspace-search-input").fill(name);
+      const hit = surface.getByTestId("workspace-search-result").filter({ hasText: name });
+      await expect(hit).toBeVisible();
+      await hit.tap();
+      await expect(surface).toBeHidden();
+      await expect(page).toHaveURL(new RegExp(`resource=${note.id}`));
+      await expect(page.getByTestId("resource-phone-view")).toBeVisible();
+    });
+
     // @verifies-requirement HALL-FR-SRC-030
     // @verifies-requirement HALL-FR-LAY-010
     test("a contact or member reference opens its page and the back arrow returns to the note", async ({

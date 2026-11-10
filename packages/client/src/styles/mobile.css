@@ -164,6 +164,14 @@
   .app-phone-header-actions:empty { display: none; }
   .app-phone-header-more { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-icon-large); }
   .app-phone-action { min-height: var(--hall-size-touch-control); }
+  /* Every icon button of the phone header is a finger-sized target with the icon size of the « ⋯ » menu. */
+  .app-phone-header-actions [data-slot="button"][data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); }
+  .app-phone-header-actions [data-slot="button"][data-size^="icon"] svg { width: var(--hall-font-size-icon); height: var(--hall-font-size-icon); }
+  /* With its search and creation in the header, the documents list starts under the header. */
+  .app-main .workspace > .workspace-topzone:not(:has(> :not(input))) { margin-bottom: calc(-1 * var(--hall-space-3)); }
+  /* The workspace search of a phone covers the screen; its results scroll under the field. */
+  [data-slot="dialog-content"].workspace-phone-search { top: 0; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+  .workspace-phone-search-results { display: grid; min-height: 0; flex: 1; align-content: start; }
   .app-main .workspace-page { height: auto; min-height: 100%; }
   .app-main .workspace-contents,
   .app-main .workspace-container-body,

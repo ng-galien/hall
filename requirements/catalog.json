@@ -9501,7 +9501,8 @@
         "Sur un téléphone, la barre du bas est masquée sur la page d’un document, d’une note, d’un élément préparé, d’un point de séance, d’une délibération et d’un procès-verbal.",
         "Sur un téléphone, la page d’une séance présente ses informations et la liste de ses points ; chaque point s’ouvre sur sa page, à l’adresse /meetings/:id/points/:pointId. Le procès-verbal et la délibération d’une séance s’ouvrent sur leur page, leurs actions dans le menu ⋯.",
         "Sur un téléphone, la page d’une séance montre la barre d’étapes et la pastille de révision à l’utilisateur qui peut préparer la séance.",
-        "Sur un téléphone, une carte occupe tout l’écran et une ressource distante présente son adresse avec un bouton qui ouvre le lien."
+        "Sur un téléphone, une carte occupe tout l’écran et une ressource distante présente son adresse avec un bouton qui ouvre le lien.",
+        "Sur un téléphone, la page Documents, à la racine comme dans un dossier, porte la recherche et le bouton de création dans son en-tête ; l’icône de recherche ouvre la recherche de l’espace de travail sur tout l’écran, le champ actif, et sa fermeture ramène à la liste, qui commence directement sous l’en-tête. L’ordinateur et la tablette gardent la recherche au-dessus de la liste."
       ],
       "clauses": [
         {
@@ -9532,6 +9533,12 @@
           "key": "phone-bar-order",
           "origin": "product",
           "statement": "Demande du propriétaire du 10 novembre 2026 sur l’ordre des icônes de la barre du bas du téléphone : « Dernier petit truc au niveau de l’ordre des icônes. Je mettrais donc bon l’accueil. Ensuite, je mettrais les dossiers. Ensuite, le calendrier. Et ensuite seulement la séance. » Le menu de l’ordinateur et de la tablette garde son ordre.",
+          "sourceIds": []
+        },
+        {
+          "key": "phone-documents-search-in-header",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 10 novembre 2026 sur la rangée de recherche de la page Documents d’un téléphone : « ici, le truc de recherche, en fait, il pourrait très bien être plus haut, quoi, au niveau du header de navigation, hein. Juste un icône [qui] ouvre […] une modale de recherche, enfin ouvre un truc, hein. Je pense que c’est mieux pour le mobile, hein. » La surface plein écran et le déplacement du bouton de création dans l’en-tête sont la disposition proposée pour cette demande, à valider à l’écran par le propriétaire.",
           "sourceIds": []
         }
       ]

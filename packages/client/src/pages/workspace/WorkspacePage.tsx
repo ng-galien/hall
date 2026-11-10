@@ -27,7 +27,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { type DocumentDuplicate, findDocumentDuplicates } from "../../services/documentDuplicates";
-import { HeaderTrail } from "../../shell/headerTrail";
+import { HeaderTrail, PhoneHeaderActions } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -45,7 +45,13 @@ import { isUnderPath } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
 import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
-import { emptySearch, isSearchActive, WorkspaceSearch, type WorkspaceSearchState } from "./WorkspaceSearch";
+import {
+  emptySearch,
+  isSearchActive,
+  PhoneWorkspaceSearch,
+  WorkspaceSearch,
+  type WorkspaceSearchState,
+} from "./WorkspaceSearch";
 import { WorkbenchControlsContext } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceCreateKind } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -419,6 +425,36 @@ export function WorkspacePage() {
     });
 
   const searchActive = isSearchActive(search);
+  const createMenu = !selectedBusiness ? (
+    <WorkspaceCreateMenu
+      compact={phone}
+      getError={() => useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error}
+      clearError={() => {
+        useWorkspaceResourcesStore.setState({ error: null });
+        useCouncilBusinessStore.setState({ error: null });
+      }}
+      canCreate={(kind) =>
+        matchLiteral(kind, {
+          councilMatter: () => folderCapabilities.createCouncilBusiness,
+          text: () => folderCapabilities.create,
+          spreadsheet: () => folderCapabilities.create,
+          remote: () => folderCapabilities.create,
+          geographic: () => folderCapabilities.create,
+          event: () => folderCapabilities.create,
+          legalReference: () => folderCapabilities.create && folderCapabilities.searchLegalReferences,
+          file: () => folderCapabilities.uploadDocument || folderCapabilities.importSpreadsheet,
+          takePhoto: () => folderCapabilities.uploadDocument,
+          choosePhoto: () => folderCapabilities.uploadDocument,
+        })
+      }
+      onCreate={async (kind, title) => {
+        const created = await createInFolder(kind, path, title);
+        if (created) select(created, path);
+        return Boolean(created);
+      }}
+    />
+  ) : null;
+
   return (
     <div className="page workspace-page">
       <div className="workspace">
@@ -506,56 +542,36 @@ export function WorkspacePage() {
           />
         </HeaderTrail>
         <div className="workspace-topzone" data-item-open={selection ? "true" : undefined}>
-          <div className="workspace-bar-row">
-            <div className="workspace-bar-search">
-              <WorkspaceSearch
-                search={search}
-                onSearch={setSearch}
-                onSelect={select}
-                context={path}
-                resultsTarget={searchResultsTarget}
-              />
+          {phone ? null : (
+            <div className="workspace-bar-row">
+              <div className="workspace-bar-search">
+                <WorkspaceSearch
+                  search={search}
+                  onSearch={setSearch}
+                  onSelect={select}
+                  context={path}
+                  resultsTarget={searchResultsTarget}
+                />
+              </div>
+              {resourcesStore.personalWorkspacePath ? (
+                <Button
+                  className="workspace-personal-open"
+                  variant="outline"
+                  data-testid="workspace-personal-open"
+                  onClick={() => select(null, resourcesStore.personalWorkspacePath ?? "")}
+                >
+                  {t("workspace.personalWorkspace")}
+                </Button>
+              ) : null}
+              {createMenu}
             </div>
-            {resourcesStore.personalWorkspacePath ? (
-              <Button
-                className="workspace-personal-open"
-                variant="outline"
-                data-testid="workspace-personal-open"
-                onClick={() => select(null, resourcesStore.personalWorkspacePath ?? "")}
-              >
-                {t("workspace.personalWorkspace")}
-              </Button>
-            ) : null}
-            {!selectedBusiness ? (
-              <WorkspaceCreateMenu
-                compact={phone}
-                getError={() => useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error}
-                clearError={() => {
-                  useWorkspaceResourcesStore.setState({ error: null });
-                  useCouncilBusinessStore.setState({ error: null });
-                }}
-                canCreate={(kind) =>
-                  matchLiteral(kind, {
-                    councilMatter: () => folderCapabilities.createCouncilBusiness,
-                    text: () => folderCapabilities.create,
-                    spreadsheet: () => folderCapabilities.create,
-                    remote: () => folderCapabilities.create,
-                    geographic: () => folderCapabilities.create,
-                    event: () => folderCapabilities.create,
-                    legalReference: () => folderCapabilities.create && folderCapabilities.searchLegalReferences,
-                    file: () => folderCapabilities.uploadDocument || folderCapabilities.importSpreadsheet,
-                    takePhoto: () => folderCapabilities.uploadDocument,
-                    choosePhoto: () => folderCapabilities.uploadDocument,
-                  })
-                }
-                onCreate={async (kind, title) => {
-                  const created = await createInFolder(kind, path, title);
-                  if (created) select(created, path);
-                  return Boolean(created);
-                }}
-              />
-            ) : null}
-          </div>
+          )}
+          {phone && !selection ? (
+            <PhoneHeaderActions>
+              <PhoneWorkspaceSearch onSelect={select} context={path} />
+              {createMenu}
+            </PhoneHeaderActions>
+          ) : null}
           {folderCapabilities.uploadDocument || folderCapabilities.importSpreadsheet ? (
             <input
               ref={fileInput}
