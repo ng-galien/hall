@@ -276,6 +276,13 @@
   /* On a narrow map, the card of the selected element covers the Elements panel instead of sliding under it. */
   .geographic-feature-card { z-index: calc(var(--hall-z-content) + 1); }
   .docs-toolbar { flex-wrap: wrap; height: auto; padding-block: var(--hall-space-2); }
+  /* The contents tree, when opened, takes the place of the page under the toolbar. */
+  .docs-area { flex-direction: column; }
+  .docs-area > .docs-tree { order: 1; width: 100%; min-height: 0; flex: 1 1 auto; border-right: 0; }
+  .docs-area:has(> .docs-tree) > .docs-main { flex: none; }
+  .docs-area:has(> .docs-tree) .docs-body { display: none; }
+  .docs-main { min-height: 0; }
+  .docs-article-inner { max-width: none; margin: 0; padding: var(--hall-space-4) var(--hall-space-3) var(--hall-space-6); border: 0; border-radius: 0; box-shadow: none; }
   .docs-toolbar .docs-search { flex: 1 1 100%; }
   .docs-crumbs > a, .docs-crumb, .docs-crumb > a { min-width: 0; }
   .workspace-explorer-copy, .workspace-explorer-title-link { min-width: 0; max-width: 100%; }

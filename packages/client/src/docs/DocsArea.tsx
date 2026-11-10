@@ -27,6 +27,7 @@ import { useI18n } from "../i18n/I18nProvider";
 import { Callout, Compare, Details, Figure, Legend, PageCards, Step, Steps } from "./blocks";
 import { type DocsNode, type DocsPage, findPage, pageSequence, pageTree, searchPages } from "./pages";
 import { DocsPdfExport } from "./pdf";
+import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { standalone } from "./standalone";
 
 /* The documentation area: contents tree, article, "on this page". Pages are MDX under `content/`;
@@ -35,8 +36,14 @@ import { standalone } from "./standalone";
 export function DocsArea() {
   const { t, locale } = useI18n();
   const params = useParams();
-  const [navOpen, setNavOpen] = useState(true);
+  const phone = usePhoneLayout();
+  // On a phone the contents tree takes the screen in place of the page: it opens on demand and closes with each page.
+  const [navOpen, setNavOpen] = useState(!phone);
   const path = (params["*"] ?? "").replace(/\/+$/, "");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the tree closes whenever another page opens.
+  useEffect(() => {
+    if (phone) setNavOpen(false);
+  }, [phone, path]);
   const found = findPage(path, locale);
   const sequence = useMemo(() => pageSequence(locale), [locale]);
   const index = found ? sequence.findIndex((page) => page.path === found.page.path) : -1;
@@ -58,6 +65,7 @@ export function DocsArea() {
           <button
             type="button"
             className="docs-toolbar-toggle"
+            data-testid="docs-navigation-toggle"
             aria-expanded={navOpen}
             aria-label={navOpen ? t("docs.nav.collapse") : t("docs.nav.expand")}
             onClick={() => setNavOpen((value) => !value)}
@@ -69,7 +77,7 @@ export function DocsArea() {
           <DocsSearch locale={locale} />
         </div>
         <div className="docs-body">
-          <article ref={article} className="docs-article">
+          <article ref={article} className="docs-article" data-testid="docs-article">
             {found ? (
               <div className="docs-article-inner">
                 <PageHead page={found.page} fallback={found.fallback} />
@@ -165,7 +173,7 @@ function ContentsTree({ locale, current }: { locale: Locale; current: string }) 
   const { t } = useI18n();
   const tree = useMemo(() => pageTree(locale), [locale]);
   return (
-    <nav aria-label={t("docs.nav.label")} className="docs-tree">
+    <nav aria-label={t("docs.nav.label")} className="docs-tree" data-testid="docs-navigation">
       <NavLink to="/docs" end className={({ isActive }) => (isActive ? "docs-tree-home is-active" : "docs-tree-home")}>
         <DocsIcon aria-hidden="true" /> {t("docs.nav.home")}
       </NavLink>

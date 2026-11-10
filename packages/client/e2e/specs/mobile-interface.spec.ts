@@ -103,6 +103,39 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
 });
 
 // @verifies-requirement HALL-FR-LAY-010
+test("phone documentation shows the page over the whole width and opens its contents on demand", async ({
+  appPage: page,
+}) => {
+  for (const width of [375, 360]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto("/app/docs/prise-en-main");
+    const article = page.getByTestId("docs-article");
+    await expect(article).toBeVisible();
+    await expect(page.getByTestId("docs-navigation")).toHaveCount(0);
+    const text = article.locator("p").first();
+    await expect(text).toBeVisible();
+    expect((await article.boundingBox())!.width).toBeGreaterThanOrEqual(width - 1);
+    expect((await text.boundingBox())!.width).toBeGreaterThanOrEqual(width - 40);
+    await expectFitsWidth(page);
+
+    await page.getByTestId("docs-navigation-toggle").tap();
+    const contents = page.getByTestId("docs-navigation");
+    await expect(contents).toBeVisible();
+    await expect(article).toBeHidden();
+    expect((await contents.boundingBox())!.width).toBeGreaterThanOrEqual(width - 1);
+    await contents.getByTestId("docs-page-ecrans").tap();
+    await expect(page).toHaveURL(/\/app\/docs\/ecrans$/);
+    await expect(contents).toBeHidden();
+    await expect(article).toBeVisible();
+  }
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/app/docs/prise-en-main");
+  await expect(page.getByTestId("docs-navigation")).toBeVisible();
+  await expect(page.getByTestId("docs-article")).toBeVisible();
+});
+
+// @verifies-requirement HALL-FR-LAY-010
 test("phone form can be completed and submitted without horizontal overflow", async ({ appPage: page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/app/contacts");
