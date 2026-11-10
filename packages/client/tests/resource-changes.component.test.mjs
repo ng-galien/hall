@@ -22,7 +22,10 @@ test("the separate history control reads the server on demand without changing c
       `export { I18nProvider } from ${JSON.stringify(join(clientRoot, "src/i18n/I18nProvider.tsx"))};\n` +
       `export { TooltipProvider } from ${JSON.stringify(join(clientRoot, "src/components/ui/tooltip.tsx"))};\n`,
   );
-  const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: "http://localhost/app/" });
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', {
+    url: "http://localhost/app/",
+    pretendToBeVisual: true,
+  });
   const names = [
     "window",
     "document",

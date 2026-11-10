@@ -25,8 +25,8 @@
     "@types/d3-geo": "3.1.0",
     "@types/geojson": "7946.0.16",
     "@types/three": "0.187.0",
-    "mapshaper": "0.7.68",
+    "mapshaper": "0.7.101",
     "typescript": "5.9.3",
-    "vite": "8.2.2"
+    "vite": "8.3.7"
   }
 }
