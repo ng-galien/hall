@@ -70,7 +70,7 @@ test("a councillor cannot delete an affair and a secretariat account deletes it"
   );
 
   const councillor = await sessionPage(browser, origin, "alice@example.test");
-  await councillor.goto("/app/workspace");
+  await councillor.goto("/app/workspace?path=Commun");
   const councillorRow = councillor.getByTestId(`workspace-business-${business.id}`);
   await expect(councillorRow.locator('[data-slot="context-menu-trigger"]').first()).toBeVisible();
   await councillor.getByTestId(`workspace-business-title-${business.id}`).click({ button: "right" });
@@ -81,7 +81,7 @@ test("a councillor cannot delete an affair and a secretariat account deletes it"
   await councillor.context().close();
 
   const clerk = await sessionPage(browser, origin, "clerk@example.test");
-  await clerk.goto("/app/workspace");
+  await clerk.goto("/app/workspace?path=Commun");
   const clerkRow = clerk.getByTestId(`workspace-business-${business.id}`);
   await expect(clerkRow.locator('[data-slot="context-menu-trigger"]').first()).toBeVisible();
   await clerk.getByTestId(`workspace-business-title-${business.id}`).click({ button: "right" });
