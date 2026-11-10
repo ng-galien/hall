@@ -187,6 +187,8 @@ test("phone calendar keeps a two-row toolbar, a header « + » and a single scro
 }) => {
   // The French labels are the longest ones.
   await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+  // A morning hour: the day view opens on it without reaching the end of the day.
+  await page.clock.setFixedTime(new Date(2026, 10, 10, 10, 20));
   for (const width of [375, 360]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto("/app/calendar");
