@@ -101,7 +101,10 @@ function attachDemonstrationSession(
     if (
       !contents?.mainFrame.url.startsWith(`${origin}/`) ||
       (details.webContentsId !== undefined && details.webContentsId !== contents.id) ||
-      !(sameOriginLiveSocket || (target.origin === origin && details.frame === contents.mainFrame))
+      !(
+        sameOriginLiveSocket ||
+        (target.origin === origin && details.frame?.top?.frameTreeNodeId === contents.mainFrame.frameTreeNodeId)
+      )
     ) {
       callback({});
       return;
