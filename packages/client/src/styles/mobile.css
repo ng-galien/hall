@@ -269,6 +269,7 @@
   .geographic-feature-card { z-index: calc(var(--hall-z-content) + 1); }
   .docs-toolbar { flex-wrap: wrap; height: auto; padding-block: var(--hall-space-2); }
   .docs-toolbar .docs-search { flex: 1 1 100%; }
+  .docs-crumbs > a, .docs-crumb, .docs-crumb > a { min-width: 0; }
   .workspace-explorer-copy, .workspace-explorer-title-link { min-width: 0; max-width: 100%; }
   .workspace-explorer-title-link { text-align: left; }
   .workspace-explorer-title-link strong { white-space: normal; overflow-wrap: anywhere; }

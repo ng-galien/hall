@@ -42,6 +42,12 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     ["council-decisions", "/council-decisions"],
     ["minutes", "/minutes"],
     ["maps", "/maps"],
+    ["users", "/users"],
+    ["contacts", "/contacts"],
+    ["council-members", "/council-members"],
+    ["council-committees", "/council-committees"],
+    ["council-delegations", "/council-delegations"],
+    ["templates", "/templates"],
     ["account", "/settings"],
     ["help", "/docs"],
   ] as const) {
@@ -55,7 +61,7 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", new RegExp(`^${route}(/|$)`));
     // Maps records its view in the address once loaded; wait for it so that the next sheet stays open.
     if (destination === "maps") await expect(page).toHaveURL(/\/app\/maps\?view=/);
-    if (destination !== "help") await expectFitsWidth(page);
+    await expectFitsWidth(page);
     if (destination === "maps")
       await page.screenshot({ path: testInfo.outputPath("phone-maps.png"), animations: "disabled" });
   }

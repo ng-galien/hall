@@ -29,7 +29,18 @@ export interface NavigationSection {
   items: NavigationItem[];
 }
 
-export const phoneMoreDestinations = ["/council-decisions", "/minutes", "/maps"];
+/** Destinations of the phone « Plus » panel: every menu entry outside the bottom bar, under the same rights. */
+export const phoneMoreDestinations = [
+  "/council-decisions",
+  "/minutes",
+  "/maps",
+  "/users",
+  "/contacts",
+  "/council-members",
+  "/council-committees",
+  "/council-delegations",
+  "/templates",
+];
 
 export function navigationItem(to: string): NavigationItem {
   const item = navigationSections.flatMap((section) => section.items).find((candidate) => candidate.to === to);
