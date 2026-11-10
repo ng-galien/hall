@@ -225,7 +225,8 @@
   .meeting-report-header .meeting-facts { margin-top: 0; padding-top: 0; border-top: 0; }
   .meeting-page-content > .report-main { display: flex; flex-direction: column; }
   .meeting-page-content > .report-main > .report-main:has(.phone-points) { order: -1; }
-  [data-slot="dialog-content"].document-viewer-phone-page { top: 0; left: 0; width: 100vw; max-width: none; height: 100svh; max-height: 100svh; border: 0; border-radius: 0; box-shadow: none; transform: none; translate: none; }
+  /* The build folds translate into transform: reset the variables of the centring utilities as well. */
+  [data-slot="dialog-content"].document-viewer-phone-page { top: 0; left: 0; width: 100vw; max-width: none; height: 100svh; max-height: 100svh; border: 0; border-radius: 0; box-shadow: none; transform: none; translate: none; --tw-translate-x: 0; --tw-translate-y: 0; }
   .document-viewer-phone-page .document-viewer-header { height: var(--hall-size-header); justify-content: flex-start; gap: var(--hall-space-2); padding: 0 var(--hall-space-2); }
   .document-viewer-phone-page .document-viewer-header > div:not(.document-viewer-actions) { flex: 1; }
   .document-viewer-phone-page .document-viewer-header > div > span { display: none; }
