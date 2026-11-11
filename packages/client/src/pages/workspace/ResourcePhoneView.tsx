@@ -1,12 +1,13 @@
 import { findSirenLink } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { copyObjectReference } from "../../components/CopyReferenceButton";
 import type { Mentionable } from "../../components/editor/references";
-import { ArrowDownIcon, CheckIcon, EditIcon, InfoIcon, MapIcon, ShareIcon } from "../../components/icons";
+import { ArrowDownIcon, EditIcon, InfoIcon, MapIcon, ShareIcon } from "../../components/icons";
 import { TagInput } from "../../components/TagInput";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
+import { Button } from "../../components/ui/button";
 import { CollapsibleSection } from "../../components/ui/collapsible-section";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { documentaryResourceDate } from "../../features/documents/DocumentaryResourceGlyph";
@@ -20,6 +21,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { shareOrDownload } from "../../services/fileSharing";
 import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
+import { ScreenActions } from "../../shell/headerTrail";
 import { usePreparedSubjectPhoneActions } from "./CouncilBusinessSubjects";
 import {
   type PhoneDocumentAction,
@@ -53,6 +55,7 @@ export function ResourcePhoneView({
   const [searchParams] = useSearchParams();
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const [editing, setEditing] = useState(false);
+  const openedForWriting = useRef<string | null>(null);
   const [informationOpen, setInformationOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -68,6 +71,14 @@ export function ResourcePhoneView({
     title: resource?.name ?? "",
     testId: "resource-pdf-preview",
   });
+  // @implements-requirement HALL-FR-LAY-130
+  // A note just created, still empty, opens for writing; an existing text opens for reading.
+  useEffect(() => {
+    if (!resource || openedForWriting.current === resource.id) return;
+    if (resource.kind !== "text" || !session.editable) return;
+    openedForWriting.current = resource.id;
+    if (session.content.trim() === "") setEditing(true);
+  }, [resource, session.editable, session.content]);
   if (!resource) return <RequestErrorBanner error={session.actionError} />;
 
   const representation = session.representation;
@@ -97,18 +108,6 @@ export function ResourcePhoneView({
   });
   const actions: PhoneDocumentAction[] = [
     ...subjectActions,
-    ...(textEditable
-      ? [
-          editing
-            ? {
-                id: "finish-editing",
-                label: t("workspace.finishEditing"),
-                icon: <CheckIcon />,
-                onSelect: () => void finishEditing(),
-              }
-            : { id: "edit", label: t("common.edit"), icon: <EditIcon />, onSelect: () => setEditing(true) },
-        ]
-      : []),
     ...(resource.kind === "document" && representation
       ? [
           {
@@ -245,6 +244,19 @@ export function ResourcePhoneView({
       data-testid="resource-phone-view"
       data-editing={editing ? "true" : undefined}
     >
+      {textEditable ? (
+        <ScreenActions>
+          {editing ? (
+            <Button data-testid="phone-document-action-finish-editing" onClick={() => void finishEditing()}>
+              {t("workspace.finishEditing")}
+            </Button>
+          ) : (
+            <Button variant="secondary" data-testid="phone-document-action-edit" onClick={() => setEditing(true)}>
+              {t("common.edit")}
+            </Button>
+          )}
+        </ScreenActions>
+      ) : null}
       <PhoneDocumentActions actions={actions} />
       <RequestErrorBanner error={session.actionError} onDismiss={() => session.setActionError(null)} />
       <div className="phone-document-content">

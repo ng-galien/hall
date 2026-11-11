@@ -390,7 +390,6 @@ test("phone photo selection and camera input persist images through the shared e
   const resource = (await created.json()).properties as { id: string; slug: string };
   const url = `/app/workspace?path=seed&resource=${resource.id}`;
   const editNote = async () => {
-    await page.getByTestId("phone-document-actions").click();
     await page.getByTestId("phone-document-action-edit").click();
   };
   await page.goto(url);
