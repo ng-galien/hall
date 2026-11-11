@@ -56,8 +56,7 @@ test("creates a linked user, assigns cumulative roles and disables the account",
   await expect(page.getByTestId("user-roles")).toHaveText(assignedRoles.map((role) => roleNames.get(role)).join(" · "));
   await page.getByTestId("navigation-users").click();
   await page.getByTestId("collection-search").fill("Responsable des approvisionnements");
-  await page.getByTestId("collection-layout-cards").click();
-  await expect(page.getByTestId("users-collection").locator("article")).toHaveCount(1);
+  await expect(page.getByTestId("users-collection").locator('[data-slot="list-row"]')).toHaveCount(1);
   await page.goto(detailUrl);
   await page.getByTestId("user-disable").click();
   await page.getByTestId("user-disable-confirm").click();
@@ -166,10 +165,9 @@ test("follows the absence of the users link and actions without deriving roles",
   await expect(page.getByTestId("navigation-users")).toHaveCount(0);
   await page.goto("/app/users");
   await expect(page.getByRole("alert")).toBeVisible();
-  // A refused list shows the refusal alone: no empty list, no search field, no view switch.
+  // A refused list shows the refusal alone: no empty list and no search field.
   await expect(page.getByTestId("users-empty")).toHaveCount(0);
   await expect(page.getByTestId("collection-search")).toHaveCount(0);
-  await expect(page.getByTestId("collection-layout-list")).toHaveCount(0);
   await expect(page.getByTestId("users-add")).toHaveCount(0);
   await expect(page.getByTestId("users-collection")).toHaveCount(0);
   await page.goto(`/app/users/${user.id}`);

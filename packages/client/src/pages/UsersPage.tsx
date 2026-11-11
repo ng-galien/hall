@@ -1,6 +1,6 @@
-import type { ApiRole, ApiUser } from "@hall/api-contract";
+import type { ApiRole } from "@hall/api-contract";
 import { type FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
+import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
 import { useRoleOptions } from "../features/authorization/useRoleOptions";
 import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
 import { TemporaryPasswordSetting } from "../features/users/TemporaryPasswordSetting";
@@ -43,7 +44,7 @@ export function UsersPage() {
   const generationId = useRef(0);
   const [generating, setGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<ApiErrorCode | null>(null);
-  const { layout, setLayout, query, setQuery } = useCollectionView();
+  const { query, setQuery } = useCollectionView();
   const fieldId = useId();
   useEffect(() => {
     void load();
@@ -99,35 +100,6 @@ export function UsersPage() {
       return created;
     });
   };
-  const open = (user: ApiUser) => (
-    <Link
-      className="collection-card-link"
-      to={`/users/${user.id}`}
-      aria-label={t("users.openNamed", { name: user.displayName })}
-      data-testid={`user-open-${user.id}`}
-    />
-  );
-  const identity = (user: ApiUser, card = false) => (
-    <div className={`member-identity ${card ? "member-identity-card" : ""}`}>
-      <span className={`member-avatar ${card ? "member-avatar-large" : ""}`} aria-hidden="true">
-        {user.displayName
-          .split(/\s+/)
-          .slice(0, 2)
-          .map((word) => word[0])
-          .join("")}
-      </span>
-      <div>
-        <span className="council-member-name">{user.displayName}</span>
-        <span>{t(`users.status.${user.status}`)}</span>
-      </div>
-    </div>
-  );
-  const details = (user: ApiUser) => (
-    <div className="council-member-contact">
-      <a href={`mailto:${user.email}`}>{user.email}</a>
-      <span>{user.roles.map((role) => roleName(role)).join(" · ")}</span>
-    </div>
-  );
   if (!loading && !listed)
     return (
       <div className="page">
@@ -142,7 +114,7 @@ export function UsersPage() {
       <PageHeader title={t("users.title")} description={t("users.description")} />
       <div className="page-content">
         {!addOpen && <RequestErrorBanner error={error} />}
-        <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
+        <CollectionToolbar query={query} onQueryChange={setQuery}>
           {canCreate && (
             <Button
               onClick={() => {
@@ -283,28 +255,30 @@ export function UsersPage() {
           <EmptyState testId="users-empty">
             {t(users.length === 0 ? "users.empty" : "common.noSearchResults")}
           </EmptyState>
-        ) : layout === "cards" ? (
-          <div className="card-grid" data-testid="users-collection">
-            {visible.map((user) => (
-              <article className="entity-card entity-card-member" key={user.id}>
-                <div className="council-member-card-heading">
-                  {identity(user, true)}
-                  {open(user)}
-                </div>
-                {details(user)}
-              </article>
-            ))}
-          </div>
         ) : (
-          <div className="data-list" data-testid="users-collection">
+          <ListRows data-testid="users-collection">
             {visible.map((user) => (
-              <div className="data-row council-member-row" key={user.id}>
-                {identity(user)}
-                {details(user)}
-                <span className="council-member-list-status">{open(user)}</span>
-              </div>
+              <ListRow
+                key={user.id}
+                to={`/users/${user.id}`}
+                openTestId={`user-open-${user.id}`}
+                openLabel={t("users.openNamed", { name: user.displayName })}
+                head={
+                  <ListRowAvatar
+                    initials={user.displayName
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map((word) => word[0])
+                      .join("")}
+                  />
+                }
+                title={user.displayName}
+                detail={user.email}
+                status={{ tone: "neutral", label: t(`users.status.${user.status}`) }}
+                wide={<span>{user.roles.map((role) => roleName(role)).join(" · ")}</span>}
+              />
             ))}
-          </div>
+          </ListRows>
         )}
       </div>
     </div>
