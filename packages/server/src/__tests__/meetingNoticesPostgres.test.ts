@@ -1,3 +1,4 @@
+// @verifies-requirement HALL-FR-EML-090
 import { jinjaBody } from "@hall/domain";
 
 if (!process.env.TEST_DATABASE_URL)
@@ -208,9 +209,15 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
       const preparation = (await json(`/council-meetings/${meeting.id}/notice-message`)).properties;
       expect(preparation).toMatchObject({ canGenerate: true, missingEmailMemberIds: [] });
       expect(preparation.recipients).toHaveLength(15);
+      const draft = (await json(`/council-meetings/${meeting.id}/notice-message`, "POST", { noticeId: notice.id }, 201))
+        .properties;
+      expect(draft.source).toMatchObject({ kind: "notice", noticeId: notice.id });
+      expect(draft.recipients).toHaveLength(15);
+      expect(draft.attachments).toHaveLength(2);
+      expect(draft.submissions).toEqual([]);
       const messageResponse = await fetch(`${server.url}/api/council-meetings/${meeting.id}/notice-message`, {
         method: "POST",
-        headers: { "content-type": "application/json", origin: server.url },
+        headers: { "content-type": "application/json", accept: "message/rfc822", origin: server.url },
         body: JSON.stringify({ noticeId: notice.id }),
       });
       expect(messageResponse.status).toBe(200);

@@ -19,6 +19,7 @@ it("maps recusal storage conflicts to stable API codes without reclassifying unr
           displayName: "Clerk",
           roles: ["administrator"],
           contactId: null,
+          passwordChangeRequired: false,
         },
       },
       async () => {
@@ -86,6 +87,7 @@ it("returns HTTP 409 when PostgreSQL detects a missing previous-PV agenda occurr
           displayName: "Clerk",
           roles: ["administrator"],
           contactId: null,
+          passwordChangeRequired: false,
         },
       },
       async () => {

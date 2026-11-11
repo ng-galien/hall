@@ -18,6 +18,8 @@ export interface ServerConfig {
   legifranceClientSecret?: string;
   officialSourceTimeoutMs?: number;
   officialSourceMaximumBytes?: number;
+  emailTransport?: "disabled" | "outlook";
+  emailTransportTimeoutMs?: number;
 }
 
 const loopbackHosts = new Set(["127.0.0.1", "::1", "localhost"]);
@@ -55,6 +57,8 @@ export function configFromEnvironment(): ServerConfig {
         ? ["http://localhost:5174", "http://127.0.0.1:5174"]
         : [],
     environment,
+    emailTransport: process.env.HALL_EMAIL_TRANSPORT === "outlook" ? "outlook" : "disabled",
+    emailTransportTimeoutMs: 60_000,
     version: process.env.HALL_RELEASE_ID ?? process.env.npm_package_version,
     legifranceEnvironment: process.env.HALL_LEGIFRANCE_ENVIRONMENT === "production" ? "production" : "sandbox",
     legifranceClientId: process.env.HALL_LEGIFRANCE_CLIENT_ID,

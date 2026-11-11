@@ -9,6 +9,7 @@ import { TagInput } from "../../components/TagInput";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "../../features/documents/DocumentaryResourceGlyph";
 import { PdfPreviewButton } from "../../features/documents/PdfPreviewButton";
+import { PrepareMailButton } from "../../features/mail/PrepareMailButton";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { ApiErrorCode } from "../../services/apiClient";
@@ -124,6 +125,9 @@ export function ResourceWorkbenchHeader({
               title={resource.name}
               testId="resource-pdf-preview"
             />
+          ) : null}
+          {resource.kind === "document" ? (
+            <PrepareMailButton input={{ kind: "resource", resourceId: resource.id }} testId="resource-prepare-mail" />
           ) : null}
           {resource.kind === "document" && shareFile ? (
             <ShareButton testId="resource-workbench-share" file={shareFile} />

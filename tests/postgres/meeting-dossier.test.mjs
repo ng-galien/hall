@@ -94,10 +94,15 @@ describe("meeting dossier", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ noticeId: notice.id }),
       });
-      expect(message.status, await message.clone().text()).toBe(200);
-      const eml = await message.text();
-      expect(eml).toContain(`convocation-${meeting.number}`);
-      expect(eml).toContain(`dossier-seance-${meeting.number}.pdf`);
+      expect(message.status, await message.clone().text()).toBe(201);
+      const mail = (await message.json()).properties;
+      expect(mail.submissions).toEqual([]);
+      expect(mail.attachments.map((file) => file.fileName)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(`convocation-${meeting.number}`),
+          `dossier-seance-${meeting.number}.pdf`,
+        ]),
+      );
     } finally {
       await server.close();
       await pool.end();

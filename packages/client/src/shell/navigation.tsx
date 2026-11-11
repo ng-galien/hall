@@ -8,6 +8,7 @@ import {
   DelegationIcon,
   GavelIcon,
   HomeIcon,
+  MailIcon,
   MapIcon,
   MembersIcon,
   MinutesIcon,
@@ -31,6 +32,7 @@ export interface NavigationSection {
 
 /** Destinations of the phone « Plus » panel: every menu entry outside the bottom bar, under the same rights. */
 export const phoneMoreDestinations = [
+  "/mail",
   "/council-decisions",
   "/minutes",
   "/maps",
@@ -76,6 +78,7 @@ export const navigationSections: NavigationSection[] = [
       },
       // @implements-requirement HALL-FR-WSP-310
       { to: "/maps", requiredRelation: "resources", labelKey: "navigation.maps", icon: <MapIcon /> },
+      { to: "/mail", requiredRelation: "mail", labelKey: "navigation.mail", icon: <MailIcon /> },
       { to: "/calendar", requiredRelation: "resources", labelKey: "navigation.calendar", icon: <CalendarIcon /> },
     ],
   },

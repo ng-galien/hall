@@ -3,9 +3,17 @@ import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordDialog } from "../features/users/PasswordDialog";
 import { useI18n } from "../i18n/I18nProvider";
 import { ApiError, type ApiErrorCode, AUTHENTICATION_REQUIRED_EVENT, apiErrorCode } from "../services/apiClient";
-import { type AuthenticationStatus, authenticate, getAuthenticationStatus, getSession } from "../services/authApi";
+import {
+  type AuthenticationStatus,
+  authenticate,
+  changePassword,
+  getAuthenticationStatus,
+  getSession,
+  logout,
+} from "../services/authApi";
 import { errorTranslationKeys } from "./Ui";
 
 export function AuthenticationGate({ children }: { children: ReactNode }) {
@@ -67,6 +75,16 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
     }
   };
 
+  if (principal?.passwordChangeRequired)
+    return (
+      <PasswordDialog
+        mandatory
+        title={t("auth.passwordReplacementTitle")}
+        onClose={() => setPrincipal(null)}
+        onLogout={() => void logout()}
+        onSubmit={({ newPassword }) => changePassword({ newPassword })}
+      />
+    );
   if (principal) return children;
   if (loadError) {
     return (

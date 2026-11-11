@@ -6,6 +6,7 @@ import { type HallPostgresConfig, parseHallPostgresConfig } from "./config.js";
 import { PostgresCouncil } from "./council.js";
 import { PostgresCouncilDecisions } from "./councilDecisions.js";
 import { PostgresDirectory } from "./directory.js";
+import { PostgresMail } from "./mail.js";
 import { PostgresMinutes } from "./minutes.js";
 import { createPostgresPool } from "./pool.js";
 import { PostgresResources } from "./resources.js";
@@ -15,6 +16,7 @@ export class PostgresClient {
   readonly bootstrap: PostgresSchemaBootstrap;
   readonly transactions: PostgresTransactionManager;
   readonly administration: PostgresAdministration;
+  readonly mail: PostgresMail;
   readonly authorization: PostgresAuthorization;
   readonly council: PostgresCouncil;
   readonly directory: PostgresDirectory;
@@ -30,6 +32,7 @@ export class PostgresClient {
     this.bootstrap = new PostgresSchemaBootstrap(pool, undefined, schemaUpgradeMode);
     this.transactions = new PostgresTransactionManager(pool);
     this.administration = new PostgresAdministration(pool);
+    this.mail = new PostgresMail(pool);
     this.authorization = new PostgresAuthorization(pool);
     this.council = new PostgresCouncil(pool);
     this.directory = new PostgresDirectory(pool);

@@ -67,13 +67,31 @@ The user decides business rules, data-model changes, product behavior, UI design
 - [ ] `[BACK]` Produce a frozen attributed PNG from a geographic resource.
 - [ ] `[FULL]` Insert the frozen map into the editor and PDF without contacting IGN during rendering.
 
+## Outgoing mail
+
+Local implementation includes the shared mailbox, composer, saved groups, attachment copies, transport boundary, Outlook adapter and MCP commands. Automated verification covers the mailbox, permissions, HTTP/MCP and responsive composer. The compiled Node adapter was tested on the municipal Windows machine from the S4U execution mode used by Hall, with Gmail receipt verified. No production feature deployment has been performed.
+
+- [x] `[BACK]` Implement the [outgoing-mail design](../docs/outbound-mail.md); ordinary technical choices are delegated. Mandatory Outlook verification after an uncertain outcome is accepted. Submission history has no deletion action.
+- [x] `[FULL]` Implement the shared mailbox. @tracks-requirement HALL-FR-EML-010
+- [x] `[FRONT]` Implement the compact responsive composer using existing primitives and Markdown editing. @tracks-requirement HALL-FR-EML-020
+- [x] `[FULL]` Implement recipient selection and saved custom groups with visible expanded addresses. @tracks-requirement HALL-FR-EML-030
+- [x] `[FULL]` Reuse documentary generation and ordinary attachments; preserve sent content through the existing binary store. @tracks-requirement HALL-FR-EML-040
+- [x] `[BACK]` Integrate separate preparation and send accesses with the existing authorization catalogue and Siren. @tracks-requirement HALL-FR-EML-050
+- [x] `[BACK]` Implement the submission record and explicit failure/uncertainty handling. @tracks-requirement HALL-FR-EML-060
+- [x] `[BACK]` Implement the injected transport and verify the Outlook adapter in the Hall Windows execution session, including account selection and attachments. @tracks-requirement HALL-FR-EML-070
+- [x] `[FULL]` Deliver MCP discovery, reading, preparation, groups, preview and explicit send with shared authentication and permission checks. @tracks-requirement HALL-FR-EML-080
+- [x] `[FULL]` Replace existing email-download entry points with the common composer; preserve notice eligibility and iCalendar behavior. @tracks-requirement HALL-FR-EML-090
+  @tracks-requirement HALL-FR-CAL-180
+  @tracks-requirement HALL-FR-MTG-390
+  @tracks-requirement HALL-FR-NOT-120
+  @tracks-requirement HALL-FR-USR-050
+
 ## Templates and exports
 
 - [ ] `[BACK]` Select the first reference portrait template, with the summons as the current recommendation.
 - [ ] `[BACK]` Define headers, footers, styles, municipal data, export naming, and folder templates without hard-coding them in a document template.
 - [ ] `[BACK]` Generate meeting export trees atomically with traceability and regeneration support.
 - [ ] `[BACK]` Link each output to its meeting, template, and generation event.
-- [ ] `[BACK]` Assemble required attachments and prepare an Outlook message scenario without making Microsoft Graph mandatory.
 - [ ] `[FRONT]` Provide preview and generation actions through Siren capabilities.
 - [x] `[FULL]` Lay out the signature blocks of the generated documents as administrative documents do (place and date, signatory quality, name, blank space; no table), using HTML blocks in the template body. Requested by the user on 2026-11-07 after reading the 1.0.4 PDFs.
 - [x] `[FULL]` Generate the attendance sheet of a meeting: council members in table order with name, quality, a blank proxy column and a wide signature column; signed on arrival, so nothing recorded in Hall is pre-filled, and available at any meeting state. Requested and corrected by the user on 2026-11-07.

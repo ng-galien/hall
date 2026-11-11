@@ -60,18 +60,32 @@ const topics = {
       "Template preview returns rendered HTML and diagnostics; it does not prove PDF pagination. Mail signature and footer settings do not send mail. Roles are configurable: never copy a static role/permission matrix into a parallel policy.",
     ],
   },
+  mail: {
+    purpose: "Prepare shared outgoing mail and explicitly submit reviewed messages under Hall permissions.",
+    nextCalls: [
+      { tool: "mail_discover", arguments: {} },
+      { tool: "mail_read", arguments: { href: "/api/mail" } },
+    ],
+    guidance: [
+      "All drafts are shared from creation. Use the existing Markdown body, To/Cc/Bcc, contacts, predefined council/committee selections and saved groups. Resolve selections to visible addresses before review.",
+      "Attach existing Hall files by resource identity. For a new file use workspace upload first. Ordinary attachments do not require recipients to log into Hall; a resource mention is not a public sharing URL.",
+      "Preparation and preview never send mail. Read the preview, disclose actual recipients/content/files, then use mail_send only on explicit user instruction, preserving its expectedRevision/fingerprint and a stable requestKey.",
+      "On conflict reload and review; do not overwrite another draft. On timeout read the submission. An uncertain result blocks another send until an authorized operator verifies Outlook and records the actual result and notes. Never fabricate that verification.",
+      "Transport acceptance is not proof of delivery or of a legal notification. There is no incoming mail, synchronization, scheduling or automatic send.",
+    ],
+  },
   meetings: {
     purpose: "Understand the human and tool boundaries for meetings and official records.",
     guidance: [
       "A meeting progresses through preparation, notice, attendance/proxies, discussion and ballots, closing, then production and preservation of official records according to Hall's current business rules.",
       "The current MCP does not expose general meeting, contact, council-member, attendance, quorum, voting, deliberation or minutes routes. It has no meeting-conduct, official-record freeze, signature, publication, legality-transmission, account/role-management or audit tools.",
-      "Do not claim to adopt a decision, validate minutes, sign, send, publish or transmit an act. Refer the user to Hall's corresponding screen for these operations. A prepared document is not an adopted decision or a frozen official record.",
+      "Do not claim to adopt a decision, validate minutes, sign, publish or transmit an act. Refer the user to Hall's corresponding screen for these operations. A prepared document is not an adopted decision or a frozen official record.",
     ],
   },
   protocol: {
     purpose: "Use the existing API safely and diagnose refusals without inventing a second contract.",
     guidance: [
-      "Use only the configured origin and allowed workspace/configuration links. Redirects and foreign-origin links are rejected. Read/discover tools do not grant permission to mutate.",
+      "Use only the configured origin and allowed workspace/configuration/mail links. Redirects and foreign-origin links are rejected. Read/discover tools do not grant permission to mutate.",
       "Siren actions describe current availability; discover provides exact input schemas. Contextual hidden fields are supplied by the representation. Do not override them or invent an action absent from that representation.",
       "Preserve expectedVersion from the content being edited. On conflict, reload, compare and resolve the requested change; do not silently replace newer content. On 401 reconnect through the approved session mechanism; on 403 inspect permissions and current capabilities.",
       "Files must be canonical base64 and at most 25 MiB. workspace_read_binary returns bounded base64 chunks with nextOffset and etag; compare etag between chunks. Do not place secrets or unnecessary personal data into prompts or logs.",
@@ -102,9 +116,10 @@ export function hallLearn(topic = "overview") {
         "workspace_read_binary",
       ],
       configuration: ["configuration_discover", "configuration_read", "configuration_execute"],
+      mail: ["mail_discover", "mail_read", "mail_execute", "mail_send"],
     },
     limits:
-      "Workspace resources, affairs/prepared subjects, templates and settings only. No meeting-conduct, voting, signature, mail-send, official-record freeze/publication, account or role-management tools. Local stdio login uses the existing Hall user session; Windows private storage and interoperable HTTP login are not supplied.",
+      "Workspace resources, affairs/prepared subjects, templates, settings and outgoing mail. No meeting-conduct, voting, signature, official-record freeze/publication, account or role-management tools. Local stdio login uses the existing Hall user session; Windows private storage and interoperable HTTP login are not supplied.",
     topics: map,
     nextCall: { tool: "hall_learn", arguments: { topic: "connection" } },
   };

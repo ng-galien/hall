@@ -1,9 +1,10 @@
-import type { MeetingNoticeMessagePreparation } from "@hall/contracts";
+// @implements-requirement HALL-FR-EML-090
+import type { MailDraft, MailSource, MeetingNoticeMessagePreparation } from "@hall/contracts";
 import { type MeetingNotice, type MeetingNoticeFacts, meetingNoticeHallFactsSchema } from "@hall/contracts";
 import type { ContentTemplate } from "@hall/domain";
 import type { CouncilClient } from "../clients/councilClient.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
-import type { ContentTemplateService, GeneratedFile } from "./contentTemplateService.js";
+import type { ContentTemplateService, GeneratedFile, TemplateAttachment } from "./contentTemplateService.js";
 import { DomainError } from "./errors.js";
 import type { HallSettingsService } from "./hallSettingsService.js";
 import type { MeetingDossierService } from "./meetingDossierService.js";
@@ -11,6 +12,10 @@ import type { MeetingDossierService } from "./meetingDossierService.js";
 export interface MeetingNoticeService {
   messagePreparation(meetingId: string): Promise<MeetingNoticeMessagePreparation>;
   generateMessage(meetingId: string, noticeId: string): Promise<GeneratedFile>;
+  prepareMail(
+    meetingId: string,
+    noticeId: string,
+  ): Promise<{ draft: MailDraft; files: TemplateAttachment[]; source: MailSource }>;
   list(meetingId: string): Promise<MeetingNotice[]>;
   open(id: string): Promise<MeetingNotice>;
   generate(meetingId: string): Promise<MeetingNotice>;
@@ -73,6 +78,52 @@ export function createMeetingNoticeService({
   }
   return {
     messagePreparation,
+    async prepareMail(meetingId, noticeId) {
+      const preparation = await messagePreparation(meetingId);
+      if (preparation.missingEmailMemberIds.length || !preparation.recipients.length)
+        throw new DomainError("meeting_notice_recipients_incomplete", 409);
+      if (!preparation.canGenerate || preparation.noticeId !== noticeId)
+        throw new DomainError("meeting_notice_unavailable", 409);
+      const notice = await councilClient.openNotice(noticeId);
+      if (!notice || notice.councilMeetingId !== meetingId) throw new DomainError("meeting_notice_not_found", 404);
+      const content = await councilClient.noticeContent(noticeId);
+      if (!content) throw new DomainError("meeting_notice_not_found", 404);
+      const dossier = await meetingDossierService.dossier(meetingId);
+      const prepared = await contentTemplateService.prepareMessage(
+        await template("message", "meeting-notice-message"),
+        {
+          context: { meetingId },
+          meetingNoticeFacts: notice.facts,
+          attachmentResourceIds: [],
+          attachmentFiles: [
+            {
+              id: notice.id,
+              fileName: `convocation-${notice.facts.meeting.number}-revision-${notice.revision}.pdf`,
+              mediaType: "application/pdf",
+              content,
+            },
+            { id: `${notice.id}-dossier`, mediaType: "application/pdf", ...dossier },
+          ],
+          to: [],
+          cc: [],
+          bcc: [],
+        },
+      );
+      return {
+        draft: {
+          subject: prepared.subject,
+          bodyMarkdown: prepared.bodyMarkdown,
+          recipients: preparation.recipients.map((entry) => ({
+            kind: "to",
+            name: entry.name,
+            address: entry.email ?? "",
+            contactId: entry.contactId,
+          })),
+        },
+        files: prepared.files,
+        source: { kind: "notice", meetingId, noticeId },
+      };
+    },
     async generateMessage(meetingId, noticeId) {
       const preparation = await messagePreparation(meetingId);
       if (preparation.missingEmailMemberIds.length > 0 || preparation.recipients.length === 0)

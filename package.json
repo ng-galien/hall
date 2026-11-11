@@ -72,6 +72,7 @@
     "test:distribution:complete": "cross-env HALL_PACKAGE_TEST_UPGRADE=true vitest run --config tests/distribution/vitest.config.mjs"
   },
   "allowScripts": {
+    "edge-js@24.0.5": true,
     "@embedded-postgres/darwin-arm64@17.10.0-beta.17": true,
     "@embedded-postgres/darwin-x64@17.10.0-beta.17": true,
     "@embedded-postgres/linux-arm@17.10.0-beta.17": true,

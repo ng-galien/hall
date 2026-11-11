@@ -261,6 +261,7 @@ export function apiRootRepresentation(request: Request): SirenEntity<{ authentic
       { rel: ["council-decisions"], href: "/api/council-decisions", type: SIREN_MEDIA_TYPE },
       { rel: ["council-members"], href: "/api/council-members", type: SIREN_MEDIA_TYPE },
       { rel: ["council-terms"], href: "/api/council-terms", type: SIREN_MEDIA_TYPE },
+      { rel: ["mail"], href: "/api/mail", type: SIREN_MEDIA_TYPE },
       { rel: ["contacts"], href: "/api/contacts", type: SIREN_MEDIA_TYPE },
       { rel: ["resources"], href: "/api/resources", type: SIREN_MEDIA_TYPE },
       { rel: ["council-business"], href: "/api/council-business", type: SIREN_MEDIA_TYPE },

@@ -50,18 +50,23 @@ export interface AuthService {
     email: string;
     displayName: string;
     password: string;
+    passwordChangeRequired?: boolean;
     roles: ApiRole[];
     contactId: string | null;
   }): Promise<ApiUser>;
   assignRoles(userId: string, roles: ApiRole[]): Promise<ApiUser>;
-  updateUser(userId: string, input: { email: string; displayName: string; contactId: string | null }): Promise<ApiUser>;
-  changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
-  resetPassword(userId: string, newPassword: string): Promise<void>;
+  updateUser(
+    userId: string,
+    input: { email: string; displayName: string; contactId: string | null; passwordChangeRequired?: boolean },
+  ): Promise<ApiUser>;
+  changePassword(userId: string, currentPassword: string | undefined, newPassword: string): Promise<void>;
+  resetPassword(userId: string, newPassword: string, passwordChangeRequired?: boolean): Promise<void>;
   disableUser(userId: string): Promise<ApiUser>;
   reactivateUser(userId: string): Promise<{ user: ApiUser; passphrase: string }>;
   endCouncillorAccess(contactId: string): Promise<void>;
 }
 
+// @implements-requirement HALL-FR-USR-070
 // @implements-requirement HALL-FR-DIR-150 (provisionCouncillor: the folder and the account live in two transactions,
 // ordered to fail on the safe side: the idempotent folder is provisioned first, then the role is recorded; a retry
 // reuses the folder. PostgreSQL refuses a contact without an active mandate.)
@@ -95,15 +100,35 @@ export function createAuthService({
     await resourcesClient.provisionPersonalWorkspace(contactId);
   };
 
-  const replacePassword = async (userId: string, newPassword: string, currentPassword?: string) => {
+  const replacePassword = async (
+    userId: string,
+    newPassword: string,
+    personal: boolean,
+    currentPassword?: string,
+    passwordChangeRequired: boolean | null = null,
+  ) => {
     const user = await securityRepository.findUserById(userId);
     if (!user) throw new DomainError("user_not_found", 404);
-    if (currentPassword !== undefined && !(await verifyPassword(currentPassword, user.passwordHash))) {
+    if (
+      personal &&
+      (!user.passwordChangeRequired || currentPassword !== undefined) &&
+      (!currentPassword || !(await verifyPassword(currentPassword, user.passwordHash)))
+    ) {
       throw new DomainError("invalid_current_password", 400);
+    }
+    if (personal && user.passwordChangeRequired && (await verifyPassword(newPassword, user.passwordHash))) {
+      throw new DomainError("password_must_differ", 400);
     }
     const passwordHash = await hashPassword(newPassword);
     await unitOfWork.execute(async () => {
-      if (!(await securityRepository.updatePassword(userId, user.passwordHash, passwordHash))) {
+      if (
+        !(await securityRepository.updatePassword(
+          userId,
+          user.passwordHash,
+          passwordHash,
+          personal ? false : passwordChangeRequired,
+        ))
+      ) {
         throw new DomainError("conflict", 409);
       }
     });
@@ -191,8 +216,10 @@ export function createAuthService({
         return publicUserWithProtection(user, securityRepository);
       });
     },
-    changePassword: (userId, currentPassword, newPassword) => replacePassword(userId, newPassword, currentPassword),
-    resetPassword: (userId, newPassword) => replacePassword(userId, newPassword),
+    changePassword: (userId, currentPassword, newPassword) =>
+      replacePassword(userId, newPassword, true, currentPassword),
+    resetPassword: (userId, newPassword, required) =>
+      replacePassword(userId, newPassword, false, undefined, required ?? null),
     async assignRoles(userId, roles) {
       const target = await securityRepository.findUserById(userId);
       if (!target) throw new DomainError("user_not_found", 404);

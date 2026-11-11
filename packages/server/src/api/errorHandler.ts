@@ -15,6 +15,9 @@ import { sendProblem } from "./problemDetails.js";
 // @implements-requirement HALL-FR-USR-060
 // @implements-requirement HALL-FR-WSP-480
 const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly code: string }> = new Map([
+  ["HV850", { status: 409, code: "mail_draft_changed" }],
+  ["HV851", { status: 409, code: "mail_submission_blocks_changes" }],
+  ["HV852", { status: 413, code: "mail_attachments_too_large" }],
   ["HV801", { status: 409, code: "built_in_administrator_protected" }],
   ["HV802", { status: 400, code: "invalid_authorization_grant" }],
   ["HV803", { status: 409, code: "authorization_role_changed" }],

@@ -35,6 +35,7 @@ export interface ApiPrincipal {
   displayName: string;
   roles: ApiRole[];
   contactId: string | null;
+  passwordChangeRequired: boolean;
 }
 
 export interface ApiUser extends ApiPrincipal {
@@ -60,6 +61,7 @@ export const loginSchema = z.object({
 
 export const createUserSchema = bootstrapUserSchema.extend({
   roles: apiRoleListSchema,
+  passwordChangeRequired: z.boolean().default(false),
   contactId: z.string().uuid().nullable().default(null),
 });
 
@@ -71,14 +73,17 @@ export const updateUserSchema = bootstrapUserSchema
   .pick({ email: true, displayName: true })
   .extend({
     contactId: z.string().uuid().nullable(),
+    passwordChangeRequired: z.boolean().optional(),
   })
   .strict();
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1).max(256),
+    currentPassword: z.string().min(1).max(256).optional(),
     newPassword: passwordSchema,
   })
   .strict();
 
-export const resetPasswordSchema = z.object({ newPassword: passwordSchema }).strict();
+export const resetPasswordSchema = z
+  .object({ newPassword: passwordSchema, passwordChangeRequired: z.boolean().optional() })
+  .strict();

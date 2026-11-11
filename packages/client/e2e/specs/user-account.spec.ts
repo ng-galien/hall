@@ -128,3 +128,96 @@ test("edits account identity with autosave and safely changes and resets passwor
   await expect(page.getByTestId("user-detail")).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
+
+// @verifies-requirement HALL-FR-USR-070
+test("marks a hand-delivered password temporary and requires a different personal password before Hall access", async ({
+  page,
+  browser,
+  baseURL,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+  expect(
+    (
+      await page.request.post("/api/auth/bootstrap", {
+        data: {
+          displayName: "Administrateur",
+          email: "temporary-admin@example.test",
+          password: "Admin-password-2026!",
+        },
+      })
+    ).status(),
+  ).toBe(201);
+  await page.goto("/app/users");
+  await page.getByTestId("users-add").click();
+  await expect(page.getByTestId("passphrase-value")).toBeVisible();
+  const phrase = (await page.getByTestId("passphrase-value").textContent())!.trim();
+  await page.getByTestId("user-display-name").fill("Compte temporaire");
+  await page.getByTestId("user-email").fill("temporary-person@example.test");
+  await page.getByTestId("user-role-contributor").check();
+  await page.getByTestId("user-temporary-password").check();
+  await page.getByTestId("passphrase-handed-over").check();
+  await page.getByTestId("user-create-submit").click();
+  await expect(page.getByTestId("user-detail")).toBeVisible();
+  await expect(page.getByTestId("user-temporary-password")).toBeChecked();
+  await page.screenshot({ path: testInfo.outputPath("temporary-password-account.png"), animations: "disabled" });
+  const accountUrl = page.url();
+  const recipient = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+  try {
+    const member = await recipient.newPage();
+    await member.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+    await member.goto("/app/");
+    await member.getByTestId("auth-email").fill("temporary-person@example.test");
+    await member.getByTestId("auth-password").fill(phrase);
+    await member.getByTestId("auth-submit").click();
+    await expect(member.getByTestId("password-replacement-required")).toBeVisible();
+    await expect(member.getByTestId("password-current")).toHaveCount(0);
+    await expect(member.getByTestId("navigation-settings")).toHaveCount(0);
+    expect((await member.request.get("/api/contacts")).status()).toBe(403);
+    await member.reload();
+    await expect(member.getByTestId("password-replacement-required")).toBeVisible();
+    await member.screenshot({ path: testInfo.outputPath("temporary-password-required.png"), animations: "disabled" });
+    await member.getByTestId("password-new").fill(phrase);
+    await member.getByTestId("password-confirmation").fill(phrase);
+    await member.getByTestId("password-submit").click();
+    await expect(member.getByRole("alert")).toHaveText(
+      "Le nouveau mot de passe doit être différent du mot de passe temporaire.",
+    );
+    const chosen = "Personal-password-2026!";
+    await member.getByTestId("password-new").fill(chosen);
+    await member.getByTestId("password-submit").click();
+    await expect(member.getByTestId("password-mismatch")).toBeVisible();
+    await member.getByTestId("password-confirmation").fill(chosen);
+    await member.screenshot({ path: testInfo.outputPath("temporary-password-mobile.png"), animations: "disabled" });
+    expect(await member.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await member.getByTestId("password-submit").click();
+    await expect(member.getByTestId("auth-email")).toBeVisible();
+    await member.getByTestId("auth-email").fill("temporary-person@example.test");
+    await member.getByTestId("auth-password").fill(phrase);
+    await member.getByTestId("auth-submit").click();
+    await expect(member.getByTestId("auth-error")).toBeVisible();
+    await member.getByTestId("auth-password").fill(chosen);
+    await member.getByTestId("auth-submit").click();
+    await expect(member.getByTestId("phone-navigation-home")).toBeVisible();
+    await expect(member.getByTestId("password-replacement-required")).toHaveCount(0);
+    expect((await member.request.get("/api/contacts")).status()).toBe(200);
+    await page.goto(accountUrl);
+    await expect(page.getByTestId("user-temporary-password")).not.toBeChecked();
+    const marked = page.waitForResponse(
+      (response) => response.url().includes("/api/users/") && response.request().method() === "PUT",
+    );
+    await page.getByTestId("user-temporary-password").click();
+    expect((await marked).status()).toBe(200);
+    await expect(page.getByTestId("user-temporary-password")).toBeChecked();
+    await member.reload();
+    await expect(member.getByTestId("auth-email")).toBeVisible();
+    await member.getByTestId("auth-email").fill("temporary-person@example.test");
+    await member.getByTestId("auth-password").fill(chosen);
+    await member.getByTestId("auth-submit").click();
+    await expect(member.getByTestId("password-replacement-required")).toBeVisible();
+    await member.getByTestId("password-replacement-logout").click();
+    await expect(member.getByTestId("auth-email")).toBeVisible();
+  } finally {
+    await recipient.close();
+  }
+});

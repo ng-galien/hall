@@ -1,3 +1,4 @@
+// @implements-requirement HALL-FR-EML-080
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resourceSearchCriteriaSchema } from "@hall/api-contract";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -7,6 +8,8 @@ import {
   configurationActionSchema,
   configurationActions,
   describeAction,
+  mailActions,
+  mailPreparationActionSchema,
   workspaceActionSchema,
   workspaceActions,
 } from "./actions.js";
@@ -42,6 +45,66 @@ export function createWorkspaceMcp(client: WorkspaceAccess) {
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     async ({ topic }) => result(hallLearn(topic)),
+  );
+  server.registerTool(
+    "mail_discover",
+    {
+      description:
+        "Discover the shared outgoing mailbox, recipient selections, saved groups and exact action schemas. Preparation never sends email.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true },
+    },
+    async () =>
+      result({
+        entryPoints: { mail: "/api/mail", recipients: "/api/mail/recipients", groups: "/api/mail-recipient-groups" },
+        actions: Object.keys(mailActions).map((name) =>
+          describeAction(
+            z.enum(Object.keys(mailActions) as [keyof typeof mailActions, ...(keyof typeof mailActions)[]]).parse(name),
+          ),
+        ),
+        workflow:
+          "Prepare with mail_execute. Read the message preview and review its actual recipients, subject, content and files. Only mail_send submits externally. After a lost response read the mailbox; do not resend. An uncertain outcome requires verification in Outlook before another submission.",
+      }),
+  );
+  server.registerTool(
+    "mail_read",
+    {
+      description:
+        "Read a shared message, group, preview or submission, following its Siren links. Attachment content uses workspace_read_binary. Bcc is visible to authorized Hall readers; the transport does not expose it as a visible recipient header.",
+      inputSchema: { href: z.string() },
+      annotations: { readOnlyHint: true },
+    },
+    ({ href }) => report(() => client.read(href)),
+  );
+  server.registerTool(
+    "mail_execute",
+    {
+      description:
+        "Prepare shared mail, manage recipient groups or record an Outlook verification. Never sends email. Record a verification only after the user or an authorized operator actually checked Outlook; never infer not-sent from a timeout.",
+      inputSchema: {
+        href: z.string(),
+        action: mailPreparationActionSchema,
+        input: z.record(z.string(), z.unknown()).default({}),
+        file: uploadSchema.optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    ({ href, action, input, file }) => report(() => client.execute(href, action, input, file)),
+  );
+  server.registerTool(
+    "mail_send",
+    {
+      description:
+        "Send the reviewed message through the configured transport. External side effect: requires explicit user instruction and the current advertised mail.send action from the preview. Preserve reviewed expectedRevision/fingerprint and a stable requestKey. If the reply is lost, read the message and submission before any further action; never automatically retry an uncertain send.",
+      inputSchema: {
+        href: z.string(),
+        expectedRevision: z.number().int().positive(),
+        fingerprint: z.string().min(1),
+        requestKey: z.uuid(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
+    },
+    ({ href, ...input }) => report(() => client.execute(href, "mail.send", input)),
   );
   server.registerTool(
     "workspace_discover",

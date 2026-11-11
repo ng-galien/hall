@@ -3,6 +3,7 @@ export * from "./cadastreParcel.js";
 export * from "./generatedDocumentTemplates.js";
 export * from "./geographicFeature.js";
 export * from "./jinjaDocumentTemplates.js";
+export { mailCanCopy, mailCanEdit, mailSubmissionBlocksEditing } from "./mail.js";
 export * from "./match.js";
 export * from "./meetingConduct.js";
 export * from "./model.js";

@@ -19,6 +19,7 @@ import type { MinutesClient } from "../clients/minutesClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import { createMarkdownDocumentPreviewConverter } from "../infrastructure/documents/markdownDocumentPreviewConverter.js";
 import { createLegifranceProvider } from "../infrastructure/legal/legifranceProvider.js";
+import { createEmailTransport } from "../infrastructure/mail/outlookTransport.js";
 import {
   createPostgresAuthorizationAdministrationClient,
   createPostgresAuthorizationClient,
@@ -36,6 +37,7 @@ import { createLiveEventBus, type LiveEventBus } from "../realtime/liveEvents.js
 import { createContentTemplateRepository } from "../repositories/contentTemplateRepository.js";
 import type { ContentTemplateRepository, HallSettingsRepository, UnitOfWork } from "../repositories/contracts.js";
 import { createHallSettingsRepository } from "../repositories/hallSettingsRepository.js";
+import { createMailRepository, type MailRepository } from "../repositories/mailRepository.js";
 import { createSecurityRepository, type SecurityRepository } from "../repositories/securityRepository.js";
 import type { AuthorizationClient, AuthorizeReading } from "../security/authorization.js";
 import { RequestContextStore } from "../security/requestContext.js";
@@ -57,11 +59,13 @@ import {
 } from "../services/documentaryResourceService.js";
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
 import { createDocumentRenderer, type DocumentRenderer } from "../services/documentRenderer.js";
+import type { EmailTransport } from "../services/emailTransport.js";
 import { createEventInvitationService, type EventInvitationService } from "../services/eventInvitationService.js";
 import { createGeographicLayerService, type GeographicLayerService } from "../services/geographicLayerService.js";
 import { createGeographicMapRenderer, type GeographicMapRenderer } from "../services/geographicMapRenderer.js";
 import { createHallSettingsService, type HallSettingsService } from "../services/hallSettingsService.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
+import { createMailService, type MailService } from "../services/mailService.js";
 import {
   createMeetingAttendanceDocumentService,
   type MeetingAttendanceDocumentService,
@@ -84,6 +88,9 @@ export interface ServerCompositionOptions {
 
 export interface Cradle {
   config: ServerConfig;
+  emailTransport: EmailTransport;
+  mailRepository: MailRepository;
+  mailService: MailService;
   postgresPool: Pool;
   requestContext: RequestContextStore;
   realtimeEvents: LiveEventBus;
@@ -139,6 +146,9 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
   const container = createContainer<Cradle>({ injectionMode: InjectionMode.PROXY, strict: true });
   container.register({
     config: asValue(config),
+    emailTransport: asFunction(createEmailTransport).singleton(),
+    mailRepository: asFunction(createMailRepository).singleton(),
+    mailService: asFunction(createMailService).singleton(),
     postgresPool: asFunction(({ config }: { config: ServerConfig }) =>
       logIdleConnectionFailures(createPostgresPool({ connectionString: config.database.url })),
     ).singleton(),

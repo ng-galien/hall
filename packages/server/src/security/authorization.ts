@@ -21,7 +21,13 @@ export interface AuthorizationClient {
 }
 
 export function principalForUser(user: ApiUser): ApiPrincipal {
-  return { id: user.id, displayName: user.displayName, roles: user.roles, contactId: user.contactId };
+  return {
+    id: user.id,
+    displayName: user.displayName,
+    roles: user.roles,
+    contactId: user.contactId,
+    passwordChangeRequired: user.passwordChangeRequired,
+  };
 }
 
 /** Loads the actions the caller may take, for the meeting of the request when it has one. */

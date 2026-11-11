@@ -18,6 +18,7 @@ describe("committee association collection self links", () => {
         displayName: "Reader",
         roles: ["councillor"],
         contactId: null,
+        passwordChangeRequired: false,
       };
       next();
     });

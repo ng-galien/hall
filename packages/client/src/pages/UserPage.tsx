@@ -10,6 +10,7 @@ import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components
 import { useRoleOptions } from "../features/authorization/useRoleOptions";
 import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
 import { PasswordDialog } from "../features/users/PasswordDialog";
+import { TemporaryPasswordSetting } from "../features/users/TemporaryPasswordSetting";
 import { UserRoles } from "../features/users/UserRoles";
 import { useUserIdentity } from "../features/users/useUserIdentity";
 import { useSubmitting } from "../hooks/useSubmitting";
@@ -33,6 +34,7 @@ export function UserPage() {
     canDisable,
     canRevokeAccess,
     canReactivate,
+    update,
     assignRoles,
     disable,
     revokeAccess,
@@ -175,6 +177,18 @@ export function UserPage() {
                 </Button>
               )}
             </section>
+            <section className="admin-record">
+              <TemporaryPasswordSetting
+                value={user.passwordChangeRequired}
+                disabled={!canUpdate[userId] || submitting}
+                onChange={(passwordChangeRequired) =>
+                  void run(async () => {
+                    if (!(await flush())) return false;
+                    return Boolean(await update(userId, { ...draft, passwordChangeRequired }));
+                  })
+                }
+              />
+            </section>
             <section className="admin-record" aria-labelledby={`${fieldId}-roles`}>
               <div className="admin-section-heading">
                 <div>
@@ -298,10 +312,12 @@ export function UserPage() {
           <PasswordDialog
             title={t("users.resetPassword")}
             onGenerate={generatePassphrase}
+            temporaryPassword={user?.passwordChangeRequired ?? false}
             onClose={() => setPasswordOpen(false)}
-            onSubmit={async ({ newPassword }) => {
+            onSubmit={async ({ newPassword, passwordChangeRequired }) => {
               if (!(await flush())) throw new Error("Pending identity update failed");
-              await resetUserPassword(userId, newPassword);
+              await resetUserPassword(userId, newPassword, passwordChangeRequired);
+              await loadDetail(userId);
               setPasswordReset(true);
             }}
           />

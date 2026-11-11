@@ -1,6 +1,7 @@
 import * as contract from "@hall/api-contract";
 import {
   createContentTemplateSchema,
+  generateContentTemplateSchema,
   previewContentTemplateSchema,
   updateContentTemplateSchema,
   updateHallSettingsSchema,
@@ -62,7 +63,36 @@ export type ConfigurationAction = keyof typeof configurationActions;
 export const configurationActionSchema = z.enum(
   Object.keys(configurationActions) as [ConfigurationAction, ...ConfigurationAction[]],
 );
-export const hallActions = { ...workspaceActions, ...configurationActions };
+export const mailPreparationActions = {
+  "template.generate": { schema: generateContentTemplateSchema, fileRequired: false },
+  "mail.copy": { schema: contract.mailRevisionSchema, fileRequired: false },
+  "mail.prepare": { schema: contract.prepareMailSchema, fileRequired: false },
+  "mail.upload-attachment": { schema: contract.mailRevisionSchema, fileRequired: true },
+  "meeting.generate-notice-message": { schema: contract.generateMeetingNoticeMessageSchema, fileRequired: false },
+  "resource.generate-event-invitation": { schema: contract.generateEventInvitationSchema, fileRequired: false },
+  "mail.create": { schema: contract.createMailSchema, fileRequired: false },
+  "mail.update": { schema: contract.updateMailSchema, fileRequired: false },
+  "mail.delete": { schema: contract.mailRevisionSchema, fileRequired: false },
+  "mail.attach": { schema: contract.attachMailResourceSchema, fileRequired: false },
+  "mail.remove-attachment": {
+    schema: contract.mailRevisionSchema.extend({ attachmentId: z.uuid() }),
+    fileRequired: false,
+  },
+  "mail.verify-submission": { schema: contract.verifyMailSubmissionSchema, fileRequired: false },
+  "mail-group.create": { schema: contract.saveMailRecipientGroupSchema, fileRequired: false },
+  "mail-group.update": { schema: contract.updateMailRecipientGroupSchema, fileRequired: false },
+  "mail-group.delete": { schema: contract.mailRevisionSchema, fileRequired: false },
+} satisfies Partial<Record<contract.ApiActionName, { schema: z.ZodType; fileRequired: boolean }>>;
+export type MailPreparationAction = keyof typeof mailPreparationActions;
+export const mailPreparationActionSchema = z.enum(
+  Object.keys(mailPreparationActions) as [MailPreparationAction, ...MailPreparationAction[]],
+);
+export const mailActions = {
+  ...mailPreparationActions,
+  "mail.send": { schema: contract.sendMailSchema, fileRequired: false },
+};
+export const hallActions = { ...workspaceActions, ...configurationActions, ...mailActions };
+
 export type HallAction = keyof typeof hallActions;
 export function describeAction(name: HallAction) {
   return {

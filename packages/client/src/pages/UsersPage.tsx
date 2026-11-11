@@ -17,6 +17,7 @@ import {
 } from "../components/Ui";
 import { useRoleOptions } from "../features/authorization/useRoleOptions";
 import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
+import { TemporaryPasswordSetting } from "../features/users/TemporaryPasswordSetting";
 import { UserRoles } from "../features/users/UserRoles";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
@@ -81,6 +82,7 @@ export function UsersPage() {
   const visible = users.filter((user) =>
     matchesQuery(query, user.displayName, user.email, ...user.roles.map((role) => roleName(role))),
   );
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -89,6 +91,7 @@ export function UsersPage() {
         displayName: form.get("displayName"),
         email: form.get("email"),
         password,
+        passwordChangeRequired,
         roles,
         contactId: contactId === "none" ? null : contactId,
       });
@@ -147,6 +150,7 @@ export function UsersPage() {
                 setRoles([]);
                 setContactId("none");
                 setPassword("");
+                setPasswordChangeRequired(false);
                 setPassphrase(null);
                 setHandedOver(false);
                 setGenerationError(null);
@@ -253,6 +257,11 @@ export function UsersPage() {
                 />
               )}
             </div>
+            <TemporaryPasswordSetting
+              value={passwordChangeRequired}
+              onChange={setPasswordChangeRequired}
+              disabled={submitting}
+            />
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
             {requiresActiveMember(roles) && (
               <p className="text-sm text-muted-foreground" data-testid="user-councillor-contact-hint">

@@ -10,6 +10,8 @@ CREATE TABLE hall.app_user (
   email TEXT NOT NULL CONSTRAINT "app_user_email_key" UNIQUE,
   display_name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
+  -- @implements-requirement HALL-FR-USR-070
+  password_change_required BOOLEAN NOT NULL DEFAULT false,
   status TEXT NOT NULL DEFAULT 'active'::text CONSTRAINT "app_user_status_check" CHECK (status = ANY (ARRAY['active'::text, 'disabled'::text])),
   contact_id UUID CONSTRAINT "app_user_contact_id_key" UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),

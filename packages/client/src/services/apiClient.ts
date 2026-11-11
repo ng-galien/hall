@@ -59,6 +59,8 @@ export type ApiErrorCode =
   | "authentication_required"
   | "permission_denied"
   | "csrf_validation_failed"
+  | "password_change_required"
+  | "password_must_differ"
   | "invalid_current_password"
   | "invalid_credentials"
   | "too_many_login_attempts"
@@ -192,6 +194,8 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "permission_denied",
   "csrf_validation_failed",
   "invalid_current_password",
+  "password_change_required",
+  "password_must_differ",
   "invalid_credentials",
   "too_many_login_attempts",
   "bootstrap_unavailable",
@@ -277,7 +281,7 @@ export async function apiResponse(path: string, init?: RequestInit): Promise<Res
       payload?.code && apiErrorCodes.has(payload.code as ApiErrorCode)
         ? (payload.code as ApiErrorCode)
         : "request_failed";
-    if (code === "authentication_required") {
+    if (code === "authentication_required" || code === "password_change_required") {
       representations.clear();
       window.dispatchEvent(new Event(AUTHENTICATION_REQUIRED_EVENT));
     }

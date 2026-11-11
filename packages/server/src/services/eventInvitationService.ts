@@ -1,9 +1,11 @@
+// @implements-requirement HALL-FR-EML-090
 import type { GenerateEventInvitation } from "@hall/api-contract";
+import type { MailDraft, MailSource } from "@hall/contracts";
 import MailComposer from "nodemailer/lib/mail-composer/index.js";
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
-import type { ContentTemplateService } from "./contentTemplateService.js";
+import type { ContentTemplateService, TemplateAttachment } from "./contentTemplateService.js";
 import { DomainError } from "./errors.js";
 
 export interface EventInvitationMessage {
@@ -14,6 +16,10 @@ export interface EventInvitationMessage {
 
 export interface EventInvitationService {
   generate(reference: string, input: GenerateEventInvitation): Promise<EventInvitationMessage>;
+  prepareMail(
+    reference: string,
+    input: GenerateEventInvitation,
+  ): Promise<{ draft: MailDraft; files: TemplateAttachment[]; source: MailSource }>;
 }
 
 function text(value: string): string {
@@ -88,69 +94,115 @@ export function createEventInvitationService({
   hallSettingsRepository: HallSettingsRepository;
   contentTemplateService: ContentTemplateService;
 }): EventInvitationService {
+  async function prepare(reference: string, input: GenerateEventInvitation, includePresentation: boolean) {
+    const opened = await resourcesClient.open(reference);
+    if (!opened) throw new DomainError("resource_not_found", 404);
+    if (opened.data.kind !== "event") throw new DomainError("invalid_request", 400);
+    const [hall, contacts] = await Promise.all([hallSettingsRepository.get(), directoryClient.listContacts()]);
+    const organizerAddress = hall.outboundEmailSenderAddress ?? hall.email;
+    if (!organizerAddress) throw new DomainError("invalid_request", 400);
+    const contactsById = new Map(contacts.map((contact) => [contact.id, contact] as const));
+    const recipientCandidates = opened.data.document.participants.flatMap((participant) => {
+      if (participant.kind !== "contact") return [];
+      const contact = contactsById.get(participant.contactId);
+      return contact
+        ? [{ name: `${contact.firstName} ${contact.lastName}`, address: contact.email ?? "", contactId: contact.id }]
+        : [];
+    });
+    const recipients = [
+      ...new Map(
+        recipientCandidates
+          .filter((recipient) => recipient.address)
+          .map((recipient) => [recipient.address.toLocaleLowerCase(), recipient]),
+      ).values(),
+    ];
+    const method = input.method === "cancel" ? "CANCEL" : "REQUEST";
+    const schedule = opened.data.document.schedule;
+    const dateLines =
+      schedule.kind === "allDay"
+        ? [`DTSTART;VALUE=DATE:${compactDate(schedule.start)}`, `DTEND;VALUE=DATE:${compactDate(schedule.end)}`]
+        : [`DTSTART:${utc(schedule.start)}`, `DTEND:${utc(schedule.end)}`];
+    const attendeeLines = recipients.map(
+      ({ name, address }) => `ATTENDEE;CN="${parameter(name)}";ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:${address}`,
+    );
+    const calendar = [
+      "BEGIN:VCALENDAR",
+      "PRODID:-//Hall//Calendrier municipal//FR",
+      "VERSION:2.0",
+      "CALSCALE:GREGORIAN",
+      `METHOD:${method}`,
+      "BEGIN:VEVENT",
+      `UID:hall-event-${opened.data.id}@hall.local`,
+      `SEQUENCE:${opened.data.version}`,
+      `DTSTAMP:${utc(new Date().toISOString())}`,
+      ...dateLines,
+      `SUMMARY:${text(opened.data.name)}`,
+      `LOCATION:${text(opened.data.document.location)}`,
+      `DESCRIPTION:${text(opened.data.document.content)}`,
+      `ORGANIZER;CN="${parameter(hall.outboundEmailSenderName || hall.name)}":mailto:${organizerAddress}`,
+      ...attendeeLines,
+      ...(input.method === "cancel" ? ["STATUS:CANCELLED"] : []),
+      "END:VEVENT",
+      "END:VCALENDAR",
+      "",
+    ]
+      .map(foldCalendarLine)
+      .join("\r\n");
+    const { subject, bodyMarkdown } = eventInvitationSource(
+      opened.data.name,
+      opened.data.document.content,
+      input.method,
+    );
+    const preview = await contentTemplateService.generatedPreview(
+      "event-invitation",
+      bodyMarkdown,
+      subject,
+      {},
+      false,
+      { event: { id: opened.data.id, name: opened.data.name, ...opened.data.document, method: input.method } },
+      includePresentation,
+    );
+    if (preview.diagnostics.some((item) => item.severity === "error")) throw new DomainError("template_invalid", 422);
+    return {
+      preview,
+      recipients,
+      calendar,
+      method,
+      hall,
+      organizerAddress,
+      name: opened.data.name,
+      resourceId: opened.data.id,
+      version: opened.data.version,
+      recipientCandidates,
+      subject,
+    };
+  }
   return {
+    async prepareMail(reference, input) {
+      const prepared = await prepare(reference, input, false);
+      return {
+        draft: {
+          subject: prepared.preview.subject ?? prepared.subject,
+          bodyMarkdown: prepared.preview.resolvedMarkdown ?? prepared.preview.text,
+          recipients: prepared.recipientCandidates.map((recipient) => ({ ...recipient, kind: "to" })),
+        },
+        files: [
+          {
+            id: prepared.resourceId,
+            fileName: "invitation.ics",
+            mediaType: "text/calendar",
+            content: Buffer.from(prepared.calendar, "utf8"),
+          },
+        ],
+        source: { kind: "event", resourceId: prepared.resourceId, version: prepared.version, method: input.method },
+      };
+    },
     async generate(reference, input) {
-      const opened = await resourcesClient.open(reference);
-      if (!opened) throw new DomainError("resource_not_found", 404);
-      if (opened.data.kind !== "event") throw new DomainError("invalid_request", 400);
-      const [hall, contacts] = await Promise.all([hallSettingsRepository.get(), directoryClient.listContacts()]);
-      const organizerAddress = hall.outboundEmailSenderAddress ?? hall.email;
-      if (!organizerAddress) throw new DomainError("invalid_request", 400);
-      const contactsById = new Map(contacts.map((contact) => [contact.id, contact] as const));
-      const recipientCandidates = opened.data.document.participants.flatMap((participant) => {
-        if (participant.kind !== "contact") return [];
-        const contact = contactsById.get(participant.contactId);
-        return contact?.email ? [{ name: `${contact.firstName} ${contact.lastName}`, address: contact.email }] : [];
-      });
-      const recipients = [
-        ...new Map(recipientCandidates.map((recipient) => [recipient.address.toLocaleLowerCase(), recipient])).values(),
-      ];
-      const method = input.method === "cancel" ? "CANCEL" : "REQUEST";
-      const schedule = opened.data.document.schedule;
-      const dateLines =
-        schedule.kind === "allDay"
-          ? [`DTSTART;VALUE=DATE:${compactDate(schedule.start)}`, `DTEND;VALUE=DATE:${compactDate(schedule.end)}`]
-          : [`DTSTART:${utc(schedule.start)}`, `DTEND:${utc(schedule.end)}`];
-      const attendeeLines = recipients.map(
-        ({ name, address }) => `ATTENDEE;CN="${parameter(name)}";ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:${address}`,
+      const { preview, recipients, calendar, method, hall, organizerAddress, name, subject } = await prepare(
+        reference,
+        input,
+        true,
       );
-      const calendar = [
-        "BEGIN:VCALENDAR",
-        "PRODID:-//Hall//Calendrier municipal//FR",
-        "VERSION:2.0",
-        "CALSCALE:GREGORIAN",
-        `METHOD:${method}`,
-        "BEGIN:VEVENT",
-        `UID:hall-event-${opened.data.id}@hall.local`,
-        `SEQUENCE:${opened.data.version}`,
-        `DTSTAMP:${utc(new Date().toISOString())}`,
-        ...dateLines,
-        `SUMMARY:${text(opened.data.name)}`,
-        `LOCATION:${text(opened.data.document.location)}`,
-        `DESCRIPTION:${text(opened.data.document.content)}`,
-        `ORGANIZER;CN="${parameter(hall.outboundEmailSenderName || hall.name)}":mailto:${organizerAddress}`,
-        ...attendeeLines,
-        ...(input.method === "cancel" ? ["STATUS:CANCELLED"] : []),
-        "END:VEVENT",
-        "END:VCALENDAR",
-        "",
-      ]
-        .map(foldCalendarLine)
-        .join("\r\n");
-      const { subject, bodyMarkdown } = eventInvitationSource(
-        opened.data.name,
-        opened.data.document.content,
-        input.method,
-      );
-      const preview = await contentTemplateService.generatedPreview(
-        "event-invitation",
-        bodyMarkdown,
-        subject,
-        {},
-        false,
-        { event: { id: opened.data.id, name: opened.data.name, ...opened.data.document, method: input.method } },
-      );
-      if (preview.diagnostics.some((item) => item.severity === "error")) throw new DomainError("template_invalid", 422);
       const composer = new MailComposer({
         headers: { "X-Unsent": "1" },
         from: { name: hall.outboundEmailSenderName || hall.name, address: organizerAddress },
@@ -176,7 +228,7 @@ export function createEventInvitationService({
       const message = composer.compile();
       return {
         content: await message.build(),
-        fileName: `${safeStem(opened.data.name)}-${input.method}.eml`,
+        fileName: `${safeStem(name)}-${input.method}.eml`,
         mediaType: "message/rfc822",
       };
     },

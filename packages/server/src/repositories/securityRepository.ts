@@ -38,6 +38,7 @@ function mapUser(row: DatabaseRow): StoredUser {
     displayName: asString(row.display_name, "security_user.display_name"),
     passwordHash: asString(row.password_hash, "security_user.password_hash"),
     status: apiUserStatusSchema.parse(row.status),
+    passwordChangeRequired: z.boolean().parse(row.password_change_required),
     contactId: identifierSchema.nullable().parse(row.contact_id),
     roles: z.array(apiRoleSchema).parse(row.roles),
     createdAt: asString(row.created_at, "security_user.created_at"),
@@ -98,6 +99,7 @@ export function createSecurityRepository({
       email: string;
       displayName: string;
       passwordHash: string;
+      passwordChangeRequired?: boolean;
       roles: ApiRole[];
       contactId: string | null;
     }) {
@@ -118,7 +120,10 @@ export function createSecurityRepository({
       if (!isIdentifier(id)) return null;
       return optionalUser(await administrationCall(() => administration.setUserRoles(request(), id, roles)));
     },
-    async updateUser(id: string, input: { email: string; displayName: string; contactId: string | null }) {
+    async updateUser(
+      id: string,
+      input: { email: string; displayName: string; contactId: string | null; passwordChangeRequired?: boolean },
+    ) {
       if (!isIdentifier(id)) return null;
       return optionalUser(
         await administrationCall(() =>
@@ -126,8 +131,15 @@ export function createSecurityRepository({
         ),
       );
     },
-    updatePassword(id: string, previousHash: string, passwordHash: string) {
-      return administrationCall(() => administration.replacePassword(request(), id, previousHash, passwordHash));
+    updatePassword(
+      id: string,
+      previousHash: string,
+      passwordHash: string,
+      passwordChangeRequired: boolean | null = false,
+    ) {
+      return administrationCall(() =>
+        administration.replacePassword(request(), id, previousHash, passwordHash, passwordChangeRequired),
+      );
     },
     async reactivateUser(id: string, passwordHash: string) {
       if (!isIdentifier(id)) return null;

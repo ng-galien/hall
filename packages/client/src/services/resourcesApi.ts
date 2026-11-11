@@ -7,7 +7,7 @@ import {
   resourceDetailSchema as documentaryResourceDetailSchema,
   resourceSummarySchema as documentaryResourceSummarySchema,
   editorAssetSchema,
-  findSirenAction,
+  type findSirenAction,
   findSirenLink,
   generateEventInvitationSchema,
   type LegalReferenceSearchInput,
@@ -188,24 +188,16 @@ export async function downloadDocumentaryResource(
   downloadFile(await documentaryResourceFile(resource, representation));
 }
 
-export async function downloadEventInvitation(
-  resource: Extract<ReturnType<typeof documentaryResourceDetailSchema.parse>, { kind: "event" }>,
+export async function prepareEventInvitationMail(
   representation: Parameters<typeof findSirenAction>[0],
   method: "request" | "cancel",
-): Promise<void> {
-  const action = findSirenAction(representation, "resource.generate-event-invitation");
-  if (!action) throw new SirenCapabilityUnavailable("resource.generate-event-invitation");
-  const response = await apiResponse(apiPathFromHref(action.href), {
-    method: action.method,
-    headers: { Accept: "message/rfc822", "Content-Type": "application/json" },
-    body: JSON.stringify(generateEventInvitationSchema.parse({ method })),
-  });
-  const url = URL.createObjectURL(await response.blob());
-  const link = window.document.createElement("a");
-  link.href = url;
-  link.download = `${resource.name}-${method}.eml`;
-  link.click();
-  URL.revokeObjectURL(url);
+) {
+  const result = await submitSirenAction<import("@hall/contracts").MailMessage>(
+    representation,
+    "resource.generate-event-invitation",
+    generateEventInvitationSchema.parse({ method }),
+  );
+  return result.data;
 }
 
 export async function relocateDocumentaryResource(

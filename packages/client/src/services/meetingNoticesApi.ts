@@ -1,20 +1,11 @@
 import {
   councilMeetingSchema,
-  findSirenAction,
   findSirenLink,
   generateMeetingNoticeMessageSchema,
   meetingNoticeMessagePreparationSchema,
   meetingNoticeSchema,
 } from "@hall/api-contract";
-import {
-  apiPathFromHref,
-  apiRequest,
-  apiResponse,
-  apiSirenRequest,
-  SirenCapabilityUnavailable,
-  sirenRepresentation,
-  submitSirenActionAt,
-} from "./apiClient";
+import { apiRequest, apiSirenRequest, SirenCapabilityUnavailable, submitSirenActionAt } from "./apiClient";
 
 const meetingPath = (reference: string) => `/council-meetings/${encodeURIComponent(reference)}`;
 
@@ -64,18 +55,12 @@ export async function prepareMeetingNoticeMessage(reference: string) {
   );
 }
 
-export async function downloadMeetingNoticeMessage(reference: string, noticeId: string) {
-  const action = findSirenAction(await sirenRepresentation(meetingPath(reference)), "meeting.generate-notice-message");
-  if (!action) throw new SirenCapabilityUnavailable("meeting.generate-notice-message");
-  const response = await apiResponse(apiPathFromHref(action.href), {
-    method: action.method,
-    headers: { Accept: "message/rfc822" },
-    body: JSON.stringify(generateMeetingNoticeMessageSchema.parse({ noticeId })),
-  });
-  const objectUrl = URL.createObjectURL(await response.blob());
-  const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = `convocation-${noticeId}.eml`;
-  link.click();
-  URL.revokeObjectURL(objectUrl);
+export async function prepareMeetingNoticeMail(reference: string, noticeId: string) {
+  return (
+    await submitSirenActionAt<import("@hall/api-contract").MailMessage>(
+      meetingPath(reference),
+      "meeting.generate-notice-message",
+      generateMeetingNoticeMessageSchema.parse({ noticeId }),
+    )
+  ).data;
 }

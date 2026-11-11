@@ -82,6 +82,12 @@ describe("event calendar invitation", () => {
       contentTemplateService: { generatedPreview } as unknown as ContentTemplateService,
       hallSettingsRepository: { get: async () => hall } as HallSettingsRepository,
     });
+    const shared = await service.prepareMail(created.data.id, { method: "request" });
+    expect(shared.draft.recipients).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "Bruno Durand", address: "", contactId: withoutEmail.id }),
+      ]),
+    );
     const request = await service.generate(created.data.id, { method: "request" });
     const cancellation = await service.generate(created.data.id, { method: "cancel" });
     const requestText = request.content.toString("utf8");
@@ -94,6 +100,7 @@ describe("event calendar invitation", () => {
       {},
       false,
       expect.objectContaining({ event: expect.objectContaining({ name: expect.any(String), method: "request" }) }),
+      true,
     );
     expect(request.mediaType).toBe("message/rfc822");
     expect(requestText).toContain("alice@example.test");

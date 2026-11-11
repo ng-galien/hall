@@ -4,7 +4,13 @@ import { expect, it, vi } from "vitest";
 import { createTestServer } from "./testServer.js";
 
 const administrator = { email: "admin@example.fr", displayName: "Admin", password: "Admin-password-2026!" };
-const principal = { id: "single-access", displayName: "Single access", roles: ["administrator"], contactId: null };
+const principal = {
+  id: "single-access",
+  displayName: "Single access",
+  roles: ["administrator"],
+  contactId: null,
+  passwordChangeRequired: false,
+};
 
 function applicationDatabaseUrl(applicationName: string): string {
   const url = new URL(process.env.TEST_DATABASE_URL!);

@@ -35,7 +35,11 @@ await mkdir(join(stage, "bin"), { recursive: true });
 
 const result = await build({
   absWorkingDir: root,
-  entryPoints: { hall: "packages/server/standalone/hall.mjs", "hall-workspace-mcp": "packages/mcp/src/index.ts" },
+  entryPoints: {
+    hall: "packages/server/standalone/hall.mjs",
+    "hall-workspace-mcp": "packages/mcp/src/index.ts",
+    outlookWorker: "packages/server/src/infrastructure/mail/outlookWorker.ts",
+  },
   outdir: join(stage, "bin"),
   outExtension: { ".js": ".mjs" },
   bundle: true,
@@ -124,6 +128,8 @@ const manifest = {
   bin: { hall: "bin/hall.mjs", "hall-workspace-mcp": "bin/hall-workspace-mcp.mjs" },
   files: ["bin", "client", "sql", "licenses", "release.json", "README.md", "distribution.md", "municipal-bootstrap.md"],
   dependencies: Object.fromEntries(Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b))),
+  optionalDependencies: { "edge-js": lock.packages["node_modules/edge-js"].version },
+  allowScripts: { "edge-js@24.0.5": true },
 };
 await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 const requireRuntime = createRequire(join(root, "package.json"));
@@ -159,7 +165,7 @@ await writeFile(
       schemaFingerprint: (await loadSchemaManifest()).fingerprint,
       thirdPartyNotices: [buffersNotice, minijinjaNotice],
       runtimeDependencies: Object.fromEntries(
-        Object.keys(manifest.dependencies).map((name) => {
+        [...Object.keys(manifest.dependencies), ...Object.keys(manifest.optionalDependencies)].map((name) => {
           const { version, resolved, integrity } = lock.packages[`node_modules/${name}`];
           return [name, { version, resolved, integrity }];
         }),

@@ -73,7 +73,7 @@ export function attachLiveWebSocket(
       if (config.devAutoLogin) return true;
       if (!token) return false;
       const session = await authService.authenticate(token);
-      if (!session) return false;
+      if (!session || session.user.passwordChangeRequired) return false;
       return authorizeReading(session.user);
     };
     try {

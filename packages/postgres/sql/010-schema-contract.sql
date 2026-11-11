@@ -25,3 +25,10 @@ $function$;
 ALTER FUNCTION hall_api.schema_fingerprint() OWNER TO hall_owner;
 REVOKE ALL ON FUNCTION hall_api.schema_fingerprint() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION hall_api.schema_fingerprint() TO hall_api_anonymous;
+
+CREATE TABLE hall_meta.data_migration (
+  name TEXT PRIMARY KEY,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp()
+);
+ALTER TABLE hall_meta.data_migration OWNER TO hall_owner;
+REVOKE ALL ON hall_meta.data_migration FROM PUBLIC;

@@ -10,6 +10,7 @@ import {
 import { ChevronDownIcon, PdfIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { previewTemplatePdf } from "../../services/templatesApi";
+import { PrepareMailButton } from "../mail/PrepareMailButton";
 import { DocumentViewerDialog } from "./DocumentViewerDialog";
 import { NativeDocumentFrame } from "./NativeDocumentFrame";
 
@@ -140,6 +141,7 @@ export function PdfPreviewButton({
           {buttonContent}
         </Button>
       )}
+      <PrepareMailButton input={{ kind: "pdf", title, bodyMarkdown: markdown }} testId={`${testId}-mail`} />
       {view}
     </>
   );

@@ -11,6 +11,7 @@ import { Router } from "express";
 import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
+import { mailRepresentation } from "../mailRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
 
 const referenceQuerySchema = z.object({
@@ -25,7 +26,7 @@ function contains(label: string, query: string): boolean {
 }
 
 export function createContentTemplatesRouter(cradle: Cradle): Router {
-  const { contentTemplateService, referenceEntityResolver } = cradle;
+  const { contentTemplateService, referenceEntityResolver, mailService } = cradle;
   const router = Router();
   const pdfPreviews = new Map<string, { content: Buffer; expiresAt: number }>();
 
@@ -116,6 +117,25 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
   });
 
   router.post("/:templateId/generate", requireActionPermission("template.generate"), async (request, response) => {
+    const template = await contentTemplateService.find(routeParameter(request.params.templateId));
+    if (template?.kind === "message" && !request.headers.accept?.includes("message/rfc822")) {
+      const input = generateContentTemplateSchema.parse(request.body);
+      const prepared = await contentTemplateService.prepareMessage(template, input);
+      const recipients = (["to", "cc", "bcc"] as const).flatMap((kind) =>
+        input[kind].map((address) => ({ kind, address, name: "", contactId: null })),
+      );
+      response.status(201).json(
+        mailRepresentation(
+          request,
+          await mailService.createPrepared({
+            draft: { subject: prepared.subject, bodyMarkdown: prepared.bodyMarkdown, recipients },
+            source: { kind: "free" },
+            files: prepared.files,
+          }),
+        ),
+      );
+      return;
+    }
     const generated = await contentTemplateService.generate(
       routeParameter(request.params.templateId),
       generateContentTemplateSchema.parse(request.body),

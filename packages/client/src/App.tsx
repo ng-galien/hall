@@ -32,6 +32,7 @@ import { useCouncilMeetingsStore } from "./stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "./stores/councilMembersStore";
 import { useWorkspaceResourcesStore } from "./stores/workspaceResourcesStore";
 
+const MailPage = lazy(() => import("./features/mail/MailPage").then((module) => ({ default: module.MailPage })));
 const CalendarPage = lazy(() =>
   import("./features/calendar/CalendarPage").then((module) => ({ default: module.CalendarPage })),
 );
@@ -132,6 +133,8 @@ function AuthenticatedApplication() {
         <Route path="council-members/:memberId" element={<CouncilMemberPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:userId" element={<UserPage />} />
+        <Route path="mail" element={<MailPage />} />
+        <Route path="mail/:mailId" element={<MailPage />} />
         <Route path="contacts" element={<ContactsPage />} />
         <Route path="contacts/:contactId" element={<ContactPage />} />
         <Route path="council-committees" element={<CouncilCommitteesPage />} />

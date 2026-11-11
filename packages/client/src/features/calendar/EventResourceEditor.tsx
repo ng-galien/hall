@@ -1,10 +1,11 @@
 import { eventDocumentSchema, findSirenAction, type ResourceDetail, type SirenEntity } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { downloadEventInvitation } from "../../services/resourcesApi";
+import { prepareEventInvitationMail } from "../../services/resourcesApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { EventFields } from "./EventFields";
@@ -35,6 +36,7 @@ export function EventResourceEditor({
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
 }) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const businesses = useCouncilBusinessStore((state) => state.businesses);
   const associatedBusiness = businesses.find((business) =>
     business.resources.some((entry) => entry.id === resource.id),
@@ -160,7 +162,10 @@ export function EventResourceEditor({
             onClick={async () => {
               setGeneratingInvitation(true);
               try {
-                if (await save()) await downloadEventInvitation(resource, representation, "request");
+                if (await save()) {
+                  const message = await prepareEventInvitationMail(representation, "request");
+                  navigate(`/mail/${message.id}`);
+                }
               } catch (error) {
                 onError(apiErrorCode(error));
               } finally {
@@ -178,7 +183,10 @@ export function EventResourceEditor({
             onClick={async () => {
               setGeneratingInvitation(true);
               try {
-                if (await save()) await downloadEventInvitation(resource, representation, "cancel");
+                if (await save()) {
+                  const message = await prepareEventInvitationMail(representation, "cancel");
+                  navigate(`/mail/${message.id}`);
+                }
               } catch (error) {
                 onError(apiErrorCode(error));
               } finally {

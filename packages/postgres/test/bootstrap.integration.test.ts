@@ -59,6 +59,62 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     await expect(bootstrap.verify()).resolves.toBeUndefined();
   });
 
+  // @verifies-requirement HALL-FR-USR-070
+  it("adds the temporary-password setting without marking existing accounts or losing sessions", async () => {
+    await reset();
+    const current = await loadSchemaManifest();
+    const previous = defineSchemaManifest(
+      current.entries.map((entry) => ({
+        ...entry,
+        sql: entry.sql
+          .replace("  password_change_required BOOLEAN NOT NULL DEFAULT false,\n", "")
+          .replace("    'password_change_required', account.password_change_required,\n", "")
+          .replace("user_roles TEXT[],\n  require_password_change BOOLEAN DEFAULT false", "user_roles TEXT[]")
+          .replace(
+            /  -- Marking a password as temporary closes every session of the account\.\n  IF require_password_change[^\n]*\n[^\n]*\n  END IF;\n/,
+            "",
+          )
+          .replace("contact_id, password_change_required)", "contact_id)")
+          .replace("user_contact, require_password_change)", "user_contact)")
+          .replace(", require_password_change BOOLEAN DEFAULT NULL", "")
+          .replace(", require_password_change BOOLEAN DEFAULT false", "")
+          .replace("    password_change_required = coalesce(require_password_change, password_change_required),\n", "")
+          .replace(
+            "    password_change_required = coalesce(require_password_change, password_change_required), ",
+            "    ",
+          )
+          .replace(
+            "create_app_user(TEXT, TEXT, TEXT, UUID, TEXT[], BOOLEAN)",
+            "create_app_user(TEXT, TEXT, TEXT, UUID, TEXT[])",
+          )
+          .replace("update_app_user(UUID, TEXT, TEXT, UUID, BOOLEAN)", "update_app_user(UUID, TEXT, TEXT, UUID)")
+          .replace(
+            "replace_app_user_password(UUID, TEXT, TEXT, BOOLEAN)",
+            "replace_app_user_password(UUID, TEXT, TEXT)",
+          ),
+      })),
+    );
+    await new PostgresSchemaBootstrap(pool, async () => previous).install();
+    const account = (
+      await pool.query(
+        "SELECT hall_api.create_app_user('existing@example.test', 'Existing', 'existing-hash', NULL, ARRAY['contributor']) AS account",
+      )
+    ).rows[0].account;
+    await pool.query("SELECT hall_api.create_app_session($1, 'preserved-session', now() + interval '1 hour')", [
+      account.id,
+    ]);
+    const bootstrap = new PostgresSchemaBootstrap(pool);
+    await expect(bootstrap.install()).resolves.toBe("upgraded");
+    const upgraded = (await pool.query("SELECT hall_api.find_app_user_by_email('existing@example.test') AS account"))
+      .rows[0].account;
+    expect(upgraded).toMatchObject({ id: account.id, password_hash: "existing-hash", password_change_required: false });
+    expect(
+      (await pool.query("SELECT count(*)::int AS count FROM hall.app_session WHERE token_hash='preserved-session'"))
+        .rows[0].count,
+    ).toBe(1);
+    await expect(bootstrap.verify()).resolves.toBeUndefined();
+  });
+
   it("upgrades an older manifest to the materialized target without losing existing data", async () => {
     await reset();
     const current = await loadSchemaManifest();

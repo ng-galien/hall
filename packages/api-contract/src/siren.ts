@@ -3,6 +3,20 @@ import { z } from "zod";
 export const SIREN_MEDIA_TYPE = "application/vnd.siren+json" as const;
 
 export const apiActionNames = [
+  "mail.create",
+  "mail.copy",
+  "mail.upload-attachment",
+  "mail.prepare",
+  "mail.update",
+  "mail.delete",
+  "mail.attach",
+  "mail.remove-attachment",
+  "mail.send",
+  "mail.verify-submission",
+  "mail-group.create",
+  "mail-group.update",
+  "mail-group.delete",
+
   "session.bootstrap",
   "session.login",
   "session.change-password",

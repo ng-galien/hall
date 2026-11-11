@@ -1,0 +1,24 @@
+-- @verifies-requirement HALL-FR-USR-070
+BEGIN;
+SET LOCAL search_path = hall, public;
+SELECT no_plan();
+SELECT hall_api.create_app_user('ordinary@example.test', 'Ordinary', 'hash-ordinary', NULL, ARRAY['contributor']);
+SELECT hall_api.create_app_user('temporary@example.test', 'Temporary', 'hash-temporary', NULL, ARRAY['contributor'], true);
+SELECT is((hall_api.find_app_user_by_email('ordinary@example.test')->>'password_change_required')::boolean, false, 'unmarked account defaults to ordinary password');
+SELECT is((hall_api.find_app_user_by_email('temporary@example.test')->>'password_change_required')::boolean, true, 'explicit setting persists');
+SELECT hall_api.create_app_session((hall_api.find_app_user_by_email('ordinary@example.test')->>'id')::uuid, 'open-session-hash', now() + interval '1 hour');
+SELECT hall_api.update_app_user((hall_api.find_app_user_by_email('ordinary@example.test')->>'id')::uuid, 'ordinary@example.test', 'Marked', NULL, true);
+SELECT is((SELECT count(*)::int FROM hall.app_session WHERE token_hash='open-session-hash'), 0, 'marking an existing password closes the open sessions of the account');
+SELECT hall_api.create_app_session((hall_api.find_app_user_by_email('ordinary@example.test')->>'id')::uuid, 'limited-session-hash', now() + interval '1 hour');
+SELECT is((hall_api.find_app_user_by_email('ordinary@example.test')->>'password_change_required')::boolean, true, 'existing password can be marked without replacement');
+SELECT hall_api.update_app_user((hall_api.find_app_user_by_email('ordinary@example.test')->>'id')::uuid, 'ordinary@example.test', 'Renamed', NULL);
+SELECT is((hall_api.find_app_user_by_email('ordinary@example.test')->>'password_change_required')::boolean, true, 'identity update preserves setting');
+SELECT is((SELECT count(*)::int FROM hall.app_session WHERE token_hash='limited-session-hash'), 1, 'identity update keeps the session opened with the temporary password');
+SELECT hall_api.create_app_session((hall_api.find_app_user_by_email('temporary@example.test')->>'id')::uuid, 'session-hash', now() + interval '1 hour');
+SELECT ok(NOT hall_api.replace_app_user_password((hall_api.find_app_user_by_email('temporary@example.test')->>'id')::uuid, 'stale-hash', 'new-hash'), 'concurrent replacement cannot overwrite changed password');
+SELECT is((hall_api.find_app_user_by_email('temporary@example.test')->>'password_change_required')::boolean, true, 'failed replacement leaves requirement active');
+SELECT ok(hall_api.replace_app_user_password((hall_api.find_app_user_by_email('temporary@example.test')->>'id')::uuid, 'hash-temporary', 'new-hash'), 'personal password replaces current hash');
+SELECT is((hall_api.find_app_user_by_email('temporary@example.test')->>'password_change_required')::boolean, false, 'personal replacement clears requirement');
+SELECT is((SELECT count(*)::int FROM hall.app_session WHERE token_hash='session-hash'), 0, 'replacement deletes old sessions');
+SELECT * FROM finish();
+ROLLBACK;

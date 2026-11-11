@@ -91,6 +91,7 @@ export {
   SchemaContractError,
   StatementTimeoutError,
 } from "./errors.js";
+export { PostgresMail } from "./mail.js";
 export * from "./minutes.js";
 export { createPostgresPool, type HallPostgresPoolConfig } from "./pool.js";
 export {

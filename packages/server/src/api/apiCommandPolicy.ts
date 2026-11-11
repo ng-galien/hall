@@ -1,6 +1,8 @@
 import type { ApiActionName } from "@hall/api-contract";
 
 export const auditTargetTypes = [
+  "mail-message",
+  "mail-recipient-group",
   "session",
   "contact",
   "council-member",
@@ -32,6 +34,20 @@ export interface ApiCommandPolicy {
 }
 
 export const apiCommandPolicies = {
+  "mail.create": { auditTargetType: "mail-message" },
+  "mail.copy": { auditTargetType: "mail-message" },
+  "mail.upload-attachment": { auditTargetType: "mail-message" },
+  "mail.prepare": { auditTargetType: "mail-message" },
+  "mail.update": { auditTargetType: "mail-message" },
+  "mail.delete": { auditTargetType: "mail-message" },
+  "mail.attach": { auditTargetType: "mail-message" },
+  "mail.remove-attachment": { auditTargetType: "mail-message" },
+  "mail.send": { auditTargetType: "mail-message" },
+  "mail.verify-submission": { auditTargetType: "mail-message" },
+  "mail-group.create": { auditTargetType: "mail-recipient-group" },
+  "mail-group.update": { auditTargetType: "mail-recipient-group" },
+  "mail-group.delete": { auditTargetType: "mail-recipient-group" },
+
   "session.bootstrap": { auditTargetType: "user" },
   "session.login": { auditTargetType: "session" },
   "session.change-password": { auditTargetType: "user" },

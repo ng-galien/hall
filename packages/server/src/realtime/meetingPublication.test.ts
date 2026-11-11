@@ -33,6 +33,7 @@ function fixture({ permission = true, fails = false } = {}) {
       displayName: "Council user",
       roles: permission ? ["administrator"] : ["councillor"],
       contactId: null,
+      passwordChangeRequired: false,
     };
     req.authorization = {
       allows: async () => permission,

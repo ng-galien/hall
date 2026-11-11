@@ -5,6 +5,33 @@ import { apiCommandPolicies } from "./apiCommandPolicy.js";
 import { resolveAuditIntent } from "./apiCommandResolution.js";
 
 const auditCases = [
+  ["POST", "/api/mail", undefined, "mail.create", "mail-message", undefined],
+  ["POST", "/api/mail/prepare", undefined, "mail.prepare", "mail-message", undefined],
+  ["POST", "/api/mail/mail-1/copy", undefined, "mail.copy", "mail-message", "mail-1"],
+  ["PUT", "/api/mail/mail-1", undefined, "mail.update", "mail-message", "mail-1"],
+  ["POST", "/api/mail/mail-1/delete", undefined, "mail.delete", "mail-message", "mail-1"],
+  ["POST", "/api/mail/mail-1/attachments", undefined, "mail.attach", "mail-message", "mail-1"],
+  ["POST", "/api/mail/mail-1/attachments/upload", undefined, "mail.upload-attachment", "mail-message", "mail-1"],
+  ["POST", "/api/mail/mail-1/attachments/remove", undefined, "mail.remove-attachment", "mail-message", "mail-1"],
+  ["POST", "/api/mail/mail-1/send", undefined, "mail.send", "mail-message", "mail-1"],
+  [
+    "POST",
+    "/api/mail/mail-1/submissions/submission-1/verification",
+    undefined,
+    "mail.verify-submission",
+    "mail-message",
+    "mail-1",
+  ],
+  ["POST", "/api/mail-recipient-groups", undefined, "mail-group.create", "mail-recipient-group", undefined],
+  ["PUT", "/api/mail-recipient-groups/group-1", undefined, "mail-group.update", "mail-recipient-group", "group-1"],
+  [
+    "POST",
+    "/api/mail-recipient-groups/group-1/delete",
+    undefined,
+    "mail-group.delete",
+    "mail-recipient-group",
+    "group-1",
+  ],
   ["POST", "/api/roles", undefined, "role.create", "authorization-role", undefined],
   ["PUT", "/api/roles/role-1", undefined, "role.update", "authorization-role", "role-1"],
   ["DELETE", "/api/roles/role-1", undefined, "role.delete", "authorization-role", "role-1"],

@@ -31,11 +31,15 @@ export const updateUser = (id: string, input: Record<string, unknown>) =>
     return submitSirenAction<ApiUser>(representation, "user.update", input);
   });
 
-export async function resetUserPassword(id: string, newPassword: string): Promise<void> {
+export async function resetUserPassword(
+  id: string,
+  newPassword: string,
+  passwordChangeRequired?: boolean,
+): Promise<void> {
   const session = await getSession();
   const user = await getUserSiren(id);
   if (!user.representation) throw new Error("Missing user Siren representation");
-  await submitSirenAction(user.representation, "user.reset-password", { newPassword });
+  await submitSirenAction(user.representation, "user.reset-password", { newPassword, passwordChangeRequired });
   if (session.id === id) window.dispatchEvent(new Event(AUTHENTICATION_REQUIRED_EVENT));
 }
 

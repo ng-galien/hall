@@ -351,10 +351,10 @@ GRANT EXECUTE ON FUNCTION hall_api.create_app_session(UUID, TEXT, TIMESTAMPTZ),
  hall_api.count_active_administrators(),
  hall_api.lock_administrator_invariant(),
  hall_api.list_app_users(),
- hall_api.create_app_user(TEXT, TEXT, TEXT, UUID, TEXT[]),
+ hall_api.create_app_user(TEXT, TEXT, TEXT, UUID, TEXT[], BOOLEAN),
  hall_api.set_app_user_roles(UUID, TEXT[]),
- hall_api.update_app_user(UUID, TEXT, TEXT, UUID),
- hall_api.replace_app_user_password(UUID, TEXT, TEXT),
+ hall_api.update_app_user(UUID, TEXT, TEXT, UUID, BOOLEAN),
+ hall_api.replace_app_user_password(UUID, TEXT, TEXT, BOOLEAN),
  hall_api.reactivate_app_user(UUID, TEXT),
  hall_api.disable_app_user(UUID),
  hall_api.delete_app_session(UUID),
@@ -368,3 +368,21 @@ GRANT EXECUTE ON FUNCTION hall_api.create_app_session(UUID, TEXT, TIMESTAMPTZ),
  hall_api.update_document_template(UUID, JSONB),
  hall_api.delete_document_template(UUID)
  TO hall_api_authenticated;
+
+-- @implements-requirement HALL-FR-EML-050
+GRANT EXECUTE ON FUNCTION hall_api.open_mail(UUID) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.list_mail() TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.create_mail(JSONB) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.update_mail(UUID,INTEGER,JSONB) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.delete_mail(UUID,INTEGER) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.attach_mail_file(UUID,INTEGER,TEXT,TEXT,BYTEA,UUID) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.remove_mail_attachment(UUID,INTEGER,UUID) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.read_mail_attachment(UUID,UUID) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.begin_mail_submission(UUID,INTEGER,UUID,JSONB) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.finish_mail_submission(UUID,TEXT,TEXT) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.verify_mail_submission(UUID,TEXT,TEXT) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.list_mail_recipient_groups() TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.save_mail_recipient_group(UUID,INTEGER,JSONB) TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.delete_mail_recipient_group(UUID,INTEGER) TO hall_api_authenticated;
+
+GRANT EXECUTE ON FUNCTION hall_api.read_mail_submission(UUID), hall_api.read_mail_submission_attachment(UUID,UUID) TO hall_api_authenticated;

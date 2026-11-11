@@ -1,3 +1,4 @@
+// @verifies-requirement HALL-FR-EML-090
 import { referenceEntityKinds } from "@hall/domain";
 import { PostgresCouncil, PostgresDirectory } from "@hall/postgres";
 import { PDFDocument } from "pdf-lib";
@@ -289,8 +290,22 @@ describe("content templates", () => {
         })
         .expect(201),
     );
+    const prepared = domainBody<{ subject: string; attachments: unknown[]; recipients: unknown[] }>(
+      await agent
+        .post(`/api/templates/${messageTemplate.id}/generate`)
+        .send({
+          context: { meetingId: meeting.id },
+          attachmentResourceIds: [attachment.id, attachment.id],
+          to: ["destinataire@example.test"],
+        })
+        .expect(201),
+    );
+    expect(prepared.subject).toBe("Convocation au conseil municipal");
+    expect(prepared.attachments).toHaveLength(1);
+    expect(prepared.recipients).toHaveLength(1);
     const emlResponse = (await agent
       .post(`/api/templates/${messageTemplate.id}/generate`)
+      .set("Accept", "message/rfc822")
       .send({
         context: { meetingId: meeting.id },
         attachmentResourceIds: [attachment.id, attachment.id],

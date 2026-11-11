@@ -1,3 +1,5 @@
+// @verifies-requirement HALL-FR-EML-090
+import type { MailMessage, MailPreview } from "@hall/contracts";
 import type { Response } from "superagent";
 import { describe, expect, it } from "vitest";
 import { createTestServer, domainBody } from "./testServer.js";
@@ -41,8 +43,23 @@ describe("event invitation HTTP contract", () => {
         })
         .expect(201),
     );
+    const prepared = domainBody<MailMessage>(
+      await agent.post(`/api/resources/${resource.id}/event-invitation`).send({ method: "request" }).expect(201),
+    );
+    expect(prepared.source).toMatchObject({ kind: "event", resourceId: resource.id, method: "request" });
+    expect(prepared.recipients[0]?.address).toBe("alice@example.test");
+    expect(prepared.attachments).toHaveLength(1);
+    expect(prepared.attachments[0]?.fileName).toBe("invitation.ics");
+    const calendar = await agent
+      .get(`/api/mail/${prepared.id}/attachments/${prepared.attachments[0]!.id}/content`)
+      .expect(200);
+    expect(calendar.text).toContain(`hall-event-${resource.id}@hall.local`);
+    expect(calendar.text).toContain("METHOD:REQUEST");
+    const preview = domainBody<MailPreview>(await agent.get(`/api/mail/${prepared.id}/preview`).expect(200));
+    expect(preview.subject).toContain("Réunion de voirie");
     const response = await agent
       .post(`/api/resources/${resource.id}/event-invitation`)
+      .set("Accept", "message/rfc822")
       .send({ method: "request" })
       .buffer(true)
       .parse(binaryParser)

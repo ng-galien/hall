@@ -82,6 +82,7 @@ export function loadAuthentication(
         displayName: "Development administrator",
         roles: ["administrator"],
         contactId: null,
+        passwordChangeRequired: false,
       };
       requestContext.setPrincipal(request.principal);
       next();
@@ -114,6 +115,22 @@ export function loadAuthorization(authorizationClient: AuthorizationClient) {
 export function requireAuthentication(request: Request, response: Response, next: NextFunction): void {
   if (!request.principal) {
     sendProblem(request, response, 401, "authentication_required");
+    return;
+  }
+  next();
+}
+
+// @implements-requirement HALL-FR-USR-070
+export function requirePasswordReplacement(request: Request, response: Response, next: NextFunction): void {
+  const allowed = new Set([
+    "GET /api/auth/status",
+    "GET /api/auth/session",
+    "POST /api/auth/change-password",
+    "POST /api/auth/logout",
+  ]);
+  const path = request.originalUrl.split("?", 1)[0]?.replace(/\/+$/, "");
+  if (request.principal?.passwordChangeRequired && !allowed.has(`${request.method} ${path}`)) {
+    sendProblem(request, response, 403, "password_change_required");
     return;
   }
   next();

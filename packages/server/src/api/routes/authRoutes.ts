@@ -254,8 +254,8 @@ export function createUsersRouter({ authService }: Cradle): Router {
     );
   });
   router.post("/:userId/reset-password", requireActionPermission("user.reset-password"), async (request, response) => {
-    const { newPassword } = resetPasswordSchema.parse(request.body);
-    await authService.resetPassword(routeParameter(request.params.userId), newPassword);
+    const { newPassword, passwordChangeRequired } = resetPasswordSchema.parse(request.body);
+    await authService.resetPassword(routeParameter(request.params.userId), newPassword, passwordChangeRequired);
     response.status(204).end();
   });
   router.put("/:userId/roles", requireActionPermission("user.assign-role"), async (request, response) => {

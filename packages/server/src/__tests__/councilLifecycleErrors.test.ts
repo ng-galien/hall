@@ -33,6 +33,7 @@ it.each([
         displayName: "Administrator",
         roles: ["administrator"],
         contactId: null,
+        passwordChangeRequired: false,
       },
     },
     async () => {

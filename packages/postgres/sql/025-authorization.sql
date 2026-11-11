@@ -9,6 +9,11 @@ CREATE VIEW hall.access AS
   SELECT access, resource, operation
   FROM (
     VALUES
+      ('mail.create', 'Courriel', 'créer'),
+      ('mail.write', 'Courriel', 'modifier un brouillon'),
+      ('mail.delete', 'Courriel', 'supprimer un brouillon'),
+      ('mail.send', 'Courriel', 'envoyer et vérifier un envoi incertain'),
+      ('mail-group.manage', 'Groupe de destinataires', 'gérer'),
       ('read', 'Toutes les ressources', 'lire, brouillons compris'),
       ('export', 'Toutes les ressources', 'exporter et générer un document à télécharger'),
       ('session', 'Session de connexion', 'fermer, changer son mot de passe'),
@@ -45,6 +50,20 @@ CREATE VIEW hall.authorization_default_grant AS
   SELECT role, access, condition
   FROM (
     VALUES
+      ('administrator', 'mail.create', 'always'),
+      ('administrator', 'mail.write', 'always'),
+      ('administrator', 'mail.delete', 'always'),
+      ('administrator', 'mail.send', 'always'),
+      ('administrator', 'mail-group.manage', 'always'),
+      ('clerk', 'mail.create', 'always'),
+      ('clerk', 'mail.write', 'always'),
+      ('clerk', 'mail.delete', 'always'),
+      ('clerk', 'mail.send', 'always'),
+      ('clerk', 'mail-group.manage', 'always'),
+      ('contributor', 'mail.create', 'always'),
+      ('contributor', 'mail.write', 'always'),
+      ('councillor', 'mail.create', 'always'),
+      ('councillor', 'mail.write', 'always'),
       ('administrator', 'read', 'always'),
       ('clerk', 'read', 'always'),
       ('administrator', 'export', 'always'),
@@ -141,6 +160,19 @@ CREATE VIEW hall.action_access AS
   SELECT action, access
   FROM (
     VALUES
+      ('mail.create', 'mail.create'),
+      ('mail.copy', 'mail.create'),
+      ('mail.prepare', 'mail.create'),
+      ('mail.upload-attachment', 'mail.write'),
+      ('mail.update', 'mail.write'),
+      ('mail.delete', 'mail.delete'),
+      ('mail.attach', 'mail.write'),
+      ('mail.remove-attachment', 'mail.write'),
+      ('mail.send', 'mail.send'),
+      ('mail.verify-submission', 'mail.send'),
+      ('mail-group.create', 'mail-group.manage'),
+      ('mail-group.update', 'mail-group.manage'),
+      ('mail-group.delete', 'mail-group.manage'),
       ('resource.search-legal-references', 'read'),
       ('template.preview', 'read'),
       ('template.preview-pdf', 'read'),
@@ -397,6 +429,7 @@ BEGIN
     ('contributor', 'Contributeur'), ('councillor', 'Conseiller');
   INSERT INTO hall.authorization_grant(role, access, condition)
     SELECT role, access, condition FROM hall.authorization_default_grant;
+  INSERT INTO hall_meta.data_migration(name) VALUES ('mail-authorization-defaults') ON CONFLICT DO NOTHING;
 END;
 $$;
 ALTER FUNCTION hall.initialize_authorization_defaults() OWNER TO hall_owner;

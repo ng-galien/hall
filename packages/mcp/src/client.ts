@@ -35,14 +35,16 @@ export class WorkspaceClient {
       url.origin !== this.base.origin ||
       url.username ||
       url.password ||
-      !/^\/api\/(resources|council-business|templates|settings)(\/|$)/.test(url.pathname)
+      !/^\/api\/(resources|council-business|templates|settings|mail|mail-recipient-groups|council-meetings)(\/|$)/.test(
+        url.pathname,
+      )
     )
-      throw new Error("Only workspace or configuration URLs on the configured Hall instance are allowed");
+      throw new Error("Only workspace, configuration or mail URLs on the configured Hall instance are allowed");
     if (/%2f|%5c|%2e/i.test(url.pathname) || url.hash) throw new Error("Invalid workspace URL");
     return url;
   }
 
-  private async request(href: string, init: RequestInit = {}) {
+  private async request(href: string, init: RequestInit = {}, timeoutMs = 30000) {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/vnd.siren+json, application/json");
     if (this.session) headers.set("Cookie", `hall_session=${encodeURIComponent(this.session)}`);
@@ -50,7 +52,7 @@ export class WorkspaceClient {
       ...init,
       headers,
       redirect: "error",
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) {
       const problem = await response.text();
@@ -106,7 +108,11 @@ export class WorkspaceClient {
       headers.set("Content-Type", "application/json");
       body = JSON.stringify(parsed);
     }
-    const response = await this.request(action.href, { method: action.method ?? "POST", headers, body });
+    const response = await this.request(
+      action.href,
+      { method: action.method ?? "POST", headers, body },
+      name === "mail.send" ? 90000 : 30000,
+    );
     return response.status === 204 ? { success: true } : response.json();
   }
 

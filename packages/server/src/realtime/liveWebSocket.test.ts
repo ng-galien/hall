@@ -30,6 +30,7 @@ async function fixture() {
   } satisfies ServerConfig;
   let sessionActive = true;
   let readingGranted = true;
+  let passwordChangeRequired = false;
   const authService = {
     async authenticate(token: string) {
       if (!sessionActive || !["reader", "conductor", "workspace"].includes(token)) return null;
@@ -41,6 +42,7 @@ async function fixture() {
           displayName: "Reader",
           roles,
           contactId: null,
+          passwordChangeRequired,
         },
       };
     },
@@ -60,7 +62,14 @@ async function fixture() {
     await live.close();
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   });
-  return { base, origin, bus, revoke: () => (sessionActive = false), revokeReading: () => (readingGranted = false) };
+  return {
+    base,
+    origin,
+    bus,
+    revoke: () => (sessionActive = false),
+    revokeReading: () => (readingGranted = false),
+    requirePasswordChange: () => (passwordChangeRequired = true),
+  };
 }
 
 function connect(
@@ -191,6 +200,17 @@ it("ends a live subscription when reading is withdrawn from an otherwise valid s
   const { base, origin, bus, revokeReading } = await fixture();
   const reader = await connect(base, origin, "meeting", meetingId, "reader");
   revokeReading();
+  const closed = new Promise<number>((resolve) => reader.once("close", resolve));
+  bus.publish({ type: "meeting.changed", meetingId });
+  await expect(closed).resolves.toBe(1008);
+  await expect(rejected(base, origin, "meeting", meetingId, "reader")).resolves.toBe(403);
+});
+
+// @verifies-requirement HALL-FR-USR-070
+it("refuses live subscriptions while a personal password is required", async () => {
+  const { base, origin, bus, requirePasswordChange } = await fixture();
+  const reader = await connect(base, origin, "meeting", meetingId, "reader");
+  requirePasswordChange();
   const closed = new Promise<number>((resolve) => reader.once("close", resolve));
   bus.publish({ type: "meeting.changed", meetingId });
   await expect(closed).resolves.toBe(1008);

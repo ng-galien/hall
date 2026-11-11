@@ -16,6 +16,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'email', account.email,
     'display_name', account.display_name,
     'password_hash', account.password_hash,
+    'password_change_required', account.password_change_required,
     'status', account.status,
     'contact_id', account.contact_id,
     'roles', coalesce((SELECT jsonb_agg(assigned.role ORDER BY assigned.role) FROM hall.app_user_role assigned
@@ -74,13 +75,14 @@ CREATE FUNCTION hall_api.create_app_user(
   user_display_name TEXT,
   user_password_hash TEXT,
   user_contact UUID,
-  user_roles TEXT[]
+  user_roles TEXT[],
+  require_password_change BOOLEAN DEFAULT false
 )
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE created hall.app_user;
 BEGIN
-  INSERT INTO hall.app_user (email, display_name, password_hash, contact_id)
-  VALUES (user_email, user_display_name, user_password_hash, user_contact)
+  INSERT INTO hall.app_user (email, display_name, password_hash, contact_id, password_change_required)
+  VALUES (user_email, user_display_name, user_password_hash, user_contact, require_password_change)
   RETURNING * INTO created;
   INSERT INTO hall.app_user_role (user_id, role) SELECT created.id, assigned FROM unnest(user_roles) assigned;
   RETURN hall.app_user_row(created);
@@ -114,11 +116,16 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION hall_api.update_app_user(target UUID, user_email TEXT, user_display_name TEXT, user_contact UUID)
+CREATE FUNCTION hall_api.update_app_user(target UUID, user_email TEXT, user_display_name TEXT, user_contact UUID, require_password_change BOOLEAN DEFAULT NULL)
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE account hall.app_user;
 BEGIN
+  -- Marking a password as temporary closes every session of the account.
+  IF require_password_change AND NOT (SELECT password_change_required FROM hall.app_user WHERE id = target FOR UPDATE) THEN
+    DELETE FROM hall.app_session WHERE user_id = target;
+  END IF;
   UPDATE hall.app_user SET email = user_email, display_name = user_display_name, contact_id = user_contact,
+    password_change_required = coalesce(require_password_change, password_change_required),
     updated_at = transaction_timestamp()
   WHERE id = target RETURNING * INTO account;
   IF NOT FOUND THEN RETURN NULL; END IF;
@@ -127,10 +134,11 @@ END;
 $$;
 
 -- A replaced password closes every session of the account.
-CREATE FUNCTION hall_api.replace_app_user_password(target UUID, previous_hash TEXT, new_hash TEXT)
+CREATE FUNCTION hall_api.replace_app_user_password(target UUID, previous_hash TEXT, new_hash TEXT, require_password_change BOOLEAN DEFAULT false)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 BEGIN
-  UPDATE hall.app_user SET password_hash = new_hash, updated_at = transaction_timestamp()
+  UPDATE hall.app_user SET password_hash = new_hash,
+    password_change_required = coalesce(require_password_change, password_change_required), updated_at = transaction_timestamp()
   WHERE id = target AND password_hash = previous_hash;
   IF NOT FOUND THEN RETURN false; END IF;
   DELETE FROM hall.app_session WHERE user_id = target;

@@ -1,7 +1,7 @@
 // biome-ignore-all lint/correctness/useExhaustiveDependencies: Notice and minutes changes intentionally reload their state.
 import type { MeetingNotice, MeetingNoticeMessagePreparation } from "@hall/api-contract";
 import { type ReactNode, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import {
@@ -24,10 +24,10 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import {
-  downloadMeetingNoticeMessage,
   generateMeetingNotice,
   listMeetingNotices,
   meetingNoticeContentHref,
+  prepareMeetingNoticeMail,
   prepareMeetingNoticeMessage,
 } from "../../services/meetingNoticesApi";
 import { openMinutes } from "../../services/minutesApi";
@@ -121,6 +121,7 @@ export function MeetingDocumentsSection({
   aggregate: LiveMeetingPresentation;
 }) {
   const { t, plural, formatDate, formatDateTime, formatNumber } = useI18n();
+  const navigate = useNavigate();
   const { submitting, run } = useSubmitting();
   const meeting = meetingActions.workspace!.meeting;
   const status = aggregate.meeting.status;
@@ -310,7 +311,12 @@ export function MeetingDocumentsSection({
                     variant="outline"
                     data-testid="meeting-export-notice-message"
                     disabled={submitting || !message.canGenerate}
-                    onClick={() => perform(() => downloadMeetingNoticeMessage(meeting.reference, currentNotice.id))}
+                    onClick={() =>
+                      perform(async () => {
+                        const message = await prepareMeetingNoticeMail(meeting.reference, currentNotice.id);
+                        navigate(`/mail/${message.id}`);
+                      })
+                    }
                   >
                     <MailIcon aria-hidden="true" />
                     {t("meeting.notice.exportEmail")}

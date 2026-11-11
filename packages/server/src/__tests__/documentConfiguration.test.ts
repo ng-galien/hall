@@ -162,6 +162,7 @@ describe("generated document configuration", () => {
     for (const method of ["request", "cancel"] as const) {
       const invitation = await agent
         .post(`/api/resources/${event.id}/event-invitation`)
+        .set("Accept", "message/rfc822")
         .send({ method })
         .expect((response) => expect(response.status, JSON.stringify(response.body)).toBe(200));
       const source = invitation.text;

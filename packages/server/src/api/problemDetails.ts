@@ -20,6 +20,8 @@ const titles: Record<string, string> = {
   proxy_form_invalid: "A proxy names a grantor in mandate and, optionally, another member in mandate as holder",
   councillor_requires_active_member: "A council member account requires a contact with an active mandate",
   invalid_credentials: "Invalid credentials",
+  password_change_required: "A personal password must be chosen before using Hall",
+  password_must_differ: "The new password must differ from the temporary password",
   invalid_current_password: "Current password is incorrect",
   invalid_request: "Invalid request",
   unsupported_document_format: "Unsupported document format",

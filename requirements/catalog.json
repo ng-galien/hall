@@ -49,6 +49,10 @@
       "municipality": {
         "label": "Commune",
         "description": "Configuration de la commune et accès à ses données."
+      },
+      "mail": {
+        "label": "Courriels",
+        "description": "Préparation partagée, destinataires, pièces jointes et envoi des courriels de la commune."
       }
     },
     "prefixThemes": {
@@ -80,7 +84,8 @@
       "DSK": "quality",
       "LAY": "quality",
       "USR": "municipality",
-      "CFG": "municipality"
+      "CFG": "municipality",
+      "EML": "mail"
     },
     "requirementThemes": {}
   },
@@ -2482,7 +2487,7 @@
         "state": "accepted",
         "since": "2026-09-12"
       },
-      "statement": "Un rendez-vous produit un brouillon EML contenant une seule invitation calendrier standard, sous la forme d'une pièce jointe nommée « invitation.ics ».",
+      "statement": "An appointment prepares a message in the shared composer with one standard calendar invitation attachment named invitation.ics.",
       "acceptanceCriteria": [
         "Le brouillon intègre une invitation iCalendar/iMIP avec l'organisateur, les destinataires, le sujet, le lieu, les horaires et le contexte.",
         "Le brouillon contient une seule pièce iCalendar nommée « invitation.ics ».",
@@ -2493,6 +2498,12 @@
           "key": "eml-calendar-invitation",
           "origin": "product",
           "statement": "Hall produit un brouillon EML contenant une seule invitation iCalendar/iMIP pour un rendez-vous, dans une pièce jointe nommée « invitation.ics ».",
+          "sourceIds": []
+        },
+        {
+          "key": "shared-mail-composer",
+          "origin": "product",
+          "statement": "On 11 November 2026 the user replaced standalone email-download flows with the common outgoing-mail composer (HALL-FR-EML-090). Existing iCalendar content and transport-independent generation remain required. The original EML clause describes the previous delivery interface.",
           "sourceIds": []
         }
       ]
@@ -7771,7 +7782,7 @@
       "acceptanceCriteria": [
         "Le dossier est proposé dans les documents d’une séance dont la révision est établie et refusé en révision ouverte par un message nommé.",
         "Les pièces PDF sont insérées à la suite de leur point ; les autres pièces sont nommées avec la mention « consultable dans Hall ».",
-        "Le dossier n’est pas conservé : il reflète les pièces des affaires au moment où il est produit.",
+        "The on-demand dossier reflects the business documents when generated and does not create a separate versioned dossier resource. A copy attached to outgoing mail is retained with that message under HALL-FR-EML-040.",
         "Le courriel de convocation préparé pour Outlook joint le dossier après la convocation."
       ],
       "clauses": [
@@ -7779,6 +7790,12 @@
           "key": "dossier",
           "origin": "product",
           "statement": "Demande du coordinateur du 28 octobre 2026 (4f89c089) sur l’étude des manques de Hall demandée par le propriétaire ; la conservation versionnée du dossier, qui serait une donnée nouvelle, reste à décider par le propriétaire.",
+          "sourceIds": []
+        },
+        {
+          "key": "mail-attachment-copy",
+          "origin": "product",
+          "statement": "On 11 November 2026 the user accepted retaining ordinary mail attachments with sent messages. This is an outgoing-message copy, not a separate versioned meeting-dossier feature.",
           "sourceIds": []
         }
       ]
@@ -10681,7 +10698,7 @@
       "statement": "Tout compte actif lit et exporte tout Hall ; l’écriture suit la matrice des quatre rôles : le contributeur écrit les affaires et l’espace commun, le secrétariat prépare les séances, rédige délibérations et procès-verbaux, gère contacts, membres, commissions, délégations, modèles, réglages et mandature, l’administrateur fait tout et seul gère les comptes.",
       "acceptanceCriteria": [
         "Lecture et export (documents générés, dossier de séance, export d’affaire) par tout compte actif.",
-        "Le journal d’audit, la liste des comptes et le message de convocation généré sont lus par le secrétariat et l’administrateur seulement ; la gestion des comptes, phrases de passe comprises, par l’administrateur seul.",
+        "Audit and account lists retain their initial clerk/administrator restrictions; account management is initially administrator-only. Outgoing messages, including prepared notice emails, are shared under HALL-FR-EML-010 and HALL-FR-EML-050.",
         "Les réglages de la commune, la mandature et l’import du patrimoine communal sont modifiés par le secrétariat et l’administrateur.",
         "Le serveur ne porte ni matrice ni permissions : ses routes et son Siren interrogent la base."
       ],
@@ -10714,6 +10731,12 @@
           "key": "configurable-presets",
           "origin": "product",
           "statement": "Depuis la décision du 31 octobre 2026 (987a70cc-c9a8-4a2e-95de-284803432003), les attributions décrites ici sont les préréglages initiaux, configurables selon HALL-FR-USR-060. Les conditions restent les prédicats métier de Hall ; le rôle administrateur intégré garde tous les droits.",
+          "sourceIds": []
+        },
+        {
+          "key": "shared-outgoing-mail",
+          "origin": "product",
+          "statement": "On 11 November 2026 the user selected a mailbox shared from creation with changes and sends governed by the existing configurable authorizations. This replaces the previous clerk/administrator-only reading of prepared notice messages.",
           "sourceIds": []
         }
       ]
@@ -11030,7 +11053,7 @@
       "acceptanceCriteria": [
         "La section apparaît dans la vue de préparation, la vue d’une séance en cours et le compte rendu d’une séance close ; elle est dépliée à l’ouverture de la page et se replie par son titre.",
         "Les lignes suivent cet ordre : Convocation, Dossier de séance (en préparation), Feuille d’émargement et Pouvoir (en préparation et en cours), puis, après clôture, Procès-verbal, Liste des délibérations et Délibérations.",
-        "La ligne Convocation indique la révision ouverte et la convocation à générer, ou la convocation de la révision établie avec la date de son PDF ; sous une révision établie elle porte « Ouvrir », « Régénérer le PDF » et « Télécharger le courriel », chacune seulement quand Siren l’offre, et elle liste les convocations des révisions précédentes.",
+        "La ligne Convocation indique la révision ouverte et la convocation à générer, ou la convocation de la révision établie avec la date de son PDF ; sous une révision établie elle porte « Ouvrir », « Régénérer le PDF » et « Préparer le courriel », chacune seulement quand Siren l’offre, et elle liste les convocations des révisions précédentes.",
         "La section ne liste pas de pièces jointes et n’offre pas de dépôt de pièce : les pièces se déposent sur l’affaire.",
         "Après clôture, la ligne Procès-verbal indique brouillon ou document généré et mène à sa page ; la ligne Délibérations liste les points délibérés, chacun avec le lien vers sa délibération.",
         "Un conseiller voit les mêmes lignes et ouvre ou génère les PDF en lecture ; les actions d’écriture n’apparaissent que si la capacité existe. À 800 px de large, la section ne déborde pas de la page."
@@ -11052,6 +11075,12 @@
           "key": "owner-attachments",
           "origin": "product",
           "statement": "Décision du propriétaire du 7 novembre 2026 : la section des documents de la séance n’offre plus de dépôt de pièce. Aucune pièce n’étant rattachée à une séance, la ligne « Pièces jointes » est retirée.",
+          "sourceIds": []
+        },
+        {
+          "key": "shared-mail-composer",
+          "origin": "product",
+          "statement": "On 11 November 2026 the user requested that the notice email action open the common composer under HALL-FR-EML-090; opening that composer does not send the message.",
           "sourceIds": []
         }
       ]
@@ -11277,6 +11306,255 @@
           "key": "all-entities",
           "origin": "product",
           "statement": "Mots du propriétaire, 10 novembre 2026 : « je pense que c'est mieux de poser sur toutes les ressources. […] au moins, on a un truc déjà unifié. Un truc déjà prévu. Il n'y aura plus qu'à poser les options dessus. » Décision du coordinateur : « toutes les ressources » désigne les sept entités stables nommées dans les critères.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-USR-070": {
+      "name": "TEMPORARY_PASSWORD_REQUIRES_PERSONAL_REPLACEMENT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "An administrator explicitly marks an account password as temporary, requiring a different personal password before the account can use Hall.",
+      "acceptanceCriteria": [
+        "Account creation, account management and administrator password reset expose one explicit temporary-password setting. An existing account can be marked without replacing or knowing its current password. Marking an existing account closes its open sessions, so the replacement form follows a sign-in with the temporary password.",
+        "After valid authentication, a marked account sees the new-password and confirmation form directly. HTTP, MCP and live subscriptions do not grant access to Hall functions while replacement is required.",
+        "The personal replacement must differ from the current password. Invalid input or a confirmation mismatch leaves the requirement active. Successful replacement clears the requirement atomically and invalidates the old password and existing sessions.",
+        "An unmarked account keeps its ordinary sign-in and voluntary password-change behavior. Existing accounts migrate with the setting false; neither account age nor password form determines this setting.",
+        "There is no collective activation, timed expiry, email or activation link. The existing hand-delivery and one-time passphrase display remain available."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "On 11 November 2026 the user requested a temporary hand-delivered phrase and compulsory personal password choice at first sign-in, then clarified that the administrator needs a simple explicit temporary-password setting representing the change requirement. Sources: hall-accounts-activation-mail, 16bfad14-55ab-41bc-8b11-70a2fe7d198b and 932d1488-5825-45a1-a990-46d86bdb59ba.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-010": {
+      "name": "SHARED_OUTBOUND_MAILBOX",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Hall provides a shared outgoing mailbox for the municipality.",
+      "acceptanceCriteria": [
+        "Every authenticated active user can create a message. Messages are shared from creation; editing and sending follow the configured authorizations.",
+        "Drafts can be saved, closed and reopened. The mailbox distinguishes messages in preparation, submission in progress, submitted messages and failures or uncertain outcomes.",
+        "The first version excludes incoming mail, mailbox synchronization, automatic or scheduled sending, filtering rules and campaign management."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-020": {
+      "name": "MAIL_COMPOSITION_USES_EXISTING_INTERFACE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Every outgoing email uses the same conventional composition interface.",
+      "acceptanceCriteria": [
+        "The composer provides To, optional Cc and Bcc, subject, the existing Markdown editor and attachments. Secondary controls remain compact; phone layouts use the existing full-page editing pattern.",
+        "The interface reuses shared Hall components, document selection and previews, localization and visual tokens. Available actions come from Siren.",
+        "Messages may start empty or from an existing document, generated PDF, meeting notice with dossier, or event invitation, update or cancellation.",
+        "The sender, reply address, signature and footer reuse HALL-FR-CFG-030. The preview reflects the prepared outgoing content; signature and footer appear once.",
+        "Preparing a message never sends it. An authorized user explicitly confirms its actual recipients, content and attachments before sending.",
+        "Preview reports invalid stored attachment names, outdated notice or event sources and incomplete mandatory notice recipients as visible issues; these prevent sending without preventing review of the message."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-030": {
+      "name": "MAIL_RECIPIENTS_AND_SAVED_GROUPS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Recipients can be selected individually or through predefined selections and saved custom groups.",
+      "acceptanceCriteria": [
+        "The composer supports contacts, directly entered email addresses, the current council, committees and saved custom groups.",
+        "Expanding a selection displays the actual names and addresses before sending. Missing or invalid addresses and duplicates are identified without silently losing intended recipients.",
+        "Users can maintain saved custom groups according to configured authorizations. A group change does not alter the recorded recipients of a submitted message.",
+        "To, Cc and Bcc keep their standard email meaning. The transport does not expose Bcc addresses as visible recipient headers or insert the Bcc list into the message body."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-040": {
+      "name": "MAIL_HAS_ORDINARY_ATTACHMENTS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Outgoing mail carries ordinary file attachments, including Hall-generated PDFs.",
+      "acceptanceCriteria": [
+        "Users can add, remove and preview attachments before sending. Existing document selection and document-generation services are reused.",
+        "Recipients can open attached files without a Hall account. Referencing a Hall document in the Markdown editor does not create a public sharing URL.",
+        "The composer makes the files included in the outgoing message explicit, including files chosen through editor references; inline mentions are not assumed to be externally accessible links.",
+        "The submitted-message record preserves the actual attached content even if the source document changes later.",
+        "Every attachment entry point prepares a transport-compatible name for the outgoing copy before persistence, without changing the source document name or file bytes."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-050": {
+      "name": "MAIL_PREPARATION_AND_SENDING_HAVE_DISTINCT_PERMISSIONS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Mail preparation and actual sending use separate accesses in the existing authorization system.",
+      "acceptanceCriteria": [
+        "The existing configurable role system controls editing, group management and sending. Creating a message does not grant the right to send it.",
+        "The HTTP server checks authorization on every command. The frontend and MCP consume the same actions and do not introduce another role matrix.",
+        "The identity of the user triggering a send is retained. A rejected command makes no transport call.",
+        "The built-in administrator and existing authorization configuration retain HALL-FR-USR-060 behavior.",
+        "Initial grants allow the four built-in roles to create and edit shared drafts. Clerk and administrator can send, delete drafts and manage recipient groups. These accesses remain configurable through the existing authorization system."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
+          "sourceIds": []
+        },
+        {
+          "key": "initial-grants",
+          "origin": "product",
+          "statement": "On 11 November 2026 the user explicitly accepted these initial permissions. In the same response the user delegated ordinary technical choices and asked to be consulted only on genuine product arbitrations, declining a blanket review of tables and implementation details.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-060": {
+      "name": "MAIL_SUBMISSION_RECORD_AND_FAILURES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Hall preserves the prepared content, submission outcome and user responsible for each send.",
+      "acceptanceCriteria": [
+        "A submitted message retains subject, body, sender, recipients, attachment content, submission time and triggering user. It cannot be edited; reuse creates a new draft.",
+        "A known failure retains the message for correction and explicit retry. An uncertain transport outcome is shown separately and is not automatically retried.",
+        "Repeating a send command must not silently submit the same attempt twice. Hall must not claim exactly-once remote delivery from a transport acknowledgment.",
+        "Transport acceptance is not evidence of receipt, reading, or fulfillment of a legal notice obligation.",
+        "After an uncertain submission, sending again is unavailable until an authorized user records a verification in Outlook. A warning alone does not authorize resubmission.",
+        "Attachment size rejection, a stale draft revision and a submission that blocks modification have distinct API error codes and localized explanations."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
+          "sourceIds": []
+        },
+        {
+          "key": "uncertain-submission-verification",
+          "origin": "product",
+          "statement": "On 11 November 2026 the user selected mandatory verification in Outlook before allowing another send after an uncertain outcome. Automatic resubmission remains excluded.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-070": {
+      "name": "OUTBOUND_MAIL_TRANSPORT_IS_INJECTED",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "The backend sends through an Awilix-injected transport, with Outlook as the first implementation.",
+      "acceptanceCriteria": [
+        "Composition, recipients, attachments, permissions and submission records belong to the common service; transport-specific code is confined to its adapter.",
+        "The first adapter uses the configured classic Outlook account on the municipal Windows machine. It does not require Microsoft Graph authorization or SMTP configuration.",
+        "Other transport adapters can be registered without duplicating the mailbox or its business rules.",
+        "An unavailable account or unusable Windows execution session is reported explicitly. The adapter must be verified in the actual Hall execution context; an interactive COM experiment alone is not deployment verification."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-080": {
+      "name": "MCP_SUPPORTS_OUTBOUND_MAIL_WORKFLOW",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Hall MCP exposes outgoing-mail preparation and explicit sending through the same HTTP services as the frontend.",
+      "acceptanceCriteria": [
+        "Agents can discover capabilities, list and read the shared mailbox, create and edit drafts, resolve recipient selections, maintain custom groups when authorized, prepare document attachments and inspect the complete send preview.",
+        "Sending is an explicit side effect, distinct from preparing a draft or preview. It requires the caller's current permission and the reviewed message state; tool descriptions identify its effect.",
+        "MCP accesses use the existing Hall authentication and Siren actions. No direct database or Outlook access bypasses the common service.",
+        "Resource selection uses Hall identities and existing upload and binary-read mechanisms. MCP URL validation is extended only for the required mail and recipient endpoints.",
+        "The learn documentation, discovery schemas and tests cover the mail workflow, permissions, failures and uncertain outcomes. A timeout does not authorize automatic resubmission."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-090": {
+      "name": "EXISTING_MAIL_FLOWS_USE_COMMON_COMPOSER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Existing email preparation flows open the shared composer before any send.",
+      "acceptanceCriteria": [
+        "The meeting-notice flow prepares the current eligible notice and its dossier through existing generators. Revision eligibility and recipient checks remain enforced at submission.",
+        "Event invitations, updates and cancellations retain their iCalendar identity, method and sequence and include one invitation.ics attachment.",
+        "Generic message templates and document-email actions prepare a draft and use the same preview and explicit send action.",
+        "This extension does not enable account activation emails, incoming mail, automatic notifications or automatic sends."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
           "sourceIds": []
         }
       ]

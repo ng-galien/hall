@@ -9,6 +9,7 @@ import { buildContainer } from "../core/container.js";
 import { startHttpServer } from "../server.js";
 import type { DocumentPreviewConverter } from "../services/documentPreviewConverter.js";
 import type { DocumentRenderer } from "../services/documentRenderer.js";
+import type { EmailTransport } from "../services/emailTransport.js";
 import type { LegalReferenceProvider } from "../services/legalReferenceProvider.js";
 import { createTestCouncilClient } from "./support/councilClient.js";
 import { createTestDirectoryClient } from "./support/directoryClient.js";
@@ -134,6 +135,7 @@ export async function createTestServer(
     documentRenderer?: DocumentRenderer;
     documentPreviewConverter?: DocumentPreviewConverter;
     legalReferenceProvider?: LegalReferenceProvider;
+    emailTransport?: EmailTransport;
     expectedCouncilMemberCount?: number | null;
     realClients?: boolean;
     config?: Partial<ServerConfig>;
@@ -171,6 +173,7 @@ export async function createTestServer(
       resourcesClient: asValue(resourcesClient),
     });
   }
+  if (options.emailTransport) container.register({ emailTransport: asValue(options.emailTransport) });
   if (options.documentPreviewConverter) {
     container.register({ documentPreviewConverter: asValue(options.documentPreviewConverter) });
   }

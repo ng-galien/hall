@@ -100,6 +100,7 @@ export class PostgresAdministration {
       email: string;
       displayName: string;
       passwordHash: string;
+      passwordChangeRequired?: boolean;
       contactId: string | null;
       roles: readonly string[];
     }>,
@@ -107,8 +108,15 @@ export class PostgresAdministration {
     return this.call(
       request,
       "user.create",
-      "SELECT hall_api.create_app_user($1::text, $2::text, $3::text, $4::uuid, $5::text[]) AS payload",
-      [input.email, input.displayName, input.passwordHash, input.contactId, [...input.roles]],
+      "SELECT hall_api.create_app_user($1::text, $2::text, $3::text, $4::uuid, $5::text[], $6::boolean) AS payload",
+      [
+        input.email,
+        input.displayName,
+        input.passwordHash,
+        input.contactId,
+        [...input.roles],
+        input.passwordChangeRequired ?? false,
+      ],
       rowSchema,
     );
   }
@@ -139,23 +147,29 @@ export class PostgresAdministration {
   updateUser(
     request: PostgresRequest,
     id: string,
-    input: Readonly<{ email: string; displayName: string; contactId: string | null }>,
+    input: Readonly<{ email: string; displayName: string; contactId: string | null; passwordChangeRequired?: boolean }>,
   ) {
     return this.call(
       request,
       "user.update",
-      "SELECT hall_api.update_app_user($1::uuid, $2::text, $3::text, $4::uuid) AS payload",
-      [id, input.email, input.displayName, input.contactId],
+      "SELECT hall_api.update_app_user($1::uuid, $2::text, $3::text, $4::uuid, $5::boolean) AS payload",
+      [id, input.email, input.displayName, input.contactId, input.passwordChangeRequired ?? null],
       optionalRowSchema,
     );
   }
 
-  replacePassword(request: PostgresRequest, id: string, previousHash: string, passwordHash: string) {
+  replacePassword(
+    request: PostgresRequest,
+    id: string,
+    previousHash: string,
+    passwordHash: string,
+    passwordChangeRequired: boolean | null = false,
+  ) {
     return this.call(
       request,
       "user.replace-password",
-      "SELECT to_jsonb(hall_api.replace_app_user_password($1::uuid, $2::text, $3::text)) AS payload",
-      [id, previousHash, passwordHash],
+      "SELECT to_jsonb(hall_api.replace_app_user_password($1::uuid, $2::text, $3::text, $4::boolean)) AS payload",
+      [id, previousHash, passwordHash, passwordChangeRequired],
       z.boolean(),
     );
   }

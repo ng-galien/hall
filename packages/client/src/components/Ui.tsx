@@ -240,6 +240,8 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   attendance_incomplete: "error.attendance_incomplete",
   authentication_required: "error.authentication_required",
   permission_denied: "error.permission_denied",
+  password_change_required: "error.password_change_required",
+  password_must_differ: "error.password_must_differ",
   invalid_current_password: "error.invalid_current_password",
   invalid_credentials: "error.invalid_credentials",
   bootstrap_unavailable: "error.bootstrap_unavailable",

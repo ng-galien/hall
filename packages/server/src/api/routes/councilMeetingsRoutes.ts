@@ -35,6 +35,7 @@ import type { Cradle } from "../../core/container.js";
 import { loadRequestAuthorization } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
+import { mailRepresentation } from "../mailRepresentation.js";
 import {
   meetingDocumentResourceRepresentation,
   meetingDocumentsRepresentation,
@@ -77,6 +78,7 @@ export function createCouncilMeetingsRouter({
   meetingAttendanceDocumentService,
   meetingDossierService,
   meetingNoticeService,
+  mailService,
   realtimeEvents,
 }: Cradle): Router {
   const router = Router();
@@ -243,6 +245,17 @@ export function createCouncilMeetingsRouter({
     async (request, response) => {
       const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
       const { noticeId } = generateMeetingNoticeMessageSchema.parse(request.body);
+      if (!request.get("Accept")?.includes("message/rfc822")) {
+        response
+          .status(201)
+          .json(
+            mailRepresentation(
+              request,
+              await mailService.createPrepared(await meetingNoticeService.prepareMail(meeting.id, noticeId)),
+            ),
+          );
+        return;
+      }
       const message = await meetingNoticeService.generateMessage(meeting.id, noticeId);
       response.set("Content-Disposition", `attachment; filename="${message.fileName}"`);
       response.set("Cache-Control", "private, no-store");

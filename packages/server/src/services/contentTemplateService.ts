@@ -67,6 +67,7 @@ export interface ContentTemplateService {
     context?: TemplateRenderContext,
     attachPdfDocuments?: boolean,
     generatedData?: GeneratedTemplateData,
+    includeMessagePresentation?: boolean,
   ): Promise<TemplatePreview>;
   generatedPdf(
     type: GeneratedDocumentType,
@@ -75,6 +76,10 @@ export interface ContentTemplateService {
     attachPdfDocuments?: boolean,
     generatedData?: GeneratedTemplateData,
   ): Promise<Buffer>;
+  prepareMessage(
+    template: ContentTemplate,
+    input: GenerateTemplateInput,
+  ): Promise<{ subject: string; bodyMarkdown: string; files: TemplateAttachment[] }>;
   generate(id: string, input: GenerateTemplateInput): Promise<GeneratedFile>;
   generateFromTemplate(template: ContentTemplate, input: GenerateTemplateInput): Promise<GeneratedFile>;
   /** Runs a PDF rendering in the bounded generation queue; a full queue refuses it with template_generation_busy. */
@@ -124,7 +129,7 @@ function safeFileStem(value: string): string {
 
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 
-interface TemplateAttachment {
+export interface TemplateAttachment {
   id: string;
   fileName: string;
   mediaType: string;
@@ -217,11 +222,12 @@ export function createContentTemplateService({
     context: TemplateRenderContext = {},
     attachPdfDocuments = false,
     generatedData?: GeneratedTemplateData,
+    includeMessagePresentation = true,
   ) => {
     const templates = (await contentTemplateRepository.list()).filter((candidate) => candidate.documentType === type);
     if (templates.length !== 1) throw new DomainError("template_not_found", 404);
     validateTemplateFamily(templates[0]!);
-    const template = await messagePresentation(templates[0]!);
+    const template = includeMessagePresentation ? await messagePresentation(templates[0]!) : templates[0]!;
     return templateRenderingService.preview(template, context, undefined, undefined, {
       attachPdfDocuments,
       generated: { bodyMarkdown, subject, data: generatedData },
@@ -303,6 +309,23 @@ export function createContentTemplateService({
           footerHtml: preview.footerHtml,
         });
       });
+    },
+    async prepareMessage(template, input) {
+      const preview = await templateRenderingService.preview(
+        template,
+        input.context,
+        input.meetingNoticeFacts,
+        input.councilDecision,
+        input.generatedData ? { generated: { bodyMarkdown: "", subject: null, data: input.generatedData } } : {},
+      );
+      assertRenderable(preview.diagnostics);
+      const files = [
+        ...(await attachments(resourcesClient, input.attachmentResourceIds)),
+        ...(input.attachmentFiles ?? []),
+      ];
+      if (files.reduce((total, file) => total + file.content.byteLength, 0) > MAX_ATTACHMENT_BYTES)
+        throw new DomainError("template_attachments_too_large", 413);
+      return { subject: preview.subject ?? "", bodyMarkdown: preview.resolvedMarkdown ?? preview.text, files };
     },
     async generate(id, input) {
       return this.generateFromTemplate(await find(id), input);

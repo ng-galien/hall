@@ -22,6 +22,7 @@ import { requireAction } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { parseSpreadsheetImport, spreadsheetMarkdownTable } from "../../services/spreadsheetImportService.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
+import { mailRepresentation } from "../mailRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
 import { uploadFileName } from "../uploadFileName.js";
 
@@ -32,6 +33,7 @@ export function createDocumentaryResourcesRouter({
   documentaryResourceService,
   councilBusinessWorkspaceService,
   eventInvitationService,
+  mailService,
   realtimeEvents,
   requestContext,
 }: Cradle): Router {
@@ -368,6 +370,22 @@ export function createDocumentaryResourcesRouter({
     "/:reference/event-invitation",
     requireActionPermission("resource.generate-event-invitation"),
     async (request, response) => {
+      if (!request.get("Accept")?.includes("message/rfc822")) {
+        response
+          .status(201)
+          .json(
+            mailRepresentation(
+              request,
+              await mailService.createPrepared(
+                await eventInvitationService.prepareMail(
+                  resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+                  generateEventInvitationSchema.parse(request.body),
+                ),
+              ),
+            ),
+          );
+        return;
+      }
       const message = await eventInvitationService.generate(
         resourceReferenceSchema.parse(routeParameter(request.params.reference)),
         generateEventInvitationSchema.parse(request.body),

@@ -608,13 +608,17 @@ test("calendar uses one complete form for business, quarter hours and participan
   await expect(page.getByTestId("event-start")).toHaveAttribute("step", "900");
   await expect(page.getByTestId("event-add-council-members")).toBeVisible();
   await expect(page.getByTestId("event-missing-email-warning")).toContainText(missingContact.lastName);
-  for (const [testId, suffix] of [
-    ["event-invitation-request", "request.eml"],
-    ["event-invitation-cancel", "cancel.eml"],
-  ] as const) {
-    const downloaded = page.waitForEvent("download");
+  const eventUrl = page.url();
+  for (const testId of ["event-invitation-request", "event-invitation-cancel"] as const) {
     await page.getByTestId(testId).click();
-    expect((await downloaded).suggestedFilename()).toContain(suffix);
+    await expect(page.getByTestId("mail-composer")).toBeVisible();
+    await expect(
+      page.locator('[data-testid^="mail-attachment-"]').filter({ hasText: "invitation.ics" }).first(),
+    ).toBeVisible();
+    await expect(page.getByTestId("mail-to")).toContainText(missingContact.lastName);
+    await page.goto(eventUrl);
+    await page.getByTestId(`calendar-event-${created.id}`).click();
+    await expect(page.getByTestId("event-council-business")).toBeVisible();
   }
   const associatedResponse = page.waitForResponse(
     (candidate) =>

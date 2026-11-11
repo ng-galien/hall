@@ -17,6 +17,7 @@ import {
   prepareAudit,
   requestContextMiddleware,
   requireAuthentication,
+  requirePasswordReplacement,
 } from "./accessControl.js";
 import { errorHandler } from "./errorHandler.js";
 import { sendProblem } from "./problemDetails.js";
@@ -37,6 +38,7 @@ import { createCouncilTermsRouter } from "./routes/councilTermsRoutes.js";
 import { createDocumentaryResourcesRouter } from "./routes/documentaryResourcesRoutes.js";
 import { createDocumentationRouter } from "./routes/documentationRoutes.js";
 import { createGeographicLayersRouter } from "./routes/geographicLayersRoutes.js";
+import { createMailGroupsRouter, createMailRouter } from "./routes/mailRoutes.js";
 import { createMeetingNoticesRouter } from "./routes/meetingNoticesRoutes.js";
 import { createMinutesRouter } from "./routes/minutesRoutes.js";
 import { createRolesRouter } from "./routes/rolesRoutes.js";
@@ -70,6 +72,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
     "/mcp",
     requestContextMiddleware(requestContext),
     loadAuthentication(authService, requestContext, config),
+    requirePasswordReplacement,
     requireAuthentication,
     enforceSameOrigin(config),
     express.json({ limit: 36 * 1024 * 1024 }),
@@ -97,6 +100,7 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
     auditApiRequest,
     prepareAudit(requestContext),
     persistFailedAudit(requestContext, securityRepository),
+    requirePasswordReplacement,
     enforceSameOrigin(config),
     express.json({ limit: API_JSON_BODY_LIMIT_BYTES }),
     prepareAudit(requestContext),
@@ -111,6 +115,8 @@ export function createHttpApplication(container: AwilixContainer<Cradle>) {
   app.use(["/api/council-business", "/api/resources"], publishWorkspaceChanges(container.cradle));
   app.use("/api/ballot-previews", createBallotPreviewsRouter(container.cradle));
   app.use("/api/ballots", createBallotsRouter(container.cradle));
+  app.use("/api/mail", createMailRouter(container.cradle));
+  app.use("/api/mail-recipient-groups", createMailGroupsRouter(container.cradle));
   app.use("/api/contacts", createContactsRouter(container.cradle));
   app.use("/api/council-members", createCouncilMembersRouter(container.cradle));
   app.use("/api/council-terms", createCouncilTermsRouter(container.cradle));

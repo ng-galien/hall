@@ -38,6 +38,26 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
   const body = requestBody(request.body);
   const method = request.method;
 
+  if (root === "mail") {
+    if (method === "POST" && id === "prepare" && !child) return auditIntent("mail.prepare");
+    if (method === "POST" && id && child === "copy" && !childId) return auditIntent("mail.copy", id);
+    if (method === "POST" && id && child === "attachments" && childId === "upload" && !operation)
+      return auditIntent("mail.upload-attachment", id);
+    if (method === "POST" && !id) return auditIntent("mail.create");
+    if (method === "PUT" && id && !child) return auditIntent("mail.update", id);
+    if (method === "POST" && id && child === "delete" && !childId) return auditIntent("mail.delete", id);
+    if (method === "POST" && id && child === "attachments" && !childId) return auditIntent("mail.attach", id);
+    if (method === "POST" && id && child === "attachments" && childId === "remove" && !operation)
+      return auditIntent("mail.remove-attachment", id);
+    if (method === "POST" && id && child === "send" && !childId) return auditIntent("mail.send", id);
+    if (method === "POST" && id && child === "submissions" && childId && operation === "verification")
+      return auditIntent("mail.verify-submission", id);
+  }
+  if (root === "mail-recipient-groups") {
+    if (method === "POST" && !id) return auditIntent("mail-group.create");
+    if (method === "PUT" && id && !child) return auditIntent("mail-group.update", id);
+    if (method === "POST" && id && child === "delete" && !childId) return auditIntent("mail-group.delete", id);
+  }
   if (root === "council-meetings") {
     if (method === "POST" && !id) return auditIntent("meeting.provision-initial");
     if (method === "PUT" && id && child === "schedule" && !childId) return auditIntent("meeting.schedule", id);

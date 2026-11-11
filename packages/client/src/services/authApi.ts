@@ -39,7 +39,7 @@ export async function authenticate(
 
 export const getSessionSiren = () => apiSirenRequest<ApiPrincipal>("/auth/session");
 
-export async function changePassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
+export async function changePassword(input: { currentPassword?: string; newPassword: string }): Promise<void> {
   const session = await getSessionSiren();
   if (!session.representation) throw new Error("Missing session Siren representation");
   await submitSirenAction(session.representation, "session.change-password", input);
