@@ -1,6 +1,4 @@
-import type { CouncilMember } from "@hall/domain";
 import { type FormEvent, useEffect, useId, useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +14,9 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
-import { formatPhoneNumber, phoneHref } from "../features/council-members/phonePresentation";
-import { StatusBadge } from "../features/status/DomainStatusBadge";
+import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
+import { formatPhoneNumber } from "../features/council-members/phonePresentation";
+import { useDomainRowStatus } from "../features/status/DomainStatusBadge";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
 import { useContactsStore } from "../stores/contactsStore";
@@ -31,7 +30,8 @@ export function CouncilMembersPage() {
   const contacts = useContactsStore((state) => state.contacts);
   const { bodies: committees, details, load: loadCommittees, loadAllDetails } = useCouncilCommitteesStore();
   const [addOpen, setAddOpen] = useState(false);
-  const { layout, setLayout, query, setQuery } = useCollectionView();
+  const { query, setQuery } = useCollectionView();
+  const rowStatus = useDomainRowStatus();
   const fieldId = useId();
   const visibleMembers = members.filter((member) =>
     matchesQuery(
@@ -62,40 +62,17 @@ export function CouncilMembersPage() {
       .map((detail) => detail.body)
       .sort((left, right) => left.name.localeCompare(right.name));
   };
-  const renderCommitteeLinks = (memberId: string) => {
+  const committeeSummary = (memberId: string) => {
     const currentCommittees = memberCommittees(memberId);
-    if (currentCommittees.length === 0) {
-      return <span className="council-member-no-committees">{t("members.noCommitteesShort")}</span>;
-    }
-    const visibleCommittees = currentCommittees.slice(0, 2);
+    if (currentCommittees.length === 0) return t("members.noCommitteesShort");
+    const visibleCommittees = currentCommittees.slice(0, 2).map((committee) => committee.name);
     const remaining = currentCommittees.length - visibleCommittees.length;
-    return (
-      <span className="council-member-committee-links">
-        <span className="sr-only">{t("members.committees")} : </span>
-        {visibleCommittees.map((committee) => (
-          <Link to={`/council-committees/${committee.id}`} key={committee.id}>
-            {committee.name}
-          </Link>
-        ))}
-        {remaining > 0 ? (
-          <Link to={`/council-members/${memberId}#committees`}>
-            {plural(remaining, "members.moreCommittees.one", "members.moreCommittees.other")}
-          </Link>
-        ) : null}
-      </span>
-    );
-  };
-  const renderEditAction = (member: CouncilMember) => {
-    const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
-    const label = t("members.editNamed", { name: fullName });
-    return (
-      <Link
-        className="collection-card-link"
-        to={`/council-members/${member.id}`}
-        aria-label={label}
-        data-testid={`member-open-${member.id}`}
-      />
-    );
+    return [
+      ...visibleCommittees,
+      remaining > 0 ? plural(remaining, "members.moreCommittees.one", "members.moreCommittees.other") : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
   };
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -120,7 +97,7 @@ export function CouncilMembersPage() {
       <PageHeader title={t("members.title")} description={t("members.description")} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
-        <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
+        <CollectionToolbar query={query} onQueryChange={setQuery}>
           {canCreate ? (
             <Button variant="default" onClick={() => setAddOpen(true)} data-testid="member-add">
               <AddIcon />
@@ -192,102 +169,39 @@ export function CouncilMembersPage() {
         </Modal>
         {visibleMembers.length === 0 ? (
           <EmptyState>{t(members.length === 0 ? "members.empty" : "common.noSearchResults")}</EmptyState>
-        ) : layout === "cards" ? (
-          <div className="card-grid">
-            {visibleMembers.map((member) => (
-              <article
-                className="entity-card entity-card-member"
-                data-testid={`member-record-${member.id}`}
-                key={member.id}
-              >
-                <div className="council-member-card-heading">
-                  <div className="member-identity member-identity-card">
-                    <span className="member-avatar member-avatar-large" aria-hidden="true">
-                      {member.contact.firstName.slice(0, 1)}
-                      {member.contact.lastName.slice(0, 1)}
-                    </span>
-                    <div>
-                      <span className="council-member-name">
-                        {member.contact.firstName} {member.contact.lastName}
-                      </span>
-                      <span>
-                        {t(`role.${member.role}`)}
-                        {member.rank == null ? "" : ` · ${t("members.rank")} ${member.rank}`}
-                      </span>
-                    </div>
-                  </div>
-                  {renderEditAction(member)}
-                </div>
-                <div className="council-member-contact">
-                  {member.contact.email ? (
-                    <a href={`mailto:${member.contact.email}`}>{member.contact.email}</a>
-                  ) : (
-                    <span>{t("members.noEmail")}</span>
-                  )}
-                  {member.contact.phone ? (
-                    <a href={phoneHref(member.contact.phone)}>{formatPhoneNumber(member.contact.phone)}</a>
-                  ) : (
-                    <span>{t("members.noPhone")}</span>
-                  )}
-                  <span>{t("members.termSince", { date: formatDate(member.termStartedOn) })}</span>
-                </div>
-                {renderCommitteeLinks(member.id)}
-                <span className="entity-card-footer">
-                  <span className="council-member-mandate">
-                    {t("members.term")}
-                    <StatusBadge value={member.active ? "active" : "inactive"} />
-                  </span>
-                </span>
-              </article>
-            ))}
-          </div>
         ) : (
-          <div className="data-list">
-            {visibleMembers.map((member) => (
-              <div
-                className="data-row council-member-row council-member-record"
-                data-testid={`member-record-${member.id}`}
-                key={member.id}
-              >
-                <div className="member-identity">
-                  <span className="member-avatar" aria-hidden="true">
-                    {member.contact.firstName.slice(0, 1)}
-                    {member.contact.lastName.slice(0, 1)}
-                  </span>
-                  <div>
-                    <span className="council-member-name">
-                      {member.contact.firstName} {member.contact.lastName}
-                    </span>
-                    <span>
-                      {t(`role.${member.role}`)}
-                      {member.rank == null ? "" : ` · ${t("members.rank")} ${member.rank}`}
-                    </span>
-                  </div>
-                </div>
-                <div className="council-member-contact council-member-list-contact">
-                  {member.contact.email ? (
-                    <a href={`mailto:${member.contact.email}`}>{member.contact.email}</a>
-                  ) : (
-                    <span>{t("members.noEmail")}</span>
-                  )}
-                  {member.contact.phone ? (
-                    <a href={phoneHref(member.contact.phone)}>{formatPhoneNumber(member.contact.phone)}</a>
-                  ) : (
-                    <span>{t("members.noPhone")}</span>
-                  )}
-                  <span>{t("members.termSince", { date: formatDate(member.termStartedOn) })}</span>
-                </div>
-                <span className="council-member-list-committees">{renderCommitteeLinks(member.id)}</span>
-                <span className="council-member-list-status">
-                  <span className="council-member-mandate">
-                    {t("members.term")}
-                    <StatusBadge value={member.active ? "active" : "inactive"} />
-                  </span>
-                  {renderEditAction(member)}
-                </span>
-              </div>
-            ))}
-          </div>
+          <ListRows>
+            {visibleMembers.map((member) => {
+              const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
+              return (
+                <ListRow
+                  key={member.id}
+                  data-testid={`member-record-${member.id}`}
+                  to={`/council-members/${member.id}`}
+                  openTestId={`member-open-${member.id}`}
+                  openLabel={t("members.editNamed", { name: fullName })}
+                  head={
+                    <ListRowAvatar
+                      initials={`${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}`}
+                    />
+                  }
+                  title={fullName}
+                  detail={`${t(`role.${member.role}`)}${member.rank == null ? "" : ` · ${t("members.rank")} ${member.rank}`}`}
+                  status={rowStatus(member.active ? "active" : "inactive")}
+                  wide={
+                    <>
+                      <span>{member.contact.email || t("members.noEmail")}</span>
+                      <span>
+                        {member.contact.phone ? formatPhoneNumber(member.contact.phone) : t("members.noPhone")}
+                      </span>
+                      <span>{t("members.termSince", { date: formatDate(member.termStartedOn) })}</span>
+                      <span>{committeeSummary(member.id)}</span>
+                    </>
+                  }
+                />
+              );
+            })}
+          </ListRows>
         )}
       </div>
     </div>

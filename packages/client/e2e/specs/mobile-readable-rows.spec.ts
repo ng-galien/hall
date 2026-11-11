@@ -40,7 +40,7 @@ async function expectReachable(locator: Locator) {
 }
 
 async function expectOpensRecord(row: Locator) {
-  const name = row.locator(".council-member-name");
+  const name = row.locator(".list-row-title");
   await name.scrollIntoViewIfNeeded();
   await expect(name).toBeInViewport();
   await expect
@@ -48,7 +48,7 @@ async function expectOpensRecord(row: Locator) {
       name.evaluate((element) => {
         const bounds = element.getBoundingClientRect();
         const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-        return !!hit?.closest(".collection-card-link");
+        return !!hit?.closest(".list-row-main");
       }),
     )
     .toBe(true);
@@ -59,16 +59,15 @@ test("member list preserves identities beside status and commissions at every re
   appPage: page,
 }) => {
   await page.goto("/app/council-members");
-  await page.getByTestId("collection-layout-list").click();
   const rows = page.getByTestId(/^member-record-/);
   await expect(rows.first()).toBeVisible();
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     for (const row of await rows.all()) {
-      const name = row.locator(".council-member-name");
+      const name = row.locator(".list-row-title");
       await expectReadable(name);
       const nameBox = await name.boundingBox();
-      const statusBox = await row.locator(".council-member-list-status").boundingBox();
+      const statusBox = await row.locator(".list-row-status").boundingBox();
       expect(nameBox && statusBox).toBeTruthy();
       expect(nameBox!.y + nameBox!.height <= statusBox!.y || nameBox!.x + nameBox!.width <= statusBox!.x).toBe(true);
     }

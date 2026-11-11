@@ -346,21 +346,16 @@ test("council administration follows committee and representation Siren capabili
   assert.doesNotMatch(`${api}\n${memberApi}\n${bodyPage}\n${memberPage}`, /fetch\(|method:\s*["'](?:POST|PUT|DELETE)/);
 });
 
-test("council member collections expose distinct semantic destinations", () => {
+test("council member collections open each member from the shared list row", () => {
   const page = read("src/pages/CouncilMembersPage.tsx");
-  assert.match(page, /className="council-member-name"/);
-  assert.match(page, /aria-label=\{label\}/);
-  assert.match(page, /className="collection-card-link"/);
+  assert.match(page, /import \{ ListRow, ListRowAvatar, ListRows \} from "\.\.\/components\/ui\/list-row"/);
+  assert.match(page, /<ListRowAvatar/);
+  assert.match(page, /openLabel=\{t\("members\.editNamed"/);
   assert.doesNotMatch(page, /<EditIcon \/>/);
   assert.match(page, /to={`\/council-members\/\$\{member\.id\}`}/);
-  assert.match(page, /href={`mailto:\$\{member\.contact\.email\}`}/);
-  assert.match(page, /href={phoneHref\(member\.contact\.phone\)}/);
   assert.match(page, /contactId: form\.get\("contactId"\)/);
   assert.doesNotMatch(page, /firstName: form\.get\("firstName"\)/);
-  assert.match(page, /to={`\/council-committees\/\$\{committee\.id\}`}/);
-  assert.match(page, /to={`\/council-members\/\$\{memberId\}#committees`}/);
-  assert.doesNotMatch(page, /<Link className="(?:entity-card|data-row)/);
-  assert.doesNotMatch(page, /<Link className="council-member-name/);
+  assert.doesNotMatch(page, /entity-card|data-row|collection-card-link/);
   assert.doesNotMatch(page, /committeeCountLabel|committees\.count/);
 });
 
