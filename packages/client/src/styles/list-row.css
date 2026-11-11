@@ -124,6 +124,8 @@
   @media (max-width: 760px) {
     .list-row-list,
     .list-row { --list-row-height: var(--hall-size-list-row-touch); }
+    /* On a phone a long state wraps beside the shortened second line instead of running past the actions. */
+    .list-row-status { flex-shrink: 1; min-width: 0; white-space: normal; }
   }
   @media (pointer: coarse) {
     .list-row-list,

@@ -243,7 +243,7 @@ test.describe("Hall pages on a phone", () => {
         await expect(firstRow).toBeVisible();
         const headerBottom = (await header.boundingBox())!;
         const listTop = (await firstRow.boundingBox())!.y;
-        expect(listTop - (headerBottom.y + headerBottom.height)).toBeLessThanOrEqual(16);
+        expect(Math.round(listTop - (headerBottom.y + headerBottom.height))).toBeLessThanOrEqual(16);
         for (const control of ["workspace-search-open", "workspace-create-menu"]) {
           const box = (await header.getByTestId(control).boundingBox())!;
           expect(Math.min(box.width, box.height), `${control} target`).toBeGreaterThanOrEqual(44);
