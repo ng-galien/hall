@@ -82,6 +82,8 @@ jobs:
       - run: node scripts/testing/build.mjs --verify
       - name: Use the locked Code Moniker executable
         run: echo "$GITHUB_WORKSPACE/node_modules/@code-moniker/cli-linux-x64/bin" >> "$GITHUB_PATH"
+      - name: Configure Ubuntu package mirror
+        run: bash scripts/testing/configure-ubuntu-mirror.sh
       - name: Install the headless PDF engine
         run: npx playwright install --with-deps --only-shell chromium
       - name: Verify repository, fixtures, backend coverage and PostgreSQL
@@ -116,6 +118,8 @@ jobs:
         with:
           name: hall-gate-build
       - run: node scripts/testing/build.mjs --verify
+      - name: Configure Ubuntu package mirror
+        run: bash scripts/testing/configure-ubuntu-mirror.sh
       - name: Install only the headless browser used by these journeys
         run: npx playwright install --with-deps --only-shell chromium
       - name: Run all browser families with isolated databases
@@ -209,6 +213,9 @@ jobs:
         with:
           name: hall-npm-package
           path: dist/npm
+      - name: Configure Ubuntu package mirror
+        if: runner.os == 'Linux'
+        run: bash scripts/testing/configure-ubuntu-mirror.sh
       - name: Prepare disposable PostgreSQL on Linux
         if: runner.os == 'Linux'
         run: |
