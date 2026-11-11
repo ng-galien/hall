@@ -1,22 +1,23 @@
 import { matchLiteral } from "@hall/domain";
 import { type ReactNode, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { InfoIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
+import { ListRow, ListRowNumber, type ListRowStatus, ListRows } from "../../components/ui/list-row";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
 import { agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
 import { ballotVerdictKey } from "../../features/council-meetings/ballotVerdictPresentation";
-import { AgendaItemStatusBadge } from "../../features/status/DomainStatusBadge";
+import { domainStatusKeys } from "../../features/status/DomainStatusBadge";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
 import type {
   LiveMeetingAgendaItem as AgendaItem,
   LiveMeetingBallot as Ballot,
+  LiveAgendaItemStatus,
   LiveMeetingPresentation,
   LiveVoteChoice as VoteChoice,
 } from "../../models/liveMeeting";
@@ -24,6 +25,22 @@ import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { agendaItemDecisionId } from "./ballotDecisionPolicy";
 import { councilMemberName } from "./ballotParticipants";
+
+/** Status of an agenda item written on the second line of its row. */
+function useAgendaItemRowStatus(): (status: LiveAgendaItemStatus) => ListRowStatus {
+  const { t } = useI18n();
+  return (status) => ({
+    tone: matchLiteral(status, {
+      scheduled: () => "neutral" as const,
+      inProgress: () => "success" as const,
+      examined: () => "success" as const,
+      adjourned: () => "warning" as const,
+      carriedForward: () => "warning" as const,
+    }),
+    label: t(domainStatusKeys[status]),
+    testId: `agenda-status-${status}`,
+  });
+}
 
 const voteChoiceKeys: Record<VoteChoice, TranslationKey> = {
   for: "ballot.choice.for",
@@ -206,6 +223,7 @@ export function MeetingProceedings({
   defaultCollapsed?: boolean;
 }) {
   const { t, formatTime } = useI18n();
+  const agendaItemRowStatus = useAgendaItemRowStatus();
   const phone = usePhoneLayout();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(
     () => new Set(defaultCollapsed ? [] : aggregate.agendaItems.map((item) => item.id)),
@@ -228,24 +246,19 @@ export function MeetingProceedings({
       <div className="report-main">
         <section className="phone-points" data-testid="report-timeline" aria-labelledby="report-timeline-heading">
           <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
-          <ol className="phone-point-list">
+          <ListRows>
             {orderedItems.map((item) => (
-              <li key={item.id}>
-                <Link
-                  className="phone-point-row"
-                  data-testid={`meeting-point-open-${item.id}`}
-                  to={`/meetings/${aggregate.meeting.slug || aggregate.meeting.id}/points/${item.id}`}
-                >
-                  <span className="report-timeline-marker">{item.agendaNumber}</span>
-                  <span className="phone-subject-copy">
-                    <span>{liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}</span>
-                    <small>{t(agendaSubjectPresentation[item.subjectKind].label)}</small>
-                  </span>
-                  <AgendaItemStatusBadge status={item.status} />
-                </Link>
-              </li>
+              <ListRow
+                key={item.id}
+                to={`/meetings/${aggregate.meeting.slug || aggregate.meeting.id}/points/${item.id}`}
+                openTestId={`meeting-point-open-${item.id}`}
+                head={<ListRowNumber number={item.agendaNumber} />}
+                title={liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}
+                detail={t(agendaSubjectPresentation[item.subjectKind].label)}
+                status={agendaItemRowStatus(item.status)}
+              />
             ))}
-          </ol>
+          </ListRows>
         </section>
       </div>
     );
@@ -254,78 +267,73 @@ export function MeetingProceedings({
     <div className="report-main">
       <section className="conduct-block report-timeline" data-testid="report-timeline">
         <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
-        <ol className="report-timeline-list">
+        <ListRows>
           {orderedItems.map((item) => {
             const ballot = itemBallot(aggregate, item);
             const expanded = expandedItems.has(item.id);
+            const title = liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"));
             return (
-              <li className="report-timeline-item" key={item.id}>
-                <button
-                  className="report-timeline-item-toggle"
-                  type="button"
-                  aria-expanded={expanded}
-                  data-testid={`report-item-toggle-${item.id}`}
-                  aria-label={liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}
-                  onClick={() => toggleItem(item.id)}
-                >
-                  <span className="report-timeline-marker">{item.agendaNumber}</span>
-                  <span className="report-timeline-heading">
-                    <span className="report-timeline-title">
-                      <strong>{liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}</strong>
-                      <span>
-                        {t(agendaSubjectPresentation[item.subjectKind].label)}
-                        {item.startedAt ? ` · ${formatTime(item.startedAt)}` : ""}
-                        {item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}
-                      </span>
-                    </span>
-                    <AgendaItemStatusBadge status={item.status} />
-                  </span>
-                </button>
-                <div className="report-timeline-body report-timeline-content">
-                  {expanded ? (
-                    <div className="report-item-texts">
-                      {item.business.report ? (
-                        <ReportTextBlock
-                          label={t("meeting.itemReport")}
-                          context={t("report.preparedBeforeMeeting")}
-                          tone="source"
-                        >
-                          <MarkdownView markdown={item.business.report} />
-                        </ReportTextBlock>
-                      ) : null}
-                      {item.councilDecisionSnapshot?.draftText ? (
-                        <ReportTextBlock
-                          label={t("report.submittedText")}
-                          context={t("report.recordedDuringMeeting")}
-                          tone="decision"
-                        >
-                          <MarkdownView markdown={item.councilDecisionSnapshot.draftText} />
-                        </ReportTextBlock>
-                      ) : null}
-                      {item.discussionSummary ? (
-                        <ReportTextBlock
-                          label={t("report.sessionNotes")}
-                          context={t("report.recordedDuringItem")}
-                          tone="notes"
-                        >
-                          <MarkdownView markdown={item.discussionSummary} />
-                        </ReportTextBlock>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {ballot ? (
-                    <BallotOutcome
-                      ballot={ballot}
-                      members={rosterMembers}
-                      isMinutes={item.subjectKind === "minutesApproval"}
-                      defaultCollapsed
-                    />
-                  ) : null}
-                </div>
-              </li>
+              <ListRow
+                key={item.id}
+                onOpen={() => toggleItem(item.id)}
+                openTestId={`report-item-toggle-${item.id}`}
+                openLabel={title}
+                openProps={{ "aria-expanded": expanded }}
+                selected={expanded}
+                head={<ListRowNumber number={item.agendaNumber} />}
+                title={title}
+                detail={`${t(agendaSubjectPresentation[item.subjectKind].label)}${
+                  item.startedAt ? ` · ${formatTime(item.startedAt)}` : ""
+                }${item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}`}
+                status={agendaItemRowStatus(item.status)}
+              >
+                {expanded || ballot ? (
+                  <>
+                    {expanded ? (
+                      <div className="report-item-texts">
+                        {item.business.report ? (
+                          <ReportTextBlock
+                            label={t("meeting.itemReport")}
+                            context={t("report.preparedBeforeMeeting")}
+                            tone="source"
+                          >
+                            <MarkdownView markdown={item.business.report} />
+                          </ReportTextBlock>
+                        ) : null}
+                        {item.councilDecisionSnapshot?.draftText ? (
+                          <ReportTextBlock
+                            label={t("report.submittedText")}
+                            context={t("report.recordedDuringMeeting")}
+                            tone="decision"
+                          >
+                            <MarkdownView markdown={item.councilDecisionSnapshot.draftText} />
+                          </ReportTextBlock>
+                        ) : null}
+                        {item.discussionSummary ? (
+                          <ReportTextBlock
+                            label={t("report.sessionNotes")}
+                            context={t("report.recordedDuringItem")}
+                            tone="notes"
+                          >
+                            <MarkdownView markdown={item.discussionSummary} />
+                          </ReportTextBlock>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {ballot ? (
+                      <BallotOutcome
+                        ballot={ballot}
+                        members={rosterMembers}
+                        isMinutes={item.subjectKind === "minutesApproval"}
+                        defaultCollapsed
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+              </ListRow>
             );
           })}
-        </ol>
+        </ListRows>
       </section>
     </div>
   );

@@ -85,7 +85,7 @@ test("establishes, revises and resets the agenda revision with its notices", asy
   await expect(page.getByTestId("meeting-document-notice-open")).toBeVisible();
   await expect(page.getByTestId("meeting-generate-notice")).toHaveCount(0);
   await expect(page.getByTestId("meeting-revise-agenda")).toBeVisible();
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "done");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "success");
   await expect(page.getByTestId("meeting-document-notice-open")).toBeEnabled();
   await capture(page, "2-apres-generer");
 

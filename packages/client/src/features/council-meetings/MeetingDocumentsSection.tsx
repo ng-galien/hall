@@ -1,12 +1,11 @@
 // biome-ignore-all lint/correctness/useExhaustiveDependencies: Notice and minutes changes intentionally reload their state.
 import type { MeetingNotice, MeetingNoticeMessagePreparation } from "@hall/api-contract";
 import { type ReactNode, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import {
   AttendanceSheetIcon,
-  CheckCircleIcon,
   DecisionsIcon,
   DossierIcon,
   GenerateIcon,
@@ -15,9 +14,9 @@ import {
   NoticeIcon,
   PrintIcon,
   ProxyIcon,
-  WarningIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
+import { ListRow, ListRowIcon, ListRowNumber, type ListRowStatusTone, ListRows } from "../../components/ui/list-row";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -42,6 +41,12 @@ type DocumentTone = "done" | "todo" | "error" | "neutral";
 
 type DocumentOpening = { onClick: () => void; disabled?: boolean } | { to: string };
 
+const documentToneStatus: Record<Exclude<DocumentTone, "neutral">, ListRowStatusTone> = {
+  done: "success",
+  todo: "warning",
+  error: "danger",
+};
+
 function DocumentRow({
   testId,
   icon,
@@ -61,45 +66,28 @@ function DocumentRow({
   actions?: ReactNode;
   children?: ReactNode;
 }) {
-  const title = !opening ? (
-    <strong>{name}</strong>
-  ) : "to" in opening ? (
-    <Link className="meeting-document-link" to={opening.to} data-testid={`${testId}-open`}>
-      {name}
-    </Link>
-  ) : (
-    <button
-      type="button"
-      className="meeting-document-link"
-      data-testid={`${testId}-open`}
-      disabled={opening.disabled}
-      onClick={opening.onClick}
-    >
-      {name}
-    </button>
-  );
-  const statusIcon =
-    tone === "done" ? (
-      <CheckCircleIcon aria-hidden="true" />
-    ) : tone === "todo" || tone === "error" ? (
-      <WarningIcon aria-hidden="true" />
-    ) : (
-      icon
-    );
+  const stateTestId = `${testId}-state`;
+  const facts =
+    tone === "neutral"
+      ? { detail: <span data-testid={stateTestId}>{state}</span> }
+      : { status: { tone: documentToneStatus[tone], label: state, testId: stateTestId } };
+  const shared = {
+    "data-testid": testId,
+    head: <ListRowIcon nature="council">{icon}</ListRowIcon>,
+    title: name,
+    action: actions,
+    children,
+    ...facts,
+  };
+  if (!opening) return <ListRow {...shared} />;
+  if ("to" in opening) return <ListRow {...shared} to={opening.to} openTestId={`${testId}-open`} />;
   return (
-    <li className="meeting-document-row" data-testid={testId} data-tone={tone}>
-      <span className="meeting-document-icon" data-tone={tone} aria-hidden="true">
-        {statusIcon}
-      </span>
-      <span className="meeting-document-copy">
-        {title}
-        <span className="meeting-document-state" data-tone={tone} data-testid={`${testId}-state`}>
-          {state}
-        </span>
-      </span>
-      {actions ? <span className="meeting-document-actions">{actions}</span> : null}
-      {children ? <div className="meeting-document-detail">{children}</div> : null}
-    </li>
+    <ListRow
+      {...shared}
+      onOpen={opening.onClick}
+      openTestId={`${testId}-open`}
+      openProps={{ disabled: opening.disabled }}
+    />
   );
 }
 
@@ -267,7 +255,7 @@ export function MeetingDocumentsSection({
     >
       <RequestErrorBanner error={error} />
       <RequestErrorBanner error={meetingActions.actionError} />
-      <ul className="meeting-document-list">
+      <ListRows>
         {showNoticeRow ? (
           <DocumentRow
             testId="meeting-document-notice"
@@ -352,24 +340,25 @@ export function MeetingDocumentsSection({
                   )}
                 </Button>
                 {previousOpen ? (
-                  <ul className="meeting-document-sublist" data-testid="meeting-notice-previous-list">
+                  <ListRows data-testid="meeting-notice-previous-list">
                     {previousNotices.map((version) => (
-                      <li key={version.id}>
-                        <button
-                          type="button"
-                          className="meeting-document-link"
-                          data-testid={`meeting-notice-preview-${version.id}`}
-                          disabled={submitting}
-                          onClick={() => perform(() => showNotice(version.id))}
-                        >
-                          {t("meeting.documents.previousNotice", {
-                            number: formatNumber(version.revision),
-                            date: formatDateTime(version.revisionEstablishedAt),
-                          })}
-                        </button>
-                      </li>
+                      <ListRow
+                        key={version.id}
+                        onOpen={() => perform(() => showNotice(version.id))}
+                        openTestId={`meeting-notice-preview-${version.id}`}
+                        openProps={{ disabled: submitting }}
+                        head={
+                          <ListRowIcon nature="council">
+                            <NoticeIcon />
+                          </ListRowIcon>
+                        }
+                        title={t("meeting.documents.previousNotice", {
+                          number: formatNumber(version.revision),
+                          date: formatDateTime(version.revisionEstablishedAt),
+                        })}
+                      />
                     ))}
-                  </ul>
+                  </ListRows>
                 ) : null}
               </>
             ) : null}
@@ -465,28 +454,29 @@ export function MeetingDocumentsSection({
             }
           >
             {decisions.length ? (
-              <ul className="meeting-document-sublist">
+              <ListRows>
                 {decisions.map((decision) => (
-                  <li key={decision.id}>
-                    <Link
-                      className="meeting-document-link"
-                      to={`/council-decisions/${decision.id}`}
-                      data-testid={`meeting-decision-link-${decision.id}`}
-                    >
-                      {decision.number === null
-                        ? decision.title
-                        : t("meeting.documents.decisionItem", {
-                            number: formatNumber(decision.number),
-                            title: decision.title,
-                          })}
-                    </Link>
-                  </li>
+                  <ListRow
+                    key={decision.id}
+                    to={`/council-decisions/${decision.id}`}
+                    openTestId={`meeting-decision-link-${decision.id}`}
+                    head={
+                      decision.number === null ? (
+                        <ListRowIcon nature="council">
+                          <DecisionsIcon />
+                        </ListRowIcon>
+                      ) : (
+                        <ListRowNumber number={formatNumber(decision.number)} />
+                      )
+                    }
+                    title={decision.title}
+                  />
                 ))}
-              </ul>
+              </ListRows>
             ) : null}
           </DocumentRow>
         ) : null}
-      </ul>
+      </ListRows>
       {proxyFormHref ? (
         <MeetingProxyFormDialog
           open={proxyOpen}

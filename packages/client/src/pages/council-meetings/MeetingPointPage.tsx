@@ -1,8 +1,9 @@
 import { useEffect } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { CouncilBusinessIcon, DecisionsIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { EmptyState, RequestErrorBanner } from "../../components/Ui";
+import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
 import { AgendaMinutesApproval } from "../../features/council-meetings/AgendaMinutesApproval";
 import {
@@ -118,32 +119,29 @@ function MeetingPoint({ meetingId, pointId }: { meetingId: string; pointId: stri
         </section>
       ) : null}
       {decision || business.resources.length ? (
-        <ul className="phone-document-list" data-testid="meeting-point-documents">
+        <ListRows data-testid="meeting-point-documents">
           {decision ? (
-            <li>
-              <Link
-                className="phone-document-row"
-                data-testid={`meeting-point-decision-${decision.id}`}
-                to={`/council-decisions/${decision.id}`}
-              >
-                <DecisionsIcon aria-hidden="true" />
-                <span>{t("meeting.point.decision")}</span>
-              </Link>
-            </li>
+            <ListRow
+              to={`/council-decisions/${decision.id}`}
+              openTestId={`meeting-point-decision-${decision.id}`}
+              head={
+                <ListRowIcon nature="council">
+                  <DecisionsIcon />
+                </ListRowIcon>
+              }
+              title={t("meeting.point.decision")}
+            />
           ) : null}
           {business.resources.map((resource) => (
-            <li key={resource.id}>
-              <Link
-                className="phone-document-row"
-                data-testid={`meeting-point-document-${resource.id}`}
-                to={`/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id })}`}
-              >
-                <DocumentaryResourceGlyph resource={resource} />
-                <span>{resource.name}</span>
-              </Link>
-            </li>
+            <ListRow
+              key={resource.id}
+              to={`/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id })}`}
+              openTestId={`meeting-point-document-${resource.id}`}
+              head={<DocumentaryResourceGlyph resource={resource} />}
+              title={resource.name}
+            />
           ))}
-        </ul>
+        </ListRows>
       ) : null}
     </article>
   );

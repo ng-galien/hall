@@ -795,7 +795,7 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   await expect(page.getByTestId("meeting-enter-live")).toHaveAttribute("aria-disabled", "true");
   await expect(page.getByTestId("meeting-enter-live")).not.toHaveAttribute("href");
   await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "warning");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   await expect(page.getByTestId("live-meeting-start")).toHaveCount(0);
@@ -807,7 +807,7 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   await generateCurrentNotice(page);
   expect((await established).ok()).toBeTruthy();
   await expect(page.getByTestId("meeting-live-entry-reason")).toHaveCount(0);
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "done");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "success");
   await page.getByTestId("meeting-enter-live").click();
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
   await expect(page.getByTestId("meeting-entry-blocker-scheduledTimeNotReached")).toBeVisible();
@@ -818,7 +818,7 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   await expect(page.getByTestId("meeting-enter-live")).toHaveAttribute("aria-disabled", "true");
   await expect(page.getByTestId("meeting-enter-live")).not.toHaveAttribute("href");
   await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "todo");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "warning");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   const after = await sirenProperties<typeof initial>(await page.request.get(conductUrl));

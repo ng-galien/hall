@@ -2,14 +2,16 @@ import { useState } from "react";
 import { SearchIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
 import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
-import { StatusBadge } from "../../features/status/DomainStatusBadge";
+import { useDomainRowStatus } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { councilMemberName } from "./ballotParticipants";
+import { memberInitials } from "./live/RollCallView";
 import { MeetingProceedings } from "./MeetingProceedings";
 
 export function MeetingReport({
@@ -21,6 +23,7 @@ export function MeetingReport({
 }) {
   const { t, formatDate, formatTime, formatNumber } = useI18n();
   const { members } = useCouncilMembersStore();
+  const rowStatus = useDomainRowStatus();
   const { meeting } = aggregate;
   const [attendanceVisible, setAttendanceVisible] = useState(false);
   const attendanceCounts = aggregate.attendance.reduce(
@@ -134,14 +137,19 @@ export function MeetingReport({
               </dl>
             </div>
             {attendanceVisible ? (
-              <ul className="report-attendance-list">
-                {aggregate.attendance.map((attendance) => (
-                  <li key={attendance.memberId}>
-                    <span>{councilMemberName(members, attendance.memberId)}</span>
-                    <StatusBadge value={attendance.status} />
-                  </li>
-                ))}
-              </ul>
+              <ListRows data-testid="report-attendance-list">
+                {aggregate.attendance.map((attendance) => {
+                  const member = members.find((candidate) => candidate.id === attendance.memberId);
+                  return (
+                    <ListRow
+                      key={attendance.memberId}
+                      head={member ? <ListRowAvatar initials={memberInitials(member)} /> : undefined}
+                      title={councilMemberName(members, attendance.memberId)}
+                      status={rowStatus(attendance.status)}
+                    />
+                  );
+                })}
+              </ListRows>
             ) : null}
           </section>
           <MeetingProceedings aggregate={aggregate} defaultCollapsed />
