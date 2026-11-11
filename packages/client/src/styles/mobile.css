@@ -29,8 +29,6 @@
   .app-mobile-navigation > aside { width: 100%; min-height: 0; flex: 1; border: 0; }
   .app-mobile-navigation .nav-row { min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-body); }
   .app-main { overflow-x: hidden; }
-  [data-slot="button"], [data-slot="input"], [data-slot="select-trigger"] { min-height: var(--hall-size-control); }
-  [data-slot="button"][data-size^="icon"] { min-width: var(--hall-size-control); }
   .workspace-tree-toggle, .workspace-tree-link { min-height: var(--hall-size-touch-control); }
   .page-content, .workbench { padding: var(--hall-space-3); }
   .form-grid, .metric-grid, .meeting-summary, .two-columns { grid-template-columns: minmax(0, 1fr); }

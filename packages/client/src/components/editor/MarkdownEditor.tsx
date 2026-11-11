@@ -200,7 +200,7 @@ function BlockTypeSelect({ editor, value }: { editor: Editor; value: string }) {
   const { t } = useI18n();
   return (
     <Select value={value} onValueChange={(next) => applyBlockType(editor, next)}>
-      <SelectTrigger data-testid="editor-block-style" size="sm" aria-label={t("editor.blockType")}>
+      <SelectTrigger data-testid="editor-block-style" aria-label={t("editor.blockType")}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

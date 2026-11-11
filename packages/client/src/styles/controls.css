@@ -41,3 +41,62 @@
   .hall-button[data-size="icon"] { width: var(--hall-size-control); padding: 0; }
   .hall-button[data-size="icon"] > svg { font-size: var(--hall-font-size-icon-large); }
 }
+
+/* @implements-requirement HALL-FR-LAY-140 */
+/* Field 12D: a filled field, underlined, its label written small inside; the line turns blue while typing. */
+@layer components {
+  .hall-input {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: var(--hall-size-control);
+    align-items: center;
+    padding: 0 var(--hall-space-3);
+    border: 0;
+    border-radius: var(--hall-radius-small) var(--hall-radius-small) 0 0;
+    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thin)) 0 var(--hall-color-field-line);
+    color: var(--hall-color-text);
+    background: var(--hall-color-field);
+    font: inherit;
+    font-size: var(--hall-font-size-text);
+    line-height: var(--hall-line-height-body-large);
+    outline: none;
+  }
+  .hall-input::placeholder,
+  .hall-select-trigger[data-placeholder] { color: var(--hall-color-text-subtle); }
+  .hall-input:hover:not(:disabled) { background: var(--hall-color-field-hover); }
+  .hall-input:focus,
+  .hall-input:focus-visible,
+  .hall-input[data-state="open"] { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-brand); }
+  .hall-input[aria-invalid="true"] { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-danger); }
+  .hall-input:disabled { cursor: default; opacity: var(--hall-opacity-disabled); }
+  .hall-textarea { display: block; min-height: var(--hall-size-textarea-min); padding-block: var(--hall-space-2); field-sizing: content; resize: vertical; }
+  .hall-select-trigger { justify-content: space-between; gap: var(--hall-space-2); text-align: left; cursor: pointer; }
+  .hall-select-trigger > [data-slot="select-value"] { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
+  .hall-select-chevron { flex: none; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-icon); pointer-events: none; }
+
+  .hall-field-block { display: grid; min-width: 0; gap: var(--hall-space-1); }
+  .hall-field {
+    display: grid;
+    min-width: 0;
+    min-height: var(--hall-size-touch-control);
+    align-content: center;
+    padding: var(--hall-space-1-5) var(--hall-space-3) var(--hall-space-1);
+    border-radius: var(--hall-radius-small) var(--hall-radius-small) 0 0;
+    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thin)) 0 var(--hall-color-field-line);
+    background: var(--hall-color-field);
+    cursor: text;
+  }
+  .hall-field:hover { background: var(--hall-color-field-hover); }
+  .hall-field:focus-within { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-brand); }
+  .hall-field[data-invalid="true"] { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-danger); }
+  .hall-field-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); cursor: inherit; }
+  /* Inside a field the control is the text itself: the field draws the fill and the line. */
+  .hall-field .hall-input,
+  .hall-field .hall-input:hover,
+  .hall-field .hall-input:focus { min-height: var(--hall-line-height-body-large); padding: 0; border-radius: 0; box-shadow: none; background: transparent; }
+  .hall-field .hall-textarea { min-height: var(--hall-size-textarea-min); padding-block: 0; resize: none; }
+  .hall-field-note { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
+  .hall-field-note[data-tone="danger"] { color: var(--hall-color-danger); }
+  .hall-field-row { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-10rem)), 1fr)); gap: var(--hall-space-2); }
+}
