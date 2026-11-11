@@ -64,7 +64,7 @@ export function ContactsPage() {
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery}>
           {canCreate ? (
-            <Button variant="default" onClick={() => setAddOpen(true)} data-testid="contacts-add">
+            <Button variant="primary" onClick={() => setAddOpen(true)} data-testid="contacts-add">
               <AddIcon />
               {t("contacts.add")}
             </Button>
@@ -98,7 +98,7 @@ export function ContactsPage() {
                 <Input id={`${fieldId}-phone`} name="phone" type="tel" />
               </div>
             </div>
-            <Button variant="default" type="submit" disabled={submitting} data-testid="contact-create-submit">
+            <Button variant="primary" type="submit" disabled={submitting} data-testid="contact-create-submit">
               {t(submitting ? "common.saving" : "common.create")}
             </Button>
           </form>

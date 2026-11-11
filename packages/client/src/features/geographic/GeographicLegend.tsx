@@ -26,8 +26,7 @@ export function GeographicLegend({
       <div className="geographic-legend-controls">
         <Button
           type="button"
-          variant="outline"
-          size="sm"
+          variant="secondary"
           data-testid="geographic-legend-toggle"
           aria-expanded={open}
           aria-controls={contentId}
@@ -94,7 +93,7 @@ export function GeographicLegendEditor({
             />
             <Button
               size="icon"
-              variant="ghost"
+              variant="plain"
               aria-label={t("geographic.legend.remove")}
               data-testid={`geographic-legend-remove-${index}`}
               onClick={() => onChange(entries.filter((_, at) => at !== index))}
@@ -105,8 +104,7 @@ export function GeographicLegendEditor({
         ))}
         <Button
           type="button"
-          variant="outline"
-          size="sm"
+          variant="secondary"
           disabled={entries.length >= 16}
           data-testid="geographic-legend-add"
           onClick={() =>

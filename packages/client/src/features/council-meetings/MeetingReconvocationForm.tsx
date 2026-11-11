@@ -56,7 +56,7 @@ export function MeetingReconvocationForm({
         })
       ) : (
         <Button
-          variant="outline"
+          variant="secondary"
           data-testid="live-reconvocation-open"
           disabled={remainingItems.length === 0}
           onClick={() => setOpen(true)}
@@ -128,7 +128,7 @@ export function MeetingReconvocationForm({
           <div className="flex justify-end gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               disabled={submitting}
               data-testid="live-reconvocation-cancel"
               onClick={() => setOpen(false)}

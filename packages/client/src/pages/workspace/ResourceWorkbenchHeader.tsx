@@ -75,7 +75,7 @@ export function ResourceWorkbenchHeader({
           {resource.kind === "geographic" ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button asChild variant="outline" className="resource-open-in-maps">
+                <Button asChild variant="secondary" className="resource-open-in-maps">
                   <Link
                     data-testid="resource-open-in-maps"
                     aria-label={t("maps.openInMaps")}
@@ -93,7 +93,7 @@ export function ResourceWorkbenchHeader({
             <TooltipTrigger asChild>
               <Button
                 ref={extendedViewTriggerRef}
-                variant="ghost"
+                variant="plain"
                 size="icon"
                 data-testid="resource-open-extended"
                 aria-label={t("common.fullscreen")}
@@ -107,7 +107,7 @@ export function ResourceWorkbenchHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant="plain"
                 size="icon"
                 aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
                 aria-pressed={pinned}
@@ -133,7 +133,7 @@ export function ResourceWorkbenchHeader({
             <ShareButton testId="resource-workbench-share" file={shareFile} />
           ) : null}
           {resource.kind === "document" && onDownload ? (
-            <Button variant="outline" data-testid="resource-workbench-download" onClick={onDownload}>
+            <Button variant="secondary" data-testid="resource-workbench-download" onClick={onDownload}>
               {t("common.download")}
             </Button>
           ) : null}

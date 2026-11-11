@@ -4,47 +4,34 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
-        outline:
-          "border-border bg-background hover:border-[var(--hall-color-brand-border)] hover:bg-[var(--hall-color-brand-subtle)] hover:text-[var(--hall-color-brand)] dark:border-input dark:bg-input/30",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
-        ghost: "hover:bg-[var(--hall-color-brand-subtle)] hover:text-[var(--hall-color-brand)]",
-        destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-        success:
-          "bg-[var(--hall-color-success)] text-[var(--hall-color-on-brand)] hover:bg-[var(--hall-color-success-strong)]",
-        "destructive-outline":
-          "border-[var(--hall-color-danger-border)] bg-background text-[var(--hall-color-danger)] hover:border-[var(--hall-color-danger-border-strong)] hover:bg-[var(--hall-color-danger-surface)]",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        icon: "size-8",
-        "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
-      },
+/**
+ * The single button of Hall (choice 5B): one main action in solid blue per screen, the other actions on pale blue,
+ * deletion in solid red, and `plain` for an icon or a menu trigger drawn without a background. An action the user
+ * cannot do is absent, never greyed.
+ * @implements-requirement HALL-FR-LAY-090
+ */
+const buttonVariants = cva("hall-button", {
+  variants: {
+    variant: {
+      primary: "",
+      secondary: "",
+      danger: "",
+      plain: "",
     },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
+    size: {
+      default: "",
+      icon: "",
     },
   },
-);
+  defaultVariants: {
+    variant: "primary",
+    size: "default",
+  },
+});
 
 function Button({
   className,
-  variant = "default",
+  variant = "primary",
   size = "default",
   asChild = false,
   ...props
@@ -59,7 +46,7 @@ function Button({
       data-slot="button"
       data-variant={variant}
       data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size }), className)}
       {...props}
     />
   );

@@ -27,11 +27,11 @@ export function ResourceDeleteDialog({
       <div className="modal-form">
         <p>{t("workspace.deleteResourceConfirm", { name })}</p>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" disabled={submitting} data-testid="resource-delete-cancel" onClick={onClose}>
+          <Button variant="secondary" disabled={submitting} data-testid="resource-delete-cancel" onClick={onClose}>
             {t("common.cancel")}
           </Button>
           <Button
-            variant="destructive"
+            variant="danger"
             disabled={submitting}
             data-testid="resource-delete-confirm"
             onClick={() =>

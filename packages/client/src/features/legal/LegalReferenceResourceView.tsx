@@ -54,7 +54,7 @@ export function LegalReferenceResourceView({
           {canRefresh ? (
             <Button
               data-testid="legal-reference-refresh"
-              variant="outline"
+              variant="secondary"
               disabled={refreshing}
               aria-busy={refreshing}
               onClick={onRefresh}
@@ -63,7 +63,7 @@ export function LegalReferenceResourceView({
               {t(refreshing ? "legalReference.refreshing" : "legalReference.refresh")}
             </Button>
           ) : null}
-          <Button asChild variant="outline">
+          <Button asChild variant="secondary">
             <a href={details.sourceUrl} target="_blank" rel="noreferrer">
               <OpenIcon aria-hidden="true" />
               {t("legalReference.openOfficialSource")}

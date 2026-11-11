@@ -212,7 +212,7 @@ export function UsersPage() {
               {canGeneratePassphrase && (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   className="justify-self-start"
                   data-testid="passphrase-generate"
                   disabled={generating || submitting}

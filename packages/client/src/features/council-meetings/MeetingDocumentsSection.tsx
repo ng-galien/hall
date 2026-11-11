@@ -272,7 +272,6 @@ export function MeetingDocumentsSection({
               <>
                 {revisionEstablished && canGenerateNotice ? (
                   <Button
-                    size="sm"
                     data-testid={hasNotice ? "meeting-notice-regenerate" : "meeting-generate-notice"}
                     disabled={submitting}
                     onClick={() =>
@@ -295,8 +294,7 @@ export function MeetingDocumentsSection({
                 ) : null}
                 {canExportNotice && message && preparing && currentNotice ? (
                   <Button
-                    size="sm"
-                    variant="outline"
+                    variant="secondary"
                     data-testid="meeting-export-notice-message"
                     disabled={submitting || !message.canGenerate}
                     onClick={() =>
@@ -326,8 +324,7 @@ export function MeetingDocumentsSection({
             {previousNotices.length ? (
               <>
                 <Button
-                  variant="link"
-                  size="xs"
+                  variant="plain"
                   className="meeting-document-toggle"
                   aria-expanded={previousOpen}
                   data-testid="meeting-notice-previous-toggle"
@@ -401,12 +398,7 @@ export function MeetingDocumentsSection({
             name={t("meeting.proxyForm")}
             state={t("meeting.documents.proxyFormState")}
             actions={
-              <Button
-                size="sm"
-                variant="outline"
-                data-testid="meeting-proxy-form-open"
-                onClick={() => setProxyOpen(true)}
-              >
+              <Button variant="secondary" data-testid="meeting-proxy-form-open" onClick={() => setProxyOpen(true)}>
                 <PrintIcon aria-hidden="true" />
                 {t("meeting.proxyFormOpen")}
               </Button>

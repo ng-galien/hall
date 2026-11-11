@@ -94,7 +94,7 @@ export function AgendaSubjectEditor({
         <div className="composer-editor-actions">
           <span className="composer-editor-spacer" />
           <Button
-            variant="outline"
+            variant="secondary"
             type="button"
             data-testid="agenda-subject-cancel"
             disabled={submitting}

@@ -123,8 +123,8 @@ export function AttachmentPicker({
           <PopoverTrigger asChild>
             <Button
               data-testid="attachment-picker-open"
-              variant="ghost"
-              size="icon-xs"
+              variant="plain"
+              size="icon"
               aria-label={t("workspace.addResource")}
               title={t("workspace.addResource")}
               disabled={disabled}
@@ -154,8 +154,7 @@ export function AttachmentPicker({
                       <Button
                         key={kind}
                         type="button"
-                        variant="ghost"
-                        size="sm"
+                        variant="plain"
                         className="attachment-picker-kind"
                         data-testid={`attachment-picker-create-${kind}`}
                         onClick={() => {

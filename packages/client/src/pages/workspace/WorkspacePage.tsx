@@ -201,7 +201,7 @@ export function WorkspacePage() {
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            variant="ghost"
+            variant="plain"
             size="icon"
             data-testid="workspace-breadcrumb-close"
             aria-label={t("common.close")}
@@ -501,7 +501,7 @@ export function WorkspacePage() {
                   detail={duplicate.existing.map((resource) => (
                     <Button
                       key={resource.id}
-                      variant="link"
+                      variant="plain"
                       data-testid={`workspace-import-existing-${resource.id}`}
                       onClick={() => select({ kind: "resource", id: resource.id }, resource.path)}
                     >
@@ -553,7 +553,7 @@ export function WorkspacePage() {
               {resourcesStore.personalWorkspacePath ? (
                 <Button
                   className="workspace-personal-open"
-                  variant="outline"
+                  variant="secondary"
                   data-testid="workspace-personal-open"
                   onClick={() => select(null, resourcesStore.personalWorkspacePath ?? "")}
                 >

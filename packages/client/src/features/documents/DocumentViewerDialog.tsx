@@ -87,7 +87,7 @@ export function DocumentViewerDialog({
                 data-testid={closeTestId}
                 className="document-viewer-back"
                 size="icon"
-                variant="ghost"
+                variant="plain"
                 aria-label={t("common.back")}
                 onClick={close}
               >
@@ -106,7 +106,7 @@ export function DocumentViewerDialog({
                   ref={closeButton}
                   data-testid={closeTestId}
                   size="icon"
-                  variant="ghost"
+                  variant="plain"
                   aria-label={t("common.close")}
                   onClick={close}
                 >

@@ -88,8 +88,7 @@ export function InlineResourceContent({
       ) : null}
       {session.editable && (!session.autosaveEnabled || session.actionError) ? (
         <Button
-          size="sm"
-          variant="outline"
+          variant="secondary"
           data-testid={`business-inline-save-${resourceId}`}
           disabled={session.submitting || !session.dirty}
           onClick={() => void session.save()}

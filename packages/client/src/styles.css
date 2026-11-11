@@ -3,6 +3,7 @@
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/components.css";
+@import "./styles/controls.css";
 @import "./styles/list-row.css";
 @import "./styles/meeting-workspace.css";
 @import "./styles/editor.css";
@@ -20,7 +21,7 @@
   display: grid;
   place-items: center;
   padding: var(--hall-space-10);
-  background: var(--hall-color-canvas);
+  background: var(--hall-color-surface);
 }
 
 .authentication-panel {
@@ -52,7 +53,7 @@
 }
 
 @theme inline {
-  --color-bg: var(--hall-color-canvas);
+  --color-bg: var(--hall-color-surface);
   --color-surface: var(--hall-color-surface);
   --color-surface-subtle: var(--hall-color-surface-subtle);
   --color-surface-selected: var(--hall-color-surface-selected);
@@ -120,7 +121,7 @@
 
 /* shadcn variables, aliases only, never literal values. */
 :root {
-  --background: var(--hall-color-canvas);
+  --background: var(--hall-color-surface);
   --foreground: var(--hall-color-text);
   --card: var(--hall-color-surface);
   --card-foreground: var(--hall-color-text);

@@ -55,8 +55,7 @@ export function AgendaRevisionControl({
         onRevise ? (
           <Explained title={state} text={t("meeting.revision.reviseHint")}>
             <Button
-              variant="ghost"
-              size="sm"
+              variant="plain"
               className="revision-control-revise"
               data-testid="meeting-revise-agenda"
               disabled={busy}
@@ -78,8 +77,8 @@ export function AgendaRevisionControl({
               text={t("meeting.revision.generateNoticeHint", { number: formatNumber(number) })}
             >
               <Button
-                variant="success"
-                size="icon-sm"
+                variant="primary"
+                size="icon"
                 className="revision-control-confirm"
                 data-testid="meeting-generate-notice"
                 aria-label={t("meeting.revision.generateNotice")}
@@ -96,8 +95,8 @@ export function AgendaRevisionControl({
               text={t("meeting.revision.resetHint", { number: formatNumber(Math.max(number - 1, 1)) })}
             >
               <Button
-                variant="destructive-outline"
-                size="icon-sm"
+                variant="danger"
+                size="icon"
                 className="revision-control-cancel"
                 data-testid="meeting-reset-agenda-revision"
                 aria-label={t("meeting.revision.reset")}

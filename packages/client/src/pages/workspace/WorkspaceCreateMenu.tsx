@@ -180,8 +180,8 @@ export function WorkspaceCreateMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant={compact ? "ghost" : "outline"}
-          size={compact ? "icon-xs" : "default"}
+          variant={compact ? "plain" : "secondary"}
+          size={compact ? "icon" : "default"}
           aria-label={
             extraOptions.length === 1 ? `${t("workspace.new")} · ${extraOptions[0]!.label}` : t("workspace.new")
           }

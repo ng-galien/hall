@@ -161,7 +161,7 @@ export function UserPage() {
                     />
                   )}
                   {contact ? (
-                    <Button asChild variant="link" className="justify-start px-0">
+                    <Button asChild variant="plain" className="justify-start px-0">
                       <Link to={`/contacts/${contact.id}`} data-testid="user-contact-link">
                         {contact.firstName} {contact.lastName}
                       </Link>
@@ -172,7 +172,7 @@ export function UserPage() {
                 </div>
               </div>
               {saveState === "error" && !invalid && (
-                <Button variant="outline" onClick={() => void flush()} data-testid="user-save-retry">
+                <Button variant="secondary" onClick={() => void flush()} data-testid="user-save-retry">
                   {t("common.retry")}
                 </Button>
               )}
@@ -197,7 +197,7 @@ export function UserPage() {
                 </div>
                 {canAssignRoles[userId] && (
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     onClick={async () => {
                       if (!(await flush())) return;
                       clearError();
@@ -221,7 +221,7 @@ export function UserPage() {
                     <p>{t("users.passwordResetDescription")}</p>
                   </div>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     data-testid="user-reset-password"
                     onClick={async () => {
                       if (!(await flush())) return;
@@ -247,7 +247,7 @@ export function UserPage() {
                     <p>{t("users.reactivateDescription")}</p>
                   </div>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     disabled={submitting}
                     data-testid="user-reactivate"
                     onClick={() =>
@@ -274,7 +274,7 @@ export function UserPage() {
                   <p>{t("users.revokeAccessDescription")}</p>
                 </div>
                 <Button
-                  variant="destructive"
+                  variant="danger"
                   onClick={async () => {
                     if (!(await flush())) return;
                     clearError();
@@ -293,7 +293,7 @@ export function UserPage() {
                   <p>{t("users.disableDescription")}</p>
                 </div>
                 <Button
-                  variant="destructive"
+                  variant="danger"
                   onClick={async () => {
                     if (!(await flush())) return;
                     clearError();
@@ -353,7 +353,7 @@ export function UserPage() {
             <RequestErrorBanner error={error} />
             <p>{t("users.disableConfirm", { name: user?.displayName ?? "" })}</p>
             <Button
-              variant="destructive"
+              variant="danger"
               disabled={submitting}
               data-testid="user-disable-confirm"
               onClick={() =>
@@ -380,7 +380,7 @@ export function UserPage() {
             <RequestErrorBanner error={error} />
             <p>{t("users.revokeAccessConfirm", { name: user?.displayName ?? "" })}</p>
             <Button
-              variant="destructive"
+              variant="danger"
               disabled={submitting}
               data-testid="user-revoke-access-confirm"
               onClick={() =>

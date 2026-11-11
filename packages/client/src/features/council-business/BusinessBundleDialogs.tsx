@@ -83,7 +83,7 @@ export function BusinessBundleExportDialog({ businessId, onClose }: { businessId
         </Button>
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           disabled={submitting || !firstName.trim() || !lastName.trim()}
           data-testid="bundle-export-share"
           onClick={() => deliver(true)}

@@ -258,7 +258,7 @@ export function RollCallView({
         <div className="rollcall-header-actions">
           {meetingActions.can("meeting.record-attendance") ? (
             <Button
-              variant="outline"
+              variant="secondary"
               disabled={submitting}
               onClick={markAllPresent}
               data-testid="live-attendance-all-present"
@@ -268,7 +268,7 @@ export function RollCallView({
           ) : null}
           {mode === "adjust" ? (
             <Button
-              variant="default"
+              variant="primary"
               data-testid="live-attendance-save"
               disabled={submitting || !meetingActions.can("meeting.record-attendance-events")}
               onClick={() =>
@@ -346,7 +346,7 @@ export function RollCallView({
                         <Button
                           className="rollcall-tile-menu"
                           data-testid={`live-member-actions-${member.id}`}
-                          variant="ghost"
+                          variant="plain"
                           size="icon"
                           aria-label={t("live.tileMenu")}
                         >
@@ -666,11 +666,11 @@ function ProxyModal({
         </fieldset>
 
         <div className="rollcall-proxy-actions">
-          <Button data-testid="live-proxy-cancel" variant="outline" type="button" onClick={onClose}>
+          <Button data-testid="live-proxy-cancel" variant="secondary" type="button" onClick={onClose}>
             {t("common.cancel")}
           </Button>
           <Button
-            variant="default"
+            variant="primary"
             data-testid="live-proxy-confirm"
             disabled={submitting || !holderId || !documentId}
             onClick={() => holderId && documentId && onSubmit(holderId, documentId, exception)}

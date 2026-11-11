@@ -146,7 +146,7 @@ export function SettingsPage() {
                   />
                   <p className="text-xs text-muted">{t("settings.expectedMemberCountDescription")}</p>
                 </div>
-                <Button variant="default" type="submit" disabled={submitting} data-testid="settings-council-term-save">
+                <Button variant="primary" type="submit" disabled={submitting} data-testid="settings-council-term-save">
                   {t(submitting ? "common.saving" : "common.save")}
                 </Button>
                 {settingsSaved ? (
@@ -221,7 +221,7 @@ export function SettingsPage() {
                 <div className="flex flex-wrap gap-2">
                   {passwordChangeAvailable && (
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       onClick={() => setPasswordOpen(true)}
                       data-testid="settings-change-password"
                     >

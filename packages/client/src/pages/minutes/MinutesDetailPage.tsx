@@ -229,8 +229,7 @@ function MinutesDetail({ id }: { id: string }) {
                 <div className="minutes-header-document-actions">
                   {draft.canPreview ? (
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="secondary"
                       disabled={draft.previewing || draft.generating}
                       data-testid="minutes-preview"
                       ref={documentTrigger}
@@ -242,7 +241,6 @@ function MinutesDetail({ id }: { id: string }) {
                   ) : null}
                   {draft.canGenerate ? (
                     <Button
-                      size="sm"
                       disabled={draft.generating || draft.previewing}
                       data-testid="minutes-generate"
                       onClick={() => void draft.generate()}
@@ -255,8 +253,7 @@ function MinutesDetail({ id }: { id: string }) {
                     <>
                       <Button
                         ref={documentTrigger}
-                        variant="outline"
-                        size="sm"
+                        variant="secondary"
                         data-testid="minutes-view-document"
                         onClick={draft.openDocument}
                       >
@@ -264,11 +261,10 @@ function MinutesDetail({ id }: { id: string }) {
                         {t("minutes.viewDocument")}
                       </Button>
                       <ShareButton
-                        size="sm"
                         testId="minutes-share"
                         file={() => apiFile(minutesContentHref(id), "proces-verbal.pdf")}
                       />
-                      <Button asChild variant="outline" size="sm">
+                      <Button asChild variant="secondary">
                         <a href={minutesContentHref(id)} download data-testid="minutes-download">
                           <ArrowDownIcon aria-hidden="true" />
                           {t("minutes.download")}
@@ -287,7 +283,7 @@ function MinutesDetail({ id }: { id: string }) {
         {draft.loading ? (
           <EmptyState>{t("common.loading")}</EmptyState>
         ) : !minutes ? (
-          <Button variant="outline" data-testid="minutes-open-retry" onClick={() => void draft.load()}>
+          <Button variant="secondary" data-testid="minutes-open-retry" onClick={() => void draft.load()}>
             {t("common.retry")}
           </Button>
         ) : null}
@@ -331,7 +327,7 @@ function MinutesDetail({ id }: { id: string }) {
                 />
               ))}
               {draft.saveStatus === "error" ? (
-                <Button variant="outline" data-testid="minutes-save-retry" onClick={() => void draft.flush()}>
+                <Button variant="secondary" data-testid="minutes-save-retry" onClick={() => void draft.flush()}>
                   {t("common.retry")}
                 </Button>
               ) : null}

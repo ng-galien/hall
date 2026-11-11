@@ -247,7 +247,7 @@ export function CouncilMemberPage() {
               </div>
             </div>
             {saveState === "error" ? (
-              <Button variant="outline" onClick={() => void save()}>
+              <Button variant="secondary" onClick={() => void save()}>
                 {t("common.retry")}
               </Button>
             ) : null}

@@ -156,7 +156,7 @@ export function EventResourceEditor({
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             data-testid="event-invitation-request"
             disabled={!valid || generatingInvitation || councilBusinessSaving || status === "saving"}
             onClick={async () => {
@@ -177,7 +177,7 @@ export function EventResourceEditor({
           </Button>
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             data-testid="event-invitation-cancel"
             disabled={!valid || generatingInvitation || councilBusinessSaving || status === "saving"}
             onClick={async () => {

@@ -673,7 +673,7 @@
     grid-template-rows: auto auto minmax(0, 1fr);
     align-content: start;
   }
-  .search-palette .wsearch-field { background: var(--hall-color-canvas); box-shadow: none; }
+  .search-palette .wsearch-field { background: var(--hall-color-field); box-shadow: none; }
   .search-palette-results { min-height: 0; overflow-y: auto; }
   .search-palette-hint {
     margin: 0;

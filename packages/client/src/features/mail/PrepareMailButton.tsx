@@ -33,7 +33,7 @@ export function PrepareMailButton({ input, testId }: { input: z.infer<typeof pre
   return (
     <>
       <Button
-        variant="outline"
+        variant="secondary"
         data-testid={testId}
         disabled={busy}
         onClick={() => {

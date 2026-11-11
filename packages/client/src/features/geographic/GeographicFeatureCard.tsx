@@ -112,8 +112,7 @@ export function GeographicFeatureCard({
         {municipal.municipalOnly !== null ? (
           <Button
             type="button"
-            size="sm"
-            variant="outline"
+            variant="secondary"
             aria-pressed={municipal.municipalOnly}
             data-testid="geographic-feature-card-municipal-only"
             onClick={() => onMunicipalOnly(!municipal.municipalOnly)}

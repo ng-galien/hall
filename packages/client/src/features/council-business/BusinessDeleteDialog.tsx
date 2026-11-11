@@ -32,7 +32,7 @@ export function BusinessDeleteDialog({
         <RequestErrorBanner error={error} />
         <p>{t("business.deleteConfirm", { name: name })}</p>
         <Button
-          variant="destructive"
+          variant="danger"
           disabled={submitting}
           data-testid="business-delete-confirm"
           onClick={() =>

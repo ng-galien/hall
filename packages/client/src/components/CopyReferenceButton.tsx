@@ -30,13 +30,7 @@ export function copyObjectReference(reference: ObjectReference): Promise<void> {
 const copiedFeedbackMs = 1600;
 
 /** Copies the reference of the object open on the page in one gesture. */
-export function CopyReferenceButton({
-  reference,
-  size = "icon",
-}: {
-  reference: ObjectReference;
-  size?: "icon" | "icon-sm";
-}) {
+export function CopyReferenceButton({ reference, size = "icon" }: { reference: ObjectReference; size?: "icon" }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const timer = useRef<number | undefined>(undefined);
@@ -47,7 +41,7 @@ export function CopyReferenceButton({
       <TooltipTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
+          variant="plain"
           size={size}
           data-testid="copy-object-reference"
           data-copied={copied ? "true" : undefined}

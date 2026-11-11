@@ -90,7 +90,7 @@ export function MailGroups({
           </ListRows>
         ) : null}
         {groups?.representation && findSirenAction(groups.representation, "mail-group.create") ? (
-          <Button variant="outline" data-testid="mail-group-new" onClick={() => void edit()}>
+          <Button variant="secondary" data-testid="mail-group-new" onClick={() => void edit()}>
             {t("mail.newGroup")}
           </Button>
         ) : null}
@@ -114,7 +114,7 @@ export function MailGroups({
             />
             {id && findSirenAction(current, "mail-group.delete") ? (
               <Button
-                variant="ghost"
+                variant="plain"
                 data-testid="mail-group-delete"
                 disabled={busy}
                 onClick={() => setDeleteOpen(true)}
@@ -126,7 +126,7 @@ export function MailGroups({
               <div>
                 <p>{t("mail.deleteGroupHelp")}</p>
                 <Button
-                  variant="destructive"
+                  variant="danger"
                   data-testid="mail-group-delete-confirm"
                   disabled={busy}
                   onClick={() => {

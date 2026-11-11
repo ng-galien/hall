@@ -122,8 +122,8 @@ export function MeetingLocationsSettings({
                   <>
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon-sm"
+                      variant="plain"
+                      size="icon"
                       disabled={submitting || index === 0}
                       aria-label={t("settings.meetingLocationMoveUp", { name: name })}
                       title={t("settings.meetingLocationMoveUp", { name: name })}
@@ -134,8 +134,8 @@ export function MeetingLocationsSettings({
                     </Button>
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon-sm"
+                      variant="plain"
+                      size="icon"
                       disabled={submitting}
                       aria-label={t("settings.meetingLocationRemove", { name: name })}
                       title={t("settings.meetingLocationRemove", { name: name })}
@@ -175,7 +175,7 @@ export function MeetingLocationsSettings({
         />
         <Button
           type="submit"
-          variant="outline"
+          variant="secondary"
           data-testid="settings-meeting-location-add"
           disabled={submitting || !newLocation.trim()}
         >

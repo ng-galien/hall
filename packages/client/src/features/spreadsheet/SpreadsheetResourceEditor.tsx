@@ -156,7 +156,7 @@ export function SpreadsheetResourceEditor({
       <div className="spreadsheet-editor" data-testid="spreadsheet-editor" data-save-status={saveStatus}>
         {dirty && saveFailed ? (
           <div className="spreadsheet-save-error">
-            <Button type="button" variant="ghost" data-testid="spreadsheet-retry-save" onClick={() => void save()}>
+            <Button type="button" variant="plain" data-testid="spreadsheet-retry-save" onClick={() => void save()}>
               {t("common.retry")}
             </Button>
           </div>

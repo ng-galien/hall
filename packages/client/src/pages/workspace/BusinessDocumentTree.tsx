@@ -126,8 +126,8 @@ function DocumentBranch({
             <TooltipTrigger asChild>
               <Button
                 className="business-document-view"
-                variant="ghost"
-                size="icon-xs"
+                variant="plain"
+                size="icon"
                 data-testid={`business-document-view-${resource.id}`}
                 aria-label={t("workspace.openDocumentFullscreen")}
                 onClick={() => onOpen(resource.id)}

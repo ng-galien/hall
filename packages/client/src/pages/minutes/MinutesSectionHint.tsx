@@ -8,8 +8,8 @@ export function MinutesSectionHint({ text }: { text: string }) {
       <TooltipTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
-          size="icon-xs"
+          variant="plain"
+          size="icon"
           className="minutes-section-hint hover:bg-[var(--hall-color-surface-subtle)]"
           aria-label={text}
         >

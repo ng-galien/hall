@@ -55,8 +55,7 @@ export function TemplateDecorationField({
           <>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
+              variant="secondary"
               data-testid={`${testId}-insert-image`}
               onClick={() => input.current?.click()}
             >

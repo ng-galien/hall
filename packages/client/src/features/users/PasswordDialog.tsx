@@ -114,7 +114,7 @@ export function PasswordDialog({
           {onGenerate && (
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               data-testid="passphrase-generate"
               onClick={() =>
                 void onGenerate().then(
@@ -173,7 +173,12 @@ export function PasswordDialog({
         <section className="authentication-panel">
           <h1>{title}</h1>
           {form}
-          <Button variant="outline" disabled={submitting} onClick={onLogout} data-testid="password-replacement-logout">
+          <Button
+            variant="secondary"
+            disabled={submitting}
+            onClick={onLogout}
+            data-testid="password-replacement-logout"
+          >
             {t("settings.logout")}
           </Button>
         </section>

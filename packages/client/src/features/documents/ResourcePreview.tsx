@@ -139,7 +139,7 @@ export function ResourcePreviewWithSession({
                       testId="resource-preview-share"
                       file={() => documentaryResourceFile(resource, session.representation!)}
                     />
-                    <Button variant="outline" data-testid="resource-preview-download" onClick={download}>
+                    <Button variant="secondary" data-testid="resource-preview-download" onClick={download}>
                       {t("common.download")}
                     </Button>
                   </>

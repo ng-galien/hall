@@ -2,7 +2,7 @@
 :root {
   color-scheme: light;
 
-  --hall-color-canvas: #f2f4f7;
+  /* Every screen is white: the page itself is the surface, separated by rules, never grey with white panels. */
   --hall-color-surface: #ffffff;
   --hall-color-surface-subtle: #f6f7f9;
   --hall-color-surface-selected: #e9ecf1;
@@ -11,12 +11,16 @@
   --hall-color-text: #161a20;
   --hall-color-text-muted: #5b6472;
   --hall-color-text-subtle: #646d7a;
-  /* Distinct from #000091, which is reserved to the French state identity. */
-  --hall-color-brand: #1b2a78;
-  --hall-color-brand-hover: #24369a;
-  --hall-color-brand-pressed: #131e58;
+  /* The single blue of Hall: main button, active destination, link, focus. Distinct from #000091, which is reserved
+     to the French state identity. */
+  --hall-color-brand: #2457d6;
+  --hall-color-brand-hover: #1e4bbd;
+  --hall-color-brand-pressed: #1a40a3;
   --hall-color-on-brand: #ffffff;
-  --hall-color-brand-subtle: #eceefa;
+  /* Pale blue of the secondary button, with the dark text of the same blue. */
+  --hall-color-brand-subtle: #e9edf7;
+  --hall-color-brand-subtle-hover: #dde3f3;
+  --hall-color-on-brand-subtle: #1b2a78;
   --hall-color-brand-border: #c3caec;
   --hall-color-selection-subtle: #f5f6fc;
   --hall-color-selection-border: #d9def3;
@@ -49,9 +53,13 @@
   --hall-color-danger-border-strong: #dc8f8f;
   --hall-color-danger-surface: #fdf0f0;
   --hall-color-danger-surface-strong: #b42323;
-  --hall-color-focus: #4a63c8;
+  --hall-color-focus: #2457d6;
+  /* Filled field: tinted surface and an underline that turns blue on focus. */
+  --hall-color-field: #eef1f5;
+  --hall-color-field-hover: #e6eaf0;
+  --hall-color-field-line: #42506a;
   /* Meeting mode layer, aliased so it follows the active theme. */
-  --hall-color-ink: var(--hall-color-canvas);
+  --hall-color-ink: var(--hall-color-surface);
   --hall-color-ink-raised: var(--hall-color-surface);
   --hall-color-ink-hover: var(--hall-color-surface-selected);
   --hall-color-ink-border: var(--hall-color-border);
@@ -328,7 +336,6 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --hall-color-canvas: #12141a;
   --hall-color-surface: #191c24;
   --hall-color-surface-subtle: #1e222b;
   --hall-color-surface-selected: #282d38;
@@ -337,11 +344,13 @@
   --hall-color-text: #e7e9ee;
   --hall-color-text-muted: #a0a7b4;
   --hall-color-text-subtle: #848b98;
-  --hall-color-brand: #93a4f0;
-  --hall-color-brand-hover: #aab8f5;
-  --hall-color-brand-pressed: #7d8fe4;
+  --hall-color-brand: #7f9cf0;
+  --hall-color-brand-hover: #98b0f4;
+  --hall-color-brand-pressed: #6b8ae6;
   --hall-color-on-brand: #0c1030;
-  --hall-color-brand-subtle: #1d2244;
+  --hall-color-brand-subtle: #232a4d;
+  --hall-color-brand-subtle-hover: #2c3460;
+  --hall-color-on-brand-subtle: #c9d3f8;
   --hall-color-brand-border: #383f6e;
   --hall-color-selection-subtle: #1c2030;
   --hall-color-selection-border: #343b5e;
@@ -371,7 +380,10 @@
   --hall-color-nature-visual: #a68cf0;
   --hall-color-nature-council: #d5dbe5;
   --hall-color-nature-folder: #9aa5b8;
-  --hall-color-focus: #7f95e8;
+  --hall-color-focus: #7f9cf0;
+  --hall-color-field: #23272f;
+  --hall-color-field-hover: #2a2f39;
+  --hall-color-field-line: #9aa5b8;
   --hall-color-disabled-surface: #23272f;
   --hall-color-disabled-text: #6b7280;
 

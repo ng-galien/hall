@@ -145,7 +145,7 @@ export function Modal({
           <DialogTitle>{title}</DialogTitle>
           <Button
             size="icon"
-            variant="ghost"
+            variant="plain"
             aria-label={t("common.close")}
             data-testid={testId ? `${testId}-close` : undefined}
             onClick={onClose}
@@ -291,7 +291,7 @@ export function RequestErrorBanner({
       {onDismiss ? (
         <Button
           type="button"
-          variant="ghost"
+          variant="plain"
           size="icon"
           onClick={onDismiss}
           aria-label={t("common.close")}

@@ -49,8 +49,8 @@ export function MailRecipients({
             {!disabled ? (
               <Button
                 type="button"
-                variant="ghost"
-                size="icon-sm"
+                variant="plain"
+                size="icon"
                 data-testid={`${testId}-remove-${index}`}
                 aria-label={t("mail.remove")}
                 onClick={() => onChange(recipients.filter((_, position) => position !== index))}

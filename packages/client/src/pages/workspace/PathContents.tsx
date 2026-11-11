@@ -1181,7 +1181,7 @@ export function PathContents({
         action={
           phone ? undefined : (
             <Button
-              variant="ghost"
+              variant="plain"
               size="icon"
               data-testid={`workspace-folder-open-${folderPath}`}
               aria-label={t("workspace.open")}

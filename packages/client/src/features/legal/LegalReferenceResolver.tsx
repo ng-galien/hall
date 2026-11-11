@@ -170,7 +170,7 @@ export function LegalReferenceResolver({
         ) : null}
       </div>
       <div className="legal-reference-setup-actions">
-        <Button asChild variant="outline">
+        <Button asChild variant="secondary">
           <a href={selected?.sourceUrl ?? "https://www.legifrance.gouv.fr/"} target="_blank" rel="noreferrer">
             <OpenIcon aria-hidden="true" />
             {t("legalReference.openOfficialSource")}

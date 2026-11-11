@@ -110,7 +110,7 @@ export function BallotOutcome({
               <PopoverTrigger asChild>
                 <Button
                   className="justify-self-start"
-                  variant="ghost"
+                  variant="plain"
                   size="icon"
                   aria-label={t("ballot.resultInformation")}
                   data-testid={`report-ballot-info-${ballot.id}`}

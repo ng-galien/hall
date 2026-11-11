@@ -907,7 +907,7 @@
     min-height: 0;
     overflow-y: auto;
     padding: var(--hall-space-5);
-    background: var(--hall-color-canvas);
+    background: var(--hall-color-surface);
   }
 
   .report-timeline-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--hall-space-3); }

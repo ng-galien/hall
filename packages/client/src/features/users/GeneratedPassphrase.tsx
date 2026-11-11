@@ -25,7 +25,7 @@ export function GeneratedPassphrase({
         </code>
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           data-testid="passphrase-copy"
           onClick={() =>
             void navigator.clipboard.writeText(passphrase).then(

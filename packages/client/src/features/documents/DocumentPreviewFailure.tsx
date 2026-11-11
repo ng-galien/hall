@@ -6,7 +6,7 @@ export function DocumentPreviewFailure({ onRetry }: { onRetry(): void }) {
   return (
     <div className="document-preview-failure">
       <p role="alert">{t("resources.previewFailed")}</p>
-      <Button variant="outline" onClick={onRetry}>
+      <Button variant="secondary" onClick={onRetry}>
         {t("common.retry")}
       </Button>
     </div>

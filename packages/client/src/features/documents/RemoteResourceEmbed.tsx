@@ -31,7 +31,7 @@ export function RemoteResourceEmbed({
           </a>
         </Button>
         {onEdit ? (
-          <Button variant="outline" data-testid="remote-resource-edit" onClick={onEdit}>
+          <Button variant="secondary" data-testid="remote-resource-edit" onClick={onEdit}>
             <EditIcon aria-hidden="true" />
             {t("workspace.editRemoteUrl")}
           </Button>
@@ -46,7 +46,7 @@ export function RemoteResourceEmbed({
           {url}
         </span>
         {onEdit ? (
-          <Button variant="ghost" size="sm" data-testid="remote-resource-edit" onClick={onEdit}>
+          <Button variant="plain" data-testid="remote-resource-edit" onClick={onEdit}>
             <EditIcon aria-hidden="true" />
             {t("workspace.editRemoteUrl")}
           </Button>

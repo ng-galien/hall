@@ -1,0 +1,43 @@
+/* @implements-requirement HALL-FR-LAY-090 */
+/* Button 5B: solid blue for the one main action, pale blue for the others, solid red for deletion. */
+@layer components {
+  .hall-button {
+    display: inline-flex;
+    min-height: var(--hall-size-control);
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: var(--hall-space-1-5);
+    padding: 0 var(--hall-space-3);
+    border: 0;
+    border-radius: var(--hall-radius-small);
+    font: inherit;
+    font-size: var(--hall-font-size-body);
+    font-weight: var(--hall-font-weight-semibold);
+    line-height: var(--hall-line-height-body-small);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color var(--hall-motion-fast) var(--hall-motion-curve-standard);
+  }
+  .hall-button > svg { flex: none; font-size: var(--hall-font-size-icon); pointer-events: none; }
+  .hall-button:disabled { cursor: default; opacity: var(--hall-opacity-disabled); }
+  .hall-button[data-variant="primary"] { color: var(--hall-color-on-brand); background: var(--hall-color-brand); }
+  .hall-button[data-variant="primary"]:hover:not(:disabled) { background: var(--hall-color-brand-hover); }
+  .hall-button[data-variant="primary"]:active:not(:disabled) { background: var(--hall-color-brand-pressed); }
+  .hall-button[data-variant="secondary"] { color: var(--hall-color-on-brand-subtle); background: var(--hall-color-brand-subtle); }
+  .hall-button[data-variant="secondary"]:hover:not(:disabled),
+  .hall-button[data-variant="secondary"][aria-expanded="true"],
+  .hall-button[data-variant="secondary"][aria-pressed="true"],
+  .hall-button[data-variant="secondary"][data-state="on"] { background: var(--hall-color-brand-subtle-hover); }
+  .hall-button[data-variant="danger"] { color: var(--hall-color-on-brand); background: var(--hall-color-danger); }
+  .hall-button[data-variant="danger"]:hover:not(:disabled) { background: var(--hall-color-danger-strong); }
+  .hall-button[data-variant="plain"] { color: var(--hall-color-text-muted); background: transparent; }
+  .hall-button[data-variant="plain"]:hover:not(:disabled),
+  .hall-button[data-variant="plain"][aria-expanded="true"] { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
+  .hall-button[data-variant="plain"][aria-pressed="true"],
+  .hall-button[data-variant="plain"][data-state="on"],
+  .hall-button[data-variant="plain"][data-active="true"] { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
+  .hall-button[data-size="icon"] { width: var(--hall-size-control); padding: 0; }
+  .hall-button[data-size="icon"] > svg { font-size: var(--hall-font-size-icon-large); }
+}

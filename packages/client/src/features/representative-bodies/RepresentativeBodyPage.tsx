@@ -327,7 +327,7 @@ export function RepresentativeBodyPage({
               </div>
             </div>
             {saveState === "error" ? (
-              <Button variant="outline" onClick={() => void save()}>
+              <Button variant="secondary" onClick={() => void save()}>
                 {t("common.retry")}
               </Button>
             ) : null}
@@ -345,7 +345,7 @@ export function RepresentativeBodyPage({
                 <Badge variant="secondary">{activeMemberships.length}</Badge>
                 {capability?.canAddMembership ? (
                   <Button
-                    variant={paletteOpen ? "secondary" : "outline"}
+                    variant={paletteOpen ? "secondary" : "secondary"}
                     data-testid={testId("add-members")}
                     aria-expanded={paletteOpen}
                     onClick={() => setPaletteOpen((open) => !open)}
@@ -395,7 +395,7 @@ export function RepresentativeBodyPage({
                       {bodyKind.roles.map((role) => (
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="secondary"
                           disabled={submitting || availableSelection.size === 0 || !membershipStartedOn}
                           data-testid={testId(`add-role-${role}`)}
                           onClick={() => void addSelectedMembers(role)}
@@ -498,13 +498,12 @@ export function RepresentativeBodyPage({
                   <Link data-testid={testId("contact-link")} to={`/contacts/${selectedMembership.contactId}`}>
                     {t(text.openMember)}
                   </Link>
-                  <Button variant="ghost" size="sm" onClick={() => openMembershipEditor(selectedMembership)}>
+                  <Button variant="plain" onClick={() => openMembershipEditor(selectedMembership)}>
                     {t(text.editDates)}
                   </Button>
                   {canEndMembership(selectedMembership) ? (
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="secondary"
                       data-testid={testId("end-membership")}
                       onClick={() => openMembershipEnd(selectedMembership)}
                     >
@@ -532,7 +531,7 @@ export function RepresentativeBodyPage({
                         }`}
                         action={
                           canUpdateMembership(membership) ? (
-                            <Button variant="ghost" size="sm" onClick={() => openMembershipEditor(membership)}>
+                            <Button variant="plain" onClick={() => openMembershipEditor(membership)}>
                               {t("common.edit")}
                             </Button>
                           ) : undefined
@@ -552,7 +551,7 @@ export function RepresentativeBodyPage({
                 <p>{t(text.archiveDescription)}</p>
               </div>
               <Button
-                variant="destructive"
+                variant="danger"
                 disabled={submitting}
                 data-testid={testId("archive")}
                 onClick={() => void archiveBody()}
@@ -609,12 +608,7 @@ export function RepresentativeBodyPage({
                 onChange={(event) => setMembershipEndDate(event.currentTarget.value)}
               />
             </div>
-            <Button
-              type="submit"
-              variant="destructive"
-              disabled={submitting}
-              data-testid={testId("end-membership-confirm")}
-            >
+            <Button type="submit" variant="danger" disabled={submitting} data-testid={testId("end-membership-confirm")}>
               {t(submitting ? "common.saving" : text.confirmEndMembership)}
             </Button>
           </form>

@@ -46,7 +46,7 @@ export function PhoneDocumentActions({ actions }: { actions: PhoneDocumentAction
         <DropdownMenuTrigger asChild>
           <Button
             className="app-phone-header-more"
-            variant="ghost"
+            variant="plain"
             size="icon"
             data-testid="phone-document-actions"
             aria-label={t("workspace.documentActions")}

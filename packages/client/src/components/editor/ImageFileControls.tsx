@@ -49,7 +49,7 @@ export function ImageFileControls({
       {uploadPhoto && upload ? (
         <>
           <Button
-            variant="outline"
+            variant="secondary"
             type="button"
             data-testid="editor-upload-image"
             disabled={busy}
@@ -71,7 +71,7 @@ export function ImageFileControls({
       {photoUpload ? (
         <>
           <Button
-            variant="outline"
+            variant="secondary"
             type="button"
             className="editor-photo-control"
             data-testid="editor-choose-image"
@@ -82,7 +82,7 @@ export function ImageFileControls({
             {t("editor.choosePhoto")}
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             type="button"
             className="editor-photo-control"
             data-testid="editor-take-photo"

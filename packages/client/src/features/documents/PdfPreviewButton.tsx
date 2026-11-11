@@ -107,7 +107,7 @@ export function PdfPreviewButton({
   const { referencesDocuments, status, openPreview, view } = usePdfPreview({ markdown, title, testId, viewerTestId });
   const buttonProps = {
     "data-testid": testId,
-    variant: "outline",
+    variant: "secondary",
     disabled: disabled || status === "loading",
   } as const;
   const buttonContent = (

@@ -248,7 +248,7 @@ export function CouncilBusinessWorkbench({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="ghost"
+                      variant="plain"
                       size="icon"
                       aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
                       aria-pressed={pinned}
@@ -297,7 +297,7 @@ export function CouncilBusinessWorkbench({
               <div className="business-report-load-failure" data-testid="business-report-load-error">
                 <RequestErrorBanner error={reportSession.actionError ?? "request_failed"} />
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => void reportSession.reload()}
                   data-testid="business-report-retry"
                 >
@@ -321,7 +321,7 @@ export function CouncilBusinessWorkbench({
               <span className="composer-editor-spacer" />
               <Button
                 data-testid="business-report-save"
-                variant="default"
+                variant="primary"
                 disabled={submitting || reportSession.submitting || !reportSession.dirty || !reportSession.editable}
                 onClick={() => void run(saveReport)}
               >

@@ -272,7 +272,7 @@ export function MapsPage() {
                 {opened.name}
               </h1>
               <CopyReferenceButton
-                size="icon-sm"
+                size="icon"
                 reference={{
                   name: opened.name,
                   path: opened.path || undefined,

@@ -719,7 +719,7 @@ export function ConductView({
             {recusals.state && (recusals.canRecord || recusals.state.recusals.length > 0) ? (
               <Popover open={recusalDetailsOpen} onOpenChange={setRecusalDetailsOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="conduct-recusal-trigger" data-testid="live-recusal-info">
+                  <Button variant="secondary" className="conduct-recusal-trigger" data-testid="live-recusal-info">
                     <InfoIcon aria-hidden="true" />
                     {t("recusal.listTitle")}
                   </Button>
@@ -742,7 +742,7 @@ export function ConductView({
                     ) : null}
                     {recusals.canRecord ? (
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         data-testid="agenda-item-recusal-open"
                         onClick={() => {
                           setRecusalDetailsOpen(false);
@@ -1078,7 +1078,7 @@ export function ConductView({
             <p>{t("live.adjournConfirmation")}</p>
             <div className="ballot-preview-actions">
               <Button
-                variant="outline"
+                variant="secondary"
                 disabled={submitting}
                 data-testid="live-adjourn-cancel"
                 onClick={() => setAdjournConfirming(false)}
@@ -1086,7 +1086,7 @@ export function ConductView({
                 {t("common.cancel")}
               </Button>
               <Button
-                variant="destructive"
+                variant="danger"
                 disabled={submitting}
                 data-testid="live-adjourn-confirm"
                 onClick={() =>
@@ -1181,7 +1181,7 @@ export function ConductView({
                   onPick={({ id, label }) => setQuestionBusiness({ id, label })}
                 />
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   type="button"
                   aria-pressed={questionBusiness === "new"}
                   data-testid="live-add-question-new-business"
@@ -1192,7 +1192,7 @@ export function ConductView({
                   {t("live.newBusiness")}
                 </Button>
                 <Button
-                  variant="default"
+                  variant="primary"
                   type="submit"
                   disabled={submitting || !questionBusiness}
                   data-testid="live-add-question-submit"

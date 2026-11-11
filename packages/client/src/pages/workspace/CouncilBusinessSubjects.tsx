@@ -221,8 +221,8 @@ function SubjectTableRow({
                 </Link>
                 {deprogram ? (
                   <Button
-                    variant="ghost"
-                    size="icon-xs"
+                    variant="plain"
+                    size="icon"
                     data-testid={`business-subject-unschedule-${subject.id}`}
                     disabled={pending}
                     aria-label={`${t("workspace.unschedule")} · ${meetingLabel}`}
@@ -234,8 +234,7 @@ function SubjectTableRow({
               </Badge>
             ) : schedule ? (
               <Button
-                variant="outline"
-                size="xs"
+                variant="secondary"
                 data-testid={`business-subject-schedule-${subject.id}`}
                 disabled={pending}
                 onClick={() => run("agenda-item.schedule-prepared")}

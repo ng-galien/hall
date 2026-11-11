@@ -11069,6 +11069,166 @@
         }
       ]
     },
+    "HALL-FR-LAY-090": {
+      "name": "INTERFACE_BUTTONS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Les boutons de Hall suivent un seul dessin : l’action principale d’un écran en bleu plein, les autres actions sur fond bleu pâle, la suppression en rouge plein.",
+      "acceptanceCriteria": [
+        "Un écran porte au plus un bouton bleu plein, celui de son action principale.",
+        "Les autres actions sont des boutons sur fond bleu pâle sans contour ; une icône seule ou un menu ⋯ est dessiné sans fond.",
+        "Le rouge plein est réservé à la suppression et à sa confirmation ; il ne sert jamais au bouton principal.",
+        "Une action indisponible pour l’utilisateur est absente, jamais grisée.",
+        "Les boutons ont des angles peu arrondis ; aucun bouton n’a une forme de pilule."
+      ],
+      "clauses": [
+        {
+          "key": "buttons-5b",
+          "origin": "product",
+          "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 5B ; mots du propriétaire : « 5B ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-100": {
+      "name": "SCREEN_HEADER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Chaque écran de Hall est coiffé du même bandeau à grand titre : une première ligne qui dit où l’on est, le titre de l’écran en grand dessous.",
+      "acceptanceCriteria": [
+        "Au téléphone, la première ligne porte le nom de la commune sur un écran de premier niveau et, sur un écran intérieur, le nom de l’écran parent précédé d’une flèche de retour ; sur ordinateur et tablette, le fil d’Ariane tient lieu de cette ligne.",
+        "À droite de la première ligne se trouvent l’action propre à l’écran puis les initiales de l’utilisateur, qui ouvrent son compte.",
+        "Le titre de l’écran est écrit en grand sous la première ligne ; dès que le contenu défile, il remonte dans la première ligne et le bandeau tient sur une ligne.",
+        "Le titre n’est pas répété dans le contenu de l’écran.",
+        "Chaque écran est blanc : son contenu est posé sur le fond blanc et séparé par des filets, sans fond gris ni panneau blanc posé dessus."
+      ],
+      "clauses": [
+        {
+          "key": "screen-header-2b",
+          "origin": "product",
+          "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 2B et fond F2 ; mots du propriétaire : « je trouve que 2B est bien », « Les couleurs avec le fond gris et l’apparent en blanc, on avait dit qu’on ne prenait plus ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-110": {
+      "name": "PRIMARY_NAVIGATION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "La navigation principale montre chaque destination par une icône en trait et un libellé permanent, et marque la destination active en bleu.",
+      "acceptanceCriteria": [
+        "Au téléphone, la barre du bas présente cinq entrées avec leur icône et leur libellé : Accueil, Documents, Agenda, Séances et Plus, selon les droits de l’utilisateur.",
+        "L’entrée active est en bleu, son libellé en gras et son icône d’un trait plus épais ; les autres sont grises ; aucune icône n’est pleine et l’entrée active n’a ni pavé ni trait.",
+        "Sur ordinateur et tablette, le panneau latéral et son arbre emploient les mêmes icônes en trait et le même état actif."
+      ],
+      "clauses": [
+        {
+          "key": "primary-navigation-1a",
+          "origin": "product",
+          "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 1A sans le trait, icônes en trait ; mots du propriétaire : « je préfère un A ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-120": {
+      "name": "CREATE_ACTION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Créer un élément passe par un seul bouton « + Nouveau » qui ouvre la liste des types qu’on peut créer à cet endroit.",
+      "acceptanceCriteria": [
+        "Au téléphone, « + Nouveau » flotte en bas à droite de l’écran et se réduit à un « + » dès que le contenu défile ; la liste garde une marge sous sa dernière ligne.",
+        "Au téléphone, le bouton ouvre une feuille du bas où chaque type est une ligne de liste avec son icône, son nom et une phrase ; les gestes courants viennent d’abord et les autres types sont derrière « Autre ».",
+        "Sur ordinateur et tablette, « + Nouveau » est dans le bandeau et ouvre un menu fait des mêmes lignes.",
+        "Quand un seul type peut être créé, le bouton le crée directement.",
+        "Le bouton n’apparaît que si l’utilisateur peut créer au moins un type à cet endroit."
+      ],
+      "clauses": [
+        {
+          "key": "create-6b2-6m2",
+          "origin": "product",
+          "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 6B-2 et 6M-2 ; mots du propriétaire : « Ouais, 6B2 ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-130": {
+      "name": "TEXT_READ_AND_WRITE_MODES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Un texte s’ouvre en lecture ou en écriture selon deux modes nets, « Modifier » puis « Terminé ».",
+      "acceptanceCriteria": [
+        "Une note qu’on vient de créer s’ouvre en écriture.",
+        "Au téléphone, un texte existant s’ouvre en lecture, avec « Modifier » dans le bandeau pour qui peut l’écrire ; une personne sans droit d’écriture ne voit que la lecture.",
+        "En écriture, les outils sont sous le bandeau et « Terminé », en bleu plein dans le bandeau, enregistre le texte et revient à la lecture."
+      ],
+      "clauses": [
+        {
+          "key": "writing-8b",
+          "origin": "product",
+          "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 8B ; mots du propriétaire : « Donc, B. ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-140": {
+      "name": "FORM_FIELDS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Les champs de saisie de Hall sont des champs pleins, soulignés, avec leur libellé écrit en petit à l’intérieur.",
+      "acceptanceCriteria": [
+        "Un champ a un fond teinté et un trait sous la saisie, qui passe au bleu pendant la saisie ; il n’a pas de contour.",
+        "Le libellé reste visible en petit à l’intérieur du champ pendant la saisie ; l’aide est écrite sous le champ.",
+        "Les champs qui vont ensemble, comme une date et une heure ou un téléphone et une adresse électronique, partagent une rangée quand la largeur le permet.",
+        "Le texte saisi mesure 16 pixels."
+      ],
+      "clauses": [
+        {
+          "key": "fields-12d",
+          "origin": "product",
+          "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 12D ; mots du propriétaire : « 12D ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-LAY-030": {
+      "name": "INTERFACE_COMPONENT_AUTHORITY",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Chaque objet d’interface a un seul composant, employé partout, et des contrôles exécutables empêchent le retour des composants, classes et jetons qu’il a remplacés.",
+      "acceptanceCriteria": [
+        "packages/client/tests/interface-authority.test.mjs, exécuté en intégration continue, échoue si un bouton natif est écrit hors des composants partagés, si une variante de bouton retirée, un composant ou une classe retirés réapparaissent, si le fond gris de page revient, ou si une icône pleine est employée.",
+        "Le bandeau, la navigation principale, le bouton, le bouton de création, la feuille du bas et le champ ont chacun un seul composant dans packages/client/src."
+      ],
+      "clauses": [
+        {
+          "key": "component-authority",
+          "origin": "product",
+          "statement": "Mots du propriétaire : « j’ai peur […] si on va pas faire des bricolages […] si on va pas conserver du legacy », « peut-être c’est plus raisonnable de partir sur une baseline plus propre ».",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-DST-030": {
       "name": "EXACT_SOURCE_VALIDATED_RELEASE_PUBLICATION",
       "nature": "technical",

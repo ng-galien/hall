@@ -147,7 +147,7 @@ export function ResourceWorkbench({
               <Button
                 className="composer-vote-toggle"
                 data-testid="resource-delete"
-                variant="ghost"
+                variant="plain"
                 disabled={session.submitting}
                 onClick={() => setConfirmingDelete(true)}
               >

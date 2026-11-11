@@ -740,7 +740,7 @@ export function GeographicResourceMap({
         {conflict ? (
           <div className="geographic-conflict" role="alert">
             <span>{t("geographic.conflict")}</span>
-            <Button type="button" variant="outline" data-testid="geographic-conflict-retry" onClick={retryConflict}>
+            <Button type="button" variant="secondary" data-testid="geographic-conflict-retry" onClick={retryConflict}>
               {t("geographic.retryConflict")}
             </Button>
           </div>
@@ -752,8 +752,7 @@ export function GeographicResourceMap({
               canUpdate ? (
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  variant="secondary"
                   className="geographic-save-view"
                   data-testid="geographic-save-view"
                   disabled={conflict || sameGeographicView(displayedView, draft.view)}

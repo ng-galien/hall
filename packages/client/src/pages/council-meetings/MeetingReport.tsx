@@ -107,7 +107,7 @@ export function MeetingReport({
           <section className="meeting-side-section" aria-label={t("meeting.attendance")}>
             <div className="report-attendance-overview">
               <Button
-                variant="ghost"
+                variant="plain"
                 size="icon"
                 className="report-attendance-toggle border border-transparent hover:border-[var(--hall-color-border)] hover:bg-[var(--hall-color-surface-subtle)] focus-visible:border-[var(--hall-color-border-strong)] focus-visible:bg-[var(--hall-color-surface-subtle)] aria-expanded:border-[var(--hall-color-border)] aria-expanded:bg-[var(--hall-color-surface-subtle)]"
                 aria-label={t("report.attendanceDetails")}

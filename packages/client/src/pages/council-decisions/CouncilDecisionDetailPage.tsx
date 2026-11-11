@@ -99,7 +99,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
         {draft.loading ? (
           <p>{t("common.loading")}</p>
         ) : !decision ? (
-          <Button data-testid="decision-load-retry" variant="outline" onClick={() => void draft.load()}>
+          <Button data-testid="decision-load-retry" variant="secondary" onClick={() => void draft.load()}>
             {t("common.retry")}
           </Button>
         ) : null}
@@ -107,7 +107,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
           <>
             <div className="flex flex-wrap items-center gap-3">
               {phone ? null : (
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="secondary">
                   <Link to={`/meetings/${decision.councilMeetingId}`} data-testid="decision-source-meeting">
                     <CalendarIcon />
                     {formatDateTime(decision.facts.meeting.startedAt)}
@@ -150,7 +150,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
                 <MarkdownView markdown={draft.content} />
               )}
               {draft.error && draft.dirty ? (
-                <Button variant="outline" data-testid="decision-save-retry" onClick={() => void draft.flush()}>
+                <Button variant="secondary" data-testid="decision-save-retry" onClick={() => void draft.flush()}>
                   {t("common.retry")}
                 </Button>
               ) : null}
@@ -158,7 +158,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
             <div className="flex flex-wrap items-center gap-3">
               {draft.canView && !phone ? (
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   data-testid="decision-view"
                   disabled={draft.freezing}
                   onClick={() => void draft.view()}
@@ -174,7 +174,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
                 />
               ) : null}
               {draft.downloadHref && !phone ? (
-                <Button asChild variant="outline">
+                <Button asChild variant="secondary">
                   <a href={draft.downloadHref} download data-testid="decision-download">
                     <ArrowDownIcon />
                     {t("common.download")}

@@ -80,8 +80,8 @@ export function MinutesPoint({
                   <TooltipTrigger asChild>
                     <span className="minutes-restore-trigger">
                       <Button
-                        variant="ghost"
-                        size="icon-sm"
+                        variant="plain"
+                        size="icon"
                         data-testid={`minutes-restore-source-${item.id}`}
                         aria-label={t("minutes.restoreSourceTooltip")}
                         disabled={generating}
@@ -124,7 +124,7 @@ export function MinutesPoint({
                   <DialogTitle>{t("minutes.restoreSourceTitle")}</DialogTitle>
                   <DialogDescription>{t("minutes.restoreSourceConfirmation")}</DialogDescription>
                   <div className="minutes-restore-dialog-actions">
-                    <Button variant="outline" onClick={() => setConfirmingRestore(false)}>
+                    <Button variant="secondary" onClick={() => setConfirmingRestore(false)}>
                       {t("common.cancel")}
                     </Button>
                     <Button

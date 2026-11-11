@@ -258,7 +258,7 @@ export function ContactPage() {
               </div>
             </div>
             {saveState === "error" && !identityInvalid ? (
-              <Button variant="outline" onClick={() => void flush()} data-testid="contact-save-retry">
+              <Button variant="secondary" onClick={() => void flush()} data-testid="contact-save-retry">
                 {t("common.retry")}
               </Button>
             ) : null}
@@ -270,7 +270,7 @@ export function ContactPage() {
                 <p>{t("contacts.archiveDescription")}</p>
               </div>
               <Button
-                variant="destructive"
+                variant="danger"
                 disabled={submitting}
                 onClick={() => void archiveContact()}
                 data-testid="contact-archive"

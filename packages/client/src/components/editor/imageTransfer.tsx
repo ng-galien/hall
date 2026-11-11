@@ -344,7 +344,7 @@ export function useSpreadsheetDropChoice() {
       <div className="modal-form">
         <p>{t("editor.spreadsheetDropDescription", { name: pending.file.name })}</p>
         <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="outline" data-testid="editor-spreadsheet-drop-attach" onClick={() => settle("attach")}>
+          <Button variant="secondary" data-testid="editor-spreadsheet-drop-attach" onClick={() => settle("attach")}>
             {t("editor.spreadsheetDropAttach")}
           </Button>
           <Button data-testid="editor-spreadsheet-drop-table" onClick={() => settle("table")}>

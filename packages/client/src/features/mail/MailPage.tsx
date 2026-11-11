@@ -190,7 +190,7 @@ export function MailPage() {
               {t("mail.new")}
             </Button>
           ) : null}
-          <Button variant="ghost" data-testid="mail-groups" onClick={() => setGroupsOpen(true)}>
+          <Button variant="plain" data-testid="mail-groups" onClick={() => setGroupsOpen(true)}>
             {t("mail.groups")}
           </Button>
         </div>
@@ -225,12 +225,12 @@ export function MailPage() {
           {draft && opened?.representation ? (
             <section className="min-w-0" data-testid="mail-composer">
               <div className="flex flex-wrap items-center gap-2 border-b pb-3">
-                <Button variant="ghost" className="lg:hidden" data-testid="mail-back" onClick={() => navigate("/mail")}>
+                <Button variant="plain" className="lg:hidden" data-testid="mail-back" onClick={() => navigate("/mail")}>
                   {t("common.back")}
                 </Button>
                 <span className="mr-auto text-sm text-muted-foreground">{status(draft).label}</span>
                 {findSirenAction(opened.representation, "mail.delete") ? (
-                  <Button variant="ghost" data-testid="mail-delete" disabled={busy} onClick={() => setDeleteOpen(true)}>
+                  <Button variant="plain" data-testid="mail-delete" disabled={busy} onClick={() => setDeleteOpen(true)}>
                     {t("common.delete")}
                   </Button>
                 ) : null}
@@ -238,7 +238,7 @@ export function MailPage() {
                 {editable ? (
                   <>
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       disabled={busy || !dirty}
                       data-testid="mail-save"
                       onClick={() => void operation(save)}
@@ -264,7 +264,7 @@ export function MailPage() {
                 ) : null}
                 {!editable && findSirenAction(opened.representation, "mail.copy") ? (
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     disabled={busy}
                     data-testid="mail-copy"
                     onClick={() =>
@@ -339,8 +339,7 @@ export function MailPage() {
                     </SelectContent>
                   </Select>
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant="plain"
                     data-testid="mail-toggle-copies"
                     onClick={() => {
                       setCopiesOpen(!copiesOpen);
@@ -398,8 +397,7 @@ export function MailPage() {
                     <span className="text-muted-foreground">{Math.ceil(file.byteSize / 1024)} Ko</span>
                     {editable ? (
                       <Button
-                        variant="ghost"
-                        size="sm"
+                        variant="plain"
                         data-testid={`mail-attachment-remove-${file.id}`}
                         disabled={busy}
                         onClick={() =>
@@ -485,7 +483,7 @@ export function MailPage() {
                     {t(`mail.${submission.status}`)} · {new Date(submission.startedAt).toLocaleString()}
                   </p>
                   <Button
-                    variant="ghost"
+                    variant="plain"
                     data-testid={`mail-submission-preview-${submission.id}`}
                     onClick={() =>
                       void operation(async () =>
@@ -514,7 +512,7 @@ export function MailPage() {
                     );
                     return entity && "properties" in entity && findSirenAction(entity, "mail.verify-submission") ? (
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         className="mt-2"
                         data-testid="mail-verify"
                         onClick={() => {
@@ -540,7 +538,7 @@ export function MailPage() {
           <Modal open testId="mail-delete-dialog" title={t("mail.deleteDraft")} onClose={() => setDeleteOpen(false)}>
             <p>{t("mail.deleteDraftHelp")}</p>
             <Button
-              variant="destructive"
+              variant="danger"
               disabled={busy}
               data-testid="mail-delete-confirm"
               onClick={() =>
@@ -697,7 +695,7 @@ export function MailPage() {
           <Modal open title={t("mail.unsaved")} onClose={() => blocker.reset()}>
             <p>{t("mail.unsavedHelp")}</p>
             <div className="mt-4 flex gap-2">
-              <Button variant="outline" data-testid="mail-discard" onClick={() => blocker.proceed()}>
+              <Button variant="secondary" data-testid="mail-discard" onClick={() => blocker.proceed()}>
                 {t("mail.discard")}
               </Button>
               <Button

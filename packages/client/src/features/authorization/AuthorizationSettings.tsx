@@ -134,7 +134,7 @@ export function AuthorizationSettings() {
         {canCreate && (
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             disabled={busy}
             data-testid="authorization-add-role"
             onClick={() => update({ id: "new", name: "", builtIn: false, revision: 0, grants: [] })}
@@ -244,7 +244,7 @@ export function AuthorizationSettings() {
         {canDelete && (
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             data-testid="authorization-delete-role"
             disabled={busy}
             onClick={() => setDeleteOpen(true)}

@@ -4,7 +4,7 @@
   display: flex;
   height: 100%;
   min-height: 0;
-  background: var(--hall-color-canvas);
+  background: var(--hall-color-surface);
 }
 
 .docs-main {
@@ -612,7 +612,7 @@ h4.docs-heading {
   padding-right: var(--hall-space-2);
   border: var(--hall-stroke-thin) solid var(--hall-color-border);
   border-radius: var(--hall-radius-small);
-  background: var(--hall-color-canvas);
+  background: var(--hall-color-surface);
   font-size: var(--hall-font-size-body);
 }
 
@@ -1018,7 +1018,7 @@ h4.docs-heading {
   height: 100svh;
   flex-direction: column;
   overflow: hidden;
-  background: var(--hall-color-canvas);
+  background: var(--hall-color-surface);
   color: var(--hall-color-text);
 }
 
@@ -1074,7 +1074,7 @@ h4.docs-heading {
   padding: var(--hall-stroke-thick);
   border: var(--hall-stroke-thin) solid var(--hall-color-border);
   border-radius: var(--hall-radius-small);
-  background: var(--hall-color-canvas);
+  background: var(--hall-color-surface);
 }
 
 .docs-site-locales button {

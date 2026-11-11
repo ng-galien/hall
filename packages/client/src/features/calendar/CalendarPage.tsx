@@ -137,7 +137,7 @@ export function CalendarPage() {
       {phone && resources.collectionCapabilities.create ? (
         <PhoneHeaderActions>
           <Button
-            variant="ghost"
+            variant="plain"
             size="icon"
             data-testid="calendar-new"
             aria-label={t("workspace.createEvent")}
@@ -150,7 +150,7 @@ export function CalendarPage() {
       <div className="calendar-toolbar">
         <div className="calendar-toolbar-navigation flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             className="calendar-today"
             data-testid="calendar-today"
             onClick={() => calendar.current?.getApi().today()}
@@ -158,7 +158,7 @@ export function CalendarPage() {
             {t("calendar.today")}
           </Button>
           <Button
-            variant="ghost"
+            variant="plain"
             className="calendar-previous"
             data-testid="calendar-previous"
             aria-label={t("calendar.previous")}
@@ -167,7 +167,7 @@ export function CalendarPage() {
             ‹
           </Button>
           <Button
-            variant="ghost"
+            variant="plain"
             className="calendar-next"
             data-testid="calendar-next"
             aria-label={t("calendar.next")}
@@ -188,7 +188,7 @@ export function CalendarPage() {
             ).map((item) => (
               <Button
                 key={item.id}
-                variant={view === item.id ? "secondary" : "ghost"}
+                variant={view === item.id ? "secondary" : "plain"}
                 data-testid={`calendar-view-${item.id}`}
                 onClick={() => calendar.current?.getApi().changeView(item.id)}
               >
@@ -371,7 +371,7 @@ export function CalendarPage() {
             .filter((meeting) => !meeting.scheduledAt)
             .map((meeting) => (
               <Button
-                variant="ghost"
+                variant="plain"
                 key={meeting.id}
                 data-testid={`calendar-undated-${meeting.id}`}
                 onClick={() => setSelectedMeetingReference(meeting.reference)}
@@ -398,7 +398,7 @@ export function CalendarPage() {
           <div className="flex justify-end gap-2">
             <Button
               data-testid="calendar-delete-cancel"
-              variant="ghost"
+              variant="plain"
               disabled={saving}
               onClick={() => {
                 setDeleteId(null);
@@ -501,7 +501,7 @@ export function CalendarPage() {
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="plain"
                   data-testid="calendar-cancel"
                   disabled={saving}
                   onClick={() => setDraft(null)}

@@ -159,7 +159,7 @@ export function EventFields({
               {!readOnly && (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="plain"
                   className="event-participant-remove"
                   aria-label={t("common.delete")}
                   data-testid={`event-remove-participant-${index}`}
@@ -175,7 +175,7 @@ export function EventFields({
           <>
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               data-testid="event-add-council-members"
               onClick={() => {
                 const existing = new Set(

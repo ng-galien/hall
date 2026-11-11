@@ -29,7 +29,7 @@ export function ResourceSearchField({
       <PopoverTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           className="w-full justify-start"
           data-testid={testId}
           disabled={disabled}
@@ -51,7 +51,7 @@ export function ResourceSearchField({
           {onClear && (
             <Button
               type="button"
-              variant="ghost"
+              variant="plain"
               data-testid={`${testId}-none`}
               onClick={() => {
                 onClear();

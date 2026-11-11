@@ -99,7 +99,7 @@ export function CouncilMembersPage() {
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery}>
           {canCreate ? (
-            <Button variant="default" onClick={() => setAddOpen(true)} data-testid="member-add">
+            <Button variant="primary" onClick={() => setAddOpen(true)} data-testid="member-add">
               <AddIcon />
               {t("members.add")}
             </Button>
@@ -162,7 +162,7 @@ export function CouncilMembersPage() {
                 />
               </div>
             </div>
-            <Button variant="default" type="submit" disabled={submitting} data-testid="member-create-submit">
+            <Button variant="primary" type="submit" disabled={submitting} data-testid="member-create-submit">
               {t(submitting ? "common.saving" : "common.create")}
             </Button>
           </form>

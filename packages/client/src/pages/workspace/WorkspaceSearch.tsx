@@ -74,7 +74,7 @@ export function PhoneWorkspaceSearch({
     <>
       <Button
         className="app-phone-header-more"
-        variant="ghost"
+        variant="plain"
         size="icon"
         data-testid="workspace-search-open"
         aria-label={t("common.search")}

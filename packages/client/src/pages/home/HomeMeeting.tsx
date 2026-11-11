@@ -87,7 +87,7 @@ export function HomeMeeting() {
           {place(meeting)}
           <div className="home-meeting-actions">
             <Button
-              variant="outline"
+              variant="secondary"
               data-testid="home-meeting-notice"
               disabled={!meeting.agendaRevision.noticeId || opening}
               onClick={() => {
@@ -96,7 +96,7 @@ export function HomeMeeting() {
             >
               {t("meeting.notice.title")}
             </Button>
-            <Button asChild variant="outline" data-testid="home-meeting-agenda">
+            <Button asChild variant="secondary" data-testid="home-meeting-agenda">
               <Link to={`/meetings/${meeting.reference}#agenda`}>{t("meeting.agenda")}</Link>
             </Button>
           </div>
@@ -115,7 +115,7 @@ export function HomeMeeting() {
           {place(lastMeeting)}
           {lastMeeting.minutesId && available("minutes") ? (
             <div className="home-meeting-actions">
-              <Button asChild variant="outline" data-testid="home-meeting-minutes">
+              <Button asChild variant="secondary" data-testid="home-meeting-minutes">
                 <Link to={`/minutes/${lastMeeting.minutesId}`}>{t("meeting.minutes")}</Link>
               </Button>
             </div>

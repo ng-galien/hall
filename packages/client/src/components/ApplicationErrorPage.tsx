@@ -18,7 +18,7 @@ export function ApplicationErrorPage() {
         <Button data-testid="application-error-reload" onClick={() => window.location.reload()}>
           {t("applicationError.reload")}
         </Button>
-        <Button variant="outline" asChild>
+        <Button variant="secondary" asChild>
           <Link to="/" data-testid="application-error-home">
             {t("applicationError.home")}
           </Link>

@@ -14,7 +14,7 @@ export function ShareButton({
 }: {
   file(): Promise<SharedFile>;
   testId: string;
-  size?: "sm" | "default";
+  size?: "default";
   onError?(error: unknown): void;
 }) {
   const { t } = useI18n();
@@ -22,7 +22,7 @@ export function ShareButton({
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="secondary"
       size={size}
       data-testid={testId}
       disabled={pending}

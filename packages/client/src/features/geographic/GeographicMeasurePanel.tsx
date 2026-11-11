@@ -368,8 +368,7 @@ export function GeographicMeasurePanel({
                   {canSave && finished ? (
                     <Button
                       type="button"
-                      size="sm"
-                      variant="outline"
+                      variant="secondary"
                       data-testid="geographic-measure-save"
                       onClick={saveCurrent}
                     >

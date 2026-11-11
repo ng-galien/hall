@@ -127,7 +127,12 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
       {error ? (
         <div className="workspace-list-empty" role="alert" data-testid="workspace-home-error">
           <p>{t("workspace.home.loadError")}</p>
-          <Button variant="outline" data-testid="workspace-home-retry" disabled={loading} onClick={() => void retry()}>
+          <Button
+            variant="secondary"
+            data-testid="workspace-home-retry"
+            disabled={loading}
+            onClick={() => void retry()}
+          >
             {t("common.retry")}
           </Button>
         </div>

@@ -506,7 +506,7 @@ export function VotePanel({
             <div className="ballot-preview-actions">
               <Button
                 data-testid="live-ballot-preview-correct"
-                variant="outline"
+                variant="secondary"
                 disabled={submitting}
                 onClick={() => {
                   setPreview(null);

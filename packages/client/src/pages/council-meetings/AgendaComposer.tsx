@@ -189,12 +189,7 @@ export function AgendaComposer({
         <div className="agenda-composer-actions">
           {actions}
           {editable && onQuickCreate ? (
-            <Button
-              data-testid="agenda-question-create"
-              variant="outline"
-              size="sm"
-              onClick={() => setQuickAddOpen(true)}
-            >
+            <Button data-testid="agenda-question-create" variant="secondary" onClick={() => setQuickAddOpen(true)}>
               <AddIcon />
               {t("agendaSubject.openQuestion")}
             </Button>
@@ -312,7 +307,7 @@ export function AgendaComposer({
                     </button>
                   )}
                   {business.kind !== "minutesApproval" && !pointHref ? (
-                    <Button asChild variant="ghost" size="icon-sm">
+                    <Button asChild variant="plain" size="icon">
                       <Link
                         data-testid={`agenda-item-open-business-${item.id}`}
                         to={`/workspace?${new URLSearchParams({ councilBusiness: business.id, path: business.folderPath })}`}
@@ -330,8 +325,8 @@ export function AgendaComposer({
                   {editable ? (
                     <span className="composer-item-tools">
                       <Button
-                        variant="ghost"
-                        size="icon-sm"
+                        variant="plain"
+                        size="icon"
                         data-testid={`agenda-item-up-${item.id}`}
                         aria-label={t("meeting.moveUp")}
                         disabled={
@@ -344,8 +339,8 @@ export function AgendaComposer({
                         <ArrowUpIcon />
                       </Button>
                       <Button
-                        variant="ghost"
-                        size="icon-sm"
+                        variant="plain"
+                        size="icon"
                         data-testid={`agenda-item-down-${item.id}`}
                         aria-label={t("meeting.moveDown")}
                         disabled={
@@ -359,8 +354,8 @@ export function AgendaComposer({
                       </Button>
                       {business.kind !== "minutesApproval" ? (
                         <Button
-                          variant="ghost"
-                          size="icon-sm"
+                          variant="plain"
+                          size="icon"
                           data-testid={`agenda-item-remove-${item.id}`}
                           aria-label={t("meeting.removeItem")}
                           disabled={submitting}
@@ -398,7 +393,7 @@ export function AgendaComposer({
                   <div className="composer-item-documents">
                     {business.reportResourceId ? (
                       <Button
-                        variant="ghost"
+                        variant="plain"
                         className="composer-document-link"
                         data-testid={`agenda-report-preview-${item.id}`}
                         onClick={() => setViewedResourceId(business.reportResourceId!)}
@@ -411,7 +406,7 @@ export function AgendaComposer({
                     {business.resources.map((resource) => (
                       <Button
                         key={resource.id}
-                        variant="ghost"
+                        variant="plain"
                         className="composer-document-link"
                         data-testid={`agenda-resource-preview-${resource.id}`}
                         onClick={() => setViewedResourceId(resource.id)}
@@ -523,7 +518,7 @@ export function AgendaComposer({
                           </DetailTooltip>
                         </button>
                       )}
-                      <Button asChild variant="ghost" size="icon-sm">
+                      <Button asChild variant="plain" size="icon">
                         <Link
                           data-testid={`agenda-candidate-open-business-${candidate.key}`}
                           to={`/workspace?${new URLSearchParams({ councilBusiness: subject.councilBusinessId, path: subject.folderPath })}`}
@@ -538,8 +533,7 @@ export function AgendaComposer({
                         </Link>
                       </Button>
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant="secondary"
                         data-testid={`agenda-candidate-add-${candidate.key}`}
                         disabled={submitting}
                         onClick={() => scheduleSubject(subject, nextPosition)}
@@ -557,7 +551,7 @@ export function AgendaComposer({
                           />
                           <div className="composer-item-documents">
                             <Button
-                              variant="ghost"
+                              variant="plain"
                               className="composer-document-link"
                               data-testid={`agenda-candidate-report-preview-${candidate.key}`}
                               onClick={() => setViewedResourceId(subject.reportResourceId)}

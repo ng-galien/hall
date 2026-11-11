@@ -116,7 +116,7 @@ export function MeetingAttendingPersons({
           <Button
             ref={addButton}
             type="button"
-            variant="outline"
+            variant="secondary"
             data-testid="live-auxiliaries-open"
             onClick={openForm}
             disabled={submitting}
@@ -141,7 +141,7 @@ export function MeetingAttendingPersons({
             <legend className="sr-only">{t("auxiliary.contact")}</legend>
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               aria-pressed={mode === "contact"}
               data-testid="live-auxiliaries-existing-mode"
               onClick={() => setMode("contact")}
@@ -151,7 +151,7 @@ export function MeetingAttendingPersons({
             </Button>
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               aria-pressed={mode === "newContact"}
               data-testid="live-auxiliaries-new-mode"
               onClick={() => setMode("newContact")}
@@ -210,7 +210,7 @@ export function MeetingAttendingPersons({
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               data-testid="live-auxiliaries-cancel"
               disabled={submitting}
               onClick={() => setOpen(false)}
@@ -257,8 +257,7 @@ function AttendingPersonRow({
             onChange={(event) => setQuality(event.currentTarget.value)}
           />
           <Button
-            variant="outline"
-            size="sm"
+            variant="secondary"
             data-testid={`live-auxiliary-save-${entry.contactId}`}
             disabled={!changed}
             onClick={() => void onCorrect({ kind: "quality", attendanceId: entry.id, quality: quality.trim() || null })}
@@ -266,8 +265,7 @@ function AttendingPersonRow({
             {t("auxiliary.saveQuality")}
           </Button>
           <Button
-            variant="outline"
-            size="sm"
+            variant="secondary"
             data-testid={`live-auxiliary-remove-${entry.contactId}`}
             onClick={() => void onCorrect({ kind: "removal", attendanceId: entry.id })}
           >

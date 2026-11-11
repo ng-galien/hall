@@ -10,7 +10,7 @@
     font-size: var(--hall-font-size-text);
     line-height: var(--hall-line-height-body);
     color: var(--hall-color-text);
-    background: var(--hall-color-canvas);
+    background: var(--hall-color-surface);
     font-synthesis: none;
     -webkit-font-smoothing: antialiased;
   }

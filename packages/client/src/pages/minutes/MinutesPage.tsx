@@ -43,7 +43,7 @@ export function MinutesPage() {
       <div className="page-content">
         <RequestErrorBanner error={error} />
         {error ? (
-          <Button variant="outline" data-testid="minutes-list-retry" onClick={load}>
+          <Button variant="secondary" data-testid="minutes-list-retry" onClick={load}>
             {t("common.retry")}
           </Button>
         ) : null}
