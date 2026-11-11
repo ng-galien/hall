@@ -207,6 +207,17 @@
         "maximumIcon": 24
       }
     },
+    "list-row-legacy": {
+      "enabled": true,
+      "formats": "all",
+      "severity": "indicator",
+      "params": {
+        "minimumItems": 3,
+        "minimumWidth": 0.5,
+        "rowSlot": "list-row"
+      },
+      "justification": "Indicateur de la reprise des listes sur ListRow (HALL-TR-LAY-020) ; arbres, tableaux, tuiles de séance et panneaux de carte ne sont pas des listes d'objets et peuvent y apparaître."
+    },
     "density-coverage": {
       "enabled": false,
       "formats": "all",

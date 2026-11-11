@@ -192,4 +192,39 @@ export const listItemTrailingIcon = {
   },
 };
 
-export const listRules = [listItemFill, listItemLoneSmall, listItemHeightPerRow, listItemTrailingIcon];
+/** True when the element or one of its ancestors carries the given `data-slot`. */
+function insideSlot(snapshot, index, slot) {
+  for (let current = index; current >= 0; current = snapshot.elements[current].parent) {
+    if (snapshot.elements[current].slot === slot) return true;
+  }
+  return false;
+}
+
+export const listRowLegacy = {
+  id: "list-row-legacy",
+  family: "lists",
+  kind: "element",
+  exploratory: false,
+  title: "Ligne de liste écrite à la main",
+  explanation:
+    "Un élément répété de liste qui n'est pas rendu par le composant partagé ListRow (data-slot=\"list-row\" sur lui ou sur un ancêtre). Une liste de moins de trois éléments n'est pas comptée.",
+  unit: "éléments",
+  defaults: { formats: "all", severity: "indicator", params: { ...listDefaults, rowSlot: "list-row" } },
+  evaluate({ snapshot, params }) {
+    return listItems(snapshot, params).flatMap((items) => {
+      const legacy = items.filter((item) => !insideSlot(snapshot, item.index, params.rowSlot));
+      return legacy.length > 0
+        ? [
+            {
+              index: legacy[0].index,
+              value: legacy.length,
+              threshold: 0,
+              detail: `${legacy.length} élément(s) sur ${items.length}`,
+            },
+          ]
+        : [];
+    });
+  },
+};
+
+export const listRules = [listItemFill, listItemLoneSmall, listItemHeightPerRow, listItemTrailingIcon, listRowLegacy];
