@@ -288,10 +288,10 @@ test.describe("Hall pages on a phone", () => {
       await expect(row).toBeVisible();
       const minutes = await row.evaluate((element) => {
         const box = (node: Element | null) => node!.getBoundingClientRect();
-        const icon = box(element.querySelector("svg"));
-        const title = box(element.querySelector("strong"));
-        const date = box(element.querySelector(":scope > div > span"));
-        const state = box(element.querySelector(":scope > span"));
+        const icon = box(element.querySelector(".list-row-head svg"));
+        const title = box(element.querySelector(".list-row-title"));
+        const date = box(element.querySelector(".list-row-detail-text"));
+        const state = box(element.querySelector(".list-row-status"));
         const icons = [...element.querySelectorAll("svg")].filter((svg) => svg.getBoundingClientRect().width > 0);
         return {
           height: element.getBoundingClientRect().height,
@@ -310,8 +310,8 @@ test.describe("Hall pages on a phone", () => {
       const meeting = page.getByTestId(/^meeting-history-/).first();
       await expect(meeting).toBeVisible();
       const meetingRow = await meeting.evaluate((element) => {
-        const texts = element.querySelector(":scope > div")!.getBoundingClientRect();
-        const badge = element.lastElementChild!.getBoundingClientRect();
+        const texts = element.querySelector(".list-row-detail-text")!.getBoundingClientRect();
+        const badge = element.querySelector(".list-row-status")!.getBoundingClientRect();
         return {
           sameLine: badge.top < texts.bottom && texts.top < badge.bottom,
           height: element.getBoundingClientRect().height,
