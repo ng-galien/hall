@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AddIcon, DeleteIcon } from "../../components/icons";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { BodyMembership } from "../../services/representativeBodiesApi";
@@ -517,27 +518,29 @@ export function RepresentativeBodyPage({
             {endedMemberships.length > 0 ? (
               <details className="admin-membership-history">
                 <summary>{t(text.membershipHistory, { count: String(endedMemberships.length) })}</summary>
-                <div className="admin-related-list">
+                <ListRows>
                   {endedMemberships.map((membership) => {
                     const member = memberById.get(membership.contactId);
                     return (
-                      <div className="data-row admin-membership-row" key={membership.id}>
-                        <Link className="admin-membership-link" to={`/contacts/${membership.contactId}`}>
-                          <strong>{memberName(member, t("contacts.notFound"))}</strong>
-                          <span>
-                            {t(bodyKind.roleLabel(membership.role))} · {formatDate(membership.startedOn)} -{" "}
-                            {membership.endedOn ? formatDate(membership.endedOn) : ""}
-                          </span>
-                        </Link>
-                        {canUpdateMembership(membership) ? (
-                          <Button variant="ghost" size="sm" onClick={() => openMembershipEditor(membership)}>
-                            {t("common.edit")}
-                          </Button>
-                        ) : null}
-                      </div>
+                      <ListRow
+                        key={membership.id}
+                        to={`/contacts/${membership.contactId}`}
+                        head={<ListRowAvatar initials={memberInitials(member)} />}
+                        title={memberName(member, t("contacts.notFound"))}
+                        detail={`${t(bodyKind.roleLabel(membership.role))} · ${formatDate(membership.startedOn)} - ${
+                          membership.endedOn ? formatDate(membership.endedOn) : ""
+                        }`}
+                        action={
+                          canUpdateMembership(membership) ? (
+                            <Button variant="ghost" size="sm" onClick={() => openMembershipEditor(membership)}>
+                              {t("common.edit")}
+                            </Button>
+                          ) : undefined
+                        }
+                      />
                     );
                   })}
-                </div>
+                </ListRows>
               </details>
             ) : null}
           </section>
