@@ -116,16 +116,6 @@
   padding: 0 0 0 var(--hall-space-1);
 }
 
-.workspace-business-workbench .business-document-tree .workspace-explorer-row {
-  min-height: var(--hall-size-control-small);
-  padding-block: 0;
-}
-
-.workspace-business-workbench .business-document-tree .workspace-explorer-branch {
-  margin-left: var(--hall-space-3);
-  padding-left: var(--hall-space-3);
-}
-
 .workspace-business-workbench .business-subject-table-section {
   display: grid;
   gap: var(--hall-space-2);

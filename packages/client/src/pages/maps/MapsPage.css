@@ -111,10 +111,6 @@
   background: var(--hall-color-brand-subtle);
 }
 
-.maps-tree .workspace-explorer-folder-name {
-  cursor: pointer;
-}
-
 .maps-tree-map {
   font-weight: var(--hall-font-weight-regular);
 }

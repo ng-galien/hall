@@ -38,15 +38,7 @@
   .collection-toolbar { flex-wrap: wrap; }
   .collection-search { flex-basis: 100%; }
   .collection-toolbar-side { width: 100%; flex-wrap: wrap; justify-content: flex-end; }
-  .data-row.council-member-record { grid-template-columns: minmax(0, 1fr); }
-  .council-member-record > .member-identity,
-  .council-member-record > .council-member-list-contact,
-  .council-member-record > .council-member-list-committees,
-  .council-member-record > .council-member-list-status { grid-column: 1; grid-row: auto; justify-self: stretch; }
-  .council-member-record .member-identity > div { flex: 1; }
-  .council-member-record .member-identity > div span,
-  .council-member-record .council-member-contact > * { white-space: normal; overflow-wrap: anywhere; }
-  .council-member-record > .council-member-list-status { flex-wrap: wrap; justify-content: space-between; }
+
   .agenda-composer-heading { flex-wrap: wrap; }
   .composer-item, .composer-add-decisions, .composer-decision-list, .composer-prepared-drop { min-width: 0; }
   .composer-item-copy strong { white-space: normal; overflow-wrap: anywhere; }
@@ -216,11 +208,7 @@
   .phone-business .business-subject-table td:last-child:not(:has(a, button)) { display: none; }
   .workspace-business-workbench.phone-business .business-subject-title { font-size: var(--hall-font-size-body); }
   .workspace-business-workbench.phone-business .business-subject-table-section { border: 0; padding: 0; background: none; box-shadow: none; }
-  .phone-document-list { display: grid; }
-  .phone-document-list > li + li { border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
-  .phone-document-row { display: flex; min-height: var(--hall-size-touch-control); align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text); font-size: var(--hall-font-size-body); }
-  .phone-document-row > span:last-child:not(.phone-subject-copy) { min-width: 0; flex: 1; overflow-wrap: anywhere; }
-  .phone-document-list, .phone-document-list > li { min-width: 0; }
+
   /* The section actions of a business (« + », « ⋯ ») are finger-sized, with the icon size of the phone header. */
   .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); border-radius: var(--hall-radius-medium); }
   .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
@@ -236,9 +224,7 @@
   .app-main .business-committee-search-toggle { width: var(--hall-size-touch-control); height: var(--hall-size-touch-control); }
   .app-main .business-committee-results { border-radius: var(--hall-radius-medium); inset-inline: 0; width: auto; min-width: 0; max-width: none; }
   .app-main .business-committee-result { border-radius: var(--hall-radius-medium); display: flex; min-height: var(--hall-size-touch-control); align-items: center; font-size: var(--hall-font-size-body); }
-  .phone-subject-copy { display: grid; min-width: 0; flex: 1; gap: var(--hall-space-0-5); }
-  .phone-subject-copy > span { overflow-wrap: anywhere; }
-  .phone-subject-copy > small { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
+
   .phone-point { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-4); padding: var(--hall-space-3); }
   .phone-point > * { min-width: 0; }
   .phone-point .report-ballot-toggle { min-width: 0; }
@@ -257,10 +243,7 @@
   .phone-record-heading > p { margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .phone-points { display: grid; gap: var(--hall-space-2); }
   .phone-points > h2 { margin: 0; font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-semibold); }
-  .phone-point-list { display: grid; margin: 0; padding: 0; list-style: none; }
-  .phone-point-list > li + li { border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
-  .phone-point-row { display: flex; min-height: var(--hall-size-phone-bar); align-items: center; gap: var(--hall-space-3); padding-block: var(--hall-space-2); color: var(--hall-color-text); font-size: var(--hall-font-size-body); }
-  .phone-point-row .report-timeline-marker { position: static; flex: none; }
+
   .meeting-report-header .meeting-facts { margin-top: 0; padding-top: 0; border-top: 0; }
   .meeting-page-content > .report-main { display: flex; flex-direction: column; }
   .meeting-page-content > .report-main > .report-main:has(.phone-points) { order: -1; }
@@ -272,35 +255,8 @@
   .document-viewer-phone-page .document-viewer-header h2 { overflow: hidden; font-size: var(--hall-font-size-title); text-overflow: ellipsis; white-space: nowrap; }
   .document-viewer-phone-page .document-viewer-header p { display: none; }
   .document-viewer-phone-page .document-viewer-back { flex: none; font-size: var(--hall-font-size-icon-large); }
-  .app-main .path-contents-explorer .workspace-explorer-toolbar,
-  .app-main .path-contents-explorer .workspace-explorer-root-row { display: none; }
-  .app-main .path-contents-explorer .workspace-explorer-branch { display: flex; flex-direction: column; gap: var(--hall-space-2); }
-  .app-main .path-contents-explorer .workspace-explorer-folder-row,
-  .app-main .path-contents-explorer .workspace-explorer-row {
-    min-height: var(--hall-size-phone-bar);
-    grid-template-columns: minmax(0, 1fr);
-    align-items: center;
-    padding: var(--hall-space-2) var(--hall-space-3);
-    border: var(--hall-stroke-thin) solid var(--hall-color-border);
-    border-radius: var(--hall-radius-large);
-    background: var(--hall-color-surface);
-    font-size: var(--hall-font-size-body);
-  }
-  .app-main .path-contents-explorer .workspace-explorer-date,
-  .app-main .path-contents-explorer .workspace-explorer-folder-open { display: none; }
-  .app-main .path-contents-explorer fieldset.workspace-explorer-folder-row { padding-block: calc((var(--hall-size-phone-bar) - var(--hall-size-phone-explorer-glyph)) / 2 - var(--hall-stroke-thin)); }
-  .app-main .path-contents-explorer .workspace-explorer-primary { align-items: center; gap: var(--hall-space-3); }
-  .app-main .path-contents-explorer .workspace-explorer-root > .workspace-explorer-branch { padding-top: var(--hall-space-2); }
-  .app-main .path-contents-explorer .workspace-explorer-primary > .type-icon,
-  .app-main .path-contents-explorer .workspace-explorer-primary > .workspace-explorer-folder-marker { width: var(--hall-size-phone-explorer-glyph); min-width: var(--hall-size-phone-explorer-glyph); height: var(--hall-size-phone-explorer-glyph); min-height: var(--hall-size-phone-explorer-glyph); }
-  .app-main .path-contents-explorer .workspace-explorer-primary > .workspace-explorer-folder-marker { width: var(--hall-size-touch-control); min-width: var(--hall-size-touch-control); height: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); margin: calc((var(--hall-size-phone-explorer-glyph) - var(--hall-size-touch-control)) / 2); }
-  .app-main .path-contents-explorer .workspace-explorer-primary > .type-icon svg,
-  .app-main .path-contents-explorer .workspace-explorer-primary > .workspace-explorer-folder-marker svg { width: var(--hall-size-phone-bar-icon); height: var(--hall-size-phone-bar-icon); }
-  .app-main .path-contents-explorer .workspace-explorer-title-link strong,
-  .app-main .path-contents-explorer .workspace-explorer-folder-name { min-height: 0; padding-block: 0; font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-medium); line-height: normal; }
-  .app-main .path-contents-explorer .workspace-explorer-title-link strong,
-  .app-main .path-contents-explorer .workspace-explorer-folder-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .app-main .path-contents-explorer .workspace-explorer-root > .workspace-explorer-branch { margin-left: 0; padding-left: 0; border-left: 0; }
+  .app-main .path-contents-explorer .workspace-explorer-toolbar { display: none; }
+
   .workspace-bar-search .wsearch-field input { min-width: 0; }
   .workspace-bar-search .shared-search-filter-label { display: none; }
   .composer-item-row { flex-wrap: wrap; }
@@ -340,23 +296,7 @@
   .docs-article-inner { max-width: none; margin: 0; padding: var(--hall-space-4) var(--hall-space-3) var(--hall-space-6); border: 0; border-radius: 0; box-shadow: none; }
   .docs-toolbar .docs-search { flex: 1 1 100%; }
   .docs-crumbs > a, .docs-crumb, .docs-crumb > a { min-width: 0; }
-  .workspace-explorer-copy, .workspace-explorer-title-link { min-width: 0; max-width: 100%; }
-  .workspace-explorer-title-link { text-align: left; }
-  .workspace-explorer-title-link strong { white-space: normal; overflow-wrap: anywhere; }
-  /* A linked row of a phone list keeps its texts beside its badge: no row holds an element alone. */
-  .data-list > .data-row.linked { min-height: var(--hall-size-touch-control); flex-wrap: nowrap; gap: var(--hall-space-3); padding: var(--hall-space-2) var(--hall-space-3); }
-  .data-list > .data-row.linked > div { flex: 1 1 auto; min-width: 0; }
-  .data-list > .data-row.linked > :not(div) { flex: none; }
-  /* Two badges of a phone row stand one above the other, so the title keeps its width. */
-  .data-list > .data-row.linked > span:has(> [data-slot="badge"] + [data-slot="badge"]) { flex-direction: column; align-items: flex-end; gap: var(--hall-space-1); }
-  /* A minutes row: icon and title on the first line, date and state on the second; the whole row is the link. */
-  .data-list > .data-row.minutes-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icon title title" ". date state"; align-items: center; column-gap: var(--hall-space-3); row-gap: var(--hall-space-0-5); }
-  .data-list > .data-row.minutes-row > div { display: contents; }
-  .data-list > .data-row.minutes-row > svg:first-child { grid-area: icon; width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
-  .data-list > .data-row.minutes-row > div > strong { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
-  .data-list > .data-row.minutes-row > div > span { grid-area: date; }
-  .data-list > .data-row.minutes-row > span { grid-area: state; }
-  .data-list > .data-row.minutes-row > svg:last-child { display: none; }
+
   /* Collection toolbar of a phone: rows only, the search over the width, a creation button kept beside it. */
   .collection-toolbar { flex-wrap: nowrap; gap: var(--hall-space-2); }
   .collection-toolbar .collection-search { flex: 1 1 auto; min-width: 0; max-width: none; }
@@ -391,8 +331,8 @@
      height on the event itself, so its positioned frame receives it. */
   .hall-calendar :has(> .hall-calendar-event) { min-height: calc(var(--hall-size-touch-control) + var(--hall-stroke-thick)); }
   .univer-spreadsheet input.univer-appearance-none { min-width: 0; min-height: 0; }
-  .workspace-explorer-folder-name,
   .univer-spreadsheet button,
+
   .univer-spreadsheet input {
     min-width: var(--hall-size-touch-control);
     min-height: var(--hall-size-touch-control);
