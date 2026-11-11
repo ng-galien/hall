@@ -1,6 +1,5 @@
 import { type FormEvent, useEffect, useId, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,12 +14,13 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../../components/Ui";
+import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { RepresentativeBodiesState } from "../../stores/representativeBodiesStore";
 import type { RepresentativeBodyKind } from "./representativeBodyKinds";
 
-/** The list of one kind of body, with its search, its two layouts and, when Siren offers it, the creation dialog. */
+/** The list of one kind of body, with its search and, when Siren offers it, the creation dialog. */
 export function RepresentativeBodiesPage({
   bodyKind,
   useStore,
@@ -34,7 +34,8 @@ export function RepresentativeBodiesPage({
   const { bodies, details, error, canCreate, load, loadAllDetails, create } = useStore();
   const text = bodyKind.text;
   const [addOpen, setAddOpen] = useState(false);
-  const { layout, setLayout, query, setQuery } = useCollectionView();
+  const { query, setQuery } = useCollectionView();
+  const BodyIcon = bodyKind.icon;
   const fieldId = useId();
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export function RepresentativeBodiesPage({
       <PageHeader title={t(text.title)} description={t(text.description)} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
-        <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
+        <CollectionToolbar query={query} onQueryChange={setQuery}>
           {canCreate ? (
             <Button data-testid={`${bodyKind.kind}-create-open`} onClick={() => setAddOpen(true)}>
               <AddIcon />
@@ -99,52 +100,29 @@ export function RepresentativeBodiesPage({
 
         {visibleBodies.length === 0 ? (
           <EmptyState>{t(bodies.length === 0 ? text.empty : "common.noSearchResults")}</EmptyState>
-        ) : layout === "cards" ? (
-          <div className="card-grid">
-            {visibleBodies.map((body) => (
-              <Link
-                className="entity-card"
-                key={body.id}
-                to={`${bodyKind.path}/${body.id}`}
-                data-testid={`${bodyKind.kind}-row-${body.id}`}
-              >
-                <strong>{body.name}</strong>
-                <p>{body.description || t(text.noDescription)}</p>
-                <span className="entity-card-footer">
-                  <Badge variant="outline">
-                    {t("members.count", { count: String(activeMembershipCount(body.id)) })}
-                  </Badge>
-                  <Badge variant={body.archivedAt ? "secondary" : "success"}>
-                    {t(body.archivedAt ? text.archived : text.active)}
-                  </Badge>
-                </span>
-              </Link>
-            ))}
-          </div>
         ) : (
-          <div className="data-list">
+          <ListRows>
             {visibleBodies.map((body) => (
-              <Link
-                className="data-row linked"
+              <ListRow
                 key={body.id}
                 to={`${bodyKind.path}/${body.id}`}
-                data-testid={`${bodyKind.kind}-row-${body.id}`}
-              >
-                <div>
-                  <strong>{body.name}</strong>
-                  <span>{body.description || t(text.noDescription)}</span>
-                </div>
-                <span className="flex items-center gap-2">
-                  <Badge variant="outline">
-                    {t("members.count", { count: String(activeMembershipCount(body.id)) })}
-                  </Badge>
-                  <Badge variant={body.archivedAt ? "secondary" : "success"}>
-                    {t(body.archivedAt ? text.archived : text.active)}
-                  </Badge>
-                </span>
-              </Link>
+                openTestId={`${bodyKind.kind}-row-${body.id}`}
+                head={
+                  <ListRowIcon nature="council">
+                    <BodyIcon />
+                  </ListRowIcon>
+                }
+                title={body.name}
+                detail={`${body.description || t(text.noDescription)} · ${t("members.count", {
+                  count: String(activeMembershipCount(body.id)),
+                })}`}
+                status={{
+                  tone: body.archivedAt ? "neutral" : "success",
+                  label: t(body.archivedAt ? text.archived : text.active),
+                }}
+              />
             ))}
-          </div>
+          </ListRows>
         )}
       </div>
     </div>

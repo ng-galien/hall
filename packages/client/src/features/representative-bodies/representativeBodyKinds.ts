@@ -1,4 +1,6 @@
 import { type ApiActionName, committeeRoles, delegationRoleSchema } from "@hall/api-contract";
+import type { ComponentType } from "react";
+import { CommitteeIcon, DelegationIcon } from "../../components/icons";
 import type { TranslationKey } from "../../i18n/en";
 
 /** Texts that a committee and an external representation both need, each in its own wording. */
@@ -65,6 +67,8 @@ export interface RepresentativeBodyKind {
     ApiActionName
   >;
   roles: readonly string[];
+  /** Type icon of the body in lists. */
+  icon: ComponentType;
   text: Record<BodyTextKey, TranslationKey>;
   roleLabel(role: string): TranslationKey;
 }
@@ -84,6 +88,7 @@ export const committeeKind: RepresentativeBodyKind = {
     endMembership: "committee.end-membership",
   },
   roles: committeeRoles,
+  icon: CommitteeIcon,
   text: texts("committees") satisfies Record<BodyTextKey, TranslationKey>,
   roleLabel,
 };
@@ -102,6 +107,7 @@ export const delegationKind: RepresentativeBodyKind = {
     endMembership: "delegation.end-membership",
   },
   roles: delegationRoleSchema.options,
+  icon: DelegationIcon,
   text: texts("delegations") satisfies Record<BodyTextKey, TranslationKey>,
   roleLabel,
 };
