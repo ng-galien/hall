@@ -17,10 +17,11 @@ env:
   ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
 jobs:
+  # Keep the Linux image explicit during the ubuntu-latest migration to 26.04.
   build:
     outputs:
       cache-hit: ${{ steps.build-cache.outputs.cache-hit }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7.0.1
@@ -64,7 +65,7 @@ jobs:
 
   verification:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7.0.1
@@ -102,7 +103,7 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7.0.1
@@ -143,7 +144,7 @@ jobs:
           if-no-files-found: ignore
 
   distribution-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
@@ -188,7 +189,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2025]
+        os: [ubuntu-24.04, windows-2025]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     steps:
@@ -252,7 +253,7 @@ jobs:
   test:
     if: always()
     needs: [build, verification, browser, distribution-build, distribution-install]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read

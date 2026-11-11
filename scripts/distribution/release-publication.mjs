@@ -25,7 +25,7 @@ const requiredJobs = [
   "browser (1)",
   "browser (2)",
   "distribution-build",
-  "distribution-install (ubuntu-latest)",
+  "distribution-install (ubuntu-24.04)",
   "distribution-install (windows-2025)",
   "test",
 ];

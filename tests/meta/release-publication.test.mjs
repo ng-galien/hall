@@ -34,7 +34,7 @@ if (args[0] === 'api') {
     value = {workflow_runs:mode==='absent'?[]:[run]};
     if (mode==='older-green') value.workflow_runs=[{...run,id:199}, {...run,id:201,run_started_at:'2026-11-01T11:00:00Z',conclusion:'failure'}];
   } else if (endpoint.includes('/runs/200/jobs') || endpoint.includes('/runs/201/jobs')) {
-    let jobs = ['build','verification','browser (1)','browser (2)','distribution-build','distribution-install (ubuntu-latest)','distribution-install (windows-2025)','test'].map((name,index)=>({id:index+1,name,status:'completed',conclusion:state.mode==='skipped' && name==='verification'?'skipped':'success'}));
+    let jobs = ['build','verification','browser (1)','browser (2)','distribution-build','distribution-install (ubuntu-24.04)','distribution-install (windows-2025)','test'].map((name,index)=>({id:index+1,name,status:'completed',conclusion:state.mode==='skipped' && name==='verification'?'skipped':'success'}));
     if (state.mode==='missing-job') jobs=jobs.filter((job)=>job.name!=='test');
     if (state.mode==='missing-lane') jobs=jobs.filter((job)=>job.name!=='browser (2)');
     value={total_count:state.mode==='truncated'?99:jobs.length,jobs};
