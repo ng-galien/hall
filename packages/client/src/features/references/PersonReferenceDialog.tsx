@@ -63,7 +63,7 @@ export function PersonDetailField({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="mt-1 break-words text-sm" data-testid={testId}>
         {href ? (
           <a className="text-primary underline-offset-4 hover:underline" href={href}>
