@@ -576,3 +576,100 @@ test("the home page lists the latest council documents without the personal fold
   await expect(alicePage.getByTestId(`home-personal-document-${personal.id}`)).toBeVisible();
   await alicePage.context().close();
 });
+
+// @verifies-requirement HALL-FR-LAY-010
+test("on a phone the personal folder is the only active destination", async ({
+  page: admin,
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+  admin.setDefaultTimeout(20_000);
+  expect(
+    (
+      await admin.request.post("/api/auth/bootstrap", {
+        data: { displayName: "Administrator", email: "admin@example.test", password },
+      })
+    ).status(),
+  ).toBe(201);
+  expect((await admin.request.put("/api/council-terms", { data: { expectedMemberCount: 5 } })).ok()).toBeTruthy();
+  const contact = await created<{ id: string }>(
+    await admin.request.post("/api/contacts", {
+      data: {
+        firstName: "Alice",
+        lastName: "Martin",
+        organizationName: null,
+        jobTitle: null,
+        email: null,
+        phone: null,
+        notes: "",
+      },
+    }),
+  );
+  await created(
+    await admin.request.post("/api/council-members", {
+      data: { contactId: contact.id, role: "councillor", termStartedOn: "2026-03-22" },
+    }),
+  );
+  await created(
+    await admin.request.post("/api/users", {
+      data: {
+        email: "alice@example.test",
+        displayName: "Alice Martin",
+        password,
+        roles: ["councillor"],
+        contactId: contact.id,
+      },
+    }),
+  );
+
+  const context = await browser.newContext({
+    baseURL: baseURL ?? "",
+    viewport: { width: 375, height: 812 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  await context.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+  expect(
+    (await context.request.post("/api/auth/login", { data: { email: "alice@example.test", password } })).status(),
+  ).toBe(200);
+  const phone = await context.newPage();
+  phone.setDefaultTimeout(20_000);
+  const destination = (id: string) => phone.getByTestId(`phone-navigation-${id}`);
+  /** Destinations marked active or still drawing a tinted pill behind their icon. */
+  const activeDestinations = () =>
+    phone
+      .getByTestId("phone-navigation")
+      .locator(".app-phone-bar-item")
+      .evaluateAll((items) =>
+        items
+          .filter((item) => {
+            const icon = item.querySelector('[aria-hidden="true"]');
+            const tinted = icon !== null && getComputedStyle(icon).backgroundColor !== "rgba(0, 0, 0, 0)";
+            return item.getAttribute("data-active") === "true" || tinted;
+          })
+          .map((item) => item.getAttribute("data-destination") ?? item.getAttribute("data-testid")),
+      );
+
+  await test.step("the personal destination alone is active in the personal folder", async () => {
+    await phone.goto("/app/");
+    await destination("personal").tap();
+    await expect(destination("personal")).toHaveAttribute("aria-current", "page");
+    expect(await activeDestinations()).toEqual(["personal"]);
+    await expect(phone.getByTestId("phone-header-title")).toHaveText("Mon espace");
+  });
+
+  await test.step("the documents destination alone is active elsewhere in the explorer", async () => {
+    await destination("documents").tap();
+    await expect(destination("documents")).toHaveAttribute("aria-current", "page");
+    expect(await activeDestinations()).toEqual(["documents"]);
+    await phone.getByTestId("workspace-folder-name-Espaces personnels").tap();
+    await expect(phone.getByTestId(`workspace-folder-name-${aliceFolder}`)).toBeVisible();
+    expect(await activeDestinations()).toEqual(["documents"]);
+    await phone.getByTestId(`workspace-folder-name-${aliceFolder}`).tap();
+    await expect(phone.getByTestId("phone-header-title")).toHaveText("Mon espace");
+    expect(await activeDestinations()).toEqual(["personal"]);
+  });
+
+  await context.close();
+});
