@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AddIcon, ArrowUpIcon, DeleteIcon } from "../../components/icons";
+import { AddIcon, ArrowUpIcon, DeleteIcon, LocationIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
+import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -81,59 +82,75 @@ export function MeetingLocationsSettings({
           {t("settings.meetingLocationsEmpty")}
         </p>
       ) : (
-        <ul className="settings-location-list" data-testid="settings-meeting-locations">
-          {locations.map((name, index) => (
-            <li key={name} className="settings-location-row" data-testid={`settings-meeting-location-${index}`}>
-              <InlineRenameField
-                value={name}
-                editing={renaming === name}
-                onEditingChange={(editing) => setRenaming(editing ? name : null)}
-                onCommit={(value) => rename(index, value)}
-                label={t("settings.meetingLocationRename", { name: name })}
-                className="settings-location-input"
-                testId={`settings-meeting-location-name-input-${index}`}
-              >
-                <button
-                  type="button"
-                  className="settings-location-name"
-                  data-testid={`settings-meeting-location-name-${index}`}
-                  title={t("settings.meetingLocationRename", { name: name })}
-                  disabled={submitting}
-                  onClick={() => setRenaming(name)}
-                >
-                  {name}
-                  {index === 0 ? (
-                    <span className="settings-location-default">{t("settings.meetingLocationDefault")}</span>
-                  ) : null}
-                </button>
-              </InlineRenameField>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                disabled={submitting || index === 0}
-                aria-label={t("settings.meetingLocationMoveUp", { name: name })}
-                title={t("settings.meetingLocationMoveUp", { name: name })}
-                data-testid={`settings-meeting-location-up-${index}`}
-                onClick={() => moveUp(index)}
-              >
-                <ArrowUpIcon />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                disabled={submitting}
-                aria-label={t("settings.meetingLocationRemove", { name: name })}
-                title={t("settings.meetingLocationRemove", { name: name })}
-                data-testid={`settings-meeting-location-remove-${index}`}
-                onClick={() => remove(index)}
-              >
-                <DeleteIcon />
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <ListRows data-testid="settings-meeting-locations">
+          {locations.map((name, index) => {
+            const renameLabel = t("settings.meetingLocationRename", { name: name });
+            const opening =
+              renaming === name
+                ? {
+                    title: (
+                      <InlineRenameField
+                        value={name}
+                        editing
+                        onEditingChange={(editing) => setRenaming(editing ? name : null)}
+                        onCommit={(value) => rename(index, value)}
+                        label={renameLabel}
+                        className="settings-location-input"
+                        testId={`settings-meeting-location-name-input-${index}`}
+                      >
+                        {name}
+                      </InlineRenameField>
+                    ),
+                  }
+                : {
+                    title: name,
+                    onOpen: () => setRenaming(name),
+                    openTestId: `settings-meeting-location-name-${index}`,
+                    openProps: { title: renameLabel, disabled: submitting },
+                  };
+            return (
+              <ListRow
+                key={name}
+                data-testid={`settings-meeting-location-${index}`}
+                head={
+                  <ListRowIcon nature="council">
+                    <LocationIcon />
+                  </ListRowIcon>
+                }
+                detail={index === 0 ? t("settings.meetingLocationDefault") : undefined}
+                action={
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={submitting || index === 0}
+                      aria-label={t("settings.meetingLocationMoveUp", { name: name })}
+                      title={t("settings.meetingLocationMoveUp", { name: name })}
+                      data-testid={`settings-meeting-location-up-${index}`}
+                      onClick={() => moveUp(index)}
+                    >
+                      <ArrowUpIcon />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={submitting}
+                      aria-label={t("settings.meetingLocationRemove", { name: name })}
+                      title={t("settings.meetingLocationRemove", { name: name })}
+                      data-testid={`settings-meeting-location-remove-${index}`}
+                      onClick={() => remove(index)}
+                    >
+                      <DeleteIcon />
+                    </Button>
+                  </>
+                }
+                {...opening}
+              />
+            );
+          })}
+        </ListRows>
       )}
       <form
         className="settings-location-add"

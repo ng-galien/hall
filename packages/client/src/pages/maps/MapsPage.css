@@ -84,56 +84,6 @@
   font-size: var(--hall-font-size-caption);
 }
 
-.maps-list {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.maps-row {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: var(--hall-space-2);
-  padding: var(--hall-space-1) var(--hall-space-1-5);
-  border: 0;
-  border-radius: var(--hall-radius-small);
-  color: var(--hall-color-text);
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.maps-row:hover {
-  background: var(--hall-color-surface-subtle);
-}
-
-.maps-row-active {
-  color: var(--hall-color-brand);
-  background: var(--hall-color-brand-subtle);
-}
-
-.maps-row-text {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.maps-row-name,
-.maps-row-path {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.maps-row-path {
-  color: var(--hall-color-text-subtle);
-  font-size: var(--hall-font-size-caption);
-}
-
 .maps-mode-switch {
   display: flex;
   gap: var(--hall-space-0-5);

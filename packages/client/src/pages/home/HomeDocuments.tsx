@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronRightIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import {
   type DocumentaryLeafSummary,
   DocumentaryResourceGlyph,
@@ -78,17 +79,18 @@ function documentHref(resource: ResourceSummary) {
 function DocumentRows({ documents, testId }: { documents: DocumentaryLeafSummary[]; testId: string }) {
   const { formatDate } = useI18n();
   return (
-    <ul className="home-document-list">
+    <ListRows>
       {documents.slice(0, visibleRows).map((resource) => (
-        <li key={resource.id}>
-          <Link className="home-document-row" data-testid={`${testId}-${resource.id}`} to={documentHref(resource)}>
-            <DocumentaryResourceGlyph resource={resource} />
-            <span className="home-document-name">{resource.name}</span>
-            <time dateTime={resource.updatedAt}>{formatDate(resource.updatedAt)}</time>
-          </Link>
-        </li>
+        <ListRow
+          key={resource.id}
+          to={documentHref(resource)}
+          openTestId={`${testId}-${resource.id}`}
+          head={<DocumentaryResourceGlyph resource={resource} />}
+          title={resource.name}
+          detail={<time dateTime={resource.updatedAt}>{formatDate(resource.updatedAt)}</time>}
+        />
       ))}
-    </ul>
+    </ListRows>
   );
 }
 

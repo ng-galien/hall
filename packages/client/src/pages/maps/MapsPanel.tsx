@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { CollapseIcon, ExpandIcon } from "../../components/icons";
 import { matchesQuery } from "../../components/Ui";
 import { ExplorerTree, ExplorerTreeBranch } from "../../components/ui/explorer-tree";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import { SearchInput } from "../../components/ui/search-input";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
@@ -16,22 +17,16 @@ type PanelMode = "tree" | "business";
 
 function MapRow({ map, active, onOpen }: { map: MapSummary; active: boolean; onOpen(id: string): void }) {
   return (
-    <li>
-      <button
-        type="button"
-        className={`maps-row${active ? " maps-row-active" : ""}`}
-        data-testid="maps-entry"
-        data-resource-id={map.id}
-        aria-current={active ? "page" : undefined}
-        onClick={() => onOpen(map.id)}
-      >
-        <DocumentaryResourceGlyph resource={map} />
-        <span className="maps-row-text">
-          <span className="maps-row-name">{map.name}</span>
-          {map.path ? <span className="maps-row-path">{map.path.split("/").join(" › ")}</span> : null}
-        </span>
-      </button>
-    </li>
+    <ListRow
+      data-resource-id={map.id}
+      onOpen={() => onOpen(map.id)}
+      openTestId="maps-entry"
+      openProps={{ "aria-current": active ? "page" : undefined }}
+      selected={active}
+      head={<DocumentaryResourceGlyph resource={map} />}
+      title={map.name}
+      detail={map.path ? map.path.split("/").join(" › ") : undefined}
+    />
   );
 }
 
@@ -177,11 +172,11 @@ export function MapsPanel({
             {found.length === 0 ? (
               <p className="maps-panel-empty">{t("maps.searchEmpty")}</p>
             ) : (
-              <ul className="maps-list">
+              <ListRows>
                 {found.map((map) => (
                   <MapRow key={map.id} map={map} active={map.id === activeId} onOpen={onOpen} />
                 ))}
-              </ul>
+              </ListRows>
             )}
           </section>
         ) : (
@@ -191,11 +186,11 @@ export function MapsPanel({
               {recent.length === 0 ? (
                 <p className="maps-panel-empty">{t("maps.recentEmpty")}</p>
               ) : (
-                <ul className="maps-list">
+                <ListRows>
                   {recent.map((map) => (
                     <MapRow key={map.id} map={map} active={map.id === activeId} onOpen={onOpen} />
                   ))}
-                </ul>
+                </ListRows>
               )}
             </section>
             <section className="maps-panel-section">
