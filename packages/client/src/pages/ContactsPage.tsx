@@ -1,6 +1,4 @@
-import type { Contact } from "@hall/api-contract";
 import { type FormEvent, useId, useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +12,8 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
-import { formatPhoneNumber, phoneHref } from "../features/council-members/phonePresentation";
+import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
+import { formatPhoneNumber } from "../features/council-members/phonePresentation";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
 import { useContactsStore } from "../stores/contactsStore";
@@ -24,7 +23,7 @@ export function ContactsPage() {
   const { submitting, run } = useSubmitting();
   const { contacts, create, error, canCreate } = useContactsStore();
   const [addOpen, setAddOpen] = useState(false);
-  const { layout, setLayout, query, setQuery } = useCollectionView();
+  const { query, setQuery } = useCollectionView();
   const fieldId = useId();
   const visibleContacts = contacts.filter((contact) =>
     matchesQuery(
@@ -58,35 +57,12 @@ export function ContactsPage() {
       return created;
     });
   };
-  const editAction = (contact: Contact) => {
-    const name = `${contact.firstName} ${contact.lastName}`;
-    const label = t("contacts.editNamed", { name: name });
-    return (
-      <Link
-        className="collection-card-link"
-        to={`/contacts/${contact.id}`}
-        aria-label={label}
-        data-testid={`contact-open-${contact.id}`}
-      />
-    );
-  };
-  const contactDetails = (contact: Contact) => (
-    <div className="council-member-contact">
-      {contact.email ? <a href={`mailto:${contact.email}`}>{contact.email}</a> : <span>{t("contacts.noEmail")}</span>}
-      {contact.phone ? (
-        <a href={phoneHref(contact.phone)}>{formatPhoneNumber(contact.phone)}</a>
-      ) : (
-        <span>{t("contacts.noPhone")}</span>
-      )}
-      {contact.organizationName ? <span>{contact.organizationName}</span> : null}
-    </div>
-  );
   return (
     <div className="page">
       <PageHeader title={t("contacts.title")} description={t("contacts.description")} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
-        <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout}>
+        <CollectionToolbar query={query} onQueryChange={setQuery}>
           {canCreate ? (
             <Button variant="default" onClick={() => setAddOpen(true)} data-testid="contacts-add">
               <AddIcon />
@@ -129,50 +105,31 @@ export function ContactsPage() {
         </Modal>
         {visibleContacts.length === 0 ? (
           <EmptyState>{t(contacts.length === 0 ? "contacts.empty" : "common.noSearchResults")}</EmptyState>
-        ) : layout === "cards" ? (
-          <div className="card-grid">
-            {visibleContacts.map((contact) => (
-              <article className="entity-card entity-card-member" key={contact.id}>
-                <div className="council-member-card-heading">
-                  <div className="member-identity member-identity-card">
-                    <span className="member-avatar member-avatar-large" aria-hidden="true">
-                      {contact.firstName[0]}
-                      {contact.lastName[0]}
-                    </span>
-                    <div>
-                      <span className="council-member-name">
-                        {contact.firstName} {contact.lastName}
-                      </span>
-                      <span>{contact.jobTitle ?? t("contacts.contact")}</span>
-                    </div>
-                  </div>
-                  {editAction(contact)}
-                </div>
-                {contactDetails(contact)}
-              </article>
-            ))}
-          </div>
         ) : (
-          <div className="data-list">
-            {visibleContacts.map((contact) => (
-              <div className="data-row council-member-row" key={contact.id}>
-                <div className="member-identity">
-                  <span className="member-avatar" aria-hidden="true">
-                    {contact.firstName[0]}
-                    {contact.lastName[0]}
-                  </span>
-                  <div>
-                    <span className="council-member-name">
-                      {contact.firstName} {contact.lastName}
-                    </span>
-                    <span>{contact.jobTitle ?? t("contacts.contact")}</span>
-                  </div>
-                </div>
-                {contactDetails(contact)}
-                <span className="council-member-list-status">{editAction(contact)}</span>
-              </div>
-            ))}
-          </div>
+          <ListRows>
+            {visibleContacts.map((contact) => {
+              const name = `${contact.firstName} ${contact.lastName}`;
+              return (
+                <ListRow
+                  key={contact.id}
+                  to={`/contacts/${contact.id}`}
+                  openTestId={`contact-open-${contact.id}`}
+                  openLabel={t("contacts.editNamed", { name })}
+                  head={<ListRowAvatar initials={`${contact.firstName.slice(0, 1)}${contact.lastName.slice(0, 1)}`} />}
+                  title={name}
+                  detail={[contact.jobTitle ?? t("contacts.contact"), contact.organizationName]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  wide={
+                    <>
+                      <span>{contact.email || t("contacts.noEmail")}</span>
+                      <span>{contact.phone ? formatPhoneNumber(contact.phone) : t("contacts.noPhone")}</span>
+                    </>
+                  }
+                />
+              );
+            })}
+          </ListRows>
         )}
       </div>
     </div>
