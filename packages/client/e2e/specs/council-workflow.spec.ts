@@ -196,7 +196,7 @@ async function declareRecusal(
   const memberResult = page
     .getByTestId("recusal-member-search-result")
     .and(page.locator(`[data-reference-id="${memberId}"]`));
-  const memberName = await memberResult.locator("strong").innerText();
+  const memberName = await memberResult.locator(".list-row-title").innerText();
   await page.getByTestId("recusal-member-search-input").fill(memberName);
   await expect(memberResult).toBeVisible();
   await memberResult.click();
