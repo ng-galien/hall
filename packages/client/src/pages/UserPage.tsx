@@ -1,12 +1,13 @@
 import type { ApiRole } from "@hall/api-contract";
 import { type FormEvent, useEffect, useId, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DeleteIcon, EditIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
 import { useRoleOptions } from "../features/authorization/useRoleOptions";
 import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
 import { PasswordDialog } from "../features/users/PasswordDialog";
@@ -91,62 +92,54 @@ export function UserPage() {
                   <h2 id={`${fieldId}-identity`}>{t("users.identity")}</h2>
                   <p>{t("users.identityDescription")}</p>
                 </div>
-                {saveState !== "idle" && (
+                <div className="admin-heading-status">
+                  {saveState !== "idle" && (
+                    <span className="record-state" data-save={saveState} role="status" data-testid="user-save-state">
+                      {saveLabels[saveState]}
+                    </span>
+                  )}
                   <span
-                    className={`admin-save-state admin-save-${saveState}`}
-                    role="status"
-                    data-testid="user-save-state"
+                    className="record-state"
+                    data-tone={user.status === "active" ? "success" : "neutral"}
+                    data-testid="user-status"
                   >
-                    <span aria-hidden="true" />
-                    {saveLabels[saveState]}
+                    {t(`users.status.${user.status}`)}
                   </span>
-                )}
+                </div>
               </div>
               {invalid && (
                 <p className="form-error" role="alert" data-testid="user-identity-error">
                   {t("users.identityRequired")}
                 </p>
               )}
-              {error === "conflict" && <p className="text-sm text-muted-foreground">{t("users.conflictHint")}</p>}
-              <div className="admin-edit-grid admin-member-edit-grid">
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`${fieldId}-name`}>{t("users.displayName")}</Label>
-                  <Input
-                    id={`${fieldId}-name`}
-                    value={draft.displayName}
-                    readOnly={!canUpdate[userId]}
-                    required
-                    maxLength={160}
-                    aria-invalid={invalid}
-                    onChange={(event) => change("displayName", event.currentTarget.value)}
-                    data-testid="user-display-name"
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`${fieldId}-email`}>{t("users.email")}</Label>
-                  <Input
-                    id={`${fieldId}-email`}
-                    type="email"
-                    value={draft.email}
-                    readOnly={!canUpdate[userId]}
-                    required
-                    aria-invalid={invalid}
-                    onChange={(event) => change("email", event.currentTarget.value)}
-                    data-testid="user-email"
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`${fieldId}-status`}>{t("users.status")}</Label>
-                  <Input
-                    id={`${fieldId}-status`}
-                    value={t(`users.status.${user.status}`)}
-                    readOnly
-                    data-testid="user-status"
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`${fieldId}-contact`}>{t("users.contact")}</Label>
-                  {canUpdate[userId] && (
+              {error === "conflict" && <p className="admin-hint">{t("users.conflictHint")}</p>}
+              <div className="admin-fields">
+                <FieldRow>
+                  <Field label={t("users.displayName")}>
+                    <Input
+                      value={draft.displayName}
+                      readOnly={!canUpdate[userId]}
+                      required
+                      maxLength={160}
+                      aria-invalid={invalid}
+                      onChange={(event) => change("displayName", event.currentTarget.value)}
+                      data-testid="user-display-name"
+                    />
+                  </Field>
+                  <Field label={t("users.email")}>
+                    <Input
+                      type="email"
+                      value={draft.email}
+                      readOnly={!canUpdate[userId]}
+                      required
+                      aria-invalid={invalid}
+                      onChange={(event) => change("email", event.currentTarget.value)}
+                      data-testid="user-email"
+                    />
+                  </Field>
+                </FieldRow>
+                {canUpdate[userId] && (
+                  <Field label={t("users.contact")}>
                     <EntitySelect
                       type="contact"
                       testId="user-contact-select"
@@ -159,18 +152,25 @@ export function UserPage() {
                       placeholder={t("users.noContact")}
                       clearLabel={t("users.noContact")}
                     />
-                  )}
-                  {contact ? (
-                    <Button asChild variant="plain" className="justify-start px-0">
-                      <Link to={`/contacts/${contact.id}`} data-testid="user-contact-link">
-                        {contact.firstName} {contact.lastName}
-                      </Link>
-                    </Button>
-                  ) : !canUpdate[userId] ? (
-                    <span>{t(draft.contactId ? "users.contactUnavailable" : "users.noContact")}</span>
-                  ) : null}
-                </div>
+                  </Field>
+                )}
               </div>
+              {contact ? (
+                <ListRows>
+                  <ListRow
+                    to={`/contacts/${contact.id}`}
+                    openTestId="user-contact-link"
+                    head={
+                      <ListRowAvatar initials={`${contact.firstName.slice(0, 1)}${contact.lastName.slice(0, 1)}`} />
+                    }
+                    overline={t("users.contact")}
+                    title={`${contact.firstName} ${contact.lastName}`}
+                    detail={contact.email ?? undefined}
+                  />
+                </ListRows>
+              ) : !canUpdate[userId] ? (
+                <p className="admin-hint">{t(draft.contactId ? "users.contactUnavailable" : "users.noContact")}</p>
+              ) : null}
               {saveState === "error" && !invalid && (
                 <Button variant="secondary" onClick={() => void flush()} data-testid="user-save-retry">
                   {t("common.retry")}
@@ -333,13 +333,18 @@ export function UserPage() {
             <RequestErrorBanner error={error} />
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
             {requiresActiveMember(roles) && (
-              <p className="text-sm text-muted-foreground" data-testid="user-councillor-contact-hint">
+              <p className="admin-hint" data-testid="user-councillor-contact-hint">
                 {t("authorization.activeMemberRequired")}
               </p>
             )}
-            <Button type="submit" disabled={submitting || roles.length === 0} data-testid="user-roles-submit">
-              {t(submitting ? "common.saving" : "users.applyRoles")}
-            </Button>
+            <div className="dialog-actions">
+              <Button variant="secondary" type="button" disabled={submitting} onClick={() => setRolesOpen(false)}>
+                {t("common.cancel")}
+              </Button>
+              <Button type="submit" disabled={submitting || roles.length === 0} data-testid="user-roles-submit">
+                {t(submitting ? "common.saving" : "users.applyRoles")}
+              </Button>
+            </div>
           </form>
         </Modal>
         <Modal
@@ -352,21 +357,26 @@ export function UserPage() {
           <div className="modal-form">
             <RequestErrorBanner error={error} />
             <p>{t("users.disableConfirm", { name: user?.displayName ?? "" })}</p>
-            <Button
-              variant="danger"
-              disabled={submitting}
-              data-testid="user-disable-confirm"
-              onClick={() =>
-                void run(async () => {
-                  if (!(await flush())) return false;
-                  const saved = await disable(userId);
-                  if (saved) setDisableOpen(false);
-                  return saved;
-                })
-              }
-            >
-              {t(submitting ? "common.saving" : "users.disable")}
-            </Button>
+            <div className="dialog-actions">
+              <Button variant="secondary" disabled={submitting} onClick={() => setDisableOpen(false)}>
+                {t("common.cancel")}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={submitting}
+                data-testid="user-disable-confirm"
+                onClick={() =>
+                  void run(async () => {
+                    if (!(await flush())) return false;
+                    const saved = await disable(userId);
+                    if (saved) setDisableOpen(false);
+                    return saved;
+                  })
+                }
+              >
+                {t(submitting ? "common.saving" : "users.disable")}
+              </Button>
+            </div>
           </div>
         </Modal>
         <Modal
@@ -379,21 +389,26 @@ export function UserPage() {
           <div className="modal-form">
             <RequestErrorBanner error={error} />
             <p>{t("users.revokeAccessConfirm", { name: user?.displayName ?? "" })}</p>
-            <Button
-              variant="danger"
-              disabled={submitting}
-              data-testid="user-revoke-access-confirm"
-              onClick={() =>
-                void run(async () => {
-                  if (!(await flush())) return false;
-                  const saved = await revokeAccess(userId);
-                  if (saved) setRevokeOpen(false);
-                  return saved;
-                })
-              }
-            >
-              {t(submitting ? "common.saving" : "users.revokeAccess")}
-            </Button>
+            <div className="dialog-actions">
+              <Button variant="secondary" disabled={submitting} onClick={() => setRevokeOpen(false)}>
+                {t("common.cancel")}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={submitting}
+                data-testid="user-revoke-access-confirm"
+                onClick={() =>
+                  void run(async () => {
+                    if (!(await flush())) return false;
+                    const saved = await revokeAccess(userId);
+                    if (saved) setRevokeOpen(false);
+                    return saved;
+                  })
+                }
+              >
+                {t(submitting ? "common.saving" : "users.revokeAccess")}
+              </Button>
+            </div>
           </div>
         </Modal>
         <Modal
@@ -411,13 +426,15 @@ export function UserPage() {
                 onHandedOverChange={setHandedOver}
               />
             )}
-            <Button
-              disabled={!handedOver}
-              data-testid="user-reactivated-close"
-              onClick={() => setReactivatedPassphrase(null)}
-            >
-              {t("common.close")}
-            </Button>
+            <div className="dialog-actions">
+              <Button
+                disabled={!handedOver}
+                data-testid="user-reactivated-close"
+                onClick={() => setReactivatedPassphrase(null)}
+              >
+                {t("common.close")}
+              </Button>
+            </div>
           </div>
         </Modal>
       </div>

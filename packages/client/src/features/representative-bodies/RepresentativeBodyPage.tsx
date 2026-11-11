@@ -1,11 +1,10 @@
 import type { Contact } from "@hall/api-contract";
 import { findSirenAction } from "@hall/api-contract";
-import { type DragEvent, type FormEvent, type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
+import { type DragEvent, type FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AddIcon, DeleteIcon } from "../../components/icons";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
@@ -88,7 +87,6 @@ export function RepresentativeBodyPage({
   const [editedEndedOn, setEditedEndedOn] = useState("");
   const [endingMembership, setEndingMembership] = useState<BodyMembership | null>(null);
   const [membershipEndDate, setMembershipEndDate] = useState("");
-  const fieldId = useId();
 
   useEffect(() => {
     if (bodies.length === 0) void load(true);
@@ -295,36 +293,31 @@ export function RepresentativeBodyPage({
               </div>
               <div className="admin-heading-status">
                 {saveState !== "idle" ? (
-                  <span className={`admin-save-state admin-save-${saveState}`} role="status">
-                    <span aria-hidden="true" />
+                  <span className="record-state" data-save={saveState} role="status">
                     {saveLabels[saveState]}
                   </span>
                 ) : null}
-                <Badge variant={body.archivedAt ? "secondary" : "success"}>
+                <span className="record-state" data-tone={body.archivedAt ? "neutral" : "success"}>
                   {t(body.archivedAt ? text.archived : text.active)}
-                </Badge>
+                </span>
               </div>
             </div>
-            <div className="admin-edit-grid">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-name`}>{t(text.name)}</Label>
+            <div className="admin-fields">
+              <Field label={t(text.name)}>
                 <Input
-                  id={`${fieldId}-name`}
                   data-testid={testId("name")}
                   value={name}
                   readOnly={!capability?.canUpdate}
                   onChange={(event) => setName(event.currentTarget.value)}
                 />
-              </div>
-              <div className="grid gap-1.5 admin-edit-wide">
-                <Label htmlFor={`${fieldId}-description`}>{t(text.purpose)}</Label>
+              </Field>
+              <Field label={t(text.purpose)}>
                 <Textarea
-                  id={`${fieldId}-description`}
                   value={description}
                   readOnly={!capability?.canUpdate}
                   onChange={(event) => setDescription(event.currentTarget.value)}
                 />
-              </div>
+              </Field>
             </div>
             {saveState === "error" ? (
               <Button variant="secondary" onClick={() => void save()}>
@@ -341,47 +334,42 @@ export function RepresentativeBodyPage({
                 <h2 id={testId("members-title")}>{t(text.members)}</h2>
                 <p>{t(text.membersDescription)}</p>
               </div>
-              <div className="admin-heading-status">
-                <Badge variant="secondary">{activeMemberships.length}</Badge>
-                {capability?.canAddMembership ? (
-                  <Button
-                    variant={paletteOpen ? "secondary" : "secondary"}
-                    data-testid={testId("add-members")}
-                    aria-expanded={paletteOpen}
-                    onClick={() => setPaletteOpen((open) => !open)}
-                  >
-                    <AddIcon />
-                    {t(text.addMembers)}
-                  </Button>
-                ) : null}
-              </div>
+              {capability?.canAddMembership ? (
+                <Button
+                  variant="secondary"
+                  data-testid={testId("add-members")}
+                  aria-expanded={paletteOpen}
+                  onClick={() => setPaletteOpen((open) => !open)}
+                >
+                  <AddIcon />
+                  {t(text.addMembers)}
+                </Button>
+              ) : null}
             </div>
 
             {paletteOpen ? (
               <section
                 data-testid={testId("member-palette")}
                 className="admin-member-palette"
-                aria-label={t(text.availableMembers)}
+                aria-labelledby={testId("palette-title")}
               >
-                <div className="admin-palette-heading">
+                <div className="admin-section-heading">
                   <div>
-                    <h3>{t(text.availableMembers)}</h3>
+                    <h3 id={testId("palette-title")}>{t(text.availableMembers)}</h3>
                     <p>{t(text.paletteDescription)}</p>
                   </div>
-                  <div className="admin-compact-date">
-                    <Label htmlFor={`${fieldId}-startedOn`}>{t(text.startedOn)}</Label>
-                    <Input
-                      data-testid={testId("membership-start")}
-                      id={`${fieldId}-startedOn`}
-                      type="date"
-                      required
-                      value={membershipStartedOn}
-                      onChange={(event) => setMembershipStartedOn(event.currentTarget.value)}
-                    />
-                  </div>
                 </div>
+                <Field label={t(text.startedOn)} className="admin-compact-date">
+                  <Input
+                    data-testid={testId("membership-start")}
+                    type="date"
+                    required
+                    value={membershipStartedOn}
+                    onChange={(event) => setMembershipStartedOn(event.currentTarget.value)}
+                  />
+                </Field>
                 {availableMembers.length === 0 ? (
-                  <div className="admin-inline-empty">{t(text.noAvailableMembers)}</div>
+                  <p className="admin-inline-empty">{t(text.noAvailableMembers)}</p>
                 ) : (
                   <>
                     <ResourceSearch
@@ -411,7 +399,7 @@ export function RepresentativeBodyPage({
             ) : null}
 
             {activeMemberships.length === 0 ? (
-              <div className="admin-inline-empty">{t(text.noMembers)}</div>
+              <p className="admin-inline-empty">{t(text.noMembers)}</p>
             ) : (
               <div className="admin-role-board" data-testid={testId("role-board")}>
                 {bodyKind.roles.map((role) => {
@@ -422,97 +410,95 @@ export function RepresentativeBodyPage({
                   return (
                     <section
                       data-testid={testId(`role-zone-${role}`)}
-                      className={`admin-role-zone${dropRole === role ? " admin-role-zone-over" : ""}`}
+                      className="admin-role-zone"
+                      data-over={dropRole === role ? "true" : undefined}
                       aria-label={t(bodyKind.roleLabel(role))}
                       {...roleDropHandlers(role)}
                       key={role}
                     >
                       <header className="admin-role-header">
-                        <span>{t(bodyKind.roleLabel(role))}</span>
-                        <span className="admin-role-tools">
-                          {canReceiveSelection ? (
-                            <button
-                              type="button"
-                              data-testid={testId(`move-role-${role}`)}
-                              onClick={() => {
-                                if (selectedMembership) void moveMembership(selectedMembership, role);
-                              }}
-                            >
-                              {t(text.moveHere)}
-                            </button>
-                          ) : null}
-                          <strong>{roleMemberships.length}</strong>
-                        </span>
+                        <h3>
+                          {t(bodyKind.roleLabel(role))}
+                          <span>{roleMemberships.length}</span>
+                        </h3>
+                        {canReceiveSelection ? (
+                          <Button
+                            variant="secondary"
+                            data-testid={testId(`move-role-${role}`)}
+                            onClick={() => {
+                              if (selectedMembership) void moveMembership(selectedMembership, role);
+                            }}
+                          >
+                            {t(text.moveHere)}
+                          </Button>
+                        ) : null}
                       </header>
-                      <div className="admin-role-chips">
-                        {roleMemberships.length === 0 ? (
-                          <p>{t(text.noMemberInRole)}</p>
-                        ) : (
-                          roleMemberships.map((membership) => {
+                      {roleMemberships.length === 0 ? (
+                        <p className="admin-inline-empty">{t(text.noMemberInRole)}</p>
+                      ) : (
+                        <ListRows>
+                          {roleMemberships.map((membership) => {
                             const member = memberById.get(membership.contactId);
                             const selected = selectedMembershipId === membership.id;
                             const movable = canUpdateMembership(membership);
                             return (
-                              <button
-                                className={`vote-card admin-member-chip${selected ? " vote-card-selected" : ""}`}
-                                type="button"
-                                aria-pressed={selected}
-                                draggable={movable}
-                                onDragStart={(event) => {
-                                  event.dataTransfer.effectAllowed = "move";
-                                  setDraggedMembershipId(membership.id);
-                                }}
-                                onDragEnd={() => {
-                                  setDraggedMembershipId(null);
-                                  setDropRole(null);
-                                }}
-                                data-testid={testId(`membership-${membership.contactId}`)}
-                                onClick={() => setSelectedMembershipId(selected ? null : membership.id)}
+                              <ListRow
                                 key={membership.id}
+                                selected={selected}
+                                onOpen={() => setSelectedMembershipId(selected ? null : membership.id)}
+                                openTestId={testId(`membership-${membership.contactId}`)}
+                                openProps={{ "aria-pressed": selected }}
+                                lineProps={{
+                                  draggable: movable,
+                                  onDragStart: (event) => {
+                                    event.dataTransfer.effectAllowed = "move";
+                                    setDraggedMembershipId(membership.id);
+                                  },
+                                  onDragEnd: () => {
+                                    setDraggedMembershipId(null);
+                                    setDropRole(null);
+                                  },
+                                }}
+                                head={<ListRowAvatar initials={memberInitials(member)} />}
+                                title={memberName(member, t("contacts.notFound"))}
+                                detail={t(text.sinceDate, { date: formatDate(membership.startedOn) })}
                               >
-                                <span className="vote-card-avatar" aria-hidden="true">
-                                  {memberInitials(member)}
-                                </span>
-                                <span className="vote-card-copy">
-                                  <strong>{memberName(member, t("contacts.notFound"))}</strong>
-                                  <span>{t(text.sinceDate, { date: formatDate(membership.startedOn) })}</span>
-                                </span>
-                              </button>
+                                {selected ? (
+                                  <div className="admin-membership-actions">
+                                    <Button asChild variant="secondary">
+                                      <Link
+                                        data-testid={testId("contact-link")}
+                                        to={`/contacts/${membership.contactId}`}
+                                      >
+                                        {t(text.openMember)}
+                                      </Link>
+                                    </Button>
+                                    {movable ? (
+                                      <Button variant="secondary" onClick={() => openMembershipEditor(membership)}>
+                                        {t(text.editDates)}
+                                      </Button>
+                                    ) : null}
+                                    {canEndMembership(membership) ? (
+                                      <Button
+                                        variant="secondary"
+                                        data-testid={testId("end-membership")}
+                                        onClick={() => openMembershipEnd(membership)}
+                                      >
+                                        {t(text.endMembership)}
+                                      </Button>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                              </ListRow>
                             );
-                          })
-                        )}
-                      </div>
+                          })}
+                        </ListRows>
+                      )}
                     </section>
                   );
                 })}
               </div>
             )}
-
-            {selectedMembership ? (
-              <div className="admin-membership-toolbar" role="status">
-                <span>
-                  <strong>{memberName(memberById.get(selectedMembership.contactId), t("contacts.notFound"))}</strong>
-                  {t(bodyKind.roleLabel(selectedMembership.role))}
-                </span>
-                <div>
-                  <Link data-testid={testId("contact-link")} to={`/contacts/${selectedMembership.contactId}`}>
-                    {t(text.openMember)}
-                  </Link>
-                  <Button variant="plain" onClick={() => openMembershipEditor(selectedMembership)}>
-                    {t(text.editDates)}
-                  </Button>
-                  {canEndMembership(selectedMembership) ? (
-                    <Button
-                      variant="secondary"
-                      data-testid={testId("end-membership")}
-                      onClick={() => openMembershipEnd(selectedMembership)}
-                    >
-                      {t(text.endMembership)}
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
 
             {endedMemberships.length > 0 ? (
               <details className="admin-membership-history">
@@ -531,7 +517,7 @@ export function RepresentativeBodyPage({
                         }`}
                         action={
                           canUpdateMembership(membership) ? (
-                            <Button variant="plain" onClick={() => openMembershipEditor(membership)}>
+                            <Button variant="secondary" onClick={() => openMembershipEditor(membership)}>
                               {t("common.edit")}
                             </Button>
                           ) : undefined
@@ -565,41 +551,42 @@ export function RepresentativeBodyPage({
 
         <Modal open={Boolean(editedMembership)} title={t(text.editDates)} onClose={() => setEditedMembership(null)}>
           <form className="modal-form" onSubmit={submitMembershipUpdate}>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${fieldId}-edit-startedOn`}>{t(text.startedOn)}</Label>
-              <Input
-                id={`${fieldId}-edit-startedOn`}
-                type="date"
-                required
-                value={editedStartedOn}
-                onChange={(event) => setEditedStartedOn(event.currentTarget.value)}
-              />
-            </div>
-            {editedMembership?.endedOn ? (
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-edit-endedOn`}>{t(text.endedOn)}</Label>
+            <FieldRow>
+              <Field label={t(text.startedOn)}>
                 <Input
-                  id={`${fieldId}-edit-endedOn`}
                   type="date"
                   required
-                  value={editedEndedOn}
-                  onChange={(event) => setEditedEndedOn(event.currentTarget.value)}
+                  value={editedStartedOn}
+                  onChange={(event) => setEditedStartedOn(event.currentTarget.value)}
                 />
-              </div>
-            ) : null}
-            <Button type="submit" disabled={submitting}>
-              {t(submitting ? "common.saving" : "common.save")}
-            </Button>
+              </Field>
+              {editedMembership?.endedOn ? (
+                <Field label={t(text.endedOn)}>
+                  <Input
+                    type="date"
+                    required
+                    value={editedEndedOn}
+                    onChange={(event) => setEditedEndedOn(event.currentTarget.value)}
+                  />
+                </Field>
+              ) : null}
+            </FieldRow>
+            <div className="dialog-actions">
+              <Button variant="secondary" type="button" onClick={() => setEditedMembership(null)}>
+                {t("common.cancel")}
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {t(submitting ? "common.saving" : "common.save")}
+              </Button>
+            </div>
           </form>
         </Modal>
 
         <Modal open={Boolean(endingMembership)} title={t(text.endMembership)} onClose={() => setEndingMembership(null)}>
           <form className="modal-form" onSubmit={submitMembershipEnd}>
-            <p className="admin-dialog-description">{t(text.endMembershipDescription)}</p>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${fieldId}-end-date`}>{t(text.endedOn)}</Label>
+            <p className="admin-hint">{t(text.endMembershipDescription)}</p>
+            <Field label={t(text.endedOn)}>
               <Input
-                id={`${fieldId}-end-date`}
                 data-testid={testId("end-membership-date")}
                 type="date"
                 required
@@ -607,10 +594,20 @@ export function RepresentativeBodyPage({
                 value={membershipEndDate}
                 onChange={(event) => setMembershipEndDate(event.currentTarget.value)}
               />
+            </Field>
+            <div className="dialog-actions">
+              <Button variant="secondary" type="button" onClick={() => setEndingMembership(null)}>
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                variant="danger"
+                disabled={submitting}
+                data-testid={testId("end-membership-confirm")}
+              >
+                {t(submitting ? "common.saving" : text.confirmEndMembership)}
+              </Button>
             </div>
-            <Button type="submit" variant="danger" disabled={submitting} data-testid={testId("end-membership-confirm")}>
-              {t(submitting ? "common.saving" : text.confirmEndMembership)}
-            </Button>
           </form>
         </Modal>
       </div>

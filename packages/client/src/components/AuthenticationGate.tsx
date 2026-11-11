@@ -1,8 +1,8 @@
 import type { ApiPrincipal, SirenEntity } from "@hall/api-contract";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { PasswordDialog } from "../features/users/PasswordDialog";
 import { useI18n } from "../i18n/I18nProvider";
 import { ApiError, type ApiErrorCode, AUTHENTICATION_REQUIRED_EVENT, apiErrorCode } from "../services/apiClient";
@@ -111,34 +111,29 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
         <h1>{t(status?.bootstrapRequired ? "auth.bootstrapTitle" : "auth.signInTitle")}</h1>
         {status?.bootstrapRequired ? (
           <>
-            <div className="grid gap-1.5">
-              <Label htmlFor="auth-display-name">{t("auth.displayName")}</Label>
-              <Input id="auth-display-name" name="displayName" autoComplete="name" required />
-            </div>
+            <Field label={t("auth.displayName")}>
+              <Input name="displayName" autoComplete="name" required />
+            </Field>
             {status.bootstrapTokenRequired ? (
-              <div className="grid gap-1.5">
-                <Label htmlFor="auth-setup-token">{t("auth.setupToken")}</Label>
-                <Input id="auth-setup-token" name="setupToken" type="password" autoComplete="off" required />
-              </div>
+              <Field label={t("auth.setupToken")}>
+                <Input name="setupToken" type="password" autoComplete="off" required />
+              </Field>
             ) : null}
           </>
         ) : null}
-        <div className="grid gap-1.5">
-          <Label htmlFor="auth-email">{t("auth.email")}</Label>
-          <Input data-testid="auth-email" id="auth-email" name="email" type="email" autoComplete="username" required />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="auth-password">{t("auth.password")}</Label>
+        <Field label={t("auth.email")}>
+          <Input data-testid="auth-email" name="email" type="email" autoComplete="username" required />
+        </Field>
+        <Field label={t("auth.password")}>
           <Input
             data-testid="auth-password"
-            id="auth-password"
             name="password"
             type="password"
             autoComplete={status?.bootstrapRequired ? "new-password" : "current-password"}
             minLength={12}
             required
           />
-        </div>
+        </Field>
         {error ? (
           <p className="form-error" role="alert" data-testid="auth-error">
             {t(errorTranslationKeys[error])}

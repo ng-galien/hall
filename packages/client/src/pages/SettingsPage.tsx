@@ -1,10 +1,10 @@
 import { findSirenAction, findSirenLink } from "@hall/api-contract";
 import type { HallSettings } from "@hall/domain";
-import { type FormEvent, useEffect, useId, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader, RequestErrorBanner } from "../components/Ui";
@@ -48,9 +48,6 @@ export function SettingsPage() {
   const [settingsError, setSettingsError] = useState<ApiErrorCode | null>(null);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [settingsUpdateAvailable, setSettingsUpdateAvailable] = useState(false);
-  const localeId = useId();
-  const themeId = useId();
-  const expectedMemberCountId = useId();
   useEffect(() => {
     void apiSirenRequest("")
       .then(({ representation }) =>
@@ -129,10 +126,8 @@ export function SettingsPage() {
             {hallSettings && councilTermUpdateAvailable ? (
               <form className="creation-form" onSubmit={(event) => void submitCouncilTerm(event)}>
                 <h3>{t("settings.councilTerm")}</h3>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={expectedMemberCountId}>{t("settings.expectedMemberCount")}</Label>
+                <Field label={t("settings.expectedMemberCount")} help={t("settings.expectedMemberCountDescription")}>
                   <Input
-                    id={expectedMemberCountId}
                     type="number"
                     min="1"
                     step="1"
@@ -144,16 +139,27 @@ export function SettingsPage() {
                     }}
                     data-testid="settings-expected-member-count"
                   />
-                  <p className="text-xs text-muted">{t("settings.expectedMemberCountDescription")}</p>
+                </Field>
+                <div className="settings-actions">
+                  {settingsSaved ? (
+                    <span
+                      className="record-state"
+                      data-save="saved"
+                      role="status"
+                      data-testid="settings-council-term-saved"
+                    >
+                      {t("workspace.saved")}
+                    </span>
+                  ) : null}
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    disabled={submitting}
+                    data-testid="settings-council-term-save"
+                  >
+                    {t(submitting ? "common.saving" : "common.save")}
+                  </Button>
                 </div>
-                <Button variant="primary" type="submit" disabled={submitting} data-testid="settings-council-term-save">
-                  {t(submitting ? "common.saving" : "common.save")}
-                </Button>
-                {settingsSaved ? (
-                  <span role="status" data-testid="settings-council-term-saved">
-                    {t("workspace.saved")}
-                  </span>
-                ) : null}
               </form>
             ) : null}
             {hallSettings && settingsUpdateAvailable ? (
@@ -174,11 +180,11 @@ export function SettingsPage() {
             </TabsContent>
           ) : null}
           <TabsContent value="preferences">
-            <div className="creation-form">
-              <div className="grid gap-1.5">
-                <Label htmlFor={localeId}>{t("settings.language")}</Label>
+            <section className="creation-form">
+              <h3>{t("settings.display")}</h3>
+              <Field label={t("settings.language")} help={t("settings.languageDescription")}>
                 <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
-                  <SelectTrigger id={localeId} className="w-full" data-testid="settings-language">
+                  <SelectTrigger className="w-full" data-testid="settings-language">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -190,14 +196,10 @@ export function SettingsPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted">{t("settings.languageDescription")}</p>
-              </div>
-            </div>
-            <div className="creation-form">
-              <div className="grid gap-1.5">
-                <Label htmlFor={themeId}>{t("settings.theme")}</Label>
+              </Field>
+              <Field label={t("settings.theme")} help={t("settings.themeDescription")}>
                 <Select value={preference} onValueChange={(value) => setPreference(value as ThemePreference)}>
-                  <SelectTrigger id={themeId} className="w-full" data-testid="settings-theme">
+                  <SelectTrigger className="w-full" data-testid="settings-theme">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -212,13 +214,12 @@ export function SettingsPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted">{t("settings.themeDescription")}</p>
-              </div>
-            </div>
+              </Field>
+            </section>
             {logoutAvailable || passwordChangeAvailable ? (
-              <div className="creation-form">
+              <section className="creation-form">
                 <h3>{t("settings.session")}</h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="settings-actions settings-actions-start">
                   {passwordChangeAvailable && (
                     <Button
                       variant="secondary"
@@ -229,12 +230,12 @@ export function SettingsPage() {
                     </Button>
                   )}
                   {logoutAvailable && (
-                    <Button onClick={() => void logout()} data-testid="settings-logout">
+                    <Button variant="secondary" onClick={() => void logout()} data-testid="settings-logout">
                       {t("settings.logout")}
                     </Button>
                   )}
                 </div>
-              </div>
+              </section>
             ) : null}
           </TabsContent>
         </Tabs>

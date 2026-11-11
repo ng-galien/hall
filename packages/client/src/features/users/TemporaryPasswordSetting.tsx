@@ -1,5 +1,3 @@
-import { useId } from "react";
-import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 
 // @implements-requirement HALL-FR-USR-070
@@ -12,13 +10,11 @@ export function TemporaryPasswordSetting({
   disabled?: boolean;
   onChange(value: boolean): void;
 }) {
-  const id = useId();
   const { t } = useI18n();
   return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id}>
+    <div className="checkbox-group">
+      <label className="checkbox-field">
         <input
-          id={id}
           type="checkbox"
           checked={value}
           disabled={disabled}
@@ -26,8 +22,8 @@ export function TemporaryPasswordSetting({
           data-testid="user-temporary-password"
         />
         {t("users.temporaryPassword")}
-      </Label>
-      <p className="text-sm text-muted-foreground">{t("users.temporaryPasswordDescription")}</p>
+      </label>
+      <p className="admin-hint">{t("users.temporaryPasswordDescription")}</p>
     </div>
   );
 }

@@ -28,7 +28,7 @@ test("creates an account with a generated passphrase shown once, then revokes it
   expect((await generation).status()).toBe(200);
   await expect(page.getByTestId("passphrase-value")).toBeVisible();
   const tops = await page
-    .locator('[data-testid="user-display-name"], [data-testid="user-email"], [data-testid="user-password"]')
+    .locator('[data-testid="user-display-name"], [data-testid="user-email"]')
     .evaluateAll((fields) => fields.map((field) => field.getBoundingClientRect().top));
   expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(1);
   await page.screenshot({ path: testInfo.outputPath("create-user-desktop.png"), animations: "disabled" });
@@ -61,7 +61,7 @@ test("creates an account with a generated passphrase shown once, then revokes it
 
   await page.getByTestId("user-revoke-access").click();
   await page.getByTestId("user-revoke-access-confirm").click();
-  await expect(page.getByTestId("user-status")).toHaveValue("Désactivé");
+  await expect(page.getByTestId("user-status")).toHaveText("Désactivé");
   expect((await elected.get("/api/auth/session")).status()).toBe(401);
   expect(
     (await elected.post("/api/auth/login", { data: { email: "elue@example.test", password: passphrase } })).status(),
@@ -75,7 +75,7 @@ test("creates an account with a generated passphrase shown once, then revokes it
   await page.getByTestId("passphrase-handed-over").check();
   await page.getByTestId("user-reactivated-close").click();
   await expect(page.getByTestId("passphrase-value")).toHaveCount(0);
-  await expect(page.getByTestId("user-status")).toHaveValue("Actif");
+  await expect(page.getByTestId("user-status")).toHaveText("Actif");
   expect(
     (await elected.post("/api/auth/login", { data: { email: "elue@example.test", password: renewed } })).status(),
   ).toBe(200);

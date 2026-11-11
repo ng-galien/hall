@@ -49,11 +49,11 @@ test("compte et dossier personnel d’un conseiller", async ({ docsPage: page })
   await expect(page.getByTestId("user-revoke-access-confirm")).toBeVisible();
   await capture(page, `${journey}/06-revoquer-l-acces`);
   await page.getByTestId("user-revoke-access-confirm").click();
-  await expect(page.getByTestId("user-status")).toHaveValue("Désactivé");
+  await expect(page.getByTestId("user-status")).toHaveText("Désactivé");
   await page.getByTestId("user-reactivate").click();
   await expect(page.getByTestId("user-reactivated")).toBeVisible();
   await capture(page, `${journey}/07-reactiver`);
   await page.getByTestId("passphrase-handed-over").check();
   await page.getByTestId("user-reactivated-close").click();
-  await expect(page.getByTestId("user-status")).toHaveValue("Actif");
+  await expect(page.getByTestId("user-status")).toHaveText("Actif");
 });

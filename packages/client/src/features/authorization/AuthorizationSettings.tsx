@@ -6,11 +6,11 @@ import {
   type SirenEmbeddedEntity,
   type SirenEntity,
 } from "@hall/api-contract";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -22,7 +22,6 @@ import { useRoleOptionsStore } from "./useRoleOptions";
 // @implements-requirement HALL-FR-USR-060
 export function AuthorizationSettings() {
   const { t } = useI18n();
-  const fieldId = useId();
   const [config, setConfig] = useState<AuthorizationConfiguration | null>(null);
   const [representation, setRepresentation] = useState<SirenEntity | null>(null);
   const [draft, setDraft] = useState<AuthorizationRole | null>(null);
@@ -101,15 +100,12 @@ export function AuthorizationSettings() {
       </>
     );
   return (
-    <section className="grid gap-5" data-testid="authorization-settings">
-      <div>
-        <h2 className="text-lg font-medium">{t("authorization.title")}</h2>
-        <p className="text-sm text-muted-foreground">{t("authorization.description")}</p>
-      </div>
+    <section className="creation-form" data-testid="authorization-settings">
+      <h3>{t("authorization.title")}</h3>
+      <p className="admin-hint">{t("authorization.description")}</p>
       {!deleteOpen && <RequestErrorBanner error={error} />}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${fieldId}-role`}>{t("authorization.role")}</Label>
+      <div className="authorization-role-picker">
+        <Field label={t("authorization.role")}>
           <Select
             value={draft.revision === 0 ? "new" : draft.id}
             disabled={busy}
@@ -118,7 +114,7 @@ export function AuthorizationSettings() {
               if (role) update(role);
             }}
           >
-            <SelectTrigger id={`${fieldId}-role`} data-testid="authorization-role-select">
+            <SelectTrigger data-testid="authorization-role-select">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -130,7 +126,7 @@ export function AuthorizationSettings() {
               {draft.revision === 0 && <SelectItem value="new">{t("authorization.newRole")}</SelectItem>}
             </SelectContent>
           </Select>
-        </div>
+        </Field>
         {canCreate && (
           <Button
             type="button"
@@ -144,33 +140,28 @@ export function AuthorizationSettings() {
         )}
       </div>
       {draft.builtIn ? (
-        <p
-          className="rounded-lg border border-border bg-surface p-4 text-sm"
-          data-testid="authorization-administrator-protection"
-        >
+        <p className="admin-hint" data-testid="authorization-administrator-protection">
           {t("authorization.administratorProtection")}
         </p>
       ) : (
-        <div className="grid max-w-lg gap-1.5">
-          <Label htmlFor={`${fieldId}-name`}>{t("authorization.roleName")}</Label>
+        <Field label={t("authorization.roleName")} className="authorization-role-name">
           <Input
-            id={`${fieldId}-name`}
             data-testid="authorization-role-name"
             value={draft.name}
             maxLength={120}
             disabled={!editable || busy}
             onChange={(event) => update({ ...draft, name: event.currentTarget.value })}
           />
-        </div>
+        </Field>
       )}
-      <p className="text-sm text-muted-foreground">{t("authorization.conditionsHelp")}</p>
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm" data-testid="authorization-grants">
-          <thead className="bg-surface text-left">
+      <p className="admin-hint">{t("authorization.conditionsHelp")}</p>
+      <div className="authorization-grants">
+        <table data-testid="authorization-grants">
+          <thead>
             <tr>
-              <th className="px-4 py-3 font-medium">{t("authorization.resource")}</th>
-              <th className="px-4 py-3 font-medium">{t("authorization.operation")}</th>
-              <th className="px-4 py-3 font-medium">{t("authorization.access")}</th>
+              <th>{t("authorization.resource")}</th>
+              <th>{t("authorization.operation")}</th>
+              <th>{t("authorization.access")}</th>
             </tr>
           </thead>
           <tbody>
@@ -182,10 +173,10 @@ export function AuthorizationSettings() {
                 const operationLabel = labels ? t(labels.operation) : access.operation;
                 const value = draft.grants.find((grant) => grant.access === access.access)?.condition ?? "none";
                 return (
-                  <tr key={access.access} className="border-t border-border">
-                    <td className="px-4 py-3 align-top font-medium">{resourceLabel}</td>
-                    <td className="px-4 py-3 align-top text-muted-foreground">{operationLabel}</td>
-                    <td className="px-4 py-3">
+                  <tr key={access.access}>
+                    <td>{resourceLabel}</td>
+                    <td>{operationLabel}</td>
+                    <td>
                       <Select
                         value={value}
                         disabled={!editable || busy}
@@ -202,7 +193,6 @@ export function AuthorizationSettings() {
                         }
                       >
                         <SelectTrigger
-                          className="w-full min-w-44"
                           data-testid={`authorization-access-${access.access}`}
                           aria-label={`${resourceLabel} · ${operationLabel}`}
                         >
@@ -230,16 +220,11 @@ export function AuthorizationSettings() {
           </tbody>
         </table>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        {editable && (
-          <Button
-            type="button"
-            data-testid="authorization-save-role"
-            disabled={busy || !draft.name.trim()}
-            onClick={() => void save()}
-          >
-            {t(busy ? "common.saving" : "common.save")}
-          </Button>
+      <div className="settings-actions">
+        {saved && (
+          <span className="record-state" data-save="saved" role="status" data-testid="authorization-saved">
+            {t("authorization.saved")}
+          </span>
         )}
         {canDelete && (
           <Button
@@ -252,10 +237,15 @@ export function AuthorizationSettings() {
             {t("authorization.deleteRole")}
           </Button>
         )}
-        {saved && (
-          <p role="status" data-testid="authorization-saved">
-            {t("authorization.saved")}
-          </p>
+        {editable && (
+          <Button
+            type="button"
+            data-testid="authorization-save-role"
+            disabled={busy || !draft.name.trim()}
+            onClick={() => void save()}
+          >
+            {t(busy ? "common.saving" : "common.save")}
+          </Button>
         )}
       </div>
       <Modal
@@ -265,17 +255,23 @@ export function AuthorizationSettings() {
           if (!busy) setDeleteOpen(false);
         }}
       >
-        <div className="grid gap-4">
+        <div className="modal-form">
           <RequestErrorBanner error={error} />
           <p>{t("authorization.deleteConfirm", { name: draft.name })}</p>
-          <Button
-            type="button"
-            disabled={busy}
-            data-testid="authorization-confirm-delete"
-            onClick={() => void remove()}
-          >
-            {t("authorization.deleteRole")}
-          </Button>
+          <div className="dialog-actions">
+            <Button type="button" variant="secondary" disabled={busy} onClick={() => setDeleteOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={busy}
+              data-testid="authorization-confirm-delete"
+              onClick={() => void remove()}
+            >
+              {t("authorization.deleteRole")}
+            </Button>
+          </div>
         </div>
       </Modal>
     </section>

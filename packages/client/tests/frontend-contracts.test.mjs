@@ -334,9 +334,9 @@ test("council administration follows committee and representation Siren capabili
   assert.match(bodyPage, /findSirenAction\(representation, bodyKind\.actions\.endMembership\)/);
   assert.match(bodyPage, /const addSelectedMembers = \(role: string\)/);
   assert.match(bodyPage, /const moveMembership = \(membership: BodyMembership, role: string\)/);
-  assert.match(bodyPage, /onDragStart=/);
+  assert.match(bodyPage, /onDragStart[=:]/);
   assert.match(bodyPage, /onDrop:/);
-  assert.match(bodyPage, /aria-pressed=\{selected\}/);
+  assert.match(bodyPage, /"aria-pressed": selected/);
   assert.match(bodyPage, /capability\?\.canUpdate/);
   assert.match(bodyPage, /capability\?\.canAddMembership/);
   assert.match(bodyPage, /window\.setTimeout\(\(\) => void save\(\), 1000\)/);

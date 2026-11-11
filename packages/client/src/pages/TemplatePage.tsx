@@ -1,10 +1,9 @@
 import type { ContentTemplate } from "@hall/domain";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { DocumentViewerDialog } from "../features/documents/DocumentViewerDialog";
@@ -41,7 +40,6 @@ const draftOf = (template: ContentTemplate): TemplateInput => ({
 export function TemplatePage() {
   const { templateId = "" } = useParams();
   const { t } = useI18n();
-  const id = useId();
   const { submitting, run } = useSubmitting();
   const [saved, setSaved] = useState<TemplateInput | null>(null);
   const [draft, setDraft] = useState<TemplateInput | null>(null);
@@ -133,42 +131,39 @@ export function TemplatePage() {
         </Link>
         <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
         <p className="template-editor-status">
-          <Badge variant="outline">{typeLabel ? t(typeLabel) : draft.documentType}</Badge>
-          <Badge variant="outline">{t(`templates.kind.${draft.kind}`)}</Badge>
-          {readOnly ? <span className="text-xs text-muted">{t("templates.readOnly")}</span> : null}
+          <span>
+            {typeLabel ? t(typeLabel) : draft.documentType} · {t(`templates.kind.${draft.kind}`)}
+          </span>
+          {readOnly ? <span className="record-state">{t("templates.readOnly")}</span> : null}
           {dirty ? (
-            <span role="status" className="text-xs text-muted" data-testid="template-unsaved">
+            <span role="status" className="record-state" data-save="dirty" data-testid="template-unsaved">
               {t("templates.unsaved")}
             </span>
           ) : savedOnce ? (
-            <span role="status" className="text-xs text-muted" data-testid="template-saved">
+            <span role="status" className="record-state" data-save="saved" data-testid="template-saved">
               {t("workspace.saved")}
             </span>
           ) : null}
         </p>
         <section className="creation-form">
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-name`}>{t("templates.name")}</Label>
+          <Field label={t("templates.name")}>
             <Input
-              id={`${id}-name`}
               value={draft.name}
               readOnly={readOnly}
               required
               data-testid="template-name"
               onChange={(event) => change({ name: event.currentTarget.value })}
             />
-          </div>
+          </Field>
           {draft.kind === "message" ? (
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-subject`}>{t("templates.subject")}</Label>
+            <Field label={t("templates.subject")}>
               <Input
-                id={`${id}-subject`}
                 value={draft.subject ?? ""}
                 readOnly={readOnly}
                 data-testid="template-subject"
                 onChange={(event) => change({ subject: event.currentTarget.value })}
               />
-            </div>
+            </Field>
           ) : (
             <TemplateDecorationField
               label={t("templates.header")}
@@ -178,25 +173,21 @@ export function TemplatePage() {
               onChange={(headerHtml) => change({ headerHtml })}
             />
           )}
-          <div className="grid gap-1.5" data-testid="template-body">
-            <Label htmlFor={`${id}-body`}>{t("templates.body")}</Label>
-            <p className="text-xs text-muted-foreground" id={`${id}-body-help`}>
-              {t("templates.jinjaHelp")}
-            </p>
-            <Textarea
-              id={`${id}-body`}
-              data-testid="template-body-editor"
-              aria-describedby={`${id}-body-help`}
-              className="font-mono min-h-96 whitespace-pre"
-              spellCheck={false}
-              value={draft.bodyMarkdown}
-              readOnly={readOnly}
-              onChange={(event) => change({ bodyMarkdown: event.currentTarget.value })}
-            />
-            <details className="text-sm">
+          <div className="template-body" data-testid="template-body">
+            <Field label={t("templates.body")} help={t("templates.jinjaHelp")}>
+              <Textarea
+                data-testid="template-body-editor"
+                className="template-source template-body-source"
+                spellCheck={false}
+                value={draft.bodyMarkdown}
+                readOnly={readOnly}
+                onChange={(event) => change({ bodyMarkdown: event.currentTarget.value })}
+              />
+            </Field>
+            <details className="template-examples">
               <summary>{t("templates.jinjaExamples")}</summary>
-              <p className="my-2 text-xs text-muted-foreground">{t("templates.jinjaData")}</p>
-              <pre className="overflow-auto text-xs">{`{% for point in minutes.points %}\n## {{ point.number }}. {{ point.title | text }}\n\n{% if point.subjectText %}\n### Sujet présenté\n\n{{ point.subjectText | markdown }}\n{% endif %}\n\n### Discussion\n\n{{ point.narrative | markdown }}\n\n{% if point.ballot %}\nPour : {{ point.ballot.totals.approve }}\n{% endif %}\n{% endfor %}\n\n::page-break\n\nPage :page-number / :page-count`}</pre>
+              <p>{t("templates.jinjaData")}</p>
+              <pre>{`{% for point in minutes.points %}\n## {{ point.number }}. {{ point.title | text }}\n\n{% if point.subjectText %}\n### Sujet présenté\n\n{{ point.subjectText | markdown }}\n{% endif %}\n\n### Discussion\n\n{{ point.narrative | markdown }}\n\n{% if point.ballot %}\nPour : {{ point.ballot.totals.approve }}\n{% endif %}\n{% endfor %}\n\n::page-break\n\nPage :page-number / :page-count`}</pre>
             </details>
           </div>
           {draft.kind === "pdf" ? (
@@ -209,18 +200,15 @@ export function TemplatePage() {
             />
           ) : null}
           {draft.kind === "pdf" ? (
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-stylesheet`}>{t("templates.stylesheet")}</Label>
-              <p className="text-xs text-muted-foreground">{t("templates.stylesheetDescription")}</p>
+            <Field label={t("templates.stylesheet")} help={t("templates.stylesheetDescription")}>
               <Textarea
-                id={`${id}-stylesheet`}
-                className="font-mono"
+                className="template-source"
                 value={draft.stylesheet}
                 readOnly={readOnly}
                 data-testid="template-stylesheet"
                 onChange={(event) => change({ stylesheet: event.currentTarget.value })}
               />
-            </div>
+            </Field>
           ) : null}
         </section>
         {preview ? (
@@ -234,7 +222,7 @@ export function TemplatePage() {
             onClose={() => setPreview(null)}
           >
             <div className="template-preview-metadata">
-              <p className="text-sm text-muted-foreground" data-testid="template-preview-source">
+              <p className="admin-hint" data-testid="template-preview-source">
                 {preview?.sourceLabel
                   ? t(preview.sourceKind === "meeting" ? "templates.previewMeetingSource" : "templates.previewSource", {
                       source: preview.sourceLabel,
@@ -244,7 +232,7 @@ export function TemplatePage() {
               {preview?.diagnostics.length ? (
                 <div role="alert">
                   <p>{t("templates.previewIncomplete")}</p>
-                  <ul className="list-disc pl-5 text-sm">
+                  <ul className="template-preview-diagnostics">
                     {[...new Set(preview.diagnostics.map((diagnostic) => diagnostic.message))].map((message) => (
                       <li key={message}>{message}</li>
                     ))}

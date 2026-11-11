@@ -1,10 +1,10 @@
 import type { ApiRole } from "@hall/api-contract";
-import { type FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CreateButton } from "@/components/ui/create-button";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { MembersIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import {
@@ -46,7 +46,6 @@ export function UsersPage() {
   const [generating, setGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<ApiErrorCode | null>(null);
   const { query, setQuery } = useCollectionView();
-  const fieldId = useId();
   useEffect(() => {
     void load();
   }, [load]);
@@ -101,6 +100,12 @@ export function UsersPage() {
       return created;
     });
   };
+  const closeCreate = () => {
+    if (submitting) return;
+    setAddOpen(false);
+    setPassword("");
+    setPassphrase(null);
+  };
   if (!loading && !listed)
     return (
       <div className="page">
@@ -143,44 +148,23 @@ export function UsersPage() {
             }
           />
         </CollectionToolbar>
-        <Modal
-          open={addOpen && canCreate}
-          title={t("users.add")}
-          onClose={() => {
-            if (submitting) return;
-            setAddOpen(false);
-            setPassword("");
-            setPassphrase(null);
-          }}
-        >
+        <Modal open={addOpen && canCreate} title={t("users.add")} onClose={closeCreate}>
           <form className="modal-form" onSubmit={submit} data-testid="user-create-form">
             <RequestErrorBanner error={error ?? generationError} />
-            <fieldset disabled={submitting || generating} className="form-grid items-start">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-name`}>{t("users.displayName")}</Label>
+            <fieldset disabled={submitting || generating} className="admin-fields">
+              <FieldRow>
+                <Field label={t("users.displayName")}>
+                  <Input name="displayName" required maxLength={160} data-testid="user-display-name" />
+                </Field>
+                <Field label={t("users.email")}>
+                  <Input name="email" type="email" required autoComplete="off" data-testid="user-email" />
+                </Field>
+              </FieldRow>
+              <Field
+                label={t("users.password")}
+                help={t(passphrase ? "users.generatedPasswordHint" : "users.passwordHint")}
+              >
                 <Input
-                  id={`${fieldId}-name`}
-                  name="displayName"
-                  required
-                  maxLength={160}
-                  data-testid="user-display-name"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-email`}>{t("users.email")}</Label>
-                <Input
-                  id={`${fieldId}-email`}
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="off"
-                  data-testid="user-email"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-password`}>{t("users.password")}</Label>
-                <Input
-                  id={`${fieldId}-password`}
                   name="password"
                   type={passphrase ? "text" : "password"}
                   value={password}
@@ -193,15 +177,10 @@ export function UsersPage() {
                   minLength={12}
                   maxLength={256}
                   autoComplete="new-password"
-                  aria-describedby={`${fieldId}-password-help`}
                   data-testid="user-password"
                 />
-                <p id={`${fieldId}-password-help`} className="text-sm text-muted-foreground">
-                  {t(passphrase ? "users.generatedPasswordHint" : "users.passwordHint")}
-                </p>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-contact`}>{t("users.contact")}</Label>
+              </Field>
+              <Field label={t("users.contact")}>
                 <EntitySelect
                   type="contact"
                   testId="user-contact-select"
@@ -214,14 +193,13 @@ export function UsersPage() {
                   placeholder={t("users.noContact")}
                   clearLabel={t("users.noContact")}
                 />
-              </div>
+              </Field>
             </fieldset>
-            <div className="grid gap-2">
+            <div className="admin-passphrase">
               {canGeneratePassphrase && (
                 <Button
                   type="button"
                   variant="secondary"
-                  className="justify-self-start"
                   data-testid="passphrase-generate"
                   disabled={generating || submitting}
                   onClick={generate}
@@ -244,17 +222,22 @@ export function UsersPage() {
             />
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
             {requiresActiveMember(roles) && (
-              <p className="text-sm text-muted-foreground" data-testid="user-councillor-contact-hint">
+              <p className="admin-hint" data-testid="user-councillor-contact-hint">
                 {t("authorization.activeMemberRequired")}
               </p>
             )}
-            <Button
-              type="submit"
-              disabled={submitting || generating || roles.length === 0 || (passphrase !== null && !handedOver)}
-              data-testid="user-create-submit"
-            >
-              {t(submitting ? "common.saving" : "common.create")}
-            </Button>
+            <div className="dialog-actions">
+              <Button variant="secondary" type="button" onClick={closeCreate} data-testid="user-create-cancel">
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                disabled={submitting || generating || roles.length === 0 || (passphrase !== null && !handedOver)}
+                data-testid="user-create-submit"
+              >
+                {t(submitting ? "common.saving" : "common.create")}
+              </Button>
+            </div>
           </form>
         </Modal>
         {loading ? (

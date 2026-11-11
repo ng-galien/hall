@@ -1,8 +1,8 @@
 import type { HallSettings } from "@hall/domain";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
@@ -26,6 +26,18 @@ const fields: Array<{ field: CommuneField; label: TranslationKey; type?: string;
   { field: "website", label: "settings.communeWebsite", type: "url" },
   { field: "email", label: "settings.mail.contact", type: "email" },
   { field: "timeZone", label: "settings.mail.timeZone" },
+];
+
+/** Fields that go together share one row of the form. */
+const fieldRows: CommuneField[][] = [
+  ["name"],
+  ["inseeCode", "siren"],
+  ["addressLine1"],
+  ["addressLine2"],
+  ["postalCode", "city"],
+  ["population", "populationReferenceDate"],
+  ["phone", "email"],
+  ["website", "timeZone"],
 ];
 
 const nullableFields = new Set<CommuneField>([
@@ -67,7 +79,6 @@ export function CommuneSettings({
   onSaved?: (settings: HallSettings) => void;
 }) {
   const { t } = useI18n();
-  const id = useId();
   const { submitting, run } = useSubmitting();
   const [draft, setDraft] = useState(() => draftOf(settings));
   const [error, setError] = useState<ApiErrorCode | null>(null);
@@ -95,7 +106,7 @@ export function CommuneSettings({
     return (
       <section className="creation-form" data-testid="settings-commune">
         <h3>{t("settings.commune")}</h3>
-        <p className="text-xs text-muted">{t("settings.communeReadOnly")}</p>
+        <p className="admin-hint">{t("settings.communeReadOnly")}</p>
         <dl className="settings-commune-facts">
           {fields.map(({ field, label }) => (
             <div key={field}>
@@ -111,39 +122,48 @@ export function CommuneSettings({
   return (
     <form className="creation-form" data-testid="settings-commune" onSubmit={submit}>
       <h3>{t("settings.commune")}</h3>
-      <p className="text-xs text-muted">{t("settings.communeDescription")}</p>
+      <p className="admin-hint">{t("settings.communeDescription")}</p>
       <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
-      <div className="settings-commune-fields">
-        {fields.map(({ field, label, type, inputMode }) => (
-          <div className="grid gap-1.5" key={field}>
-            <Label htmlFor={`${id}-${field}`}>{t(label)}</Label>
-            <Input
-              id={`${id}-${field}`}
-              type={type ?? "text"}
-              inputMode={inputMode}
-              min={type === "number" ? 0 : undefined}
-              step={type === "number" ? 1 : undefined}
-              required={field === "name"}
-              value={draft[field]}
-              disabled={submitting}
-              data-testid={`settings-commune-${field}`}
-              onChange={(event) => {
-                const value = event.currentTarget.value;
-                setDraft((current) => ({ ...current, [field]: value }));
-                setSaved(false);
-              }}
-            />
-          </div>
+      <div className="admin-fields">
+        {fieldRows.map((row) => (
+          <FieldRow key={row.join("-")}>
+            {row.map((field) => {
+              const { label, type, inputMode } = fields.find((candidate) => candidate.field === field) ?? {
+                label: "settings.communeName" as const,
+              };
+              return (
+                <Field key={field} label={t(label)}>
+                  <Input
+                    type={type ?? "text"}
+                    inputMode={inputMode}
+                    min={type === "number" ? 0 : undefined}
+                    step={type === "number" ? 1 : undefined}
+                    required={field === "name"}
+                    value={draft[field]}
+                    disabled={submitting}
+                    data-testid={`settings-commune-${field}`}
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      setDraft((current) => ({ ...current, [field]: value }));
+                      setSaved(false);
+                    }}
+                  />
+                </Field>
+              );
+            })}
+          </FieldRow>
         ))}
       </div>
-      <Button type="submit" disabled={submitting || !draft.name.trim()} data-testid="settings-commune-save">
-        {t(submitting ? "common.saving" : "common.save")}
-      </Button>
-      {saved ? (
-        <span role="status" data-testid="settings-commune-saved">
-          {t("workspace.saved")}
-        </span>
-      ) : null}
+      <div className="settings-actions">
+        {saved ? (
+          <span className="record-state" data-save="saved" role="status" data-testid="settings-commune-saved">
+            {t("workspace.saved")}
+          </span>
+        ) : null}
+        <Button type="submit" disabled={submitting || !draft.name.trim()} data-testid="settings-commune-save">
+          {t(submitting ? "common.saving" : "common.save")}
+        </Button>
+      </div>
     </form>
   );
 }

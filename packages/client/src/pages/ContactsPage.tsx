@@ -1,7 +1,7 @@
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ContactIcon } from "../components/icons";
 import {
   CollectionToolbar,
@@ -25,7 +25,6 @@ export function ContactsPage() {
   const { contacts, create, error, canCreate } = useContactsStore();
   const [addOpen, setAddOpen] = useState(false);
   const { query, setQuery } = useCollectionView();
-  const fieldId = useId();
   const visibleContacts = contacts.filter((contact) =>
     matchesQuery(
       query,
@@ -83,35 +82,43 @@ export function ContactsPage() {
         </CollectionToolbar>
         <Modal open={canCreate && addOpen} title={t("contacts.add")} onClose={() => setAddOpen(false)}>
           <form className="modal-form" onSubmit={submit} data-testid="contact-create-form">
-            <div className="form-grid">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-firstName`}>{t("contacts.firstName")}</Label>
-                <Input id={`${fieldId}-firstName`} name="firstName" required data-testid="contact-first-name" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-lastName`}>{t("contacts.lastName")}</Label>
-                <Input id={`${fieldId}-lastName`} name="lastName" required data-testid="contact-last-name" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-organization`}>{t("contacts.organization")}</Label>
-                <Input id={`${fieldId}-organization`} name="organizationName" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-job-title`}>{t("contacts.jobTitle")}</Label>
-                <Input id={`${fieldId}-job-title`} name="jobTitle" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-email`}>{t("contacts.email")}</Label>
-                <Input id={`${fieldId}-email`} name="email" type="email" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-phone`}>{t("contacts.phone")}</Label>
-                <Input id={`${fieldId}-phone`} name="phone" type="tel" />
-              </div>
+            <FieldRow>
+              <Field label={t("contacts.firstName")}>
+                <Input name="firstName" required data-testid="contact-first-name" />
+              </Field>
+              <Field label={t("contacts.lastName")}>
+                <Input name="lastName" required data-testid="contact-last-name" />
+              </Field>
+            </FieldRow>
+            <FieldRow>
+              <Field label={t("contacts.organization")}>
+                <Input name="organizationName" />
+              </Field>
+              <Field label={t("contacts.jobTitle")}>
+                <Input name="jobTitle" />
+              </Field>
+            </FieldRow>
+            <FieldRow>
+              <Field label={t("contacts.phone")}>
+                <Input name="phone" type="tel" />
+              </Field>
+              <Field label={t("contacts.email")}>
+                <Input name="email" type="email" />
+              </Field>
+            </FieldRow>
+            <div className="dialog-actions">
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => setAddOpen(false)}
+                data-testid="contact-create-cancel"
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button variant="primary" type="submit" disabled={submitting} data-testid="contact-create-submit">
+                {t(submitting ? "common.saving" : "common.create")}
+              </Button>
             </div>
-            <Button variant="primary" type="submit" disabled={submitting} data-testid="contact-create-submit">
-              {t(submitting ? "common.saving" : "common.create")}
-            </Button>
           </form>
         </Modal>
         {visibleContacts.length === 0 ? (

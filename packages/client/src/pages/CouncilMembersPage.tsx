@@ -1,7 +1,7 @@
-import { type FormEvent, useEffect, useId, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MemberIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
@@ -33,7 +33,6 @@ export function CouncilMembersPage() {
   const [addOpen, setAddOpen] = useState(false);
   const { query, setQuery } = useCollectionView();
   const rowStatus = useDomainRowStatus();
-  const fieldId = useId();
   const visibleMembers = members.filter((member) =>
     matchesQuery(
       query,
@@ -118,24 +117,22 @@ export function CouncilMembersPage() {
         </CollectionToolbar>
         <Modal open={canCreate && addOpen} title={t("members.add")} onClose={() => setAddOpen(false)}>
           <form className="modal-form" onSubmit={submit} data-testid="member-create-form">
-            <div className="form-grid">
-              <div className="grid gap-1.5 admin-edit-wide">
-                <Label htmlFor={`${fieldId}-contact`}>{t("members.contact")}</Label>
-                <EntitySelect
-                  type="contact"
-                  name="contactId"
-                  testId="member-contact-select"
-                  placeholder={t("members.chooseContact")}
-                  options={eligibleContacts.map((contact) => ({
-                    value: contact.id,
-                    label: `${contact.firstName} ${contact.lastName}`,
-                  }))}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-role`}>{t("members.role")}</Label>
+            <Field label={t("members.contact")}>
+              <EntitySelect
+                type="contact"
+                name="contactId"
+                testId="member-contact-select"
+                placeholder={t("members.chooseContact")}
+                options={eligibleContacts.map((contact) => ({
+                  value: contact.id,
+                  label: `${contact.firstName} ${contact.lastName}`,
+                }))}
+              />
+            </Field>
+            <FieldRow>
+              <Field label={t("members.role")}>
                 <Select name="role" required defaultValue="councillor">
-                  <SelectTrigger id={`${fieldId}-role`} className="w-full" data-testid="member-role-select">
+                  <SelectTrigger className="w-full" data-testid="member-role-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -150,32 +147,27 @@ export function CouncilMembersPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-rank`}>{t("members.rank")}</Label>
-                <Input
-                  id={`${fieldId}-rank`}
-                  name="rank"
-                  type="number"
-                  min={0}
-                  step={1}
-                  data-testid="member-create-rank"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-termStartedOn`}>{t("members.termStart")}</Label>
-                <Input
-                  id={`${fieldId}-termStartedOn`}
-                  name="termStartedOn"
-                  type="date"
-                  required
-                  data-testid="member-term-start"
-                />
-              </div>
+              </Field>
+              <Field label={t("members.rank")}>
+                <Input name="rank" type="number" min={0} step={1} data-testid="member-create-rank" />
+              </Field>
+            </FieldRow>
+            <Field label={t("members.termStart")}>
+              <Input name="termStartedOn" type="date" required data-testid="member-term-start" />
+            </Field>
+            <div className="dialog-actions">
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => setAddOpen(false)}
+                data-testid="member-create-cancel"
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button variant="primary" type="submit" disabled={submitting} data-testid="member-create-submit">
+                {t(submitting ? "common.saving" : "common.create")}
+              </Button>
             </div>
-            <Button variant="primary" type="submit" disabled={submitting} data-testid="member-create-submit">
-              {t(submitting ? "common.saving" : "common.create")}
-            </Button>
           </form>
         </Modal>
         {visibleMembers.length === 0 ? (

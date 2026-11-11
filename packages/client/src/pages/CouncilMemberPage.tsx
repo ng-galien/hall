@@ -1,10 +1,9 @@
 import type { CouncilMember } from "@hall/domain";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CommitteeIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
@@ -12,7 +11,6 @@ import { ListRow, ListRowAvatar, ListRowIcon, ListRows } from "../components/ui/
 import { formatPhoneNumber, phoneHref } from "../features/council-members/phonePresentation";
 import { MemberDelegations } from "../features/representative-bodies/MemberDelegations";
 import { committeeKind } from "../features/representative-bodies/representativeBodyKinds";
-import { StatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
@@ -31,7 +29,6 @@ export function CouncilMemberPage() {
   const [termEndedOn, setTermEndedOn] = useState("");
   const [draftMemberId, setDraftMemberId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
-  const fieldId = useId();
   const dirtyRef = useRef(false);
 
   useEffect(() => {
@@ -141,110 +138,97 @@ export function CouncilMemberPage() {
         <RequestErrorBanner error={memberError ?? error} />
         <div className="admin-detail-surface">
           <section className="admin-record" aria-labelledby="member-identity-title">
-            <div className="admin-record-heading">
-              <div className="member-identity">
-                <span className="member-avatar member-avatar-large" aria-hidden="true">
-                  {member.contact.firstName.slice(0, 1)}
-                  {member.contact.lastName.slice(0, 1)}
-                </span>
-                <div>
-                  <h2 id="member-identity-title">
-                    {member.contact.firstName} {member.contact.lastName}
-                  </h2>
-                  <span>{t("members.identityDescription")}</span>
-                </div>
+            <div className="admin-section-heading">
+              <div>
+                <h2 id="member-identity-title">{t("members.term")}</h2>
+                <p>{t("members.identityDescription")}</p>
               </div>
               <div className="admin-heading-status">
                 {saveState !== "idle" ? (
-                  <span className={`admin-save-state admin-save-${saveState}`} role="status">
-                    <span aria-hidden="true" />
+                  <span className="record-state" data-save={saveState} role="status">
                     {saveLabels[saveState]}
                   </span>
                 ) : null}
-                <span className="council-member-mandate">
-                  {t("members.term")}
-                  <StatusBadge value={member.active ? "active" : "inactive"} />
+                <span className="record-state" data-tone={member.active ? "success" : "neutral"}>
+                  {t(member.active ? "status.active" : "status.inactive")}
                 </span>
               </div>
             </div>
-            <div className="admin-edit-grid admin-member-edit-grid">
-              <div className="grid gap-1.5 admin-edit-wide">
-                <Label>{t("members.contact")}</Label>
-                <ListRows>
-                  <ListRow
-                    to={`/contacts/${member.contact.id}`}
-                    openTestId="member-contact-link"
-                    head={
-                      <ListRowAvatar
-                        initials={`${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}`}
-                      />
-                    }
-                    title={`${member.contact.firstName} ${member.contact.lastName}`}
-                    detail={member.contact.email ?? t("members.noEmail")}
+            <ListRows>
+              <ListRow
+                to={`/contacts/${member.contact.id}`}
+                openTestId="member-contact-link"
+                head={
+                  <ListRowAvatar
+                    initials={`${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}`}
                   />
-                </ListRows>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-role`}>{t("members.role")}</Label>
-                <Select
-                  value={role}
-                  disabled={!canUpdate[member.id]}
-                  onValueChange={(value) => setRole(value as CouncilMember["role"])}
-                >
-                  <SelectTrigger id={`${fieldId}-role`} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="councillor">{t("role.councillor")}</SelectItem>
-                    <SelectItem value="deputyMayor">{t("role.deputyMayor")}</SelectItem>
-                    <SelectItem value="mayor">{t("role.mayor")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-rank`}>{t("members.rank")}</Label>
-                <Input
-                  id={`${fieldId}-rank`}
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={rank}
-                  readOnly={!canUpdate[member.id]}
-                  onChange={(event) => setRank(event.currentTarget.value)}
-                  data-testid="member-rank"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>{t("members.phone")}</Label>
-                {member.contact.phone ? (
-                  <a className="admin-phone-link" href={phoneHref(member.contact.phone)}>
-                    {formatPhoneNumber(member.contact.phone)}
-                  </a>
-                ) : (
-                  <span>{t("members.noPhone")}</span>
-                )}
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-term-start`}>{t("members.termStart")}</Label>
-                <Input
-                  id={`${fieldId}-term-start`}
-                  type="date"
-                  value={termStartedOn}
-                  readOnly={!canUpdate[member.id]}
-                  onChange={(event) => setTermStartedOn(event.currentTarget.value)}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-term-end`}>{t("members.termEnd")}</Label>
-                <Input
-                  id={`${fieldId}-term-end`}
-                  type="date"
-                  value={termEndedOn}
-                  readOnly={!canUpdate[member.id]}
-                  onChange={(event) => setTermEndedOn(event.currentTarget.value)}
-                  data-testid="member-term-end"
-                />
-              </div>
+                }
+                overline={t("members.contact")}
+                title={`${member.contact.firstName} ${member.contact.lastName}`}
+                detail={[
+                  member.contact.email ?? t("members.noEmail"),
+                  member.contact.phone ? formatPhoneNumber(member.contact.phone) : t("members.noPhone"),
+                ].join(" · ")}
+                action={
+                  member.contact.phone ? (
+                    <Button asChild variant="secondary">
+                      <a href={phoneHref(member.contact.phone)} data-testid="member-call">
+                        {t("members.call")}
+                      </a>
+                    </Button>
+                  ) : undefined
+                }
+              />
+            </ListRows>
+            <div className="admin-fields">
+              <FieldRow>
+                <Field label={t("members.role")}>
+                  <Select
+                    value={role}
+                    disabled={!canUpdate[member.id]}
+                    onValueChange={(value) => setRole(value as CouncilMember["role"])}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="councillor">{t("role.councillor")}</SelectItem>
+                      <SelectItem value="deputyMayor">{t("role.deputyMayor")}</SelectItem>
+                      <SelectItem value="mayor">{t("role.mayor")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={t("members.rank")}>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={rank}
+                    readOnly={!canUpdate[member.id]}
+                    onChange={(event) => setRank(event.currentTarget.value)}
+                    data-testid="member-rank"
+                  />
+                </Field>
+              </FieldRow>
+              <FieldRow>
+                <Field label={t("members.termStart")}>
+                  <Input
+                    type="date"
+                    value={termStartedOn}
+                    readOnly={!canUpdate[member.id]}
+                    onChange={(event) => setTermStartedOn(event.currentTarget.value)}
+                  />
+                </Field>
+                <Field label={t("members.termEnd")}>
+                  <Input
+                    type="date"
+                    value={termEndedOn}
+                    readOnly={!canUpdate[member.id]}
+                    onChange={(event) => setTermEndedOn(event.currentTarget.value)}
+                    data-testid="member-term-end"
+                  />
+                </Field>
+              </FieldRow>
             </div>
             {saveState === "error" ? (
               <Button variant="secondary" onClick={() => void save()}>
@@ -259,10 +243,9 @@ export function CouncilMemberPage() {
                 <h2 id="member-committees-title">{t("members.committees")}</h2>
                 <p>{t("members.committeesDescription")}</p>
               </div>
-              <Badge variant="secondary">{memberships.length}</Badge>
             </div>
             {memberships.length === 0 ? (
-              <div className="admin-inline-empty">{t("members.noCommittees")}</div>
+              <p className="admin-inline-empty">{t("members.noCommittees")}</p>
             ) : (
               <ListRows>
                 {memberships.map(({ committee, membership }) => (

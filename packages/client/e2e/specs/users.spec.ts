@@ -60,10 +60,10 @@ test("creates a linked user, assigns cumulative roles and disables the account",
   await page.goto(detailUrl);
   await page.getByTestId("user-disable").click();
   await page.getByTestId("user-disable-confirm").click();
-  await expect(page.getByTestId("user-status")).toHaveValue("Disabled");
+  await expect(page.getByTestId("user-status")).toHaveText("Disabled");
   await expect(page.getByTestId("user-disable")).toHaveCount(0);
   await page.reload();
-  await expect(page.getByTestId("user-status")).toHaveValue("Disabled");
+  await expect(page.getByTestId("user-status")).toHaveText("Disabled");
 });
 
 test("preserves a rejected administrator role change and duplicate account form", async ({ appPage: page }) => {

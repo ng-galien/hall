@@ -1,8 +1,8 @@
 import type { HallSettings } from "@hall/domain";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -29,7 +29,6 @@ export function MailSettings({
   onSaved?: (settings: HallSettings) => void;
 }) {
   const { t } = useI18n();
-  const id = useId();
   const { submitting, run } = useSubmitting();
   const [draft, setDraft] = useState(() => valuesOf(settings));
   const [saved, setSaved] = useState(false);
@@ -56,16 +55,14 @@ export function MailSettings({
     });
   };
   return (
-    <form className="creation-form grid gap-4" onSubmit={submit} data-testid="settings-mail">
+    <form className="creation-form" onSubmit={submit} data-testid="settings-mail">
       <h3>{t("settings.category.mail")}</h3>
-      <p className="text-sm text-muted-foreground">{t("settings.mail.description")}</p>
+      <p className="admin-hint">{t("settings.mail.description")}</p>
       <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
       {(["outboundEmailSenderName", "outboundEmailSenderAddress", "outboundEmailReplyToAddress"] as const).map(
         (field) => (
-          <div className="grid gap-1.5" key={field}>
-            <Label htmlFor={`${id}-${field}`}>{t(`settings.mail.${field}`)}</Label>
+          <Field key={field} label={t(`settings.mail.${field}`)}>
             <Input
-              id={`${id}-${field}`}
               type={field === "outboundEmailSenderName" ? "text" : "email"}
               value={draft[field] ?? ""}
               readOnly={!canUpdate}
@@ -74,11 +71,11 @@ export function MailSettings({
                 change({ [field]: event.currentTarget.value || (field === "outboundEmailSenderName" ? "" : null) })
               }
             />
-          </div>
+          </Field>
         ),
       )}
       {(["outboundEmailSignatureMarkdown", "outboundEmailFooterMarkdown"] as const).map((field) => (
-        <div className="grid gap-1.5" key={field}>
+        <div className="settings-editor" key={field}>
           <h4>{t(`settings.mail.${field}`)}</h4>
           <MarkdownEditor
             markdown={draft[field]}
@@ -90,17 +87,19 @@ export function MailSettings({
         </div>
       ))}
       {canUpdate ? (
-        <Button className="justify-self-start" type="submit" disabled={submitting} data-testid="settings-mail-save">
-          {t(submitting ? "common.saving" : "common.save")}
-        </Button>
+        <div className="settings-actions">
+          {saved ? (
+            <span className="record-state" data-save="saved" role="status" data-testid="settings-mail-saved">
+              {t("workspace.saved")}
+            </span>
+          ) : null}
+          <Button type="submit" disabled={submitting} data-testid="settings-mail-save">
+            {t(submitting ? "common.saving" : "common.save")}
+          </Button>
+        </div>
       ) : (
-        <p>{t("settings.communeReadOnly")}</p>
+        <p className="admin-hint">{t("settings.communeReadOnly")}</p>
       )}
-      {saved ? (
-        <span role="status" data-testid="settings-mail-saved">
-          {t("workspace.saved")}
-        </span>
-      ) : null}
     </form>
   );
 }

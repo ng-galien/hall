@@ -1,9 +1,9 @@
 import type { Contact } from "@hall/api-contract";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DeleteIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
@@ -66,7 +66,6 @@ export function ContactPage() {
   const flushRef = useRef<() => Promise<boolean>>(async () => true);
   const dirtyRef = useRef(false);
   const canUpdateRef = useRef(false);
-  const fieldId = useId();
 
   useEffect(() => {
     if (contactId) void loadDetail(contactId);
@@ -214,8 +213,7 @@ export function ContactPage() {
                 <p>{t("contacts.identityDescription")}</p>
               </div>
               {saveState !== "idle" ? (
-                <span className={`admin-save-state admin-save-${saveState}`} role="status">
-                  <span aria-hidden="true" />
+                <span className="record-state" data-save={saveState} role="status">
                   {saveLabels[saveState]}
                 </span>
               ) : null}
@@ -225,37 +223,46 @@ export function ContactPage() {
                 {t("contacts.identityRequired")}
               </p>
             ) : null}
-            <div className="admin-edit-grid admin-member-edit-grid">
-              {(["firstName", "lastName", "organizationName", "jobTitle", "email", "phone"] as const).map((key) => {
-                const identityField = key === "firstName" || key === "lastName";
-                return (
-                  <div className="grid gap-1.5" key={key}>
-                    <Label htmlFor={`${fieldId}-${key}`}>
-                      {t(`contacts.${key === "organizationName" ? "organization" : key}` as Parameters<typeof t>[0])}
-                    </Label>
-                    <Input
-                      id={`${fieldId}-${key}`}
-                      type={key === "email" ? "email" : key === "phone" ? "tel" : "text"}
-                      value={draft[key] ?? ""}
-                      readOnly={!canUpdate[contact.id]}
-                      required={identityField}
-                      aria-invalid={identityField && identityInvalid}
-                      onChange={(event) => setDraft(key, event.currentTarget.value || (identityField ? "" : null))}
-                      data-testid={`contact-${key}`}
-                    />
-                  </div>
-                );
-              })}
-              <div className="grid gap-1.5 admin-edit-wide">
-                <Label htmlFor={`${fieldId}-notes`}>{t("contacts.notes")}</Label>
+            <div className="admin-fields">
+              {(
+                [
+                  ["firstName", "lastName"],
+                  ["organizationName", "jobTitle"],
+                  ["phone", "email"],
+                ] as const
+              ).map((pair) => (
+                <FieldRow key={pair[0]}>
+                  {pair.map((key) => {
+                    const identityField = key === "firstName" || key === "lastName";
+                    return (
+                      <Field
+                        key={key}
+                        label={t(
+                          `contacts.${key === "organizationName" ? "organization" : key}` as Parameters<typeof t>[0],
+                        )}
+                      >
+                        <Input
+                          type={key === "email" ? "email" : key === "phone" ? "tel" : "text"}
+                          value={draft[key] ?? ""}
+                          readOnly={!canUpdate[contact.id]}
+                          required={identityField}
+                          aria-invalid={identityField && identityInvalid}
+                          onChange={(event) => setDraft(key, event.currentTarget.value || (identityField ? "" : null))}
+                          data-testid={`contact-${key}`}
+                        />
+                      </Field>
+                    );
+                  })}
+                </FieldRow>
+              ))}
+              <Field label={t("contacts.notes")}>
                 <Textarea
-                  id={`${fieldId}-notes`}
                   value={draft.notes}
                   readOnly={!canUpdate[contact.id]}
                   onChange={(event) => setDraft("notes", event.currentTarget.value)}
                   data-testid="contact-notes"
                 />
-              </div>
+              </Field>
             </div>
             {saveState === "error" && !identityInvalid ? (
               <Button variant="secondary" onClick={() => void flush()} data-testid="contact-save-retry">

@@ -1,6 +1,6 @@
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -37,7 +37,6 @@ export function TemplateDecorationField({
   onChange(value: string): void;
 }) {
   const { t } = useI18n();
-  const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const insert = async (file: File) => {
@@ -48,50 +47,46 @@ export function TemplateDecorationField({
     onChange(value.trim() ? `${image}\n\n${value}` : image);
   };
   return (
-    <div className="grid gap-1.5" data-testid={testId}>
-      <div className="template-decoration-heading">
-        <Label htmlFor={id}>{label}</Label>
-        {readOnly ? null : (
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              data-testid={`${testId}-insert-image`}
-              onClick={() => input.current?.click()}
-            >
-              <ImageIcon aria-hidden="true" />
-              {t("templates.insertImage")}
-            </Button>
-            <input
-              ref={input}
-              hidden
-              type="file"
-              accept="image/jpeg,image/png"
-              data-testid={`${testId}-image-file`}
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0];
-                event.currentTarget.value = "";
-                if (file) void insert(file);
-              }}
-            />
-          </>
-        )}
-      </div>
-      <Textarea
-        id={id}
-        className="template-decoration-source"
-        spellCheck={false}
-        readOnly={readOnly}
-        value={value}
-        data-testid={`${testId}-source`}
-        onChange={(event) => onChange(event.currentTarget.value)}
-      />
-      <p className="text-xs text-muted">{t("templates.decorationHelp")}</p>
-      {problem ? (
-        <p role="alert" className="form-error" data-testid={`${testId}-problem`}>
-          {problem}
-        </p>
-      ) : null}
+    <div className="template-decoration" data-testid={testId}>
+      {readOnly ? null : (
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            data-testid={`${testId}-insert-image`}
+            onClick={() => input.current?.click()}
+          >
+            <ImageIcon aria-hidden="true" />
+            {t("templates.insertImage")}
+          </Button>
+          <input
+            ref={input}
+            hidden
+            type="file"
+            accept="image/jpeg,image/png"
+            data-testid={`${testId}-image-file`}
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file) void insert(file);
+            }}
+          />
+        </>
+      )}
+      <Field
+        label={label}
+        help={t("templates.decorationHelp")}
+        error={problem ? <span data-testid={`${testId}-problem`}>{problem}</span> : undefined}
+      >
+        <Textarea
+          className="template-decoration-source"
+          spellCheck={false}
+          readOnly={readOnly}
+          value={value}
+          data-testid={`${testId}-source`}
+          onChange={(event) => onChange(event.currentTarget.value)}
+        />
+      </Field>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import type { ContentTemplate } from "@hall/domain";
-import { type FormEvent, useEffect, useId, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TemplateIcon } from "../components/icons";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
@@ -21,7 +21,6 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { submitting, run } = useSubmitting();
-  const fieldId = useId();
   const [templates, setTemplates] = useState<ContentTemplate[] | null>(null);
   const [canCreate, setCanCreate] = useState(false);
   const [error, setError] = useState<ApiErrorCode | null>(null);
@@ -78,12 +77,12 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
     />
   );
   return (
-    <div className={embedded ? "" : "page"}>
+    <div className={embedded ? "creation-form" : "page"}>
       {embedded ? (
-        <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="admin-section-heading">
           <div>
             <h3>{t("templates.title")}</h3>
-            <p className="text-sm text-muted-foreground">{t("templates.description")}</p>
+            <p>{t("templates.description")}</p>
           </div>
           {addButton}
         </div>
@@ -104,10 +103,9 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
             <p data-testid="templates-all-present">{t("templates.allTypesPresent")}</p>
           ) : (
             <form className="modal-form" onSubmit={submit}>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-type`}>{t("templates.addType")}</Label>
+              <Field label={t("templates.addType")}>
                 <Select value={newType} onValueChange={setNewType}>
-                  <SelectTrigger id={`${fieldId}-type`} className="w-full" data-testid="templates-add-type">
+                  <SelectTrigger className="w-full" data-testid="templates-add-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -122,24 +120,27 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${fieldId}-name`}>{t("templates.name")}</Label>
+              </Field>
+              <Field label={t("templates.name")}>
                 <Input
-                  id={`${fieldId}-name`}
                   required
                   value={newName}
                   data-testid="templates-add-name"
                   onChange={(event) => setNewName(event.currentTarget.value)}
                 />
+              </Field>
+              <div className="dialog-actions">
+                <Button variant="secondary" type="button" onClick={() => setAddOpen(false)}>
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting || !newType || !newName.trim()}
+                  data-testid="templates-add-submit"
+                >
+                  {t(submitting ? "common.saving" : "common.create")}
+                </Button>
               </div>
-              <Button
-                type="submit"
-                disabled={submitting || !newType || !newName.trim()}
-                data-testid="templates-add-submit"
-              >
-                {t(submitting ? "common.saving" : "common.create")}
-              </Button>
             </form>
           )}
         </Modal>

@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
 import { DelegationIcon } from "../../components/icons";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -35,10 +34,9 @@ export function MemberDelegations({ contactId }: { contactId: string }) {
           <h2 id="member-delegations-title">{t("members.delegations")}</h2>
           <p>{t("members.delegationsDescription")}</p>
         </div>
-        <Badge variant="secondary">{current.length}</Badge>
       </div>
       {current.length === 0 ? (
-        <div className="admin-inline-empty">{t("members.noDelegations")}</div>
+        <p className="admin-inline-empty">{t("members.noDelegations")}</p>
       ) : (
         <ListRows>
           {current.map(({ delegation, membership }) => (

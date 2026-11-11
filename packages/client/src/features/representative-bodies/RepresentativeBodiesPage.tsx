@@ -1,8 +1,8 @@
-import { type FormEvent, useEffect, useId, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CommitteeIcon } from "../../components/icons";
 import {
@@ -37,7 +37,6 @@ export function RepresentativeBodiesPage({
   const [addOpen, setAddOpen] = useState(false);
   const { query, setQuery } = useCollectionView();
   const BodyIcon = bodyKind.icon;
-  const fieldId = useId();
 
   useEffect(() => {
     void load(true);
@@ -91,21 +90,20 @@ export function RepresentativeBodiesPage({
 
         <Modal open={canCreate && addOpen} title={t(text.add)} onClose={() => setAddOpen(false)}>
           <form className="modal-form" onSubmit={submit}>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${fieldId}-name`}>{t(text.name)}</Label>
-              <Input id={`${fieldId}-name`} name="name" required data-testid={`${bodyKind.kind}-create-name`} />
+            <Field label={t(text.name)}>
+              <Input name="name" required data-testid={`${bodyKind.kind}-create-name`} />
+            </Field>
+            <Field label={t(text.purpose)}>
+              <Textarea name="description" data-testid={`${bodyKind.kind}-create-description`} />
+            </Field>
+            <div className="dialog-actions">
+              <Button variant="secondary" type="button" onClick={() => setAddOpen(false)}>
+                {t("common.cancel")}
+              </Button>
+              <Button type="submit" disabled={submitting} data-testid={`${bodyKind.kind}-create-submit`}>
+                {t(submitting ? "common.saving" : "common.create")}
+              </Button>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${fieldId}-description`}>{t(text.purpose)}</Label>
-              <Textarea
-                id={`${fieldId}-description`}
-                name="description"
-                data-testid={`${bodyKind.kind}-create-description`}
-              />
-            </div>
-            <Button type="submit" disabled={submitting} data-testid={`${bodyKind.kind}-create-submit`}>
-              {t(submitting ? "common.saving" : "common.create")}
-            </Button>
           </form>
         </Modal>
 

@@ -1,8 +1,8 @@
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -30,7 +30,6 @@ export function PasswordDialog({
 }) {
   const { t } = useI18n();
   const { submitting, run } = useSubmitting();
-  const id = useId();
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(temporaryPassword ?? false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -79,12 +78,10 @@ export function PasswordDialog({
               : "users.passwordResetDescription",
         )}
       </p>
-      <fieldset className="grid gap-3" disabled={submitting}>
+      <fieldset className="admin-fields" disabled={submitting}>
         {requireCurrent && (
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-current`}>{t("users.currentPassword")}</Label>
+          <Field label={t("users.currentPassword")}>
             <Input
-              id={`${id}-current`}
               type="password"
               autoComplete="current-password"
               required
@@ -92,12 +89,10 @@ export function PasswordDialog({
               onChange={(event) => setCurrentPassword(event.currentTarget.value)}
               data-testid="password-current"
             />
-          </div>
+          </Field>
         )}
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-new`}>{t("users.newPassword")}</Label>
+        <Field label={t("users.newPassword")} help={t("users.passwordHint")}>
           <Input
-            id={`${id}-new`}
             autoComplete="new-password"
             required
             minLength={12}
@@ -105,13 +100,11 @@ export function PasswordDialog({
             type={passphrase ? "text" : "password"}
             value={newPassword}
             onChange={(event) => typed(setNewPassword)(event.currentTarget.value)}
-            aria-describedby={`${id}-hint`}
             data-testid="password-new"
           />
-          <p className="text-sm text-muted-foreground" id={`${id}-hint`}>
-            {t("users.passwordHint")}
-          </p>
-          {onGenerate && (
+        </Field>
+        {onGenerate && (
+          <div className="admin-passphrase">
             <Button
               type="button"
               variant="secondary"
@@ -131,24 +124,24 @@ export function PasswordDialog({
             >
               {t("users.passphraseGenerate")}
             </Button>
-          )}
-          {passphrase && (
-            <GeneratedPassphrase passphrase={passphrase} handedOver={handedOver} onHandedOverChange={setHandedOver} />
-          )}
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-confirmation`}>{t("users.confirmPassword")}</Label>
+            {passphrase && (
+              <GeneratedPassphrase passphrase={passphrase} handedOver={handedOver} onHandedOverChange={setHandedOver} />
+            )}
+          </div>
+        )}
+        <Field
+          label={t("users.confirmPassword")}
+          error={mismatch ? <span data-testid="password-mismatch">{t("users.passwordMismatch")}</span> : undefined}
+        >
           <Input
-            id={`${id}-confirmation`}
             type="password"
             autoComplete="new-password"
             required
             value={confirmation}
             onChange={(event) => typed(setConfirmation)(event.currentTarget.value)}
-            aria-invalid={mismatch}
             data-testid="password-confirmation"
           />
-        </div>
+        </Field>
       </fieldset>
       {temporaryPassword !== undefined && (
         <TemporaryPasswordSetting
@@ -157,14 +150,20 @@ export function PasswordDialog({
           disabled={submitting}
         />
       )}
-      {mismatch && (
-        <p role="alert" className="form-error" data-testid="password-mismatch">
-          {t("users.passwordMismatch")}
-        </p>
-      )}
-      <Button type="submit" disabled={submitting || (passphrase !== null && !handedOver)} data-testid="password-submit">
-        {t(submitting ? "common.saving" : "users.confirmPasswordChange")}
-      </Button>
+      <div className="dialog-actions">
+        {mandatory ? null : (
+          <Button variant="secondary" type="button" disabled={submitting} onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+        )}
+        <Button
+          type="submit"
+          disabled={submitting || (passphrase !== null && !handedOver)}
+          data-testid="password-submit"
+        >
+          {t(submitting ? "common.saving" : "users.confirmPasswordChange")}
+        </Button>
+      </div>
     </form>
   );
   if (mandatory)
