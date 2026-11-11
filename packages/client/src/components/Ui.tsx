@@ -5,8 +5,7 @@ import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { normalizeForSearch } from "../lib/search";
 import type { ApiErrorCode } from "../services/apiClient";
-import { usePhoneLayout } from "../shell/usePhoneLayout";
-import { CardViewIcon, CloseIcon, ListViewIcon, SearchIcon } from "./icons";
+import { CloseIcon, SearchIcon } from "./icons";
 
 export function PageHeader({
   title,
@@ -53,8 +52,6 @@ export function EmptyState({ children, testId }: { children: ReactNode; testId?:
   );
 }
 
-export type CollectionLayout = "list" | "cards";
-
 /** Substring match over fields using the shared search normalization; an empty query matches. */
 export function matchesQuery(query: string, ...fields: (string | null | undefined)[]): boolean {
   const needle = normalizeForSearch(query.trim());
@@ -62,66 +59,22 @@ export function matchesQuery(query: string, ...fields: (string | null | undefine
   return fields.some((field) => field && normalizeForSearch(field).includes(needle));
 }
 
-/** Layout and query of a collection; a phone always shows rows and keeps the choice made on a wider screen. */
+/** Query of a collection. */
 export function useCollectionView() {
-  const [layout, setLayout] = useState<CollectionLayout>("list");
   const [query, setQuery] = useState("");
-  const phone = usePhoneLayout();
-  return { layout: phone ? ("list" as const) : layout, setLayout, query, setQuery };
-}
-
-/** List or cards switch shared by every collection and the workspace search results. */
-export function CollectionLayoutToggle({
-  layout,
-  onLayoutChange,
-  testIdPrefix = "collection",
-}: {
-  layout: CollectionLayout;
-  onLayoutChange(layout: CollectionLayout): void;
-  testIdPrefix?: string;
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="collection-layout-toggle">
-      <button
-        type="button"
-        aria-pressed={layout === "list"}
-        data-testid={`${testIdPrefix}-layout-list`}
-        aria-label={t("common.layoutList")}
-        className={layout === "list" ? "collection-layout-active" : undefined}
-        onClick={() => onLayoutChange("list")}
-      >
-        <ListViewIcon aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        aria-pressed={layout === "cards"}
-        data-testid={`${testIdPrefix}-layout-cards`}
-        aria-label={t("common.layoutCards")}
-        className={layout === "cards" ? "collection-layout-active" : undefined}
-        onClick={() => onLayoutChange("cards")}
-      >
-        <CardViewIcon aria-hidden="true" />
-      </button>
-    </div>
-  );
+  return { query, setQuery };
 }
 
 export function CollectionToolbar({
   query,
   onQueryChange,
-  layout,
-  onLayoutChange,
   children,
 }: {
   query: string;
   onQueryChange(query: string): void;
-  layout?: CollectionLayout;
-  onLayoutChange?(layout: CollectionLayout): void;
   children?: ReactNode;
 }) {
   const { t } = useI18n();
-  const phone = usePhoneLayout();
   return (
     <div className="collection-toolbar">
       <div className="collection-search">
@@ -135,12 +88,7 @@ export function CollectionToolbar({
           onChange={(event) => onQueryChange(event.currentTarget.value)}
         />
       </div>
-      <div className="collection-toolbar-side">
-        {phone || !layout || !onLayoutChange ? null : (
-          <CollectionLayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
-        )}
-        {children}
-      </div>
+      <div className="collection-toolbar-side">{children}</div>
     </div>
   );
 }

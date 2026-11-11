@@ -1670,8 +1670,6 @@ export const en = {
   "common.search": "Search",
   "common.searchPlaceholder": "Search…",
   "common.layout": "Display",
-  "common.layoutList": "List view",
-  "common.layoutCards": "Card view",
   "common.noSearchResults": "No result matches this search.",
   "meeting.rosterCount": "serving members",
   "meeting.attendancePrepared": "{recorded} / {total} attendances prepared",

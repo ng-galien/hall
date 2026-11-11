@@ -1702,8 +1702,6 @@ export const fr: Messages = {
   "common.search": "Rechercher",
   "common.searchPlaceholder": "Rechercher…",
   "common.layout": "Affichage",
-  "common.layoutList": "Vue liste",
-  "common.layoutCards": "Vue cartes",
   "common.noSearchResults": "Aucun résultat ne correspond à cette recherche.",
   "meeting.rosterCount": "membres en exercice",
   "meeting.attendancePrepared": "{recorded} / {total} présences préparées",
