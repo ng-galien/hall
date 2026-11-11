@@ -1182,7 +1182,7 @@ export function PathContents({
           phone ? undefined : (
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="icon"
               data-testid={`workspace-folder-open-${folderPath}`}
               aria-label={t("workspace.open")}
               title={t("workspace.open")}
@@ -1191,7 +1191,7 @@ export function PathContents({
                 onSelect(null, folderPath);
               }}
             >
-              <OpenIcon aria-hidden="true" />
+              <OpenIcon aria-hidden="true" className="size-5" />
             </Button>
           )
         }

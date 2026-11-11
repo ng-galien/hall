@@ -37,7 +37,7 @@
     list-style: none;
   }
   .list-row:last-child { border-bottom: 0; }
-  .list-row-line { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); padding-right: var(--hall-space-3); }
+  .list-row-line { display: flex; min-width: 0; align-items: center; }
   .list-row-main {
     display: flex;
     min-width: 0;
@@ -45,7 +45,7 @@
     flex: 1;
     align-items: center;
     gap: var(--hall-space-3);
-    padding: var(--hall-space-2) 0 var(--hall-space-2) var(--hall-space-3);
+    padding: var(--hall-space-2) var(--hall-space-3);
     border: 0;
     color: inherit;
     background: transparent;
@@ -90,7 +90,7 @@
   .list-row-status[data-tone="warning"]::before { background: var(--hall-color-warning); }
   .list-row-status[data-tone="danger"]::before { background: var(--hall-color-danger); }
   .list-row-wide { display: none; flex: none; align-items: center; gap: var(--hall-space-4); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
-  .list-row-action { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); }
+  .list-row-action { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); padding-right: var(--hall-space-3); }
   .list-row-children { padding: 0 var(--hall-space-3) var(--hall-space-3) calc(var(--hall-space-3) + var(--hall-size-glyph-large) + var(--hall-space-3)); }
   /* A nested list is a tree branch: one indentation step per level, rules continued. */
   .list-row-children:has(> ul, > ol) { padding: 0 0 0 var(--hall-space-4); }
@@ -125,7 +125,7 @@
     .list-row-list,
     .list-row { --list-row-height: var(--hall-size-list-row-touch); }
     /* On a phone a long state wraps beside the shortened second line instead of running past the actions. */
-    .list-row-status { flex-shrink: 1; min-width: 0; white-space: normal; }
+    .list-row-status { flex-shrink: 1; min-width: min-content; white-space: normal; }
   }
   @media (pointer: coarse) {
     .list-row-list,
