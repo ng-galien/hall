@@ -7,7 +7,7 @@
     min-height: 100vh;
     overflow: hidden;
     font-family: var(--hall-font-family-sans);
-    font-size: var(--hall-font-size-body);
+    font-size: var(--hall-font-size-text);
     line-height: var(--hall-line-height-body);
     color: var(--hall-color-text);
     background: var(--hall-color-canvas);

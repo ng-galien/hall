@@ -102,13 +102,14 @@
   --hall-search-filter-height: 12.25rem;
   --hall-search-field-panel-max-height: 20rem;
 
-  --hall-font-family-display: Spectral, Georgia, "Times New Roman", serif;
   --hall-font-family-sans: "Archivo Variable", Archivo, ui-sans-serif, system-ui, sans-serif;
   --hall-font-family-monospace: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   /* Type scale: 13, 14, 16, 20, 24, 28, 32, 40. */
   /* @implements-requirement HALL-FR-LAY-050 */
   --hall-font-size-caption: 13px;
   --hall-font-size-body: 14px;
+  /* Running text of the interface; the body size above is the secondary text. */
+  --hall-font-size-text: 16px;
   --hall-font-size-title: 16px;
   --hall-font-size-heading: 20px;
   --hall-font-size-heading-large: 24px;

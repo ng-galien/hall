@@ -218,9 +218,11 @@
   .page { min-height: 100%; animation: page-enter var(--hall-motion-fast) var(--hall-motion-curve-decelerate); }
   .page-content { width: 100%; max-width: var(--hall-size-content-max); padding: var(--hall-space-7); }
   /* Tailwind preflight resets h1 to the body size. */
+  /* @implements-requirement HALL-FR-LAY-080 */
   .page-title {
     font-size: var(--hall-font-size-heading);
-    font-weight: var(--hall-font-weight-semibold);
+    font-weight: var(--hall-font-weight-heavy);
+    letter-spacing: var(--hall-letter-spacing-heading);
     line-height: var(--hall-line-height-heading);
   }
   /* Variants later in the cascade override colour only. */
