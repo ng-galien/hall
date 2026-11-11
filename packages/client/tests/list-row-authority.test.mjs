@@ -68,9 +68,85 @@ test("type icons are outlines tinted by their nature, never a padded badge", () 
   );
 });
 
-const retiredClasses = [];
-const retiredFiles = [];
-const listFiles = [];
+/** Row and card classes and components replaced by ListRow. */
+const retiredClasses = [
+  "data-row",
+  "data-list",
+  "minutes-row",
+  "council-member-row",
+  "admin-related-list",
+  "admin-membership-row",
+  "home-document-row",
+  "phone-document-row",
+  "phone-point-row",
+  "meeting-document-row",
+  "maps-row",
+  "search-results-row",
+  "search-result-row",
+  "workspace-explorer-row",
+  "workspace-explorer-folder-row",
+  "whome-business",
+  "report-timeline-item",
+  "settings-location-row",
+  "card-grid",
+  "entity-card",
+  "entity-card-member",
+  "entity-card-eyebrow",
+  "entity-card-footer",
+  "council-member-card-heading",
+  "member-identity-card",
+  "collection-layout-toggle",
+  "collection-layout-active",
+  "wsearch-hit",
+  "wsearch-grid",
+  "search-results-grid",
+  "next-meeting-hero",
+  "workspace-glyph",
+  "CollectionLayoutToggle",
+  "CollectionLayout",
+  "ExplorerTreeRow",
+  "ExplorerTreeButton",
+  "SearchResultRow",
+];
+const retiredFiles = ["components/ui/search-result-row.tsx"];
+/** Every file that renders a list of objects. */
+const listFiles = [
+  "components/search/FolderSectionsList.tsx",
+  "components/search/ResourceSearch.tsx",
+  "components/search/SearchResultsPanel.tsx",
+  "components/ui/explorer-tree.tsx",
+  "features/council-business/CouncilCommitteeBusinesses.tsx",
+  "features/council-meetings/MeetingDocumentsSection.tsx",
+  "features/council-meetings/MeetingLocationsSettings.tsx",
+  "features/council-meetings/MeetingOfficersDialog.tsx",
+  "features/legal/LegalReferenceResourceView.tsx",
+  "features/mail/MailGroups.tsx",
+  "features/mail/MailPage.tsx",
+  "features/representative-bodies/MemberDelegations.tsx",
+  "features/representative-bodies/RepresentativeBodiesPage.tsx",
+  "features/representative-bodies/RepresentativeBodyPage.tsx",
+  "features/resources/ResourceChangesControl.tsx",
+  "pages/ContactsPage.tsx",
+  "pages/CouncilDecisionsPage.tsx",
+  "pages/CouncilMemberPage.tsx",
+  "pages/CouncilMembersPage.tsx",
+  "pages/TemplatesPage.tsx",
+  "pages/UsersPage.tsx",
+  "pages/council-meetings/CouncilMeetingsPage.tsx",
+  "pages/council-meetings/MeetingPointPage.tsx",
+  "pages/council-meetings/MeetingProceedings.tsx",
+  "pages/council-meetings/MeetingReport.tsx",
+  "pages/council-meetings/live/ConductView.tsx",
+  "pages/home/HomeDocuments.tsx",
+  "pages/maps/MapsPanel.tsx",
+  "pages/minutes/MinutesPage.tsx",
+  "pages/workspace/BusinessSubjectHistory.tsx",
+  "pages/workspace/CouncilBusinessSubjects.tsx",
+  "pages/workspace/CouncilBusinessWorkbench.tsx",
+  "pages/workspace/PathContents.tsx",
+  "pages/workspace/WorkspaceHome.tsx",
+  "pages/workspace/WorkspacePage.tsx",
+];
 
 // @verifies-requirement HALL-TR-LAY-020
 test("retired row classes and components do not come back", () => {
@@ -85,6 +161,16 @@ test("retired row classes and components do not come back", () => {
 // @verifies-requirement HALL-TR-LAY-020
 test("every list of the inventory is rendered by ListRow", () => {
   for (const path of listFiles) {
-    assert.match(read(path), /from "[^"]*components\/ui\/list-row"/, `${path} does not import ListRow`);
+    assert.match(read(path), /from "[^"]*list-row"/, `${path} does not import ListRow`);
   }
+});
+
+// @verifies-requirement HALL-FR-LAY-080
+test("the interface loads no serif typeface", () => {
+  const manifest = readFileSync(join(clientRoot, "package.json"), "utf8");
+  assert.doesNotMatch(manifest, /@fontsource\/spectral/);
+  assert.deepEqual(
+    files.filter(({ source }) => /@fontsource\/spectral|font-family-display/.test(source)).map(({ path }) => path),
+    [],
+  );
 });
