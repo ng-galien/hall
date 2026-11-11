@@ -24,7 +24,7 @@
   }
   .screen-header-back {
     display: inline-flex;
-    min-width: 0;
+    min-width: var(--hall-size-touch-control);
     min-height: var(--hall-size-touch-control);
     flex: none;
     align-items: center;

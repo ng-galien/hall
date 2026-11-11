@@ -579,7 +579,7 @@ test("the home page lists the latest council documents without the personal fold
 
 // @verifies-requirement HALL-FR-LAY-010
 // @verifies-requirement HALL-FR-WSP-380
-test("on a phone the personal folder is the only active destination and an empty folder says it is empty", async ({
+test("on a phone the personal folder opens from Plus, which alone is active, and an empty folder says it is empty", async ({
   page: admin,
   browser,
   baseURL,
@@ -652,11 +652,11 @@ test("on a phone the personal folder is the only active destination and an empty
           .map((item) => item.getAttribute("data-destination") ?? item.getAttribute("data-testid")),
       );
 
-  await test.step("the personal destination alone is active in the personal folder, which says it is empty", async () => {
+  await test.step("Plus alone is active in the personal folder, which says it is empty", async () => {
     await phone.goto("/app/");
-    await destination("personal").tap();
-    await expect(destination("personal")).toHaveAttribute("aria-current", "page");
-    expect(await activeDestinations()).toEqual(["personal"]);
+    await destination("more").tap();
+    await phone.getByTestId("phone-more-personal").tap();
+    expect(await activeDestinations()).toEqual(["phone-navigation-more"]);
     await expect(phone.getByTestId("phone-header-title")).toHaveText("Mon espace");
     await expect(phone.getByTestId("workspace-explorer-empty")).toHaveText("Ce dossier est vide.");
   });

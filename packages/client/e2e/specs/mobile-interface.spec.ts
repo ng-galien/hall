@@ -182,7 +182,7 @@ test("phone documentation shows the page over the whole width and opens its cont
 });
 
 // @verifies-requirement HALL-FR-LAY-010
-test("phone calendar keeps a two-row toolbar, a header « + » and a single scrolling grid", async ({
+test("phone calendar keeps a two-row toolbar, a floating « + Nouveau » and a single scrolling grid", async ({
   appPage: page,
 }) => {
   // The French labels are the longest ones.
@@ -194,8 +194,8 @@ test("phone calendar keeps a two-row toolbar, a header « + » and a single scro
     await page.goto("/app/calendar");
     await expect(page.getByTestId("calendar-title")).not.toBeEmpty();
     await expect(page.getByTestId("calendar-slot-label").first()).toBeAttached();
-    // Creation is a « + » of the page header.
-    const create = page.getByTestId("phone-header").getByTestId("calendar-new");
+    // Creation is the floating « + Nouveau » of the screen.
+    const create = page.getByTestId("calendar-new");
     await expect(create).toBeVisible();
     const createBox = (await create.boundingBox())!;
     expect(Math.min(createBox.width, createBox.height)).toBeGreaterThanOrEqual(44);
