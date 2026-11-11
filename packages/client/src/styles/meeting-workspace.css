@@ -1070,21 +1070,7 @@
   .minutes-vote-totals div { display: flex; align-items: baseline; gap: var(--hall-space-2); }
   .minutes-vote-totals dt { color: var(--hall-color-text-muted); }
   .minutes-vote-totals dd { margin: 0; font-weight: var(--hall-font-weight-bold); }
-  .minutes-vote-members {
-    display: grid;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .minutes-vote-members li {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--hall-space-4);
-    padding-block: var(--hall-space-1-5);
-    border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
-    font-size: var(--hall-font-size-caption);
-  }
-  .minutes-vote-members li span:last-child { color: var(--hall-color-text-muted); }
+  .minutes-vote-members { margin: 0; }
   .minutes-point-editor { margin-top: var(--hall-space-1); }
   .minutes-point-tabbar {
     display: flex;

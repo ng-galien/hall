@@ -1,6 +1,7 @@
 import type { MinutesFacts as Facts } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { Disclosure } from "@/components/ui/disclosure";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import { ballotVerdictKey } from "../../features/council-meetings/ballotVerdictPresentation";
 import { useI18n } from "../../i18n/I18nProvider";
 import { MinutesSectionHint } from "./MinutesSectionHint";
@@ -204,14 +205,15 @@ export function MinutesAgendaFacts({ item, ballots }: { item: Facts["agenda"][nu
             </dl>
             {matchLiteral(ballot.mode, {
               public: () => (
-                <ul className="minutes-vote-members">
+                <ListRows className="minutes-vote-members">
                   {ballot.votes.map((vote, index) => (
-                    <li key={vote.member?.id ?? index}>
-                      <span>{vote.member?.name ?? t("common.none")}</span>
-                      <span>{choiceLabels[vote.choice]}</span>
-                    </li>
+                    <ListRow
+                      key={vote.member?.id ?? index}
+                      title={vote.member?.name ?? t("common.none")}
+                      detail={choiceLabels[vote.choice]}
+                    />
                   ))}
-                </ul>
+                </ListRows>
               ),
               secret: () => null,
             })}
