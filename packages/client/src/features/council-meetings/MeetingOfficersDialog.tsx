@@ -1,9 +1,10 @@
-import type { MeetingConductState, MeetingOffice } from "@hall/api-contract";
+import type { MeetingConductState, MeetingOffice, MeetingOfficerChange } from "@hall/api-contract";
 import { type FormEvent, useId, useState } from "react";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Label } from "../../components/ui/label";
+import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
 import type { ApiErrorCode } from "../../services/apiClient";
@@ -14,6 +15,32 @@ const memberName = (members: readonly CouncilMemberView[], id: string | null) =>
   const member = members.find((candidate) => candidate.id === id);
   return member ? `${member.contact.firstName} ${member.contact.lastName}` : "";
 };
+
+/** One handover of the chair or the secretary: the member, the office, its basis and its time. */
+export function OfficerChangeRow({
+  change,
+  members,
+  "data-testid": testId,
+}: {
+  change: MeetingOfficerChange;
+  members: readonly CouncilMemberView[];
+  "data-testid"?: string;
+}) {
+  const { t, formatTime } = useI18n();
+  const member = members.find((candidate) => candidate.id === change.councilMemberId);
+  return (
+    <ListRow
+      data-testid={testId}
+      head={
+        member ? (
+          <ListRowAvatar initials={`${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}`} />
+        ) : undefined
+      }
+      title={change.memberName}
+      detail={`${t(officeLabel(change.office))} · ${t(officerBasisLabel(change.basis))} · ${formatTime(change.observedAt)}`}
+    />
+  );
+}
 
 // @implements-requirement HALL-FR-MTG-330
 // @implements-requirement HALL-FR-MTG-340
@@ -33,7 +60,7 @@ export function MeetingOfficersDialog({
   onRecordOfficerChange(input: { office: MeetingOffice; councilMemberId: string }): Promise<boolean>;
   onClose(): void;
 }) {
-  const { t, formatTime } = useI18n();
+  const { t } = useI18n();
   const id = useId();
   const [office, setOffice] = useState<MeetingOffice>("chair");
   const [successor, setSuccessor] = useState(conduct.officerHandoverOptions.proposedChairMemberId ?? "");
@@ -71,14 +98,16 @@ export function MeetingOfficersDialog({
           </div>
         </dl>
         {meetingWideChanges.length > 0 ? (
-          <ul className="grid gap-1" data-testid="live-officers-history">
+          <ListRows data-testid="live-officers-history">
             {meetingWideChanges.map((change) => (
-              <li key={change.id} data-testid={`live-officers-change-${change.id}`}>
-                {formatTime(change.observedAt)} · {t(officeLabel(change.office))} · <strong>{change.memberName}</strong>{" "}
-                · {t(officerBasisLabel(change.basis))}
-              </li>
+              <OfficerChangeRow
+                key={change.id}
+                change={change}
+                members={members}
+                data-testid={`live-officers-change-${change.id}`}
+              />
             ))}
-          </ul>
+          </ListRows>
         ) : null}
         <form className="grid gap-3" data-testid="live-officers-handover" onSubmit={handover}>
           <strong>{t("officers.handoverTitle")}</strong>

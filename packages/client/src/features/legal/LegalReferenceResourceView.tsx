@@ -2,7 +2,9 @@ import type { ResourceDetail } from "@hall/api-contract";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CheckCircleIcon, OpenIcon, RedoIcon, WarningIcon } from "../../components/icons";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
+import { ToneGlyph } from "../documents/ResourceGlyph";
 import { legalStatusLabel } from "./legalReferencePresentation";
 
 function optionalDate(value: string | null, formatDate: (value: string) => string, fallback: string): string {
@@ -133,16 +135,23 @@ export function LegalReferenceResourceView({
           {history.length === 0 ? (
             <p>{t("legalReference.historyEmpty")}</p>
           ) : (
-            <ol>
+            <ListRows>
               {history.map((snapshot) => (
-                <li key={snapshot.id} className={snapshot.snapshotHash === details.snapshotHash ? "current" : ""}>
-                  <strong>{snapshot.versionId}</strong>
-                  <span>{legalStatusLabel(snapshot.legalStatus, t)}</span>
-                  <span>{formatDateTime(snapshot.fetchedAt)}</span>
-                  {snapshot.effectiveAt ? <span>{formatDate(snapshot.effectiveAt)}</span> : null}
-                </li>
+                <ListRow
+                  key={snapshot.id}
+                  selected={snapshot.snapshotHash === details.snapshotHash}
+                  head={<ToneGlyph tone="legalReference" />}
+                  title={snapshot.versionId}
+                  detail={[
+                    formatDateTime(snapshot.fetchedAt),
+                    snapshot.effectiveAt ? formatDate(snapshot.effectiveAt) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  status={{ tone: "neutral", label: legalStatusLabel(snapshot.legalStatus, t) }}
+                />
               ))}
-            </ol>
+            </ListRows>
           )}
         </aside>
       </div>

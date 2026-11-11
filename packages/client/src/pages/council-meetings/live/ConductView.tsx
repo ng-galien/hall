@@ -36,15 +36,15 @@ const VotingItemProgress = createStageProgress(itemStages);
 const DiscussionItemProgress = createStageProgress([itemStages[0], itemStages[1], { id: "2", icon: <CheckIcon /> }]);
 
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
+import { ListRow, ListRowIcon, ListRows } from "../../../components/ui/list-row";
 import { liveBusinessTitle } from "../../../features/council-business/presentation";
 import { AgendaItemRecusalDialog } from "../../../features/council-meetings/AgendaItemRecusalDialog";
 import { agendaSubjectPresentation } from "../../../features/council-meetings/AgendaSubjectGlyph";
 import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
 import { ConductActionBlockers } from "../../../features/council-meetings/ConductActionBlockers";
 import { MeetingClosedSessionDialog } from "../../../features/council-meetings/MeetingClosedSessionDialog";
-import { MeetingOfficersDialog } from "../../../features/council-meetings/MeetingOfficersDialog";
+import { MeetingOfficersDialog, OfficerChangeRow } from "../../../features/council-meetings/MeetingOfficersDialog";
 import { MeetingReconvocationForm } from "../../../features/council-meetings/MeetingReconvocationForm";
-import { officeLabel, officerBasisLabel } from "../../../features/council-meetings/meetingOfficerPresentation";
 import { quorumFailureAwaitingReconvocation } from "../../../features/council-meetings/reconvocationPolicy";
 import { recusalBasisLabel } from "../../../features/council-meetings/recusalPresentation";
 import { DocumentaryResourceGlyph } from "../../../features/documents/DocumentaryResourceGlyph";
@@ -633,27 +633,30 @@ export function ConductView({
               ) : null}
             </dl>
             {conduct && conduct.officerChanges.length > 0 ? (
-              <ul className="grid gap-1" data-testid="live-opening-handovers">
+              <ListRows data-testid="live-opening-handovers">
                 {conduct.officerChanges.map((change) => (
-                  <li key={change.id}>
-                    {formatTime(change.observedAt)} · {t(officeLabel(change.office))} ·{" "}
-                    <strong>{change.memberName}</strong> · {t(officerBasisLabel(change.basis))}
-                  </li>
+                  <OfficerChangeRow key={change.id} change={change} members={members} />
                 ))}
-              </ul>
+              </ListRows>
             ) : null}
             {conduct && conduct.closedSessions.length > 0 ? (
-              <ul className="grid gap-1" data-testid="live-closed-sessions">
+              <ListRows data-testid="live-closed-sessions">
                 {conduct.closedSessions.map((session) => (
-                  <li key={session.id}>
-                    {formatTime(session.observedAt)} ·{" "}
-                    {t(session.wholeMeeting ? "closedSession.summaryWhole" : "closedSession.summaryItems", {
+                  <ListRow
+                    key={session.id}
+                    head={
+                      <ListRowIcon nature="council">
+                        <LockIcon />
+                      </ListRowIcon>
+                    }
+                    title={t(session.wholeMeeting ? "closedSession.summaryWhole" : "closedSession.summaryItems", {
                       approvals: formatNumber(session.approvals),
                       count: formatNumber(session.presentOrRepresented),
                     })}
-                  </li>
+                    detail={formatTime(session.observedAt)}
+                  />
                 ))}
-              </ul>
+              </ListRows>
             ) : null}
             {conduct && conduct.auxiliaryAttendances.length > 0 ? (
               <section className="grid gap-1" data-testid="live-opening-auxiliaries">

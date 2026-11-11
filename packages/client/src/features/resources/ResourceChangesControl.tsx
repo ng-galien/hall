@@ -3,11 +3,18 @@ import { matchLiteral } from "@hall/domain";
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { RedoIcon } from "../../components/icons";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
+import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
 import { subscribeLiveUpdates } from "../../services/liveUpdates";
 import { openResourceChanges } from "../../services/resourceChangesApi";
 import "./ResourceChangesControl.css";
+
+/** First letters of the first and last words of a display name. */
+function nameInitials(displayName: string): string {
+  const words = displayName.trim().split(/\s+/).filter(Boolean);
+  return `${words[0]?.[0] ?? ""}${words.length > 1 ? (words.at(-1)?.[0] ?? "") : ""}`.toUpperCase();
+}
 
 // @implements-requirement HALL-FR-DOC-280
 export function ResourceChangesControl({
@@ -194,15 +201,21 @@ export function ResourceChangesControl({
           {failed ? <p role="alert">{t("resourceChanges.error")}</p> : null}
           {!loading && !failed && changes?.length === 0 ? <p>{t("resourceChanges.empty")}</p> : null}
           {changes && changes.length > 0 ? (
-            <ol className="resource-changes-list" data-testid="resource-changes-list">
+            <ListRows data-testid="resource-changes-list">
               {changes.map((change) => (
-                <li key={change.id} data-testid="resource-changes-item">
-                  <strong>{change.actor?.displayName ?? t("resourceChanges.unknownAuthor")}</strong>
-                  <span>{detail(change)}</span>
-                  <time dateTime={change.occurredAt}>{formatDateTime(change.occurredAt)}</time>
-                </li>
+                <ListRow
+                  key={change.id}
+                  data-testid="resource-changes-item"
+                  head={change.actor ? <ListRowAvatar initials={nameInitials(change.actor.displayName)} /> : undefined}
+                  title={change.actor?.displayName ?? t("resourceChanges.unknownAuthor")}
+                  detail={
+                    <>
+                      {detail(change)} · <time dateTime={change.occurredAt}>{formatDateTime(change.occurredAt)}</time>
+                    </>
+                  }
+                />
               ))}
-            </ol>
+            </ListRows>
           ) : null}
         </DialogContent>
       </Dialog>

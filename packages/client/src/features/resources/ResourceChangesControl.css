@@ -49,27 +49,3 @@
   gap: var(--hall-space-2);
   padding-right: var(--hall-space-7);
 }
-
-.resource-changes-list {
-  display: grid;
-  gap: 0;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.resource-changes-list li {
-  display: grid;
-  gap: var(--hall-space-1);
-  padding-block: var(--hall-space-4);
-  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
-}
-
-.resource-changes-list strong {
-  font-weight: var(--hall-font-weight-semibold);
-}
-
-.resource-changes-list span,
-.resource-changes-list time {
-  color: var(--hall-color-text-muted);
-}
