@@ -59,6 +59,11 @@ export function attachLiveWebSocket(
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 });
 
   const onUpgrade = async (request: IncomingMessage, socket: Duplex, head: Buffer) => {
+    const onSocketError = (error: Error) => {
+      logger.debug({ error }, "Live subscription connection interrupted");
+      socket.destroy();
+    };
+    socket.on("error", onSocketError);
     const target = subscription(request);
     if (!target) {
       rejectUpgrade(socket, 400);
@@ -77,7 +82,9 @@ export function attachLiveWebSocket(
       return authorizeReading(session.user);
     };
     try {
-      if (!(await permitted())) {
+      const allowed = await permitted();
+      if (socket.destroyed) return;
+      if (!allowed) {
         rejectUpgrade(socket, token || config.devAutoLogin ? 403 : 401);
         return;
       }
@@ -88,6 +95,7 @@ export function attachLiveWebSocket(
     }
 
     wss.handleUpgrade(request, socket, head, (ws) => {
+      socket.off("error", onSocketError);
       const unsubscribe = realtimeEvents.subscribe(target, (event) => {
         void permitted()
           .then((allowed) => {

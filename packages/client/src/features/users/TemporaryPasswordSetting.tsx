@@ -16,7 +16,7 @@ export function TemporaryPasswordSetting({
   const { t } = useI18n();
   return (
     <div className="grid gap-1.5">
-      <div className="flex items-center gap-2">
+      <Label htmlFor={id}>
         <input
           id={id}
           type="checkbox"
@@ -25,8 +25,8 @@ export function TemporaryPasswordSetting({
           onChange={(event) => onChange(event.currentTarget.checked)}
           data-testid="user-temporary-password"
         />
-        <Label htmlFor={id}>{t("users.temporaryPassword")}</Label>
-      </div>
+        {t("users.temporaryPassword")}
+      </Label>
       <p className="text-sm text-muted-foreground">{t("users.temporaryPasswordDescription")}</p>
     </div>
   );

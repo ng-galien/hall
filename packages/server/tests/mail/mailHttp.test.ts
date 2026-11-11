@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { MailMessage, MailPreview } from "@hall/contracts";
+import type { MailMessage, MailPreview, MailRecipientGroup } from "@hall/contracts";
 import { expect, it } from "vitest";
 import { createTestServer, domainBody } from "../../src/__tests__/testServer.js";
 import { RecordingEmailTransport } from "../support/emailTransport.js";
@@ -145,6 +145,14 @@ it("retains uploaded attachment bytes and the rendered message after settings ch
     await server.agent.get(`/api/mail/${message.id}/submissions/${sent.submissions[0]!.id}/preview`).expect(200),
   );
   expect(history).toEqual(preview);
+  const submissionPath = `/api/mail/${message.id}/submissions/${sent.submissions[0]!.id}`;
+  expect(domainBody(await server.agent.get(submissionPath).expect(200))).toEqual(sent.submissions[0]);
+  const frozenFile = await server.agent
+    .get(`${submissionPath}/attachments/${message.attachments[0]!.id}/content`)
+    .expect(200);
+  expect(frozenFile.body.toString()).toBe("PDF immutable fixture");
+  await server.agent.get(`/api/mail/${message.id}/submissions/${randomUUID()}`).expect(404);
+  await server.agent.get(`${submissionPath}/attachments/${randomUUID()}/content`).expect(404);
   const copy = domainBody<MailMessage>(
     await server.agent.post(`/api/mail/${message.id}/copy`).send({ expectedRevision: message.revision }).expect(201),
   );
@@ -321,4 +329,135 @@ it("distinguishes the attachment size limit from a stale draft and preserves acc
   const persisted = domainBody<MailMessage>(await server.agent.get(`/api/mail/${message.id}`).expect(200));
   expect(persisted.revision).toBe(message.revision);
   expect(persisted.attachments).toHaveLength(2);
+});
+
+// @verifies-requirement HALL-FR-EML-010
+// @verifies-requirement HALL-FR-EML-040
+it("lists shared drafts, attaches and removes a document, and deletes only the draft", async () => {
+  const server = await setup();
+  let message = await draft(server);
+  expect(domainBody<MailMessage[]>(await server.agent.get("/api/mail").expect(200)).map((entry) => entry.id)).toContain(
+    message.id,
+  );
+  const resource = domainBody<{ id: string }>(
+    await server.agent
+      .post("/api/resources/documents")
+      .field("path", "")
+      .attach("file", Buffer.from("Source bytes"), { filename: "source.txt", contentType: "text/plain" })
+      .expect(201),
+  );
+  message = domainBody<MailMessage>(
+    await server.agent
+      .post(`/api/mail/${message.id}/attachments`)
+      .send({ expectedRevision: message.revision, resourceId: resource.id })
+      .expect(200),
+  );
+  expect(message.attachments).toHaveLength(1);
+  const attachmentId = message.attachments[0]!.id;
+  expect((await server.agent.get(`/api/mail/${message.id}/attachments/${attachmentId}/content`).expect(200)).text).toBe(
+    "Source bytes",
+  );
+  message = domainBody<MailMessage>(
+    await server.agent
+      .post(`/api/mail/${message.id}/attachments/remove`)
+      .send({ expectedRevision: message.revision, attachmentId })
+      .expect(200),
+  );
+  expect(message.attachments).toEqual([]);
+  await server.agent.get(`/api/mail/${message.id}/attachments/${attachmentId}/content`).expect(404);
+  await server.agent.post(`/api/mail/${message.id}/delete`).send({ expectedRevision: message.revision }).expect(204);
+  await server.agent.get(`/api/mail/${message.id}`).expect(404);
+  expect(
+    domainBody<MailMessage[]>(await server.agent.get("/api/mail").expect(200)).map((entry) => entry.id),
+  ).not.toContain(message.id);
+  await server.agent.get(`/api/resources/${resource.id}`).expect(200);
+  expect(server.transport.calls).toEqual([]);
+});
+
+// @verifies-requirement HALL-FR-EML-030
+it("resolves current council and committee contacts and maintains versioned custom groups", async () => {
+  const server = await setup();
+  const contact = domainBody<{ id: string }>(
+    await server.agent
+      .post("/api/contacts")
+      .send({ firstName: "Camille", lastName: "Martin", email: "camille@example.org" })
+      .expect(201),
+  );
+  const former = domainBody<{ id: string }>(
+    await server.agent.post("/api/contacts").send({ firstName: "Former", lastName: "Member" }).expect(201),
+  );
+  await server.agent
+    .post("/api/council-members")
+    .send({ contactId: contact.id, role: "councillor", termStartedOn: "2026-03-22" })
+    .expect(201);
+  const committee = domainBody<{ id: string }>(
+    await server.agent.post("/api/council-committees").send({ name: "Works", description: "" }).expect(201),
+  );
+  for (const entry of [contact, former]) {
+    const membership = domainBody<{ id: string }>(
+      await server.agent
+        .post(`/api/council-committees/${committee.id}/memberships`)
+        .send({ contactId: entry.id, role: "member", startedOn: "2026-03-22" })
+        .expect(201),
+    );
+    if (entry === former)
+      await server.agent
+        .post(`/api/council-committees/${committee.id}/memberships/${membership.id}/end`)
+        .send({ endedOn: "2026-04-01" })
+        .expect(200);
+  }
+  const selections = domainBody(await server.agent.get("/api/mail/recipients").expect(200));
+  expect(selections.councilContactIds).toEqual([contact.id]);
+  expect(selections.committees).toEqual([{ id: committee.id, name: "Works", contactIds: [contact.id] }]);
+  expect(selections.contacts).toEqual(
+    expect.arrayContaining([
+      { contactId: contact.id, name: "Camille Martin", address: "camille@example.org" },
+      { contactId: former.id, name: "Former Member", address: "" },
+    ]),
+  );
+  const members = [{ contactId: contact.id, name: "Camille Martin", address: "camille@example.org" }];
+  const base = "/api/mail-recipient-groups";
+  let group = domainBody<MailRecipientGroup>(
+    await server.agent.post(base).send({ name: "Original", members }).expect(201),
+  );
+  const initialRevision = group.revision;
+  expect(domainBody(await server.agent.get(`${base}/${group.id}`).expect(200))).toEqual(group);
+  expect(domainBody(await server.agent.get(base).expect(200))).toContainEqual(group);
+  group = domainBody<MailRecipientGroup>(
+    await server.agent
+      .put(`${base}/${group.id}`)
+      .send({ expectedRevision: group.revision, name: "Updated", members })
+      .expect(200),
+  );
+  expect(group.name).toBe("Updated");
+  expect(group.revision).toBeGreaterThan(initialRevision);
+  await server.agent
+    .put(`${base}/${group.id}`)
+    .send({ expectedRevision: initialRevision, name: "Stale", members: [] })
+    .expect(409);
+  await server.agent.post(`${base}/${group.id}/delete`).send({ expectedRevision: initialRevision }).expect(409);
+  expect(domainBody(await server.agent.get(`${base}/${group.id}`).expect(200))).toEqual(group);
+  await server.agent.post(`${base}/${group.id}/delete`).send({ expectedRevision: group.revision }).expect(204);
+  await server.agent.get(`${base}/${group.id}`).expect(404);
+  expect(domainBody(await server.agent.get(base).expect(200))).toEqual([]);
+});
+
+// @verifies-requirement HALL-FR-EML-040
+it("renders a PDF into an unsent draft with downloadable attachment bytes", async () => {
+  const server = await setup();
+  const message = domainBody<MailMessage>(
+    await server.agent
+      .post("/api/mail/prepare")
+      .send({ kind: "pdf", title: "Report", bodyMarkdown: "# Council report\n\nPrepared for review." })
+      .expect(201),
+  );
+  expect(message.subject).toBe("Report");
+  expect(message.submissions).toEqual([]);
+  expect(message.attachments).toHaveLength(1);
+  expect(message.attachments[0]).toMatchObject({ fileName: "Report.pdf", mediaType: "application/pdf" });
+  const file = await server.agent
+    .get(`/api/mail/${message.id}/attachments/${message.attachments[0]!.id}/content`)
+    .expect(200);
+  expect(file.body.subarray(0, 5).toString()).toBe("%PDF-");
+  expect(server.transport.calls).toEqual([]);
 });

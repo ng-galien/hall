@@ -1077,6 +1077,7 @@ export function PathContents({
                     <button
                       className="workspace-explorer-title-link"
                       data-testid={"workspace-resource-title-" + resource.id}
+                      title={resource.name}
                       data-workspace-node-key={key}
                       data-workspace-tree-node
                       type="button"
