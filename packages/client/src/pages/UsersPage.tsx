@@ -2,9 +2,10 @@ import type { ApiRole } from "@hall/api-contract";
 import { type FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { CreateButton } from "@/components/ui/create-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AddIcon } from "../components/icons";
+import { MembersIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import {
   CollectionToolbar,
@@ -115,25 +116,32 @@ export function UsersPage() {
       <div className="page-content">
         {!addOpen && <RequestErrorBanner error={error} />}
         <CollectionToolbar query={query} onQueryChange={setQuery}>
-          {canCreate && (
-            <Button
-              onClick={() => {
-                clearError();
-                setRoles([]);
-                setContactId("none");
-                setPassword("");
-                setPasswordChangeRequired(false);
-                setPassphrase(null);
-                setHandedOver(false);
-                setGenerationError(null);
-                setAddOpen(true);
-              }}
-              data-testid="users-add"
-            >
-              <AddIcon />
-              {t("users.add")}
-            </Button>
-          )}
+          <CreateButton
+            testId="users-add"
+            options={
+              canCreate
+                ? [
+                    {
+                      id: "user",
+                      label: t("users.add"),
+                      Icon: MembersIcon,
+                      nature: "council",
+                      onSelect: () => {
+                        clearError();
+                        setRoles([]);
+                        setContactId("none");
+                        setPassword("");
+                        setPasswordChangeRequired(false);
+                        setPassphrase(null);
+                        setHandedOver(false);
+                        setGenerationError(null);
+                        setAddOpen(true);
+                      },
+                    },
+                  ]
+                : []
+            }
+          />
         </CollectionToolbar>
         <Modal
           open={addOpen && canCreate}

@@ -133,6 +133,8 @@ export function HomePersonalSpace({ documents, loaded }: ReadableDocuments) {
       <header className="home-block-heading">
         <h2>{t("workspace.personalWorkspace")}</h2>
         <WorkspaceCreateMenu
+          placement="inline"
+          title={t("create.sheetTitle", { place: t("workspace.personalWorkspace") })}
           testId="home-personal-add"
           label={t("home.add")}
           optionLabels={{ text: "home.addNote" }}

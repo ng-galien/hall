@@ -6,9 +6,10 @@ import themePlugin from "@fullcalendar/react/themes/monarch";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import { type EventDocument, eventDocumentSchema, findSirenAction } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
-import { AddIcon } from "../../components/icons";
+import { CalendarIcon } from "../../components/icons";
 import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { CreateButton } from "../../components/ui/create-button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import {
   DropdownMenu,
@@ -20,7 +21,6 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CouncilMeetingPage } from "../../pages/council-meetings/CouncilMeetingPage";
-import { ScreenActions } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
@@ -134,19 +134,22 @@ export function CalendarPage() {
   };
   return (
     <div className="hall-calendar" data-testid="calendar-page">
-      {phone && resources.collectionCapabilities.create ? (
-        <ScreenActions>
-          <Button
-            variant="plain"
-            size="icon"
-            data-testid="calendar-new"
-            aria-label={t("workspace.createEvent")}
-            onClick={startEvent}
-          >
-            <AddIcon />
-          </Button>
-        </ScreenActions>
-      ) : null}
+      <CreateButton
+        testId="calendar-new"
+        options={
+          resources.collectionCapabilities.create
+            ? [
+                {
+                  id: "event",
+                  label: t("workspace.createEvent"),
+                  Icon: CalendarIcon,
+                  nature: "council",
+                  onSelect: startEvent,
+                },
+              ]
+            : []
+        }
+      />
       <div className="calendar-toolbar">
         <div className="calendar-toolbar-navigation flex items-center gap-2">
           <Button
@@ -196,11 +199,6 @@ export function CalendarPage() {
               </Button>
             ))}
           </div>
-          {resources.collectionCapabilities.create && !phone ? (
-            <Button data-testid="calendar-new" onClick={startEvent}>
-              {t("workspace.createEvent")}
-            </Button>
-          ) : null}
         </div>
       </div>
       {phone ? null : (

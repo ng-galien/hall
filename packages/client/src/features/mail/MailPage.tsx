@@ -10,10 +10,11 @@ import { matchLiteral } from "@hall/domain";
 import { useCallback, useEffect, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { AddIcon, MailIcon } from "../../components/icons";
+import { MailIcon } from "../../components/icons";
 import { ResourceSearchField } from "../../components/search/ResourceSearchField";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { CreateButton } from "../../components/ui/create-button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { ListRow, ListRowIcon, type ListRowStatus, ListRows } from "../../components/ui/list-row";
@@ -184,12 +185,22 @@ export function MailPage() {
       <div className="page-content">
         <RequestErrorBanner error={error ? apiErrorCode(error) : null} />
         <div className="flex items-center gap-2 pb-4">
-          {collection?.representation && findSirenAction(collection.representation, "mail.create") ? (
-            <Button disabled={busy} data-testid="mail-new" onClick={() => void create()}>
-              <AddIcon />
-              {t("mail.new")}
-            </Button>
-          ) : null}
+          <CreateButton
+            testId="mail-new"
+            options={
+              collection?.representation && findSirenAction(collection.representation, "mail.create") && !busy
+                ? [
+                    {
+                      id: "mail",
+                      label: t("mail.new"),
+                      Icon: MailIcon,
+                      nature: "writing",
+                      onSelect: () => void create(),
+                    },
+                  ]
+                : []
+            }
+          />
           <Button variant="plain" data-testid="mail-groups" onClick={() => setGroupsOpen(true)}>
             {t("mail.groups")}
           </Button>

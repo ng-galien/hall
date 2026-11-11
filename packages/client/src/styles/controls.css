@@ -100,3 +100,28 @@
   .hall-field-note[data-tone="danger"] { color: var(--hall-color-danger); }
   .hall-field-row { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-10rem)), 1fr)); gap: var(--hall-space-2); }
 }
+
+/* @implements-requirement HALL-FR-LAY-120 */
+/* Creation: floating « + Nouveau » on a phone, reduced to « + » once the content scrolls; a menu of rows elsewhere. */
+@layer components {
+  .hall-button.create-fab {
+    position: fixed;
+    right: var(--hall-space-4);
+    bottom: calc(var(--hall-size-phone-bar) + env(safe-area-inset-bottom, var(--hall-size-zero)) + var(--hall-space-4));
+    z-index: var(--hall-z-sticky);
+    min-height: var(--hall-size-touch-control);
+    padding-inline: var(--hall-space-4);
+    box-shadow: var(--hall-shadow-medium);
+    font-size: var(--hall-font-size-title);
+  }
+  .hall-button.create-fab[data-reduced="true"] { width: var(--hall-size-touch-control); padding: 0; }
+  .hall-button.create-fab > svg { font-size: var(--hall-font-size-icon-large); }
+  /* The list keeps room under its last row so the floating button never covers it. */
+  body:has(.create-fab) .app-main { padding-bottom: calc(var(--hall-size-touch-control) + var(--hall-space-6)); }
+  .create-menu { min-width: var(--hall-size-hit-card); max-width: var(--hall-size-mention-menu-max); padding: var(--hall-space-1) 0; }
+  .create-menu-row { align-items: center; gap: var(--hall-space-3); min-height: var(--hall-size-list-row-pointer); padding: var(--hall-space-2) var(--hall-space-3); border-radius: 0; }
+  .create-menu-row + .create-menu-row { border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
+  .create-menu-text { display: grid; min-width: 0; gap: var(--hall-space-0-5); }
+  .create-menu-label { color: var(--hall-color-text); font-size: var(--hall-font-size-text); font-weight: var(--hall-font-weight-semibold); }
+  .create-menu-description { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
+}

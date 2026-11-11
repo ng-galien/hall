@@ -108,3 +108,31 @@ test("one screen header and one navigation per format, the retired ones do not c
 test("no icon of the interface is filled", () => {
   assert.deepEqual(offenders(/weight=["{]\s*"?(?:fill|duotone)/), []);
 });
+
+/** Every screen that creates an object does it through the single creation control. */
+const creationScreens = [
+  "features/calendar/CalendarPage.tsx",
+  "features/mail/MailPage.tsx",
+  "features/representative-bodies/RepresentativeBodiesPage.tsx",
+  "pages/ContactsPage.tsx",
+  "pages/CouncilMembersPage.tsx",
+  "pages/TemplatesPage.tsx",
+  "pages/UsersPage.tsx",
+  "pages/workspace/WorkspaceCreateMenu.tsx",
+];
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-LAY-120
+test("creation goes through CreateButton, floating on a phone and in the header elsewhere", () => {
+  for (const path of creationScreens) {
+    assert.match(readFileSync(join(sourceRoot, path), "utf8"), /<CreateButton\b/, `${path} does not use CreateButton`);
+  }
+  assert.deepEqual(
+    offenders(/className=\{?["`][^"`]*\bcreate-fab\b/).filter((path) => path !== "components/ui/create-button.tsx"),
+    [],
+  );
+  assert.doesNotMatch(
+    readFileSync(join(sourceRoot, "pages/workspace/WorkspaceCreateMenu.tsx"), "utf8"),
+    /DropdownMenu/,
+  );
+});

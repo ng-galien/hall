@@ -2,7 +2,7 @@ import { type FormEvent, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AddIcon } from "../components/icons";
+import { ContactIcon } from "../components/icons";
 import {
   CollectionToolbar,
   EmptyState,
@@ -12,6 +12,7 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
+import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
 import { formatPhoneNumber } from "../features/council-members/phonePresentation";
 import { useSubmitting } from "../hooks/useSubmitting";
@@ -63,12 +64,22 @@ export function ContactsPage() {
       <div className="page-content">
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery}>
-          {canCreate ? (
-            <Button variant="primary" onClick={() => setAddOpen(true)} data-testid="contacts-add">
-              <AddIcon />
-              {t("contacts.add")}
-            </Button>
-          ) : null}
+          <CreateButton
+            testId="contacts-add"
+            options={
+              canCreate
+                ? [
+                    {
+                      id: "contact",
+                      label: t("contacts.add"),
+                      Icon: ContactIcon,
+                      nature: "council",
+                      onSelect: () => setAddOpen(true),
+                    },
+                  ]
+                : []
+            }
+          />
         </CollectionToolbar>
         <Modal open={canCreate && addOpen} title={t("contacts.add")} onClose={() => setAddOpen(false)}>
           <form className="modal-form" onSubmit={submit} data-testid="contact-create-form">

@@ -1,17 +1,13 @@
+import type { Icon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
-import { useId, useRef, useState } from "react";
-import { AddIcon } from "../../components/icons";
+import { useRef, useState } from "react";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { ContextMenuItem } from "../../components/ui/context-menu";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu";
+import { CreateButton, type CreateOption } from "../../components/ui/create-button";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+import type { ResourceNature } from "../../components/ui/list-row";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -25,10 +21,39 @@ import {
 export interface WorkspaceCreationOption {
   id: string;
   label: string;
-  icon: typeof AddIcon;
+  icon: Icon;
   create(name: string): Promise<boolean>;
 }
 
+/** Short name of each kind in the creation sheet and menu. */
+export const workspaceCreateShortLabels = {
+  councilMatter: "create.kind.councilMatter",
+  text: "create.kind.text",
+  spreadsheet: "create.kind.spreadsheet",
+  remote: "create.kind.remote",
+  geographic: "create.kind.geographic",
+  event: "create.kind.event",
+  legalReference: "create.kind.legalReference",
+  file: "create.kind.file",
+  takePhoto: "create.kind.takePhoto",
+  choosePhoto: "create.kind.choosePhoto",
+} satisfies Record<WorkspaceCreateKind, TranslationKey>;
+
+/** One sentence under each kind in the creation sheet and menu. */
+export const workspaceCreateDescriptions = {
+  councilMatter: "create.kind.councilMatter.description",
+  text: "create.kind.text.description",
+  spreadsheet: "create.kind.spreadsheet.description",
+  remote: "create.kind.remote.description",
+  geographic: "create.kind.geographic.description",
+  event: "create.kind.event.description",
+  legalReference: "create.kind.legalReference.description",
+  file: "create.kind.file.description",
+  takePhoto: "create.kind.takePhoto.description",
+  choosePhoto: "create.kind.choosePhoto.description",
+} satisfies Record<WorkspaceCreateKind, TranslationKey>;
+
+/** Title of the name dialog of each kind. */
 export const workspaceCreateLabels = {
   councilMatter: "workspace.createCouncilMatter",
   text: "workspace.createText",
@@ -58,7 +83,6 @@ export function useWorkspaceCreation({
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<ApiErrorCode | null>(null);
-  const nameId = useId();
   const nameRef = useRef<HTMLInputElement>(null);
   const dialogTitle = extraOption?.label ?? (kind ? t(workspaceCreateLabels[kind]) : "");
   const start = (entry: WorkspaceCreateKind) => {
@@ -121,11 +145,9 @@ export function useWorkspaceCreation({
             <RequestErrorBanner error={failed} onDismiss={() => setFailed(null)} />
           </div>
         ) : null}
-        <div className="grid gap-1.5">
-          <Label htmlFor={nameId}>{t("workspace.creationName")}</Label>
+        <Field label={t("workspace.creationName")}>
           <Input
             ref={nameRef}
-            id={nameId}
             name="name"
             autoFocus
             data-testid="workspace-create-name"
@@ -134,7 +156,7 @@ export function useWorkspaceCreation({
             required
             disabled={busy}
           />
-        </div>
+        </Field>
         <Button
           className="justify-self-end"
           type="submit"
@@ -149,24 +171,43 @@ export function useWorkspaceCreation({
   return { start, startOption, dialog };
 }
 
+/** Everyday gestures of creation, shown first; the other kinds wait behind « Autre » on a phone. */
+const commonKinds: readonly WorkspaceCreateKind[] = ["text", "takePhoto", "choosePhoto", "file"];
+
+export const workspaceCreateNatures = {
+  councilMatter: "council",
+  text: "writing",
+  spreadsheet: "data",
+  remote: "writing",
+  geographic: "visual",
+  event: "council",
+  legalReference: "council",
+  file: "writing",
+  takePhoto: "visual",
+  choosePhoto: "visual",
+} satisfies Record<WorkspaceCreateKind, ResourceNature>;
+
 export function WorkspaceCreateMenu({
   canCreate,
   onCreate,
   extraOptions = [],
-  compact = false,
+  placement = "screen",
   testId = "workspace-create-menu",
   label,
+  title,
   optionLabels,
   getError,
   clearError,
   render,
 }: {
   label?: string;
+  /** Title of the phone sheet, such as « Nouveau dans Mon espace ». */
+  title?: string;
   optionLabels?: Partial<Record<WorkspaceCreateKind, TranslationKey>>;
   canCreate(kind: WorkspaceCreateKind): boolean;
   onCreate(kind: WorkspaceCreateKind, title?: string): Promise<boolean>;
   extraOptions?: WorkspaceCreationOption[];
-  compact?: boolean;
+  placement?: "screen" | "inline";
   testId?: string;
   getError?(): ApiErrorCode | null;
   clearError?(): void;
@@ -175,53 +216,41 @@ export function WorkspaceCreateMenu({
   const { t } = useI18n();
   const creation = useWorkspaceCreation({ onCreate, getError, clearError });
   const available = workspaceCreateKinds.filter(canCreate);
+  const rank = (kind: WorkspaceCreateKind) =>
+    commonKinds.includes(kind) ? commonKinds.indexOf(kind) : commonKinds.length;
   const hasOptions = available.length > 0 || extraOptions.length > 0;
+  const options: CreateOption[] = [
+    ...extraOptions.map((option) => ({
+      id: option.id,
+      label: option.label,
+      Icon: option.icon,
+      nature: "council" as const,
+      common: true,
+      testId: `workspace-create-${option.id}`,
+      onSelect: () => creation.startOption(option),
+    })),
+    ...[...available]
+      .sort((left, right) => rank(left) - rank(right))
+      .map((entry) => ({
+        id: entry,
+        label: t(optionLabels?.[entry] ?? workspaceCreateShortLabels[entry]),
+        description: t(workspaceCreateDescriptions[entry]),
+        Icon: workspaceCreateKindIcons[entry],
+        nature: workspaceCreateNatures[entry],
+        common: commonKinds.includes(entry),
+        testId: `workspace-create-${entry}`,
+        onSelect: () => creation.start(entry),
+      })),
+  ];
   const trigger = hasOptions ? (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant={compact ? "plain" : "secondary"}
-          size={compact ? "icon" : "default"}
-          aria-label={
-            extraOptions.length === 1 ? `${t("workspace.new")} · ${extraOptions[0]!.label}` : t("workspace.new")
-          }
-          title={extraOptions.length === 1 ? `${t("workspace.new")} · ${extraOptions[0]!.label}` : t("workspace.new")}
-          data-testid={testId}
-        >
-          <AddIcon />
-          {compact ? null : (label ?? t("workspace.new"))}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-max max-w-(--radix-dropdown-menu-content-available-width)"
-        data-testid="workspace-create-options"
-      >
-        {extraOptions.map((option) => (
-          <DropdownMenuItem
-            key={option.id}
-            data-testid={`workspace-create-${option.id}`}
-            onSelect={() => creation.startOption(option)}
-          >
-            <option.icon className="size-4 shrink-0" />
-            <span>{option.label}</span>
-          </DropdownMenuItem>
-        ))}
-        {available.map((entry) => {
-          const Icon = workspaceCreateKindIcons[entry];
-          return (
-            <DropdownMenuItem
-              key={entry}
-              data-testid={`workspace-create-${entry}`}
-              onSelect={() => creation.start(entry)}
-            >
-              <Icon className="size-4 shrink-0" />
-              <span className="min-w-0 break-words">{t(optionLabels?.[entry] ?? workspaceCreateLabels[entry])}</span>
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <CreateButton
+      options={options}
+      label={label}
+      title={title}
+      placement={placement}
+      testId={testId}
+      optionsTestId="workspace-create-options"
+    />
   ) : null;
   const contextItems = hasOptions ? (
     <>

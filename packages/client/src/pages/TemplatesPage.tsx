@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AddIcon, TemplateIcon } from "../components/icons";
+import { TemplateIcon } from "../components/icons";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { knownTemplateTypes, templateTypeLabel } from "../features/templates/templateTypes";
 import { useSubmitting } from "../hooks/useSubmitting";
@@ -57,12 +58,25 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
     });
   };
 
-  const addButton = canCreate ? (
-    <Button data-testid="templates-add" onClick={() => setAddOpen(true)}>
-      <AddIcon />
-      {t("templates.add")}
-    </Button>
-  ) : null;
+  const addButton = (
+    <CreateButton
+      testId="templates-add"
+      placement={embedded ? "inline" : "screen"}
+      options={
+        canCreate
+          ? [
+              {
+                id: "template",
+                label: t("templates.add"),
+                Icon: TemplateIcon,
+                nature: "writing",
+                onSelect: () => setAddOpen(true),
+              },
+            ]
+          : []
+      }
+    />
+  );
   return (
     <div className={embedded ? "" : "page"}>
       {embedded ? (

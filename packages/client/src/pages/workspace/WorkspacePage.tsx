@@ -428,7 +428,7 @@ export function WorkspacePage() {
   const searchActive = isSearchActive(search);
   const createMenu = !selectedBusiness ? (
     <WorkspaceCreateMenu
-      compact={phone}
+      title={t("create.sheetTitle", { place: path ? (path.split("/").at(-1) ?? "") : t("navigation.documents") })}
       getError={() => useWorkspaceResourcesStore.getState().error ?? useCouncilBusinessStore.getState().error}
       clearError={() => {
         useWorkspaceResourcesStore.setState({ error: null });
@@ -560,15 +560,14 @@ export function WorkspacePage() {
                   {t("workspace.personalWorkspace")}
                 </Button>
               ) : null}
-              {createMenu}
             </div>
           )}
           {phone && !selection ? (
             <ScreenActions>
               <PhoneWorkspaceSearch onSelect={select} context={path} />
-              {createMenu}
             </ScreenActions>
           ) : null}
+          {phone && selection ? null : createMenu}
           {folderCapabilities.uploadDocument || folderCapabilities.importSpreadsheet ? (
             <input
               ref={fileInput}

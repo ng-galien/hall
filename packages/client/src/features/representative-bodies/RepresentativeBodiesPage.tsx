@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AddIcon } from "../../components/icons";
+import { CommitteeIcon } from "../../components/icons";
 import {
   CollectionToolbar,
   EmptyState,
@@ -14,6 +14,7 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../../components/Ui";
+import { CreateButton } from "../../components/ui/create-button";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -70,12 +71,22 @@ export function RepresentativeBodiesPage({
       <div className="page-content">
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery}>
-          {canCreate ? (
-            <Button data-testid={`${bodyKind.kind}-create-open`} onClick={() => setAddOpen(true)}>
-              <AddIcon />
-              {t(text.add)}
-            </Button>
-          ) : null}
+          <CreateButton
+            testId={`${bodyKind.kind}-create-open`}
+            options={
+              canCreate
+                ? [
+                    {
+                      id: bodyKind.kind,
+                      label: t(text.add),
+                      Icon: CommitteeIcon,
+                      nature: "council",
+                      onSelect: () => setAddOpen(true),
+                    },
+                  ]
+                : []
+            }
+          />
         </CollectionToolbar>
 
         <Modal open={canCreate && addOpen} title={t(text.add)} onClose={() => setAddOpen(false)}>

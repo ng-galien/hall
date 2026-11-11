@@ -289,7 +289,7 @@ export function CouncilBusinessSubjects({ businessId }: { businessId: string }) 
 
   return (
     <WorkspaceCreateMenu
-      compact
+      placement="inline"
       testId="business-create-subject"
       canCreate={() => false}
       onCreate={async () => false}

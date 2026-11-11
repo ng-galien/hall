@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AddIcon } from "../components/icons";
+import { MemberIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import {
   CollectionToolbar,
@@ -14,6 +14,7 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
+import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
 import { formatPhoneNumber } from "../features/council-members/phonePresentation";
 import { useDomainRowStatus } from "../features/status/DomainStatusBadge";
@@ -98,12 +99,22 @@ export function CouncilMembersPage() {
       <div className="page-content">
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery}>
-          {canCreate ? (
-            <Button variant="primary" onClick={() => setAddOpen(true)} data-testid="member-add">
-              <AddIcon />
-              {t("members.add")}
-            </Button>
-          ) : null}
+          <CreateButton
+            testId="member-add"
+            options={
+              canCreate
+                ? [
+                    {
+                      id: "member",
+                      label: t("members.add"),
+                      Icon: MemberIcon,
+                      nature: "council",
+                      onSelect: () => setAddOpen(true),
+                    },
+                  ]
+                : []
+            }
+          />
         </CollectionToolbar>
         <Modal open={canCreate && addOpen} title={t("members.add")} onClose={() => setAddOpen(false)}>
           <form className="modal-form" onSubmit={submit} data-testid="member-create-form">

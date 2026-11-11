@@ -168,7 +168,7 @@
   }
   .app-phone-bar-icon { display: inline-grid; font-size: var(--hall-size-glyph-mark-large); }
   :is(.app-phone-bar-icon, .nav-icon, .screen-header-back) > svg { font-size: inherit; }
-  .app-phone-bar-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app-phone-bar-label { max-width: 100%; overflow: hidden; letter-spacing: var(--hall-letter-spacing-tight); text-overflow: ellipsis; white-space: nowrap; }
   .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-bold); }
 
   /* The bottom sheet: rises from the bottom edge, its rows are list rows. */
