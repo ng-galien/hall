@@ -1,9 +1,2 @@
 /* Folder sections of the search: nested `ListRow` branches. */
-.folder-sections-list .list-row-children { padding: 0 0 0 var(--hall-space-4); }
 
-.folder-sections-branch {
-  margin: 0;
-  padding: 0;
-  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
-  list-style: none;
-}

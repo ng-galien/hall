@@ -7,15 +7,6 @@
 
 .path-contents-tree > .list-row-list { margin: 0; }
 
-.path-contents-tree .list-row-children { padding: 0 0 0 var(--hall-space-4); }
-
-.path-contents-branch {
-  margin: 0;
-  padding: 0;
-  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
-  list-style: none;
-}
-
 .path-contents-node,
 .path-contents-folder-toggle {
   padding: 0;

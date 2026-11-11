@@ -92,6 +92,10 @@
   .list-row-wide { display: none; flex: none; align-items: center; gap: var(--hall-space-4); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
   .list-row-action { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); }
   .list-row-children { padding: 0 var(--hall-space-3) var(--hall-space-3) calc(var(--hall-space-3) + var(--hall-size-glyph-large) + var(--hall-space-3)); }
+  /* A nested list is a tree branch: one indentation step per level, rules continued. */
+  .list-row-children:has(> ul, > ol) { padding: 0 0 0 var(--hall-space-4); }
+  .list-row-children > .list-row-list { margin: 0; border-bottom: 0; }
+  .list-row-children > .list-row-list[hidden] { display: none; }
 
   .list-row-number,
   .list-row-date { display: grid; justify-items: center; color: var(--hall-color-nature-council); line-height: var(--hall-line-height-none); }

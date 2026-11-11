@@ -1270,12 +1270,12 @@ export function PathContents({
         }
       >
         {isExpanded ? (
-          <ul className="path-contents-branch">
+          <ListRows className="path-contents-branch">
             {renderFolderCreation(folderPath)}
             {renderInlineCreation(folderPath)}
             {renderItems(folderPath)}
             {children.map(renderFolder)}
-          </ul>
+          </ListRows>
         ) : null}
       </ListRow>
     );
@@ -1374,7 +1374,7 @@ export function PathContents({
               }}
               wrapLine={(line) => withFolderContextMenu(line, path)}
             >
-              <ul className="path-contents-branch">{rootEntries}</ul>
+              <ListRows className="path-contents-branch">{rootEntries}</ListRows>
             </ListRow>
           )}
         </ListRows>

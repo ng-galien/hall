@@ -27,10 +27,10 @@ export function FolderSectionsList<T>({
     });
     const branch =
       items.length || node.children.length ? (
-        <ul className="folder-sections-branch">
+        <ListRows className="folder-sections-branch">
           {items}
           {node.children.map(renderNode)}
-        </ul>
+        </ListRows>
       ) : undefined;
     const row = { head: node.folder ? <FolderGlyph open /> : undefined, title: node.label, children: branch };
     return onFolderSelect && node.folder ? (

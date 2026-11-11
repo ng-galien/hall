@@ -87,9 +87,9 @@ export function ExplorerTreeBranch({
       }
     >
       {expandable && visited ? (
-        <ul className="explorer-tree-children" hidden={!open}>
+        <ListRows className="explorer-tree-children" hidden={!open}>
           {children}
-        </ul>
+        </ListRows>
       ) : null}
     </ListRow>
   );

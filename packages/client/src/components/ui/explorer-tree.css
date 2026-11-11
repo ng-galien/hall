@@ -1,12 +1,4 @@
 /* Tree of `ListRow` branches: each opened branch is indented under its row. */
-.explorer-tree .list-row-children { padding: 0 0 0 var(--hall-space-4); }
-
-.explorer-tree-children {
-  margin: 0;
-  padding: 0;
-  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
-  list-style: none;
-}
 
 .explorer-tree-toggle,
 .explorer-tree-node {
