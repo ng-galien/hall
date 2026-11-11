@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { CalendarIcon, ChevronRightIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -87,38 +88,29 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
     return { groups, unscheduled };
   }, [businesses, occurrencesByBusinessId]);
 
-  const renderBusiness = ({ business, occurrences }: BusinessRow) => {
-    return (
-      <button
-        className="whome-business"
-        data-testid={`workspace-home-business-${business.id}`}
-        type="button"
-        key={business.id}
-        onClick={() => onSelect({ kind: "councilBusiness", id: business.id }, business.folderPath)}
-      >
-        <CouncilBusinessGlyph business={business} />
-        <span className="whome-business-copy">
-          <strong>{business.title}</strong>
+  const renderBusiness = ({ business, occurrences }: BusinessRow) => (
+    <ListRow
+      key={business.id}
+      onOpen={() => onSelect({ kind: "councilBusiness", id: business.id }, business.folderPath)}
+      openTestId={`workspace-home-business-${business.id}`}
+      head={<CouncilBusinessGlyph business={business} />}
+      title={business.title}
+      detail={
+        <>
           {occurrences.map(({ agendaItem }) => (
-            <span
-              className="whome-business-subject"
-              data-testid={`workspace-home-subject-${agendaItem.id}`}
-              key={agendaItem.id}
-            >
-              {t(workspaceAgendaSubjectKeys[agendaItem.subject.kind])} ·{" "}
+            <span data-testid={`workspace-home-subject-${agendaItem.id}`} key={agendaItem.id}>
+              {t(workspaceAgendaSubjectKeys[agendaItem.subject.kind])}
               {agendaItem.agendaNumber === null
                 ? null
-                : t("workspace.agendaPosition", { position: formatNumber(agendaItem.agendaNumber) })}
+                : ` · ${t("workspace.agendaPosition", { position: formatNumber(agendaItem.agendaNumber) })}`}
+              {" · "}
             </span>
           ))}
-          <span className="whome-business-path">
-            {business.folderPath ? business.folderPath.split("/").filter(Boolean).join(" › ") : t("workspace.unfiled")}
-          </span>
-        </span>
-        <ChevronRightIcon aria-hidden="true" />
-      </button>
-    );
-  };
+          {business.folderPath ? business.folderPath.split("/").filter(Boolean).join(" › ") : t("workspace.unfiled")}
+        </>
+      }
+    />
+  );
 
   const error = businessError ?? meetingError ?? activityError;
   const loading = initializing || businessLoading || meetingLoading || activityLoading;
@@ -170,7 +162,7 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
                   <ChevronRightIcon aria-hidden="true" />
                 </Link>
               </div>
-              <div className="whome-businesses">{rows.map(renderBusiness)}</div>
+              <ListRows>{rows.map(renderBusiness)}</ListRows>
             </section>
           ))}
           {unscheduled.length > 0 ? (
@@ -182,7 +174,7 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
               <div className="whome-group-heading">
                 <h3 id="whome-unscheduled">{t("workspace.home.instruction")}</h3>
               </div>
-              <div className="whome-businesses">{unscheduled.map(renderBusiness)}</div>
+              <ListRows>{unscheduled.map(renderBusiness)}</ListRows>
             </section>
           ) : null}
         </div>

@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { CloseIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import { LoadingIndicator } from "../../components/ui/loading-indicator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { emptyEventDocument } from "../../features/calendar/eventDates";
@@ -491,17 +492,13 @@ export function WorkspacePage() {
           }}
         />
         {duplicates.length ? (
-          <section
-            className="data-list"
-            role="status"
-            data-testid="workspace-import-duplicates"
-            aria-label={t("workspace.identicalFiles")}
-          >
-            {duplicates.map((duplicate) => (
-              <div className="data-row" key={duplicate.id}>
-                <span>{t("workspace.identicalFile", { name: duplicate.fileName })}</span>
-                <span>
-                  {duplicate.existing.map((resource) => (
+          <section role="status" data-testid="workspace-import-duplicates" aria-label={t("workspace.identicalFiles")}>
+            <ListRows>
+              {duplicates.map((duplicate) => (
+                <ListRow
+                  key={duplicate.id}
+                  title={t("workspace.identicalFile", { name: duplicate.fileName })}
+                  detail={duplicate.existing.map((resource) => (
                     <Button
                       key={resource.id}
                       variant="link"
@@ -511,9 +508,9 @@ export function WorkspacePage() {
                       {resource.path}/{resource.name}
                     </Button>
                   ))}
-                </span>
-              </div>
-            ))}
+                />
+              ))}
+            </ListRows>
           </section>
         ) : null}
         {duplicateCheckError ? (
