@@ -1,13 +1,13 @@
 import type { ContentTemplate } from "@hall/domain";
 import { type FormEvent, useEffect, useId, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AddIcon } from "../components/icons";
+import { AddIcon, TemplateIcon } from "../components/icons";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { knownTemplateTypes, templateTypeLabel } from "../features/templates/templateTypes";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
@@ -132,25 +132,25 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
         {templates === null ? null : templates.length === 0 ? (
           <EmptyState>{t("templates.empty")}</EmptyState>
         ) : (
-          <div className="data-list" data-testid="templates-list">
+          <ListRows data-testid="templates-list">
             {templates.map((template) => {
               const label = templateTypeLabel(template.documentType, template.kind);
               return (
-                <Link
-                  className="data-row linked"
+                <ListRow
                   key={template.id}
                   to={`/templates/${template.id}`}
-                  data-testid={`template-row-${template.id}`}
-                >
-                  <div>
-                    <strong>{template.name}</strong>
-                    <span>{label ? t(label) : template.documentType}</span>
-                  </div>
-                  <Badge variant="outline">{t(`templates.kind.${template.kind}`)}</Badge>
-                </Link>
+                  openTestId={`template-row-${template.id}`}
+                  head={
+                    <ListRowIcon nature="writing">
+                      <TemplateIcon />
+                    </ListRowIcon>
+                  }
+                  title={template.name}
+                  detail={`${label ? t(label) : template.documentType} · ${t(`templates.kind.${template.kind}`)}`}
+                />
               );
             })}
-          </div>
+          </ListRows>
         )}
       </div>
     </div>
