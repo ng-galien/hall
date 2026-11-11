@@ -11,7 +11,7 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
-import { Badge } from "../components/ui/badge";
+import { ListRow, ListRowIcon, ListRowNumber, ListRows } from "../components/ui/list-row";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
@@ -25,7 +25,7 @@ export function CouncilDecisionsPage() {
     void load();
   }, [load]);
   const { meetings } = useCouncilMeetingsStore();
-  const { layout, setLayout, query, setQuery } = useCollectionView();
+  const { query, setQuery } = useCollectionView();
   const groups = useMemo(() => {
     const grouped = new Map<string, CouncilDecisionSummary[]>();
     for (const decision of councilDecisions.filter((entry) => matchesQuery(query, entry.number, entry.title))) {
@@ -44,7 +44,7 @@ export function CouncilDecisionsPage() {
       <PageHeader title={t("decisions.title")} description={t("decisions.description")} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
-        <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout} />
+        <CollectionToolbar query={query} onQueryChange={setQuery} />
         {loading && councilDecisions.length === 0 ? (
           <p data-testid="decisions-loading">{t("common.loading")}</p>
         ) : groups.length === 0 && !error ? (
@@ -75,28 +75,42 @@ export function CouncilDecisionsPage() {
                   </span>
                 </Link>
               </header>
-              <div className={layout === "cards" ? "card-grid" : "data-list"}>
+              <ListRows>
                 {group.decisions.map((decision) => (
-                  <Link
+                  <ListRow
                     key={decision.id}
-                    className={layout === "cards" ? "entity-card" : "data-row linked"}
                     to={`/council-decisions/${decision.id}`}
-                    data-testid={`decision-open-${decision.id}`}
-                  >
-                    <div>
-                      {decision.number ? <span className="entity-card-eyebrow">{decision.number}</span> : null}
-                      <strong>{decision.title}</strong>
-                    </div>
-                    <Badge variant="secondary">
-                      {t(decision.state === "draft" ? "decisionDocument.draft" : "decisionDocument.frozen")}
-                    </Badge>
-                  </Link>
+                    openTestId={`decision-open-${decision.id}`}
+                    head={<DecisionNumberHead number={decision.number} />}
+                    title={decision.title}
+                    status={{
+                      tone: decision.state === "draft" ? "neutral" : "success",
+                      label: t(decision.state === "draft" ? "decisionDocument.draft" : "decisionDocument.frozen"),
+                    }}
+                  />
                 ))}
-              </div>
+              </ListRows>
             </section>
           ))
         )}
       </div>
     </div>
+  );
+}
+
+/** Head of a decision row: the index of its number above its period; a draft without number shows the gavel. */
+function DecisionNumberHead({ number }: { number: string | null }) {
+  if (!number) {
+    return (
+      <ListRowIcon nature="council">
+        <GavelIcon />
+      </ListRowIcon>
+    );
+  }
+  const separator = number.lastIndexOf("-");
+  return separator > 0 ? (
+    <ListRowNumber number={number.slice(separator + 1)} year={number.slice(0, separator)} />
+  ) : (
+    <ListRowNumber number={number} />
   );
 }
