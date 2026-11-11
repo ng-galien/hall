@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { DelegationIcon } from "../../components/icons";
+import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilDelegationsStore } from "../../stores/councilDelegationsStore";
 import { delegationKind } from "./representativeBodyKinds";
@@ -39,24 +40,24 @@ export function MemberDelegations({ contactId }: { contactId: string }) {
       {current.length === 0 ? (
         <div className="admin-inline-empty">{t("members.noDelegations")}</div>
       ) : (
-        <div className="admin-related-list">
+        <ListRows>
           {current.map(({ delegation, membership }) => (
-            <Link
-              className="data-row linked"
+            <ListRow
               key={membership.id}
               to={`${delegationKind.path}/${delegation.id}`}
-              data-testid={`member-delegation-${delegation.id}`}
-            >
-              <div>
-                <strong>{delegation.name}</strong>
-                <span>
-                  {t(delegationKind.roleLabel(membership.role))} ·{" "}
-                  {t(delegationKind.text.sinceDate, { date: formatDate(membership.startedOn) })}
-                </span>
-              </div>
-            </Link>
+              openTestId={`member-delegation-${delegation.id}`}
+              head={
+                <ListRowIcon nature="council">
+                  <DelegationIcon />
+                </ListRowIcon>
+              }
+              title={delegation.name}
+              detail={`${t(delegationKind.roleLabel(membership.role))} · ${t(delegationKind.text.sinceDate, {
+                date: formatDate(membership.startedOn),
+              })}`}
+            />
           ))}
-        </div>
+        </ListRows>
       )}
     </section>
   );

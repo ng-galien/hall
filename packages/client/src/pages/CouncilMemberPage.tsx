@@ -1,12 +1,14 @@
 import type { CouncilMember } from "@hall/domain";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CommitteeIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { ListRow, ListRowAvatar, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { formatPhoneNumber, phoneHref } from "../features/council-members/phonePresentation";
 import { MemberDelegations } from "../features/representative-bodies/MemberDelegations";
 import { committeeKind } from "../features/representative-bodies/representativeBodyKinds";
@@ -168,18 +170,19 @@ export function CouncilMemberPage() {
             <div className="admin-edit-grid admin-member-edit-grid">
               <div className="grid gap-1.5 admin-edit-wide">
                 <Label>{t("members.contact")}</Label>
-                <Link
-                  className="data-row linked"
-                  to={`/contacts/${member.contact.id}`}
-                  data-testid="member-contact-link"
-                >
-                  <span>
-                    <strong>
-                      {member.contact.firstName} {member.contact.lastName}
-                    </strong>
-                    <span>{member.contact.email ?? t("members.noEmail")}</span>
-                  </span>
-                </Link>
+                <ListRows>
+                  <ListRow
+                    to={`/contacts/${member.contact.id}`}
+                    openTestId="member-contact-link"
+                    head={
+                      <ListRowAvatar
+                        initials={`${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}`}
+                      />
+                    }
+                    title={`${member.contact.firstName} ${member.contact.lastName}`}
+                    detail={member.contact.email ?? t("members.noEmail")}
+                  />
+                </ListRows>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${fieldId}-role`}>{t("members.role")}</Label>
@@ -261,22 +264,27 @@ export function CouncilMemberPage() {
             {memberships.length === 0 ? (
               <div className="admin-inline-empty">{t("members.noCommittees")}</div>
             ) : (
-              <div className="admin-related-list">
+              <ListRows>
                 {memberships.map(({ committee, membership }) => (
-                  <Link className="data-row linked" key={membership.id} to={`/council-committees/${committee.id}`}>
-                    <div>
-                      <strong>{committee.name}</strong>
-                      <span>
-                        {t(committeeKind.roleLabel(membership.role))} · {formatDate(membership.startedOn)}
-                        {membership.endedOn ? ` - ${formatDate(membership.endedOn)}` : ""}
-                      </span>
-                    </div>
-                    <Badge variant={membership.endedOn ? "outline" : "success"}>
-                      {t(membership.endedOn ? "committees.membershipEnded" : "committees.membershipActive")}
-                    </Badge>
-                  </Link>
+                  <ListRow
+                    key={membership.id}
+                    to={`/council-committees/${committee.id}`}
+                    head={
+                      <ListRowIcon nature="council">
+                        <CommitteeIcon />
+                      </ListRowIcon>
+                    }
+                    title={committee.name}
+                    detail={`${t(committeeKind.roleLabel(membership.role))} · ${formatDate(membership.startedOn)}${
+                      membership.endedOn ? ` - ${formatDate(membership.endedOn)}` : ""
+                    }`}
+                    status={{
+                      tone: membership.endedOn ? "neutral" : "success",
+                      label: t(membership.endedOn ? "committees.membershipEnded" : "committees.membershipActive"),
+                    }}
+                  />
                 ))}
-              </div>
+              </ListRows>
             )}
           </section>
 
