@@ -207,11 +207,16 @@ export const listRowLegacy = {
   exploratory: false,
   title: "Ligne de liste écrite à la main",
   explanation:
-    "Un élément répété de liste qui n'est pas rendu par le composant partagé ListRow (data-slot=\"list-row\" sur lui ou sur un ancêtre). Une liste de moins de trois éléments n'est pas comptée.",
+    'Un élément répété de liste qui n\'est pas rendu par le composant partagé ListRow (data-slot="list-row" sur lui ou sur un ancêtre). Ne sont pas comptés : une liste de moins de trois éléments, des sections ou blocs dépliables qui regroupent des listes, des champs de formulaire, et les conteneurs exclus par le réglage avec leur raison.',
   unit: "éléments",
-  defaults: { formats: "all", severity: "indicator", params: { ...listDefaults, rowSlot: "list-row" } },
+  defaults: { formats: "all", severity: "indicator", params: { ...listDefaults, rowSlot: "list-row", exclusions: [] } },
   evaluate({ snapshot, params }) {
     return listItems(snapshot, params).flatMap((items) => {
+      const first = items[0].entry;
+      if (["section", "details"].includes(first.tag)) return [];
+      if (items.some((item) => item.leaves.some((leaf) => ["input", "select", "textarea"].includes(leaf.entry.tag))))
+        return [];
+      if ((params.exclusions ?? []).some((exclusion) => first.key.includes(exclusion.key))) return [];
       const legacy = items.filter((item) => !insideSlot(snapshot, item.index, params.rowSlot));
       return legacy.length > 0
         ? [

@@ -214,7 +214,14 @@
       "params": {
         "minimumItems": 3,
         "minimumWidth": 0.5,
-        "rowSlot": "list-row"
+        "rowSlot": "list-row",
+        "exclusions": [
+          { "key": "[live-agenda-rail]", "reason": "Rail des points du mode séance : tuiles de séance, exclues de la reprise." },
+          { "key": "[agenda-candidate-", "reason": "Éditeur d'ordre du jour réordonnable, exclu de la reprise." },
+          { "key": "[agenda-item-", "reason": "Éditeur d'ordre du jour réordonnable, exclu de la reprise." },
+          { "key": "[markdown-editor-compact]", "reason": "Barre d'outils de l'éditeur, pas une liste d'objets." },
+          { "key": "[maps-panel]", "reason": "Blocs du panneau des cartes (recherche, récentes, arbre), chacun déjà rendu en lignes." }
+        ]
       },
       "justification": "Indicateur de la reprise des listes sur ListRow (HALL-TR-LAY-020) ; arbres, tableaux, tuiles de séance et panneaux de carte ne sont pas des listes d'objets et peuvent y apparaître."
     },
