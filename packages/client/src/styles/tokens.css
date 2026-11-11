@@ -21,6 +21,12 @@
   --hall-color-selection-subtle: #f5f6fc;
   --hall-color-selection-border: #d9def3;
   --hall-color-council-business: #087e8b;
+  /* Type icon colours by resource nature; never a state colour. */
+  --hall-color-nature-writing: #2457d6;
+  --hall-color-nature-data: #0e7fb0;
+  --hall-color-nature-visual: #6a4bc4;
+  --hall-color-nature-council: #17202e;
+  --hall-color-nature-folder: #42506a;
   /* Reserved to marks of officiality. */
   --hall-color-seal: #7b2d3b;
   --hall-color-seal-strong: #5e2029;
@@ -120,6 +126,7 @@
   --hall-font-weight-regular: 400;
   --hall-font-weight-semibold: 650;
   --hall-font-weight-bold: 700;
+  --hall-font-weight-heavy: 800;
   --hall-line-height-none: 1;
   --hall-line-height-compact: 1.1;
   --hall-line-height-body: 1.45;
@@ -133,6 +140,7 @@
   --hall-line-height-display: 40px;
   --hall-line-height-display-large: 52px;
   --hall-letter-spacing-section: 0.08em;
+  --hall-letter-spacing-heading: -0.02em;
   --hall-letter-spacing-brand: 0.18em;
 
   --hall-radius-none: 0;
@@ -183,6 +191,9 @@
   --hall-size-phone-explorer-glyph: 32px;
   --hall-size-sidebar-compact: 52px;
   --hall-size-data-row: 56px;
+  /* List row height: under a finger or at phone width, then with a pointer. */
+  --hall-size-list-row-touch: 64px;
+  --hall-size-list-row-pointer: 56px;
   --hall-size-live-header: 60px;
   --hall-size-table-column-min: 60px;
   --hall-size-live-rail-collapsed: 64px;
@@ -354,6 +365,11 @@
   --hall-color-danger-border-strong: #6d4644;
   --hall-color-danger-surface: #2a1c1c;
   --hall-color-danger-surface-strong: #a33330;
+  --hall-color-nature-writing: #7f9cf0;
+  --hall-color-nature-data: #4fb3df;
+  --hall-color-nature-visual: #a68cf0;
+  --hall-color-nature-council: #d5dbe5;
+  --hall-color-nature-folder: #9aa5b8;
   --hall-color-focus: #7f95e8;
   --hall-color-disabled-surface: #23272f;
   --hall-color-disabled-text: #6b7280;

@@ -10975,6 +10975,100 @@
         }
       ]
     },
+    "HALL-FR-LAY-060": {
+      "name": "LIST_ROW_PRESENTATION",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Chaque liste d’objets de Hall présente ses éléments par une seule ligne de liste, la même au téléphone, sur tablette et sur ordinateur ; aucune liste n’offre de vue en cartes.",
+      "acceptanceCriteria": [
+        "La ligne est posée sur le fond blanc de la surface et séparée de la suivante par un filet ; elle n’a ni pavé, ni ombre, ni badge, ni chevron.",
+        "À gauche, la ligne montre l’icône du type en trait, sans pavé ; une délibération montre à la place son numéro, une séance sa date, une personne ses initiales.",
+        "Le titre tient sur une ligne de 16 pixels et se termine par des points de suspension avec une infobulle ; la seconde ligne, de 14 pixels, donne le type, la date ou le fait utile.",
+        "Un état s’écrit en seconde ligne après un point de couleur : gris pour un état neutre, vert pour un succès, ambre pour une attention, rouge pour un danger.",
+        "Une action est un bouton au bout de la ligne, présent seulement quand l’action Siren correspondante existe pour l’utilisateur.",
+        "L’élément principal d’un écran est la même ligne en variante agrandie.",
+        "La ligne mesure au moins 64 pixels au téléphone ou sous un pointeur tactile, et 56 pixels à la souris sur ordinateur.",
+        "Les collections ne proposent pas de bouton pour passer en cartes ; les informations supplémentaires d’une ligne s’affichent à partir de 1000 pixels de large et sont masquées au téléphone."
+      ],
+      "clauses": [
+        {
+          "key": "list-row-presentation",
+          "origin": "product",
+          "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches de composants (ligne F2, icône G2, couleurs C2, état 7B, action A1, élément mis en avant 4D, densité 11B) ; mots du propriétaire : « Pour moi, la hauteur des lignes, faut être compact. Je t’ai dit la liste, on abandonne les cartes. », « la photo ou les initiales à gauche pour une personne, bah ça pour l’instant on met les initiales ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-070": {
+      "name": "RESOURCE_NATURE_COLOURS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "L’icône de type, partout dans Hall, prend la couleur de la nature de son type parmi cinq teintes froides, distinctes des couleurs d’état.",
+      "acceptanceCriteria": [
+        "Les écrits (texte, lien, PDF, Word, ODT, TXT, présentation, modèle) sont en bleu ; les données (tableur, Excel, CSV) en azur ; les visuels (image, carte, couche de carte) en violet ; les objets du conseil (affaire, délibération, séance, procès-verbal, question, commission, délégation, événement, référence juridique, personne) en ardoise foncée ; les dossiers en gris.",
+        "Un dossier dont on a choisi la couleur garde cette couleur.",
+        "Chaque teinte atteint un contraste d’au moins 3:1 sur la surface, en thème clair comme en thème sombre.",
+        "Le rouge, le vert et l’ambre ne servent qu’aux états, jamais à un type.",
+        "L’icône de type n’a jamais de pavé de fond, dans les listes comme dans les mentions de l’éditeur, le fil d’Ariane, les en-têtes de document et les sélecteurs."
+      ],
+      "clauses": [
+        {
+          "key": "resource-nature-colours",
+          "origin": "product",
+          "statement": "Choix C2 du propriétaire du 11 novembre 2026 : écrits en bleu, données en azur, visuels en violet, objets du conseil en ardoise foncée, dossiers en gris ; types absents de la planche rangés par décision du coordinateur : présentation et modèle en bleu, CSV en azur, couche en violet, événement, commission, délégation et question en ardoise foncée.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-080": {
+      "name": "INTERFACE_TYPOGRAPHY",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "L’interface de Hall s’écrit dans une seule police, Archivo, avec un texte courant de 16 pixels, un texte secondaire de 14 pixels et des titres très gras et serrés.",
+      "acceptanceCriteria": [
+        "Archivo est la seule police de l’interface et de la documentation ; aucune police à empattements n’est chargée.",
+        "Le texte courant mesure 16 pixels et le texte secondaire 14 pixels ; les minimums restent ceux de HALL-FR-LAY-050 et de HALL-FR-LAY-020.",
+        "Les titres de page sont en graisse 800 avec un interlettrage de −0,02 em."
+      ],
+      "clauses": [
+        {
+          "key": "interface-typography",
+          "origin": "product",
+          "statement": "Choix 10E du propriétaire du 11 novembre 2026 : « Archivo partout, titres très gras et serrés ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-TR-LAY-020": {
+      "name": "LIST_ROW_AUTHORITY",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-11"
+      },
+      "statement": "Un seul composant, ListRow, rend les lignes de liste d’objets du client, et des contrôles exécutables empêchent le retour d’une ligne écrite à la main.",
+      "acceptanceCriteria": [
+        "packages/client/tests/list-row-authority.test.mjs, exécuté en intégration continue, échoue si une classe de ligne retirée, un composant retiré, la bascule de cartes ou un import de @fontsource/spectral réapparaît, si un fichier de l’inventaire des listes n’importe plus ListRow, ou si une teinte de nature descend sous 3:1.",
+        "La règle list-row-legacy du relevé d’écrans compte, à la demande, les éléments répétés d’une liste qui ne sont pas rendus par ListRow, par écran et par format."
+      ],
+      "clauses": [
+        {
+          "key": "list-row-authority",
+          "origin": "product",
+          "statement": "Mots du propriétaire : « faut absolument qu’on réfléchisse à faire un design système […] on s’en sortira pas si on n’a pas des systèmes quand même un peu automatisés pour les gros chantiers. Ou les alignements. »",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-DST-030": {
       "name": "EXACT_SOURCE_VALIDATED_RELEASE_PUBLICATION",
       "nature": "technical",
