@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BackIcon } from "../../../components/icons";
 import { RequestErrorBanner } from "../../../components/Ui";
+import { Button } from "../../../components/ui/button";
 import { liveBusinessTitle } from "../../../features/council-business/presentation";
 import { MeetingEntryBlockers } from "../../../features/council-meetings/MeetingEntryBlockers";
 import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
@@ -33,10 +34,12 @@ export function LiveMeetingPage() {
     return (
       <div className="live-shell live-shell-empty">
         <RequestErrorBanner error={error} />
-        <Link className="live-exit" to="/meetings">
-          <BackIcon aria-hidden="true" />
-          {t("live.backToMeetings")}
-        </Link>
+        <Button asChild variant="plain">
+          <Link to="/meetings">
+            <BackIcon aria-hidden="true" />
+            {t("live.backToMeetings")}
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -50,14 +53,12 @@ export function LiveMeetingPage() {
     return (
       <div className="live-shell live-shell-empty" data-testid="live-meeting-entry-blocked">
         <MeetingEntryBlockers blockers={entryBlockers} />
-        <Link
-          className="live-exit"
-          data-testid="live-return-preparation"
-          to={`/meetings/${meeting.slug || meeting.id}`}
-        >
-          <BackIcon aria-hidden="true" />
-          {t("meeting.liveEntry.returnPreparation")}
-        </Link>
+        <Button asChild variant="plain">
+          <Link data-testid="live-return-preparation" to={`/meetings/${meeting.slug || meeting.id}`}>
+            <BackIcon aria-hidden="true" />
+            {t("meeting.liveEntry.returnPreparation")}
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -78,17 +79,20 @@ export function LiveMeetingPage() {
   return (
     <div className="live-shell" data-testid="live-meeting-page">
       <header className="live-header">
-        <Link className="live-exit" data-testid="live-meeting-exit" to={`/meetings/${meeting.slug}`}>
-          <BackIcon aria-hidden="true" />
-          {t("live.exit")}
-        </Link>
+        <Button asChild variant="plain">
+          <Link data-testid="live-meeting-exit" to={`/meetings/${meeting.slug}`}>
+            <BackIcon aria-hidden="true" />
+            {t("live.exit")}
+          </Link>
+        </Button>
         <div className="live-header-title">
           <span className="live-eyebrow">{t("live.eyebrow")}</span>
-          <strong>{formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}</strong>
+          <h1>{formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}</h1>
         </div>
         <div className="live-header-status">
           <span
-            className={`live-quorum-chip ${!quorumObservation ? "live-quorum-chip-pending" : quorum.reached ? "live-quorum-chip-reached" : "live-quorum-chip-missing"}`}
+            className="list-row-status live-quorum"
+            data-tone={!quorumObservation ? "neutral" : quorum.reached ? "success" : "danger"}
             data-testid="live-quorum-observation"
             title={quorumLabel}
           >
@@ -110,11 +114,13 @@ export function LiveMeetingPage() {
       <main className="live-main">
         {meeting.status === "closed" || meeting.status === "cancelled" ? (
           <section className="live-closed">
-            <h1>{t("live.closedTitle")}</h1>
+            <h2>{t("live.closedTitle")}</h2>
             <p>{t("live.closedDescription")}</p>
-            <Link className="live-mode-link live-mode-link-large" to={`/meetings/${meeting.slug}`}>
-              {t("live.viewReport")}
-            </Link>
+            <Button asChild>
+              <Link to={`/meetings/${meeting.slug}`} data-testid="live-view-report">
+                {t("live.viewReport")}
+              </Link>
+            </Button>
           </section>
         ) : showRollCall ? (
           <RollCallView

@@ -3,6 +3,7 @@ import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } f
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DisclosureBadge } from "@/components/ui/disclosure-badge";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { createStageProgress } from "@/components/ui/stage-progress";
@@ -12,7 +13,6 @@ import {
   AddIcon,
   CalendarAddIcon,
   CheckIcon,
-  CloseIcon,
   CollapseIcon,
   ExpandIcon,
   FileIcon,
@@ -353,22 +353,23 @@ export function ConductView({
               </span>
             </>
           ) : null}
-          <button
-            className="conduct-rail-toggle"
-            type="button"
+          <Button
+            variant="plain"
+            size="icon"
             data-testid="live-agenda-toggle"
             aria-label={t(railCollapsed ? "live.railExpand" : "live.railCollapse")}
             onClick={() => setRailCollapsed((collapsed) => !collapsed)}
           >
             {railCollapsed ? <ExpandIcon /> : <CollapseIcon />}
-          </button>
+          </Button>
         </div>
         <ol className="conduct-timeline">
           {aggregate.meeting.openedAt ? (
             <li className="conduct-step conduct-step-done">
-              <button
-                type="button"
-                className={`conduct-step-button${openingSelected ? " conduct-step-selected" : ""}`}
+              <Button
+                variant="plain"
+                className="conduct-step-button"
+                data-active={openingSelected ? "true" : undefined}
                 data-testid="live-opening"
                 aria-label={t("live.openingStep")}
                 aria-current={openingSelected ? "true" : undefined}
@@ -388,7 +389,7 @@ export function ConductView({
                     </span>
                   </span>
                 ) : null}
-              </button>
+              </Button>
             </li>
           ) : null}
           {orderedItems.map((item) => {
@@ -398,9 +399,10 @@ export function ConductView({
             const itemBallot = ballotForItem(item);
             const voteRequired = Boolean(agendaItemDecisionId(item)) && !itemBallot && !itemDone;
             const stepButton = (
-              <button
-                className={`conduct-step-button${!openingSelected && selectedItem.id === item.id ? " conduct-step-selected" : ""}`}
-                type="button"
+              <Button
+                variant="plain"
+                className="conduct-step-button"
+                data-active={!openingSelected && selectedItem.id === item.id ? "true" : undefined}
                 data-testid={`live-agenda-item-${item.id}`}
                 disabled={submitting}
                 aria-label={
@@ -435,25 +437,25 @@ export function ConductView({
                       </span>
                     ) : null}
                     {itemBallot ? (
-                      <span className={`conduct-step-ballot conduct-step-ballot-${itemBallot.result}`}>
-                        {itemBallot.result === "adopted" ? (
-                          <CheckIcon aria-hidden="true" />
-                        ) : (
-                          <CloseIcon aria-hidden="true" />
-                        )}
+                      <span
+                        className="list-row-status"
+                        data-tone={itemBallot.result === "adopted" ? "success" : "danger"}
+                      >
                         {t(ballotVerdictKey(item.subjectKind === "minutesApproval", itemBallot.result === "adopted"))}{" "}
                         {formatNumber(itemBallot.votesFor)} · {formatNumber(itemBallot.votesAgainst)} ·{" "}
                         {formatNumber(itemBallot.abstentions)}
                       </span>
                     ) : voteRequired ? (
-                      <span className="conduct-step-flag">{t("live.voteRequired")}</span>
+                      <span className="list-row-status" data-tone="warning">
+                        {t("live.voteRequired")}
+                      </span>
                     ) : null}
                     {itemDone && item.status !== "examined" ? (
                       <span className="conduct-step-state">{t("status.adjourned")}</span>
                     ) : null}
                   </span>
                 ) : null}
-              </button>
+              </Button>
             );
             return (
               <li className={`conduct-step conduct-step-${state}`} key={item.id}>
@@ -490,9 +492,9 @@ export function ConductView({
           })}
         </ol>
         <div className="conduct-rail-footer">
-          <button
-            className="live-primary-action conduct-rail-tool"
-            type="button"
+          <Button
+            variant="secondary"
+            className="conduct-rail-tool"
             title={railCollapsed ? t("live.addItem") : undefined}
             data-testid="live-agenda-add"
             disabled={submitting || !meetingActions.can("meeting.add-open-question")}
@@ -500,15 +502,15 @@ export function ConductView({
           >
             <AddIcon aria-hidden="true" />
             {!railCollapsed ? t("live.addItem") : null}
-          </button>
+          </Button>
           <ConductActionBlockers
             action="add-agenda-item"
             label="live.addItem"
             blockers={meetingBlockers?.addAgendaItem ?? []}
           />
-          <button
-            className="live-primary-action conduct-rail-tool"
-            type="button"
+          <Button
+            variant="secondary"
+            className="conduct-rail-tool"
             title={railCollapsed ? t("live.adjustAttendance") : undefined}
             data-testid="live-attendance-adjust"
             disabled={!meetingActions.can("meeting.record-attendance-events")}
@@ -516,15 +518,15 @@ export function ConductView({
           >
             <MembersIcon aria-hidden="true" />
             {!railCollapsed ? t("live.adjustAttendance") : null}
-          </button>
+          </Button>
           <ConductActionBlockers
             action="attendance"
             label="live.adjustAttendance"
             blockers={meetingBlockers?.recordAttendanceEvents ?? []}
           />
-          <button
-            className="live-primary-action conduct-rail-tool"
-            type="button"
+          <Button
+            variant="secondary"
+            className="conduct-rail-tool"
             title={railCollapsed ? t("officers.title") : undefined}
             data-testid="live-officers-open"
             disabled={!conduct}
@@ -532,10 +534,10 @@ export function ConductView({
           >
             <GavelIcon aria-hidden="true" />
             {!railCollapsed ? t("officers.title") : null}
-          </button>
-          <button
-            className="live-primary-action conduct-rail-tool"
-            type="button"
+          </Button>
+          <Button
+            variant="secondary"
+            className="conduct-rail-tool"
             title={railCollapsed ? t("closedSession.title") : undefined}
             data-testid="live-closed-session-open"
             disabled={!conduct || !meetingActions.can("meeting.record-closed-session")}
@@ -543,7 +545,7 @@ export function ConductView({
           >
             <LockIcon aria-hidden="true" />
             {!railCollapsed ? t("closedSession.title") : null}
-          </button>
+          </Button>
           {quorumFailure && meetingActions.can("meeting.record-reconvocation") ? (
             <MeetingReconvocationForm
               observation={quorumFailure}
@@ -551,9 +553,9 @@ export function ConductView({
               onSubmit={meetingActions.recordReconvocation}
               error={meetingActions.actionError}
               trigger={({ open, disabled, label }) => (
-                <button
-                  className="live-primary-action conduct-rail-tool"
-                  type="button"
+                <Button
+                  variant="secondary"
+                  className="conduct-rail-tool"
                   title={railCollapsed ? label : undefined}
                   data-testid="live-reconvocation-open"
                   disabled={disabled}
@@ -561,13 +563,13 @@ export function ConductView({
                 >
                   <CalendarAddIcon aria-hidden="true" />
                   {!railCollapsed ? label : null}
-                </button>
+                </Button>
               )}
             />
           ) : null}
-          <button
-            className="live-primary-action live-danger-action conduct-rail-tool"
-            type="button"
+          <Button
+            variant="secondary"
+            className="conduct-rail-tool"
             disabled={submitting || !meetingActions.can("meeting.close")}
             aria-busy={submitting && closeConfirming}
             data-testid="live-meeting-close"
@@ -585,7 +587,7 @@ export function ConductView({
                     ? t("live.confirmCloseRemaining", { count: formatNumber(remainingCount) })
                     : t("live.confirmClose")
                   : t("meeting.action.close")}
-          </button>
+          </Button>
           <ConductActionBlockers
             action="close"
             label="meeting.action.close"
@@ -603,7 +605,7 @@ export function ConductView({
             <span className="live-eyebrow">
               {aggregate.meeting.openedAt ? formatTime(aggregate.meeting.openedAt) : ""}
             </span>
-            <h1 id="conduct-opening-title">{t("live.openingStep")}</h1>
+            <h2 id="conduct-opening-title">{t("live.openingStep")}</h2>
           </header>
           <div className="conduct-opening-content">
             <dl className="report-roll-call">
@@ -706,9 +708,9 @@ export function ConductView({
           </span>
           <div className="conduct-heading-row">
             <div className="conduct-title-timer">
-              <h1 id="conduct-item-title" data-testid="live-item-title">
+              <h2 id="conduct-item-title" data-testid="live-item-title">
                 {liveBusinessTitle(selectedItem.business, t("agendaSubject.minutesApproval"))}
-              </h1>
+              </h2>
               {isActive && selectedItem.startedAt ? (
                 <div className="conduct-timer" role="timer" data-testid="live-item-timer">
                   <span className="live-indicator" aria-hidden="true" />
@@ -738,7 +740,7 @@ export function ConductView({
                       </p>
                     ))}
                     {recusals.state.recusals.length > 0 ? (
-                      <p className="text-muted-foreground">{t("recusal.separateFromVotes")}</p>
+                      <p className="text-muted">{t("recusal.separateFromVotes")}</p>
                     ) : null}
                     {recusals.canRecord ? (
                       <Button
@@ -780,14 +782,12 @@ export function ConductView({
         <div className="conduct-stage-scroll" data-testid="live-item-scroll">
           <div className="conduct-stage-body">
             {selectedItem.business.kind === "minutesApproval" ? (
-              <Link
-                className="conduct-document-chip conduct-minutes-link"
-                to={`/minutes/${selectedItem.business.minutesId}`}
-                data-testid="live-minutes-link"
-              >
-                <FileIcon aria-hidden="true" />
-                {t("minutes.open")}
-              </Link>
+              <Button asChild variant="secondary" className="conduct-minutes-link">
+                <Link to={`/minutes/${selectedItem.business.minutesId}`} data-testid="live-minutes-link">
+                  <FileIcon aria-hidden="true" />
+                  {t("minutes.open")}
+                </Link>
+              </Button>
             ) : null}
             {selectedItem.business.report ? (
               <details className="conduct-block" open={!voteOpen} key={`report-${selectedItem.id}-${voteOpen}`}>
@@ -824,16 +824,15 @@ export function ConductView({
                 </summary>
                 <div className="conduct-documents">
                   {itemResources.map((resource) => (
-                    <button
-                      className="conduct-document-chip"
-                      type="button"
+                    <Button
+                      variant="secondary"
                       key={resource.id}
                       data-testid={`live-document-${resource.id}`}
                       onClick={() => setViewedResourceId(resource.id)}
                     >
                       <DocumentaryResourceGlyph resource={resource} />
                       {resource.title}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </details>
@@ -1005,16 +1004,16 @@ export function ConductView({
         </div>
         <footer className="conduct-stage-actions" data-testid="live-item-actions">
           {meetingActions.can("agenda-item.adjourn", selectedItem.id) ? (
-            <button
-              type="button"
-              className="live-primary-action live-danger-action conduct-adjourn-action"
+            <Button
+              variant="secondary"
+              className="conduct-adjourn-action"
               disabled={submitting}
               data-testid="live-agenda-adjourn"
               onClick={() => setAdjournConfirming(true)}
             >
               <WarningIcon aria-hidden="true" data-testid="live-agenda-adjourn-warning" />
               {t("meeting.adjournSubject")}
-            </button>
+            </Button>
           ) : null}
           {continuation === "none" ? (
             <ConductActionBlockers
@@ -1026,40 +1025,30 @@ export function ConductView({
           <div className="conduct-continuation" ref={setBallotActionContainer} data-testid="live-item-continuation">
             {matchLiteral(continuation, {
               start: () => (
-                <button
-                  className="live-primary-action"
-                  type="button"
+                <Button
                   disabled={submitting}
                   data-testid="live-agenda-start"
                   onClick={() => void run(() => meetingActions.startAgendaItem(selectedItem.id))}
                 >
                   <PlayIcon aria-hidden="true" />
                   {t(submitting ? "common.saving" : "meeting.startSubject")}
-                </button>
+                </Button>
               ),
               vote: () =>
                 !voteOpen ? (
-                  <button
-                    className="live-primary-action"
-                    type="button"
-                    disabled={submitting}
-                    data-testid="live-ballot-open"
-                    onClick={() => setVoteOpen(true)}
-                  >
+                  <Button disabled={submitting} data-testid="live-ballot-open" onClick={() => setVoteOpen(true)}>
                     {t("live.openVote")}
-                  </button>
+                  </Button>
                 ) : null,
               complete: () => (
-                <button
-                  className="live-primary-action"
-                  type="button"
+                <Button
                   disabled={submitting}
                   data-testid="live-agenda-complete"
                   onClick={() => void completeItem("examined")}
                 >
                   <CheckIcon aria-hidden="true" />
                   {t(submitting ? "common.saving" : "meeting.completeAndNext")}
-                </button>
+                </Button>
               ),
               none: () => null,
             })}
@@ -1164,13 +1153,14 @@ export function ConductView({
               }}
             >
               <div className="modal-form">
-                <Input
-                  name="title"
-                  data-testid="live-add-question-name"
-                  placeholder={t("meeting.subjectPlaceholder")}
-                  aria-label={t("meeting.subject")}
-                  required
-                />
+                <Field label={t("meeting.subject")}>
+                  <Input
+                    name="title"
+                    data-testid="live-add-question-name"
+                    placeholder={t("meeting.subjectPlaceholder")}
+                    required
+                  />
+                </Field>
                 <ResourceSearchField
                   testId="live-add-question-business"
                   label={

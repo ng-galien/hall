@@ -199,9 +199,9 @@
   .conduct-rail-resizer { display: none; }
   .conduct .conduct-stage { flex: none; overflow: visible; }
   .conduct-stage-scroll { flex: none; overflow: visible; }
-  .conduct-stage-fixed-header, .conduct-stage-scroll, .conduct-stage-actions { padding: var(--hall-space-3); }
+  .conduct-stage-fixed-header, .conduct-stage-scroll, .conduct-stage-actions { padding: var(--hall-space-3) var(--hall-space-4); }
   .conduct-title-timer { flex-wrap: wrap; }
-  .conduct-stage-actions > button { flex: 1; }
+  .conduct-stage-actions .hall-button { flex: 1; }
 }
 
 /* @implements-requirement HALL-FR-LAY-020 */
