@@ -22,7 +22,8 @@ import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 /** List of council meetings, each dated by its day and its time to the minute. */
 export function CouncilMeetingsPage() {
   const { t, formatDate, formatTime } = useI18n();
-  const formatMeetingTime = (value: string) => `${formatDate(value)} ${formatTime(value)}`;
+  /* The date head of the row already gives the day: the second line keeps the time. */
+  const formatMeetingTime = (value: string) => formatTime(value);
   const { meetings, error } = useCouncilMeetingsStore();
   const { query, setQuery } = useCollectionView();
   const meetingStatus = useMeetingRowStatus();
