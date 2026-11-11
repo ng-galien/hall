@@ -81,6 +81,22 @@ export function StatusBadge({ value }: { value: DomainStatus }) {
   return <Badge variant={variant}>{t(domainStatusKeys[value])}</Badge>;
 }
 
+/** Status of a list row for an agenda item. */
+export function useAgendaItemRowStatus(): (status: LiveAgendaItemStatus) => ListRowStatus {
+  const { t } = useI18n();
+  return (status) => ({
+    tone: matchLiteral(status, {
+      scheduled: () => "neutral" as const,
+      inProgress: () => "success" as const,
+      examined: () => "success" as const,
+      adjourned: () => "warning" as const,
+      carriedForward: () => "warning" as const,
+    }),
+    label: t(domainStatusKeys[status]),
+    testId: `agenda-status-${status}`,
+  });
+}
+
 export function AgendaItemStatusBadge({ status }: { status: LiveAgendaItemStatus }) {
   const { t } = useI18n();
   const { variant, Icon } = matchLiteral(status, {

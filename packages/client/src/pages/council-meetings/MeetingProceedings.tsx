@@ -5,19 +5,18 @@ import { MarkdownView } from "../../components/MarkdownView";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
-import { ListRow, ListRowNumber, type ListRowStatus, ListRows } from "../../components/ui/list-row";
+import { ListRow, ListRowNumber, ListRows } from "../../components/ui/list-row";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
 import { agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
 import { ballotVerdictKey } from "../../features/council-meetings/ballotVerdictPresentation";
-import { domainStatusKeys } from "../../features/status/DomainStatusBadge";
+import { useAgendaItemRowStatus } from "../../features/status/DomainStatusBadge";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
 import type {
   LiveMeetingAgendaItem as AgendaItem,
   LiveMeetingBallot as Ballot,
-  LiveAgendaItemStatus,
   LiveMeetingPresentation,
   LiveVoteChoice as VoteChoice,
 } from "../../models/liveMeeting";
@@ -27,21 +26,6 @@ import { agendaItemDecisionId } from "./ballotDecisionPolicy";
 import { councilMemberName } from "./ballotParticipants";
 
 /** Status of an agenda item written on the second line of its row. */
-function useAgendaItemRowStatus(): (status: LiveAgendaItemStatus) => ListRowStatus {
-  const { t } = useI18n();
-  return (status) => ({
-    tone: matchLiteral(status, {
-      scheduled: () => "neutral" as const,
-      inProgress: () => "success" as const,
-      examined: () => "success" as const,
-      adjourned: () => "warning" as const,
-      carriedForward: () => "warning" as const,
-    }),
-    label: t(domainStatusKeys[status]),
-    testId: `agenda-status-${status}`,
-  });
-}
-
 const voteChoiceKeys: Record<VoteChoice, TranslationKey> = {
   for: "ballot.choice.for",
   against: "ballot.choice.against",
