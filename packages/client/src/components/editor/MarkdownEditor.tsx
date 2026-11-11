@@ -1,5 +1,6 @@
 import { type Editor, EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { type FormEvent, type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -9,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -101,10 +103,10 @@ function ToolbarButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          type="button"
+        <Button
+          variant="plain"
+          size="icon"
           data-testid={testId}
-          className={cn("markdown-toolbar-button", active && "is-active")}
           aria-label={label}
           aria-pressed={active}
           disabled={disabled}
@@ -112,7 +114,7 @@ function ToolbarButton({
           onClick={onClick}
         >
           {children}
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent side={tooltipSide} sideOffset={tooltipSide === "left" ? 6 : undefined}>
         {label}
@@ -241,26 +243,22 @@ function LinkEditorForm({ editor, active, onDone }: { editor: Editor; active: bo
 
   return (
     <form onSubmit={apply}>
-      <label htmlFor="markdown-link-url">
-        {t("editor.linkUrl")}
+      <Field label={t("editor.linkUrl")}>
         <Input
-          id="markdown-link-url"
           type="url"
           value={url}
           placeholder="https://…"
           autoFocus
           onChange={(event) => setUrl(event.target.value)}
         />
-      </label>
+      </Field>
       <div className="markdown-link-popover-actions">
         {active ? (
-          <button type="button" className="markdown-toolbar-text-button" onClick={remove}>
+          <Button variant="secondary" onClick={remove}>
             {t("editor.linkRemove")}
-          </button>
+          </Button>
         ) : null}
-        <button type="submit" className="markdown-toolbar-text-button is-primary">
-          {t("editor.linkApply")}
-        </button>
+        <Button type="submit">{t("editor.linkApply")}</Button>
       </div>
     </form>
   );
@@ -275,15 +273,15 @@ function LinkControl({ editor, active }: { editor: Editor; active: boolean }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <button
-              type="button"
+            <Button
+              variant="plain"
+              size="icon"
               data-testid="editor-link"
-              className={cn("markdown-toolbar-button", active && "is-active")}
               aria-label={t("editor.link")}
               aria-pressed={active}
             >
               <LinkIcon />
-            </button>
+            </Button>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent>{t("editor.link")}</TooltipContent>
@@ -406,15 +404,15 @@ function CompactFormattingMenu({
         <Tooltip>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="markdown-toolbar-button"
+              <Button
+                variant="plain"
+                size="icon"
                 data-testid="editor-formatting-menu"
                 aria-label={t("editor.formatting")}
                 onMouseDown={(event) => event.preventDefault()}
               >
                 <EditIcon />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
           <TooltipContent side="left" sideOffset={6}>

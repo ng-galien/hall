@@ -19,6 +19,7 @@ import {
 } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import { AlignCenterIcon, AlignLeftIcon } from "../icons";
+import { Button } from "../ui/button";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
 import { useResourceAppearance } from "./references";
 
@@ -238,34 +239,34 @@ function ResourceImageNodeView({
             deleteLabel={t("common.delete")}
             deleteTestId="editor-image-delete"
           >
-            <button
-              type="button"
+            <Button
+              variant="plain"
+              size="icon"
               data-testid="editor-image-align-left"
               aria-label={t("editor.imageAlignLeft")}
               aria-pressed={attributes.align === "left"}
               onClick={() => updateAttributes({ align: "left" })}
             >
               <AlignLeftIcon />
-              <span className="sr-only">{t("editor.imageAlignLeft")}</span>
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="plain"
+              size="icon"
               data-testid="editor-image-align-center"
               aria-label={t("editor.imageAlignCenter")}
               aria-pressed={attributes.align === "center"}
               onClick={() => updateAttributes({ align: "center" })}
             >
               <AlignCenterIcon />
-              <span className="sr-only">{t("editor.imageAlignCenter")}</span>
-            </button>
+            </Button>
           </EditorMediaOverlay>
         ) : null}
         {controls && selected && editable ? (
-          <button
-            type="button"
+          <span
             data-testid="editor-image-width"
             className="editor-image-resize"
             role="slider"
+            tabIndex={0}
             aria-label={t("editor.imageResize")}
             aria-valuemin={imageWidthRange.min}
             aria-valuemax={imageWidthRange.max}

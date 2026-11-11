@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from "react";
 import { DeleteIcon } from "../icons";
+import { Button } from "../ui/button";
 import "./EditorMediaOverlay.css";
 
 export function EditorMediaOverlay({
@@ -33,17 +34,17 @@ export function EditorMediaOverlay({
         {icon}
       </span>
       {onTitleClick ? (
-        <button
+        <Button
           ref={titleRef}
-          type="button"
-          className="editor-media-overlay-title editor-media-overlay-title-link"
+          variant="plain"
+          className="editor-media-overlay-title"
           data-testid={titleTestId}
           title={title}
           aria-label={titleAriaLabel ?? title}
           onClick={onTitleClick}
         >
           {title}
-        </button>
+        </Button>
       ) : (
         <strong className="editor-media-overlay-title" title={title}>
           {title}
@@ -52,15 +53,9 @@ export function EditorMediaOverlay({
       <span className="editor-media-overlay-actions">
         {children}
         {onDelete ? (
-          <button
-            type="button"
-            className="editor-media-overlay-delete"
-            data-testid={deleteTestId}
-            aria-label={deleteLabel}
-            onClick={onDelete}
-          >
+          <Button variant="plain" size="icon" data-testid={deleteTestId} aria-label={deleteLabel} onClick={onDelete}>
             <DeleteIcon />
-          </button>
+          </Button>
         ) : null}
       </span>
     </aside>

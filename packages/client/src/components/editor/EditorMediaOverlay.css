@@ -9,7 +9,7 @@
   gap: var(--hall-space-2);
   padding: var(--hall-space-1);
   border: var(--hall-stroke-thin) solid var(--hall-color-border);
-  border-radius: var(--hall-radius-medium);
+  border-radius: var(--hall-radius-small);
   background: color-mix(in srgb, var(--hall-color-surface) 94%, transparent);
   box-shadow: var(--hall-shadow-small);
   opacity: 0;
@@ -61,71 +61,13 @@
   overflow: hidden;
   font-size: var(--hall-font-size-body);
   line-height: var(--hall-line-height-body-small);
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.editor-media-overlay-title-link {
-  padding: 0;
-  border: 0;
-  color: var(--hall-color-text);
-  background: transparent;
-  font: inherit;
-  font-weight: var(--hall-font-weight-semibold);
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.editor-media-overlay-title-link:hover {
-  color: var(--hall-color-text);
-  text-decoration: underline;
-  text-decoration-thickness: var(--hall-stroke-thin);
-  text-underline-offset: var(--hall-letter-spacing-feature-kicker);
-}
-
-.editor-media-overlay-title-link:focus-visible {
-  outline: none;
-  text-decoration: underline;
-  text-underline-offset: var(--hall-letter-spacing-feature-kicker);
 }
 
 .editor-media-overlay-actions {
   display: flex;
   flex: none;
   gap: var(--hall-space-1);
-}
-
-.editor-media-overlay-actions button {
-  display: inline-flex;
-  width: var(--hall-size-control-small);
-  height: var(--hall-size-control-small);
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--hall-radius-small);
-  color: var(--hall-color-text-muted);
-  background: transparent;
-  cursor: pointer;
-}
-
-.editor-media-overlay-actions button:hover,
-.editor-media-overlay-actions button[aria-pressed="true"] {
-  color: var(--hall-color-brand);
-  background: var(--hall-color-brand-subtle);
-}
-
-.editor-media-overlay-actions .editor-media-overlay-delete:hover {
-  color: var(--hall-color-danger);
-  background: var(--hall-color-danger-surface);
-}
-
-.editor-media-overlay-actions button > svg {
-  width: var(--hall-size-glyph-mark);
-  height: var(--hall-size-glyph-mark);
-}
-
-.editor-media-overlay-actions button:focus-visible {
-  outline: none;
 }

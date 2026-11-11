@@ -28,6 +28,7 @@ import {
   SplitCellIcon,
   SumIcon,
 } from "../icons";
+import { Button } from "../ui/button";
 
 /** Handle geometry for the current cell, in canvas coordinates. */
 interface TableTarget {
@@ -245,17 +246,18 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
-            type="button"
+          <Button
+            variant="plain"
+            size="icon"
             data-testid="editor-table-column-menu"
             data-editor-table-control
-            className="table-handle table-handle-column"
+            className="table-handle"
             style={{ left: target.columnCenter, top: target.tableTop }}
             aria-label={t("editor.table.columnMenu")}
             title={t("editor.table.columnMenu")}
           >
             <MoreIcon />
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="table-controls-menu">
           <DropdownMenuItem onSelect={run(() => editor.chain().focus().addColumnBefore().run())}>
@@ -294,16 +296,17 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
-            type="button"
+          <Button
+            variant="plain"
+            size="icon"
             data-editor-table-control
-            className="table-handle table-handle-row"
+            className="table-handle"
             style={{ left: target.tableLeft, top: target.rowCenter }}
             aria-label={t("editor.table.rowMenu")}
             title={t("editor.table.rowMenu")}
           >
             <MoreVerticalIcon />
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="table-controls-menu">
           <DropdownMenuItem onSelect={run(() => editor.chain().focus().addRowBefore().run())}>
@@ -323,11 +326,11 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
       </DropdownMenu>
 
       {target.canMerge || target.canSplit ? (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           data-testid={target.canMerge ? "editor-table-merge" : "editor-table-split"}
           data-editor-table-control
-          className="table-action-pill"
+          className="table-handle"
           style={{ left: target.selectionCenterX, top: target.selectionBottom }}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() =>
@@ -343,14 +346,15 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
               <SplitCellIcon /> {t("editor.table.split")}
             </>
           )}
-        </button>
+        </Button>
       ) : null}
 
-      <button
-        type="button"
+      <Button
+        variant="plain"
+        size="icon"
         data-testid="editor-table-add-column"
         data-editor-table-control
-        className="table-extend"
+        className="table-handle"
         style={{ left: target.tableRight, top: (target.tableTop + target.tableBottom) / 2 }}
         aria-label={t("editor.table.addColumn")}
         title={t("editor.table.addColumn")}
@@ -358,12 +362,13 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
         onClick={() => extend("column")}
       >
         <AddIcon />
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        variant="plain"
+        size="icon"
         data-testid="editor-table-add-row"
         data-editor-table-control
-        className="table-extend"
+        className="table-handle"
         style={{ left: (target.tableLeft + target.tableRight) / 2, top: target.tableBottom }}
         aria-label={t("editor.table.addRow")}
         title={t("editor.table.addRow")}
@@ -371,7 +376,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
         onClick={() => extend("row")}
       >
         <AddIcon />
-      </button>
+      </Button>
     </>
   );
 }

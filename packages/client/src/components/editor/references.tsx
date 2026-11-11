@@ -124,21 +124,23 @@ export function ReferenceBadge({
       <Tooltip>
         <TooltipTrigger asChild>
           {open?.kind === "resourcePreview" ? (
-            <button
+            <Link
               ref={(element) => {
                 triggerRef.current = element;
               }}
-              type="button"
+              to={`/workspace?${new URLSearchParams({ resource: id ?? "" })}`}
               className={`${className} is-openable`}
               data-nature={nature}
               data-testid={`editor-resource-reference-${id}`}
-              onClick={() => {
+              onClick={(event) => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
                 scrollRef.current = { x: window.scrollX, y: window.scrollY };
                 setPreviewing(true);
               }}
             >
               {content}
-            </button>
+            </Link>
           ) : open?.kind === "contactPreview" || open?.kind === "memberPreview" ? (
             <Link
               ref={(element) => {

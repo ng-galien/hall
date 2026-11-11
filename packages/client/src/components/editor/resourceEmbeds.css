@@ -26,12 +26,7 @@
   position: absolute;
   inset: 0;
   z-index: calc(var(--hall-z-content) + 1);
-  width: 100%;
-  padding: 0;
-  border: 0;
   border-radius: inherit;
-  background: transparent;
-  cursor: pointer;
 }
 
 .editor-resource-embed-open:focus-visible {
@@ -54,7 +49,6 @@
   z-index: calc(var(--hall-z-content) + 2);
   width: var(--hall-size-editor-toolbar-control);
   height: var(--hall-size-editor-toolbar-control);
-  padding: 0;
   border: var(--hall-stroke-thin) solid var(--hall-color-brand);
   border-radius: var(--hall-radius-circular);
   background: var(--hall-color-surface);
@@ -83,6 +77,6 @@
   gap: var(--hall-space-2);
 }
 
-.resource-embed-options .markdown-toolbar-text-button {
+.resource-embed-options > .hall-button {
   justify-self: end;
 }

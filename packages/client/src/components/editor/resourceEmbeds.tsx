@@ -22,9 +22,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "../../i18n/I18nProvider";
 import { AlignCenterIcon, AlignLeftIcon, CheckIcon, CopyIcon } from "../icons";
@@ -90,7 +92,10 @@ function ResourceEmbedBlock({
   const [previewing, setPreviewing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [presentationRevision, setPresentationRevision] = useState(0);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const keepTrigger = (element: HTMLElement | null) => {
+    triggerRef.current = element;
+  };
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef({ x: 0, y: 0 });
   const restoreFocusRef = useRef(false);
@@ -115,7 +120,7 @@ function ResourceEmbedBlock({
   const mapAlign = attributes.align ?? mapPresentationDefaults.align;
   const updateMapWidth = (width: number) =>
     updateAttributes?.({ width: Math.round(Math.min(imageWidthRange.max, Math.max(imageWidthRange.min, width))) });
-  const startMapResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const startMapResize = (event: ReactPointerEvent<HTMLSpanElement>) => {
     event.preventDefault();
     event.stopPropagation();
     const startX = event.clientX;
@@ -153,13 +158,17 @@ function ResourceEmbedBlock({
           className={`editor-resource-embed-trigger${hasFloatingInfo ? " has-floating-info" : ""}${hasInlineOverlay ? " editor-media-overlay-host" : ""}`}
         >
           {!hasFloatingInfo ? (
-            <button
-              ref={triggerRef}
-              type="button"
+            <Link
+              ref={keepTrigger}
               className="editor-resource-embed-open"
               data-testid={testId}
               aria-label={`${attributes.label} · ${t("editor.openHint")}`}
-              onClick={open}
+              to={`/workspace?${new URLSearchParams({ resource: attributes.id })}`}
+              onClick={(event) => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                open();
+              }}
             />
           ) : null}
           <Fragment key={presentationRevision}>
@@ -174,21 +183,22 @@ function ResourceEmbedBlock({
               testId={`${testId}-info`}
               titleTestId={testId}
               titleAriaLabel={`${t("workspace.open")} · ${attributes.label}`}
-              titleRef={triggerRef}
+              titleRef={keepTrigger}
               onTitleClick={open}
               onDelete={editable ? onDelete : undefined}
               deleteLabel={t("common.delete")}
               deleteTestId={`${testId}-delete`}
             >
               {attributes.presentation === "legal-citation" ? (
-                <button
-                  type="button"
+                <Button
+                  variant="plain"
+                  size="icon"
                   data-testid={`${testId}-copy`}
                   aria-label={t(copied ? "common.copied" : "common.copy")}
                   onClick={() => void copyLegalText()}
                 >
                   {copied ? <CheckIcon aria-hidden="true" /> : <CopyIcon aria-hidden="true" />}
-                </button>
+                </Button>
               ) : null}
             </EditorMediaOverlay>
           ) : null}
@@ -200,7 +210,7 @@ function ResourceEmbedBlock({
             testId={`${testId}-info`}
             titleTestId={testId}
             titleAriaLabel={`${t("workspace.open")} · ${attributes.label}`}
-            titleRef={triggerRef}
+            titleRef={keepTrigger}
             onTitleClick={open}
             onDelete={editable ? onDelete : undefined}
             deleteLabel={t("common.delete")}
@@ -208,34 +218,36 @@ function ResourceEmbedBlock({
           >
             {editable ? (
               <>
-                <button
-                  type="button"
+                <Button
+                  variant="plain"
+                  size="icon"
                   data-testid={`${testId}-align-left`}
                   aria-label={t("editor.imageAlignLeft")}
                   aria-pressed={mapAlign === "left"}
                   onClick={() => updateAttributes?.({ align: "left" })}
                 >
                   <AlignLeftIcon />
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="plain"
+                  size="icon"
                   data-testid={`${testId}-align-center`}
                   aria-label={t("editor.imageAlignCenter")}
                   aria-pressed={mapAlign === "center"}
                   onClick={() => updateAttributes?.({ align: "center" })}
                 >
                   <AlignCenterIcon />
-                </button>
+                </Button>
               </>
             ) : null}
           </EditorMediaOverlay>
         ) : null}
         {isResizableMap && editable ? (
-          <button
-            type="button"
+          <span
             className="editor-resource-embed-map-resize"
             data-testid={`${testId}-width`}
             role="slider"
+            tabIndex={0}
             aria-label={t("editor.imageResize")}
             aria-valuemin={imageWidthRange.min}
             aria-valuemax={imageWidthRange.max}
@@ -532,43 +544,40 @@ export function EditorResourceEmbedSearch({
         {failed ? <p role="alert">{t("common.requestFailed")}</p> : null}
         {sheets ? (
           <form className="resource-embed-options" onSubmit={submit}>
-            <Label htmlFor="resource-embed-sheet">{t("editor.embedTableSheet")}</Label>
-            <Select
-              value={sheetId}
-              onValueChange={(next) => {
-                setSheetId(next);
-                setRange(sheets.find((sheet) => sheet.id === next)?.defaultRange ?? "A1:A1");
-              }}
+            <Field label={t("editor.embedTableSheet")}>
+              <Select
+                value={sheetId}
+                onValueChange={(next) => {
+                  setSheetId(next);
+                  setRange(sheets.find((sheet) => sheet.id === next)?.defaultRange ?? "A1:A1");
+                }}
+              >
+                <SelectTrigger data-testid="resource-embed-table-sheet">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sheets.map((sheet) => (
+                    <SelectItem key={sheet.id} value={sheet.id}>
+                      {sheet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field
+              label={t("editor.embedTableRange")}
+              error={!valid && range ? t("editor.embedTableRangeInvalid") : undefined}
             >
-              <SelectTrigger id="resource-embed-sheet" data-testid="resource-embed-table-sheet">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {sheets.map((sheet) => (
-                  <SelectItem key={sheet.id} value={sheet.id}>
-                    {sheet.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Label htmlFor="resource-embed-range">{t("editor.embedTableRange")}</Label>
-            <Input
-              id="resource-embed-range"
-              data-testid="resource-embed-table-range"
-              value={range}
-              onChange={(event) => setRange(event.currentTarget.value)}
-              aria-invalid={Boolean(range) && !valid}
-              placeholder="A1:F20"
-            />
-            {!valid && range ? <p role="alert">{t("editor.embedTableRangeInvalid")}</p> : null}
-            <button
-              type="submit"
-              className="markdown-toolbar-text-button is-primary"
-              data-testid="resource-embed-table-submit"
-              disabled={!valid}
-            >
+              <Input
+                data-testid="resource-embed-table-range"
+                value={range}
+                onChange={(event) => setRange(event.currentTarget.value)}
+                placeholder="A1:F20"
+              />
+            </Field>
+            <Button type="submit" data-testid="resource-embed-table-submit" disabled={!valid}>
               {t("editor.embedResource")}
-            </button>
+            </Button>
           </form>
         ) : null}
       </DialogContent>
