@@ -14,6 +14,8 @@ export interface I18nContextValue {
   formatTime(value: string | Date): string;
   formatNumber(value: number, options?: Intl.NumberFormatOptions): string;
   formatFileSize(byteSize: number): string;
+  /** Day of the month and abbreviated month, for the date head of a list row. */
+  formatDayMonth(date: string): { day: string; month: string };
 }
 
 export const I18nContext = createContext<I18nContextValue | null>(null);

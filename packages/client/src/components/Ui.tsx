@@ -116,8 +116,8 @@ export function CollectionToolbar({
 }: {
   query: string;
   onQueryChange(query: string): void;
-  layout: CollectionLayout;
-  onLayoutChange(layout: CollectionLayout): void;
+  layout?: CollectionLayout;
+  onLayoutChange?(layout: CollectionLayout): void;
   children?: ReactNode;
 }) {
   const { t } = useI18n();
@@ -136,7 +136,9 @@ export function CollectionToolbar({
         />
       </div>
       <div className="collection-toolbar-side">
-        {phone ? null : <CollectionLayoutToggle layout={layout} onLayoutChange={onLayoutChange} />}
+        {phone || !layout || !onLayoutChange ? null : (
+          <CollectionLayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
+        )}
         {children}
       </div>
     </div>

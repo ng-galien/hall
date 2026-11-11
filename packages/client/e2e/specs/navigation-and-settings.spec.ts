@@ -136,7 +136,7 @@ test("stale meetings stay accessible with a yellow review badge and never become
     await expect(row).toHaveAttribute("href", `/app/meetings/${meeting.properties.id}`);
     const badge = row.getByTestId("meeting-needs-review");
     await expect(badge).toHaveText("À réviser");
-    await expect(badge).toHaveAttribute("data-variant", "warning");
+    await expect(badge).toHaveAttribute("data-tone", "warning");
   }
   await expect(page.getByTestId(`meeting-history-${meetings[0].properties.id}`)).toBeVisible();
   await expect(page.getByTestId("meeting-next").getByTestId("meeting-needs-review")).toHaveCount(0);

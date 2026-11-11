@@ -1,9 +1,9 @@
 import type { MinutesSummary } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronRightIcon, MinutesIcon } from "../../components/icons";
+import { MinutesIcon } from "../../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listMinutes } from "../../services/minutesApi";
@@ -52,24 +52,28 @@ export function MinutesPage() {
         ) : !error && minutes.length === 0 ? (
           <EmptyState>{t("minutes.empty")}</EmptyState>
         ) : null}
-        <div className="data-list">
-          {minutes.map((item) => (
-            <Link
-              className="data-row linked minutes-row"
-              key={item.id}
-              to={`/minutes/${item.id}`}
-              data-testid={`minutes-open-${item.councilMeetingId}`}
-            >
-              <MinutesIcon aria-hidden="true" />
-              <div className="min-w-0 flex-1">
-                <strong>{t("minutes.meetingTitle", { number: formatNumber(item.meetingNumber) })}</strong>
-                <span>{item.scheduledAt ? formatDate(item.scheduledAt) : t("dashboard.toSchedule")}</span>
-              </div>
-              <span>{t(item.settledAt ? "minutes.stopped" : "minutes.notStopped")}</span>
-              <ChevronRightIcon aria-hidden="true" />
-            </Link>
-          ))}
-        </div>
+        {minutes.length > 0 ? (
+          <ListRows>
+            {minutes.map((item) => (
+              <ListRow
+                key={item.id}
+                to={`/minutes/${item.id}`}
+                openTestId={`minutes-open-${item.councilMeetingId}`}
+                head={
+                  <ListRowIcon nature="council">
+                    <MinutesIcon />
+                  </ListRowIcon>
+                }
+                title={t("minutes.meetingTitle", { number: formatNumber(item.meetingNumber) })}
+                detail={item.scheduledAt ? formatDate(item.scheduledAt) : t("dashboard.toSchedule")}
+                status={{
+                  tone: item.settledAt ? "success" : "neutral",
+                  label: t(item.settledAt ? "minutes.stopped" : "minutes.notStopped"),
+                }}
+              />
+            ))}
+          </ListRows>
+        ) : null}
       </div>
     </div>
   );

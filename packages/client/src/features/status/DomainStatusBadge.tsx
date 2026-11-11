@@ -8,6 +8,7 @@ import type {
 import { matchLiteral } from "@hall/domain";
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, CheckIcon, PlayIcon, WarningIcon } from "../../components/icons";
+import type { ListRowStatus, ListRowStatusTone } from "../../components/ui/list-row";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveAgendaItemStatus, LiveMeetingStatus } from "../../models/liveMeeting";
@@ -51,6 +52,20 @@ export const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
   published: "status.published",
 };
 
+/** Tone of the dot written before a domain status in a list row. */
+export function domainStatusTone(value: DomainStatus): ListRowStatusTone {
+  if (value === "excused") return "warning";
+  if (["adopted", "enforceable", "ready", "present", "published"].includes(value)) return "success";
+  if (["rejected", "cancelled", "absent"].includes(value)) return "danger";
+  return "neutral";
+}
+
+/** Status of a list row for a domain status. */
+export function useDomainRowStatus(): (value: DomainStatus) => ListRowStatus {
+  const { t } = useI18n();
+  return (value) => ({ tone: domainStatusTone(value), label: t(domainStatusKeys[value]) });
+}
+
 export function StatusBadge({ value }: { value: DomainStatus }) {
   const { t } = useI18n();
   const variant =
@@ -90,6 +105,18 @@ const meetingStatusKeys: Record<LiveMeetingStatus, TranslationKey> = {
   closed: "meetingStatus.closed",
   cancelled: "meetingStatus.cancelled",
 };
+
+/** Status of a list row for a meeting phase. */
+export function useMeetingRowStatus(): (status: LiveMeetingStatus, stale?: boolean) => ListRowStatus {
+  const { t } = useI18n();
+  return (status, stale = false) =>
+    stale
+      ? { tone: "warning", label: t("meetings.needsReview"), testId: "meeting-needs-review" }
+      : {
+          tone: status === "inProgress" ? "success" : status === "cancelled" ? "danger" : "neutral",
+          label: t(meetingStatusKeys[status]),
+        };
+}
 
 // TODO REMOVE_STALE: temporary warning badge, distinct from the closed phase.
 export function MeetingStatusBadge({ status, stale = false }: { status: LiveMeetingStatus; stale?: boolean }) {

@@ -1,6 +1,5 @@
 // TODO REMOVE_STALE: incomplete sessions remain accessible in history with the review badge.
-import { Link } from "react-router-dom";
-import { CalendarIcon, ChevronRightIcon, LocationIcon } from "../../components/icons";
+import { CalendarIcon } from "../../components/icons";
 import {
   CollectionToolbar,
   EmptyState,
@@ -9,8 +8,9 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../../components/Ui";
+import { ListRow, ListRowDate, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
-import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
+import { useMeetingRowStatus } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import {
   type CouncilMeetingView,
@@ -24,7 +24,8 @@ export function CouncilMeetingsPage() {
   const { t, formatDate, formatTime } = useI18n();
   const formatMeetingTime = (value: string) => `${formatDate(value)} ${formatTime(value)}`;
   const { meetings, error } = useCouncilMeetingsStore();
-  const { layout, setLayout, query, setQuery } = useCollectionView();
+  const { query, setQuery } = useCollectionView();
+  const meetingStatus = useMeetingRowStatus();
   const meetingLabel = (meeting: CouncilMeetingView) =>
     formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate);
 
@@ -44,28 +45,26 @@ export function CouncilMeetingsPage() {
         <RequestErrorBanner error={error} />
 
         {nextMeeting ? (
-          <Link data-testid="meeting-next" className="next-meeting-hero" to={`/meetings/${nextMeeting.reference}`}>
-            <div className="next-meeting-copy">
-              <span className="entity-card-eyebrow">{t("dashboard.nextMeeting")}</span>
-              <strong>{meetingLabel(nextMeeting)}</strong>
-              <span className="next-meeting-facts">
-                <span>
-                  <CalendarIcon aria-hidden="true" />{" "}
-                  {nextMeeting.scheduledAt ? formatMeetingTime(nextMeeting.scheduledAt) : t("dashboard.toSchedule")}
-                </span>
-                <span>
-                  <LocationIcon aria-hidden="true" /> {nextMeeting.location ?? t("common.none")}
-                </span>
-              </span>
-            </div>
-            <span className="next-meeting-side">
-              <MeetingStatusBadge status={nextMeeting.phase} stale={nextMeeting.stale} />
-              <ChevronRightIcon aria-hidden="true" />
-            </span>
-          </Link>
+          <ListRows className="next-meeting-list">
+            <ListRow
+              prominent
+              to={`/meetings/${nextMeeting.reference}`}
+              openTestId="meeting-next"
+              head={<MeetingDateHead meeting={nextMeeting} />}
+              title={meetingLabel(nextMeeting)}
+              detail={[
+                t("dashboard.nextMeeting"),
+                nextMeeting.scheduledAt ? formatMeetingTime(nextMeeting.scheduledAt) : t("dashboard.toSchedule"),
+                nextMeeting.location,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              status={meetingStatus(nextMeeting.phase, nextMeeting.stale)}
+            />
+          </ListRows>
         ) : null}
 
-        <CollectionToolbar query={query} onQueryChange={setQuery} layout={layout} onLayoutChange={setLayout} />
+        <CollectionToolbar query={query} onQueryChange={setQuery} />
 
         {meetings.length === 0 ? (
           <EmptyState>{t("meetings.empty")}</EmptyState>
@@ -75,7 +74,6 @@ export function CouncilMeetingsPage() {
               <MeetingGroup
                 title={t("meetings.upcoming")}
                 meetings={visibleUpcoming}
-                layout={layout}
                 formatDateTime={formatMeetingTime}
                 meetingLabel={meetingLabel}
               />
@@ -84,7 +82,6 @@ export function CouncilMeetingsPage() {
               <MeetingGroup
                 title={t("meetings.past")}
                 meetings={pastMeetings}
-                layout={layout}
                 formatDateTime={formatMeetingTime}
                 meetingLabel={meetingLabel}
               />
@@ -99,19 +96,32 @@ export function CouncilMeetingsPage() {
   );
 }
 
+/** Date head of a meeting row; a meeting without a date shows the calendar icon. */
+function MeetingDateHead({ meeting }: { meeting: CouncilMeetingView }) {
+  const { formatDayMonth } = useI18n();
+  if (!meeting.scheduledAt) {
+    return (
+      <ListRowIcon nature="council">
+        <CalendarIcon />
+      </ListRowIcon>
+    );
+  }
+  const { day, month } = formatDayMonth(meeting.scheduledAt);
+  return <ListRowDate day={day} month={month} />;
+}
+
 function MeetingGroup({
   title,
   meetings,
-  layout,
   formatDateTime,
   meetingLabel,
 }: {
   title: string;
   meetings: CouncilMeetingView[];
-  layout: "list" | "cards";
   formatDateTime(value: string): string;
   meetingLabel(meeting: CouncilMeetingView): string;
 }) {
+  const meetingStatus = useMeetingRowStatus();
   return (
     <section className="decision-group">
       <header className="decision-group-heading">
@@ -121,46 +131,21 @@ function MeetingGroup({
           </span>
         </span>
       </header>
-      {layout === "cards" ? (
-        <div className="card-grid">
-          {meetings.map((meeting) => (
-            <Link
-              data-testid={`meeting-history-${meeting.id}`}
-              className="entity-card"
-              key={meeting.id}
-              to={`/meetings/${meeting.reference}`}
-            >
-              <span className="entity-card-eyebrow">
-                {meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : ""}
-              </span>
-              <strong>{meetingLabel(meeting)}</strong>
-              <p>{meeting.location}</p>
-              <span className="entity-card-footer">
-                <MeetingStatusBadge status={meeting.phase} stale={meeting.stale} />
-              </span>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <div className="data-list">
-          {meetings.map((meeting) => (
-            <Link
-              data-testid={`meeting-history-${meeting.id}`}
-              className="data-row linked"
-              key={meeting.id}
-              to={`/meetings/${meeting.reference}`}
-            >
-              <div>
-                <strong>{meetingLabel(meeting)}</strong>
-                <span>
-                  {meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : ""} · {meeting.location}
-                </span>
-              </div>
-              <MeetingStatusBadge status={meeting.phase} stale={meeting.stale} />
-            </Link>
-          ))}
-        </div>
-      )}
+      <ListRows>
+        {meetings.map((meeting) => (
+          <ListRow
+            key={meeting.id}
+            to={`/meetings/${meeting.reference}`}
+            openTestId={`meeting-history-${meeting.id}`}
+            head={<MeetingDateHead meeting={meeting} />}
+            title={meetingLabel(meeting)}
+            detail={[meeting.scheduledAt ? formatDateTime(meeting.scheduledAt) : "", meeting.location]
+              .filter(Boolean)
+              .join(" · ")}
+            status={meetingStatus(meeting.phase, meeting.stale)}
+          />
+        ))}
+      </ListRows>
     </section>
   );
 }

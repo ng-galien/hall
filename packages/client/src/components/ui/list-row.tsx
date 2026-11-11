@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactElement, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -7,7 +7,7 @@ export type ResourceNature = "writing" | "data" | "visual" | "council" | "folder
 
 /** Fact written after a coloured dot on the second line; never an action. */
 export type ListRowStatusTone = "neutral" | "success" | "warning" | "danger";
-export type ListRowStatus = { tone: ListRowStatusTone; label: ReactNode };
+export type ListRowStatus = { tone: ListRowStatusTone; label: ReactNode; testId?: string };
 
 type ListRowOpen =
   | { to: string; onOpen?: never; state?: unknown }
@@ -33,6 +33,10 @@ export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "child
     openTestId?: string;
     openLabel?: string;
     openProps?: Omit<ComponentPropsWithoutRef<"button">, "onClick" | "children">;
+    /** Handlers of the visible line, for selection, drag or a context menu on a tree row. */
+    lineProps?: Omit<ComponentPropsWithoutRef<"div">, "children">;
+    /** Wraps the visible line, for instance in a context menu trigger. */
+    wrapLine?: (line: ReactElement) => ReactNode;
   };
 
 /**
@@ -55,6 +59,8 @@ export function ListRow({
   openTestId,
   openLabel,
   openProps,
+  lineProps,
+  wrapLine,
   className,
   ...rest
 }: ListRowProps) {
@@ -67,7 +73,7 @@ export function ListRow({
           <span className="list-row-detail">
             {detail ? <span className="list-row-detail-text">{detail}</span> : null}
             {status ? (
-              <span className="list-row-status" data-tone={status.tone}>
+              <span className="list-row-status" data-tone={status.tone} data-testid={status.testId}>
                 {status.label}
               </span>
             ) : null}
@@ -104,12 +110,14 @@ export function ListRow({
       data-slot="list-row"
       data-prominent={prominent ? "true" : undefined}
       data-selected={selected ? "true" : undefined}
-      data-openable={to || onOpen ? "true" : undefined}
+      data-openable={to || onOpen || lineProps?.onClick ? "true" : undefined}
     >
-      <div className="list-row-line">
-        {main}
-        {action ? <div className="list-row-action">{action}</div> : null}
-      </div>
+      {(wrapLine ?? ((element: ReactElement) => element))(
+        <div {...lineProps} className={cn("list-row-line", lineProps?.className)}>
+          {main}
+          {action ? <div className="list-row-action">{action}</div> : null}
+        </div>,
+      )}
       {children ? <div className="list-row-children">{children}</div> : null}
     </li>
   );

@@ -11,6 +11,8 @@
     color: var(--type-icon-color, var(--hall-color-text-muted));
     font-size: var(--hall-font-size-icon-large);
   }
+  .type-icon > svg { font-size: inherit; }
+  .list-row-head > .type-icon { font-size: var(--hall-size-glyph-mark-large); }
   .type-icon-large { width: var(--hall-size-glyph-large); height: var(--hall-size-glyph-large); font-size: var(--hall-size-glyph-mark-large); }
   [data-nature="writing"] { --type-icon-color: var(--hall-color-nature-writing); }
   [data-nature="data"] { --type-icon-color: var(--hall-color-nature-data); }
