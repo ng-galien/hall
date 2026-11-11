@@ -25,6 +25,7 @@ test.describe("navigation and settings", () => {
       ["council-decisions", /\/app\/council-decisions$/, "Council decisions"],
       ["workspace", /\/app\/workspace$/, null],
       ["maps", /\/app\/maps\?view=/, null],
+      ["mail", /\/app\/mail$/, "Mail"],
       ["contacts", /\/app\/contacts$/, "Contacts"],
       ["council-members", /\/app\/council-members$/, "Council composition"],
       ["council-committees", /\/app\/council-committees$/, null],
@@ -51,7 +52,7 @@ test.describe("navigation and settings", () => {
           .map((element) => element.getAttribute("data-testid"))
           .filter((testId, index, all) => testId !== "workspace-sidebar-link" || all[index - 1] !== testId),
       );
-    expect(order.slice(0, 8)).toEqual([
+    expect(order.slice(0, 9)).toEqual([
       "navigation-overview",
       "navigation-meetings",
       "navigation-minutes",
@@ -59,6 +60,7 @@ test.describe("navigation and settings", () => {
       "navigation-workspace",
       "workspace-sidebar-link",
       "navigation-maps",
+      "navigation-mail",
       "navigation-calendar",
     ]);
   });
