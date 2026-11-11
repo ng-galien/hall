@@ -3,7 +3,9 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import { normalizeForSearch, type SearchableMedia, type SearchableState } from "../../lib/search";
 import { CloseIcon, FilterIcon, SearchIcon } from "../icons";
+import { Button } from "../ui/button";
 import { Disclosure } from "../ui/disclosure";
+import { Input } from "../ui/input";
 import { type FacetSuggestion, facetHashPattern, facetSuggestionsFor } from "./facetSuggestions";
 
 export interface SearchKeyEvent {
@@ -258,8 +260,8 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
         <SearchIcon className="app-icon wsearch-icon" />
         {facets.map((f) => (
           <span className="wsearch-chip" key={`${f.facet}:${f.value}`}>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               data-testid={`${testId}-edit-${f.facet}-${f.value}`}
               onClick={() => {
                 setEditing(f);
@@ -269,9 +271,10 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
               }}
             >
               {labels[f.facet]} : {f.label}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="plain"
+              size="icon"
               data-testid={`${testId}-remove-${f.facet}-${f.value}`}
               aria-label={`${t("common.delete")} ${f.label}`}
               onClick={() => {
@@ -280,10 +283,10 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
               }}
             >
               <CloseIcon />
-            </button>
+            </Button>
           </span>
         ))}
-        <input
+        <Input
           ref={input}
           data-testid={`${testId}-input`}
           value={state.query}
@@ -300,9 +303,8 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
           }}
           onKeyDown={onKeyDown}
         />
-        <button
-          type="button"
-          className="shared-search-filter-trigger"
+        <Button
+          variant="plain"
           data-testid={`${testId}-add-filter`}
           aria-expanded={showing}
           onClick={() => {
@@ -315,11 +317,11 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
         >
           <FilterIcon />
           <span className="shared-search-filter-label">{t("search.addFilter")}</span>
-        </button>
+        </Button>
         {isSearchBoxActive(state) ? (
-          <button
-            type="button"
-            className="wsearch-clear"
+          <Button
+            variant="plain"
+            size="icon"
             data-testid={`${testId}-clear`}
             aria-label={t("workspace.clearSearch")}
             onClick={() => {
@@ -329,7 +331,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
             }}
           >
             <CloseIcon />
-          </button>
+          </Button>
         ) : null}
         {trailing}
       </div>
@@ -339,9 +341,10 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
             {visible.map((entry, rowIndex) =>
               matchDiscriminated(entry, "kind", {
                 category: (row) => (
-                  <button
-                    type="button"
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: the search field drives the rows with the arrow keys through aria-activedescendant.
+                  <div
                     role="treeitem"
+                    tabIndex={-1}
                     key={row.category}
                     id={`${testId}-filter-category-${row.category}`}
                     data-testid={`${testId}-filter-category-${row.category}`}
@@ -357,12 +360,13 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
                   >
                     <span>{labels[row.category]}</span>
                     <span aria-hidden="true">{opened === row.category ? "−" : "+"}</span>
-                  </button>
+                  </div>
                 ),
                 value: (row) => (
-                  <button
-                    type="button"
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: the search field drives the rows with the arrow keys through aria-activedescendant.
+                  <div
                     role="treeitem"
+                    tabIndex={-1}
                     key={`${row.value.facet}:${row.value.value}`}
                     id={`${testId}-filter-${row.value.facet}-${row.value.value}`}
                     data-testid={`${testId}-filter-${row.value.facet}-${row.value.value}`}
@@ -373,7 +377,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
                     onClick={() => choose(row.value)}
                   >
                     <span>{row.value.label}</span>
-                  </button>
+                  </div>
                 ),
               }),
             )}
@@ -404,10 +408,11 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
             >
               <div role="listbox" aria-label={labels[group.category]}>
                 {group.values.map((f) => (
-                  <button
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: the search field drives the options with the arrow keys through aria-activedescendant.
+                  <div
                     key={`${f.facet}:${f.value}`}
-                    type="button"
                     role="option"
+                    tabIndex={-1}
                     id={`${testId}-filter-${f.facet}-${f.value}`}
                     data-testid={`${testId}-filter-${f.facet}-${f.value}`}
                     aria-selected={activeId === `${testId}-filter-${f.facet}-${f.value}`}
@@ -424,15 +429,15 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
                     onClick={() => choose(f)}
                   >
                     {f.label}
-                  </button>
+                  </div>
                 ))}
               </div>
             </Disclosure>
           ))}
           {!categories.length ? <p>{t("workspace.noResults")}</p> : null}
-          <button type="button" data-testid={`${testId}-filters-close`} onClick={close}>
+          <Button variant="secondary" data-testid={`${testId}-filters-close`} onClick={close}>
             {t("common.close")}
-          </button>
+          </Button>
         </fieldset>
       ) : null}
     </div>

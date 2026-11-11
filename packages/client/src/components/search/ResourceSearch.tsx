@@ -5,6 +5,7 @@ import { type ResourceSearchScope, useResourceSearch } from "../../features/sear
 import { useI18n } from "../../i18n/I18nProvider";
 import type { SearchType } from "../../lib/search";
 import type { Mentionable } from "../editor/references";
+import { Button } from "../ui/button";
 import { ListRowIcon, ListRows } from "../ui/list-row";
 import { FolderSectionsList } from "./FolderSectionsList";
 import { facetHashPattern } from "./facetSuggestions";
@@ -194,14 +195,14 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
         (!hideResultsWhenEmpty || isSearchBoxActive(effective)) && (
           <>
             <div className="shared-search-toolbar">
-              <button
-                type="button"
+              <Button
+                variant="plain"
                 data-testid={`${testId}-browse-folders`}
                 aria-expanded={browsing}
                 onClick={() => setBrowsing(!browsing)}
               >
                 {t("search.browseFolders")}
-              </button>
+              </Button>
               <span data-testid={`${testId}-count`}>{search.total}</span>
             </div>
             {browsing ? (
@@ -225,9 +226,9 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
             {search.error ? (
               <div role="alert" data-testid={`${testId}-error`}>
                 <p>{t("common.requestFailed")}</p>
-                <button type="button" data-testid={`${testId}-retry`} onClick={search.retry}>
+                <Button variant="secondary" data-testid={`${testId}-retry`} onClick={search.retry}>
                   {t("common.retry")}
-                </button>
+                </Button>
               </div>
             ) : null}
             {!search.loading && !search.error && !shownItems.length ? (
@@ -259,9 +260,14 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
               ))}
             </ListRows>
             {shownItems.length < search.total ? (
-              <button type="button" disabled={search.loading} data-testid={`${testId}-more`} onClick={search.more}>
+              <Button
+                variant="secondary"
+                disabled={search.loading}
+                data-testid={`${testId}-more`}
+                onClick={search.more}
+              >
                 {t("search.more")}
-              </button>
+              </Button>
             ) : null}
           </>
         )}

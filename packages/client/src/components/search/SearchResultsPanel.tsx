@@ -2,6 +2,7 @@ import { type KeyboardEvent, type ReactNode, type RefObject, useEffect, useRef }
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Mentionable } from "../editor/references";
 import { ChevronDownIcon, FolderIcon, SortIcon } from "../icons";
+import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,16 +85,11 @@ export function SearchResultsPanel({
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="search-results-control"
-              data-testid={`${testId}-browse-folders`}
-              data-active={folder ? "true" : undefined}
-            >
+            <Button variant="plain" data-testid={`${testId}-browse-folders`} data-active={folder ? "true" : undefined}>
               <FolderIcon aria-hidden="true" />
               <span className="search-results-control-label">{folder ?? t("search.folderFilterAll")}</span>
               <ChevronDownIcon aria-hidden="true" />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="search-results-folders">
             <DropdownMenuRadioGroup value={folder ?? ""} onValueChange={(value) => onFolder(value || null)}>
@@ -117,13 +113,13 @@ export function SearchResultsPanel({
         <span className="search-results-bar-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="search-results-control" data-testid={`${testId}-sort`}>
+              <Button variant="plain" data-testid={`${testId}-sort`}>
                 <SortIcon aria-hidden="true" />
                 <span className="search-results-control-label">
                   {t("search.sort")} : {t(sortLabelKeys[sort])}
                 </span>
                 <ChevronDownIcon aria-hidden="true" />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuRadioGroup value={sort} onValueChange={(value) => onSort(value as SearchSort)}>
@@ -141,9 +137,9 @@ export function SearchResultsPanel({
         {error ? (
           <div className="search-results-message" role="alert" data-testid={`${testId}-error`}>
             <p>{t("common.requestFailed")}</p>
-            <button type="button" data-testid={`${testId}-retry`} onClick={onRetry}>
+            <Button variant="secondary" data-testid={`${testId}-retry`} onClick={onRetry}>
               {t("common.retry")}
-            </button>
+            </Button>
           </div>
         ) : null}
         {!loading && !error && !items.length ? (
