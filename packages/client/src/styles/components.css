@@ -464,7 +464,7 @@
     grid-template-rows: auto auto minmax(0, 1fr);
     align-content: start;
   }
-  .search-palette .wsearch-field { background: var(--hall-color-field); box-shadow: none; }
+  .search-palette .wsearch-field { background: var(--hall-color-field); }
   .search-palette-results { min-height: 0; overflow-y: auto; }
   .search-palette-hint {
     margin: 0;
@@ -519,7 +519,7 @@
     height: var(--hall-size-glyph-compact);
     place-items: center;
     padding: 0 var(--hall-space-1-5);
-    border-radius: var(--hall-radius-circular);
+    border-radius: var(--hall-radius-small);
     color: var(--hall-color-text-muted);
     background: var(--hall-color-surface-selected);
     font-size: var(--hall-font-size-caption);

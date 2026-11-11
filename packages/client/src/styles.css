@@ -125,7 +125,7 @@
   --border: var(--hall-color-border);
   --input: var(--hall-color-border-strong);
   --ring: var(--hall-color-focus);
-  --radius: var(--hall-radius-large);
+  --radius: var(--hall-radius-medium);
   --sidebar: var(--hall-color-surface);
   --sidebar-foreground: var(--hall-color-text);
   --sidebar-primary: var(--hall-color-brand);

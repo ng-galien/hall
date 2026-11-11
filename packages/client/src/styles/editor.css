@@ -273,7 +273,7 @@
   height: var(--hall-size-editor-toolbar-control);
   padding: 0;
   border: var(--hall-stroke-thin) solid var(--hall-color-brand);
-  border-radius: var(--hall-radius-circular);
+  border-radius: var(--hall-radius-small);
   background: var(--hall-color-surface);
   cursor: ew-resize;
 }

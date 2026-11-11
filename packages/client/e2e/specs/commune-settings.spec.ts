@@ -122,7 +122,9 @@ test("a scheduled meeting shows the indicative notice period computed from the p
   const panel = page.getByTestId("meeting-notice-deadline");
   await expect(panel).toHaveAttribute("data-status", "qualificationRequired");
   const text = page.getByTestId("meeting-notice-deadline-date");
-  await expect(text).toContainText(deadlineDay.toLocaleDateString("en-GB"));
+  await expect(text).toContainText(
+    deadlineDay.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+  );
   await page.getByTestId("meeting-notice-deadline-help").hover();
   const explanation = page.getByRole("tooltip");
   await expect(explanation).toContainText("5 clear days");

@@ -50,7 +50,7 @@
   width: var(--hall-size-editor-toolbar-control);
   height: var(--hall-size-editor-toolbar-control);
   border: var(--hall-stroke-thin) solid var(--hall-color-brand);
-  border-radius: var(--hall-radius-circular);
+  border-radius: var(--hall-radius-small);
   background: var(--hall-color-surface);
   cursor: ew-resize;
   opacity: 1;

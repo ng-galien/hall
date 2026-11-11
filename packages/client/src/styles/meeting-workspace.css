@@ -5,7 +5,7 @@
     max-height: var(--hall-size-overlay-height);
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
-    border-radius: var(--hall-radius-large);
+    border-radius: var(--hall-radius-medium);
     background: var(--hall-color-surface);
     box-shadow: var(--hall-shadow-large);
   }
@@ -96,19 +96,6 @@
     background: var(--hall-color-surface-subtle);
   }
   .markdown-toolbar-end { margin-left: auto; }
-  .markdown-toolbar-button {
-    display: inline-grid;
-    width: var(--hall-size-editor-toolbar-control);
-    height: var(--hall-size-editor-toolbar-control);
-    place-items: center;
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    font-size: var(--hall-font-size-icon);
-    cursor: pointer;
-  }
-  .markdown-toolbar-button:hover { color: var(--hall-color-text); background: var(--hall-color-surface-selected); }
   .markdown-editor .markdown-content { min-height: var(--hall-size-markdown-min); }
 
   /* ---- Editor lab ---- */
@@ -453,13 +440,7 @@
   .composer-decision-list { max-height: min(35dvh, var(--hall-size-picker-panel-max)); overflow-y: auto; overscroll-behavior-y: contain; }
   .composer-candidate-detail { display: grid; gap: var(--hall-space-2); }
 
-  .help-hint { display: inline-flex; align-items: center; padding: 0; border: 0; background: none; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-icon); cursor: help; }
-  .help-hint:hover, .help-hint:focus-visible { color: var(--hall-color-brand); outline: none; }
   .help-hint-content { max-width: var(--hall-size-relative-28rem); }
-  .detail-tooltip dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--hall-space-0-5) var(--hall-space-3); margin: 0; }
-  .detail-tooltip div { display: contents; }
-  .detail-tooltip dt { opacity: 0.7; }
-  .detail-tooltip dd { margin: 0; }
   .application-error { display: grid; justify-items: start; gap: var(--hall-space-3); max-width: var(--hall-size-relative-36rem); margin: 15vh auto 0; padding: var(--hall-space-6); }
   .application-error h1 { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-medium); }
   .application-error p { color: var(--hall-color-text-muted); }
@@ -485,7 +466,7 @@
     height: var(--hall-size-member-avatar);
     flex: none;
     place-items: center;
-    border-radius: var(--hall-radius-circular);
+    border-radius: var(--hall-radius-small);
     color: var(--hall-color-brand);
     background: var(--hall-color-brand-subtle);
     font-size: var(--hall-font-size-caption);

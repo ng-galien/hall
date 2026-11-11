@@ -18,7 +18,7 @@ function cssToken(name: string): string {
 export function standardColorPresets(t: (key: ColorLabelKey) => string): ColorPickerPreset[] {
   return [
     { value: cssToken("--hall-color-brand"), label: t("geographic.color.blue") },
-    { value: cssToken("--hall-color-focus"), label: t("geographic.color.lightBlue") },
+    { value: cssToken("--hall-color-nature-data"), label: t("geographic.color.lightBlue") },
     { value: cssToken("--hall-color-success"), label: t("geographic.color.green") },
     { value: cssToken("--hall-color-warning"), label: t("geographic.color.orange") },
     { value: cssToken("--hall-color-danger"), label: t("geographic.color.red") },

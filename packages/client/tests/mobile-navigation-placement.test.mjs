@@ -43,6 +43,6 @@ test("a left dialog is a full-height panel anchored to the left edge, without ce
 
 test("the mobile navigation uses the left dialog placement instead of overriding the centered one", () => {
   assert.match(read("src/components/Layout.tsx"), /className="app-mobile-navigation"\s+placement="left"/);
-  const rule = read("src/styles/mobile.css").match(/\.app-mobile-navigation \{([^}]*)\}/)[1];
+  const rule = read("src/styles/shell.css").match(/\.app-mobile-navigation \{([^}]*)\}/)[1];
   assert.doesNotMatch(rule, /\b(inset|transform|translate|top|left|height)\s*:/);
 });

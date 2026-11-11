@@ -12,19 +12,7 @@
   .workspace-tree-row:hover { background: var(--hall-color-surface-subtle); }
   .workspace-tree-row-active { background: var(--hall-color-surface-selected); }
   .workspace-tree-row-drop { outline: var(--hall-stroke-thick) dashed var(--hall-color-brand); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
-  .workspace-tree-toggle {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: var(--hall-size-tree-toggle);
-    height: var(--hall-size-tree-toggle);
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text-subtle);
-    background: transparent;
-    cursor: pointer;
-  }
+  .hall-button.workspace-tree-toggle { width: var(--hall-size-tree-toggle); min-height: var(--hall-size-tree-toggle); }
   .workspace-tree-link {
     display: flex;
     flex: 1;
@@ -129,21 +117,9 @@
     background: transparent;
     cursor: pointer;
   }
-  .workspace-tree-fold:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
   .workspace-tree-wrap { display: flex; flex-direction: column; }
   .workspace-tree-scroll { max-height: var(--hall-size-tree-max); overflow-y: auto; }
-  .workspace-tree-more {
-    width: 100%;
-    padding: var(--hall-space-1) var(--hall-space-1) var(--hall-space-1) var(--hall-space-6);
-    border: 0;
-    color: var(--hall-color-brand);
-    background: transparent;
-    font: inherit;
-    font-size: var(--hall-font-size-caption);
-    font-weight: var(--hall-font-weight-semibold);
-    text-align: left;
-    cursor: pointer;
-  }
+  .hall-button.workspace-tree-more { justify-content: flex-start; width: 100%; padding-left: var(--hall-space-6); color: var(--hall-color-brand); }
 
   /* ---- Top bar: faceted search, creation, pins ---- */
   .workspace-topzone { display: flex; flex-direction: column; gap: var(--hall-space-2); }
@@ -287,25 +263,6 @@
     min-inline-size: 0;
     box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
   }
-  .geographic-mode-switch button {
-    display: inline-flex;
-    min-height: var(--geographic-map-control);
-    align-items: center;
-    gap: var(--hall-space-1);
-    padding: 0 var(--hall-space-1-5);
-    border: 0;
-    border-radius: var(--hall-radius-medium);
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    font: inherit;
-    font-size: var(--hall-font-size-caption);
-    cursor: pointer;
-  }
-  .geographic-mode-switch button:hover:not(:disabled) { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
-  .geographic-mode-switch button.geographic-mode-active { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .geographic-mode-switch button:disabled { opacity: var(--hall-opacity-disabled); cursor: default; }
-  .geographic-composition-tools button,
-  .geographic-zoom-tools button,
   .geographic-layer-drag-handle {
     display: inline-grid;
     width: var(--hall-size-control);
@@ -318,12 +275,7 @@
     background: transparent;
     cursor: pointer;
   }
-  .geographic-composition-tools button:hover,
-  .geographic-zoom-tools button:hover:not(:disabled),
   .geographic-layer-drag-handle:hover:not(:disabled) { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
-  .geographic-composition-tools button.geographic-tool-active { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .geographic-composition-tools button:disabled,
-  .geographic-zoom-tools button:disabled,
   .geographic-layer-drag-handle:disabled { opacity: var(--hall-opacity-disabled); cursor: default; }
   .geographic-layers {
     top: var(--hall-space-3);
@@ -343,16 +295,6 @@
     box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
     margin: 0;
     min-inline-size: 0;
-  }
-  .geographic-zoom-tools button svg { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); display: block; }
-  .geographic-zoom-tools button {
-    width: var(--geographic-map-control);
-    height: var(--geographic-map-control);
-    border-radius: var(--hall-radius-medium);
-    color: var(--hall-color-text);
-    background: transparent;
-    font-size: var(--hall-font-size-body);
-    line-height: 1;
   }
   .geographic-layers-trigger {
     display: flex;
@@ -405,36 +347,6 @@
   .geographic-layer-drop-target { border-top-color: var(--hall-color-brand-border); background: var(--hall-color-brand-subtle); }
   .geographic-layer-drag-handle { width: var(--hall-size-control-small); height: var(--hall-size-control-small); cursor: grab; }
   .geographic-layer-drag-handle:active { cursor: grabbing; }
-  .geographic-layer-edit {
-    display: inline-grid;
-    width: var(--hall-size-control-small);
-    height: var(--hall-size-control-small);
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    cursor: pointer;
-  }
-  .geographic-layer-edit[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .geographic-layer-edit:hover:not(:disabled) { color: var(--hall-color-text); background: var(--hall-color-surface); }
-  .geographic-layer-edit:disabled { cursor: default; opacity: var(--hall-opacity-disabled); }
-  .geographic-layer-visible {
-    display: inline-grid;
-    width: var(--hall-size-control-small);
-    height: var(--hall-size-control-small);
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text-subtle);
-    background: transparent;
-    cursor: pointer;
-  }
-  .geographic-layer-visible[aria-pressed="true"] { color: var(--hall-color-brand); }
-  .geographic-layer-visible:hover:not(:disabled) { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
-  .geographic-layer-visible:disabled { cursor: default; opacity: var(--hall-opacity-disabled); }
   .geographic-layer-name { overflow: hidden; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); text-overflow: ellipsis; white-space: nowrap; }
   .geographic-layer-enabled .geographic-layer-name { color: var(--hall-color-text); font-weight: var(--hall-font-weight-medium); }
   .geographic-layer-opacity {
@@ -511,19 +423,6 @@
   .geographic-measurement-name:disabled { cursor: default; }
   .geographic-measurement-input { min-width: 0; font: inherit; }
   .geographic-measurement-value { color: var(--hall-color-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .geographic-measurement-remove {
-    display: inline-grid;
-    width: var(--hall-size-control-small);
-    height: var(--hall-size-control-small);
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    cursor: pointer;
-  }
-  .geographic-measurement-remove:hover { color: var(--hall-color-danger); background: var(--hall-color-surface-subtle); }
   .geographic-measures-body {
     display: grid;
     min-height: 0;
@@ -553,20 +452,6 @@
     color: var(--hall-color-text);
     font-variant-numeric: tabular-nums;
   }
-  .geographic-measures-values dd button {
-    display: inline-grid;
-    width: var(--hall-size-control-small);
-    height: var(--hall-size-control-small);
-    flex: none;
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    cursor: pointer;
-  }
-  .geographic-measures-values dd button:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
   .geographic-measures-option { display: flex; align-items: center; gap: var(--hall-space-1); color: var(--hall-color-text-muted); }
   .geographic-measures-position { display: grid; gap: var(--hall-space-0-5); }
   .geographic-panel-header {
@@ -642,24 +527,6 @@
   .geographic-composition-feature-modifying {
     border-style: dashed;
     border-color: var(--hall-color-brand);
-  }
-  .geographic-composition-feature button {
-    border: 0;
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    font: inherit;
-    cursor: pointer;
-  }
-  .geographic-composition-feature-select,
-  .geographic-composition-feature-fit,
-  .geographic-composition-feature-measures,
-  .geographic-composition-feature-menu {
-    display: inline-grid;
-    width: var(--hall-size-control-small);
-    height: var(--hall-size-control-small);
-    place-items: center;
-    padding: 0;
-    border-radius: var(--hall-radius-small);
   }
   .geographic-composition-feature[data-hidden="true"] .geographic-composition-feature-name {
     color: var(--hall-color-text-subtle);

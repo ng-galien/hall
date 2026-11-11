@@ -33,57 +33,31 @@
   --hall-color-nature-folder: #42506a;
   /* Reserved to marks of officiality. */
   --hall-color-seal: #7b2d3b;
-  --hall-color-seal-strong: #5e2029;
   --hall-color-seal-surface: #f7ebed;
-  --hall-color-seal-border: #dfbcc2;
   --hall-color-success: #1f7a4a;
   --hall-color-success-strong: #155c37;
   --hall-color-success-surface: #edf7f1;
-  --hall-color-success-surface-strong: #1f7a4a;
   --hall-color-success-border: #a9d7bc;
-  --hall-color-success-border-strong: #77bd96;
   --hall-color-warning: #a2620b;
   --hall-color-warning-strong: #784607;
   --hall-color-warning-surface: #fff7e8;
-  --hall-color-warning-surface-strong: #a2620b;
   --hall-color-warning-border: #e8c58c;
   --hall-color-danger: #b42323;
   --hall-color-danger-strong: #8b1a1a;
   --hall-color-danger-border: #f0b9b9;
-  --hall-color-danger-border-strong: #dc8f8f;
   --hall-color-danger-surface: #fdf0f0;
-  --hall-color-danger-surface-strong: #b42323;
   --hall-color-focus: #2457d6;
   /* Filled field: tinted surface and an underline that turns blue on focus. */
   --hall-color-field: #eef1f5;
   --hall-color-field-hover: #e6eaf0;
   --hall-color-field-line: #42506a;
-  /* Meeting mode layer, aliased so it follows the active theme. */
-  --hall-color-ink: var(--hall-color-surface);
-  --hall-color-ink-raised: var(--hall-color-surface);
-  --hall-color-ink-hover: var(--hall-color-surface-selected);
-  --hall-color-ink-border: var(--hall-color-border);
-  --hall-color-ink-text: var(--hall-color-text);
-  --hall-color-ink-text-muted: var(--hall-color-text-muted);
-  --hall-color-ink-accent: var(--hall-color-brand);
-  --hall-color-on-ink-accent: var(--hall-color-on-brand);
-  --hall-color-ink-accent-hover: var(--hall-color-brand-hover);
   --hall-color-success-on-ink: var(--hall-color-success);
   --hall-color-danger-on-ink: var(--hall-color-danger);
   --hall-color-warning-on-ink: var(--hall-color-warning);
   --hall-color-verdict-adopted: var(--hall-color-success);
   --hall-color-verdict-adopted-strong: var(--hall-color-success-strong);
-  --hall-color-verdict-adopted-surface: var(--hall-color-success-surface);
-  --hall-color-verdict-adopted-on-ink: var(--hall-color-success-on-ink);
   --hall-color-verdict-rejected: var(--hall-color-danger);
   --hall-color-verdict-rejected-strong: var(--hall-color-danger-strong);
-  --hall-color-verdict-rejected-surface: var(--hall-color-danger-surface);
-  --hall-color-verdict-rejected-on-ink: var(--hall-color-danger-on-ink);
-  --hall-color-vote-required: var(--hall-color-warning-on-ink);
-  --hall-color-vote-required-strong: var(--hall-color-warning-strong);
-  --hall-color-vote-required-surface: var(--hall-color-warning-surface);
-  --hall-color-disabled-surface: #eceff3;
-  --hall-color-disabled-text: #8a93a1;
   --hall-color-transparent: transparent;
 
   /* 4px grid, with a 2px half step. */
@@ -100,11 +74,6 @@
   --hall-space-7: 28px;
   --hall-space-10: 40px;
   --hall-task-checkbox-offset: .2em;
-  --hall-meeting-header-actions-width: 15rem;
-  --hall-meeting-facts-date-width: 4.5rem;
-  --hall-meeting-facts-time-width: 7rem;
-  --hall-meeting-facts-short-width: 5rem;
-  --hall-meeting-facts-detail-min-width: 11rem;
   --hall-minutes-fact-label-width: 10rem;
   --hall-minutes-point-marker-width: 2rem;
   --hall-search-filter-height: 12.25rem;
@@ -123,7 +92,6 @@
   --hall-font-size-heading-large: 24px;
   --hall-font-size-display-small: 28px;
   --hall-font-size-display: 32px;
-  --hall-font-size-display-large: 40px;
   /* Relative to the surrounding text. */
   --hall-font-size-code-inline: 0.92em;
   /* Phosphor glyphs fill their box, so icons sit one step below the type scale. */
@@ -144,11 +112,8 @@
   --hall-line-height-body-small: 20px;
   --hall-line-height-body-large: 24px;
   --hall-line-height-heading: 28px;
-  --hall-line-height-heading-large: 32px;
   --hall-line-height-display-small: 36px;
   --hall-line-height-display: 40px;
-  --hall-line-height-display-large: 52px;
-  --hall-letter-spacing-section: 0.08em;
   --hall-letter-spacing-heading: -0.02em;
   --hall-letter-spacing-brand: 0.18em;
 
@@ -163,19 +128,14 @@
   --hall-stroke-thin: 1px;
   --hall-stroke-thick: 2px;
   --hall-stroke-heavy: 3px;
-  --hall-stamp-rotation: -2deg;
 
   /* Controls: 4px grid, below 120px. */
   --hall-size-resize-handle: 4px;
   --hall-size-scrollbar-border: 4px;
   --hall-size-scrollbar: 12px;
   --hall-size-glyph-mark-compact: 12px;
-  --hall-size-table-handle-short: 12px;
   --hall-size-glyph-mark: 16px;
   --hall-size-glyph-compact: 20px;
-  --hall-size-tag-chip: 20px;
-  --hall-size-table-handle-long: 20px;
-  --hall-size-table-extend: 20px;
   --hall-size-crumb-chevron: 20px;
   --hall-size-glyph-mark-large: 24px;
   --hall-size-navigation-count: 24px;
@@ -188,16 +148,11 @@
   --hall-size-touch-control: 44px;
   --hall-font-size-touch-input: 16px;
   --hall-size-color-picker-named: 18rem;
-  --hall-size-navigation-row: 32px;
   --hall-size-member-avatar: 32px;
   --hall-size-glyph-large: 40px;
   --hall-size-metric-icon: 40px;
-  --hall-size-table-column-step: 40px;
   --hall-size-header: 52px;
   --hall-size-phone-bar: 64px;
-  --hall-size-phone-bar-icon: 28px;
-  --hall-size-phone-more-tile: 96px;
-  --hall-size-phone-explorer-glyph: 32px;
   --hall-size-sidebar-compact: 52px;
   --hall-size-data-row: 56px;
   /* List row height: under a finger or at phone width, then with a pointer. */
@@ -208,12 +163,9 @@
   --hall-size-live-rail-collapsed: 64px;
   --hall-size-textarea-min: 72px;
   --hall-size-tag-input-field-min: 80px;
-  --hall-size-business-progress: 80px;
   --hall-size-facet-label: 88px;
 
   /* Layout: 20px step. */
-  --hall-size-card: 120px;
-  --hall-size-vote-zone-min: 120px;
   --hall-size-markdown-min: 120px;
   --hall-size-editor-compact-min: 88px;
   --hall-size-search-field-min: 120px;
@@ -223,30 +175,24 @@
   --hall-size-geographic-layers: 220px;
   --hall-size-tag-input-min: 220px;
   --hall-size-entity-card: 240px;
-  --hall-size-secret-participants-max: 240px;
   --hall-size-sidebar: 240px;
   --hall-size-rollcall-tile: 240px;
   --hall-size-hit-card: 260px;
   --hall-size-mention-menu: 280px;
-  --hall-size-rail-min: 280px;
   --hall-size-workbench-aside-min: 280px;
   --hall-size-agenda-rail: 320px;
   --hall-size-workspace-list: 320px;
   --hall-size-workbench-aside-max: 340px;
-  --hall-size-meeting-sidebar: 360px;
   --hall-size-picker-panel: 360px;
   --hall-size-mention-menu-max: 360px;
   --hall-size-search-max: 360px;
   --hall-size-live-rail: 380px;
   --hall-size-picker-panel-max: 380px;
   --hall-size-resource-picker-max-height: 520px;
-  --hall-size-toolbar-attach: 420px;
   --hall-size-auth-panel: 440px;
   --hall-size-preview-failure: 520px;
-  --hall-size-rail-max: 560px;
   --hall-size-editor-pdf-preview-min: 560px;
   --hall-size-resource-picker: 640px;
-  --hall-size-table-column-max: 600px;
   --hall-size-dialog-height-max: 640px;
   --hall-size-modal: 680px;
   --hall-size-modal-wide: 900px;
@@ -255,7 +201,6 @@
   --hall-size-editor-pdf-preview-max: 900px;
   --hall-size-live-stage-max: 1080px;
   --hall-size-editor-dialog: 1120px;
-  --hall-size-document-viewer: 1200px;
   --hall-size-content-max: 1500px;
 
   /* Shared relative and fixed sizes used by feature styles. */
@@ -263,19 +208,13 @@
   --hall-size-relative-52rem: 52rem;
   --hall-letter-spacing-tight: -0.01em;
   --hall-size-fixed-208px: 208px;
-  --hall-letter-spacing-feature-label: 0.06em;
   --hall-size-fixed-288px: 288px;
   --hall-size-relative-28rem: 28rem;
   --hall-size-glyph-intermediate: 18px;
-  --hall-letter-spacing-feature-heading: 0.14em;
   --hall-size-relative-4rem: 4rem;
-  --hall-size-relative-1-25rem: 1.25rem;
-  --hall-size-relative-75rem: 75rem;
   --hall-size-relative-24rem: 24rem;
   --hall-size-relative-1rem: 1rem;
   --hall-size-relative-8rem: 8rem;
-  --hall-size-relative-5rem: 5rem;
-  --hall-size-relative-375rem: 375rem;
   --hall-size-relative-1-75rem: 1.75rem;
   --hall-size-relative-25rem: 25rem;
   --hall-size-zero: 0px;
@@ -288,42 +227,31 @@
   --hall-size-relative-2rem: 2rem;
   --hall-size-relative-38rem: 38rem;
   --hall-size-relative-30rem: 30rem;
-  --hall-letter-spacing-feature-kicker: 0.15em;
-  --hall-text-underline-offset: 0.15em;
   --hall-size-relative-10rem: 10rem;
 
   /* Breakpoints are 760, 1000, 1280. A CSS variable is not readable inside a media query,
      so they stay literal in the sheets. */
 
   /* Viewport and text relative, off grid by nature. */
-  --hall-size-editor-dialog-min: 60vh;
   --hall-size-embed-height: 62vh;
   --hall-size-dialog-height: 70vh;
   --hall-size-overlay-height: 88vh;
   --hall-size-overlay-width: 92vw;
   --hall-size-viewer-height: 95vh;
   --hall-size-viewer-width: 97vw;
-  --hall-size-image-control-max: 45vw;
   --hall-size-tree-max: 40vh;
   --hall-size-crumb-max: 40ch;
   --hall-size-editor-measure: 74ch;
   --hall-motion-distance: 4px;
-  --hall-motion-ultra-fast: 50ms;
-  --hall-motion-faster: 100ms;
   --hall-motion-fast: 140ms;
   --hall-motion-normal: 200ms;
   --hall-motion-status: 2000ms;
   --hall-motion-spinner: 800ms;
-  --hall-motion-pulse: 1000ms;
-  --hall-motion-curve-accelerate: cubic-bezier(0.7, 0, 1, 0.5);
   --hall-motion-curve-decelerate: cubic-bezier(0.1, 0.9, 0.2, 1);
   --hall-motion-curve-standard: cubic-bezier(0.33, 0, 0.67, 1);
   --hall-opacity-pulse: 0.55;
-  --hall-opacity-pulse-deep: 0.3;
   --hall-opacity-disabled: 0.4;
   --hall-opacity-guide: 0.5;
-  --hall-opacity-empty-state: 60%;
-  --hall-opacity-backdrop: 42%;
   /* Layering scale, in increasing order: content < sticky < dialog < popover < toast. */
   --hall-z-content: 1;
   --hall-z-sticky: 10;
@@ -355,26 +283,19 @@
   --hall-color-selection-subtle: #1c2030;
   --hall-color-selection-border: #343b5e;
   --hall-color-seal: #d38f9a;
-  --hall-color-seal-strong: #e3adb6;
   --hall-color-seal-surface: #2c1e22;
-  --hall-color-seal-border: #4b3339;
   --hall-color-success: #6fbc8e;
   --hall-color-success-strong: #8fd0a8;
   --hall-color-success-surface: #16281f;
-  --hall-color-success-surface-strong: #2f7a52;
   --hall-color-success-border: #2c4a39;
-  --hall-color-success-border-strong: #46765c;
   --hall-color-warning: #d5a25a;
   --hall-color-warning-strong: #e6bc80;
   --hall-color-warning-surface: #282116;
-  --hall-color-warning-surface-strong: #8a5a11;
   --hall-color-warning-border: #4a3e28;
   --hall-color-danger: #e08d8a;
   --hall-color-danger-strong: #eeaba8;
   --hall-color-danger-border: #4c302f;
-  --hall-color-danger-border-strong: #6d4644;
   --hall-color-danger-surface: #2a1c1c;
-  --hall-color-danger-surface-strong: #a33330;
   --hall-color-nature-writing: #7f9cf0;
   --hall-color-nature-data: #4fb3df;
   --hall-color-nature-visual: #a68cf0;
@@ -384,8 +305,6 @@
   --hall-color-field: #23272f;
   --hall-color-field-hover: #2a2f39;
   --hall-color-field-line: #9aa5b8;
-  --hall-color-disabled-surface: #23272f;
-  --hall-color-disabled-text: #6b7280;
 
   --hall-shadow-small: 0 1px 2px rgb(0 0 0 / 45%);
   --hall-shadow-medium: 0 2px 6px rgb(0 0 0 / 50%);
