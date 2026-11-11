@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { MembersIcon } from "../../components/icons";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, apiSirenRequest, type SirenApiResult, submitSirenAction } from "../../services/apiClient";
@@ -69,7 +69,7 @@ export function MailGroups({
   return (
     <Modal open testId="mail-groups-dialog" title={t("mail.groups")} onClose={onClose}>
       <RequestErrorBanner error={error ? apiErrorCode(error) : null} />
-      <div className="grid gap-3">
+      <div className="modal-form">
         {groups?.data.length ? (
           <ListRows>
             {groups.data.map((group) => (
@@ -90,20 +90,25 @@ export function MailGroups({
           </ListRows>
         ) : null}
         {groups?.representation && findSirenAction(groups.representation, "mail-group.create") ? (
-          <Button variant="secondary" data-testid="mail-group-new" onClick={() => void edit()}>
+          <Button
+            variant="secondary"
+            className="mail-group-new"
+            data-testid="mail-group-new"
+            onClick={() => void edit()}
+          >
             {t("mail.newGroup")}
           </Button>
         ) : null}
         {current ? (
-          <div className="grid gap-3 border-t pt-3">
-            <Label htmlFor="mail-group-name">{t("mail.groupName")}</Label>
-            <Input
-              id="mail-group-name"
-              data-testid="mail-group-name"
-              value={name}
-              disabled={!canSave || busy}
-              onChange={(event) => setName(event.target.value)}
-            />
+          <div className="mail-group-editor">
+            <Field label={t("mail.groupName")}>
+              <Input
+                data-testid="mail-group-name"
+                value={name}
+                disabled={!canSave || busy}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </Field>
             <MailRecipients
               kind="to"
               recipients={recipients}
@@ -112,19 +117,26 @@ export function MailGroups({
               disabled={!canSave || busy}
               testId="mail-group-members"
             />
-            {id && findSirenAction(current, "mail-group.delete") ? (
-              <Button
-                variant="plain"
-                data-testid="mail-group-delete"
-                disabled={busy}
-                onClick={() => setDeleteOpen(true)}
-              >
-                {t("common.delete")}
-              </Button>
-            ) : null}
+            <div className="dialog-actions">
+              {id && findSirenAction(current, "mail-group.delete") ? (
+                <Button
+                  variant="secondary"
+                  data-testid="mail-group-delete"
+                  disabled={busy}
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  {t("common.delete")}
+                </Button>
+              ) : null}
+              {canSave ? (
+                <Button disabled={busy || !name.trim()} data-testid="mail-group-save" onClick={() => void save()}>
+                  {t("common.save")}
+                </Button>
+              ) : null}
+            </div>
             {deleteOpen ? (
-              <div>
-                <p>{t("mail.deleteGroupHelp")}</p>
+              <div className="dialog-actions">
+                <p className="mail-group-delete-help">{t("mail.deleteGroupHelp")}</p>
                 <Button
                   variant="danger"
                   data-testid="mail-group-delete-confirm"
@@ -145,11 +157,6 @@ export function MailGroups({
                   {t("common.delete")}
                 </Button>
               </div>
-            ) : null}
-            {canSave ? (
-              <Button disabled={busy || !name.trim()} data-testid="mail-group-save" onClick={() => void save()}>
-                {t("common.save")}
-              </Button>
             ) : null}
           </div>
         ) : null}

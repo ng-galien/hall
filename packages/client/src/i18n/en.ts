@@ -35,6 +35,7 @@ export const en = {
   "mail.verifiedSent": "Submission found in Outlook",
   "mail.verifiedNotSent": "No submission found",
   "mail.verificationHelp": "After checking Sent Items and Outbox in Outlook, record the result.",
+  "mail.verificationOutcome": "Check outcome",
   "mail.verificationNotes": "Describe the check performed",
   "mail.sendUnavailable": "Sending is unavailable with your current permissions or while the message has errors.",
   "mail.unsaved": "Unsaved changes",

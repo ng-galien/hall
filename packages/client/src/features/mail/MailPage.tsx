@@ -7,16 +7,16 @@ import {
   type SirenEntity,
 } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { MailIcon } from "../../components/icons";
+import { MailIcon, UploadIcon } from "../../components/icons";
 import { ResourceSearchField } from "../../components/search/ResourceSearchField";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { CreateButton } from "../../components/ui/create-button";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { ListRow, ListRowIcon, type ListRowStatus, ListRows } from "../../components/ui/list-row";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -40,6 +40,7 @@ export function MailPage() {
   const navigate = useNavigate();
   const [collection, setCollection] = useState<SirenApiResult<MailMessage[]> | null>(null);
   const [opened, setOpened] = useState<SirenApiResult<MailMessage> | null>(null);
+  const uploadInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<MailMessage | null>(null);
   const [selections, setSelections] = useState(emptySelections);
   const [groups, setGroups] = useState<MailRecipientGroup[]>([]);
@@ -184,7 +185,7 @@ export function MailPage() {
       <PageHeader title={t("mail.title")} description={t("mail.description")} />
       <div className="page-content">
         <RequestErrorBanner error={error ? apiErrorCode(error) : null} />
-        <div className="flex items-center gap-2 pb-4">
+        <div className="mail-toolbar">
           <CreateButton
             testId="mail-new"
             options={
@@ -201,7 +202,7 @@ export function MailPage() {
                 : []
             }
           />
-          <Button variant="plain" data-testid="mail-groups" onClick={() => setGroupsOpen(true)}>
+          <Button variant="secondary" data-testid="mail-groups" onClick={() => setGroupsOpen(true)}>
             {t("mail.groups")}
           </Button>
         </div>
@@ -239,9 +240,16 @@ export function MailPage() {
                 <Button variant="plain" className="lg:hidden" data-testid="mail-back" onClick={() => navigate("/mail")}>
                   {t("common.back")}
                 </Button>
-                <span className="mr-auto text-sm text-muted-foreground">{status(draft).label}</span>
+                <span className="record-state mail-state" data-tone={status(draft).tone}>
+                  {status(draft).label}
+                </span>
                 {findSirenAction(opened.representation, "mail.delete") ? (
-                  <Button variant="plain" data-testid="mail-delete" disabled={busy} onClick={() => setDeleteOpen(true)}>
+                  <Button
+                    variant="secondary"
+                    data-testid="mail-delete"
+                    disabled={busy}
+                    onClick={() => setDeleteOpen(true)}
+                  >
                     {t("common.delete")}
                   </Button>
                 ) : null}
@@ -374,17 +382,14 @@ export function MailPage() {
                     />
                   ))
                 : null}
-              <div className="flex items-center gap-3 border-y py-3">
-                <Label htmlFor="mail-subject">{t("mail.subject")}</Label>
+              <Field label={t("mail.subject")} className="mail-subject">
                 <Input
-                  id="mail-subject"
                   data-testid="mail-subject"
-                  className="border-0 shadow-none"
                   value={draft.subject}
                   disabled={!editable || busy}
                   onChange={(event) => setDraft({ ...draft, subject: event.target.value })}
                 />
-              </div>
+              </Field>
               <div className="py-4">
                 <MarkdownEditor
                   testId="mail-body"
@@ -408,7 +413,7 @@ export function MailPage() {
                     <span className="text-muted-foreground">{Math.ceil(file.byteSize / 1024)} Ko</span>
                     {editable ? (
                       <Button
-                        variant="plain"
+                        variant="secondary"
                         data-testid={`mail-attachment-remove-${file.id}`}
                         disabled={busy}
                         onClick={() =>
@@ -436,10 +441,20 @@ export function MailPage() {
                 ))}
                 {findSirenAction(opened.representation, "mail.upload-attachment") ? (
                   <div>
-                    <Label htmlFor="mail-upload">{t("mail.upload")}</Label>
-                    <Input
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={busy}
+                      data-testid="mail-upload-open"
+                      onClick={() => uploadInput.current?.click()}
+                    >
+                      <UploadIcon />
+                      {t("mail.upload")}
+                    </Button>
+                    <input
+                      ref={uploadInput}
+                      hidden
                       type="file"
-                      id="mail-upload"
                       data-testid="mail-upload"
                       disabled={busy}
                       onChange={(event) => {
@@ -548,25 +563,30 @@ export function MailPage() {
         {deleteOpen && opened?.representation ? (
           <Modal open testId="mail-delete-dialog" title={t("mail.deleteDraft")} onClose={() => setDeleteOpen(false)}>
             <p>{t("mail.deleteDraftHelp")}</p>
-            <Button
-              variant="danger"
-              disabled={busy}
-              data-testid="mail-delete-confirm"
-              onClick={() =>
-                void operation(async () => {
-                  await submitSirenAction(opened.representation!, "mail.delete", {
-                    expectedRevision: opened.data.revision,
-                  });
-                  setDeleteOpen(false);
-                  setDraft(null);
-                  setOpened(null);
-                  await refresh();
-                  navigate("/mail");
-                })
-              }
-            >
-              {t("common.delete")}
-            </Button>
+            <div className="dialog-actions">
+              <Button variant="secondary" disabled={busy} onClick={() => setDeleteOpen(false)}>
+                {t("common.cancel")}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={busy}
+                data-testid="mail-delete-confirm"
+                onClick={() =>
+                  void operation(async () => {
+                    await submitSirenAction(opened.representation!, "mail.delete", {
+                      expectedRevision: opened.data.revision,
+                    });
+                    setDeleteOpen(false);
+                    setDraft(null);
+                    setOpened(null);
+                    await refresh();
+                    navigate("/mail");
+                  })
+                }
+              >
+                {t("common.delete")}
+              </Button>
+            </div>
           </Modal>
         ) : null}
         {groupsOpen ? (
@@ -657,55 +677,63 @@ export function MailPage() {
         ) : null}
         {verification ? (
           <Modal open testId="mail-verify-dialog" title={t("mail.verify")} onClose={() => setVerification(null)}>
-            <div className="grid gap-3">
+            <div className="modal-form">
               <p>{t("mail.verificationHelp")}</p>
-              <Select
-                value={verificationOutcome}
-                onValueChange={(value) => setVerificationOutcome(value === "sent" ? "sent" : "not-sent")}
-              >
-                <SelectTrigger data-testid="mail-verification-outcome">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sent" data-testid="mail-verification-sent">
-                    {t("mail.verifiedSent")}
-                  </SelectItem>
-                  <SelectItem value="not-sent" data-testid="mail-verification-not-sent">
-                    {t("mail.verifiedNotSent")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                data-testid="mail-verification-notes"
-                value={verificationNotes}
-                onChange={(event) => setVerificationNotes(event.target.value)}
-                placeholder={t("mail.verificationNotes")}
-              />
-              <Button
-                data-testid="mail-verification-confirm"
-                disabled={busy || !verificationNotes.trim()}
-                onClick={() =>
-                  void operation(async () => {
-                    adopt(
-                      await submitSirenAction<MailMessage>(verification, "mail.verify-submission", {
-                        outcome: verificationOutcome,
-                        notes: verificationNotes,
-                      }),
-                    );
-                    setVerification(null);
-                    await refresh();
-                  })
-                }
-              >
-                {t("common.save")}
-              </Button>
+              <Field label={t("mail.verificationOutcome")}>
+                <Select
+                  value={verificationOutcome}
+                  onValueChange={(value) => setVerificationOutcome(value === "sent" ? "sent" : "not-sent")}
+                >
+                  <SelectTrigger data-testid="mail-verification-outcome">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sent" data-testid="mail-verification-sent">
+                      {t("mail.verifiedSent")}
+                    </SelectItem>
+                    <SelectItem value="not-sent" data-testid="mail-verification-not-sent">
+                      {t("mail.verifiedNotSent")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={t("mail.verificationNotes")}>
+                <Input
+                  data-testid="mail-verification-notes"
+                  value={verificationNotes}
+                  onChange={(event) => setVerificationNotes(event.target.value)}
+                />
+              </Field>
+              <div className="dialog-actions">
+                <Button variant="secondary" onClick={() => setVerification(null)}>
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  data-testid="mail-verification-confirm"
+                  disabled={busy || !verificationNotes.trim()}
+                  onClick={() =>
+                    void operation(async () => {
+                      adopt(
+                        await submitSirenAction<MailMessage>(verification, "mail.verify-submission", {
+                          outcome: verificationOutcome,
+                          notes: verificationNotes,
+                        }),
+                      );
+                      setVerification(null);
+                      await refresh();
+                    })
+                  }
+                >
+                  {t("common.save")}
+                </Button>
+              </div>
             </div>
           </Modal>
         ) : null}
         {blocker.state === "blocked" ? (
           <Modal open title={t("mail.unsaved")} onClose={() => blocker.reset()}>
             <p>{t("mail.unsavedHelp")}</p>
-            <div className="mt-4 flex gap-2">
+            <div className="dialog-actions">
               <Button variant="secondary" data-testid="mail-discard" onClick={() => blocker.proceed()}>
                 {t("mail.discard")}
               </Button>

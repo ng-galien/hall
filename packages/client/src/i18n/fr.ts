@@ -38,6 +38,7 @@ export const fr: Messages = {
   "mail.verifiedNotSent": "Absence d’envoi vérifiée",
   "mail.verificationHelp":
     "Après vérification des éléments envoyés et de la boîte d’envoi dans Outlook, consignez le résultat.",
+  "mail.verificationOutcome": "Résultat de la vérification",
   "mail.verificationNotes": "Précisez la vérification effectuée",
   "mail.sendUnavailable": "L’envoi n’est pas disponible avec vos droits ou tant que le message comporte des erreurs.",
   "mail.unsaved": "Modifications non enregistrées",

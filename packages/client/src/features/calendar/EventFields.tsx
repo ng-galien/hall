@@ -1,12 +1,13 @@
 import type { EventDocument } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
+import { CloseIcon } from "../../components/icons";
 import { ResourceSearchField } from "../../components/search/ResourceSearchField";
-import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
+import { Field, FieldRow } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import { ReferenceBusinessContext } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useContactsStore } from "../../stores/contactsStore";
@@ -42,6 +43,7 @@ export function EventFields({
   const businesses = useCouncilBusinessStore((state) => state.businesses);
   const councilMembers = useCouncilMembersStore((state) => state.members);
   const [guest, setGuest] = useState("");
+  const participantsId = useId();
   const allDay = value.schedule.kind === "allDay";
   const updateDate = (field: "start" | "end", raw: string) => {
     if (!raw) return;
@@ -65,7 +67,7 @@ export function EventFields({
   };
   return (
     <div className="event-fields">
-      <label className="flex items-center gap-2">
+      <label className="checkbox-field">
         <input
           data-testid="event-all-day"
           type="checkbox"
@@ -85,11 +87,9 @@ export function EventFields({
         />
         {t("calendar.allDay")}
       </label>
-      <div className="event-date-fields">
-        <div>
-          <Label htmlFor="event-start">{t("calendar.start")}</Label>
+      <FieldRow>
+        <Field label={t("calendar.start")}>
           <Input
-            id="event-start"
             data-testid="event-start"
             type={allDay ? "date" : "datetime-local"}
             step={allDay ? undefined : 900}
@@ -97,11 +97,9 @@ export function EventFields({
             value={allDay ? value.schedule.start : localDateTime(value.schedule.start)}
             onChange={(event) => updateDate("start", event.target.value)}
           />
-        </div>
-        <div>
-          <Label htmlFor="event-end">{t("calendar.end")}</Label>
+        </Field>
+        <Field label={t("calendar.end")}>
           <Input
-            id="event-end"
             data-testid="event-end"
             type={allDay ? "date" : "datetime-local"}
             step={allDay ? undefined : 900}
@@ -109,11 +107,10 @@ export function EventFields({
             value={allDay ? shiftDate(value.schedule.end, -1) : localDateTime(value.schedule.end)}
             onChange={(event) => updateDate("end", event.target.value)}
           />
-        </div>
-      </div>
+        </Field>
+      </FieldRow>
       {onCouncilBusinessChange ? (
-        <div>
-          <Label htmlFor="event-council-business">{t("calendar.councilBusiness")}</Label>
+        <Field label={t("calendar.councilBusiness")}>
           <ResourceSearchField
             testId="event-council-business"
             label={
@@ -125,52 +122,51 @@ export function EventFields({
             onClear={() => void onCouncilBusinessChange(null)}
             clearLabel={t("calendar.noCouncilBusiness")}
           />
-        </div>
+        </Field>
       ) : null}
-      <div>
-        <Label htmlFor="event-location">{t("calendar.location")}</Label>
+      <Field label={t("calendar.location")}>
         <Input
-          id="event-location"
           data-testid="event-location"
           readOnly={readOnly}
           value={value.location}
           onChange={(event) => onChange({ ...value, location: event.target.value })}
         />
-      </div>
-      <div className="grid gap-2">
-        <Label>{t("calendar.participants")}</Label>
-        <div className="flex flex-wrap gap-2">
-          {value.participants.map((participant, index) => (
-            <Badge
-              variant="outline"
-              className="event-participant-badge"
-              data-testid={`event-participant-${index}`}
-              key={JSON.stringify(participant)}
-            >
-              <span>
-                {matchDiscriminated(participant, "kind", {
+      </Field>
+      <section className="event-participants" aria-labelledby={`${participantsId}-title`}>
+        <h3 id={`${participantsId}-title`}>{t("calendar.participants")}</h3>
+        {value.participants.length > 0 ? (
+          <ListRows>
+            {value.participants.map((participant, index) => (
+              <ListRow
+                data-testid={`event-participant-${index}`}
+                key={JSON.stringify(participant)}
+                title={matchDiscriminated(participant, "kind", {
                   guest: (entry) => entry.name,
                   contact: (entry) => {
                     const contact = contacts.find((item) => item.id === entry.contactId);
                     return contact ? `${contact.firstName} ${contact.lastName}` : t("calendar.contact");
                   },
                 })}
-              </span>
-              {!readOnly && (
-                <Button
-                  type="button"
-                  variant="plain"
-                  className="event-participant-remove"
-                  aria-label={t("common.delete")}
-                  data-testid={`event-remove-participant-${index}`}
-                  onClick={() => onChange({ ...value, participants: value.participants.filter((_, i) => i !== index) })}
-                >
-                  ×
-                </Button>
-              )}
-            </Badge>
-          ))}
-        </div>
+                action={
+                  readOnly ? undefined : (
+                    <Button
+                      type="button"
+                      variant="plain"
+                      size="icon"
+                      aria-label={t("common.delete")}
+                      data-testid={`event-remove-participant-${index}`}
+                      onClick={() =>
+                        onChange({ ...value, participants: value.participants.filter((_, i) => i !== index) })
+                      }
+                    >
+                      <CloseIcon />
+                    </Button>
+                  )
+                }
+              />
+            ))}
+          </ListRows>
+        ) : null}
         {!readOnly && (
           <>
             <Button
@@ -204,15 +200,13 @@ export function EventFields({
                 onChange({ ...value, participants: [...value.participants, { kind: "contact", contactId: item.id }] })
               }
             />
-            <div className="flex gap-2">
-              <Input
-                data-testid="event-guest"
-                aria-label={t("calendar.guest")}
-                value={guest}
-                onChange={(event) => setGuest(event.target.value)}
-              />
+            <div className="event-guest">
+              <Field label={t("calendar.guest")}>
+                <Input data-testid="event-guest" value={guest} onChange={(event) => setGuest(event.target.value)} />
+              </Field>
               <Button
                 type="button"
+                variant="secondary"
                 data-testid="event-add-guest"
                 disabled={!guest.trim()}
                 onClick={() => {
@@ -237,9 +231,9 @@ export function EventFields({
             </p>
           ) : null;
         })()}
-      </div>
-      <div>
-        <Label>{t("calendar.context")}</Label>
+      </section>
+      <div className="event-context">
+        <h3>{t("calendar.context")}</h3>
         <ReferenceBusinessContext.Provider value={councilBusinessId ?? undefined}>
           <MarkdownEditor
             title={t("calendar.context")}

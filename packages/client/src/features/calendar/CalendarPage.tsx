@@ -6,7 +6,7 @@ import themePlugin from "@fullcalendar/react/themes/monarch";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import { type EventDocument, eventDocumentSchema, findSirenAction } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
-import { CalendarIcon } from "../../components/icons";
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "../../components/icons";
 import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { CreateButton } from "../../components/ui/create-button";
@@ -17,8 +17,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CouncilMeetingPage } from "../../pages/council-meetings/CouncilMeetingPage";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
@@ -151,37 +151,32 @@ export function CalendarPage() {
         }
       />
       <div className="calendar-toolbar">
-        <div className="calendar-toolbar-navigation flex items-center gap-2">
-          <Button
-            variant="secondary"
-            className="calendar-today"
-            data-testid="calendar-today"
-            onClick={() => calendar.current?.getApi().today()}
-          >
+        <div className="calendar-toolbar-navigation">
+          <Button variant="secondary" data-testid="calendar-today" onClick={() => calendar.current?.getApi().today()}>
             {t("calendar.today")}
           </Button>
           <Button
             variant="plain"
-            className="calendar-previous"
+            size="icon"
             data-testid="calendar-previous"
             aria-label={t("calendar.previous")}
             onClick={() => calendar.current?.getApi().prev()}
           >
-            ‹
+            <ChevronLeftIcon />
           </Button>
           <Button
             variant="plain"
-            className="calendar-next"
+            size="icon"
             data-testid="calendar-next"
             aria-label={t("calendar.next")}
             onClick={() => calendar.current?.getApi().next()}
           >
-            ›
+            <ChevronRightIcon />
           </Button>
-          <h1 data-testid="calendar-title">{title}</h1>
+          <h2 data-testid="calendar-title">{title}</h2>
         </div>
-        <div className="calendar-toolbar-actions flex gap-2">
-          <div className="calendar-toolbar-views flex">
+        <div className="calendar-toolbar-actions">
+          <div className="calendar-toolbar-views">
             {(
               [
                 { id: "dayGridMonth", label: "calendar.month" },
@@ -191,7 +186,8 @@ export function CalendarPage() {
             ).map((item) => (
               <Button
                 key={item.id}
-                variant={view === item.id ? "secondary" : "plain"}
+                variant="secondary"
+                aria-pressed={view === item.id}
                 data-testid={`calendar-view-${item.id}`}
                 onClick={() => calendar.current?.getApi().changeView(item.id)}
               >
@@ -393,10 +389,10 @@ export function CalendarPage() {
             <DialogTitle>{t(deleteStep === 1 ? "calendar.deleteConfirm" : "calendar.deleteConfirmFinal")}</DialogTitle>
           </DialogHeader>
           <p>{deleteId ? resources.details[deleteId]?.name : ""}</p>
-          <div className="flex justify-end gap-2">
+          <div className="dialog-actions">
             <Button
               data-testid="calendar-delete-cancel"
-              variant="plain"
+              variant="secondary"
               disabled={saving}
               onClick={() => {
                 setDeleteId(null);
@@ -407,6 +403,7 @@ export function CalendarPage() {
             </Button>
             <Button
               data-testid="calendar-delete-confirm"
+              variant="danger"
               disabled={saving}
               onClick={async () => {
                 if (!deleteId || saving || deleting.current) return;
@@ -459,7 +456,7 @@ export function CalendarPage() {
           </DialogHeader>
           {draft && (
             <form
-              className="grid gap-4"
+              className="modal-form"
               onSubmit={async (event) => {
                 event.preventDefault();
                 if (saving) return;
@@ -479,16 +476,14 @@ export function CalendarPage() {
                 } else setError(true);
               }}
             >
-              <div>
-                <Label htmlFor="calendar-name">{t("calendar.title")}</Label>
+              <Field label={t("calendar.title")}>
                 <Input
-                  id="calendar-name"
                   data-testid="calendar-name"
                   required
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                 />
-              </div>
+              </Field>
               <EventFields
                 value={draft}
                 onChange={setDraft}
@@ -496,10 +491,10 @@ export function CalendarPage() {
                 onCouncilBusinessChange={setCouncilBusinessId}
                 readOnly={saving}
               />
-              <div className="flex justify-end gap-2">
+              <div className="dialog-actions">
                 <Button
                   type="button"
-                  variant="plain"
+                  variant="secondary"
                   data-testid="calendar-cancel"
                   disabled={saving}
                   onClick={() => setDraft(null)}
