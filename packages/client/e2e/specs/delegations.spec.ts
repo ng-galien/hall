@@ -54,8 +54,8 @@ test("the secretariat records a representation with dated primary and alternate 
 
   await page.reload();
   await expect(page.getByTestId("delegation-name")).toHaveValue(name);
-  await expect(page.getByTestId("delegation-role-zone-primary")).toContainText("01/04/2026");
-  await expect(page.getByTestId("delegation-role-zone-alternate")).toContainText("15/05/2026");
+  await expect(page.getByTestId("delegation-role-zone-primary")).toContainText("1 avril 2026");
+  await expect(page.getByTestId("delegation-role-zone-alternate")).toContainText("15 mai 2026");
   const memberships = await properties<{ contactId: string; role: string; startedOn: string; endedOn: string | null }>(
     page,
     `/api/council-delegations/${delegationId}/memberships`,
@@ -81,7 +81,7 @@ test("the secretariat records a representation with dated primary and alternate 
   await page.getByTestId("delegation-end-membership-date").fill("2026-09-30");
   await page.getByTestId("delegation-end-membership-confirm").click();
   await expect(page.getByTestId(`delegation-membership-${outsider.id}`)).toHaveCount(0);
-  await expect(page.locator(".admin-membership-history")).toContainText("30/09/2026");
+  await expect(page.locator(".admin-membership-history")).toContainText("30 septembre 2026");
 
   await page.getByTestId("delegation-archive").click();
   await expect(page).toHaveURL(/\/app\/council-delegations$/);

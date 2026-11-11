@@ -1,36 +1,5 @@
 .home-content { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-5); max-width: var(--hall-size-content-max); }
-.home-meeting {
-  display: grid;
-  gap: var(--hall-space-2);
-  justify-items: start;
-  padding: var(--hall-space-5);
-  border: var(--hall-stroke-thin) solid var(--hall-color-border);
-  border-radius: var(--hall-radius-large);
-  background: var(--hall-color-surface);
-}
-.home-meeting-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--hall-space-2);
-  color: var(--hall-color-text-muted);
-  font-size: var(--hall-font-size-caption);
-  font-weight: var(--hall-font-weight-semibold);
-  letter-spacing: var(--hall-letter-spacing-section);
-  text-transform: uppercase;
-}
-.home-meeting-live { color: var(--hall-color-success); }
-.home-meeting-title {
-  color: var(--hall-color-text);
-  font-size: var(--hall-font-size-heading);
-  font-weight: var(--hall-font-weight-semibold);
-  line-height: var(--hall-line-height-heading);
-}
-.home-meeting-place { display: inline-flex; align-items: center; gap: var(--hall-space-1-5); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
-.home-meeting-actions { display: flex; flex-wrap: wrap; gap: var(--hall-space-2); margin-top: var(--hall-space-2); }
-.home-meeting .home-meeting-follow,
-.home-meeting-actions [data-slot="button"] { height: var(--hall-size-touch-control); padding-inline: var(--hall-space-5); font-size: var(--hall-font-size-body); }
-.home-meeting .home-meeting-follow { width: 100%; margin-top: var(--hall-space-2); font-size: var(--hall-font-size-title); }
-.home-meeting-note { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
+.home-meeting .list-row-list { margin: 0; }
 
 .home-documents { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-workspace-list)), 1fr)); gap: var(--hall-space-5); align-items: start; }
 .home-block { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); min-width: 0; }

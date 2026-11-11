@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
+import type { Icon } from "@phosphor-icons/react";
 import {
   CalendarIcon,
   CommitteeIcon,
   ContactIcon,
-  CouncilBusinessIcon,
   DecisionsIcon,
   DelegationIcon,
+  FolderIcon,
   GavelIcon,
   HomeIcon,
   MailIcon,
@@ -19,7 +19,8 @@ import type { TranslationKey } from "../i18n/en";
 export interface NavigationItem {
   to: string;
   labelKey: TranslationKey;
-  icon: ReactNode;
+  /** Outline icon; the active destination draws it with a thicker stroke. */
+  Icon: Icon;
   /** Renders the filing path tree under this entry. */
   workspaceTree?: boolean;
   requiredRelation?: string;
@@ -52,18 +53,18 @@ export function navigationItem(to: string): NavigationItem {
 
 export const navigationSections: NavigationSection[] = [
   {
-    items: [{ to: "/", labelKey: "navigation.overview", icon: <HomeIcon /> }],
+    items: [{ to: "/", labelKey: "navigation.home", Icon: HomeIcon }],
   },
   {
     labelKey: "navigation.council",
     items: [
-      { to: "/meetings", requiredRelation: "council-meetings", labelKey: "navigation.meetings", icon: <GavelIcon /> },
-      { to: "/minutes", requiredRelation: "minutes", labelKey: "navigation.minutes", icon: <MinutesIcon /> },
+      { to: "/meetings", requiredRelation: "council-meetings", labelKey: "navigation.meetings", Icon: GavelIcon },
+      { to: "/minutes", requiredRelation: "minutes", labelKey: "navigation.minutes", Icon: MinutesIcon },
       {
         to: "/council-decisions",
         requiredRelation: "council-decisions",
         labelKey: "navigation.decisions",
-        icon: <DecisionsIcon />,
+        Icon: DecisionsIcon,
       },
     ],
   },
@@ -72,40 +73,40 @@ export const navigationSections: NavigationSection[] = [
       {
         to: "/workspace",
         requiredRelation: "resources",
-        labelKey: "navigation.workspace",
-        icon: <CouncilBusinessIcon data-testid="workspace-navigation-business-icon" />,
+        labelKey: "navigation.documents",
+        Icon: FolderIcon,
         workspaceTree: true,
       },
       // @implements-requirement HALL-FR-WSP-310
-      { to: "/maps", requiredRelation: "resources", labelKey: "navigation.maps", icon: <MapIcon /> },
-      { to: "/mail", requiredRelation: "mail", labelKey: "navigation.mail", icon: <MailIcon /> },
-      { to: "/calendar", requiredRelation: "resources", labelKey: "navigation.calendar", icon: <CalendarIcon /> },
+      { to: "/maps", requiredRelation: "resources", labelKey: "navigation.maps", Icon: MapIcon },
+      { to: "/mail", requiredRelation: "mail", labelKey: "navigation.mail", Icon: MailIcon },
+      { to: "/calendar", requiredRelation: "resources", labelKey: "navigation.calendar", Icon: CalendarIcon },
     ],
   },
   {
     labelKey: "navigation.administration",
     items: [
-      { to: "/users", labelKey: "users.title", icon: <MembersIcon />, requiredRelation: "users" },
-      { to: "/contacts", requiredRelation: "contacts", labelKey: "navigation.contacts", icon: <ContactIcon /> },
+      { to: "/users", labelKey: "users.title", Icon: MembersIcon, requiredRelation: "users" },
+      { to: "/contacts", requiredRelation: "contacts", labelKey: "navigation.contacts", Icon: ContactIcon },
       {
         to: "/council-members",
         requiredRelation: "council-members",
         labelKey: "navigation.members",
-        icon: <MembersIcon />,
+        Icon: MembersIcon,
       },
       {
         to: "/council-committees",
         requiredRelation: "council-committees",
         labelKey: "navigation.committees",
-        icon: <CommitteeIcon />,
+        Icon: CommitteeIcon,
       },
       {
         to: "/council-delegations",
         requiredRelation: "council-delegations",
         labelKey: "navigation.delegations",
-        icon: <DelegationIcon />,
+        Icon: DelegationIcon,
       },
-      { to: "/templates", requiredRelation: "templates", labelKey: "navigation.templates", icon: <TemplateIcon /> },
+      { to: "/templates", requiredRelation: "templates", labelKey: "navigation.templates", Icon: TemplateIcon },
     ],
   },
 ];

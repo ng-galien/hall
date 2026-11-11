@@ -5,42 +5,43 @@ import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { normalizeForSearch } from "../lib/search";
 import type { ApiErrorCode } from "../services/apiClient";
+import { ScreenTitle } from "../shell/headerTrail";
 import { CloseIcon, SearchIcon } from "./icons";
 
+/**
+ * Names the screen in the large title of the screen header and lays out what goes under it: the description, shown
+ * from tablet width, and the controls of the page. It never repeats the title.
+ */
 export function PageHeader({
   title,
   description,
   children,
   titleAction,
   above,
-  keepTitleOnPhone = false,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children?: ReactNode;
   titleAction?: ReactNode;
   above?: ReactNode;
-  /** The phone header names the section only; a long record title stays on the page. */
-  keepTitleOnPhone?: boolean;
 }) {
+  const controls = titleAction || children;
   return (
-    <header
-      className="page-header border-b border-border bg-surface px-7 py-4"
-      data-phone-title={keepTitleOnPhone ? "page" : "header"}
-      data-phone-empty={!keepTitleOnPhone && !above && !titleAction && !children ? "true" : undefined}
-    >
-      {above}
-      {titleAction ? (
-        <div className="page-header-title-row flex items-center gap-2">
-          <h1 className="page-title">{title}</h1>
-          {titleAction}
+    <>
+      <ScreenTitle>{title}</ScreenTitle>
+      {above || description || controls ? (
+        <div className="page-header">
+          {above}
+          {description ? <p className="page-header-description">{description}</p> : null}
+          {controls ? (
+            <div className="page-header-controls">
+              {titleAction}
+              {children}
+            </div>
+          ) : null}
         </div>
-      ) : (
-        <h1 className="page-title">{title}</h1>
-      )}
-      {description ? <p className="page-header-description mt-1 text-sm text-muted">{description}</p> : null}
-      {children}
-    </header>
+      ) : null}
+    </>
   );
 }
 

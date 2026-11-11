@@ -14,23 +14,9 @@
   :root {
     --hall-size-application-min: 0;
   }
-  .app-header { gap: var(--hall-space-2); }
-  .app-brand { width: auto; }
-  .app-brand > span:last-child { display: none; }
-  .app-breadcrumb { flex: 1; overflow-x: auto; }
-  .app-breadcrumb nav { white-space: nowrap; }
-  .app-connection-label { position: absolute; width: var(--hall-stroke-thin); height: var(--hall-stroke-thin); overflow: hidden; clip-path: inset(50%); }
-  .app-mobile-navigation {
-    width: min(var(--hall-size-overlay-width), var(--hall-size-workspace-list));
-    max-width: none;
-    padding: var(--hall-space-4) 0 0;
-  }
-  .app-mobile-navigation > [data-slot="dialog-title"] { padding-inline: var(--hall-space-4); padding-right: var(--hall-size-control); }
-  .app-mobile-navigation > aside { width: 100%; min-height: 0; flex: 1; border: 0; }
-  .app-mobile-navigation .nav-row { min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-body); }
   .app-main { overflow-x: hidden; }
   .workspace-tree-toggle, .workspace-tree-link { min-height: var(--hall-size-touch-control); }
-  .page-content, .workbench { padding: var(--hall-space-3); }
+  .page-content, .workbench { padding: var(--hall-space-4); }
   .form-grid, .metric-grid, .meeting-summary, .two-columns { grid-template-columns: minmax(0, 1fr); }
   .page-actions, .workbench-header, .workbench-header-side { flex-wrap: wrap; }
   .collection-toolbar { flex-wrap: wrap; }
@@ -48,7 +34,6 @@
   .authentication-panel { padding: var(--hall-space-5); }
   input, textarea, select { font-size: var(--hall-font-size-touch-input); }
   [data-slot="dialog-content"] { max-height: calc(100dvh - var(--hall-space-6)); overflow-y: auto; }
-  [data-slot="dialog-content"].app-mobile-navigation { max-height: 100dvh; }
   .markdown-editor-dialog { width: calc(100vw - var(--hall-space-4)); height: calc(100dvh - var(--hall-space-4)); max-height: calc(100dvh - var(--hall-space-4)); padding: var(--hall-space-3); }
   .markdown-editor-compact { flex-direction: column; }
   .markdown-editor-compact > [role="toolbar"], .markdown-editor-compact > [role="toolbar"].is-visible {
@@ -74,92 +59,8 @@
 }
 
 @media (max-width: 760px) {
-  .app-phone-header {
-    display: flex;
-    height: var(--hall-size-header);
-    flex: none;
-    align-items: center;
-    gap: var(--hall-space-2);
-    padding-inline: var(--hall-space-2);
-    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
-    background: var(--hall-color-surface);
-  }
-  .app-phone-header-back {
-    display: inline-grid;
-    width: var(--hall-size-touch-control);
-    height: var(--hall-size-touch-control);
-    flex: none;
-    place-items: center;
-    color: var(--hall-color-text);
-    font-size: var(--hall-font-size-icon-large);
-  }
-  .app-phone-header-title {
-    min-width: 0;
-    flex: 1;
-    overflow: hidden;
-    color: var(--hall-color-text);
-    font-size: var(--hall-font-size-title);
-    font-weight: var(--hall-font-weight-semibold);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .app-phone-header-title:has(.app-phone-header-page-title:not(:empty)) .app-phone-header-route-title { display: none; }
-  .app-phone-bar {
-    display: flex;
-    flex: none;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
-    background: var(--hall-color-surface);
-  }
-  .app-phone-bar-item {
-    display: flex;
-    min-width: 0;
-    min-height: var(--hall-size-phone-bar);
-    flex: 1 1 0;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--hall-space-0-5);
-    color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-caption);
-  }
-  .app-phone-bar-item > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .app-phone-bar-item > [aria-hidden="true"] { display: inline-grid; }
-  .app-phone-bar-item > [aria-hidden="true"] svg { width: var(--hall-size-phone-bar-icon); height: var(--hall-size-phone-bar-icon); }
-  .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-semibold); }
-  /* The active destination carries a tinted pill behind its icon, in addition to the brand colour. */
-  .app-phone-bar-item > [aria-hidden="true"] { padding: var(--hall-space-1) var(--hall-space-4); border-radius: var(--hall-radius-medium); }
-  .app-phone-bar-item[data-active="true"] > [aria-hidden="true"] { background: var(--hall-color-brand-subtle); }
-  .app-phone-more { padding-bottom: calc(var(--hall-space-6) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
-  .app-phone-more-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-2); }
-  .app-phone-more-list .nav-row {
-    min-height: var(--hall-size-phone-more-tile);
-    flex-direction: column;
-    justify-content: center;
-    gap: var(--hall-space-2);
-    font-size: var(--hall-font-size-caption);
-    text-align: center;
-  }
-  .app-phone-more-list .nav-icon svg { width: var(--hall-size-phone-bar-icon); height: var(--hall-size-phone-bar-icon); }
-  .app-phone-bar-item[data-destination="meetings"] svg { transform: scale(0.88); }
-  .app-phone-bar-item[data-destination="documents"] svg { transform: scale(1.08); }
-
-  .page-header { padding: var(--hall-space-2) var(--hall-space-3); }
-  .page-header[data-phone-empty="true"] { display: none; }
-  .page-header[data-phone-title="header"] .page-title,
-  .page-header[data-phone-title="header"] .page-header-description { display: none; }
-  .page-header-title-row { flex-wrap: wrap; }
-  .page-header-title-row > * { min-width: 0; max-width: 100%; }
-
   .workspace-personal-open { display: none; }
   .workspace-topzone[data-item-open="true"] > :not(input) { display: none; }
-  .app-phone-header-actions { display: flex; flex: none; }
-  .app-phone-header-actions:empty { display: none; }
-  .app-phone-header-more { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-icon-large); }
-  .app-phone-action { min-height: var(--hall-size-touch-control); }
-  /* Every icon button of the phone header is a finger-sized target with the icon size of the « ⋯ » menu. */
-  .app-phone-header-actions [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); border-radius: var(--hall-radius-medium); }
-  .app-phone-header-actions [data-size^="icon"] svg { width: var(--hall-font-size-icon); height: var(--hall-font-size-icon); }
   /* Every drop-down menu of a phone spans the screen width less its margins, with finger-sized rows. */
   [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"] { width: calc(100vw - 2 * var(--hall-space-4)); max-width: none; padding: var(--hall-space-1); border-radius: var(--hall-radius-medium); }
   :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"]) { min-height: var(--hall-size-touch-control); gap: var(--hall-space-3); padding-inline: var(--hall-space-3); border-radius: var(--hall-radius-medium); font-size: var(--hall-font-size-title); }

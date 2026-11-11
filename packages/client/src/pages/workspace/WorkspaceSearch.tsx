@@ -73,7 +73,6 @@ export function PhoneWorkspaceSearch({
   return (
     <>
       <Button
-        className="app-phone-header-more"
         variant="plain"
         size="icon"
         data-testid="workspace-search-open"

@@ -30,8 +30,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLocale,
       t: (key, values) => interpolateMessage(messages[key], values),
       plural: (count, one, other) => pluralMessage(languageTag, count, messages[one], messages[other]),
-      formatDate: (date) => new Date(date).toLocaleDateString(languageTag),
-      formatDateTime: (date) => new Date(date).toLocaleString(languageTag),
+      // @implements-requirement HALL-FR-LAY-080
+      formatDate: (date) =>
+        new Intl.DateTimeFormat(languageTag, { day: "numeric", month: "long", year: "numeric" }).format(new Date(date)),
+      formatDateTime: (date) =>
+        new Intl.DateTimeFormat(languageTag, { dateStyle: "long", timeStyle: "short" }).format(new Date(date)),
       formatTime: (date) =>
         new Intl.DateTimeFormat(languageTag, { hour: "2-digit", minute: "2-digit" }).format(new Date(date)),
       formatNumber: (number, options) => new Intl.NumberFormat(languageTag, options).format(number),

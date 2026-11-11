@@ -23,21 +23,6 @@
   }
   @keyframes spinner-turn { to { transform: rotate(1turn); } }
 
-  .app-brand {
-    width: calc(var(--hall-size-sidebar) + var(--hall-space-4) - var(--hall-space-3) - var(--hall-size-control) - 2 * var(--hall-space-5));
-  }
-  .app-header[data-compact="true"] .app-brand { width: auto; }
-  .app-header-trail { display: flex; min-width: 0; flex: 1; align-items: center; }
-  .app-header-trail:empty { display: none; }
-  .app-header-trail .workspace-breadcrumb {
-    flex-wrap: nowrap;
-    min-width: 0;
-    overflow: hidden;
-    font-size: var(--hall-font-size-body);
-  }
-  .app-header-trail .workspace-crumb { white-space: nowrap; }
-  .app-header-trail .workspace-crumb-current { max-width: none; min-width: 0; }
-
   .icon-button {
     display: inline-grid;
     width: var(--hall-size-control);
@@ -185,34 +170,6 @@
     border-radius: var(--hall-radius-circular);
     outline: var(--hall-stroke-thin) solid var(--hall-color-border-strong);
   }
-
-  .nav-section-label {
-    padding: var(--hall-space-4) var(--hall-space-2) var(--hall-space-1);
-    color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-caption);
-    font-weight: var(--hall-font-weight-semibold);
-    letter-spacing: var(--hall-letter-spacing-section);
-    text-transform: uppercase;
-  }
-  .nav-row {
-    display: flex;
-    min-height: var(--hall-size-navigation-row);
-    align-items: center;
-    gap: var(--hall-space-2-5);
-    padding: 0 var(--hall-space-2);
-    border: 0;
-    border-radius: var(--hall-radius-medium);
-    color: var(--hall-color-text);
-    background: transparent;
-    font-size: var(--hall-font-size-caption);
-    text-align: left;
-    cursor: pointer;
-  }
-  .nav-row:hover { background: var(--hall-color-surface-subtle); }
-  .nav-row-active { background: var(--hall-color-surface-selected); font-weight: var(--hall-font-weight-semibold); }
-  .nav-row-active:hover { background: var(--hall-color-surface-selected); }
-  .nav-icon { display: inline-grid; flex: none; place-items: center; color: var(--hall-color-text); font-size: var(--hall-font-size-icon-large); }
-  .nav-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
 
   .page { min-height: 100%; animation: page-enter var(--hall-motion-fast) var(--hall-motion-curve-decelerate); }
   .page-content { width: 100%; max-width: var(--hall-size-content-max); padding: var(--hall-space-7); }

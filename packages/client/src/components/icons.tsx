@@ -28,6 +28,7 @@ export {
   CaretDoubleLeft as CollapseIcon,
   CaretDoubleRight as ExpandIcon,
   CaretDown as ChevronDownIcon,
+  CaretLeft as ChevronLeftIcon,
   CaretRight as ChevronRightIcon,
   CaretUp as ChevronUpIcon,
   Check as CheckIcon,
@@ -134,7 +135,7 @@ export {
 } from "@phosphor-icons/react";
 
 export function PinnedIcon(props: { className?: string }) {
-  return <PushPin weight="fill" {...props} />;
+  return <PushPin {...props} className={`pinned-icon ${props.className ?? ""}`} />;
 }
 
 /** Icon rendering defaults; size is `1em` so CSS `font-size` drives each glyph. */

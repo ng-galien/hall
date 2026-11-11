@@ -117,8 +117,17 @@
     font-weight: var(--hall-font-weight-bold);
   }
 
-  .list-row[data-prominent="true"] .list-row-main { padding-block: var(--hall-space-4); }
-  .list-row[data-prominent="true"] .list-row-title { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); line-height: var(--hall-line-height-heading); }
+  /* @implements-requirement HALL-FR-LAY-060 */
+  /* Prominent row 4D: the same row, larger: a wider head, a larger title, its action under the text. */
+  .list-row-overline { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
+  .list-row[data-prominent="true"] > .list-row-line { flex-wrap: wrap; }
+  .list-row[data-prominent="true"] .list-row-main { padding-block: var(--hall-space-4) var(--hall-space-2); }
+  .list-row[data-prominent="true"] .list-row-head { width: var(--hall-size-metric-icon); }
+  .list-row[data-prominent="true"] .list-row-head > .type-icon { font-size: var(--hall-size-glyph-large); }
+  .list-row[data-prominent="true"] :is(.list-row-date, .list-row-number) strong { font-size: var(--hall-font-size-heading-large); }
+  .list-row[data-prominent="true"] .list-row-title { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); line-height: var(--hall-line-height-heading); white-space: normal; }
+  .list-row[data-prominent="true"] .list-row-detail { flex-wrap: wrap; white-space: normal; }
+  .list-row[data-prominent="true"] .list-row-action { width: 100%; flex-wrap: wrap; padding: 0 var(--hall-space-3) var(--hall-space-4) calc(var(--hall-space-3) * 2 + var(--hall-size-metric-icon)); }
 
   @media (min-width: 1000px) {
     .list-row-wide { display: flex; }

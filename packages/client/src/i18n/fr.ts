@@ -251,7 +251,7 @@ export const fr: Messages = {
   "workspace.createEvent": "Nouveau rendez-vous",
   "workspace.personalWorkspace": "Mon espace",
   "workspace.attachmentPersonalTakeOver": "Dossier personnel : à reprendre d’abord par le secrétariat",
-  "navigation.calendar": "Calendrier",
+  "navigation.calendar": "Agenda",
   "calendar.meetingLabel": "Conseil municipal {number}",
   "calendar.deleteConfirm": "Supprimer ce rendez-vous ?",
   "calendar.deleteConfirmFinal": "Confirmer définitivement la suppression de ce rendez-vous ?",

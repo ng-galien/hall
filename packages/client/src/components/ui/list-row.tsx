@@ -17,6 +17,8 @@ type ListRowOpen =
 export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "children"> &
   ListRowOpen & {
     head?: ReactNode;
+    /** Short line above the title of a prominent row, such as « Prochaine séance ». */
+    overline?: ReactNode;
     title: ReactNode;
     /** Second line: type, date, place or any short fact. */
     detail?: ReactNode;
@@ -27,6 +29,7 @@ export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "child
     action?: ReactNode;
     /** Content unfolded under the line. */
     children?: ReactNode;
+    /** The main element of a screen (choice 4D): the same row, larger, its action under the text. */
     prominent?: boolean;
     selected?: boolean;
     /** Test identifier of the zone that opens the object. */
@@ -45,6 +48,7 @@ export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "child
  */
 export function ListRow({
   head,
+  overline,
   title,
   detail,
   status,
@@ -68,6 +72,7 @@ export function ListRow({
     <>
       {head ? <span className="list-row-head">{head}</span> : null}
       <span className="list-row-text">
+        {overline ? <span className="list-row-overline">{overline}</span> : null}
         <span className="list-row-title">{title}</span>
         {detail || status ? (
           <span className="list-row-detail">

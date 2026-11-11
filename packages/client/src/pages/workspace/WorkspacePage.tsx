@@ -28,7 +28,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { type DocumentDuplicate, findDocumentDuplicates } from "../../services/documentDuplicates";
-import { HeaderTrail, PhoneHeaderActions } from "../../shell/headerTrail";
+import { HeaderTrail, ScreenActions } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -564,10 +564,10 @@ export function WorkspacePage() {
             </div>
           )}
           {phone && !selection ? (
-            <PhoneHeaderActions>
+            <ScreenActions>
               <PhoneWorkspaceSearch onSelect={select} context={path} />
               {createMenu}
-            </PhoneHeaderActions>
+            </ScreenActions>
           ) : null}
           {folderCapabilities.uploadDocument || folderCapabilities.importSpreadsheet ? (
             <input

@@ -15,7 +15,7 @@ import { InlineResourceContent } from "../../features/resources/InlineResourceCo
 import { AgendaItemStatusBadge } from "../../features/status/DomainStatusBadge";
 import { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useI18n } from "../../i18n/I18nProvider";
-import { PhoneHeaderTitle } from "../../shell/headerTrail";
+import { ScreenTitle } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
@@ -59,9 +59,9 @@ function MeetingPoint({ meetingId, pointId }: { meetingId: string; pointId: stri
   const closed = aggregate.meeting.status === "closed" || aggregate.meeting.status === "cancelled";
   return (
     <article className="phone-point" data-testid={`meeting-point-${item.id}`}>
-      <PhoneHeaderTitle>
+      <ScreenTitle>
         {item.agendaNumber === null ? title : t("meeting.pointNumber", { number: String(item.agendaNumber) })}
-      </PhoneHeaderTitle>
+      </ScreenTitle>
       {business.kind !== "minutesApproval" ? (
         <PhoneDocumentActions
           actions={[

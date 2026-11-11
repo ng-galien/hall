@@ -1,7 +1,9 @@
-import { type ReactNode, useEffect, useState } from "react";
+import type { Icon } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { DocsIcon, FolderIcon, MemberIcon, MoreIcon, SettingsIcon } from "../components/icons";
+import { DocsIcon, MemberIcon, MoreIcon, SettingsIcon } from "../components/icons";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
+import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { useI18n } from "../i18n/I18nProvider";
 import { isUnderPath } from "../pages/workspace/paths";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
@@ -12,8 +14,25 @@ export function personalWorkspaceHref(path: string) {
   return `/workspace?${new URLSearchParams({ path }).toString()}`;
 }
 
+type BarDestination = { id: string; to: string; label: string; Icon: Icon; active: boolean };
+
+/** One entry of the bottom bar: outline icon and permanent label; the active one in blue, bold, thicker stroke. */
+function BarEntry({ id, label, Icon, active }: Pick<BarDestination, "id" | "label" | "Icon" | "active">) {
+  return (
+    <>
+      <span className="app-phone-bar-icon" aria-hidden="true">
+        <Icon weight={active ? "bold" : "regular"} />
+      </span>
+      <span className="app-phone-bar-label" data-destination-label={id}>
+        {label}
+      </span>
+    </>
+  );
+}
+
 // @implements-requirement HALL-FR-LAY-010
-/** Bottom bar of the phone: the councillor's destinations, the rest under Plus. */
+// @implements-requirement HALL-FR-LAY-110
+/** Bottom bar of the phone (choice 1A): five destinations with icon and label, the rest under Plus. */
 // biome-ignore-start lint/correctness/useExhaustiveDependencies: the sheet closes whenever the route changes.
 export function PhoneNavigation() {
   const { t } = useI18n();
@@ -29,12 +48,12 @@ export function PhoneNavigation() {
   const meetings = navigationItem("/meetings");
   const calendar = navigationItem("/calendar");
   const documents = navigationItem("/workspace");
-  const destinations = [
+  const destinations: BarDestination[] = [
     {
       id: "home",
       to: "/",
       label: t("navigation.home"),
-      icon: navigationItem("/").icon,
+      Icon: navigationItem("/").Icon,
       active: location.pathname === "/",
     },
     available(documents.requiredRelation)
@@ -42,7 +61,7 @@ export function PhoneNavigation() {
           id: "documents",
           to: "/workspace",
           label: t("navigation.documents"),
-          icon: <FolderIcon />,
+          Icon: documents.Icon,
           active: inWorkspace && !inPersonal,
         }
       : null,
@@ -51,7 +70,7 @@ export function PhoneNavigation() {
           id: "calendar",
           to: "/calendar",
           label: t(calendar.labelKey),
-          icon: calendar.icon,
+          Icon: calendar.Icon,
           active: location.pathname.startsWith("/calendar"),
         }
       : null,
@@ -60,44 +79,31 @@ export function PhoneNavigation() {
           id: "meetings",
           to: "/meetings",
           label: t("navigation.meetings"),
-          icon: meetings.icon,
+          Icon: meetings.Icon,
           active: location.pathname.startsWith("/meetings"),
         }
       : null,
-    personalPath
-      ? {
-          id: "personal",
-          to: personalWorkspaceHref(personalPath),
-          label: t("workspace.personalWorkspace"),
-          icon: <MemberIcon />,
-          active: inPersonal,
-        }
-      : null,
   ].flatMap((destination) => (destination ? [destination] : []));
-  const barActive = destinations.some((destination) => destination.active);
+  const moreActive = moreOpen || !destinations.some((destination) => destination.active);
 
-  const moreRows = phoneMoreDestinations
-    .map(navigationItem)
-    .filter((item) => available(item.requiredRelation))
-    .map((item) => ({
-      to: item.to,
-      testId: item.to.slice(1),
-      label: t(item.labelKey),
-      icon: item.icon,
-    }));
-
-  const moreRow = (row: { to: string; testId: string; label: string; icon: ReactNode }) => (
-    <Link
-      className="nav-row"
-      data-testid={`phone-more-${row.testId}`}
-      key={row.to}
-      to={row.to}
-      onClick={() => setMoreOpen(false)}
-    >
-      <span className="nav-icon">{row.icon}</span>
-      <span className="min-w-0 max-w-full">{row.label}</span>
-    </Link>
-  );
+  const moreRows = [
+    ...(personalPath
+      ? [
+          {
+            to: personalWorkspaceHref(personalPath),
+            testId: "personal",
+            label: t("workspace.personalWorkspace"),
+            Icon: MemberIcon,
+          },
+        ]
+      : []),
+    ...phoneMoreDestinations
+      .map(navigationItem)
+      .filter((item) => available(item.requiredRelation))
+      .map((item) => ({ to: item.to, testId: item.to.slice(1), label: t(item.labelKey), Icon: item.Icon })),
+    { to: "/docs", testId: "help", label: t("navigation.help"), Icon: DocsIcon },
+    { to: "/settings?category=preferences", testId: "account", label: t("navigation.account"), Icon: SettingsIcon },
+  ];
 
   return (
     <>
@@ -112,43 +118,45 @@ export function PhoneNavigation() {
             key={destination.id}
             to={destination.to}
           >
-            <span aria-hidden="true">{destination.icon}</span>
-            <span className="sr-only">{destination.label}</span>
+            <BarEntry {...destination} />
           </Link>
         ))}
         <button
           type="button"
           className="app-phone-bar-item"
-          data-active={moreOpen || !barActive}
+          data-active={moreActive}
           data-testid="phone-navigation-more"
           aria-expanded={moreOpen}
           onClick={() => setMoreOpen(true)}
         >
-          <span aria-hidden="true">
-            <MoreIcon weight="bold" />
-          </span>
-          <span className="sr-only">{t("navigation.more")}</span>
+          <BarEntry id="more" label={t("navigation.more")} Icon={MoreIcon} active={moreActive} />
         </button>
       </nav>
       <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
         <DialogContent
-          className="app-phone-more"
+          className="app-sheet"
           placement="bottom"
           closeLabel={t("common.close")}
           aria-describedby={undefined}
           data-testid="phone-more"
         >
           <DialogTitle>{t("navigation.more")}</DialogTitle>
-          <div className="app-phone-more-list">
-            {moreRows.map(moreRow)}
-            {moreRow({ to: "/docs", testId: "help", label: t("navigation.help"), icon: <DocsIcon /> })}
-            {moreRow({
-              to: "/settings?category=preferences",
-              testId: "account",
-              label: t("navigation.account"),
-              icon: <SettingsIcon />,
-            })}
-          </div>
+          <ListRows>
+            {moreRows.map((row) => (
+              <ListRow
+                key={row.to}
+                to={row.to}
+                openTestId={`phone-more-${row.testId}`}
+                head={
+                  <ListRowIcon nature="folder">
+                    <row.Icon />
+                  </ListRowIcon>
+                }
+                title={row.label}
+                onClick={() => setMoreOpen(false)}
+              />
+            ))}
+          </ListRows>
         </DialogContent>
       </Dialog>
     </>

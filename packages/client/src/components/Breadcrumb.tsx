@@ -8,23 +8,17 @@ export interface BreadcrumbItem {
   to?: string;
 }
 
+/** Screens above the current one, written in the first line of the screen header. */
 export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   const { t } = useI18n();
   return (
-    <nav aria-label={t("common.breadcrumb")} className="flex min-w-0 items-center gap-1 text-sm text-muted">
+    <nav aria-label={t("common.breadcrumb")} className="breadcrumb">
       {items.map((item, index) => {
-        const last = index === items.length - 1;
-        const content = <span className={`truncate ${last ? "font-semibold text-text" : ""}`}>{item.label}</span>;
+        const content = <span className="truncate">{item.label}</span>;
         return (
           <Fragment key={item.to ?? item.label}>
-            {index > 0 ? <ChevronRightIcon className="app-icon shrink-0 text-xs text-faint" /> : null}
-            {item.to && !last ? (
-              <Link to={item.to} className="hover:text-text">
-                {content}
-              </Link>
-            ) : (
-              content
-            )}
+            {index > 0 ? <ChevronRightIcon className="breadcrumb-separator" /> : null}
+            {item.to ? <Link to={item.to}>{content}</Link> : content}
           </Fragment>
         );
       })}

@@ -88,8 +88,12 @@ export function useRouteTrail(): BreadcrumbItem[] {
   return items;
 }
 
-/** Global header breadcrumb derived from the current route. */
-export function HeaderBreadcrumb() {
-  const items = useRouteTrail();
-  return items.length > 0 ? <Breadcrumb items={items} /> : null;
+/** Screens above the current route; the current screen is the large title of the header. */
+export function HeaderBreadcrumb({ fallback }: { fallback: string }) {
+  const parents = useRouteTrail().slice(0, -1);
+  return parents.length > 0 ? (
+    <Breadcrumb items={parents} />
+  ) : (
+    <span className="screen-header-commune">{fallback}</span>
+  );
 }

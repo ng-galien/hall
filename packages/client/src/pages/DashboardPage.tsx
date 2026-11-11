@@ -13,7 +13,7 @@ export function DashboardPage() {
   const documents = useReadableDocuments();
   return (
     <div className="page">
-      <PageHeader title={t("dashboard.title")} description={t("dashboard.description")} />
+      <PageHeader title={t("navigation.home")} />
       <div className="page-content home-content">
         <RequestErrorBanner error={error} />
         <HomeMeeting />

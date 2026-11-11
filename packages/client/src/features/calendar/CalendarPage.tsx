@@ -20,7 +20,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CouncilMeetingPage } from "../../pages/council-meetings/CouncilMeetingPage";
-import { PhoneHeaderActions } from "../../shell/headerTrail";
+import { ScreenActions } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
@@ -135,7 +135,7 @@ export function CalendarPage() {
   return (
     <div className="hall-calendar" data-testid="calendar-page">
       {phone && resources.collectionCapabilities.create ? (
-        <PhoneHeaderActions>
+        <ScreenActions>
           <Button
             variant="plain"
             size="icon"
@@ -145,7 +145,7 @@ export function CalendarPage() {
           >
             <AddIcon />
           </Button>
-        </PhoneHeaderActions>
+        </ScreenActions>
       ) : null}
       <div className="calendar-toolbar">
         <div className="calendar-toolbar-navigation flex items-center gap-2">

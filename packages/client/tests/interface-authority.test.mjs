@@ -67,3 +67,44 @@ test("a Button uses only the variants and sizes of choice 5B", () => {
 test("screens are white: the grey page canvas does not come back", () => {
   assert.deepEqual(offenders(/--hall-color-canvas\b/), []);
 });
+
+/** Components, classes and slots replaced by the screen header and the navigation of choices 1A and 2B. */
+const retiredShell = [
+  "AppHeader",
+  "PhoneHeader",
+  "PhoneHeaderActions",
+  "PhoneHeaderTitle",
+  "app-header",
+  "app-header-trail",
+  "app-phone-header",
+  "app-phone-header-back",
+  "app-phone-header-title",
+  "app-phone-header-actions",
+  "app-phone-header-more",
+  "app-phone-more",
+  "app-phone-more-list",
+  "app-phone-action",
+  "app-connection-label",
+  "nav-row-active",
+  "keepTitleOnPhone",
+];
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-LAY-100
+// @verifies-requirement HALL-FR-LAY-110
+test("one screen header and one navigation per format, the retired ones do not come back", () => {
+  for (const name of retiredShell) {
+    const pattern = new RegExp(`(?<![\\w-])${name}(?![\\w-])`);
+    assert.deepEqual(offenders(pattern), [], `${name} is still used`);
+  }
+  const header = files.filter(({ source }) => /className="screen-header"/.test(source)).map(({ path }) => path);
+  assert.deepEqual(header, ["shell/ScreenHeader.tsx"]);
+  const bar = readFileSync(join(sourceRoot, "shell/PhoneNavigation.tsx"), "utf8");
+  assert.match(bar, /app-phone-bar-label/, "the bottom bar shows a permanent label");
+  assert.doesNotMatch(bar, /sr-only/, "the bottom bar labels are visible");
+});
+
+// @verifies-requirement HALL-FR-LAY-110
+test("no icon of the interface is filled", () => {
+  assert.deepEqual(offenders(/weight=["{]\s*"?(?:fill|duotone)/), []);
+});

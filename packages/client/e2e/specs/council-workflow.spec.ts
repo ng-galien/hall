@@ -1577,7 +1577,7 @@ test("prepares a meeting through its general properties and follows it when its 
   await expect(date).toBeEnabled();
   await saveMeetingField(page, () => date.fill("2026-12-03T12:00"));
   await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-03")}$`));
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("03/12/2026");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("3 décembre 2026");
 
   let releaseRefresh!: () => void;
   const refreshGate = new Promise<void>((resolve) => {
@@ -1626,7 +1626,7 @@ test("prepares a meeting through its general properties and follows it when its 
   await expect(date).toBeEnabled();
   await saveMeetingField(page, () => date.fill("2026-12-10T12:00"));
   await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-10")}$`));
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("10/12/2026");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("10 décembre 2026");
   const prepared = await sirenProperties<{ chairMemberId: string | null; secretaryMemberId: string | null }>(
     await page.request.get(`/api/council-meetings/${meeting.id}`),
   );
@@ -1635,7 +1635,7 @@ test("prepares a meeting through its general properties and follows it when its 
 
   await page.goto(`/app/meetings/${slug("2026-12-03")}`);
   await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-10")}$`));
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("10/12/2026");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("10 décembre 2026");
   await page.screenshot({ path: test.info().outputPath("meeting-followed-after-date-change.png") });
 });
 

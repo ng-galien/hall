@@ -4,6 +4,7 @@
 @import "./styles/base.css";
 @import "./styles/components.css";
 @import "./styles/controls.css";
+@import "./styles/shell.css";
 @import "./styles/list-row.css";
 @import "./styles/meeting-workspace.css";
 @import "./styles/editor.css";

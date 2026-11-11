@@ -13,7 +13,7 @@ import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFram
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiFile, downloadFile, shareOrDownload } from "../../services/fileSharing";
 import { minutesContentHref } from "../../services/minutesApi";
-import { PhoneHeaderTitle } from "../../shell/headerTrail";
+import { ScreenTitle } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { type PhoneDocumentAction, PhoneDocumentActions, phoneActionIcons } from "../workspace/PhoneDocumentActions";
@@ -130,7 +130,7 @@ function MinutesDetail({ id }: { id: string }) {
     <div className="page" data-testid="minutes-detail">
       {phone && minutes ? (
         <>
-          <PhoneHeaderTitle>{councilLabel}</PhoneHeaderTitle>
+          <ScreenTitle>{councilLabel}</ScreenTitle>
           <PhoneDocumentActions actions={phoneActions} />
           <div className="phone-record-heading">
             <p>{dateAndPlace}</p>
@@ -158,7 +158,6 @@ function MinutesDetail({ id }: { id: string }) {
       ) : null}
       <div className="minutes-detail-header" hidden={phone}>
         <PageHeader
-          keepTitleOnPhone
           title={
             minutes
               ? t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) })

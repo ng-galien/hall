@@ -20,7 +20,7 @@ import {
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
-import { PhoneHeaderActions } from "../../shell/headerTrail";
+import { ScreenActions } from "../../shell/headerTrail";
 
 export interface PhoneDocumentAction {
   id: string;
@@ -41,11 +41,10 @@ export function PhoneDocumentActions({ actions }: { actions: PhoneDocumentAction
   const { t } = useI18n();
   if (actions.length === 0) return null;
   return (
-    <PhoneHeaderActions>
+    <ScreenActions>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            className="app-phone-header-more"
             variant="plain"
             size="icon"
             data-testid="phone-document-actions"
@@ -58,7 +57,6 @@ export function PhoneDocumentActions({ actions }: { actions: PhoneDocumentAction
           {actions.map((action) => (
             <DropdownMenuItem
               key={action.id}
-              className="app-phone-action"
               data-testid={`phone-document-action-${action.id}`}
               variant={action.destructive ? "destructive" : "default"}
               onSelect={action.onSelect}
@@ -69,7 +67,7 @@ export function PhoneDocumentActions({ actions }: { actions: PhoneDocumentAction
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-    </PhoneHeaderActions>
+    </ScreenActions>
   );
 }
 

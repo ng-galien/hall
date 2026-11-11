@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { LocationIcon, PlayIcon } from "../../components/icons";
+import { CalendarIcon, PlayIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { ListRow, ListRowDate, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { DocumentObjectViewer } from "../../features/documents/DocumentObjectViewer";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -18,7 +19,7 @@ import { useApplicationSyncStore } from "../../stores/applicationSyncStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 
 export function HomeMeeting() {
-  const { t, formatDate, formatTime } = useI18n();
+  const { t, formatDate, formatTime, formatDayMonth } = useI18n();
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const loading = useCouncilMeetingsStore((state) => state.loading);
   const initializing = useApplicationSyncStore((state) => state.phase === "initializing");
@@ -36,13 +37,6 @@ export function HomeMeeting() {
     target.scheduledAt
       ? `${formatDate(target.scheduledAt)} · ${formatTime(target.scheduledAt)}`
       : t("dashboard.toSchedule");
-  const place = (target: CouncilMeetingView) =>
-    target.location ? (
-      <span className="home-meeting-place">
-        <LocationIcon aria-hidden="true" />
-        {target.location}
-      </span>
-    ) : null;
   const openNotice = async (target: CouncilMeetingView, noticeId: string) => {
     setOpening(true);
     setError(null);
@@ -60,72 +54,106 @@ export function HomeMeeting() {
 
   if (meetings.length === 0 && (loading || initializing)) return <section className="home-meeting" aria-busy="true" />;
 
+  const head = (target: CouncilMeetingView) => {
+    if (!target.scheduledAt) {
+      return (
+        <ListRowIcon nature="council" large>
+          <CalendarIcon />
+        </ListRowIcon>
+      );
+    }
+    const { day, month } = formatDayMonth(target.scheduledAt);
+    return <ListRowDate day={day} month={month} />;
+  };
+  const detail = (target: CouncilMeetingView) => [when(target), target.location].filter(Boolean).join(" · ");
+
+  // @implements-requirement HALL-FR-LAY-040
+  // @implements-requirement HALL-FR-LAY-060
   return (
     <section className="home-meeting" data-testid="home-meeting">
       <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
-      {meeting?.phase === "inProgress" ? (
-        <>
-          <span className="home-meeting-eyebrow home-meeting-live">
-            <span className="live-indicator" aria-hidden="true" />
-            {t("home.inProgress")}
-          </span>
-          <span className="home-meeting-title">{when(meeting)}</span>
-          {place(meeting)}
-          <Button asChild className="home-meeting-follow" data-testid="home-meeting-follow">
-            <Link to={`/meetings/${meeting.reference}/live`}>
-              <PlayIcon aria-hidden="true" />
-              {t("home.followMeeting")}
-            </Link>
-          </Button>
-        </>
-      ) : meeting ? (
-        <>
-          <span className="home-meeting-eyebrow">{t("dashboard.nextMeeting")}</span>
-          <Link className="home-meeting-title" data-testid="home-meeting-open" to={`/meetings/${meeting.reference}`}>
-            {when(meeting)}
-          </Link>
-          {place(meeting)}
-          <div className="home-meeting-actions">
-            <Button
-              variant="secondary"
-              data-testid="home-meeting-notice"
-              disabled={!meeting.agendaRevision.noticeId || opening}
-              onClick={() => {
-                if (meeting.agendaRevision.noticeId) void openNotice(meeting, meeting.agendaRevision.noticeId);
-              }}
-            >
-              {t("meeting.notice.title")}
-            </Button>
-            <Button asChild variant="secondary" data-testid="home-meeting-agenda">
-              <Link to={`/meetings/${meeting.reference}#agenda`}>{t("meeting.agenda")}</Link>
-            </Button>
-          </div>
-          {meeting.agendaRevision.noticeId ? null : <p className="home-meeting-note">{t("home.noticePending")}</p>}
-        </>
-      ) : lastMeeting ? (
-        <>
-          <span className="home-meeting-eyebrow">{t("home.lastMeeting")}</span>
-          <Link
-            className="home-meeting-title"
-            data-testid="home-meeting-open"
-            to={`/meetings/${lastMeeting.reference}`}
-          >
-            {when(lastMeeting)}
-          </Link>
-          {place(lastMeeting)}
-          {lastMeeting.minutesId && available("minutes") ? (
-            <div className="home-meeting-actions">
-              <Button asChild variant="secondary" data-testid="home-meeting-minutes">
-                <Link to={`/minutes/${lastMeeting.minutesId}`}>{t("meeting.minutes")}</Link>
+      <ListRows>
+        {meeting?.phase === "inProgress" ? (
+          <ListRow
+            prominent
+            head={head(meeting)}
+            overline={t("home.inProgress")}
+            title={label(meeting)}
+            detail={detail(meeting)}
+            to={`/meetings/${meeting.reference}/live`}
+            action={
+              <Button asChild data-testid="home-meeting-follow">
+                <Link to={`/meetings/${meeting.reference}/live`}>
+                  <PlayIcon aria-hidden="true" />
+                  {t("home.followMeeting")}
+                </Link>
               </Button>
-            </div>
-          ) : null}
-        </>
-      ) : (
-        <p className="home-meeting-note" data-testid="home-meeting-empty">
-          {t("dashboard.noMeeting")}
-        </p>
-      )}
+            }
+          />
+        ) : meeting ? (
+          <ListRow
+            prominent
+            head={head(meeting)}
+            overline={t("dashboard.nextMeeting")}
+            title={label(meeting)}
+            detail={detail(meeting)}
+            status={
+              meeting.agendaRevision.noticeId
+                ? undefined
+                : { tone: "neutral", label: t("home.noticePending"), testId: "home-meeting-notice-pending" }
+            }
+            to={`/meetings/${meeting.reference}`}
+            openTestId="home-meeting-open"
+            action={
+              <>
+                <Button asChild data-testid="home-meeting-agenda">
+                  <Link to={`/meetings/${meeting.reference}#agenda`}>{t("meeting.agenda")}</Link>
+                </Button>
+                {meeting.agendaRevision.noticeId ? (
+                  <Button
+                    variant="secondary"
+                    data-testid="home-meeting-notice"
+                    disabled={opening}
+                    onClick={() => {
+                      if (meeting.agendaRevision.noticeId) void openNotice(meeting, meeting.agendaRevision.noticeId);
+                    }}
+                  >
+                    {t("meeting.notice.title")}
+                  </Button>
+                ) : null}
+              </>
+            }
+          />
+        ) : lastMeeting ? (
+          <ListRow
+            prominent
+            head={head(lastMeeting)}
+            overline={t("home.lastMeeting")}
+            title={label(lastMeeting)}
+            detail={detail(lastMeeting)}
+            to={`/meetings/${lastMeeting.reference}`}
+            openTestId="home-meeting-open"
+            action={
+              lastMeeting.minutesId && available("minutes") ? (
+                <Button asChild data-testid="home-meeting-minutes">
+                  <Link to={`/minutes/${lastMeeting.minutesId}`}>{t("meeting.minutes")}</Link>
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <ListRow
+            prominent
+            head={
+              <ListRowIcon nature="council" large>
+                <CalendarIcon />
+              </ListRowIcon>
+            }
+            title={t("dashboard.noMeeting")}
+            openTestId="home-meeting-empty"
+          />
+        )}
+      </ListRows>
       {viewer ? (
         <DocumentObjectViewer
           title={viewer.title}

@@ -14,7 +14,7 @@ import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDia
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiFile, downloadFile, shareOrDownload } from "../../services/fileSharing";
-import { PhoneHeaderTitle } from "../../shell/headerTrail";
+import { ScreenTitle } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { type PhoneDocumentAction, PhoneDocumentActions, phoneActionIcons } from "../workspace/PhoneDocumentActions";
 import { useCouncilDecisionDraft } from "./useCouncilDecisionDraft";
@@ -84,12 +84,11 @@ function CouncilDecisionDetail({ id }: { id: string }) {
     <div className="page" data-testid="decision-detail">
       {phone && decision ? (
         <>
-          <PhoneHeaderTitle>{decision.number || decision.title}</PhoneHeaderTitle>
+          <ScreenTitle>{decision.number || decision.title}</ScreenTitle>
           <PhoneDocumentActions actions={phoneActions} />
         </>
       ) : null}
       <PageHeader
-        keepTitleOnPhone
         title={decision?.title ?? t("decisions.title")}
         description={phone ? "" : (decision?.number ?? "")}
         titleAction={decision && !phone ? <CopyReferenceButton reference={reference} /> : null}
