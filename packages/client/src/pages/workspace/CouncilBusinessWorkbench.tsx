@@ -1,6 +1,5 @@
 import { findSirenLink } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -10,6 +9,7 @@ import { CheckIcon, EditIcon, FolderIcon, PinIcon, PinnedIcon } from "../../comp
 import { MarkdownView } from "../../components/MarkdownView";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ExplorerTree } from "../../components/ui/explorer-tree";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import { CouncilBusinessCommittees } from "../../features/council-business/CouncilBusinessCommittees";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
@@ -364,20 +364,17 @@ export function CouncilBusinessWorkbench({
               {t("common.loading")}
             </p>
           ) : phone && attachedResources.length ? (
-            <ul className="phone-document-list" data-testid="business-phone-documents">
+            <ListRows className="business-phone-list" data-testid="business-phone-documents">
               {attachedResources.map((resource) => (
-                <li key={resource.id}>
-                  <Link
-                    className="phone-document-row"
-                    data-testid={`business-phone-document-${resource.id}`}
-                    to={`/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id, fromBusiness: business.id })}`}
-                  >
-                    <DocumentaryResourceGlyph resource={resource} />
-                    <span>{resource.name}</span>
-                  </Link>
-                </li>
+                <ListRow
+                  key={resource.id}
+                  to={`/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id, fromBusiness: business.id })}`}
+                  openTestId={`business-phone-document-${resource.id}`}
+                  head={<DocumentaryResourceGlyph resource={resource} />}
+                  title={resource.name}
+                />
               ))}
-            </ul>
+            </ListRows>
           ) : attachedResources.length ? (
             <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
               <BusinessDocumentTree

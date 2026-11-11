@@ -1,0 +1,32 @@
+/* Tree of `ListRow` branches: each opened branch is indented under its row. */
+.explorer-tree .list-row-children { padding: 0 0 0 var(--hall-space-4); }
+
+.explorer-tree-children {
+  margin: 0;
+  padding: 0;
+  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
+  list-style: none;
+}
+
+.explorer-tree-toggle,
+.explorer-tree-node {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.explorer-tree-toggle { display: inline-grid; place-items: center; border-radius: var(--hall-radius-small); }
+
+.explorer-tree-node {
+  max-width: 100%;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explorer-tree-node:hover,
+.explorer-tree-node:focus-visible { color: var(--hall-color-brand); text-decoration: underline; }

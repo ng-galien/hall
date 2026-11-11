@@ -1,23 +1,16 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronRightIcon } from "../icons";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "./context-menu";
+import { ListRow, ListRows } from "./list-row";
+import "./explorer-tree.css";
 
-/** Shared rendering extracted from the workspace explorer, retaining its tokens and interaction props. */
-export function ExplorerTree({ className, ...props }: ComponentProps<"ul">) {
-  return <ul className={cn("workspace-explorer-tree", className)} {...props} />;
+/** A compact tree of `ExplorerTreeBranch` rows. */
+export function ExplorerTree({ className, ...props }: Omit<ComponentProps<"ul">, "ref">) {
+  return <ListRows className={cn("explorer-tree", className)} {...props} />;
 }
 
-export function ExplorerTreeRow({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("workspace-explorer-row", className)} {...props} />;
-}
-
-export function ExplorerTreeButton({ className, ...props }: ComponentProps<"button">) {
-  return <button type="button" className={cn("workspace-explorer-row", className)} {...props} />;
-}
-
-/** A compact branch whose opened content stays mounted while collapsed. */
+/** One `ListRow` of a tree whose opened content stays mounted while collapsed. */
 export function ExplorerTreeBranch({
   title,
   icon,
@@ -31,76 +24,74 @@ export function ExplorerTreeBranch({
   expandable = true,
   onActivate,
 }: {
-  title: import("react").ReactNode;
-  icon?: import("react").ReactNode;
-  actions?: import("react").ReactNode;
-  meta?: import("react").ReactNode;
-  children: import("react").ReactNode;
+  title: ReactNode;
+  icon?: ReactNode;
+  actions?: ReactNode;
+  meta?: ReactNode;
+  children: ReactNode;
   testId: string;
   defaultOpen?: boolean;
-  contextMenu?: import("react").ReactNode;
+  contextMenu?: ReactNode;
   onContextMenuCloseAutoFocus?(event: Event): void;
   expandable?: boolean;
   onActivate?(): void;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [visited, setVisited] = useState(defaultOpen);
-  const row = (
-    <ExplorerTreeRow data-has-meta={Boolean(meta)}>
-      {expandable ? (
+  const toggle = () => {
+    setVisited(true);
+    setOpen(!open);
+  };
+  return (
+    <ListRow
+      data-testid={testId}
+      className="explorer-tree-branch"
+      head={
+        expandable ? (
+          <button
+            type="button"
+            className="explorer-tree-toggle"
+            data-testid={`${testId}-toggle`}
+            aria-label={typeof title === "string" ? title : undefined}
+            aria-expanded={open}
+            onClick={toggle}
+          >
+            {icon}
+          </button>
+        ) : (
+          icon
+        )
+      }
+      title={
         <button
           type="button"
-          className="workspace-explorer-toggle workspace-explorer-chevron"
-          data-testid={`${testId}-toggle`}
-          aria-label={typeof title === "string" ? title : undefined}
-          aria-expanded={open}
-          onClick={() => {
-            setVisited(true);
-            setOpen(!open);
-          }}
+          className="explorer-tree-node"
+          data-testid={`${testId}-open`}
+          aria-expanded={expandable ? open : undefined}
+          onClick={expandable ? toggle : onActivate}
         >
-          <ChevronRightIcon />
+          {title}
         </button>
-      ) : (
-        <span className="workspace-explorer-toggle" aria-hidden="true" />
-      )}
-      {icon}
-      <button
-        type="button"
-        className="workspace-explorer-folder-name"
-        data-testid={`${testId}-open`}
-        aria-expanded={expandable ? open : undefined}
-        onClick={() => {
-          if (!expandable) {
-            onActivate?.();
-            return;
-          }
-          setVisited(true);
-          setOpen(!open);
-        }}
-      >
-        {title}
-      </button>
-      {meta}
-      {actions}
-    </ExplorerTreeRow>
-  );
-  return (
-    <li className="workspace-explorer-item" data-testid={testId}>
-      {contextMenu ? (
-        <ContextMenu>
-          <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
-          <ContextMenuContent onCloseAutoFocus={onContextMenuCloseAutoFocus}>{contextMenu}</ContextMenuContent>
-        </ContextMenu>
-      ) : (
-        row
-      )}
+      }
+      detail={meta}
+      action={actions}
+      wrapLine={
+        contextMenu
+          ? (line) => (
+              <ContextMenu>
+                <ContextMenuTrigger asChild>{line}</ContextMenuTrigger>
+                <ContextMenuContent onCloseAutoFocus={onContextMenuCloseAutoFocus}>{contextMenu}</ContextMenuContent>
+              </ContextMenu>
+            )
+          : undefined
+      }
+    >
       {expandable && visited ? (
-        <ul className="workspace-explorer-branch" hidden={!open}>
+        <ul className="explorer-tree-children" hidden={!open}>
           {children}
         </ul>
       ) : null}
-    </li>
+    </ListRow>
   );
 }
 
@@ -111,9 +102,9 @@ export function ExplorerTreeContent({
   children,
   testId,
 }: {
-  heading: import("react").ReactNode;
-  actions?: import("react").ReactNode;
-  children: import("react").ReactNode;
+  heading: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
   testId: string;
 }) {
   return (

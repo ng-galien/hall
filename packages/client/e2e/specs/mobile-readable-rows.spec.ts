@@ -137,9 +137,7 @@ test("prepared and scheduled titles keep their actions reachable in meetings and
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     await expect(open).toContainText(title);
-    await expectReadable(
-      width <= phoneWidth ? open.locator(".phone-subject-copy > span").first() : open.locator("span"),
-    );
+    await expectReadable(width <= phoneWidth ? open.locator(".list-row-title") : open.locator("span"));
     await expectReachable(open);
     if (width > phoneWidth) await expectReachable(page.getByTestId(`business-subject-unschedule-${subject.id}`));
   }

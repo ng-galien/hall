@@ -6,6 +6,7 @@ import { RequestErrorBanner } from "../../components/Ui";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { InlineRenameField } from "../../components/ui/inline-rename-field";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { AgendaSubjectGlyph, agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
 import { InlineResourceContent } from "../../features/resources/InlineResourceContent";
@@ -32,19 +33,13 @@ function PhoneSubjectRow({ subject, business }: { subject: PreparedCouncilSubjec
   );
   const meetingLabel = useSubjectMeetingLabel(subject);
   return (
-    <li>
-      <Link
-        className="phone-document-row"
-        data-testid={`business-subject-${subject.id}-open`}
-        to={`/workspace?${new URLSearchParams({ path: folderPath, resource: subject.textResourceId, fromBusiness: business })}`}
-      >
-        <AgendaSubjectGlyph kind={subject.kind} tree />
-        <span className="phone-subject-copy">
-          <span>{subject.title}</span>
-          {meetingLabel ? <small>{meetingLabel}</small> : null}
-        </span>
-      </Link>
-    </li>
+    <ListRow
+      to={`/workspace?${new URLSearchParams({ path: folderPath, resource: subject.textResourceId, fromBusiness: business })}`}
+      openTestId={`business-subject-${subject.id}-open`}
+      head={<AgendaSubjectGlyph kind={subject.kind} tree />}
+      title={subject.title}
+      detail={meetingLabel ?? undefined}
+    />
   );
 }
 
@@ -309,11 +304,11 @@ export function CouncilBusinessSubjects({ businessId }: { businessId: string }) 
             <span className="business-content-section-actions">{trigger}</span>
           </header>
           {phone ? (
-            <ul className="phone-document-list" data-testid="business-phone-subjects">
+            <ListRows className="business-phone-list" data-testid="business-phone-subjects">
               {sortedSubjects.map((subject) => (
                 <PhoneSubjectRow key={subject.id} subject={subject} business={businessId} />
               ))}
-            </ul>
+            </ListRows>
           ) : (
             <table className="business-subject-table">
               <colgroup>

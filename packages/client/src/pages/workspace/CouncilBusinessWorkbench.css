@@ -58,22 +58,6 @@
   gap: var(--hall-space-2);
 }
 
-.workspace-business-workbench .business-content-section-icon,
-.workspace-business-workbench .business-subject-row-icon {
-  display: inline-grid;
-  flex: none;
-  width: var(--hall-size-tree-toggle);
-  height: var(--hall-size-tree-toggle);
-  place-items: center;
-  color: var(--hall-color-brand);
-}
-
-.workspace-business-workbench .business-content-section-icon svg,
-.workspace-business-workbench .business-subject-row-icon svg {
-  width: var(--hall-font-size-icon-large);
-  height: var(--hall-font-size-icon-large);
-}
-
 .workspace-business-workbench .business-content-section-header h2 {
   margin: 0;
   color: var(--hall-color-text);
@@ -90,67 +74,6 @@
   display: inline-flex;
   align-items: center;
   gap: var(--hall-space-1);
-}
-
-.workspace-business-workbench .business-subject-list,
-.workspace-business-workbench .business-subject-history ul {
-  display: grid;
-  gap: var(--hall-space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.workspace-business-workbench .business-subject-row {
-  display: flex;
-  width: 100%;
-  min-height: var(--hall-size-control);
-  align-items: center;
-  gap: var(--hall-space-2);
-  padding: 0 var(--hall-space-2);
-  border: var(--hall-stroke-thin) solid transparent;
-  border-radius: var(--hall-radius-medium);
-  color: var(--hall-color-text);
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.workspace-business-workbench .business-subject-row:hover,
-.workspace-business-workbench .business-subject-row-open {
-  background: var(--hall-color-surface-subtle);
-}
-
-.workspace-business-workbench .business-subject-row-open {
-  border-color: var(--hall-color-border);
-}
-
-.workspace-business-workbench .business-subject-row-title {
-  overflow: hidden;
-  flex: 1;
-  min-width: 0;
-  font-weight: var(--hall-font-weight-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-business-workbench .business-subject-row-chevron {
-  flex: none;
-  color: var(--hall-color-text-subtle);
-  transition: transform var(--hall-motion-fast) var(--hall-motion-curve-standard);
-}
-
-.workspace-business-workbench .business-subject-row-open .business-subject-row-chevron {
-  transform: rotate(90deg);
-}
-
-.workspace-business-workbench .business-subject-detail {
-  display: grid;
-  gap: var(--hall-space-3);
-  margin: var(--hall-space-1) 0 var(--hall-space-2) var(--hall-space-5);
-  padding: var(--hall-space-3);
-  border-left: var(--hall-stroke-thin) solid var(--hall-color-border);
 }
 
 .workspace-business-workbench .business-inline-resource .resource-presentation-body {
@@ -177,27 +100,7 @@
   height: var(--hall-font-size-icon-small);
 }
 
-.workspace-business-workbench .business-subject-history li {
-  display: flex;
-  min-height: var(--hall-size-control-small);
-  align-items: center;
-  gap: var(--hall-space-2);
-  padding: 0 var(--hall-space-2);
-  border-radius: var(--hall-radius-small);
-  background: var(--hall-color-surface-subtle);
-}
-
-.workspace-business-workbench .business-subject-history li > a:first-child {
-  overflow: hidden;
-  min-width: 0;
-  color: var(--hall-color-text);
-  font-size: var(--hall-font-size-caption);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .workspace-business-workbench .business-subject-decision-link {
-  margin-left: auto;
   color: var(--hall-color-brand);
   font-size: var(--hall-font-size-caption);
 }
@@ -406,4 +309,10 @@
   .workspace-business-workbench .business-subject-table-actions { flex-wrap: wrap; justify-content: flex-start; white-space: normal; }
   .workspace-business-workbench .business-subject-table .business-subject-table-detail { display: block; }
   .workspace-business-workbench .business-subject-table-detail td { display: block; }
+}
+
+/* On a phone, the title of a prepared subject or document wraps instead of being cut. */
+.workspace-business-workbench .business-phone-list .list-row-title {
+  overflow-wrap: anywhere;
+  white-space: normal;
 }

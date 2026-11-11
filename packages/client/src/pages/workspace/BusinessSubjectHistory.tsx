@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
+import { ListRow, ListRowDate, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
-import { StatusBadge } from "../../features/status/DomainStatusBadge";
+import { useDomainRowStatus } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listCouncilBusinessAgendaItems } from "../../services/councilBusinessApi";
@@ -23,7 +24,8 @@ export function BusinessSubjectHistory({
   subjectId: string;
   revision: number;
 }) {
-  const { t, formatDate } = useI18n();
+  const { t, formatDate, formatDayMonth } = useI18n();
+  const rowStatus = useDomainRowStatus();
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const summaries = useCouncilDecisionsStore((state) => state.councilDecisions);
   const decisionIds = summaries
@@ -72,7 +74,7 @@ export function BusinessSubjectHistory({
         <CalendarIcon aria-hidden="true" />
         {t("workspace.subjectMeetings")}
       </h3>
-      <ul>
+      <ListRows>
         {orderedItems.map((item) => {
           const meeting = meetings.find((entry) => entry.id === item.councilMeetingId);
           if (!meeting) return null;
@@ -84,26 +86,41 @@ export function BusinessSubjectHistory({
                 ? "adopted"
                 : "rejected"
               : workspaceAgendaItemStatus(item);
+          const scheduled = meeting.scheduledAt ? formatDayMonth(meeting.scheduledAt) : null;
           return (
-            <li key={item.id}>
-              <Link data-testid={`business-meeting-open-${item.id}`} to={`/meetings/${meeting.reference}`}>
-                {formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate, t("workspace.dateToSet"))}
-              </Link>
-              <StatusBadge value={status} />
-              {outcomes.map((decision) => (
-                <Link
-                  key={decision.id}
-                  className="business-subject-decision-link"
-                  data-testid={`business-decision-open-${decision.id}`}
-                  to={`/council-decisions/${decision.id}`}
-                >
-                  {decision.number ?? decision.title}
-                </Link>
-              ))}
-            </li>
+            <ListRow
+              key={item.id}
+              to={`/meetings/${meeting.reference}`}
+              openTestId={`business-meeting-open-${item.id}`}
+              head={
+                scheduled ? (
+                  <ListRowDate day={scheduled.day} month={scheduled.month} />
+                ) : (
+                  <ListRowIcon nature="council">
+                    <CalendarIcon />
+                  </ListRowIcon>
+                )
+              }
+              title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate, t("workspace.dateToSet"))}
+              status={rowStatus(status)}
+              action={
+                outcomes.length
+                  ? outcomes.map((decision) => (
+                      <Link
+                        key={decision.id}
+                        className="business-subject-decision-link"
+                        data-testid={`business-decision-open-${decision.id}`}
+                        to={`/council-decisions/${decision.id}`}
+                      >
+                        {decision.number ?? decision.title}
+                      </Link>
+                    ))
+                  : undefined
+              }
+            />
           );
         })}
-      </ul>
+      </ListRows>
     </section>
   );
 }
