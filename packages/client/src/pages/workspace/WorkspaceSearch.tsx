@@ -42,7 +42,6 @@ export function WorkspaceSearch({
         scope={{ types: ["resource", "councilBusiness"], context }}
         testId="workspace-search"
         autoFocus={autoFocus}
-        allowLayout
         hideResultsWhenEmpty
         resultsTarget={resultsTarget}
         onPick={(item) => {

@@ -2,7 +2,6 @@ import { type KeyboardEvent, type ReactNode, type RefObject, useEffect, useRef }
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Mentionable } from "../editor/references";
 import { ChevronDownIcon, FolderIcon, SortIcon } from "../icons";
-import { type CollectionLayout, CollectionLayoutToggle } from "../Ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { SearchResultRow } from "../ui/search-result-row";
+import { ListRows } from "../ui/list-row";
+import { SearchHit } from "./SearchHit";
 import { type SearchSort, searchSorts } from "./searchSort";
 import "./search-results-panel.css";
 
@@ -22,7 +22,7 @@ const sortLabelKeys = {
   type: "search.sortType",
 } as const satisfies Record<SearchSort, string>;
 
-/** Full results screen of the workspace search: count, folder filter, sort, layout, scrolling list. */
+/** Full results screen of the workspace search: count, folder filter, sort, scrolling list. */
 export function SearchResultsPanel({
   items,
   total,
@@ -41,8 +41,6 @@ export function SearchResultsPanel({
   onFolder,
   sort,
   onSort,
-  layout,
-  onLayout,
   listRef,
   testId,
 }: {
@@ -63,8 +61,6 @@ export function SearchResultsPanel({
   onFolder(folder: string | null): void;
   sort: SearchSort;
   onSort(sort: SearchSort): void;
-  layout: CollectionLayout;
-  onLayout(layout: CollectionLayout): void;
   listRef: RefObject<HTMLDivElement | null>;
   testId: string;
 }) {
@@ -139,7 +135,6 @@ export function SearchResultsPanel({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          <CollectionLayoutToggle layout={layout} onLayoutChange={onLayout} testIdPrefix={testId} />
         </span>
       </div>
       <div className="search-results-scroll" ref={listRef}>
@@ -156,60 +151,25 @@ export function SearchResultsPanel({
             {t("workspace.noResults")}
           </p>
         ) : null}
-        <div
-          role="listbox"
-          className={layout === "cards" ? "search-results-grid" : "search-results-list"}
-          data-testid={`${testId}-results`}
-          aria-busy={loading}
-        >
-          {items.map((item, index) =>
-            layout === "cards" ? (
-              <SearchResultRow
-                key={`${item.kind}:${item.id}`}
-                role="option"
-                aria-selected={active === index}
-                active={active === index}
-                card
-                data-testid={`${testId}-result`}
-                data-reference-id={item.id}
-                data-resource-kind={item.resourceKind ?? item.kind}
-                onMouseEnter={() => onActive(index)}
-                onMouseDown={(event) => event.preventDefault()}
-                onPick={() => onPick(item)}
-                onKeyDown={onKey}
-                glyph={glyph(item)}
-                title={item.label}
-                meta={[typeLabel(item), item.folderPath].filter(Boolean).join(" · ")}
-              />
-            ) : (
-              <button
-                key={`${item.kind}:${item.id}`}
-                type="button"
-                role="option"
-                aria-selected={active === index}
-                className="search-results-row"
-                data-active={active === index || undefined}
-                data-testid={`${testId}-result`}
-                data-reference-id={item.id}
-                data-resource-kind={item.resourceKind ?? item.kind}
-                onMouseEnter={() => onActive(index)}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => onPick(item)}
-                onKeyDown={onKey}
-              >
-                {glyph(item)}
-                <span className="search-results-name" data-testid="search-hit-title" title={item.label}>
-                  {item.label}
-                </span>
-                <span className="search-results-type">{typeLabel(item)}</span>
-                <span className="search-results-folder" title={item.folderPath}>
-                  {item.folderPath}
-                </span>
-                <span className="search-results-date">{item.updatedAt ? formatDate(item.updatedAt) : ""}</span>
-              </button>
-            ),
-          )}
-        </div>
+        <ListRows role="listbox" className="search-results-list" data-testid={`${testId}-results`} aria-busy={loading}>
+          {items.map((item, index) => (
+            <SearchHit
+              key={`${item.kind}:${item.id}`}
+              testId={`${testId}-result`}
+              referenceId={item.id}
+              resourceKind={item.resourceKind ?? item.kind}
+              ariaSelected={active === index}
+              active={active === index}
+              onActive={() => onActive(index)}
+              onPick={() => onPick(item)}
+              onKey={onKey}
+              glyph={glyph(item)}
+              title={item.label}
+              meta={[typeLabel(item), item.folderPath].filter(Boolean).join(" · ")}
+              wide={item.updatedAt ? <span>{formatDate(item.updatedAt)}</span> : undefined}
+            />
+          ))}
+        </ListRows>
         {hasMore ? <div ref={sentinel} className="search-results-sentinel" aria-hidden="true" /> : null}
         {loading ? (
           <p className="search-results-message" role="status" data-testid={`${testId}-loading`}>

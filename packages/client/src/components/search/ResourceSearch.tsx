@@ -5,10 +5,7 @@ import { type ResourceSearchScope, useResourceSearch } from "../../features/sear
 import { useI18n } from "../../i18n/I18nProvider";
 import type { SearchType } from "../../lib/search";
 import type { Mentionable } from "../editor/references";
-import { CardViewIcon, CheckIcon, ListViewIcon } from "../icons";
-import { Button } from "../ui/button";
-import { ListRowIcon } from "../ui/list-row";
-import { SearchResultRow } from "../ui/search-result-row";
+import { ListRowIcon, ListRows } from "../ui/list-row";
 import { FolderSectionsList } from "./FolderSectionsList";
 import { facetHashPattern } from "./facetSuggestions";
 import { folderSections } from "./folderSections";
@@ -20,6 +17,7 @@ import {
   type SearchBoxState,
   type SearchKeyEvent,
 } from "./SearchBox";
+import { SearchHit } from "./SearchHit";
 import { SearchResultsPanel } from "./SearchResultsPanel";
 import { type SearchSort, sortSearchItems } from "./searchSort";
 import "./resource-search.css";
@@ -41,11 +39,10 @@ export interface ResourceSearchProps {
   autoFocus?: boolean;
   inline?: boolean;
   selectedIds?: readonly string[];
-  allowLayout?: boolean;
   hideResultsWhenEmpty?: boolean;
   /** Adapts the presentation of each result row for the calling picker. */
   presentItem?(item: Mentionable): Mentionable;
-  /** Element that receives the full results screen, with count, folder filter, sort and layout. */
+  /** Element that receives the full results screen, with count, folder filter and sort. */
   resultsTarget?: HTMLElement | null;
 }
 // @implements-requirement HALL-FR-SRC-030
@@ -64,14 +61,12 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
     autoFocus = true,
     inline = false,
     selectedIds = [],
-    allowLayout = false,
     hideResultsWhenEmpty = false,
     presentItem,
     resultsTarget,
   },
   ref,
 ) {
-  const [layout, setLayout] = useState<"list" | "cards">("list");
   const [sort, setSort] = useState<SearchSort>("relevance");
   const resultsList = useRef<HTMLDivElement>(null);
   const { t } = useI18n();
@@ -188,8 +183,6 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
               onFolder={(folder) => change({ ...effective, folders: folder ? [folder] : [] })}
               sort={sort}
               onSort={setSort}
-              layout={layout}
-              onLayout={setLayout}
               listRef={resultsList}
               testId={testId}
             />,
@@ -209,28 +202,6 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
               >
                 {t("search.browseFolders")}
               </button>
-              {allowLayout ? (
-                <span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    data-testid={`${testId}-layout-list`}
-                    aria-label={t("common.layoutList")}
-                    onClick={() => setLayout("list")}
-                  >
-                    <ListViewIcon />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    data-testid={`${testId}-layout-cards`}
-                    aria-label={t("common.layoutCards")}
-                    onClick={() => setLayout("cards")}
-                  >
-                    <CardViewIcon />
-                  </Button>
-                </span>
-              ) : null}
               <span data-testid={`${testId}-count`}>{search.total}</span>
             </div>
             {browsing ? (
@@ -262,36 +233,31 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
             {!search.loading && !search.error && !shownItems.length ? (
               <p data-testid={`${testId}-empty`}>{t("workspace.noResults")}</p>
             ) : null}
-            <div
+            <ListRows
               role="listbox"
-              className={`shared-search-results${layout === "cards" ? " wsearch-grid" : ""}`}
+              className="shared-search-results"
               data-testid={`${testId}-results`}
               aria-busy={search.loading}
             >
-              {shownItems.map((item, index) => {
-                return (
-                  <SearchResultRow
-                    key={`${item.kind}:${item.id}`}
-                    role="option"
-                    aria-selected={selectedIds.length ? selectedIds.includes(item.id) : active === index}
-                    active={active === index}
-                    card={layout === "cards"}
-                    data-testid={`${testId}-result`}
-                    data-reference-id={item.id}
-                    data-resource-kind={item.resourceKind ?? item.kind}
-                    disabled={search.loading}
-                    onMouseEnter={() => setActive(index)}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onPick={() => pick(item)}
-                    onKeyDown={handleKey}
-                    glyph={glyph(item)}
-                    title={item.label}
-                    meta={[item.metaLabel, item.folderPath].filter(Boolean).join(" · ")}
-                    badge={selectedIds.includes(item.id) ? <CheckIcon aria-hidden="true" /> : null}
-                  />
-                );
-              })}
-            </div>
+              {shownItems.map((item, index) => (
+                <SearchHit
+                  key={`${item.kind}:${item.id}`}
+                  testId={`${testId}-result`}
+                  referenceId={item.id}
+                  resourceKind={item.resourceKind ?? item.kind}
+                  ariaSelected={selectedIds.length ? selectedIds.includes(item.id) : active === index}
+                  active={active === index}
+                  selected={selectedIds.includes(item.id)}
+                  disabled={search.loading}
+                  onActive={() => setActive(index)}
+                  onPick={() => pick(item)}
+                  onKey={handleKey}
+                  glyph={glyph(item)}
+                  title={item.label}
+                  meta={[item.metaLabel, item.folderPath].filter(Boolean).join(" · ")}
+                />
+              ))}
+            </ListRows>
             {shownItems.length < search.total ? (
               <button type="button" disabled={search.loading} data-testid={`${testId}-more`} onClick={search.more}>
                 {t("search.more")}
