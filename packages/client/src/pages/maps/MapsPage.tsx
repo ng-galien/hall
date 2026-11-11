@@ -268,9 +268,6 @@ export function MapsPage() {
         {opened ? (
           <header className="maps-context" data-testid="maps-context">
             <div className="maps-context-title-row">
-              <h1 className="maps-context-title" data-testid="maps-context-title">
-                {opened.name}
-              </h1>
               <CopyReferenceButton
                 size="icon"
                 reference={{

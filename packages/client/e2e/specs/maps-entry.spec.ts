@@ -110,7 +110,7 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
   await expect(page.getByTestId("maps-context-empty")).toBeVisible();
 
   await page.goto(`/app/maps/${roads.id}?view=4.442,47.562,15`);
-  await expect(page.getByTestId("maps-context-title")).toHaveText("Routes");
+  await expect(page.getByTestId("screen-header-title")).toHaveText("Routes");
   await expect(page).toHaveURL(new RegExp(`/maps/${roads.id}\\?view=4\\.442000,47\\.562000,15$`));
   await expect(page.getByTestId("geographic-resource-map")).toBeVisible();
   await expect(page.getByTestId("geographic-mode-draw")).toBeEnabled();
@@ -119,7 +119,7 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
   await expect(page.getByTestId("maps-recent").getByTestId("maps-entry")).toHaveCount(1);
 
   await page.getByTestId(`maps-tree-map-${bridges.id}-open`).click();
-  await expect(page.getByTestId("maps-context-title")).toHaveText("Ponts");
+  await expect(page.getByTestId("screen-header-title")).toHaveText("Ponts");
   await expect(page).toHaveURL(new RegExp(`/maps/${bridges.id}\\?view=4\\.442000,47\\.562000,15$`));
 
   const map = await page.locator(".maps-surface .geographic-map").boundingBox();
@@ -133,11 +133,11 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
   expect(await mapVersion(page.request, roads.id)).toBe(roads.version);
 
   await page.getByTestId(`maps-tree-map-${distant.id}-open`).click();
-  await expect(page.getByTestId("maps-context-title")).toHaveText("Lointaine");
+  await expect(page.getByTestId("screen-header-title")).toHaveText("Lointaine");
   await expect(page).toHaveURL(new RegExp(`/maps/${distant.id}\\?view=2\\.30`));
 
   await page.goBack();
-  await expect(page.getByTestId("maps-context-title")).toHaveText("Ponts");
+  await expect(page.getByTestId("screen-header-title")).toHaveText("Ponts");
   await expect(page).toHaveURL(new RegExp(`/maps/${bridges.id}\\?view=`));
 
   await page
@@ -168,7 +168,7 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
 
   await workbench.getByTestId("resource-open-in-maps").click();
   await expect(page).toHaveURL(new RegExp(`/maps/${roads.id}\\?view=`));
-  await expect(page.getByTestId("maps-context-title")).toHaveText("Routes");
+  await expect(page.getByTestId("screen-header-title")).toHaveText("Routes");
 });
 
 // @verifies-requirement HALL-FR-WSP-360
@@ -181,7 +181,7 @@ test("a writer draws from Cartes and sees the drawing on the workspace map; a re
   const initial = (await (await page.request.get(`/api/resources/${created.id}`)).json()).properties;
 
   await page.goto(`/app/maps/${created.id}?view=4.44,47.56,15`);
-  await expect(page.getByTestId("maps-context-title")).toHaveText("Chantier");
+  await expect(page.getByTestId("screen-header-title")).toHaveText("Chantier");
   await expect(page.getByTestId("geographic-composition")).toHaveCount(0);
   await page.getByTestId("geographic-mode-draw").click();
   await expect(page.getByTestId("geographic-composition")).toBeVisible();
@@ -215,7 +215,7 @@ test("a writer draws from Cartes and sees the drawing on the workspace map; a re
     await route.fulfill({ response, contentType: "application/vnd.siren+json", body: JSON.stringify(body) });
   });
   await page.goto(`/app/maps/${created.id}`);
-  await expect(page.getByTestId("maps-context-title")).toHaveText("Chantier");
+  await expect(page.getByTestId("screen-header-title")).toHaveText("Chantier");
   await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByTestId("geographic-save-view")).toHaveCount(0);
   await page.getByTestId("geographic-mode-draw").click();

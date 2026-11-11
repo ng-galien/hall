@@ -48,7 +48,7 @@
   .markdown-editor-large > [role="toolbar"] { flex-wrap: wrap; }
   .resource-preview-text { padding: var(--hall-space-3); }
   .app-main .maps-page { flex-direction: column; padding: var(--hall-space-3); }
-  .app-main .maps-panel { width: 100%; max-height: 35dvh; }
+  .app-main .maps-panel { width: 100%; max-height: 35dvh; padding: 0 0 var(--hall-space-3); border-right: 0; border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .app-main .maps-panel-collapsed { max-height: none; }
   .app-main .maps-surface { min-height: 45dvh; }
   .app-main .hall-calendar { padding: var(--hall-space-3); }

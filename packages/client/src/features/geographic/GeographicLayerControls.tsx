@@ -14,6 +14,7 @@ import {
   RulerIcon,
   VisibleIcon,
 } from "../../components/icons";
+import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import "./geographicLayers.css";
 import type { GeographicPanelMode, GeographicWorkspaceMode } from "./useGeographicMapRuntime";
@@ -83,30 +84,32 @@ export function GeographicLayerControls({
     <>
       <fieldset className="geographic-mode-switch">
         <legend className="sr-only">{t("geographic.mode")}</legend>
-        <button
+        <Button
+          variant="plain"
           type="button"
-          className={workspaceMode === "draw" ? "geographic-mode-active" : ""}
           data-testid="geographic-mode-draw"
           aria-pressed={workspaceMode === "draw"}
           onClick={() => onToggleMode("draw")}
         >
           <ListViewIcon />
           <span>{t("geographic.modeDraw")}</span>
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="plain"
           type="button"
-          className={workspaceMode === "measure" ? "geographic-mode-active" : ""}
           data-testid="geographic-mode-map"
           aria-pressed={workspaceMode === "measure"}
           onClick={() => onToggleMode("measure")}
         >
           <RulerIcon />
           <span>{t("geographic.modeMap")}</span>
-        </button>
+        </Button>
       </fieldset>
       <fieldset className="geographic-zoom-tools">
         <legend className="sr-only">{t("geographic.zoomControls")}</legend>
-        <button
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
           data-testid="geographic-zoom-in"
           aria-label={t("geographic.zoomIn")}
@@ -114,8 +117,10 @@ export function GeographicLayerControls({
           onClick={() => onZoom(1)}
         >
           +
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
           data-testid="geographic-zoom-out"
           aria-label={t("geographic.zoomOut")}
@@ -123,8 +128,10 @@ export function GeographicLayerControls({
           onClick={() => onZoom(-1)}
         >
           −
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
           data-testid="geographic-fit-drawings"
           aria-label={t("geographic.fitComposition")}
@@ -133,12 +140,12 @@ export function GeographicLayerControls({
           onClick={onFit}
         >
           <FitBoundsIcon />
-        </button>
+        </Button>
       </fieldset>
       <div className="geographic-layers">
-        <button
+        <Button
+          variant="secondary"
           type="button"
-          className="geographic-layers-trigger"
           data-testid="geographic-layers-trigger"
           aria-expanded={layersOpen}
           aria-label={t("geographic.layersOpen")}
@@ -146,16 +153,17 @@ export function GeographicLayerControls({
         >
           <LayersIcon />
           {t("geographic.layers")}
-        </button>
+        </Button>
         {layersOpen ? (
           <ul className="geographic-layers-panel" aria-label={t("geographic.layers")}>
             <li
               className={`geographic-layer-row geographic-layer-fixed${hallLayerVisible ? " geographic-layer-enabled" : ""}`}
               data-testid="geographic-layer-drawing"
             >
-              <button
+              <Button
+                variant="plain"
+                size="icon"
                 type="button"
-                className="geographic-layer-edit"
                 aria-pressed={workspaceMode === "draw"}
                 aria-label={t("geographic.drawingLayerEdit")}
                 title={t("geographic.drawingLayerEdit")}
@@ -163,17 +171,18 @@ export function GeographicLayerControls({
                 onClick={() => onToggleMode("draw")}
               >
                 <EditIcon />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="plain"
+                size="icon"
                 type="button"
-                className="geographic-layer-visible"
                 aria-pressed={hallLayerVisible}
                 aria-label={t("geographic.layerVisible", { name: t("geographic.drawingLayer") })}
                 title={t("geographic.layerVisible", { name: t("geographic.drawingLayer") })}
                 onClick={() => onHallLayerVisible(!hallLayerVisible)}
               >
                 {hallLayerVisible ? <VisibleIcon /> : <HiddenIcon />}
-              </button>
+              </Button>
               <span className="geographic-layer-name">{t("geographic.drawingLayer")}</span>
               <span />
             </li>
@@ -197,7 +206,9 @@ export function GeographicLayerControls({
                     setDropTargetLayerId(null);
                   }}
                 >
-                  <button
+                  <Button
+                    variant="plain"
+                    size="icon"
                     type="button"
                     className="geographic-layer-drag-handle"
                     draggable={canUpdate}
@@ -216,10 +227,11 @@ export function GeographicLayerControls({
                     }}
                   >
                     <DragHandleIcon />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="plain"
+                    size="icon"
                     type="button"
-                    className="geographic-layer-visible"
                     disabled={!canUpdate}
                     aria-pressed={layer.visible}
                     aria-label={t("geographic.layerVisible", { name: name })}
@@ -227,7 +239,7 @@ export function GeographicLayerControls({
                     onClick={() => onLayerVisibility(layer.id, !layer.visible)}
                   >
                     {layer.visible ? <VisibleIcon /> : <HiddenIcon />}
-                  </button>
+                  </Button>
                   <span className="geographic-layer-name">{name}</span>
                   <input
                     className="geographic-layer-opacity"
@@ -256,9 +268,10 @@ export function GeographicLayerControls({
                     data-overlay-status={status}
                   >
                     {municipalFilterLayerIds.has(overlay.layerId) ? (
-                      <button
+                      <Button
+                        variant="plain"
+                        size="icon"
                         type="button"
-                        className="geographic-layer-visible"
                         aria-pressed={municipalOnlyLayerIds.has(overlay.layerId)}
                         aria-label={t("geographic.municipalOnlyOf", { name: overlay.name })}
                         title={t("geographic.municipalOnlyOf", { name: overlay.name })}
@@ -266,13 +279,14 @@ export function GeographicLayerControls({
                         onClick={() => onMunicipalOnly(overlay.layerId, !municipalOnlyLayerIds.has(overlay.layerId))}
                       >
                         <FilterIcon />
-                      </button>
+                      </Button>
                     ) : (
                       <span className="geographic-layer-placeholder" />
                     )}
-                    <button
+                    <Button
+                      variant="plain"
+                      size="icon"
                       type="button"
-                      className="geographic-layer-visible"
                       disabled={!canChangeOverlays}
                       aria-pressed={overlay.visible}
                       aria-label={label}
@@ -281,7 +295,7 @@ export function GeographicLayerControls({
                       onClick={() => onOverlayVisibility(overlay.layerId, !overlay.visible)}
                     >
                       {overlay.visible ? <VisibleIcon /> : <HiddenIcon />}
-                    </button>
+                    </Button>
                     <span className="geographic-layer-name" title={overlay.name}>
                       {overlay.name}
                     </span>
@@ -298,22 +312,23 @@ export function GeographicLayerControls({
               })}
             {onAddLayer ? (
               <li className="geographic-layer-add">
-                <button type="button" data-testid="geographic-add-layer" onClick={onAddLayer}>
+                <Button variant="secondary" type="button" data-testid="geographic-add-layer" onClick={onAddLayer}>
                   <AddIcon />
                   {t("geographic.addLayer")}
-                </button>
+                </Button>
               </li>
             ) : null}
             {onImportMunicipalProperty ? (
               <li className="geographic-layer-add">
-                <button
+                <Button
+                  variant="secondary"
                   type="button"
                   data-testid="geographic-import-municipal-property"
                   onClick={onImportMunicipalProperty}
                 >
                   <AddIcon />
                   {t("geographic.importMunicipalProperty")}
-                </button>
+                </Button>
               </li>
             ) : null}
           </ul>

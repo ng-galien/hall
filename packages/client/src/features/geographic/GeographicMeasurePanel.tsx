@@ -214,7 +214,8 @@ function SavedMeasurementList({
             className="geographic-measurement-input"
             testId={`geographic-measurement-name-${measurement.id}`}
           >
-            <button
+            <Button
+              variant="plain"
               type="button"
               className="geographic-measurement-name"
               data-testid={`geographic-measurement-rename-${measurement.id}`}
@@ -222,20 +223,21 @@ function SavedMeasurementList({
               onClick={() => onEditingId(measurement.id)}
             >
               {measurement.properties.label}
-            </button>
+            </Button>
           </InlineRenameField>
           <SavedMeasureValue measurement={measurement} />
           {canSave ? (
-            <button
+            <Button
+              variant="plain"
+              size="icon"
               type="button"
-              className="geographic-measurement-remove"
               data-testid={`geographic-measurement-remove-${measurement.id}`}
               aria-label={t("geographic.measure.remove", { name: measurement.properties.label })}
               title={t("geographic.measure.remove", { name: measurement.properties.label })}
               onClick={() => onRemove(measurement.id)}
             >
               <DeleteIcon />
-            </button>
+            </Button>
           ) : null}
         </li>
       ))}
@@ -346,10 +348,11 @@ export function GeographicMeasurePanel({
         >
           <div className="geographic-composition-tools" role="toolbar" aria-label={t("geographic.measure.tools")}>
             {tools.map(({ value, icon: Icon, label }) => (
-              <button
+              <Button
+                variant="plain"
+                size="icon"
                 key={value}
                 type="button"
-                className={tool === value ? "geographic-tool-active" : ""}
                 data-testid={`geographic-measure-tool-${value}`}
                 aria-label={label}
                 title={label}
@@ -357,7 +360,7 @@ export function GeographicMeasurePanel({
                 onClick={() => setTool(value)}
               >
                 <Icon />
-              </button>
+              </Button>
             ))}
           </div>
           <div className="geographic-measures-body">
@@ -430,7 +433,9 @@ export function GeographicMeasurePanel({
                         <span data-testid={`geographic-measure-${key}-wgs84`}>
                           {formatWgs84(position, formatNumber, cardinals)}
                         </span>
-                        <button
+                        <Button
+                          variant="plain"
+                          size="icon"
                           type="button"
                           data-testid={`geographic-measure-${key}-copy-wgs84`}
                           data-copy-outcome={copyOutcome?.target === `${key}-wgs84` ? copyOutcome.outcome : undefined}
@@ -439,14 +444,16 @@ export function GeographicMeasurePanel({
                           onClick={() => void copy(`${key}-wgs84`, wgs84ClipboardText(position))}
                         >
                           <CopyIcon />
-                        </button>
+                        </Button>
                       </dd>
                       <dt>{t("geographic.measure.projected")}</dt>
                       <dd>
                         <span data-testid={`geographic-measure-${key}-projected`}>
                           {formatProjected(position, formatNumber)}
                         </span>
-                        <button
+                        <Button
+                          variant="plain"
+                          size="icon"
                           type="button"
                           data-testid={`geographic-measure-${key}-copy-projected`}
                           data-copy-outcome={
@@ -457,7 +464,7 @@ export function GeographicMeasurePanel({
                           onClick={() => void copy(`${key}-projected`, projectedClipboardText(position))}
                         >
                           <CopyIcon />
-                        </button>
+                        </Button>
                       </dd>
                     </dl>
                   ) : (

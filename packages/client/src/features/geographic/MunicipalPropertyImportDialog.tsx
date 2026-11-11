@@ -1,9 +1,9 @@
 import type { SirenEntity } from "@hall/api-contract";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -22,7 +22,6 @@ export function MunicipalPropertyImportDialog({
   onClose(): void;
 }) {
   const { t, formatNumber } = useI18n();
-  const id = useId();
   const { submitting, run } = useSubmitting();
   const [label, setLabel] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -85,46 +84,45 @@ export function MunicipalPropertyImportDialog({
             </p>
           ) : null}
           <p>{t("municipalProperty.import.description")}</p>
-          <fieldset className="grid gap-3" disabled={submitting}>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-label`}>{t("municipalProperty.import.label")}</Label>
+          <fieldset className="admin-fields" disabled={submitting}>
+            <Field label={t("municipalProperty.import.label")}>
               <Input
-                id={`${id}-label`}
                 required
                 maxLength={200}
                 value={label}
                 data-testid="municipal-property-import-label"
                 onChange={(event) => setLabel(event.currentTarget.value)}
               />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-file`}>{t("municipalProperty.import.file")}</Label>
+            </Field>
+            <Field label={t("municipalProperty.import.file")}>
               <Input
-                id={`${id}-file`}
                 type="file"
                 accept=".csv,.txt,text/csv,text/plain"
                 data-testid="municipal-property-import-file"
                 onChange={(event) => setFile(event.currentTarget.files?.[0] ?? null)}
               />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-list`}>{t("municipalProperty.import.list")}</Label>
+            </Field>
+            <Field label={t("municipalProperty.import.list")}>
               <Textarea
-                id={`${id}-list`}
                 rows={5}
                 value={list}
                 data-testid="municipal-property-import-list"
                 onChange={(event) => setList(event.currentTarget.value)}
               />
-            </div>
+            </Field>
           </fieldset>
-          <Button
-            type="submit"
-            disabled={submitting || !label.trim() || (!file && !list.trim())}
-            data-testid="municipal-property-import-submit"
-          >
-            {t(submitting ? "common.loading" : "municipalProperty.import.submit")}
-          </Button>
+          <div className="dialog-actions">
+            <Button variant="secondary" type="button" disabled={submitting} onClick={onClose}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitting || !label.trim() || (!file && !list.trim())}
+              data-testid="municipal-property-import-submit"
+            >
+              {t(submitting ? "common.loading" : "municipalProperty.import.submit")}
+            </Button>
+          </div>
         </form>
       )}
     </Modal>

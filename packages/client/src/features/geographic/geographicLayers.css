@@ -8,22 +8,8 @@
   white-space: nowrap;
 }
 .geographic-overlay-row[data-overlay-status="unavailable"] .geographic-overlay-meta { color: var(--hall-color-danger); }
-.geographic-layer-add { display: block; }
-.geographic-layer-add button {
-  display: inline-flex;
-  width: 100%;
-  align-items: center;
-  gap: var(--hall-space-1);
-  padding: var(--hall-space-0-5) var(--hall-space-1);
-  border: 0;
-  border-radius: var(--hall-radius-small);
-  color: var(--hall-color-brand);
-  background: transparent;
-  font: inherit;
-  font-size: var(--hall-font-size-caption);
-  cursor: pointer;
-}
-.geographic-layer-add button:hover { background: var(--hall-color-brand-subtle); }
+.geographic-layer-add { display: grid; padding-top: var(--hall-space-1); }
+.geographic-layer-add > .hall-button { justify-content: flex-start; white-space: normal; text-align: left; }
 .geographic-layer-upload-issues { margin: var(--hall-space-1) 0 0; padding-left: var(--hall-space-4); list-style: disc; }
 .geographic-layer-summary {
   display: grid;
@@ -69,20 +55,6 @@
   white-space: nowrap;
 }
 .geographic-feature-card-title span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
-.geographic-feature-card-icon {
-  display: inline-grid;
-  flex: none;
-  width: var(--hall-size-control-small);
-  height: var(--hall-size-control-small);
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--hall-radius-small);
-  color: var(--hall-color-text-muted);
-  background: transparent;
-  cursor: pointer;
-}
-.geographic-feature-card-icon:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
 .geographic-feature-card-body {
   display: grid;
   flex: 1 1 auto;
@@ -129,8 +101,6 @@
 .geographic-composition-tab-count { margin-inline-start: var(--hall-space-1); color: var(--hall-color-text-subtle); font-variant-numeric: tabular-nums; }
 .geographic-legend { display: flex; flex: 0 1 auto; flex-direction: column; min-height: 0; gap: var(--hall-space-1); }
 .geographic-legend-controls { display: flex; flex: none; align-items: center; gap: var(--hall-space-2); }
-.geographic-legend-controls > button { background: var(--hall-color-surface); box-shadow: var(--hall-shadow-medium); }
-.geographic-legend-controls > button:disabled { opacity: 1; color: var(--hall-color-text-subtle); }
 .geographic-legend-content { min-height: 0; overflow: auto; padding: var(--hall-space-1) var(--hall-space-2); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-medium); }
 .geographic-legend ul { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); list-style: none; padding: 0; margin: 0; }
 .geographic-legend li { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); margin: 0; font-size: var(--hall-font-size-caption); }
@@ -155,3 +125,16 @@
   max-height: calc(100% - var(--hall-size-control) * 5 - var(--hall-space-10));
   resize: both;
 }
+
+/* Map tools are Buttons (plain icon, secondary for a text action); the rows give them columns of their size. */
+.geographic-composition-feature {
+  grid-template-columns: var(--hall-space-4) var(--hall-size-control) minmax(0, 1fr) var(--hall-size-control) var(--hall-size-glyph-mark-large) var(--hall-size-control);
+}
+.geographic-composition-feature-readonly {
+  grid-template-columns: var(--hall-size-control) minmax(0, 1fr) var(--hall-size-control) var(--hall-size-control);
+}
+.geographic-composition-feature-name.hall-button,
+.geographic-measurement-name.hall-button { justify-content: flex-start; min-width: 0; overflow: hidden; color: var(--hall-color-text); font-weight: var(--hall-font-weight-regular); text-overflow: ellipsis; }
+.geographic-composition-feature-drag.hall-button,
+.geographic-layer-drag-handle.hall-button { cursor: grab; }
+.geographic-measurement { grid-template-columns: var(--hall-size-control) minmax(0, 1fr) auto var(--hall-size-control); }

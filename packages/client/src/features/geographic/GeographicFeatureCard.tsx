@@ -74,26 +74,28 @@ export function GeographicFeatureCard({
           <h2 data-testid="geographic-feature-card-title">{title}</h2>
           <span>{layerName}</span>
         </div>
-        <button
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
-          className="geographic-feature-card-icon"
           data-testid="geographic-feature-card-center"
           aria-label={t("geographicFeature.center")}
           title={t("geographicFeature.center")}
           onClick={onCenter}
         >
           <CenterOnFeatureIcon />
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
-          className="geographic-feature-card-icon"
           data-testid="geographic-feature-card-close"
           aria-label={t("common.close")}
           title={t("common.close")}
           onClick={onClose}
         >
           <CloseIcon />
-        </button>
+        </Button>
       </header>
       <div className="geographic-feature-card-body">
         {municipal.isMunicipal ? (

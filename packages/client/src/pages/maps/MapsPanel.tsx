@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { CollapseIcon, ExpandIcon } from "../../components/icons";
 import { matchesQuery } from "../../components/Ui";
+import { Button } from "../../components/ui/button";
 import { ExplorerTree, ExplorerTreeBranch } from "../../components/ui/explorer-tree";
 import { ListRow, ListRows } from "../../components/ui/list-row";
 import { SearchInput } from "../../components/ui/search-input";
@@ -126,9 +127,10 @@ export function MapsPanel({
   if (collapsed) {
     return (
       <aside className="maps-panel maps-panel-collapsed" data-testid="maps-panel" aria-label={t("maps.panel")}>
-        <button
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
-          className="maps-panel-toggle"
           data-testid="maps-panel-toggle"
           aria-expanded={false}
           aria-label={t("maps.expandPanel")}
@@ -136,7 +138,7 @@ export function MapsPanel({
           onClick={() => onCollapsedChange(false)}
         >
           <ExpandIcon />
-        </button>
+        </Button>
       </aside>
     );
   }
@@ -144,10 +146,10 @@ export function MapsPanel({
   return (
     <aside className="maps-panel" data-testid="maps-panel" aria-label={t("maps.panel")}>
       <div className="maps-panel-header">
-        <h2 className="maps-panel-title">{t("navigation.maps")}</h2>
-        <button
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
-          className="maps-panel-toggle"
           data-testid="maps-panel-toggle"
           aria-expanded
           aria-label={t("maps.collapsePanel")}
@@ -155,7 +157,7 @@ export function MapsPanel({
           onClick={() => onCollapsedChange(true)}
         >
           <CollapseIcon />
-        </button>
+        </Button>
       </div>
       <SearchInput
         data-testid="maps-search"
@@ -196,22 +198,24 @@ export function MapsPanel({
             <section className="maps-panel-section">
               <fieldset className="maps-mode-switch">
                 <legend className="sr-only">{t("maps.listMode")}</legend>
-                <button
+                <Button
+                  variant="secondary"
                   type="button"
                   data-testid="maps-mode-tree"
                   aria-pressed={mode === "tree"}
                   onClick={() => setMode("tree")}
                 >
                   {t("maps.byFolder")}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
                   type="button"
                   data-testid="maps-mode-business"
                   aria-pressed={mode === "business"}
                   onClick={() => setMode("business")}
                 >
                   {t("maps.byBusiness")}
-                </button>
+                </Button>
               </fieldset>
               {allMaps.length === 0 ? (
                 <p className="maps-panel-empty">{t("maps.empty")}</p>

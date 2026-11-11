@@ -2,6 +2,7 @@ import type { GeographicFeatureNote, SirenEntity } from "@hall/api-contract";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import type { EditorImageUpload } from "../../components/editor/imageTransfer";
 import { CenterOnFeatureIcon, CloseIcon } from "../../components/icons";
+import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { InlineResourceContent } from "../resources/InlineResourceContent";
@@ -145,26 +146,28 @@ export function GeographicDrawnElementCard({
           </h2>
         </div>
         {actions}
-        <button
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
-          className="geographic-feature-card-icon"
           data-testid="geographic-drawn-element-card-center"
           aria-label={t("geographicFeature.center")}
           title={t("geographicFeature.center")}
           onClick={onCenter}
         >
           <CenterOnFeatureIcon />
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
-          className="geographic-feature-card-icon"
           data-testid="geographic-drawn-element-card-close"
           aria-label={t("common.close")}
           title={t("common.close")}
           onClick={onClose}
         >
           <CloseIcon />
-        </button>
+        </Button>
       </header>
       <div className="geographic-feature-card-body">
         {measures}

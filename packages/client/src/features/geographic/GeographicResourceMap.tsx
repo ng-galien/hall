@@ -521,7 +521,6 @@ export function GeographicResourceMap({
         />
         <DrawingActionsMenu
           name={name}
-          className="geographic-feature-card-icon"
           testId={(part) => `geographic-drawn-element-card-${part}`}
           kind={drawing.properties.kind}
           visible={drawing.properties.visible !== false}

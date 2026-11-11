@@ -1,9 +1,9 @@
 import type { GeographicLayerImportIssue, GeographicMapOverlay, SirenEntity } from "@hall/api-contract";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -43,7 +43,6 @@ export function GeographicLayerUploadDialog({
   onClose(): void;
 }) {
   const { t, formatNumber } = useI18n();
-  const id = useId();
   const { submitting, run } = useSubmitting();
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
@@ -108,11 +107,9 @@ export function GeographicLayerUploadDialog({
           </div>
         ) : null}
         <p>{t("geographicLayer.upload.description")}</p>
-        <fieldset className="grid gap-3" disabled={submitting}>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-file`}>{t("geographicLayer.upload.file")}</Label>
+        <fieldset className="admin-fields" disabled={submitting}>
+          <Field label={t("geographicLayer.upload.file")}>
             <Input
-              id={`${id}-file`}
               type="file"
               accept=".geojson,.json,application/geo+json,application/json"
               required
@@ -126,22 +123,25 @@ export function GeographicLayerUploadDialog({
                 if (selected) setName((current) => current || layerNameFromFile(selected.name));
               }}
             />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-name`}>{t("geographicLayer.upload.name")}</Label>
+          </Field>
+          <Field label={t("geographicLayer.upload.name")}>
             <Input
-              id={`${id}-name`}
               required
               maxLength={200}
               value={name}
               data-testid="geographic-layer-upload-name"
               onChange={(event) => setName(event.currentTarget.value)}
             />
-          </div>
+          </Field>
         </fieldset>
-        <Button type="submit" disabled={submitting || !file} data-testid="geographic-layer-upload-submit">
-          {t(submitting ? "geographicLayer.upload.submitting" : "geographicLayer.upload.submit")}
-        </Button>
+        <div className="dialog-actions">
+          <Button variant="secondary" type="button" disabled={submitting} onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button type="submit" disabled={submitting || !file} data-testid="geographic-layer-upload-submit">
+            {t(submitting ? "geographicLayer.upload.submitting" : "geographicLayer.upload.submit")}
+          </Button>
+        </div>
       </form>
     </Modal>
   );

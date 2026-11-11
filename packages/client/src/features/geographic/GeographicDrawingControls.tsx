@@ -22,6 +22,7 @@ import {
   RulerIcon,
   VisibleIcon,
 } from "../../components/icons";
+import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 
 /** Controls of one drawing, shared by its Composition row and its card so both act the same way. */
@@ -38,7 +39,7 @@ export function DrawingColorControl({
   color: string;
   presets: ColorPickerPreset[];
   legendPresets: ColorPickerPreset[];
-  className: string;
+  className?: string;
   onChange(color: GeographicColor): void;
 }) {
   const { t } = useI18n();
@@ -85,7 +86,7 @@ export function DrawingActionsMenu({
   onDelete,
 }: {
   name: string;
-  className: string;
+  className?: string;
   testId(part: DrawingMenuPart): string;
   visible: boolean;
   onVisibility(visible: boolean): void;
@@ -103,7 +104,9 @@ export function DrawingActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
+        <Button
+          variant="plain"
+          size="icon"
           type="button"
           className={className}
           data-testid={testId("menu")}
@@ -111,7 +114,7 @@ export function DrawingActionsMenu({
           title={t("geographic.drawingMenu", { name: name })}
         >
           <MoreIcon />
-        </button>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"

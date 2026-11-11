@@ -10,6 +10,7 @@ import type { ColorPickerPreset } from "@/components/ui/color-picker";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CenterOnFeatureIcon, DragHandleIcon, PointerIcon, RulerIcon } from "../../components/icons";
+import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { DrawingActionsMenu, DrawingColorControl } from "./GeographicDrawingControls";
 import { GeographicLegendEditor } from "./GeographicLegend";
@@ -134,26 +135,29 @@ export function GeographicCompositionEditor({
                   data-testid={`geographic-composition-feature-${feature.id}`}
                 >
                   <Icon />
-                  <button
+                  <Button
+                    variant="plain"
                     type="button"
                     className="geographic-composition-feature-name"
                     onClick={() => onSelect(feature.id)}
                   >
                     {label}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="plain"
+                    size="icon"
                     type="button"
-                    className="geographic-composition-feature-fit"
                     aria-label={t("geographic.fitFeature", { name: label })}
                     title={t("geographic.fitFeature", { name: label })}
                     onClick={() => onFitFeature(feature.id)}
                   >
                     <CenterOnFeatureIcon />
-                  </button>
+                  </Button>
                   {feature.properties.kind === "marker" ? null : (
-                    <button
+                    <Button
+                      variant="plain"
+                      size="icon"
                       type="button"
-                      className="geographic-composition-feature-measures"
                       data-testid={`geographic-composition-feature-measures-${feature.id}`}
                       aria-pressed={measuredDrawingIds.has(feature.id)}
                       aria-label={t(
@@ -171,7 +175,7 @@ export function GeographicCompositionEditor({
                       onClick={() => onDrawingMeasures(feature.id, !measuredDrawingIds.has(feature.id))}
                     >
                       <RulerIcon />
-                    </button>
+                    </Button>
                   )}
                 </li>
               );
@@ -211,10 +215,11 @@ export function GeographicCompositionEditor({
         >
           <div className="geographic-composition-tools" role="toolbar" aria-label={t("geographic.compositionTools")}>
             {tools.map(({ mode, icon: Icon, label }) => (
-              <button
+              <Button
+                variant="plain"
+                size="icon"
                 key={mode}
                 type="button"
-                className={drawTool === mode ? "geographic-tool-active" : ""}
                 data-testid={`geographic-tool-${mode}`}
                 aria-label={label}
                 title={label}
@@ -222,7 +227,7 @@ export function GeographicCompositionEditor({
                 onClick={() => onDrawTool(mode)}
               >
                 <Icon />
-              </button>
+              </Button>
             ))}
           </div>
           <ul className="geographic-composition-list" aria-label={t("geographic.compositionFeatures")}>
@@ -258,7 +263,9 @@ export function GeographicCompositionEditor({
                       setDropTargetFeatureId(null);
                     }}
                   >
-                    <button
+                    <Button
+                      variant="plain"
+                      size="icon"
                       type="button"
                       className="geographic-composition-feature-drag"
                       draggable
@@ -276,8 +283,10 @@ export function GeographicCompositionEditor({
                       }}
                     >
                       <DragHandleIcon />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="plain"
+                      size="icon"
                       type="button"
                       className="geographic-composition-feature-select"
                       aria-pressed={selected}
@@ -285,7 +294,7 @@ export function GeographicCompositionEditor({
                       onClick={() => onSelect(feature.id)}
                     >
                       <Icon />
-                    </button>
+                    </Button>
                     <InlineRenameField
                       value={name}
                       editing={selected && editingFeatureId === feature.id}
@@ -300,7 +309,8 @@ export function GeographicCompositionEditor({
                       className="geographic-composition-feature-input"
                       testId={`geographic-composition-feature-name-${feature.id}`}
                     >
-                      <button
+                      <Button
+                        variant="plain"
                         type="button"
                         className="geographic-composition-feature-name"
                         title={visible ? undefined : t("geographic.drawing.hidden")}
@@ -315,18 +325,19 @@ export function GeographicCompositionEditor({
                         }}
                       >
                         {name}
-                      </button>
+                      </Button>
                     </InlineRenameField>
-                    <button
+                    <Button
+                      variant="plain"
+                      size="icon"
                       type="button"
-                      className="geographic-composition-feature-fit"
                       data-testid={`geographic-composition-feature-fit-${feature.id}`}
                       aria-label={t("geographic.fitFeature", { name: name })}
                       title={t("geographic.fitFeature", { name: name })}
                       onClick={() => onFitFeature(feature.id)}
                     >
                       <CenterOnFeatureIcon />
-                    </button>
+                    </Button>
                     <DrawingColorControl
                       name={name}
                       color={color}
