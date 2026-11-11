@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PdfIcon } from "../components/icons";
+import { Button } from "../components/ui/button";
 import { useI18n } from "../i18n/I18nProvider";
 import { apiResponse } from "../services/apiClient";
 
@@ -38,7 +39,8 @@ export function DocsPdfExport({ className }: { className: string }) {
 
   return (
     <>
-      <button
+      <Button
+        variant="secondary"
         type="button"
         className={className}
         aria-label={label}
@@ -50,7 +52,7 @@ export function DocsPdfExport({ className }: { className: string }) {
       >
         <PdfIcon aria-hidden="true" />
         <span>{label}</span>
-      </button>
+      </Button>
       {state === "failed" ? (
         <span role="alert" data-testid="docs-export-pdf-error">
           {t("docs.download.pdfFailed")}

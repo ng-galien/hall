@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { Link } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { ChevronRightIcon, ForwardIcon, InfoIcon, OfficialRuleIcon, TipIcon, WarningIcon } from "../components/icons";
+import { Button } from "../components/ui/button";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { findNode } from "./pages";
@@ -46,7 +46,8 @@ export function Details({
   const [open, setOpen] = useState(openByDefault);
   return (
     <section className="docs-details">
-      <button
+      <Button
+        variant="plain"
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
@@ -54,7 +55,7 @@ export function Details({
       >
         <ChevronRightIcon aria-hidden="true" className="docs-details-caret" data-open={open || undefined} />
         <span>{title}</span>
-      </button>
+      </Button>
       {open ? <div className="docs-details-body">{children}</div> : null}
     </section>
   );
@@ -71,7 +72,11 @@ export function PageCards({ of }: { of?: string }) {
         <Link key={child.page.path} to={`/docs/${child.page.path}`} className="docs-card">
           <span className="docs-card-title">
             {child.page.title}
-            {child.page.draft ? <Badge variant="warning">{t("docs.page.draft")}</Badge> : null}
+            {child.page.draft ? (
+              <span className="record-state" data-tone="warning">
+                {t("docs.page.draft")}
+              </span>
+            ) : null}
             <ForwardIcon aria-hidden="true" className="docs-card-arrow" />
           </span>
           {child.page.summary ? <span className="docs-card-summary">{child.page.summary}</span> : null}

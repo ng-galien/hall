@@ -10,14 +10,15 @@ import {
   useState,
 } from "react";
 import { Link, NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ListRow, ListRows } from "@/components/ui/list-row";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   BackIcon,
   ChevronRightIcon,
   DocsIcon,
   ForwardIcon,
   OpenIcon,
-  SearchIcon,
   SidebarCollapseIcon,
   SidebarExpandIcon,
   TranslateIcon,
@@ -62,16 +63,17 @@ export function DocsArea() {
       {navOpen ? <ContentsTree locale={locale} current={path} /> : null}
       <div className="docs-main">
         <div className="docs-toolbar">
-          <button
+          <Button
+            variant="plain"
+            size="icon"
             type="button"
-            className="docs-toolbar-toggle"
             data-testid="docs-navigation-toggle"
             aria-expanded={navOpen}
             aria-label={navOpen ? t("docs.nav.collapse") : t("docs.nav.expand")}
             onClick={() => setNavOpen((value) => !value)}
           >
             {navOpen ? <SidebarCollapseIcon aria-hidden="true" /> : <SidebarExpandIcon aria-hidden="true" />}
-          </button>
+          </Button>
           <DocsBreadcrumb path={path} locale={locale} />
           {standalone ? null : <DocsPdfExport className="docs-pdf-link" />}
           <DocsSearch locale={locale} />
@@ -155,16 +157,22 @@ function PageHead({ page, fallback }: { page: DocsPage; fallback: boolean }) {
       {page.summary ? <p className="docs-page-summary">{page.summary}</p> : null}
       <div className="docs-page-marks">
         {page.screen && !standalone ? (
-          <Link to={page.screen} className="docs-open-screen">
-            <OpenIcon aria-hidden="true" /> {t("docs.page.openScreen")}
-          </Link>
+          <Button asChild variant="secondary">
+            <Link to={page.screen}>
+              <OpenIcon aria-hidden="true" /> {t("docs.page.openScreen")}
+            </Link>
+          </Button>
         ) : null}
         {fallback ? (
           <span className="docs-fallback">
             <TranslateIcon aria-hidden="true" /> {t("docs.page.fallback")}
           </span>
         ) : null}
-        {page.draft ? <Badge variant="warning">{t("docs.page.draft")}</Badge> : null}
+        {page.draft ? (
+          <span className="record-state" data-tone="warning">
+            {t("docs.page.draft")}
+          </span>
+        ) : null}
       </div>
     </header>
   );
@@ -203,14 +211,17 @@ function TreeNode({ node, current, depth }: { node: DocsNode; current: string; d
         style={{ paddingLeft: depth * 12 }}
       >
         {hasChildren ? (
-          <button
+          <Button
+            variant="plain"
+            size="icon"
             type="button"
             aria-expanded={open}
+            aria-label={node.page.title}
             onClick={() => setOpen((value) => !value)}
             className="docs-tree-caret"
           >
             <ChevronRightIcon aria-hidden="true" data-open={open || undefined} />
-          </button>
+          </Button>
         ) : (
           <span className="docs-tree-caret-space" />
         )}
@@ -307,39 +318,35 @@ function DocsSearch({ locale }: { locale: Locale }) {
   };
   return (
     <div ref={root} className="docs-search">
-      <label className="docs-search-field">
-        <SearchIcon aria-hidden="true" />
-        <input
-          data-testid="docs-search"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && results[0]) go(results[0].page);
-            if (event.key === "Escape") setOpen(false);
-          }}
-          placeholder={t("docs.search.placeholder")}
-          aria-label={t("docs.search.label")}
-        />
-      </label>
+      <SearchInput
+        data-testid="docs-search"
+        value={query}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && results[0]) go(results[0].page);
+          if (event.key === "Escape") setOpen(false);
+        }}
+        placeholder={t("docs.search.placeholder")}
+        aria-label={t("docs.search.label")}
+      />
       {open && query.trim() ? (
         <div className="docs-search-results">
           {results.length === 0 ? <p className="docs-search-empty">{t("docs.search.noResult")}</p> : null}
-          {results.map(({ page, excerpt }) => (
-            <button
-              key={page.path}
-              type="button"
-              onClick={() => go(page)}
-              className="docs-search-result"
-              data-testid={`docs-search-result-${page.path.replaceAll("/", "-")}`}
-            >
-              <span className="docs-search-result-title">{page.title}</span>
-              <span className="docs-search-result-excerpt">{excerpt}</span>
-            </button>
-          ))}
+          <ListRows>
+            {results.map(({ page, excerpt }) => (
+              <ListRow
+                key={page.path}
+                onOpen={() => go(page)}
+                openTestId={`docs-search-result-${page.path.replaceAll("/", "-")}`}
+                title={page.title}
+                detail={excerpt}
+              />
+            ))}
+          </ListRows>
         </div>
       ) : null}
     </div>

@@ -1,5 +1,6 @@
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { DarkThemeIcon, LightThemeIcon } from "../components/icons";
+import { Button } from "../components/ui/button";
 import type { Locale } from "../i18n/I18nProvider";
 import { useI18n } from "../i18n/I18nProvider";
 import { resolveTone, useThemePrefsStore } from "../theme/themePrefs";
@@ -26,25 +27,26 @@ export function DocsSite() {
         <div className="docs-site-controls">
           <div className="docs-site-locales">
             {(["fr", "en"] as Locale[]).map((candidate) => (
-              <button
+              <Button
+                variant="secondary"
                 key={candidate}
                 type="button"
                 aria-pressed={locale === candidate}
-                data-active={locale === candidate || undefined}
                 onClick={() => setLocale(candidate)}
               >
                 {candidate === "fr" ? "Français" : "English"}
-              </button>
+              </Button>
             ))}
           </div>
-          <button
+          <Button
+            variant="plain"
+            size="icon"
             type="button"
-            className="docs-site-theme"
             aria-label={tone === "dark" ? t("docs.site.useLight") : t("docs.site.useDark")}
             onClick={() => setPreference(tone === "dark" ? "light" : "dark")}
           >
             {tone === "dark" ? <LightThemeIcon aria-hidden="true" /> : <DarkThemeIcon aria-hidden="true" />}
-          </button>
+          </Button>
         </div>
       </header>
       <main className="docs-site-main">

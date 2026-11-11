@@ -176,7 +176,7 @@
   .docs-area:has(> .docs-tree) > .docs-main { flex: none; }
   .docs-area:has(> .docs-tree) .docs-body { display: none; }
   .docs-main { min-height: 0; }
-  .docs-article-inner { max-width: none; margin: 0; padding: var(--hall-space-4) var(--hall-space-3) var(--hall-space-6); border: 0; border-radius: 0; box-shadow: none; }
+  .docs-article-inner { max-width: none; margin: 0; padding: var(--hall-space-4) var(--hall-space-3) var(--hall-space-6); }
   .docs-toolbar .docs-search { flex: 1 1 100%; }
   .docs-crumbs > a, .docs-crumb, .docs-crumb > a { min-width: 0; }
 
