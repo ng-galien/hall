@@ -2,6 +2,7 @@ import type { CouncilBusinessNavigationIndex } from "@hall/api-contract";
 import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDownIcon, ChevronRightIcon, CouncilBusinessIcon, FolderIcon } from "../components/icons";
+import { Button } from "../components/ui/button";
 import { councilBusinessHref } from "../features/references/referenceNavigation";
 import { useI18n } from "../i18n/I18nProvider";
 import { folderColorIconProps } from "../pages/workspace/folderColor";
@@ -45,17 +46,18 @@ function TreeNode({
         style={{ paddingLeft: `calc(${depth} * var(--hall-space-3))` }}
       >
         {node.children.length > 0 ? (
-          <button
+          <Button
+            variant="plain"
+            size="icon"
             className="workspace-tree-toggle"
             data-testid="workspace-sidebar-toggle"
             data-path={node.path}
-            type="button"
             aria-expanded={isExpanded}
             aria-label={node.name}
             onClick={() => onToggle(node.path)}
           >
             {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
-          </button>
+          </Button>
         ) : (
           <span className="workspace-tree-toggle" aria-hidden="true" />
         )}
@@ -220,13 +222,13 @@ export function WorkspaceTree() {
         </ul>
       </div>
       {hiddenCount > 0 ? (
-        <button className="workspace-tree-more" type="button" onClick={() => setShowAll(true)}>
+        <Button variant="plain" className="workspace-tree-more" onClick={() => setShowAll(true)}>
           {t("workspace.showAllFolders")}
-        </button>
+        </Button>
       ) : showAll && tree.length > VISIBLE_LIMIT + 1 ? (
-        <button className="workspace-tree-more" type="button" onClick={() => setShowAll(false)}>
+        <Button variant="plain" className="workspace-tree-more" onClick={() => setShowAll(false)}>
           {t("workspace.showLessFolders")}
-        </button>
+        </Button>
       ) : null}
     </div>
   );

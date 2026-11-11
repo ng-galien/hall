@@ -1,4 +1,5 @@
-import { createContext, type ReactNode, useContext, useId } from "react";
+import { type ComponentProps, createContext, type ReactNode, useContext, useId } from "react";
+import { ChevronDownIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 type FieldControl = { id: string; describedBy?: string; invalid: boolean };
@@ -74,4 +75,19 @@ export function useFieldControl<T extends { id?: string; "aria-describedby"?: st
     "aria-describedby": props["aria-describedby"] ?? field.describedBy,
     "aria-invalid": props["aria-invalid"] ?? (field.invalid || undefined),
   };
+}
+
+/** A control of a Field that opens a picker, drawn like the text of the field with a chevron at its end. */
+export function FieldPicker({ className, children, ...props }: ComponentProps<"button">) {
+  return (
+    <button
+      type="button"
+      data-slot="field-picker"
+      className={cn("hall-input hall-select-trigger", className)}
+      {...useFieldControl(props)}
+    >
+      <span className="hall-field-picker-value">{children}</span>
+      <ChevronDownIcon className="hall-select-chevron" aria-hidden="true" />
+    </button>
+  );
 }

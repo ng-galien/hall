@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ResourceSearchScope } from "../../features/search/useResourceSearch";
 import type { Mentionable } from "../editor/references";
 import { Button } from "../ui/button";
+import { FieldPicker } from "../ui/field";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { ResourceSearch } from "./ResourceSearch";
 
@@ -27,15 +28,9 @@ export function ResourceSearchField({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full justify-start"
-          data-testid={testId}
-          disabled={disabled}
-        >
+        <FieldPicker data-testid={testId} disabled={disabled}>
           {label}
-        </Button>
+        </FieldPicker>
       </PopoverTrigger>
       {open && (
         <PopoverContent className="shared-search-field-panel" align="start">

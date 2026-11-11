@@ -73,29 +73,38 @@
   .hall-textarea { display: block; min-height: var(--hall-size-textarea-min); padding-block: var(--hall-space-2); field-sizing: content; resize: vertical; }
   .hall-select-trigger { justify-content: space-between; gap: var(--hall-space-2); text-align: left; cursor: pointer; }
   .hall-select-trigger > [data-slot="select-value"] { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
+  .hall-field-picker-value { overflow: hidden; min-width: 0; flex: 1; text-overflow: ellipsis; white-space: nowrap; }
   .hall-select-chevron { flex: none; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-icon); pointer-events: none; }
 
   .hall-field-block { display: grid; min-width: 0; gap: var(--hall-space-1); }
-  .hall-field {
-    display: grid;
-    min-width: 0;
-    min-height: var(--hall-size-touch-control);
-    align-content: center;
-    padding: var(--hall-space-1-5) var(--hall-space-3) var(--hall-space-1);
-    border-radius: var(--hall-radius-small) var(--hall-radius-small) 0 0;
-    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thin)) 0 var(--hall-color-field-line);
-    background: var(--hall-color-field);
-    cursor: text;
+  /* The control fills the whole field, so the whole field is its target; the label is written over its top. */
+  .hall-field { position: relative; display: grid; min-width: 0; }
+  .hall-field-label {
+    position: absolute;
+    top: var(--hall-space-1-5);
+    left: var(--hall-space-3);
+    right: var(--hall-space-3);
+    z-index: var(--hall-z-content);
+    overflow: hidden;
+    color: var(--hall-color-text-muted);
+    font-size: var(--hall-font-size-caption);
+    line-height: var(--hall-line-height-caption);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
   }
-  .hall-field:hover { background: var(--hall-color-field-hover); }
-  .hall-field:focus-within { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-brand); }
-  .hall-field[data-invalid="true"] { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-danger); }
-  .hall-field-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); cursor: inherit; }
-  /* Inside a field the control is the text itself: the field draws the fill and the line. */
-  .hall-field .hall-input,
-  .hall-field .hall-input:hover,
-  .hall-field .hall-input:focus { min-height: var(--hall-line-height-body-large); padding: 0; border-radius: 0; box-shadow: none; background: transparent; }
-  .hall-field .hall-textarea { min-height: var(--hall-size-textarea-min); padding-block: 0; resize: none; }
+  .hall-field:focus-within > .hall-field-label { color: var(--hall-color-brand); }
+  .hall-field[data-invalid="true"] > .hall-field-label { color: var(--hall-color-danger); }
+  .hall-field > :is(.hall-input, .hall-textarea, .hall-select-trigger),
+  .hall-field > * > :is(.hall-input, .hall-textarea, .hall-select-trigger) {
+    min-height: calc(var(--hall-size-touch-control) + var(--hall-space-2));
+    padding-top: calc(var(--hall-space-1-5) + var(--hall-line-height-caption));
+    padding-bottom: var(--hall-space-1);
+  }
+  .hall-field .hall-textarea,
+  .hall-field .hall-textarea:focus { min-height: calc(var(--hall-size-textarea-min) + var(--hall-line-height-caption)); }
+  /* A control that is not an input, such as a search picker, sits under the label inside the same fill. */
+  .hall-field > :not(.hall-field-label, .hall-input, .hall-textarea, .hall-select-trigger) { min-width: 0; }
   .hall-field-note { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
   .hall-field-note[data-tone="danger"] { color: var(--hall-color-danger); }
   .hall-field-row { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-10rem)), 1fr)); gap: var(--hall-space-2); }

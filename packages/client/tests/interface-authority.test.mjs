@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "vitest";
 
@@ -134,5 +134,40 @@ test("creation goes through CreateButton, floating on a phone and in the header 
   assert.doesNotMatch(
     readFileSync(join(sourceRoot, "pages/workspace/WorkspaceCreateMenu.tsx"), "utf8"),
     /DropdownMenu/,
+  );
+});
+
+/** Files that may draw a native button: the shared primitives and the entries of the bottom bar. */
+const nativeButtonOwners = (path) => path.startsWith("components/ui/") || path === "shell/PhoneNavigation.tsx";
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-LAY-090
+test("every button of a screen is a Button", () => {
+  assert.deepEqual(
+    offenders(/<button\b/, ({ path }) => path.endsWith(".tsx") && !nativeButtonOwners(path)),
+    [],
+  );
+});
+
+/** Components replaced by Field, list rows and states written after a dot. */
+const retiredFiles = ["components/ui/label.tsx", "components/ui/badge.tsx", "components/DetailTooltip.tsx"];
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-LAY-140
+test("every form field is a Field: the label above the control and the badges do not come back", () => {
+  for (const path of retiredFiles) assert.equal(existsSync(join(sourceRoot, path)), false, `${path} still exists`);
+  assert.deepEqual(offenders(/from "[^"]*(?:ui\/label|ui\/badge|DetailTooltip)"/), []);
+});
+
+// @verifies-requirement HALL-FR-LAY-080
+// @verifies-requirement HALL-FR-LAY-100
+test("the interface is written in lower case and draws no pill or large rounding", () => {
+  assert.deepEqual(
+    offenders(/text-transform:\s*uppercase|\buppercase\b/, ({ path }) => !path.startsWith("docs/")),
+    [],
+  );
+  assert.deepEqual(
+    offenders(/--hall-radius-large\b/, ({ path }) => path !== "styles/tokens.css" && path !== "styles.css"),
+    [],
   );
 });
