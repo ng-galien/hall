@@ -1382,7 +1382,9 @@ export function PathContents({
             rootChildren.length === 0 &&
             creatingFolderParent !== path &&
             createTarget?.folderPath !== path ? (
-              <li className="workspace-explorer-empty">{t("workspace.noVisibleItems")}</li>
+              <li className="workspace-explorer-empty" data-testid="workspace-explorer-empty">
+                {t(mode === "all" && !normalizedQuery ? "workspace.emptyFolder" : "workspace.noVisibleItems")}
+              </li>
             ) : null}
           </ul>
         </li>

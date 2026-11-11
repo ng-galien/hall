@@ -578,7 +578,8 @@ test("the home page lists the latest council documents without the personal fold
 });
 
 // @verifies-requirement HALL-FR-LAY-010
-test("on a phone the personal folder is the only active destination", async ({
+// @verifies-requirement HALL-FR-WSP-380
+test("on a phone the personal folder is the only active destination and an empty folder says it is empty", async ({
   page: admin,
   browser,
   baseURL,
@@ -651,12 +652,13 @@ test("on a phone the personal folder is the only active destination", async ({
           .map((item) => item.getAttribute("data-destination") ?? item.getAttribute("data-testid")),
       );
 
-  await test.step("the personal destination alone is active in the personal folder", async () => {
+  await test.step("the personal destination alone is active in the personal folder, which says it is empty", async () => {
     await phone.goto("/app/");
     await destination("personal").tap();
     await expect(destination("personal")).toHaveAttribute("aria-current", "page");
     expect(await activeDestinations()).toEqual(["personal"]);
     await expect(phone.getByTestId("phone-header-title")).toHaveText("Mon espace");
+    await expect(phone.getByTestId("workspace-explorer-empty")).toHaveText("Ce dossier est vide.");
   });
 
   await test.step("the documents destination alone is active elsewhere in the explorer", async () => {
@@ -667,9 +669,14 @@ test("on a phone the personal folder is the only active destination", async ({
     await expect(phone.getByTestId(`workspace-folder-name-${aliceFolder}`)).toBeVisible();
     expect(await activeDestinations()).toEqual(["documents"]);
     await phone.getByTestId(`workspace-folder-name-${aliceFolder}`).tap();
-    await expect(phone.getByTestId("phone-header-title")).toHaveText("Mon espace");
+    await expect(phone.getByTestId("workspace-explorer-empty")).toBeVisible();
     expect(await activeDestinations()).toEqual(["personal"]);
   });
 
+  await test.step("on a wide screen a filter without result keeps its own message", async () => {
+    await phone.setViewportSize({ width: 1280, height: 800 });
+    await phone.getByTestId("workspace-tree-filter").fill("absent");
+    await expect(phone.getByTestId("workspace-explorer-empty")).toHaveText("Aucun élément ne correspond à cette vue.");
+  });
   await context.close();
 });

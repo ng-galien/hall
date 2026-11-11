@@ -809,6 +809,7 @@ export const fr: Messages = {
   "workspace.view.resources": "Notes et documents",
   "workspace.note": "Note",
   "workspace.document": "Document",
+  "workspace.emptyFolder": "Ce dossier est vide.",
   "workspace.noVisibleItems": "Aucun élément ne correspond à cette vue.",
   "workspace.attachedFeedback": "{name} a été rattaché à l’affaire.",
   "workspace.movedFeedback": "Déplacé vers {name}.",

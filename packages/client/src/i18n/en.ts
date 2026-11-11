@@ -795,6 +795,7 @@ export const en = {
   "workspace.view.resources": "Notes and documents",
   "workspace.note": "Note",
   "workspace.document": "Document",
+  "workspace.emptyFolder": "This folder is empty.",
   "workspace.noVisibleItems": "No item matches this view.",
   "workspace.attachedFeedback": "{name} attached to the council business.",
   "workspace.movedFeedback": "Moved to {name}.",
