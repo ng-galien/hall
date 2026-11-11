@@ -105,8 +105,8 @@
 .table-handle[data-state="open"],
 .table-extend:hover {
   border-color: var(--hall-color-brand);
-  color: var(--resource-tone-color, var(--hall-color-brand));
-  background: var(--resource-tone-surface, var(--hall-color-brand-subtle));
+  color: var(--hall-color-brand);
+  background: var(--hall-color-brand-subtle);
 }
 .table-handle-column {
   width: var(--hall-size-table-handle-long);
@@ -215,6 +215,7 @@
 }
 .editor-reference > svg,
 .markdown-reference > svg {
+  color: var(--type-icon-color, currentColor);
   align-self: center;
   display: block;
   width: var(--hall-font-size-icon);

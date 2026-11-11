@@ -761,7 +761,7 @@
     font-size: var(--hall-font-size-icon);
     color: var(--hall-color-text-muted);
   }
-  .composer-subject-glyph[data-kind="councilDecisionProposal"] { color: var(--hall-color-brand); }
+  .composer-subject-glyph.type-icon { color: var(--type-icon-color); }
   .composer-subject-glyph[data-kind="minutesApproval"] { color: var(--hall-color-success); }
   .composer-item-main > .composer-item-copy { flex: 1; }
   .composer-vote-indicator {

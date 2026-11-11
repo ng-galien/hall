@@ -78,5 +78,5 @@
   .search-results-type,
   .search-results-folder { display: none; }
 }
-.search-results-row > .workspace-glyph { width: var(--hall-size-tree-toggle); height: var(--hall-size-tree-toggle); border-radius: 0; background: transparent; }
-.search-results-row > .workspace-glyph svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
+.search-results-row > .type-icon { width: var(--hall-size-tree-toggle); height: var(--hall-size-tree-toggle); border-radius: 0; background: transparent; }
+.search-results-row > .type-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }

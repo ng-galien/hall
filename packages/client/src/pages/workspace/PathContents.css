@@ -12,7 +12,7 @@
   white-space: nowrap;
 }
 
-.path-contents-explorer .workspace-explorer-primary > .workspace-glyph {
+.path-contents-explorer .workspace-explorer-primary > .type-icon {
   display: inline-grid;
   width: var(--hall-size-tree-toggle);
   height: var(--hall-size-tree-toggle);
@@ -21,7 +21,7 @@
   background: transparent;
 }
 
-.path-contents-explorer .workspace-explorer-primary > .workspace-glyph svg {
+.path-contents-explorer .workspace-explorer-primary > .type-icon svg {
   width: var(--hall-font-size-icon-large);
   height: var(--hall-font-size-icon-large);
 }

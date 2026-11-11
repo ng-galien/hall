@@ -43,13 +43,13 @@
   height: 100%;
 }
 
-.editor-media-overlay-icon > .workspace-glyph {
+.editor-media-overlay-icon > .type-icon {
   width: var(--hall-size-glyph-compact);
   height: var(--hall-size-glyph-compact);
   border-radius: var(--hall-radius-small);
 }
 
-.editor-media-overlay-icon > .workspace-glyph > svg {
+.editor-media-overlay-icon > .type-icon > svg {
   width: var(--hall-size-glyph-mark-compact);
   height: var(--hall-size-glyph-mark-compact);
 }

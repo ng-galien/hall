@@ -41,6 +41,7 @@ import {
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ExplorerTree, ExplorerTreeRow } from "../../components/ui/explorer-tree";
+import { ListRowIcon } from "../../components/ui/list-row";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import {
   type DocumentaryLeafSummary,
@@ -706,9 +707,9 @@ export function PathContents({
         <div className="workspace-explorer-row">
           <span className="workspace-explorer-primary">
             {target.kind === "councilMatter" ? (
-              <span className="workspace-glyph workspace-glyph-business" aria-hidden="true">
+              <ListRowIcon nature="council">
                 <Icon />
-              </span>
+              </ListRowIcon>
             ) : (
               <ToneGlyph tone={workspaceCreateKindTones[target.kind]} />
             )}

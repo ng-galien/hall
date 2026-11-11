@@ -1,7 +1,9 @@
 import type { AgendaSubject, PreparedCouncilSubject, SchedulePreparedCouncilSubject } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
 import { GavelIcon, QuoteIcon, TextDocumentIcon } from "../../components/icons";
+import { ListRowIcon } from "../../components/ui/list-row";
 import type { TranslationKey } from "../../i18n/en";
+import { agendaSubjectNatures } from "../documents/ResourceGlyph";
 
 export const agendaSubjectPresentation = {
   minutesApproval: { icon: TextDocumentIcon, label: "agendaSubject.minutesApproval", voted: true },
@@ -12,9 +14,9 @@ export const agendaSubjectPresentation = {
 export function AgendaSubjectGlyph({ kind, tree = false }: { kind: AgendaSubject["kind"]; tree?: boolean }) {
   const Icon = agendaSubjectPresentation[kind].icon;
   return (
-    <span className={tree ? "workspace-glyph" : "composer-subject-glyph"} data-kind={kind} aria-hidden="true">
+    <ListRowIcon nature={agendaSubjectNatures[kind]} className={tree ? undefined : "composer-subject-glyph"}>
       <Icon />
-    </span>
+    </ListRowIcon>
   );
 }
 

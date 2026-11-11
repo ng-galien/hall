@@ -41,7 +41,7 @@
   /* @implements-requirement HALL-FR-WSP-480 */
   /* A folder colour paints the folder icon only: no background, frame or badge. */
   svg.workspace-folder-icon-colored,
-  .workspace-glyph svg.workspace-folder-icon-colored { color: var(--workspace-folder-color); }
+  .type-icon svg.workspace-folder-icon-colored { color: var(--workspace-folder-color); }
   .workspace-explorer-color-anchor { display: inline-flex; flex: none; }
 
   /* ---- Page ---- */
@@ -417,8 +417,8 @@
     font-size: var(--hall-font-size-caption);
     cursor: pointer;
   }
-  .wpins-open .workspace-glyph { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); }
-  .wpins-open .workspace-glyph svg { width: var(--hall-size-glyph-mark-compact); height: var(--hall-size-glyph-mark-compact); }
+  .wpins-open .type-icon { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); }
+  .wpins-open .type-icon svg { width: var(--hall-size-glyph-mark-compact); height: var(--hall-size-glyph-mark-compact); }
   .wpins-title { max-width: var(--hall-size-pin-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .wpins-remove {
     display: inline-flex;
@@ -465,31 +465,6 @@
   .whome-business-copy > span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); overflow-wrap: anywhere; }
   .whome-business-copy > .whome-business-path { color: var(--hall-color-text-subtle); }
   .whome-business > svg:last-child { flex: none; color: var(--hall-color-text-subtle); }
-
-  /* ---- Type glyphs ---- */
-  .workspace-glyph {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: var(--hall-size-glyph);
-    height: var(--hall-size-glyph);
-    border-radius: var(--hall-radius-medium);
-    color: var(--resource-tone-color, var(--hall-color-text-muted));
-    background: var(--resource-tone-surface, var(--hall-color-surface-subtle));
-  }
-  .workspace-glyph svg { width: var(--hall-size-glyph-mark); height: var(--hall-size-glyph-mark); }
-  .workspace-glyph-large { width: var(--hall-size-glyph-large); height: var(--hall-size-glyph-large); }
-  .workspace-glyph-large svg { width: var(--hall-size-glyph-mark-large); height: var(--hall-size-glyph-mark-large); }
-  .workspace-glyph-business,
-  .workspace-glyph-kind-councilBusiness { --resource-tone-color: var(--hall-color-council-business); color: var(--hall-color-council-business); background: var(--hall-color-surface-subtle); }
-  .workspace-glyph-kind-resource { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); }
-  .workspace-glyph-folder { color: var(--hall-color-text-muted); background: transparent; }
-  .workspace-glyph-decision,
-  .workspace-glyph-kind-meeting,
-  .workspace-glyph-kind-decision { color: var(--hall-color-seal); background: var(--hall-color-seal-surface); }
-  .workspace-glyph-kind-member { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .workspace-glyph-kind-contact { color: var(--hall-color-success); background: var(--hall-color-success-surface); }
 
   .remote-resource-embed {
     display: flex;
@@ -1416,11 +1391,10 @@
   .business-unified-tree { flex: none; }
   .business-unified-tree .workspace-explorer-row { min-height: var(--hall-size-control-small); padding-block: 0; gap: var(--hall-space-0-5); }
   .business-unified-tree .workspace-explorer-toggle,
-  .business-unified-tree .workspace-explorer-row > .workspace-glyph { width: var(--hall-font-size-icon-large); }
+  .business-unified-tree .workspace-explorer-row > .type-icon { width: var(--hall-font-size-icon-large); }
   .business-unified-tree .workspace-explorer-folder-name { padding-block: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-medium); }
   .business-unified-tree > li > .workspace-explorer-row .workspace-explorer-folder-name { font-weight: var(--hall-font-weight-semibold); }
   .business-unified-tree .workspace-explorer-branch { margin-left: var(--hall-space-3); padding-left: var(--hall-space-3); }
-  .business-unified-tree .workspace-glyph:not([class*="workspace-glyph-"]) { color: var(--hall-color-brand); }
   .business-tree-type { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); white-space: nowrap; }
   .business-unified-tree .workspace-explorer-row[data-has-meta="true"] > .workspace-explorer-folder-name { flex: 0 1 auto; }
   .business-unified-tree .workspace-explorer-folder-name:focus-visible,
@@ -1574,14 +1548,14 @@ fieldset.workspace-explorer-folder-row { min-width: 0; margin: 0; padding: 0; }
 .workspace-explorer-title-link:hover,
 .workspace-explorer-title-link:focus-visible { color: var(--hall-color-brand); text-decoration: underline; }
   .workspace-explorer-primary { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-1-5); }
-  .workspace-explorer-primary > .workspace-glyph {
+  .workspace-explorer-primary > .type-icon {
     display: inline-grid;
     width: var(--hall-size-tree-toggle);
     height: var(--hall-size-tree-toggle);
     border-radius: 0;
     background: transparent;
 }
-.workspace-explorer-primary > .workspace-glyph svg {
+.workspace-explorer-primary > .type-icon svg {
   width: var(--hall-font-size-icon-large);
   height: var(--hall-font-size-icon-large);
 }
@@ -1589,7 +1563,7 @@ fieldset.workspace-explorer-folder-row { min-width: 0; margin: 0; padding: 0; }
   .workspace-explorer-date { justify-self: end; color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-body); white-space: nowrap; }
 .workspace-explorer-folder-marker,
 .workspace-business-mark,
-.workspace-explorer-row > .workspace-glyph {
+.workspace-explorer-row > .type-icon {
   display: inline-grid;
   flex: none;
   width: var(--hall-size-glyph);
@@ -1637,17 +1611,15 @@ fieldset.workspace-explorer-folder-row { min-width: 0; margin: 0; padding: 0; }
   place-items: center;
   color: var(--hall-color-seal-strong);
 }
-.workspace-business-mark .workspace-glyph,
-.workspace-explorer-row > .workspace-glyph {
+.workspace-business-mark .type-icon,
+.workspace-explorer-row > .type-icon {
   width: var(--hall-size-glyph);
   height: var(--hall-size-glyph);
   border-radius: var(--hall-radius-none);
-  color: var(--resource-tone-color, var(--hall-color-text-subtle));
   background: transparent;
 }
-.workspace-business-mark .workspace-glyph { color: var(--hall-color-seal-strong); }
-.workspace-business-mark .workspace-glyph svg,
-.workspace-explorer-row > .workspace-glyph svg {
+.workspace-business-mark .type-icon svg,
+.workspace-explorer-row > .type-icon svg {
   width: var(--hall-font-size-icon-large);
   height: var(--hall-font-size-icon-large);
 }

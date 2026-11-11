@@ -2,7 +2,7 @@ import type { ResourceDetail, ResourceSummary } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
-import { type ResourceTone, toneIcons, toneLabelKeys } from "./ResourceGlyph";
+import { type ResourceTone, ToneGlyph, toneLabelKeys } from "./ResourceGlyph";
 
 export type DocumentaryLeafSummary = Exclude<ResourceSummary, { kind: "folder" }>;
 export type DocumentaryLeafDetail = Exclude<ResourceDetail, { kind: "folder" }>;
@@ -80,16 +80,7 @@ export function useDocumentaryResourceTypeLabel(): (resource: DocumentaryLeafSum
   };
 }
 
-/** Canonical documentary glyph, using the same icon and colour authority as legacy presentations. */
+/** Type icon of a documentary resource, from the same icon and nature authority as every resource. */
 export function DocumentaryResourceGlyph({ resource, large }: { resource: DocumentaryLeafSummary; large?: boolean }) {
-  const tone = documentaryResourceTone(resource);
-  const Icon = toneIcons[tone];
-  return (
-    <span
-      className={`workspace-glyph workspace-glyph-${tone}${large ? " workspace-glyph-large" : ""}`}
-      aria-hidden="true"
-    >
-      <Icon />
-    </span>
-  );
+  return <ToneGlyph tone={documentaryResourceTone(resource)} large={large} />;
 }

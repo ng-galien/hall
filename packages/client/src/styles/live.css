@@ -475,8 +475,8 @@
     cursor: pointer;
   }
   .conduct-document-chip:hover { border-color: var(--hall-color-brand); color: var(--hall-color-brand); }
-  .conduct-document-chip .workspace-glyph { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); }
-  .conduct-document-chip .workspace-glyph svg { width: var(--hall-size-glyph-mark-compact); height: var(--hall-size-glyph-mark-compact); }
+  .conduct-document-chip .type-icon { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); }
+  .conduct-document-chip .type-icon svg { width: var(--hall-size-glyph-mark-compact); height: var(--hall-size-glyph-mark-compact); }
   .conduct-minutes-link { justify-self: start; text-decoration: none; }
   .conduct-notes {
     width: 100%;

@@ -6,16 +6,22 @@ import { exitSuggestion, Suggestion, type SuggestionProps } from "@tiptap/sugges
 import { Children, createContext, forwardRef, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { ResourceTone } from "../../features/documents/ResourceGlyph";
+import { type ResourceTone, referenceKindNatures } from "../../features/documents/ResourceGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Searchable } from "../../lib/search";
 import type { MemberIcon } from "../icons";
 import { type FacetSuggestion, type FacetValueLabels, facetHashPattern } from "../search/facetSuggestions";
 import { ResourceSearch, type ResourceSearchHandle } from "../search/ResourceSearch";
+import type { ResourceNature } from "../ui/list-row";
 import { isReferenceEntityKind, referenceKindPresentations } from "./referenceKindPresentation";
 
 type ResourcePreviewRenderer = (id: string, onClose: () => void) => ReactNode;
-export type ResourceReferenceAppearance = { tone: string; icon: ReactNode; glyph: ReactNode; tooltip: string };
+export type ResourceReferenceAppearance = {
+  nature: ResourceNature;
+  icon: ReactNode;
+  glyph: ReactNode;
+  tooltip: string;
+};
 export type ReferenceTarget = {
   label: string;
   tooltip: string;
@@ -102,7 +108,8 @@ export function ReferenceBadge({
   const appearance = kind === "resource" && id ? presentation?.resourceAppearance(id) : null;
   const open = target?.open ?? null;
   const openable = open !== null;
-  const className = `editor-reference editor-reference-${kind}${appearance ? ` editor-reference-tone-${appearance.tone}` : ""}`;
+  const className = `editor-reference editor-reference-${kind}`;
+  const nature = appearance?.nature ?? referenceKindNatures[kind];
   const hasExplicitLabel = Children.toArray(children).some((child) =>
     typeof child === "string" ? child.trim().length > 0 : true,
   );
@@ -123,6 +130,7 @@ export function ReferenceBadge({
               }}
               type="button"
               className={`${className} is-openable`}
+              data-nature={nature}
               data-testid={`editor-resource-reference-${id}`}
               onClick={() => {
                 scrollRef.current = { x: window.scrollX, y: window.scrollY };
@@ -138,6 +146,7 @@ export function ReferenceBadge({
               }}
               to={open.href}
               className={`${className} is-openable`}
+              data-nature={nature}
               data-testid={`editor-${kind}-reference-${id}`}
               onClick={(event) => {
                 if (
@@ -159,11 +168,18 @@ export function ReferenceBadge({
               {content}
             </Link>
           ) : open?.kind === "route" ? (
-            <Link to={open.href} className={`${className} is-openable`} data-testid={`editor-${kind}-reference-${id}`}>
+            <Link
+              to={open.href}
+              className={`${className} is-openable`}
+              data-nature={nature}
+              data-testid={`editor-${kind}-reference-${id}`}
+            >
               {content}
             </Link>
           ) : (
-            <span className={className}>{content}</span>
+            <span className={className} data-nature={nature}>
+              {content}
+            </span>
           )}
         </TooltipTrigger>
         <TooltipContent>

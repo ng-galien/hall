@@ -1,12 +1,13 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ToneGlyph } from "../../features/documents/ResourceGlyph";
+import { referenceKindNatures, ToneGlyph } from "../../features/documents/ResourceGlyph";
 import { type ResourceSearchScope, useResourceSearch } from "../../features/search/useResourceSearch";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { SearchType } from "../../lib/search";
 import type { Mentionable } from "../editor/references";
 import { CardViewIcon, CheckIcon, ListViewIcon } from "../icons";
 import { Button } from "../ui/button";
+import { ListRowIcon } from "../ui/list-row";
 import { SearchResultRow } from "../ui/search-result-row";
 import { FolderSectionsList } from "./FolderSectionsList";
 import { facetHashPattern } from "./facetSuggestions";
@@ -139,9 +140,9 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
     if (item.kind === "resource" || item.kind === "councilBusiness") return <KindGlyph kind={item.kind} />;
     const Icon = item.icon;
     return Icon ? (
-      <span className={`workspace-glyph workspace-glyph-kind-${item.kind}`}>
+      <ListRowIcon nature={referenceKindNatures[item.kind]}>
         <Icon aria-hidden="true" />
-      </span>
+      </ListRowIcon>
     ) : (
       <KindGlyph kind={item.kind} />
     );

@@ -1,4 +1,5 @@
-import { matchDiscriminated, matchLiteral, type Resource } from "@hall/domain";
+import type { AgendaSubject } from "@hall/api-contract";
+import { matchDiscriminated, matchLiteral, type ReferenceEntityKind, type Resource } from "@hall/domain";
 import {
   CalendarIcon,
   CsvIcon,
@@ -14,6 +15,7 @@ import {
   WebIcon,
   WordDocumentIcon,
 } from "../../components/icons";
+import { ListRowIcon, type ResourceNature } from "../../components/ui/list-row";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 
@@ -71,6 +73,43 @@ export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
   csv: "workspace.type.file",
 };
 
+/**
+ * Nature of each type: writings in blue, data in azure, visuals in violet, council objects in dark slate.
+ * @implements-requirement HALL-FR-LAY-070
+ */
+export const toneNatures: Record<ResourceTone, ResourceNature> = {
+  text: "writing",
+  remote: "writing",
+  pdf: "writing",
+  document: "writing",
+  presentation: "writing",
+  spreadsheet: "data",
+  spreadsheetFile: "data",
+  csv: "data",
+  image: "visual",
+  geographic: "visual",
+  geographicLayer: "visual",
+  legalReference: "council",
+  event: "council",
+};
+
+/** Nature of a referenced entity; a resource takes the nature of its tone when it is known. */
+export const referenceKindNatures: Record<ReferenceEntityKind, ResourceNature> = {
+  member: "council",
+  contact: "council",
+  resource: "writing",
+  councilBusiness: "council",
+  decision: "council",
+  meeting: "council",
+};
+
+/** Nature of each agenda subject. */
+export const agendaSubjectNatures: Record<AgendaSubject["kind"], ResourceNature> = {
+  minutesApproval: "council",
+  councilDecisionProposal: "council",
+  openQuestion: "council",
+};
+
 export const toneIcons = {
   text: TextDocumentIcon,
   remote: WebIcon,
@@ -113,29 +152,17 @@ export function useResourceTypeLabel(): (resource: Resource) => string {
     });
 }
 
-/** Typed badge for a resource: text, PDF, image or generic file. */
+/** Type icon of a resource: text, PDF, image or generic file. */
 export function ResourceGlyph({ resource, large }: { resource: Resource; large?: boolean }) {
-  const tone = resourceTone(resource);
-  const Icon = toneIcons[tone];
-  return (
-    <span
-      className={`workspace-glyph workspace-glyph-${tone}${large ? " workspace-glyph-large" : ""}`}
-      aria-hidden="true"
-    >
-      <Icon />
-    </span>
-  );
+  return <ToneGlyph tone={resourceTone(resource)} large={large} />;
 }
 
-/** Badge for a resource tone, the single glyph shape and colour of each resource type. */
+/** Type icon of a resource tone, the single glyph shape and colour of each resource type. */
 export function ToneGlyph({ tone, large }: { tone: ResourceTone; large?: boolean }) {
   const Icon = toneIcons[tone];
   return (
-    <span
-      className={`workspace-glyph workspace-glyph-${tone}${large ? " workspace-glyph-large" : ""}`}
-      aria-hidden="true"
-    >
+    <ListRowIcon nature={toneNatures[tone]} large={large}>
       <Icon />
-    </span>
+    </ListRowIcon>
   );
 }

@@ -12,7 +12,6 @@
 .calendar-undated { display: flex; align-items: center; flex-wrap: wrap; gap: .var(--hall-size-relative-5rem); border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
 .event-fields { display: grid; gap: var(--hall-size-relative-1rem); }
 .event-fields select { border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: .var(--hall-size-relative-375rem); padding: .var(--hall-size-relative-5rem); background: var(--hall-color-surface); }
-.workspace-glyph-event { color: var(--hall-color-brand); }
 
 /* FullCalendar theme bridges to Hall's existing semantic palette. */
 .hall-calendar {

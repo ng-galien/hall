@@ -93,16 +93,16 @@
     white-space: nowrap;
   }
 
-  .workspace-crumb-menu .workspace-glyph,
-  .workspace-crumb-current > .workspace-glyph {
+  .workspace-crumb-menu .type-icon,
+  .workspace-crumb-current > .type-icon {
     width: var(--hall-size-glyph-mark);
     height: var(--hall-size-glyph-mark);
     border-radius: 0;
     background: transparent;
   }
 
-  .workspace-crumb-menu .workspace-glyph svg,
-  .workspace-crumb-current > .workspace-glyph svg {
+  .workspace-crumb-menu .type-icon svg,
+  .workspace-crumb-current > .type-icon svg {
     width: 100%;
     height: 100%;
   }

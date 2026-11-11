@@ -82,7 +82,7 @@
   gap: var(--hall-space-1) var(--hall-space-3);
 }
 
-.resource-embed-document .workspace-glyph {
+.resource-embed-document .type-icon {
   grid-row: span 2;
 }
 

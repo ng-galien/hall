@@ -402,7 +402,7 @@ test("editor references use one validated presentation and navigation authority"
   const dialog = read("src/components/editor/ReferenceSearchDialog.tsx");
   const kindPresentation = read("src/components/search/kindPresentation.tsx");
   const app = read("src/App.tsx");
-  const tones = read("src/styles/components.css");
+  const natures = read("src/features/documents/ResourceGlyph.tsx");
   assert.match(authority, /Record<ReferenceEntityKind, ReferenceKindPresentation>/);
   assert.match(authority, /isReferenceEntityKind/);
   assert.match(references, /if \(!isReferenceEntityKind\(kind\)\) return false/);
@@ -415,6 +415,6 @@ test("editor references use one validated presentation and navigation authority"
   assert.doesNotMatch(dialog, /as Mentionable/);
   assert.match(kindPresentation, /referenceKindPresentations\[kind\]\.icon/);
   assert.match(app, /resolveReferencePresentation/);
-  assert.match(tones, /--resource-tone-color/);
-  assert.match(tones, /--resource-tone-surface/);
+  assert.match(natures, /Record<ResourceTone, ResourceNature>/);
+  assert.match(natures, /Record<ReferenceEntityKind, ResourceNature>/);
 });

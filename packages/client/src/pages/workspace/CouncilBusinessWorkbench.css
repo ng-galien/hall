@@ -267,7 +267,7 @@
   white-space: nowrap;
 }
 
-.workspace-business-workbench .business-subject-type .workspace-glyph {
+.workspace-business-workbench .business-subject-type .type-icon {
   display: inline-grid;
   width: var(--hall-font-size-icon-large);
   height: var(--hall-font-size-icon-large);

@@ -1,4 +1,5 @@
 import { CouncilBusinessIcon } from "../../components/icons";
+import { ListRowIcon } from "../../components/ui/list-row";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { folderColorIconProps } from "../../pages/workspace/folderColor";
 
@@ -12,11 +13,8 @@ export function CouncilBusinessGlyph({
   color?: string | null;
 }) {
   return (
-    <span
-      className={`workspace-glyph workspace-glyph-business${large ? " workspace-glyph-large" : ""}`}
-      aria-hidden="true"
-    >
+    <ListRowIcon nature="council" large={large}>
       <CouncilBusinessIcon {...folderColorIconProps(color)} />
-    </span>
+    </ListRowIcon>
   );
 }

@@ -1122,7 +1122,7 @@ test("HALL-FR-WSP-240 sidebar opens the council business instead of its folder",
   const link = page.getByTestId("workspace-sidebar-link").and(page.locator(`[data-path="${folder.fullPath}"]`));
   await expect(link).toHaveAttribute("data-kind", "councilBusiness");
   await expect(link.locator("svg")).toHaveCount(1);
-  await expect(link.locator(".workspace-glyph")).toHaveCount(0);
+  await expect(link.locator(".type-icon")).toHaveCount(0);
   await link.click();
   await expect(page.getByTestId("council-business-workbench")).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`councilBusiness=${business.id}`));

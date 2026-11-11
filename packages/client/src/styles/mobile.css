@@ -291,10 +291,10 @@
   .app-main .path-contents-explorer fieldset.workspace-explorer-folder-row { padding-block: calc((var(--hall-size-phone-bar) - var(--hall-size-phone-explorer-glyph)) / 2 - var(--hall-stroke-thin)); }
   .app-main .path-contents-explorer .workspace-explorer-primary { align-items: center; gap: var(--hall-space-3); }
   .app-main .path-contents-explorer .workspace-explorer-root > .workspace-explorer-branch { padding-top: var(--hall-space-2); }
-  .app-main .path-contents-explorer .workspace-explorer-primary > .workspace-glyph,
+  .app-main .path-contents-explorer .workspace-explorer-primary > .type-icon,
   .app-main .path-contents-explorer .workspace-explorer-primary > .workspace-explorer-folder-marker { width: var(--hall-size-phone-explorer-glyph); min-width: var(--hall-size-phone-explorer-glyph); height: var(--hall-size-phone-explorer-glyph); min-height: var(--hall-size-phone-explorer-glyph); }
   .app-main .path-contents-explorer .workspace-explorer-primary > .workspace-explorer-folder-marker { width: var(--hall-size-touch-control); min-width: var(--hall-size-touch-control); height: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); margin: calc((var(--hall-size-phone-explorer-glyph) - var(--hall-size-touch-control)) / 2); }
-  .app-main .path-contents-explorer .workspace-explorer-primary > .workspace-glyph svg,
+  .app-main .path-contents-explorer .workspace-explorer-primary > .type-icon svg,
   .app-main .path-contents-explorer .workspace-explorer-primary > .workspace-explorer-folder-marker svg { width: var(--hall-size-phone-bar-icon); height: var(--hall-size-phone-bar-icon); }
   .app-main .path-contents-explorer .workspace-explorer-title-link strong,
   .app-main .path-contents-explorer .workspace-explorer-folder-name { min-height: 0; padding-block: 0; font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-medium); line-height: normal; }

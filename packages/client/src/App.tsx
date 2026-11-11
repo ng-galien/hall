@@ -11,7 +11,7 @@ import { IconDefaults } from "./components/icons";
 import { Layout } from "./components/Layout";
 import { formatMeetingLabel } from "./features/council-meetings/meetingPresentation";
 import { DocumentaryResourceGlyph, documentaryResourceTone } from "./features/documents/DocumentaryResourceGlyph";
-import { toneIcons, toneLabelKeys } from "./features/documents/ResourceGlyph";
+import { toneIcons, toneLabelKeys, toneNatures } from "./features/documents/ResourceGlyph";
 import { ResourcePreview } from "./features/documents/ResourcePreview";
 import { ContactReferenceDialog } from "./features/references/ContactReferenceDialog";
 import { MemberReferenceDialog } from "./features/references/MemberReferenceDialog";
@@ -172,7 +172,7 @@ export function ApplicationPresentationProviders({ children }: { children: React
     const tone = documentaryResourceTone(resource);
     const Icon = toneIcons[tone];
     return {
-      tone,
+      nature: toneNatures[tone],
       icon: <Icon aria-hidden="true" />,
       glyph: <DocumentaryResourceGlyph resource={resource} />,
       tooltip: t(toneLabelKeys[tone]),
