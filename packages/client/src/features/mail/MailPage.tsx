@@ -6,8 +6,9 @@ import {
   type MailRecipientGroup,
   type SirenEntity,
 } from "@hall/api-contract";
+import { matchLiteral } from "@hall/domain";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
+import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { AddIcon, MailIcon } from "../../components/icons";
 import { ResourceSearchField } from "../../components/search/ResourceSearchField";
@@ -15,6 +16,7 @@ import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../../compone
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { ListRow, ListRowIcon, type ListRowStatus, ListRows } from "../../components/ui/list-row";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, apiSirenRequest, type SirenApiResult, submitSirenAction } from "../../services/apiClient";
@@ -137,12 +139,20 @@ export function MailPage() {
       navigate(`/mail/${result.data.id}`);
     });
   const editable = Boolean(opened?.representation && findSirenAction(opened.representation, "mail.update"));
-  const status = (message: MailMessage) => {
+  const status = (message: MailMessage): ListRowStatus => {
     const latest = message.submissions[0];
-    if (!latest) return t("mail.draft");
-    if (latest.verification?.outcome === "sent") return t("mail.accepted");
-    if (latest.verification?.outcome === "not-sent") return t("mail.verifiedNotSent");
-    return t(`mail.${latest.status}`);
+    if (!latest) return { tone: "neutral", label: t("mail.draft") };
+    if (latest.verification?.outcome === "sent") return { tone: "success", label: t("mail.accepted") };
+    if (latest.verification?.outcome === "not-sent") return { tone: "neutral", label: t("mail.verifiedNotSent") };
+    return {
+      tone: matchLiteral(latest.status, {
+        submitting: () => "neutral" as const,
+        accepted: () => "success" as const,
+        failed: () => "danger" as const,
+        unknown: () => "warning" as const,
+      }),
+      label: t(`mail.${latest.status}`),
+    };
   };
   const applySelection = (key: string) => {
     if (!draft) return;
@@ -189,23 +199,27 @@ export function MailPage() {
             {collection?.data.length === 0 ? (
               <EmptyState>{t("mail.empty")}</EmptyState>
             ) : (
-              collection?.data.map((message) => (
-                <Link
-                  key={message.id}
-                  to={`/mail/${message.id}`}
-                  data-testid={`mail-open-${message.id}`}
-                  className={`block border-b px-2 py-3 ${message.id === mailId ? "bg-accent" : "hover:bg-accent/50"}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="truncate font-medium">{message.subject || t("mail.noSubject")}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{status(message)}</span>
-                  </div>
-                  <div className="truncate text-sm text-muted-foreground">
-                    {message.recipients.map((entry) => entry.name || entry.address).join(", ") ||
-                      t("mail.noRecipients")}
-                  </div>
-                </Link>
-              ))
+              <ListRows>
+                {collection?.data.map((message) => (
+                  <ListRow
+                    key={message.id}
+                    to={`/mail/${message.id}`}
+                    openTestId={`mail-open-${message.id}`}
+                    selected={message.id === mailId}
+                    head={
+                      <ListRowIcon nature="writing">
+                        <MailIcon />
+                      </ListRowIcon>
+                    }
+                    title={message.subject || t("mail.noSubject")}
+                    detail={
+                      message.recipients.map((entry) => entry.name || entry.address).join(", ") ||
+                      t("mail.noRecipients")
+                    }
+                    status={status(message)}
+                  />
+                ))}
+              </ListRows>
             )}
           </div>
           {draft && opened?.representation ? (
@@ -214,7 +228,7 @@ export function MailPage() {
                 <Button variant="ghost" className="lg:hidden" data-testid="mail-back" onClick={() => navigate("/mail")}>
                   {t("common.back")}
                 </Button>
-                <span className="mr-auto text-sm text-muted-foreground">{status(draft)}</span>
+                <span className="mr-auto text-sm text-muted-foreground">{status(draft).label}</span>
                 {findSirenAction(opened.representation, "mail.delete") ? (
                   <Button variant="ghost" data-testid="mail-delete" disabled={busy} onClick={() => setDeleteOpen(true)}>
                     {t("common.delete")}

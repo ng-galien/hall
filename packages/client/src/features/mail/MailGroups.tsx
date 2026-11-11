@@ -1,9 +1,11 @@
 import { findSirenAction, type MailRecipient, type MailRecipientGroup, type SirenEntity } from "@hall/api-contract";
 import { useEffect, useState } from "react";
+import { MembersIcon } from "../../components/icons";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, apiSirenRequest, type SirenApiResult, submitSirenAction } from "../../services/apiClient";
 import { listMailGroups, type MailRecipientSelections } from "../../services/mailApi";
@@ -68,17 +70,25 @@ export function MailGroups({
     <Modal open testId="mail-groups-dialog" title={t("mail.groups")} onClose={onClose}>
       <RequestErrorBanner error={error ? apiErrorCode(error) : null} />
       <div className="grid gap-3">
-        {groups?.data.map((group) => (
-          <Button
-            key={group.id}
-            variant="ghost"
-            className="justify-start"
-            data-testid={`mail-group-open-${group.id}`}
-            onClick={() => void edit(group)}
-          >
-            {group.name} · {group.members.length}
-          </Button>
-        ))}
+        {groups?.data.length ? (
+          <ListRows>
+            {groups.data.map((group) => (
+              <ListRow
+                key={group.id}
+                onOpen={() => void edit(group)}
+                openTestId={`mail-group-open-${group.id}`}
+                selected={current !== null && id === group.id}
+                head={
+                  <ListRowIcon nature="council">
+                    <MembersIcon />
+                  </ListRowIcon>
+                }
+                title={group.name}
+                detail={group.members.length}
+              />
+            ))}
+          </ListRows>
+        ) : null}
         {groups?.representation && findSirenAction(groups.representation, "mail-group.create") ? (
           <Button variant="outline" data-testid="mail-group-new" onClick={() => void edit()}>
             {t("mail.newGroup")}
