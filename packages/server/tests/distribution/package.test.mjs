@@ -9,6 +9,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { PDFDocument } from "pdf-lib";
 import { Pool } from "pg";
 import { expect, it } from "vitest";
+import { verifyInstalledOutlookWorker } from "./outlookWorker.mjs";
 
 const root = resolve(import.meta.dirname, "../../../..");
 async function freePort() {
@@ -166,6 +167,7 @@ it(
           .digest("hex"),
       ).toBe(expectedDigest);
       run("npm", ["install", "--prefix", prefix, "--no-audit", "--no-fund", tarball]);
+      await verifyInstalledOutlookWorker(installed);
       const metadata = JSON.parse(await readFile(join(installed, "package.json"), "utf8"));
       expect(metadata.private).not.toBe(true);
       expect(metadata.scripts).toBeUndefined();
