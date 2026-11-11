@@ -44,7 +44,6 @@ export function InlineResourceContent({
           representation={session.representation}
           mode={readOnly ? "read" : session.mode}
           layout="workbench"
-          showContentLabel={false}
           readOnlyTextEditor={compact && !readOnly}
           capabilities={session.capabilities}
           content={session.content}

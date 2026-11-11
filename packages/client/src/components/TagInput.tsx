@@ -1,6 +1,9 @@
 import { type KeyboardEvent, useState } from "react";
 import { useI18n } from "../i18n/I18nProvider";
 import { CloseIcon } from "./icons";
+import { Button } from "./ui/button";
+import { Field } from "./ui/field";
+import { Input } from "./ui/input";
 
 /** Tag field: Enter or comma commits a tag, Backspace on an empty draft removes the last one. */
 export function TagInput({
@@ -12,7 +15,7 @@ export function TagInput({
   value: string[];
   onChange(next: string[]): void;
   readOnly?: boolean;
-  /** Accessible name for the text input. */
+  /** Label written inside the field. */
   label: string;
 }) {
   const { t } = useI18n();
@@ -35,31 +38,35 @@ export function TagInput({
   };
 
   return (
-    <label className={`tag-input${readOnly ? " tag-input-readonly" : ""}`}>
-      {value.map((tag) => (
-        <span className="tag-chip" key={tag}>
-          {tag}
-          {readOnly ? null : (
-            <button
-              type="button"
+    <Field label={label} className="tag-input">
+      <div className="tag-input-row">
+        {value.map((tag) =>
+          readOnly ? (
+            <span className="tag-input-tag" key={tag}>
+              {tag}
+            </span>
+          ) : (
+            <Button
+              key={tag}
+              variant="secondary"
               aria-label={`${t("common.cancel")} ${tag}`}
               onClick={() => onChange(value.filter((candidate) => candidate !== tag))}
             >
-              <CloseIcon />
-            </button>
-          )}
-        </span>
-      ))}
-      <input
-        type="text"
-        value={draft}
-        readOnly={readOnly}
-        aria-label={label}
-        placeholder={!readOnly && value.length === 0 ? t("workspace.addTag") : ""}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={readOnly ? undefined : onKeyDown}
-        onBlur={readOnly ? undefined : commit}
-      />
-    </label>
+              {tag}
+              <CloseIcon aria-hidden="true" />
+            </Button>
+          ),
+        )}
+        <Input
+          type="text"
+          value={draft}
+          readOnly={readOnly}
+          placeholder={!readOnly && value.length === 0 ? t("workspace.addTag") : ""}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={readOnly ? undefined : onKeyDown}
+          onBlur={readOnly ? undefined : commit}
+        />
+      </div>
+    </Field>
   );
 }

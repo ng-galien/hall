@@ -74,8 +74,7 @@
   color: var(--hall-color-text-subtle);
 }
 
-.resource-embed-document,
-.resource-embed-link {
+.resource-embed-document {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
@@ -86,8 +85,7 @@
   grid-row: span 2;
 }
 
-.resource-embed-document span:last-child,
-.resource-embed-link span {
+.resource-embed-document span:last-child {
   overflow: hidden;
   color: var(--hall-color-text-subtle);
   text-overflow: ellipsis;

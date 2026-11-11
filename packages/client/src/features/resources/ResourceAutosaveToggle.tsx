@@ -1,3 +1,4 @@
+import { Button } from "../../components/ui/button";
 import { SaveStatusGlyph } from "../../components/ui/save-status-indicator";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { SaveStatus } from "../../pages/workspace/saveStatusStore";
@@ -33,12 +34,13 @@ export function ResourceAutosaveToggle({
   const accessibleLabel = statusLabel ? `${stateLabel}. ${statusLabel}` : stateLabel;
 
   return (
-    <button
+    <Button
+      variant="plain"
+      size="icon"
       className="resource-autosave-toggle"
       data-testid="resource-autosave-toggle"
       data-enabled={enabled}
       data-save-status={status}
-      type="button"
       role="switch"
       aria-checked={enabled}
       aria-label={accessibleLabel}
@@ -49,6 +51,6 @@ export function ResourceAutosaveToggle({
       <span className="resource-autosave-icon" aria-hidden="true">
         <SaveStatusGlyph status={status} enabled={enabled} />
       </span>
-    </button>
+    </Button>
   );
 }

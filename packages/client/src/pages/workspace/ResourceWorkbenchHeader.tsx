@@ -143,26 +143,22 @@ export function ResourceWorkbenchHeader({
       onDismissError={onDismissError}
       metadata={
         <div className="workbench-meta-row">
-          <div className="workbench-meta">
-            <span className="workbench-meta-label">{t("workspace.tags")}</span>
-            <TagInput value={tags} onChange={onTagsChange} readOnly={!canUpdate} label={t("workspace.tags")} />
-          </div>
+          <TagInput value={tags} onChange={onTagsChange} readOnly={!canUpdate} label={t("workspace.tags")} />
           <div className="workbench-meta" data-testid="resource-related-businesses">
             <span className="workbench-meta-label">{t("workspace.relatedCouncilBusiness")}</span>
             {relatedBusinesses.length === 0 ? (
               <span className="workbench-meta-empty">{t("workspace.noRelatedCouncilBusiness")}</span>
             ) : (
               relatedBusinesses.map((business) => (
-                <button
+                <Button
                   key={business.id}
-                  className="workbench-business-chip"
+                  variant="secondary"
                   data-testid={`resource-related-business-${business.id}`}
-                  type="button"
                   onClick={() => onSelect({ kind: "councilBusiness", id: business.id })}
                 >
                   <CouncilBusinessGlyph business={business} />
                   {business.title}
-                </button>
+                </Button>
               ))
             )}
           </div>

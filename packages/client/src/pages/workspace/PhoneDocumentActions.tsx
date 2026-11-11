@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   CopyIcon,
   DeleteIcon,
@@ -17,8 +17,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import { ScreenActions } from "../../shell/headerTrail";
 
@@ -84,7 +84,6 @@ export function PhoneRenameDialog({
   onRename(name: string): Promise<boolean>;
 }) {
   const { t } = useI18n();
-  const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(name);
   const [busy, setBusy] = useState(false);
@@ -112,10 +111,8 @@ export function PhoneRenameDialog({
             .finally(() => setBusy(false));
         }}
       >
-        <div className="grid gap-1.5">
-          <Label htmlFor={inputId}>{t("workspace.creationName")}</Label>
+        <Field label={t("workspace.creationName")}>
           <Input
-            id={inputId}
             ref={inputRef}
             data-testid="phone-rename-name"
             value={draft}
@@ -123,7 +120,7 @@ export function PhoneRenameDialog({
             disabled={busy}
             required
           />
-        </div>
+        </Field>
         <Button
           className="justify-self-end"
           type="submit"

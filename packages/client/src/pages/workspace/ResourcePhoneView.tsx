@@ -223,16 +223,15 @@ export function ResourcePhoneView({
         />
       ) : null}
       {relatedBusinesses.map((business) => (
-        <button
+        <Button
           key={business.id}
-          className="workbench-business-chip"
+          variant="secondary"
           data-testid={`resource-related-business-${business.id}`}
-          type="button"
           onClick={() => onSelect({ kind: "councilBusiness", id: business.id }, business.folderPath)}
         >
           <CouncilBusinessGlyph business={business} />
           {business.title}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -284,7 +283,6 @@ export function ResourcePhoneView({
           onError={session.setActionError}
           onRegisterFlush={session.registerBodyFlush}
           autosaveEnabled={session.autosaveEnabled}
-          showContentLabel={false}
         />
       </div>
       {fillsScreen ? (

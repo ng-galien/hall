@@ -1,33 +1,3 @@
-.resource-autosave-toggle {
-  position: relative;
-  display: inline-flex;
-  width: var(--hall-size-control-small);
-  height: var(--hall-size-control-small);
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--hall-radius-circular);
-  color: var(--hall-color-text-muted);
-  background: transparent;
-  font-size: calc(var(--hall-font-size-icon) + var(--hall-stroke-thin));
-  cursor: pointer;
-  transition:
-    color var(--hall-motion-fast) var(--hall-motion-curve-standard),
-    background var(--hall-motion-fast) var(--hall-motion-curve-standard);
-}
-
-.resource-autosave-toggle:hover:not(:disabled),
-.resource-autosave-toggle:focus-visible {
-  color: var(--hall-color-brand);
-  background: var(--hall-color-surface-subtle);
-}
-
-.resource-autosave-toggle:disabled {
-  color: var(--hall-color-disabled-text);
-  cursor: default;
-}
-
 .resource-autosave-icon {
   display: inline-flex;
   align-items: center;
@@ -37,12 +7,12 @@
     transform var(--hall-motion-fast) var(--hall-motion-curve-standard);
 }
 
-.resource-autosave-toggle[data-enabled="true"] {
+.resource-autosave-toggle[data-enabled="true"] .resource-autosave-icon {
   color: var(--hall-color-success);
 }
 
-.resource-autosave-toggle[data-save-status="dirty"],
-.resource-autosave-toggle[data-save-status="saving"] {
+.resource-autosave-toggle[data-save-status="dirty"] .resource-autosave-icon,
+.resource-autosave-toggle[data-save-status="saving"] .resource-autosave-icon {
   color: var(--hall-color-brand);
 }
 
@@ -50,7 +20,7 @@
   animation: resource-autosave-saving var(--hall-motion-spinner) var(--hall-motion-curve-decelerate) infinite;
 }
 
-.resource-autosave-toggle[data-save-status="saved"] {
+.resource-autosave-toggle[data-save-status="saved"] .resource-autosave-icon {
   color: var(--hall-color-success);
 }
 
@@ -58,7 +28,7 @@
   animation: resource-autosave-confirm var(--hall-motion-normal) var(--hall-motion-curve-decelerate) both;
 }
 
-.resource-autosave-toggle[data-save-status="error"] {
+.resource-autosave-toggle[data-save-status="error"] .resource-autosave-icon {
   color: var(--hall-color-danger);
 }
 
@@ -86,7 +56,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .resource-autosave-toggle,
   .resource-autosave-icon {
     transition: none;
   }

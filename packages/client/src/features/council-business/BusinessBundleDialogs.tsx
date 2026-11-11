@@ -1,9 +1,9 @@
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { ShareIcon } from "../../components/icons";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { Field, FieldRow } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -17,7 +17,6 @@ import { shareOrDownload } from "../../services/fileSharing";
 // @implements-requirement HALL-FR-DOC-570
 export function BusinessBundleExportDialog({ businessId, onClose }: { businessId: string; onClose(): void }) {
   const { t } = useI18n();
-  const id = useId();
   const { submitting, run } = useSubmitting();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -51,28 +50,26 @@ export function BusinessBundleExportDialog({ businessId, onClose }: { businessId
         <RequestErrorBanner error={error} />
         <p>{t("bundles.senderDescription")}</p>
         <fieldset className="grid gap-3" disabled={submitting}>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-last`}>{t("bundles.lastName")}</Label>
-            <Input
-              id={`${id}-last`}
-              data-testid="bundle-last-name"
-              required
-              maxLength={200}
-              value={lastName}
-              onChange={(event) => setLastName(event.currentTarget.value)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-first`}>{t("bundles.firstName")}</Label>
-            <Input
-              id={`${id}-first`}
-              data-testid="bundle-first-name"
-              required
-              maxLength={200}
-              value={firstName}
-              onChange={(event) => setFirstName(event.currentTarget.value)}
-            />
-          </div>
+          <FieldRow>
+            <Field label={t("bundles.lastName")}>
+              <Input
+                data-testid="bundle-last-name"
+                required
+                maxLength={200}
+                value={lastName}
+                onChange={(event) => setLastName(event.currentTarget.value)}
+              />
+            </Field>
+            <Field label={t("bundles.firstName")}>
+              <Input
+                data-testid="bundle-first-name"
+                required
+                maxLength={200}
+                value={firstName}
+                onChange={(event) => setFirstName(event.currentTarget.value)}
+              />
+            </Field>
+          </FieldRow>
         </fieldset>
         <Button
           type="submit"
@@ -104,7 +101,6 @@ export function BusinessBundleImportDialog({
   onImported(id: string): Promise<void>;
 }) {
   const { t } = useI18n();
-  const id = useId();
   const { submitting, run } = useSubmitting();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<ApiErrorCode | null>(null);
@@ -140,10 +136,8 @@ export function BusinessBundleImportDialog({
           <RequestErrorBanner error={error} />
         )}
         <p>{t("bundles.destination")}</p>
-        <div className="grid gap-1.5">
-          <Label htmlFor={id}>{t("bundles.archive")}</Label>
+        <Field label={t("bundles.archive")}>
           <Input
-            id={id}
             type="file"
             accept=".hallbundle"
             required
@@ -154,7 +148,7 @@ export function BusinessBundleImportDialog({
               setError(null);
             }}
           />
-        </div>
+        </Field>
         <Button type="submit" disabled={submitting || !file} data-testid="bundle-import-submit">
           {t(submitting ? "common.loading" : "bundles.import")}
         </Button>

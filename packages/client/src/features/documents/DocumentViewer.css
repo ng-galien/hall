@@ -7,7 +7,7 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  border-radius: var(--hall-radius-large);
+  border-radius: var(--hall-radius-medium);
   background: var(--hall-color-surface);
   box-shadow: var(--hall-shadow-large);
 }

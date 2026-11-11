@@ -1,8 +1,3 @@
-.workspace-business-workbench .business-content-sections {
-  display: grid;
-  gap: var(--hall-space-4);
-}
-
 .workspace-business-workbench .business-report-loading {
   display: grid;
   gap: var(--hall-space-2);
@@ -18,10 +13,7 @@
   align-content: start;
   gap: var(--hall-space-3);
   min-height: var(--hall-size-relative-14rem);
-  padding: var(--hall-space-3);
-  border: var(--hall-stroke-thin) solid var(--hall-color-border);
-  border-radius: var(--hall-radius-medium);
-  background: var(--hall-color-surface);
+  padding: var(--hall-space-3) 0;
 }
 
 .workspace-business-workbench .business-report-loading-placeholder span {
@@ -61,23 +53,14 @@
 .workspace-business-workbench .business-content-section-header h2 {
   margin: 0;
   color: var(--hall-color-text);
-  font-size: var(--hall-font-size-body);
-  font-weight: var(--hall-font-weight-semibold);
-}
-
-.workspace-business-workbench .business-content-section-count {
-  color: var(--hall-color-text-muted);
-  font-size: var(--hall-font-size-caption);
+  font-size: var(--hall-font-size-title);
+  font-weight: var(--hall-font-weight-heavy);
 }
 
 .workspace-business-workbench .business-content-section-actions {
   display: inline-flex;
   align-items: center;
   gap: var(--hall-space-1);
-}
-
-.workspace-business-workbench .business-inline-resource .resource-presentation-body {
-  gap: var(--hall-space-2);
 }
 
 .workspace-business-workbench .business-subject-history {
@@ -126,8 +109,7 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  border: var(--hall-stroke-thin) solid var(--hall-color-border);
-  border-radius: var(--hall-radius-medium);
+  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
 }
 
 .workspace-business-workbench .business-subject-table td {
@@ -169,21 +151,10 @@
 }
 
 .workspace-business-workbench .business-subject-title {
-  display: flex;
-  width: auto;
   min-width: 0;
-  max-width: calc(100% - var(--hall-size-control-small) - var(--hall-space-1));
+  max-width: calc(100% - var(--hall-size-control) - var(--hall-space-1));
   flex: 0 1 auto;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  color: var(--hall-color-text);
-  background: transparent;
-  font-size: var(--hall-font-size-title);
-  font-weight: var(--hall-font-weight-medium);
-  line-height: var(--hall-line-height-body-large);
-  text-align: left;
-  cursor: pointer;
+  justify-content: flex-start;
 }
 
 .workspace-business-workbench .business-subject-title-cell {
@@ -197,11 +168,6 @@
   position: relative;
   display: grid;
   min-width: 0;
-}
-
-.workspace-business-workbench .business-subject-title-stack .workbench-title-inline-input[aria-invalid="true"] {
-  border-color: var(--hall-color-danger-border);
-  outline: var(--hall-stroke-thin) solid var(--hall-color-danger-border);
 }
 
 .workspace-business-workbench .business-subject-title-stack > .error-banner-compact {
@@ -224,10 +190,8 @@
   white-space: nowrap;
 }
 
-.workspace-business-workbench .business-subject-title:hover span,
-.workspace-business-workbench .business-subject-title:focus-visible span,
-.workspace-business-workbench .business-subject-schedule-badge a:hover,
-.workspace-business-workbench .business-subject-schedule-badge a:focus-visible {
+.workspace-business-workbench .business-subject-schedule a:hover,
+.workspace-business-workbench .business-subject-schedule a:focus-visible {
   text-decoration: underline;
   text-underline-offset: var(--hall-space-0-5);
 }
@@ -249,23 +213,19 @@
   display: inline-flex;
 }
 
-.workspace-business-workbench .business-subject-schedule-badge {
+.workspace-business-workbench .business-subject-schedule {
+  display: inline-flex;
+  min-width: 0;
   max-width: 100%;
-  padding-right: var(--hall-space-0-5);
-  color: var(--hall-color-brand);
+  align-items: center;
+  gap: var(--hall-space-1);
 }
 
-.workspace-business-workbench .business-subject-schedule-badge a {
+.workspace-business-workbench .business-subject-schedule a {
   min-width: 0;
   overflow: hidden;
-  color: inherit;
+  color: var(--hall-color-brand);
   text-overflow: ellipsis;
-}
-
-.workspace-business-workbench .business-subject-schedule-badge button {
-  width: var(--hall-size-control-small);
-  height: var(--hall-size-control-small);
-  color: inherit;
 }
 
 .workspace-business-workbench .business-subject-table-detail td {
@@ -294,7 +254,7 @@
   .workspace-business-workbench .business-subject-table tr { display: grid; grid-template-columns: var(--hall-size-control) minmax(0, 1fr); }
   .workspace-business-workbench .business-subject-table td { min-width: 0; }
   .workspace-business-workbench .business-subject-table td:nth-child(3) { grid-column: 1 / -1; }
-  .workspace-business-workbench .business-subject-title { max-width: 100%; flex: 1; min-height: var(--hall-size-control); }
+  .workspace-business-workbench .business-subject-title { max-width: 100%; flex: 1; }
   .workspace-business-workbench .business-subject-title span { white-space: normal; overflow-wrap: anywhere; }
   .workspace-business-workbench .business-subject-table-actions { flex-wrap: wrap; justify-content: flex-start; white-space: normal; }
   .workspace-business-workbench .business-subject-table .business-subject-table-detail { display: block; }
@@ -305,4 +265,10 @@
 .workspace-business-workbench .business-phone-list .list-row-title {
   overflow-wrap: anywhere;
   white-space: normal;
+}
+
+/* The sections of a business follow each other on the white screen, separated by a rule. */
+.workspace-business-workbench > :is(.business-subject-table-section, .business-content-section) {
+  padding-top: var(--hall-space-3);
+  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
 }

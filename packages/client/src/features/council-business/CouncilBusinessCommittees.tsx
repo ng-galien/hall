@@ -3,7 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDownIcon, CloseIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
-import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
 import { SearchInput } from "../../components/ui/search-input";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../../services/apiClient";
@@ -111,7 +111,7 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
       <span className="business-committees-label">{t("business.committees")}</span>
       <div className="business-committees-items" data-testid="business-committee-badges">
         {associations.map((association) => (
-          <Badge key={association.committeeId} variant="secondary" data-testid="business-committee-badge">
+          <span key={association.committeeId} className="business-committee" data-testid="business-committee-badge">
             <Link
               className="business-committee-link"
               to={`/council-committees/${encodeURIComponent(association.committeeId)}`}
@@ -120,18 +120,18 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
               {association.name}
             </Link>
             {canDissociate ? (
-              <button
-                type="button"
-                className="business-committee-remove"
+              <Button
+                variant="plain"
+                size="icon"
                 data-testid="business-committee-remove"
                 aria-label={t("business.removeCommittee", { name: association.name })}
                 disabled={pendingId !== null}
                 onClick={() => void mutate(association.committeeId, "dissociate")}
               >
                 <CloseIcon aria-hidden="true" />
-              </button>
+              </Button>
             ) : null}
-          </Badge>
+          </span>
         ))}
         {canAssociate ? (
           <div className="business-committee-search" data-testid="business-committee-search">
@@ -178,8 +178,9 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
                 }
               }}
             />
-            <button
-              type="button"
+            <Button
+              variant="plain"
+              size="icon"
               tabIndex={-1}
               className="business-committee-search-toggle"
               data-testid="business-committee-search-toggle"
@@ -192,7 +193,7 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
               }}
             >
               <ChevronDownIcon aria-hidden="true" />
-            </button>
+            </Button>
             {resultsOpen ? (
               <div className="business-committee-results" data-testid="business-committee-results">
                 {matches.length === 0 ? (
@@ -200,22 +201,22 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
                 ) : (
                   <div id={listId} role="listbox" aria-label={t("business.committees")}>
                     {matches.map((candidate, index) => (
-                      <button
-                        type="button"
+                      // biome-ignore lint/a11y/useKeyWithClickEvents: the search field moves the selection with the arrow keys through aria-activedescendant.
+                      <div
                         key={candidate.id}
                         id={`${listId}-${index}`}
                         role="option"
                         tabIndex={-1}
                         aria-selected={index === selectedIndex}
+                        aria-disabled={pendingId !== null}
                         className="business-committee-result"
                         data-testid="business-committee-result"
-                        disabled={pendingId !== null}
                         onMouseEnter={() => setSelectedIndex(index)}
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => void mutate(candidate.id, "associate")}
                       >
                         {candidate.name}
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}

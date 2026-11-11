@@ -7,28 +7,18 @@
 }
 
 .business-committees { margin-top: var(--hall-space-2); }
-.business-committees-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
+.business-committees-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
 .business-committees-items { min-width: 0; }
-.business-committee-link {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: var(--hall-space-0-5);
-  transition: text-decoration-color var(--hall-motion-fast) var(--hall-motion-curve-standard) var(--hall-motion-faster);
-}
+.business-committee { display: inline-flex; min-width: 0; align-items: center; }
+.business-committee-link { color: var(--hall-color-brand); font-size: var(--hall-font-size-body); }
 .business-committee-link:hover,
-.business-committee-link:focus-visible { text-decoration-color: currentColor; }
-.business-committee-link:focus-visible { transition-delay: 0s; }
-.business-committee-remove { display: inline-grid; width: var(--hall-size-tree-toggle); height: var(--hall-size-tree-toggle); place-items: center; border-radius: var(--hall-radius-small); }
-.business-committee-remove:hover { background: var(--hall-color-surface-selected); }
-.business-committee-remove:disabled { opacity: .5; cursor: wait; }
+.business-committee-link:focus-visible { text-decoration: underline; text-underline-offset: var(--hall-space-0-5); }
 .business-committee-search { position: relative; width: var(--hall-size-relative-14rem); }
-.business-committee-search .business-committee-search-input { height: var(--hall-size-control-small); padding-right: var(--hall-size-control-small); font-size: var(--hall-font-size-caption); }
-.business-committee-search-toggle { position: absolute; top: 0; right: 0; display: inline-grid; width: var(--hall-size-control-small); height: var(--hall-size-control-small); place-items: center; color: var(--hall-color-text-muted); }
-.business-committee-search-toggle:hover { color: var(--hall-color-text); }
+.business-committee-search .business-committee-search-input { padding-right: var(--hall-size-control); }
+.business-committee-search-toggle { position: absolute; top: 0; right: 0; }
 .business-committee-search-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-.business-committee-results { position: absolute; z-index: var(--hall-z-popover); inset-inline-start: 0; top: calc(100% + var(--hall-space-1)); max-height: var(--hall-size-relative-16rem); min-width: 100%; width: max-content; max-width: var(--hall-size-relative-24rem); overflow-y: auto; padding: var(--hall-space-1); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-small); }
+.business-committee-results { position: absolute; z-index: var(--hall-z-popover); inset-inline-start: 0; top: calc(100% + var(--hall-space-1)); max-height: var(--hall-size-relative-16rem); min-width: 100%; width: max-content; max-width: var(--hall-size-relative-24rem); overflow-y: auto; padding: var(--hall-space-1) 0; border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-small); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-small); }
 .business-committee-results p { margin: 0; padding: var(--hall-space-2); color: var(--hall-color-text-muted); }
-.business-committee-result { display: block; width: 100%; padding: var(--hall-space-1) var(--hall-space-2); border-radius: var(--hall-radius-small); color: var(--hall-color-text); font-size: var(--hall-font-size-caption); text-align: left; }
-.business-committee-result[aria-selected="true"] { background: var(--hall-color-surface-subtle); }
-.business-committee-result:disabled { opacity: .5; cursor: wait; }
+.business-committee-result { padding: var(--hall-space-2) var(--hall-space-3); color: var(--hall-color-text); font-size: var(--hall-font-size-body); cursor: pointer; }
+.business-committee-result[aria-selected="true"] { background: var(--hall-color-surface-selected); }
+.business-committee-result[aria-disabled="true"] { opacity: var(--hall-opacity-disabled); cursor: wait; }

@@ -1,10 +1,10 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { ContextMenuItem } from "../../components/ui/context-menu";
 import { DropdownMenuItem } from "../../components/ui/dropdown-menu";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -27,7 +27,6 @@ export function useResourceRename({
   const [busy, setBusy] = useState(false);
   const active = useRef(false);
   const [error, setError] = useState<ApiErrorCode | null>(null);
-  const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (!representation) void useWorkspaceResourcesStore.getState().open(resourceId);
@@ -107,10 +106,8 @@ export function useResourceRename({
           }}
         >
           <RequestErrorBanner error={error} />
-          <div className="grid gap-1.5">
-            <Label htmlFor={inputId}>{t("workspace.creationName")}</Label>
+          <Field label={t("workspace.creationName")}>
             <Input
-              id={inputId}
               ref={inputRef}
               data-testid={`${testId}-name`}
               value={name}
@@ -119,7 +116,7 @@ export function useResourceRename({
               required
               autoFocus
             />
-          </div>
+          </Field>
           <Button
             type="submit"
             className="justify-self-end"

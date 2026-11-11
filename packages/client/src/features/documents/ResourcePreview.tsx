@@ -89,7 +89,6 @@ export function ResourcePreviewWithSession({
             currentIcon={resource ? <DocumentaryResourceGlyph resource={resource} /> : undefined}
             currentSelection={resource ? { kind: "resource", id: resource.id } : null}
             interactive={false}
-            showSaveStatus={false}
             closeButtonRef={closeButtonRef}
             closeTestId="resource-preview-close"
             onClose={() => void requestClose()}

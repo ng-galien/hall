@@ -1,5 +1,7 @@
 import { type ReactNode, type RefObject, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ChevronRightIcon, CloseIcon, CouncilBusinessIcon, FolderIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +20,6 @@ import type { CouncilBusinessView } from "../../../models/councilBusiness";
 import { useCouncilBusinessStore } from "../../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../../stores/workspaceResourcesStore";
 import { listCatalogPaths } from "../paths";
-import { type SaveStatus, useSaveStatusStore } from "../saveStatusStore";
 import { sameWorkspaceItem, type WorkspaceSelection } from "../workspaceItemReference";
 import "./WorkspaceBreadcrumb.css";
 
@@ -73,16 +74,16 @@ function CrumbMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          className="workspace-crumb-children"
+        <Button
+          variant="plain"
+          size="icon"
           data-testid="workspace-breadcrumb-folder-menu"
           data-path={parent}
-          type="button"
           aria-label={t("workspace.browseFolder")}
           title={t("workspace.browseFolder")}
         >
           <ChevronRightIcon aria-hidden="true" />
-        </button>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="workspace-crumb-menu w-max max-w-(--hall-size-picker-panel-max)" align="start">
         {children.length > 0 ? <DropdownMenuLabel>{t("workspace.folders")}</DropdownMenuLabel> : null}
@@ -143,59 +144,48 @@ function CrumbMenu({
 
 function BreadcrumbActions({
   statusControl,
-  showSaveStatus,
-  currentLabel,
-  saveStatus,
-  saveStatusLabels,
   onClose,
   closeButtonRef,
   closeTestId,
   closeLabel,
 }: {
   statusControl?: ReactNode;
-  showSaveStatus: boolean;
-  currentLabel?: string;
-  saveStatus: SaveStatus;
-  saveStatusLabels: Record<Exclude<SaveStatus, "idle">, string>;
   onClose?(): void;
   closeButtonRef?: RefObject<HTMLButtonElement | null>;
   closeTestId: string;
   closeLabel: string;
 }) {
-  const showFallbackSaveStatus = !statusControl && showSaveStatus && currentLabel && saveStatus !== "idle";
-  if (!statusControl && !showFallbackSaveStatus && !onClose) return null;
+  if (!statusControl && !onClose) return null;
 
   return (
     <span className="workspace-breadcrumb-actions">
       {statusControl}
-      {showFallbackSaveStatus ? (
-        <span
-          data-testid="workspace-save-status"
-          data-state={saveStatus}
-          className={`workspace-save-dot workspace-save-${saveStatus}`}
-          role="status"
-          title={saveStatusLabels[saveStatus]}
-          aria-label={saveStatusLabels[saveStatus]}
-        />
-      ) : null}
       {onClose ? (
-        <button
+        <Button
           ref={closeButtonRef}
-          className="workspace-breadcrumb-close"
+          variant="plain"
+          size="icon"
           data-testid={closeTestId}
-          type="button"
           title={closeLabel}
           aria-label={closeLabel}
           onClick={onClose}
         >
           <CloseIcon aria-hidden="true" />
-        </button>
+        </Button>
       ) : null}
     </span>
   );
 }
 
-/** Workspace breadcrumb; selecting a crumb opens that folder and closes the open item. */
+function workspaceFolderHref(path: string) {
+  return path ? `/workspace?${new URLSearchParams({ path })}` : "/workspace";
+}
+
+/**
+ * Workspace breadcrumb. In the screen header it lists the folders above the screen, each one a link that opens that
+ * folder and closes the open item; the open item itself is the title of the screen. In a dialog it is a plain trail
+ * ending with the open item.
+ */
 export function WorkspaceBreadcrumb({
   path,
   currentLabel,
@@ -205,7 +195,6 @@ export function WorkspaceBreadcrumb({
   onClose,
   onSelect,
   interactive = true,
-  showSaveStatus = true,
   closeButtonRef,
   closeTestId = "workspace-breadcrumb-close",
   statusControl,
@@ -220,7 +209,6 @@ export function WorkspaceBreadcrumb({
   onClose?(): void;
   onSelect?(selection: WorkspaceSelection, path?: string): void;
   interactive?: boolean;
-  showSaveStatus?: boolean;
   closeButtonRef?: RefObject<HTMLButtonElement | null>;
   closeTestId?: string;
   statusControl?: ReactNode;
@@ -243,13 +231,6 @@ export function WorkspaceBreadcrumb({
     }
     return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
   })();
-  const saveStatus = useSaveStatusStore((state) => state.status);
-  const saveStatusLabels: Record<Exclude<SaveStatus, "idle">, string> = {
-    dirty: t("workspace.saveDirty"),
-    saving: t("common.saving"),
-    saved: t("workspace.saved"),
-    error: t("common.requestFailed"),
-  };
   const segments = path.split("/").filter(Boolean);
 
   useEffect(() => {
@@ -263,7 +244,7 @@ export function WorkspaceBreadcrumb({
     return (
       <nav className="workspace-breadcrumb" aria-label={t("workspace.pathBreadcrumb")}>
         <span
-          className="workspace-crumb workspace-crumb-root"
+          className="workspace-crumb"
           role="img"
           title={t("workspace.allPaths")}
           aria-label={t("workspace.allPaths")}
@@ -291,10 +272,6 @@ export function WorkspaceBreadcrumb({
         ) : null}
         <BreadcrumbActions
           statusControl={statusControl}
-          showSaveStatus={false}
-          currentLabel={currentLabel}
-          saveStatus={saveStatus}
-          saveStatusLabels={saveStatusLabels}
           onClose={onClose}
           closeButtonRef={closeButtonRef}
           closeTestId={closeTestId}
@@ -304,65 +281,61 @@ export function WorkspaceBreadcrumb({
     );
   }
 
+  const crumb = (target: string, here: boolean, children: ReactNode, testId?: string) => (
+    <Link
+      className="workspace-crumb"
+      data-origin={originPath === target ? "true" : undefined}
+      data-testid={testId}
+      aria-current={here ? "page" : undefined}
+      to={workspaceFolderHref(target)}
+      onClick={(event) => {
+        event.preventDefault();
+        onSelect?.(null, target);
+      }}
+    >
+      {children}
+    </Link>
+  );
+
   return (
     <nav className="workspace-breadcrumb" aria-label={t("workspace.pathBreadcrumb")}>
-      <button
-        className={`workspace-crumb workspace-crumb-root${originPath === "" ? " workspace-crumb-origin" : ""}${segments.length === 0 && !currentLabel ? " workspace-crumb-here" : ""}`}
-        data-testid="workspace-breadcrumb-root"
-        type="button"
-        title={t("workspace.allPaths")}
-        onClick={() => onSelect?.(null, "")}
-      >
-        <CouncilBusinessIcon aria-hidden="true" data-testid="workspace-root-business-icon" />
-        <span>{t("navigation.workspace")}</span>
-      </button>
+      {crumb(
+        "",
+        segments.length === 0 && !currentLabel,
+        <>
+          <CouncilBusinessIcon aria-hidden="true" data-testid="workspace-root-business-icon" />
+          <span>{t("navigation.workspace")}</span>
+        </>,
+        "workspace-breadcrumb-root",
+      )}
       <CrumbMenu
         parent=""
         allPaths={allPaths}
         businesses={businesses}
         resources={resources}
         currentSelection={currentSelection}
-        trailing={path.split("/").filter(Boolean).length === 0 && !currentLabel}
+        trailing={segments.length === 0 && !currentLabel}
         onSelect={onSelect!}
       />
-      {path
-        .split("/")
-        .filter(Boolean)
-        .map((segment, index, segments) => {
-          const target = segments.slice(0, index + 1).join("/");
-          return (
-            <span className="workspace-crumb-group" key={target}>
-              <button
-                className={`workspace-crumb${originPath === target ? " workspace-crumb-origin" : ""}${index === segments.length - 1 && !currentLabel ? " workspace-crumb-here" : ""}`}
-                type="button"
-                onClick={() => onSelect?.(null, target)}
-              >
-                {segment}
-              </button>
-              <CrumbMenu
-                parent={target}
-                allPaths={allPaths}
-                businesses={businesses}
-                resources={resources}
-                currentSelection={currentSelection}
-                trailing={index === segments.length - 1 && !currentLabel}
-                onSelect={onSelect!}
-              />
-            </span>
-          );
-        })}
-      {currentLabel ? (
-        <span className="workspace-crumb-current">
-          {currentIcon}
-          <span className="workspace-crumb-current-label">{currentLabel}</span>
-        </span>
-      ) : null}
+      {segments.map((segment, index) => {
+        const target = segments.slice(0, index + 1).join("/");
+        return (
+          <span className="workspace-crumb-group" key={target}>
+            {crumb(target, index === segments.length - 1 && !currentLabel, segment)}
+            <CrumbMenu
+              parent={target}
+              allPaths={allPaths}
+              businesses={businesses}
+              resources={resources}
+              currentSelection={currentSelection}
+              trailing={index === segments.length - 1 && !currentLabel}
+              onSelect={onSelect!}
+            />
+          </span>
+        );
+      })}
       <BreadcrumbActions
         statusControl={statusControl}
-        showSaveStatus={showSaveStatus}
-        currentLabel={currentLabel}
-        saveStatus={saveStatus}
-        saveStatusLabels={saveStatusLabels}
         onClose={onClose}
         closeButtonRef={closeButtonRef}
         closeTestId={closeTestId}

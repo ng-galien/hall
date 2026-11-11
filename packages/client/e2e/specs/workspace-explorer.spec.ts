@@ -664,7 +664,7 @@ test.describe("workspace explorer", () => {
     await page.getByTestId("workspace-workbench-rename").click();
     await page.getByTestId("workspace-workbench-title-input").fill(renamedName);
     await page.getByTestId("workspace-workbench-title-input").press("Enter");
-    await expect(page.getByTestId("resource-workbench")).toContainText(renamedName);
+    await expect(page.getByTestId("screen-header-title")).toHaveText(renamedName);
     await page.getByTestId("workspace-breadcrumb-close").click();
 
     const relocation = page.waitForResponse(
@@ -703,7 +703,7 @@ test.describe("workspace explorer", () => {
     const hit = page.getByTestId("workspace-search-result").filter({ hasText: renamedName });
     await expect(hit).toBeVisible();
     await hit.click();
-    await expect(page.getByTestId("resource-workbench")).toContainText(renamedName);
+    await expect(page.getByTestId("screen-header-title")).toHaveText(renamedName);
 
     const deletion = page.waitForResponse(
       (response) => response.request().method() === "DELETE" && response.url().endsWith(`/${created.slug}`),

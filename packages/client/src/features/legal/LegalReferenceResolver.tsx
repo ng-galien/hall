@@ -143,13 +143,14 @@ export function LegalReferenceResolver({
         {results.map((result) => {
           const selectedResult = result.versionId === selectedVersionId;
           return (
-            <button
+            // biome-ignore lint/a11y/useKeyWithClickEvents: the search field moves the selection with the arrow keys through aria-activedescendant.
+            <div
               id={`legal-reference-result-${result.versionId}`}
               key={result.versionId}
               className={`legal-reference-result${selectedResult ? " legal-reference-result-selected" : ""}`}
               data-testid={`legal-reference-result-${result.versionId}`}
-              type="button"
               role="option"
+              tabIndex={-1}
               aria-selected={selectedResult}
               onClick={() => setSelectedVersionId(result.versionId)}
             >
@@ -160,7 +161,7 @@ export function LegalReferenceResolver({
                   {legalStatusLabel(result.legalStatus, t)} · {result.versionId}
                 </span>
               </span>
-            </button>
+            </div>
           );
         })}
         {searched && !error && results.length === 0 ? (

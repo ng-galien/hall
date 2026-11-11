@@ -1,6 +1,7 @@
 import { matchDiscriminated } from "@hall/domain";
 import { useEffect } from "react";
 import { CloseIcon, PinIcon } from "../../components/icons";
+import { Button } from "../../components/ui/button";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import {
   type DocumentaryLeafSummary,
@@ -55,15 +56,15 @@ export function PinnedRow({
 
   return (
     <div className="wpins" role="toolbar" aria-label={t("workspace.pinned")}>
-      <PinIcon aria-hidden="true" className="app-icon wpins-icon" />
+      <PinIcon aria-hidden="true" className="wpins-icon" />
       {entries.map(({ pin, business, resource }) => {
         const title = business?.title ?? resource?.name ?? "";
         const isActive = selection !== null && selection.kind === pin.kind && selection.id === pin.id;
         return (
-          <span className={`wpins-chip${isActive ? " wpins-chip-active" : ""}`} key={`${pin.kind}:${pin.id}`}>
-            <button
-              className="wpins-open"
-              type="button"
+          <span className="wpins-item" key={`${pin.kind}:${pin.id}`}>
+            <Button
+              variant="secondary"
+              aria-pressed={isActive}
               onClick={() => onSelect(pin, business?.folderPath ?? resource?.path)}
             >
               {business ? (
@@ -72,15 +73,15 @@ export function PinnedRow({
                 <DocumentaryResourceGlyph resource={resource} />
               ) : null}
               <span className="wpins-title">{title}</span>
-            </button>
-            <button
-              className="wpins-remove"
-              type="button"
+            </Button>
+            <Button
+              variant="plain"
+              size="icon"
               aria-label={t("workspace.unpin", { name: title })}
               onClick={() => togglePin(pin)}
             >
               <CloseIcon />
-            </button>
+            </Button>
           </span>
         );
       })}

@@ -2,6 +2,7 @@ import { findSirenLink, type ResourceChange, type SirenEntity } from "@hall/api-
 import { matchLiteral } from "@hall/domain";
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { RedoIcon } from "../../components/icons";
+import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
 import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
@@ -155,11 +156,12 @@ export function ResourceChangesControl({
   const trigger = openRef ? null : (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
+        <Button
+          variant="plain"
+          size="icon"
           className="resource-changes-trigger"
           data-testid="resource-changes-trigger"
           data-unseen={unseen}
-          type="button"
           aria-label={t("resourceChanges.open")}
           onPointerEnter={() => void loadChanges()}
           onFocus={() => void loadChanges()}
@@ -169,7 +171,7 @@ export function ResourceChangesControl({
           }}
         >
           <RedoIcon aria-hidden="true" />
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent data-testid="resource-changes-preview" side="bottom" className="resource-changes-preview">
         {loading && !latest

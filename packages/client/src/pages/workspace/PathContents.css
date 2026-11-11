@@ -1,4 +1,4 @@
-/* The workspace tree: nested `ListRow` branches in one scrolling list. */
+/* The workspace tree: nested `ListRow` branches in one scrolling list, on the white screen. */
 .path-contents-tree {
   flex: 1;
   min-height: 0;
@@ -6,36 +6,6 @@
 }
 
 .path-contents-tree > .list-row-list { margin: 0; }
-
-.path-contents-node,
-.path-contents-folder-toggle {
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  font: inherit;
-  cursor: pointer;
-}
-
-.path-contents-node {
-  max-width: 100%;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.path-contents-node:hover,
-.path-contents-node:focus-visible { color: var(--hall-color-brand); text-decoration: underline; }
-
-.path-contents-folder-toggle {
-  display: inline-grid;
-  place-items: center;
-  border-radius: var(--hall-radius-small);
-}
-
-/* The selected line already marks the focused node. */
-.path-contents-folder-toggle:focus-visible { outline: 0; box-shadow: none; }
 
 .path-contents-tree .list-row-title .workspace-explorer-rename-input { font-size: inherit; }
 

@@ -76,7 +76,6 @@
   .app-main .workspace-container-body,
   .app-main .workspace-container-body > .workspace-bench { overflow: visible; }
   .app-main .workspace:has(.phone-document, .phone-business) { padding: 0; gap: 0; }
-  .workspace:has(.phone-document, .phone-business) .workspace-contents { border: 0; border-radius: 0; box-shadow: none; }
   .phone-document { display: flex; min-height: 100%; flex-direction: column; }
   .phone-document-content { display: flex; min-width: 0; flex-direction: column; flex: 1; }
   .phone-document .resource-preview-text { padding: var(--hall-space-3); border: 0; }
@@ -86,6 +85,9 @@
   .phone-document .document-preview-failure { margin-inline: auto; }
   .phone-document .spreadsheet-editor { border: 0; border-radius: 0; }
   .phone-document .geographic-resource { height: 100%; border: 0; border-radius: 0; }
+  .phone-document-information-body > .tag-input { justify-self: stretch; }
+  /* While a text is written, its tools stay under the screen header. */
+  .phone-document[data-editing="true"] .markdown-editor-compact > [role="toolbar"] { position: sticky; top: 0; z-index: var(--hall-z-sticky); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); background: var(--hall-color-surface); }
   .phone-document-event .phone-document-content { padding: var(--hall-space-3); }
   .remote-resource-phone { display: grid; gap: var(--hall-space-3); padding: var(--hall-space-3); }
   .remote-resource-phone .remote-resource-url { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); overflow-wrap: anywhere; }
@@ -106,23 +108,19 @@
   .phone-business .business-subject-table td:last-child { flex: 1 0 100%; }
   .phone-business .business-subject-table td:last-child:not(:has(a, button)) { display: none; }
   .workspace-business-workbench.phone-business .business-subject-title { font-size: var(--hall-font-size-body); }
-  .workspace-business-workbench.phone-business .business-subject-table-section { border: 0; padding: 0; background: none; box-shadow: none; }
 
   /* The section actions of a business (« + », « ⋯ ») are finger-sized, with the icon size of the phone header. */
-  .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); border-radius: var(--hall-radius-medium); }
+  .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); }
   .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   /* The committee selector of a phone: label above, field over the whole width, list as wide as the field. */
   .app-main .phone-document-information-body > .business-committees { justify-self: stretch; }
   .app-main .business-committees { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: stretch; }
   .app-main .business-committees-items { display: flex; flex-wrap: wrap; gap: var(--hall-space-2); }
-  .app-main .business-committees-items > [data-slot="badge"] { border-radius: var(--hall-radius-medium); height: auto; min-height: var(--hall-size-touch-control); padding-block: 0; padding-inline-end: 0; font-size: var(--hall-font-size-body); white-space: normal; }
   .app-main .business-committee-link { overflow-wrap: anywhere; }
-  .app-main .business-committee-remove { width: var(--hall-size-touch-control); height: var(--hall-size-touch-control); border-radius: var(--hall-radius-medium); }
   .app-main .business-committee-search { width: 100%; flex: 1 0 100%; }
-  .app-main .business-committee-search .business-committee-search-input { border-radius: var(--hall-radius-medium); height: var(--hall-size-touch-control); padding-right: var(--hall-size-touch-control); font-size: var(--hall-font-size-touch-input); }
-  .app-main .business-committee-search-toggle { width: var(--hall-size-touch-control); height: var(--hall-size-touch-control); }
-  .app-main .business-committee-results { border-radius: var(--hall-radius-medium); inset-inline: 0; width: auto; min-width: 0; max-width: none; }
-  .app-main .business-committee-result { border-radius: var(--hall-radius-medium); display: flex; min-height: var(--hall-size-touch-control); align-items: center; font-size: var(--hall-font-size-body); }
+  .app-main .business-committee-search .business-committee-search-input { padding-right: var(--hall-size-touch-control); }
+  .app-main .business-committee-results { inset-inline: 0; width: auto; min-width: 0; max-width: none; }
+  .app-main .business-committee-result { display: flex; min-height: var(--hall-size-touch-control); align-items: center; }
 
   .phone-point { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-4); padding: var(--hall-space-3); }
   .phone-point > * { min-width: 0; }
@@ -156,7 +154,7 @@
   .document-viewer-phone-page .document-viewer-back { flex: none; font-size: var(--hall-font-size-icon-large); }
   .app-main .path-contents-explorer .workspace-explorer-toolbar { display: none; }
 
-  .workspace-bar-search .wsearch-field input { min-width: 0; }
+  .workspace-bar-search .wsearch-field > .hall-input { min-width: 0; }
   .workspace-bar-search .shared-search-filter-label { display: none; }
   .composer-item-row { flex-wrap: wrap; }
   .composer-item-row > .composer-item-main { flex: 1 1 var(--hall-size-relative-12rem); }

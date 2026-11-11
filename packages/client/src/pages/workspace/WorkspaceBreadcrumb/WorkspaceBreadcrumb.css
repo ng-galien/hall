@@ -1,188 +1,88 @@
+/* Trail of the workspace folders: links in the first line of the screen header, or a plain trail in a dialog. */
 .workspace-breadcrumb {
-    display: flex;
-    min-height: var(--hall-size-control-small);
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--hall-space-0-5);
-    font-size: var(--hall-font-size-body);
+  display: flex;
+  min-width: 0;
+  min-height: var(--hall-size-control-small);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hall-space-0-5);
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-body);
 }
 
-  .workspace-crumb {
-    padding: var(--hall-space-0-5) var(--hall-space-1);
-    border: 0;
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    font: inherit;
-    cursor: pointer;
-  }
+.workspace-crumb {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hall-space-1-5);
+  color: var(--hall-color-text-muted);
+  text-decoration: none;
+}
 
-  .workspace-crumb:hover {
-    color: var(--hall-color-text);
-    background: transparent;
-  }
+a.workspace-crumb { color: var(--hall-color-brand); }
+a.workspace-crumb:hover { text-decoration: underline; }
+a.workspace-crumb[aria-current="page"] { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
+a.workspace-crumb[data-origin="true"] { font-weight: var(--hall-font-weight-semibold); }
 
-  .workspace-crumb:focus-visible {
-    color: var(--hall-color-text);
-    background: transparent;
-    box-shadow: none;
-  }
+.workspace-crumb > svg {
+  flex: none;
+  font-size: var(--hall-font-size-icon-small);
+}
 
-  .workspace-crumb-root {
-    display: inline-flex;
-    height: var(--hall-size-control-small);
-    align-items: center;
-    gap: var(--hall-space-1-5);
-  }
-  .workspace-crumb-here,
-  .workspace-crumb-here:hover {
-    color: var(--hall-color-text);
-    font-weight: var(--hall-font-weight-semibold);
-  }
-  .workspace-crumb-root svg {
-    flex: none;
-    font-size: var(--hall-font-size-icon-small);
-  }
+.workspace-crumb-sep {
+  display: inline-grid;
+  place-items: center;
+  width: var(--hall-size-crumb-chevron);
+  height: var(--hall-size-crumb-chevron);
+  color: var(--hall-color-text-subtle);
+  font-size: var(--hall-font-size-icon-small);
+}
 
-  .workspace-crumb-origin,
-  .workspace-crumb-origin:hover,
-  .workspace-crumb-origin:focus-visible {
-    color: var(--hall-color-brand);
-    background: transparent;
-    box-shadow: none;
-    font-weight: var(--hall-font-weight-semibold);
-  }
+.workspace-crumb-group {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
 
-  .workspace-crumb-sep {
-    display: inline-grid;
-    place-items: center;
-    width: var(--hall-size-crumb-chevron);
-    height: var(--hall-size-crumb-chevron);
-    color: var(--hall-color-text-subtle);
-    font-size: var(--hall-font-size-icon-small);
-  }
+.workspace-crumb-menu-label {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  .workspace-crumb-group {
-    display: inline-flex;
-    align-items: center;
-  }
+.workspace-crumb-menu .type-icon,
+.workspace-crumb-current > .type-icon {
+  width: var(--hall-size-glyph-mark);
+  height: var(--hall-size-glyph-mark);
+}
 
-  .workspace-crumb-children {
-    display: inline-grid;
-    place-items: center;
-    width: var(--hall-size-crumb-chevron);
-    height: var(--hall-size-crumb-chevron);
-    padding: 0;
-    border: 0;
-    color: var(--hall-color-text-subtle);
-    background: transparent;
-    font-size: var(--hall-font-size-icon-small);
-    cursor: pointer;
-  }
+.workspace-crumb-menu .type-icon svg,
+.workspace-crumb-current > .type-icon svg {
+  width: 100%;
+  height: 100%;
+}
 
-  .workspace-crumb-children:hover,
-  .workspace-crumb-children:focus-visible {
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    box-shadow: none;
-  }
+.workspace-crumb-current {
+  display: inline-flex;
+  overflow: hidden;
+  max-width: var(--hall-size-crumb-max);
+  align-items: center;
+  gap: var(--hall-space-1);
+  color: var(--hall-color-text);
+  font-weight: var(--hall-font-weight-semibold);
+}
 
-  .workspace-crumb-menu-label {
-    overflow: hidden;
-    min-width: 0;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+.workspace-crumb-current-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  .workspace-crumb-menu .type-icon,
-  .workspace-crumb-current > .type-icon {
-    width: var(--hall-size-glyph-mark);
-    height: var(--hall-size-glyph-mark);
-    border-radius: 0;
-    background: transparent;
-  }
-
-  .workspace-crumb-menu .type-icon svg,
-  .workspace-crumb-current > .type-icon svg {
-    width: 100%;
-    height: 100%;
-  }
-
-  .workspace-crumb-current {
-    display: inline-flex;
-    overflow: hidden;
-    max-width: var(--hall-size-crumb-max);
-    padding: var(--hall-space-0-5) var(--hall-space-1);
-    align-items: center;
-    gap: var(--hall-space-1);
-    color: var(--hall-color-text);
-    font-weight: var(--hall-font-weight-semibold);
-  }
-
-  .workspace-crumb-current-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .workspace-breadcrumb-actions {
-    display: inline-flex;
-    flex: 1;
-    align-items: center;
-    justify-content: flex-end;
-    gap: var(--hall-space-3);
-  }
-
-  .workspace-breadcrumb-close {
-    display: inline-grid;
-    flex: none;
-    width: var(--hall-size-control-small);
-    height: var(--hall-size-control-small);
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text-muted);
-    background: transparent;
-    cursor: pointer;
-  }
-
-  .workspace-breadcrumb-close:hover {
-    color: var(--hall-color-text);
-    background: var(--hall-color-surface-subtle);
-  }
-
-  .workspace-save-dot {
-    flex: none;
-    width: var(--hall-space-2);
-    height: var(--hall-space-2);
-    border-radius: var(--hall-radius-circular);
-  }
-
-  .workspace-save-dirty {
-    background: var(--hall-color-warning);
-  }
-
-  .workspace-save-saving {
-    background: var(--hall-color-text-subtle);
-    animation: workspace-save-pulse var(--hall-motion-pulse) var(--hall-motion-curve-standard) infinite;
-  }
-
-  .workspace-save-saved {
-    background: var(--hall-color-success);
-  }
-
-  .workspace-save-error {
-    background: var(--hall-color-danger);
-  }
-
-  @keyframes workspace-save-pulse {
-    50% {
-      opacity: var(--hall-opacity-pulse-deep);
-    }
-  }
-
-@media (prefers-reduced-motion: reduce) {
-  .workspace-save-saving {
-    animation: none;
-  }
+.workspace-breadcrumb-actions {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hall-space-3);
 }

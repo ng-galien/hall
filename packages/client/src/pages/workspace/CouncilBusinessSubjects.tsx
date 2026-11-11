@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CalendarAddIcon, CloseIcon, EditIcon, GavelIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
-import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { InlineRenameField } from "../../components/ui/inline-rename-field";
 import { ListRow, ListRows } from "../../components/ui/list-row";
@@ -170,30 +169,30 @@ function SubjectTableRow({
                 }}
                 onCommit={rename.commit}
                 label={t("common.rename")}
-                className="workbench-title-inline-input"
+                className="hall-input workbench-title-inline-input"
                 testId={`business-subject-rename-${subject.id}-name`}
                 invalid={Boolean(rename.error)}
                 onDraftChange={rename.dismissError}
               >
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
+                    <Button
+                      variant="plain"
                       className="business-subject-title"
                       data-testid={`business-subject-${subject.id}-open`}
-                      type="button"
                       aria-expanded={expanded}
                       onClick={onExpand}
                     >
                       <span>{subject.title}</span>
-                    </button>
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>{subject.title}</TooltipContent>
                 </Tooltip>
               </InlineRenameField>
               {rename.canRename && !editingTitle ? (
-                <button
-                  type="button"
-                  className="workbench-title-edit"
+                <Button
+                  variant="plain"
+                  size="icon"
                   data-testid={`business-subject-rename-${subject.id}`}
                   aria-label={`${t("common.edit")} · ${subject.title}`}
                   onClick={() => {
@@ -202,7 +201,7 @@ function SubjectTableRow({
                   }}
                 >
                   <EditIcon aria-hidden="true" />
-                </button>
+                </Button>
               ) : null}
             </div>
             {editingTitle && rename.error ? <RequestErrorBanner compact error={rename.error} /> : null}
@@ -212,7 +211,7 @@ function SubjectTableRow({
           <div className="business-subject-table-actions">
             <span ref={setAutosaveActionsHost} />
             {meeting?.reference && meetingLabel ? (
-              <Badge variant="outline" className="business-subject-schedule-badge">
+              <span className="business-subject-schedule">
                 <Link
                   data-testid={`business-subject-meeting-${subject.agenda.agendaItemId}`}
                   to={`/meetings/${meeting.reference}`}
@@ -231,7 +230,7 @@ function SubjectTableRow({
                     <CloseIcon />
                   </Button>
                 ) : null}
-              </Badge>
+              </span>
             ) : schedule ? (
               <Button
                 variant="secondary"

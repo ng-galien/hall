@@ -145,9 +145,8 @@ export function ResourceWorkbench({
           <div className="workbench-actions">
             {session.capabilities.deleteResource ? (
               <Button
-                className="composer-vote-toggle"
                 data-testid="resource-delete"
-                variant="plain"
+                variant="danger"
                 disabled={session.submitting}
                 onClick={() => setConfirmingDelete(true)}
               >
@@ -155,7 +154,6 @@ export function ResourceWorkbench({
                 {t(session.submitting ? "common.saving" : "workspace.deleteResource")}
               </Button>
             ) : null}
-            <span className="composer-editor-spacer" />
           </div>
           {confirmingDelete ? (
             <ResourceDeleteDialog name={resource.name} onConfirm={remove} onClose={() => setConfirmingDelete(false)} />

@@ -1,4 +1,5 @@
 import type { ResourceDetail, SirenEntity } from "@hall/api-contract";
+import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { FullscreenIcon } from "../../components/icons";
 import { useDocumentPreview } from "../../hooks/useDocumentPreview";
@@ -32,15 +33,16 @@ export function DocumentEmbed({
         <NativeDocumentFrame url={objectUrl} mediaType={mediaType} title={resource.name} testId={objectTestId} />
       ) : null}
       {onOpenFull ? (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="icon"
           className="document-embed-expand"
           aria-label={t("common.fullscreen")}
           title={t("common.fullscreen")}
           onClick={onOpenFull}
         >
           <FullscreenIcon />
-        </button>
+        </Button>
       ) : null}
     </div>
   );

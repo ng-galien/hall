@@ -1,25 +1,4 @@
-.resource-changes-trigger {
-  position: relative;
-  display: inline-flex;
-  width: var(--hall-size-control-small);
-  height: var(--hall-size-control-small);
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--hall-radius-circular);
-  color: var(--hall-color-text-muted);
-  background: transparent;
-  font-size: var(--hall-font-size-icon);
-  cursor: pointer;
-}
-
-.resource-changes-trigger:hover,
-.resource-changes-trigger:focus-visible,
-.resource-changes-trigger[data-unseen="true"] {
-  color: var(--hall-color-brand);
-  background: var(--hall-color-surface-subtle);
-}
+.resource-changes-trigger { position: relative; }
 
 .resource-changes-trigger[data-unseen="true"]::after {
   position: absolute;

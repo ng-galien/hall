@@ -34,12 +34,12 @@ import {
   FolderAddIcon,
   LinkIcon,
   OpenIcon,
-  SearchIcon,
   WorkspaceIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { ListRow, ListRowIcon, type ListRowProps, type ListRowStatus, ListRows } from "../../components/ui/list-row";
+import { SearchInput } from "../../components/ui/search-input";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import {
   type DocumentaryLeafSummary,
@@ -81,6 +81,7 @@ function RenameContextMenu({
   onExportBundle,
   onDelete,
   onColor,
+  keepFocusAway,
 }: {
   children: ReactElement;
   enabled: boolean;
@@ -90,13 +91,19 @@ function RenameContextMenu({
   onExportBundle?(): void;
   onDelete?(): void;
   onColor?(): void;
+  /** True when the chosen action opened a popover that keeps the focus: the menu then returns it to nothing. */
+  keepFocusAway?(): boolean;
 }) {
   const { t } = useI18n();
   if (!enabled && !onAttachDocument && !onImportFolder && !onExportBundle && !onDelete && !onColor) return children;
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <ContextMenuContent onCloseAutoFocus={onAttachDocument ? (event) => event.preventDefault() : undefined}>
+      <ContextMenuContent
+        onCloseAutoFocus={(event) => {
+          if (onAttachDocument || keepFocusAway?.()) event.preventDefault();
+        }}
+      >
         {onAttachDocument ? (
           <ContextMenuItem data-testid="workspace-tree-attach-document" onSelect={onAttachDocument}>
             <LinkIcon />
@@ -166,6 +173,9 @@ function ContentRow({
   className: string;
   onDrop?(payload: DragPayload): void;
   onFolderDrop?(transfer: DataTransfer): void;
+  onOpen?: () => void;
+  openTestId?: string;
+  openProps?: ListRowProps["openProps"];
   head: ReactNode;
   title: ReactNode;
   status?: ListRowStatus;
@@ -175,9 +185,12 @@ function ContentRow({
   wrapLine: (line: ReactElement) => ReactNode;
 }) {
   const [dropActive, setDropActive] = useState(false);
+  const { onOpen, ...line } = row;
   return (
     <ListRow
-      {...row}
+      {...line}
+      // A row being renamed has no open handler: its line holds the name field instead of a button.
+      onOpen={onOpen as () => void}
       className={`${className}${dropActive ? " workspace-explorer-drop" : ""}`}
       data-testid={testId}
       data-folder-import-enabled={Boolean(onFolderDrop)}
@@ -558,9 +571,19 @@ export function PathContents({
   };
 
   const [colorTarget, setColorTarget] = useState<string | null>(null);
+  /** The colour picker takes the focus: the closing context menu must not give it back to the row. */
+  const colorRequested = useRef(false);
+  const takeColorRequest = () => {
+    const requested = colorRequested.current;
+    colorRequested.current = false;
+    return requested;
+  };
   const folderColorAction = (folderId: string | undefined) =>
     folderId && resourceCapabilities(resourcesStore.representations[folderId] ?? null).updateMetadata
-      ? () => afterContextMenuCloses(() => setColorTarget(folderId))
+      ? () => {
+          colorRequested.current = true;
+          afterContextMenuCloses(() => setColorTarget(folderId));
+        }
       : undefined;
   const changeFolderColor = async (folderId: string, color: string | null) => {
     setRenameError(null);
@@ -762,7 +785,11 @@ export function PathContents({
     return (
       <ContextMenu>
         <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-        <ContextMenuContent>
+        <ContextMenuContent
+          onCloseAutoFocus={(event) => {
+            if (takeColorRequest()) event.preventDefault();
+          }}
+        >
           {capabilities.create && capabilities.uploadDocument ? (
             <ContextMenuItem data-testid="workspace-tree-import-folder" onSelect={() => onImportFolder(folderPath)}>
               <DocumentResourceIcon />
@@ -944,18 +971,31 @@ export function PathContents({
     setFeedback(t("workspace.attachedFeedback", { name: resource.name }));
   };
 
+  /** A click with Ctrl, Cmd or Shift only extends the selection; a plain click selects the line and opens it. */
   const treeLineProps = (key: string, renaming: boolean): ListRowProps["lineProps"] =>
     renaming
       ? undefined
       : {
+          onClickCapture: (event) => {
+            const modifiers = selectionModifiers(event);
+            if (!modifiers.toggle && !modifiers.range) return;
+            event.stopPropagation();
+            selectTreeItem(key, modifiers);
+          },
           onClick: (event) => {
-            selectTreeItem(key, selectionModifiers(event));
+            selectTreeItem(key);
             event.currentTarget
               .querySelector<HTMLButtonElement>("button[data-workspace-tree-node]")
               ?.focus({ preventScroll: true });
           },
           onContextMenu: () => selectTreeItem(key),
         };
+  const treeNodeProps = (key: string, extra: Record<string, unknown> = {}) =>
+    ({
+      ...extra,
+      "data-workspace-node-key": key,
+      "data-workspace-tree-node": "",
+    }) as ListRowProps["openProps"];
 
   const renderItems = (folderPath: string) => (
     <>
@@ -1005,29 +1045,19 @@ export function PathContents({
                   className="workspace-explorer-rename-input"
                   testId="workspace-tree-rename-input"
                 >
-                  <button
-                    className="path-contents-node"
-                    data-testid={"workspace-business-title-" + business.id}
-                    data-workspace-node-key={key}
-                    data-workspace-tree-node
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      const modifiers = selectionModifiers(event);
-                      selectTreeItem(key, modifiers);
-                      if (!modifiers.toggle && !modifiers.range) onSelect({ kind: "councilBusiness", id: business.id });
-                    }}
-                  >
-                    {business.title}
-                  </button>
+                  {business.title}
                 </InlineRenameField>
               }
+              onOpen={renaming ? undefined : () => onSelect({ kind: "councilBusiness", id: business.id })}
+              openTestId={"workspace-business-title-" + business.id}
+              openProps={treeNodeProps(key)}
               wide={<time dateTime={business.updatedAt}>{formatDate(business.updatedAt)}</time>}
               lineProps={treeLineProps(key, renaming)}
               wrapLine={(line) => (
                 <RenameContextMenu
                   enabled={renamable}
                   onColor={folderColorAction(business.folderResourceId)}
+                  keepFocusAway={takeColorRequest}
                   onDelete={businessCapabilities?.delete ? () => onDeleteBusiness(business) : undefined}
                   onExportBundle={businessCapabilities?.exportBundle ? () => onExportBundle(business) : undefined}
                   onRename={() => startRename(payload)}
@@ -1078,24 +1108,12 @@ export function PathContents({
                   className="workspace-explorer-rename-input"
                   testId="workspace-tree-rename-input"
                 >
-                  <button
-                    className="path-contents-node"
-                    data-testid={"workspace-resource-title-" + resource.id}
-                    title={resource.name}
-                    data-workspace-node-key={key}
-                    data-workspace-tree-node
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      const modifiers = selectionModifiers(event);
-                      selectTreeItem(key, modifiers);
-                      if (!modifiers.toggle && !modifiers.range) onPreview(resource);
-                    }}
-                  >
-                    {resource.name}
-                  </button>
+                  {resource.name}
                 </InlineRenameField>
               }
+              onOpen={renaming ? undefined : () => onPreview(resource)}
+              openTestId={"workspace-resource-title-" + resource.id}
+              openProps={treeNodeProps(key, { title: resource.name })}
               status={
                 readiness === "ready"
                   ? undefined
@@ -1150,18 +1168,9 @@ export function PathContents({
         head={withFolderColorPicker(
           folderEntry?.id,
           folderColor,
-          <button
-            className="path-contents-folder-toggle"
-            data-workspace-folder-path={folderPath}
-            data-workspace-node-key={key}
-            data-workspace-tree-node
-            data-testid={`workspace-folder-toggle-${folderPath}`}
-            type="button"
-            aria-expanded={isExpanded}
-            aria-label={folderName}
-          >
+          <span className="workspace-explorer-color-anchor">
             <FolderGlyph open={isExpanded} color={folderColor} />
-          </button>,
+          </span>,
         )}
         title={
           <InlineRenameField
@@ -1178,6 +1187,14 @@ export function PathContents({
             <span data-testid={`workspace-folder-name-${folderPath}`}>{folderPath.split("/").at(-1)}</span>
           </InlineRenameField>
         }
+        // The line handles the click: it opens the folder on a phone, folds or unfolds it elsewhere.
+        onOpen={(renaming ? undefined : () => undefined) as () => void}
+        openTestId={`workspace-folder-toggle-${folderPath}`}
+        openProps={treeNodeProps(key, {
+          "data-workspace-folder-path": folderPath,
+          "aria-expanded": isExpanded,
+          "aria-label": folderName,
+        })}
         action={
           phone ? undefined : (
             <Button
@@ -1310,29 +1327,27 @@ export function PathContents({
         <fieldset className="workspace-view-switcher">
           <legend className="sr-only">{t("workspace.viewMode")}</legend>
           {(["all", "businesses", "resources"] as const).map((value) => (
-            <button
-              className={mode === value ? "workspace-view-active" : ""}
+            <Button
+              variant="plain"
               data-testid={`workspace-view-${value}`}
               key={value}
-              type="button"
               aria-pressed={mode === value}
               onClick={() => setMode(value)}
             >
               {t(`workspace.view.${value}`)}
-            </button>
+            </Button>
           ))}
         </fieldset>
-        <label className="workspace-explorer-filter">
-          <span className="sr-only">{t("workspace.filterFolder")}</span>
-          <SearchIcon aria-hidden="true" />
-          <input
+        <div className="workspace-explorer-filter">
+          <SearchInput
             data-testid="workspace-tree-filter"
             type="search"
             value={query}
+            aria-label={t("workspace.filterFolder")}
             placeholder={t("workspace.filterFolder")}
             onChange={(event) => setQuery(event.currentTarget.value)}
           />
-        </label>
+        </div>
         {toolbarControls ? <span className="workspace-explorer-toolbar-controls">{toolbarControls}</span> : null}
       </div>
       <RequestErrorBanner error={renameError ?? moveError} />

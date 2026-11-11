@@ -5,7 +5,7 @@
   gap: var(--hall-space-3);
   overflow: hidden;
   border: var(--hall-stroke-thin) solid var(--hall-color-border);
-  border-radius: var(--hall-radius-large);
+  border-radius: var(--hall-radius-medium);
   background: var(--hall-color-surface);
   box-shadow: var(--hall-shadow-large);
 }

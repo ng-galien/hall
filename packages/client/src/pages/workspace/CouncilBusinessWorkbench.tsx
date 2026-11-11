@@ -5,7 +5,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { copyObjectReference } from "../../components/CopyReferenceButton";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { CheckIcon, EditIcon, FolderIcon, PinIcon, PinnedIcon } from "../../components/icons";
+import { EditIcon, FolderIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ExplorerTree } from "../../components/ui/explorer-tree";
@@ -25,6 +25,7 @@ import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { ApiErrorCode } from "../../services/apiClient";
+import { ScreenActions } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
@@ -150,18 +151,6 @@ export function CouncilBusinessWorkbench({
     if ((reportSession.dirty ? await saveReport() : true) && (await reportSession.reload())) setPhoneEditing(false);
   };
   const phoneActions: PhoneDocumentAction[] = [
-    ...(reportSession.editable
-      ? [
-          phoneEditing
-            ? {
-                id: "finish-editing",
-                label: t("workspace.finishEditing"),
-                icon: <CheckIcon />,
-                onSelect: () => void finishEditing(),
-              }
-            : { id: "edit", label: t("common.edit"), icon: <EditIcon />, onSelect: () => setPhoneEditing(true) },
-        ]
-      : []),
     ...(reportSession.resource
       ? reportPdf.referencesDocuments
         ? [
@@ -222,6 +211,23 @@ export function CouncilBusinessWorkbench({
       >
         {phone ? (
           <>
+            {reportSession.editable ? (
+              <ScreenActions>
+                {phoneEditing ? (
+                  <Button data-testid="phone-document-action-finish-editing" onClick={() => void finishEditing()}>
+                    {t("workspace.finishEditing")}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    data-testid="phone-document-action-edit"
+                    onClick={() => setPhoneEditing(true)}
+                  >
+                    {t("common.edit")}
+                  </Button>
+                )}
+              </ScreenActions>
+            ) : null}
             <PhoneDocumentActions actions={phoneActions} />
             <RequestErrorBanner error={actionError ?? reportSession.actionError} />
           </>

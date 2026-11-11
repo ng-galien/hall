@@ -2,8 +2,8 @@ import type { ResourceDetail, SirenEntity } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
 import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import type { Mentionable } from "../../components/editor/references";
 import { MarkdownView } from "../../components/MarkdownView";
@@ -55,7 +55,6 @@ export function ResourcePresentationBody({
   onError,
   onRegisterFlush,
   autosaveEnabled,
-  showContentLabel = true,
   readOnlyTextEditor = false,
 }: {
   resource: ResourceDetail;
@@ -80,7 +79,6 @@ export function ResourcePresentationBody({
   onError(error: ApiErrorCode | null): void;
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
   autosaveEnabled: boolean;
-  showContentLabel?: boolean;
   readOnlyTextEditor?: boolean;
 }) {
   const { t } = useI18n();
@@ -94,7 +92,6 @@ export function ResourcePresentationBody({
     text: (entry) =>
       editingResource || readOnlyTextEditor ? (
         <div className="grid gap-1.5" data-testid="resource-presentation-text-edit">
-          {showContentLabel ? <Label>{t("resources.textContent")}</Label> : null}
           <MarkdownEditor
             title={entry.name}
             markdown={content}
@@ -139,20 +136,20 @@ export function ResourcePresentationBody({
             <h2>{t(targetUrl ? "workspace.editRemoteUrl" : "workspace.remoteSetupTitle")}</h2>
             {!targetUrl ? <p>{t("workspace.remoteSetupDescription")}</p> : null}
           </div>
-          <Label htmlFor={`remote-resource-url-${entry.id}`}>{t("workspace.remoteUrl")}</Label>
           <div className="remote-resource-setup-field">
-            <Input
-              id={`remote-resource-url-${entry.id}`}
-              data-testid="remote-resource-url-input"
-              type="url"
-              value={remoteUrl}
-              placeholder={t("workspace.remoteUrlPlaceholder")}
-              onChange={(event) => {
-                setEditingRemoteId(entry.id);
-                onRemoteUrlChange(event.currentTarget.value);
-              }}
-              required
-            />
+            <Field label={t("workspace.remoteUrl")}>
+              <Input
+                data-testid="remote-resource-url-input"
+                type="url"
+                value={remoteUrl}
+                placeholder={t("workspace.remoteUrlPlaceholder")}
+                onChange={(event) => {
+                  setEditingRemoteId(entry.id);
+                  onRemoteUrlChange(event.currentTarget.value);
+                }}
+                required
+              />
+            </Field>
             <Button data-testid="remote-resource-save" type="submit" disabled={submitting || !remoteUrl.trim()}>
               {t(submitting ? "common.saving" : "common.save")}
             </Button>

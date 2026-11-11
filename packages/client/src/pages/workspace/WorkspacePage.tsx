@@ -13,11 +13,7 @@ import {
   BusinessBundleImportDialog,
 } from "../../features/council-business/BusinessBundleDialogs";
 import { BusinessDeleteDialog } from "../../features/council-business/BusinessDeleteDialog";
-import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
-import {
-  type DocumentaryLeafSummary,
-  DocumentaryResourceGlyph,
-} from "../../features/documents/DocumentaryResourceGlyph";
+import type { DocumentaryLeafSummary } from "../../features/documents/DocumentaryResourceGlyph";
 import { photoFile } from "../../features/documents/photoFile";
 import { ResourceAutosaveToggle } from "../../features/resources/ResourceAutosaveToggle";
 import { ResourceChangesControl } from "../../features/resources/ResourceChangesControl";
@@ -525,17 +521,9 @@ export function WorkspacePage() {
           <WorkspaceBreadcrumb
             path={selectedBusiness?.folderPath ?? presentedResource?.path ?? path}
             currentLabel={selectedBusiness?.title ?? presentedResource?.name}
-            currentIcon={
-              selectedBusiness ? (
-                <CouncilBusinessGlyph business={selectedBusiness} />
-              ) : presentedResource ? (
-                <DocumentaryResourceGlyph resource={presentedResource} />
-              ) : undefined
-            }
             currentSelection={selection}
             originPath={selectedBusiness || selection?.kind === "resource" ? path : undefined}
             onSelect={select}
-            showSaveStatus={false}
           />
         </HeaderTrail>
         <div className="workspace-topzone" data-item-open={selection ? "true" : undefined}>
