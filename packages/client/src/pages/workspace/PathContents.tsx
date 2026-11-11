@@ -32,21 +32,20 @@ import {
   DeleteIcon,
   EditIcon,
   FolderAddIcon,
-  FolderIcon,
-  FolderOpenIcon,
   LinkIcon,
   OpenIcon,
   SearchIcon,
   WorkspaceIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
-import { ExplorerTree, ExplorerTreeRow } from "../../components/ui/explorer-tree";
-import { ListRowIcon } from "../../components/ui/list-row";
+import { Button } from "../../components/ui/button";
+import { ListRow, ListRowIcon, type ListRowProps, type ListRowStatus, ListRows } from "../../components/ui/list-row";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import {
   type DocumentaryLeafSummary,
   DocumentaryResourceGlyph,
 } from "../../features/documents/DocumentaryResourceGlyph";
+import { FolderGlyph } from "../../features/documents/FolderGlyph";
 import { ToneGlyph } from "../../features/documents/ResourceGlyph";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -56,7 +55,6 @@ import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
-import { folderColorIconProps } from "./folderColor";
 import { isUnderPath, listCatalogPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKindTones } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -141,6 +139,9 @@ function RenameContextMenu({
   );
 }
 
+/** `data-testid` of a tree line, spread into its `lineProps`. */
+const testIdProps = (testId: string) => ({ "data-testid": testId });
+
 function directChildrenOf(parent: string, paths: string[]) {
   return paths.filter((candidate) => {
     if (parent === "") return candidate !== "" && !candidate.includes("/");
@@ -149,6 +150,7 @@ function directChildrenOf(parent: string, paths: string[]) {
   });
 }
 
+/** A business or document node of the tree: one `ListRow` that can be dragged and receive a drop. */
 function ContentRow({
   dragPayloads,
   movable,
@@ -156,7 +158,7 @@ function ContentRow({
   className,
   onDrop,
   onFolderDrop,
-  children,
+  ...row
 }: {
   dragPayloads: DragPayload[];
   movable: boolean;
@@ -164,11 +166,18 @@ function ContentRow({
   className: string;
   onDrop?(payload: DragPayload): void;
   onFolderDrop?(transfer: DataTransfer): void;
-  children: ReactNode;
+  head: ReactNode;
+  title: ReactNode;
+  status?: ListRowStatus;
+  wide: ReactNode;
+  selected: boolean;
+  lineProps?: ListRowProps["lineProps"];
+  wrapLine: (line: ReactElement) => ReactNode;
 }) {
   const [dropActive, setDropActive] = useState(false);
   return (
-    <li
+    <ListRow
+      {...row}
       className={`${className}${dropActive ? " workspace-explorer-drop" : ""}`}
       data-testid={testId}
       data-folder-import-enabled={Boolean(onFolderDrop)}
@@ -206,9 +215,7 @@ function ContentRow({
         const dropped = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
         if (dropped?.length === 1) onDrop(dropped[0]);
       }}
-    >
-      {children}
-    </li>
+    />
   );
 }
 
@@ -261,7 +268,7 @@ export function PathContents({
       void councilBusinessStore.loadResources(id).finally(() => pendingCapabilities.current.delete(id));
     }
   }, [businessIds, councilBusinessStore.loadResources, councilBusinessStore.capabilitiesById, hidden]);
-  const treeRef = useRef<HTMLUListElement | null>(null);
+  const treeRef = useRef<HTMLDivElement | null>(null);
   const renameTargetRef = useRef<RenameTarget | null>(null);
   const renameSessionRef = useRef(0);
   const [mode, setMode] = useState<WorkspaceViewMode>("all");
@@ -674,28 +681,26 @@ export function PathContents({
 
   const renderFolderCreation = (parentPath: string) =>
     creatingFolderParent === parentPath ? (
-      <li className="workspace-explorer-folder workspace-explorer-folder-creating">
-        <fieldset className="workspace-explorer-folder-row workspace-explorer-selected">
-          <span className="workspace-explorer-primary">
-            <span className="workspace-explorer-toggle workspace-explorer-folder-marker" aria-hidden="true">
-              <FolderIcon />
-            </span>
-            <InlineRenameField
-              value=""
-              editing
-              onEditingChange={(editing) => {
-                if (!editing) setCreatingFolderParent(null);
-              }}
-              onCommit={(name) => createFolderPath(parentPath, name)}
-              label={t("workspace.createFolder")}
-              className="workspace-explorer-rename-input workspace-folder-rename-input"
-              testId="workspace-tree-create-folder-input"
-            >
-              <span />
-            </InlineRenameField>
-          </span>
-        </fieldset>
-      </li>
+      <ListRow
+        className="path-contents-creating"
+        selected
+        head={<FolderGlyph />}
+        title={
+          <InlineRenameField
+            value=""
+            editing
+            onEditingChange={(editing) => {
+              if (!editing) setCreatingFolderParent(null);
+            }}
+            onCommit={(name) => createFolderPath(parentPath, name)}
+            label={t("workspace.createFolder")}
+            className="workspace-explorer-rename-input workspace-folder-rename-input"
+            testId="workspace-tree-create-folder-input"
+          >
+            <span />
+          </InlineRenameField>
+        }
+      />
     ) : null;
 
   const renderInlineCreation = (folderPath: string) => {
@@ -703,36 +708,36 @@ export function PathContents({
     const target = createTarget;
     const Icon = workspaceCreateKindIcons[target.kind];
     return (
-      <li className="workspace-explorer-item workspace-explorer-creating workspace-explorer-selected">
-        <div className="workspace-explorer-row">
-          <span className="workspace-explorer-primary">
-            {target.kind === "councilMatter" ? (
-              <ListRowIcon nature="council">
-                <Icon />
-              </ListRowIcon>
-            ) : (
-              <ToneGlyph tone={workspaceCreateKindTones[target.kind]} />
-            )}
-            <span className="workspace-explorer-copy">
-              <InlineRenameField
-                value={proposedName(target.kind)}
-                editing
-                commitUnchanged
-                commitOnBlur={false}
-                onEditingChange={(editing) => {
-                  if (!editing) setCreateTarget(null);
-                }}
-                onCommit={(title) => createInlineEntry(target, title)}
-                label={t("common.create")}
-                className="workspace-explorer-rename-input"
-                testId="workspace-tree-create-input"
-              >
-                <span />
-              </InlineRenameField>
-            </span>
-          </span>
-        </div>
-      </li>
+      <ListRow
+        className="path-contents-creating"
+        selected
+        head={
+          target.kind === "councilMatter" ? (
+            <ListRowIcon nature="council">
+              <Icon />
+            </ListRowIcon>
+          ) : (
+            <ToneGlyph tone={workspaceCreateKindTones[target.kind]} />
+          )
+        }
+        title={
+          <InlineRenameField
+            value={proposedName(target.kind)}
+            editing
+            commitUnchanged
+            commitOnBlur={false}
+            onEditingChange={(editing) => {
+              if (!editing) setCreateTarget(null);
+            }}
+            onCommit={(title) => createInlineEntry(target, title)}
+            label={t("common.create")}
+            className="workspace-explorer-rename-input"
+            testId="workspace-tree-create-input"
+          >
+            <span />
+          </InlineRenameField>
+        }
+      />
     );
   };
 
@@ -899,10 +904,10 @@ export function PathContents({
         toggle(folderPath);
         return;
       }
-      const folder = current.closest("li.workspace-explorer-folder");
+      const folder = current.closest("li.path-contents-folder");
       focusTreeNode(
         folder?.querySelector<HTMLButtonElement>(
-          ":scope > ul.workspace-explorer-branch button[data-workspace-tree-node]",
+          ":scope > .list-row-children > ul.path-contents-branch button[data-workspace-tree-node]",
         ) ?? null,
       );
       return;
@@ -915,11 +920,11 @@ export function PathContents({
         toggle(folderPath);
         return;
       }
-      const parentBranch = current.closest("ul.workspace-explorer-branch");
+      const parentBranch = current.closest("ul.path-contents-branch");
       const parent =
-        parentBranch?.parentElement?.querySelector<HTMLButtonElement>(
-          ":scope > fieldset button[data-workspace-folder-path], :scope > button[data-workspace-tree-node]",
-        ) ?? null;
+        parentBranch
+          ?.closest("li.path-contents-folder")
+          ?.querySelector<HTMLButtonElement>(":scope > .list-row-line button[data-workspace-folder-path]") ?? null;
       const parentFolderPath = parent?.dataset.workspaceFolderPath;
       if (parentFolderPath && isFolderExpanded(parentFolderPath)) toggle(parentFolderPath);
       focusTreeNode(parent);
@@ -939,6 +944,19 @@ export function PathContents({
     setFeedback(t("workspace.attachedFeedback", { name: resource.name }));
   };
 
+  const treeLineProps = (key: string, renaming: boolean): ListRowProps["lineProps"] =>
+    renaming
+      ? undefined
+      : {
+          onClick: (event) => {
+            selectTreeItem(key, selectionModifiers(event));
+            event.currentTarget
+              .querySelector<HTMLButtonElement>("button[data-workspace-tree-node]")
+              ?.focus({ preventScroll: true });
+          },
+          onContextMenu: () => selectTreeItem(key),
+        };
+
   const renderItems = (folderPath: string) => (
     <>
       {visibleBusinesses
@@ -954,67 +972,6 @@ export function PathContents({
           const businessFolderColor =
             resourcesStore.catalog.find((entry) => entry.id === business.folderResourceId)?.color ?? null;
           const businessCapabilities = councilBusinessStore.capabilitiesById[business.id];
-          const rowContents = (
-            <>
-              <span className="workspace-explorer-primary">
-                {withFolderColorPicker(
-                  business.folderResourceId,
-                  businessFolderColor,
-                  <span className="workspace-explorer-color-anchor">
-                    <CouncilBusinessGlyph business={business} color={businessFolderColor} />
-                  </span>,
-                )}
-                <span className="workspace-explorer-copy">
-                  <InlineRenameField
-                    value={business.title}
-                    editing={renaming}
-                    onEditingChange={(editing, reason) => {
-                      if (!editing) finishRename(payload, renameSession, reason ?? "cancel");
-                    }}
-                    onCommit={(nextTitle) => rename(payload, nextTitle, renameSession)}
-                    label={t("common.rename")}
-                    className="workspace-explorer-rename-input"
-                    testId="workspace-tree-rename-input"
-                  >
-                    <button
-                      className="workspace-explorer-title-link"
-                      data-testid={"workspace-business-title-" + business.id}
-                      data-workspace-node-key={key}
-                      data-workspace-tree-node
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        const modifiers = selectionModifiers(event);
-                        selectTreeItem(key, modifiers);
-                        if (!modifiers.toggle && !modifiers.range)
-                          onSelect({ kind: "councilBusiness", id: business.id });
-                      }}
-                    >
-                      <strong>{business.title}</strong>
-                    </button>
-                  </InlineRenameField>
-                </span>
-              </span>
-              <time className="workspace-explorer-date" dateTime={business.updatedAt}>
-                {formatDate(business.updatedAt)}
-              </time>
-            </>
-          );
-          const row = renaming ? (
-            <ExplorerTreeRow>{rowContents}</ExplorerTreeRow>
-          ) : (
-            <ExplorerTreeRow
-              onClick={(event) => {
-                selectTreeItem(key, selectionModifiers(event));
-                event.currentTarget
-                  .querySelector<HTMLButtonElement>("button[data-workspace-tree-node]")
-                  ?.focus({ preventScroll: true });
-              }}
-              onContextMenu={() => selectTreeItem(key)}
-            >
-              {rowContents}
-            </ExplorerTreeRow>
-          );
           return (
             <ContentRow
               key={business.id}
@@ -1027,29 +984,69 @@ export function PathContents({
               }
               onDrop={businessCapabilities?.associateResource ? (payload) => void attach(business, payload) : undefined}
               testId={`workspace-business-${business.id}`}
-              className={`workspace-explorer-item workspace-explorer-business${selectedKeys.has(key) ? " workspace-explorer-selected" : ""}`}
-            >
-              <RenameContextMenu
-                enabled={renamable}
-                onColor={folderColorAction(business.folderResourceId)}
-                onDelete={businessCapabilities?.delete ? () => onDeleteBusiness(business) : undefined}
-                onExportBundle={businessCapabilities?.exportBundle ? () => onExportBundle(business) : undefined}
-                onRename={() => startRename(payload)}
-                onAttachDocument={
-                  businessCapabilities?.associateResource || businessCapabilities?.createResource
-                    ? () => openAttachmentPicker(business)
-                    : undefined
-                }
-                onImportFolder={
-                  businessCapabilities?.uploadDocument &&
-                  folderCapabilitiesAt(resourcesStore, business.folderPath).create
-                    ? () => onImportFolder(business.folderPath, business)
-                    : undefined
-                }
-              >
-                {row}
-              </RenameContextMenu>
-            </ContentRow>
+              className="path-contents-business"
+              selected={selectedKeys.has(key)}
+              head={withFolderColorPicker(
+                business.folderResourceId,
+                businessFolderColor,
+                <span className="workspace-explorer-color-anchor">
+                  <CouncilBusinessGlyph business={business} color={businessFolderColor} />
+                </span>,
+              )}
+              title={
+                <InlineRenameField
+                  value={business.title}
+                  editing={renaming}
+                  onEditingChange={(editing, reason) => {
+                    if (!editing) finishRename(payload, renameSession, reason ?? "cancel");
+                  }}
+                  onCommit={(nextTitle) => rename(payload, nextTitle, renameSession)}
+                  label={t("common.rename")}
+                  className="workspace-explorer-rename-input"
+                  testId="workspace-tree-rename-input"
+                >
+                  <button
+                    className="path-contents-node"
+                    data-testid={"workspace-business-title-" + business.id}
+                    data-workspace-node-key={key}
+                    data-workspace-tree-node
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      const modifiers = selectionModifiers(event);
+                      selectTreeItem(key, modifiers);
+                      if (!modifiers.toggle && !modifiers.range) onSelect({ kind: "councilBusiness", id: business.id });
+                    }}
+                  >
+                    {business.title}
+                  </button>
+                </InlineRenameField>
+              }
+              wide={<time dateTime={business.updatedAt}>{formatDate(business.updatedAt)}</time>}
+              lineProps={treeLineProps(key, renaming)}
+              wrapLine={(line) => (
+                <RenameContextMenu
+                  enabled={renamable}
+                  onColor={folderColorAction(business.folderResourceId)}
+                  onDelete={businessCapabilities?.delete ? () => onDeleteBusiness(business) : undefined}
+                  onExportBundle={businessCapabilities?.exportBundle ? () => onExportBundle(business) : undefined}
+                  onRename={() => startRename(payload)}
+                  onAttachDocument={
+                    businessCapabilities?.associateResource || businessCapabilities?.createResource
+                      ? () => openAttachmentPicker(business)
+                      : undefined
+                  }
+                  onImportFolder={
+                    businessCapabilities?.uploadDocument &&
+                    folderCapabilitiesAt(resourcesStore, business.folderPath).create
+                      ? () => onImportFolder(business.folderPath, business)
+                      : undefined
+                  }
+                >
+                  {line}
+                </RenameContextMenu>
+              )}
+            />
           );
         })}
       {visibleResources
@@ -1059,82 +1056,69 @@ export function PathContents({
           const key = itemKey(payload);
           const renaming = renameTarget?.kind === payload.kind && renameTarget.id === payload.id;
           const renamable = resourceCapabilities(resourcesStore.representations[resource.id] ?? null).updateMetadata;
-          const rowContents = (
-            <>
-              <span className="workspace-explorer-primary">
-                <DocumentaryResourceGlyph resource={resource} />
-                <span className="workspace-explorer-copy">
-                  <InlineRenameField
-                    value={resource.name}
-                    editing={renaming}
-                    onEditingChange={(editing, reason) => {
-                      if (!editing) finishRename(payload, renameSession, reason ?? "cancel");
-                    }}
-                    onCommit={(nextTitle) => rename(payload, nextTitle, renameSession)}
-                    label={t("common.rename")}
-                    className="workspace-explorer-rename-input"
-                    testId="workspace-tree-rename-input"
-                  >
-                    <button
-                      className="workspace-explorer-title-link"
-                      data-testid={"workspace-resource-title-" + resource.id}
-                      title={resource.name}
-                      data-workspace-node-key={key}
-                      data-workspace-tree-node
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        const modifiers = selectionModifiers(event);
-                        selectTreeItem(key, modifiers);
-                        if (!modifiers.toggle && !modifiers.range) onPreview(resource);
-                      }}
-                    >
-                      <strong>{resource.name}</strong>
-                    </button>
-                  </InlineRenameField>
-                  {resource.state.readiness !== "ready" ? (
-                    <span className={`workspace-resource-state workspace-resource-state-${resource.state.readiness}`}>
-                      {t(`workspace.resourceState.${resource.state.readiness}`)}
-                    </span>
-                  ) : null}
-                </span>
-              </span>
-              <time
-                className="workspace-explorer-date"
-                data-testid={`workspace-resource-modified-${resource.id}`}
-                dateTime={resource.updatedAt}
-              >
-                {formatDate(resource.updatedAt)}
-              </time>
-            </>
-          );
-          const row = renaming ? (
-            <ExplorerTreeRow>{rowContents}</ExplorerTreeRow>
-          ) : (
-            <ExplorerTreeRow
-              onClick={(event) => {
-                selectTreeItem(key, selectionModifiers(event));
-                event.currentTarget
-                  .querySelector<HTMLButtonElement>("button[data-workspace-tree-node]")
-                  ?.focus({ preventScroll: true });
-              }}
-              onContextMenu={() => selectTreeItem(key)}
-            >
-              {rowContents}
-            </ExplorerTreeRow>
-          );
+          const readiness = resource.state.readiness;
           return (
             <ContentRow
               key={resource.id}
               dragPayloads={dragPayloadsFor(payload)}
               movable={!renaming && renamable}
               testId={`workspace-resource-${resource.id}`}
-              className={`workspace-explorer-item ${resource.kind === "text" || resource.kind === "spreadsheet" ? "workspace-explorer-note" : "workspace-explorer-document"}${selectedKeys.has(key) ? " workspace-explorer-selected" : ""}`}
-            >
-              <RenameContextMenu enabled={renamable} onRename={() => startRename(payload)}>
-                {row}
-              </RenameContextMenu>
-            </ContentRow>
+              className="path-contents-document"
+              selected={selectedKeys.has(key)}
+              head={<DocumentaryResourceGlyph resource={resource} />}
+              title={
+                <InlineRenameField
+                  value={resource.name}
+                  editing={renaming}
+                  onEditingChange={(editing, reason) => {
+                    if (!editing) finishRename(payload, renameSession, reason ?? "cancel");
+                  }}
+                  onCommit={(nextTitle) => rename(payload, nextTitle, renameSession)}
+                  label={t("common.rename")}
+                  className="workspace-explorer-rename-input"
+                  testId="workspace-tree-rename-input"
+                >
+                  <button
+                    className="path-contents-node"
+                    data-testid={"workspace-resource-title-" + resource.id}
+                    title={resource.name}
+                    data-workspace-node-key={key}
+                    data-workspace-tree-node
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      const modifiers = selectionModifiers(event);
+                      selectTreeItem(key, modifiers);
+                      if (!modifiers.toggle && !modifiers.range) onPreview(resource);
+                    }}
+                  >
+                    {resource.name}
+                  </button>
+                </InlineRenameField>
+              }
+              status={
+                readiness === "ready"
+                  ? undefined
+                  : {
+                      tone: matchLiteral(readiness, {
+                        incomplete: () => "warning" as const,
+                        empty: () => "neutral" as const,
+                      }),
+                      label: t(`workspace.resourceState.${readiness}`),
+                    }
+              }
+              wide={
+                <time data-testid={`workspace-resource-modified-${resource.id}`} dateTime={resource.updatedAt}>
+                  {formatDate(resource.updatedAt)}
+                </time>
+              }
+              lineProps={treeLineProps(key, renaming)}
+              wrapLine={(line) => (
+                <RenameContextMenu enabled={renamable} onRename={() => startRename(payload)}>
+                  {line}
+                </RenameContextMenu>
+              )}
+            />
           );
         })}
     </>
@@ -1157,93 +1141,31 @@ export function PathContents({
       (entry) => entry.kind === "folder" && entry.fullPath === folderPath,
     );
     const folderColor = folderEntry?.color ?? null;
-    const row = (
-      <fieldset
-        className={`workspace-explorer-folder-row${selectedKeys.has(key) ? " workspace-explorer-selected" : ""}${dropPath === folderPath ? " workspace-explorer-drop" : ""}`}
-        data-testid={`workspace-folder-${folderPath}`}
-        onClick={(event) => {
-          if (phone) {
-            onSelect(null, folderPath);
-            return;
-          }
-          selectTreeItem(key, selectionModifiers(event));
-          event.currentTarget
-            .querySelector<HTMLButtonElement>("button[data-workspace-tree-node]")
-            ?.focus({ preventScroll: true });
-          if (event.detail === 1) toggle(folderPath);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") selectTreeItem(key);
-        }}
-        onContextMenu={() => selectTreeItem(key)}
-        onDragOver={(event) => {
-          if (
-            event.dataTransfer.types.includes("Files") &&
-            folderCapabilitiesAt(resourcesStore, folderPath).create &&
-            folderCapabilitiesAt(resourcesStore, folderPath).uploadDocument
-          ) {
-            event.preventDefault();
-            event.stopPropagation();
-            event.dataTransfer.dropEffect = "copy";
-            setDropPath(folderPath);
-            return;
-          }
-          if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "move";
-          setDropPath(folderPath);
-        }}
-        onDragLeave={() => setDropPath(null)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDropPath(null);
-          if (
-            event.dataTransfer.types.includes("Files") &&
-            folderCapabilitiesAt(resourcesStore, folderPath).create &&
-            folderCapabilitiesAt(resourcesStore, folderPath).uploadDocument
-          ) {
-            event.stopPropagation();
-            onImportFolder(folderPath, undefined, event.dataTransfer);
-            return;
-          }
-          const payload = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
-          if (!payload) return;
-          setMoveError(null);
-          void Promise.all(payload.map((entry) => moveToPath(entry, folderPath))).then((errors) => {
-            const error = errors.find(Boolean) ?? null;
-            if (error) {
-              setFeedback("");
-              setMoveError(error);
-              return;
-            }
-            setFeedback(t("workspace.movedFeedback", { name: folderPath.split("/").at(-1) ?? folderPath }));
-            refresh();
-          });
-        }}
-      >
-        <span className="workspace-explorer-primary">
-          {withFolderColorPicker(
-            folderEntry?.id,
-            folderColor,
-            <button
-              className="workspace-explorer-toggle workspace-explorer-folder-marker"
-              data-workspace-folder-path={folderPath}
-              data-workspace-node-key={key}
-              data-workspace-tree-node
-              data-testid={`workspace-folder-toggle-${folderPath}`}
-              type="button"
-              aria-expanded={isExpanded}
-              aria-label={folderPath.split("/").at(-1) ?? folderPath}
-            >
-              {isExpanded ? (
-                <FolderOpenIcon {...folderColorIconProps(folderColor)} />
-              ) : (
-                <FolderIcon {...folderColorIconProps(folderColor)} />
-              )}
-            </button>,
-          )}
+    const folderName = folderPath.split("/").at(-1) ?? folderPath;
+    return (
+      <ListRow
+        key={folderPath}
+        className="path-contents-folder"
+        selected={selectedKeys.has(key)}
+        head={withFolderColorPicker(
+          folderEntry?.id,
+          folderColor,
+          <button
+            className="path-contents-folder-toggle"
+            data-workspace-folder-path={folderPath}
+            data-workspace-node-key={key}
+            data-workspace-tree-node
+            data-testid={`workspace-folder-toggle-${folderPath}`}
+            type="button"
+            aria-expanded={isExpanded}
+            aria-label={folderName}
+          >
+            <FolderGlyph open={isExpanded} color={folderColor} />
+          </button>,
+        )}
+        title={
           <InlineRenameField
-            value={folderPath.split("/").at(-1) ?? folderPath}
+            value={folderName}
             editing={renaming}
             onEditingChange={(editing, reason) => {
               if (!editing) finishRename(target, renameSession, reason ?? "cancel");
@@ -1253,45 +1175,109 @@ export function PathContents({
             className="workspace-explorer-rename-input workspace-folder-rename-input"
             testId="workspace-tree-rename-input"
           >
-            <span className="workspace-explorer-folder-name" data-testid={`workspace-folder-name-${folderPath}`}>
-              {folderPath.split("/").at(-1)}
-            </span>
+            <span data-testid={`workspace-folder-name-${folderPath}`}>{folderPath.split("/").at(-1)}</span>
           </InlineRenameField>
-          <button
-            className="workspace-explorer-toggle workspace-explorer-folder-open"
-            data-testid={`workspace-folder-open-${folderPath}`}
-            type="button"
-            aria-label={t("workspace.open")}
-            title={t("workspace.open")}
-            onClick={(event) => {
-              event.stopPropagation();
+        }
+        action={
+          phone ? undefined : (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              data-testid={`workspace-folder-open-${folderPath}`}
+              aria-label={t("workspace.open")}
+              title={t("workspace.open")}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelect(null, folderPath);
+              }}
+            >
+              <OpenIcon aria-hidden="true" />
+            </Button>
+          )
+        }
+        lineProps={{
+          className: dropPath === folderPath ? "workspace-explorer-drop" : undefined,
+          ...testIdProps(`workspace-folder-${folderPath}`),
+          onClick: (event) => {
+            if (phone) {
               onSelect(null, folderPath);
-            }}
-          >
-            <OpenIcon aria-hidden="true" />
-          </button>
-        </span>
-      </fieldset>
-    );
-    return (
-      <li className="workspace-explorer-folder" key={folderPath}>
-        {withFolderContextMenu(
-          row,
-          folderPath,
-          folderEntry && resourceCapabilities(resourcesStore.representations[folderEntry.id] ?? null).relocate
-            ? () => startRename(target)
-            : undefined,
-          folderColorAction(folderEntry?.id),
-        )}
+              return;
+            }
+            selectTreeItem(key, selectionModifiers(event));
+            event.currentTarget
+              .querySelector<HTMLButtonElement>("button[data-workspace-tree-node]")
+              ?.focus({ preventScroll: true });
+            if (event.detail === 1) toggle(folderPath);
+          },
+          onKeyDown: (event) => {
+            if (event.key === "Enter" || event.key === " ") selectTreeItem(key);
+          },
+          onContextMenu: () => selectTreeItem(key),
+          onDragOver: (event) => {
+            if (
+              event.dataTransfer.types.includes("Files") &&
+              folderCapabilitiesAt(resourcesStore, folderPath).create &&
+              folderCapabilitiesAt(resourcesStore, folderPath).uploadDocument
+            ) {
+              event.preventDefault();
+              event.stopPropagation();
+              event.dataTransfer.dropEffect = "copy";
+              setDropPath(folderPath);
+              return;
+            }
+            if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            setDropPath(folderPath);
+          },
+          onDragLeave: () => setDropPath(null),
+          onDrop: (event) => {
+            event.preventDefault();
+            setDropPath(null);
+            if (
+              event.dataTransfer.types.includes("Files") &&
+              folderCapabilitiesAt(resourcesStore, folderPath).create &&
+              folderCapabilitiesAt(resourcesStore, folderPath).uploadDocument
+            ) {
+              event.stopPropagation();
+              onImportFolder(folderPath, undefined, event.dataTransfer);
+              return;
+            }
+            const payload = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
+            if (!payload) return;
+            setMoveError(null);
+            void Promise.all(payload.map((entry) => moveToPath(entry, folderPath))).then((errors) => {
+              const error = errors.find(Boolean) ?? null;
+              if (error) {
+                setFeedback("");
+                setMoveError(error);
+                return;
+              }
+              setFeedback(t("workspace.movedFeedback", { name: folderName }));
+              refresh();
+            });
+          },
+        }}
+        wrapLine={(line) =>
+          withFolderContextMenu(
+            line,
+            folderPath,
+            folderEntry && resourceCapabilities(resourcesStore.representations[folderEntry.id] ?? null).relocate
+              ? () => startRename(target)
+              : undefined,
+            folderColorAction(folderEntry?.id),
+          )
+        }
+      >
         {isExpanded ? (
-          <ul className="workspace-explorer-branch">
+          <ul className="path-contents-branch">
             {renderFolderCreation(folderPath)}
             {renderInlineCreation(folderPath)}
             {renderItems(folderPath)}
             {children.map(renderFolder)}
           </ul>
         ) : null}
-      </li>
+      </ListRow>
     );
   };
 
@@ -1300,42 +1286,24 @@ export function PathContents({
     visibleBusinesses.some((business) => business.folderPath === path) ||
     visibleResources.some((resource) => resource.path === path);
   const rootName = path ? path.split("/").at(-1) : t("navigation.workspace");
-  const rootRow = (
-    <fieldset
-      className="workspace-explorer-folder-row workspace-explorer-root-row"
-      data-testid="workspace-tree-root"
-      onDragOver={(event) => {
-        if (
-          event.dataTransfer.types.includes("Files") &&
-          folderCapabilitiesAt(resourcesStore, "").create &&
-          folderCapabilitiesAt(resourcesStore, "").uploadDocument
-        ) {
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "copy";
-        }
-      }}
-      onDrop={(event) => {
-        if (
-          event.dataTransfer.types.includes("Files") &&
-          folderCapabilitiesAt(resourcesStore, "").create &&
-          folderCapabilitiesAt(resourcesStore, "").uploadDocument
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-          onImportFolder(path, undefined, event.dataTransfer);
-        }
-      }}
-    >
-      <span className="workspace-explorer-primary">
-        <span className="workspace-explorer-folder-marker" aria-hidden="true">
-          <FolderOpenIcon />
-        </span>
-        <span className="workspace-explorer-folder-name">{rootName}</span>
-      </span>
-    </fieldset>
-  );
   if (hidden) return null;
-
+  const rootEntries = (
+    <>
+      {renderFolderCreation(path)}
+      {renderInlineCreation(path)}
+      {phone ? rootChildren.map(renderFolder) : null}
+      {renderItems(path)}
+      {phone ? null : rootChildren.map(renderFolder)}
+      {!rootHasDirectItems &&
+      rootChildren.length === 0 &&
+      creatingFolderParent !== path &&
+      createTarget?.folderPath !== path ? (
+        <li className="workspace-explorer-empty" data-testid="workspace-explorer-empty">
+          {t(mode === "all" && !normalizedQuery ? "workspace.emptyFolder" : "workspace.noVisibleItems")}
+        </li>
+      ) : null}
+    </>
+  );
   return (
     <div className="workspace-explorer path-contents-explorer" hidden={hidden}>
       <div className="workspace-explorer-toolbar">
@@ -1371,26 +1339,46 @@ export function PathContents({
       <p className="sr-only" aria-live="polite">
         {feedback}
       </p>
-      <ExplorerTree ref={treeRef} aria-label={t("workspace.contents")} onKeyDown={handleTreeKeyDown}>
-        <li className="workspace-explorer-folder workspace-explorer-root">
-          {withFolderContextMenu(rootRow, path)}
-          <ul className="workspace-explorer-branch">
-            {renderFolderCreation(path)}
-            {renderInlineCreation(path)}
-            {phone ? rootChildren.map(renderFolder) : null}
-            {renderItems(path)}
-            {phone ? null : rootChildren.map(renderFolder)}
-            {!rootHasDirectItems &&
-            rootChildren.length === 0 &&
-            creatingFolderParent !== path &&
-            createTarget?.folderPath !== path ? (
-              <li className="workspace-explorer-empty" data-testid="workspace-explorer-empty">
-                {t(mode === "all" && !normalizedQuery ? "workspace.emptyFolder" : "workspace.noVisibleItems")}
-              </li>
-            ) : null}
-          </ul>
-        </li>
-      </ExplorerTree>
+      <div className="path-contents-tree" ref={treeRef}>
+        <ListRows aria-label={t("workspace.contents")} onKeyDown={handleTreeKeyDown}>
+          {phone ? (
+            rootEntries
+          ) : (
+            <ListRow
+              className="path-contents-root"
+              head={<FolderGlyph open />}
+              title={rootName}
+              lineProps={{
+                ...testIdProps("workspace-tree-root"),
+                onDragOver: (event) => {
+                  if (
+                    event.dataTransfer.types.includes("Files") &&
+                    folderCapabilitiesAt(resourcesStore, "").create &&
+                    folderCapabilitiesAt(resourcesStore, "").uploadDocument
+                  ) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "copy";
+                  }
+                },
+                onDrop: (event) => {
+                  if (
+                    event.dataTransfer.types.includes("Files") &&
+                    folderCapabilitiesAt(resourcesStore, "").create &&
+                    folderCapabilitiesAt(resourcesStore, "").uploadDocument
+                  ) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onImportFolder(path, undefined, event.dataTransfer);
+                  }
+                },
+              }}
+              wrapLine={(line) => withFolderContextMenu(line, path)}
+            >
+              <ul className="path-contents-branch">{rootEntries}</ul>
+            </ListRow>
+          )}
+        </ListRows>
+      </div>
       {attachTarget ? (
         <AttachmentPicker
           key={attachTarget.business.id}

@@ -1,27 +1,51 @@
-/* PathContents adds a date column to the shared ExplorerTree baseline. */
-.path-contents-explorer .workspace-explorer-folder-row,
-.path-contents-explorer .workspace-explorer-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--hall-size-relative-10rem);
+/* The workspace tree: nested `ListRow` branches in one scrolling list. */
+.path-contents-tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
-.path-contents-explorer .workspace-explorer-date {
-  justify-self: end;
-  color: var(--hall-color-text-subtle);
-  font-size: var(--hall-font-size-body);
+.path-contents-tree > .list-row-list { margin: 0; }
+
+.path-contents-tree .list-row-children { padding: 0 0 0 var(--hall-space-4); }
+
+.path-contents-branch {
+  margin: 0;
+  padding: 0;
+  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
+  list-style: none;
+}
+
+.path-contents-node,
+.path-contents-folder-toggle {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.path-contents-node {
+  max-width: 100%;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.path-contents-explorer .workspace-explorer-primary > .type-icon {
+.path-contents-node:hover,
+.path-contents-node:focus-visible { color: var(--hall-color-brand); text-decoration: underline; }
+
+.path-contents-folder-toggle {
   display: inline-grid;
-  width: var(--hall-size-tree-toggle);
-  height: var(--hall-size-tree-toggle);
   place-items: center;
-  border-radius: 0;
-  background: transparent;
+  border-radius: var(--hall-radius-small);
 }
 
-.path-contents-explorer .workspace-explorer-primary > .type-icon svg {
-  width: var(--hall-font-size-icon-large);
-  height: var(--hall-font-size-icon-large);
-}
+/* The selected line already marks the focused node. */
+.path-contents-folder-toggle:focus-visible { outline: 0; box-shadow: none; }
+
+.path-contents-tree .list-row-title .workspace-explorer-rename-input { font-size: inherit; }
+
+.path-contents-tree .workspace-explorer-empty { list-style: none; }
