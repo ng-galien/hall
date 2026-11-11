@@ -1,9 +1,9 @@
 import type { MeetingConductState, MeetingOffice, MeetingOfficerChange } from "@hall/api-contract";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
-import { Label } from "../../components/ui/label";
+import { Field } from "../../components/ui/field";
 import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
@@ -61,7 +61,6 @@ export function MeetingOfficersDialog({
   onClose(): void;
 }) {
   const { t } = useI18n();
-  const id = useId();
   const [office, setOffice] = useState<MeetingOffice>("chair");
   const [successor, setSuccessor] = useState(conduct.officerHandoverOptions.proposedChairMemberId ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -128,11 +127,10 @@ export function MeetingOfficersDialog({
               </label>
             ))}
           </fieldset>
-          <p className="text-sm text-muted-foreground">
-            {t(office === "chair" ? "officers.chairRule" : "officers.secretaryRule")}
-          </p>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-successor`}>{t("officers.successor")}</Label>
+          <Field
+            label={t("officers.successor")}
+            help={t(office === "chair" ? "officers.chairRule" : "officers.secretaryRule")}
+          >
             <EntitySelect
               type="member"
               testId="live-officers-successor"
@@ -150,7 +148,7 @@ export function MeetingOfficersDialog({
                       : memberName(members, option.councilMemberId),
               }))}
             />
-          </div>
+          </Field>
           <ConductActionBlockers
             action="officer-change"
             label="officers.handoverTitle"

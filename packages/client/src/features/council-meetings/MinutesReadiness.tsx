@@ -1,21 +1,18 @@
-import type { MinutesDetail } from "@hall/api-contract";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { CheckCircleIcon, WarningIcon } from "../../components/icons";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
+import type { ListRowStatus } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
 import { openMinutes } from "../../services/minutesApi";
-import { formatMeetingLabel } from "./meetingPresentation";
 
-/** Whether the minutes to approve have their document: a green mark, or a warning that says what to do. */
-export function MinutesReadiness({ minutesId, testId }: { minutesId: string; testId: string }) {
-  const { t, formatDate } = useI18n();
-  const [minutes, setMinutes] = useState<MinutesDetail | null>(null);
+/** Whether the minutes to approve have their document, written as the state of the agenda row. */
+export function useMinutesReadiness(minutesId: string | null, testId: string): ListRowStatus | undefined {
+  const { t } = useI18n();
+  const [generated, setGenerated] = useState<boolean | null>(null);
   useEffect(() => {
+    if (!minutesId) return;
     let active = true;
     void openMinutes(minutesId).then(
       (result) => {
-        if (active) setMinutes(result.data);
+        if (active) setGenerated(Boolean(result.data.documentId));
       },
       () => undefined,
     );
@@ -23,30 +20,10 @@ export function MinutesReadiness({ minutesId, testId }: { minutesId: string; tes
       active = false;
     };
   }, [minutesId]);
-  if (!minutes) return null;
-  const generated = Boolean(minutes.documentId);
-  const meeting = formatMeetingLabel(
-    { number: minutes.meetingNumber, scheduledAt: minutes.scheduledAt },
-    t("meetings.occurrenceLabel"),
-    formatDate,
-  );
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Link
-          to={`/minutes/${minutesId}`}
-          className="minutes-readiness"
-          data-generated={generated}
-          data-testid={testId}
-          aria-label={generated ? t("minutes.readiness.ready", { meeting }) : t("minutes.readiness.todo", { meeting })}
-          onClick={(event) => event.stopPropagation()}
-        >
-          {generated ? <CheckCircleIcon aria-hidden="true" /> : <WarningIcon aria-hidden="true" />}
-        </Link>
-      </TooltipTrigger>
-      <TooltipContent side="bottom">
-        {generated ? t("minutes.readiness.ready", { meeting }) : t("minutes.readiness.todo", { meeting })}
-      </TooltipContent>
-    </Tooltip>
-  );
+  if (!minutesId || generated === null) return undefined;
+  return {
+    tone: generated ? "success" : "neutral",
+    label: t(generated ? "minutes.generated" : "minutes.notGenerated"),
+    testId,
+  };
 }

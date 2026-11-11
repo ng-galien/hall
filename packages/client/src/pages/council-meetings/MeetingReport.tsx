@@ -104,12 +104,24 @@ export function MeetingReport({
       <div className="page-content meeting-page-content">
         <div className="report-main">
           <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
-          <section className="meeting-side-section" aria-label={t("meeting.attendance")}>
+          <section className="meeting-section" aria-labelledby="report-attendance-heading">
             <div className="report-attendance-overview">
+              <h2 id="report-attendance-heading">{t("meeting.attendance")}</h2>
+              <dl className="report-attendance-counts">
+                {(["present", "represented", "excused", "absent"] as const).map((status) => (
+                  <div key={status}>
+                    <dt>
+                      <span className="list-row-status" data-tone={rowStatus(status).tone}>
+                        {t(`attendance.${status}`)}
+                      </span>
+                    </dt>
+                    <dd>{formatNumber(attendanceCounts[status])}</dd>
+                  </div>
+                ))}
+              </dl>
               <Button
                 variant="plain"
                 size="icon"
-                className="report-attendance-toggle border border-transparent hover:border-[var(--hall-color-border)] hover:bg-[var(--hall-color-surface-subtle)] focus-visible:border-[var(--hall-color-border-strong)] focus-visible:bg-[var(--hall-color-surface-subtle)] aria-expanded:border-[var(--hall-color-border)] aria-expanded:bg-[var(--hall-color-surface-subtle)]"
                 aria-label={t("report.attendanceDetails")}
                 aria-expanded={attendanceVisible}
                 data-testid="report-attendance-toggle"
@@ -117,24 +129,6 @@ export function MeetingReport({
               >
                 <SearchIcon aria-hidden="true" />
               </Button>
-              <dl className="report-attendance-counts">
-                <div className="report-attendance-count report-attendance-count-present">
-                  <dt>{t("attendance.present")}</dt>
-                  <dd>{formatNumber(attendanceCounts.present)}</dd>
-                </div>
-                <div className="report-attendance-count report-attendance-count-represented">
-                  <dt>{t("attendance.represented")}</dt>
-                  <dd>{formatNumber(attendanceCounts.represented)}</dd>
-                </div>
-                <div className="report-attendance-count report-attendance-count-excused">
-                  <dt>{t("attendance.excused")}</dt>
-                  <dd>{formatNumber(attendanceCounts.excused)}</dd>
-                </div>
-                <div className="report-attendance-count report-attendance-count-absent">
-                  <dt>{t("attendance.absent")}</dt>
-                  <dd>{formatNumber(attendanceCounts.absent)}</dd>
-                </div>
-              </dl>
             </div>
             {attendanceVisible ? (
               <ListRows data-testid="report-attendance-list">

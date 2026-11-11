@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyReferenceButton, copyObjectReference } from "../../components/CopyReferenceButton";
 import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon, VisibleIcon } from "../../components/icons";
@@ -126,6 +125,20 @@ function MinutesDetail({ id }: { id: string }) {
         },
       ]
     : [];
+  const minutesState = minutes ? (
+    <p className="meeting-state minutes-header-status">
+      <span
+        className="list-row-status"
+        data-tone={minutes.settledAt ? "success" : "neutral"}
+        data-testid="minutes-settlement-status"
+      >
+        {t(minutes.settledAt ? "minutes.stopped" : "minutes.notStopped")}
+      </span>
+      <span className="list-row-status" data-tone={minutes.generatedAt ? "success" : "neutral"}>
+        {t(minutes.generatedAt ? "minutes.generated" : "minutes.draft")}
+      </span>
+    </p>
+  ) : null;
   return (
     <div className="page" data-testid="minutes-detail">
       {phone && minutes ? (
@@ -134,14 +147,7 @@ function MinutesDetail({ id }: { id: string }) {
           <PhoneDocumentActions actions={phoneActions} />
           <div className="phone-record-heading">
             <p>{dateAndPlace}</p>
-            <div className="minutes-header-status">
-              <Badge data-testid="minutes-settlement-status" variant={minutes.settledAt ? "success" : "warning"}>
-                {t(minutes.settledAt ? "minutes.stopped" : "minutes.notStopped")}
-              </Badge>
-              <Badge variant={minutes.generatedAt ? "success" : "warning"}>
-                {t(minutes.generatedAt ? "minutes.generated" : "minutes.draft")}
-              </Badge>
-            </div>
+            {minutesState}
             {minutes.documentId ? (
               <Button
                 ref={documentTrigger}
@@ -189,14 +195,7 @@ function MinutesDetail({ id }: { id: string }) {
         >
           {minutes ? (
             <>
-              <div className="minutes-header-status">
-                <Badge data-testid="minutes-settlement-status" variant={minutes.settledAt ? "success" : "warning"}>
-                  {t(minutes.settledAt ? "minutes.stopped" : "minutes.notStopped")}
-                </Badge>
-                <Badge variant={minutes.generatedAt ? "success" : "warning"}>
-                  {t(minutes.generatedAt ? "minutes.generated" : "minutes.draft")}
-                </Badge>
-              </div>
+              {minutesState}
               <div className="minutes-header-links">
                 <Link
                   className="record-context-link"

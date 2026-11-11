@@ -78,7 +78,7 @@ function MeetingPoint({ meetingId, pointId }: { meetingId: string; pointId: stri
         />
       ) : null}
       <header className="phone-point-heading">
-        <h2>{title}</h2>
+        {item.agendaNumber === null ? null : <h2>{title}</h2>}
         <p>
           {subjectLabel !== title ? <span>{subjectLabel}</span> : null}
           {closed ? <AgendaItemStatusBadge status={item.status} /> : null}

@@ -2,12 +2,11 @@
 // TODO REMOVE_STALE: propagate incomplete session marker to canonical status badge.
 
 import type { PreparedCouncilSubject } from "@hall/api-contract";
-import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { AgendaRevisionControl } from "../../features/council-meetings/AgendaRevisionControl";
@@ -19,6 +18,7 @@ import {
   meetingScheduleInputValue,
   meetingScheduleInstant,
 } from "../../features/council-meetings/meetingPresentation";
+import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -37,10 +37,9 @@ import { type MeetingDetailsField, meetingDetailsSubmission } from "./meetingDet
 // @implements-requirement HALL-FR-NOT-140
 /** Date and location belong to the agenda revision: they change only while it is open. */
 export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
-  const { t, formatDate, formatDateTime, formatTime, formatNumber } = useI18n();
+  const { t, locale, formatDate, formatDateTime, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const phone = usePhoneLayout();
-  const detailsFieldId = useId();
   const aggregate = meetingActions.meeting!;
   const { meeting } = aggregate;
   const entryBlockers = meetingActions.workspace!.meeting.entryBlockers;
@@ -130,19 +129,13 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
   };
   const detailsFieldError = (field: MeetingDetailsField) => {
     const message = detailsErrors[field];
-    return message ? (
-      <p
-        className="form-error"
-        role="alert"
-        id={`${detailsFieldId}-${field}-error`}
-        data-testid={`meeting-edit-${field}-error`}
-      >
-        {t(message)}
-      </p>
-    ) : null;
+    return message ? t(message) : undefined;
   };
-  const detailsFieldInvalid = (field: MeetingDetailsField) =>
-    detailsErrors[field] ? { "aria-invalid": true, "aria-describedby": `${detailsFieldId}-${field}-error` } : {};
+  const weekday = meeting.scheduledAt
+    ? new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { weekday: "long" }).format(
+        new Date(meeting.scheduledAt),
+      )
+    : null;
 
   const revisionToggle =
     meeting.status === "draft" || meeting.status === "scheduled" ? (
@@ -156,7 +149,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         onCancel={canResetRevision ? () => void run(() => meetingActions.resetAgendaRevision()) : undefined}
       />
     ) : null;
-  const headerActions = revisionToggle;
   const phoneReader = phone && !agendaEditable && !detailsInline;
   const { hash } = useLocation();
   useEffect(() => {
@@ -166,7 +158,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     <div className="page meeting-preparation">
       <PageHeader
         title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
-        titleAction={phoneReader ? undefined : headerActions}
         above={
           phoneReader ? undefined : (
             <MeetingStageBar
@@ -180,40 +171,33 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         description=""
       >
         <div className="meeting-console">
-          {meeting.isReconvenedMeeting ? (
-            <Badge variant="outline" data-testid="meeting-reconvened-chip">
-              {t("meeting.reconvenedChip")}
-            </Badge>
-          ) : null}
-          {scheduleLocked || !detailsInline ? (
-            <dl className="meeting-brief" data-testid="meeting-facts">
-              <div>
-                <dt>{t("meeting.facts.time")}</dt>
-                <dd>{meeting.scheduledAt ? formatTime(meeting.scheduledAt) : t("workspace.dateToSet")}</dd>
-              </div>
-              <div>
-                <dt>{t("meetings.location")}</dt>
-                <dd>{meeting.location || t("common.none")}</dd>
-              </div>
-              {!detailsInline ? (
-                <>
-                  <div>
-                    <dt>{t("meetings.chair")}</dt>
-                    <dd>
-                      {meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none")}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t("meetings.secretary")}</dt>
-                    <dd>
-                      {meeting.secretaryMemberId
-                        ? councilMemberName(members, meeting.secretaryMemberId)
-                        : t("common.none")}
-                    </dd>
-                  </div>
-                </>
-              ) : null}
-            </dl>
+          <p className="meeting-state" data-testid="meeting-facts">
+            <MeetingStatusBadge status={meeting.status} stale={meeting.stale} />
+            {meeting.isReconvenedMeeting ? (
+              <span data-testid="meeting-reconvened-chip">{t("meeting.reconvenedChip")}</span>
+            ) : null}
+            {meeting.scheduledAt ? (
+              <>
+                <span>{weekday}</span>
+                <span>{formatTime(meeting.scheduledAt)}</span>
+              </>
+            ) : (
+              <span>{t("workspace.dateToSet")}</span>
+            )}
+            {meeting.location ? <span>{meeting.location}</span> : null}
+          </p>
+          {phoneReader ? null : revisionToggle}
+          {!detailsInline ? (
+            <p className="meeting-state">
+              <span>
+                {t("meetings.chair")} :{" "}
+                {meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none")}
+              </span>
+              <span>
+                {t("meetings.secretary")} :{" "}
+                {meeting.secretaryMemberId ? councilMemberName(members, meeting.secretaryMemberId) : t("common.none")}
+              </span>
+            </p>
           ) : null}
           <MeetingEntryBlockers blockers={entryBlockers.filter((blocker) => blocker.code !== "agendaRevisionOpen")} />
           {meeting.status === "draft" && !aggregate.agendaReady && aggregate.requiredMinutesOfMeetingId ? (
@@ -252,7 +236,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             className="meeting-general"
           >
             {detailsStatus ? (
-              <p role="status" className="text-xs text-muted" data-testid="meeting-details-status">
+              <p role="status" className="meeting-evidence" data-testid="meeting-details-status">
                 {t(detailsStatus)}
               </p>
             ) : null}
@@ -266,47 +250,39 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
               >
                 <RequestErrorBanner error={meetingActions.actionError} />
                 {!scheduleLocked ? (
-                  <div className="form-grid">
-                    <div className="grid gap-1.5">
-                      <Label htmlFor={`${detailsFieldId}-startsAt`}>{t("meetings.dateTime")}</Label>
+                  <FieldRow>
+                    <Field label={t("meetings.dateTime")} error={detailsFieldError("startsAt")}>
                       <Input
-                        id={`${detailsFieldId}-startsAt`}
                         name="startsAt"
                         data-testid="meeting-edit-starts-at"
                         type="datetime-local"
                         defaultValue={startsAtLocalValue}
                         disabled={submitting}
                         required
-                        {...detailsFieldInvalid("startsAt")}
                       />
-                      {detailsFieldError("startsAt")}
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label htmlFor={`${detailsFieldId}-location`}>{t("meetings.location")}</Label>
-                      {settings?.meetingLocations.length || meeting.location ? (
+                    </Field>
+                    {settings?.meetingLocations.length || meeting.location ? (
+                      <Field label={t("meetings.location")} error={detailsFieldError("location")}>
                         <MeetingLocationSelect
-                          id={`${detailsFieldId}-location`}
                           testId="meeting-edit-location"
                           locations={settings?.meetingLocations ?? []}
                           current={meeting.location}
                           placeholder={t("meetings.location")}
                           disabled={submitting}
                         />
-                      ) : (
-                        <p className="text-xs text-muted" data-testid="meeting-edit-location-missing">
-                          {t("meetings.locationsMissing")}{" "}
-                          <Link to="/settings" data-testid="meeting-edit-location-settings">
-                            {t("meetings.locationsConfigure")}
-                          </Link>
-                        </p>
-                      )}
-                      {detailsFieldError("location")}
-                    </div>
-                  </div>
+                      </Field>
+                    ) : (
+                      <p className="meeting-evidence" data-testid="meeting-edit-location-missing">
+                        {t("meetings.locationsMissing")}{" "}
+                        <Link to="/settings" data-testid="meeting-edit-location-settings">
+                          {t("meetings.locationsConfigure")}
+                        </Link>
+                      </p>
+                    )}
+                  </FieldRow>
                 ) : null}
-                <div className="form-grid">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor={`${detailsFieldId}-chair`}>{t("meetings.chair")}</Label>
+                <FieldRow>
+                  <Field label={t("meetings.chair")} error={detailsFieldError("chairMemberId")}>
                     <EntitySelect
                       type="member"
                       name="chairMemberId"
@@ -320,10 +296,8 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                         label: `${member.contact.firstName} ${member.contact.lastName}`,
                       }))}
                     />
-                    {detailsFieldError("chairMemberId")}
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor={`${detailsFieldId}-secretary`}>{t("meetings.secretary")}</Label>
+                  </Field>
+                  <Field label={t("meetings.secretary")} error={detailsFieldError("secretaryMemberId")}>
                     <EntitySelect
                       type="member"
                       name="secretaryMemberId"
@@ -337,9 +311,8 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                         label: `${member.contact.firstName} ${member.contact.lastName}`,
                       }))}
                     />
-                    {detailsFieldError("secretaryMemberId")}
-                  </div>
-                </div>
+                  </Field>
+                </FieldRow>
               </form>
             ) : null}
           </CollapsibleSection>

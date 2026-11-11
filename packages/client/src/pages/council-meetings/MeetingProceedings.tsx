@@ -2,7 +2,6 @@ import { matchLiteral } from "@hall/domain";
 import { type ReactNode, useMemo, useState } from "react";
 import { InfoIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { ListRow, ListRowNumber, ListRows } from "../../components/ui/list-row";
@@ -71,17 +70,20 @@ export function BallotOutcome({
   const [detailsVisible, setDetailsVisible] = useState(!defaultCollapsed);
   return (
     <div className={`report-ballot report-ballot-${ballot.result}`}>
-      <button
+      <Button
+        variant="plain"
         className="report-ballot-heading report-ballot-toggle"
-        type="button"
         aria-expanded={detailsVisible}
         data-testid={`report-ballot-toggle-${ballot.id}`}
         onClick={() => setDetailsVisible((value) => !value)}
       >
         <DisclosureBadge expanded={detailsVisible} />
-        <Badge className="report-ballot-verdict" variant={ballot.result === "adopted" ? "success" : "destructive"}>
+        <span
+          className="list-row-status report-ballot-verdict"
+          data-tone={ballot.result === "adopted" ? "success" : "danger"}
+        >
           {t(ballotVerdictKey(isMinutes, ballot.result === "adopted"))}
-        </Badge>
+        </span>
         <span>{t(ballot.method === "public" ? "ballot.method.public" : "ballot.method.secret")}</span>
         <span className="report-ballot-compact">
           <span className="report-ballot-count">
@@ -101,7 +103,7 @@ export function BallotOutcome({
             <strong>{formatNumber(ballot.notVoting)}</strong>
           </span>
         </span>
-      </button>
+      </Button>
       {detailsVisible ? (
         <>
           <div className="report-votes-actions">
@@ -109,7 +111,6 @@ export function BallotOutcome({
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  className="justify-self-start"
                   variant="plain"
                   size="icon"
                   aria-label={t("ballot.resultInformation")}
@@ -157,16 +158,17 @@ export function BallotOutcome({
                     <tr key={vote.id}>
                       <th scope="row">{councilMemberName(members, vote.memberId)}</th>
                       <td>
-                        <Badge
-                          variant={matchLiteral(vote.choice, {
+                        <span
+                          className="list-row-status"
+                          data-tone={matchLiteral(vote.choice, {
                             for: () => "success" as const,
-                            against: () => "destructive" as const,
+                            against: () => "danger" as const,
                             abstain: () => "warning" as const,
-                            notVoting: () => "secondary" as const,
+                            notVoting: () => "neutral" as const,
                           })}
                         >
                           {t(voteChoiceKeys[vote.choice])}
-                        </Badge>
+                        </span>
                       </td>
                       <td>
                         {vote.castByMemberId !== vote.memberId ? (
@@ -249,7 +251,7 @@ export function MeetingProceedings({
   }
   return (
     <div className="report-main">
-      <section className="conduct-block report-timeline" data-testid="report-timeline">
+      <section className="meeting-section report-timeline" data-testid="report-timeline">
         <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
         <ListRows>
           {orderedItems.map((item) => {

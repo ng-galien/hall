@@ -6,7 +6,6 @@ import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon } from "../../component
 import { MarkdownView } from "../../components/MarkdownView";
 import { ShareButton } from "../../components/ShareButton";
 import { PageHeader, RequestErrorBanner } from "../../components/Ui";
-import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
@@ -113,12 +112,17 @@ function CouncilDecisionDetail({ id }: { id: string }) {
                   </Link>
                 </Button>
               )}
-              <Badge variant={decision.facts.ballot.result === "approve" ? "success" : "destructive"}>
-                {t(decision.facts.ballot.result === "approve" ? "status.adopted" : "status.rejected")}
-              </Badge>
-              <Badge variant="secondary" data-testid="decision-document-state">
-                {t(decision.state === "draft" ? "decisionDocument.draft" : "decisionDocument.frozen")}
-              </Badge>
+              <p className="meeting-state">
+                <span
+                  className="list-row-status"
+                  data-tone={decision.facts.ballot.result === "approve" ? "success" : "danger"}
+                >
+                  {t(decision.facts.ballot.result === "approve" ? "status.adopted" : "status.rejected")}
+                </span>
+                <span className="list-row-status" data-tone="neutral" data-testid="decision-document-state">
+                  {t(decision.state === "draft" ? "decisionDocument.draft" : "decisionDocument.frozen")}
+                </span>
+              </p>
             </div>
             <details className="conduct-block" data-testid="decision-submitted-text">
               <summary data-testid="decision-submitted-toggle">

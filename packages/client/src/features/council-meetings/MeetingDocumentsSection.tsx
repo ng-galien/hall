@@ -37,13 +37,14 @@ import { MeetingNoticeDeadline } from "./MeetingNoticeDeadline";
 import { MeetingProxyFormDialog } from "./MeetingProxyFormDialog";
 import { formatMeetingLabel } from "./meetingPresentation";
 
-type DocumentTone = "done" | "todo" | "error" | "neutral";
+/** A document is available, not yet established (a fact, never a request), or in default. */
+type DocumentTone = "done" | "pending" | "error" | "neutral";
 
 type DocumentOpening = { onClick: () => void; disabled?: boolean } | { to: string };
 
 const documentToneStatus: Record<Exclude<DocumentTone, "neutral">, ListRowStatusTone> = {
   done: "success",
-  todo: "warning",
+  pending: "neutral",
   error: "danger",
 };
 
@@ -189,12 +190,12 @@ export function MeetingDocumentsSection({
     if (revisionEstablished)
       return {
         text: t("meeting.documents.noticeMissing", { number: formatNumber(agendaRevision.number) }),
-        tone: "todo",
+        tone: "pending",
       };
     if (preparing)
       return {
         text: t("meeting.documents.noticeOpenRevision", { number: formatNumber(agendaRevision.number) }),
-        tone: "todo",
+        tone: "pending",
       };
     return { text: t("meeting.notice.empty"), tone: "neutral" };
   };
@@ -204,6 +205,10 @@ export function MeetingDocumentsSection({
 
   const attendanceSheetHref = meetingActions.link("attendance-sheet");
   const proxyFormHref = meetingActions.link("proxy-form");
+  const showAttendanceSheet = () => {
+    if (attendanceSheetHref)
+      setViewer({ title: `${t("meeting.attendanceSheet")} · ${meetingLabel}`, href: attendanceSheetHref });
+  };
   const deliberationListHref = meetingActions.link("deliberation-list");
 
   const [minutesGenerated, setMinutesGenerated] = useState<boolean | null>(null);
@@ -272,6 +277,7 @@ export function MeetingDocumentsSection({
               <>
                 {revisionEstablished && canGenerateNotice ? (
                   <Button
+                    variant={hasNotice ? "secondary" : "primary"}
                     data-testid={hasNotice ? "meeting-notice-regenerate" : "meeting-generate-notice"}
                     disabled={submitting}
                     onClick={() =>
@@ -383,11 +389,15 @@ export function MeetingDocumentsSection({
             testId="meeting-document-attendance-sheet"
             icon={<AttendanceSheetIcon />}
             name={t("meeting.attendanceSheet")}
-            opening={{
-              onClick: () =>
-                setViewer({ title: `${t("meeting.attendanceSheet")} · ${meetingLabel}`, href: attendanceSheetHref }),
-            }}
-            state={t("meeting.documents.attendanceSheetState")}
+            opening={{ onClick: showAttendanceSheet }}
+            state={t("meeting.documents.available")}
+            tone="done"
+            actions={
+              <Button variant="secondary" data-testid="meeting-attendance-sheet-print" onClick={showAttendanceSheet}>
+                <PrintIcon aria-hidden="true" />
+                {t("meeting.documents.print")}
+              </Button>
+            }
           />
         ) : null}
 
@@ -416,7 +426,7 @@ export function MeetingDocumentsSection({
                 ? t("common.loading")
                 : t(minutesGenerated ? "minutes.generated" : "minutes.draft")
             }
-            tone={minutesGenerated ? "done" : minutesGenerated === false ? "todo" : "neutral"}
+            tone={minutesGenerated ? "done" : minutesGenerated === false ? "pending" : "neutral"}
             opening={{ to: `/minutes/${meeting.minutesId}` }}
           />
         ) : null}

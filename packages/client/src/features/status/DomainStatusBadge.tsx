@@ -6,8 +6,6 @@ import type {
   MinutesStatus,
 } from "@hall/domain";
 import { matchLiteral } from "@hall/domain";
-import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, CheckIcon, PlayIcon, WarningIcon } from "../../components/icons";
 import type { ListRowStatus, ListRowStatusTone } from "../../components/ui/list-row";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -66,19 +64,17 @@ export function useDomainRowStatus(): (value: DomainStatus) => ListRowStatus {
   return (value) => ({ tone: domainStatusTone(value), label: t(domainStatusKeys[value]) });
 }
 
+/** A status outside a list row: the same fact after the same coloured dot, never a pill. */
+function StatusText({ status }: { status: ListRowStatus }) {
+  return (
+    <span className="list-row-status" data-tone={status.tone} data-testid={status.testId}>
+      {status.label}
+    </span>
+  );
+}
+
 export function StatusBadge({ value }: { value: DomainStatus }) {
-  const { t } = useI18n();
-  const variant =
-    value === "represented"
-      ? "brand"
-      : value === "excused"
-        ? "warning"
-        : ["adopted", "enforceable", "ready", "present", "published"].includes(value)
-          ? "success"
-          : ["rejected", "cancelled", "absent"].includes(value)
-            ? "destructive"
-            : "secondary";
-  return <Badge variant={variant}>{t(domainStatusKeys[value])}</Badge>;
+  return <StatusText status={useDomainRowStatus()(value)} />;
 }
 
 /** Status of a list row for an agenda item. */
@@ -98,20 +94,7 @@ export function useAgendaItemRowStatus(): (status: LiveAgendaItemStatus) => List
 }
 
 export function AgendaItemStatusBadge({ status }: { status: LiveAgendaItemStatus }) {
-  const { t } = useI18n();
-  const { variant, Icon } = matchLiteral(status, {
-    scheduled: () => ({ variant: "outline" as const, Icon: CalendarIcon }),
-    inProgress: () => ({ variant: "brand" as const, Icon: PlayIcon }),
-    examined: () => ({ variant: "success" as const, Icon: CheckIcon }),
-    adjourned: () => ({ variant: "warning" as const, Icon: WarningIcon }),
-    carriedForward: () => ({ variant: "warning" as const, Icon: CalendarIcon }),
-  });
-  return (
-    <Badge variant={variant} data-testid={`agenda-status-${status}`}>
-      <Icon aria-hidden="true" />
-      {t(domainStatusKeys[status])}
-    </Badge>
-  );
+  return <StatusText status={useAgendaItemRowStatus()(status)} />;
 }
 
 const meetingStatusKeys: Record<LiveMeetingStatus, TranslationKey> = {
@@ -134,22 +117,7 @@ export function useMeetingRowStatus(): (status: LiveMeetingStatus, stale?: boole
         };
 }
 
-// TODO REMOVE_STALE: temporary warning badge, distinct from the closed phase.
+// TODO REMOVE_STALE: temporary warning status, distinct from the closed phase.
 export function MeetingStatusBadge({ status, stale = false }: { status: LiveMeetingStatus; stale?: boolean }) {
-  const { t } = useI18n();
-  const variant =
-    status === "inProgress"
-      ? "success"
-      : status === "cancelled"
-        ? "destructive"
-        : status === "scheduled"
-          ? "brand"
-          : status === "draft"
-            ? "warning"
-            : "secondary";
-  return (
-    <Badge variant={stale ? "warning" : variant} data-testid={stale ? "meeting-needs-review" : undefined}>
-      {t(stale ? "meetings.needsReview" : meetingStatusKeys[status])}
-    </Badge>
-  );
+  return <StatusText status={useMeetingRowStatus()(status, stale)} />;
 }

@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { PlayIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
+import { Button } from "../../components/ui/button";
 import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
@@ -27,22 +28,25 @@ export function MeetingInProgressHero({
       />
       <div className="page-content">
         <section className="live-resume-hero">
-          <span className="live-indicator" aria-hidden="true" />
           <h2>{t("meeting.inProgressTitle")}</h2>
-          <p>
+          <p className="meeting-state">
             <MeetingStatusBadge status={meeting.status} stale={meeting.stale} />
-            {meeting.openedAt ? <> {t("meeting.inProgressSince", { time: formatTime(meeting.openedAt) })}</> : null}
+            {meeting.openedAt ? (
+              <span>{t("meeting.inProgressSince", { time: formatTime(meeting.openedAt) })}</span>
+            ) : null}
+            <span>
+              {t("meeting.inProgressProgress", {
+                completed: formatNumber(completedCount),
+                total: formatNumber(aggregate.agendaItems.length),
+              })}
+            </span>
           </p>
-          <p>
-            {t("meeting.inProgressProgress", {
-              completed: formatNumber(completedCount),
-              total: formatNumber(aggregate.agendaItems.length),
-            })}
-          </p>
-          <Link className="live-mode-link live-mode-link-large" to={`/meetings/${meeting.slug}/live`}>
-            <PlayIcon aria-hidden="true" />
-            {t("meeting.resumeLiveMode")}
-          </Link>
+          <Button asChild>
+            <Link to={`/meetings/${meeting.slug}/live`} data-testid="meeting-resume-live">
+              <PlayIcon aria-hidden="true" />
+              {t("meeting.resumeLiveMode")}
+            </Link>
+          </Button>
         </section>
         <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
       </div>

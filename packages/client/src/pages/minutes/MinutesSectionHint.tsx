@@ -6,13 +6,7 @@ export function MinutesSectionHint({ text }: { text: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="plain"
-          size="icon"
-          className="minutes-section-hint hover:bg-[var(--hall-color-surface-subtle)]"
-          aria-label={text}
-        >
+        <Button type="button" variant="plain" size="icon" className="minutes-section-hint" aria-label={text}>
           <InfoIcon aria-hidden="true" />
         </Button>
       </TooltipTrigger>

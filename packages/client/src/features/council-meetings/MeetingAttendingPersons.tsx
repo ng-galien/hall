@@ -3,13 +3,13 @@ import type {
   DeclareMeetingAuxiliaryAttendance,
   MeetingAuxiliaryAttendance,
 } from "@hall/api-contract";
-import { type FormEvent, useEffect, useId, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { AddIcon, CheckIcon } from "../../components/icons";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { Field, FieldRow } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
 import type { ApiErrorCode } from "../../services/apiClient";
@@ -35,7 +35,6 @@ export function MeetingAttendingPersons({
   onCorrect(input: CorrectMeetingAuxiliaryAttendance): Promise<boolean>;
 }) {
   const { t } = useI18n();
-  const id = useId();
   const addButton = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"contact" | "newContact">("contact");
@@ -96,7 +95,7 @@ export function MeetingAttendingPersons({
   return (
     <section className="grid gap-3" data-testid="live-auxiliaries">
       <strong>{t("auxiliary.title")}</strong>
-      <p className="text-sm text-muted-foreground">{t("auxiliary.description")}</p>
+      <p className="text-sm text-muted">{t("auxiliary.description")}</p>
       {entries.length > 0 ? (
         <ul className="grid gap-2" data-testid="live-auxiliaries-list">
           {entries.map((entry) => (
@@ -161,52 +160,48 @@ export function MeetingAttendingPersons({
             </Button>
           </fieldset>
           {mode === "contact" ? (
-            <EntitySelect
-              type="contact"
-              testId="live-auxiliaries-contact"
-              value={contactId}
-              onValueChange={setContactId}
-              disabled={submitting}
-              placeholder={t("auxiliary.chooseContact")}
-              options={candidates.map((contact) => ({
-                value: contact.id,
-                label: `${contact.firstName} ${contact.lastName}`,
-              }))}
-            />
+            <Field label={t("auxiliary.contact")}>
+              <EntitySelect
+                type="contact"
+                testId="live-auxiliaries-contact"
+                value={contactId}
+                onValueChange={setContactId}
+                disabled={submitting}
+                placeholder={t("auxiliary.chooseContact")}
+                options={candidates.map((contact) => ({
+                  value: contact.id,
+                  label: `${contact.firstName} ${contact.lastName}`,
+                }))}
+              />
+            </Field>
           ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-first-name`}>{t("auxiliary.firstName")}</Label>
+            <FieldRow>
+              <Field label={t("auxiliary.firstName")}>
                 <Input
-                  id={`${id}-first-name`}
                   data-testid="live-auxiliaries-first-name"
                   value={firstName}
                   disabled={submitting}
                   onChange={(event) => setFirstName(event.currentTarget.value)}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-last-name`}>{t("auxiliary.lastName")}</Label>
+              </Field>
+              <Field label={t("auxiliary.lastName")}>
                 <Input
-                  id={`${id}-last-name`}
                   data-testid="live-auxiliaries-last-name"
                   value={lastName}
                   disabled={submitting}
                   onChange={(event) => setLastName(event.currentTarget.value)}
                 />
-              </div>
-            </div>
+              </Field>
+            </FieldRow>
           )}
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-quality`}>{t("auxiliary.quality")}</Label>
+          <Field label={t("auxiliary.quality")}>
             <Input
-              id={`${id}-quality`}
               data-testid="live-auxiliaries-quality"
               value={quality}
               disabled={submitting}
               onChange={(event) => setQuality(event.currentTarget.value)}
             />
-          </div>
+          </Field>
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               type="button"
@@ -249,13 +244,13 @@ function AttendingPersonRow({
         ) : null
       ) : (
         <>
-          <Input
-            className="w-auto flex-1"
-            aria-label={t("auxiliary.quality")}
-            data-testid={`live-auxiliary-quality-${entry.contactId}`}
-            value={quality}
-            onChange={(event) => setQuality(event.currentTarget.value)}
-          />
+          <Field label={t("auxiliary.quality")} className="flex-1">
+            <Input
+              data-testid={`live-auxiliary-quality-${entry.contactId}`}
+              value={quality}
+              onChange={(event) => setQuality(event.currentTarget.value)}
+            />
+          </Field>
           <Button
             variant="secondary"
             data-testid={`live-auxiliary-save-${entry.contactId}`}

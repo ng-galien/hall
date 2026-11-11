@@ -1,9 +1,9 @@
 import type { HallSettings } from "@hall/domain";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AddIcon, ArrowUpIcon, DeleteIcon, LocationIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
@@ -28,7 +28,6 @@ export function MeetingLocationsSettings({
   const [renaming, setRenaming] = useState<string | null>(null);
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [saved, setSaved] = useState(false);
-  const newLocationId = useId();
 
   const save = async (next: string[]) =>
     (await run(async () => {
@@ -159,20 +158,17 @@ export function MeetingLocationsSettings({
           void add();
         }}
       >
-        <Label htmlFor={newLocationId} className="sr-only">
-          {t("settings.meetingLocationNew")}
-        </Label>
-        <Input
-          id={newLocationId}
-          value={newLocation}
-          maxLength={200}
-          placeholder={t("settings.meetingLocationNew")}
-          data-testid="settings-meeting-location-new"
-          onChange={(event) => {
-            setNewLocation(event.currentTarget.value);
-            setSaved(false);
-          }}
-        />
+        <Field label={t("settings.meetingLocationNew")}>
+          <Input
+            value={newLocation}
+            maxLength={200}
+            data-testid="settings-meeting-location-new"
+            onChange={(event) => {
+              setNewLocation(event.currentTarget.value);
+              setSaved(false);
+            }}
+          />
+        </Field>
         <Button
           type="submit"
           variant="secondary"

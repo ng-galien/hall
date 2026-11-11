@@ -159,7 +159,7 @@ async function inspectPreparedRollCall(page: Page, meetingId: string) {
   await expect(page.getByTestId("live-rollcall-prepared")).toHaveText(
     "Roll call completed. Quorum will be recorded when the meeting opens.",
   );
-  await expect(page.getByTestId("live-quorum-observation")).toHaveClass(/live-quorum-chip-pending/);
+  await expect(page.getByTestId("live-quorum-observation")).toHaveAttribute("data-tone", "neutral");
   await expect(page.getByText("Everything is in order: the meeting can be opened.", { exact: true })).toBeHidden();
   await page.screenshot({ path: test.info().outputPath("opening-filled-not-recorded.png"), fullPage: true });
 }
@@ -795,7 +795,7 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   await expect(page.getByTestId("meeting-enter-live")).toHaveAttribute("aria-disabled", "true");
   await expect(page.getByTestId("meeting-enter-live")).not.toHaveAttribute("href");
   await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "warning");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "neutral");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   await expect(page.getByTestId("live-meeting-start")).toHaveCount(0);
@@ -818,7 +818,7 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   await expect(page.getByTestId("meeting-enter-live")).toHaveAttribute("aria-disabled", "true");
   await expect(page.getByTestId("meeting-enter-live")).not.toHaveAttribute("href");
   await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "warning");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "neutral");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   const after = await sirenProperties<typeof initial>(await page.request.get(conductUrl));

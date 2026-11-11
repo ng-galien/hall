@@ -9,7 +9,7 @@ export function MeetingLocationSelect({
   testId,
   disabled = false,
 }: {
-  id: string;
+  id?: string;
   locations: string[];
   current: string | null;
   placeholder: string;
@@ -19,7 +19,7 @@ export function MeetingLocationSelect({
   const choices = current && !locations.includes(current) ? [current, ...locations] : locations;
   return (
     <Select name="location" defaultValue={current || locations[0]} disabled={disabled} required>
-      <SelectTrigger id={id} data-testid={testId} className="w-full">
+      <SelectTrigger id={id} data-testid={testId}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

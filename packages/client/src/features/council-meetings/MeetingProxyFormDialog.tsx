@@ -1,6 +1,6 @@
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field, FieldRow } from "@/components/ui/field";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -21,7 +21,6 @@ export function MeetingProxyFormDialog({
 }) {
   const { t } = useI18n();
   const { members } = useCouncilMembersStore();
-  const fieldId = useId();
   const [grantor, setGrantor] = useState("");
   const [holder, setHolder] = useState("");
   const options = members
@@ -38,9 +37,8 @@ export function MeetingProxyFormDialog({
   return (
     <Modal open={open} title={t("meeting.proxyForm")} onClose={onClose}>
       <form className="modal-form" onSubmit={submit}>
-        <div className="form-grid">
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${fieldId}-grantor`}>{t("meeting.proxyFormGrantor")}</Label>
+        <FieldRow>
+          <Field label={t("meeting.proxyFormGrantor")}>
             <EntitySelect
               type="member"
               value={grantor}
@@ -52,9 +50,8 @@ export function MeetingProxyFormDialog({
               placeholder={t("meeting.proxyFormGrantorPlaceholder")}
               options={options}
             />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${fieldId}-holder`}>{t("meeting.proxyFormHolder")}</Label>
+          </Field>
+          <Field label={t("meeting.proxyFormHolder")}>
             <EntitySelect
               type="member"
               value={holder}
@@ -63,8 +60,8 @@ export function MeetingProxyFormDialog({
               placeholder={t("meeting.proxyFormHolderPlaceholder")}
               options={options.filter((option) => option.value !== grantor)}
             />
-          </div>
-        </div>
+          </Field>
+        </FieldRow>
         <Button
           className="justify-self-end"
           data-testid="meeting-proxy-form-submit"

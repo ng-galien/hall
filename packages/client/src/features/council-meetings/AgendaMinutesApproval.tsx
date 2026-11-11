@@ -2,6 +2,7 @@ import { findSirenLink, type MinutesDetail } from "@hall/api-contract";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { RequestErrorBanner } from "../../components/Ui";
+import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { openMinutes } from "../../services/minutesApi";
@@ -52,18 +53,13 @@ export function AgendaMinutesApproval({ minutesId, itemId }: { minutesId: string
               ),
             })}
           </Link>
-          <span className="composer-minutes-state" data-generated={Boolean(minutes.documentId)}>
+          <span className="list-row-status" data-tone={minutes.documentId ? "success" : "neutral"}>
             {t(minutes.documentId ? "minutes.generated" : "minutes.notGenerated")}
           </span>
           {contentHref ? (
-            <button
-              type="button"
-              className="meeting-document-link"
-              onClick={() => setPreviewOpen(true)}
-              data-testid={`agenda-minutes-${itemId}`}
-            >
+            <Button variant="secondary" onClick={() => setPreviewOpen(true)} data-testid={`agenda-minutes-${itemId}`}>
               {t("minutes.view")}
-            </button>
+            </Button>
           ) : null}
         </p>
       ) : null}

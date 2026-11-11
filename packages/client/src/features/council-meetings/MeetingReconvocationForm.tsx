@@ -1,8 +1,8 @@
 import type { AgendaItem, MeetingQuorumObservation, RecordMeetingReconvocation } from "@hall/api-contract";
-import { type FormEvent, type ReactNode, useId, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -19,13 +19,12 @@ export function MeetingReconvocationForm({
   agendaItems: AgendaItem[];
   onSubmit(input: RecordMeetingReconvocation): Promise<boolean>;
   error: ApiErrorCode | null;
-  /** Renders the control that opens the form; the roll call uses the default outline button. */
+  /** Renders the control that opens the form; the roll call uses the default secondary button. */
   trigger?(control: { open(): void; disabled: boolean; label: string }): ReactNode;
 }) {
   const { t, formatDateTime } = useI18n();
   const [open, setOpen] = useState(false);
   const { submitting, run } = useSubmitting();
-  const prefix = useId();
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const remainingItems = agendaItems.filter(
     (item) => item.completedAt === null && observation.facts.remainingAgendaItemIds.includes(item.id),
@@ -83,48 +82,42 @@ export function MeetingReconvocationForm({
           </p>
           <RequestErrorBanner error={error} />
           <p className="text-sm text-muted">{t("meeting.reconvocationLocalTime", { zone: timeZone })}</p>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${prefix}-sent`}>{t("meeting.noticeSentAt")}</Label>
+          <FieldRow>
+            <Field label={t("meeting.noticeSentAt")}>
+              <Input
+                name="sentAt"
+                type="datetime-local"
+                required
+                disabled={submitting}
+                data-testid="live-reconvocation-sent-at"
+              />
+            </Field>
+            <Field label={t("meetings.dateTime")}>
+              <Input
+                name="scheduledAt"
+                type="datetime-local"
+                required
+                disabled={submitting}
+                data-testid="live-reconvocation-scheduled-at"
+              />
+            </Field>
+          </FieldRow>
+          <Field label={t("meeting.firstNoticeEvidence")}>
             <Input
-              id={`${prefix}-sent`}
-              name="sentAt"
-              type="datetime-local"
-              required
-              disabled={submitting}
-              data-testid="live-reconvocation-sent-at"
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${prefix}-scheduled`}>{t("meetings.dateTime")}</Label>
-            <Input
-              id={`${prefix}-scheduled`}
-              name="scheduledAt"
-              type="datetime-local"
-              required
-              disabled={submitting}
-              data-testid="live-reconvocation-scheduled-at"
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${prefix}-first`}>{t("meeting.firstNoticeEvidence")}</Label>
-            <Input
-              id={`${prefix}-first`}
               name="firstNoticeEvidence"
               required
               disabled={submitting}
               data-testid="live-reconvocation-first-evidence"
             />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${prefix}-renewed`}>{t("meeting.renewedNoticeEvidence")}</Label>
+          </Field>
+          <Field label={t("meeting.renewedNoticeEvidence")}>
             <Input
-              id={`${prefix}-renewed`}
               name="renewedNoticeEvidence"
               required
               disabled={submitting}
               data-testid="live-reconvocation-renewed-evidence"
             />
-          </div>
+          </Field>
           <div className="flex justify-end gap-2">
             <Button
               type="button"

@@ -1,9 +1,9 @@
 import type { RecordMeetingClosedSession } from "@hall/api-contract";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
 import type { ApiErrorCode } from "../../services/apiClient";
@@ -26,7 +26,6 @@ export function MeetingClosedSessionDialog({
   onClose(): void;
 }) {
   const { t, formatNumber } = useI18n();
-  const id = useId();
   const mayor = presentMembers.find((member) => member.role === "mayor") ?? null;
   const [requestedBy, setRequestedBy] = useState<"mayor" | "members">(mayor ? "mayor" : "members");
   const [requesters, setRequesters] = useState<string[]>([]);
@@ -69,7 +68,7 @@ export function MeetingClosedSessionDialog({
     >
       <form className="modal-form" data-testid="live-closed-session-form" onSubmit={submit}>
         <RequestErrorBanner error={error} />
-        <p className="text-sm text-muted-foreground">{t("closedSession.description")}</p>
+        <p className="text-sm text-muted">{t("closedSession.description")}</p>
         <fieldset className="grid gap-2" disabled={submitting}>
           <legend>{t("closedSession.requestedBy")}</legend>
           <label className="flex items-center gap-2">
@@ -112,10 +111,14 @@ export function MeetingClosedSessionDialog({
             </div>
           ) : null}
         </fieldset>
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-approvals`}>{t("closedSession.approvals")}</Label>
+        <Field
+          label={t("closedSession.approvals")}
+          help={t("closedSession.majorityHint", {
+            count: formatNumber(presentOrRepresentedCount),
+            required: formatNumber(Math.floor(presentOrRepresentedCount / 2) + 1),
+          })}
+        >
           <Input
-            id={`${id}-approvals`}
             data-testid="live-closed-session-approvals"
             type="number"
             min={0}
@@ -124,13 +127,7 @@ export function MeetingClosedSessionDialog({
             disabled={submitting}
             onChange={(event) => setApprovals(event.currentTarget.value)}
           />
-          <p className="text-sm text-muted-foreground">
-            {t("closedSession.majorityHint", {
-              count: formatNumber(presentOrRepresentedCount),
-              required: formatNumber(Math.floor(presentOrRepresentedCount / 2) + 1),
-            })}
-          </p>
-        </div>
+        </Field>
         <fieldset className="grid gap-2" disabled={submitting}>
           <legend>{t("closedSession.scope")}</legend>
           <label className="flex items-center gap-2">
