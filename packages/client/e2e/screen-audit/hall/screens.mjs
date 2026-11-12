@@ -145,6 +145,18 @@ export const screens = [
     ),
   },
   {
+    id: "mode-seance-deports",
+    title: "Mode séance, déports sur ce point",
+    scenario: "default",
+    /** The window of the conflicts of interest of the current point, opened from the live meeting. */
+    async open(page) {
+      const meeting = await first(page, "/api/council-meetings", (entry) => entry.startedAt && !entry.closedAt);
+      await page.goto(`/app/meetings/${meeting.id}/live`);
+      await page.getByTestId("live-recusal-info").first().click();
+      await visible(page, "live-recusal-info-content");
+    },
+  },
+  {
     id: "mode-seance-appel",
     title: "Mode séance, appel",
     scenario: "preparation",
@@ -356,6 +368,18 @@ export const screens = [
       await page.goto("/app/users");
       await page.getByTestId("users-add").click();
       await visible(page, "user-access");
+    },
+  },
+  {
+    id: "contact-creation",
+    title: "Création d'un contact",
+    scenario: "minutes",
+    reopenAtEveryWidth: true,
+    /** A window with its form and its buttons, other than the creation of a user. */
+    async open(page) {
+      await page.goto("/app/contacts");
+      await page.getByTestId("contacts-add").click();
+      await visible(page, "contact-create-form");
     },
   },
   { id: "parametres", title: "Paramètres", scenario: "minutes", open: route("/settings") },
