@@ -83,7 +83,8 @@
   /* The line of the title: what the screen is, with the type icon and the commands of an opened item at its right. */
   .screen-title-block { display: grid; flex: none; gap: var(--hall-space-1); padding: 0 var(--hall-space-6) var(--hall-space-3); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .screen-title-block:has(.screen-header-title:empty) { display: none; }
-  .screen-title-row { display: flex; min-width: 0; align-items: flex-start; gap: var(--hall-space-3); }
+  /* The title keeps at least 12 rem; when the commands leave it less, they pass under it, at the right. */
+  .screen-title-row { display: flex; min-width: 0; flex-wrap: wrap; align-items: flex-start; gap: var(--hall-space-1) var(--hall-space-3); }
   .screen-title-icon { display: inline-grid; min-height: var(--hall-line-height-display); flex: none; place-items: center; }
   .screen-title-icon:empty,
   .screen-title-commands:empty,
@@ -93,7 +94,7 @@
   .screen-title-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-4); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .screen-header-title {
     min-width: 0;
-    flex: 1;
+    flex: 1 1 var(--hall-size-relative-12rem);
     overflow-wrap: anywhere;
     font-size: var(--hall-font-size-display);
     font-weight: var(--hall-font-weight-heavy);
