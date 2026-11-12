@@ -238,10 +238,10 @@ test.describe("Hall pages on a phone", () => {
         await expect(header.getByTestId("workspace-search-open")).toBeVisible();
         await expect(page.getByTestId("workspace-create-menu")).toBeVisible();
         await expect(page.getByTestId("workspace-search-input")).toHaveCount(0);
-        // The list of folders starts right under the header.
+        // The list of folders starts right under the large title of the screen header.
         const firstRow = page.getByTestId("application-main").locator(".workspace-contents").first();
         await expect(firstRow).toBeVisible();
-        const headerBottom = (await header.boundingBox())!;
+        const headerBottom = (await page.getByTestId("phone-header-title").boundingBox())!;
         const listTop = (await firstRow.boundingBox())!.y;
         expect(Math.round(listTop - (headerBottom.y + headerBottom.height))).toBeLessThanOrEqual(16);
         for (const control of [

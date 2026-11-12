@@ -122,10 +122,18 @@ function parseAmount(text: string): { value: number; decimals: number; euro: boo
   };
 }
 
-/** Selection-anchored table handles: column and row menus, plus buttons to extend the table. */
+/**
+ * Selection-anchored table handles: column and row menus, plus buttons to extend the table. A handle opens its menu on
+ * click, once the pointer is released: a menu opened on press could take the release on one of its items and run it.
+ */
 export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef: RefObject<HTMLDivElement | null> }) {
   const { locale, t } = useI18n();
   const [target, setTarget] = useState<TableTarget | null>(null);
+  const [openMenu, setOpenMenu] = useState<"column" | "row" | null>(null);
+  const openOnClick = (menu: "column" | "row") => ({
+    onPointerDown: (event: { preventDefault(): void }) => event.preventDefault(),
+    onClick: () => setOpenMenu(menu),
+  });
 
   useEffect(() => {
     const update = () => {
@@ -244,11 +252,12 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={openMenu === "column"} onOpenChange={(open) => setOpenMenu(open ? "column" : null)}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="plain"
             size="icon"
+            {...openOnClick("column")}
             data-testid="editor-table-column-menu"
             data-editor-table-control
             className="table-handle"
@@ -298,11 +307,12 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DropdownMenu>
+      <DropdownMenu open={openMenu === "row"} onOpenChange={(open) => setOpenMenu(open ? "row" : null)}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="plain"
             size="icon"
+            {...openOnClick("row")}
             data-editor-table-control
             className="table-handle"
             style={{ left: target.tableLeft, top: target.rowCenter }}
