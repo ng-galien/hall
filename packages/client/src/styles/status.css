@@ -1,0 +1,68 @@
+/* The state of an object is written in a tinted tag, never after a dot: green for what is settled or sound, orange
+   for what waits for an action, red for what blocks or fails, grey for a state without stake or past. Blue is not a
+   state colour: it stays with links, buttons and selections. */
+:root {
+  --hall-color-status-success: #17633a;
+  --hall-color-status-success-surface: #e3f4ea;
+  --hall-color-status-warning: #8a4b08;
+  --hall-color-status-warning-surface: #fdebd2;
+  --hall-color-status-danger: #9b1c1c;
+  --hall-color-status-danger-surface: #fbe3e3;
+  --hall-color-status-neutral: #4a5362;
+  --hall-color-status-neutral-surface: #eceff3;
+  --hall-font-weight-status: 650;
+  --hall-font-size-status: 12px;
+}
+:root[data-theme="dark"] {
+  --hall-color-status-success: #8fd0a8;
+  --hall-color-status-success-surface: #17301f;
+  --hall-color-status-warning: #f2b770;
+  --hall-color-status-warning-surface: #3a2810;
+  --hall-color-status-danger: #f0a6a3;
+  --hall-color-status-danger-surface: #3a1d1d;
+  --hall-color-status-neutral: #c3c9d3;
+  --hall-color-status-neutral-surface: #2a2f38;
+}
+
+@layer components {
+  :is(.list-row-status, .record-state) {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    padding: 0 var(--hall-space-2);
+    border: 0;
+    border-radius: var(--hall-radius-small);
+    color: var(--hall-color-status-neutral);
+    background: var(--hall-color-status-neutral-surface);
+    font-size: var(--hall-font-size-status);
+    font-weight: var(--hall-font-weight-status);
+    line-height: var(--hall-line-height-body-small);
+    white-space: nowrap;
+  }
+  :is(.list-row-status, .record-state)::before { display: none; }
+  :is(.list-row-status, .record-state)[data-tone="success"],
+  .record-state[data-save="saved"] {
+    color: var(--hall-color-status-success);
+    background: var(--hall-color-status-success-surface);
+  }
+  :is(.list-row-status, .record-state)[data-tone="action"],
+  .record-state[data-save="dirty"] {
+    color: var(--hall-color-status-warning);
+    background: var(--hall-color-status-warning-surface);
+  }
+  :is(.list-row-status, .record-state)[data-tone="danger"],
+  .record-state[data-save="error"] {
+    color: var(--hall-color-status-danger);
+    background: var(--hall-color-status-danger-surface);
+  }
+  /* In a list row the tag keeps the right end of the line on tablet and computer; on a phone it follows the facts and
+     passes to the next line when they leave it no room. */
+  .list-row-main > .list-row-status { margin-left: auto; align-self: center; }
+  @media (max-width: 760px) {
+    .list-row-detail:has(> .list-row-status) { flex-wrap: wrap; row-gap: var(--hall-space-0-5); }
+  }
+  .record-state[data-save="saving"] { animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .record-state[data-save="saving"] { animation: none; }
+  }
+}

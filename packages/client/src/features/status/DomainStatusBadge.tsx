@@ -50,12 +50,23 @@ export const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
   published: "status.published",
 };
 
-/** Tone of the dot written before a domain status in a list row. */
+const settledStatuses: readonly DomainStatus[] = [
+  "adopted",
+  "enforceable",
+  "ready",
+  "present",
+  "represented",
+  "published",
+  "approved",
+  "signed",
+  "active",
+];
+
+/** Colour of the tag of a domain status. */
 export function domainStatusTone(value: DomainStatus): ListRowStatusTone {
-  if (["adopted", "enforceable", "ready", "present", "published"].includes(value)) return "success";
+  if (settledStatuses.includes(value)) return "success";
   if (["rejected", "cancelled", "absent"].includes(value)) return "danger";
-  /* A represented member votes through a proxy: told apart from an excused member, who does not vote. */
-  if (value === "represented") return "action";
+  if (value === "excused") return "action";
   return "neutral";
 }
 
@@ -65,7 +76,7 @@ export function useDomainRowStatus(): (value: DomainStatus) => ListRowStatus {
   return (value) => ({ tone: domainStatusTone(value), label: t(domainStatusKeys[value]) });
 }
 
-/** A status outside a list row: the same fact after the same coloured dot, never a pill. */
+/** A status outside a list row: the same tinted tag as in a list row. */
 function StatusText({ status }: { status: ListRowStatus }) {
   return (
     <span className="list-row-status" data-tone={status.tone} data-testid={status.testId}>
@@ -86,8 +97,8 @@ export function useAgendaItemRowStatus(): (status: LiveAgendaItemStatus) => List
       scheduled: () => "neutral" as const,
       inProgress: () => "success" as const,
       examined: () => "success" as const,
-      adjourned: () => "neutral" as const,
-      carriedForward: () => "neutral" as const,
+      adjourned: () => "action" as const,
+      carriedForward: () => "action" as const,
     }),
     label: t(domainStatusKeys[status]),
     testId: `agenda-status-${status}`,
@@ -118,7 +129,7 @@ export function useMeetingRowStatus(): (status: LiveMeetingStatus, stale?: boole
               ? "success"
               : status === "cancelled"
                 ? "danger"
-                : status === "scheduled"
+                : status === "draft"
                   ? "action"
                   : "neutral",
           label: t(meetingStatusKeys[status]),

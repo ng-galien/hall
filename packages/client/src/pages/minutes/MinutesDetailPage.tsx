@@ -130,7 +130,7 @@ function MinutesDetail({ id }: { id: string }) {
     <p className="meeting-state minutes-header-status">
       <span
         className="list-row-status"
-        data-tone={minutes.settledAt ? "success" : "neutral"}
+        data-tone={minutes.settledAt ? "success" : "action"}
         data-testid="minutes-settlement-status"
       >
         {t(minutes.settledAt ? "minutes.stopped" : "minutes.notStopped")}

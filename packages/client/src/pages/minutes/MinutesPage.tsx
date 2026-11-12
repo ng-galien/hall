@@ -67,7 +67,7 @@ export function MinutesPage() {
                 title={t("minutes.meetingTitle", { number: formatNumber(item.meetingNumber) })}
                 detail={item.scheduledAt ? formatDate(item.scheduledAt) : t("dashboard.toSchedule")}
                 status={{
-                  tone: item.settledAt ? "success" : "neutral",
+                  tone: item.settledAt ? "success" : "action",
                   label: t(item.settledAt ? "minutes.stopped" : "minutes.notStopped"),
                 }}
               />

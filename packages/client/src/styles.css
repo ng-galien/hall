@@ -12,6 +12,7 @@
 @import "./styles/live.css";
 @import "./styles/docs.css";
 @import "./styles/mobile.css";
+@import "./styles/status.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 

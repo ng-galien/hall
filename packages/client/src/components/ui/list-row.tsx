@@ -1,12 +1,15 @@
 import type { ComponentPropsWithoutRef, ReactElement, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
 /** Colour family of a type icon. Every type of Hall maps to one nature in `ResourceGlyph`. */
 export type ResourceNature = "writing" | "data" | "visual" | "council" | "folder";
 
-/** Fact written after a coloured dot on the second line; never an action. */
-/** Neutral is a plain fact in slate grey, action a state that asks the person to act, in blue. */
+/**
+ * State written in a tinted tag on the second line; never an action. Success is settled or sound (green), action waits
+ * for the person to act (orange), danger blocks or fails (red), neutral has no stake or is past (grey).
+ */
 export type ListRowStatusTone = "neutral" | "action" | "success" | "danger";
 export type ListRowStatus = { tone: ListRowStatusTone; label: ReactNode; testId?: string };
 
@@ -84,20 +87,22 @@ export function ListRow({
   className,
   ...rest
 }: ListRowProps) {
+  const phone = usePhoneLayout();
+  const statusTag = status ? (
+    <span className="list-row-status" data-tone={status.tone} data-testid={status.testId}>
+      <span className="list-row-status-text">{status.label}</span>
+    </span>
+  ) : null;
   const content = (
     <>
       {head && !headButton ? <span className="list-row-head">{head}</span> : null}
       <span className="list-row-text">
         {overline ? <span className="list-row-overline">{overline}</span> : null}
         <span className="list-row-title">{title}</span>
-        {detail || status ? (
+        {detail || (status && phone) ? (
           <span className="list-row-detail">
             {detail ? <span className="list-row-detail-text">{detail}</span> : null}
-            {status ? (
-              <span className="list-row-status" data-tone={status.tone} data-testid={status.testId}>
-                <span className="list-row-status-text">{status.label}</span>
-              </span>
-            ) : null}
+            {phone ? statusTag : null}
           </span>
         ) : null}
         {lines?.map((line, index) =>
@@ -109,6 +114,7 @@ export function ListRow({
           ) : null,
         )}
       </span>
+      {phone ? null : statusTag}
       {wide ? <span className="list-row-wide">{wide}</span> : null}
     </>
   );

@@ -303,7 +303,10 @@ export function UsersPage() {
                 }
                 title={user.displayName}
                 detail={user.email}
-                status={{ tone: "neutral", label: t(`users.status.${user.status}`) }}
+                status={{
+                  tone: user.status === "active" ? "success" : "danger",
+                  label: t(`users.status.${user.status}`),
+                }}
                 wide={<span>{user.roles.map((role) => roleName(role)).join(" · ")}</span>}
               />
             ))}
