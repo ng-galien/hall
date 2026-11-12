@@ -36,6 +36,22 @@
   }
   .modal-form > .fui-Field { margin: 0; }
   .modal-form .form-grid { margin-bottom: 0; }
+  .modal-form-note { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
+  /* A group of choices in a form: its label written as a field label, each choice aligned on the first line of its text. */
+  .choice-group { display: grid; gap: var(--hall-space-3); min-width: 0; margin: 0; padding: 0; border: 0; }
+  .choice-group-label { margin-bottom: var(--hall-space-1); padding: 0; color: var(--hall-color-field-label); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
+  .choice-option { display: flex; align-items: flex-start; gap: var(--hall-space-2-5); cursor: pointer; }
+  .choice-option > input[type="radio"] {
+    width: var(--hall-font-size-icon);
+    height: var(--hall-font-size-icon);
+    flex: none;
+    margin: calc((var(--hall-line-height-body-small) - var(--hall-font-size-icon)) / 2) 0 0;
+    accent-color: var(--hall-color-brand);
+  }
+  .choice-option-text { display: grid; gap: var(--hall-space-0-5); min-width: 0; line-height: var(--hall-line-height-body-small); }
+  .choice-option-text > strong { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
+  .choice-option-hint { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
+  .choice-group:disabled .choice-option { cursor: default; }
 
   .picker-heading {
     margin-bottom: var(--hall-space-2);

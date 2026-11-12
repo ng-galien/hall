@@ -53,10 +53,10 @@ export function AgendaItemRecusalDialog({
             }))}
           />
         </Field>
-        <fieldset className="grid gap-3" disabled={controller.submitting}>
-          <legend>{t("recusal.basis")}</legend>
+        <fieldset className="choice-group" disabled={controller.submitting}>
+          <legend className="choice-group-label">{t("recusal.basis")}</legend>
           {recusalLegalBases.map((value) => (
-            <label className="flex items-start gap-2" key={value}>
+            <label className="choice-option" key={value}>
               <input
                 type="radio"
                 name="legalBasis"
@@ -66,21 +66,23 @@ export function AgendaItemRecusalDialog({
                 onChange={() => setBasis(value)}
                 required
               />
-              <span>
+              <span className="choice-option-text">
                 <strong>{t(recusalBasisLabel(value))}</strong>
-                <span className="block text-sm text-muted">{t(recusalBasisHint(value))}</span>
+                <span className="choice-option-hint">{t(recusalBasisHint(value))}</span>
               </span>
             </label>
           ))}
         </fieldset>
-        <p className="text-sm text-muted">{t("recusal.immutableHint")}</p>
-        <Button
-          type="submit"
-          data-testid="recusal-submit"
-          disabled={!memberId || !basis || !controller.canRecord || controller.submitting}
-        >
-          {t(controller.submitting ? "common.saving" : "recusal.record")}
-        </Button>
+        <p className="modal-form-note">{t("recusal.immutableHint")}</p>
+        <div className="dialog-actions">
+          <Button
+            type="submit"
+            data-testid="recusal-submit"
+            disabled={!memberId || !basis || !controller.canRecord || controller.submitting}
+          >
+            {t(controller.submitting ? "common.saving" : "recusal.record")}
+          </Button>
+        </div>
       </form>
     </Modal>
   );
