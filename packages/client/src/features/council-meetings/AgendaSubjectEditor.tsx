@@ -1,5 +1,6 @@
 import { findSirenAction, type ResourceDetail } from "@hall/api-contract";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { imageUploadsSettled, trackTextSave } from "../../components/editor/imageUploadGate";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { MarkdownView } from "../../components/MarkdownView";
 import { RequestErrorBanner } from "../../components/Ui";
@@ -26,6 +27,9 @@ export function AgendaSubjectEditor({
   const [canEdit, setCanEdit] = useState(false);
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
+  /** The text as last written, read when a save waited for an image being uploaded. */
+  const latestContent = useRef(content);
+  latestContent.current = content;
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const { submitting, run } = useSubmitting();
   const mentionables = useReferenceMentionables();
@@ -64,12 +68,16 @@ export function AgendaSubjectEditor({
         event.preventDefault();
         void run(async () => {
           setError(null);
-          const saved = await useWorkspaceResourcesStore.getState().updateContent(resourceId, {
-            kind: "text",
-            expectedVersion: resource.version,
-            name,
-            content,
-          });
+          // A save asked while an image uploads waits for it and leaves with the content that cites it.
+          await imageUploadsSettled();
+          const saved = await trackTextSave(
+            useWorkspaceResourcesStore.getState().updateContent(resourceId, {
+              kind: "text",
+              expectedVersion: resource.version,
+              name,
+              content: latestContent.current,
+            }),
+          );
           if (saved?.kind !== "text") {
             setError(useWorkspaceResourcesStore.getState().error ?? "request_failed");
             return;
