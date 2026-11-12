@@ -218,10 +218,29 @@
   .template-body { display: grid; justify-items: start; gap: var(--hall-space-2); }
   .template-decoration > .hall-field-block,
   .template-body > .hall-field-block { width: 100%; }
-  .template-source,
-  .template-decoration-source { font-family: var(--hall-font-family-monospace); font-size: var(--hall-font-size-body); }
-  /* The template source wraps its long lines instead of scrolling sideways; its indentation is kept. */
-  .template-body-source { min-height: var(--hall-size-relative-24rem); white-space: pre-wrap; overflow-wrap: anywhere; }
+  /* « Insérer une image » sits at the right end of the label line of its header or footer. */
+  .template-decoration { position: relative; }
+  .template-decoration > .hall-button { position: absolute; top: 0; right: 0; z-index: var(--hall-z-content); }
+  .template-decoration .hall-field > .hall-field-label { position: static; display: flex; min-height: var(--hall-size-control); align-items: center; }
+  @media (pointer: coarse) {
+    .template-decoration .hall-field > .hall-field-label { min-height: var(--hall-size-touch-control); }
+  }
+  .template-body .hall-field > .hall-field-label { position: static; margin-bottom: var(--hall-space-1); }
+  .template-editor :is(.template-decoration, .template-body) .hall-field > .hall-textarea { padding-top: var(--hall-space-1); }
+  .template-editor .hall-field :is(.template-source, .template-decoration-source) { font-family: var(--hall-font-family-monospace); font-size: var(--hall-font-size-body); }
+  /* The template source is a framed code editor: monospace, one line per source line, scrolled inside its frame. */
+  .template-editor .hall-field .template-body-source,
+  .template-editor .hall-field .template-body-source:focus {
+    height: var(--hall-size-relative-24rem);
+    padding: var(--hall-space-2) var(--hall-space-3);
+    border: var(--hall-stroke-thin) solid var(--hall-color-field-line);
+    border-radius: var(--hall-radius-small);
+    overflow: auto;
+    white-space: pre;
+    overflow-wrap: normal;
+    field-sizing: fixed;
+  }
+  .template-editor .hall-field .template-body-source:focus { border-color: var(--hall-color-brand); }
   .template-examples { font-size: var(--hall-font-size-body); }
   .template-examples summary { cursor: pointer; font-weight: var(--hall-font-weight-semibold); }
   .template-examples p { margin: var(--hall-space-2) 0; color: var(--hall-color-text-muted); }
