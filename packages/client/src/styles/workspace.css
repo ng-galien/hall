@@ -272,9 +272,10 @@
     background: transparent;
     box-shadow: none;
   }
+  /* The zoom tools keep 12 pixels from the bottom and the side, like the commands at the top of the map. */
   .geographic-zoom-tools {
     right: var(--hall-space-3);
-    bottom: var(--hall-space-10);
+    bottom: var(--hall-space-3);
     display: grid;
     gap: 0;
     padding: 0;
@@ -574,8 +575,6 @@
     box-shadow: var(--hall-shadow-medium);
   }
   .geographic-resource .ol-attribution {
-    right: var(--hall-space-1);
-    bottom: var(--hall-space-1);
     border-radius: var(--hall-radius-small);
     color: var(--hall-color-text-muted);
     background: var(--hall-color-surface);

@@ -751,8 +751,8 @@ export function GeographicResourceMap({
               canUpdate ? (
                 <Button
                   type="button"
-                  variant="secondary"
-                  className="geographic-save-view"
+                  variant="plain"
+                  className="geographic-save-view geographic-map-tool"
                   data-testid="geographic-save-view"
                   disabled={conflict || sameGeographicView(displayedView, draft.view)}
                   onClick={saveDisplayedView}

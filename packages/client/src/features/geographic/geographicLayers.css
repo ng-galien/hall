@@ -83,7 +83,7 @@
 .geographic-feature-card-muted { margin: 0; color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption); }
 
 .geographic-feature-card-metadata .collapsible-section-content { padding-top: var(--hall-space-2); }
-.geographic-map-overlay { position: absolute; z-index: var(--hall-z-content); display: flex; flex-direction: column; left: var(--hall-space-3); width: max-content; max-width: calc(100% - var(--hall-space-6) - var(--hall-size-control) - var(--hall-space-2)); bottom: var(--hall-space-10); max-height: max(calc(var(--hall-size-control-small) + var(--hall-space-2) + var(--hall-stroke-thin) * 2), calc(100% - var(--geographic-panel-top) - var(--geographic-panel-min-height) - var(--hall-space-10) - var(--hall-space-2))); pointer-events: none; }
+.geographic-map-overlay { position: absolute; z-index: var(--hall-z-content); display: flex; flex-direction: column; left: var(--hall-space-3); width: max-content; max-width: calc(100% - var(--hall-space-6) - var(--hall-size-control) - var(--hall-space-2)); bottom: var(--hall-space-3); max-height: max(calc(var(--hall-size-control-small) + var(--hall-space-2) + var(--hall-stroke-thin) * 2), calc(100% - var(--geographic-panel-top) - var(--geographic-panel-min-height) - var(--hall-space-10) - var(--hall-space-2))); pointer-events: none; }
 .geographic-map-overlay:empty { display: none; }
 .geographic-map-overlay > * { min-width: 0; pointer-events: auto; }
 .geographic-resource { display: flex; flex-direction: column; container-type: inline-size; }
@@ -138,7 +138,44 @@
 .geographic-composition-feature-drag.hall-button,
 .geographic-layer-drag-handle.hall-button { cursor: grab; }
 .geographic-measurement { grid-template-columns: var(--hall-size-control) minmax(0, 1fr) auto var(--hall-size-control); }
-/* On a narrow map, the layers command passes under the mode switch instead of overlapping it. */
-@container (max-width: 760px) {
-  .geographic-layers { top: calc(var(--hall-space-3) * 2 + var(--geographic-map-control, var(--hall-size-control-small))); }
+/* The commands at the top of a map share one row, 12 pixels from the top and the sides: the mode switch at the left,
+   « Couches » at the right; « Couches » passes under it, still at the right, only when the map is too narrow. */
+.geographic-top-tools {
+  position: absolute;
+  z-index: var(--hall-z-content);
+  top: var(--hall-space-3);
+  right: var(--hall-space-3);
+  left: var(--hall-space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--hall-space-2);
+  pointer-events: none;
 }
+.geographic-top-tools > * { pointer-events: auto; }
+.geographic-top-tools > :is(.geographic-mode-switch, .geographic-layers) { position: relative; top: auto; right: auto; left: auto; }
+.geographic-top-tools > .geographic-layers { margin-left: auto; }
+/* The map credits sit above the zoom tools, at the same 12 pixels from the side. */
+.geographic-resource .ol-attribution.ol-control {
+  right: var(--hall-space-3);
+  bottom: calc(var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control-small)) * 3 + var(--hall-space-2));
+}
+/* A command laid over the map takes the form of the map tools: a white surface, a grey rule and a light shadow, at
+   the height of a map control. */
+.geographic-map-tool.hall-button {
+  display: inline-flex;
+  min-height: var(--geographic-map-control, var(--hall-size-control-small));
+  height: var(--geographic-map-control, var(--hall-size-control-small));
+  align-items: center;
+  gap: var(--hall-space-1);
+  padding: 0 var(--hall-space-1-5);
+  border: 0;
+  border-radius: var(--hall-radius-medium);
+  color: var(--hall-color-text);
+  background: var(--hall-color-surface);
+  box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
+  font-size: var(--hall-font-size-caption);
+  font-weight: var(--hall-font-weight-medium);
+}
+.geographic-map-tool.hall-button:hover:not(:disabled),
+.geographic-map-tool.hall-button[aria-expanded="true"] { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
