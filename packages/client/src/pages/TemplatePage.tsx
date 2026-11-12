@@ -182,6 +182,7 @@ export function TemplatePage() {
             <Field label={t("templates.body")} hint={t("templates.jinjaHelp")} variant="code">
               <Textarea
                 data-testid="template-body-editor"
+                data-horizontal-scroll="true"
                 className="template-source template-body-source"
                 spellCheck={false}
                 value={draft.bodyMarkdown}

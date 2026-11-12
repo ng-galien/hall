@@ -108,8 +108,8 @@ export function SectionHeader({
               label
             )}
             {explanation && !inlineExplanation ? explanation : null}
+            {inlineExplanation && !explanation ? null : hint}
           </Heading>
-          {inlineExplanation && !explanation ? null : hint}
         </div>
         {description && typeof description !== "string" ? (
           <p className="section-header-description">{description}</p>
