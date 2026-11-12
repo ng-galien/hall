@@ -336,8 +336,8 @@
   .meeting-state > * + *::before { margin-inline: var(--hall-space-1-5); color: var(--hall-color-text-muted); content: "·"; }
   .meeting-state > .list-row-status { color: var(--hall-color-text); }
   /* Meeting header of before the redesign: the console of facts and the stage bar with its circles. */
-  .meeting-preparation > header .meeting-console { margin-top: var(--hall-space-3); margin-bottom: 0; border: 0; box-shadow: none; border-radius: 0; }
-  .meeting-preparation > header .meeting-stepper { padding: var(--hall-space-3) 0; }
+  .meeting-preparation .page-header .meeting-console { margin-top: var(--hall-space-3); margin-bottom: 0; border: 0; box-shadow: none; border-radius: 0; }
+  .meeting-preparation .page-header .meeting-stepper { padding: var(--hall-space-3) 0; }
   .meeting-console {
     container-type: inline-size;
     overflow: hidden;
@@ -347,7 +347,7 @@
     background: var(--hall-color-surface);
     box-shadow: var(--hall-shadow-small);
   }
-  .meeting-preparation > header .meeting-console { margin-top: var(--hall-space-1); }
+  .meeting-preparation .page-header .meeting-console { margin-top: var(--hall-space-1); }
   .meeting-brief { display: flex; flex-wrap: wrap; gap: var(--hall-space-1) var(--hall-space-5); margin: var(--hall-space-1) 0 0; padding: 0; font-size: var(--hall-font-size-caption); }
   .meeting-brief div { display: inline-flex; gap: var(--hall-space-1); }
   .meeting-brief dt { color: var(--hall-color-text-muted); }
@@ -405,7 +405,7 @@
     .meeting-stepper-separator { position: absolute; top: 100%; left: calc(var(--hall-size-metric-icon) / 2); width: var(--hall-stroke-thin); height: var(--hall-space-4); }
   }
   /* Stage bar: compact circles, centered titles, connectors through the circle centre, no rule under it. */
-  .meeting-preparation > header .meeting-stepper { padding: 0 0 var(--hall-space-2); border-bottom: 0; }
+  .meeting-preparation .page-header .meeting-stepper { padding: 0 0 var(--hall-space-2); border-bottom: 0; }
   .meeting-preparation .meeting-stepper-list { gap: 0; }
   .meeting-preparation .meeting-stepper-item { display: grid; justify-items: center; text-align: center; }
   .meeting-preparation .meeting-stepper-marker { position: relative; display: grid; place-items: center; width: 100%; gap: 0; }
@@ -414,7 +414,8 @@
   .meeting-preparation .meeting-stepper-separator { position: absolute; top: 50%; left: 50%; width: 100%; height: var(--hall-stroke-thin); margin: 0; transform: translateY(-50%); }
   .meeting-preparation .meeting-stepper-title { margin-top: var(--hall-space-1); font-weight: var(--hall-font-weight-regular); }
   .meeting-preparation .meeting-stepper-item[data-status="active"] .meeting-stepper-title { font-weight: var(--hall-font-weight-semibold); }
-  .meeting-preparation > header .flex.items-center { margin-top: var(--hall-space-2); }
+  .meeting-preparation .page-header-controls { flex-wrap: nowrap; align-items: flex-start; }
+  .meeting-preparation .page-header-controls > .meeting-console { order: -1; min-width: 0; flex: 1 1 0; }
   .meeting-stepper-hint { display: grid; gap: var(--hall-space-0-5); max-width: var(--hall-size-relative-22rem); white-space: normal; }
   .meeting-stepper-hint strong { font-weight: var(--hall-font-weight-semibold); }
 
