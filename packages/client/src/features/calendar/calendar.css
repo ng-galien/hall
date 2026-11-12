@@ -81,6 +81,8 @@
   .app-main .hall-calendar .hall-calendar-all-day.hall-calendar-all-day,
   .app-main .hall-calendar .hall-calendar-all-day.hall-calendar-all-day * { white-space: nowrap; }
   .app-main .hall-calendar.hall-calendar > :not(.calendar-toolbar) { padding-inline: var(--hall-space-4); }
+  /* The title and the toolbar form one block over the grid: a single rule, under the toolbar. */
+  .app-main:has(.hall-calendar) .screen-title-block { border-bottom: 0; }
 }
 
 /* Resource form uses the same surface and spacing as the modal header. */
