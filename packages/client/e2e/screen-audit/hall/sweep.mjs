@@ -21,6 +21,7 @@ import { sourcesOf, sweepPlan } from "./sweep-config.mjs";
  *   --exclude=a,b                leave these screens out (their files are being changed);
  *   --widths=783,1030            measure only these window widths, with every rule;
  *   --commit=<commit>            the commit whose client is built and measured (HEAD by default);
+ *   --build-only                 build the client of the commit and write its directory, for the journeys of a pass;
  *   --report-only                rewrite the report from the last measurements;
  *   --rules[=component]          write the rules of the interface (all, or one component), without a browser;
  *   --explain=<file or screen>   write the rules that apply to this file or screen.
@@ -121,6 +122,12 @@ function buildClient() {
   );
   if (build.status !== 0) throw new Error(`La construction du client de ${commit} a échoué`);
   return built;
+}
+
+/* --build-only builds the client of the commit and writes its directory: the journeys of a pass are run on it. */
+if (process.argv.includes("--build-only")) {
+  console.log(buildClient());
+  process.exit(0);
 }
 
 const started = Date.now();
