@@ -38,6 +38,7 @@ describe("recusal HTTP boundary", () => {
       eligibleParticipantAttendanceIds: [],
       departedParticipantAttendanceIds: [],
       canRecordRecusal: true,
+      canWithdrawRecusal: false,
       quorumImpact: { excludedMemberIds: [], denominatorReduction: 0, eligibleDeclaredPresentMemberIds: [] },
       ballotChair: { councilMemberId: null, meetingAttendanceId: null, physicallyPresent: false, recused: false },
     };
@@ -81,6 +82,85 @@ describe("recusal HTTP boundary", () => {
       councilMeetingId: randomUUID(),
     });
     await agent.get(path).expect(404);
+  });
+  // @verifies-requirement HALL-FR-AGI-430
+  it("proposes the withdrawal only when SQL allows it and dispatches the member to withdraw", async () => {
+    const { agent, container } = await createTestServer();
+    const meeting = domainBody<{ id: string }>(await agent.post("/api/council-meetings").send({}).expect(201));
+    const item: AgendaItem = {
+      id: randomUUID(),
+      title: "Délibération",
+      councilMeetingId: meeting.id,
+      councilBusinessId: null,
+      subject: { kind: "openQuestion", id: randomUUID(), textResourceId: randomUUID(), content: "" },
+      position: 1,
+      agendaNumber: 1,
+      introducedAt: null,
+      discussionSummary: "",
+      canStartDiscussion: false,
+      canReviewBallot: false,
+      conductBlockers: {
+        startDiscussion: [],
+        reviewBallot: [{ code: "nonVotingSubject" }],
+        adjourn: [],
+        complete: [],
+        updateNotes: [],
+      },
+      startedAt: null,
+      completedAt: null,
+      adjournedAt: null,
+    };
+    vi.spyOn(container.cradle.councilClient, "openAgendaItem").mockResolvedValue(item);
+    const memberId = randomUUID();
+    const result: AgendaItemRecusals = {
+      agendaItem: item,
+      recusals: [
+        {
+          id: randomUUID(),
+          agendaItemId: item.id,
+          councilMemberId: memberId,
+          legalBasis: "personalInterest",
+          declaredAt: "2026-11-12T18:00:00.000Z",
+          recordedAt: "2026-11-12T18:00:00.000Z",
+          recordedBy: "clerk",
+          memberName: "Jeanne Martin",
+        },
+      ],
+      eligibleParticipantAttendanceIds: [],
+      departedParticipantAttendanceIds: [],
+      canRecordRecusal: true,
+      canWithdrawRecusal: true,
+      quorumImpact: { excludedMemberIds: [memberId], denominatorReduction: 0, eligibleDeclaredPresentMemberIds: [] },
+      ballotChair: { councilMemberId: null, meetingAttendanceId: null, physicallyPresent: false, recused: false },
+    };
+    vi.spyOn(container.cradle.councilClient, "agendaItemRecusals").mockResolvedValue(result);
+    const withdraw = vi
+      .spyOn(container.cradle.councilClient, "withdrawAgendaItemRecusal")
+      .mockResolvedValue({ ...result, recusals: [], canWithdrawRecusal: false });
+    const base = `/api/council-meetings/${meeting.id}/agenda-items/${item.id}`;
+    const read = await agent.get(`${base}/recusals`).expect(200);
+    expect(read.body.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "agenda-item.withdraw-recusal",
+          method: "POST",
+          href: `${base}/recusal-withdrawal`,
+        }),
+      ]),
+    );
+    const withdrawn = await agent.post(`${base}/recusal-withdrawal`).send({ councilMemberId: memberId }).expect(200);
+    expect(withdraw).toHaveBeenLastCalledWith(item.id, { councilMemberId: memberId });
+    expect(agendaItemRecusalsSchema.parse(domainBody(withdrawn)).recusals).toEqual([]);
+    await agent.post(`${base}/recusal-withdrawal`).send({ councilMemberId: "member" }).expect(400);
+    expect(withdraw).toHaveBeenCalledTimes(1);
+    withdraw.mockRejectedValue(new DomainError("recusal_withdrawal_closed", 409));
+    const refused = await agent.post(`${base}/recusal-withdrawal`).send({ councilMemberId: memberId }).expect(409);
+    expect(refused.body.code).toBe("recusal_withdrawal_closed");
+    result.canWithdrawRecusal = false;
+    const unavailable = await agent.get(`${base}/recusals`).expect(200);
+    expect(unavailable.body.actions.map((action: { name: string }) => action.name)).not.toContain(
+      "agenda-item.withdraw-recusal",
+    );
   });
   it("requires authentication for recording a recusal", async () => {
     const { agent } = await createTestServer({ devAutoLogin: false });

@@ -50,6 +50,8 @@ import {
   recordMeetingOfficerChangeSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
+  type WithdrawAgendaItemRecusal,
+  withdrawAgendaItemRecusalSchema,
 } from "@hall/domain";
 import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
@@ -1107,6 +1109,27 @@ export class PostgresCouncil {
         const result = await callJson(client, {
           text: "SELECT hall_api.record_agenda_item_recusal($1::uuid, $2::uuid, $3::text) AS payload",
           values: [itemId, parsed.councilMemberId, parsed.legalBasis],
+          schema: postgresAgendaItemRecusalsSchema,
+        });
+        await recordAuditEvent(client, { targetType: "agenda-item", targetId: itemId, outcome: "succeeded" });
+        return result;
+      },
+    );
+  }
+
+  withdrawAgendaItemRecusal(
+    request: PostgresCouncilRequest,
+    id: string,
+    input: WithdrawAgendaItemRecusal,
+  ): Promise<PostgresAgendaItemRecusals> {
+    const itemId = resourceIdSchema.parse(id);
+    const parsed = withdrawAgendaItemRecusalSchema.parse(input);
+    return this.transactions.run(
+      { role: request.role, context: this.runContext(request, "agenda-item.withdraw-recusal") },
+      async (client) => {
+        const result = await callJson(client, {
+          text: "SELECT hall_api.withdraw_agenda_item_recusal($1::uuid, $2::uuid) AS payload",
+          values: [itemId, parsed.councilMemberId],
           schema: postgresAgendaItemRecusalsSchema,
         });
         await recordAuditEvent(client, { targetType: "agenda-item", targetId: itemId, outcome: "succeeded" });

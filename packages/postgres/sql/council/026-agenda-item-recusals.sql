@@ -30,6 +30,22 @@ DECLARE
   target_meeting UUID;
   item hall.council_agenda_item;
 BEGIN
+  IF TG_OP = 'DELETE' THEN
+    -- @implements-requirement HALL-FR-AGI-430
+    -- A withdrawal erases the declaration while the meeting is open and no
+    -- ballot result is recorded for the occurrence.
+    PERFORM 1 FROM hall.council_meetings meeting JOIN hall.council_agenda_item occurrence
+      ON occurrence.council_meeting = meeting.id
+      WHERE occurrence.id = OLD.agenda_item AND meeting.closed_at IS NULL FOR UPDATE OF meeting;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION USING ERRCODE = 'HV239', MESSAGE = 'the recusal can no longer be withdrawn';
+    END IF;
+    PERFORM 1 FROM hall.council_agenda_item WHERE id = OLD.agenda_item FOR UPDATE;
+    IF EXISTS(SELECT FROM hall.ballots WHERE council_agenda_item = OLD.agenda_item) THEN
+      RAISE EXCEPTION USING ERRCODE = 'HV239', MESSAGE = 'the recusal can no longer be withdrawn';
+    END IF;
+    RETURN OLD;
+  END IF;
   IF TG_OP <> 'INSERT' THEN
     RAISE EXCEPTION USING ERRCODE = 'HV231', MESSAGE = 'agenda item recusals are immutable';
   END IF;
@@ -143,7 +159,10 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
           AND NOT EXISTS(SELECT FROM hall.agenda_item_recusal r
             WHERE r.agenda_item = target_item AND r.council_member = a.council_member)), '[]'::jsonb)),
     'canRecordRecusal', item.position > 0 AND item.completed_at IS NULL AND item.adjourned_at IS NULL
-      AND meeting.closed_at IS NULL AND NOT EXISTS(SELECT FROM hall.ballots WHERE council_agenda_item = item.id)
+      AND meeting.closed_at IS NULL AND NOT EXISTS(SELECT FROM hall.ballots WHERE council_agenda_item = item.id),
+    'canWithdrawRecusal', meeting.closed_at IS NULL
+      AND NOT EXISTS(SELECT FROM hall.ballots WHERE council_agenda_item = item.id)
+      AND EXISTS(SELECT FROM hall.agenda_item_recusal r WHERE r.agenda_item = item.id)
   ) FROM hall.council_agenda_item item JOIN hall.council_meetings meeting ON meeting.id = item.council_meeting
   WHERE item.id = target_item;
 $$;

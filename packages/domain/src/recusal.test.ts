@@ -44,6 +44,7 @@ describe("agenda item recusal", () => {
       departedParticipantAttendanceIds: [],
       quorumImpact: { excludedMemberIds: [memberId], denominatorReduction: 1, eligibleDeclaredPresentMemberIds: [] },
       canRecordRecusal: false,
+      canWithdrawRecusal: false,
     };
     expect(agendaItemRecusalStateSchema.parse(state)).toEqual(state);
     expect(() =>

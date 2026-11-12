@@ -11,6 +11,13 @@ export const recordAgendaItemRecusalSchema = z
   .strict();
 export type RecordAgendaItemRecusal = z.infer<typeof recordAgendaItemRecusalSchema>;
 
+export const withdrawAgendaItemRecusalSchema = z
+  .object({
+    councilMemberId: z.uuid(),
+  })
+  .strict();
+export type WithdrawAgendaItemRecusal = z.infer<typeof withdrawAgendaItemRecusalSchema>;
+
 export const agendaItemRecusalSchema = recordAgendaItemRecusalSchema.extend({
   declaredAt: z.iso.datetime({ offset: true }),
   id: z.uuid(),
@@ -33,6 +40,7 @@ export const agendaItemRecusalStateSchema = z
       })
       .strict(),
     canRecordRecusal: z.boolean(),
+    canWithdrawRecusal: z.boolean(),
   })
   .strict();
 

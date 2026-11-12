@@ -1088,15 +1088,15 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "Déclaration immuable par membre et occurrence, contexte d’audit et copie du nom.",
+      "statement": "Déclaration par membre et occurrence, jamais réécrite, avec contexte d’audit et copie du nom ; seul son retrait avant le résultat du scrutin la supprime.",
       "acceptanceCriteria": [
-        "Déclaration immuable par membre et occurrence, contexte d’audit et copie du nom : P"
+        "Déclaration par membre et occurrence, jamais réécrite, avec contexte d’audit et copie du nom ; seul son retrait avant le résultat du scrutin la supprime : P"
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Déclaration immuable par membre et occurrence, contexte d’audit et copie du nom : P",
+          "statement": "Déclaration par membre et occurrence, jamais réécrite, avec contexte d’audit et copie du nom ; seul son retrait avant le résultat du scrutin la supprime : P",
           "sourceIds": []
         }
       ]
@@ -10091,6 +10091,29 @@
           "key": "refusal",
           "origin": "product",
           "statement": "Hall refuse avec un code dédié le déport d’un membre dont la présence courante n’est ni « présent » ni « représenté » ; le déport d’un membre représenté par pouvoir reste accepté.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-AGI-430": {
+      "name": "RECUSAL_CAN_BE_WITHDRAWN_BEFORE_BALLOT_RESULT",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-12"
+      },
+      "statement": "Un déport enregistré sur un point peut être retiré tant qu’aucun résultat de scrutin n’est enregistré pour ce point et que la séance n’est pas close ; le membre redevient alors votant du point comme si le déport n’avait pas été déclaré.",
+      "acceptanceCriteria": [
+        "Une personne autorisée à déclarer un déport peut retirer un déport enregistré sur un point tant qu’aucun résultat de scrutin n’est enregistré pour ce point et que la séance n’est pas close ; Hall propose alors l’action de retrait sur l’état des déports du point.",
+        "Le retrait supprime la déclaration sans autre trace : le membre redevient votant du point, compte de nouveau parmi les présents admissibles et dans l’effectif selon les règles existantes, et peut de nouveau être déclaré en déport.",
+        "Des votes nominatifs déjà pointés pour le scrutin encore ouvert n’empêchent pas le retrait ; le membre réapparaît parmi les votants à pointer.",
+        "Une fois le résultat du scrutin du point enregistré ou la séance close, Hall ne propose plus le retrait et refuse toute demande de retrait avec le code HV239."
+      ],
+      "clauses": [
+        {
+          "key": "withdrawal",
+          "origin": "product",
+          "statement": "Décision du coordinateur du 12 novembre 2026, sur le besoin exprimé en séance après un déport déclaré par erreur. Mots de l’utilisateur : « je me suis mis en déport mais on peut pas me retirer de la liste. […] on peut pas annuler. Je peux pas enlever un déport. »",
           "sourceIds": []
         }
       ]

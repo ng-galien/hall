@@ -49,7 +49,7 @@ SELECT is(agenda_item_recusal_state(test_uuid('r:agenda-item'))->'eligiblePartic
  (SELECT jsonb_agg(id ORDER BY id) FROM meeting_attendance WHERE id=ANY(ARRAY[test_uuid('r:att:1'),test_uuid('r:att:5'),test_uuid('r:att:6'),test_uuid('r:att:7')])), 'SQL participant list also excludes the recused proxy holder');
 SELECT is((SELECT recorded_by FROM agenda_item_recusal LIMIT 1),'recusal-clerk','actor is server context');
 SELECT throws_ok($$UPDATE agenda_item_recusal SET legal_basis='personalInterest'$$,'HV231',NULL,'no rewriting a qualification');
-SELECT throws_ok($$DELETE FROM agenda_item_recusal$$,'HV231',NULL,'no erasing the declaration');
+SELECT is(agenda_item_recusal_state(test_uuid('r:agenda-item'))->>'canWithdrawRecusal','true','a declaration can be withdrawn before any ballot result');
 SELECT throws_ok($$TRUNCATE agenda_item_recusal$$,'HV231',NULL,'truncate cannot erase declarations');
 INSERT INTO council_meetings (id) VALUES
 (test_uuid('another:meeting'));
@@ -79,6 +79,13 @@ SELECT throws_ok($$INSERT INTO agenda_item_recusal(agenda_item,council_member,le
 SELECT is(agenda_item_recusal_state(test_uuid('r:agenda-item'))->>'canRecordRecusal','false','API availability follows ballot boundary');
 SELECT record_secret_ballot_votes(id,0,0,1,0,0,3) FROM allowed_ballot;
 SELECT test_confirm_ballot(id,'2026-01-01 09:10Z') FROM allowed_ballot;
+
+-- @verifies-requirement HALL-FR-AGI-430
+SELECT throws_ok($$SELECT hall_api.withdraw_agenda_item_recusal(test_uuid('r:agenda-item'),test_uuid('r:member:2'))$$,
+ 'HV239',NULL,'a recorded ballot result keeps the declaration');
+SELECT throws_ok($$DELETE FROM agenda_item_recusal WHERE agenda_item=test_uuid('r:agenda-item')$$,
+ 'HV239',NULL,'no erasing a declaration once the result is recorded');
+SELECT is(agenda_item_recusal_state(test_uuid('r:agenda-item'))->>'canWithdrawRecusal','false','API availability of the withdrawal follows the ballot result');
 SELECT is((SELECT sum(count)::int FROM votes),1,'abstention remains one recorded choice, recusals add none');
 SELECT ok(NOT EXISTS(SELECT FROM votes WHERE ballot_participation IS NOT NULL),'secret votes have no member link');
 
@@ -92,5 +99,6 @@ SELECT ok(NOT EXISTS(SELECT FROM jsonb_array_elements(capture_minutes_facts(test
  WHERE r->>'memberName' LIKE 'Changed%'),'copied declaration identity survives directory changes');
 SELECT ok(NOT EXISTS(SELECT FROM jsonb_array_elements(capture_minutes_facts(test_uuid('r:meeting'))->'recusals') r
  WHERE r ? 'choice'),'nominative recusal evidence contains no secret choice');
+
 SELECT * FROM finish();
 ROLLBACK;

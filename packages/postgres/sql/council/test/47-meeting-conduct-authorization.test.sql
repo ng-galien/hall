@@ -137,6 +137,7 @@ SELECT set_eq($$SELECT action, access FROM hall.action_access$$, $$VALUES
  ('agenda-item.complete','agenda-item.conduct'),
  ('agenda-item.adjourn','agenda-item.conduct'),
  ('agenda-item.record-recusal','agenda-item.conduct'),
+ ('agenda-item.withdraw-recusal','agenda-item.conduct'),
  ('agenda-item.update-notes','agenda-item.conduct'),
  ('ballot.preview','ballot.record'),
  ('ballot.confirm','ballot.record'),

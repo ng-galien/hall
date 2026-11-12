@@ -96,6 +96,7 @@ const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV234: "recusal_occurrence_locked",
   HV305: "recused_member_cannot_participate",
   HV236: "recusal_member_not_present",
+  HV239: "recusal_withdrawal_closed",
   HV237: "agenda_item_notes_clear_unconfirmed",
   HV410: "ballot_chair_invalid",
   HV415: "ballot_officers_not_present",
@@ -494,6 +495,11 @@ export function createPostgresCouncilClient({
     async recordAgendaItemRecusal(id, input) {
       return agendaItemRecusalsSchema.parse(
         await call(() => postgresCouncil.recordAgendaItemRecusal(currentRequest(), id, input)),
+      );
+    },
+    async withdrawAgendaItemRecusal(id, input) {
+      return agendaItemRecusalsSchema.parse(
+        await call(() => postgresCouncil.withdrawAgendaItemRecusal(currentRequest(), id, input)),
       );
     },
     async listAgenda(meetingId) {

@@ -26,6 +26,7 @@ import {
   setCouncilMeetingOfficersSchema,
   startAgendaItemSchema,
   updateAgendaItemNotesSchema,
+  withdrawAgendaItemRecusalSchema,
 } from "@hall/api-contract";
 import { generateMeetingNoticeMessageSchema } from "@hall/contracts";
 import { Router } from "express";
@@ -549,6 +550,20 @@ export function createCouncilMeetingsRouter({
             councilClient.recordAgendaItemRecusal(item.id, recordAgendaItemRecusalSchema.parse(request.body)),
           ),
         );
+    },
+  );
+  router.post(
+    "/:meetingReference/agenda-items/:agendaItemId/recusal-withdrawal",
+    requireActionPermission("agenda-item.withdraw-recusal"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      const item = await requireMeetingAgendaItem(councilClient, meeting, routeParameter(request.params.agendaItemId));
+      response.locals.currentCouncilMeeting = meeting;
+      response.json(
+        await changeMeeting(meeting.id, () =>
+          councilClient.withdrawAgendaItemRecusal(item.id, withdrawAgendaItemRecusalSchema.parse(request.body)),
+        ),
+      );
     },
   );
 

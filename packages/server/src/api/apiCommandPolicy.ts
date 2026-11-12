@@ -137,6 +137,7 @@ export const apiCommandPolicies = {
   "meeting.reorder-agenda": { auditTargetType: "council-meeting" },
   "agenda-item.schedule": { auditTargetType: "agenda-item" },
   "agenda-item.record-recusal": { auditTargetType: "agenda-item" },
+  "agenda-item.withdraw-recusal": { auditTargetType: "agenda-item" },
   "agenda-item.adjourn": { auditTargetType: "agenda-item" },
   "agenda-item.deprogram": { auditTargetType: "agenda-item" },
   "agenda-item.reprogram": { auditTargetType: "agenda-item" },

@@ -478,3 +478,14 @@ BEGIN
   RETURN hall_api.agenda_item_recusals(target_item);
 END;
 $$;
+
+-- @implements-requirement HALL-FR-AGI-430
+-- The deletion trigger refuses the withdrawal once the meeting is closed or a
+-- ballot result is recorded; an absent declaration leaves the state unchanged.
+CREATE FUNCTION hall_api.withdraw_agenda_item_recusal(target_item UUID, target_member UUID)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+BEGIN
+  DELETE FROM hall.agenda_item_recusal WHERE agenda_item = target_item AND council_member = target_member;
+  RETURN hall_api.agenda_item_recusals(target_item);
+END;
+$$;

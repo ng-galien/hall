@@ -4,6 +4,7 @@ import type { Request, Response } from "express";
 const titles: Record<string, string> = {
   recusal_already_recorded: "A recusal is already recorded for this member and agenda item",
   recusal_recording_closed: "Recusal recording is closed for this agenda item",
+  recusal_withdrawal_closed: "The recusal can no longer be withdrawn for this agenda item",
   recusal_member_not_declared: "The member has no attendance declaration in this meeting",
   recused_member_cannot_participate: "A recused member cannot participate in this ballot",
   recusal_immutable: "A recorded recusal cannot be rewritten",

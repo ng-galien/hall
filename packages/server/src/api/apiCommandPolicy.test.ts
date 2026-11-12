@@ -91,6 +91,14 @@ const auditCases = [
     "agenda-item",
     "item-1",
   ],
+  [
+    "POST",
+    "/api/council-meetings/meeting-1/agenda-items/item-1/recusal-withdrawal",
+    undefined,
+    "agenda-item.withdraw-recusal",
+    "agenda-item",
+    "item-1",
+  ],
   ["PATCH", "/api/minutes/minutes-1/draft", undefined, "minutes.update-draft", "minutes", "minutes-1"],
   ["POST", "/api/minutes/minutes-1/generate", undefined, "minutes.generate", "minutes", "minutes-1"],
   [

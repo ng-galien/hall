@@ -275,7 +275,8 @@ GRANT EXECUTE ON FUNCTION hall_api.delete_resource(UUID)
   TO hall_api_authenticated, hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.agenda_item_recusals(UUID),
-  hall_api.record_agenda_item_recusal(UUID, UUID, TEXT)
+  hall_api.record_agenda_item_recusal(UUID, UUID, TEXT),
+  hall_api.withdraw_agenda_item_recusal(UUID, UUID)
   TO hall_api_authenticated, hall_api_worker;
 
 GRANT EXECUTE ON FUNCTION hall_api.list_ballot_non_participations(UUID) TO hall_api_authenticated,hall_api_worker;

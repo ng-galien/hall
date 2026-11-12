@@ -107,6 +107,8 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (id && child === "agenda-items" && childId) {
       if (method === "PATCH" && operation === "notes") return auditIntent("agenda-item.update-notes", childId);
       if (method === "POST" && operation === "recusals") return auditIntent("agenda-item.record-recusal", childId);
+      if (method === "POST" && operation === "recusal-withdrawal")
+        return auditIntent("agenda-item.withdraw-recusal", childId);
       if (method === "POST" && operation === "adjourn") return auditIntent("agenda-item.adjourn", childId);
       if (method === "POST" && operation === "start") return auditIntent("agenda-item.start", childId);
       if (method === "POST" && operation === "complete") return auditIntent("agenda-item.complete", childId);

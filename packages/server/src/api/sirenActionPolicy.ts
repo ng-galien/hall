@@ -660,16 +660,16 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
               ),
             ])
           : [];
-      const recusalActions =
-        value && typeof value === "object" && (value as Record<string, unknown>).canRecordRecusal === true
-          ? authorizedActions(request, [
-              action(
-                "agenda-item.record-recusal",
-                "POST",
-                `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary?.councilMeetingId}/agenda-items/${id}/recusals`,
-              ),
-            ])
-          : [];
+      const recusalState = value as Record<string, unknown>;
+      const recusalPath = `/api/council-meetings/${meetingReferenceFromRequest(request) ?? primary?.councilMeetingId}/agenda-items/${id}`;
+      const recusalActions = authorizedActions(request, [
+        ...(recusalState.canRecordRecusal === true
+          ? [action("agenda-item.record-recusal", "POST", `${recusalPath}/recusals`)]
+          : []),
+        ...(recusalState.canWithdrawRecusal === true
+          ? [action("agenda-item.withdraw-recusal", "POST", `${recusalPath}/recusal-withdrawal`)]
+          : []),
+      ]);
       return [...agendaItemActions(context), ...notes, ...recusalActions];
     },
     attendance: () => [],

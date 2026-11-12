@@ -44,6 +44,7 @@ import type {
   ScheduleCouncilMeeting,
   SetCouncilMeetingOfficers,
   StaleCouncilMeetingResult,
+  WithdrawAgendaItemRecusal,
 } from "@hall/api-contract";
 import type {
   CreatePreparedCouncilSubject,
@@ -166,6 +167,7 @@ export interface CouncilClient {
   recordAttendance(meetingId: string, input: RecordMeetingAttendance): Promise<MeetingAttendance[]>;
   agendaItemRecusals(id: string): Promise<AgendaItemRecusals>;
   recordAgendaItemRecusal(id: string, input: RecordAgendaItemRecusal): Promise<AgendaItemRecusals>;
+  withdrawAgendaItemRecusal(id: string, input: WithdrawAgendaItemRecusal): Promise<AgendaItemRecusals>;
   listAgenda(meetingId: string): Promise<AgendaItem[]>;
   openAgendaItem(id: string): Promise<AgendaItem | null>;
   scheduleAgendaItem(meetingId: string, input: ScheduleAgendaItem): Promise<AgendaItem>;
