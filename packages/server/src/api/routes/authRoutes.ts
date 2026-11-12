@@ -3,11 +3,15 @@ import {
   assignUserRolesSchema,
   bootstrapUserSchema,
   changePasswordSchema,
+  completePasswordLinkSchema,
   createUserSchema,
   loginSchema,
+  openPasswordLinkSchema,
+  requestPasswordLinkSchema,
   resetPasswordSchema,
   SIREN_MEDIA_TYPE,
   type SirenEntity,
+  sendPasswordLinkSchema,
   updateUserSchema,
 } from "@hall/api-contract";
 import { type Request, Router } from "express";
@@ -43,7 +47,9 @@ function clearedCookie(secure: boolean): string {
     .join("; ");
 }
 
-export function createAuthRouter({ authService, config }: Cradle): Router {
+// @implements-requirement HALL-FR-USR-080 (a password-link request answers the same for a known, unknown or disabled
+// address, and its email leaves after the response)
+export function createAuthRouter({ authService, config, passwordLinkService }: Cradle): Router {
   const router = Router();
   type Attempt = { failures: number; expiresAt: number; blockedUntil: number };
   const ipAttempts = new Map<string, Attempt>();
@@ -147,6 +153,25 @@ export function createAuthRouter({ authService, config }: Cradle): Router {
                     href: "/api/auth/login",
                     type: "application/json",
                   },
+              ...(bootstrapRequired
+                ? []
+                : (
+                    [
+                      ["session.request-password-link", "Request a password link", "/api/auth/password-links"],
+                      ["session.open-password-link", "Open a password link", "/api/auth/password-links/open"],
+                      [
+                        "session.complete-password-link",
+                        "Record the password of a link",
+                        "/api/auth/password-links/complete",
+                      ],
+                    ] as const
+                  ).map(([name, title, href]) => ({
+                    name,
+                    title,
+                    method: "POST" as const,
+                    href,
+                    type: "application/json",
+                  }))),
             ],
       links: [{ rel: ["self"], href: "/api/auth/status", type: SIREN_MEDIA_TYPE }],
     };
@@ -219,6 +244,25 @@ export function createAuthRouter({ authService, config }: Cradle): Router {
     response.status(204).end();
   });
 
+  router.post("/password-links", async (request, response) => {
+    const { email } = requestPasswordLinkSchema.parse(request.body);
+    passwordLinkService.inBackground(() => passwordLinkService.requestRecovery(email));
+    response.status(204).end();
+  });
+
+  router.post("/password-links/open", async (request, response) => {
+    const { token } = openPasswordLinkSchema.parse(request.body);
+    response.set("Cache-Control", "no-store");
+    response.json(await passwordLinkService.open(token));
+  });
+
+  router.post("/password-links/complete", async (request, response) => {
+    const { token, newPassword } = completePasswordLinkSchema.parse(request.body);
+    await passwordLinkService.complete(token, newPassword);
+    response.setHeader("Set-Cookie", clearedCookie(config.behindTlsProxy === true));
+    response.status(204).end();
+  });
+
   router.get("/session", requireAuthentication, async (request, response) => {
     response.json(request.principal);
   });
@@ -226,6 +270,7 @@ export function createAuthRouter({ authService, config }: Cradle): Router {
   return router;
 }
 
+// @implements-requirement HALL-FR-USR-080 (an account manager sends a password link to the address of an account)
 export function createUsersRouter({ authService }: Cradle): Router {
   const router = Router();
   router.get("/:userId", requireAuthentication, async (request, response) => {
@@ -258,6 +303,19 @@ export function createUsersRouter({ authService }: Cradle): Router {
     await authService.resetPassword(routeParameter(request.params.userId), newPassword, passwordChangeRequired);
     response.status(204).end();
   });
+  router.post(
+    "/:userId/password-links",
+    requireActionPermission("user.send-password-link"),
+    async (request, response) => {
+      const userId = routeParameter(request.params.userId);
+      const { purpose } = sendPasswordLinkSchema.parse(request.body);
+      const delivery = await authService.sendPasswordLink(userId, purpose);
+      if (delivery === "too_frequent") throw new DomainError("password_link_too_frequent", 429);
+      if (delivery === "not_found") throw new DomainError("user_not_found", 404);
+      if (delivery === "inactive") throw new DomainError("conflict", 409);
+      response.json(await authService.getUser(userId));
+    },
+  );
   router.put("/:userId/roles", requireActionPermission("user.assign-role"), async (request, response) => {
     const { roles } = assignUserRolesSchema.parse(request.body);
     response.json(await authService.assignRoles(routeParameter(request.params.userId), roles));

@@ -154,7 +154,12 @@ postgres("role matrix decided by PostgreSQL", () => {
     const mapped = (await pool.query<{ action: string }>("SELECT action FROM hall.action_access")).rows.map(
       (row) => row.action,
     );
-    const anonymous = new Set(["session.login"]);
+    const anonymous = new Set([
+      "session.login",
+      "session.request-password-link",
+      "session.open-password-link",
+      "session.complete-password-link",
+    ]);
     expect(apiActionNames.filter((action) => !anonymous.has(action) && !mapped.includes(action))).toEqual([]);
   });
 

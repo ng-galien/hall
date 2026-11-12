@@ -127,6 +127,9 @@ export function requirePasswordReplacement(request: Request, response: Response,
     "GET /api/auth/session",
     "POST /api/auth/change-password",
     "POST /api/auth/logout",
+    "POST /api/auth/password-links",
+    "POST /api/auth/password-links/open",
+    "POST /api/auth/password-links/complete",
   ]);
   const path = request.originalUrl.split("?", 1)[0]?.replace(/\/+$/, "");
   if (request.principal?.passwordChangeRequired && !allowed.has(`${request.method} ${path}`)) {

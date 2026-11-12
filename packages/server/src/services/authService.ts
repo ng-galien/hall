@@ -10,6 +10,7 @@ import { generatePassphrase } from "../security/passphrase.js";
 import { hashPassword, verifyPassword } from "../security/password.js";
 import type { RequestContextStore } from "../security/requestContext.js";
 import { DomainError } from "./errors.js";
+import type { PasswordLinkDelivery, PasswordLinkService } from "./passwordLinkService.js";
 
 const sessionDurationMs = 12 * 60 * 60 * 1000;
 const dummyPasswordHash = `scrypt$32768$8$1$${Buffer.alloc(16).toString("base64")}$${Buffer.alloc(32).toString("base64")}`;
@@ -49,7 +50,7 @@ export interface AuthService {
   createUser(input: {
     email: string;
     displayName: string;
-    password: string;
+    password?: string;
     passwordChangeRequired?: boolean;
     roles: ApiRole[];
     contactId: string | null;
@@ -62,11 +63,14 @@ export interface AuthService {
   changePassword(userId: string, currentPassword: string | undefined, newPassword: string): Promise<void>;
   resetPassword(userId: string, newPassword: string, passwordChangeRequired?: boolean): Promise<void>;
   disableUser(userId: string): Promise<ApiUser>;
+  sendPasswordLink(userId: string, purpose: "invitation" | "recovery"): Promise<PasswordLinkDelivery>;
   reactivateUser(userId: string): Promise<{ user: ApiUser; passphrase: string }>;
   endCouncillorAccess(contactId: string): Promise<void>;
 }
 
 // @implements-requirement HALL-FR-USR-070
+// @implements-requirement HALL-FR-USR-080 (createUser without a password sends the invitation; every password change
+// is confirmed to the holder by email)
 // @implements-requirement HALL-FR-DIR-150 (provisionCouncillor: the folder and the account live in two transactions,
 // ordered to fail on the safe side: the idempotent folder is provisioned first, then the role is recorded; a retry
 // reuses the folder. PostgreSQL refuses a contact without an active mandate.)
@@ -79,7 +83,9 @@ export function createAuthService({
   resourcesClient,
   unitOfWork,
   requestContext,
+  passwordLinkService,
 }: {
+  passwordLinkService: PasswordLinkService;
   securityRepository: SecurityRepository;
   authorizationAdministrationClient: AuthorizationAdministrationClient;
   directoryClient: DirectoryClient;
@@ -99,6 +105,9 @@ export function createAuthService({
     if (!contactId) throw new DomainError("councillor_requires_active_member", 422);
     await resourcesClient.provisionPersonalWorkspace(contactId);
   };
+
+  const confirmPasswordChange = (user: Pick<StoredUser, "id" | "email" | "displayName">) =>
+    passwordLinkService.inBackground(() => passwordLinkService.notifyPasswordChanged(user));
 
   const replacePassword = async (
     userId: string,
@@ -132,6 +141,7 @@ export function createAuthService({
         throw new DomainError("conflict", 409);
       }
     });
+    confirmPasswordChange(user);
   };
 
   return {
@@ -201,9 +211,18 @@ export function createAuthService({
     async createUser(input) {
       await validateContact(input.contactId);
       await provisionCouncillor(input.roles, input.contactId);
-      const passwordHash = await hashPassword(input.password);
-      const created = await unitOfWork.execute(() => securityRepository.createUser({ ...input, passwordHash }));
-      return publicUserWithProtection(created, securityRepository);
+      const invitation = input.password === undefined;
+      const passwordHash = await hashPassword(input.password ?? randomBytes(32).toString("base64url"));
+      const created = await unitOfWork.execute(() =>
+        securityRepository.createUser({
+          ...input,
+          passwordHash,
+          passwordChangeRequired: invitation ? false : input.passwordChangeRequired,
+        }),
+      );
+      if (!invitation) return publicUserWithProtection(created, securityRepository);
+      await passwordLinkService.sendLink(created.id, "invitation");
+      return this.getUser(created.id);
     },
     async updateUser(userId, input) {
       await validateContact(input.contactId);
@@ -259,12 +278,18 @@ export function createAuthService({
       await provisionCouncillor(target.roles, target.contactId);
       const passphrase = generatePassphrase();
       const passwordHash = await hashPassword(passphrase);
-      return unitOfWork.execute(async () => {
-        const reactivated = await securityRepository.reactivateUser(userId, passwordHash);
-        if (!reactivated) throw new DomainError("conflict", 409);
-        return { user: await publicUserWithProtection(reactivated, securityRepository), passphrase };
-      });
+      return unitOfWork
+        .execute(async () => {
+          const reactivated = await securityRepository.reactivateUser(userId, passwordHash);
+          if (!reactivated) throw new DomainError("conflict", 409);
+          return { user: await publicUserWithProtection(reactivated, securityRepository), passphrase };
+        })
+        .then((result) => {
+          confirmPasswordChange(target);
+          return result;
+        });
     },
+    sendPasswordLink: (userId, purpose) => passwordLinkService.sendLink(userId, purpose),
     disableUser(userId) {
       return unitOfWork.execute(async () => {
         await securityRepository.lockAdministratorInvariant();

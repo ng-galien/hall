@@ -53,6 +53,8 @@ export type ErrorCode =
   | "authentication_required"
   | "password_change_required"
   | "password_must_differ"
+  | "password_link_unusable"
+  | "password_link_too_frequent"
   | "invalid_current_password"
   | "ballot_already_recorded"
   | "ballot_not_found"

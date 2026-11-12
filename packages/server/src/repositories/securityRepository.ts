@@ -1,4 +1,15 @@
-import { type ApiRole, type ApiUser, apiRoleSchema, apiUserStatusSchema } from "@hall/api-contract";
+import {
+  type AccountMailKind,
+  type AccountMailOutcome,
+  type ApiRole,
+  type ApiUser,
+  accountMailKindSchema,
+  accountMailOutcomeSchema,
+  apiRoleSchema,
+  apiUserStatusSchema,
+  type PasswordLinkPurpose,
+  passwordLinkPurposeSchema,
+} from "@hall/api-contract";
 import { identifierSchema } from "@hall/domain";
 import type { PostgresClient } from "@hall/postgres";
 import { z } from "zod";
@@ -41,10 +52,58 @@ function mapUser(row: DatabaseRow): StoredUser {
     passwordChangeRequired: z.boolean().parse(row.password_change_required),
     contactId: identifierSchema.nullable().parse(row.contact_id),
     roles: z.array(apiRoleSchema).parse(row.roles),
+    accountMail: accountMailSchema.parse(row.account_mail ?? null),
     createdAt: asString(row.created_at, "security_user.created_at"),
     updatedAt: asString(row.updated_at, "security_user.updated_at"),
   };
 }
+
+const accountMailSchema = z
+  .object({ kind: accountMailKindSchema, outcome: accountMailOutcomeSchema, sent_at: z.string() })
+  .transform(({ kind, outcome, sent_at }) => ({ kind, outcome, sentAt: sent_at }))
+  .nullable();
+
+const issuedPasswordLinkSchema = z.discriminatedUnion("outcome", [
+  z
+    .object({
+      outcome: z.literal("issued"),
+      purpose: passwordLinkPurposeSchema,
+      expires_at: z.string(),
+      email: z.string(),
+      display_name: z.string(),
+    })
+    .transform(({ outcome, purpose, expires_at, email, display_name }) => ({
+      outcome,
+      purpose,
+      expiresAt: expires_at,
+      email,
+      displayName: display_name,
+    })),
+  z.object({ outcome: z.enum(["too_frequent", "inactive", "not_found"]) }),
+]);
+export type IssuedPasswordLink = z.infer<typeof issuedPasswordLinkSchema>;
+
+const openedPasswordLinkSchema = z
+  .object({ purpose: passwordLinkPurposeSchema, email: z.string(), user_id: identifierSchema })
+  .transform(({ purpose, email, user_id }) => ({ purpose, email, userId: user_id }))
+  .nullable();
+
+const accountMailSenderSchema = z
+  .object({
+    name: z.string(),
+    sender_name: z.string(),
+    sender_address: z.string().nullable(),
+    reply_to_address: z.string().nullable(),
+    time_zone: z.string(),
+  })
+  .transform((row) => ({
+    communeName: row.name,
+    senderName: row.sender_name,
+    senderAddress: row.sender_address,
+    replyToAddress: row.reply_to_address,
+    timeZone: row.time_zone,
+  }));
+export type AccountMailSender = z.infer<typeof accountMailSenderSchema>;
 
 const optionalUser = (row: DatabaseRow | null) => (row ? mapUser(row) : null);
 const isIdentifier = (value: string) => identifierSchema.safeParse(value).success;
@@ -148,6 +207,37 @@ export function createSecurityRepository({
     async disableUser(id: string) {
       if (!isIdentifier(id)) return null;
       return optionalUser(await administrationCall(() => administration.disableUser(request(), id)));
+    },
+    async issuePasswordLink(userId: string, purpose: PasswordLinkPurpose, tokenHash: string, issuedAt: Date) {
+      if (!isIdentifier(userId)) return { outcome: "not_found" as const };
+      return issuedPasswordLinkSchema.parse(
+        await administrationCall(() =>
+          administration.issuePasswordLink(request(), userId, purpose, tokenHash, issuedAt.toISOString()),
+        ),
+      );
+    },
+    async openPasswordLink(tokenHash: string, openedAt: Date) {
+      return openedPasswordLinkSchema.parse(
+        await administrationCall(() => administration.openPasswordLink(request(), tokenHash, openedAt.toISOString())),
+      );
+    },
+    async completePasswordLink(tokenHash: string, passwordHash: string, completedAt: Date) {
+      return optionalUser(
+        await administrationCall(() =>
+          administration.completePasswordLink(request(), tokenHash, passwordHash, completedAt.toISOString()),
+        ),
+      );
+    },
+    recordAccountMail(
+      userId: string,
+      mail: { kind: AccountMailKind; outcome: AccountMailOutcome; failureCode: string | null; sentAt: Date },
+    ) {
+      return administrationCall(() =>
+        administration.recordAccountMail(request(), userId, { ...mail, sentAt: mail.sentAt.toISOString() }),
+      );
+    },
+    async accountMailSender() {
+      return accountMailSenderSchema.parse(await administrationCall(() => administration.accountMailSender(request())));
     },
     async createSession(userId: string, tokenHash: string, expiresAt: string) {
       const row = await administrationCall(() => administration.createSession(request(), userId, tokenHash, expiresAt));

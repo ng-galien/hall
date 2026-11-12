@@ -124,6 +124,9 @@ HALL_ALLOWED_ORIGINS=http://127.0.0.1:3100
 HALL_LOG_FILE=C:\Hall\logs\hall.log
 ```
 
+Account emails build their password links from `HALL_PUBLIC_ORIGIN`, the exact origin people use to reach Hall
+(see [outbound mail](outbound-mail.md#account-emails)); without it, Hall records each account email as failed.
+
 `HALL_LOG_FILE` keeps the Hall log, and `backup.log` beside it, in `C:\Hall\logs`;
 without it they go to `C:\Hall\config\logs`.
 

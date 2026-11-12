@@ -60,6 +60,12 @@ MCP tools are `mail_discover`, `mail_read`, `mail_execute` and `mail_send`. Prep
 
 An agent must never invent an Outlook verification from a timeout. It records a result only after an authorized person or the user has actually checked Outlook.
 
+## Account emails
+
+Hall sends three account emails through the same injected transport and sender settings: « Votre accès à Hall » when an account is created without a hand-delivered password, « Réinitialiser votre mot de passe Hall » for a forgotten password or a link sent from a user page, and « Votre mot de passe Hall a été modifié » after a password change. They are not stored in the shared mailbox; the user page shows only the kind, date and outcome of the latest one (`HALL-FR-USR-080`, `HALL-FR-USR-090`).
+
+`HALL_PUBLIC_ORIGIN` is the exact origin people use to reach Hall, for example `https://hall.example.org`. Links have the form `<origin>/app/password-link#<secret>`; the secret stays in the fragment, so no HTTP request or log carries it. Without `HALL_PUBLIC_ORIGIN`, no account email is sent and the failure `public_origin_not_configured` is recorded. Development defaults to `http://localhost:5174`.
+
 ## Outlook configuration and verification boundary
 
 `HALL_EMAIL_TRANSPORT=outlook` selects the adapter. The default is disabled. The sender and reply address use existing Hall mail settings. The adapter selects the exact classic Outlook SMTP account; it never falls back to another account.

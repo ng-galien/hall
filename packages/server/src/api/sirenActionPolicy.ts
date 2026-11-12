@@ -824,6 +824,11 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
         action("user.reset-password", "POST", `/api/users/${id}/reset-password`, "Reset password"),
         action("user.assign-role", "PUT", `/api/users/${id}/roles`, "Assign roles"),
       ];
+      if (primary?.status === "active") {
+        actions.push(
+          action("user.send-password-link", "POST", `/api/users/${id}/password-links`, "Send a password link"),
+        );
+      }
       if (!primary?.protectedFromDisable && primary?.status === "active") {
         actions.push(action("user.disable", "POST", `/api/users/${id}/disable`, "Disable the user"));
         actions.push(action("user.revoke-access", "POST", `/api/users/${id}/revoke-access`, "Revoke the access"));

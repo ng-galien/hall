@@ -272,6 +272,8 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     if (method === "PUT" && id && !child) return auditIntent("user.update", id, body && { contactId: body.contactId });
     if (method === "POST" && id && child === "reset-password" && !childId)
       return auditIntent("user.reset-password", id);
+    if (method === "POST" && id && child === "password-links" && !childId)
+      return auditIntent("user.send-password-link", id);
     if (method === "POST" && id === "passphrases" && !child) return auditIntent("user.generate-passphrase");
     if (method === "POST" && !id)
       return auditIntent(
@@ -299,6 +301,11 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
     return null;
   }
   if (root === "auth") {
+    if (method === "POST" && id === "password-links" && !childId) {
+      if (!child) return auditIntent("session.request-password-link");
+      if (child === "complete") return auditIntent("session.complete-password-link");
+      return null;
+    }
     if (method !== "POST" || child) return null;
     if (id === "bootstrap") return auditIntent("session.bootstrap");
     if (id === "login") return auditIntent("session.login");

@@ -503,6 +503,9 @@ const auditCases = [
   ["POST", "/api/users/user-1/disable", undefined, "user.disable", "user", "user-1"],
   ["POST", "/api/users/user-1/revoke-access", undefined, "user.revoke-access", "user", "user-1"],
   ["POST", "/api/users/user-1/reactivate", undefined, "user.reactivate", "user", "user-1"],
+  ["POST", "/api/users/user-1/password-links", { purpose: "recovery" }, "user.send-password-link", "user", "user-1"],
+  ["POST", "/api/auth/password-links", { email: "a@example.test" }, "session.request-password-link", "user", undefined],
+  ["POST", "/api/auth/password-links/complete", undefined, "session.complete-password-link", "user", undefined],
   ["POST", "/api/users/passphrases", undefined, "user.generate-passphrase", "user", undefined],
   ["PUT", "/api/settings", undefined, "settings.update", "hall-settings", "hall"],
   ["POST", "/api/templates", undefined, "template.create", "template", undefined],
@@ -516,6 +519,7 @@ const nonAuditedCommandCases = [
   ["POST", "/api/resources/legal-references/search"],
   ["POST", "/api/resources/spreadsheets/table"],
   ["POST", "/api/templates/preview-pdf"],
+  ["POST", "/api/auth/password-links/open"],
 ] as const;
 
 // @verifies-requirement HALL-FR-WSP-390

@@ -18,6 +18,8 @@ export interface ServerConfig {
   legifranceClientSecret?: string;
   officialSourceTimeoutMs?: number;
   officialSourceMaximumBytes?: number;
+  /** The exact origin people use to reach Hall; account emails build their links from it. */
+  publicOrigin?: string;
   emailTransport?: "disabled" | "outlook";
   emailTransportTimeoutMs?: number;
 }
@@ -57,6 +59,8 @@ export function configFromEnvironment(): ServerConfig {
         ? ["http://localhost:5174", "http://127.0.0.1:5174"]
         : [],
     environment,
+    publicOrigin:
+      process.env.HALL_PUBLIC_ORIGIN ?? (environment === "development" ? "http://localhost:5174" : undefined),
     emailTransport: process.env.HALL_EMAIL_TRANSPORT === "outlook" ? "outlook" : "disabled",
     emailTransportTimeoutMs: 60_000,
     version: process.env.HALL_RELEASE_ID ?? process.env.npm_package_version,
@@ -99,6 +103,17 @@ export function validateServerConfig(config: ServerConfig): void {
       throw new Error(
         `HALL_DOCUMENTATION_PRINT_ORIGIN must be an exact HTTP(S) origin: ${config.documentationPrintOrigin}`,
       );
+    }
+  }
+  if (config.publicOrigin) {
+    let parsed: URL | null = null;
+    try {
+      parsed = new URL(config.publicOrigin);
+    } catch {
+      parsed = null;
+    }
+    if (!parsed || !["http:", "https:"].includes(parsed.protocol) || parsed.origin !== config.publicOrigin) {
+      throw new Error(`HALL_PUBLIC_ORIGIN must be an exact HTTP(S) origin: ${config.publicOrigin}`);
     }
   }
   if (!isLoopbackHost(config.host) && !config.behindTlsProxy) {

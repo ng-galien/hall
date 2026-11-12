@@ -73,12 +73,14 @@ import {
 import { createMeetingDossierService, type MeetingDossierService } from "../services/meetingDossierService.js";
 import { createMeetingNoticeService, type MeetingNoticeService } from "../services/meetingNoticeService.js";
 import { createMinutesService, type MinutesService } from "../services/minutesService.js";
+import { createPasswordLinkService, type PasswordLinkService } from "../services/passwordLinkService.js";
 import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../services/referenceEntityResolver.js";
 import {
   createTemplatePreviewContextService,
   type TemplatePreviewContextService,
 } from "../services/templatePreviewContextService.js";
 import { createTemplateRenderingService, type TemplateRenderingService } from "../services/templateRendering.js";
+import { type Clock, systemClock } from "./clock.js";
 import type { ServerConfig } from "./config.js";
 
 export interface ServerCompositionOptions {
@@ -88,7 +90,9 @@ export interface ServerCompositionOptions {
 
 export interface Cradle {
   config: ServerConfig;
+  clock: Clock;
   emailTransport: EmailTransport;
+  passwordLinkService: PasswordLinkService;
   mailRepository: MailRepository;
   mailService: MailService;
   postgresPool: Pool;
@@ -146,7 +150,9 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
   const container = createContainer<Cradle>({ injectionMode: InjectionMode.PROXY, strict: true });
   container.register({
     config: asValue(config),
+    clock: asValue(systemClock),
     emailTransport: asFunction(createEmailTransport).singleton(),
+    passwordLinkService: asFunction(createPasswordLinkService).singleton(),
     mailRepository: asFunction(createMailRepository).singleton(),
     mailService: asFunction(createMailService).singleton(),
     postgresPool: asFunction(({ config }: { config: ServerConfig }) =>

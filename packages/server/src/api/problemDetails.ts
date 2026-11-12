@@ -22,6 +22,8 @@ const titles: Record<string, string> = {
   invalid_credentials: "Invalid credentials",
   password_change_required: "A personal password must be chosen before using Hall",
   password_must_differ: "The new password must differ from the temporary password",
+  password_link_unusable: "This password link is no longer usable",
+  password_link_too_frequent: "A password link was requested too recently for this account",
   invalid_current_password: "Current password is incorrect",
   invalid_request: "Invalid request",
   unsupported_document_format: "Unsupported document format",

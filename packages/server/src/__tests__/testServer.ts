@@ -4,6 +4,7 @@ import request from "supertest";
 import { onTestFinished } from "vitest";
 import { createHttpApplication } from "../api/application.js";
 import type { CouncilDecisionClient } from "../clients/councilDecisionClient.js";
+import type { Clock } from "../core/clock.js";
 import type { ServerConfig } from "../core/config.js";
 import { buildContainer } from "../core/container.js";
 import { startHttpServer } from "../server.js";
@@ -136,6 +137,7 @@ export async function createTestServer(
     documentPreviewConverter?: DocumentPreviewConverter;
     legalReferenceProvider?: LegalReferenceProvider;
     emailTransport?: EmailTransport;
+    clock?: Clock;
     expectedCouncilMemberCount?: number | null;
     realClients?: boolean;
     config?: Partial<ServerConfig>;
@@ -174,6 +176,7 @@ export async function createTestServer(
     });
   }
   if (options.emailTransport) container.register({ emailTransport: asValue(options.emailTransport) });
+  if (options.clock) container.register({ clock: asValue(options.clock) });
   if (options.documentPreviewConverter) {
     container.register({ documentPreviewConverter: asValue(options.documentPreviewConverter) });
   }
