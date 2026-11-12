@@ -9,7 +9,7 @@ import {
   useCollectionView,
 } from "../../components/Ui";
 import { ListRow, ListRowDate, ListRowIcon, ListRows } from "../../components/ui/list-row";
-import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
+import { formatMeetingLabel, formatMeetingName } from "../../features/council-meetings/meetingPresentation";
 import { useMeetingRowStatus } from "../../features/status/DomainStatusBadge";
 import { useI18n } from "../../i18n/I18nProvider";
 import {
@@ -28,6 +28,9 @@ export function CouncilMeetingsPage() {
   const meetingStatus = useMeetingRowStatus();
   const meetingLabel = (meeting: CouncilMeetingView) =>
     formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate);
+
+  const meetingRowTitle = (meeting: CouncilMeetingView) =>
+    meeting.scheduledAt ? formatMeetingName(meeting, t("meetings.occurrenceLabel")) : meetingLabel(meeting);
 
   const upcomingMeetings = upcomingCouncilMeetings(meetings);
   const nextMeeting = upcomingMeetings[0] ?? null;
@@ -51,7 +54,7 @@ export function CouncilMeetingsPage() {
               to={`/meetings/${nextMeeting.reference}`}
               openTestId="meeting-next"
               head={<MeetingDateHead meeting={nextMeeting} />}
-              title={meetingLabel(nextMeeting)}
+              title={meetingRowTitle(nextMeeting)}
               detail={[
                 t("dashboard.nextMeeting"),
                 nextMeeting.scheduledAt ? formatMeetingTime(nextMeeting.scheduledAt) : t("dashboard.toSchedule"),
@@ -75,7 +78,7 @@ export function CouncilMeetingsPage() {
                 title={t("meetings.upcoming")}
                 meetings={visibleUpcoming}
                 formatDateTime={formatMeetingTime}
-                meetingLabel={meetingLabel}
+                meetingLabel={meetingRowTitle}
               />
             ) : null}
             {pastMeetings.length > 0 ? (
@@ -83,7 +86,7 @@ export function CouncilMeetingsPage() {
                 title={t("meetings.past")}
                 meetings={pastMeetings}
                 formatDateTime={formatMeetingTime}
-                meetingLabel={meetingLabel}
+                meetingLabel={meetingRowTitle}
               />
             ) : null}
             {visibleUpcoming.length === 0 && pastMeetings.length === 0 && !nextMeeting ? (

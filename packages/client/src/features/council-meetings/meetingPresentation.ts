@@ -34,6 +34,11 @@ export function meetingScheduleInstant(value: string, timeZone: string): string 
   return null;
 }
 
+/** Name of a meeting without its date, for a row whose date head already gives the day. */
+export function formatMeetingName(meeting: MeetingLabelSource, template: string): string {
+  return template.replace(/,?\s*\{date\}/, "").replace("{number}", String(meeting.number));
+}
+
 export function formatMeetingLabel(
   meeting: MeetingLabelSource,
   template: string,
