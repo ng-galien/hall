@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ColorPicker, type ColorPickerPreset } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
 import { DeleteIcon } from "../../components/icons";
-import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { useI18n } from "../../i18n/I18nProvider";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
@@ -33,7 +32,6 @@ export function GeographicLegend({
           aria-controls={contentId}
           onClick={() => setOpen((current) => !current)}
         >
-          <DisclosureBadge expanded={open} />
           {t("geographic.legend")}
         </Button>
         {actions}
