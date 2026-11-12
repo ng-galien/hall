@@ -75,13 +75,12 @@
 /* In the grid of a month, an event holds on one line, shortened, its whole label shown on hover. */
 .hall-calendar .hall-calendar-event-label[data-line="one"] { overflow-wrap: normal; white-space: nowrap; }
 
-/* On a phone the toolbar keeps the margins of the title, « Toute la journée » holds on one line and the hours keep a
-   margin at the right. */
+/* On a phone the toolbar and the grid keep the 16-pixel margins of the title, « Toute la journée » holds on one line. */
 @media (max-width: 760px) {
   .app-main .hall-calendar .calendar-toolbar.calendar-toolbar { padding-inline: var(--hall-space-4); }
   .app-main .hall-calendar .hall-calendar-all-day.hall-calendar-all-day,
   .app-main .hall-calendar .hall-calendar-all-day.hall-calendar-all-day * { white-space: nowrap; }
-  .app-main .hall-calendar.hall-calendar > :not(.calendar-toolbar) { padding-right: var(--hall-space-4); }
+  .app-main .hall-calendar.hall-calendar > :not(.calendar-toolbar) { padding-inline: var(--hall-space-4); }
 }
 
 /* Resource form uses the same surface and spacing as the modal header. */
