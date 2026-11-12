@@ -400,9 +400,10 @@ test("phone photo selection and camera input persist images through the shared e
   await page.goto(url);
   await editNote();
   const compact = page.getByTestId("markdown-editor-compact").first();
-  await expect(compact.getByTestId("editor-choose-image")).toBeVisible();
+  await expect(compact.getByTestId("editor-photo")).toBeVisible();
+  await compact.getByTestId("editor-photo").click();
   const chooser = page.waitForEvent("filechooser");
-  await compact.getByTestId("editor-choose-image").click();
+  await page.getByTestId("editor-photo-sheet").getByTestId("editor-choose-image").click();
   await (await chooser).setFiles({ name: "telephone.png", mimeType: "image/png", buffer: png });
   await expect(compact.locator(".editor-image-node")).toHaveCount(1);
   await expect
@@ -415,14 +416,14 @@ test("phone photo selection and camera input persist images through the shared e
   await editNote();
   await expect(compact.locator(".editor-image-node")).toHaveCount(1);
   await expect(compact.getByTestId("editor-writing-area")).toContainText("Texte conservé.");
-  await compact.getByTestId("editor-open-enriched").click();
-  const enriched = page.getByTestId("markdown-editor-enriched");
-  await expect(enriched.getByTestId("editor-camera-file")).toHaveAttribute("capture", "environment");
+  // The text fills the phone screen: the full-screen editor is not offered, the camera is in the same sheet.
+  await expect(compact.getByTestId("editor-open-enriched")).toBeHidden();
+  await expect(compact.getByTestId("editor-camera-file")).toHaveAttribute("capture", "environment");
+  await compact.getByTestId("editor-photo").click();
   const camera = page.waitForEvent("filechooser");
-  await enriched.getByTestId("editor-take-photo").click();
+  await page.getByTestId("editor-photo-sheet").getByTestId("editor-take-photo").click();
   await (await camera).setFiles({ name: "camera.png", mimeType: "image/png", buffer: png });
-  await expect(enriched.locator(".editor-image-node")).toHaveCount(2);
-  await page.getByTestId("editor-enriched-dialog").getByTestId("dialog-close").click();
+  await expect(compact.locator(".editor-image-node")).toHaveCount(2);
   await expect
     .poll(
       async () =>

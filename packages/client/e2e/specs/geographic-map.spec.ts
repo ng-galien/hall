@@ -348,8 +348,10 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(inlinePasteId);
 
   const chooseFile = async (button: string, name: string) => {
+    // The image choices of a tablet or a computer are in the image menu of the tool bar.
+    await card.getByTestId("editor-image-menu").click();
     const chooser = page.waitForEvent("filechooser");
-    await card.getByTestId(button).click();
+    await page.getByRole("menu").getByTestId(button).click();
     await (await chooser).setFiles({ name, mimeType: "image/png", buffer: Buffer.from(png) });
   };
   await writingArea.press("End");
