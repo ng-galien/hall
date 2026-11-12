@@ -95,7 +95,7 @@
   font-weight: var(--hall-font-weight-bold);
 }
 .markdown-phone-toolbar-anchor { position: absolute; bottom: 0; left: 0; width: 1px; height: 1px; }
-.markdown-editor-phone { flex: 1; }
+.markdown-editor.markdown-editor-phone { flex: 1; border: 0; border-radius: 0; }
 .markdown-editor-phone .markdown-editor-canvas,
 .markdown-editor-phone .markdown-editor-content { flex: 1; }
 .markdown-editor-phone .markdown-editor-content > [contenteditable] { min-height: 100%; padding: var(--hall-space-4); }

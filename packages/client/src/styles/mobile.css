@@ -74,6 +74,8 @@
   .phone-document[data-editing="true"] .phone-document-information,
   .phone-business[data-editing="true"] > :not(.workbench-section, .error-banner) { display: none; }
   .phone-business[data-editing="true"] { padding: 0; }
+  /* While a text is written, the header keeps its title, the menu and « Terminé »: the initials step aside. */
+  .app-column:has(:is(.phone-document, .phone-business)[data-editing="true"]) .screen-header-initials { display: none; }
   .phone-document-event .phone-document-content { padding: var(--hall-space-3); }
   .remote-resource-phone { display: grid; gap: var(--hall-space-3); padding: var(--hall-space-3); }
   .remote-resource-phone .remote-resource-url { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); overflow-wrap: anywhere; }

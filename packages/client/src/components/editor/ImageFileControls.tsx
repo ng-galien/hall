@@ -5,7 +5,7 @@ import { CameraIcon, ImageIcon, UploadIcon } from "../icons";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { ListRow, ListRowIcon, ListRows } from "../ui/list-row";
+import { ListRow, ListRows } from "../ui/list-row";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { type EditorImageUpload, type ImageUploadStatus, insertImage } from "./imageTransfer";
 
@@ -163,7 +163,11 @@ export function PhotoSheetButton({ choices, busy }: { choices: ImageChoice[]; bu
                   choice.select();
                 }}
                 openTestId={choice.testId}
-                head={<ListRowIcon nature="visual">{choice.icon}</ListRowIcon>}
+                head={
+                  <span className="type-icon" aria-hidden="true">
+                    {choice.icon}
+                  </span>
+                }
                 title={choice.label}
               />
             ))}
