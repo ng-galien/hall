@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { DocsIcon, FolderIcon, SettingsIcon, SidebarCollapseIcon, SidebarExpandIcon } from "../components/icons";
 import { Button } from "../components/ui/button";
@@ -17,6 +17,11 @@ import { useApiRoot } from "./usePhoneLayout";
 import { useFolderTree, WorkspaceTree } from "./WorkspaceTree";
 
 type Availability = (relation?: string) => boolean;
+
+/** Time left to the pointer to go from a folded icon into its panel, or back. */
+const railPanelLeaveDelay = 200;
+/** Time the pointer rests on a folded icon before its panel opens. */
+const railPanelHoverDelay = 120;
 
 /** The entry as the person may see it: its permitted sub-resources, or nothing when none is permitted. */
 export function permittedEntry(item: NavigationItem, available: Availability): NavigationItem | null {
@@ -116,11 +121,43 @@ function RailFolders() {
 
 /**
  * One icon of the folded menu. An entry without sub-resource shows its label at once beside it and a click goes to its
- * screen; a click on an entry with sub-resources opens the panel that lists them and keeps it open until a place is
- * chosen, a click lands elsewhere or Échap is pressed.
+ * screen. An entry with sub-resources shows the panel that lists them as soon as the pointer or the focus reaches it;
+ * the pointer may go from the icon into the panel. A click keeps the panel open until a place is chosen, a click lands
+ * elsewhere or Échap is pressed.
  */
 function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: string; label: string }) {
   const current = isCurrentEntry(pathname, item);
+  const [open, setOpen] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const closing = useRef<number | null>(null);
+  const opening = useRef<number | null>(null);
+  const keep = () => {
+    if (closing.current !== null) window.clearTimeout(closing.current);
+    if (opening.current !== null) window.clearTimeout(opening.current);
+    closing.current = null;
+    opening.current = null;
+  };
+  const show = () => {
+    keep();
+    setOpen(true);
+  };
+  /** The pointer that only crosses an icon on its way to an open panel does not open its own. */
+  const hover = () => {
+    keep();
+    opening.current = window.setTimeout(() => {
+      opening.current = null;
+      setOpen(true);
+    }, railPanelHoverDelay);
+  };
+  const leave = () => {
+    keep();
+    if (pinned) return;
+    closing.current = window.setTimeout(() => {
+      closing.current = null;
+      setOpen(false);
+    }, railPanelLeaveDelay);
+  };
+  useEffect(() => keep, []);
   const icon = (
     <span className="nav-icon">
       <item.Icon weight={current ? "bold" : "regular"} />
@@ -128,7 +165,15 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
   );
   if (item.children || item.folderTree)
     return (
-      <DropdownMenu>
+      <DropdownMenu
+        modal={false}
+        open={open}
+        onOpenChange={(next) => {
+          keep();
+          setOpen(next);
+          if (!next) setPinned(false);
+        }}
+      >
         <DropdownMenuTrigger asChild>
           <Button
             variant="plain"
@@ -137,6 +182,15 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
             data-current={current ? "true" : undefined}
             data-testid={item.testId ?? `navigation-${item.id}`}
             aria-label={label}
+            onPointerEnter={hover}
+            onPointerLeave={leave}
+            onFocus={show}
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={() => {
+              keep();
+              setPinned(true);
+              setOpen(true);
+            }}
           >
             {icon}
           </Button>
@@ -146,6 +200,10 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
           align="start"
           className="nav-rail-menu w-max min-w-(--hall-size-sidebar)"
           data-testid="navigation-rail-panel"
+          data-pinned={pinned ? "true" : undefined}
+          onPointerEnter={keep}
+          onPointerLeave={leave}
+          onCloseAutoFocus={(event) => event.preventDefault()}
         >
           <DropdownMenuLabel>{label}</DropdownMenuLabel>
           {item.folderTree ? (
