@@ -253,7 +253,8 @@
     box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
   }
   /* The tools laid over the map keep the compact size of map controls, a finger-sized one under a touch pointer. */
-  .geographic-mode-switch .hall-button { min-height: var(--geographic-map-control); padding: 0 var(--hall-space-1-5); font-size: var(--hall-font-size-caption); }
+  /* The two modes are buttons like « Couches » beside them: same height, same margins, same text. */
+  .geographic-mode-switch .hall-button { min-height: var(--geographic-map-control); }
   :is(.geographic-zoom-tools, .geographic-composition-tools) .hall-button[data-size="icon"] { width: var(--geographic-map-control); min-height: var(--geographic-map-control); }
   .geographic-layer-drag-handle {
     display: inline-grid;

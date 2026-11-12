@@ -83,7 +83,7 @@
 .geographic-feature-card-muted { margin: 0; color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-caption); }
 
 .geographic-feature-card-metadata .collapsible-section-content { padding-top: var(--hall-space-2); }
-.geographic-map-overlay { position: absolute; z-index: var(--hall-z-content); display: flex; flex-direction: column; left: var(--hall-space-3); width: max-content; max-width: calc(100% - var(--hall-space-6) - var(--hall-size-control) - var(--hall-space-2)); bottom: var(--hall-space-3); max-height: max(calc(var(--hall-size-control-small) + var(--hall-space-2) + var(--hall-stroke-thin) * 2), calc(100% - var(--geographic-panel-top) - var(--geographic-panel-min-height) - var(--hall-space-10) - var(--hall-space-2))); pointer-events: none; }
+.geographic-map-overlay { position: absolute; z-index: var(--hall-z-content); display: flex; flex-direction: column; left: var(--hall-space-3); width: max-content; max-width: calc(100% - var(--hall-space-6) - var(--geographic-map-control, var(--hall-size-control)) - var(--hall-space-2)); bottom: var(--hall-space-3); max-height: max(calc(var(--hall-size-control-small) + var(--hall-space-2) + var(--hall-stroke-thin) * 2), calc(100% - var(--geographic-panel-top) - var(--geographic-panel-min-height) - var(--hall-space-10) - var(--hall-space-2))); pointer-events: none; }
 .geographic-map-overlay:empty { display: none; }
 .geographic-map-overlay > * { min-width: 0; pointer-events: auto; }
 .geographic-resource { display: flex; flex-direction: column; container-type: inline-size; }
