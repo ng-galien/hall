@@ -203,7 +203,11 @@ test("the common resource modal reuses Workbench bodies without nested viewers",
     session.indexOf("const load = useCallback"),
   );
   assert.doesNotMatch(updatedAdoption, /setTitle|setTags|setContent|setRemoteUrl/);
-  assert.match(workbench, /session\.setTitle\(nextTitle\);[\s\S]*session\.save\(nextTitle\)/);
+  // A new name is sent first and shown once saved, even while another save is on its way (a274886d).
+  assert.match(
+    workbench,
+    /const saved = await session\.save\(nextTitle\);\s*if \(saved\) session\.setTitle\(nextTitle\);/,
+  );
   assert.match(persistence, /adoptUpdatedResource\(updated\);[\s\S]*setAutosaveEnabled\(enabled\)/);
   assert.match(capabilities, /findSirenAction\(representation, "resource\.update-metadata"\)/);
   assert.match(capabilities, /findSirenAction\(representation, "resource\.update-content"\)/);
@@ -250,11 +254,13 @@ test("editor images keep immutable resource references and follow document capab
   assert.match(app, /ResourceImagePresentationProvider[\s\S]{0,220}renderResourcePreview=\{renderResourcePreview\}/);
   assert.match(app, /const EditorLabPage = import\.meta\.env\.DEV/);
   assert.match(styles, /\.hall-template-image[\s\S]*height: auto/);
-  const compactStart = editor.indexOf('className="markdown-editor markdown-editor-compact"');
+  // The compact editor is the frame named markdown-editor-compact, up to the dialog of its enriched editor.
+  const compactStart = editor.indexOf('"markdown-editor markdown-editor-compact"');
+  const enrichedStart = editor.indexOf("function EnrichedEditor");
+  assert.ok(compactStart >= 0 && enrichedStart >= 0, "the compact and the enriched editors are found");
   const compactEditor = editor.slice(compactStart, editor.indexOf("<Dialog", compactStart));
-  const enrichedEditor = editor.slice(editor.indexOf("function EnrichedEditor"));
-  assert.ok(compactEditor.length > 0);
-  assert.ok(enrichedEditor.length > 0);
+  const enrichedEditor = editor.slice(enrichedStart);
+  assert.match(compactEditor, /markdown-editor-compact-toolbar/);
   assert.doesNotMatch(compactEditor, /<ImageControl/);
   assert.doesNotMatch(enrichedEditor, /<ImageControl/);
   for (const surface of [compactEditor, enrichedEditor]) assert.match(surface, /<ImageDropZone active=/);
