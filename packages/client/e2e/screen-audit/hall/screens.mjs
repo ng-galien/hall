@@ -217,17 +217,9 @@ export const screens = [
     /** Creates a draft in the disposable database, so that its composer and the « Joindre » menu are measured. */
     async open(page) {
       await page.goto("/app/mail");
+      // With one type to create, « Nouveau » creates the draft directly and opens its composer.
       await page.getByTestId("mail-new").first().click();
-      const composer = page.getByTestId("mail-composer");
-      if (!(await composer.isVisible({ timeout: 3_000 }).catch(() => false))) {
-        await page
-          .locator(
-            "[role=menuitem], [data-testid=create-options] [data-slot=list-row] a, [data-testid=create-options] button",
-          )
-          .first()
-          .click();
-      }
-      await composer.waitFor({ state: "visible" });
+      await page.getByTestId("mail-composer").waitFor({ state: "visible", timeout: 15_000 });
     },
   },
   { id: "contacts", title: "Contacts", scenario: "minutes", open: route("/contacts") },
