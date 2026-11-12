@@ -25,6 +25,33 @@ export function intervalsOf(breakpoints, low, high) {
   return starts.map((from, index) => ({ from, to: index + 1 < starts.length ? starts[index + 1] - 1 : high }));
 }
 
+/**
+ * Widths to measure in `intervals`: the narrowest end of each interval with every rule (`full`), the widest end with
+ * the geometry rules only. `from` limits the plan to the widths at and above the phone layout or below it; `below`
+ * keeps the intervals that start below a width (the finger is measured on phones and tablets); `only` keeps the
+ * intervals that cross one of the ranges `[{ from, to }]` of a targeted pass. Returns `[{ width, full }]` in order.
+ */
+export function planWidths(intervals, { below = Number.POSITIVE_INFINITY, only = null } = {}) {
+  const plan = new Map();
+  for (const interval of intervals) {
+    if (interval.from >= below) continue;
+    if (only && !only.some((range) => range.from <= interval.to && range.to >= interval.from)) continue;
+    plan.set(interval.from, true);
+    if (interval.to !== interval.from && !plan.has(interval.to)) plan.set(interval.to, false);
+  }
+  return [...plan.entries()].map(([width, full]) => ({ width, full })).sort((a, b) => a.width - b.width);
+}
+
+/** Ranges written `761-1000,1001-1279` in an option, as `[{ from, to }]`. */
+export function parseRanges(text) {
+  if (!text) return null;
+  return text.split(",").map((part) => {
+    const [from, to] = part.split("-").map(Number);
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) throw new Error(`Intervalle illisible : ${part}`);
+    return { from, to };
+  });
+}
+
 /** The interval of `intervals` that holds `width`, written « de 761 à 999 px ». */
 export function intervalLabel(intervals, width) {
   const interval = intervals.find((entry) => width >= entry.from && width <= entry.to);

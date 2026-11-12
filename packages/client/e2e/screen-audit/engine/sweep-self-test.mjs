@@ -5,6 +5,7 @@ import { chromium } from "@playwright/test";
 import {
   measureConformance,
   measureDesignReference,
+  measureFormFields,
   readBreakpoints,
   readComponentUnity,
   unityFindings,
@@ -340,6 +341,39 @@ try {
     `${designOk ? "ok    " : "ÉCHEC "} design-reference : ${onFaultyDesign} sur la page fautive, ${onCorrectDesign} sur la page correcte`,
   );
   if (!designOk) failures.push({ rule: "design-reference", onFaultyDesign, onCorrectDesign });
+
+  /* Form field: the retained form against a filled field without its rule and with an empty value left blank. */
+  const fieldCss = `<style>
+    .hall-field { position: relative; display: grid; width: 240px; padding-top: 0 }
+    .hall-field-label { color: rgb(91, 100, 114); font-size: 13px }
+    .hall-input { border: 0; padding: 0; height: 32px; font: inherit; background: transparent; box-shadow: inset 0 -1px 0 rgb(180, 190, 203); outline: none }
+    .hall-input:focus { box-shadow: inset 0 -2px 0 rgb(36, 87, 214) }
+    .hall-input::placeholder { color: rgb(138, 148, 163); font-style: italic }
+    .faulty .hall-input { background: rgb(238, 241, 245); box-shadow: none; padding-left: 12px }
+  </style>`;
+  const fieldPage = (kind) =>
+    `${fieldCss}<div class="${kind}"><div data-slot="field"><div class="hall-field"><label class="hall-field-label" for="a">Fonction</label><input class="hall-input" id="a" placeholder="${kind === "faulty" ? "" : "Non renseigné"}"></div></div></div>`;
+  const fields = async (kind) => {
+    await page.setContent(`<!doctype html><html lang="fr"><head>${style}</head><body>${fieldPage(kind)}</body></html>`);
+    return page.evaluate(measureFormFields, {
+      field: {
+        rest: { color: "#B4BECB", width: 1 },
+        focus: { color: "#2457D6", width: 2 },
+        error: { color: "#B3261E", width: 2 },
+        empty: { text: "Non renseigné", color: "#8A94A3" },
+        label: "#5B6472",
+      },
+      keyAttribute: "data-testid",
+      ignoreSelectors: [],
+    });
+  };
+  const onFaultyField = await fields("faulty");
+  const onCorrectField = await fields("correct");
+  const fieldOk = onFaultyField.length >= 4 && onCorrectField.length === 0;
+  console.log(
+    `${fieldOk ? "ok    " : "ÉCHEC "} form-field : ${onFaultyField.length} sur la page fautive, ${onCorrectField.length} sur la page correcte`,
+  );
+  if (!fieldOk) failures.push({ rule: "form-field", onFaultyField, onCorrectField });
 
   /* Thresholds: a min-width and a max-width query open ranges at the same width; rem is read at 16 px. */
   await page.setContent(`<!doctype html><html><head><style>

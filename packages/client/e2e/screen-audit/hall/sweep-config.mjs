@@ -164,8 +164,18 @@ const unityComponents = {
   état: { selector: ".record-state, .list-row-status", part: "", variants: [] },
   "en-tête de section": { selector: ".collapsible-section-header", part: "", variants: [] },
 };
-/** Below this width the menu opens over the content (`components/Layout.tsx`); it is opened to be measured. */
-const drawerQuery = scripts.find((entry) => entry.source.endsWith("components/Layout.tsx"));
+/**
+ * The retained form field, page 5 of « Hall 1.3 — Design de référence » (elements h72 to h80 and the classes f, foc,
+ * err, ro, ph): no fill, a grey rule of 1 px at rest, blue of 2 px while writing, red of 2 px in error, none read only;
+ * the label in grey above the value; an empty field writes « Non renseigné » in grey italics.
+ */
+const formField = {
+  rest: { color: "#B4BECB", width: 1 },
+  focus: { color: "#2457D6", width: 2 },
+  error: { color: "#B3261E", width: 2 },
+  empty: { text: "Non renseigné", color: "#8A94A3" },
+  label: "#5B6472",
+};
 
 /** Values the design fixed, read from the Maket boards (`design-reference.json`). */
 const designReference = JSON.parse(readFileSync(resolve(import.meta.dirname, "design-reference.json"), "utf8"));
@@ -179,7 +189,8 @@ export const sweepPlan = {
   /** Under a finger, the sweep covers phones and tablets: every interval that starts below this width. */
   touchBelow: 1280,
   scriptBreakpoints: scripts,
-  chunk: { pointer: 3, touch: 6 },
+  /** Browser contexts that take the screens of one test from its queue. */
+  pages: 6,
   ignoreSelectors,
   /** Only the drawings the rules look for: chevrons, triangles and « + » in every weight, and every filled drawing. */
   fingerprints: Object.fromEntries(
@@ -191,5 +202,5 @@ export const sweepPlan = {
   exceptions,
   unityComponents,
   designReference,
-  drawerBelow: drawerQuery?.breakpoint ?? 0,
+  formField,
 };

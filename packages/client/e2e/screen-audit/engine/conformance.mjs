@@ -32,6 +32,7 @@ export const conformanceRules = {
   "button-icon-unity": "Boutons de même forme sur un écran, les uns avec une icône, les autres sans",
   "plus-not-add": "« + » sur une commande qui n'ajoute ni ne crée",
   "design-reference": "Valeur de dessin différente du design (Maket)",
+  "form-field": "Choix 12 : champ hors de la forme retenue (fond, filet, libellé, « Non renseigné »)",
   "row-height": "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
 };
 
@@ -848,6 +849,155 @@ export function measureDesignReference(options) {
         selector: `${entry.component} · ${entry.property}${entry.pseudo ? ` (${entry.pseudo})` : ""} · ${keyOf(element)}`,
         detail: `design ${entry.expected} (Maket « ${entry.source.doc} » p. ${entry.source.page}, ${entry.source.element}), mesuré ${actual}`,
       });
+    }
+  }
+  return findings;
+}
+
+/**
+ * Form fields held to their retained form (`field`: `{ rest, focus, error }` rules as `{ color, width }`, `empty` text,
+ * colour and style, `label` colour): no fill; a rule underneath only, its colour and thickness by state, none when the
+ * field is read only; the label above the value, the value aligned on the edge of the rule; an empty field writes
+ * `empty.text`. One editable field of the page is focused to read its rule while writing, then left. Returns findings.
+ */
+export async function measureFormFields(options) {
+  const { field, keyAttribute, ignoreSelectors } = options;
+  const findings = [];
+  const hex = (value) => {
+    const numbers = (value.match(/[\d.]+/g) ?? []).map(Number);
+    if (value === "transparent" || numbers.length < 3) return "transparent";
+    let [r, g, b, a = 1] = numbers;
+    if (value.startsWith("color(")) [r, g, b] = [r * 255, g * 255, b * 255];
+    if (a < 0.05) return "transparent";
+    const part = (n) => Math.round(n).toString(16).padStart(2, "0").toUpperCase();
+    return `#${part(r)}${part(g)}${part(b)}`;
+  };
+  const keyOf = (element) => {
+    const key = element.closest(`[${keyAttribute}]`)?.getAttribute(keyAttribute);
+    return key ? `[${key.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}|\d{6,}/gi, "*")}]` : element.tagName.toLowerCase();
+  };
+  const add = (element, what, expected, measured) =>
+    findings.push({
+      rule: "form-field",
+      selector: `${what} · ${keyOf(element)}`,
+      detail: `attendu ${expected}, mesuré ${measured}`,
+    });
+  const shown = (element) => {
+    const style = getComputedStyle(element);
+    if (style.visibility === "hidden" || style.display === "none" || element.closest("[aria-hidden=true], [hidden]"))
+      return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 1 && rect.height > 1;
+  };
+  /** The rule under a control: its bottom border, or an inset shadow drawn at its bottom. */
+  const ruleOf = (element) => {
+    const style = getComputedStyle(element);
+    const border = Number.parseFloat(style.borderBottomWidth);
+    if (border > 0 && style.borderBottomStyle !== "none" && hex(style.borderBottomColor) !== "transparent")
+      return { color: hex(style.borderBottomColor), width: Math.round(border * 10) / 10 };
+    for (const shadow of style.boxShadow.split(/,(?![^(]*\))/)) {
+      if (!shadow.includes("inset")) continue;
+      const color = shadow.match(/(rgba?|color)\([^)]*\)/)?.[0];
+      const lengths = shadow
+        .replace(/(rgba?|color)\([^)]*\)/, "")
+        .match(/-?[\d.]+px/g)
+        ?.map(Number.parseFloat);
+      if (!color || !lengths || lengths.length < 2 || lengths[1] >= 0 || hex(color) === "transparent") continue;
+      return { color: hex(color), width: Math.round(-lengths[1] * 10) / 10 };
+    }
+    return null;
+  };
+  const describe = (rule) => (rule ? `${rule.color} sur ${rule.width} px` : "aucun filet");
+  const same = (rule, expected) =>
+    expected === null
+      ? rule === null
+      : Boolean(rule) && rule.color === expected.color && Math.abs(rule.width - expected.width) <= 0.5;
+
+  const controls = [
+    ...document.querySelectorAll(
+      ".hall-field > :is(.hall-input, .hall-textarea, .hall-select-trigger, .hall-field-value, .hall-field-composite)",
+    ),
+  ].filter((control) => !ignoreSelectors.some((selector) => control.closest(selector)) && shown(control));
+  let focused = false;
+  for (const control of controls) {
+    const box = control.closest(".hall-field");
+    const style = getComputedStyle(control);
+    const input = control.matches("input, textarea") ? control : control.querySelector("input, textarea");
+    const readOnly =
+      control.matches(".hall-field-value") ||
+      Boolean(input && (input.readOnly || input.disabled)) ||
+      control.matches(":disabled");
+    const invalid = control.matches("[aria-invalid=true]") || Boolean(input?.matches("[aria-invalid=true]"));
+    if (hex(style.backgroundColor) !== "transparent") add(control, "fond", "aucun", hex(style.backgroundColor));
+    const rule = ruleOf(control);
+    const expected = readOnly ? null : invalid ? field.error : field.rest;
+    if (!same(rule, expected))
+      add(
+        control,
+        readOnly ? "filet en lecture seule" : invalid ? "filet en erreur" : "filet au repos",
+        describe(expected),
+        describe(rule),
+      );
+    /* Label above the value, the value on the edge of the rule. */
+    const label = box.querySelector(":scope > .hall-field-label");
+    if (label && shown(label)) {
+      const labelRect = label.getBoundingClientRect();
+      const text = input ?? control;
+      const textLeft = text.getBoundingClientRect().left + Number.parseFloat(getComputedStyle(text).paddingLeft);
+      const ruleLeft = control.getBoundingClientRect().left;
+      if (Math.abs(textLeft - ruleLeft) > 1)
+        add(control, "texte aligné sur le filet", `${Math.round(ruleLeft)} px`, `${Math.round(textLeft)} px`);
+      if (Math.abs(labelRect.left - ruleLeft) > 1)
+        add(label, "libellé aligné sur le filet", `${Math.round(ruleLeft)} px`, `${Math.round(labelRect.left)} px`);
+      const valueTop =
+        (input ?? control).getBoundingClientRect().top +
+        Number.parseFloat(getComputedStyle(input ?? control).paddingTop);
+      if (labelRect.bottom > valueTop + 1 && labelRect.top >= valueTop - 1)
+        add(label, "libellé au-dessus de la valeur", "au-dessus", "sous la valeur");
+      const labelColor = hex(getComputedStyle(label).color);
+      if (!invalid && document.activeElement !== input && labelColor !== field.label)
+        add(label, "couleur du libellé", field.label, labelColor);
+    }
+    /* An empty field writes « Non renseigné », grey and italic. */
+    const empty = input
+      ? input.value === ""
+      : !(control.textContent ?? "").trim() || Boolean(control.querySelector(".hall-field-empty"));
+    if (empty) {
+      if (input) {
+        const placeholder = input.getAttribute("placeholder") ?? "";
+        const look = getComputedStyle(input, "::placeholder");
+        if (placeholder !== field.empty.text)
+          add(control, "champ vide", `« ${field.empty.text} »`, placeholder ? `« ${placeholder} »` : "rien");
+        else if (hex(look.color) !== field.empty.color || look.fontStyle !== "italic")
+          add(control, "champ vide", `${field.empty.color} en italique`, `${hex(look.color)} ${look.fontStyle}`);
+      } else {
+        const mark = control.querySelector(".hall-field-empty, [data-placeholder] [data-slot=select-value]") ?? control;
+        const text = (mark.textContent ?? "").trim();
+        const look = getComputedStyle(mark);
+        if (text !== field.empty.text)
+          add(control, "champ vide", `« ${field.empty.text} »`, text ? `« ${text} »` : "rien");
+        else if (hex(look.color) !== field.empty.color || look.fontStyle !== "italic")
+          add(control, "champ vide", `${field.empty.color} en italique`, `${hex(look.color)} ${look.fontStyle}`);
+      }
+    }
+    /* While writing: one editable field is focused, measured, then left. */
+    if (!focused && input && !readOnly && !invalid) {
+      focused = true;
+      const previous = document.activeElement;
+      input.focus({ preventScroll: true });
+      // The rule may be drawn by a transition: wait for its end before reading it.
+      const target = control.matches(".hall-field-composite") ? control : input;
+      const duration = Math.max(
+        0,
+        ...getComputedStyle(target)
+          .transitionDuration.split(",")
+          .map((value) => Number.parseFloat(value) * (value.trim().endsWith("ms") ? 1 : 1000)),
+      );
+      await new Promise((done) => setTimeout(done, Math.min(duration, 600) + 50));
+      const writing = ruleOf(control.matches(".hall-field-composite") ? control : input);
+      if (!same(writing, field.focus)) add(control, "filet en saisie", describe(field.focus), describe(writing));
+      input.blur();
+      if (previous instanceof HTMLElement) previous.focus({ preventScroll: true });
     }
   }
   return findings;

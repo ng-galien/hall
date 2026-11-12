@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { join, resolve } from "node:path";
 import { conformanceRules, unityFindings } from "../engine/conformance.mjs";
 import { groupFindings, intervalLabel, intervalsOf, sweepRules } from "../engine/sweep.mjs";
+import { screensForFiles } from "./screen-map.mjs";
 import { screens } from "./screens.mjs";
 import { sourcesOf, sweepPlan } from "./sweep-config.mjs";
 
@@ -10,20 +11,58 @@ import { sourcesOf, sweepPlan } from "./sweep-config.mjs";
  * Width sweep of the Hall screens: runs the sweep journeys on the disposable instance, groups the findings by
  * interval between width thresholds and compares them with the accepted list. Every accepted line carries its reason.
  * Exits with status 1 for a finding that is not accepted, an accepted line without a reason, an accepted line that no
- * longer matches anything, or a screen that did not open.
- * Options: --screens=a,b (only these screens), --report-only (reuse the last measurements).
+ * longer matches anything, a screen that did not open, or a changed file that no line of screen-map.mjs names.
+ * Options:
+ *   --changed=<commit or range>  the screens concerned by the files of that commit (targeted pass);
+ *   --files=a,b                  the screens concerned by these files;
+ *   --screens=a,b                these screens;
+ *   --intervals=761-1000,…       only the intervals that cross these window widths;
+ *   --report-only                rewrite the report from the last measurements.
+ * Without --changed, --files or --screens, every screen is measured: the complete pass, before a release.
  */
 
 const here = import.meta.dirname;
 const clientDirectory = resolve(here, "../../..");
 const outputDirectory = resolve(clientDirectory, "test-results/screen-audit-sweep");
 const acceptedFile = resolve(here, "sweep-accepted.json");
-const argument = (name) => process.argv.find((entry) => entry.startsWith(`--${name}=`))?.split("=")[1] ?? null;
-const selected = argument("screens");
+const argument = (name) => process.argv.find((entry) => entry.startsWith(`--${name}=`))?.slice(name.length + 3) ?? null;
 const reportOnly = process.argv.includes("--report-only");
+const known = new Set(screens.map((screen) => screen.id));
+
+/* Targeted pass: the screens of the changed files, or the declared sample of a shared component. */
+let selected = argument("screens");
+let unmapped = [];
+const changedFiles = argument("changed")
+  ? spawnSync(
+      "git",
+      [
+        "diff",
+        "--name-only",
+        ...(argument("changed").includes("..")
+          ? [argument("changed")]
+          : [`${argument("changed")}^`, argument("changed")]),
+      ],
+      { cwd: resolve(clientDirectory, "../.."), encoding: "utf8" },
+    )
+      .stdout.split("\n")
+      .filter(Boolean)
+  : argument("files")?.split(",");
+if (changedFiles) {
+  const target = screensForFiles(changedFiles, known);
+  unmapped = target.unmapped;
+  for (const reason of target.reasons)
+    console.log(
+      `${reason.file} → ${reason.screens.join(", ")}${reason.component ? ` (échantillon : ${reason.component})` : ""}`,
+    );
+  for (const file of unmapped) console.log(`Fichier rattaché à aucun écran, à ajouter à screen-map.mjs : ${file}`);
+  selected = [...new Set([...(selected ? selected.split(",") : []), ...target.screens])].join(",");
+  if (!selected) console.log("Aucun écran de l'outil n'est concerné par ces fichiers.");
+}
+for (const id of selected ? selected.split(",") : []) if (!known.has(id)) throw new Error(`Écran inconnu : ${id}`);
+const intervalsOption = argument("intervals");
 
 const started = Date.now();
-if (!reportOnly) {
+if (!reportOnly && selected !== "") {
   rmSync(outputDirectory, { recursive: true, force: true });
   const result = spawnSync(process.execPath, [resolve(clientDirectory, "e2e/run.mjs")], {
     cwd: resolve(clientDirectory, "../.."),
@@ -31,11 +70,12 @@ if (!reportOnly) {
       ...process.env,
       HALL_SCREEN_AUDIT: "true",
       HALL_SCREEN_AUDIT_MODE: "sweep",
-      // The sweep lasts longer than the ten minutes the runner gives a local suite: it takes the time of a CI run.
+      // A complete sweep lasts longer than the ten minutes the runner gives a local suite: it takes the time of a CI run.
       CI: process.env.CI ?? "true",
       HALL_SCREEN_AUDIT_OUTPUT: outputDirectory,
-      HALL_E2E_LANES: process.env.HALL_E2E_LANES ?? "3",
+      HALL_E2E_LANES: process.env.HALL_E2E_LANES ?? "2",
       ...(selected ? { HALL_SCREEN_AUDIT_SCREENS: selected } : {}),
+      ...(intervalsOption ? { HALL_SCREEN_AUDIT_INTERVALS: intervalsOption } : {}),
     },
     stdio: "inherit",
   });
@@ -50,7 +90,8 @@ const records = existsSync(sweepDirectory)
       .map((file) => JSON.parse(readFileSync(join(sweepDirectory, file), "utf8")))
   : [];
 const measures = records.reduce((total, record) => total + record.measures, 0);
-const expected = screens.filter((screen) => !selected || selected.split(",").includes(screen.id));
+const expected =
+  selected === "" ? [] : screens.filter((screen) => !selected || selected.split(",").includes(screen.id));
 const measuredBy = (input) =>
   new Set(records.filter((record) => record.input === input).flatMap((record) => record.screens));
 const missing = [
@@ -150,4 +191,4 @@ writeFileSync(
 );
 writeFileSync(join(outputDirectory, "report.txt"), `${lines.join("\n")}\n`);
 console.log(lines.join("\n"));
-process.exitCode = open.length || stale.length || missing.length || withoutReason.length ? 1 : 0;
+process.exitCode = open.length || stale.length || missing.length || withoutReason.length || unmapped.length ? 1 : 0;

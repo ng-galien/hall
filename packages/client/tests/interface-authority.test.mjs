@@ -423,3 +423,27 @@ test("a shared component and the list row follow the width of their container, n
   }
   assert.deepEqual(windowDependent, []);
 });
+
+// @verifies-requirement HALL-FR-LAY-140
+test("only the shared controls draw the fill, the rule and the height of a form field", () => {
+  const drawn = /(?:^|[;\s{])(?:background(?:-color)?|border(?:-[a-z]+)*|box-shadow|(?:min-|max-)?height)\s*:/;
+  const fieldSelector = /\.hall-(?:input|textarea|select-trigger|field(?:-value|-composite)?)\b/;
+  const offenders = [];
+  for (const { path, source } of files.filter(({ path }) => path.endsWith(".css") && path !== "styles/controls.css")) {
+    for (const match of source.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const [, selector, body] = match;
+      // A search box is not a form field: it keeps its own drawing.
+      if (fieldSelector.test(selector) && !/search/.test(selector) && drawn.test(body))
+        offenders.push(`${path}: ${selector.trim().replace(/\s+/g, " ")}`);
+    }
+  }
+  for (const { path, source } of files.filter(({ path }) => path.endsWith(".tsx"))) {
+    for (const tag of openingTags(source, "Field").concat(
+      openingTags(source, "Input"),
+      openingTags(source, "Textarea"),
+    ))
+      if (/className=["{][^>]*\b(?:bg-|border-|h-\d|min-h-|shadow)/.test(tag))
+        offenders.push(`${path}: ${tag.slice(0, 80)}`);
+  }
+  assert.deepEqual(offenders, []);
+});

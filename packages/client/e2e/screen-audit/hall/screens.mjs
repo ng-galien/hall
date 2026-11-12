@@ -253,7 +253,9 @@ export const screens = [
     open: detail("/api/users", (user) => `/users/${user.id}`),
   },
   { id: "parametres", title: "Paramètres", scenario: "minutes", open: route("/settings") },
+  /* Two pages of the help: its index and one article; the other articles share their layout. */
   { id: "aide", title: "Aide", scenario: "minutes", open: route("/docs") },
+  { id: "aide-article", title: "Article de l'aide", scenario: "minutes", open: route("/docs/ecrans/documents") },
   {
     id: "menu-plus",
     title: "Feuille « Plus »",
@@ -264,18 +266,6 @@ export const screens = [
       await page.goto("/app/");
       await page.getByTestId("phone-navigation-more").click();
       await visible(page, "phone-more");
-    },
-  },
-  {
-    id: "menu-navigation",
-    title: "Menu de navigation",
-    scenario: "minutes",
-    formats: ["tablette"],
-    reopenAtEveryWidth: true,
-    async open(page) {
-      await page.goto("/app/");
-      await page.getByTestId("navigation-toggle").click();
-      await visible(page, "mobile-navigation");
     },
   },
 ].map((screen) => ({ formats: all, ...screen }));
