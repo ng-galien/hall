@@ -27,8 +27,14 @@
 .maps-panel-header {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--hall-space-2);
+}
+
+.maps-panel-title {
+  margin: 0;
+  font-size: var(--hall-font-size-title);
+  font-weight: var(--hall-font-weight-bold);
 }
 
 .maps-panel-body {
@@ -149,6 +155,21 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--hall-space-1-5);
+}
+
+.maps-context-businesses .workbench-business-chip {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: var(--hall-space-1);
+  color: var(--hall-color-text);
+  font-size: var(--hall-font-size-body);
+}
+
+.maps-context-businesses .workbench-business-chip .type-icon {
+  width: auto;
+  height: auto;
+  font-size: var(--hall-font-size-icon-large);
 }
 
 .maps-context-label {

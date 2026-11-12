@@ -79,7 +79,7 @@ function FolderBranch({
       testId={`maps-tree-folder-${encodeURIComponent(node.path)}`}
       defaultOpen
       icon={node.business ? <CouncilBusinessGlyph business={node.business} /> : <FolderGlyph />}
-      meta={<span className="maps-tree-count">{node.mapCount}</span>}
+      actions={<span className="maps-tree-count">{node.mapCount}</span>}
     >
       {node.children.map((child) => (
         <FolderBranch key={child.path} node={child} activeId={activeId} onOpen={onOpen} />
@@ -92,8 +92,7 @@ function FolderBranch({
 }
 
 /**
- * Collapsible map selector of the Cartes surface: search, recent maps, reduced workspace tree, list by business. The
- * search, which looks among all the maps, shows only while no map is open.
+ * Collapsible map selector of the Cartes surface: search, recent maps, reduced workspace tree, list by business.
  * @implements-requirement HALL-FR-WSP-320
  */
 export function MapsPanel({
@@ -123,7 +122,7 @@ export function MapsPanel({
   const recent = recentIds
     .map((id) => allMaps.find((map) => map.id === id))
     .filter((map): map is MapSummary => map !== undefined);
-  const found = query.trim() && !activeId ? allMaps.filter((map) => matchesQuery(query, map.name, map.path)) : null;
+  const found = query.trim() ? allMaps.filter((map) => matchesQuery(query, map.name, map.path)) : null;
 
   if (collapsed) {
     return (
@@ -147,6 +146,7 @@ export function MapsPanel({
   return (
     <aside className="maps-panel" data-testid="maps-panel" aria-label={t("maps.panel")}>
       <div className="maps-panel-header">
+        <h2 className="maps-panel-title">{t("navigation.maps")}</h2>
         <Button
           variant="plain"
           size="icon"
@@ -160,15 +160,13 @@ export function MapsPanel({
           <CollapseIcon />
         </Button>
       </div>
-      {activeId ? null : (
-        <SearchInput
-          data-testid="maps-search"
-          value={query}
-          placeholder={t("maps.search")}
-          aria-label={t("maps.search")}
-          onChange={(event) => setQuery(event.currentTarget.value)}
-        />
-      )}
+      <SearchInput
+        data-testid="maps-search"
+        value={query}
+        placeholder={t("maps.search")}
+        aria-label={t("maps.search")}
+        onChange={(event) => setQuery(event.currentTarget.value)}
+      />
       <div className="maps-panel-body">
         {maps === null ? (
           <p className="maps-panel-empty">{t("common.loading")}</p>
