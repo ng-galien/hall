@@ -690,6 +690,12 @@
   /* The voters form a regular grid of equal columns. */
   .vote-zone-chips { display: grid; flex: 1; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hall-size-relative-14rem)), 1fr)); align-content: flex-start; gap: var(--hall-space-2); }
   .vote-zone-chips > .hall-button.vote-card { width: 100%; }
+  /* Menu of a voter: each vote entry carries the colour of its zone, the recusal stands apart under a rule. */
+  .vote-menu-mark { display: inline-block; width: var(--hall-space-2-5); height: var(--hall-space-2-5); flex: none; border-radius: var(--hall-radius-small); }
+  .vote-menu-mark[data-choice="for"] { background: var(--hall-color-success); }
+  .vote-menu-mark[data-choice="against"] { background: var(--hall-color-danger); }
+  .vote-menu-mark[data-choice="abstain"] { background: var(--hall-color-brand); }
+  .vote-menu-separator { height: var(--hall-stroke-thin); margin: var(--hall-space-1) 0; background: var(--hall-color-border); }
   /* In the grid a name passes to a second line rather than being cut. */
   .vote-zone-chips > .hall-button.vote-card .vote-card-copy :is(strong, span) { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
   .hall-button.vote-card {

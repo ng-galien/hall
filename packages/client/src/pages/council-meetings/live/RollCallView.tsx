@@ -1,5 +1,6 @@
 // biome-ignore-all lint/a11y/noNoninteractiveTabindex: The scrollable roll-call region must be focusable for keyboard scrolling.
 import type { ProxyLimitException, ResourceDetail } from "@hall/api-contract";
+import { HelpHint } from "../../../components/HelpHint";
 
 type ProxyDocument = Extract<ResourceDetail, { kind: "document" }>;
 
@@ -648,8 +649,10 @@ function ProxyModal({
         </section>
 
         <fieldset className="grid gap-2" data-testid="live-proxy-exception">
-          <legend className="picker-heading">{t("live.proxyException")}</legend>
-          <p className="text-sm text-muted">{t("live.proxyExceptionHint")}</p>
+          <legend className="picker-heading flex items-center gap-1">
+            {t("live.proxyException")}
+            <HelpHint text={t("live.proxyExceptionHint")} testId="live-proxy-exception-hint" />
+          </legend>
           {proxyExceptionChoices.map((choice) => (
             <label className="flex items-center gap-2" key={choice}>
               <input

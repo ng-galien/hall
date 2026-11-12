@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { createStageProgress } from "@/components/ui/stage-progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownEditor } from "../../../components/editor/MarkdownEditor";
+import { HelpHint } from "../../../components/HelpHint";
 import {
   AddIcon,
   CalendarAddIcon,
@@ -17,10 +18,10 @@ import {
   ExpandIcon,
   FileIcon,
   GavelIcon,
-  InfoIcon,
   LockIcon,
   MembersIcon,
   PlayIcon,
+  RecusalIcon,
   WarningIcon,
 } from "../../../components/icons";
 import { MarkdownView } from "../../../components/MarkdownView";
@@ -217,6 +218,8 @@ export function ConductView({
     `${selectedItem?.status}:${aggregate.ballots.length}:${JSON.stringify(aggregate.attendance)}`,
   );
   const [recusalOpen, setRecusalOpen] = useState(false);
+  /* The member chosen from the menu of a voter when the dialog opens from there. */
+  const [recusalMemberId, setRecusalMemberId] = useState<string>();
   const [officersOpen, setOfficersOpen] = useState(false);
   const [closedSessionOpen, setClosedSessionOpen] = useState(false);
   const [recusalDetailsOpen, setRecusalDetailsOpen] = useState(false);
@@ -728,7 +731,7 @@ export function ConductView({
               <Popover open={recusalDetailsOpen} onOpenChange={setRecusalDetailsOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="secondary" className="conduct-recusal-trigger" data-testid="live-recusal-info">
-                    <InfoIcon aria-hidden="true" />
+                    <RecusalIcon aria-hidden="true" />
                     {t("recusal.listTitle")}
                   </Button>
                 </PopoverTrigger>
@@ -739,15 +742,17 @@ export function ConductView({
                   aria-label={t("recusal.listTitle")}
                 >
                   <section className="grid gap-3" data-testid="agenda-item-recusals">
-                    <strong>{t("recusal.listTitle")}</strong>
+                    <div className="flex items-center gap-1">
+                      <strong>{t("recusal.listTitle")}</strong>
+                      {recusals.state.recusals.length > 0 ? (
+                        <HelpHint text={t("recusal.separateFromVotes")} testId="live-recusal-effect-hint" />
+                      ) : null}
+                    </div>
                     {recusals.state.recusals.map((entry) => (
                       <p key={entry.id} data-testid={`agenda-item-recusal-${entry.councilMemberId}`}>
                         <strong>{entry.memberName}</strong> · {t(recusalBasisLabel(entry.legalBasis))}
                       </p>
                     ))}
-                    {recusals.state.recusals.length > 0 ? (
-                      <p className="text-muted-foreground">{t("recusal.separateFromVotes")}</p>
-                    ) : null}
                     {recusals.canRecord ? (
                       <Button
                         variant="secondary"
@@ -892,6 +897,14 @@ export function ConductView({
                 departedAttendanceIds={ballotParticipants.departedParticipantAttendanceIds}
                 ballotChair={ballotParticipants.ballotChair}
                 actionContainer={ballotActionContainer}
+                onRecuse={
+                  recusals.canRecord
+                    ? (memberId) => {
+                        setRecusalMemberId(memberId);
+                        setRecusalOpen(true);
+                      }
+                    : undefined
+                }
                 target={
                   selectedDecision ? { councilDecisionId: selectedDecision.id } : { agendaItemId: selectedItem.id }
                 }
@@ -930,6 +943,22 @@ export function ConductView({
                         {t(selectedBallot.method === "public" ? "ballot.method.public" : "ballot.method.secret")} ·{" "}
                         {t("live.recordedAt", { time: formatTime(selectedBallot.createdAt) })}
                       </span>
+                      {selectedBallot.countsLoaded === false ? null : (
+                        <HelpHint
+                          testId="live-result-hint"
+                          text={`${t("ballot.expressedMajority", { expressed: formatNumber(selectedBallot.votesCast) })} ${t(
+                            "ballot.participationEvidence",
+                            {
+                              present: formatNumber(selectedBallot.participationEvidence.quorum.physicallyPresent),
+                              required:
+                                selectedBallot.participationEvidence.quorum.required === null
+                                  ? t("meeting.quorumUnestablished")
+                                  : formatNumber(selectedBallot.participationEvidence.quorum.required),
+                              roster: formatNumber(selectedBallot.participationEvidence.quorum.activeMembers),
+                            },
+                          )}`}
+                        />
+                      )}
                     </div>
                   </div>
                 </header>
@@ -991,23 +1020,6 @@ export function ConductView({
                     })}
                   </div>
                 ) : null}
-                {selectedBallot.countsLoaded === false ? null : (
-                  <p className="report-ballot-note">
-                    {t("ballot.expressedMajority", { expressed: formatNumber(selectedBallot.votesCast) })}
-                  </p>
-                )}
-                {selectedBallot.countsLoaded === false ? null : (
-                  <p className="report-ballot-note">
-                    {t("ballot.participationEvidence", {
-                      present: formatNumber(selectedBallot.participationEvidence.quorum.physicallyPresent),
-                      required:
-                        selectedBallot.participationEvidence.quorum.required === null
-                          ? t("meeting.quorumUnestablished")
-                          : formatNumber(selectedBallot.participationEvidence.quorum.required),
-                      roster: formatNumber(selectedBallot.participationEvidence.quorum.activeMembers),
-                    })}
-                  </p>
-                )}
                 {selectedBallot.chairTieBreakApplied ? (
                   <p className="report-ballot-note">{t("ballot.chairTieBreakApplied")}</p>
                 ) : null}
@@ -1119,7 +1131,11 @@ export function ConductView({
           key={selectedItem.id}
           controller={recusals}
           members={members}
-          onClose={() => setRecusalOpen(false)}
+          initialMemberId={recusalMemberId}
+          onClose={() => {
+            setRecusalOpen(false);
+            setRecusalMemberId(undefined);
+          }}
         />
       ) : null}
       {closedSessionOpen && conduct ? (

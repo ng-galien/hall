@@ -500,6 +500,7 @@ export const fr: Messages = {
   "recusal.immutableHint":
     "La déclaration est conservée. Elle ne peut pas supprimer des votes ou des participations déjà enregistrés.",
   "recusal.record": "Déclarer le déport",
+  "recusal.recuse": "Déport",
   "recusal.separateFromVotes":
     "Ces déports sont distincts des abstentions et des non-participations. Leur effet sur les déclarations ne constitue pas un constat juridique complet du quorum.",
   "recusal.secretParticipants": "Participation au scrutin secret",

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { HelpHint } from "../../../components/HelpHint";
 import { BackIcon } from "../../../components/icons";
 import { RequestErrorBanner } from "../../../components/Ui";
 import { liveBusinessTitle } from "../../../features/council-business/presentation";
@@ -111,8 +112,10 @@ export function LiveMeetingPage() {
       <main className="live-main">
         {meeting.status === "closed" || meeting.status === "cancelled" ? (
           <section className="live-closed">
-            <h1>{t("live.closedTitle")}</h1>
-            <p>{t("live.closedDescription")}</p>
+            <div className="flex items-center gap-1">
+              <h1>{t("live.closedTitle")}</h1>
+              <HelpHint text={t("live.closedDescription")} testId="live-closed-hint" />
+            </div>
             <Link className="live-mode-link live-mode-link-large" to={`/meetings/${meeting.slug}`}>
               {t("live.viewReport")}
             </Link>

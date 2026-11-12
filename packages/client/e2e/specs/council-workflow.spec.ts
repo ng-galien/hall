@@ -122,7 +122,8 @@ async function inspectRecusalInformation(page: Page) {
   await trigger.focus();
   await trigger.press("Enter");
   await expect(content).toBeVisible();
-  await expect(content).toContainText(explanation);
+  await expect(content).not.toContainText(explanation);
+  await expect(page.getByTestId("live-recusal-effect-hint")).toHaveAttribute("aria-label", explanation);
   await page.screenshot({ path: test.info().outputPath("recusal-information-popover.png"), animations: "disabled" });
   await content.press("Escape");
   await expect(content).toBeHidden();
@@ -1853,4 +1854,71 @@ test("holds the meeting after a second convocation as a new linked meeting under
   await page.goto(`/app/minutes/${firstMeeting.minutesId}`);
   await expect(page.getByTestId("minutes-opening-quorum")).toBeVisible();
   await expect(page.getByTestId("minutes-second-convocation")).toBeVisible();
+});
+
+// @verifies-requirement HALL-FR-BAL-360
+test("sends a voter, then a selection of voters, to a choice from the menu of a right click", async ({
+  appPage: page,
+}) => {
+  const meetings = await sirenItems<{
+    id: string;
+    scheduledAt: string | null;
+    startedAt: string | null;
+    closedAt: string | null;
+  }>(await page.request.get("/api/council-meetings"));
+  const meeting = meetings.find((entry) => !entry.startedAt && !entry.closedAt)!;
+  if (!meeting.scheduledAt) {
+    await sirenProperties(
+      await page.request.put(`/api/council-meetings/${meeting.id}/schedule`, {
+        data: { scheduledAt: new Date(Date.now() - 60_000).toISOString(), location: "E2E right click room" },
+      }),
+    );
+  }
+  const members = await sirenItems<{ id: string }>(await page.request.get("/api/council-members"));
+  const businesses = await sirenItems<{ id: string }>(await page.request.get("/api/council-business"));
+  const item = await scheduleVotingItem(page, meeting.id, businesses[0]!.id, 1);
+  await sirenProperties(await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} }));
+  await sirenProperties(
+    await page.request.post(`/api/council-meetings/${meeting.id}/record-opening`, {
+      data: {
+        chairMemberId: members[0]!.id,
+        secretaryMemberId: members[1]!.id,
+        attendance: members.map((member) => ({ councilMemberId: member.id, status: "present" })),
+      },
+    }),
+  );
+  await page.goto(`/app/meetings/${meeting.id}/live`);
+  await page.getByTestId(`live-agenda-item-${item.id}`).click();
+  await page.getByTestId("live-agenda-start").click();
+  await page.getByTestId("live-ballot-open").click();
+  const voter = (memberId: string) => page.getByTestId(`live-vote-member-${memberId}`);
+
+  await voter(members[2]!.id).click({ button: "right" });
+  await page.getByTestId(`live-vote-menu-${members[2]!.id}`).getByTestId("live-vote-send-against").click();
+  await expect(
+    page.getByTestId("live-vote-zone-against").getByTestId(`live-vote-member-${members[2]!.id}`),
+  ).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath("right-click-one-voter-against.png"), animations: "disabled" });
+
+  await voter(members[3]!.id).click();
+  await voter(members[4]!.id).click();
+  await voter(members[4]!.id).click({ button: "right" });
+  await page.getByTestId(`live-vote-menu-${members[4]!.id}`).getByTestId("live-vote-send-for").click();
+  const forZone = page.getByTestId("live-vote-zone-for");
+  await expect(forZone.getByTestId(`live-vote-member-${members[3]!.id}`)).toBeVisible();
+  await expect(forZone.getByTestId(`live-vote-member-${members[4]!.id}`)).toBeVisible();
+  await expect(forZone.getByTestId(/^live-vote-member-/)).toHaveCount(2);
+  await page.screenshot({ path: test.info().outputPath("right-click-selection-for.png"), animations: "disabled" });
+
+  await voter(members[5]!.id).click();
+  await voter(members[6]!.id).click();
+  const recusedName = await voter(members[6]!.id).locator("strong").innerText();
+  await voter(members[6]!.id).click({ button: "right" });
+  const menu = page.getByTestId(`live-vote-menu-${members[6]!.id}`);
+  await expect(menu.getByTestId("live-vote-recuse")).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath("right-click-menu-with-recusal.png"), animations: "disabled" });
+  await menu.getByTestId("live-vote-recuse").click();
+  await expect(page.getByTestId("recusal-form")).toBeVisible();
+  await expect(page.getByTestId("recusal-member")).toContainText(recusedName);
+  await page.screenshot({ path: test.info().outputPath("right-click-recusal-dialog.png"), animations: "disabled" });
 });

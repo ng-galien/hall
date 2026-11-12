@@ -138,6 +138,7 @@ export {
   UploadSimple as UploadIcon,
   User as MemberIcon,
   UserCircle as AccountIcon,
+  UserMinus as RecusalIcon,
   UserSwitch as ProxyIcon,
   Users as MembersIcon,
   UsersThree as CommitteeIcon,

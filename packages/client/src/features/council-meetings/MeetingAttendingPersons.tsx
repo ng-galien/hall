@@ -4,6 +4,7 @@ import type {
   MeetingAuxiliaryAttendance,
 } from "@hall/api-contract";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { HelpHint } from "../../components/HelpHint";
 import { AddIcon, CheckIcon } from "../../components/icons";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
@@ -94,8 +95,10 @@ export function MeetingAttendingPersons({
 
   return (
     <section className="grid gap-3" data-testid="live-auxiliaries">
-      <strong>{t("auxiliary.title")}</strong>
-      <p className="text-sm text-muted">{t("auxiliary.description")}</p>
+      <div className="flex items-center gap-1">
+        <strong>{t("auxiliary.title")}</strong>
+        <HelpHint text={t("auxiliary.description")} testId="live-auxiliaries-hint" />
+      </div>
       {entries.length > 0 ? (
         <ul className="grid gap-2" data-testid="live-auxiliaries-list">
           {entries.map((entry) => (
@@ -136,7 +139,10 @@ export function MeetingAttendingPersons({
       >
         <form className="modal-form" data-testid="live-auxiliaries-form" onSubmit={declare}>
           <RequestErrorBanner error={failed ? (error ?? "request_failed") : null} compact />
-          <fieldset className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-2" disabled={submitting}>
+          <fieldset
+            className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-2"
+            disabled={submitting}
+          >
             <legend className="sr-only">{t("auxiliary.contact")}</legend>
             <Button
               type="button"

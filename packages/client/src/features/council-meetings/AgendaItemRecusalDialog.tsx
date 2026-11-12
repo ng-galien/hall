@@ -1,5 +1,6 @@
 import { type RecusalLegalBasis, recusalLegalBases } from "@hall/api-contract";
 import { type FormEvent, useState } from "react";
+import { HelpHint } from "../../components/HelpHint";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -12,14 +13,17 @@ import { recusalBasisHint, recusalBasisLabel } from "./recusalPresentation";
 export function AgendaItemRecusalDialog({
   controller,
   members,
+  initialMemberId,
   onClose,
 }: {
   controller: ReturnType<typeof useAgendaItemRecusals>;
   members: CouncilMemberView[];
+  /** The member already chosen when the dialog opens from the menu of a voter. */
+  initialMemberId?: string;
   onClose(): void;
 }) {
   const { t } = useI18n();
-  const [memberId, setMemberId] = useState("");
+  const [memberId, setMemberId] = useState(initialMemberId ?? "");
   const [basis, setBasis] = useState<RecusalLegalBasis>();
   const availableMembers = members.filter(
     (member) => !controller.state?.recusals.some((entry) => entry.councilMemberId === member.id),
@@ -33,12 +37,12 @@ export function AgendaItemRecusalDialog({
     <Modal
       open
       title={t("recusal.title")}
+      hint={`${t("recusal.description")} ${t("recusal.immutableHint")}`}
       onClose={() => {
         if (!controller.submitting) onClose();
       }}
     >
       <form className="modal-form" data-testid="recusal-form" onSubmit={submit}>
-        <p>{t("recusal.description")}</p>
         <RequestErrorBanner error={controller.error} />
         <Field label={t("recusal.member")}>
           <EntitySelect
@@ -68,12 +72,11 @@ export function AgendaItemRecusalDialog({
               />
               <span className="choice-option-text">
                 <strong>{t(recusalBasisLabel(value))}</strong>
-                <span className="choice-option-hint">{t(recusalBasisHint(value))}</span>
+                <HelpHint text={t(recusalBasisHint(value))} />
               </span>
             </label>
           ))}
         </fieldset>
-        <p className="modal-form-note">{t("recusal.immutableHint")}</p>
         <div className="dialog-actions">
           <Button
             type="submit"

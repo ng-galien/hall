@@ -3,8 +3,16 @@ import { type AgendaItemRecusals, findSirenAction } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { type DragEvent, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { HelpHint } from "../../../components/HelpHint";
+import { RecusalIcon } from "../../../components/icons";
 import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import { Button } from "../../../components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "../../../components/ui/context-menu";
 import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";
@@ -52,6 +60,16 @@ const secretTargetZones: { choice: AssignmentChoice; labelKey: TranslationKey }[
   { choice: "invalid", labelKey: "ballot.invalid" },
 ];
 
+/**
+ * The choices a voter can be sent to from the menu of a right click on their card.
+ * @implements-requirement HALL-FR-BAL-360
+ */
+const contextChoices: { choice: VoteChoice; labelKey: TranslationKey }[] = [
+  { choice: "for", labelKey: "ballot.choice.for" },
+  { choice: "against", labelKey: "ballot.choice.against" },
+  { choice: "abstain", labelKey: "ballot.choice.abstain" },
+];
+
 const publicCounters: { key: keyof SecretBallotTotals; labelKey: TranslationKey }[] = [
   { key: "votesFor", labelKey: "ballot.votesFor" },
   { key: "votesAgainst", labelKey: "ballot.votesAgainst" },
@@ -73,6 +91,8 @@ function VoteBadge({
   onDragStart,
   onDragEnd,
   onClick,
+  onSend,
+  onRecuse,
 }: {
   participant: BallotParticipant;
   zone: ZoneChoice;
@@ -83,42 +103,74 @@ function VoteBadge({
   onDragStart(): void;
   onDragEnd(): void;
   onClick(): void;
+  /** Sends the voter, or the selection that holds them, to a choice: the gesture of a right click. */
+  onSend(choice: VoteChoice): void;
+  /** Opens the declaration of a recusal for this voter, when the user may record one. */
+  onRecuse?(): void;
 }) {
   const { t, formatNumber } = useI18n();
   const proxyVote = participant.memberId !== participant.castByMemberId;
   return (
-    <Button
-      variant="plain"
-      className={`vote-card vote-card-${zone}${proxyVote ? " vote-card-carried" : ""}${dragging ? " vote-card-dragging" : ""}${selected ? " vote-card-selected" : ""}`}
-      aria-pressed={selected}
-      data-testid={`live-vote-member-${participant.memberId}`}
-      draggable
-      onDragStart={(event: DragEvent) => {
-        event.dataTransfer.effectAllowed = "move";
-        onDragStart();
-      }}
-      onDragEnd={onDragEnd}
-      onClick={onClick}
-    >
-      <span className="vote-card-avatar" aria-hidden="true">
-        {participant.memberName
-          .split(" ")
-          .map((part) => part.slice(0, 1))
-          .slice(0, 2)
-          .join("")}
-      </span>
-      <span className="vote-card-copy">
-        <strong>{participant.memberName}</strong>
-        <span>
-          {proxyVote ? t("live.carriedBy", { holder: participant.castByName }) : member ? t(`role.${member.role}`) : ""}
-        </span>
-      </span>
-      {!proxyVote && carriedCount > 0 ? (
-        <span className="vote-card-proxy-count" title={t("live.holdsProxies", { count: formatNumber(carriedCount) })}>
-          +{formatNumber(carriedCount)}
-        </span>
-      ) : null}
-    </Button>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <Button
+          variant="plain"
+          className={`vote-card vote-card-${zone}${proxyVote ? " vote-card-carried" : ""}${dragging ? " vote-card-dragging" : ""}${selected ? " vote-card-selected" : ""}`}
+          aria-pressed={selected}
+          data-testid={`live-vote-member-${participant.memberId}`}
+          draggable
+          onDragStart={(event: DragEvent) => {
+            event.dataTransfer.effectAllowed = "move";
+            onDragStart();
+          }}
+          onDragEnd={onDragEnd}
+          onClick={onClick}
+        >
+          <span className="vote-card-avatar" aria-hidden="true">
+            {participant.memberName
+              .split(" ")
+              .map((part) => part.slice(0, 1))
+              .slice(0, 2)
+              .join("")}
+          </span>
+          <span className="vote-card-copy">
+            <strong>{participant.memberName}</strong>
+            <span>
+              {proxyVote
+                ? t("live.carriedBy", { holder: participant.castByName })
+                : member
+                  ? t(`role.${member.role}`)
+                  : ""}
+            </span>
+          </span>
+          {!proxyVote && carriedCount > 0 ? (
+            <span
+              className="vote-card-proxy-count"
+              title={t("live.holdsProxies", { count: formatNumber(carriedCount) })}
+            >
+              +{formatNumber(carriedCount)}
+            </span>
+          ) : null}
+        </Button>
+      </ContextMenuTrigger>
+      <ContextMenuContent data-testid={`live-vote-menu-${participant.memberId}`}>
+        {contextChoices.map(({ choice, labelKey }) => (
+          <ContextMenuItem key={choice} data-testid={`live-vote-send-${choice}`} onSelect={() => onSend(choice)}>
+            <span className="vote-menu-mark" data-choice={choice} aria-hidden="true" />
+            {t(labelKey)}
+          </ContextMenuItem>
+        ))}
+        {onRecuse ? (
+          <>
+            <div className="vote-menu-separator" role="separator" />
+            <ContextMenuItem data-testid="live-vote-recuse" onSelect={onRecuse}>
+              <RecusalIcon aria-hidden="true" />
+              {t("recusal.recuse")}
+            </ContextMenuItem>
+          </>
+        ) : null}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -135,6 +187,7 @@ export function VotePanel({
   departedAttendanceIds,
   ballotChair,
   actionContainer,
+  onRecuse,
 }: {
   aggregate: LiveMeetingPresentation;
   members: CouncilMemberView[];
@@ -148,6 +201,8 @@ export function VotePanel({
   departedAttendanceIds: readonly string[];
   ballotChair: AgendaItemRecusals["ballotChair"];
   actionContainer: HTMLElement | null;
+  /** Opens the conflict of interest dialog with this member chosen; absent when no recusal can be recorded. */
+  onRecuse?(memberId: string): void;
 }) {
   const { t, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
@@ -319,6 +374,13 @@ export function VotePanel({
           setDropZone(null);
         }}
         onClick={() => toggleSelection(participant.memberId)}
+        onSend={(choice) =>
+          assignMembers(
+            selectedMemberIds.has(participant.memberId) ? selectedMemberIds : [participant.memberId],
+            choice,
+          )
+        }
+        onRecuse={onRecuse ? () => onRecuse(participant.memberId) : undefined}
         key={participant.memberId}
       />
     );
@@ -334,7 +396,13 @@ export function VotePanel({
   return (
     <section className="vote-panel" aria-labelledby="vote-panel-heading">
       <header className="vote-panel-header">
-        <h2 id="vote-panel-heading">{t("ballot.itemTitle")}</h2>
+        <div className="flex items-center gap-1">
+          <h2 id="vote-panel-heading">{t("ballot.itemTitle")}</h2>
+          <HelpHint
+            text={t(method === "public" ? "live.publicVoteHint" : "ballot.secretDescription")}
+            testId="live-ballot-hint"
+          />
+        </div>
         <div className="vote-method-toggle">
           <Button
             variant="plain"
@@ -362,7 +430,6 @@ export function VotePanel({
           </Button>
         </div>
       </header>
-      <p className="vote-panel-hint">{t(method === "public" ? "live.publicVoteHint" : "ballot.secretDescription")}</p>
 
       {
         <>
@@ -403,6 +470,7 @@ export function VotePanel({
                 <section
                   className={`vote-zone vote-zone-${zone.choice}${dropZone === zone.choice ? " vote-zone-over" : ""}${canReceiveSelection ? " vote-zone-receiving" : ""}`}
                   aria-label={t(zone.labelKey)}
+                  data-testid={`live-vote-zone-${zone.choice}`}
                   {...zoneDropHandlers(zone.choice)}
                   key={zone.choice}
                 >

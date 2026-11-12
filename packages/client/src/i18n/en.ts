@@ -491,6 +491,7 @@ export const en = {
     "Only when CGCT L1111-6 II / L2131-11 applies, after checking its conditions and exceptions. Being an organisation representative is not sufficient. Also reduces the membership denominator.",
   "recusal.immutableHint": "The declaration is retained. It cannot remove votes or participation already recorded.",
   "recusal.record": "Record the recusal",
+  "recusal.recuse": "Recusal",
   "recusal.separateFromVotes":
     "These recusals are distinct from abstentions and non-participation. Their impact on declarations is not a complete legal quorum finding.",
   "recusal.secretParticipants": "Participation in the secret ballot",

@@ -9949,6 +9949,30 @@
         }
       ]
     },
+    "HALL-FR-BAL-360": {
+      "name": "BALLOT_VOTER_IS_SENT_TO_A_CHOICE_FROM_ITS_MENU",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-12"
+      },
+      "statement": "Pendant la saisie d’un vote en séance, un clic droit sur un votant ouvre un menu qui l’envoie vers « Pour », « Contre » ou « Abstention », ou ouvre la déclaration de son déport.",
+      "acceptanceCriteria": [
+        "Un clic droit sur un votant qui n’est pas dans la sélection, puis le choix d’une entrée, range ce seul votant dans le choix correspondant.",
+        "Un clic droit sur un votant qui fait partie de la sélection, puis le choix d’une entrée, range toute la sélection dans le choix correspondant.",
+        "L’envoi par le menu a le même effet que le glisser ou le clic sur la zone du choix : mêmes règles de scrutin secret, de pouvoirs et de déports, même enregistrement du vote.",
+        "La sélection, le clic sur une zone, le glisser et l’envoi de tous les restants vers « Pour » restent disponibles.",
+        "L’entrée « Déport » du menu ouvre la déclaration du conflit d’intérêts avec le votant cliqué déjà choisi, même si d’autres votants sont sélectionnés ; le fondement se choisit et se déclare comme depuis « Déports sur ce point », qui reste disponible."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Demande de l’utilisateur du 12 novembre 2026, devant le panneau de vote du mode séance : envoyer un votant vers pour, contre ou abstention par un clic droit sur sa case. Complément du même jour : chaque entrée de vote porte la couleur de sa zone, et une entrée « Déport » ouvre la déclaration pour la personne cliquée.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MTG-330": {
       "name": "MEETING_CHAIR_HANDOVER_FOLLOWS_STATUTORY_ORDER",
       "nature": "functional",
