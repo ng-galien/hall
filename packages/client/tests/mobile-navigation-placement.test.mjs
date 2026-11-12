@@ -41,8 +41,13 @@ test("a left dialog is a full-height panel anchored to the left edge, without ce
     assert.ok(!classes.contains(centering), centering);
 });
 
-test("the mobile navigation uses the left dialog placement instead of overriding the centered one", () => {
-  assert.match(read("src/components/Layout.tsx"), /className="app-mobile-navigation"\s+placement="left"/);
-  const rule = read("src/styles/shell.css").match(/\.app-mobile-navigation \{([^}]*)\}/)[1];
-  assert.doesNotMatch(rule, /\b(inset|transform|translate|top|left|height)\s*:/);
+test("above the phone the menu stays one panel anchored at the left, never a dialog over the content", () => {
+  // Decision of 12 November 2026 (887d3837): the same anchored menu at every width above the phone, folded or unfolded.
+  const layout = read("src/components/Layout.tsx");
+  assert.match(
+    layout,
+    /\{phone \? null : \(\s*<AppSidebar\s+compact=\{compact\}\s+navigation=\{\{ expanded: !compact, toggle: \(\) => setCompact\(!compact\) \}\}/,
+  );
+  assert.doesNotMatch(layout, /<Dialog\b|app-mobile-navigation/);
+  assert.doesNotMatch(read("src/styles/shell.css"), /\.app-mobile-navigation\b/);
 });
