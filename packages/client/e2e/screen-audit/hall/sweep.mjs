@@ -255,6 +255,9 @@ for (const [rule, title] of Object.entries(titles)) {
   if (count) say(`  ${rule} (${title}) : ${count}`);
 }
 for (const line of missing) say(`Écran non ouvert : ${line}`);
+if (existsSync(join(outputDirectory, "lenteurs.txt")))
+  for (const line of readFileSync(join(outputDirectory, "lenteurs.txt"), "utf8").split("\n").filter(Boolean))
+    say(`Étape lente : ${line}`);
 for (const group of open)
   say(
     `\nÉcart : ${group.key}\n  ${titles[group.rule] ?? group.rule} — ${group.detail}\n  ${group.rule === "component-unity" ? group.cases.join("\n  ") : `${group.cases.slice(0, 4).join(" ; ")}${group.cases.length > 4 ? ` … (${group.cases.length} cas)` : ""}`}`,

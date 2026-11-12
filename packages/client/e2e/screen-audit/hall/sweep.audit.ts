@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Browser, Page } from "@playwright/test";
 import { test } from "../../fixtures/application";
@@ -110,6 +110,10 @@ if (sweeping) {
             });
             await context.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
             const page = await context.newPage();
+            /* Without a bound, an action on a covered element waits for the end of the test: a step fails after 15 s
+               and the screen is reported as not opened, with the reason. */
+            page.setDefaultTimeout(15_000);
+            page.setDefaultNavigationTimeout(30_000);
             const resize = async (width: number) => {
               await page.setViewportSize({ width, height });
               await settleLayout(page);
@@ -119,7 +123,11 @@ if (sweeping) {
               const begin = Date.now();
               const result = await step();
               const spent = Date.now() - begin;
-              if (spent > 3000) console.log(`[balayage] ${input} ${label} : ${Math.round(spent / 100) / 10} s`);
+              if (spent > 3000)
+                appendFileSync(
+                  join(directory, "..", "lenteurs.txt"),
+                  `${input} ${label} : ${Math.round(spent / 100) / 10} s\n`,
+                );
               return result;
             };
             const open = async (screen: Screen, width: number) => {
