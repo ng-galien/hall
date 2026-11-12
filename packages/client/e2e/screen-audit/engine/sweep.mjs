@@ -207,7 +207,7 @@ export function measureLayout(options) {
   /* hidden-name: a title or a name whose box shows less than three characters. */
   for (const entry of texts) {
     if (entry.text.length < 3) continue;
-    // The detail and the facts of a list row shrink before its title (HALL-TR-LAY-020); the title is measured.
+    // The detail and the facts of a list row shrink before its title; the title is measured.
     if (entry.parent.closest(".list-row-detail, .list-row-fact")) continue;
     const style = getComputedStyle(entry.parent);
     const font = Number.parseFloat(style.fontSize) || 14;

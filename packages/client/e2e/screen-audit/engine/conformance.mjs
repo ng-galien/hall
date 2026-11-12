@@ -135,6 +135,33 @@ export const conformanceRules = {
     expected:
       "Un en-tête de section porte son titre à gauche et ses commandes à l'extrémité droite de la même ligne ; tous les titres de section d'un écran ont la même taille et la même graisse.",
   },
+  "menu-icons": {
+    title: "Barre latérale : deux entrées avec la même icône",
+    expected: "Chaque entrée de la barre latérale a une icône qui lui est propre.",
+  },
+  "date-format": {
+    title: "Date écrite en chiffres ou avec l'année en cours",
+    expected:
+      "Une date s'écrit en toutes lettres, jour et mois (« 17 octobre ») ; l'année n'est écrite que si ce n'est pas l'année en cours.",
+  },
+  "header-line-height": {
+    title: "Première ligne du bandeau hors de 44 px, ou chevron dans le fil d'Ariane",
+    expected:
+      "Sur ordinateur et tablette, la première ligne du bandeau mesure 44 px et son fil d'Ariane sépare les dossiers par une barre oblique, sans chevron.",
+  },
+  "create-position": {
+    title: "« + Nouveau » flottant hors du coin bas droit",
+    expected: "Au téléphone, « + Nouveau » flotte en bas à droite de l'écran, au-dessus de la barre du bas.",
+  },
+  "type-icon-pad": {
+    title: "Icône de type posée sur un pavé",
+    expected: "L'icône de type d'une ligne de liste est posée seule, en trait, sans pavé ni fond.",
+  },
+  "large-row": {
+    title: "Liste courte des personnes hors de la grande ligne",
+    expected:
+      "Une liste courte de personnes, comme la composition du conseil, emploie la grande ligne : initiales et nom plus grands, nom en gras.",
+  },
   "editor-tools": {
     title: "Choix 8B : outils d'écriture hors de leur barre fixe sous le bandeau",
     expected:
@@ -685,7 +712,7 @@ export function measureConformance(options) {
   }
 
   /* button-icon-unity and plus-not-add: the labelled buttons of one form (variant and size) on one screen are all drawn
-     with an icon or all without; « + » marks an addition or a creation only (choice 6, HALL-FR-LAY-170). */
+     with an icon or all without; « + » marks an addition or a creation only (choice 6). */
   const addition = /nouveau|nouvelle|ajouter|joindre|créer|inviter|importer/i;
   const labelled = commands.filter(
     (button) =>
@@ -783,6 +810,72 @@ export function measureConformance(options) {
       [...titleLooks.values()][1][0],
       `titres de section en ${[...titleLooks.entries()].map(([look, titles]) => `${look} (${titles.length})`).join(", ")}`,
     );
+
+  /* menu-icons: each entry of the side menu draws its own icon. */
+  const drawings = new Map();
+  for (const row of document.querySelectorAll(".app-sidebar .nav-row")) {
+    if (ignored(row) || !shown(row)) continue;
+    const path = row.querySelector("svg path")?.getAttribute("d");
+    if (!path) continue;
+    drawings.set(path, [...(drawings.get(path) ?? []), row]);
+  }
+  for (const rows of drawings.values())
+    if (rows.length > 1) add("menu-icons", rows[1], `même icône que « ${nameOf(rows[0]).slice(0, 30)} »`);
+
+  /* date-format: a date in letters, the current year left out. */
+  const months = "janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre";
+  const year = new Date().getFullYear();
+  for (const parent of textParents) {
+    if (
+      parent.closest(
+        "input, textarea, [contenteditable], .markdown-view, .markdown-editor, pre, code, [data-horizontal-scroll]",
+      )
+    )
+      continue;
+    const text = parent.textContent ?? "";
+    if (/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/.test(text))
+      add("date-format", parent, `date en chiffres : « ${text.trim().slice(0, 40)} »`);
+    else if (new RegExp(`\\b\\d{1,2}(?:er)? (?:${months}) ${year}\\b`).test(text))
+      add("date-format", parent, `année en cours écrite : « ${text.trim().slice(0, 40)} »`);
+  }
+
+  /* header-line-height: on a computer and a tablet, a first line of 44 px and a breadcrumb without a chevron. */
+  const line = document.querySelector("[data-testid=screen-header] > .screen-header-line");
+  if (line && shown(line) && !phone) {
+    const height = line.getBoundingClientRect().height;
+    if (Math.abs(height - 44) > 1) add("header-line-height", line, `${Math.round(height)} px`);
+    for (const svg of line.querySelectorAll(".screen-header-trail svg"))
+      if (/^Caret/.test(iconOf(svg) ?? "")) add("header-line-height", svg, "chevron dans le fil d'Ariane");
+  }
+
+  /* create-position: on a phone, the floating « + Nouveau » at the bottom right, above the bottom bar. */
+  if (phone) {
+    const fab = [...document.querySelectorAll(".create-fab")].find(shown);
+    const bar = document.querySelector("[data-testid=phone-navigation]");
+    if (fab) {
+      const rect = fab.getBoundingClientRect();
+      const floor = bar && shown(bar) ? bar.getBoundingClientRect().top : window.innerHeight;
+      if (window.innerWidth - rect.right > 24 || floor - rect.bottom > 32 || rect.bottom > floor + 1)
+        add(
+          "create-position",
+          fab,
+          `à ${Math.round(window.innerWidth - rect.right)} px du bord droit et ${Math.round(floor - rect.bottom)} px au-dessus de la barre du bas`,
+        );
+    }
+  }
+
+  /* type-icon-pad: the type icon of a row stands alone, without a pad. */
+  for (const glyph of document.querySelectorAll("[data-slot=list-row] .type-icon")) {
+    if (ignored(glyph) || !shown(glyph)) continue;
+    const fill = painted(getComputedStyle(glyph).backgroundColor);
+    if (fill) add("type-icon-pad", glyph, `pavé ${getComputedStyle(glyph).backgroundColor}`);
+  }
+
+  /* large-row: the members of the council are listed in the large row. */
+  for (const row of document.querySelectorAll("[data-slot=list-row]:has([data-testid^=member-open-])")) {
+    if (ignored(row) || !shown(row)) continue;
+    if (!row.matches("[data-size=large]")) add("large-row", row, "ligne courante au lieu de la grande ligne");
+  }
 
   /* editor-tools: choice 8B, on a phone the tools of a text are one bar fixed under the header, with « Photo ». */
   if (phone) {

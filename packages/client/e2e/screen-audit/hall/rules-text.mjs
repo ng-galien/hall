@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { conformanceRules } from "../engine/conformance.mjs";
 import { sweepRules } from "../engine/sweep.mjs";
-import { components, declaredThresholds } from "./interface.mjs";
+import { components, declaredThresholds, outOfCatalogue } from "./interface.mjs";
 import { screenFiles, screensForFiles, sharedSamples } from "./screen-map.mjs";
 import { screens } from "./screens.mjs";
 import { sweepPlan } from "./sweep-config.mjs";
@@ -134,6 +134,8 @@ export function writeRules(only = null) {
       ),
   );
   for (const entry of missingElsewhere) lines.push(`  Valeur manquante (${entry.component}) : ${entry.values}.`);
+  lines.push("", "## Sorti du catalogue des exigences, non contrôlé");
+  for (const entry of outOfCatalogue) lines.push(`  - ${entry.what} (${entry.from}).`);
   return lines.join("\n");
 }
 

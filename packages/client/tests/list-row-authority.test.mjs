@@ -37,7 +37,6 @@ function token(block, name) {
   return block.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6});`, "i"))?.[1];
 }
 
-// @verifies-requirement HALL-FR-LAY-070
 test("every resource nature reaches 3:1 on the surface in both themes", () => {
   const natures = ["writing", "data", "visual", "council", "folder"];
   for (const selector of [":root", ':root[data-theme="dark"]']) {
@@ -51,13 +50,11 @@ test("every resource nature reaches 3:1 on the surface in both themes", () => {
   }
 });
 
-// @verifies-requirement HALL-TR-LAY-020
 test("only ListRow renders a list row", () => {
   const owners = files.filter(({ source }) => /data-slot="list-row"/.test(source)).map(({ path }) => path);
   assert.deepEqual(owners, ["components/ui/list-row.tsx"]);
 });
 
-// @verifies-requirement HALL-FR-LAY-070
 test("type icons are outlines tinted by their nature, never a padded badge", () => {
   const listRow = read("components/ui/list-row.tsx");
   assert.doesNotMatch(listRow, /weight="(?:fill|duotone|bold)"/);
@@ -149,7 +146,6 @@ const listFiles = [
   "pages/workspace/WorkspacePage.tsx",
 ];
 
-// @verifies-requirement HALL-TR-LAY-020
 test("retired row classes and components do not come back", () => {
   for (const name of retiredClasses) {
     const pattern = new RegExp(`(?<![\\w-])${name}(?![\\w-])`);
@@ -159,14 +155,12 @@ test("retired row classes and components do not come back", () => {
   for (const path of retiredFiles) assert.equal(existsSync(join(sourceRoot, path)), false, `${path} still exists`);
 });
 
-// @verifies-requirement HALL-TR-LAY-020
 test("every list of the inventory is rendered by ListRow", () => {
   for (const path of listFiles) {
     assert.match(read(path), /from "[^"]*list-row"/, `${path} does not import ListRow`);
   }
 });
 
-// @verifies-requirement HALL-FR-LAY-080
 test("the interface loads no serif typeface", () => {
   const manifest = readFileSync(join(clientRoot, "package.json"), "utf8");
   assert.doesNotMatch(manifest, /@fontsource\/spectral/);

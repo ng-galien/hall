@@ -188,6 +188,42 @@ const cases = [
     `<section><header class="collapsible-section-header row" style="width:360px;justify-content:space-between"><h2 style="font-size:16px">Éléments préparés</h2><button class="secondary">+ Nouveau</button></header></section><section><header class="collapsible-section-header row" style="width:360px;justify-content:space-between"><h2 style="font-size:16px">Documents</h2><button class="secondary">+ Joindre</button></header></section>`,
   ],
   [
+    "menu-icons",
+    {},
+    `<aside class="app-sidebar"><a class="nav-row" href="#">${icon("House")}Accueil</a><a class="nav-row" href="#">${icon("House")}Documents</a></aside>`,
+    `<aside class="app-sidebar"><a class="nav-row" href="#">${icon("House")}Accueil</a><a class="nav-row" href="#">${icon("Plus")}Documents</a></aside>`,
+  ],
+  [
+    "date-format",
+    {},
+    `<p>Séance du 06/11/2026</p><p>Créé le 6 novembre ${new Date().getFullYear()}</p>`,
+    `<p>Séance du 6 novembre</p><p>Créé le 4 décembre 2025</p>`,
+  ],
+  [
+    "header-line-height",
+    {},
+    `<header data-testid="screen-header"><div class="screen-header-line" style="height:60px"><div class="screen-header-trail">Documents ${icon("CaretRight")} Finances</div></div></header>`,
+    `<header data-testid="screen-header"><div class="screen-header-line" style="height:44px"><div class="screen-header-trail">Documents / Finances</div></div></header>`,
+  ],
+  [
+    "create-position",
+    { phone: true },
+    `<button class="create-fab" style="position:fixed;left:16px;bottom:200px">+ Nouveau</button><nav data-testid="phone-navigation" style="position:fixed;bottom:0;height:64px;width:100%"></nav>`,
+    `<button class="create-fab" style="position:fixed;right:16px;bottom:80px">+ Nouveau</button><nav data-testid="phone-navigation" style="position:fixed;bottom:0;height:64px;width:100%"></nav>`,
+  ],
+  [
+    "type-icon-pad",
+    {},
+    `<div data-slot="list-row"><span class="type-icon" style="background:rgb(233,237,247);padding:6px">${icon("House")}</span>Budget</div>`,
+    `<div data-slot="list-row"><span class="type-icon">${icon("House")}</span>Budget</div>`,
+  ],
+  [
+    "large-row",
+    {},
+    `<ul><li data-slot="list-row"><a data-testid="member-open-1" href="#">Odile DUBOZ</a></li></ul>`,
+    `<ul><li data-slot="list-row" data-size="large"><a data-testid="member-open-1" href="#">Odile DUBOZ</a></li></ul>`,
+  ],
+  [
     "editor-tools",
     { phone: true },
     `<header data-testid="phone-header" style="position:sticky;top:0;height:56px;background:white">Note</header><button data-testid="text-finish-editing">Terminé</button><button class="editor-photo-control">Choisir une photo</button><div role="toolbar" style="margin-top:40px">G I</div>`,

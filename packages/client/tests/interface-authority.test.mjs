@@ -248,7 +248,6 @@ test("every form field is a Field: the label above the control and the badges do
   assert.deepEqual(offenders(/from "[^"]*(?:ui\/label|ui\/badge|DetailTooltip)"/), []);
 });
 
-// @verifies-requirement HALL-FR-LAY-080
 // @verifies-requirement HALL-FR-LAY-100
 test("the interface is written in lower case and draws no pill or large rounding", () => {
   assert.deepEqual(

@@ -46,7 +46,7 @@ export const components = [
       "dans le bandeau d'un écran de liste",
       "dans un en-tête de section (placement inline)",
     ],
-    rules: ["unlabelled-create", "plus-not-add", "design-reference"],
+    rules: ["unlabelled-create", "plus-not-add", "create-position", "design-reference"],
     values: ["bouton de création"],
     decided: [
       {
@@ -121,7 +121,14 @@ export const components = [
       "packages/client/src/components/ui/item-commands.tsx",
     ],
     variants: ["écran de premier niveau", "écran intérieur", "élément ouvert", "fenêtre d'un document", "téléphone"],
-    rules: ["header-first-line", "title-after-commands", "search-on-item", "duplicate-command", "design-reference"],
+    rules: [
+      "header-first-line",
+      "header-line-height",
+      "title-after-commands",
+      "search-on-item",
+      "duplicate-command",
+      "design-reference",
+    ],
     values: ["bandeau"],
     decided: [
       {
@@ -140,7 +147,7 @@ export const components = [
       "packages/client/src/shell/WorkspaceTree.tsx",
     ],
     variants: ["dépliée", "repliée (data-compact)", "entrée courante"],
-    rules: ["disclosure-chevron", "filled-icon", "icon-weight", "component-unity", "design-reference"],
+    rules: ["menu-icons", "disclosure-chevron", "filled-icon", "icon-weight", "component-unity", "design-reference"],
     values: ["barre latérale", "barre latérale, rangée", "barre latérale, rangée active", "barre latérale, marque"],
     decided: [
       { what: "chaque entrée a une icône distincte", source: `${reference}, page 1` },
@@ -191,7 +198,7 @@ export const components = [
     name: "Texte et écriture",
     code: ["packages/client/src/features/resources/useTextWriting.tsx", "packages/client/src/styles/tokens.css"],
     variants: ["lecture (« Modifier »)", "écriture (« Terminé »)"],
-    rules: ["writing-modes", "editor-tools", "font-family", "text-size", "forbidden-text", "warm-tint"],
+    rules: ["writing-modes", "editor-tools", "font-family", "text-size", "date-format", "forbidden-text", "warm-tint"],
     values: ["texte courant", "fond des écrans"],
     decided: [
       {
@@ -203,5 +210,46 @@ export const components = [
         source: `${choices}, page 1, choix 10E`,
       },
     ],
+  },
+];
+
+/**
+ * Display rules taken out of the requirement catalogue (commit 335e97c) that no rule of the tool checks yet, with the
+ * requirement they came from. Written out by --rules so that they are not lost.
+ */
+export const outOfCatalogue = [
+  { what: "les blocs de la barre latérale sont séparés par un filet", from: "HALL-FR-LAY-110" },
+  {
+    what: "menu replié : un panneau clair (fond, filet, ombre des menus) montre le libellé au survol ou au focus d'une icône",
+    from: "HALL-FR-LAY-160",
+  },
+  {
+    what: "au téléphone, la liste garde une marge sous sa dernière ligne, sous le « + Nouveau » flottant",
+    from: "HALL-FR-LAY-120",
+  },
+  { what: "les champs qui vont ensemble partagent une rangée", from: "HALL-FR-LAY-140" },
+  {
+    what: "les icônes de type prennent les cinq teintes froides de leur nature (valeurs absentes de la référence)",
+    from: "HALL-FR-LAY-070",
+  },
+  {
+    what: "cartes : couches, fiche d'un dessin, bascules « Éléments » et « Mesures », panneaux, légende",
+    from: "HALL-FR-DOC-340 à HALL-FR-DOC-530",
+  },
+  {
+    what: "procès-verbaux : état arrêté avec la marque d'état commune, zone de rédaction sans contour ni ombre",
+    from: "HALL-FR-MIN-240, HALL-FR-MIN-250",
+  },
+  {
+    what: "références dans un texte : même alignement avec ou sans icône, quel que soit leur type",
+    from: "HALL-FR-SRC-030, HALL-FR-SRC-040",
+  },
+  {
+    what: "choix d'une commission sur la fiche d'une affaire : liste déroulante avec recherche, à la hauteur d'un petit contrôle",
+    from: "HALL-FR-BUS-070",
+  },
+  {
+    what: "échelle unique de superposition : contenu, éléments collants, fenêtres, éléments flottants, notifications",
+    from: "HALL-TR-LAY-010",
   },
 ];
