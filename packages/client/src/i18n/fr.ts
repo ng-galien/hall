@@ -610,8 +610,6 @@ export const fr: Messages = {
   "common.authenticationRequired": "Authentification nécessaire",
   "common.expandNavigation": "Déployer la navigation",
   "common.collapseNavigation": "Réduire la navigation",
-  "common.expandPane": "Afficher le volet {title}",
-  "common.collapsePane": "Masquer le volet {title}",
   "common.primaryNavigation": "Navigation principale",
   "common.breadcrumb": "Fil d’Ariane",
   "common.settings": "Paramètres de l’application",

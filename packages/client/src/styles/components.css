@@ -341,32 +341,7 @@
   .record-state[data-save="error"]::before { background: var(--hall-color-danger); }
   .record-state[data-save="saving"]::before { animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite; }
 
-  /* Courriels: the pane of the folders and groups, the list of the folder, the message beside it. */
-  .mail-folders,
-  .mail-pane-groups { display: grid; gap: var(--hall-space-0-5); }
-  .mail-pane-groups { margin-top: var(--hall-space-3); }
-  .mail-pane-heading { padding: var(--hall-space-2) var(--hall-space-2) var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-semibold); }
-  .mail-pane-row {
-    display: flex;
-    min-height: var(--hall-size-control);
-    align-items: center;
-    gap: var(--hall-space-2);
-    padding: 0 var(--hall-space-2);
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text);
-    background: none;
-    font: inherit;
-    font-size: var(--hall-font-size-body);
-    text-align: left;
-    cursor: pointer;
-  }
-  .hall-button.mail-pane-row { justify-content: flex-start; padding: 0 var(--hall-space-2); font-weight: inherit; text-align: left; }
-  .mail-pane-row:hover { background: var(--hall-color-surface-subtle); }
-  .mail-pane-row[aria-current="page"] { color: var(--hall-color-brand); background: var(--hall-color-surface-selected); font-weight: var(--hall-font-weight-bold); }
-  .mail-pane-row > svg { flex: none; font-size: var(--hall-font-size-icon); }
-  .mail-pane-name { overflow: hidden; min-width: 0; flex: 1; text-overflow: ellipsis; white-space: nowrap; }
-  .hall-button.mail-pane-link { color: var(--hall-color-brand); }
+  /* Courriels: the list of the folder beside the opened message. */
   .mail-count { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-variant-numeric: tabular-nums; }
   .mail-screen { display: flex; min-height: calc(100svh - var(--hall-size-mail-chrome)); align-items: stretch; }
   .mail-list { display: flex; width: var(--hall-size-mail-list); flex: none; flex-direction: column; gap: var(--hall-space-2); padding: var(--hall-space-2) var(--hall-space-3) 0 0; border-right: var(--hall-stroke-thin) solid var(--hall-color-border); }

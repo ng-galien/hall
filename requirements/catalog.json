@@ -11214,7 +11214,7 @@
         "La racine « Administration » est repliée par défaut et se déplie sur place en Utilisateurs, Membres du conseil, Commissions, Représentations extérieures et Modèles de documents ; elle est dépliée d’elle-même sur l’un de ses écrans. Son état se lit à l’épaisseur de son icône et à la présence de ses entrées, sans chevron.",
         "Le menu a deux états, déplié avec les libellés complets ou replié en rail d’icônes dont le libellé est donné en infobulle et aux lecteurs d’écran ; la personne choisit l’état par le bouton de repli du menu et le retrouve à sa visite suivante.",
         "Le bouton de repli du menu est à droite de la marque « Hall », sur sa ligne ; menu replié, il est en haut du rail, juste sous le « H », au même endroit à chaque écran. Entre 761 et 1000 pixels de large, le rail reste affiché et ce bouton ouvre le menu déplié par-dessus le contenu.",
-        "L’entrée Documents du menu ne porte pas de chevron ni de bouton de dépliage ; tant que l’écran Documents est ouvert, l’arborescence des dossiers et des affaires s’affiche sous elle, dans le menu déplié, et reçoit les éléments qu’on y dépose.",
+        "L’entrée Documents du menu ne porte pas de chevron ni de bouton de dépliage ; tant que l’écran Documents est ouvert, l’arborescence des dossiers et des affaires s’affiche sous elle, dans le menu déplié, et reçoit les éléments qu’on y dépose ; tant que l’écran Courriels est ouvert, « Brouillons » et « Envoyés » s’affichent sous l’entrée Courriels.",
         "Sur ordinateur et tablette, le menu emploie les mêmes icônes en trait et le même état actif que la barre du bas.",
         "Au téléphone, la feuille « Plus » reprend les groupes du menu, « Conseil municipal », « Outils de travail » et « Administration », sans les entrées de la barre du bas, puis l’espace personnel, l’aide et le compte."
       ],
@@ -11329,20 +11329,17 @@
       ]
     },
     "HALL-FR-LAY-160": {
-      "name": "MODULE_PANE_AND_FOLD_CONTROLS",
+      "name": "FOLD_CONTROLS_IN_THEIR_OWN_PANEL",
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
         "since": "2026-11-12"
       },
-      "statement": "Sur ordinateur et tablette, l’écran Courriels a un volet entre le menu et le contenu, et chaque panneau repliable porte son propre bouton de repli.",
+      "statement": "Sur ordinateur et tablette, aucune colonne de navigation ne s’ajoute entre le menu et le contenu, et chaque panneau repliable porte son propre bouton de repli.",
       "acceptanceCriteria": [
-        "Le volet occupe toute la hauteur entre le menu et le contenu ; son en-tête porte son titre et son bouton de repli, et son contenu défile seul.",
-        "Seul l’écran Courriels a un volet : Brouillons, Envoyés et les groupes de destinataires. L’écran Documents n’a pas de volet ; un écran sans volet donne toute la largeur au contenu après le menu.",
-        "Le volet replié laisse toute la largeur au contenu ; la personne retrouve l’état choisi pour chaque volet à sa visite suivante.",
-        "Chaque panneau repliable porte son bouton de repli dans son propre en-tête : le menu, le volet de Courriels et la liste des courriels. Le bandeau du contenu ne porte aucun bouton de repli et son fil d’Ariane commence au bord gauche.",
-        "Quand un volet ou la liste des courriels est replié et n’a plus d’en-tête visible, le bouton qui le rouvre est au début du bandeau de l’écran.",
-        "Au téléphone, l’écran n’a pas de volet : il présente sa propre navigation dans son contenu."
+        "Le contenu de chaque écran commence juste après le menu ; le contexte d’une racine, comme l’arborescence des dossiers sous Documents ou Brouillons et Envoyés sous Courriels, s’affiche dans le menu, sous sa ligne, tant que son écran est ouvert.",
+        "Chaque panneau repliable porte son bouton de repli dans son propre en-tête : le menu, à droite de la marque « Hall », et la liste des courriels. Le bandeau du contenu ne porte aucun bouton de repli et son fil d’Ariane commence au bord gauche.",
+        "Quand la liste des courriels est repliée et n’a plus d’en-tête visible, le bouton qui la rouvre est au début du bandeau de l’écran ; la personne retrouve l’état choisi à sa visite suivante."
       ],
       "clauses": [
         {
@@ -11355,6 +11352,12 @@
           "key": "no-documents-pane",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026, devant le volet de Documents : « le truc des documents, avec les doubles gouttières rétractables, on n'y comprend rien. C'est pas du tout ce que j'avais demandé. […] C'est un empilement de trucs », puis « quand je dis je veux dans le menu des sous-sections, tu en as fait une nouvelle section verticale ». L’arborescence revient sous l’entrée Documents du menu ; la forme définitive du menu se décide sur une maquette.",
+          "sourceIds": []
+        },
+        {
+          "key": "no-second-column",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 : « je voulais rajouter du contexte, des éléments dans la barre latérale. […] la barre latérale, c'est pas que une liste d'icônes. » Décision du coordinateur : aucune seconde colonne de navigation ; « Brouillons » et « Envoyés » passent sous la ligne « Courriels » du menu. La forme détaillée des sous-sections se décide sur une maquette.",
           "sourceIds": []
         }
       ]
@@ -11973,7 +11976,7 @@
       },
       "statement": "L’écran Courriels présente les brouillons, les envois et la composition comme une messagerie courante, avec les mêmes fonctions que la boîte commune.",
       "acceptanceCriteria": [
-        "Sur ordinateur et tablette, le volet de Courriels présente « Brouillons » et « Envoyés » avec leur nombre, puis les groupes de destinataires enregistrés avec leur effectif et « Gérer les groupes… » ; chaque dossier a sa propre adresse.",
+        "Sur ordinateur et tablette, « Brouillons » et « Envoyés » s’affichent en retrait sous la ligne « Courriels » du menu tant que l’écran Courriels est ouvert ; chaque dossier a sa propre adresse. « Gérer les groupes… » est dans le menu « … » de l’écran et dans les propositions de la ligne « À ».",
         "« Envoyés » commence par les messages dont le dernier envoi a échoué ou est à vérifier, avec leur état en rouge, puis présente les autres du plus récent au plus ancien.",
         "La liste du dossier se replie par le bouton de son en-tête et commence par « Rechercher… », qui filtre les messages du dossier affiché par leur objet et leurs destinataires.",
         "La composition présente une ligne « À » où l’on tape un nom ; les suggestions viennent dans l’ordre groupes, contacts, adresse saisie, puis « Gérer les groupes… » ; un contact sans adresse est présenté avec « adresse manquante » et ne se choisit pas.",

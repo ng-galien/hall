@@ -2,12 +2,18 @@ import type { MailMessage, MailRecipientGroup } from "@hall/api-contract";
 import { findSirenAction } from "@hall/api-contract";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { DraftIcon, MailIcon, MembersIcon, SentIcon, SettingsIcon, SidebarCollapseIcon } from "../../components/icons";
+import { DraftIcon, MailIcon, MoreIcon, SentIcon, SidebarCollapseIcon } from "../../components/icons";
 import { EmptyState, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { CreateButton } from "../../components/ui/create-button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
-import { ModulePane, PaneReopenButton, useRememberedFold } from "../../components/ui/module-pane";
+import { PaneReopenButton, useRememberedFold } from "../../components/ui/remembered-fold";
 import { SearchInput } from "../../components/ui/search-input";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, type SirenApiResult, submitSirenAction } from "../../services/apiClient";
@@ -18,7 +24,7 @@ import {
   type MailRecipientSelections,
   openMail,
 } from "../../services/mailApi";
-import { ScreenTitle } from "../../shell/headerTrail";
+import { ScreenActions, ScreenTitle } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { MailEditor } from "./MailEditor";
 import { MailGroups } from "./MailGroups";
@@ -39,8 +45,8 @@ const emptySelections: MailRecipientSelections = { contacts: [], councilContactI
 const folderIcons = { drafts: DraftIcon, sent: SentIcon };
 
 /**
- * The shared mailbox of the commune. Its pane holds « Brouillons » and « Envoyés » with their number, then the saved
- * groups of recipients and « Gérer les groupes… »; the list of the folder, which folds and searches, sits beside the
+ * The shared mailbox of the commune: the menu holds « Brouillons » and « Envoyés » under its Courriels entry, the
+ * « … » menu of the screen « Gérer les groupes… »; the list of the folder, which folds and searches, sits beside the
  * opened message. On a phone, two tabs head the list and a message opens over the whole screen.
  * @implements-requirement HALL-FR-EML-010
  * @implements-requirement HALL-FR-EML-100
@@ -246,51 +252,22 @@ export function MailPage() {
   return (
     <div className="page mail-page">
       <ScreenTitle>{t(`mail.${folder}`)}</ScreenTitle>
-      <ModulePane id="mail" title={t("mail.title")} testId="mail-pane">
-        <nav className="mail-folders" aria-label={t("mail.title")}>
-          {mailFolders.map((entry) => {
-            const Glyph = folderIcons[entry];
-            return (
-              <Link
-                key={entry}
-                className="mail-pane-row"
-                aria-current={entry === folder ? "page" : undefined}
-                data-testid={`mail-folder-${entry}`}
-                to={folderLink(entry)}
-              >
-                <Glyph aria-hidden="true" />
-                <span className="mail-pane-name">{t(`mail.${entry}`)}</span>
-                <span className="mail-count">{count(entry)}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        <section className="mail-pane-groups" aria-label={t("mail.groups")}>
-          <h3 className="mail-pane-heading">{t("mail.groups")}</h3>
-          {savedGroups.map((group) => (
-            <Button
-              key={group.id}
-              variant="plain"
-              className="mail-pane-row"
-              data-testid={`mail-pane-group-${group.id}`}
-              onClick={() => setGroupsDialog({ groupId: group.id })}
-            >
-              <MembersIcon aria-hidden="true" />
-              <span className="mail-pane-name">{group.name}</span>
-              <span className="mail-count">{group.members.length}</span>
-            </Button>
-          ))}
-          <Button
-            variant="plain"
-            className="mail-pane-row mail-pane-link"
-            data-testid="mail-manage-groups"
-            onClick={() => setGroupsDialog({})}
-          >
-            <SettingsIcon aria-hidden="true" />
-            <span className="mail-pane-name">{t("mail.manageGroups")}</span>
-          </Button>
-        </section>
-      </ModulePane>
+      {editable && opened?.data.id === mailId ? null : (
+        <ScreenActions>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="plain" size="icon" data-testid="mail-more" aria-label={t("mail.more")}>
+                <MoreIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem data-testid="mail-manage-groups" onSelect={() => setGroupsDialog({})}>
+                {t("mail.manageGroups")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </ScreenActions>
+      )}
       <RequestErrorBanner error={error ? apiErrorCode(error) : null} onDismiss={() => setError(null)} />
       {canCreate && !mailId ? (
         <CreateButton

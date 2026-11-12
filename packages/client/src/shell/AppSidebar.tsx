@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { DocsIcon, SettingsIcon, SidebarCollapseIcon, SidebarExpandIcon } from "../components/icons";
 import { Button } from "../components/ui/button";
+import { MailFolderLinks } from "../features/mail/MailFolderLinks";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { type NavigationItem, type NavigationSection, navigationSections } from "./navigation";
@@ -101,7 +102,8 @@ function FoldedRoot({ section, compact }: { section: NavigationSection; compact:
 // @implements-requirement HALL-FR-LAY-110
 /**
  * Navigation panel of the tablet and the computer: the roots grouped by subject, with labels when unfolded or as a
- * rail of icons when folded. On the Documents screen, the tree of the folders and affaires shows under its entry. Its own fold control is on the line of the brand, and under the « H » of the rail.
+ * rail of icons when folded. On the Documents screen, the tree of the folders and affaires shows under its entry; on
+ * the Courriels screen, « Brouillons » and « Envoyés » show under its entry. Its own fold control is on the line of the brand, and under the « H » of the rail.
  */
 export function AppSidebar({
   compact,
@@ -113,7 +115,7 @@ export function AppSidebar({
 }) {
   const { t } = useI18n();
   const { available } = useApiRoot();
-  const inDocuments = useLocation().pathname === "/workspace";
+  const { pathname } = useLocation();
 
   return (
     <aside
@@ -155,7 +157,10 @@ export function AppSidebar({
                     compact={compact}
                     testId={`navigation-${item.to === "/" ? "overview" : item.to.slice(1)}`}
                   />
-                  {item.to === "/workspace" && inDocuments && !compact ? <WorkspaceTree /> : null}
+                  {item.to === "/workspace" && pathname === "/workspace" && !compact ? <WorkspaceTree /> : null}
+                  {item.to === "/mail" && (pathname === "/mail" || pathname.startsWith("/mail/")) && !compact ? (
+                    <MailFolderLinks />
+                  ) : null}
                 </div>
               ))}
             </div>

@@ -599,8 +599,6 @@ export const en = {
   "common.authenticationRequired": "Authentication required",
   "common.expandNavigation": "Expand navigation",
   "common.collapseNavigation": "Collapse navigation",
-  "common.expandPane": "Show the {title} pane",
-  "common.collapsePane": "Hide the {title} pane",
   "common.primaryNavigation": "Primary navigation",
   "common.breadcrumb": "Breadcrumb",
   "common.settings": "Application settings",

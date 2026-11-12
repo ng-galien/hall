@@ -5,7 +5,6 @@ import { useI18n } from "../i18n/I18nProvider";
 import { AppSidebar } from "../shell/AppSidebar";
 import {
   HeaderTrailSlotContext,
-  ModulePaneSlotContext,
   ScreenActionsSlotContext,
   ScreenLeadingSlotContext,
   ScreenScrolledContext,
@@ -17,7 +16,7 @@ import { ScreenHeader, ScreenLargeTitle, useScreenHeading } from "../shell/Scree
 import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
-import { useRememberedFold } from "./ui/module-pane";
+import { useRememberedFold } from "./ui/remembered-fold";
 
 /** The large title counts as gone once less than this height of it remains on screen. */
 const collapseDistance = 8;
@@ -49,7 +48,6 @@ export function Layout() {
   const [trailSlot, setTrailSlot] = useState<HTMLDivElement | null>(null);
   const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null);
   const [leadingSlot, setLeadingSlot] = useState<HTMLDivElement | null>(null);
-  const [paneSlot, setPaneSlot] = useState<HTMLDivElement | null>(null);
   const [pageTitle, setPageTitle] = useState<string | null>(null);
   const [mainElement, setMainElement] = useState<HTMLElement | null>(null);
   const [titleElement, setTitleElement] = useState<HTMLHeadingElement | null>(null);
@@ -76,8 +74,7 @@ export function Layout() {
   return (
     <HeaderTrailSlotContext.Provider value={trailSlot}>
       <ScreenLeadingSlotContext.Provider value={leadingSlot}>
-        <ModulePaneSlotContext.Provider value={phone ? null : paneSlot}>
-          <ScreenActionsSlotContext.Provider value={actionsSlot}>
+            <ScreenActionsSlotContext.Provider value={actionsSlot}>
             <ScreenTitleContext.Provider value={setPageTitle}>
               <ScreenScrolledContext.Provider value={scrolled}>
                 <div className="app-shell">
@@ -113,8 +110,7 @@ export function Layout() {
                       }}
                     />
                   )}
-                  {phone ? null : <div ref={setPaneSlot} className="app-module-pane-slot" />}
-                  <div className="app-column">
+                      <div className="app-column">
                     <ScreenHeader
                       phone={phone}
                       title={title}
@@ -145,8 +141,7 @@ export function Layout() {
               </ScreenScrolledContext.Provider>
             </ScreenTitleContext.Provider>
           </ScreenActionsSlotContext.Provider>
-        </ModulePaneSlotContext.Provider>
-      </ScreenLeadingSlotContext.Provider>
+        </ScreenLeadingSlotContext.Provider>
     </HeaderTrailSlotContext.Provider>
   );
 }

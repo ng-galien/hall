@@ -61,6 +61,7 @@ test("a saved group shows as one label, suggestions come in order and a group ch
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/app/mail/drafts");
+  await page.getByTestId("mail-more").click();
   await page.getByTestId("mail-manage-groups").click();
   await page.getByTestId("mail-group-new").click();
   await page.getByTestId("mail-group-name").fill("Commission de test");
@@ -73,7 +74,6 @@ test("a saved group shows as one label, suggestions come in order and a group ch
   await expect(group).toBeVisible();
   const id = (await group.getAttribute("data-testid"))!.replace("mail-group-open-", "");
   await page.getByTestId("mail-groups-dialog-close").click();
-  await expect(page.getByTestId(`mail-pane-group-${id}`)).toContainText("2");
 
   await page.getByTestId("mail-new").click();
   await expect(page.getByTestId("mail-composer")).toBeVisible();
@@ -94,7 +94,9 @@ test("a saved group shows as one label, suggestions come in order and a group ch
   await expect(page.getByTestId("mail-to")).not.toContainText("committee@example.test");
   await expect(page.getByTestId("mail-save-state")).toHaveAttribute("data-save", "saved");
 
-  await page.getByTestId(`mail-pane-group-${id}`).click();
+  await page.getByTestId("mail-more").click();
+  await page.getByTestId("mail-more-groups").click();
+  await page.getByTestId(`mail-group-open-${id}`).click();
   await expect(page.getByTestId("mail-group-name")).toHaveValue("Commission de test");
   await page.getByTestId("mail-group-delete").click();
   await page.getByTestId("mail-group-delete-confirm").click();
@@ -106,22 +108,24 @@ test("a saved group shows as one label, suggestions come in order and a group ch
 });
 
 // @verifies-requirement HALL-FR-EML-100
+// @verifies-requirement HALL-FR-LAY-110
 // @verifies-requirement HALL-FR-LAY-160
-test("the mailbox has its pane, a list that folds and searches, and commands in the screen header", async ({
+test("the menu holds the folders of the mailbox, the list folds and searches, the commands are in the header", async ({
   appPage: page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/app/mail");
-  const pane = page.getByTestId("mail-pane");
-  await expect(pane).toBeVisible();
-  await expect(page.getByTestId("mail-folder-drafts")).toHaveAttribute("aria-current", "page");
+  // « Brouillons » and « Envoyés » show under the Courriels entry of the menu; no column stands between them.
+  const menu = page.locator(".app-sidebar");
+  await expect(menu.getByTestId("mail-folder-drafts")).toHaveAttribute("aria-current", "page");
+  await expect(page.getByTestId("mail-pane")).toHaveCount(0);
   for (const subject of ["Ordre du jour", "Compte rendu"]) {
     await page.getByTestId("mail-new").click();
     await page.getByTestId("mail-subject").fill(subject);
     await expect(page.getByTestId("mail-save-state")).toHaveAttribute("data-save", "saved");
     await page.getByTestId("mail-folder-drafts").click();
   }
-  await expect(page.getByTestId("mail-folder-drafts")).toContainText("2");
+  await expect(page.getByTestId("mail-list").locator('[data-testid^="mail-open-"]')).toHaveCount(2);
   await page.getByTestId("mail-search").fill("ordre");
   await expect(page.getByTestId("mail-list").locator('[data-testid^="mail-open-"]')).toHaveCount(1);
   await page.getByTestId("mail-list").locator('[data-testid^="mail-open-"]').click();
@@ -145,11 +149,6 @@ test("the mailbox has its pane, a list that folds and searches, and commands in 
   await header.getByTestId("mail-list-toggle").click();
   await expect(page.getByTestId("mail-list")).toBeVisible();
 
-  await page.getByTestId("mail-pane-toggle").click();
-  await expect(pane).toHaveCount(0);
-  await header.getByTestId("mail-pane-toggle").click();
-  await expect(page.getByTestId("mail-pane")).toBeVisible();
-
   await page.getByTestId("mail-folder-sent").click();
   await expect(page).toHaveURL(/\/app\/mail\/sent$/);
   await expect(page.getByTestId("mail-list").locator('[data-testid^="mail-open-"]')).toHaveCount(0);
@@ -159,7 +158,6 @@ test("the mailbox has its pane, a list that folds and searches, and commands in 
 test("on a phone, two tabs head the list and a draft opens over the whole screen", async ({ appPage: page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app/mail");
-  await expect(page.getByTestId("mail-pane")).toHaveCount(0);
   await expect(page.getByTestId("mail-tab-drafts")).toHaveAttribute("aria-selected", "true");
   await page.getByTestId("mail-tab-sent").click();
   await expect(page).toHaveURL(/\/app\/mail\/sent$/);

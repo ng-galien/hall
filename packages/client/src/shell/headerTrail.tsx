@@ -43,5 +43,3 @@ export function ScreenLeading({ children }: { children: ReactNode }) {
   const slot = useContext(ScreenLeadingSlotContext);
   return slot ? createPortal(children, slot) : null;
 }
-
-export const ModulePaneSlotContext = createContext<HTMLElement | null>(null);
