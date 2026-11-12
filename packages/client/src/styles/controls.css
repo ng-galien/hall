@@ -42,7 +42,8 @@
   .hall-button[data-size="icon"] > svg { font-size: var(--hall-font-size-icon-large); }
   /* At phone width every button is a finger-sized target, with or without a touch screen. */
   @media (max-width: 760px) {
-    .hall-button { min-height: var(--hall-size-touch-control); }
+    .hall-button,
+    .hall-input:not(.hall-field .hall-input) { min-height: var(--hall-size-touch-control); }
     .hall-button[data-size="icon"] { width: var(--hall-size-touch-control); }
   }
 }
