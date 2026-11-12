@@ -598,9 +598,13 @@ export function RepresentativeBodyPage({
           </form>
         </Modal>
 
-        <Modal open={Boolean(endingMembership)} title={t(text.endMembership)} onClose={() => setEndingMembership(null)}>
+        <Modal
+          open={Boolean(endingMembership)}
+          title={t(text.endMembership)}
+          hint={t(text.endMembershipDescription)}
+          onClose={() => setEndingMembership(null)}
+        >
           <form className="modal-form" onSubmit={submitMembershipEnd}>
-            <p className="admin-hint">{t(text.endMembershipDescription)}</p>
             <Field label={t(text.endedOn)}>
               <Input
                 data-testid={testId("end-membership-date")}

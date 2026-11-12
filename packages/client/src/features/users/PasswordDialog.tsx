@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from "react";
+import { HelpHint } from "../../components/HelpHint";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Field } from "../../components/ui/field";
@@ -69,15 +70,6 @@ export function PasswordDialog({
   const form = (
     <form className="modal-form" onSubmit={submit}>
       <RequestErrorBanner error={error} />
-      <p>
-        {t(
-          mandatory
-            ? "auth.passwordReplacementDescription"
-            : requireCurrent
-              ? "users.passwordChangeDescription"
-              : "users.passwordResetDescription",
-        )}
-      </p>
       <fieldset className="admin-fields" disabled={submitting}>
         {requireCurrent && (
           <Field label={t("users.currentPassword")}>
@@ -166,11 +158,21 @@ export function PasswordDialog({
       </div>
     </form>
   );
+  const hint = t(
+    mandatory
+      ? "auth.passwordReplacementDescription"
+      : requireCurrent
+        ? "users.passwordChangeDescription"
+        : "users.passwordResetDescription",
+  );
   if (mandatory)
     return (
       <main className="authentication-shell" data-testid="password-replacement-required">
         <section className="authentication-panel">
-          <h1>{title}</h1>
+          <div className="authentication-title">
+            <h1>{title}</h1>
+            <HelpHint text={hint} />
+          </div>
           {form}
           <Button
             variant="secondary"
@@ -187,6 +189,7 @@ export function PasswordDialog({
     <Modal
       open
       title={title}
+      hint={hint}
       onClose={() => {
         if (!submitting) onClose();
       }}
