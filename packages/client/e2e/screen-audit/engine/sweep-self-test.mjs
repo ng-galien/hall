@@ -51,7 +51,7 @@ const cases = [
     "unlabelled-create",
     {},
     `<button class="secondary" aria-label="Ajouter">${icon("Plus")}</button>`,
-    `<button class="secondary">${icon("Plus")}Nouveau</button>`,
+    `<button class="secondary">${icon("Plus")}Nouveau</button><button class="primary create-fab" data-reduced="true" aria-label="Nouveau">${icon("Plus")}</button>`,
   ],
   ["filled-icon", {}, `<a href="#">${icon("House", "fill")}Accueil</a>`, `<a href="#">${icon("House")}Accueil</a>`],
   [
@@ -143,6 +143,18 @@ const cases = [
     `<nav data-testid="phone-navigation" class="row">${["Accueil", "Documents", "Agenda", "Séances", "Plus"].map((label) => `<a href="#">${icon("House")}${label}</a>`).join("")}</nav>`,
   ],
   [
+    "pointer-scale",
+    {},
+    `<aside class="app-sidebar"><span class="nav-label" style="font-size:14px">Documents</span></aside><div data-slot="list-row"><span class="list-row-title" style="font-size:16px">Budget</span></div>`,
+    `<aside class="app-sidebar"><span class="nav-label" style="font-size:14px">Documents</span></aside><div data-slot="list-row"><span class="list-row-title" style="font-size:14px">Budget</span></div>`,
+  ],
+  [
+    "state-without-dot",
+    {},
+    `<p><span role="status">Enregistré</span></p>`,
+    `<p><span role="status" class="dot">Enregistré</span></p>`,
+  ],
+  [
     "writing-modes",
     {},
     `<button class="secondary" data-testid="text-edit">Modifier</button><button class="primary" data-testid="text-finish-editing">Terminé</button>`,
@@ -158,7 +170,7 @@ const cases = [
     "overlap",
     {},
     `<div style="position:relative;height:40px"><span style="position:absolute;left:0">Composition du conseil</span><span style="position:absolute;left:40px">Adoptée</span></div>`,
-    `<div class="row"><span>Composition du conseil</span><span>Adoptée</span></div><div data-slot="field" style="position:relative"><label style="position:absolute;top:2px">Lieu</label><button style="height:52px;width:200px">salle du châlet</button></div>`,
+    `<div class="row"><span>Composition du conseil</span><span>Adoptée</span></div><div data-slot="field" style="position:relative"><label style="position:absolute;top:2px">Lieu</label><button style="height:52px;width:200px">salle du châlet</button></div><p>Budget communal 2026</p><button class="primary" style="position:fixed;top:60px;left:0">Nouveau</button>`,
   ],
   [
     "hidden-name",
@@ -205,6 +217,7 @@ try {
       phone: false,
       item: false,
       fingerprints,
+      exceptions: { "unlabelled-create": [{ selector: ".create-fab[data-reduced=true]", reason: "choix 6B-2" }] },
     };
     const settings = { ...common, ...options };
     const geometry = await page.evaluate(measureLayout, settings);

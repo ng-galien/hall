@@ -47,7 +47,9 @@ export async function settleLayout(page) {
     // Transitions started by the resize (a bar or a pane sliding in) end before the measure.
     const finite = document
       .getAnimations()
-      .filter((animation) => Number.isFinite(animation.effect?.getComputedTiming?.().endTime ?? Number.POSITIVE_INFINITY));
+      .filter((animation) =>
+        Number.isFinite(animation.effect?.getComputedTiming?.().endTime ?? Number.POSITIVE_INFINITY),
+      );
     await Promise.race([
       Promise.all(finite.map((animation) => animation.finished.catch(() => undefined))),
       new Promise((done) => setTimeout(done, 1000)),
@@ -150,6 +152,8 @@ export function measureLayout(options) {
   /* hidden-name: a title or a name whose box shows less than three characters. */
   for (const entry of texts) {
     if (entry.text.length < 3) continue;
+    // The detail and the facts of a list row shrink before its title (HALL-TR-LAY-020); the title is measured.
+    if (entry.parent.closest(".list-row-detail, .list-row-fact")) continue;
     const style = getComputedStyle(entry.parent);
     const font = Number.parseFloat(style.fontSize) || 14;
     const container = entry.parent.closest(
@@ -168,13 +172,28 @@ export function measureLayout(options) {
   }
 
   /* overlap: two text boxes, or a text box and a command, or two commands, unrelated in the tree, that cross. */
+  const floating = (element) => {
+    for (let current = element; current && current !== document.body; current = current.parentElement)
+      if (getComputedStyle(current).position === "fixed") return true;
+    return false;
+  };
   const boxes = [
     ...texts
       .filter((entry) => entry.visible.width > 0 && entry.visible.height > 0)
-      .map((entry) => ({ owner: entry.parent, rect: entry.visible, label: entry.text })),
+      .map((entry) => ({
+        owner: entry.parent,
+        rect: entry.visible,
+        label: entry.text,
+        floating: floating(entry.parent),
+      })),
     ...commands
       .filter((entry) => !["INPUT", "TEXTAREA", "SELECT"].includes(entry.element.tagName))
-      .map((entry) => ({ owner: entry.element, rect: entry.visible, label: entry.element.textContent?.trim() || "" })),
+      .map((entry) => ({
+        owner: entry.element,
+        rect: entry.visible,
+        label: entry.element.textContent?.trim() || "",
+        floating: floating(entry.element),
+      })),
   ];
   const reported = new Set();
   for (let i = 0; i < boxes.length; i++) {
@@ -182,6 +201,8 @@ export function measureLayout(options) {
       const a = boxes[i];
       const b = boxes[j];
       if (a.owner === b.owner || a.owner.contains(b.owner) || b.owner.contains(a.owner)) continue;
+      // A floating control (« + Nouveau » of choice 6B) lies over the content by decision.
+      if (a.floating !== b.floating) continue;
       // A form field (choice 12D) writes its label inside the box of its control.
       const field = a.owner.closest("[data-slot=field]");
       if (field && field === b.owner.closest("[data-slot=field]")) continue;

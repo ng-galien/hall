@@ -109,21 +109,34 @@ if (sweeping) {
             const measure = async (screen: Screen, width: number, menu: string, pane: string, text: string) => {
               await resize(width);
               const phone = width < sweepPlan.wideFrom;
-              const geometry: Finding[] = await page.evaluate(measureLayout, {
-                ignoreSelectors: sweepPlan.ignoreSelectors,
-                touch: input === "touch" && phone,
-                keyAttribute: "data-testid",
-              });
-              const decisions: Finding[] =
-                text === "réel"
-                  ? await page.evaluate(measureConformance, {
-                      ignoreSelectors: sweepPlan.ignoreSelectors,
-                      keyAttribute: "data-testid",
-                      touch: input === "touch",
-                      phone,
-                      item: sweepPlan.isItem(screen),
-                    })
-                  : [];
+              const evaluate = async () => {
+                const geometry: Finding[] = await page.evaluate(measureLayout, {
+                  ignoreSelectors: sweepPlan.ignoreSelectors,
+                  touch: input === "touch" && phone,
+                  keyAttribute: "data-testid",
+                });
+                const decisions: Finding[] =
+                  text === "réel"
+                    ? await page.evaluate(measureConformance, {
+                        ignoreSelectors: sweepPlan.ignoreSelectors,
+                        keyAttribute: "data-testid",
+                        touch: input === "touch",
+                        phone,
+                        item: sweepPlan.isItem(screen),
+                        exceptions: sweepPlan.exceptions,
+                      })
+                    : [];
+                return [...geometry, ...decisions];
+              };
+              /* A finding counts when a second measure, after the layout has had time to settle, finds it again: a
+                 layout still switching after the resize is not measured as a defect. */
+              let found = await evaluate();
+              if (found.length) {
+                await page.waitForTimeout(600);
+                await settleLayout(page);
+                const again = new Set((await evaluate()).map((finding) => `${finding.rule}|${finding.selector}`));
+                found = found.filter((finding) => again.has(`${finding.rule}|${finding.selector}`));
+              }
               const areas = await page.evaluate(readContentWidth);
               measures += 1;
               contentWidths.push({
@@ -136,7 +149,7 @@ if (sweeping) {
                 menuWidth: areas.menu,
                 paneWidth: areas.pane,
               });
-              for (const finding of [...geometry, ...decisions])
+              for (const finding of found)
                 findings.push({ ...finding, screen: screen.id, width, input, menu, pane, text });
             };
             const open = async (screen: Screen, width: number) => {

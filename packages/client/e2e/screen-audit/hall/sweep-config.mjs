@@ -106,6 +106,24 @@ const itemScreens = new Set([
 /** The map canvas and the spreadsheet grid draw their own content; the sync status is a transient indicator. */
 const ignoreSelectors = [".ol-viewport", ".univer-spreadsheet", "[data-testid=application-sync-status]"];
 
+/** Exceptions to the decision rules, each with the reason that makes it conform to the decision. */
+const exceptions = {
+  "unlabelled-create": [
+    {
+      selector: "[data-testid=editor-table-add-column], [data-testid=editor-table-add-row]",
+      reason: "Poignées d'ajout de colonne et de rangée d'un tableau dans l'éditeur, posées sur le bord du tableau.",
+    },
+    {
+      selector: ".conduct-rail-tool",
+      reason: "Rail replié du mode séance : la commande garde son libellé en infobulle et le reprend rail déplié.",
+    },
+    {
+      selector: ".create-fab[data-reduced=true]",
+      reason: "Choix 6B-2 : « + Nouveau » se réduit à « + » dès que le contenu défile.",
+    },
+  ],
+};
+
 export const sweepPlan = {
   from: 320,
   to: 1600,
@@ -124,4 +142,5 @@ export const sweepPlan = {
     ),
   ),
   isItem: (screen) => itemScreens.has(screen.id),
+  exceptions,
 };

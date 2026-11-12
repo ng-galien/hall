@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { join, resolve } from "node:path";
 import { conformanceRules } from "../engine/conformance.mjs";
 import { groupFindings, intervalLabel, intervalsOf, sweepRules } from "../engine/sweep.mjs";
+import { screens } from "./screens.mjs";
 import { sourcesOf, sweepPlan } from "./sweep-config.mjs";
 
 /*
@@ -30,6 +31,8 @@ if (!reportOnly) {
       ...process.env,
       HALL_SCREEN_AUDIT: "true",
       HALL_SCREEN_AUDIT_MODE: "sweep",
+      // The sweep lasts longer than the ten minutes the runner gives a local suite: it takes the time of a CI run.
+      CI: process.env.CI ?? "true",
       HALL_SCREEN_AUDIT_OUTPUT: outputDirectory,
       HALL_E2E_LANES: process.env.HALL_E2E_LANES ?? "3",
       ...(selected ? { HALL_SCREEN_AUDIT_SCREENS: selected } : {}),
@@ -47,7 +50,12 @@ const records = existsSync(sweepDirectory)
       .map((file) => JSON.parse(readFileSync(join(sweepDirectory, file), "utf8")))
   : [];
 const measures = records.reduce((total, record) => total + record.measures, 0);
-const missing = records.flatMap((record) => record.missing);
+const expected = selected ? selected.split(",") : screens.map((screen) => screen.id);
+const measuredIds = new Set(records.flatMap((record) => record.screens));
+const missing = [
+  ...records.flatMap((record) => record.missing),
+  ...expected.filter((id) => !measuredIds.has(id)).map((id) => `${id}: non mesuré (balayage interrompu)`),
+];
 
 /* Thresholds: every width threshold read in the loaded style sheets and in the scripts, with its origin. */
 const breakpoints = new Map();

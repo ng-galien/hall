@@ -20,12 +20,14 @@ export const conformanceRules = {
   "state-badge": "Choix 7 : état en étiquette teintée au lieu du point de couleur",
   "font-family": "Choix 10 : texte hors de la police Archivo",
   "text-size": "Choix 10 : texte de moins de 14 px sous le doigt, de 13 px à la souris",
+  "state-without-dot": "Choix 7 : état écrit sans son point de couleur",
   "header-first-line": "Choix 2 : commande dans la première ligne du bandeau",
   "title-after-commands": "Choix 2 : rangée de commandes entre la première ligne et le grand titre",
   "search-on-item": "Recherche ou filtre affiché sur un élément ouvert",
   "duplicate-command": "Commande, titre ou état d'enregistrement en double dans une même fenêtre",
   "bottom-bar": "Choix 1 : barre du bas autre que cinq destinations avec icône et libellé",
   "writing-modes": "Choix 8 : « Modifier » et « Terminé » affichés ensemble",
+  "pointer-scale": "Tailles à l'ordinateur : ligne de liste écrite plus grand que le menu",
   "row-height": "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
 };
 
@@ -173,7 +175,12 @@ export function measureConformance(options) {
   const { ignoreSelectors, keyAttribute, touch, phone, item } = options;
   const fingerprints = options.fingerprints ?? window.__screenAuditIcons ?? {};
   const findings = [];
-  const add = (rule, element, detail) => findings.push({ rule, selector: selectorOf(element), detail });
+  /* Exceptions declared by the application, each with its reason: `{ rule: [{ selector, reason }] }`. */
+  const exceptions = options.exceptions ?? {};
+  const add = (rule, element, detail) => {
+    if (typeof element !== "string" && (exceptions[rule] ?? []).some((entry) => element.closest(entry.selector))) return;
+    findings.push({ rule, selector: selectorOf(element), detail });
+  };
   const ignored = (element) => ignoreSelectors.some((selector) => element.closest(selector));
   const selectorOf = (element) => {
     if (typeof element === "string") return element;
@@ -425,6 +432,30 @@ export function measureConformance(options) {
     add("state-badge", element, `« ${text} » sur ${style.backgroundColor}`);
   }
 
+  /* state-without-dot: choice 7B, a state (a status or a save state) is written after its coloured dot. */
+  const hasDot = (element) => {
+    for (const pseudo of ["::before", "::after"]) {
+      const style = getComputedStyle(element, pseudo);
+      if (style.content === "none" || style.content === "normal") continue;
+      if (painted(style.backgroundColor) && Number.parseFloat(style.width) <= 14) return true;
+    }
+    return [...element.children].some((child) => {
+      const rect = child.getBoundingClientRect();
+      return (
+        !child.textContent?.trim() &&
+        rect.width > 0 &&
+        rect.width <= 14 &&
+        painted(getComputedStyle(child).backgroundColor)
+      );
+    });
+  };
+  for (const state of document.querySelectorAll("[role=status], [data-save], [data-tone]")) {
+    if (ignored(state) || !shown(state) || state.closest(interactiveSelector)) continue;
+    const text = visibleText(state);
+    if (!text || text.length > 40) continue;
+    if (!hasDot(state)) add("state-without-dot", state, `« ${text} »`);
+  }
+
   /* header-first-line and title-after-commands: choice 2 and the rule of an opened element. */
   const header = document.querySelector("[data-testid=screen-header], [data-testid=phone-header]");
   const firstLine = header?.querySelector(".screen-header-line");
@@ -531,12 +562,37 @@ export function measureConformance(options) {
   /* writing-modes: choice 8B, a text is read with « Modifier » or written with « Terminé », never both. */
   const editing = commands.filter((command) => command.matches("[data-testid=text-edit]"));
   const finishing = commands.filter((command) => command.matches("[data-testid=text-finish-editing]"));
-  if (editing.length && finishing.length) add("writing-modes", finishing[0], "« Modifier » et « Terminé » visibles ensemble");
+  if (editing.length && finishing.length)
+    add("writing-modes", finishing[0], "« Modifier » et « Terminé » visibles ensemble");
+
+  /* pointer-scale: under a mouse, the content comes down to the size of the menu and the header (12 November 2026). */
+  if (!touch && !phone) {
+    const menuLabel = [...document.querySelectorAll(".app-sidebar .nav-label")].find(shown);
+    if (menuLabel) {
+      const menuSize = Number.parseFloat(getComputedStyle(menuLabel).fontSize);
+      for (const title of document.querySelectorAll("[data-slot=list-row] .list-row-title")) {
+        if (ignored(title) || !shown(title) || title.closest("[data-prominent=true], [data-size=large]")) continue;
+        const size = Number.parseFloat(getComputedStyle(title).fontSize);
+        if (size > menuSize + 0.01) {
+          add("pointer-scale", title, `${size} px pour ${menuSize} px dans le menu`);
+          break;
+        }
+      }
+    }
+  }
 
   /* row-height: choice 11B, 64 px under a finger; 40 px or 52 px with two lines under a mouse. */
   for (const row of document.querySelectorAll("[data-slot=list-row]")) {
     if (ignored(row) || !shown(row) || row.matches("[data-prominent=true], [data-size=large]")) continue;
-    const height = row.getBoundingClientRect().height;
+    // The line of the row, without the rows unfolded under it; a title written on two lines is another rule's matter.
+    const line = row.querySelector(":scope > .list-row-line") ?? row;
+    const title = line.querySelector(".list-row-title");
+    if (title) {
+      const titleStyle = getComputedStyle(title);
+      const lineHeight = Number.parseFloat(titleStyle.lineHeight) || Number.parseFloat(titleStyle.fontSize) * 1.3;
+      if (title.getBoundingClientRect().height > lineHeight * 1.6) continue;
+    }
+    const height = line.getBoundingClientRect().height;
     const ok = touch || phone ? height >= 63.5 : Math.abs(height - 40) <= 1 || Math.abs(height - 52) <= 1;
     if (!ok) add("row-height", row, `${Math.round(height * 10) / 10} px`);
   }

@@ -307,46 +307,48 @@ test("the charter holds no warm tint: no cream, orange, brown or amber token", (
 });
 
 // @verifies-requirement HALL-TR-LAY-030
-test("a document dialog writes its close button and save state once, apart from the commands of the screen", () => {
-  const header = readFileSync(join(sourceRoot, "pages/workspace/WorkspaceWorkbenchHeader.tsx"), "utf8");
-  assert.match(
-    header,
-    /const controls = titleId \? null : screenControls;/,
-    "a dialog must not take the screen controls",
-  );
+// @verifies-requirement HALL-FR-LAY-100
+test("the first line says where one is; the commands of an opened item and of a document dialog are on the line of its title, once", () => {
   const preview = readFileSync(join(sourceRoot, "features/documents/ResourcePreview.tsx"), "utf8");
-  assert.equal(preview.match(/<ResourceAutosaveToggle\b/g)?.length, 1);
-  assert.equal(preview.match(/<ResourceChangesControl\b/g)?.length, 1);
+  assert.equal(preview.match(/closeTestId=/g)?.length, 1, "a document dialog has one close cross");
+  assert.equal(preview.match(/"resource-preview-close"/g)?.length, 1);
   assert.doesNotMatch(preview, /currentLabel=/, "the dialog trail does not repeat the document title");
+  assert.doesNotMatch(
+    preview,
+    /<ResourceAutosaveToggle\b|<ResourceChangesControl\b/,
+    "a document dialog takes automatic saving and the changes from the commands of its item, once",
+  );
+  const header = readFileSync(join(sourceRoot, "pages/workspace/WorkspaceWorkbenchHeader.tsx"), "utf8");
+  assert.equal(header.match(/<ItemCommands\b/g)?.length, 1, "the commands of an item are drawn once");
+  assert.deepEqual(offenders(/workspace-breadcrumb-folder-menu/), [], "the breadcrumb carries no folder menu button");
+  const breadcrumb = readFileSync(
+    join(sourceRoot, "pages/workspace/WorkspaceBreadcrumb/WorkspaceBreadcrumb.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(
+    breadcrumb,
+    /Chevron\w*Icon|Caret\w*/,
+    "the breadcrumb separates its folders by a slash, not a chevron",
+  );
 });
 
 // @verifies-requirement HALL-TR-LAY-030
-// @verifies-requirement HALL-FR-LAY-110
 // @verifies-requirement HALL-FR-LAY-160
-test("one module pane, each fold control in its own panel, and no tree or flat administration in the menu", () => {
-  assert.deepEqual(offenders(/\bModulePaneSlotContext\b/), [
-    "components/Layout.tsx",
-    "components/ui/module-pane.tsx",
-    "shell/headerTrail.tsx",
-  ]);
-  assert.deepEqual(offenders(/className="module-pane"/), ["components/ui/module-pane.tsx"]);
-  assert.deepEqual(offenders(/<WorkspaceTree\b/), ["pages/workspace/WorkspacePage.tsx"]);
+test("no second column: no module pane, the menu folds itself and the screen header folds nothing", () => {
+  assert.deepEqual(offenders(/module-pane|ModulePane/), [], "the module pane is retired");
+  assert.deepEqual(
+    offenders(/data-testid="navigation-toggle"/),
+    ["shell/AppSidebar.tsx"],
+    "the menu carries its own fold control",
+  );
   const sidebar = readFileSync(join(sourceRoot, "shell/AppSidebar.tsx"), "utf8");
-  assert.doesNotMatch(sidebar, /WorkspaceTree|workspace-tree-fold|Chevron/, "the menu has no tree and no chevron");
-  assert.match(sidebar, /data-testid="navigation-toggle"/, "the menu carries its own fold control");
+  assert.doesNotMatch(sidebar, /Chevron\w*Icon|Caret\w*/, "the menu draws no chevron (choice 14)");
   const header = readFileSync(join(sourceRoot, "shell/ScreenHeader.tsx"), "utf8");
   assert.doesNotMatch(
     header,
-    /navigation-toggle|SidebarCollapseIcon|SidebarExpandIcon/,
+    /navigation-toggle|SidebarCollapseIcon|SidebarExpandIcon|CollapseIcon|ExpandIcon/,
     "the screen header folds nothing",
   );
-  const navigation = readFileSync(join(sourceRoot, "shell/navigation.tsx"), "utf8");
-  assert.match(
-    navigation,
-    /labelKey: "navigation\.administration",\n\s+folded:/,
-    "the administration is one folded root",
-  );
-  assert.doesNotMatch(navigation, /workspaceTree/);
 });
 
 // @verifies-requirement HALL-TR-LAY-030
