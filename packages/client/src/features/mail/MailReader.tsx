@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, apiSirenRequest, type SirenApiResult, submitSirenAction } from "../../services/apiClient";
 import type { MailRecipientSelections } from "../../services/mailApi";
+import { ScreenTitle } from "../../shell/headerTrail";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { MailAttachments } from "./MailAttachments";
 import { MailReview } from "./MailReview";
 import { MessageCommands } from "./MessageCommands";
@@ -37,6 +39,7 @@ export function MailReader({
   onCopied(result: SirenApiResult<MailMessage>): void;
 }) {
   const { t, formatDateTime } = useI18n();
+  const phone = usePhoneLayout();
   const message = opened.data;
   const representation = opened.representation;
   const [busy, setBusy] = useState(false);
@@ -97,7 +100,11 @@ export function MailReader({
         ) : null}
       </MessageCommands>
       <RequestErrorBanner error={error ? apiErrorCode(error) : null} />
-      <h2 className="mail-reader-subject">{message.subject || t("mail.noSubject")}</h2>
+      {phone ? (
+        <ScreenTitle>{message.subject || t("mail.noSubject")}</ScreenTitle>
+      ) : (
+        <h2 className="mail-reader-subject">{message.subject || t("mail.noSubject")}</h2>
+      )}
       <div className="mail-composer-head">
         {(["to", "cc", "bcc"] as const).map((kind) =>
           message.recipients.some((entry) => entry.kind === kind) ? (

@@ -16,9 +16,10 @@ import { Input } from "../../components/ui/input";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, type SirenApiResult, submitSirenAction } from "../../services/apiClient";
 import { type MailRecipientSelections, previewMail } from "../../services/mailApi";
+import { ScreenTitle } from "../../shell/headerTrail";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { MailAttachments } from "./MailAttachments";
 import { MailReview } from "./MailReview";
-import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { MessageCommands } from "./MessageCommands";
 import type { RecipientGroup } from "./mailFolders";
 import { RecipientLine } from "./RecipientLine";
@@ -106,6 +107,7 @@ export function MailEditor({
     );
   return (
     <section className="mail-composer" data-testid="mail-composer">
+      {phone ? <ScreenTitle>{draft.subject || t("mail.noSubject")}</ScreenTitle> : null}
       <MessageCommands
         facts={
           <span className="record-state mail-save-state" data-save={status} data-testid="mail-save-state">
@@ -128,13 +130,18 @@ export function MailEditor({
             <DropdownMenuItem data-testid="mail-more-groups" onSelect={onManageGroups}>
               {t("mail.manageGroups")}
             </DropdownMenuItem>
-            {canDelete ? (
+            {canDelete && phone ? (
               <DropdownMenuItem data-testid="mail-delete" variant="destructive" onSelect={() => setDeleteOpen(true)}>
                 {t("common.delete")}
               </DropdownMenuItem>
             ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
+        {canDelete && !phone ? (
+          <Button variant="plain" data-testid="mail-delete" disabled={busy} onClick={() => setDeleteOpen(true)}>
+            {t("common.delete")}
+          </Button>
+        ) : null}
         <Button
           data-testid="mail-send"
           disabled={busy}

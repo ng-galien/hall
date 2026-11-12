@@ -54,7 +54,7 @@ const folderIcons = { drafts: DraftIcon, sent: SentIcon };
  * @implements-requirement HALL-FR-EML-100
  */
 export function MailPage() {
-  const { t, formatDate } = useI18n();
+  const { t, plural, formatDate } = useI18n();
   const params = useParams();
   const navigate = useNavigate();
   const phone = usePhoneLayout();
@@ -170,7 +170,9 @@ export function MailPage() {
           >
             <SidebarCollapseIcon />
           </Button>
-          <span className="mail-list-count">{t(`mail.count.${folder}`, { count: shown.length })}</span>
+          <span className="mail-list-count">
+            {plural(shown.length, `mail.count.${folder}One`, `mail.count.${folder}`)}
+          </span>
         </div>
       )}
       <SearchInput
@@ -258,7 +260,7 @@ export function MailPage() {
 
   return (
     <div className="page mail-page">
-      <ScreenTitle>{t(`mail.${folder}`)}</ScreenTitle>
+      {phone && mailId ? null : <ScreenTitle>{t(`mail.${folder}`)}</ScreenTitle>}
       {editable && opened?.data.id === mailId ? null : (
         <MessageCommands>
           <DropdownMenu>
@@ -276,7 +278,7 @@ export function MailPage() {
         </MessageCommands>
       )}
       <RequestErrorBanner error={error ? apiErrorCode(error) : null} onDismiss={() => setError(null)} />
-      {canCreate && !mailId ? (
+      {canCreate && (!mailId || !phone) ? (
         <CreateButton
           testId="mail-new"
           options={[{ id: "mail", label: t("mail.new"), Icon: MailIcon, nature: "writing", onSelect: create }]}

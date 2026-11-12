@@ -3,8 +3,10 @@ import type { Messages } from "./en";
 export const fr: Messages = {
   "mail.drafts": "Brouillons",
   "mail.sent": "Envoyés",
-  "mail.count.drafts": "{count} brouillon(s)",
-  "mail.count.sent": "{count} envoyé(s)",
+  "mail.count.drafts": "{count} brouillons",
+  "mail.count.draftsOne": "{count} brouillon",
+  "mail.count.sent": "{count} envoyés",
+  "mail.count.sentOne": "{count} envoyé",
   "mail.empty.drafts": "Aucun brouillon.",
   "mail.empty.sent": "Aucun courriel envoyé.",
   "mail.noMatch": "Aucun courriel ne correspond à la recherche.",

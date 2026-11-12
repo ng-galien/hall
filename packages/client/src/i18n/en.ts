@@ -1,8 +1,10 @@
 export const en = {
   "mail.drafts": "Drafts",
   "mail.sent": "Sent",
-  "mail.count.drafts": "{count} draft(s)",
+  "mail.count.drafts": "{count} drafts",
+  "mail.count.draftsOne": "{count} draft",
   "mail.count.sent": "{count} sent",
+  "mail.count.sentOne": "{count} sent",
   "mail.empty.drafts": "No drafts.",
   "mail.empty.sent": "No sent messages.",
   "mail.noMatch": "No message matches the search.",
