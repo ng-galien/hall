@@ -31,22 +31,20 @@ SELECT is(
   'every options column is a non-null JSONB object defaulting to an empty object'
 );
 
-SELECT is(
-  (
-    SELECT count(*)::INTEGER
+SELECT set_eq(
+  $$
+    SELECT relation.relname::TEXT, later.attname::TEXT
     FROM pg_attribute AS attribute
     JOIN pg_class AS relation ON relation.oid = attribute.attrelid
     JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+    JOIN pg_attribute AS later ON later.attrelid = relation.oid
+      AND later.attnum > attribute.attnum AND NOT later.attisdropped
     WHERE namespace.nspname = 'hall'
       AND relation.relkind = 'r'
       AND attribute.attname = 'options'
-      AND attribute.attnum = (
-        SELECT max(other.attnum) FROM pg_attribute AS other
-        WHERE other.attrelid = relation.oid AND other.attnum > 0 AND NOT other.attisdropped
-      )
-  ),
-  7,
-  'options is the last column of each table, as an upgrade appends it'
+  $$,
+  $$VALUES ('contact', 'mobile_phone'), ('contact', 'personal_phone'), ('contact', 'professional_phone')$$,
+  'options follows every original column of each table, as an upgrade appends it; only the contact telephone numbers come after it'
 );
 
 SELECT set_eq(
