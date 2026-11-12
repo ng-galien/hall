@@ -165,11 +165,10 @@ export function CouncilMemberPage() {
                     initials={`${member.contact.firstName.slice(0, 1)}${member.contact.lastName.slice(0, 1)}`}
                   />
                 }
-                overline={t("members.contact")}
                 title={`${member.contact.firstName} ${member.contact.lastName}`}
-                detail={
-                  [member.contact.email, phone && formatPhoneNumber(phone)].filter(Boolean).join(" · ") || undefined
-                }
+                detail={[t("members.contact"), member.contact.email, phone && formatPhoneNumber(phone)]
+                  .filter(Boolean)
+                  .join(" · ")}
                 action={
                   phone ? (
                     <Button asChild variant="secondary">
