@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { DelegationIcon } from "../../components/icons";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
+import { SectionHeader } from "../../components/ui/section-header";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useCouncilDelegationsStore } from "../../stores/councilDelegationsStore";
 import { delegationKind } from "./representativeBodyKinds";
@@ -29,12 +30,11 @@ export function MemberDelegations({ contactId }: { contactId: string }) {
       aria-labelledby="member-delegations-title"
       data-testid="member-delegations"
     >
-      <div className="admin-section-heading">
-        <div>
-          <h2 id="member-delegations-title">{t("members.delegations")}</h2>
-          <p>{t("members.delegationsDescription")}</p>
-        </div>
-      </div>
+      <SectionHeader
+        titleId="member-delegations-title"
+        title={t("members.delegations")}
+        description={t("members.delegationsDescription")}
+      />
       {current.length === 0 ? (
         <p className="admin-inline-empty">{t("members.noDelegations")}</p>
       ) : (

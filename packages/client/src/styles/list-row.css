@@ -36,6 +36,7 @@
     list-style: none;
   }
   .list-row:last-child { border-bottom: 0; }
+  .list-row-list:empty { display: none; }
   /* The text keeps at least its narrowest width beside the actions; when the line is narrower, the actions pass
      together onto the next line and fill it, their commands at its end. */
   .list-row-line { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; }

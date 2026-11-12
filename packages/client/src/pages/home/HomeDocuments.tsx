@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ChevronRightIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRows } from "../../components/ui/list-row";
+import { SectionHeader } from "../../components/ui/section-header";
 import {
   type DocumentaryLeafSummary,
   DocumentaryResourceGlyph,
@@ -130,33 +131,35 @@ export function HomePersonalSpace({ documents, loaded }: ReadableDocuments) {
 
   return (
     <section className="home-block" data-testid="home-personal">
-      <header className="home-block-heading">
-        <h2>{t("workspace.personalWorkspace")}</h2>
-        <WorkspaceCreateMenu
-          placement="inline"
-          title={t("create.sheetTitle", { place: t("workspace.personalWorkspace") })}
-          testId="home-personal-add"
-          label={t("home.add")}
-          optionLabels={{ text: "home.addNote" }}
-          canCreate={(kind) =>
-            kind === "text"
-              ? Boolean(capabilities?.create)
-              : (kind === "takePhoto" || kind === "choosePhoto") && Boolean(capabilities?.uploadDocument)
-          }
-          onCreate={async (kind, title) => {
-            if (kind === "takePhoto") camera.current?.click();
-            else if (kind === "choosePhoto") gallery.current?.click();
-            else if (kind === "text" && title) {
-              const created = await createResource({ kind: "text", name: title, path: personalPath, content: "" });
-              if (!created) return false;
-              navigate(documentHref(created));
+      <SectionHeader
+        title={t("workspace.personalWorkspace")}
+        commands={
+          <WorkspaceCreateMenu
+            placement="inline"
+            title={t("create.sheetTitle", { place: t("workspace.personalWorkspace") })}
+            testId="home-personal-add"
+            label={t("home.add")}
+            optionLabels={{ text: "home.addNote" }}
+            canCreate={(kind) =>
+              kind === "text"
+                ? Boolean(capabilities?.create)
+                : (kind === "takePhoto" || kind === "choosePhoto") && Boolean(capabilities?.uploadDocument)
             }
-            return true;
-          }}
-          getError={() => useWorkspaceResourcesStore.getState().error}
-          clearError={() => useWorkspaceResourcesStore.setState({ error: null })}
-        />
-      </header>
+            onCreate={async (kind, title) => {
+              if (kind === "takePhoto") camera.current?.click();
+              else if (kind === "choosePhoto") gallery.current?.click();
+              else if (kind === "text" && title) {
+                const created = await createResource({ kind: "text", name: title, path: personalPath, content: "" });
+                if (!created) return false;
+                navigate(documentHref(created));
+              }
+              return true;
+            }}
+            getError={() => useWorkspaceResourcesStore.getState().error}
+            clearError={() => useWorkspaceResourcesStore.setState({ error: null })}
+          />
+        }
+      />
       {[
         { ref: camera, testId: "home-personal-camera-input", capture: true },
         { ref: gallery, testId: "home-personal-photo-input", capture: false },
@@ -200,9 +203,7 @@ export function HomeRecentDocuments({ documents, loaded, error }: ReadableDocume
   const shared = documents.filter((resource) => !representations[resource.id]?.class?.includes("personal-workspace"));
   return (
     <section className="home-block" data-testid="home-recent">
-      <header className="home-block-heading">
-        <h2>{t("home.recentDocuments")}</h2>
-      </header>
+      <SectionHeader title={t("home.recentDocuments")} />
       <RequestErrorBanner error={error} />
       {shared.length > 0 ? (
         <>

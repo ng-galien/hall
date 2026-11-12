@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { CouncilBusinessIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
+import { SectionHeader } from "../../components/ui/section-header";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listCouncilCommitteeBusinesses } from "../../services/councilBusinessCommitteesApi";
@@ -35,12 +36,11 @@ export function CouncilCommitteeBusinesses({ committeeId }: { committeeId: strin
 
   return (
     <section className="admin-related" aria-labelledby="committee-businesses-title" data-testid="committee-businesses">
-      <div className="admin-section-heading">
-        <div>
-          <h2 id="committee-businesses-title">{t("committees.businesses")}</h2>
-          <p>{t("committees.businessesDescription")}</p>
-        </div>
-      </div>
+      <SectionHeader
+        titleId="committee-businesses-title"
+        title={t("committees.businesses")}
+        description={t("committees.businessesDescription")}
+      />
       {loading ? <p role="status">{t("common.loading")}</p> : null}
       {!loading && businesses.length === 0 && !error ? <p>{t("committees.noBusinesses")}</p> : null}
       {businesses.length > 0 ? (

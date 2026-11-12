@@ -18,6 +18,7 @@ import {
 import { MarkdownView } from "../../components/MarkdownView";
 import { EmptyState, Modal, matchesQuery, RequestErrorBanner } from "../../components/Ui";
 import { ListRow, type ListRowProps, ListRows } from "../../components/ui/list-row";
+import { SectionHeader } from "../../components/ui/section-header";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
 import { AgendaMinutesApproval } from "../../features/council-meetings/AgendaMinutesApproval";
 import { AgendaSubjectEditor } from "../../features/council-meetings/AgendaSubjectEditor";
@@ -168,32 +169,42 @@ export function AgendaComposer({
 
   return (
     <section className="agenda-composer" aria-labelledby="agenda-heading">
-      <header className="agenda-composer-heading">
-        <div className="agenda-composer-title">
-          <h2 id="agenda-heading">
+      <SectionHeader
+        className="agenda-composer-heading"
+        titleId="agenda-heading"
+        title={
+          <>
             {t("meeting.agenda")}
             <span className="agenda-composer-count" data-testid="agenda-composer-count">
               {" · "}
               {formatNumber(orderedItems.length)}{" "}
               {plural(orderedItems.length, "meeting.agendaCount.one", "meeting.agendaCount.other")}
             </span>
-          </h2>
-          <HelpHint
-            text={t(editable ? "meeting.composerDescription" : "meeting.composerLocked")}
-            testId="agenda-composer-help"
-          />
-          {status}
-        </div>
-        <div className="agenda-composer-actions">
-          {actions}
-          {editable && onQuickCreate ? (
-            <Button data-testid="agenda-question-create" variant="secondary" onClick={() => setQuickAddOpen(true)}>
-              <AddIcon />
-              {t("agendaSubject.openQuestion")}
-            </Button>
-          ) : null}
-        </div>
-      </header>
+          </>
+        }
+        hint={
+          <>
+            <HelpHint
+              text={t(editable ? "meeting.composerDescription" : "meeting.composerLocked")}
+              testId="agenda-composer-help"
+            />
+            {status}
+          </>
+        }
+        commands={
+          actions || (editable && onQuickCreate) ? (
+            <>
+              {actions}
+              {editable && onQuickCreate ? (
+                <Button data-testid="agenda-question-create" variant="secondary" onClick={() => setQuickAddOpen(true)}>
+                  <AddIcon />
+                  {t("agendaSubject.openQuestion")}
+                </Button>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      />
       {caption ? <div className="agenda-composer-caption">{caption}</div> : null}
 
       {orderedItems.length === 0 ? (

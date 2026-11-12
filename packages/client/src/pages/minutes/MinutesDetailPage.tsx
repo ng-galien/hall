@@ -6,6 +6,7 @@ import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon, VisibleIcon } from "..
 import { ShareButton } from "../../components/ShareButton";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { CollapsibleSection } from "../../components/ui/collapsible-section";
+import { SectionHeader } from "../../components/ui/section-header";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
@@ -301,16 +302,13 @@ function MinutesDetail({ id }: { id: string }) {
               <MinutesFacts facts={minutes.facts} />
             )}
             <section className="admin-record" aria-labelledby="minutes-sections-title">
-              <div className="admin-section-heading">
-                <div>
-                  <div className="minutes-section-title">
-                    <h2 id="minutes-sections-title">
-                      {t(minutes.generatedAt ? "minutes.recordedSections" : "minutes.sections")}
-                    </h2>
-                    <MinutesSectionHint text={t(minutes.generatedAt ? "minutes.frozenHint" : "minutes.sectionsHint")} />
-                  </div>
-                </div>
-              </div>
+              <SectionHeader
+                titleId="minutes-sections-title"
+                title={t(minutes.generatedAt ? "minutes.recordedSections" : "minutes.sections")}
+                hint={
+                  <MinutesSectionHint text={t(minutes.generatedAt ? "minutes.frozenHint" : "minutes.sectionsHint")} />
+                }
+              />
               {minutes.facts.agenda.map((item) => (
                 <MinutesPoint
                   key={item.id}

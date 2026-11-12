@@ -8,6 +8,7 @@ import { DeleteIcon, EditIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
+import { SectionHeader } from "../components/ui/section-header";
 import { useRoleOptions } from "../features/authorization/useRoleOptions";
 import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
 import { PasswordDialog } from "../features/users/PasswordDialog";
@@ -96,26 +97,27 @@ export function UserPage() {
         ) : (
           <div className="admin-detail-surface" data-testid="user-detail">
             <section className="admin-record" aria-labelledby={`${fieldId}-identity`}>
-              <div className="admin-section-heading">
-                <div>
-                  <h2 id={`${fieldId}-identity`}>{t("users.identity")}</h2>
-                  <p>{t("users.identityDescription")}</p>
-                </div>
-                <div className="admin-heading-status">
-                  {saveState !== "idle" && (
-                    <span className="record-state" data-save={saveState} role="status" data-testid="user-save-state">
-                      {saveLabels[saveState]}
+              <SectionHeader
+                titleId={`${fieldId}-identity`}
+                title={t("users.identity")}
+                description={t("users.identityDescription")}
+                commands={
+                  <>
+                    {saveState !== "idle" && (
+                      <span className="record-state" data-save={saveState} role="status" data-testid="user-save-state">
+                        {saveLabels[saveState]}
+                      </span>
+                    )}
+                    <span
+                      className="record-state"
+                      data-tone={user.status === "active" ? "success" : "neutral"}
+                      data-testid="user-status"
+                    >
+                      {t(`users.status.${user.status}`)}
                     </span>
-                  )}
-                  <span
-                    className="record-state"
-                    data-tone={user.status === "active" ? "success" : "neutral"}
-                    data-testid="user-status"
-                  >
-                    {t(`users.status.${user.status}`)}
-                  </span>
-                </div>
-              </div>
+                  </>
+                }
+              />
               {invalid && (
                 <p className="form-error" role="alert" data-testid="user-identity-error">
                   {t("users.identityRequired")}
@@ -199,68 +201,72 @@ export function UserPage() {
               />
             </section>
             <section className="admin-record" aria-labelledby={`${fieldId}-roles`}>
-              <div className="admin-section-heading">
-                <div>
-                  <h2 id={`${fieldId}-roles`}>{t("users.roles")}</h2>
-                  <p>{t("users.rolesDescription")}</p>
-                </div>
-                {canAssignRoles[userId] && (
-                  <Button
-                    variant="secondary"
-                    onClick={async () => {
-                      if (!(await flush())) return;
-                      clearError();
-                      setRoles([...user.roles]);
-                      setRolesOpen(true);
-                    }}
-                    data-testid="user-edit-roles"
-                  >
-                    <EditIcon />
-                    {t("users.editRoles")}
-                  </Button>
-                )}
-              </div>
+              <SectionHeader
+                titleId={`${fieldId}-roles`}
+                title={t("users.roles")}
+                description={t("users.rolesDescription")}
+                commands={
+                  <>
+                    {canAssignRoles[userId] && (
+                      <Button
+                        variant="secondary"
+                        onClick={async () => {
+                          if (!(await flush())) return;
+                          clearError();
+                          setRoles([...user.roles]);
+                          setRolesOpen(true);
+                        }}
+                        data-testid="user-edit-roles"
+                      >
+                        <EditIcon />
+                        {t("users.editRoles")}
+                      </Button>
+                    )}
+                  </>
+                }
+              />
               <p data-testid="user-roles">{user.roles.map((role) => roleName(role)).join(" · ")}</p>
             </section>
             {(canResetPassword[userId] || canSendPasswordLink[userId] || user.accountMail) && (
               <section className="admin-record" aria-labelledby={`${fieldId}-password`}>
-                <div className="admin-section-heading">
-                  <div>
-                    <h2 id={`${fieldId}-password`}>{t("users.passwordSection")}</h2>
-                    <p>{t("users.passwordAccessDescription")}</p>
-                  </div>
-                  <div className="admin-heading-status">
-                    {canSendPasswordLink[userId] && (
-                      <Button
-                        variant="secondary"
-                        disabled={submitting}
-                        data-testid="user-send-password-link"
-                        onClick={() =>
-                          void run(async () => {
-                            if (!(await flush())) return false;
-                            clearError();
-                            return sendPasswordLink(userId, "recovery");
-                          })
-                        }
-                      >
-                        {t("users.sendPasswordLink")}
-                      </Button>
-                    )}
-                    {canResetPassword[userId] && (
-                      <Button
-                        variant="secondary"
-                        data-testid="user-reset-password"
-                        onClick={async () => {
-                          if (!(await flush())) return;
-                          setPasswordReset(false);
-                          setPasswordOpen(true);
-                        }}
-                      >
-                        {t("users.resetPassword")}
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <SectionHeader
+                  titleId={`${fieldId}-password`}
+                  title={t("users.passwordSection")}
+                  description={t("users.passwordAccessDescription")}
+                  commands={
+                    <>
+                      {canSendPasswordLink[userId] && (
+                        <Button
+                          variant="secondary"
+                          disabled={submitting}
+                          data-testid="user-send-password-link"
+                          onClick={() =>
+                            void run(async () => {
+                              if (!(await flush())) return false;
+                              clearError();
+                              return sendPasswordLink(userId, "recovery");
+                            })
+                          }
+                        >
+                          {t("users.sendPasswordLink")}
+                        </Button>
+                      )}
+                      {canResetPassword[userId] && (
+                        <Button
+                          variant="secondary"
+                          data-testid="user-reset-password"
+                          onClick={async () => {
+                            if (!(await flush())) return;
+                            setPasswordReset(false);
+                            setPasswordOpen(true);
+                          }}
+                        >
+                          {t("users.resetPassword")}
+                        </Button>
+                      )}
+                    </>
+                  }
+                />
                 {user.accountMail ? (
                   <div className="admin-heading-status" data-testid="user-account-mail">
                     <span>
@@ -306,70 +312,81 @@ export function UserPage() {
             )}
             {canReactivate[userId] && (
               <section className="admin-record" aria-labelledby={`${fieldId}-reactivate`}>
-                <div className="admin-section-heading">
-                  <div>
-                    <h2 id={`${fieldId}-reactivate`}>{t("users.reactivate")}</h2>
-                    <p>{t("users.reactivateDescription")}</p>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    disabled={submitting}
-                    data-testid="user-reactivate"
-                    onClick={() =>
-                      void run(async () => {
-                        clearError();
-                        const generated = await reactivate(userId);
-                        if (generated) {
-                          setHandedOver(false);
-                          setReactivatedPassphrase(generated);
+                <SectionHeader
+                  titleId={`${fieldId}-reactivate`}
+                  title={t("users.reactivate")}
+                  description={t("users.reactivateDescription")}
+                  commands={
+                    <>
+                      <Button
+                        variant="secondary"
+                        disabled={submitting}
+                        data-testid="user-reactivate"
+                        onClick={() =>
+                          void run(async () => {
+                            clearError();
+                            const generated = await reactivate(userId);
+                            if (generated) {
+                              setHandedOver(false);
+                              setReactivatedPassphrase(generated);
+                            }
+                            return Boolean(generated);
+                          })
                         }
-                        return Boolean(generated);
-                      })
-                    }
-                  >
-                    {t("users.reactivate")}
-                  </Button>
-                </div>
+                      >
+                        {t("users.reactivate")}
+                      </Button>
+                    </>
+                  }
+                />
               </section>
             )}
             {canRevokeAccess[userId] && (
-              <div className="admin-danger-zone">
-                <div>
-                  <strong>{t("users.revokeAccess")}</strong>
-                  <p>{t("users.revokeAccessDescription")}</p>
-                </div>
-                <Button
-                  variant="danger"
-                  onClick={async () => {
-                    if (!(await flush())) return;
-                    clearError();
-                    setRevokeOpen(true);
-                  }}
-                  data-testid="user-revoke-access"
-                >
-                  {t("users.revokeAccess")}
-                </Button>
-              </div>
+              <section className="admin-danger-zone">
+                <SectionHeader
+                  title={t("users.revokeAccess")}
+                  description={t("users.revokeAccessDescription")}
+                  commands={
+                    <>
+                      <Button
+                        variant="danger"
+                        onClick={async () => {
+                          if (!(await flush())) return;
+                          clearError();
+                          setRevokeOpen(true);
+                        }}
+                        data-testid="user-revoke-access"
+                      >
+                        {t("users.revokeAccess")}
+                      </Button>
+                    </>
+                  }
+                />
+              </section>
             )}
             {canDisable[userId] && (
-              <div className="admin-danger-zone">
-                <div>
-                  <strong>{t("users.disable")}</strong>
-                  <p>{t("users.disableDescription")}</p>
-                </div>
-                <Button
-                  variant="danger"
-                  onClick={async () => {
-                    if (!(await flush())) return;
-                    clearError();
-                    setDisableOpen(true);
-                  }}
-                  data-testid="user-disable"
-                >
-                  <DeleteIcon />
-                  {t("users.disable")}
-                </Button>
-              </div>
+              <section className="admin-danger-zone">
+                <SectionHeader
+                  title={t("users.disable")}
+                  description={t("users.disableDescription")}
+                  commands={
+                    <>
+                      <Button
+                        variant="danger"
+                        onClick={async () => {
+                          if (!(await flush())) return;
+                          clearError();
+                          setDisableOpen(true);
+                        }}
+                        data-testid="user-disable"
+                      >
+                        <DeleteIcon />
+                        {t("users.disable")}
+                      </Button>
+                    </>
+                  }
+                />
+              </section>
             )}
           </div>
         )}

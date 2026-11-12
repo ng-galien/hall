@@ -10,7 +10,6 @@
   .collection-toolbar > [data-slot="search-input"] { flex-basis: 100%; }
   .collection-toolbar-side { width: 100%; flex-wrap: wrap; justify-content: flex-end; }
 
-  .agenda-composer-heading { flex-wrap: wrap; }
   .composer-add-decisions, .composer-decision-list, .composer-prepared-drop { min-width: 0; }
   .composer-prepared-drop { overflow-wrap: anywhere; }
   .workbench-header-side { width: 100%; justify-content: flex-start; }
@@ -83,12 +82,12 @@
   .phone-document-information-body { display: grid; gap: var(--hall-space-2); justify-items: start; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .phone-business { gap: var(--hall-space-4); padding: var(--hall-space-3); }
   .phone-business .phone-document-information { margin: 0; }
-  .phone-business .business-content-section .collapsible-section-toggle { pointer-events: none; }
+  .phone-business .business-content-section .section-header-toggle { pointer-events: none; }
   .workspace-business-workbench.phone-business .business-subject-title { font-size: var(--hall-font-size-body); }
 
   /* The section actions of a business (« + », « ⋯ ») are finger-sized, with the icon size of the phone header. */
-  .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); }
-  .phone-business :is(.business-content-section-actions, .collapsible-section-actions) [data-size^="icon"] svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
+  .phone-business .section-header-commands [data-size^="icon"] { min-width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); }
+  .phone-business .section-header-commands [data-size^="icon"] svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   /* The committee selector of a phone: label above, field over the whole width, list as wide as the field. */
   .app-main .phone-document-information-body > .business-committees { justify-self: stretch; }
   .app-main .business-committees { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: stretch; }

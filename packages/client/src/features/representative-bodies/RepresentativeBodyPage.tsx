@@ -10,6 +10,7 @@ import { AddIcon, DeleteIcon } from "../../components/icons";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
+import { SectionHeader } from "../../components/ui/section-header";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { BodyMembership } from "../../services/representativeBodiesApi";
@@ -286,22 +287,23 @@ export function RepresentativeBodyPage({
         <RequestErrorBanner error={error ?? contactsError} />
         <div className="admin-detail-surface">
           <section className="admin-record" aria-labelledby={testId("record-title")}>
-            <div className="admin-section-heading">
-              <div>
-                <h2 id={testId("record-title")}>{t(text.identity)}</h2>
-                <p>{t(text.identityDescription)}</p>
-              </div>
-              <div className="admin-heading-status">
-                {saveState !== "idle" ? (
-                  <span className="record-state" data-save={saveState} role="status">
-                    {saveLabels[saveState]}
+            <SectionHeader
+              titleId={testId("record-title")}
+              title={t(text.identity)}
+              description={t(text.identityDescription)}
+              commands={
+                <>
+                  {saveState !== "idle" ? (
+                    <span className="record-state" data-save={saveState} role="status">
+                      {saveLabels[saveState]}
+                    </span>
+                  ) : null}
+                  <span className="record-state" data-tone={body.archivedAt ? "neutral" : "success"}>
+                    {t(body.archivedAt ? text.archived : text.active)}
                   </span>
-                ) : null}
-                <span className="record-state" data-tone={body.archivedAt ? "neutral" : "success"}>
-                  {t(body.archivedAt ? text.archived : text.active)}
-                </span>
-              </div>
-            </div>
+                </>
+              }
+            />
             <div className="admin-fields">
               <Field label={t(text.name)}>
                 <Input
@@ -329,23 +331,26 @@ export function RepresentativeBodyPage({
           {related?.(body.id)}
 
           <section className="admin-related" aria-labelledby={testId("members-title")}>
-            <div className="admin-section-heading">
-              <div>
-                <h2 id={testId("members-title")}>{t(text.members)}</h2>
-                <p>{t(text.membersDescription)}</p>
-              </div>
-              {capability?.canAddMembership ? (
-                <Button
-                  variant="secondary"
-                  data-testid={testId("add-members")}
-                  aria-expanded={paletteOpen}
-                  onClick={() => setPaletteOpen((open) => !open)}
-                >
-                  <AddIcon />
-                  {t(text.addMembers)}
-                </Button>
-              ) : null}
-            </div>
+            <SectionHeader
+              titleId={testId("members-title")}
+              title={t(text.members)}
+              description={t(text.membersDescription)}
+              commands={
+                <>
+                  {capability?.canAddMembership ? (
+                    <Button
+                      variant="secondary"
+                      data-testid={testId("add-members")}
+                      aria-expanded={paletteOpen}
+                      onClick={() => setPaletteOpen((open) => !open)}
+                    >
+                      <AddIcon />
+                      {t(text.addMembers)}
+                    </Button>
+                  ) : null}
+                </>
+              }
+            />
 
             {paletteOpen ? (
               <section
@@ -353,12 +358,12 @@ export function RepresentativeBodyPage({
                 className="admin-member-palette"
                 aria-labelledby={testId("palette-title")}
               >
-                <div className="admin-section-heading">
-                  <div>
-                    <h3 id={testId("palette-title")}>{t(text.availableMembers)}</h3>
-                    <p>{t(text.paletteDescription)}</p>
-                  </div>
-                </div>
+                <SectionHeader
+                  titleId={testId("palette-title")}
+                  level={3}
+                  title={t(text.availableMembers)}
+                  description={t(text.paletteDescription)}
+                />
                 <Field label={t(text.startedOn)} className="admin-compact-date">
                   <Input
                     data-testid={testId("membership-start")}
@@ -531,21 +536,25 @@ export function RepresentativeBodyPage({
           </section>
 
           {capability?.canArchive ? (
-            <div className="admin-danger-zone">
-              <div>
-                <strong>{t(text.archive)}</strong>
-                <p>{t(text.archiveDescription)}</p>
-              </div>
-              <Button
-                variant="danger"
-                disabled={submitting}
-                data-testid={testId("archive")}
-                onClick={() => void archiveBody()}
-              >
-                <DeleteIcon />
-                {t(submitting ? "common.saving" : text.archiveAction)}
-              </Button>
-            </div>
+            <section className="admin-danger-zone">
+              <SectionHeader
+                title={t(text.archive)}
+                description={t(text.archiveDescription)}
+                commands={
+                  <>
+                    <Button
+                      variant="danger"
+                      disabled={submitting}
+                      data-testid={testId("archive")}
+                      onClick={() => void archiveBody()}
+                    >
+                      <DeleteIcon />
+                      {t(submitting ? "common.saving" : text.archiveAction)}
+                    </Button>
+                  </>
+                }
+              />
+            </section>
           ) : null}
         </div>
 

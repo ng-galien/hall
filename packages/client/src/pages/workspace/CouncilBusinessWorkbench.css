@@ -43,26 +43,6 @@
   gap: var(--hall-space-2);
 }
 
-.workspace-business-workbench .business-content-section-header {
-  display: flex;
-  min-height: var(--hall-size-control-small);
-  align-items: center;
-  gap: var(--hall-space-2);
-}
-
-.workspace-business-workbench .business-content-section-header h2 {
-  margin: 0;
-  color: var(--hall-color-text);
-  font-size: var(--hall-font-size-title);
-  font-weight: var(--hall-font-weight-heavy);
-}
-
-.workspace-business-workbench .business-content-section-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--hall-space-1);
-}
-
 .workspace-business-workbench .business-subject-history {
   display: grid;
   gap: var(--hall-space-2);
@@ -177,8 +157,8 @@
   white-space: normal;
 }
 
-/* The sections of a business follow each other on the white screen, separated by a rule. */
+/* The sections of a business follow each other on the white screen with the same space above each; the rule is the
+   one under their header. */
 .workspace-business-workbench > :is(.business-subject-table-section, .business-content-section) {
-  padding-top: var(--hall-space-3);
-  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
+  padding-top: var(--hall-space-5);
 }

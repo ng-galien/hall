@@ -9,6 +9,7 @@ import { TemplateIcon } from "../components/icons";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
+import { SectionHeader } from "../components/ui/section-header";
 import { knownTemplateTypes, templateTypeLabel } from "../features/templates/templateTypes";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
@@ -79,13 +80,12 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className={embedded ? "creation-form" : "page"}>
       {embedded ? (
-        <div className="admin-section-heading">
-          <div>
-            <h3>{t("templates.title")}</h3>
-            <p>{t("templates.description")}</p>
-          </div>
-          {addButton}
-        </div>
+        <SectionHeader
+          level={3}
+          title={t("templates.title")}
+          description={t("templates.description")}
+          commands={<>{addButton}</>}
+        />
       ) : (
         <PageHeader title={t("templates.title")} description={t("templates.description")}>
           {addButton}

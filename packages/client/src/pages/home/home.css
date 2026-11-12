@@ -3,7 +3,5 @@
 
 .home-documents { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-workspace-list)), 1fr)); gap: var(--hall-space-5); align-items: start; }
 .home-block { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); min-width: 0; }
-.home-block-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--hall-space-2); min-height: var(--hall-size-control); }
-.home-block-heading h2 { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); line-height: var(--hall-line-height-heading); }
 .home-block-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
 .home-see-all { display: inline-flex; min-height: var(--hall-size-touch-control); align-items: center; gap: var(--hall-space-1); justify-self: end; color: var(--hall-color-brand); font-size: var(--hall-font-size-body); }

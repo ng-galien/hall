@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DeleteIcon, PhoneIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { SectionHeader } from "../components/ui/section-header";
 import { ContactEmailAction, ContactEmailLink } from "../features/contacts/ContactEmailLink";
 import {
   type ContactPhoneField,
@@ -302,17 +303,20 @@ export function ContactPage() {
         <RequestErrorBanner error={error} />
         <div className="admin-detail-surface">
           <section className="admin-record" aria-labelledby="contact-identity-title">
-            <div className="admin-section-heading">
-              <div>
-                <h2 id="contact-identity-title">{t("contacts.identity")}</h2>
-                {editable ? <p>{t("contacts.identityDescription")}</p> : null}
-              </div>
-              {saveState !== "idle" ? (
-                <span className="record-state" data-save={saveState} role="status">
-                  {saveLabels[saveState]}
-                </span>
-              ) : null}
-            </div>
+            <SectionHeader
+              titleId="contact-identity-title"
+              title={t("contacts.identity")}
+              description={editable ? t("contacts.identityDescription") : undefined}
+              commands={
+                <>
+                  {saveState !== "idle" ? (
+                    <span className="record-state" data-save={saveState} role="status">
+                      {saveLabels[saveState]}
+                    </span>
+                  ) : null}
+                </>
+              }
+            />
             {identityInvalid ? (
               <p className="form-error" role="alert" data-testid="contact-identity-error">
                 {t("contacts.identityRequired")}
@@ -330,9 +334,7 @@ export function ContactPage() {
             </div>
           </section>
           <section className="admin-record" aria-labelledby="contact-coordinates-title">
-            <div className="admin-section-heading">
-              <h2 id="contact-coordinates-title">{t("contacts.coordinates")}</h2>
-            </div>
+            <SectionHeader titleId="contact-coordinates-title" title={t("contacts.coordinates")} />
             <div className="admin-fields">
               {coordinateField(
                 "email",
@@ -357,9 +359,7 @@ export function ContactPage() {
             </div>
           </section>
           <section className="admin-record" aria-labelledby="contact-notes-title">
-            <div className="admin-section-heading">
-              <h2 id="contact-notes-title">{t("contacts.notes")}</h2>
-            </div>
+            <SectionHeader titleId="contact-notes-title" title={t("contacts.notes")} />
             <Field label={t("contacts.notes")}>
               <Textarea
                 value={draft.notes}
@@ -375,21 +375,25 @@ export function ContactPage() {
             ) : null}
           </section>
           {canArchive[contact.id] ? (
-            <div className="admin-danger-zone">
-              <div>
-                <strong>{t("contacts.archive")}</strong>
-                <p>{t("contacts.archiveDescription")}</p>
-              </div>
-              <Button
-                variant="danger"
-                disabled={submitting}
-                onClick={() => void archiveContact()}
-                data-testid="contact-archive"
-              >
-                <DeleteIcon />
-                {t(submitting ? "common.saving" : "contacts.archive")}
-              </Button>
-            </div>
+            <section className="admin-danger-zone">
+              <SectionHeader
+                title={t("contacts.archive")}
+                description={t("contacts.archiveDescription")}
+                commands={
+                  <>
+                    <Button
+                      variant="danger"
+                      disabled={submitting}
+                      onClick={() => void archiveContact()}
+                      data-testid="contact-archive"
+                    >
+                      <DeleteIcon />
+                      {t(submitting ? "common.saving" : "contacts.archive")}
+                    </Button>
+                  </>
+                }
+              />
+            </section>
           ) : null}
         </div>
       </div>

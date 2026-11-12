@@ -2,6 +2,7 @@ import type { MinutesFacts as Facts } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { Disclosure } from "@/components/ui/disclosure";
 import { ListRow, ListRows } from "../../components/ui/list-row";
+import { SectionHeader } from "../../components/ui/section-header";
 import { ballotVerdictKey } from "../../features/council-meetings/ballotVerdictPresentation";
 import { useI18n } from "../../i18n/I18nProvider";
 import { MinutesSectionHint } from "./MinutesSectionHint";
@@ -25,14 +26,11 @@ export function MinutesFacts({ facts }: { facts: Facts }) {
       data-testid="minutes-facts"
       aria-labelledby="minutes-facts-title"
     >
-      <div className="admin-section-heading">
-        <div>
-          <div className="minutes-section-title">
-            <h2 id="minutes-facts-title">{t("minutes.facts")}</h2>
-            <MinutesSectionHint text={t("minutes.factsHint")} />
-          </div>
-        </div>
-      </div>
+      <SectionHeader
+        titleId="minutes-facts-title"
+        title={t("minutes.facts")}
+        hint={<MinutesSectionHint text={t("minutes.factsHint")} />}
+      />
       <dl className="minutes-prose-facts">
         <div>
           <dt>{t("meetings.chair")}</dt>

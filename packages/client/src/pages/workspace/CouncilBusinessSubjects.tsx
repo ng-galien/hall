@@ -6,6 +6,7 @@ import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { InlineRenameField } from "../../components/ui/inline-rename-field";
 import { ListRow, ListRows } from "../../components/ui/list-row";
+import { SectionHeader } from "../../components/ui/section-header";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { AgendaSubjectGlyph, agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
 import { InlineResourceContent } from "../../features/resources/InlineResourceContent";
@@ -288,10 +289,7 @@ export function CouncilBusinessSubjects({ businessId }: { businessId: string }) 
       clearError={() => useCouncilBusinessStore.setState({ error: null })}
       render={(trigger) => (
         <section className="business-subject-table-section" data-testid="business-subject-table">
-          <header className="business-content-section-header">
-            <h2>{t("workspace.preparedItems")}</h2>
-            <span className="business-content-section-actions">{trigger}</span>
-          </header>
+          <SectionHeader title={t("workspace.preparedItems")} commands={trigger} />
           {phone ? (
             <ListRows className="business-phone-list" data-testid="business-phone-subjects">
               {sortedSubjects.map((subject) => (

@@ -87,7 +87,7 @@ test("the business documents section folds by its header and opens each document
   await expect(tree).toBeVisible();
 
   const chevronBox = await toggle.locator("svg").first().boundingBox();
-  const titleBox = await toggle.locator(".collapsible-section-title").boundingBox();
+  const titleBox = await toggle.locator(".section-header-title-text").boundingBox();
   expect(chevronBox && titleBox).toBeTruthy();
   expect(
     Math.abs(chevronBox!.y + chevronBox!.height / 2 - (titleBox!.y + titleBox!.height / 2)),

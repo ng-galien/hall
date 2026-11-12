@@ -9,6 +9,7 @@ import { PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
+import { SectionHeader } from "../../components/ui/section-header";
 import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -134,20 +135,28 @@ function CouncilDecisionDetail({ id }: { id: string }) {
               <MarkdownView markdown={decision.facts.proposal.submittedText} />
             </details>
             <section className="admin-detail-surface admin-record" aria-labelledby="decision-writing-title">
-              <div className="admin-section-heading" hidden={phone && !draft.canEdit}>
-                <div>
-                  <h2 id="decision-writing-title">{t("decisionDocument.writing")}</h2>
-                  <p>{t("decisionDocument.fidelity")}</p>
-                </div>
-                <span
-                  className="record-state"
-                  data-save={draft.saving ? "saving" : draft.dirty ? "dirty" : "saved"}
-                  role="status"
-                  data-testid="decision-save-status"
-                >
-                  {draft.saving ? t("common.saving") : draft.dirty ? t("workspace.saveDirty") : t("workspace.saved")}
-                </span>
-              </div>
+              <SectionHeader
+                titleId="decision-writing-title"
+                title={t("decisionDocument.writing")}
+                description={t("decisionDocument.fidelity")}
+                hidden={phone && !draft.canEdit}
+                commands={
+                  <>
+                    <span
+                      className="record-state"
+                      data-save={draft.saving ? "saving" : draft.dirty ? "dirty" : "saved"}
+                      role="status"
+                      data-testid="decision-save-status"
+                    >
+                      {draft.saving
+                        ? t("common.saving")
+                        : draft.dirty
+                          ? t("workspace.saveDirty")
+                          : t("workspace.saved")}
+                    </span>
+                  </>
+                }
+              />
               {draft.canEdit ? (
                 <MarkdownEditor
                   testId="decision-writing"

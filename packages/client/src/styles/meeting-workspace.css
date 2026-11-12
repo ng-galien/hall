@@ -253,9 +253,10 @@
     padding: var(--hall-space-4) 0;
     border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
+  /* A section that opens with its header takes the rule under the header instead of a rule above it. */
+  :is(.meeting-section, .meeting-general, .meeting-documents, .agenda-composer):has(> .section-header:first-child) { border-top: 0; }
   .meeting-section > h2,
   .report-attendance-overview h2,
-  .agenda-composer-heading h2,
   .live-resume-hero h2 { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); line-height: var(--hall-line-height-heading); }
   .meeting-report-header {
     position: sticky;
@@ -386,12 +387,8 @@
 
   /* ---- Agenda ---- */
   .report-main { display: grid; min-width: 0; gap: var(--hall-space-2); align-content: start; }
-  .agenda-composer-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--hall-space-2) var(--hall-space-3); margin-bottom: var(--hall-space-2); }
-  /* The title keeps its help beside it, its text wrapping first; the commands pass together under it. */
-  .agenda-composer-title { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; gap: var(--hall-space-2); }
-  .agenda-composer-title > h2 { min-width: 0; }
+  .agenda-composer-heading { margin-bottom: var(--hall-space-2); }
   .agenda-composer-count { color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-regular); }
-  .agenda-composer-actions { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); margin-left: auto; }
   .agenda-composer-caption { margin-bottom: var(--hall-space-2); }
   .composer-list { margin-bottom: var(--hall-space-4); }
   .composer-item-dragging { opacity: var(--hall-opacity-pulse); }

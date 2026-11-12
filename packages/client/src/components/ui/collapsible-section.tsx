@@ -1,8 +1,10 @@
 import { type ReactNode, useId } from "react";
+import { SectionHeader } from "./section-header";
 
 /**
- * Section whose whole heading is the toggle: icon, title and count on one line, actions kept beside it. It draws no
- * chevron; a section with a two-state icon, such as a folder, shows `openIcon` while it is unfolded.
+ * Section whose whole header folds it: the shared section header with its title, count and icon, its commands at the
+ * right end. It draws no chevron; a section with a two-state icon, such as a folder, shows `openIcon` while it is
+ * unfolded.
  */
 export function CollapsibleSection({
   title,
@@ -31,27 +33,15 @@ export function CollapsibleSection({
   const contentId = useId();
   return (
     <section className={className ? `collapsible-section ${className}` : "collapsible-section"} data-testid={testId}>
-      <header className="collapsible-section-header">
-        <h2>
-          <button
-            type="button"
-            className="collapsible-section-toggle"
-            data-testid={`${testId}-toggle`}
-            aria-expanded={open}
-            aria-controls={contentId}
-            onClick={() => onOpenChange(!open)}
-          >
-            {icon ? <span className="collapsible-section-icon">{open && openIcon ? openIcon : icon}</span> : null}
-            <span className="collapsible-section-title">{title}</span>
-            {count === undefined ? null : (
-              <span className="collapsible-section-count" data-testid={`${testId}-count`}>
-                {count}
-              </span>
-            )}
-          </button>
-        </h2>
-        {actions ? <span className="collapsible-section-actions">{actions}</span> : null}
-      </header>
+      <SectionHeader
+        title={title}
+        icon={icon}
+        openIcon={openIcon}
+        count={count}
+        countTestId={`${testId}-count`}
+        fold={{ open, onOpenChange, controls: contentId, testId: `${testId}-toggle` }}
+        commands={actions}
+      />
       <div id={contentId} className="collapsible-section-content" hidden={!open}>
         {children}
       </div>

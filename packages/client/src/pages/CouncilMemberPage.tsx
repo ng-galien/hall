@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CommitteeIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { ListRow, ListRowAvatar, ListRowIcon, ListRows } from "../components/ui/list-row";
+import { SectionHeader } from "../components/ui/section-header";
 import { phoneHref, preferredPhone } from "../features/contacts/contactPhones";
 import { MemberDelegations } from "../features/representative-bodies/MemberDelegations";
 import { committeeKind } from "../features/representative-bodies/representativeBodyKinds";
@@ -140,22 +141,23 @@ export function CouncilMemberPage() {
         <RequestErrorBanner error={memberError ?? error} />
         <div className="admin-detail-surface">
           <section className="admin-record" aria-labelledby="member-identity-title">
-            <div className="admin-section-heading">
-              <div>
-                <h2 id="member-identity-title">{t("members.term")}</h2>
-                <p>{t("members.identityDescription")}</p>
-              </div>
-              <div className="admin-heading-status">
-                {saveState !== "idle" ? (
-                  <span className="record-state" data-save={saveState} role="status">
-                    {saveLabels[saveState]}
+            <SectionHeader
+              titleId="member-identity-title"
+              title={t("members.term")}
+              description={t("members.identityDescription")}
+              commands={
+                <>
+                  {saveState !== "idle" ? (
+                    <span className="record-state" data-save={saveState} role="status">
+                      {saveLabels[saveState]}
+                    </span>
+                  ) : null}
+                  <span className="record-state" data-tone={member.active ? "success" : "neutral"}>
+                    {t(member.active ? "status.active" : "status.inactive")}
                   </span>
-                ) : null}
-                <span className="record-state" data-tone={member.active ? "success" : "neutral"}>
-                  {t(member.active ? "status.active" : "status.inactive")}
-                </span>
-              </div>
-            </div>
+                </>
+              }
+            />
             <ListRows>
               <ListRow
                 to={`/contacts/${member.contact.id}`}
@@ -238,12 +240,11 @@ export function CouncilMemberPage() {
           </section>
 
           <section id="committees" className="admin-related" aria-labelledby="member-committees-title">
-            <div className="admin-section-heading">
-              <div>
-                <h2 id="member-committees-title">{t("members.committees")}</h2>
-                <p>{t("members.committeesDescription")}</p>
-              </div>
-            </div>
+            <SectionHeader
+              titleId="member-committees-title"
+              title={t("members.committees")}
+              description={t("members.committeesDescription")}
+            />
             {memberships.length === 0 ? (
               <p className="admin-inline-empty">{t("members.noCommittees")}</p>
             ) : (
