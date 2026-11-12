@@ -752,7 +752,7 @@ export function GeographicResourceMap({
                 <Button
                   type="button"
                   variant="plain"
-                  className="geographic-save-view geographic-map-tool"
+                  className="geographic-save-view"
                   data-testid="geographic-save-view"
                   disabled={conflict || sameGeographicView(displayedView, draft.view)}
                   onClick={saveDisplayedView}

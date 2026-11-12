@@ -222,9 +222,8 @@
     background: var(--hall-color-surface-subtle);
   }
   .geographic-map { width: 100%; height: 100%; }
-  .geographic-map-stage { --geographic-map-control: var(--hall-size-control-small); }
-  .geographic-mode-switch svg,
-  .geographic-layers-trigger svg { flex: none; font-size: var(--hall-font-size-icon-small); }
+  .geographic-map-stage { --geographic-map-control: var(--hall-size-control); }
+  .geographic-mode-switch svg { flex: none; font-size: var(--hall-font-size-icon-small); }
   .geographic-mode-switch,
   .geographic-zoom-tools,
   .geographic-layers,
@@ -284,22 +283,6 @@
     box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
     margin: 0;
     min-inline-size: 0;
-  }
-  .geographic-layers-trigger {
-    display: flex;
-    min-height: var(--geographic-map-control);
-    align-items: center;
-    gap: var(--hall-space-1);
-    padding: 0 var(--hall-space-1-5);
-    border: var(--hall-stroke-thin) solid var(--hall-color-border);
-    border-radius: var(--hall-radius-medium);
-    color: var(--hall-color-text);
-    background: var(--hall-color-surface);
-    font: inherit;
-    font-size: var(--hall-font-size-caption);
-    font-weight: var(--hall-font-weight-medium);
-    box-shadow: var(--hall-shadow-medium);
-    cursor: pointer;
   }
   .geographic-layers-panel {
     position: absolute;
@@ -563,17 +546,6 @@
     font-size: var(--hall-font-size-caption);
   }
   .geographic-conflict button { flex: none; }
-  .geographic-save-view,
-  .geographic-legend-controls > button {
-    height: var(--geographic-map-control);
-    padding-inline: var(--hall-space-2);
-    font-size: var(--hall-font-size-caption);
-  }
-  .geographic-save-view {
-    justify-self: start;
-    background: var(--hall-color-surface);
-    box-shadow: var(--hall-shadow-medium);
-  }
   .geographic-resource .ol-attribution {
     border-radius: var(--hall-radius-small);
     color: var(--hall-color-text-muted);

@@ -100,7 +100,7 @@
 .geographic-composition-tab > .geographic-composition-list { flex: 1 1 auto; min-height: 0; }
 .geographic-composition-tab-count { margin-inline-start: var(--hall-space-1); color: var(--hall-color-text-subtle); font-variant-numeric: tabular-nums; }
 .geographic-legend { display: flex; flex: 0 1 auto; flex-direction: column; min-height: 0; gap: var(--hall-space-1); }
-.geographic-legend-controls { display: flex; flex: none; align-items: center; gap: var(--hall-space-2); }
+.geographic-legend-controls { display: flex; flex: none; align-self: flex-start; align-items: center; gap: 0; }
 .geographic-legend-content { min-height: 0; overflow: auto; padding: var(--hall-space-1) var(--hall-space-2); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-medium); }
 .geographic-legend ul { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); list-style: none; padding: 0; margin: 0; }
 .geographic-legend li { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); margin: 0; font-size: var(--hall-font-size-caption); }
@@ -160,22 +160,11 @@
   right: var(--hall-space-3);
   bottom: calc(var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control-small)) * 3 + var(--hall-space-2));
 }
-/* A command laid over the map takes the form of the map tools: a white surface, a grey rule and a light shadow, at
-   the height of a map control. */
-.geographic-map-tool.hall-button {
-  display: inline-flex;
-  min-height: var(--geographic-map-control, var(--hall-size-control-small));
-  height: var(--geographic-map-control, var(--hall-size-control-small));
-  align-items: center;
-  gap: var(--hall-space-1);
-  padding: 0 var(--hall-space-1-5);
-  border: 0;
+/* The commands laid over the map stand on the white surface of the map tools: a grey rule and a light shadow around
+   ordinary buttons. */
+.geographic-top-tools > .geographic-layers,
+.geographic-legend-controls {
   border-radius: var(--hall-radius-medium);
-  color: var(--hall-color-text);
   background: var(--hall-color-surface);
   box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
-  font-size: var(--hall-font-size-caption);
-  font-weight: var(--hall-font-weight-medium);
 }
-.geographic-map-tool.hall-button:hover:not(:disabled),
-.geographic-map-tool.hall-button[aria-expanded="true"] { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }

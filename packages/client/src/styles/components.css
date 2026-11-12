@@ -605,9 +605,10 @@
   .section-header-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
   .section-header-icon { display: inline-grid; flex: none; place-items: center; color: var(--hall-color-nature-folder); }
   .section-header-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
-  .section-header-title-text { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
+  .section-header-title-text { min-width: 0; overflow-wrap: anywhere; }
   .section-header-description { margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
-  .section-header-commands { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); margin-left: auto; }
+  /* The commands take the rest of the line at its right end, or a whole line of their own, still at its right end. */
+  .section-header-commands { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); }
   /* A list right under a section header starts at its rule and leaves the space under the section to the screen. */
   .section-header + .list-row-list { margin-bottom: 0; border-top: 0; }
   .collapsible-section { display: grid; gap: var(--hall-space-2); }

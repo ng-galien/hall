@@ -279,7 +279,7 @@ export function MapsPage() {
               />
               <Link className="maps-context-open" data-testid="maps-open-workspace" to={workspaceResourceHref(opened)}>
                 <OpenIcon />
-                {t("maps.openInWorkspace")}
+                <span className="maps-context-open-label">{t("maps.openInWorkspace")}</span>
               </Link>
             </div>
             <nav className="maps-context-path" aria-label={t("maps.folder")}>

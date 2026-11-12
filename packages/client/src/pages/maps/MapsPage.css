@@ -109,12 +109,17 @@
 
 .maps-context-open {
   display: inline-flex;
-  flex: none;
+  min-width: 0;
+  flex: 0 1 auto;
   align-items: center;
   gap: var(--hall-space-1);
   color: var(--hall-color-brand);
   font-size: var(--hall-font-size-body);
 }
+
+/* The link to Documents shortens with an ellipsis instead of widening the screen. */
+.maps-context-open > svg { flex: none; }
+.maps-context-open-label { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
 
 .maps-context-path {
   display: flex;

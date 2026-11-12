@@ -4,7 +4,6 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { DeleteIcon, EditIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
@@ -218,7 +217,6 @@ export function UserPage() {
                         }}
                         data-testid="user-edit-roles"
                       >
-                        <EditIcon />
                         {t("users.editRoles")}
                       </Button>
                     )}
@@ -380,7 +378,6 @@ export function UserPage() {
                         }}
                         data-testid="user-disable"
                       >
-                        <DeleteIcon />
                         {t("users.disable")}
                       </Button>
                     </>

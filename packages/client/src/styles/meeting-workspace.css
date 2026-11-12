@@ -429,6 +429,7 @@
   .revision-control { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2) var(--hall-space-3); }
   /* The state fills its line and its commands keep the end of the line, or a line of their own. */
   .revision-control-label { min-width: 0; flex: 1 1 12rem; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
+  .revision-control-commands { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); }
   .revision-hint { display: grid; gap: var(--hall-space-0-5); max-width: var(--hall-size-relative-22rem); white-space: normal; }
   .revision-hint strong { font-weight: var(--hall-font-weight-semibold); }
 

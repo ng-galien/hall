@@ -27,7 +27,6 @@ export function GeographicLegend({
         <Button
           type="button"
           variant="plain"
-          className="geographic-map-tool"
           data-testid="geographic-legend-toggle"
           aria-expanded={open}
           aria-controls={contentId}

@@ -50,6 +50,13 @@
   /* With its search and creation in the header, the documents list starts under the header. */
   .app-main .workspace > .workspace-topzone:not(:has(> :not(input))) { margin-bottom: calc(-1 * var(--hall-space-3)); }
   /* The workspace search of a phone covers the screen; its results scroll under the field. */
+  /* A dialog of a phone opens under the line of the screen header, which stays visible above it. */
+  [data-slot="dialog-content"]:not(.workspace-phone-search, .document-viewer-phone-page) {
+    top: calc(var(--hall-size-header) + var(--hall-space-2));
+    max-height: calc(100dvh - var(--hall-size-header) - var(--hall-space-4));
+    --tw-translate-y: 0;
+    translate: -50% 0;
+  }
   [data-slot="dialog-content"].workspace-phone-search { top: 0; height: 100dvh; max-height: 100dvh; border-radius: 0; }
   .workspace-phone-search-results { display: grid; min-height: 0; flex: 1; align-content: start; }
   .app-main .workspace-page { height: auto; min-height: 100%; }

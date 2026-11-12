@@ -9,7 +9,6 @@ import {
   FilterIcon,
   FitBoundsIcon,
   HiddenIcon,
-  LayersIcon,
   ListViewIcon,
   RulerIcon,
   VisibleIcon,
@@ -82,7 +81,7 @@ export function GeographicLayerControls({
 
   return (
     <>
-      <div className="geographic-top-tools">
+      <div className="geographic-top-tools" data-layout-flow>
         <fieldset className="geographic-mode-switch">
           <legend className="sr-only">{t("geographic.mode")}</legend>
           <Button
@@ -110,13 +109,11 @@ export function GeographicLayerControls({
           <Button
             variant="plain"
             type="button"
-            className="geographic-map-tool"
             data-testid="geographic-layers-trigger"
             aria-expanded={layersOpen}
             aria-label={t("geographic.layersOpen")}
             onClick={() => setLayersOpen((open) => !open)}
           >
-            <LayersIcon />
             {t("geographic.layers")}
           </Button>
           {layersOpen ? (
