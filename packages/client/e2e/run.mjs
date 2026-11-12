@@ -390,6 +390,11 @@ try {
     dropDatabase(templateDatabase);
   }
   if (builtDevelopmentDirectory) rmSync(builtDevelopmentDirectory, { recursive: true, force: true });
-  if (builtClientDirectory && builtClientDirectory !== resolve(clientDirectory, "dist"))
+  // A client built for this run is removed; one given by HALL_E2E_CLIENT_BUILD belongs to its caller.
+  if (
+    builtClientDirectory &&
+    builtClientDirectory !== resolve(clientDirectory, "dist") &&
+    !process.env.HALL_E2E_CLIENT_BUILD
+  )
     rmSync(builtClientDirectory, { recursive: true, force: true });
 }
