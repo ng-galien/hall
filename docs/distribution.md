@@ -238,6 +238,17 @@ HALL_DOCUMENT_STATEMENT_TIMEOUT_MS=120000
 The two timeout values are optional; the lines above repeat their defaults. See
 [database statement timeouts](runtime.md#database-statement-timeouts).
 
+The invitation and password recovery emails of an account carry a single-use link
+to Hall. One value of the environment file gives the address of that link:
+
+- `HALL_PUBLIC_ORIGIN`: the public address of Hall as its users reach it, an exact
+  HTTP(S) origin without a path, for example `https://hall.example.fr`; the link is
+  this origin followed by `/app/password-link`. Default `http://localhost:5174` in
+  development only. In production there is no default: without this value no
+  invitation or recovery email leaves, and each one is recorded as failed on the
+  account (`public_origin_not_configured`). Hall refuses to start when the value is
+  not an exact origin.
+
 Provision the dedicated empty database separately. Do not pass an unrelated
 database to Hall. Run:
 
