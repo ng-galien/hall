@@ -1,109 +1,163 @@
-import type { Icon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { DocsIcon, SettingsIcon, SidebarCollapseIcon, SidebarExpandIcon } from "../components/icons";
+import type { ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { DocsIcon, FolderIcon, SettingsIcon, SidebarCollapseIcon, SidebarExpandIcon } from "../components/icons";
 import { Button } from "../components/ui/button";
-import { MailFolderLinks } from "../features/mail/MailFolderLinks";
-import type { TranslationKey } from "../i18n/en";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
+import { useMailCountsStore } from "../features/mail/mailCounts";
 import { useI18n } from "../i18n/I18nProvider";
-import { type NavigationItem, type NavigationSection, navigationSections } from "./navigation";
+import { isCurrentEntry, isUnder, type NavigationItem, navigationBlocks } from "./navigation";
 import { useApiRoot } from "./usePhoneLayout";
-import { WorkspaceTree } from "./WorkspaceTree";
+import { useFolderTree, WorkspaceTree } from "./WorkspaceTree";
 
-/** One destination of the navigation panel: outline icon and label, the active one in blue with a thicker stroke. */
-function NavigationRow({
-  to,
-  labelKey,
-  Icon,
-  compact,
+type Availability = (relation?: string) => boolean;
+
+/** The entry as the person may see it: its permitted sub-resources, or nothing when none is permitted. */
+export function permittedEntry(item: NavigationItem, available: Availability): NavigationItem | null {
+  if (!available(item.requiredRelation)) return null;
+  if (!item.children) return item;
+  const children = item.children.filter((child) => available(child.requiredRelation));
+  if (children.length === 0) return null;
+  return { ...item, to: item.to ?? children[0].to, children };
+}
+
+/** The number written at the end of a sub-resource, such as the drafts of Courriels. */
+function useEntryCount(item: NavigationItem): number | null {
+  const counts = useMailCountsStore();
+  if (item.id === "mail-drafts") return counts.drafts;
+  if (item.id === "mail-sent") return counts.sent;
+  return null;
+}
+
+/** One line of the menu: outline icon and label; the current one in blue and bold with a thicker stroke. */
+export function EntryRow({
+  item,
+  current,
+  open = false,
+  sub = false,
   testId,
+  onNavigate,
 }: {
-  to: string;
-  labelKey: TranslationKey;
-  Icon: Icon;
-  compact: boolean;
+  item: NavigationItem;
+  current: boolean;
+  /** One of its sub-resources is the current screen. */
+  open?: boolean;
+  sub?: boolean;
   testId?: string;
+  onNavigate?: () => void;
 }) {
   const { t } = useI18n();
+  const count = useEntryCount(item);
   return (
-    <NavLink
-      to={to}
-      end={to === "/"}
-      data-testid={testId}
-      title={compact ? t(labelKey) : undefined}
-      aria-label={compact ? t(labelKey) : undefined}
-      className="nav-row"
-      data-compact={compact ? "true" : undefined}
+    <Link
+      to={item.to ?? "/"}
+      className={sub ? "nav-row nav-sub" : "nav-row"}
+      data-testid={testId ?? item.testId ?? `navigation-${item.id}`}
+      data-open={open ? "true" : undefined}
+      aria-current={current ? "page" : undefined}
+      onClick={onNavigate}
     >
-      {({ isActive }) => (
-        <>
-          <span className="nav-icon">
-            <Icon weight={isActive ? "bold" : "regular"} />
-          </span>
-          {!compact ? <span className="nav-label">{t(labelKey)}</span> : null}
-        </>
-      )}
-    </NavLink>
+      <span className="nav-icon">
+        <item.Icon weight={current || open ? "bold" : "regular"} />
+      </span>
+      <span className="nav-label">{t(item.labelKey)}</span>
+      {count !== null ? <span className="nav-count">{count}</span> : null}
+    </Link>
   );
 }
 
-/** True when the current screen is one of the destinations of a folded root. */
-function inFoldedRoot(pathname: string, items: NavigationItem[]) {
-  return items.some((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
+/** The panel of a folded menu entry: its name, then its sub-resources as links. */
+function RailPanel({ item, pathname }: { item: NavigationItem; pathname: string }) {
+  const { t } = useI18n();
+  return (
+    <div className="nav-rail-panel">
+      <span className="nav-rail-panel-title">{t(item.labelKey)}</span>
+      {item.folderTree ? (
+        <RailFolders />
+      ) : (
+        item.children?.map((child) => (
+          <EntryRow key={child.id} item={child} current={child.to !== undefined && isUnder(pathname, child.to)} sub />
+        ))
+      )}
+    </div>
+  );
 }
 
-/** A root that folds its entries under one line: its icon and label, and its entries under it once unfolded. */
-function FoldedRoot({ section, compact }: { section: NavigationSection; compact: boolean }) {
-  const { t } = useI18n();
-  const location = useLocation();
-  const own = inFoldedRoot(location.pathname, section.items);
-  const [open, setOpen] = useState(own);
-  useEffect(() => {
-    if (own) setOpen(true);
-  }, [own]);
-  if (!section.folded || !section.labelKey || section.items.length === 0) return null;
-  const label = t(section.labelKey);
-  const { Icon } = section.folded;
+/** The folders at the top of Documents, in the panel of the folded menu. */
+function RailFolders() {
+  const folders = useFolderTree().filter((node) => !node.business);
   return (
-    <div className="app-sidebar-section" data-folded={open ? "false" : "true"}>
-      <Button
-        variant="plain"
-        className="nav-row nav-root"
-        data-compact={compact ? "true" : undefined}
-        data-testid={`navigation-${section.folded.id}`}
-        aria-expanded={open}
-        title={compact ? label : undefined}
-        aria-label={compact ? label : undefined}
-        onClick={() => setOpen(!open)}
-      >
-        <span className="nav-icon">
-          <Icon weight={open ? "bold" : "regular"} />
-        </span>
-        {!compact ? <span className="nav-label">{label}</span> : null}
-      </Button>
-      {open ? (
-        <div className="nav-root-entries">
-          {section.items.map((item) => (
-            <NavigationRow
-              key={item.to}
-              to={item.to}
-              labelKey={item.labelKey}
-              Icon={item.Icon}
-              compact={compact}
-              testId={`navigation-${item.to.slice(1)}`}
-            />
-          ))}
-        </div>
-      ) : null}
+    <>
+      {folders.map((folder) => (
+        <Link
+          key={folder.path}
+          className="nav-row nav-sub"
+          data-testid="navigation-rail-folder"
+          to={`/workspace?${new URLSearchParams({ path: folder.path })}`}
+        >
+          <span className="nav-icon">
+            <FolderIcon />
+          </span>
+          <span className="nav-label">{folder.name}</span>
+        </Link>
+      ))}
+    </>
+  );
+}
+
+/** One icon of the folded menu, with its label or its panel shown at once beside it. */
+function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: string; label: string }) {
+  const current = isCurrentEntry(pathname, item);
+  const panel = item.children || item.folderTree;
+  return (
+    <Tooltip delayDuration={0}>
+      <TooltipTrigger asChild>
+        <Link
+          to={item.to ?? "/"}
+          className="nav-row"
+          data-compact="true"
+          data-testid={item.testId ?? `navigation-${item.id}`}
+          aria-current={current ? "page" : undefined}
+          aria-label={label}
+        >
+          <span className="nav-icon">
+            <item.Icon weight={current ? "bold" : "regular"} />
+          </span>
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="right" className={panel ? "nav-rail-tooltip nav-rail-tooltip-panel" : "nav-rail-tooltip"}>
+        {panel ? <RailPanel item={item} pathname={pathname} /> : label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** An entry of the unfolded menu, with its sub-resources indented under it while one of them is current. */
+function MenuEntry({ item, pathname }: { item: NavigationItem; pathname: string }) {
+  const entered = isCurrentEntry(pathname, item);
+  let under: ReactNode = null;
+  if (entered && item.folderTree) under = <WorkspaceTree />;
+  else if (entered && item.children)
+    under = (
+      <div className="nav-sub-entries">
+        {item.children.map((child) => (
+          <EntryRow key={child.id} item={child} current={child.to !== undefined && isUnder(pathname, child.to)} sub />
+        ))}
+      </div>
+    );
+  return (
+    <div className="app-sidebar-item">
+      <EntryRow item={item} current={entered && !item.children} open={entered && Boolean(item.children)} />
+      {under}
     </div>
   );
 }
 
 // @implements-requirement HALL-FR-LAY-110
 /**
- * Navigation panel of the tablet and the computer: the roots grouped by subject, with labels when unfolded or as a
- * rail of icons when folded. On the Documents screen, the tree of the folders and affaires shows under its entry; on
- * the Courriels screen, « Brouillons » and « Envoyés » show under its entry. Its own fold control is on the line of the brand, and under the « H » of the rail.
+ * Navigation panel of the tablet and the computer: one form of entry, icon and label, in three blocks separated by a
+ * rule. The entry where one is shows its sub-resources indented under it, the other ones stay on their line. Folded,
+ * the menu is a rail of icons whose label, or panel of sub-resources, shows at once beside it. Its own fold control is
+ * on the line of the brand, and under the « H » of the rail.
  */
 export function AppSidebar({
   compact,
@@ -116,6 +170,13 @@ export function AppSidebar({
   const { t } = useI18n();
   const { available } = useApiRoot();
   const { pathname } = useLocation();
+  const blocks = navigationBlocks
+    .map((block) => block.flatMap((item) => permittedEntry(item, available) ?? []))
+    .filter((block) => block.length > 0);
+  const footer: NavigationItem[] = [
+    { id: "documentation", to: "/docs", labelKey: "navigation.documentation", Icon: DocsIcon },
+    { id: "settings", to: "/settings", labelKey: "navigation.settings", Icon: SettingsIcon },
+  ];
 
   return (
     <aside
@@ -140,42 +201,26 @@ export function AppSidebar({
         </Button>
       </div>
       <nav className="app-sidebar-sections">
-        {navigationSections.map((section) => {
-          const items = section.items.filter((item) => available(item.requiredRelation));
-          if (section.folded) {
-            return <FoldedRoot key={section.folded.id} section={{ ...section, items }} compact={compact} />;
-          }
-          return (
-            <div className="app-sidebar-section" key={section.labelKey ?? section.items[0].to}>
-              {section.labelKey && !compact ? <span className="nav-section-label">{t(section.labelKey)}</span> : null}
-              {items.map((item) => (
-                <div className="app-sidebar-item" key={item.to}>
-                  <NavigationRow
-                    to={item.to}
-                    labelKey={item.labelKey}
-                    Icon={item.Icon}
-                    compact={compact}
-                    testId={`navigation-${item.to === "/" ? "overview" : item.to.slice(1)}`}
-                  />
-                  {item.to === "/workspace" && pathname === "/workspace" && !compact ? <WorkspaceTree /> : null}
-                  {item.to === "/mail" && (pathname === "/mail" || pathname.startsWith("/mail/")) && !compact ? (
-                    <MailFolderLinks />
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          );
-        })}
+        {blocks.map((block) => (
+          <div className="app-sidebar-block" key={block[0].id}>
+            {block.map((item) =>
+              compact ? (
+                <RailEntry key={item.id} item={item} pathname={pathname} label={t(item.labelKey)} />
+              ) : (
+                <MenuEntry key={item.id} item={item} pathname={pathname} />
+              ),
+            )}
+          </div>
+        ))}
       </nav>
       <div className="app-sidebar-footer">
-        <NavigationRow to="/docs" labelKey="navigation.documentation" Icon={DocsIcon} compact={compact} />
-        <NavigationRow
-          to="/settings"
-          labelKey="common.settings"
-          Icon={SettingsIcon}
-          compact={compact}
-          testId="navigation-settings"
-        />
+        {footer.map((item) =>
+          compact ? (
+            <RailEntry key={item.id} item={item} pathname={pathname} label={t(item.labelKey)} />
+          ) : (
+            <EntryRow key={item.id} item={item} current={item.to !== undefined && isUnder(pathname, item.to)} />
+          ),
+        )}
       </div>
     </aside>
   );

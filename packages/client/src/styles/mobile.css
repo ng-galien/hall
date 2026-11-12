@@ -146,8 +146,6 @@
   .app-main .maps-page[data-map-open="false"] { height: auto; min-height: 100%; }
   .app-main .maps-page[data-map-open="false"] .maps-panel { flex: none; max-height: none; }
   /* The settings categories stay on one row that scrolls sideways. */
-  .settings-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
-  .settings-tabs > [data-slot="tabs-trigger"] { flex: none; margin-bottom: 0; white-space: nowrap; }
   /* Calendar on a phone: the screen fills the space between the header and the bar, the toolbar stays in place on
      two rows and only the grid scrolls, from edge to edge. */
   .app-main .hall-calendar { height: 100%; padding: 0; gap: 0; }

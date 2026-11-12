@@ -1,12 +1,11 @@
 import { findSirenAction, findSirenLink } from "@hall/api-contract";
 import type { HallSettings } from "@hall/domain";
 import { type FormEvent, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader, RequestErrorBanner } from "../components/Ui";
 import { AuthorizationSettings } from "../features/authorization/AuthorizationSettings";
 import { MeetingLocationsSettings } from "../features/council-meetings/MeetingLocationsSettings";
@@ -14,6 +13,7 @@ import { CommuneSettings } from "../features/settings/CommuneSettings";
 import { MailSettings } from "../features/settings/MailSettings";
 import { PasswordDialog } from "../features/users/PasswordDialog";
 import { useSubmitting } from "../hooks/useSubmitting";
+import type { TranslationKey } from "../i18n/en";
 import { type Locale, useI18n } from "../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode, apiSirenRequest } from "../services/apiClient";
 import { changePassword, getSessionSiren, logout } from "../services/authApi";
@@ -22,20 +22,31 @@ import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { type ThemePreference, useThemePrefsStore } from "../theme/themePrefs";
 import { TemplatesPage } from "./TemplatesPage";
 
+/** The screens of the settings: five under Administration in the menu, and « Paramètres » for the person. */
+export type SettingsCategory = "commune" | "council" | "rights" | "documents" | "mail" | "preferences";
+
+const administrationCategories = ["commune", "council", "rights", "documents", "mail"] as const;
+
+const categoryTitles: Record<SettingsCategory, TranslationKey> = {
+  commune: "navigation.commune",
+  council: "navigation.councilSettings",
+  rights: "navigation.rights",
+  documents: "navigation.documentSettings",
+  mail: "navigation.mailSettings",
+  preferences: "navigation.settings",
+};
+
+/** « Paramètres »: the preferences and the session of the person; an address of a former tab opens its own screen. */
+export function PersonalSettingsPage() {
+  const [searchParams] = useSearchParams();
+  const requested = administrationCategories.find((value) => value === searchParams.get("category"));
+  return requested ? <Navigate to={`/administration/${requested}`} replace /> : <SettingsPage category="preferences" />;
+}
+
 // @implements-requirement HALL-FR-CFG-010
-export function SettingsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+/** One screen of the settings, reached by its own entry of the menu, without tabs. */
+export function SettingsPage({ category }: { category: SettingsCategory }) {
   const [rolesAvailable, setRolesAvailable] = useState(false);
-  const categories = [
-    "commune",
-    "council",
-    "documents",
-    "mail",
-    ...(rolesAvailable ? ["rights" as const] : []),
-    "preferences",
-  ] as const;
-  const requestedCategory = searchParams.get("category");
-  const category = categories.find((value) => value === requestedCategory) ?? "commune";
   const { locale, setLocale, t } = useI18n();
   const { preference, setPreference } = useThemePrefsStore();
   const { submitting, run } = useSubmitting();
@@ -102,27 +113,18 @@ export function SettingsPage() {
   };
   return (
     <div className="page">
-      <PageHeader title={t("settings.title")} description={t("settings.description")} />
-      <div className="page-content">
+      <PageHeader title={t(categoryTitles[category])} />
+      <div className="page-content" data-testid={`settings-${category}-screen`}>
         <RequestErrorBanner error={settingsError} />
-        <Tabs value={category} onValueChange={(value) => setSearchParams({ category: value })}>
-          <TabsList
-            className="settings-tabs w-full flex-wrap"
-            data-testid="settings-tabs"
-            aria-label={t("settings.title")}
-          >
-            {categories.map((value) => (
-              <TabsTrigger key={value} value={value} data-testid={`settings-tab-${value}`}>
-                {t(`settings.category.${value}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <TabsContent value="commune">
+        {category === "commune" ? (
+          <>
             {hallSettings ? (
               <CommuneSettings settings={hallSettings} canUpdate={settingsUpdateAvailable} onSaved={setHallSettings} />
             ) : null}
-          </TabsContent>
-          <TabsContent value="council">
+          </>
+        ) : null}
+        {category === "council" ? (
+          <>
             {hallSettings && councilTermUpdateAvailable ? (
               <form className="creation-form" onSubmit={(event) => void submitCouncilTerm(event)}>
                 <h3>{t("settings.councilTerm")}</h3>
@@ -165,21 +167,15 @@ export function SettingsPage() {
             {hallSettings && settingsUpdateAvailable ? (
               <MeetingLocationsSettings initialLocations={hallSettings.meetingLocations} onSaved={setHallSettings} />
             ) : null}
-          </TabsContent>
-          <TabsContent value="documents">
-            <TemplatesPage embedded />
-          </TabsContent>
-          <TabsContent value="mail">
-            {hallSettings ? (
-              <MailSettings settings={hallSettings} canUpdate={settingsUpdateAvailable} onSaved={setHallSettings} />
-            ) : null}
-          </TabsContent>
-          {rolesAvailable ? (
-            <TabsContent value="rights">
-              <AuthorizationSettings />
-            </TabsContent>
-          ) : null}
-          <TabsContent value="preferences">
+          </>
+        ) : null}
+        {category === "documents" ? <TemplatesPage embedded /> : null}
+        {category === "mail" && hallSettings ? (
+          <MailSettings settings={hallSettings} canUpdate={settingsUpdateAvailable} onSaved={setHallSettings} />
+        ) : null}
+        {category === "rights" && rolesAvailable ? <AuthorizationSettings /> : null}
+        {category === "preferences" ? (
+          <>
             <section className="creation-form">
               <h3>{t("settings.display")}</h3>
               <Field label={t("settings.language")} help={t("settings.languageDescription")}>
@@ -237,8 +233,15 @@ export function SettingsPage() {
                 </div>
               </section>
             ) : null}
-          </TabsContent>
-        </Tabs>
+            {import.meta.env.DEV ? (
+              <p className="settings-lab">
+                <Link to="/editor-lab" data-testid="settings-editor-lab">
+                  {t("navigation.lab")}
+                </Link>
+              </p>
+            ) : null}
+          </>
+        ) : null}
       </div>
       {passwordOpen && (
         <PasswordDialog

@@ -1,6 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { Breadcrumb, type BreadcrumbItem } from "../components/Breadcrumb";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
+import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
@@ -84,7 +85,17 @@ export function useRouteTrail(): BreadcrumbItem[] {
   } else if (segments[0] === "templates") {
     items.push({ label: t("navigation.templates"), to: "/templates" });
   } else if (segments[0] === "settings") {
-    items.push({ label: t("common.settings") });
+    items.push({ label: t("navigation.settings") });
+  } else if (segments[0] === "administration") {
+    const screen = {
+      commune: "navigation.commune",
+      council: "navigation.councilSettings",
+      rights: "navigation.rights",
+      documents: "navigation.documentSettings",
+      mail: "navigation.mailSettings",
+    }[segments[1] ?? ""] as TranslationKey | undefined;
+    items.push({ label: t("navigation.administration") });
+    if (screen) items.push({ label: t(screen) });
   } else if (segments[0] === "docs") {
     items.push({ label: t("navigation.documentation") });
   } else if (segments[0] === "calendar") {

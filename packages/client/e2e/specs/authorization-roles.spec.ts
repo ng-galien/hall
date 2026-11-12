@@ -135,8 +135,9 @@ test("administrator edits a role in Configuration and its existing session gains
   await admin.getByTestId("authorization-save-role").click();
   await expect(admin.getByTestId("authorization-saved")).toBeVisible();
   expect((await reader.request.get("/api/contacts")).status()).toBe(403);
-  await reader.goto("/app/settings?category=preferences");
-  await expect(reader.getByTestId("settings-tab-rights")).toHaveCount(0);
+  await reader.goto("/app/administration/commune");
+  await expect(reader.getByTestId("navigation-administration-commune")).toBeVisible();
+  await expect(reader.getByTestId("navigation-administration-rights")).toHaveCount(0);
   await expect(reader.getByTestId("navigation-contacts")).toHaveCount(0);
   await reader.context().close();
 });

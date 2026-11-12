@@ -97,6 +97,9 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) =
 const DocsArea = lazy(() => import("./docs/DocsArea").then((module) => ({ default: module.DocsArea })));
 const DocsPrint = lazy(() => import("./docs/DocsPrint").then((module) => ({ default: module.DocsPrint })));
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
+const PersonalSettingsPage = lazy(() =>
+  import("./pages/SettingsPage").then((module) => ({ default: module.PersonalSettingsPage })),
+);
 
 function LiveFallback() {
   const { t } = useI18n();
@@ -144,7 +147,12 @@ function AuthenticatedApplication() {
         <Route path="templates" element={<TemplatesPage />} />
         <Route path="templates/:templateId" element={<TemplatePage />} />
         <Route path="council-delegations/:delegationId" element={<CouncilDelegationPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+        <Route path="settings" element={<PersonalSettingsPage />} />
+        <Route path="administration/commune" element={<SettingsPage category="commune" />} />
+        <Route path="administration/council" element={<SettingsPage category="council" />} />
+        <Route path="administration/rights" element={<SettingsPage category="rights" />} />
+        <Route path="administration/documents" element={<SettingsPage category="documents" />} />
+        <Route path="administration/mail" element={<SettingsPage category="mail" />} />
         <Route path="docs/*" element={<DocsArea />} />
         {EditorLabPage ? <Route path="editor-lab" element={<EditorLabPage />} /> : null}
       </Route>

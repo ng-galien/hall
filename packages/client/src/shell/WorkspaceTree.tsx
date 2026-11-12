@@ -112,22 +112,41 @@ function TreeNode({
   );
 }
 
-/** Filing path tree rendered in the menu under the Documents entry, while the Documents screen is open. */
+/** The folders and affaires of the commune as a tree, read from the catalog or from the navigation index. */
 // biome-ignore-start lint/correctness/useExhaustiveDependencies: the structure signature is the refresh trigger.
-export function WorkspaceTree() {
+export function useFolderTree() {
   const selectedBusinesses = useCouncilBusinessStore((state) => state.businesses);
   const liveCatalog = useWorkspaceResourcesStore((state) => state.catalog);
   const fullCatalogLoaded = useWorkspaceResourcesStore((state) => Boolean(state.collectionRepresentation));
   const [index, setIndex] = useState<CouncilBusinessNavigationIndex | null>(null);
-  const location = useLocation();
-  const activePath = activePathFrom(location.search, location.pathname);
-  const activeBusinessId = activePath === null ? null : new URLSearchParams(location.search).get("councilBusiness");
   const businesses = useMemo(() => {
     const byId = new Map<string, TreeBusiness>(index?.businesses.map((business) => [business.id, business]) ?? []);
     for (const business of selectedBusinesses) byId.set(business.id, business);
     return [...byId.values()];
   }, [index, selectedBusinesses]);
-  const tree = useMemo(
+  const structure = useMemo(
+    () =>
+      [
+        ...selectedBusinesses.map((business) => `${business.id}:${business.title}:${business.folderPath}`),
+        ...liveCatalog.filter((entry) => entry.kind === "folder").map((entry) => `${entry.id}:${entry.fullPath}`),
+      ]
+        .sort()
+        .join("\n"),
+    [selectedBusinesses, liveCatalog],
+  );
+  useEffect(() => {
+    let active = true;
+    void listCouncilBusinessNavigationIndex()
+      .then(({ data }) => {
+        if (active) setIndex(data);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [structure]);
+
+  return useMemo(
     () =>
       buildPathTree(
         businesses,
@@ -136,6 +155,14 @@ export function WorkspaceTree() {
       ),
     [businesses, index, liveCatalog, fullCatalogLoaded],
   );
+}
+
+/** Filing path tree rendered in the menu under the Documents entry, while the Documents screen is open. */
+export function WorkspaceTree() {
+  const tree = useFolderTree();
+  const location = useLocation();
+  const activePath = activePathFrom(location.search, location.pathname);
+  const activeBusinessId = activePath === null ? null : new URLSearchParams(location.search).get("councilBusiness");
   const [toggled, setToggled] = useState<{ opened: Set<string>; closed: Set<string> }>({
     opened: new Set(),
     closed: new Set(),
@@ -170,28 +197,6 @@ export function WorkspaceTree() {
 
   const [showAll, setShowAll] = useState(false);
   const { t } = useI18n();
-
-  const structure = useMemo(
-    () =>
-      [
-        ...selectedBusinesses.map((business) => `${business.id}:${business.title}:${business.folderPath}`),
-        ...liveCatalog.filter((entry) => entry.kind === "folder").map((entry) => `${entry.id}:${entry.fullPath}`),
-      ]
-        .sort()
-        .join("\n"),
-    [selectedBusinesses, liveCatalog],
-  );
-  useEffect(() => {
-    let active = true;
-    void listCouncilBusinessNavigationIndex()
-      .then(({ data }) => {
-        if (active) setIndex(data);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [structure]);
 
   if (tree.length === 0) return null;
 

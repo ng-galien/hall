@@ -1,10 +1,10 @@
-import { expect, openAdministrationEntry, test } from "../fixtures/application";
+import { expect, openMenuEntry, test } from "../fixtures/application";
 
 test.describe("navigation and settings", () => {
   test("keeps primary navigation focus visible and keyboard-operable", async ({ appPage: page }) => {
     await page.getByTestId("navigation-overview").focus();
     await page.keyboard.press("Tab");
-    const meetings = page.getByTestId("navigation-meetings");
+    const meetings = page.getByTestId("navigation-council");
     await expect(meetings).toBeFocused();
     const focus = await meetings.evaluate((element) => ({
       visible: element.matches(":focus-visible"),
@@ -32,9 +32,7 @@ test.describe("navigation and settings", () => {
     ] as const;
 
     for (const [linkName, url, heading] of routes) {
-      if (linkName.startsWith("council-") && linkName !== "council-decisions")
-        await openAdministrationEntry(page, linkName);
-      else await page.getByTestId(`navigation-${linkName}`).click();
+      await openMenuEntry(page, linkName);
       await expect(page).toHaveURL(url);
       if (heading) await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
     }
@@ -46,56 +44,99 @@ test.describe("navigation and settings", () => {
 
   // @verifies-requirement HALL-FR-LAY-110
   // @verifies-requirement HALL-FR-WSP-310
-  test("groups the menu by subject and folds the administration under one root", async ({ appPage: page }) => {
+  test("shows the entries in three blocks and the sub-resources of the entry where one is", async ({
+    appPage: page,
+  }) => {
     const sidebar = page.locator(".app-sidebar");
     const order = () =>
       sidebar
-        .locator('[data-testid^="navigation-"]')
+        .locator('a[data-testid^="navigation-"], a[data-testid^="mail-folder-"]')
         .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-testid")));
-    const groups = () => sidebar.locator(".nav-section-label").allTextContents();
-    expect(await groups()).toEqual(["Municipal council", "Work tools"]);
-    expect(await order()).toEqual([
-      "navigation-toggle",
+    const blocks = () =>
+      sidebar
+        .locator(".app-sidebar-block")
+        .evaluateAll((elements) =>
+          elements.map((element) =>
+            [...element.querySelectorAll(":scope > .app-sidebar-item > a")].map((link) =>
+              link.getAttribute("data-testid"),
+            ),
+          ),
+        );
+    expect(await blocks()).toEqual([
+      ["navigation-overview"],
+      ["navigation-council", "navigation-workspace", "navigation-mail", "navigation-calendar"],
+      ["navigation-contacts", "navigation-maps", "navigation-administration"],
+    ]);
+    await expect(sidebar.locator(".nav-section-label")).toHaveCount(0);
+    expect((await order()).slice(-2)).toEqual(["navigation-documentation", "navigation-settings"]);
+    await expect(sidebar.locator(".nav-sub")).toHaveCount(0);
+    // Every entry has its own icon.
+    const icons = await sidebar
+      .locator("a .nav-icon svg")
+      .evaluateAll((elements) => elements.map((element) => element.innerHTML));
+    expect(new Set(icons).size).toBe(icons.length);
+
+    // « Conseil municipal » goes to its first sub-resource and shows the six of them; one entry is open at a time.
+    await page.getByTestId("navigation-council").click();
+    await expect(page).toHaveURL(/\/app\/meetings$/);
+    await expect.poll(order).toEqual([
       "navigation-overview",
+      "navigation-council",
       "navigation-meetings",
       "navigation-minutes",
       "navigation-council-decisions",
+      "navigation-council-members",
+      "navigation-council-committees",
+      "navigation-council-delegations",
       "navigation-workspace",
       "navigation-mail",
       "navigation-calendar",
       "navigation-contacts",
       "navigation-maps",
       "navigation-administration",
+      "navigation-documentation",
       "navigation-settings",
     ]);
-    // « Documents » carries no fold control; its tree shows under it while the Documents screen is open.
-    await expect(sidebar.getByTestId("workspace-tree")).toHaveCount(0);
-    await expect(sidebar.locator("[aria-expanded]")).toHaveCount(2);
+    await expect(page.getByTestId("navigation-meetings")).toHaveAttribute("aria-current", "page");
+    await expect(page.getByTestId("navigation-council")).not.toHaveAttribute("aria-current", "page");
+
+    // « Administration » holds the settings of the commune and of the software, each on its own screen.
+    await page.getByTestId("navigation-administration").click();
+    await expect(page).toHaveURL(/\/app\/administration\/commune$/);
+    await expect(page.getByTestId("navigation-meetings")).toHaveCount(0);
+    await expect(page.getByTestId("navigation-administration-commune")).toBeVisible();
+    const administration = (await order()).slice((await order()).indexOf("navigation-administration") + 1, -2);
+    expect(administration).toEqual([
+      "navigation-administration-commune",
+      "navigation-administration-council",
+      "navigation-users",
+      "navigation-administration-rights",
+      "navigation-templates",
+      "navigation-administration-documents",
+      "navigation-administration-mail",
+    ]);
+    await expect(page.getByRole("tablist")).toHaveCount(0);
+    await page.getByTestId("navigation-administration-mail").click();
+    await expect(page.getByTestId("settings-mail-screen")).toBeVisible();
+
+    // « Documents » shows the folders and the affaires; « Courriels » its two folders with their number.
     await page.getByTestId("navigation-workspace").click();
     await expect(sidebar.getByTestId("workspace-tree")).toBeVisible();
-    await expect(page.getByTestId("workspace-pane")).toHaveCount(0);
-    await expect(page.getByTestId("workspace-pane-toggle")).toHaveCount(0);
-    await page.getByTestId("navigation-overview").click();
+    await expect(
+      sidebar
+        .getByTestId("workspace-tree")
+        .locator('[data-testid="workspace-sidebar-link"][data-kind="folder"]')
+        .first(),
+    ).toBeVisible();
+    await page.getByTestId("navigation-mail").click();
+    await expect(page.getByTestId("mail-folder-drafts")).toHaveAttribute("aria-current", "page");
+    await expect(page.getByTestId("mail-folder-drafts").locator(".nav-count")).toHaveText(/^\d+$/);
+    await expect(sidebar.getByTestId("workspace-tree")).toHaveCount(0);
 
-    const administration = page.getByTestId("navigation-administration");
-    await expect(administration).toHaveAttribute("aria-expanded", "false");
-    await administration.click();
-    await expect(administration).toHaveAttribute("aria-expanded", "true");
-    const entries = (await order()).slice((await order()).indexOf("navigation-administration") + 1);
-    expect(entries.filter((entry) => entry !== "navigation-editor-lab")).toEqual([
-      "navigation-users",
-      "navigation-council-members",
-      "navigation-council-committees",
-      "navigation-council-delegations",
-      "navigation-templates",
-      "navigation-settings",
-    ]);
-    await administration.click();
-    await expect(page.getByTestId("navigation-users")).toHaveCount(0);
-    // The root unfolds by itself on one of its own screens.
-    await page.goto("/app/templates");
-    await expect(administration).toHaveAttribute("aria-expanded", "true");
-    await expect(page.getByTestId("navigation-templates")).toHaveAttribute("aria-current", "page");
+    // « Paramètres » keeps the preferences and the session, with the editor lab at its foot.
+    await page.getByTestId("navigation-settings").click();
+    await expect(page.getByTestId("settings-preferences-screen")).toBeVisible();
+    await expect(page.getByTestId("navigation-editor-lab")).toHaveCount(0);
   });
 
   // @verifies-requirement HALL-FR-LAY-110
@@ -115,6 +156,17 @@ test.describe("navigation and settings", () => {
     await expect(sidebar).toHaveAttribute("data-compact", "true");
     await expect(page.locator(".nav-label")).toHaveCount(0);
     await expect(page.getByTestId("navigation-mail")).toHaveAttribute("aria-label", "Mail");
+    await expect(sidebar.locator("[title]")).toHaveCount(0);
+    // The label of an entry shows at once beside it; an entry with sub-resources lists them, as links.
+    await page.getByTestId("navigation-contacts").hover();
+    await expect(page.locator('[data-slot="tooltip-content"]')).toContainText("Contacts");
+    await page.mouse.move(600, 600);
+    await expect(page.locator('[data-slot="tooltip-content"]')).toHaveCount(0);
+    await page.getByTestId("navigation-council").hover();
+    await expect(page.locator(".nav-rail-panel").getByTestId("navigation-council-decisions")).toBeVisible();
+    await page.locator(".nav-rail-panel").getByTestId("navigation-council-decisions").click();
+    await expect(page).toHaveURL(/\/app\/council-decisions$/);
+    await expect(sidebar.locator(".nav-sub")).toHaveCount(0);
     const mark = await sidebar.locator(".app-brand-mark").boundingBox();
     const railControl = await toggle.boundingBox();
     expect(railControl!.y).toBeGreaterThanOrEqual(mark!.y + mark!.height - 1);
@@ -126,7 +178,6 @@ test.describe("navigation and settings", () => {
 
   test("persists the selected interface language after a reload", async ({ appPage: page }) => {
     await page.getByTestId("navigation-settings").click();
-    await page.getByTestId("settings-tab-preferences").click();
     await page.getByTestId("settings-language").click();
     await page.getByTestId("settings-language-fr").click();
     await expect(page.locator("html")).toHaveAttribute("lang", "fr");
@@ -143,12 +194,11 @@ test.describe("navigation and settings", () => {
 
     await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
     await expect(page.getByTestId("settings-language")).toContainText("English");
-    await expect(page.getByTestId("navigation-meetings")).toHaveText("Meetings");
+    await expect(page.getByTestId("navigation-council")).toHaveText("Municipal council");
   });
 
   test("keeps authentication credentials out of application settings", async ({ appPage: page }) => {
     await page.getByTestId("navigation-settings").click();
-    await page.getByTestId("settings-tab-preferences").click();
     await expect(page.getByTestId("settings-language")).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Appearance", exact: true })).toBeVisible();
     await expect(page.getByLabel("Access token", { exact: true })).toHaveCount(0);
@@ -186,7 +236,7 @@ test("stale meetings stay accessible with a yellow review badge and never become
   await expect(page.getByTestId("application-sync-status")).toHaveAttribute("data-sync-state", "synchronized");
   const next = meetings[5].properties.id;
   await expect(page.getByTestId("home-meeting-open")).toHaveAttribute("href", `/app/meetings/${next}`);
-  await page.getByTestId("navigation-meetings").click();
+  await page.getByTestId("navigation-council").click();
   await expect(page.getByTestId("meeting-next")).toHaveAttribute("href", `/app/meetings/${next}`);
   await expect(page.getByTestId("meeting-needs-review")).toHaveCount(4);
   for (const meeting of meetings.slice(1, 5)) {

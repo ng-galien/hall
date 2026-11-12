@@ -78,6 +78,8 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     ["council-committees", "/council-committees"],
     ["council-delegations", "/council-delegations"],
     ["templates", "/templates"],
+    ["mail-drafts", "/mail/drafts"],
+    ["administration-council", "/administration/council"],
     ["account", "/settings"],
     ["help", "/docs"],
   ] as const) {
@@ -110,8 +112,7 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     await expect(sheet).toBeHidden();
     await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", new RegExp(`^${route}(/|$)`));
     // « Mon compte » opens the settings on the tab holding the password change and the logout.
-    if (destination === "account")
-      await expect(page.getByTestId("settings-tab-preferences")).toHaveAttribute("aria-selected", "true");
+    if (destination === "account") await expect(page.getByTestId("settings-preferences-screen")).toBeVisible();
     // Maps records its view in the address once loaded; wait for it so that the next sheet stays open.
     if (destination === "maps") await expect(page).toHaveURL(/\/app\/maps\?view=/);
     await expectFitsWidth(page);
@@ -137,13 +138,14 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     await page.getByTestId("navigation-toggle").tap();
     const menu = page.getByTestId("mobile-navigation");
     await expect(menu).toBeVisible();
-    const administration = menu.getByTestId("navigation-administration");
-    if (
-      ["council-members", "council-committees"].includes(destination) &&
-      (await administration.getAttribute("aria-expanded")) === "false"
-    )
-      await administration.tap();
     const link = menu.getByTestId(`navigation-${destination}`);
+    // A sub-resource shows under its entry once the entry is open: the entry goes to its first sub-resource.
+    if (!(await link.isVisible())) {
+      await menu.getByTestId("navigation-council").tap();
+      await expect(menu).toBeHidden();
+      await page.getByTestId("navigation-toggle").tap();
+      await expect(menu).toBeVisible();
+    }
     const route = (await link.getAttribute("href"))?.replace(/^\/app/, "");
     await link.tap();
     await expect(menu).toBeHidden();
@@ -303,23 +305,16 @@ test("phone maps show several rows of the map tree until a map is chosen", async
 });
 
 // @verifies-requirement HALL-FR-LAY-010
-test("phone settings categories stay on one row that scrolls sideways", async ({ appPage: page }) => {
+// @verifies-requirement HALL-FR-LAY-110
+test("phone settings are one screen per entry, without tabs, within the width", async ({ appPage: page }) => {
   await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto("/app/settings");
-  const tabs = page.getByTestId("settings-tabs");
-  const triggers = tabs.getByTestId(/^settings-tab-/);
-  await expect(triggers.first()).toBeVisible();
-  const rows = await triggers.evaluateAll(
-    (elements) => new Set(elements.map((element) => Math.round(element.getBoundingClientRect().top))).size,
-  );
-  expect(rows, "category rows").toBe(1);
-  expect(await tabs.evaluate((element) => getComputedStyle(element).overflowX)).toBe("auto");
-  const last = triggers.last();
-  await last.scrollIntoViewIfNeeded();
-  await last.tap();
-  await expect(last).toHaveAttribute("data-state", "active");
-  await expectFitsWidth(page);
+  for (const screen of ["settings", "administration/commune", "administration/council", "administration/mail"]) {
+    await page.goto(`/app/${screen}`);
+    await expect(page.getByTestId(/^settings-.*-screen$/)).toBeVisible();
+    await expect(page.getByRole("tablist")).toHaveCount(0);
+    await expectFitsWidth(page);
+  }
 });
 
 /** Focus marks of a field and of the element that carries its visible border, read once their transitions end. */

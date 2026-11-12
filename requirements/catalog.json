@@ -9287,7 +9287,7 @@
         "La consultation des données de commune est accessible à tout compte actif.",
         "La modification des données de commune est réservée au secrétariat et à l’administrateur ; PostgreSQL décide par la matrice des rôles et Siren expose settings.update ; le client consomme cette capacité sans changer les droits des autres domaines.",
         "L’écran réutilise les primitives partagées et le style des autres écrans Hall, sans nouveau langage visuel.",
-        "Liste retenue par la disposition du coordinateur du 28 octobre 2026 sur la demande 848f8d54, à faire confirmer par le propriétaire : nom, code INSEE, SIREN, adresse (deux lignes, code postal, localité), population et sa date de référence, téléphone, site web, nom et adresse de l’expéditeur des courriels, présentés dans Paramètres de l’application. La position géographique, l’adresse de contact, l’adresse de réponse, le fuseau horaire et les lieux des séances ne sont pas présentés dans cette partie et ne changent pas à son enregistrement."
+        "Liste retenue par la disposition du coordinateur du 28 octobre 2026 sur la demande 848f8d54, à faire confirmer par le propriétaire : nom, code INSEE, SIREN, adresse (deux lignes, code postal, localité), population et sa date de référence, téléphone, site web, nom et adresse de l’expéditeur des courriels, présentés dans l’écran Commune, sous Administration. La position géographique, l’adresse de contact, l’adresse de réponse, le fuseau horaire et les lieux des séances ne sont pas présentés dans cette partie et ne changent pas à son enregistrement."
       ],
       "clauses": [
         {
@@ -10833,11 +10833,12 @@
         "state": "accepted",
         "since": "2026-10-31"
       },
-      "statement": "La configuration est organisée en catégories Commune, Conseil, Documents, Courriels, Droits et Préférences/session.",
+      "statement": "La configuration est organisée en écrans Commune, Mandat et lieux de séance, Droits, Réglages des documents et Réglages des courriels, sous Administration dans le menu, et Paramètres pour les préférences et la session de la personne.",
       "acceptanceCriteria": [
-        "Chaque catégorie est accessible par un onglet nommé et une URL conservée au rechargement.",
-        "Les droits ne sont proposés que par la capacité Siren de gestion des rôles.",
-        "Un changement sauvegardé reste visible après passage dans une autre catégorie."
+        "Chaque écran de configuration s’ouvre par sa propre entrée du menu, à sa propre adresse conservée au rechargement, sans onglets ; Droits n’apparaît que si les rôles sont disponibles pour la personne.",
+        "Un changement sauvegardé reste visible après passage dans un autre écran de configuration.",
+        "Paramètres présente la langue, l’apparence et la session de la personne ; le Lab éditeur, quand il existe, s’ouvre par un lien en bas de cet écran.",
+        "Les droits ne sont proposés que par la capacité Siren de gestion des rôles."
       ],
       "clauses": [
         {
@@ -11217,17 +11218,20 @@
         "state": "accepted",
         "since": "2026-11-12"
       },
-      "statement": "La navigation principale montre chaque destination par une icône en trait et un libellé permanent, et marque la destination active en bleu.",
+      "statement": "La navigation principale montre chaque entrée par une icône en trait qui lui est propre et un libellé permanent ; sous l’entrée où l’on se trouve, elle montre ses sous-ressources, les endroits où l’on va, jamais leur contenu.",
       "acceptanceCriteria": [
         "Au téléphone, la barre du bas présente cinq entrées avec leur icône et leur libellé : Accueil, Documents, Agenda, Séances et Plus, selon les droits de l’utilisateur.",
         "L’entrée active est en bleu, son libellé en gras et son icône d’un trait plus épais ; les autres sont grises ; aucune icône n’est pleine et l’entrée active n’a ni pavé ni trait.",
-        "Sur ordinateur et tablette, le menu présente Accueil, puis le groupe « Conseil municipal » avec Séances, Procès-verbaux et Délibérations, puis le groupe « Outils de travail » avec Documents, Courriels, Agenda, Contacts et Cartes, puis la racine « Administration » ; Documentation et Paramètres de l’application forment son pied.",
-        "La racine « Administration » est repliée par défaut et se déplie sur place en Utilisateurs, Membres du conseil, Commissions, Représentations extérieures et Modèles de documents ; elle est dépliée d’elle-même sur l’un de ses écrans. Son état se lit à l’épaisseur de son icône et à la présence de ses entrées, sans chevron.",
-        "Le menu a deux états, déplié avec les libellés complets ou replié en rail d’icônes dont le libellé est donné en infobulle et aux lecteurs d’écran ; la personne choisit l’état par le bouton de repli du menu et le retrouve à sa visite suivante.",
+        "Sur ordinateur et tablette, le menu a une seule forme d’entrée, icône et libellé, en trois blocs séparés par un filet : Accueil ; Conseil municipal, Documents, Courriels, Agenda ; Contacts, Cartes, Administration. Documentation et Paramètres forment son pied ; aucun titre de groupe n’est écrit.",
+        "Sous Conseil municipal : Séances, Procès-verbaux, Délibérations, Membres du conseil, Commissions et Représentations extérieures. Sous Documents : les dossiers et les affaires du conseil, à tous les niveaux, cibles de dépôt, sans fichier, texte, tableur ni carte. Sous Courriels : Brouillons et Envoyés avec leur nombre. Sous Administration : Commune, Mandat et lieux de séance, Utilisateurs, Droits, Modèles de documents, Réglages des documents et Réglages des courriels. Accueil, Agenda, Contacts et Cartes n’ont pas de sous-ressource.",
+        "Les sous-ressources de l’entrée où l’on se trouve s’affichent en retrait sous elle ; une seule entrée est ouverte à la fois et les autres restent sur leur ligne. Conseil municipal et Administration mènent à leur première sous-ressource permise.",
+        "L’entrée ou la sous-ressource courante est en bleu et en gras, avec son icône d’un trait plus épais. Un dossier ouvert de Documents se lit à son icône de dossier ouvert ; le menu ne porte ni chevron ni triangle.",
+        "Chaque entrée et chaque sous-ressource nommée a son icône, différente de toutes les autres du menu ; dans Documents, les dossiers ont l’icône de dossier et les affaires celle des affaires.",
+        "Le menu a deux états, déplié avec les libellés complets ou replié en rail d’une icône par entrée de premier niveau ; la personne choisit l’état par le bouton de repli du menu et le retrouve à sa visite suivante.",
+        "Menu replié, le survol ou le focus d’une icône fait paraître aussitôt à sa droite son libellé, dans l’étiquette de l’application ; pour une entrée à sous-ressources, l’étiquette est un panneau qui les liste, chacune cliquable, et pour Documents les dossiers de premier niveau. Le rail ne montre jamais les sous-ressources à plat.",
         "Le bouton de repli du menu est à droite de la marque « Hall », sur sa ligne ; menu replié, il est en haut du rail, juste sous le « H », au même endroit à chaque écran. Entre 761 et 1000 pixels de large, le rail reste affiché et ce bouton ouvre le menu déplié par-dessus le contenu.",
-        "L’entrée Documents du menu ne porte pas de chevron ni de bouton de dépliage ; tant que l’écran Documents est ouvert, l’arborescence des dossiers et des affaires s’affiche sous elle, dans le menu déplié, et reçoit les éléments qu’on y dépose ; tant que l’écran Courriels est ouvert, « Brouillons » et « Envoyés » s’affichent sous l’entrée Courriels.",
-        "Sur ordinateur et tablette, le menu emploie les mêmes icônes en trait et le même état actif que la barre du bas.",
-        "Au téléphone, la feuille « Plus » reprend les groupes du menu, « Conseil municipal », « Outils de travail » et « Administration », sans les entrées de la barre du bas, puis l’espace personnel, l’aide et le compte."
+        "Une entrée ou une sous-ressource que la personne n’a pas le droit d’ouvrir n’apparaît pas ; une entrée dont aucune sous-ressource n’est permise n’apparaît pas.",
+        "Au téléphone, la barre du bas ne change pas ; la feuille « Plus » reprend les mêmes entrées et sous-ressources, dans la même forme, sans Accueil, Documents ni Agenda, puis l’espace personnel, l’aide et Paramètres."
       ],
       "clauses": [
         {
@@ -11240,6 +11244,12 @@
           "key": "primary-navigation-groups",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026 : « la partie séance procès-verbaux délibération […] c'est un même groupe. […] Carte, courrier, agenda […] c'est des choses différentes, c'est bien. Par contre, les contacts je pense que ça peut être remonté […] Et après, le reste, c'est quand même plus de l'ordre du paramètre, de l'administration. » ; sur le bouton de repli du bandeau : « Il devrait être à mon avis placé au niveau du menu », puis, sur la proposition de le placer à droite de « Hall » : « C'est bon. On y va comme ça. » ; forme retenue sur la planche 33 « Barre latérale — troisième forme et hauteurs réelles » : « Oui, lance ».",
+          "sourceIds": []
+        },
+        {
+          "key": "menu-sub-resources",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026, sur le document « Hall 1.3 — Design de référence » : « On met juste les sous-ressources. […] on ne dépasse pas des niveaux de granularité trop importants », « On n'invente pas des trucs pour remplir. On réaffecte », « Tout ce qui est du métier du conseil municipal, ça va dedans », « la barre latérale ne prend que les conteneurs », puis « tu as le truc. Vas-y, fais-le ». Libellés « Mandat et lieux de séance », « Réglages des documents » et « Réglages des courriels » proposés par le coordinateur, à confirmer.",
           "sourceIds": []
         }
       ]

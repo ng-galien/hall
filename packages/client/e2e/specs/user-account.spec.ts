@@ -1,5 +1,5 @@
 import { expect, request as requestFactory, test } from "@playwright/test";
-import { clearTestDatabase, openAdministrationEntry } from "../fixtures/application";
+import { clearTestDatabase, openMenuEntry } from "../fixtures/application";
 
 // Each journey bootstraps the first administrator of an empty Hall.
 test.beforeEach(() => clearTestDatabase());
@@ -63,7 +63,7 @@ test("edits account identity with autosave and safely changes and resets passwor
   const flushed = page.waitForResponse(
     (response) => response.url().endsWith(`/users/${user.id}`) && response.request().method() === "PUT",
   );
-  await openAdministrationEntry(page, "users");
+  await openMenuEntry(page, "users");
   expect((await flushed).status()).toBe(200);
   await page.getByTestId(`user-open-${user.id}`).click();
   await expect(page.getByTestId("user-display-name")).toHaveValue("Updated reader account");
@@ -71,7 +71,7 @@ test("edits account identity with autosave and safely changes and resets passwor
   await expect(page.getByTestId("user-contact-link")).toHaveAttribute("href", `/app/contacts/${contactIds[1]}`);
   await page.screenshot({ path: testInfo.outputPath("identity-edited.png") });
   await page.getByTestId("user-display-name").fill("");
-  await openAdministrationEntry(page, "users");
+  await openMenuEntry(page, "users");
   await expect(page.getByTestId("user-identity-error")).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/users/${user.id}$`));
   await page.getByTestId("user-display-name").fill("Updated reader account");
@@ -102,7 +102,6 @@ test("edits account identity with autosave and safely changes and resets passwor
   await expect(page.getByTestId("password-new")).toHaveValue("");
   await page.keyboard.press("Escape");
   await page.getByTestId("navigation-settings").click();
-  await page.getByTestId("settings-tab-preferences").click();
   await page.getByTestId("settings-change-password").click();
   await page.getByTestId("password-current").fill("Hall-incorrect-current!");
   await page.getByTestId("password-new").fill("Hall-admin-changed!");

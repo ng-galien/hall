@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import type { APIResponse, Page } from "@playwright/test";
-import { expect, test } from "../fixtures/application";
+import { expect, openMenuEntry, test } from "../fixtures/application";
 import { backdateMeetingConduct } from "../fixtures/meetingHistory";
 import { establishRevision, generateCurrentNotice, saveMeetingField } from "../fixtures/meetingPreparation";
 import { writtenDate } from "../fixtures/writtenDate";
@@ -935,7 +935,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
   await inspectInitialRollCall(page, meeting!.id);
   await page.getByTestId("live-meeting-exit").click();
-  await page.getByTestId("navigation-council-decisions").click();
+  await openMenuEntry(page, "council-decisions");
   await expect(page.getByTestId("decisions-empty")).toBeVisible();
   await page.goBack();
   await page.goBack();
@@ -1099,7 +1099,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   }
 
   await page.getByTestId("live-meeting-exit").click();
-  await page.getByTestId("navigation-council-decisions").click();
+  await openMenuEntry(page, "council-decisions");
   await expect(page.getByTestId(/^decision-open-/)).toHaveCount(2);
   await page
     .getByTestId(/^decision-open-/)
@@ -1161,7 +1161,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   expect(nextAgenda[0]).toMatchObject({ position: 1, subject: { kind: "minutesApproval" } });
 
   await page.goto(`/app/meetings/${meeting!.slug}`);
-  await page.getByTestId("navigation-minutes").click();
+  await openMenuEntry(page, "minutes");
   await expect(page.getByTestId("minutes-page")).toBeVisible();
   await page.getByTestId(`minutes-open-${meeting!.id}`).click();
   await expect(page.getByTestId("minutes-detail")).toBeVisible();

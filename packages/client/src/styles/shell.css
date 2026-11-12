@@ -139,17 +139,24 @@
   }
   .app-brand-name { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); }
   .app-sidebar-sections { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: var(--hall-space-0-5); overflow-y: auto; padding: var(--hall-space-1) var(--hall-space-2) var(--hall-space-3); }
-  .app-sidebar-section { display: flex; flex-direction: column; gap: var(--hall-space-0-5); }
-  .app-sidebar-section + .app-sidebar-section { margin-top: var(--hall-space-2); }
   .app-sidebar-item { display: flex; flex-direction: column; }
-  .hall-button.nav-root { justify-content: flex-start; gap: var(--hall-space-2-5); padding: 0 var(--hall-space-2); color: var(--hall-color-text-muted); font-weight: inherit; text-align: left; }
-  .hall-button.nav-root[data-compact="true"] { justify-content: center; padding: 0; }
-  .hall-button.nav-root[aria-expanded="true"]:not(:hover) { background: none; }
-  .nav-root-entries { display: flex; flex-direction: column; gap: var(--hall-space-0-5); }
-  .app-sidebar:not([data-compact="true"]) .nav-root-entries { padding-left: var(--hall-space-4); }
+  /* Three blocks of entries separated by a rule; the sub-resources of the current entry indented under it. */
+  .app-sidebar-block { display: flex; flex-direction: column; gap: var(--hall-space-0-5); }
+  .app-sidebar-block + .app-sidebar-block { margin-top: var(--hall-space-2); padding-top: var(--hall-space-2); border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .nav-sub-entries { display: flex; flex-direction: column; gap: var(--hall-space-0-5); padding-left: var(--hall-space-4); }
+  .nav-row[data-open="true"] { color: var(--hall-color-text); }
+  .nav-count { flex: none; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-variant-numeric: tabular-nums; }
+  .nav-row[aria-current="page"] > .nav-count { color: var(--hall-color-brand); }
+  /* The label or the panel of an entry of the folded menu, shown at once beside its icon. */
+  .nav-rail-tooltip-panel { display: block; padding: var(--hall-space-2); }
+  .nav-rail-panel { display: grid; min-width: var(--hall-size-sidebar); gap: var(--hall-space-0-5); }
+  .nav-rail-panel-title { padding: 0 var(--hall-space-2) var(--hall-space-1); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-bold); }
+  .nav-rail-panel .nav-row { color: inherit; }
+  .nav-rail-panel .nav-row:hover { color: inherit; background: none; text-decoration: underline; }
+  .app-sheet-nav { display: flex; flex-direction: column; gap: var(--hall-space-0-5); padding: 0 var(--hall-space-3) var(--hall-space-6); }
+  .app-sheet-nav .nav-row { min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-text); }
+  .app-sheet-footer { display: grid; gap: var(--hall-space-0-5); margin-top: var(--hall-space-2); padding-top: var(--hall-space-2); border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .app-sidebar-footer { display: grid; gap: var(--hall-space-0-5); padding: var(--hall-space-2); border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
-  .nav-section-label { padding: var(--hall-space-3) var(--hall-space-2) var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-semibold); }
   .nav-row {
     display: flex;
     min-width: 0;
@@ -205,9 +212,6 @@
   /* The bottom sheet: rises from the bottom edge, its rows are list rows. */
   .app-sheet { padding: var(--hall-space-4) 0 calc(var(--hall-space-6) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
   .app-sheet > [data-slot="dialog-title"] { padding: 0 var(--hall-size-touch-control) var(--hall-space-2) var(--hall-space-4); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); }
-  .app-sheet-group-title { padding: var(--hall-space-2) var(--hall-space-4) var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-semibold); }
-  .app-sheet .list-row-list { margin: 0 0 var(--hall-space-6); border-bottom: 0; }
-  .app-sheet .list-row { font-size: var(--hall-font-size-text); }
 
   .page-header { display: grid; gap: var(--hall-space-2); padding: var(--hall-space-3) var(--hall-space-7) 0; }
   .page-header-description { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }

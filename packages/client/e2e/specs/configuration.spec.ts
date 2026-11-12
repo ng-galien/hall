@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import { expect, test } from "../fixtures/application";
+import { expect, openMenuEntry, test } from "../fixtures/application";
 
 test.use({ seedScenario: "default", builtInPdfViewer: true });
 
@@ -47,13 +47,13 @@ test("configuration categories preserve mail settings and expose editable genera
   }
   await mail.getByTestId("settings-mail-save").click();
   await expect(mail.getByTestId("settings-mail-saved")).toBeVisible();
-  await page.getByTestId("settings-tab-commune").click();
-  await page.getByTestId("settings-tab-mail").click();
+  await openMenuEntry(page, "administration-commune");
+  await openMenuEntry(page, "administration-mail");
   await expect(mail.getByTestId("settings-mail-outboundEmailReplyToAddress")).toHaveValue("reply@example.test");
   await expect(mail.getByTestId("settings-mail-outboundEmailSignatureMarkdown")).toContainText("Signature UI");
   await page.reload();
   await expect(mail.getByTestId("settings-mail-outboundEmailFooterMarkdown")).toContainText("Footer UI");
-  await page.getByTestId("settings-tab-documents").click();
+  await openMenuEntry(page, "administration-documents");
   const response = await page.request.get("/api/templates");
   const templates = (await response.json()).entities.map(
     (entity: { properties: { id: string; documentType: string } }) => entity.properties,

@@ -341,14 +341,16 @@
   .record-state[data-save="error"]::before { background: var(--hall-color-danger); }
   .record-state[data-save="saving"]::before { animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite; }
 
+  .settings-lab > a { color: var(--hall-color-brand); }
+  .settings-lab > a:hover { text-decoration: underline; }
   /* Courriels: the list of the folder beside the opened message. */
   .mail-count { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-variant-numeric: tabular-nums; }
-  .mail-screen { display: flex; min-height: calc(100svh - var(--hall-size-mail-chrome)); align-items: stretch; }
+  .mail-screen { display: flex; padding-left: var(--hall-space-6); min-height: calc(100svh - var(--hall-size-mail-chrome)); align-items: stretch; }
   .mail-list { display: flex; width: var(--hall-size-mail-list); flex: none; flex-direction: column; gap: var(--hall-space-2); padding: var(--hall-space-2) var(--hall-space-3) 0 0; border-right: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .mail-list-head { display: flex; align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .mail-list [data-attention="true"] .list-row-title { color: var(--hall-color-danger); }
   .mail-view { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: var(--hall-space-2) var(--hall-space-4) var(--hall-space-4); }
-  .mail-screen[data-list-folded="true"] .mail-view { padding-left: var(--hall-space-7); }
+  .mail-screen[data-list-folded="true"] .mail-view { padding-left: 0; }
   .mail-view-empty { display: flex; flex: 1; align-items: center; justify-content: center; gap: var(--hall-space-2); color: var(--hall-color-text-muted); }
   .mail-tabs { display: flex; border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .mail-tab { display: inline-flex; min-height: var(--hall-size-touch-control); flex: 1; align-items: center; justify-content: center; gap: var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }

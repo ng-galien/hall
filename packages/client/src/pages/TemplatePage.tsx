@@ -126,7 +126,7 @@ export function TemplatePage() {
         )}
       </PageHeader>
       <div className="page-content template-editor" data-testid="template-editor">
-        <Link className="text-sm underline" to="/settings?category=documents">
+        <Link className="text-sm underline" to="/administration/documents">
           {t("templates.backToSettings")}
         </Link>
         <RequestErrorBanner error={error} onDismiss={() => setError(null)} />

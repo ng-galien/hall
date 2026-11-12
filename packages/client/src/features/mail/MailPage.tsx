@@ -29,6 +29,7 @@ import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { MailEditor } from "./MailEditor";
 import { MailGroups } from "./MailGroups";
 import { MailReader } from "./MailReader";
+import { useMailCountsStore } from "./mailCounts";
 import {
   displayRecipients,
   folderMessages,
@@ -68,7 +69,12 @@ export function MailPage() {
   const [listFolded, setListFolded] = useRememberedFold("mail.list");
 
   const refresh = useCallback(async () => {
-    setCollection(await listMail());
+    const mail = await listMail();
+    setCollection(mail);
+    useMailCountsStore.getState().set({
+      drafts: mail.data.filter((message) => mailFolderOf(message) === "drafts").length,
+      sent: mail.data.filter((message) => mailFolderOf(message) === "sent").length,
+    });
     setSavedGroups((await listMailGroups()).data);
   }, []);
   useEffect(() => {

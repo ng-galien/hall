@@ -1,20 +1,25 @@
 import type { Icon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { DocsIcon, MemberIcon, MoreIcon, SettingsIcon } from "../components/icons";
+import { CalendarIcon, DocsIcon, MemberIcon, MoreIcon, SettingsIcon } from "../components/icons";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
-import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { useI18n } from "../i18n/I18nProvider";
 import { isUnderPath } from "../pages/workspace/paths";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
-import { navigationItem, navigationSections, phoneBarDestinations } from "./navigation";
+import { EntryRow, permittedEntry } from "./AppSidebar";
+import {
+  isCurrentEntry,
+  isUnder,
+  type NavigationItem,
+  navigationBlocks,
+  navigationItem,
+  phoneBarDestinations,
+} from "./navigation";
 import { useApiRoot } from "./usePhoneLayout";
 
 export function personalWorkspaceHref(path: string) {
   return `/workspace?${new URLSearchParams({ path }).toString()}`;
 }
-
-type MoreRow = { to: string; testId: string; label: string; Icon: Icon };
 
 type BarDestination = { id: string; to: string; label: string; Icon: Icon; active: boolean };
 
@@ -34,7 +39,8 @@ function BarEntry({ id, label, Icon, active }: Pick<BarDestination, "id" | "labe
 
 // @implements-requirement HALL-FR-LAY-010
 // @implements-requirement HALL-FR-LAY-110
-/** Bottom bar of the phone (choice 1A): five destinations with icon and label, the other ones under Plus, in the groups of the menu. */
+/** Bottom bar of the phone (choice 1A): five destinations with icon and label; « Plus » lists the menu with the same
+ * entries and sub-resources. */
 // biome-ignore-start lint/correctness/useExhaustiveDependencies: the sheet closes whenever the route changes.
 export function PhoneNavigation() {
   const { t } = useI18n();
@@ -48,7 +54,7 @@ export function PhoneNavigation() {
   const inWorkspace = location.pathname === "/workspace";
   const inPersonal = inWorkspace && personalPath !== null && isUnderPath(workspacePath, personalPath);
   const meetings = navigationItem("/meetings");
-  const calendar = navigationItem("/calendar");
+  const calendar = { ...navigationItem("/calendar"), Icon: CalendarIcon };
   const documents = navigationItem("/workspace");
   const destinations: BarDestination[] = [
     {
@@ -88,34 +94,26 @@ export function PhoneNavigation() {
   ].flatMap((destination) => (destination ? [destination] : []));
   const moreActive = moreOpen || !destinations.some((destination) => destination.active);
 
-  const personalRows = personalPath
-    ? [
-        {
-          to: personalWorkspaceHref(personalPath),
-          testId: "personal",
-          label: t("workspace.personalWorkspace"),
-          Icon: MemberIcon,
-        },
-      ]
-    : [];
-  const moreGroups: Array<{ key: string; label?: string; rows: MoreRow[] }> = [
-    ...navigationSections.map((section) => ({
-      key: section.folded?.id ?? section.labelKey ?? section.items[0].to,
-      label: section.labelKey ? t(section.labelKey) : undefined,
-      rows: section.items
-        .filter((item) => !phoneBarDestinations.has(item.to) && item.to !== "/editor-lab")
-        .filter((item) => available(item.requiredRelation))
-        .map((item) => ({ to: item.to, testId: item.to.slice(1), label: t(item.labelKey), Icon: item.Icon })),
-    })),
-    {
-      key: "account",
-      rows: [
-        ...personalRows,
-        { to: "/docs", testId: "help", label: t("navigation.help"), Icon: DocsIcon },
-        { to: "/settings?category=preferences", testId: "account", label: t("navigation.account"), Icon: SettingsIcon },
-      ],
-    },
-  ].filter((group) => group.rows.length > 0);
+  const close = () => setMoreOpen(false);
+  const pathname = location.pathname;
+  const sheetEntries = navigationBlocks
+    .flat()
+    .flatMap((item) => permittedEntry(item, available) ?? [])
+    .filter((item) => item.children || !phoneBarDestinations.has(item.to ?? ""));
+  const accountRows: NavigationItem[] = [
+    ...(personalPath
+      ? [
+          {
+            id: "personal",
+            to: personalWorkspaceHref(personalPath),
+            labelKey: "workspace.personalWorkspace" as const,
+            Icon: MemberIcon,
+          },
+        ]
+      : []),
+    { id: "help", to: "/docs", labelKey: "navigation.help", Icon: DocsIcon },
+    { id: "account", to: "/settings", labelKey: "navigation.settings", Icon: SettingsIcon },
+  ];
 
   return (
     <>
@@ -153,27 +151,44 @@ export function PhoneNavigation() {
           data-testid="phone-more"
         >
           <DialogTitle>{t("navigation.more")}</DialogTitle>
-          {moreGroups.map((group) => (
-            <section className="app-sheet-group" key={group.key} data-testid={`phone-more-group-${group.key}`}>
-              {group.label ? <h3 className="app-sheet-group-title">{group.label}</h3> : null}
-              <ListRows>
-                {group.rows.map((row) => (
-                  <ListRow
-                    key={row.to}
-                    to={row.to}
-                    openTestId={`phone-more-${row.testId}`}
-                    head={
-                      <ListRowIcon nature="folder">
-                        <row.Icon />
-                      </ListRowIcon>
-                    }
-                    title={row.label}
-                    onClick={() => setMoreOpen(false)}
-                  />
-                ))}
-              </ListRows>
-            </section>
-          ))}
+          <nav className="app-sheet-nav" aria-label={t("common.primaryNavigation")}>
+            {sheetEntries.map((item) => (
+              <div className="app-sidebar-item" key={item.id}>
+                <EntryRow
+                  item={item}
+                  current={!item.children && isCurrentEntry(pathname, item)}
+                  open={Boolean(item.children)}
+                  testId={`phone-more-${item.id}`}
+                  onNavigate={close}
+                />
+                {item.children ? (
+                  <div className="nav-sub-entries">
+                    {item.children.map((child) => (
+                      <EntryRow
+                        key={child.id}
+                        item={child}
+                        current={child.to !== undefined && isUnder(pathname, child.to)}
+                        sub
+                        testId={`phone-more-${child.id}`}
+                        onNavigate={close}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+            <div className="app-sheet-footer">
+              {accountRows.map((item) => (
+                <EntryRow
+                  key={item.id}
+                  item={item}
+                  current={false}
+                  testId={`phone-more-${item.id}`}
+                  onNavigate={close}
+                />
+              ))}
+            </div>
+          </nav>
         </DialogContent>
       </Dialog>
     </>

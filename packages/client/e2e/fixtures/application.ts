@@ -158,11 +158,35 @@ export const test = base.extend<
 
 export { expect };
 
-/** Opens a destination of the folded « Administration » root of the menu, unfolding the root first when needed. */
-export async function openAdministrationEntry(page: import("@playwright/test").Page, destination: string) {
-  const root = page.getByTestId("navigation-administration");
-  if ((await root.getAttribute("aria-expanded")) === "false") await root.click();
-  await page.getByTestId(`navigation-${destination}`).click();
+const menuParents: Record<string, string> = {
+  meetings: "council",
+  minutes: "council",
+  "council-decisions": "council",
+  "council-members": "council",
+  "council-committees": "council",
+  "council-delegations": "council",
+  users: "administration",
+  templates: "administration",
+  "administration-commune": "administration",
+  "administration-council": "administration",
+  "administration-rights": "administration",
+  "administration-documents": "administration",
+  "administration-mail": "administration",
+};
+
+/**
+ * Opens a destination of the menu: directly when its line is shown, otherwise through its entry, which opens its first
+ * permitted sub-resource and shows the other ones under it.
+ */
+export async function openMenuEntry(page: import("@playwright/test").Page, destination: string) {
+  const link = page.locator(".app-sidebar").getByTestId(`navigation-${destination}`);
+  const parent = menuParents[destination];
+  const shown = await link
+    .waitFor({ state: "visible", timeout: 1_500 })
+    .then(() => true)
+    .catch(() => false);
+  if (parent && !shown) await page.locator(".app-sidebar").getByTestId(`navigation-${parent}`).click();
+  await link.click();
 }
 
 /**

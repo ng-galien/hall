@@ -144,7 +144,6 @@ test("document previews share a contextual frame in both themes without changing
     const origin = new URL(page.url()).origin;
     const go = (path: string) => page.goto(`${origin}/app/${path}`);
     await page.getByTestId("navigation-settings").click();
-    await page.getByTestId("settings-tab-preferences").click();
     await page.getByTestId("settings-language").click();
     await page.getByTestId("settings-language-fr").click();
     const frozen = (await collection(page, "minutes")).find((entry) => entry.documentId)!;

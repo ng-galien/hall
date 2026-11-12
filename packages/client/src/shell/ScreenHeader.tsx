@@ -10,7 +10,7 @@ import { apiSirenRequest } from "../services/apiClient";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 import { HeaderBreadcrumb, useRouteTrail } from "./HeaderBreadcrumb";
-import { navigationSections } from "./navigation";
+import { navigationLeaves } from "./navigation";
 import { hasPreviousApplicationScreen } from "./phoneHistory";
 
 export type Back = { to: string; label: string };
@@ -75,11 +75,11 @@ export function useScreenHeading(): { title: string; back: Back | null } {
   const segments = location.pathname.split("/").filter(Boolean);
   if (segments[0] === "workspace") return workspace;
   const title = segments.length === 0 ? t("navigation.home") : (trail.at(-1)?.label ?? "");
-  if (segments.length <= 1 || (segments[0] === "mail" && segments.length === 2)) {
+  if (segments.length <= 1 || ((segments[0] === "mail" || segments[0] === "administration") && segments.length === 2)) {
     return { title, back: topLevelRoutes.has(segments[0] ?? "") ? null : { to: "/", label: t("navigation.home") } };
   }
   const to = segments.length > 2 ? `/${segments[0]}/${segments[1]}` : `/${segments[0]}`;
-  const item = navigationSections.flatMap((section) => section.items).find((candidate) => candidate.to === to);
+  const item = navigationLeaves().find((candidate) => candidate.to === to);
   const label = trail.find((entry) => entry.to === to)?.label ?? (item ? t(item.labelKey) : "");
   return { title, back: { to, label } };
 }
@@ -220,7 +220,7 @@ export function ScreenHeader({
           <ApplicationConnectionStatus />
           <Link
             className="screen-header-initials"
-            to="/settings?category=preferences"
+            to="/settings"
             data-testid="screen-header-account"
             aria-label={t("navigation.account")}
           >
