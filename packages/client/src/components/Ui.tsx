@@ -159,14 +159,20 @@ export function Modal({
               }
             : undefined
         }
-        onOpenAutoFocus={
-          initialFocusRef
-            ? (event) => {
-                event.preventDefault();
-                initialFocusRef.current?.focus();
-              }
-            : undefined
-        }
+        onOpenAutoFocus={(event) => {
+          /* The window opens on its first command or field, never on the information icon of its title: focus would
+             open its explanation, and Escape would then close the explanation instead of the window. */
+          event.preventDefault();
+          if (initialFocusRef) {
+            initialFocusRef.current?.focus();
+            return;
+          }
+          const container = event.target instanceof HTMLElement ? event.target : null;
+          const first = container?.querySelector<HTMLElement>(
+            'button:not([disabled]):not([data-help-hint]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([data-help-hint])',
+          );
+          (first ?? container)?.focus();
+        }}
       >
         <header className="modal-header">
           <div className="modal-title">

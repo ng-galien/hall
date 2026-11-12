@@ -16,6 +16,7 @@ export function HelpHint({ text, testId }: { text: string; testId?: string }) {
           variant="plain"
           size="icon"
           aria-label={text}
+          data-help-hint="true"
           data-testid={testId}
           onPointerLeave={(event) => {
             /* A finger leaving the screen after a tap keeps the explanation open. */
