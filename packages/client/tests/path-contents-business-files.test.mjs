@@ -90,8 +90,9 @@ test("the tree lists every file of a business folder: report, attachments, subje
     ),
   );
   try {
+    // A folder unfolds by its icon; its row opens it (5bc958d5).
     for (const folderPath of ["Conseil", folder]) {
-      const toggle = host.querySelector(`[data-testid="workspace-folder-${folderPath}"]`);
+      const toggle = host.querySelector(`[data-testid="workspace-folder-expand-${folderPath}"]`);
       assert.ok(toggle, folderPath);
       await act(async () => toggle.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 })));
     }
