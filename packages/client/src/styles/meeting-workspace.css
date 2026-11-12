@@ -403,6 +403,7 @@
     .meeting-stepper-item { position: relative; display: flex; align-items: center; gap: var(--hall-space-3); }
     .meeting-stepper-title { margin-top: 0; }
     .meeting-stepper-separator { position: absolute; top: 100%; left: calc(var(--hall-size-metric-icon) / 2); width: var(--hall-stroke-thin); height: var(--hall-space-4); }
+  }
   /* Stage bar: compact circles, centered titles, connectors through the circle centre, no rule under it. */
   .meeting-preparation > header .meeting-stepper { padding: 0 0 var(--hall-space-2); border-bottom: 0; }
   .meeting-preparation .meeting-stepper-list { gap: 0; }
