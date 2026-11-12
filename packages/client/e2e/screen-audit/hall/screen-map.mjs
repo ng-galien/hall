@@ -70,7 +70,7 @@ export const screenFiles = [
   ],
   [/pages\/maps\/|features\/geographic\//, ["cartes", "carte"]],
   [/features\/calendar\//, ["calendrier"]],
-  [/features\/mail\//, ["courriels"]],
+  [/features\/mail\//, ["courriels", "brouillon"]],
   [/pages\/Contact|features\/contacts\/|features\/references\/Contact/, ["contacts", "contact"]],
   [/pages\/CouncilMember|features\/references\/(Member|Person)/, ["membres", "membre"]],
   [

@@ -210,6 +210,26 @@ export const screens = [
   },
   { id: "calendrier", title: "Calendrier", scenario: "minutes", open: route("/calendar") },
   { id: "courriels", title: "Courriels", scenario: "minutes", open: route("/mail") },
+  {
+    id: "brouillon",
+    title: "Brouillon ouvert",
+    scenario: "minutes",
+    /** Creates a draft in the disposable database, so that its composer and the « Joindre » menu are measured. */
+    async open(page) {
+      await page.goto("/app/mail");
+      await page.getByTestId("mail-new").first().click();
+      const composer = page.getByTestId("mail-composer");
+      if (!(await composer.isVisible({ timeout: 3_000 }).catch(() => false))) {
+        await page
+          .locator(
+            "[role=menuitem], [data-testid=create-options] [data-slot=list-row] a, [data-testid=create-options] button",
+          )
+          .first()
+          .click();
+      }
+      await composer.waitFor({ state: "visible" });
+    },
+  },
   { id: "contacts", title: "Contacts", scenario: "minutes", open: route("/contacts") },
   {
     id: "contact",
