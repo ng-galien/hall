@@ -175,6 +175,8 @@
   .hall-button.nav-rail-entry[aria-expanded="true"] { color: var(--hall-color-text); }
   .nav-rail-place { display: flex; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-2-5); color: var(--hall-color-text); font-size: var(--hall-font-size-body); }
   .nav-rail-place > svg { flex: none; font-size: var(--hall-font-size-icon-large); }
+  /* In the panel, the number of a folder is written in the size of its label, on the same line. */
+  .nav-rail-place > .nav-count { font-size: var(--hall-font-size-body); }
   .nav-rail-place[aria-current="page"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-medium); }
   .nav-rail-label { font-size: var(--hall-font-size-body); }
   .app-sidebar-footer { display: grid; gap: var(--hall-space-0-5); padding: var(--hall-space-2); border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
@@ -274,5 +276,3 @@
     .screen-header-inline-title { overflow: visible; white-space: normal; overflow-wrap: break-word; text-overflow: clip; }
   }
 }
-  /* In the panel, the number of a folder is written in the size of its label, on the same line. */
-  .nav-rail-place > .nav-count { font-size: var(--hall-font-size-body); }
