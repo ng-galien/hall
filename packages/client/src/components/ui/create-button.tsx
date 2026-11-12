@@ -139,11 +139,11 @@ export function CreateButton({
     control = (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>{trigger({})}</DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="create-menu w-max" data-testid={optionsTestId}>
+        <DropdownMenuContent align="end" className="create-menu w-max px-0" data-testid={optionsTestId}>
           {ordered.map((option) => (
             <DropdownMenuItem
               key={option.id}
-              className="create-menu-row"
+              className="create-menu-row px-3 py-2"
               data-testid={option.testId}
               onSelect={option.onSelect}
             >
