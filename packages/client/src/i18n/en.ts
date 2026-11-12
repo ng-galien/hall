@@ -213,7 +213,6 @@ export const en = {
   "users.role.administrator": "Administrator",
   "users.role.clerk": "Clerk",
   "users.role.contributor": "Contributor",
-  "users.role.councillor": "Council member",
   "users.councillorContactHint":
     "The Council member role requires the contact of an elected member in office; their personal folder is created on save.",
   "users.status.active": "Active",

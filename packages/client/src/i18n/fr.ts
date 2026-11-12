@@ -218,7 +218,6 @@ export const fr: Messages = {
   "users.role.administrator": "Administrateur",
   "users.role.clerk": "Secrétariat",
   "users.role.contributor": "Contributeur",
-  "users.role.councillor": "Conseiller municipal",
   "users.councillorContactHint":
     "Le rôle Conseiller municipal exige le contact d’un élu en exercice ; son dossier personnel est créé à l’enregistrement.",
   "users.status.active": "Actif",
