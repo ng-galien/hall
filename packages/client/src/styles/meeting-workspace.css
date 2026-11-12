@@ -567,6 +567,8 @@
   .minutes-editorial-surface {
     /* Its sections keep their own height; the free space stays under the last one. */
     align-content: start;
+    /* One width of content for the whole page, from the header to the last item. */
+    max-width: none;
     overflow: visible;
     border: 0;
     border-radius: 0;
@@ -602,6 +604,8 @@
     font-size: var(--hall-font-size-body);
     font-weight: var(--hall-font-weight-semibold);
   }
+  /* The first item follows the rule of the section header, without a rule of its own. */
+  .minutes-editorial-surface .section-header + .minutes-point { padding-top: 0; border-top: 0; }
   .minutes-point {
     display: grid;
     gap: var(--hall-space-3);
@@ -636,7 +640,7 @@
   }
   .minutes-vote-empty strong,
   .minutes-vote-summary > strong { color: var(--hall-color-text); }
-  .minutes-vote-summary > span {
+  .minutes-vote-summary > span:not(.list-row-status) {
     color: var(--hall-color-text-muted);
     font-weight: var(--hall-font-weight-regular);
   }

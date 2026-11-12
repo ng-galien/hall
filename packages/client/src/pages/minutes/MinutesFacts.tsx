@@ -178,7 +178,14 @@ export function MinutesAgendaFacts({ item, ballots }: { item: Facts["agenda"][nu
       title={
         <span className="minutes-vote-summary">
           <strong>{t("minutes.vote")}</strong>
-          <span>{result}</span>
+          <span
+            className="list-row-status"
+            data-tone={
+              firstBallot.result === null ? undefined : firstBallot.result === "approve" ? "success" : "danger"
+            }
+          >
+            {result}
+          </span>
           <span>
             {t("ballot.votesFor")} <strong>{formatNumber(total(firstBallot, "approve"))}</strong>
           </span>
