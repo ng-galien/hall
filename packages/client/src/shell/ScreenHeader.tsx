@@ -64,6 +64,17 @@ function useWorkspaceHeading(): { title: string; back: Back | null } {
   return { title: path.split("/").at(-1) ?? "", back: folder(leavesPersonal ? personalPath : parent) };
 }
 
+/** The kind of the resource opened on the workspace screen, when one is open and known. */
+export function useOpenedResourceKind(): string | null {
+  const location = useLocation();
+  const summaries = useWorkspaceResourcesStore((state) => state.summaries);
+  const details = useWorkspaceResourcesStore((state) => state.details);
+  const catalog = useWorkspaceResourcesStore((state) => state.catalog);
+  const id = location.pathname === "/workspace" ? new URLSearchParams(location.search).get("resource") : null;
+  if (!id) return null;
+  return details[id]?.kind ?? summaries[id]?.kind ?? catalog.find((entry) => entry.id === id)?.kind ?? null;
+}
+
 const topLevelRoutes = new Set(["", "meetings", "calendar"]);
 
 /** Title of the current screen and, inside an area, the screen above it. */

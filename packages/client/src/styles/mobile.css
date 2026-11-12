@@ -60,6 +60,20 @@
   .phone-document { display: flex; min-height: 100%; flex-direction: column; }
   .phone-document-content { display: flex; min-width: 0; flex-direction: column; flex: 1; }
   .phone-document .resource-preview-text { padding: var(--hall-space-3); border: 0; }
+  /* A text read on a phone (Design de référence, page 7): its large title 20 pixels under the header, the content on the
+     margins of the header, the running text at its reading measure. */
+  .app-main:has(.phone-document-text:not([data-editing="true"])) > .screen-title-block { padding-top: var(--hall-space-5); }
+  .app-main:has(.phone-document-text[data-editing="true"]) > .screen-title-block { display: none; }
+  .app-column:has(.phone-document-text[data-editing="true"]) .screen-header-inline-title { display: block; }
+  .app-column:has(.phone-document-text[data-editing="true"]) :is(.screen-header-parent, .screen-header-commune) { display: none; }
+  .screen-title-facts:has(> [data-testid="phone-document-date"]) { column-gap: var(--hall-space-1-5); }
+  .phone-document-text:not([data-editing="true"]) .resource-preview-text { padding: var(--hall-space-5) var(--hall-space-4) var(--hall-space-6); }
+  .phone-document-text .resource-preview-text .markdown-content { font-size: var(--hall-font-size-text); line-height: var(--hall-line-height-reading); }
+  .phone-document-text .resource-preview-text .markdown-content p { margin: 0 0 var(--hall-space-reading-paragraph); }
+  .phone-document-text .resource-preview-text .markdown-content :is(h1, h2, h3, h4, h5, h6) { margin: var(--hall-space-reading-heading) 0 var(--hall-space-2); font-size: var(--hall-font-size-text); font-weight: var(--hall-font-weight-bold); line-height: var(--hall-line-height-reading); }
+  .phone-document-text .resource-preview-text .markdown-content > :first-child { margin-top: 0; }
+  .phone-document-text .resource-preview-text .markdown-content :is(ul, ol) { margin: 0 0 var(--hall-space-reading-paragraph); padding-left: var(--hall-size-reading-list-indent); }
+  .phone-document-text .resource-preview-text .markdown-content li { margin-bottom: var(--hall-space-1); }
   .phone-document[data-fills-screen="true"] { height: calc(100svh - var(--hall-size-header)); min-height: 0; }
   .phone-document[data-fills-screen="true"] .phone-document-content { min-height: 0; }
   .phone-document .document-embed { height: 100%; min-height: 0; border: 0; border-radius: 0; }

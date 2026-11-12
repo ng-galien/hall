@@ -13,7 +13,7 @@ import {
 } from "../shell/headerTrail";
 import { PhoneNavigation } from "../shell/PhoneNavigation";
 import { isPhoneReadingLocation, usePhoneScrollMemory } from "../shell/phoneHistory";
-import { ScreenHeader, ScreenLargeTitle, useScreenHeading } from "../shell/ScreenHeader";
+import { ScreenHeader, ScreenLargeTitle, useOpenedResourceKind, useScreenHeading } from "../shell/ScreenHeader";
 import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 import { useRememberedFold } from "./ui/remembered-fold";
@@ -68,7 +68,9 @@ export function Layout() {
   useEffect(() => {
     void loadPersonalWorkspace();
   }, [loadPersonalWorkspace]);
-  const reading = phone && isPhoneReadingLocation(location);
+  const openedKind = useOpenedResourceKind();
+  // A text read on a phone has the large title of every screen; other opened documents name themselves in the header.
+  const reading = phone && isPhoneReadingLocation(location) && openedKind !== "text";
   return (
     <HeaderTrailSlotContext.Provider value={trailSlot}>
       <ScreenLeadingSlotContext.Provider value={leadingSlot}>

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { copyObjectReference } from "../../components/CopyReferenceButton";
 import type { Mentionable } from "../../components/editor/references";
-import { ArrowDownIcon, EditIcon, InfoIcon, MapIcon, ShareIcon } from "../../components/icons";
+import { ArrowDownIcon, EditIcon, InfoIcon, MapIcon, ShareIcon, TagIcon } from "../../components/icons";
 import { TagInput } from "../../components/TagInput";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -22,6 +22,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { shareOrDownload } from "../../services/fileSharing";
 import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
+import { ScreenTitleFacts } from "../../shell/headerTrail";
 import { usePreparedSubjectPhoneActions } from "./CouncilBusinessSubjects";
 import {
   type PhoneDocumentAction,
@@ -56,6 +57,7 @@ export function ResourcePhoneView({
   const [searchParams] = useSearchParams();
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const [informationOpen, setInformationOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const openChanges = useRef<(() => void) | null>(null);
@@ -91,6 +93,7 @@ export function ResourcePhoneView({
     href: `/api/resources/${resource.slug}`,
   };
   const date = documentaryResourceDate(resource);
+  const text = resource.kind === "text";
   const fillsScreen = matchLiteral(resource.kind, {
     folder: () => false,
     text: () => false,
@@ -187,6 +190,18 @@ export function ResourcePhoneView({
           },
         ]
       : []),
+    // A text read on a phone has no details block: its affaires open from this menu, its tags change while it is written.
+    ...(text
+      ? relatedBusinesses.map((business) => ({
+          id: `business-${business.id}`,
+          label: business.title,
+          icon: <CouncilBusinessGlyph business={business} />,
+          onSelect: () => onSelect({ kind: "councilBusiness", id: business.id }, business.folderPath),
+        }))
+      : []),
+    ...(text && editing && session.capabilities.updateMetadata
+      ? [{ id: "tags", label: t("workspace.tags"), icon: <TagIcon />, onSelect: () => setTagsOpen(true) }]
+      : []),
     ...(session.capabilities.updateMetadata
       ? [{ id: "rename", label: t("common.rename"), icon: <EditIcon />, onSelect: () => setRenaming(true) }]
       : []),
@@ -269,7 +284,26 @@ export function ResourcePhoneView({
           autosaveEnabled={session.autosaveEnabled}
         />
       </div>
-      {fillsScreen ? (
+      {text ? (
+        <>
+          <ScreenTitleFacts>
+            <span data-testid="phone-document-date">
+              {t(date.kind === "created" ? "workspace.createdOn" : "workspace.updatedOn", {
+                date: formatDate(date.value),
+              })}
+            </span>
+            {session.tags.map((tag) => (
+              <span key={tag} className="phone-document-tag">
+                <span aria-hidden="true">· </span>
+                {tag}
+              </span>
+            ))}
+          </ScreenTitleFacts>
+          <Modal open={tagsOpen} title={t("workspace.tags")} testId="phone-document-tags-dialog" onClose={() => setTagsOpen(false)}>
+            <TagInput value={session.tags} onChange={session.setTags} label={t("workspace.tags")} />
+          </Modal>
+        </>
+      ) : fillsScreen ? (
         <Modal
           open={informationOpen}
           title={t("workspace.information")}
