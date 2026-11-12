@@ -826,12 +826,17 @@
   .meeting-report-band .meeting-facts :is(dt, dd strong) { white-space: nowrap; }
   .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command,
   .report-timeline .section-header-commands .hall-button.hall-link { min-height: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-regular); }
-  .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command { align-self: center; }
+  .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command { flex: none; align-self: center; }
+  /* A count or an information icon stays beside the title of its section; a long title wraps beside it. */
+  :is(.meeting-decisions, .report-timeline, .agenda-composer-heading) .section-header-title.section-header-title { flex-wrap: nowrap; }
   /* The count of a section title stands apart from its word. */
   :is(.meeting-decisions, .report-timeline) .section-header-title { gap: var(--hall-space-2); }
   @media (max-width: 760px) {
-    /* On a phone the band follows the rule of the screen header without a second rule. */
+    /* On a phone the band follows the rule of the screen header without a second rule; a fact longer than the
+       screen wraps in its place. */
     .meeting-report-band { margin-top: 0; padding-top: 0; border-top: 0; }
+    .meeting-report-band .meeting-facts > div { max-width: 100%; }
+    .meeting-report-band .meeting-facts :is(dt, dd strong) { white-space: normal; overflow-wrap: anywhere; }
   }
 
   /* Point of a closed meeting on a phone: the square stands at the start of the ballot line, the wrapped counts
@@ -905,14 +910,12 @@
 
 @layer components {
   /* On a phone the written commands of a document follow its facts at the spacing of a line of text; under a finger
-     their 44-pixel target reaches over that spacing. */
+     their 44-pixel target stays inside the row, between the facts and the next row. */
   @media (max-width: 760px) {
     :is(.meeting-documents, .meeting-decisions) .list-row-main { padding-bottom: 0; }
     :is(.meeting-documents, .meeting-decisions) .list-row-action { padding-top: var(--hall-space-1); }
   }
   @media (max-width: 760px) and (pointer: coarse) {
-    :is(.meeting-documents, .meeting-decisions) .list-row-action > .hall-link {
-      margin-block: calc((var(--hall-line-height-body-small) - var(--hall-size-touch-control)) / 2);
-    }
+    :is(.meeting-documents, .meeting-decisions) .list-row-action { padding-block: 0; }
   }
 }
