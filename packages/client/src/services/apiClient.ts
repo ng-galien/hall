@@ -61,6 +61,8 @@ export type ApiErrorCode =
   | "csrf_validation_failed"
   | "password_change_required"
   | "password_must_differ"
+  | "password_link_unusable"
+  | "password_link_too_frequent"
   | "invalid_current_password"
   | "invalid_credentials"
   | "too_many_login_attempts"
@@ -196,6 +198,8 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "invalid_current_password",
   "password_change_required",
   "password_must_differ",
+  "password_link_unusable",
+  "password_link_too_frequent",
   "invalid_credentials",
   "too_many_login_attempts",
   "bootstrap_unavailable",

@@ -1,4 +1,4 @@
-import { type ApiRole, type ApiUser, findSirenAction } from "@hall/api-contract";
+import { type ApiRole, type ApiUser, findSirenAction, type PasswordLinkPurpose } from "@hall/api-contract";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode, type SirenApiResult } from "../services/apiClient";
 import * as api from "../services/usersApi";
@@ -13,6 +13,7 @@ interface UsersState {
   canUpdate: Record<string, boolean>;
   canAssignRoles: Record<string, boolean>;
   canResetPassword: Record<string, boolean>;
+  canSendPasswordLink: Record<string, boolean>;
   canDisable: Record<string, boolean>;
   canRevokeAccess: Record<string, boolean>;
   canReactivate: Record<string, boolean>;
@@ -25,6 +26,7 @@ interface UsersState {
   disable(id: string): Promise<boolean>;
   revokeAccess(id: string): Promise<boolean>;
   reactivate(id: string): Promise<string | null>;
+  sendPasswordLink(id: string, purpose: PasswordLinkPurpose): Promise<boolean>;
   clearError(): void;
 }
 
@@ -44,6 +46,12 @@ export const useUsersStore = create<UsersState>((set, get) => {
         ...state.canResetPassword,
         [result.data.id]: Boolean(
           result.representation && findSirenAction(result.representation, "user.reset-password"),
+        ),
+      },
+      canSendPasswordLink: {
+        ...state.canSendPasswordLink,
+        [result.data.id]: Boolean(
+          result.representation && findSirenAction(result.representation, "user.send-password-link"),
         ),
       },
       canDisable: {
@@ -80,6 +88,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
     canUpdate: {},
     canAssignRoles: {},
     canResetPassword: {},
+    canSendPasswordLink: {},
     canDisable: {},
     canRevokeAccess: {},
     canReactivate: {},
@@ -95,6 +104,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
         canUpdate: {},
         canAssignRoles: {},
         canResetPassword: {},
+        canSendPasswordLink: {},
         canDisable: {},
         canRevokeAccess: {},
         canReactivate: {},
@@ -125,6 +135,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
         canUpdate: {},
         canAssignRoles: {},
         canResetPassword: {},
+        canSendPasswordLink: {},
         canDisable: {},
         canRevokeAccess: {},
         canReactivate: {},
@@ -162,6 +173,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
     assignRoles: (id, roles) => mutate(() => api.assignUserRoles(id, roles)),
     disable: (id) => mutate(() => api.disableUser(id)),
     revokeAccess: (id) => mutate(() => api.revokeUserAccess(id)),
+    sendPasswordLink: (id, purpose) => mutate(() => api.sendPasswordLink(id, purpose)),
     async reactivate(id) {
       set({ error: null });
       try {

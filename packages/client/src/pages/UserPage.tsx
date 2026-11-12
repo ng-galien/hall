@@ -1,4 +1,4 @@
-import type { ApiRole } from "@hall/api-contract";
+import type { AccountMailOutcome, ApiRole } from "@hall/api-contract";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,16 @@ import { generatePassphrase, resetUserPassword } from "../services/usersApi";
 import { useContactsStore } from "../stores/contactsStore";
 import { useUsersStore } from "../stores/usersStore";
 
+const accountMailTones = { sent: "success", failed: "danger", unknown: "neutral" } as const satisfies Record<
+  AccountMailOutcome,
+  string
+>;
+
+// @implements-requirement HALL-FR-USR-080 (an account manager sends a reset link from the user page)
+// @implements-requirement HALL-FR-USR-090 (one line for the latest account email, with « Renvoyer »)
 export function UserPage() {
   const { userId = "" } = useParams();
-  const { t } = useI18n();
+  const { t, formatDateTime } = useI18n();
   const { roleName, requiresActiveMember } = useRoleOptions();
   const {
     users,
@@ -32,6 +39,7 @@ export function UserPage() {
     canUpdate,
     canAssignRoles,
     canResetPassword,
+    canSendPasswordLink,
     canDisable,
     canRevokeAccess,
     canReactivate,
@@ -40,6 +48,7 @@ export function UserPage() {
     disable,
     revokeAccess,
     reactivate,
+    sendPasswordLink,
     clearError,
   } = useUsersStore();
   const { submitting, run } = useSubmitting();
@@ -213,25 +222,81 @@ export function UserPage() {
               </div>
               <p data-testid="user-roles">{user.roles.map((role) => roleName(role)).join(" · ")}</p>
             </section>
-            {canResetPassword[userId] && (
+            {(canResetPassword[userId] || canSendPasswordLink[userId] || user.accountMail) && (
               <section className="admin-record" aria-labelledby={`${fieldId}-password`}>
                 <div className="admin-section-heading">
                   <div>
                     <h2 id={`${fieldId}-password`}>{t("users.passwordSection")}</h2>
-                    <p>{t("users.passwordResetDescription")}</p>
+                    <p>{t("users.passwordAccessDescription")}</p>
                   </div>
-                  <Button
-                    variant="secondary"
-                    data-testid="user-reset-password"
-                    onClick={async () => {
-                      if (!(await flush())) return;
-                      setPasswordReset(false);
-                      setPasswordOpen(true);
-                    }}
-                  >
-                    {t("users.resetPassword")}
-                  </Button>
+                  <div className="admin-heading-status">
+                    {canSendPasswordLink[userId] && (
+                      <Button
+                        variant="secondary"
+                        disabled={submitting}
+                        data-testid="user-send-password-link"
+                        onClick={() =>
+                          void run(async () => {
+                            if (!(await flush())) return false;
+                            clearError();
+                            return sendPasswordLink(userId, "recovery");
+                          })
+                        }
+                      >
+                        {t("users.sendPasswordLink")}
+                      </Button>
+                    )}
+                    {canResetPassword[userId] && (
+                      <Button
+                        variant="secondary"
+                        data-testid="user-reset-password"
+                        onClick={async () => {
+                          if (!(await flush())) return;
+                          setPasswordReset(false);
+                          setPasswordOpen(true);
+                        }}
+                      >
+                        {t("users.resetPassword")}
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                {user.accountMail ? (
+                  <div className="admin-heading-status" data-testid="user-account-mail">
+                    <span>
+                      {t(`users.accountMail.${user.accountMail.kind}`)} · {formatDateTime(user.accountMail.sentAt)}
+                    </span>
+                    <span
+                      className="record-state"
+                      data-tone={accountMailTones[user.accountMail.outcome]}
+                      data-testid="user-account-mail-outcome"
+                      data-outcome={user.accountMail.outcome}
+                    >
+                      {t(`users.accountMailOutcome.${user.accountMail.outcome}`)}
+                    </span>
+                    {canSendPasswordLink[userId] && user.accountMail.kind !== "password-changed" && (
+                      <Button
+                        variant="secondary"
+                        disabled={submitting}
+                        data-testid="user-account-mail-resend"
+                        onClick={() => {
+                          const purpose = user.accountMail?.kind;
+                          if (purpose !== "invitation" && purpose !== "recovery") return;
+                          void run(async () => {
+                            clearError();
+                            return sendPasswordLink(userId, purpose);
+                          });
+                        }}
+                      >
+                        {t("users.accountMailResend")}
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="admin-hint" data-testid="user-account-mail-none">
+                    {t("users.accountMailNone")}
+                  </p>
+                )}
                 {passwordReset && (
                   <p role="status" data-testid="password-reset-success">
                     {t("users.passwordResetSuccess")}

@@ -191,6 +191,8 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   permission_denied: "error.permission_denied",
   password_change_required: "error.password_change_required",
   password_must_differ: "error.password_must_differ",
+  password_link_unusable: "error.password_link_unusable",
+  password_link_too_frequent: "error.password_link_too_frequent",
   invalid_current_password: "error.invalid_current_password",
   invalid_credentials: "error.invalid_credentials",
   bootstrap_unavailable: "error.bootstrap_unavailable",

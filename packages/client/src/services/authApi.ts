@@ -1,4 +1,4 @@
-import { type ApiPrincipal, findSirenAction } from "@hall/api-contract";
+import { type ApiPasswordLink, type ApiPrincipal, findSirenAction } from "@hall/api-contract";
 import { AUTHENTICATION_REQUIRED_EVENT, apiSirenRequest, submitSirenAction } from "./apiClient";
 
 export interface AuthenticationStatus {
@@ -35,6 +35,26 @@ export async function authenticate(
 ): Promise<ApiPrincipal> {
   const actionName = input.displayName ? "user.create" : "session.login";
   return (await submitSirenAction<ApiPrincipal>(statusRepresentation, actionName, input)).data;
+}
+
+type StatusRepresentation = NonNullable<Awaited<ReturnType<typeof getAuthenticationStatus>>["representation"]>;
+
+export const passwordLinksAvailable = (statusRepresentation: StatusRepresentation) =>
+  Boolean(findSirenAction(statusRepresentation, "session.request-password-link"));
+
+export async function requestPasswordLink(statusRepresentation: StatusRepresentation, email: string): Promise<void> {
+  await submitSirenAction(statusRepresentation, "session.request-password-link", { email });
+}
+
+export async function openPasswordLink(statusRepresentation: StatusRepresentation, token: string) {
+  return (await submitSirenAction<ApiPasswordLink>(statusRepresentation, "session.open-password-link", { token })).data;
+}
+
+export async function completePasswordLink(
+  statusRepresentation: StatusRepresentation,
+  input: { token: string; newPassword: string },
+): Promise<void> {
+  await submitSirenAction(statusRepresentation, "session.complete-password-link", input);
 }
 
 export const getSessionSiren = () => apiSirenRequest<ApiPrincipal>("/auth/session");

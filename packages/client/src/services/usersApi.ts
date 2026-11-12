@@ -1,4 +1,4 @@
-import type { ApiRole, ApiUser } from "@hall/api-contract";
+import type { ApiRole, ApiUser, PasswordLinkPurpose } from "@hall/api-contract";
 import { AUTHENTICATION_REQUIRED_EVENT, apiSirenRequest, submitSirenAction, submitSirenActionAt } from "./apiClient";
 import { getSession } from "./authApi";
 
@@ -55,6 +55,12 @@ export const revokeUserAccess = (id: string) =>
       window.dispatchEvent(new Event(USER_ACCESS_CHANGED_EVENT));
       return result;
     });
+  });
+
+export const sendPasswordLink = (id: string, purpose: PasswordLinkPurpose) =>
+  getUserSiren(id).then(({ representation }) => {
+    if (!representation) throw new Error("Missing user Siren representation");
+    return submitSirenAction<ApiUser>(representation, "user.send-password-link", { purpose });
   });
 
 export const reactivateUser = (id: string) =>

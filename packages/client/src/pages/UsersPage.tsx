@@ -39,6 +39,8 @@ export function UsersPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [roles, setRoles] = useState<ApiRole[]>([]);
   const [contactId, setContactId] = useState("none");
+  const [access, setAccess] = useState<"invitation" | "hand-delivered">("invitation");
+  const handDelivered = access === "hand-delivered";
   const [password, setPassword] = useState("");
   const [passphrase, setPassphrase] = useState<string | null>(null);
   const [handedOver, setHandedOver] = useState(false);
@@ -71,7 +73,7 @@ export function UsersPage() {
     );
   }, []);
   useEffect(() => {
-    if (!addOpen || !canCreate || !canGeneratePassphrase) {
+    if (!addOpen || !canCreate || !canGeneratePassphrase || !handDelivered) {
       setGenerating(false);
       return;
     }
@@ -79,7 +81,7 @@ export function UsersPage() {
     return () => {
       generationId.current += 1;
     };
-  }, [addOpen, canCreate, canGeneratePassphrase, generate]);
+  }, [addOpen, canCreate, canGeneratePassphrase, handDelivered, generate]);
   const visible = users.filter((user) =>
     matchesQuery(query, user.displayName, user.email, ...user.roles.map((role) => roleName(role))),
   );
@@ -91,8 +93,7 @@ export function UsersPage() {
       const created = await create({
         displayName: form.get("displayName"),
         email: form.get("email"),
-        password,
-        passwordChangeRequired,
+        ...(handDelivered ? { password, passwordChangeRequired } : {}),
         roles,
         contactId: contactId === "none" ? null : contactId,
       });
@@ -135,6 +136,7 @@ export function UsersPage() {
                         clearError();
                         setRoles([]);
                         setContactId("none");
+                        setAccess("invitation");
                         setPassword("");
                         setPasswordChangeRequired(false);
                         setPassphrase(null);
@@ -160,26 +162,54 @@ export function UsersPage() {
                   <Input name="email" type="email" required autoComplete="off" data-testid="user-email" />
                 </Field>
               </FieldRow>
-              <Field
-                label={t("users.password")}
-                help={t(passphrase ? "users.generatedPasswordHint" : "users.passwordHint")}
-              >
-                <Input
-                  name="password"
-                  type={passphrase ? "text" : "password"}
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.currentTarget.value);
-                    setPassphrase(null);
-                    setHandedOver(false);
-                  }}
-                  required
-                  minLength={12}
-                  maxLength={256}
-                  autoComplete="new-password"
-                  data-testid="user-password"
-                />
-              </Field>
+              <fieldset className="checkbox-group" data-testid="user-access">
+                <legend>{t("users.access")}</legend>
+                <label className="checkbox-field">
+                  <input
+                    type="radio"
+                    name="access"
+                    checked={!handDelivered}
+                    onChange={() => setAccess("invitation")}
+                    data-testid="user-access-invitation"
+                  />
+                  {t("users.accessInvitation")}
+                </label>
+                <label className="checkbox-field">
+                  <input
+                    type="radio"
+                    name="access"
+                    checked={handDelivered}
+                    onChange={() => setAccess("hand-delivered")}
+                    data-testid="user-access-hand-delivered"
+                  />
+                  {t("users.accessHandDelivered")}
+                </label>
+                <p className="admin-hint">
+                  {t(handDelivered ? "users.accessHandDeliveredDescription" : "users.accessInvitationDescription")}
+                </p>
+              </fieldset>
+              {handDelivered && (
+                <Field
+                  label={t("users.password")}
+                  help={t(passphrase ? "users.generatedPasswordHint" : "users.passwordHint")}
+                >
+                  <Input
+                    name="password"
+                    type={passphrase ? "text" : "password"}
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.currentTarget.value);
+                      setPassphrase(null);
+                      setHandedOver(false);
+                    }}
+                    required
+                    minLength={12}
+                    maxLength={256}
+                    autoComplete="new-password"
+                    data-testid="user-password"
+                  />
+                </Field>
+              )}
               <Field label={t("users.contact")}>
                 <EntitySelect
                   type="contact"
@@ -194,31 +224,35 @@ export function UsersPage() {
                 />
               </Field>
             </fieldset>
-            <div className="admin-passphrase">
-              {canGeneratePassphrase && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  data-testid="passphrase-generate"
-                  disabled={generating || submitting}
-                  onClick={generate}
-                >
-                  {t("users.passphraseGenerate")}
-                </Button>
-              )}
-              {passphrase && (
-                <GeneratedPassphrase
-                  passphrase={passphrase}
-                  handedOver={handedOver}
-                  onHandedOverChange={setHandedOver}
-                />
-              )}
-            </div>
-            <TemporaryPasswordSetting
-              value={passwordChangeRequired}
-              onChange={setPasswordChangeRequired}
-              disabled={submitting}
-            />
+            {handDelivered && (
+              <div className="admin-passphrase">
+                {canGeneratePassphrase && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    data-testid="passphrase-generate"
+                    disabled={generating || submitting}
+                    onClick={generate}
+                  >
+                    {t("users.passphraseGenerate")}
+                  </Button>
+                )}
+                {passphrase && (
+                  <GeneratedPassphrase
+                    passphrase={passphrase}
+                    handedOver={handedOver}
+                    onHandedOverChange={setHandedOver}
+                  />
+                )}
+              </div>
+            )}
+            {handDelivered && (
+              <TemporaryPasswordSetting
+                value={passwordChangeRequired}
+                onChange={setPasswordChangeRequired}
+                disabled={submitting}
+              />
+            )}
             <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
             {requiresActiveMember(roles) && (
               <p className="admin-hint" data-testid="user-councillor-contact-hint">
@@ -231,7 +265,12 @@ export function UsersPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={submitting || generating || roles.length === 0 || (passphrase !== null && !handedOver)}
+                disabled={
+                  submitting ||
+                  generating ||
+                  roles.length === 0 ||
+                  (handDelivered && passphrase !== null && !handedOver)
+                }
                 data-testid="user-create-submit"
               >
                 {t(submitting ? "common.saving" : "common.create")}

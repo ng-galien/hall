@@ -20,12 +20,20 @@ Chaque personne a son propre compte, avec un ou plusieurs rôles qui disent ce q
 Tous les comptes actifs lisent tout Hall et exportent les documents.
 Une séance se conduit avec le compte lié au président ou au secrétaire de cette séance, désignés dans sa préparation ou par une passation, quel que soit le rôle du compte, ou avec le compte de l’administrateur ; les autres comptes suivent la séance sans action de conduite.
 
-**Nouveau**, en haut à droite, ouvre la fenêtre **Créer un utilisateur**, qui demande le nom, l’adresse électronique, le contact de la personne, ses rôles et un mot de passe initial : **Générer une phrase de passe** le fait produire par Hall, qui l’affiche une seule fois.
+**Nouveau**, en haut à droite, ouvre la fenêtre **Créer un utilisateur**, qui demande le nom, l’adresse électronique, le contact de la personne, ses rôles et son **Accès** :
+
+- **Envoyer une invitation par courriel**, choisi par défaut : Hall envoie à l’adresse du compte le courriel **Votre accès à Hall**, avec le bouton **Choisir mon mot de passe**. La personne saisit deux fois son mot de passe, l’enregistre, puis se connecte. Le lien vaut sept jours et sert une seule fois.
+- **Remettre un mot de passe en main propre**, pour une personne qui ne reçoit pas de courriel : **Générer une phrase de passe** la fait produire par Hall, qui l’affiche une seule fois. Elle n’est jamais envoyée par courriel.
+
 Le rôle Conseiller se donne à un élu en exercice et lui crée son dossier personnel.
 
 La case **Mot de passe temporaire** se coche à la création, sur la fiche d’un compte ou dans **Réinitialiser le mot de passe**. À sa connexion suivante, la personne voit seulement la fenêtre **Choisissez votre mot de passe**, avec **Nouveau mot de passe** et **Confirmer le nouveau mot de passe** : elle choisit un mot de passe différent de celui qui lui a été remis, puis se connecte avec lui. Hall décoche alors la case et refuse l’ancien mot de passe.
 Cocher la case sur un compte existant ferme ses sessions ouvertes ; son mot de passe reste le même jusqu’à ce que la personne le remplace.
 
-Sur la fiche d’un compte, l’administrateur change les rôles, remplace le mot de passe oublié, révoque l’accès d’un compte ou le réactive, et désactive le compte d’une personne qui n’utilise plus Hall.
+Une personne qui a oublié son mot de passe le change elle-même : sur l’écran de connexion, **Mot de passe oublié ?** demande son adresse, puis **Envoyer le lien**. Hall affiche le même message que l’adresse corresponde ou non à un compte actif. Le courriel **Réinitialiser votre mot de passe Hall** porte le bouton **Choisir un nouveau mot de passe** ; le lien vaut une heure et sert une seule fois. Un lien expiré ou déjà utilisé affiche **Ce lien n’est plus utilisable. Demandez un nouveau lien.**
+Après tout changement de mot de passe, les sessions ouvertes et les liens encore valables ne servent plus, et la personne reçoit le courriel **Votre mot de passe Hall a été modifié**. Une même adresse reçoit au plus un lien par minute et trois par heure ; le compte reste utilisable.
+
+Sur la fiche d’un compte, l’administrateur change les rôles, envoie le même courriel avec **Envoyer un lien de réinitialisation**, remplace le mot de passe par une phrase remise en main propre avec **Réinitialiser le mot de passe**, révoque l’accès d’un compte ou le réactive, et désactive le compte d’une personne qui n’utilise plus Hall. Il ne voit ni le lien ni le mot de passe.
+La section **Mot de passe** montre le dernier courriel de compte, sa date et son état : **Envoyé** quand la messagerie de la commune l’a accepté, **Échec** quand elle l’a refusé, **À vérifier** quand le résultat est incertain. **Renvoyer** envoie un nouveau lien du même type. Un courriel accepté par la messagerie de la commune n’est pas une preuve de réception.
 
 Parcours : [Compte et dossier personnel d’un conseiller](/docs/workflows/espace-personnel-conseiller).

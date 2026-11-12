@@ -1,9 +1,11 @@
 import type { ApiPrincipal, SirenEntity } from "@hall/api-contract";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { PasswordDialog } from "../features/users/PasswordDialog";
+import { PASSWORD_LINK_ROUTE, PasswordLinkScreen, PasswordRecoveryScreen } from "../features/users/PasswordLinkScreens";
 import { useI18n } from "../i18n/I18nProvider";
 import { ApiError, type ApiErrorCode, AUTHENTICATION_REQUIRED_EVENT, apiErrorCode } from "../services/apiClient";
 import {
@@ -13,11 +15,20 @@ import {
   getAuthenticationStatus,
   getSession,
   logout,
+  passwordLinksAvailable,
 } from "../services/authApi";
 import { errorTranslationKeys } from "./Ui";
 
+// @implements-requirement HALL-FR-USR-080 (sign-in offers « Mot de passe oublié ? »; a password-link address opens the
+// screen that records the password of the link, before any session check)
 export function AuthenticationGate({ children }: { children: ReactNode }) {
   const { t } = useI18n();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const linkToken = location.pathname.replace(/\/+$/, "") === PASSWORD_LINK_ROUTE ? location.hash.slice(1) : null;
+  const [recovery, setRecovery] = useState(false);
+  const [email, setEmail] = useState("");
+  const [passwordRecorded, setPasswordRecorded] = useState(false);
   const [status, setStatus] = useState<AuthenticationStatus | null>(null);
   const [representation, setRepresentation] = useState<SirenEntity<Record<string, unknown>> | null>(null);
   const [principal, setPrincipal] = useState<ApiPrincipal | null>(null);
@@ -59,6 +70,7 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
     setError(null);
     const form = new FormData(event.currentTarget);
     try {
+      setPasswordRecorded(false);
       await authenticate(representation, {
         email: String(form.get("email") ?? ""),
         password: String(form.get("password") ?? ""),
@@ -75,6 +87,35 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
     }
   };
 
+  if (linkToken !== null && status && representation)
+    return (
+      <PasswordLinkScreen
+        representation={representation}
+        token={linkToken}
+        onRecorded={(recordedEmail) => {
+          setEmail(recordedEmail);
+          setPasswordRecorded(true);
+          setRecovery(false);
+          setPrincipal(null);
+          navigate("/", { replace: true });
+        }}
+        onRequestNew={() => {
+          setRecovery(true);
+          navigate("/", { replace: true });
+        }}
+      />
+    );
+  if (recovery && representation && !principal)
+    return (
+      <PasswordRecoveryScreen
+        representation={representation}
+        initialEmail={email}
+        onBack={(typed) => {
+          setEmail(typed);
+          setRecovery(false);
+        }}
+      />
+    );
   if (principal?.passwordChangeRequired)
     return (
       <PasswordDialog
@@ -121,8 +162,21 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
             ) : null}
           </>
         ) : null}
+        {passwordRecorded ? (
+          <p role="status" data-testid="auth-password-recorded">
+            {t("auth.passwordRecorded")}
+          </p>
+        ) : null}
         <Field label={t("auth.email")}>
-          <Input data-testid="auth-email" name="email" type="email" autoComplete="username" required />
+          <Input
+            data-testid="auth-email"
+            name="email"
+            type="email"
+            autoComplete="username"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.currentTarget.value)}
+          />
         </Field>
         <Field label={t("auth.password")}>
           <Input
@@ -142,6 +196,19 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
         <Button data-testid="auth-submit" type="submit" disabled={submitting || !representation}>
           {t(submitting ? "auth.submitting" : status?.bootstrapRequired ? "auth.bootstrapSubmit" : "auth.signInSubmit")}
         </Button>
+        {representation && passwordLinksAvailable(representation) ? (
+          <Button
+            variant="plain"
+            type="button"
+            data-testid="auth-forgot-password"
+            onClick={() => {
+              setError(null);
+              setRecovery(true);
+            }}
+          >
+            {t("auth.forgotPassword")}
+          </Button>
+        ) : null}
       </form>
     </main>
   );
