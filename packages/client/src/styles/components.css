@@ -716,7 +716,9 @@
   .section-header-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   .section-header-icon .disclosure-badge svg { width: var(--hall-font-size-caption); height: var(--hall-font-size-caption); }
   .section-header-title-text { min-width: 0; overflow-wrap: break-word; }
-  /* The information icon follows the last word of the title, on its line, joined to it by a word joiner. */
+  /* The information icon follows the last word of the title, on its line: Chrome breaks a line before a button even
+     after a word joiner, so the last word and the icon are written without a break between them. */
+  .title-tail { white-space: nowrap; }
   :is(.section-header-title, .section-header-title-text) .hall-button {
     margin-block: calc((var(--hall-line-height-body-large) - var(--hall-size-control)) / 2);
     margin-left: var(--hall-space-1);
