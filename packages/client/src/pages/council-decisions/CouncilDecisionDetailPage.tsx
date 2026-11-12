@@ -139,7 +139,12 @@ function CouncilDecisionDetail({ id }: { id: string }) {
                   <h2 id="decision-writing-title">{t("decisionDocument.writing")}</h2>
                   <p>{t("decisionDocument.fidelity")}</p>
                 </div>
-                <span role="status" data-testid="decision-save-status">
+                <span
+                  className="record-state"
+                  data-save={draft.saving ? "saving" : draft.dirty ? "dirty" : "saved"}
+                  role="status"
+                  data-testid="decision-save-status"
+                >
                   {draft.saving ? t("common.saving") : draft.dirty ? t("workspace.saveDirty") : t("workspace.saved")}
                 </span>
               </div>
