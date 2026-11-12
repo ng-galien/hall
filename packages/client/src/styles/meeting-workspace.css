@@ -335,7 +335,36 @@
   }
   .meeting-state > * + *::before { margin-inline: var(--hall-space-1-5); color: var(--hall-color-text-muted); content: "·"; }
   .meeting-state > .list-row-status { color: var(--hall-color-text); }
-  .meeting-console { display: grid; gap: var(--hall-space-2); margin-top: var(--hall-space-2); }
+  /* Meeting header of before the redesign: the console of facts and the stage bar with its circles. */
+  .meeting-preparation > header .meeting-console { margin-top: var(--hall-space-3); margin-bottom: 0; border: 0; box-shadow: none; border-radius: 0; }
+  .meeting-preparation > header .meeting-stepper { padding: var(--hall-space-3) 0; }
+  .meeting-console {
+    container-type: inline-size;
+    overflow: hidden;
+    margin-bottom: var(--hall-space-5);
+    border: var(--hall-stroke-thin) solid var(--hall-color-border);
+    border-radius: var(--hall-radius-large);
+    background: var(--hall-color-surface);
+    box-shadow: var(--hall-shadow-small);
+  }
+  .meeting-preparation > header .meeting-console { margin-top: var(--hall-space-1); }
+  .meeting-brief { display: flex; flex-wrap: wrap; gap: var(--hall-space-1) var(--hall-space-5); margin: var(--hall-space-1) 0 0; padding: 0; font-size: var(--hall-font-size-caption); }
+  .meeting-brief div { display: inline-flex; gap: var(--hall-space-1); }
+  .meeting-brief dt { color: var(--hall-color-text-muted); }
+  .meeting-brief dt::after { content: " :"; }
+  .meeting-brief dd { margin: 0; color: var(--hall-color-text); }
+  .meeting-reconvened-chip {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    padding: var(--hall-space-0-5) var(--hall-space-2);
+    border: var(--hall-stroke-thin) solid var(--hall-color-border);
+    border-radius: var(--hall-radius-small);
+    color: var(--hall-color-text);
+    font-size: var(--hall-font-size-caption);
+    font-weight: var(--hall-font-weight-medium);
+    white-space: nowrap;
+  }
   .meeting-evidence { margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   ul.meeting-evidence { padding-left: var(--hall-space-5); list-style: disc; }
   .meeting-evidence-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
@@ -343,40 +372,48 @@
   .meeting-notice-deadline-value { display: inline-flex; flex: 1 1 auto; align-items: center; gap: var(--hall-space-1); color: var(--hall-color-text); }
   .meeting-notice-deadline-value[data-reminder="overdue"] { color: var(--hall-color-danger); }
 
-  /* Stage bar: each stage is a title after a dot; the current one in blue, the way into the meeting a blue button. */
-  .meeting-stepper { padding: var(--hall-space-2) 0; }
-  .meeting-stepper-list { display: flex; flex-wrap: wrap; gap: var(--hall-space-2) var(--hall-space-5); margin: 0; padding: 0; list-style: none; }
-  .meeting-stepper-item { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text-muted); }
-  .meeting-stepper-marker { display: flex; align-items: center; }
+  .meeting-stepper { padding: var(--hall-space-3) var(--hall-space-4); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
+  .meeting-stepper-list { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--hall-space-4); list-style: none; margin: 0; padding: 0; }
+  .meeting-stepper-item { min-width: 0; color: var(--hall-color-text-muted); }
+  .meeting-stepper-marker { display: flex; align-items: center; gap: var(--hall-space-4); }
   .meeting-stepper-indicator {
-    display: block;
-    width: var(--hall-space-2);
-    height: var(--hall-space-2);
-    flex: none;
+    display: grid; place-items: center; flex: none;
+    width: var(--hall-size-metric-icon); height: var(--hall-size-metric-icon);
+    border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-circular);
-    background: var(--hall-color-text-subtle);
+    color: var(--hall-color-text-muted); background: var(--hall-color-surface);
   }
-  .meeting-stepper-indicator > * { display: none; }
-  .meeting-stepper-item[data-completed] .meeting-stepper-indicator { background: var(--hall-color-success); }
-  .meeting-stepper-indicator[data-status="active"] { background: var(--hall-color-brand); }
-  .meeting-stepper-advance {
-    display: inline-grid;
-    width: var(--hall-size-control);
-    height: var(--hall-size-control);
-    place-items: center;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-on-brand);
-    background: var(--hall-color-brand);
-    text-decoration: none;
-    cursor: pointer;
+  .meeting-stepper-indicator[data-status="active"] {
+    color: var(--hall-color-on-brand); background: var(--hall-color-brand); border-color: var(--hall-color-brand);
+    box-shadow: 0 0 0 var(--hall-space-1) var(--hall-color-brand-subtle);
   }
-  .meeting-stepper-advance > svg { display: block; font-size: var(--hall-font-size-icon); }
-  .meeting-stepper-advance:hover { background: var(--hall-color-brand-hover); }
-  .meeting-stepper-advance[data-disabled="true"] { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); cursor: default; }
-  .meeting-stepper-separator { display: none; }
-  .meeting-stepper-title { font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-regular); }
-  .meeting-stepper-item[data-status="active"] .meeting-stepper-title,
-  .meeting-stepper-item[aria-current="step"] .meeting-stepper-title { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
+  .meeting-stepper-indicator[data-status="previous"] { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); border-color: var(--hall-color-brand-border); }
+  .meeting-stepper-advance { color: var(--hall-color-on-brand); background: var(--hall-color-brand); border-color: var(--hall-color-brand); cursor: pointer; text-decoration: none; }
+  .meeting-stepper-advance:hover { box-shadow: 0 0 0 var(--hall-space-1) var(--hall-color-brand-subtle); }
+  .meeting-stepper-advance[data-disabled="true"] { color: var(--hall-color-text-muted); background: var(--hall-color-surface-subtle); border-color: var(--hall-color-border); cursor: not-allowed; }
+  .meeting-stepper-check { display: none; }
+  .meeting-stepper-item[data-completed] .meeting-stepper-check { display: block; }
+  .meeting-stepper-item[data-completed] .meeting-stepper-icon { display: none; }
+  .meeting-stepper-separator { flex: 1; border: 0; height: var(--hall-stroke-thin); background: var(--hall-color-border); margin: 0; }
+  .meeting-stepper-item[data-status="previous"] .meeting-stepper-separator { background: var(--hall-color-brand); }
+  .meeting-stepper-title { margin-top: var(--hall-space-3); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-medium); }
+  .meeting-stepper-item[data-status="active"] .meeting-stepper-title { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-semibold); }
+  @container (max-width: 760px) {
+    .meeting-stepper-list { grid-auto-flow: row; grid-template-columns: 1fr; }
+    .meeting-stepper-item { position: relative; display: flex; align-items: center; gap: var(--hall-space-3); }
+    .meeting-stepper-title { margin-top: 0; }
+    .meeting-stepper-separator { position: absolute; top: 100%; left: calc(var(--hall-size-metric-icon) / 2); width: var(--hall-stroke-thin); height: var(--hall-space-4); }
+  /* Stage bar: compact circles, centered titles, connectors through the circle centre, no rule under it. */
+  .meeting-preparation > header .meeting-stepper { padding: 0 0 var(--hall-space-2); border-bottom: 0; }
+  .meeting-preparation .meeting-stepper-list { gap: 0; }
+  .meeting-preparation .meeting-stepper-item { display: grid; justify-items: center; text-align: center; }
+  .meeting-preparation .meeting-stepper-marker { position: relative; display: grid; place-items: center; width: 100%; gap: 0; }
+  .meeting-preparation .meeting-stepper-indicator { position: relative; z-index: var(--hall-z-content); width: var(--hall-size-control); height: var(--hall-size-control); font-size: var(--hall-font-size-body); }
+  .meeting-preparation .meeting-stepper-indicator[data-status="active"] { box-shadow: none; }
+  .meeting-preparation .meeting-stepper-separator { position: absolute; top: 50%; left: 50%; width: 100%; height: var(--hall-stroke-thin); margin: 0; transform: translateY(-50%); }
+  .meeting-preparation .meeting-stepper-title { margin-top: var(--hall-space-1); font-weight: var(--hall-font-weight-regular); }
+  .meeting-preparation .meeting-stepper-item[data-status="active"] .meeting-stepper-title { font-weight: var(--hall-font-weight-semibold); }
+  .meeting-preparation > header .flex.items-center { margin-top: var(--hall-space-2); }
   .meeting-stepper-hint { display: grid; gap: var(--hall-space-0-5); max-width: var(--hall-size-relative-22rem); white-space: normal; }
   .meeting-stepper-hint strong { font-weight: var(--hall-font-weight-semibold); }
 
@@ -426,10 +463,11 @@
   .application-error-actions { display: flex; gap: var(--hall-space-2); }
 
   /* Agenda revision beside the stage bar: its state written as text, its gestures as buttons. */
-  .revision-control { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2) var(--hall-space-3); }
-  /* The state fills its line and its commands keep the end of the line, or a line of their own. */
-  .revision-control-label { min-width: 0; flex: 1 1 12rem; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
-  .revision-control-commands { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); }
+  .revision-control { display: inline-flex; align-items: center; gap: var(--hall-space-2); margin-left: var(--hall-space-3); }
+  .revision-control[data-state="open"] { height: var(--hall-size-control); padding: 0 var(--hall-space-1) 0 var(--hall-space-3); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-circular); background: var(--hall-color-surface-subtle); }
+  .revision-control-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-medium); white-space: nowrap; }
+  .revision-control-revise { color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-regular); }
+  .revision-control .revision-control-confirm, .revision-control .revision-control-cancel { border-radius: var(--hall-radius-circular); }
   .revision-hint { display: grid; gap: var(--hall-space-0-5); max-width: var(--hall-size-relative-22rem); white-space: normal; }
   .revision-hint strong { font-weight: var(--hall-font-weight-semibold); }
 

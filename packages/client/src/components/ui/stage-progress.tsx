@@ -37,7 +37,7 @@ export function createStageProgress(steps: readonly ProgressStep[]) {
     const completed = completedSteps ?? steps.slice(0, currentIndex).map((step) => step.id);
     return (
       <Stepper.Root step={currentStep} completed={completed} className="meeting-stepper" data-testid={testId}>
-        <Stepper.List role="list" className="meeting-stepper-list" aria-label={label} data-layout-flow>
+        <Stepper.List role="list" className="meeting-stepper-list" aria-label={label}>
           <Stepper.Items>
             {(step, index) => (
               <Stepper.Item

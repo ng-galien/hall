@@ -17,9 +17,8 @@ function Explained({ title, text, children }: { title: string; text: string; chi
 }
 
 /**
- * The agenda revision as one control beside the meeting title: established, it writes the revision, its date and
- * its notice, then offers to revise; open, it names the revision and offers to establish it or return to the
- * previous established revision.
+ * The agenda revision as one control beside the meeting title: established, it offers to revise;
+ * open, it names the revision and offers to establish it or return to the previous established revision.
  */
 export function AgendaRevisionControl({
   number,
@@ -53,57 +52,60 @@ export function AgendaRevisionControl({
       data-testid="meeting-agenda-revision"
     >
       {established ? (
-        <>
-          <span className="revision-control-label" data-testid="meeting-agenda-revision-state" data-state="established">
-            {state}
-          </span>
-          {onRevise ? (
-            <span className="revision-control-commands">
-              <Explained title={t("meeting.revision.revise")} text={t("meeting.revision.reviseHint")}>
-                <Button variant="secondary" data-testid="meeting-revise-agenda" disabled={busy} onClick={onRevise}>
-                  <EditIcon aria-hidden="true" />
-                  {t("meeting.revision.revise")}
-                </Button>
-              </Explained>
-            </span>
-          ) : null}
-        </>
+        onRevise ? (
+          <Explained title={state} text={t("meeting.revision.reviseHint")}>
+            <Button
+              variant="plain"
+              className="revision-control-revise"
+              data-testid="meeting-revise-agenda"
+              disabled={busy}
+              onClick={onRevise}
+            >
+              <EditIcon aria-hidden="true" />
+              {t("meeting.revision.revise")}
+            </Button>
+          </Explained>
+        ) : null
       ) : (
         <>
           <span className="revision-control-label" data-testid="meeting-agenda-revision-state" data-state="open">
             {state}
           </span>
-          {onConfirm || onCancel ? (
-            <span className="revision-control-commands">
-              {onConfirm ? (
-                <Explained
-                  title={t("meeting.revision.generateNotice")}
-                  text={t("meeting.revision.generateNoticeHint", { number: formatNumber(number) })}
-                >
-                  <Button variant="primary" data-testid="meeting-generate-notice" disabled={busy} onClick={onConfirm}>
-                    <CheckIcon aria-hidden="true" />
-                    {t("meeting.revision.generateNotice")}
-                  </Button>
-                </Explained>
-              ) : null}
-              {onCancel ? (
-                <Explained
-                  title={t("meeting.revision.reset")}
-                  text={t("meeting.revision.resetHint", { number: formatNumber(Math.max(number - 1, 1)) })}
-                >
-                  <Button
-                    variant="danger"
-                    size="icon"
-                    data-testid="meeting-reset-agenda-revision"
-                    aria-label={t("meeting.revision.reset")}
-                    disabled={busy}
-                    onClick={onCancel}
-                  >
-                    <CloseIcon aria-hidden="true" />
-                  </Button>
-                </Explained>
-              ) : null}
-            </span>
+          {onConfirm ? (
+            <Explained
+              title={t("meeting.revision.generateNotice")}
+              text={t("meeting.revision.generateNoticeHint", { number: formatNumber(number) })}
+            >
+              <Button
+                variant="primary"
+                size="icon"
+                className="revision-control-confirm"
+                data-testid="meeting-generate-notice"
+                aria-label={t("meeting.revision.generateNotice")}
+                disabled={busy}
+                onClick={onConfirm}
+              >
+                <CheckIcon aria-hidden="true" />
+              </Button>
+            </Explained>
+          ) : null}
+          {onCancel ? (
+            <Explained
+              title={t("meeting.revision.reset")}
+              text={t("meeting.revision.resetHint", { number: formatNumber(Math.max(number - 1, 1)) })}
+            >
+              <Button
+                variant="danger"
+                size="icon"
+                className="revision-control-cancel"
+                data-testid="meeting-reset-agenda-revision"
+                aria-label={t("meeting.revision.reset")}
+                disabled={busy}
+                onClick={onCancel}
+              >
+                <CloseIcon aria-hidden="true" />
+              </Button>
+            </Explained>
           ) : null}
         </>
       )}

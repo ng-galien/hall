@@ -18,7 +18,6 @@ import {
   meetingScheduleInputValue,
   meetingScheduleInstant,
 } from "../../features/council-meetings/meetingPresentation";
-import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useMeetingSettings } from "../../hooks/useMeetingSettings";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -37,7 +36,7 @@ import { type MeetingDetailsField, meetingDetailsSubmission } from "./meetingDet
 // @implements-requirement HALL-FR-NOT-140
 /** Date and location belong to the agenda revision: they change only while it is open. */
 export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnType<typeof useCouncilMeeting> }) {
-  const { t, locale, formatDate, formatDateTime, formatTime, formatNumber } = useI18n();
+  const { t, formatDate, formatDateTime, formatTime, formatNumber } = useI18n();
   const { submitting, run } = useSubmitting();
   const phone = usePhoneLayout();
   const aggregate = meetingActions.meeting!;
@@ -131,11 +130,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     const message = detailsErrors[field];
     return message ? t(message) : undefined;
   };
-  const weekday = meeting.scheduledAt
-    ? new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { weekday: "long" }).format(
-        new Date(meeting.scheduledAt),
-      )
-    : null;
 
   const revisionToggle =
     meeting.status === "draft" || meeting.status === "scheduled" ? (
@@ -149,6 +143,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         onCancel={canResetRevision ? () => void run(() => meetingActions.resetAgendaRevision()) : undefined}
       />
     ) : null;
+  const headerActions = revisionToggle;
   const phoneReader = phone && !agendaEditable && !detailsInline;
   const { hash } = useLocation();
   useEffect(() => {
@@ -158,6 +153,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
     <div className="page meeting-preparation">
       <PageHeader
         title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
+        titleAction={phoneReader ? undefined : headerActions}
         above={
           phoneReader ? undefined : (
             <MeetingStageBar
@@ -171,33 +167,40 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
         description=""
       >
         <div className="meeting-console">
-          <p className="meeting-state" data-testid="meeting-facts">
-            <MeetingStatusBadge status={meeting.status} stale={meeting.stale} />
-            {meeting.isReconvenedMeeting ? (
-              <span data-testid="meeting-reconvened-chip">{t("meeting.reconvenedChip")}</span>
-            ) : null}
-            {meeting.scheduledAt ? (
-              <>
-                <span>{weekday}</span>
-                <span>{formatTime(meeting.scheduledAt)}</span>
-              </>
-            ) : (
-              <span>{t("workspace.dateToSet")}</span>
-            )}
-            {meeting.location ? <span>{meeting.location}</span> : null}
-          </p>
-          {phoneReader ? null : revisionToggle}
-          {!detailsInline ? (
-            <p className="meeting-state">
-              <span>
-                {t("meetings.chair")} :{" "}
-                {meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none")}
-              </span>
-              <span>
-                {t("meetings.secretary")} :{" "}
-                {meeting.secretaryMemberId ? councilMemberName(members, meeting.secretaryMemberId) : t("common.none")}
-              </span>
-            </p>
+          {meeting.isReconvenedMeeting ? (
+            <span className="meeting-reconvened-chip" data-testid="meeting-reconvened-chip">
+              {t("meeting.reconvenedChip")}
+            </span>
+          ) : null}
+          {scheduleLocked || !detailsInline ? (
+            <dl className="meeting-brief" data-testid="meeting-facts">
+              <div>
+                <dt>{t("meeting.facts.time")}</dt>
+                <dd>{meeting.scheduledAt ? formatTime(meeting.scheduledAt) : t("workspace.dateToSet")}</dd>
+              </div>
+              <div>
+                <dt>{t("meetings.location")}</dt>
+                <dd>{meeting.location || t("common.none")}</dd>
+              </div>
+              {!detailsInline ? (
+                <>
+                  <div>
+                    <dt>{t("meetings.chair")}</dt>
+                    <dd>
+                      {meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none")}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t("meetings.secretary")}</dt>
+                    <dd>
+                      {meeting.secretaryMemberId
+                        ? councilMemberName(members, meeting.secretaryMemberId)
+                        : t("common.none")}
+                    </dd>
+                  </div>
+                </>
+              ) : null}
+            </dl>
           ) : null}
           <MeetingEntryBlockers blockers={entryBlockers.filter((blocker) => blocker.code !== "agendaRevisionOpen")} />
           {meeting.status === "draft" && !aggregate.agendaReady && aggregate.requiredMinutesOfMeetingId ? (

@@ -1199,6 +1199,7 @@ export const en = {
   "meetings.past": "Past meetings",
   "meetings.edit": "Edit the meeting",
   "meeting.reconvenedChip": "Second convocation",
+  "meeting.facts.time": "Time",
   "meeting.inProgressSince": "Opened at {time}",
   "meetings.title": "Council meetings",
   "meetings.description": "Meeting notice, agenda, attendance, quorum, ballots and minutes.",

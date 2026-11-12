@@ -1224,6 +1224,7 @@ export const fr: Messages = {
   "meetings.past": "Séances passées",
   "meetings.edit": "Modifier la séance",
   "meeting.reconvenedChip": "Seconde convocation",
+  "meeting.facts.time": "Heure",
   "meeting.inProgressSince": "Ouverte à {time}",
   "meetings.title": "Séances du conseil",
   "meetings.description": "Convocation, ordre du jour, présences, quorum, votes et procès-verbal.",
