@@ -11,12 +11,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
+import { Field } from "../../components/ui/field";
+import { Input } from "../../components/ui/input";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, type SirenApiResult, submitSirenAction } from "../../services/apiClient";
 import { type MailRecipientSelections, previewMail } from "../../services/mailApi";
-import { ScreenActions } from "../../shell/headerTrail";
 import { MailAttachments } from "./MailAttachments";
 import { MailReview } from "./MailReview";
+import { MessageCommands } from "./MessageCommands";
 import type { RecipientGroup } from "./mailFolders";
 import { RecipientLine } from "./RecipientLine";
 import { useMailAutosave } from "./useMailAutosave";
@@ -102,10 +104,13 @@ export function MailEditor({
     );
   return (
     <section className="mail-composer" data-testid="mail-composer">
-      <ScreenActions>
-        <span className="record-state mail-save-state" data-save={status} data-testid="mail-save-state">
-          {saveLabel}
-        </span>
+      <MessageCommands
+        facts={
+          <span className="record-state mail-save-state" data-save={status} data-testid="mail-save-state">
+            {saveLabel}
+          </span>
+        }
+      >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="plain" size="icon" data-testid="mail-more" aria-label={t("mail.more")}>
@@ -139,7 +144,7 @@ export function MailEditor({
         >
           {t("mail.send")}
         </Button>
-      </ScreenActions>
+      </MessageCommands>
       <RequestErrorBanner error={(error ?? saveError) ? apiErrorCode(error ?? saveError) : null} />
       <div className="mail-composer-head">
         <RecipientLine
@@ -173,16 +178,14 @@ export function MailEditor({
             />
           ) : null,
         )}
-        <label className="mail-subject-line">
-          <span className="mail-recipient-kind">{t("mail.subject")}</span>
-          <input
-            className="mail-subject-input"
+        <Field label={t("mail.subject")} className="mail-subject">
+          <Input
             data-testid="mail-subject"
             value={draft.subject}
             disabled={busy}
             onChange={(event) => setDraft({ ...draft, subject: event.target.value })}
           />
-        </label>
+        </Field>
       </div>
       <div className="mail-body">
         <MarkdownEditor

@@ -2,6 +2,8 @@ import type { MailRecipient } from "@hall/api-contract";
 import { type KeyboardEvent, type ReactNode, useId, useState } from "react";
 import { CloseIcon, MemberIcon, MembersIcon, SettingsIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
+import { Field } from "../../components/ui/field";
+import { Input } from "../../components/ui/input";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { MailRecipientSelections } from "../../services/mailApi";
 import { addRecipients, displayRecipients, type RecipientGroup } from "./mailFolders";
@@ -211,9 +213,8 @@ export function RecipientLine({
     );
   };
   return (
-    <div className="mail-recipient-line" data-testid={testId}>
-      <span className="mail-recipient-kind">{t(`mail.${kind}`)}</span>
-      <div className="mail-recipient-values">
+    <Field label={t(`mail.${kind}`)} className="mail-recipient-line" testId={testId}>
+      <div className="mail-recipient-values hall-field-composite">
         {display.groups.map(({ group, indexes }) => (
           <RecipientLabel
             key={group.key}
@@ -249,10 +250,11 @@ export function RecipientLine({
           );
         })}
         {disabled ? null : (
-          <div className="mail-recipient-entry">
-            <input
+          <>
+            <Input
               className="mail-recipient-input"
               type="text"
+              placeholder={display.groups.length + display.singles.length > 0 ? "" : undefined}
               role="combobox"
               aria-expanded={open && suggestions.length > 0}
               aria-controls={listId}
@@ -280,10 +282,10 @@ export function RecipientLine({
                 {section("", ["manage"])}
               </div>
             ) : null}
-          </div>
+          </>
         )}
+        {trailing ? <span className="mail-recipient-trailing">{trailing}</span> : null}
       </div>
-      {trailing ? <span className="mail-recipient-trailing">{trailing}</span> : null}
-    </div>
+    </Field>
   );
 }

@@ -359,21 +359,9 @@
   .mail-composer,
   .mail-reader { display: flex; min-height: 100%; flex: 1; flex-direction: column; gap: var(--hall-space-2); }
   .mail-composer-head { display: grid; gap: var(--hall-space-1); }
-  .mail-recipient-line,
-  .mail-subject-line {
-    display: flex;
-    min-height: var(--hall-size-touch-control);
-    align-items: flex-start;
-    gap: var(--hall-space-2);
-    padding: var(--hall-space-1-5) var(--hall-space-3);
-    border-radius: var(--hall-radius-small) var(--hall-radius-small) 0 0;
-    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thin)) 0 var(--hall-color-field-line);
-    background: var(--hall-color-field);
-  }
-  .mail-recipient-line:focus-within,
-  .mail-subject-line:focus-within { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-brand); }
-  .mail-recipient-kind { min-width: var(--hall-size-mail-kind); padding-top: var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
-  .mail-recipient-values { display: flex; min-width: 0; flex: 1; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1); }
+  /* The recipients of a line and the draft of the next one, in the shared field. */
+  .mail-recipient-values { position: relative; display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1); }
+  .mail-recipient-values > .mail-recipient-input { width: auto; min-width: var(--hall-size-mail-entry); flex: 1; }
   .mail-recipient {
     display: inline-flex;
     max-width: 100%;
@@ -403,12 +391,8 @@
   }
   .mail-recipient > .mail-recipient-remove:hover,
   .mail-attachment > .mail-attachment-control:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
-  .mail-recipient-entry { position: relative; min-width: var(--hall-size-mail-entry); flex: 1; }
-  .mail-recipient-input,
-  .mail-subject-input { width: 100%; min-height: var(--hall-size-control-small); border: 0; outline: none; color: var(--hall-color-text); background: transparent; font: inherit; font-size: var(--hall-font-size-text); }
-  .mail-recipient-trailing { display: inline-flex; flex: none; gap: var(--hall-space-1); }
+  .mail-recipient-trailing { display: inline-flex; flex: none; gap: var(--hall-space-1); margin-left: auto; }
   .hall-button.mail-copy-link { min-height: var(--hall-size-control-small); padding-inline: var(--hall-space-1); color: var(--hall-color-brand); }
-  .mail-subject-line { align-items: center; }
   .mail-suggestions {
     position: absolute;
     top: 100%;

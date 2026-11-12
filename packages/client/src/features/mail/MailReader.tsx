@@ -9,9 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, apiSirenRequest, type SirenApiResult, submitSirenAction } from "../../services/apiClient";
 import type { MailRecipientSelections } from "../../services/mailApi";
-import { ScreenActions } from "../../shell/headerTrail";
 import { MailAttachments } from "./MailAttachments";
 import { MailReview } from "./MailReview";
+import { MessageCommands } from "./MessageCommands";
 import type { RecipientGroup } from "./mailFolders";
 import { mailStatus } from "./mailStatus";
 import { RecipientLine } from "./RecipientLine";
@@ -65,7 +65,7 @@ export function MailReader({
     .find((entity) => entity && findSirenAction(entity, "mail.verify-submission"));
   return (
     <section className="mail-reader" data-testid="mail-reader">
-      <ScreenActions>
+      <MessageCommands>
         {toVerify ? (
           <Button
             data-testid="mail-verify"
@@ -95,7 +95,7 @@ export function MailReader({
             {t("mail.copy")}
           </Button>
         ) : null}
-      </ScreenActions>
+      </MessageCommands>
       <RequestErrorBanner error={error ? apiErrorCode(error) : null} />
       <h2 className="mail-reader-subject">{message.subject || t("mail.noSubject")}</h2>
       <div className="mail-composer-head">

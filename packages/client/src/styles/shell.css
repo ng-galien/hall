@@ -88,6 +88,7 @@
   .screen-title-commands:empty,
   .screen-title-facts:empty { display: none; }
   .screen-title-commands { display: flex; min-height: var(--hall-line-height-display); flex: none; align-items: center; gap: var(--hall-space-1); margin-left: auto; }
+  .item-commands { display: flex; align-items: center; gap: var(--hall-space-1); }
   .screen-title-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-4); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .screen-header-title {
     min-width: 0;
@@ -109,11 +110,11 @@
   .breadcrumb-separator { flex: none; color: var(--hall-color-text-subtle); font-size: var(--hall-font-size-icon-small); }
 
   /* @implements-requirement HALL-FR-LAY-110 */
-  .app-sidebar {
   /* The menu keeps one row height under a mouse and under a finger: the finger size is kept for the phone. */
-    display: flex;
+  .app-sidebar {
     --hall-size-control: var(--hall-size-nav-row);
     --hall-size-touch-control: var(--hall-size-nav-row);
+    display: flex;
     width: var(--hall-size-sidebar);
     height: 100%;
     flex: none;
@@ -188,8 +189,8 @@
     border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
     background: var(--hall-color-surface);
   }
-  .app-phone-bar-item {
   /* Each entry starts from the width of its label, so that the five labels hold at 320 pixels without touching. */
+  .app-phone-bar-item {
     display: flex;
     min-width: 0;
     min-height: var(--hall-size-phone-bar);
