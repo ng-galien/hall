@@ -237,9 +237,15 @@ const cases = [
   ],
   [
     "writing-modes",
-    {},
+    { phone: true },
     `<button class="secondary" data-testid="text-edit">Modifier</button><button class="primary" data-testid="text-finish-editing">Terminé</button>`,
     `<button class="primary" data-testid="text-finish-editing">Terminé</button>`,
+  ],
+  [
+    "writing-modes",
+    {},
+    `<button class="secondary" data-testid="text-edit">Modifier</button><p>Texte</p>`,
+    `<p>Texte</p><span role="status" class="dot">Enregistré</span>`,
   ],
   [
     "row-height",

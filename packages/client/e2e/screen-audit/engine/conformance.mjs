@@ -100,9 +100,11 @@ export const conformanceRules = {
     expected: "Au téléphone, la barre du bas montre cinq destinations, chacune avec son icône en trait et son libellé.",
   },
   "writing-modes": {
-    title: "Choix 8 : « Modifier » et « Terminé » affichés ensemble",
-    expected: "Un texte se lit avec « Modifier » ou s'écrit avec « Terminé », jamais les deux à la fois.",
+    title: "Choix 8B : « Modifier » et « Terminé » hors du téléphone, ou ensemble",
+    expected:
+      "Au téléphone, un texte se lit avec « Modifier » ou s'écrit avec « Terminé », jamais les deux à la fois ; à la tablette et à l'ordinateur, un texte s'ouvre directement en écriture, sans « Modifier » ni « Terminé ».",
   },
+
   "pointer-scale": {
     title: "Tailles à l'ordinateur : ligne de liste écrite plus grand que le menu",
     expected: "À la souris, le titre d'une ligne de liste est écrit à la taille du texte du menu.",
@@ -755,8 +757,11 @@ export function measureConformance(options) {
   /* writing-modes: choice 8B, a text is read with « Modifier » or written with « Terminé », never both. */
   const editing = commands.filter((command) => command.matches("[data-testid=text-edit]"));
   const finishing = commands.filter((command) => command.matches("[data-testid=text-finish-editing]"));
-  if (editing.length && finishing.length)
+  if (phone && editing.length && finishing.length)
     add("writing-modes", finishing[0], "« Modifier » et « Terminé » visibles ensemble");
+  if (!phone)
+    for (const command of [...editing, ...finishing])
+      add("writing-modes", command, `« ${nameOf(command).slice(0, 20)} » hors du téléphone`);
 
   /* pointer-scale: under a mouse, the content comes down to the size of the menu and the header (12 November 2026). */
   if (!touch && !phone) {

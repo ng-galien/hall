@@ -197,12 +197,15 @@ export const components = [
     id: "texte",
     name: "Texte et écriture",
     code: ["packages/client/src/features/resources/useTextWriting.tsx", "packages/client/src/styles/tokens.css"],
-    variants: ["lecture (« Modifier »)", "écriture (« Terminé »)"],
+    variants: [
+      "téléphone : lecture (« Modifier »), écriture (« Terminé »)",
+      "tablette et ordinateur : écriture directe, sauvegarde automatique visible",
+    ],
     rules: ["writing-modes", "editor-tools", "font-family", "text-size", "date-format", "forbidden-text", "warm-tint"],
     values: ["texte courant", "fond des écrans"],
     decided: [
       {
-        what: "une note neuve s'ouvre en écriture, un texte existant en lecture",
+        what: "au téléphone, une note neuve s'ouvre en écriture, un texte existant en lecture ; à la tablette et à l'ordinateur, la sauvegarde automatique est visible",
         source: `${choices}, page 1, choix 8B`,
       },
       {
