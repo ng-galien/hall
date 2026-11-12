@@ -21,6 +21,14 @@ const keptKey =
 const keptText = /^(Aucun|Aucune|Impossible|Erreur|Échec)\b/;
 /* The second line of an entry of the « Nouveau » menu and of a stage of a meeting: a short label. */
 const shortLabel = /^create\.kind\.[\w-]+\.description$|^meeting\.stage\.[\w-]+\.hint$/;
+/* Texts the coordinator keeps in clear (12 November 2026): the setup of a link without an address, the empty legal
+   search, the template examples, the duplicate account warning. */
+const keptInClear = new Set([
+  "workspace.remoteSetupDescription",
+  "legalReference.searchHint",
+  "templates.jinjaData",
+  "users.conflictHint",
+]);
 /* A message the decision keeps in clear: an error, a conflict, a blocking warning, a confirmation, a result. */
 const message =
   /(Conflict|conflict|Success|Recorded|Preserved|alreadyPresent|capacityReached|Incomplete|delete\w*Help|offline|WithoutQuorum|Prepared|passwordRecorded)\b|^applicationError\./;
@@ -41,7 +49,7 @@ const sentences = (text) => text.split(/(?<=[.!?…])\s+(?=[A-ZÀ-Ý«])/u).filt
 export function explanationOf(key, text) {
   if (keptKey.test(key) || keptText.test(text.trim())) return null;
   // Decisions of 12 November 2026: messages stay in clear; short second lines are labels; the development page is out.
-  if (message.test(key) || shortLabel.test(key) || /^editor\.lab\./.test(key)) return null;
+  if (message.test(key) || shortLabel.test(key) || /^editor\.lab\./.test(key) || keptInClear.has(key)) return null;
   if (words(text) < 4) return null;
   if (explanationKey.test(key)) return "clé d'explication";
   if (sentences(text) >= 2 && words(text) >= 10) return "deux phrases ou plus";
