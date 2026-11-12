@@ -30,7 +30,9 @@ export function HelpHint({ text, testId }: { text: string; testId?: string }) {
           <InfoIcon aria-hidden="true" />
         </Button>
       </TooltipTrigger>
-      <TooltipContent className="help-hint-content">{text}</TooltipContent>
+      <TooltipContent side="top" className="help-hint-content">
+        {text}
+      </TooltipContent>
     </Tooltip>
   );
 }

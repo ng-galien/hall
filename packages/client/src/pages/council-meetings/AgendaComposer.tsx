@@ -182,13 +182,17 @@ export function AgendaComposer({
             </span>
           </>
         }
-        commands={
+        hint={
           <>
             <HelpHint
               text={t(editable ? "meeting.composerDescription" : "meeting.composerLocked")}
               testId="agenda-composer-help"
             />
             {status}
+          </>
+        }
+        commands={
+          <>
             {actions}
             {editable && onQuickCreate ? (
               <Button data-testid="agenda-question-create" variant="secondary" onClick={() => setQuickAddOpen(true)}>
@@ -204,7 +208,7 @@ export function AgendaComposer({
       {orderedItems.length === 0 ? (
         <EmptyState>{t("meeting.emptyAgenda")}</EmptyState>
       ) : (
-        <ListRows className="composer-list">
+        <ListRows className="composer-list" data-layout-flow="true">
           {orderedItems.map((item, index) => {
             const expanded = expandedItemId === item.id;
             const business = item.business;

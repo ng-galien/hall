@@ -21,6 +21,8 @@
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
   .modal-header h2 { font-size: var(--hall-font-size-title); }
+  /* The title of a window followed by the information icon of its explanation. */
+  .modal-title { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-1); }
   .modal-content {
     min-height: 0;
     overflow: auto;
@@ -50,6 +52,8 @@
   }
   .choice-option-text { display: grid; gap: var(--hall-space-0-5); min-width: 0; line-height: var(--hall-line-height-body-small); }
   .choice-option-text > strong { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
+  /* A choice label followed by the information icon of its explanation, on one line. */
+  .choice-option-label { display: inline-flex; align-items: center; gap: var(--hall-space-1); }
   .choice-option-hint { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
   .choice-group:disabled .choice-option { cursor: default; }
 
@@ -302,10 +306,8 @@
     background: var(--hall-color-surface);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
+  /* The header of the minutes scrolls with the page: only the tools of the editor in use stay fixed. */
   .minutes-detail-header {
-    position: sticky;
-    z-index: var(--hall-z-sticky);
-    top: 0;
     background: var(--hall-color-surface);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
@@ -818,7 +820,7 @@
   /* The facts of the band and the attendance counts share one baseline and one size; long names wrap in their fact. */
   .meeting-report-band,
   .meeting-report-band-attendance { align-items: flex-start; }
-  .meeting-report-band > .meeting-facts > div { max-width: var(--hall-size-relative-10rem); }
+  .meeting-report-band > .meeting-facts > div { max-width: var(--hall-size-relative-8rem); }
   .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command,
   .report-timeline .section-header-commands .hall-button.hall-link { min-height: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-regular); }
   .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command { align-self: center; }
@@ -867,9 +869,6 @@
   .composer-list .list-row-action { margin-left: auto; }
 }
 
-/* Outside the layers, like the fixed tools of the editor: in the minutes the tools stop under the sticky header. */
-.minutes-editorial-page .markdown-editor.markdown-editor-compact > [role="toolbar"] { top: var(--minutes-header-height, var(--hall-size-zero)); }
-
 @layer components {
   /* A title followed by the information icon of its explanation. */
   .meeting-locations-title { display: flex; align-items: center; gap: var(--hall-space-1); }
@@ -881,5 +880,22 @@
     :is(.meeting-documents, .meeting-decisions) .list-row-action > .hall-link,
     .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command,
     .report-timeline .section-header-commands .hall-button.hall-link { display: inline-flex; min-height: var(--hall-size-touch-control); align-items: center; }
+  }
+}
+
+@layer components {
+  /* On a phone every document and deliberation row has one form: its name and facts over the whole width, then its
+     written commands on a line under them, aligned with the text at the left. */
+  @media (max-width: 760px) {
+    :is(.meeting-documents, .meeting-decisions) .list-row-main { flex-basis: 100%; }
+    :is(.meeting-documents, .meeting-decisions) .list-row-action {
+      width: 100%;
+      justify-content: flex-start;
+      margin-left: 0;
+      padding: 0 var(--hall-space-3) var(--hall-space-2) calc(var(--hall-space-3) * 2 + var(--list-row-head-width, var(--hall-size-glyph-large)));
+    }
+    .meeting-decisions .list-row-action { padding-left: var(--hall-space-3); }
+    /* The save state of the decision writing stays on the line of its title. */
+    .decision-writing .section-header-text { flex-basis: 0; }
   }
 }

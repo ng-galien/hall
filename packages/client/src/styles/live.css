@@ -461,7 +461,8 @@
     font-size: var(--hall-font-size-title);
     line-height: var(--hall-line-height-body);
   }
-  .conduct-documents { display: flex; flex-wrap: wrap; gap: var(--hall-space-2); }
+  /* The documents of an item, one per line. */
+  .conduct-documents { display: grid; justify-items: start; gap: var(--hall-space-2); }
   .hall-button.conduct-document-chip {
     display: inline-flex;
     align-items: center;
@@ -830,7 +831,8 @@
 
   /* The course of the current item in meeting mode: each stage is a title after a dot, the current one in blue. */
   .conduct-stage-header .meeting-stepper { padding: var(--hall-space-2) 0; }
-  .conduct-stage-header .meeting-stepper-list { display: flex; flex-wrap: wrap; gap: var(--hall-space-2) var(--hall-space-5); margin: 0; padding: 0; list-style: none; }
+  /* The steps of an item share one row, each title wrapping within its own column. */
+  .conduct-stage-header .meeting-stepper-list { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--hall-space-2) var(--hall-space-5); margin: 0; padding: 0; list-style: none; }
   .conduct-stage-header .meeting-stepper-item { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text-muted); }
   .conduct-stage-header .meeting-stepper-marker { display: flex; align-items: center; }
   .conduct-stage-header .meeting-stepper-indicator {

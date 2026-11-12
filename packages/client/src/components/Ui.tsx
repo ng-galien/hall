@@ -155,8 +155,10 @@ export function Modal({
         }
       >
         <header className="modal-header">
-          <DialogTitle>{title}</DialogTitle>
-          {hint ? <HelpHint text={hint} /> : null}
+          <div className="modal-title">
+            <DialogTitle>{title}</DialogTitle>
+            {hint ? <HelpHint text={hint} /> : null}
+          </div>
           <Button
             size="icon"
             variant="plain"

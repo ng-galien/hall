@@ -71,8 +71,10 @@ export function AgendaItemRecusalDialog({
                 required
               />
               <span className="choice-option-text">
-                <strong>{t(recusalBasisLabel(value))}</strong>
-                <HelpHint text={t(recusalBasisHint(value))} />
+                <span className="choice-option-label">
+                  <strong>{t(recusalBasisLabel(value))}</strong>
+                  <HelpHint text={t(recusalBasisHint(value))} />
+                </span>
               </span>
             </label>
           ))}
