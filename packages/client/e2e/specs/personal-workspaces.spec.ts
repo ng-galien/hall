@@ -174,6 +174,7 @@ test("gives council members read access and a personal folder that only they and
   await test.step("an administrator creates a council member account linked to an elected member", async () => {
     await admin.goto("/app/users");
     await admin.getByTestId("users-add").click();
+    await admin.getByTestId("user-access-hand-delivered").check();
     await admin.getByTestId("user-display-name").fill("Alice Martin");
     await admin.getByTestId("user-email").fill("alice@example.test");
     await admin.getByTestId("user-password").fill(password);

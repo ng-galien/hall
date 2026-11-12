@@ -21,6 +21,7 @@ test("creates a linked user, assigns cumulative roles and disables the account",
   expect(contact).toBeTruthy();
   await openMenuEntry(page, "users");
   await page.getByTestId("users-add").click();
+  await page.getByTestId("user-access-hand-delivered").check();
   await page.getByTestId("user-display-name").fill("Responsable des approvisionnements");
   await page.getByTestId("user-email").fill(`approvisionnements-${Date.now()}@alesia.example`);
   await page.getByTestId("user-password").fill("Hall-test-2026!");
@@ -88,6 +89,7 @@ test("preserves a rejected administrator role change and duplicate account form"
   await page.keyboard.press("Escape");
   await openMenuEntry(page, "users");
   await page.getByTestId("users-add").click();
+  await page.getByTestId("user-access-hand-delivered").check();
   await page.getByTestId("user-display-name").fill("Doublon à corriger");
   await page.getByTestId("user-email").fill(admin.email);
   await page.getByTestId("user-password").fill("Hall-test-2026!");
@@ -126,6 +128,7 @@ test("preserves a rejected administrator role change and duplicate account form"
   expect(linkedResponse.status()).toBe(201);
   await page.reload();
   await page.getByTestId("users-add").click();
+  await page.getByTestId("user-access-hand-delivered").check();
   await page.getByTestId("user-display-name").fill("Doublon à corriger");
   await page.getByTestId("user-password").fill("Hall-test-2026!");
   await page.getByTestId("user-role-contributor").check();

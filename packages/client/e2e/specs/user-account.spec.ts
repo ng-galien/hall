@@ -151,6 +151,7 @@ test("marks a hand-delivered password temporary and requires a different persona
   ).toBe(201);
   await page.goto("/app/users");
   await page.getByTestId("users-add").click();
+  await page.getByTestId("user-access-hand-delivered").check();
   await expect(page.getByTestId("passphrase-value")).toBeVisible();
   const phrase = (await page.getByTestId("passphrase-value").textContent())!.trim();
   await page.getByTestId("user-display-name").fill("Compte temporaire");

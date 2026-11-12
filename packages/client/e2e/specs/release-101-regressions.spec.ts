@@ -85,11 +85,13 @@ test("user creation generates a fresh passphrase on reopening and reports genera
   const options = await page.request.get("/api/roles/options");
   expect(options.status()).toBe(200);
   await page.getByTestId("users-add").click();
+  await page.getByTestId("user-access-hand-delivered").check();
   await expect(page.getByTestId("passphrase-value")).toBeVisible();
   const first = await page.getByTestId("passphrase-value").textContent();
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("passphrase-value")).toHaveCount(0);
   await page.getByTestId("users-add").click();
+  await page.getByTestId("user-access-hand-delivered").check();
   await expect(page.getByTestId("passphrase-value")).toBeVisible();
   await expect(page.getByTestId("passphrase-value")).not.toHaveText(first!);
   await page.getByTestId("user-display-name").fill("Fixture retained name");

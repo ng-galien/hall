@@ -25,6 +25,7 @@ test("creates an account with a generated passphrase shown once, then revokes it
     (response) => response.url().endsWith("/api/users/passphrases") && response.request().method() === "POST",
   );
   await page.getByTestId("users-add").click();
+  await page.getByTestId("user-access-hand-delivered").check();
   expect((await generation).status()).toBe(200);
   await expect(page.getByTestId("passphrase-value")).toBeVisible();
   const tops = await page

@@ -12,6 +12,8 @@ test("compte et dossier personnel d’un conseiller", async ({ docsPage: page })
   await capture(page, `${journey}/01-utilisateurs`);
 
   await page.getByTestId("users-add").click();
+
+  await page.getByTestId("user-access-hand-delivered").check();
   await expect(page.getByTestId("user-create-form")).toBeVisible();
   await page.getByTestId("user-display-name").fill("Épasnactos l’Arverne");
   await page.getByTestId("user-email").fill("epasnactos@alesia.example");
