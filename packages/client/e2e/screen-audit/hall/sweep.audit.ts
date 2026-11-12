@@ -356,6 +356,7 @@ if (sweeping) {
           };
 
           await Promise.all(Array.from({ length: Math.min(sweepPlan.pages, selected.length) }, () => worker(browser)));
+          mkdirSync(directory, { recursive: true });
           writeFileSync(
             join(outputDirectory, `menus-${input}-${scenario}.json`),
             JSON.stringify({ opened: [...menusOpened], failed: Object.fromEntries(menusFailed) }),

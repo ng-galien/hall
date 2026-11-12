@@ -127,13 +127,51 @@ function buildClient() {
   return built;
 }
 
+/*
+ * The lock of the test database (the same as e2e/run.mjs), held from the first write in the output directory to the
+ * last line of the report: a second pass waits for it instead of emptying the directory of the pass under way.
+ */
+const lockDirectory = "/private/tmp/hall-e2e.lock";
+let lockTaken = false;
+function takeLock() {
+  if (process.env.HALL_E2E_LOCK_HELD === "true") return;
+  let announced = false;
+  for (;;) {
+    try {
+      mkdirSync(lockDirectory);
+      writeFileSync(
+        join(lockDirectory, "owner"),
+        `vérificateur (outil de vérification des écrans) — pid ${process.pid} — ${new Date().toISOString()} — ${process.argv.slice(2).join(" ")}\n`,
+      );
+      lockTaken = true;
+      return;
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      if (!announced) {
+        const owner = existsSync(join(lockDirectory, "owner"))
+          ? readFileSync(join(lockDirectory, "owner"), "utf8").trim()
+          : "inconnu";
+        console.log(`La base de test est tenue par : ${owner}. Le passage attend sa libération…`);
+        announced = true;
+      }
+      spawnSync("sleep", ["5"]);
+    }
+  }
+}
+process.once("exit", () => {
+  if (lockTaken) rmSync(lockDirectory, { recursive: true, force: true });
+});
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.once(signal, () => process.exit(130));
+
 /* --build-only builds the client of the commit and writes its directory: the journeys of a pass are run on it. */
 if (process.argv.includes("--build-only")) {
+  takeLock();
   console.log(buildClient());
   process.exit(0);
 }
 
 const started = Date.now();
+let interruption = null;
 if (!reportOnly && selected !== "") {
   /* The rules are proven on their faulty and correct pages before any measure. */
   const proof = spawnSync(process.execPath, [resolve(clientDirectory, "e2e/screen-audit/engine/sweep-self-test.mjs")], {
@@ -143,6 +181,7 @@ if (!reportOnly && selected !== "") {
     console.error("Une règle ne passe pas sa preuve : le passage n'est pas lancé.");
     process.exit(1);
   }
+  takeLock();
   rmSync(outputDirectory, { recursive: true, force: true });
   const clientBuild = buildClient();
   mkdirSync(outputDirectory, { recursive: true });
@@ -153,6 +192,8 @@ if (!reportOnly && selected !== "") {
       ...process.env,
       HALL_SCREEN_AUDIT: "true",
       HALL_E2E_LOCK_OWNER: "vérificateur (outil de vérification des écrans)",
+      // The pass holds the lock itself, from its first write to its report.
+      HALL_E2E_LOCK_HELD: "true",
       HALL_SCREEN_AUDIT_MODE: authPass ? "auth-sweep" : "sweep",
       ...(authPass ? { HALL_E2E_AUTH_MODE: "true" } : {}),
       // A complete sweep lasts longer than the ten minutes the runner gives a local suite: it takes the time of a CI run.
@@ -166,7 +207,7 @@ if (!reportOnly && selected !== "") {
     },
     stdio: "inherit",
   });
-  if (result.status !== 0) console.error(`Le balayage s'est terminé avec le statut ${result.status}.`);
+  if (result.status !== 0) interruption = `le balayage s'est terminé avec le statut ${result.status}`;
 }
 const seconds = Math.round((Date.now() - started) / 1000);
 const measuredCommit = existsSync(join(outputDirectory, "commit.txt"))
@@ -294,6 +335,15 @@ for (const group of open)
   );
 for (const entry of withoutReason) say(`\nÉcart accepté sans raison écrite, refusé : ${entry.key}`);
 for (const entry of stale) say(`\nÉcart accepté qui ne se produit plus, à retirer : ${entry.key}`);
+const unmeasured = missing.filter((entry) => entry.endsWith("non mesuré, balayage interrompu"));
+if (!interruption && unmeasured.length) interruption = `${unmeasured.length} cas non mesurés`;
+if (interruption) {
+  // An interrupted pass gives no partial result as if it were whole.
+  lines.unshift(
+    `PASSAGE INTERROMPU (${interruption}) : les mesures ci-dessous sont partielles et ne valent pas verdict.`,
+  );
+  say(`\nPASSAGE INTERROMPU (${interruption}) : relancer le passage ; aucune des mesures ci-dessus ne vaut verdict.`);
+}
 say(`\nÉcarts : ${groups.length}, acceptés avec raison : ${groups.length - open.length}, à corriger : ${open.length}.`);
 say(`Détail : ${join(outputDirectory, "findings.json")}`);
 
@@ -304,4 +354,8 @@ writeFileSync(
 );
 writeFileSync(join(outputDirectory, "report.txt"), `${lines.join("\n")}\n`);
 console.log(lines.join("\n"));
-process.exitCode = open.length || stale.length || missing.length || withoutReason.length || unmapped.length ? 1 : 0;
+process.exitCode = interruption
+  ? 2
+  : open.length || stale.length || missing.length || withoutReason.length || unmapped.length
+    ? 1
+    : 0;
