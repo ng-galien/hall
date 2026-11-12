@@ -404,7 +404,7 @@ export function VotePanel({
                     <span className="vote-source-tools">
                       {canReceiveSelection ? (
                         <Button
-                          variant="secondary"
+                          variant="plain"
                           data-testid={`live-vote-assign-${zone.choice}`}
                           onClick={() => dropIntoZone(zone.choice)}
                         >
@@ -564,7 +564,7 @@ export function VotePanel({
           )}
         </div>
         <div className="vote-panel-footer-actions">
-          <Button variant="secondary" data-testid="live-ballot-cancel" onClick={() => onOpenChange(false)}>
+          <Button variant="plain" data-testid="live-ballot-cancel" onClick={() => onOpenChange(false)}>
             {t("common.cancel")}
           </Button>
           {actionContainer

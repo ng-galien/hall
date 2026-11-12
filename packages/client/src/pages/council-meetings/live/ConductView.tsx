@@ -568,7 +568,7 @@ export function ConductView({
             />
           ) : null}
           <Button
-            variant="secondary"
+            variant="danger"
             className="conduct-rail-tool"
             disabled={submitting || !meetingActions.can("meeting.close")}
             aria-busy={submitting && closeConfirming}
@@ -782,7 +782,7 @@ export function ConductView({
         <div className="conduct-stage-scroll" data-testid="live-item-scroll">
           <div className="conduct-stage-body">
             {selectedItem.business.kind === "minutesApproval" ? (
-              <Button asChild variant="secondary" className="conduct-minutes-link">
+              <Button asChild variant="plain" className="conduct-minutes-link">
                 <Link to={`/minutes/${selectedItem.business.minutesId}`} data-testid="live-minutes-link">
                   <FileIcon aria-hidden="true" />
                   {t("minutes.open")}
@@ -825,7 +825,7 @@ export function ConductView({
                 <div className="conduct-documents">
                   {itemResources.map((resource) => (
                     <Button
-                      variant="secondary"
+                      variant="plain"
                       key={resource.id}
                       data-testid={`live-document-${resource.id}`}
                       onClick={() => setViewedResourceId(resource.id)}
@@ -1005,7 +1005,7 @@ export function ConductView({
         <footer className="conduct-stage-actions" data-testid="live-item-actions">
           {meetingActions.can("agenda-item.adjourn", selectedItem.id) ? (
             <Button
-              variant="secondary"
+              variant="danger"
               className="conduct-adjourn-action"
               disabled={submitting}
               data-testid="live-agenda-adjourn"
