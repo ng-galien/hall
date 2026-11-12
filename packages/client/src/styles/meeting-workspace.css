@@ -868,7 +868,7 @@
 }
 
 /* Outside the layers, like the fixed tools of the editor: in the minutes the tools stop under the sticky header. */
-.minutes-editorial-page .markdown-editor.markdown-editor-compact > [role="toolbar"] { top: var(--minutes-header-height, 0px); }
+.minutes-editorial-page .markdown-editor.markdown-editor-compact > [role="toolbar"] { top: var(--minutes-header-height, var(--hall-size-zero)); }
 
 @layer components {
   /* A title followed by the information icon of its explanation. */
