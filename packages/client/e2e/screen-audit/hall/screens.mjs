@@ -148,12 +148,13 @@ export const screens = [
     id: "mode-seance-deports",
     title: "Mode séance, déports sur ce point",
     scenario: "default",
-    /** The window of the conflicts of interest of the current point, opened from the live meeting. */
+    /** The window « Conflit d'intérêts » of the current point, opened from « Déports sur ce point » in the live meeting. */
     async open(page) {
       const meeting = await first(page, "/api/council-meetings", (entry) => entry.startedAt && !entry.closedAt);
       await page.goto(`/app/meetings/${meeting.id}/live`);
       await page.getByTestId("live-recusal-info").first().click();
-      await visible(page, "live-recusal-info-content");
+      await page.getByTestId("agenda-item-recusal-open").first().click();
+      await visible(page, "recusal-form");
     },
   },
   {
