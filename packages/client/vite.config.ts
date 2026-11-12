@@ -10,6 +10,8 @@ import { hallWebApp } from "./web-app.mjs";
 export default defineConfig({
   plugins: [hallDocsMdx(), react(), tailwindcss(), hallWebApp(), hallPdfAssets()],
   base: "/app/",
+  /** Isolated runtimes set their own directory so they never rewrite the dependencies the shared session serves. */
+  cacheDir: process.env.HALL_VITE_CACHE_DIR ?? "node_modules/.vite",
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: {
     host: "127.0.0.1",

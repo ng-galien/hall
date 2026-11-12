@@ -109,6 +109,9 @@ export default defineConfig({
                 env: {
                   ...process.env,
                   VITE_API_TARGET: serverUrl,
+                  // Each browser lane optimizes its dependencies in its own directory, never in the cache of the
+                  // shared development session served from the same checkout.
+                  HALL_VITE_CACHE_DIR: `node_modules/.vite-e2e-${process.env.HALL_E2E_LANE ?? "1"}`,
                 },
                 url: `${clientUrl}/app/`,
                 reuseExistingServer: false,
