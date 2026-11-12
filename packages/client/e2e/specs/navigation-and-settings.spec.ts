@@ -79,24 +79,26 @@ test.describe("navigation and settings", () => {
     // « Conseil municipal » goes to its first sub-resource and shows the six of them; one entry is open at a time.
     await page.getByTestId("navigation-council").click();
     await expect(page).toHaveURL(/\/app\/meetings$/);
-    await expect.poll(order).toEqual([
-      "navigation-overview",
-      "navigation-council",
-      "navigation-meetings",
-      "navigation-minutes",
-      "navigation-council-decisions",
-      "navigation-council-members",
-      "navigation-council-committees",
-      "navigation-council-delegations",
-      "navigation-workspace",
-      "navigation-mail",
-      "navigation-calendar",
-      "navigation-contacts",
-      "navigation-maps",
-      "navigation-administration",
-      "navigation-documentation",
-      "navigation-settings",
-    ]);
+    await expect
+      .poll(order)
+      .toEqual([
+        "navigation-overview",
+        "navigation-council",
+        "navigation-meetings",
+        "navigation-minutes",
+        "navigation-council-decisions",
+        "navigation-council-members",
+        "navigation-council-committees",
+        "navigation-council-delegations",
+        "navigation-workspace",
+        "navigation-mail",
+        "navigation-calendar",
+        "navigation-contacts",
+        "navigation-maps",
+        "navigation-administration",
+        "navigation-documentation",
+        "navigation-settings",
+      ]);
     await expect(page.getByTestId("navigation-meetings")).toHaveAttribute("aria-current", "page");
     await expect(page.getByTestId("navigation-council")).not.toHaveAttribute("aria-current", "page");
 
@@ -157,14 +159,34 @@ test.describe("navigation and settings", () => {
     await expect(page.locator(".nav-label")).toHaveCount(0);
     await expect(page.getByTestId("navigation-mail")).toHaveAttribute("aria-label", "Mail");
     await expect(sidebar.locator("[title]")).toHaveCount(0);
-    // The label of an entry shows at once beside it; an entry with sub-resources lists them, as links.
+    // The label of a screen shows at once beside its icon, on a light surface like the menus of Hall.
     await page.getByTestId("navigation-contacts").hover();
-    await expect(page.locator('[data-slot="tooltip-content"]')).toContainText("Contacts");
-    await page.mouse.move(600, 600);
-    await expect(page.locator('[data-slot="tooltip-content"]')).toHaveCount(0);
-    await page.getByTestId("navigation-council").hover();
-    await expect(page.locator(".nav-rail-panel").getByTestId("navigation-council-decisions")).toBeVisible();
-    await page.locator(".nav-rail-panel").getByTestId("navigation-council-decisions").click();
+    const label = page.locator('[data-slot="tooltip-content"]');
+    await expect(label).toContainText("Contacts");
+    const lightSurface = (element: Element) => {
+      const [r, g, b] = getComputedStyle(element).backgroundColor.match(/\d+/g)!.map(Number);
+      return (r + g + b) / 3 > 200;
+    };
+    expect(await label.evaluate(lightSurface)).toBe(true);
+    // A click on an entry with places opens its panel, which stays open once the pointer leaves the icon.
+    await page.getByTestId("navigation-council").click();
+    const panel = page.getByTestId("navigation-rail-panel");
+    await expect(panel.getByTestId("navigation-council-decisions")).toBeVisible();
+    expect(await panel.evaluate(lightSurface)).toBe(true);
+    await page.mouse.move(700, 700);
+    await expect(panel).toBeVisible();
+    await expect(page).not.toHaveURL(/\/app\/meetings$/);
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
+    await expect(page.getByTestId("navigation-council")).toBeFocused();
+    // Keyboard: Enter opens the panel, the arrows go through its places.
+    await page.keyboard.press("Enter");
+    await expect(panel).toBeVisible();
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await expect(panel.getByTestId("navigation-council-decisions")).toBeFocused();
+    await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/app\/council-decisions$/);
     await expect(sidebar.locator(".nav-sub")).toHaveCount(0);
     const mark = await sidebar.locator(".app-brand-mark").boundingBox();

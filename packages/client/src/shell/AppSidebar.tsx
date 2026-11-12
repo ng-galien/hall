@@ -2,6 +2,13 @@ import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { DocsIcon, FolderIcon, SettingsIcon, SidebarCollapseIcon, SidebarExpandIcon } from "../components/icons";
 import { Button } from "../components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 import { useMailCountsStore } from "../features/mail/mailCounts";
 import { useI18n } from "../i18n/I18nProvider";
@@ -65,20 +72,24 @@ export function EntryRow({
   );
 }
 
-/** The panel of a folded menu entry: its name, then its sub-resources as links. */
-function RailPanel({ item, pathname }: { item: NavigationItem; pathname: string }) {
+/** A place listed in the panel of a folded entry: icon, label and, for a folder of Courriels, its number. */
+function RailPlace({ item, pathname }: { item: NavigationItem; pathname: string }) {
   const { t } = useI18n();
+  const count = useEntryCount(item);
+  const current = item.to !== undefined && isUnder(pathname, item.to);
   return (
-    <div className="nav-rail-panel">
-      <span className="nav-rail-panel-title">{t(item.labelKey)}</span>
-      {item.folderTree ? (
-        <RailFolders />
-      ) : (
-        item.children?.map((child) => (
-          <EntryRow key={child.id} item={child} current={child.to !== undefined && isUnder(pathname, child.to)} sub />
-        ))
-      )}
-    </div>
+    <DropdownMenuItem asChild>
+      <Link
+        to={item.to ?? "/"}
+        className="nav-rail-place"
+        data-testid={item.testId ?? `navigation-${item.id}`}
+        aria-current={current ? "page" : undefined}
+      >
+        <item.Icon weight={current ? "bold" : "regular"} />
+        <span className="nav-label">{t(item.labelKey)}</span>
+        {count !== null ? <span className="nav-count">{count}</span> : null}
+      </Link>
+    </DropdownMenuItem>
   );
 }
 
@@ -88,26 +99,58 @@ function RailFolders() {
   return (
     <>
       {folders.map((folder) => (
-        <Link
-          key={folder.path}
-          className="nav-row nav-sub"
-          data-testid="navigation-rail-folder"
-          to={`/workspace?${new URLSearchParams({ path: folder.path })}`}
-        >
-          <span className="nav-icon">
+        <DropdownMenuItem key={folder.path} asChild>
+          <Link
+            className="nav-rail-place"
+            data-testid="navigation-rail-folder"
+            to={`/workspace?${new URLSearchParams({ path: folder.path })}`}
+          >
             <FolderIcon />
-          </span>
-          <span className="nav-label">{folder.name}</span>
-        </Link>
+            <span className="nav-label">{folder.name}</span>
+          </Link>
+        </DropdownMenuItem>
       ))}
     </>
   );
 }
 
-/** One icon of the folded menu, with its label or its panel shown at once beside it. */
+/**
+ * One icon of the folded menu. An entry without sub-resource shows its label at once beside it and a click goes to its
+ * screen; a click on an entry with sub-resources opens the panel that lists them and keeps it open until a place is
+ * chosen, a click lands elsewhere or Échap is pressed.
+ */
 function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: string; label: string }) {
   const current = isCurrentEntry(pathname, item);
-  const panel = item.children || item.folderTree;
+  const icon = (
+    <span className="nav-icon">
+      <item.Icon weight={current ? "bold" : "regular"} />
+    </span>
+  );
+  if (item.children || item.folderTree)
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="plain"
+            className="nav-row nav-rail-entry"
+            data-compact="true"
+            data-current={current ? "true" : undefined}
+            data-testid={item.testId ?? `navigation-${item.id}`}
+            aria-label={label}
+          >
+            {icon}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="right" align="start" className="nav-rail-menu w-max min-w-(--hall-size-sidebar)" data-testid="navigation-rail-panel">
+          <DropdownMenuLabel>{label}</DropdownMenuLabel>
+          {item.folderTree ? (
+            <RailFolders />
+          ) : (
+            item.children?.map((child) => <RailPlace key={child.id} item={child} pathname={pathname} />)
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   return (
     <Tooltip delayDuration={0}>
       <TooltipTrigger asChild>
@@ -119,13 +162,11 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
           aria-current={current ? "page" : undefined}
           aria-label={label}
         >
-          <span className="nav-icon">
-            <item.Icon weight={current ? "bold" : "regular"} />
-          </span>
+          {icon}
         </Link>
       </TooltipTrigger>
-      <TooltipContent side="right" className={panel ? "nav-rail-tooltip nav-rail-tooltip-panel" : "nav-rail-tooltip"}>
-        {panel ? <RailPanel item={item} pathname={pathname} /> : label}
+      <TooltipContent side="right" tone="light" className="nav-rail-label">
+        {label}
       </TooltipContent>
     </Tooltip>
   );

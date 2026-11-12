@@ -147,12 +147,14 @@
   .nav-row[data-open="true"] { color: var(--hall-color-text); }
   .nav-count { flex: none; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-variant-numeric: tabular-nums; }
   .nav-row[aria-current="page"] > .nav-count { color: var(--hall-color-brand); }
-  /* The label or the panel of an entry of the folded menu, shown at once beside its icon. */
-  .nav-rail-tooltip-panel { display: block; padding: var(--hall-space-2); }
-  .nav-rail-panel { display: grid; min-width: var(--hall-size-sidebar); gap: var(--hall-space-0-5); }
-  .nav-rail-panel-title { padding: 0 var(--hall-space-2) var(--hall-space-1); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-bold); }
-  .nav-rail-panel .nav-row { color: inherit; }
-  .nav-rail-panel .nav-row:hover { color: inherit; background: none; text-decoration: underline; }
+  /* The folded menu: the label of a screen, or the panel of the places of an entry, drawn like the menus of Hall. */
+  .hall-button.nav-rail-entry { width: auto; flex: 1; justify-content: center; padding: 0; color: var(--hall-color-text-muted); font-weight: inherit; }
+  .hall-button.nav-rail-entry[data-current="true"],
+  .hall-button.nav-rail-entry[aria-expanded="true"] { color: var(--hall-color-text); }
+  .nav-rail-place { display: flex; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-2-5); color: var(--hall-color-text); font-size: var(--hall-font-size-body); }
+  .nav-rail-place > svg { flex: none; font-size: var(--hall-font-size-icon-large); }
+  .nav-rail-place[aria-current="page"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-bold); }
+  .nav-rail-label { font-size: var(--hall-font-size-body); }
   .app-sheet-nav { display: flex; flex-direction: column; gap: var(--hall-space-0-5); padding: 0 var(--hall-space-3) var(--hall-space-6); }
   .app-sheet-nav .nav-row { min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-text); }
   .app-sheet-footer { display: grid; gap: var(--hall-space-0-5); margin-top: var(--hall-space-2); padding-top: var(--hall-space-2); border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }

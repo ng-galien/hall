@@ -11228,7 +11228,7 @@
         "L’entrée ou la sous-ressource courante est en bleu et en gras, avec son icône d’un trait plus épais. Un dossier ouvert de Documents se lit à son icône de dossier ouvert ; le menu ne porte ni chevron ni triangle.",
         "Chaque entrée et chaque sous-ressource nommée a son icône, différente de toutes les autres du menu ; dans Documents, les dossiers ont l’icône de dossier et les affaires celle des affaires.",
         "Au-dessus de la largeur du téléphone, le menu est un seul et même panneau ancré à gauche, qui pousse le contenu, avec les mêmes tailles et les mêmes espacements à toute largeur ; il a deux états, déplié avec les libellés complets ou replié en rail d’une icône par entrée de premier niveau. Tant que la personne n’a rien choisi, il est replié sous 1000 pixels de large et déplié au-dessus ; dès qu’elle clique son bouton de repli, son choix est retenu et respecté à toute largeur.",
-        "Menu replié, le survol ou le focus d’une icône fait paraître aussitôt à sa droite son libellé, dans l’étiquette de l’application ; pour une entrée à sous-ressources, l’étiquette est un panneau qui les liste, chacune cliquable, et pour Documents les dossiers de premier niveau. Le rail ne montre jamais les sous-ressources à plat.",
+        "Menu replié, le survol ou le focus de l’icône d’un écran fait paraître aussitôt à sa droite son libellé, et un clic va à l’écran. Un clic, ou Entrée ou Espace, sur l’icône d’une entrée à sous-ressources ouvre à sa droite le panneau qui les liste, chacune cliquable, et pour Documents les dossiers de premier niveau ; le panneau reste ouvert tant que la personne n’a pas choisi un endroit, cliqué ailleurs ou appuyé sur Échap, qui rend le focus à l’icône ; les flèches parcourent ses endroits. Libellé et panneau sont dessinés comme les menus de Hall : fond clair, filet gris, ombre légère, titre en gris. Le rail ne montre jamais les sous-ressources à plat.",
         "Le bouton de repli du menu est à droite de la marque « Hall », sur sa ligne ; menu replié, il est en haut du rail, juste sous le « H », au même endroit à chaque écran.",
         "Une entrée ou une sous-ressource que la personne n’a pas le droit d’ouvrir n’apparaît pas ; une entrée dont aucune sous-ressource n’est permise n’apparaît pas.",
         "Au téléphone, la barre du bas ne change pas ; la feuille « Plus » reprend les mêmes entrées et sous-ressources, dans la même forme, sans Accueil, Documents ni Agenda, puis l’espace personnel, l’aide et Paramètres."
@@ -11250,6 +11250,12 @@
           "key": "menu-sub-resources",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026, sur le document « Hall 1.3 — Design de référence » : « On met juste les sous-ressources. […] on ne dépasse pas des niveaux de granularité trop importants », « On n'invente pas des trucs pour remplir. On réaffecte », « Tout ce qui est du métier du conseil municipal, ça va dedans », « la barre latérale ne prend que les conteneurs », puis « tu as le truc. Vas-y, fais-le ». Libellés « Mandat et lieux de séance », « Réglages des documents » et « Réglages des courriels » proposés par le coordinateur, à confirmer.",
+          "sourceIds": []
+        },
+        {
+          "key": "folded-menu-panel",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 : « les tooltips overlay qui sont noirs, ça me va pas », « quand il y a plusieurs choix en dessous, quand on clique, ça devrait ouvrir le menu et puis point barre. Et pas faire disparaître. » ; puis, sur le menu à 783 pixels : « je comprends qu'on ferme le menu quand c'est trop petit, mais là, les menus sont différents ».",
           "sourceIds": []
         }
       ]
