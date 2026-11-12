@@ -17,8 +17,9 @@ function Explained({ title, text, children }: { title: string; text: string; chi
 }
 
 /**
- * The agenda revision as one control beside the meeting title: established, it offers to revise;
- * open, it names the revision and offers to establish it or return to the previous established revision.
+ * The agenda revision as one control beside the meeting title: established, it writes the revision, its date and
+ * its notice, then offers to revise; open, it names the revision and offers to establish it or return to the
+ * previous established revision.
  */
 export function AgendaRevisionControl({
   number,
@@ -52,14 +53,19 @@ export function AgendaRevisionControl({
       data-testid="meeting-agenda-revision"
     >
       {established ? (
-        onRevise ? (
-          <Explained title={state} text={t("meeting.revision.reviseHint")}>
-            <Button variant="secondary" data-testid="meeting-revise-agenda" disabled={busy} onClick={onRevise}>
-              <EditIcon aria-hidden="true" />
-              {t("meeting.revision.revise")}
-            </Button>
-          </Explained>
-        ) : null
+        <>
+          <span className="revision-control-label" data-testid="meeting-agenda-revision-state" data-state="established">
+            {state}
+          </span>
+          {onRevise ? (
+            <Explained title={t("meeting.revision.revise")} text={t("meeting.revision.reviseHint")}>
+              <Button variant="secondary" data-testid="meeting-revise-agenda" disabled={busy} onClick={onRevise}>
+                <EditIcon aria-hidden="true" />
+                {t("meeting.revision.revise")}
+              </Button>
+            </Explained>
+          ) : null}
+        </>
       ) : (
         <>
           <span className="revision-control-label" data-testid="meeting-agenda-revision-state" data-state="open">

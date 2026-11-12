@@ -425,7 +425,7 @@
 
   /* Agenda revision beside the stage bar: its state written as text, its gestures as buttons. */
   .revision-control { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2) var(--hall-space-3); }
-  .revision-control-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
+  .revision-control-label { min-width: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .revision-hint { display: grid; gap: var(--hall-space-0-5); max-width: var(--hall-size-relative-22rem); white-space: normal; }
   .revision-hint strong { font-weight: var(--hall-font-weight-semibold); }
 
