@@ -271,10 +271,23 @@
   }
   /* The list of the meeting documents starts at the rule of its section header, without a second rule. */
   .meeting-documents > .collapsible-section-content > .list-row-list:first-child { border-top: 0; }
-  /* A document that opens names itself with a link. */
-  .meeting-documents .list-row[data-openable="true"] > .list-row-line .list-row-title { color: var(--hall-color-brand); text-decoration: underline; text-underline-offset: var(--hall-space-1); }
-  /* The decisions of a closed meeting are rows of the same list: same rule edges and same column of heads. */
-  .meeting-documents .list-row-children:has(> .list-row-list:only-child) { padding: 0; }
+  /* The deliberations of a closed meeting: a section of its own; each row starts with its publication number. */
+  .meeting-decisions { display: grid; gap: var(--hall-space-2); min-width: 0; padding: var(--hall-space-4) 0; }
+  .meeting-decisions > .section-header + .list-row-list { border-top: 0; }
+  .meeting-decisions .list-row { --list-row-head-width: var(--hall-size-relative-8rem); }
+  .meeting-decisions .list-row-head { justify-items: start; }
+  .meeting-decision-number { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
+  /* The written commands of a document row: « Ouvrir le PDF », « Rédaction ». */
+  :is(.meeting-documents, .meeting-decisions) .list-row-action { gap: var(--hall-space-4); }
+  :is(.meeting-documents, .meeting-decisions) .list-row-action > .hall-link { font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-regular); }
+  :is(.meeting-documents, .meeting-decisions) .list-row-action > a.hall-link:hover { text-decoration: underline; }
+  /* On a phone the written commands take a line of their own under the text of the row, aligned with it. */
+  @media (max-width: 760px) {
+    :is(.meeting-documents, .meeting-decisions) .list-row-line { flex-wrap: wrap; }
+    :is(.meeting-documents, .meeting-decisions) .list-row-action { width: 100%; padding: 0 var(--hall-space-3) var(--hall-space-2) calc(var(--hall-space-3) * 2 + var(--list-row-head-width, var(--hall-size-glyph-large))); }
+    .meeting-decisions .list-row { --list-row-head-width: auto; }
+    .meeting-decisions .list-row-action { padding-left: var(--hall-space-3); }
+  }
   /* The facts of a closed meeting hold one row under the description, wrapping by whole facts on a narrow screen. */
   .meeting-report-header .page-header-controls > .meeting-facts { flex: 1 1 100%; grid-template-columns: repeat(auto-fit, minmax(var(--hall-size-relative-8rem), 1fr)); }
   /* A section that opens with its header takes the rule under the header instead of a rule above it. */

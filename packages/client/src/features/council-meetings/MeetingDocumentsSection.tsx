@@ -39,6 +39,7 @@ import {
   prepareMeetingNoticeMessage,
 } from "../../services/meetingNoticesApi";
 import { minutesContentHref, openMinutes } from "../../services/minutesApi";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { liveBusinessTitle } from "../council-business/presentation";
 import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
@@ -147,6 +148,7 @@ export function MeetingDocumentsSection({
 }) {
   const { t, plural, formatDate, formatDateTime, formatNumber } = useI18n();
   const navigate = useNavigate();
+  const phone = usePhoneLayout();
   const { submitting, run } = useSubmitting();
   const meeting = meetingActions.workspace!.meeting;
   const status = aggregate.meeting.status;
@@ -554,6 +556,9 @@ export function MeetingDocumentsSection({
             <ListRows data-wrap="true">
               {decisions.map((decision) => {
                 const openPdf = () => perform(() => showDecision(decision.id, decision.title));
+                const number = decision.publicationNumber
+                  ? t("meeting.documents.decisionNumber", { number: decision.publicationNumber })
+                  : null;
                 return (
                   <ListRow
                     key={decision.id}
@@ -565,13 +570,9 @@ export function MeetingDocumentsSection({
                         }
                       : { to: `/council-decisions/${decision.id}` })}
                     openTestId={`meeting-decision-link-${decision.id}`}
-                    head={
-                      <span className="meeting-decision-number">
-                        {decision.publicationNumber
-                          ? t("meeting.documents.decisionNumber", { number: decision.publicationNumber })
-                          : null}
-                      </span>
-                    }
+                    {...(phone
+                      ? { overline: number ?? undefined }
+                      : { head: <span className="meeting-decision-number">{number}</span> })}
                     title={decision.title}
                     detail={
                       decision.agendaNumber === null
