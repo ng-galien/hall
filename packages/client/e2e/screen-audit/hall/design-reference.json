@@ -47,7 +47,7 @@
     },
     {
       "component": "bouton principal",
-      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "background-color",
       "expected": "#2457D6",
       "when": "all",
@@ -60,7 +60,7 @@
     },
     {
       "component": "bouton principal",
-      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "color",
       "expected": "#FFFFFF",
       "when": "all",
@@ -73,7 +73,7 @@
     },
     {
       "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "background-color",
       "expected": "#E8EEFC",
       "when": "all",
@@ -86,7 +86,7 @@
     },
     {
       "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "color",
       "expected": "#1B45AD",
       "when": "all",
@@ -99,7 +99,7 @@
     },
     {
       "component": "bouton de suppression",
-      "selector": "[data-slot=button][data-variant=danger]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-variant=danger]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "background-color",
       "expected": "#B42323",
       "when": "all",
@@ -112,7 +112,7 @@
     },
     {
       "component": "bouton de suppression",
-      "selector": "[data-slot=button][data-variant=danger]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-variant=danger]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "color",
       "expected": "#FFFFFF",
       "when": "all",
@@ -125,7 +125,7 @@
     },
     {
       "component": "bouton sans fond",
-      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "background-color",
       "expected": "transparent",
       "when": "all",
@@ -138,7 +138,7 @@
     },
     {
       "component": "bouton sans fond",
-      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "color",
       "expected": "#5B6472",
       "when": "all",
@@ -177,7 +177,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "font-size",
       "expected": "14px",
       "when": "all",
@@ -190,7 +190,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "font-weight",
       "expected": "650",
       "when": "all",
@@ -203,7 +203,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "height",
       "expected": "32px",
       "when": "mouse",
@@ -216,7 +216,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "height",
       "expected": "44px",
       "when": "finger",
@@ -229,7 +229,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.hall-link):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-size=default]:not(.hall-link):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "padding-left",
       "expected": "12px",
       "when": "all",
@@ -242,7 +242,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.hall-link):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-size=default]:not(.hall-link):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "padding-right",
       "expected": "12px",
       "when": "all",
@@ -255,7 +255,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.hall-link):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
+      "selector": "[data-slot=button][data-size=default]:not(.hall-link):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb])",
       "property": "border-radius",
       "expected": "4px",
       "when": "all",

@@ -174,6 +174,10 @@ export const conformanceRules = {
     expected:
       "Au téléphone, en écriture, une seule barre d'outils est fixée sous le bandeau et porte « Photo » ; en lecture, aucune barre d'outils ni bouton photo n'est affiché.",
   },
+  "menu-item-wrap": {
+    title: "Ligne de menu écrite sur plusieurs lignes",
+    expected: "Chaque ligne d'un menu tient sur une seule ligne de texte, à toutes les largeurs.",
+  },
   "row-height": {
     title: "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
     expected: "Une ligne de liste mesure 64 px au doigt ; à la souris, 40 px sur une ligne et 52 px sur deux.",
@@ -1342,4 +1346,39 @@ export async function measureFormFields(options) {
     }
   }
   return findings;
+}
+
+/**
+ * Lines of the open menus of the page: each item of a menu (`[role=menuitem]` and its checkbox and radio kinds)
+ * holds its label on one line. Returns findings `{ rule, selector, detail }` and the number of items read.
+ */
+export function measureMenuLines(options) {
+  const { keyAttribute } = options;
+  const findings = [];
+  let items = 0;
+  const keyOf = (element) => {
+    const key = element.closest(`[${keyAttribute}]`)?.getAttribute(keyAttribute);
+    return key ? `[${key.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}|\d{6,}/gi, "*")}]` : element.tagName.toLowerCase();
+  };
+  for (const item of document.querySelectorAll(
+    "[role=menu] :is([role=menuitem], [role=menuitemcheckbox], [role=menuitemradio])",
+  )) {
+    if (item.getClientRects().length === 0) continue;
+    items += 1;
+    const tops = new Set();
+    const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!(node.textContent ?? "").trim() || node.parentElement?.closest("svg, kbd")) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      for (const rect of range.getClientRects()) if (rect.width > 0) tops.add(Math.round(rect.top));
+    }
+    if (tops.size > 1)
+      findings.push({
+        rule: "menu-item-wrap",
+        selector: keyOf(item),
+        detail: `« ${(item.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 40)} » sur ${tops.size} lignes`,
+      });
+  }
+  return { findings, items };
 }

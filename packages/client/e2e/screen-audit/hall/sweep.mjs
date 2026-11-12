@@ -269,6 +269,21 @@ for (const [rule, title] of Object.entries(titles)) {
   if (count) say(`  ${rule} (${title}) : ${count}`);
 }
 for (const line of missing) say(`Écran non ouvert : ${line}`);
+{
+  const files = existsSync(outputDirectory)
+    ? readdirSync(outputDirectory).filter((file) => /^menus-.*\.json$/.test(file))
+    : [];
+  const opened = new Set();
+  const failed = new Map();
+  for (const file of files) {
+    const record = JSON.parse(readFileSync(join(outputDirectory, file), "utf8"));
+    for (const name of record.opened) opened.add(name);
+    for (const [name, reason] of Object.entries(record.failed)) if (!opened.has(name)) failed.set(name, reason);
+  }
+  for (const name of opened) failed.delete(name);
+  if (files.length) say(`Menus ouverts : ${opened.size} ; non ouverts : ${failed.size}.`);
+  for (const [name, reason] of failed) say(`Menu non ouvert : ${name} — ${reason}`);
+}
 if (existsSync(join(outputDirectory, "lenteurs.txt")))
   for (const line of readFileSync(join(outputDirectory, "lenteurs.txt"), "utf8").split("\n").filter(Boolean))
     say(`Étape lente : ${line}`);

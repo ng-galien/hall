@@ -6,6 +6,7 @@ import {
   measureConformance,
   measureDesignReference,
   measureFormFields,
+  measureMenuLines,
   readBreakpoints,
   readComponentUnity,
   unityFindings,
@@ -490,6 +491,21 @@ try {
     `${positionOk ? "ok    " : "ÉCHEC "} component-unity (position des commandes) : ${onFaultyPosition} sur la page fautive, ${onCorrectPosition} sur la page correcte`,
   );
   if (!positionOk) failures.push({ rule: "component-unity position", onFaultyPosition, onCorrectPosition });
+
+  /* Menu lines: an item of a menu holds on one line. */
+  const menuPage = async (width) => {
+    await page.setContent(
+      `<!doctype html><html lang="fr"><head>${style}</head><body><div role="menu" style="width:${width}px"><div role="menuitem">Joindre un document de l'espace de travail</div></div></body></html>`,
+    );
+    return (await page.evaluate(measureMenuLines, { keyAttribute: "data-testid" })).findings.length;
+  };
+  const onFaultyMenuLine = await menuPage(120);
+  const onCorrectMenuLine = await menuPage(380);
+  const menuLineOk = onFaultyMenuLine > 0 && onCorrectMenuLine === 0;
+  console.log(
+    `${menuLineOk ? "ok    " : "ÉCHEC "} menu-item-wrap : ${onFaultyMenuLine} sur la page fautive, ${onCorrectMenuLine} sur la page correcte`,
+  );
+  if (!menuLineOk) failures.push({ rule: "menu-item-wrap", onFaultyMenuLine, onCorrectMenuLine });
 
   /* Thresholds: a min-width and a max-width query open ranges at the same width; rem is read at 16 px. */
   await page.setContent(`<!doctype html><html><head><style>

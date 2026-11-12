@@ -6,6 +6,7 @@ import {
   measureConformance,
   measureDesignReference,
   measureFormFields,
+  measureMenuLines,
   readBreakpoints,
   readComponentUnity,
   readContainers,
@@ -76,6 +77,8 @@ if (sweeping) {
           const measured: string[] = [];
           let measures = 0;
           const queue = [...selected];
+          const menusOpened = new Set<string>();
+          const menusFailed = new Map<string, string>();
           const directory = join(outputDirectory, "sweep");
           mkdirSync(directory, { recursive: true });
           const measuresOf = new Map<string, number>();
@@ -142,6 +145,47 @@ if (sweeping) {
                 (window as unknown as { __screenAuditIcons: unknown }).__screenAuditIcons = icons;
               }, sweepPlan.fingerprints);
             };
+            /* Every menu of the screen (a command with aria-haspopup="menu") is opened, read and closed. */
+            const openMenus = async (screen: Screen, width: number, menu: string) => {
+              const triggers = page.locator('[aria-haspopup="menu"]:visible');
+              const count = Math.min(await triggers.count(), 12);
+              for (let index = 0; index < count; index++) {
+                const trigger = triggers.nth(index);
+                const name =
+                  (await trigger.getAttribute("data-testid").catch(() => null)) ??
+                  (await trigger.getAttribute("aria-label").catch(() => null)) ??
+                  `menu ${index + 1}`;
+                try {
+                  await trigger.click({ timeout: 3_000 });
+                  await page.locator("[role=menu]").first().waitFor({ state: "visible", timeout: 2_000 });
+                  await settleLayout(page);
+                  const read = await page.evaluate(measureMenuLines, { keyAttribute: "data-testid" });
+                  menusOpened.add(`${screen.id} ${name}`);
+                  for (const finding of read.findings)
+                    findings.push({
+                      ...finding,
+                      selector: `${name} › ${finding.selector}`,
+                      screen: screen.id,
+                      width,
+                      input,
+                      menu,
+                      pane: "—",
+                      text: "réel",
+                    });
+                } catch (error) {
+                  menusFailed.set(
+                    `${screen.id} ${name}`,
+                    error instanceof Error ? error.message.split("\n")[0] : String(error),
+                  );
+                }
+                await page.keyboard.press("Escape").catch(() => undefined);
+                await page
+                  .locator("[role=menu]")
+                  .first()
+                  .waitFor({ state: "hidden", timeout: 2_000 })
+                  .catch(() => undefined);
+              }
+            };
             const measure = (screen: Screen, step: Step, menu: string, text: string) =>
               timed(`${screen.id} mesure à ${step.width} px, menu ${menu}`, () =>
                 measureOnce(screen, step, menu, text),
@@ -194,6 +238,7 @@ if (sweeping) {
                   touch: input === "touch",
                 }))
                   unity.push({ ...entry, ...where });
+              if (full) await openMenus(screen, width, menu);
               const areas = await page.evaluate(readContentWidth);
               measures += 1;
               measuresOf.set(screen.id, (measuresOf.get(screen.id) ?? 0) + 1);
@@ -312,6 +357,10 @@ if (sweeping) {
           };
 
           await Promise.all(Array.from({ length: Math.min(sweepPlan.pages, selected.length) }, () => worker(browser)));
+          writeFileSync(
+            join(outputDirectory, `menus-${input}-${scenario}.json`),
+            JSON.stringify({ opened: [...menusOpened], failed: Object.fromEntries(menusFailed) }),
+          );
           writeFileSync(
             join(directory, `${input}-${scenario}-non-ouverts.json`),
             JSON.stringify({

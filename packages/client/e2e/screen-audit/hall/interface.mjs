@@ -182,6 +182,15 @@ export const components = [
     decided: [],
   },
   {
+    id: "menu-contextuel",
+    name: "Menu",
+    code: ["packages/client/src/components/ui/dropdown-menu.tsx", "packages/client/src/components/ui/context-menu.tsx"],
+    variants: ["menu déroulant", "menu contextuel"],
+    rules: ["menu-item-wrap", "filled-icon", "warm-tint"],
+    values: [],
+    decided: [],
+  },
+  {
     id: "fenêtre",
     name: "Fenêtre",
     code: [
