@@ -39,6 +39,8 @@ SELECT pg_temp.freeze_numbered(1,'ignored-on-retry','2000-01-01','%PDF-never-rep
 SELECT is((SELECT last_index FROM hall.council_decision_number_counter),2,'successful retry does not allocate again');
 SELECT is((SELECT decode(hall_api.council_decision_content(id)->>'contentBase64','base64') FROM drafts WHERE rank=1),convert_to('%PDF-2026-01-01','UTF8'),'retry preserves exact PDF and number');
 SELECT ok((SELECT bool_and(document_date=hall.decision_document_date(f.facts,d.frozen_at)) FROM hall.council_decision_document d JOIN hall.council_decision c ON c.id=d.council_decision JOIN hall.council_decision_facts f ON f.ballot=c.ballot),'document date matches the actual freeze day in its historical time zone');
+SELECT is(hall.next_decision_number(jsonb_set((SELECT facts FROM hall.council_decision_facts LIMIT 1),'{meeting,startedAt}','"2026-01-20T18:00:00Z"')),'2026-01-03','another meeting of the same month continues the monthly index');
+SELECT col_is_unique('hall','council_decision_document',ARRAY['number'],'an allocated decision number belongs to one document only');
 SELECT is(hall.next_decision_number(jsonb_set((SELECT facts FROM hall.council_decision_facts LIMIT 1),'{meeting,startedAt}','"2026-02-01T09:00:00Z"')),'2026-02-01','new month starts at one');
 SELECT is(hall.next_decision_number(jsonb_set((SELECT facts FROM hall.council_decision_facts LIMIT 1),'{meeting,startedAt}','"2027-01-01T09:00:00Z"')),'2027-01-01','January of next year starts at one');
 SELECT is(hall.format_decision_number('2026-01-01',100),'2026-01-100','indices above 99 are never truncated');
