@@ -1120,6 +1120,8 @@ export function measureDesignReference(options) {
     for (const element of document.querySelectorAll(entry.selector)) {
       if (checked >= 12) break;
       if (ignoreSelectors.some((selector) => element.closest(selector)) || !shown(element)) continue;
+      // An element under the pointer shows its hover state, not its drawing at rest.
+      if (element.matches(":hover")) continue;
       checked += 1;
       const style = getComputedStyle(element, entry.pseudo ?? null);
       let actual;
