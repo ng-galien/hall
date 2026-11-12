@@ -85,24 +85,26 @@ export function BallotOutcome({
           {t(ballotVerdictKey(isMinutes, ballot.result === "adopted"))}
         </span>
         <span>{t(ballot.method === "public" ? "ballot.method.public" : "ballot.method.secret")}</span>
-        <span className="report-ballot-compact">
-          <span className="report-ballot-count">
-            <span>{t("ballot.votesFor")}</span>
-            <strong>{formatNumber(ballot.votesFor)}</strong>
+        {ballot.countsLoaded === false ? null : (
+          <span className="report-ballot-compact">
+            <span className="report-ballot-count">
+              <span>{t("ballot.votesFor")}</span>
+              <strong>{formatNumber(ballot.votesFor)}</strong>
+            </span>
+            <span className="report-ballot-count">
+              <span>{t("ballot.votesAgainst")}</span>
+              <strong>{formatNumber(ballot.votesAgainst)}</strong>
+            </span>
+            <span className="report-ballot-count">
+              <span>{t("ballot.abstentions")}</span>
+              <strong>{formatNumber(ballot.abstentions)}</strong>
+            </span>
+            <span className="report-ballot-count">
+              <span>{t("ballot.notVoting")}</span>
+              <strong>{formatNumber(ballot.notVoting)}</strong>
+            </span>
           </span>
-          <span className="report-ballot-count">
-            <span>{t("ballot.votesAgainst")}</span>
-            <strong>{formatNumber(ballot.votesAgainst)}</strong>
-          </span>
-          <span className="report-ballot-count">
-            <span>{t("ballot.abstentions")}</span>
-            <strong>{formatNumber(ballot.abstentions)}</strong>
-          </span>
-          <span className="report-ballot-count">
-            <span>{t("ballot.notVoting")}</span>
-            <strong>{formatNumber(ballot.notVoting)}</strong>
-          </span>
-        </span>
+        )}
       </Button>
       {detailsVisible ? (
         <>
@@ -123,19 +125,23 @@ export function BallotOutcome({
                 {ballot.chairTieBreakApplied ? (
                   <p className="report-ballot-note">{t("ballot.chairTieBreakApplied")}</p>
                 ) : null}
-                <p className="report-ballot-note">
-                  {t("ballot.expressedMajority", { expressed: formatNumber(ballot.votesCast) })}
-                </p>
-                <p className="report-ballot-note">
-                  {t("ballot.participationEvidence", {
-                    present: formatNumber(ballot.participationEvidence.quorum.physicallyPresent),
-                    required:
-                      ballot.participationEvidence.quorum.required === null
-                        ? t("meeting.quorumUnestablished")
-                        : formatNumber(ballot.participationEvidence.quorum.required),
-                    roster: formatNumber(ballot.participationEvidence.quorum.activeMembers),
-                  })}
-                </p>
+                {ballot.countsLoaded === false ? null : (
+                  <p className="report-ballot-note">
+                    {t("ballot.expressedMajority", { expressed: formatNumber(ballot.votesCast) })}
+                  </p>
+                )}
+                {ballot.countsLoaded === false ? null : (
+                  <p className="report-ballot-note">
+                    {t("ballot.participationEvidence", {
+                      present: formatNumber(ballot.participationEvidence.quorum.physicallyPresent),
+                      required:
+                        ballot.participationEvidence.quorum.required === null
+                          ? t("meeting.quorumUnestablished")
+                          : formatNumber(ballot.participationEvidence.quorum.required),
+                      roster: formatNumber(ballot.participationEvidence.quorum.activeMembers),
+                    })}
+                  </p>
+                )}
               </PopoverContent>
             </Popover>
           </div>
@@ -258,17 +264,21 @@ function ReportBallotDetails({ ballot, members }: { ballot: Ballot; members: Cou
         </p>
       ) : null}
       {ballot.chairTieBreakApplied ? <p>{t("ballot.chairTieBreakApplied")}</p> : null}
-      <p>{t("ballot.expressedMajority", { expressed: formatNumber(ballot.votesCast) })}</p>
-      <p>
-        {t("ballot.participationEvidence", {
-          present: formatNumber(ballot.participationEvidence.quorum.physicallyPresent),
-          required:
-            ballot.participationEvidence.quorum.required === null
-              ? t("meeting.quorumUnestablished")
-              : formatNumber(ballot.participationEvidence.quorum.required),
-          roster: formatNumber(ballot.participationEvidence.quorum.activeMembers),
-        })}
-      </p>
+      {ballot.countsLoaded === false ? null : (
+        <p>{t("ballot.expressedMajority", { expressed: formatNumber(ballot.votesCast) })}</p>
+      )}
+      {ballot.countsLoaded === false ? null : (
+        <p>
+          {t("ballot.participationEvidence", {
+            present: formatNumber(ballot.participationEvidence.quorum.physicallyPresent),
+            required:
+              ballot.participationEvidence.quorum.required === null
+                ? t("meeting.quorumUnestablished")
+                : formatNumber(ballot.participationEvidence.quorum.required),
+            roster: formatNumber(ballot.participationEvidence.quorum.activeMembers),
+          })}
+        </p>
+      )}
     </section>
   );
 }

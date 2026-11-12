@@ -445,9 +445,10 @@ export function ConductView({
                         className="list-row-status conduct-step-vote-required"
                         data-tone={itemBallot.result === "adopted" ? "success" : "danger"}
                       >
-                        {t(ballotVerdictKey(item.subjectKind === "minutesApproval", itemBallot.result === "adopted"))}{" "}
-                        {formatNumber(itemBallot.votesFor)} · {formatNumber(itemBallot.votesAgainst)} ·{" "}
-                        {formatNumber(itemBallot.abstentions)}
+                        {t(ballotVerdictKey(item.subjectKind === "minutesApproval", itemBallot.result === "adopted"))}
+                        {itemBallot.countsLoaded === false
+                          ? null
+                          : ` ${formatNumber(itemBallot.votesFor)} · ${formatNumber(itemBallot.votesAgainst)} · ${formatNumber(itemBallot.abstentions)}`}
                       </span>
                     ) : voteRequired ? (
                       <span className="list-row-status conduct-step-vote-required" data-tone="action">
@@ -477,9 +478,10 @@ export function ConductView({
                           <span className={`step-tooltip-ballot step-tooltip-ballot-${itemBallot.result}`}>
                             {t(
                               ballotVerdictKey(item.subjectKind === "minutesApproval", itemBallot.result === "adopted"),
-                            )}{" "}
-                            {formatNumber(itemBallot.votesFor)} · {formatNumber(itemBallot.votesAgainst)} ·{" "}
-                            {formatNumber(itemBallot.abstentions)}
+                            )}
+                            {itemBallot.countsLoaded === false
+                              ? null
+                              : ` ${formatNumber(itemBallot.votesFor)} · ${formatNumber(itemBallot.votesAgainst)} · ${formatNumber(itemBallot.abstentions)}`}
                           </span>
                         ) : voteRequired ? (
                           <span className="step-tooltip-flag">{t("live.voteRequired")}</span>
@@ -931,24 +933,26 @@ export function ConductView({
                     </div>
                   </div>
                 </header>
-                <dl className="conduct-result-totals">
-                  <div>
-                    <dt>{t("ballot.votesFor")}</dt>
-                    <dd>{formatNumber(selectedBallot.votesFor)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("ballot.votesAgainst")}</dt>
-                    <dd>{formatNumber(selectedBallot.votesAgainst)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("ballot.abstentions")}</dt>
-                    <dd>{formatNumber(selectedBallot.abstentions)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("ballot.notVoting")}</dt>
-                    <dd>{formatNumber(selectedBallot.notVoting)}</dd>
-                  </div>
-                </dl>
+                {selectedBallot.countsLoaded === false ? null : (
+                  <dl className="conduct-result-totals">
+                    <div>
+                      <dt>{t("ballot.votesFor")}</dt>
+                      <dd>{formatNumber(selectedBallot.votesFor)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("ballot.votesAgainst")}</dt>
+                      <dd>{formatNumber(selectedBallot.votesAgainst)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("ballot.abstentions")}</dt>
+                      <dd>{formatNumber(selectedBallot.abstentions)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("ballot.notVoting")}</dt>
+                      <dd>{formatNumber(selectedBallot.notVoting)}</dd>
+                    </div>
+                  </dl>
+                )}
                 {selectedBallot.method === "public" ? (
                   <div className="result-vote-groups">
                     {(
@@ -987,19 +991,23 @@ export function ConductView({
                     })}
                   </div>
                 ) : null}
-                <p className="report-ballot-note">
-                  {t("ballot.expressedMajority", { expressed: formatNumber(selectedBallot.votesCast) })}
-                </p>
-                <p className="report-ballot-note">
-                  {t("ballot.participationEvidence", {
-                    present: formatNumber(selectedBallot.participationEvidence.quorum.physicallyPresent),
-                    required:
-                      selectedBallot.participationEvidence.quorum.required === null
-                        ? t("meeting.quorumUnestablished")
-                        : formatNumber(selectedBallot.participationEvidence.quorum.required),
-                    roster: formatNumber(selectedBallot.participationEvidence.quorum.activeMembers),
-                  })}
-                </p>
+                {selectedBallot.countsLoaded === false ? null : (
+                  <p className="report-ballot-note">
+                    {t("ballot.expressedMajority", { expressed: formatNumber(selectedBallot.votesCast) })}
+                  </p>
+                )}
+                {selectedBallot.countsLoaded === false ? null : (
+                  <p className="report-ballot-note">
+                    {t("ballot.participationEvidence", {
+                      present: formatNumber(selectedBallot.participationEvidence.quorum.physicallyPresent),
+                      required:
+                        selectedBallot.participationEvidence.quorum.required === null
+                          ? t("meeting.quorumUnestablished")
+                          : formatNumber(selectedBallot.participationEvidence.quorum.required),
+                      roster: formatNumber(selectedBallot.participationEvidence.quorum.activeMembers),
+                    })}
+                  </p>
+                )}
                 {selectedBallot.chairTieBreakApplied ? (
                   <p className="report-ballot-note">{t("ballot.chairTieBreakApplied")}</p>
                 ) : null}
