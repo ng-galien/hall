@@ -18,10 +18,9 @@
   .screen-header[data-collapsed="true"] { border-bottom-color: var(--hall-color-border); }
   /* When the commands of the screen do not fit beside the trail, they go to a second row, aligned to the right. */
   .screen-header-line { display: flex; min-width: 0; min-height: var(--hall-size-touch-control); flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-2); }
-  .screen-header-place { display: flex; min-width: min(100%, var(--hall-size-relative-16rem)); flex: 1 1 0; align-items: center; gap: var(--hall-space-2); }
-  /* On tablet and computer the first line says where one is, on one line: the trail shortens instead of wrapping. */
-  .screen-header[data-format="wide"] .screen-header-line { flex-wrap: nowrap; }
-  .screen-header[data-format="wide"] .screen-header-place { min-width: 0; }
+  /* The first line holds on one line at every width: the place shortens, the initials stay at its right. */
+  .screen-header-place { display: flex; min-width: 0; flex: 1 1 0; align-items: center; gap: var(--hall-space-2); }
+  .screen-header-line { flex-wrap: nowrap; }
   .screen-header-commune {
     overflow: hidden;
     color: var(--hall-color-text-muted);
@@ -111,7 +110,10 @@
 
   /* @implements-requirement HALL-FR-LAY-110 */
   .app-sidebar {
+  /* The menu keeps one row height under a mouse and under a finger: the finger size is kept for the phone. */
     display: flex;
+    --hall-size-control: var(--hall-size-nav-row);
+    --hall-size-touch-control: var(--hall-size-nav-row);
     width: var(--hall-size-sidebar);
     height: 100%;
     flex: none;
@@ -187,10 +189,11 @@
     background: var(--hall-color-surface);
   }
   .app-phone-bar-item {
+  /* Each entry starts from the width of its label, so that the five labels hold at 320 pixels without touching. */
     display: flex;
     min-width: 0;
     min-height: var(--hall-size-phone-bar);
-    flex: 1 1 0;
+    flex: 1 1 auto;
     flex-direction: column;
     align-items: center;
     justify-content: center;
