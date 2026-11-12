@@ -23,9 +23,8 @@
 .business-committee-result[aria-selected="true"] { background: var(--hall-color-surface-selected); }
 .business-committee-result[aria-disabled="true"] { opacity: var(--hall-opacity-disabled); cursor: wait; }
 
-/* Under the title of an affaire, the committees are facts of its line: they follow the date and wrap one by one. */
+/* Under the title of an affaire, the committees take a line of their own under the date. */
 @media (min-width: 761px) {
-  .screen-title-facts > .business-committees,
-  .screen-title-facts .business-committees-items { display: contents; }
-  .screen-title-facts .business-committee-search { width: min(var(--hall-size-relative-14rem), 100%); }
+  .screen-title-facts > .business-committees { flex-basis: 100%; margin-top: 0; }
+  .screen-title-facts .business-committee-search { width: var(--hall-size-relative-16rem); }
 }

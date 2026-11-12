@@ -162,3 +162,10 @@
 .workspace-business-workbench > :is(.business-subject-table-section, .business-content-section) {
   padding-top: var(--hall-space-5);
 }
+
+/* On a phone the content of an affaire keeps the margins of the header and of its title. */
+@media (max-width: 760px) {
+  .workspace-business-workbench.phone-business:not([data-editing="true"]) {
+    padding-inline: var(--hall-space-4);
+  }
+}
