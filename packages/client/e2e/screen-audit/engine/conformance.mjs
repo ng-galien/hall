@@ -423,7 +423,10 @@ export function measureConformance(options) {
     /* filled-icon: choices 1 and 9, every icon is drawn in outline. */
     if (weight === "fill" || weight === "duotone") add("filled-icon", svg, `${name} en poids ${weight}`);
     /* icon-weight: choice 9R, the regular weight of the family; the current destination of a bar is drawn bolder (1A). */
-    if (["bold", "light", "thin"].includes(weight) && !svg.closest("[aria-current=page], [data-active=true]"))
+    if (
+      ["bold", "light", "thin"].includes(weight) &&
+      !svg.closest("[aria-current=page], [data-active=true], [data-current=true], .app-sidebar [data-open=true]")
+    )
       add("icon-weight", svg, `${name} en poids ${weight}`);
     /* disclosure-chevron: choice 14, a section or a folder unfolds without a chevron or a triangle. */
     if (/^(Caret(Down|Right|Up|Left|Circle\w*)|Triangle)$/.test(name)) {

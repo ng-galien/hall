@@ -114,16 +114,31 @@ if (sweeping) {
               await page.setViewportSize({ width, height });
               await settleLayout(page);
             };
+            /* The time of each step, written to the log, so that a slow pass says where its time goes. */
+            const timed = async <T>(label: string, step: () => Promise<T>) => {
+              const begin = Date.now();
+              const result = await step();
+              const spent = Date.now() - begin;
+              if (spent > 3000) console.log(`[balayage] ${input} ${label} : ${Math.round(spent / 100) / 10} s`);
+              return result;
+            };
             const open = async (screen: Screen, width: number) => {
               await page.setViewportSize({ width, height });
-              await screen.open(page);
-              await page.waitForLoadState("networkidle");
-              await ready(page);
+              await timed(`${screen.id} ouverture`, () => screen.open(page));
+              // A screen that keeps a connection open (live updates) never reaches network idle: wait 5 s at most.
+              await timed(`${screen.id} réseau au repos`, () =>
+                page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined),
+              );
+              await timed(`${screen.id} chargement`, () => ready(page));
               await page.evaluate((icons) => {
                 (window as unknown as { __screenAuditIcons: unknown }).__screenAuditIcons = icons;
               }, sweepPlan.fingerprints);
             };
-            const measure = async (screen: Screen, step: Step, menu: string, text: string) => {
+            const measure = (screen: Screen, step: Step, menu: string, text: string) =>
+              timed(`${screen.id} mesure à ${step.width} px, menu ${menu}`, () =>
+                measureOnce(screen, step, menu, text),
+              );
+            const measureOnce = async (screen: Screen, step: Step, menu: string, text: string) => {
               const { width } = step;
               await resize(width);
               const phone = width < sweepPlan.wideFrom;

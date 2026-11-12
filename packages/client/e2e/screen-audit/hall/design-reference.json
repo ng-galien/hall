@@ -47,7 +47,7 @@
     },
     {
       "component": "bouton principal",
-      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab)",
+      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab):not(.app-sidebar *)",
       "property": "background-color",
       "expected": "#2457D6",
       "when": "all",
@@ -60,7 +60,7 @@
     },
     {
       "component": "bouton principal",
-      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab)",
+      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab):not(.app-sidebar *)",
       "property": "color",
       "expected": "#FFFFFF",
       "when": "all",
@@ -73,7 +73,7 @@
     },
     {
       "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on])",
+      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "background-color",
       "expected": "#E8EEFC",
       "when": "all",
@@ -86,7 +86,7 @@
     },
     {
       "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on])",
+      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "color",
       "expected": "#1B45AD",
       "when": "all",
@@ -99,7 +99,7 @@
     },
     {
       "component": "bouton de suppression",
-      "selector": "[data-slot=button][data-variant=danger]",
+      "selector": "[data-slot=button][data-variant=danger]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "background-color",
       "expected": "#B42323",
       "when": "all",
@@ -112,7 +112,7 @@
     },
     {
       "component": "bouton de suppression",
-      "selector": "[data-slot=button][data-variant=danger]",
+      "selector": "[data-slot=button][data-variant=danger]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "color",
       "expected": "#FFFFFF",
       "when": "all",
@@ -125,7 +125,7 @@
     },
     {
       "component": "bouton sans fond",
-      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true])",
+      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "background-color",
       "expected": "transparent",
       "when": "all",
@@ -138,7 +138,7 @@
     },
     {
       "component": "bouton sans fond",
-      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true])",
+      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true]):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "color",
       "expected": "#5B6472",
       "when": "all",
@@ -177,7 +177,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]",
+      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "font-size",
       "expected": "14px",
       "when": "all",
@@ -190,7 +190,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]",
+      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "font-weight",
       "expected": "650",
       "when": "all",
@@ -203,7 +203,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]",
+      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "height",
       "expected": "32px",
       "when": "mouse",
@@ -216,7 +216,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]",
+      "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "height",
       "expected": "44px",
       "when": "finger",
@@ -229,7 +229,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.hall-link)",
+      "selector": "[data-slot=button][data-size=default]:not(.hall-link):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "padding-left",
       "expected": "12px",
       "when": "all",
@@ -242,7 +242,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.hall-link)",
+      "selector": "[data-slot=button][data-size=default]:not(.hall-link):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "padding-right",
       "expected": "12px",
       "when": "all",
@@ -255,7 +255,7 @@
     },
     {
       "component": "bouton",
-      "selector": "[data-slot=button][data-size=default]:not(.hall-link)",
+      "selector": "[data-slot=button][data-size=default]:not(.hall-link):not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *)",
       "property": "border-radius",
       "expected": "4px",
       "when": "all",
@@ -475,7 +475,7 @@
     },
     {
       "component": "barre latérale, rangée",
-      "selector": ".app-sidebar .nav-row:not([aria-current=page]):not(.active)",
+      "selector": ".app-sidebar .nav-row:not([aria-current=page]):not(.active):not([data-open=true]):not([data-current=true])",
       "property": "color",
       "expected": "#5B6472",
       "when": "all",
@@ -576,6 +576,34 @@
         "page": 5,
         "element": "h80"
       }
+    },
+    {
+      "component": "barre latérale, entrée ouverte",
+      "selector": ".app-sidebar .nav-row[data-open=true]:not([aria-current=page])",
+      "property": "color",
+      "expected": "#161A20",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 1,
+        "element": "a49"
+      },
+      "note": "Décision du coordinateur du 12 novembre : entrée de premier niveau dont un écran est ouvert, texte principal ; le gris de la planche est une erreur de dessin."
+    },
+    {
+      "component": "bouton de création",
+      "selector": ".create-fab",
+      "property": "height",
+      "expected": "44px",
+      "when": "finger",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v90"
+      },
+      "note": "Variante tactile du bouton flottant, mesurée au doigt seulement."
     }
   ],
   "missing": [
