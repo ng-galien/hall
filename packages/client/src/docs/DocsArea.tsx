@@ -195,13 +195,10 @@ function ContentsTree({ locale, current }: { locale: Locale; current: string }) 
   );
 }
 
+/** A page of the contents; its sub-pages show under it while it or one of them is open, as in the side menu. */
 function TreeNode({ node, current, depth }: { node: DocsNode; current: string; depth: number }) {
   const { t } = useI18n();
-  const inBranch = current === node.page.path || current.startsWith(`${node.page.path}/`);
-  const [open, setOpen] = useState(inBranch);
-  useEffect(() => {
-    if (inBranch) setOpen(true);
-  }, [inBranch]);
+  const open = current === node.page.path || current.startsWith(`${node.page.path}/`);
   const hasChildren = node.children.length > 0;
   return (
     <div>
@@ -210,27 +207,13 @@ function TreeNode({ node, current, depth }: { node: DocsNode; current: string; d
         data-current={current === node.page.path || undefined}
         style={{ paddingLeft: depth * 12 }}
       >
-        {hasChildren ? (
-          <Button
-            variant="plain"
-            size="icon"
-            type="button"
-            aria-expanded={open}
-            aria-label={node.page.title}
-            onClick={() => setOpen((value) => !value)}
-            className="docs-tree-caret"
-          >
-            <ChevronRightIcon aria-hidden="true" data-open={open || undefined} />
-          </Button>
-        ) : (
-          <span className="docs-tree-caret-space" />
-        )}
         <NavLink
           to={`/docs/${node.page.path}`}
           end
           className="docs-tree-link"
           data-depth={depth}
           data-testid={`docs-page-${node.page.path.replaceAll("/", "-")}`}
+          aria-expanded={hasChildren ? open : undefined}
         >
           <span className="docs-tree-title">{node.page.title}</span>
           {node.page.draft ? <span className="docs-tree-draft" title={t("docs.page.draft")} /> : null}
