@@ -656,7 +656,8 @@ test("on a phone the personal folder opens from Plus, which alone is active, and
     await phone.goto("/app/");
     await destination("more").tap();
     await phone.getByTestId("phone-more-personal").tap();
-    expect(await activeDestinations()).toEqual(["phone-navigation-more"]);
+    await expect(phone.getByTestId("phone-more")).toBeHidden();
+    await expect.poll(activeDestinations).toEqual(["phone-navigation-more"]);
     await expect(phone.getByTestId("phone-header-title")).toHaveText("Mon espace");
     await expect(phone.getByTestId("workspace-explorer-empty")).toHaveText("Ce dossier est vide.");
   });
@@ -670,7 +671,7 @@ test("on a phone the personal folder opens from Plus, which alone is active, and
     expect(await activeDestinations()).toEqual(["documents"]);
     await phone.getByTestId(`workspace-folder-name-${aliceFolder}`).tap();
     await expect(phone.getByTestId("workspace-explorer-empty")).toBeVisible();
-    expect(await activeDestinations()).toEqual(["personal"]);
+    await expect.poll(activeDestinations).toEqual(["phone-navigation-more"]);
   });
 
   await test.step("on a wide screen a filter without result keeps its own message", async () => {

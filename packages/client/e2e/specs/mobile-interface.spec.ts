@@ -98,7 +98,7 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
           .evaluate((element) => Number.parseFloat(getComputedStyle(element).borderTopLeftRadius)),
       ).toBeLessThanOrEqual(8);
       // The last row of the sheet keeps a margin above the bottom edge of the screen.
-      await sheet.getByTestId("phone-more-account").scrollIntoViewIfNeeded();
+      await sheet.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
       await expect
         .poll(async () => {
           const last = await sheet.getByTestId("phone-more-account").boundingBox();

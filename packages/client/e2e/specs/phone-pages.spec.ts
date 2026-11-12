@@ -45,7 +45,7 @@ async function touchscreen(page: Page) {
     });
 }
 
-/** Rows of an open drop-down menu (height, text size and menu width), measured once its opening animation ends. */
+/** Rows of an open drop-down menu or bottom sheet (height, text size and width), measured once its opening animation ends. */
 async function menuMeasures(page: Page, testId: string) {
   const menu = page.getByTestId(testId);
   await expect(menu).toBeVisible();
@@ -56,7 +56,7 @@ async function menuMeasures(page: Page, testId: string) {
     width: element.getBoundingClientRect().width,
     radius: Number.parseFloat(getComputedStyle(element).borderTopLeftRadius),
     viewport: document.documentElement.clientWidth,
-    rows: [...element.querySelectorAll('[data-slot="dropdown-menu-item"]')].map((row) => ({
+    rows: [...element.querySelectorAll('[data-slot="dropdown-menu-item"], [data-slot="list-row"]')].map((row) => ({
       height: row.getBoundingClientRect().height,
       font: Number.parseFloat(getComputedStyle(row).fontSize),
       icon: row.querySelector("svg")?.getBoundingClientRect().width ?? 0,

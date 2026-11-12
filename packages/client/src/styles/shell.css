@@ -174,7 +174,8 @@
   /* The bottom sheet: rises from the bottom edge, its rows are list rows. */
   .app-sheet { padding: var(--hall-space-4) 0 calc(var(--hall-space-6) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
   .app-sheet > [data-slot="dialog-title"] { padding: 0 var(--hall-size-touch-control) var(--hall-space-2) var(--hall-space-4); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); }
-  .app-sheet .list-row-list { margin: 0; border-bottom: 0; }
+  .app-sheet .list-row-list { margin: 0 0 var(--hall-space-6); border-bottom: 0; }
+  .app-sheet .list-row { font-size: var(--hall-font-size-text); }
 
   .page-header { display: grid; gap: var(--hall-space-2); padding: var(--hall-space-3) var(--hall-space-7) 0; }
   .page-header-description { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }

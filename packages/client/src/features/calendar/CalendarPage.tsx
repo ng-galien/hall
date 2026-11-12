@@ -502,6 +502,7 @@ export function CalendarPage() {
                   {t("calendar.cancel")}
                 </Button>
                 <Button
+                  type="submit"
                   data-testid="calendar-create"
                   disabled={
                     saving ||
