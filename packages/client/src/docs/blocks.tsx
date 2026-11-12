@@ -1,7 +1,8 @@
 import { type ReactNode, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRightIcon, ForwardIcon, InfoIcon, OfficialRuleIcon, TipIcon, WarningIcon } from "../components/icons";
+import { ForwardIcon, InfoIcon, OfficialRuleIcon, TipIcon, WarningIcon } from "../components/icons";
 import { Button } from "../components/ui/button";
+import { DisclosureBadge } from "../components/ui/disclosure-badge";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { findNode } from "./pages";
@@ -53,7 +54,7 @@ export function Details({
         aria-expanded={open}
         className="docs-details-toggle"
       >
-        <ChevronRightIcon aria-hidden="true" className="docs-details-caret" data-open={open || undefined} />
+        <DisclosureBadge expanded={open} />
         <span>{title}</span>
       </Button>
       {open ? <div className="docs-details-body">{children}</div> : null}

@@ -32,6 +32,9 @@
 .shared-search-wheel-row { display:flex; width:100%; margin:0; align-items:center; gap:var(--hall-space-2); height:var(--hall-size-relative-1-75rem); padding-inline:var(--hall-space-2); text-align:left; cursor:pointer; border-radius:var(--hall-radius-small); color:var(--hall-color-text-muted); flex-shrink:0; }
 .shared-search-wheel-row svg { width:var(--hall-size-relative-1rem); height:var(--hall-size-relative-1rem); flex:none; }
 .shared-search-wheel-row span:first-of-type { flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.shared-search-wheel-category > .disclosure-badge { flex:none; }
+.shared-search-wheel-category > .disclosure-badge svg { width:var(--hall-font-size-caption); height:var(--hall-font-size-caption); }
+.shared-search-wheel-category > .disclosure-badge + span { flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .shared-search-wheel-row[data-active="true"] { background:var(--hall-color-surface-selected); color:var(--hall-color-brand); font-weight:var(--hall-font-weight-medium); }
 .shared-search-wheel-row:hover { color:var(--hall-color-brand); background:var(--hall-color-surface-selected); }
 .shared-search-wheel-value { padding-left:var(--hall-space-2); }

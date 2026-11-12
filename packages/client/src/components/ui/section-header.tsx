@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { DisclosureBadge } from "./disclosure-badge";
 
 /** A header that folds its section: the whole title is the toggle. */
 export type SectionHeaderFold = {
@@ -12,8 +13,8 @@ export type SectionHeaderFold = {
 
 /**
  * The single header of a section of a screen: the title at the left, in one size and one weight, with its count; the
- * commands of the section at the right end of the same line; a rule under the line. An icon precedes the title only
- * when the header folds the section, and then shows its state (`openIcon`).
+ * commands of the section at the right end of the same line; a rule under the line. A header that folds its section
+ * shows the square « + / − » before the title, the whole line being the toggle.
  */
 export function SectionHeader({
   title,
@@ -50,7 +51,8 @@ export function SectionHeader({
   testId?: string;
 }) {
   const Heading = level === 3 ? "h3" : "h2";
-  const shownIcon = fold && icon ? (fold.open && openIcon ? openIcon : icon) : null;
+  const givenIcon = fold?.open && openIcon ? openIcon : icon;
+  const shownIcon = fold ? (givenIcon ?? <DisclosureBadge expanded={fold.open} />) : null;
   const label = (
     <>
       {shownIcon ? <span className="section-header-icon">{shownIcon}</span> : null}

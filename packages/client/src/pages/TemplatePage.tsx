@@ -6,6 +6,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { Disclosure } from "../components/ui/disclosure";
 import { DocumentViewerDialog } from "../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../features/documents/NativeDocumentFrame";
 import { TemplateDecorationField } from "../features/templates/TemplateDecorationField";
@@ -188,11 +189,17 @@ export function TemplatePage() {
                 onChange={(event) => change({ bodyMarkdown: event.currentTarget.value })}
               />
             </Field>
-            <details className="template-examples">
-              <summary>{t("templates.jinjaExamples")}</summary>
-              <p>{t("templates.jinjaData")}</p>
-              <pre>{`{% for point in minutes.points %}\n## {{ point.number }}. {{ point.title | text }}\n\n{% if point.subjectText %}\n### Sujet présenté\n\n{{ point.subjectText | markdown }}\n{% endif %}\n\n### Discussion\n\n{{ point.narrative | markdown }}\n\n{% if point.ballot %}\nPour : {{ point.ballot.totals.approve }}\n{% endif %}\n{% endfor %}\n\n::page-break\n\nPage :page-number / :page-count`}</pre>
-            </details>
+            <div className="template-examples">
+              <Disclosure
+                title={t("templates.jinjaExamples")}
+                testId="template-examples-disclosure"
+                toggleTestId="template-examples-toggle"
+                contentTestId="template-examples-content"
+              >
+                <p>{t("templates.jinjaData")}</p>
+                <pre>{`{% for point in minutes.points %}\n## {{ point.number }}. {{ point.title | text }}\n\n{% if point.subjectText %}\n### Sujet présenté\n\n{{ point.subjectText | markdown }}\n{% endif %}\n\n### Discussion\n\n{{ point.narrative | markdown }}\n\n{% if point.ballot %}\nPour : {{ point.ballot.totals.approve }}\n{% endif %}\n{% endfor %}\n\n::page-break\n\nPage :page-number / :page-count`}</pre>
+              </Disclosure>
+            </div>
           </div>
           {draft.kind === "pdf" ? (
             <TemplateDecorationField

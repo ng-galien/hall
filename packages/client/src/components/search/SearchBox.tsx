@@ -6,6 +6,7 @@ import { CloseIcon, FilterIcon, SearchIcon } from "../icons";
 import { ActiveOption } from "../ui/active-option";
 import { Button } from "../ui/button";
 import { Disclosure } from "../ui/disclosure";
+import { DisclosureBadge } from "../ui/disclosure-badge";
 import { Input } from "../ui/input";
 import { type FacetSuggestion, facetHashPattern, facetSuggestionsFor } from "./facetSuggestions";
 
@@ -358,8 +359,8 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
                       setActive(rowIndex);
                     }}
                   >
+                    <DisclosureBadge expanded={opened === row.category} />
                     <span>{labels[row.category]}</span>
-                    <span aria-hidden="true">{opened === row.category ? "−" : "+"}</span>
                   </ActiveOption>
                 ),
                 value: (row) => (

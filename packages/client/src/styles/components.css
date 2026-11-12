@@ -220,10 +220,6 @@
   .template-body > .hall-field-block { width: 100%; }
   .template-editor .hall-field :is(.template-source, .template-decoration-source) { font-family: var(--hall-font-family-monospace); font-size: var(--hall-font-size-body); }
   .template-examples { font-size: var(--hall-font-size-body); }
-  /* The whole title unfolds the examples, without a triangle. */
-  .template-examples summary { cursor: pointer; font-weight: var(--hall-font-weight-semibold); list-style: none; }
-  .template-examples summary::-webkit-details-marker { display: none; }
-  .template-examples summary:hover { color: var(--hall-color-brand); }
   .template-examples p { margin: var(--hall-space-2) 0; color: var(--hall-color-text-muted); }
   .template-examples pre { font-size: var(--hall-font-size-caption); white-space: pre-wrap; overflow-wrap: anywhere; }
   .template-preview-diagnostics { padding-left: var(--hall-space-5); font-size: var(--hall-font-size-body); list-style: disc; }
@@ -312,8 +308,6 @@
   .admin-role-zone .list-row-line[draggable="true"] { cursor: grab; }
   .admin-membership-actions { display: flex; flex-wrap: wrap; gap: var(--hall-space-2); }
   .admin-membership-history { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
-  .admin-membership-history summary { cursor: pointer; font-weight: var(--hall-font-weight-semibold); }
-  .admin-membership-history[open] summary { margin-bottom: var(--hall-space-3); }
 
   /* A state is a fact written after a coloured dot; an autosave writes its progress the same way. */
   .record-state {
@@ -657,6 +651,7 @@
   .section-header-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
   .section-header-icon { display: inline-grid; flex: none; place-items: center; color: var(--hall-color-nature-folder); }
   .section-header-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
+  .section-header-icon .disclosure-badge svg { width: var(--hall-font-size-caption); height: var(--hall-font-size-caption); }
   .section-header-title-text { min-width: 0; overflow-wrap: anywhere; }
   .section-header-description { margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   /* The commands keep the right end of the title line, centred on it, and leave the rest of the line to the

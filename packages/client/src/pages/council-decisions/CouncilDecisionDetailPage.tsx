@@ -8,7 +8,6 @@ import { ShareButton } from "../../components/ShareButton";
 import { PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
-import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { SectionHeader } from "../../components/ui/section-header";
 import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
@@ -19,6 +18,7 @@ import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { type PhoneDocumentAction, PhoneDocumentActions, phoneActionIcons } from "../workspace/PhoneDocumentActions";
 import { useCouncilDecisionDraft } from "./useCouncilDecisionDraft";
 import "../../features/documents/DocumentViewer.css";
+import { Disclosure } from "../../components/ui/disclosure";
 
 export function CouncilDecisionDetailPage() {
   const { decisionId = "" } = useParams();
@@ -139,13 +139,14 @@ function CouncilDecisionDetail({ id }: { id: string }) {
                 </span>
               </p>
             </div>
-            <details className="conduct-block" data-testid="decision-submitted-text">
-              <summary data-testid="decision-submitted-toggle">
-                <DisclosureBadge />
-                <span>{t("decisionDocument.submitted")}</span>
-              </summary>
+            <Disclosure
+              title={t("decisionDocument.submitted")}
+              testId="decision-submitted-text"
+              toggleTestId="decision-submitted-toggle"
+              contentTestId="decision-submitted-content"
+            >
               <MarkdownView markdown={decision.facts.proposal.submittedText} />
-            </details>
+            </Disclosure>
             <section
               className="admin-detail-surface admin-record decision-writing"
               aria-labelledby="decision-writing-title"

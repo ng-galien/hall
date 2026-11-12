@@ -2,6 +2,7 @@ import type { ComponentPropsWithoutRef, ReactElement, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
+import { DisclosureBadge } from "./disclosure-badge";
 
 /** Colour family of a type icon. Every type of Hall maps to one nature in `ResourceGlyph`. */
 export type ResourceNature = "writing" | "data" | "visual" | "council" | "folder";
@@ -51,6 +52,7 @@ export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "child
     /** Test identifier of the zone that opens the object. */
     openTestId?: string;
     openLabel?: string;
+    /** A row whose open button carries `aria-expanded` unfolds its content: the square « + / − » precedes its line. */
     openProps?: Omit<ComponentPropsWithoutRef<"button">, "onClick" | "children">;
     /** Handlers of the visible line, for selection, drag or a context menu on a tree row. */
     lineProps?: Omit<ComponentPropsWithoutRef<"div">, "children">;
@@ -93,8 +95,10 @@ export function ListRow({
       <span className="list-row-status-text">{status.label}</span>
     </span>
   ) : null;
+  const unfolds = openProps?.["aria-expanded"];
   const content = (
     <>
+      {typeof unfolds === "boolean" ? <DisclosureBadge expanded={unfolds} /> : null}
       {head && !headButton ? <span className="list-row-head">{head}</span> : null}
       <span className="list-row-text">
         {overline ? <span className="list-row-overline">{overline}</span> : null}

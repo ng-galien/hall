@@ -615,16 +615,6 @@ h4.docs-heading {
   color: var(--hall-color-text);
 }
 
-.docs-details-caret {
-  flex-shrink: 0;
-  color: var(--hall-color-text-subtle);
-  transition: transform 120ms ease;
-}
-
-.docs-details-caret[data-open] {
-  transform: rotate(90deg);
-}
-
 .docs-details-body {
   padding: var(--hall-space-3) var(--hall-space-4);
   border-top: var(--hall-stroke-thin) solid var(--hall-color-border);

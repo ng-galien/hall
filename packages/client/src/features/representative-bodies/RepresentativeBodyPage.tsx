@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AddIcon, DeleteIcon } from "../../components/icons";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { Disclosure } from "../../components/ui/disclosure";
 import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
 import { SectionHeader } from "../../components/ui/section-header";
 import { useSubmitting } from "../../hooks/useSubmitting";
@@ -506,32 +507,38 @@ export function RepresentativeBodyPage({
             )}
 
             {endedMemberships.length > 0 ? (
-              <details className="admin-membership-history">
-                <summary>{t(text.membershipHistory, { count: String(endedMemberships.length) })}</summary>
-                <ListRows>
-                  {endedMemberships.map((membership) => {
-                    const member = memberById.get(membership.contactId);
-                    return (
-                      <ListRow
-                        key={membership.id}
-                        to={`/contacts/${membership.contactId}`}
-                        head={<ListRowAvatar initials={memberInitials(member)} />}
-                        title={memberName(member, t("contacts.notFound"))}
-                        detail={`${t(bodyKind.roleLabel(membership.role))} · ${formatDate(membership.startedOn)} - ${
-                          membership.endedOn ? formatDate(membership.endedOn) : ""
-                        }`}
-                        action={
-                          canUpdateMembership(membership) ? (
-                            <Button variant="secondary" onClick={() => openMembershipEditor(membership)}>
-                              {t("common.edit")}
-                            </Button>
-                          ) : undefined
-                        }
-                      />
-                    );
-                  })}
-                </ListRows>
-              </details>
+              <div className="admin-membership-history">
+                <Disclosure
+                  title={t(text.membershipHistory, { count: String(endedMemberships.length) })}
+                  testId="membership-history"
+                  toggleTestId="membership-history-toggle"
+                  contentTestId="membership-history-content"
+                >
+                  <ListRows>
+                    {endedMemberships.map((membership) => {
+                      const member = memberById.get(membership.contactId);
+                      return (
+                        <ListRow
+                          key={membership.id}
+                          to={`/contacts/${membership.contactId}`}
+                          head={<ListRowAvatar initials={memberInitials(member)} />}
+                          title={memberName(member, t("contacts.notFound"))}
+                          detail={`${t(bodyKind.roleLabel(membership.role))} · ${formatDate(membership.startedOn)} - ${
+                            membership.endedOn ? formatDate(membership.endedOn) : ""
+                          }`}
+                          action={
+                            canUpdateMembership(membership) ? (
+                              <Button variant="secondary" onClick={() => openMembershipEditor(membership)}>
+                                {t("common.edit")}
+                              </Button>
+                            ) : undefined
+                          }
+                        />
+                      );
+                    })}
+                  </ListRows>
+                </Disclosure>
+              </div>
             ) : null}
           </section>
 

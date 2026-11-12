@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { SearchIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
+import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
 import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
@@ -121,13 +121,12 @@ export function MeetingReport({
               </dl>
               <Button
                 variant="plain"
-                size="icon"
-                aria-label={t("report.attendanceDetails")}
                 aria-expanded={attendanceVisible}
                 data-testid="report-attendance-toggle"
                 onClick={() => setAttendanceVisible((visible) => !visible)}
               >
-                <SearchIcon aria-hidden="true" />
+                <DisclosureBadge expanded={attendanceVisible} />
+                {t("report.attendanceDetails")}
               </Button>
             </div>
             {attendanceVisible ? (

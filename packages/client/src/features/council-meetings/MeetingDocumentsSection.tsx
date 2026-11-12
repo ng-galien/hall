@@ -1,9 +1,10 @@
 // biome-ignore-all lint/correctness/useExhaustiveDependencies: Notice and minutes changes intentionally reload their state.
-import type { MeetingNotice, MeetingNoticeMessagePreparation } from "@hall/api-contract";
+import { findSirenLink, type MeetingNotice, type MeetingNoticeMessagePreparation } from "@hall/api-contract";
 import { Children, type ReactNode, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { SectionHeader } from "@/components/ui/section-header";
 import {
   AttendanceSheetIcon,
   DecisionsIcon,
@@ -16,12 +17,20 @@ import {
   ProxyIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
-import { ListRow, ListRowIcon, type ListRowStatusTone, ListRows } from "../../components/ui/list-row";
+import { DisclosureBadge } from "../../components/ui/disclosure-badge";
+import {
+  ListRow,
+  ListRowIcon,
+  type ListRowStatus,
+  type ListRowStatusTone,
+  ListRows,
+} from "../../components/ui/list-row";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { LiveMeetingPresentation } from "../../models/liveMeeting";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { openCouncilDecisionDocument } from "../../services/councilDecisionsApi";
 import {
   generateMeetingNotice,
   listMeetingNotices,
@@ -29,7 +38,7 @@ import {
   prepareMeetingNoticeMail,
   prepareMeetingNoticeMessage,
 } from "../../services/meetingNoticesApi";
-import { openMinutes } from "../../services/minutesApi";
+import { minutesContentHref, openMinutes } from "../../services/minutesApi";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { liveBusinessTitle } from "../council-business/presentation";
 import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
@@ -42,41 +51,68 @@ type DocumentTone = "done" | "pending" | "error" | "neutral";
 
 type DocumentOpening = { onClick: () => void; disabled?: boolean } | { to: string };
 
-const documentToneStatus: Record<Exclude<DocumentTone, "neutral">, ListRowStatusTone> = {
-  done: "success",
-  pending: "neutral",
+/** A document that waits for an action or fails carries its state in a tag; an available document says it in text. */
+const documentToneStatus: Partial<Record<DocumentTone, ListRowStatusTone>> = {
+  pending: "action",
   error: "danger",
 };
+
+/** The written command that opens the PDF of a document in the document viewer. */
+function OpenPdfCommand({ testId, onClick, disabled }: { testId: string; onClick(): void; disabled?: boolean }) {
+  const { t } = useI18n();
+  return (
+    <Button variant="plain" className="hall-link" data-testid={testId} disabled={disabled} onClick={onClick}>
+      {t("meeting.documents.openPdf")}
+    </Button>
+  );
+}
 
 function DocumentRow({
   testId,
   icon,
   name,
   opening,
+  pdf = false,
   state,
   tone = "neutral",
+  status,
   actions,
   children,
 }: {
   testId: string;
   icon: ReactNode;
   name: string;
+  /** What a click on the name opens. */
   opening?: DocumentOpening;
+  /** The opening shows the PDF of the document: the row also offers « Ouvrir le PDF ». */
+  pdf?: boolean;
   state: ReactNode;
   tone?: DocumentTone;
+  /** A state of the document itself, in a tag beside its facts. */
+  status?: ListRowStatus;
   actions?: ReactNode;
   children?: ReactNode;
 }) {
   const stateTestId = `${testId}-state`;
-  const facts =
-    tone === "neutral"
-      ? { detail: <span data-testid={stateTestId}>{state}</span> }
-      : { status: { tone: documentToneStatus[tone], label: state, testId: stateTestId } };
+  const toneStatus = documentToneStatus[tone];
+  const facts = toneStatus
+    ? { status: { tone: toneStatus, label: state, testId: stateTestId } }
+    : { detail: <span data-testid={stateTestId}>{state}</span>, status };
+  const pdfCommand =
+    pdf && opening && "onClick" in opening ? (
+      <OpenPdfCommand testId={`${testId}-pdf`} onClick={opening.onClick} disabled={opening.disabled} />
+    ) : null;
   const shared = {
     "data-testid": testId,
     head: <ListRowIcon nature="council">{icon}</ListRowIcon>,
     title: name,
-    action: actions,
+    action:
+      pdfCommand || actions ? (
+        <>
+          {pdfCommand}
+          {actions}
+        </>
+      ) : undefined,
     children: Children.toArray(children).length ? children : undefined,
     ...facts,
   };
@@ -177,6 +213,12 @@ export function MeetingDocumentsSection({
   const showNotice = async (id: string) => {
     setViewer({ title: `${t("meeting.notice.title")} · ${meetingLabel}`, href: await meetingNoticeContentHref(id) });
   };
+  /** Opens the PDF of a decision from the content link of its representation. */
+  const showDecision = async (id: string, title: string) => {
+    const opened = await openCouncilDecisionDocument(id);
+    const link = opened.representation ? findSirenLink(opened.representation, "content") : undefined;
+    if (link) setViewer({ title, href: link.href });
+  };
   const noticeState = (): { text: string; tone: DocumentTone } => {
     if (currentNotice)
       return {
@@ -211,13 +253,17 @@ export function MeetingDocumentsSection({
   };
   const deliberationListHref = meetingActions.link("deliberation-list");
 
-  const [minutesGenerated, setMinutesGenerated] = useState<boolean | null>(null);
+  const [minutesState, setMinutesState] = useState<{ generatedAt: string | null; settled: boolean } | null>(null);
   useEffect(() => {
     if (!closed || !meeting.minutesId) return;
     let active = true;
     void openMinutes(meeting.minutesId).then(
       (result) => {
-        if (active) setMinutesGenerated(Boolean(result.data.documentId));
+        if (active)
+          setMinutesState({
+            generatedAt: result.data.documentId ? result.data.generatedAt : null,
+            settled: Boolean(result.data.settledAt),
+          });
       },
       () => undefined,
     );
@@ -239,7 +285,9 @@ export function MeetingDocumentsSection({
             ? [
                 {
                   id: record.id,
-                  number: item.agendaNumber,
+                  publicationNumber: record.number,
+                  frozen: record.state === "frozen",
+                  agendaNumber: item.agendaNumber,
                   title: liveBusinessTitle(item.business, t("agendaSubject.minutesApproval")),
                 },
               ]
@@ -250,7 +298,7 @@ export function MeetingDocumentsSection({
   const notice = noticeState();
   const showNoticeRow = Boolean(noticesHref) || canGenerateNotice;
 
-  return (
+  const documents = (
     <CollapsibleSection
       title={t("meeting.documents.title")}
       open={open}
@@ -271,6 +319,7 @@ export function MeetingDocumentsSection({
                 ? { onClick: () => perform(() => showNotice(currentNotice.id)), disabled: submitting }
                 : undefined
             }
+            pdf
             state={notice.text}
             tone={notice.tone}
             actions={
@@ -336,6 +385,7 @@ export function MeetingDocumentsSection({
                   data-testid="meeting-notice-previous-toggle"
                   onClick={() => setPreviousOpen((value) => !value)}
                 >
+                  <DisclosureBadge expanded={previousOpen} />
                   {plural(
                     previousNotices.length,
                     "meeting.documents.previousNotices.one",
@@ -380,7 +430,67 @@ export function MeetingDocumentsSection({
                   }
                 : undefined
             }
+            pdf
             state={revisionEstablished ? t("meeting.dossierDescription") : t("meeting.documents.dossierAfterRevision")}
+          />
+        ) : null}
+
+        {closed && meeting.minutesId ? (
+          <DocumentRow
+            testId="meeting-document-minutes"
+            icon={<MinutesIcon />}
+            name={t("meeting.minutes")}
+            state={
+              minutesState === null
+                ? t("common.loading")
+                : minutesState.generatedAt
+                  ? t("meeting.documents.minutesGenerated", { date: formatDate(minutesState.generatedAt) })
+                  : t("minutes.draft")
+            }
+            status={
+              minutesState
+                ? {
+                    tone: minutesState.settled ? "success" : "action",
+                    label: t(minutesState.settled ? "minutes.stopped" : "minutes.notStopped"),
+                    testId: "meeting-document-minutes-settlement",
+                  }
+                : undefined
+            }
+            opening={
+              minutesState?.generatedAt
+                ? {
+                    onClick: () =>
+                      setViewer({
+                        title: `${t("meeting.minutes")} · ${meetingLabel}`,
+                        href: minutesContentHref(meeting.minutesId!),
+                      }),
+                  }
+                : { to: `/minutes/${meeting.minutesId}` }
+            }
+            pdf
+            actions={
+              <Link
+                className="hall-link"
+                to={`/minutes/${meeting.minutesId}`}
+                data-testid="meeting-document-minutes-writing"
+              >
+                {t("meeting.documents.writing")}
+              </Link>
+            }
+          />
+        ) : null}
+
+        {deliberationListHref ? (
+          <DocumentRow
+            testId="meeting-document-deliberation-list"
+            icon={<DecisionsIcon />}
+            name={t("meeting.deliberationList")}
+            opening={{
+              onClick: () =>
+                setViewer({ title: `${t("meeting.deliberationList")} · ${meetingLabel}`, href: deliberationListHref }),
+            }}
+            pdf
+            state={t("meeting.documents.deliberationListState")}
           />
         ) : null}
 
@@ -390,6 +500,7 @@ export function MeetingDocumentsSection({
             icon={<AttendanceSheetIcon />}
             name={t("meeting.attendanceSheet")}
             opening={{ onClick: showAttendanceSheet }}
+            pdf
             state={t("meeting.documents.available")}
             tone="done"
             actions={
@@ -415,72 +526,6 @@ export function MeetingDocumentsSection({
             }
           />
         ) : null}
-
-        {closed && meeting.minutesId ? (
-          <DocumentRow
-            testId="meeting-document-minutes"
-            icon={<MinutesIcon />}
-            name={t("meeting.minutes")}
-            state={
-              minutesGenerated === null
-                ? t("common.loading")
-                : t(minutesGenerated ? "minutes.generated" : "minutes.draft")
-            }
-            tone={minutesGenerated ? "done" : minutesGenerated === false ? "pending" : "neutral"}
-            opening={{ to: `/minutes/${meeting.minutesId}` }}
-          />
-        ) : null}
-
-        {deliberationListHref ? (
-          <DocumentRow
-            testId="meeting-document-deliberation-list"
-            icon={<DecisionsIcon />}
-            name={t("meeting.deliberationList")}
-            opening={{
-              onClick: () =>
-                setViewer({ title: `${t("meeting.deliberationList")} · ${meetingLabel}`, href: deliberationListHref }),
-            }}
-            state={t("meeting.documents.deliberationListState")}
-          />
-        ) : null}
-
-        {closed ? (
-          <DocumentRow
-            testId="meeting-document-decisions"
-            icon={<DecisionsIcon />}
-            name={t("meeting.documents.decisions")}
-            state={
-              decisions.length
-                ? `${formatNumber(decisions.length)} ${plural(decisions.length, "meeting.documents.decisionCount.one", "meeting.documents.decisionCount.other")}`
-                : t("meeting.documents.decisionsEmpty")
-            }
-          >
-            {decisions.length ? (
-              <ListRows>
-                {decisions.map((decision) => (
-                  <ListRow
-                    key={decision.id}
-                    to={`/council-decisions/${decision.id}`}
-                    openTestId={`meeting-decision-link-${decision.id}`}
-                    head={
-                      <ListRowIcon nature="council">
-                        <DecisionsIcon />
-                      </ListRowIcon>
-                    }
-                    title={
-                      decision.number === null
-                        ? decision.title
-                        : t("meeting.documents.decisionItem", {
-                            number: formatNumber(decision.number),
-                            title: decision.title,
-                          })
-                    }
-                  />
-                ))}
-              </ListRows>
-            ) : null}
-          </DocumentRow>
-        ) : null}
       </ListRows>
       {proxyFormHref ? (
         <MeetingProxyFormDialog
@@ -493,6 +538,77 @@ export function MeetingDocumentsSection({
           }}
         />
       ) : null}
+    </CollapsibleSection>
+  );
+  return (
+    <>
+      {documents}
+      {closed ? (
+        <section className="meeting-decisions" data-testid="meeting-document-decisions">
+          <SectionHeader
+            title={t("meeting.documents.decisions")}
+            count={formatNumber(decisions.length)}
+            countTestId="meeting-document-decisions-count"
+          />
+          {decisions.length ? (
+            <ListRows data-wrap="true">
+              {decisions.map((decision) => {
+                const openPdf = () => perform(() => showDecision(decision.id, decision.title));
+                return (
+                  <ListRow
+                    key={decision.id}
+                    data-testid={`meeting-decision-${decision.id}`}
+                    {...(decision.frozen
+                      ? {
+                          onOpen: openPdf,
+                          openProps: { disabled: submitting },
+                        }
+                      : { to: `/council-decisions/${decision.id}` })}
+                    openTestId={`meeting-decision-link-${decision.id}`}
+                    head={
+                      <span className="meeting-decision-number">
+                        {decision.publicationNumber
+                          ? t("meeting.documents.decisionNumber", { number: decision.publicationNumber })
+                          : null}
+                      </span>
+                    }
+                    title={decision.title}
+                    detail={
+                      decision.agendaNumber === null
+                        ? undefined
+                        : t("meeting.documents.decisionPoint", { number: formatNumber(decision.agendaNumber) })
+                    }
+                    status={{
+                      tone: decision.frozen ? "success" : "action",
+                      label: t(decision.frozen ? "decisionDocument.frozen" : "decisionDocument.draft"),
+                      testId: `meeting-decision-state-${decision.id}`,
+                    }}
+                    action={
+                      decision.frozen ? (
+                        <OpenPdfCommand
+                          testId={`meeting-decision-pdf-${decision.id}`}
+                          onClick={openPdf}
+                          disabled={submitting}
+                        />
+                      ) : (
+                        <Link
+                          className="hall-link"
+                          to={`/council-decisions/${decision.id}`}
+                          data-testid={`meeting-decision-writing-${decision.id}`}
+                        >
+                          {t("meeting.documents.writing")}
+                        </Link>
+                      )
+                    }
+                  />
+                );
+              })}
+            </ListRows>
+          ) : (
+            <p className="meeting-document-note">{t("meeting.documents.decisionsEmpty")}</p>
+          )}
+        </section>
+      ) : null}
       {viewer ? (
         <DocumentObjectViewer
           title={viewer.title}
@@ -501,6 +617,6 @@ export function MeetingDocumentsSection({
           onClose={() => setViewer(null)}
         />
       ) : null}
-    </CollapsibleSection>
+    </>
   );
 }
