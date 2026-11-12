@@ -1,108 +1,148 @@
-/* Trail of the workspace folders: links in the first line of the screen header, or a plain trail in a dialog. */
 .workspace-breadcrumb {
-  display: flex;
+    display: flex;
+    min-height: var(--hall-size-control-small);
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--hall-space-0-5);
+    font-size: var(--hall-font-size-body);
+}
+
+  .workspace-crumb {
+    min-height: 0;
+    padding: var(--hall-space-0-5) var(--hall-space-1);
+    border: 0;
+    color: var(--hall-color-text-muted);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .workspace-crumb:hover {
+    color: var(--hall-color-text);
+    background: transparent;
+  }
+
+  .workspace-crumb:focus-visible {
+    color: var(--hall-color-text);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .workspace-crumb-root {
+    display: inline-flex;
+    height: var(--hall-size-control-small);
+    align-items: center;
+    gap: var(--hall-space-1-5);
+  }
+  .workspace-crumb-here,
+  .workspace-crumb-here:hover {
+    color: var(--hall-color-text);
+    font-weight: var(--hall-font-weight-semibold);
+  }
+  .workspace-crumb-root svg {
+    flex: none;
+    font-size: var(--hall-font-size-icon-small);
+  }
+
+  .workspace-crumb-origin,
+  .workspace-crumb-origin:hover,
+  .workspace-crumb-origin:focus-visible {
+    color: var(--hall-color-brand);
+    background: transparent;
+    box-shadow: none;
+    font-weight: var(--hall-font-weight-semibold);
+  }
+
+  .workspace-crumb-sep {
+    display: inline-grid;
+    place-items: center;
+    width: var(--hall-size-crumb-chevron);
+    height: var(--hall-size-crumb-chevron);
+    color: var(--hall-color-text-subtle);
+    font-size: var(--hall-font-size-icon-small);
+  }
+
+  .workspace-crumb-group {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .workspace-crumb-children {
+    display: inline-grid;
+    min-height: 0;
+    place-items: center;
+    width: var(--hall-size-crumb-chevron);
+    height: var(--hall-size-crumb-chevron);
+    padding: 0;
+    border: 0;
+    color: var(--hall-color-text-subtle);
+    background: transparent;
+    font-size: var(--hall-font-size-icon-small);
+    cursor: pointer;
+  }
+
+  .workspace-crumb-children:hover,
+  .workspace-crumb-children:focus-visible {
+    color: var(--hall-color-text-muted);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .workspace-crumb-menu-label {
+    overflow: hidden;
+    min-width: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-crumb-menu .type-icon,
+  .workspace-crumb-current > .type-icon {
+    width: var(--hall-size-glyph-mark);
+    height: var(--hall-size-glyph-mark);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .workspace-crumb-menu .type-icon svg,
+  .workspace-crumb-current > .type-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .workspace-crumb-current {
+    display: inline-flex;
+    overflow: hidden;
+    max-width: var(--hall-size-crumb-max);
+    padding: var(--hall-space-0-5) var(--hall-space-1);
+    align-items: center;
+    gap: var(--hall-space-1);
+    color: var(--hall-color-text);
+    font-weight: var(--hall-font-weight-semibold);
+  }
+
+  .workspace-crumb-current-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-breadcrumb-actions {
+    display: inline-flex;
+    flex: 1;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--hall-space-3);
+  }
+
+/* In the first line of the screen header the trail holds on one line; the current folder and the open item are the
+   title of the screen and are not repeated. */
+.screen-header-trail-slot .workspace-breadcrumb {
   overflow: hidden;
   min-width: 0;
-  min-height: var(--hall-size-control-small);
   flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--hall-space-1);
-  white-space: nowrap;
-  color: var(--hall-color-text-muted);
   font-size: var(--hall-font-size-body);
 }
-
-.workspace-crumb {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: var(--hall-space-1-5);
-  color: var(--hall-color-text-muted);
-  text-decoration: none;
-}
-
-/* A folder of the trail reads as a link; its name opens the menu of the folder. */
-.hall-button.workspace-crumb {
-  min-height: var(--hall-size-control-small);
-  flex-shrink: 1;
-  gap: var(--hall-space-1-5);
-  padding: 0 var(--hall-space-1);
-  color: var(--hall-color-brand);
-  background: transparent;
-  font-weight: var(--hall-font-weight-regular);
-}
-.hall-button.workspace-crumb:hover:not(:disabled),
-.hall-button.workspace-crumb[aria-expanded="true"] { color: var(--hall-color-brand); background: var(--hall-color-surface-subtle); }
-.hall-button.workspace-crumb[aria-current="page"] { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
-.hall-button.workspace-crumb[data-origin="true"] { font-weight: var(--hall-font-weight-semibold); }
-/* The trail shortens in its middle: the first and the last folder keep their name, the others shorten first. */
-.workspace-breadcrumb > .workspace-crumb:first-child,
-.workspace-breadcrumb > .workspace-crumb-group:last-of-type { flex-shrink: 0; max-width: var(--hall-size-crumb-max); }
-.workspace-crumb-label { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
-
-.workspace-crumb > svg {
-  flex: none;
-  font-size: var(--hall-font-size-icon-small);
-}
-
-.workspace-crumb-sep {
-  flex: none;
-  color: var(--hall-color-text-subtle);
-}
-
-.workspace-crumb-group {
-  display: inline-flex;
-  min-width: 0;
-  flex-shrink: 1;
-  align-items: center;
-  gap: var(--hall-space-1);
-}
-
-.workspace-crumb-menu-label {
-  overflow: hidden;
-  min-width: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-crumb-menu .type-icon,
-.workspace-crumb-current > .type-icon {
-  width: var(--hall-size-glyph-mark);
-  height: var(--hall-size-glyph-mark);
-}
-
-.workspace-crumb-menu .type-icon svg,
-.workspace-crumb-current > .type-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.workspace-crumb-current {
-  display: inline-flex;
-  overflow: hidden;
-  max-width: var(--hall-size-crumb-max);
-  align-items: center;
-  gap: var(--hall-space-1);
-  color: var(--hall-color-text);
-  font-weight: var(--hall-font-weight-semibold);
-}
-
-.workspace-crumb-current-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-breadcrumb-actions {
-  display: inline-flex;
-  flex: 1;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--hall-space-3);
-}
-
-/* In the screen header the trail lists the folders above: the current folder is the large title, not repeated; the
-   root « Documents » stays, as the name of the area. */
+.screen-header-trail-slot .workspace-crumb { white-space: nowrap; }
 .screen-header-trail-slot .workspace-crumb-group:has(> [aria-current="page"]) {
   display: none;
 }

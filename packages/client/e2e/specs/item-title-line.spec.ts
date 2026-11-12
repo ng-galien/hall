@@ -86,8 +86,6 @@ test("an opened item keeps its place in the first line and its commands on the l
         await expect(commands.getByTestId("workspace-workbench-pin")).toBeVisible();
         await expectPlaceLine(page, label);
         await expect(page.getByTestId("workspace-search-panel")).toHaveCount(0);
-        await expect(page.getByTestId("workspace-breadcrumb-folder-menu")).toHaveCount(0);
-        await expect(page.locator(".workspace-crumb-sep svg")).toHaveCount(0);
         await expect(page.getByTestId("item-save-state").or(page.locator(".workbench-eyebrow")).first()).toBeVisible();
         const title = await page.getByTestId("screen-header-title").boundingBox();
         const more = await commands.getByTestId("workspace-workbench-pin").boundingBox();

@@ -1237,7 +1237,6 @@ test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns 
   expect(folder).toBeTruthy();
   await page.goto("/app/workspace");
   await expect(page.getByTestId("navigation-workspace")).toBeVisible();
-  await expect(page.getByTestId("workspace-root-icon")).toBeVisible();
   await expect(page.getByTestId("workspace-tree-root")).toContainText("Documents");
   await expect(page.locator(".whome")).toHaveCount(0);
   await expect(page.getByTestId(`workspace-folder-open-${folder.fullPath}`)).toBeVisible();

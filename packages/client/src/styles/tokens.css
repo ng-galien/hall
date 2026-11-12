@@ -253,6 +253,7 @@
   --hall-size-viewer-height: 95vh;
   --hall-size-viewer-width: 97vw;
   --hall-size-tree-max: 40vh;
+  --hall-size-crumb-chevron: 20px;
   --hall-size-crumb-max: 40ch;
   --hall-size-editor-measure: 74ch;
   --hall-motion-distance: 4px;
