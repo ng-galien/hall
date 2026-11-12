@@ -962,7 +962,7 @@ export function ConductView({
                         ),
                       )}
                     </span>
-                    <div>
+                    <div className="flex items-center gap-1">
                       <span className="conduct-result-meta">
                         {t(selectedBallot.method === "public" ? "ballot.method.public" : "ballot.method.secret")} ·{" "}
                         {t("live.recordedAt", { time: formatTime(selectedBallot.createdAt) })}
@@ -1229,9 +1229,14 @@ export function ConductView({
         />
       ) : null}
       {addItemOpen ? (
-        <Modal open title={t("live.addItemTitle")} onClose={closeAddItem} testId="live-add-question-dialog">
+        <Modal
+          open
+          title={t("live.addItemTitle")}
+          hint={t("live.addItemHint")}
+          onClose={closeAddItem}
+          testId="live-add-question-dialog"
+        >
           <div className="modal-form">
-            <p className="text-sm text-muted">{t("live.addItemHint")}</p>
             <RequestErrorBanner error={meetingActions.actionError} compact />
             <form
               onSubmit={(event) => {

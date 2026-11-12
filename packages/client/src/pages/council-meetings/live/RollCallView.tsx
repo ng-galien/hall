@@ -556,10 +556,10 @@ function ProxyModal({
       open
       testId="live-proxy-dialog"
       title={t("live.proxyModalTitle", { member: `${member.contact.firstName} ${member.contact.lastName}` })}
+      hint={t("live.proxyModalDescription")}
       onClose={onClose}
     >
       <div className="modal-form">
-        <p className="text-sm text-muted">{t("live.proxyModalDescription")}</p>
         <RequestErrorBanner error={uploadError} onDismiss={onDismissError} />
 
         <section aria-labelledby="proxy-holder-heading">
@@ -596,9 +596,12 @@ function ProxyModal({
         </section>
 
         <section aria-labelledby="proxy-document-heading">
-          <h3 className="picker-heading" id="proxy-document-heading">
-            {t("meeting.proxyDocument")}
-          </h3>
+          <div className="flex items-center gap-1">
+            <h3 className="picker-heading" id="proxy-document-heading">
+              {t("meeting.proxyDocument")}
+            </h3>
+            <HelpHint text={t("live.uploadProxyHint")} testId="live-proxy-document-hint" />
+          </div>
           <div className="picker-grid">
             {proxyDocuments.map((document) => (
               <Button
@@ -626,7 +629,6 @@ function ProxyModal({
               <UploadIcon aria-hidden="true" />
               <span className="picker-card-copy">
                 <strong>{t("live.uploadProxy")}</strong>
-                <span>{t("live.uploadProxyHint")}</span>
               </span>
             </Button>
             <input

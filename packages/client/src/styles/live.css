@@ -696,7 +696,7 @@
   .vote-menu-mark[data-choice="for"] { background: var(--hall-color-success); }
   .vote-menu-mark[data-choice="against"] { background: var(--hall-color-danger); }
   .vote-menu-mark[data-choice="abstain"] { background: var(--hall-color-brand); }
-  .vote-menu-separator { height: var(--hall-stroke-thin); margin: var(--hall-space-1) 0; background: var(--hall-color-border); }
+  .vote-menu-separator { height: var(--hall-stroke-thin); margin: var(--hall-space-1) 0; border: 0; background: var(--hall-color-border); }
   /* In the grid a name passes to a second line rather than being cut. */
   .vote-zone-chips > .hall-button.vote-card .vote-card-copy :is(strong, span) { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
   .hall-button.vote-card {

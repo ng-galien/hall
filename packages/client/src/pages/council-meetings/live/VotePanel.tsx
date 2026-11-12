@@ -162,7 +162,7 @@ function VoteBadge({
         ))}
         {onRecuse ? (
           <>
-            <div className="vote-menu-separator" role="separator" />
+            <hr className="vote-menu-separator" />
             <ContextMenuItem data-testid="live-vote-recuse" onSelect={onRecuse}>
               <RecusalIcon aria-hidden="true" />
               {t("recusal.recuse")}
@@ -528,12 +528,12 @@ export function VotePanel({
         <Modal
           open
           title={t("ballot.previewTitle")}
+          hint={t("ballot.previewHint")}
           onClose={() => {
             if (!submitting) setPreview(null);
           }}
         >
           <div className="ballot-preview" data-testid="live-ballot-preview">
-            <p className="ballot-preview-hint">{t("ballot.previewHint")}</p>
             <strong className="ballot-preview-result" data-testid="live-ballot-preview-result">
               {t(ballotVerdictKey(isMinutes, preview.data.calculation.result === "approve"))}
             </strong>
