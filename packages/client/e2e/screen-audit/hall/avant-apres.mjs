@@ -123,6 +123,12 @@ function capture(label, application) {
     }),
   );
   mkdirSync(directory, { recursive: true });
+  // The commit of each capture: the whole run, or the screens retaken.
+  const commits = existsSync(join(directory, "commits.json"))
+    ? JSON.parse(readFileSync(join(directory, "commits.json"), "utf8"))
+    : {};
+  commits[retake ?? "*"] = label === "avant" ? before : after;
+  writeFileSync(join(directory, "commits.json"), JSON.stringify(commits, null, 2));
   // The commit captured and every screen that could not be opened, with its reason.
   const unopened = ["ordinateur", "800", "telephone"].flatMap((format) =>
     existsSync(join(directory, format))
@@ -135,19 +141,13 @@ function capture(label, application) {
   writeFileSync(
     join(directory, "statut.txt"),
     [
-      `Commit capturé : ${label === "avant" ? before : after}${retake ? ` (reprise de ${retake})` : ""}`,
+      `Commits capturés : ${commitsOf(label)}`,
       `Fin du lancement : ${result.status === 0 ? "réussie" : `code ${result.status}`}`,
       unopened.length ? "Écrans non ouverts :" : "Écrans non ouverts : aucun",
       ...unopened,
       "",
     ].join("\n"),
   );
-  // The commit of each capture: the whole run, or the screens retaken.
-  const commits = existsSync(join(directory, "commits.json"))
-    ? JSON.parse(readFileSync(join(directory, "commits.json"), "utf8"))
-    : {};
-  commits[retake ?? "*"] = label === "avant" ? before : after;
-  writeFileSync(join(directory, "commits.json"), JSON.stringify(commits, null, 2));
 }
 
 const escapeHtml = (text) => String(text).replace(/[&<>"]/g, (character) => `&#${character.charCodeAt(0)};`);
