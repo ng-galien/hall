@@ -528,6 +528,10 @@ h4.docs-heading {
   .docs-toolbar .docs-crumbs > .docs-crumb:last-child { min-width: 0; flex: 0 1 auto; }
   .docs-toolbar .docs-crumbs > .docs-crumb:last-child > a { min-width: 0; }
 }
+/* Under a finger each segment of the path offers a 44-pixel target. */
+@media (max-width: 760px) and (pointer: coarse) {
+  .docs-toolbar .docs-crumbs a { display: inline-block; line-height: var(--hall-size-touch-control); }
+}
 
 /* The search is as wide as its placeholder, and narrows first when the path needs the room. */
 .docs-search {
