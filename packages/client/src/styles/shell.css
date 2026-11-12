@@ -228,11 +228,11 @@
   .app-sheet > [data-slot="dialog-title"] { padding: 0 var(--hall-size-touch-control) var(--hall-space-2) var(--hall-space-4); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); }
   /* « Plus »: the other destinations as a grid of icons in the form of the bottom bar, by categories. */
   .app-sheet:has(.app-sheet-grid) { max-height: calc(100dvh - var(--hall-space-6)); overflow-y: auto; }
-  .app-sheet-grid { display: grid; gap: var(--hall-space-6); }
+  .app-sheet-grid { display: grid; gap: var(--hall-space-6); padding-inline: var(--hall-space-2); }
   /* Without a visible title, the sheet starts beside its close button. */
   .app-sheet:has(.app-sheet-grid) { padding-top: var(--hall-space-5); }
   /* A category title takes the height of the close button, so that its icons start under it. */
-  .app-sheet-grid .app-sheet-group-title { display: flex; min-height: var(--hall-size-touch-control); align-items: center; padding: 0 var(--hall-size-touch-control) 0 var(--hall-space-4); }
+  .app-sheet-grid .app-sheet-group-title { display: flex; min-height: var(--hall-size-touch-control); align-items: center; padding: 0 var(--hall-size-touch-control) 0 var(--hall-space-2); }
   .app-sheet-group-title { padding: 0 var(--hall-space-1) var(--hall-space-1); color: var(--hall-color-text); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-bold); }
   /* The columns follow the room: each cell is at least wide enough for the longest name on one line. */
   .app-sheet-cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--hall-size-sheet-cell), 1fr)); gap: var(--hall-space-1) 0; }
