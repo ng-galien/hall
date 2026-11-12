@@ -192,7 +192,7 @@
   /* Each entry starts from the width of its label, so that the five labels hold at 320 pixels without touching. */
   .app-phone-bar-item {
     display: flex;
-    min-width: 0;
+    min-width: var(--hall-size-touch-control);
     min-height: var(--hall-size-phone-bar);
     flex: 1 1 auto;
     flex-direction: column;
