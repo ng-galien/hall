@@ -194,6 +194,62 @@ export class PostgresAdministration {
     );
   }
 
+  // @implements-requirement HALL-FR-USR-080
+  issuePasswordLink(request: PostgresRequest, userId: string, purpose: string, tokenHash: string, issuedAt: string) {
+    return this.call(
+      request,
+      "user.issue-password-link",
+      "SELECT hall_api.issue_account_password_link($1::uuid, $2::text, $3::text, $4::timestamptz) AS payload",
+      [userId, purpose, tokenHash, issuedAt],
+      rowSchema,
+    );
+  }
+
+  openPasswordLink(request: PostgresRequest, tokenHash: string, openedAt: string) {
+    return this.call(
+      request,
+      "session.open-password-link",
+      "SELECT hall_api.open_account_password_link($1::text, $2::timestamptz) AS payload",
+      [tokenHash, openedAt],
+      optionalRowSchema,
+    );
+  }
+
+  completePasswordLink(request: PostgresRequest, tokenHash: string, passwordHash: string, completedAt: string) {
+    return this.call(
+      request,
+      "session.complete-password-link",
+      "SELECT hall_api.complete_account_password_link($1::text, $2::text, $3::timestamptz) AS payload",
+      [tokenHash, passwordHash, completedAt],
+      optionalRowSchema,
+    );
+  }
+
+  // @implements-requirement HALL-FR-USR-090
+  recordAccountMail(
+    request: PostgresRequest,
+    userId: string,
+    mail: Readonly<{ kind: string; outcome: string; failureCode: string | null; sentAt: string }>,
+  ) {
+    return this.call(
+      request,
+      "user.record-account-mail",
+      "SELECT to_jsonb(hall_api.record_account_mail($1::uuid, $2::text, $3::text, $4::text, $5::timestamptz)) AS payload",
+      [userId, mail.kind, mail.outcome, mail.failureCode, mail.sentAt],
+      z.boolean(),
+    );
+  }
+
+  accountMailSender(request: PostgresRequest) {
+    return this.call(
+      request,
+      "user.account-mail-sender",
+      "SELECT hall_api.account_mail_sender() AS payload",
+      [],
+      rowSchema,
+    );
+  }
+
   createSession(request: PostgresRequest, userId: string, tokenHash: string, expiresAt: string) {
     return this.call(
       request,

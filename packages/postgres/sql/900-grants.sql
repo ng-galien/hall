@@ -347,6 +347,15 @@ GRANT EXECUTE ON FUNCTION hall_api.count_app_users(),
  hall_api.bootstrap_app_administrator(TEXT, TEXT, TEXT),
  hall_api.find_app_session(TEXT)
  TO hall_api_anonymous, hall_api_authenticated;
+-- @implements-requirement HALL-FR-USR-080
+-- A forgotten password is recovered before authentication: a link is issued for the account of an address, opened,
+-- and completed by recording the new password; the account emails are recorded with their sender.
+GRANT EXECUTE ON FUNCTION hall_api.issue_account_password_link(UUID, TEXT, TEXT, TIMESTAMPTZ),
+ hall_api.open_account_password_link(TEXT, TIMESTAMPTZ),
+ hall_api.complete_account_password_link(TEXT, TEXT, TIMESTAMPTZ),
+ hall_api.record_account_mail(UUID, TEXT, TEXT, TEXT, TIMESTAMPTZ),
+ hall_api.account_mail_sender()
+ TO hall_api_anonymous, hall_api_authenticated;
 GRANT EXECUTE ON FUNCTION hall_api.create_app_session(UUID, TEXT, TIMESTAMPTZ),
  hall_api.count_active_administrators(),
  hall_api.lock_administrator_invariant(),

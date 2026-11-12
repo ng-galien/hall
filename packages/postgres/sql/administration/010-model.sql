@@ -40,6 +40,37 @@ CREATE TABLE hall.app_session (
 CREATE INDEX app_session_by_user ON hall.app_session USING btree (user_id, expires_at);
 CREATE INDEX app_session_by_expiry ON hall.app_session USING btree (expires_at);
 
+-- @implements-requirement HALL-FR-USR-080
+-- A link sent by email to choose the password of one account. Only the hash of its secret is stored. A link ends
+-- when its password is recorded, when a newer link is issued, or when the password of the account changes.
+CREATE TABLE hall.account_password_link (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL CONSTRAINT "account_password_link_user_id_fkey" REFERENCES hall.app_user (id) ON DELETE CASCADE,
+  purpose TEXT NOT NULL CONSTRAINT "account_password_link_purpose_check" CHECK (purpose = ANY (ARRAY['invitation'::text, 'recovery'::text])),
+  token_hash TEXT NOT NULL CONSTRAINT "account_password_link_token_hash_key" UNIQUE,
+  issued_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  ended_at TIMESTAMPTZ,
+  CONSTRAINT "account_password_link_expiry_check" CHECK (expires_at > issued_at),
+  CONSTRAINT "account_password_link_end_check" CHECK (ended_at IS NULL OR ended_at >= issued_at)
+);
+
+CREATE INDEX account_password_link_by_user ON hall.account_password_link USING btree (user_id, issued_at);
+
+-- @implements-requirement HALL-FR-USR-090
+-- The account emails Hall submitted to the transport, with their outcome. Neither link nor password is kept here.
+CREATE TABLE hall.account_mail (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL CONSTRAINT "account_mail_user_id_fkey" REFERENCES hall.app_user (id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CONSTRAINT "account_mail_kind_check" CHECK (kind = ANY (ARRAY['invitation'::text, 'recovery'::text, 'password-changed'::text])),
+  outcome TEXT NOT NULL CONSTRAINT "account_mail_outcome_check" CHECK (outcome = ANY (ARRAY['sent'::text, 'failed'::text, 'unknown'::text])),
+  failure_code TEXT,
+  sent_at TIMESTAMPTZ NOT NULL,
+  CONSTRAINT "account_mail_failure_code_check" CHECK ((outcome = 'sent'::text) = (failure_code IS NULL))
+);
+
+CREATE INDEX account_mail_by_user ON hall.account_mail USING btree (user_id, sent_at);
+
 -- @implements-requirement HALL-FR-CFG-030
 CREATE TABLE hall.settings (
   id TEXT PRIMARY KEY CONSTRAINT "settings_singleton" CHECK (id = 'hall'::text),

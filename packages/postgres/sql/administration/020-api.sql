@@ -22,7 +22,18 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'roles', coalesce((SELECT jsonb_agg(assigned.role ORDER BY assigned.role) FROM hall.app_user_role assigned
       WHERE assigned.user_id = account.id), '[]'::jsonb),
     'created_at', hall.iso_timestamp(account.created_at),
-    'updated_at', hall.iso_timestamp(account.updated_at))
+    'updated_at', hall.iso_timestamp(account.updated_at),
+    'account_mail', (SELECT jsonb_build_object('kind', mail.kind, 'outcome', mail.outcome,
+      'sent_at', hall.iso_timestamp(mail.sent_at))
+      FROM hall.account_mail mail WHERE mail.user_id = account.id ORDER BY mail.sent_at DESC, mail.id DESC LIMIT 1))
+$$;
+
+-- @implements-requirement HALL-FR-USR-080
+-- Every open link of the account ends: a changed password or a changed account status invalidates them.
+CREATE FUNCTION hall.end_account_password_links(target UUID)
+RETURNS VOID LANGUAGE sql SET search_path = pg_catalog, hall AS $$
+  UPDATE hall.account_password_link SET ended_at = greatest(issued_at, transaction_timestamp())
+  WHERE user_id = target AND ended_at IS NULL
 $$;
 
 CREATE FUNCTION hall_api.count_app_users()
@@ -142,6 +153,7 @@ BEGIN
   WHERE id = target AND password_hash = previous_hash;
   IF NOT FOUND THEN RETURN false; END IF;
   DELETE FROM hall.app_session WHERE user_id = target;
+  PERFORM hall.end_account_password_links(target);
   RETURN true;
 END;
 $$;
@@ -154,6 +166,7 @@ BEGIN
   UPDATE hall.app_user SET status = 'active', password_hash = new_hash, updated_at = transaction_timestamp()
   WHERE id = target AND status = 'disabled' RETURNING * INTO account;
   IF NOT FOUND THEN RETURN NULL; END IF;
+  PERFORM hall.end_account_password_links(target);
   RETURN hall.app_user_row(account);
 END;
 $$;
@@ -166,6 +179,7 @@ BEGIN
   UPDATE hall.app_user SET status = 'disabled', updated_at = transaction_timestamp()
   WHERE id = target RETURNING * INTO account;
   DELETE FROM hall.app_session WHERE user_id = target;
+  PERFORM hall.end_account_password_links(target);
   IF account.id IS NULL THEN RETURN NULL; END IF;
   RETURN hall.app_user_row(account);
 END;
@@ -197,6 +211,92 @@ BEGIN
   DELETE FROM hall.app_session WHERE id = target;
   RETURN FOUND;
 END;
+$$;
+
+-- @implements-requirement HALL-FR-USR-080
+-- Issues a link for an active account. The account receives at most one link per minute and three per hour,
+-- whatever their purpose; a refused issue leaves the account unchanged. A new link ends the previous open ones.
+-- The lifetime is one hour to recover a password and seven days for the invitation of a new account.
+CREATE FUNCTION hall_api.issue_account_password_link(target UUID, link_purpose TEXT, link_token_hash TEXT, issued TIMESTAMPTZ)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+DECLARE
+  account hall.app_user;
+  created hall.account_password_link;
+BEGIN
+  SELECT * INTO account FROM hall.app_user WHERE id = target FOR UPDATE;
+  IF NOT FOUND THEN RETURN jsonb_build_object('outcome', 'not_found'); END IF;
+  IF account.status <> 'active' THEN RETURN jsonb_build_object('outcome', 'inactive'); END IF;
+  IF EXISTS (SELECT FROM hall.account_password_link link WHERE link.user_id = target
+      AND link.issued_at > issued - interval '1 minute')
+    OR (SELECT count(*) FROM hall.account_password_link link WHERE link.user_id = target
+      AND link.issued_at > issued - interval '1 hour') >= 3 THEN
+    RETURN jsonb_build_object('outcome', 'too_frequent');
+  END IF;
+  UPDATE hall.account_password_link SET ended_at = greatest(issued_at, issued)
+  WHERE user_id = target AND ended_at IS NULL;
+  INSERT INTO hall.account_password_link (user_id, purpose, token_hash, issued_at, expires_at)
+  VALUES (target, link_purpose, link_token_hash, issued,
+    issued + CASE link_purpose WHEN 'invitation' THEN interval '7 days' ELSE interval '1 hour' END)
+  RETURNING * INTO created;
+  RETURN jsonb_build_object('outcome', 'issued', 'purpose', created.purpose,
+    'expires_at', hall.iso_timestamp(created.expires_at), 'email', account.email,
+    'display_name', account.display_name);
+END;
+$$;
+
+-- @implements-requirement HALL-FR-USR-080
+-- A link is usable while it has not ended, has not expired and its account is active. Opening it changes nothing.
+CREATE FUNCTION hall_api.open_account_password_link(link_token_hash TEXT, opened TIMESTAMPTZ)
+RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+  SELECT jsonb_build_object('purpose', link.purpose, 'email', account.email, 'user_id', account.id)
+  FROM hall.account_password_link link
+  JOIN hall.app_user account ON account.id = link.user_id
+  WHERE link.token_hash = link_token_hash AND link.ended_at IS NULL AND link.expires_at > opened
+    AND account.status = 'active'
+$$;
+
+-- @implements-requirement HALL-FR-USR-080
+-- Recording the password is the only use of a link: it replaces the password, ends every open link of the account,
+-- closes its sessions and lifts a temporary-password requirement. Roles and status are not changed.
+CREATE FUNCTION hall_api.complete_account_password_link(link_token_hash TEXT, new_hash TEXT, completed TIMESTAMPTZ)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+DECLARE
+  link hall.account_password_link;
+  account hall.app_user;
+BEGIN
+  SELECT * INTO link FROM hall.account_password_link WHERE token_hash = link_token_hash FOR UPDATE;
+  IF NOT FOUND OR link.ended_at IS NOT NULL OR link.expires_at <= completed THEN RETURN NULL; END IF;
+  UPDATE hall.app_user SET password_hash = new_hash, password_change_required = false,
+    updated_at = transaction_timestamp()
+  WHERE id = link.user_id AND status = 'active' RETURNING * INTO account;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  UPDATE hall.account_password_link SET ended_at = greatest(issued_at, completed)
+  WHERE user_id = link.user_id AND ended_at IS NULL;
+  DELETE FROM hall.app_session WHERE user_id = link.user_id;
+  RETURN hall.app_user_row(account);
+END;
+$$;
+
+-- @implements-requirement HALL-FR-USR-090
+CREATE FUNCTION hall_api.record_account_mail(target UUID, mail_kind TEXT, mail_outcome TEXT, mail_failure_code TEXT, sent TIMESTAMPTZ)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+BEGIN
+  INSERT INTO hall.account_mail (user_id, kind, outcome, failure_code, sent_at)
+  SELECT account.id, mail_kind, mail_outcome, mail_failure_code, sent FROM hall.app_user account WHERE account.id = target;
+  RETURN FOUND;
+END;
+$$;
+
+-- @implements-requirement HALL-FR-USR-080
+-- The sender of account emails: the outgoing-mail settings of the commune, readable before authentication.
+CREATE FUNCTION hall_api.account_mail_sender()
+RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+  SELECT jsonb_build_object('name', current_settings.name,
+    'sender_name', current_settings.outbound_email_sender_name,
+    'sender_address', coalesce(current_settings.outbound_email_sender_address, current_settings.email),
+    'reply_to_address', current_settings.outbound_email_reply_to_address,
+    'time_zone', current_settings.time_zone)
+  FROM hall.settings current_settings WHERE current_settings.id = 'hall'
 $$;
 
 -- @implements-requirement HALL-TR-AUD-010
@@ -325,4 +425,5 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION hall.iso_timestamp(TIMESTAMPTZ), hall.app_user_row(hall.app_user),
+  hall.end_account_password_links(UUID),
   hall.audit_event_row(hall.audit_event), hall.document_template_row(hall.document_template) FROM PUBLIC;

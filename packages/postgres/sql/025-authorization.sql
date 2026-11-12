@@ -277,6 +277,7 @@ CREATE VIEW hall.action_access AS
       ('user.create', 'user.manage'),
       ('user.update', 'user.manage'),
       ('user.reset-password', 'user.manage'),
+      ('user.send-password-link', 'user.manage'),
       ('user.disable', 'user.manage'),
       ('user.revoke-access', 'user.manage'),
       ('user.reactivate', 'user.manage'),

@@ -144,6 +144,7 @@ SELECT set_eq($$SELECT action, access FROM hall.action_access$$, $$VALUES
  ('user.create','user.manage'),
  ('user.update','user.manage'),
  ('user.reset-password','user.manage'),
+ ('user.send-password-link','user.manage'),
  ('user.disable','user.manage'),
  ('user.revoke-access','user.manage'),
  ('user.reactivate','user.manage'),
