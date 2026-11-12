@@ -143,7 +143,6 @@
   .rollcall-tile-identity { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2-5); }
   .rollcall-tile-identity > div:not(.fui-Menu) { flex: 1; min-width: 0; }
   .rollcall-tile-menu { flex: none; margin-left: auto; }
-  .rollcall-tile-officer { box-shadow: var(--hall-shadow-medium); }
   .rollcall-tile-subline {
     display: flex;
     flex-wrap: wrap;
@@ -689,10 +688,10 @@
   .vote-zone-against.vote-zone-over { border-color: var(--hall-color-danger); background: var(--hall-color-danger-surface); }
   .vote-zone-abstain.vote-zone-over { border-color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
   /* The voters form a regular grid of equal columns. */
-  .vote-zone-chips { display: grid; flex: 1; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hall-size-relative-10rem)), 1fr)); align-content: flex-start; gap: var(--hall-space-2); }
+  .vote-zone-chips { display: grid; flex: 1; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hall-size-relative-14rem)), 1fr)); align-content: flex-start; gap: var(--hall-space-2); }
   .vote-zone-chips > .hall-button.vote-card { width: 100%; }
   /* In the grid a name passes to a second line rather than being cut. */
-  .vote-zone-chips > .hall-button.vote-card .vote-card-copy :is(strong, span) { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: break-word; }
+  .vote-zone-chips > .hall-button.vote-card .vote-card-copy :is(strong, span) { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
   .hall-button.vote-card {
     display: inline-flex;
     max-width: 100%;
