@@ -12,6 +12,7 @@ function Input({ className, type, placeholder, ...props }: React.ComponentProps<
       data-slot="input"
       className={cn("hall-input", className)}
       placeholder={placeholder ?? empty}
+      data-empty={type === "date" && props.value === "" ? "true" : undefined}
       {...useFieldControl(props)}
     />
   );

@@ -33,12 +33,9 @@
     color: var(--hall-color-status-danger);
     background: var(--hall-color-status-danger-surface);
   }
-  /* In a list row the tag keeps the right end of the line on tablet and computer; on a phone it follows the facts and
-     passes to the next line when they leave it no room. */
+  /* In a list row the tag keeps the right end of the line on tablet and computer; on a phone it follows the facts on
+     their line, which shorten before it. */
   .list-row-main > .list-row-status { margin-left: auto; align-self: center; }
-  @media (max-width: 760px) {
-    .list-row-detail:has(> .list-row-status) { flex-wrap: wrap; row-gap: var(--hall-space-0-5); }
-  }
   .record-state[data-save="saving"] { animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite; }
   @media (prefers-reduced-motion: reduce) {
     .record-state[data-save="saving"] { animation: none; }

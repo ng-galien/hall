@@ -147,7 +147,7 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
         {templates === null ? null : templates.length === 0 ? (
           <EmptyState>{t("templates.empty")}</EmptyState>
         ) : (
-          <ListRows data-testid="templates-list" data-wrap="true">
+          <ListRows data-testid="templates-list">
             {templates.map((template) => {
               const label = templateTypeLabel(template.documentType, template.kind);
               return (

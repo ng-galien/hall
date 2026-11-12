@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 
 const maximumImageBytes = 60 * 1024;
@@ -74,7 +73,6 @@ export function TemplateDecorationField({
               data-testid={`${testId}-insert-image`}
               onClick={() => input.current?.click()}
             >
-              <ImageIcon aria-hidden="true" />
               {t("templates.insertImage")}
             </Button>
           )

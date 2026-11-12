@@ -75,6 +75,8 @@
   .hall-input:is([type="date"], [type="time"], [type="datetime-local"]) { display: block; }
   .hall-input::placeholder,
   .hall-select-trigger[data-placeholder] { color: var(--hall-color-text-subtle); }
+  /* An empty date is written like an empty field: grey and italic. */
+  .hall-input[data-empty="true"] { color: var(--hall-color-text-subtle); font-style: italic; }
   .hall-input:hover:not(:disabled) { background: var(--hall-color-field-hover); }
   .hall-input:focus,
   .hall-input:focus-visible,

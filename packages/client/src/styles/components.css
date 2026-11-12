@@ -215,6 +215,9 @@
   .template-editor { display: grid; gap: var(--hall-space-4); }
   .template-editor > .creation-form { padding-top: 0; }
   .template-editor > .template-back { justify-self: start; font-size: var(--hall-font-size-body); }
+  @media (pointer: coarse) {
+    .template-editor > .template-back { display: inline-flex; min-height: var(--hall-size-touch-control); align-items: center; }
+  }
   /* The type of the template sits on the first field as closely as the link sits on it. */
   .template-editor > .template-editor-status + .creation-form { margin-top: calc(-1 * var(--hall-space-2)); }
   /* The affaires of a committee start at the left edge of the fields above them. */
@@ -290,27 +293,16 @@
   .body-row-object { overflow: hidden; min-width: 0; text-overflow: ellipsis; }
   .body-row-count { flex: none; white-space: pre; }
   .body-row .list-row-status { flex: none; }
-  /* In a narrow list (a phone), the object wraps under the name instead of being shortened. */
-  @container (max-width: 760px) {
-    .body-row .list-row-detail-text { display: block; }
-    .body-row-object { overflow: visible; }
-  }
+  .body-row .list-row-detail { min-width: 0; overflow: hidden; }
   /* On a phone, a list that opens the content, under the screen header and its rule, takes no second rule. */
   @media (max-width: 760px) {
     .page-content > .list-row-list:first-child { border-top: 0; }
   }
-  /* A user: the roles keep one width at the right, so that the states fall in a column; on a phone the name is
-     written in full and the state goes on its own line under the address. */
+  /* A user: the roles keep one width at the right, so that the states fall in a column. */
   .user-row-roles { flex: none; width: var(--hall-size-relative-12rem); }
-  .user-row .list-row-title { white-space: normal; overflow-wrap: anywhere; }
-  .user-row .list-row-detail { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; }
-  .user-row .list-row-detail-text { max-width: 100%; }
   /* A contact: its address and its telephone each keep their own column at the right of the row. */
   .contact-row-email { flex: none; width: var(--hall-size-relative-16rem); }
   .contact-row-phone { flex: none; width: var(--hall-size-relative-8rem); }
-  /* The contact line of a member writes its address and telephone in full, over two lines when needed. */
-  .member-contact-row .list-row-detail,
-  .member-contact-row .list-row-detail-text { white-space: normal; overflow-wrap: anywhere; }
   .admin-fields { display: grid; min-width: 0; gap: var(--hall-space-3); margin: 0; padding: 0; border: 0; }
   .admin-passphrase { display: grid; justify-items: start; gap: var(--hall-space-2); }
   .admin-passphrase-value { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }

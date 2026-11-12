@@ -499,21 +499,25 @@ h4.docs-heading {
   flex-shrink: 0;
 }
 
-/* The path takes the room left by the commands and passes to a second line rather than being shortened. */
+/* The toolbar grows with its content instead of keeping one fixed height. */
 .docs-toolbar {
   height: auto;
   min-height: var(--hall-size-touch-control);
   padding-block: var(--hall-space-1);
   gap: var(--hall-space-2);
 }
-.docs-toolbar .docs-crumbs {
-  flex: 1 1 0;
-  flex-wrap: wrap;
-  row-gap: var(--hall-space-0-5);
-}
-.docs-toolbar .docs-crumbs .docs-crumb,
-.docs-toolbar .docs-crumbs .docs-crumb > a {
-  min-width: auto;
+/* On a phone the path passes to a second line rather than being shortened; wider, it holds one line and its folders
+   shorten when the toolbar is narrow. */
+@media (max-width: 760px) {
+  .docs-toolbar .docs-crumbs {
+    flex: 1 1 0;
+    flex-wrap: wrap;
+    row-gap: var(--hall-space-0-5);
+  }
+  .docs-toolbar .docs-crumbs .docs-crumb,
+  .docs-toolbar .docs-crumbs .docs-crumb > a {
+    min-width: auto;
+  }
 }
 
 /* The search is as wide as its placeholder, so that it reads in full. */
