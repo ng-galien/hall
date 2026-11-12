@@ -1168,7 +1168,7 @@ test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folder
   await expect(parentFolder).toBeVisible();
   await expect(parentFolder.getByTestId("business-document-folder-..-toggle")).toHaveAttribute(
     "aria-label",
-    "Workspace",
+    "Documents",
   );
   await page.screenshot({ path: "/tmp/hall-workspace-root.png" });
 });
@@ -1193,7 +1193,7 @@ test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns 
   await page.goto("/app/workspace");
   await expect(page.getByTestId("navigation-workspace")).toBeVisible();
   await expect(page.getByTestId("workspace-root-business-icon")).toBeVisible();
-  await expect(page.getByTestId("workspace-tree-root")).toContainText("Workspace");
+  await expect(page.getByTestId("workspace-tree-root")).toContainText("Documents");
   await expect(page.locator(".whome")).toHaveCount(0);
   await expect(page.getByTestId(`workspace-folder-toggle-${folder.fullPath}`)).toBeVisible();
   // The root document is attached to a business: the documents view lists it at the root.

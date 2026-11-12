@@ -6,7 +6,8 @@ import { useI18n } from "../i18n/I18nProvider";
 import { normalizeForSearch } from "../lib/search";
 import type { ApiErrorCode } from "../services/apiClient";
 import { ScreenTitle } from "../shell/headerTrail";
-import { CloseIcon, SearchIcon } from "./icons";
+import { CloseIcon } from "./icons";
+import { SearchInput } from "./ui/search-input";
 
 /**
  * Names the screen in the large title of the screen header and lays out what goes under it: the description, shown
@@ -78,17 +79,14 @@ export function CollectionToolbar({
   const { t } = useI18n();
   return (
     <div className="collection-toolbar">
-      <div className="collection-search">
-        <SearchIcon aria-hidden="true" />
-        <input
-          type="search"
-          data-testid="collection-search"
-          value={query}
-          placeholder={t("common.searchPlaceholder")}
-          aria-label={t("common.search")}
-          onChange={(event) => onQueryChange(event.currentTarget.value)}
-        />
-      </div>
+      <SearchInput
+        type="search"
+        data-testid="collection-search"
+        value={query}
+        placeholder={t("common.searchPlaceholder")}
+        aria-label={t("common.search")}
+        onChange={(event) => onQueryChange(event.currentTarget.value)}
+      />
       <div className="collection-toolbar-side">{children}</div>
     </div>
   );

@@ -617,7 +617,7 @@ export const en = {
   "navigation.contacts": "Contacts",
   "navigation.members": "Council members",
   "navigation.committees": "Committees",
-  "navigation.workspace": "Workspace",
+  "navigation.workspace": "Documents",
   "navigation.documentation": "Documentation",
   "navigation.lab": "Editor lab",
   "docs.title": "Documentation",

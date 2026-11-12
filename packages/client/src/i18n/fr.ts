@@ -628,7 +628,7 @@ export const fr: Messages = {
   "navigation.contacts": "Contacts",
   "navigation.members": "Membres du conseil",
   "navigation.committees": "Commissions",
-  "navigation.workspace": "Espace de travail",
+  "navigation.workspace": "Documents",
   "navigation.documentation": "Documentation",
   "navigation.lab": "Lab éditeur",
   "docs.title": "Documentation",

@@ -20,7 +20,7 @@
   .form-grid { grid-template-columns: minmax(0, 1fr); }
   .page-actions, .workbench-header, .workbench-header-side { flex-wrap: wrap; }
   .collection-toolbar { flex-wrap: wrap; }
-  .collection-search { flex-basis: 100%; }
+  .collection-toolbar > [data-slot="search-input"] { flex-basis: 100%; }
   .collection-toolbar-side { width: 100%; flex-wrap: wrap; justify-content: flex-end; }
 
   .agenda-composer-heading { flex-wrap: wrap; }
@@ -182,7 +182,7 @@
 
   /* Collection toolbar of a phone: rows only, the search over the width, a creation button kept beside it. */
   .collection-toolbar { flex-wrap: nowrap; gap: var(--hall-space-2); }
-  .collection-toolbar .collection-search { flex: 1 1 auto; min-width: 0; max-width: none; }
+  .collection-toolbar > [data-slot="search-input"] { flex: 1 1 auto; max-width: none; }
   .collection-toolbar .collection-toolbar-side { width: auto; flex: none; flex-wrap: nowrap; }
   .collection-toolbar .collection-toolbar-side:empty { display: none; }
   .docs-search { width: auto; flex: 1 1 auto; min-width: 0; }
