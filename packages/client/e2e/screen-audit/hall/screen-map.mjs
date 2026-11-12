@@ -39,12 +39,12 @@ export const sharedSamples = [
   },
   {
     component: "autre composant partagé",
-    files: /components\/ui\/|components\/(Ui|icons|MarkdownView|editor\/)/,
+    files: /components\/ui\/|components\/(Ui|icons|MarkdownView|editor\/|search\/)/,
     screens: ["accueil", "dossier", "contact", "seance-preparation"],
   },
   {
     component: "jetons et styles communs",
-    files: /styles\/(tokens|components|mobile)\.css$|styles\.css$|theme\//,
+    files: /styles\/(tokens|components|mobile)\.css$|styles\.css$|theme\/|src\/(App|main)\.tsx$/,
     screens: ["accueil", "dossier", "contact", "seance-preparation"],
   },
 ];
@@ -72,7 +72,7 @@ export const screenFiles = [
   [/features\/calendar\//, ["calendrier"]],
   [/features\/mail\//, ["courriels"]],
   [/pages\/Contact|features\/contacts\/|features\/references\/Contact/, ["contacts", "contact"]],
-  [/pages\/CouncilMember|features\/references\/Member/, ["membres", "membre"]],
+  [/pages\/CouncilMember|features\/references\/(Member|Person)/, ["membres", "membre"]],
   [
     /features\/representative-bodies\/|pages\/(Committee|Delegation)/,
     ["commissions", "commission", "representations", "representation"],

@@ -17,6 +17,7 @@ import { sourcesOf, sweepPlan } from "./sweep-config.mjs";
  *   --files=a,b                  the screens concerned by these files;
  *   --screens=a,b                these screens;
  *   --intervals=761-1000,…       only the intervals that cross these window widths;
+ *   --exclude=a,b                leave these screens out (their files are being changed);
  *   --report-only                rewrite the report from the last measurements.
  * Without --changed, --files or --screens, every screen is measured: the complete pass, before a release.
  */
@@ -57,6 +58,13 @@ if (changedFiles) {
   for (const file of unmapped) console.log(`Fichier rattaché à aucun écran, à ajouter à screen-map.mjs : ${file}`);
   selected = [...new Set([...(selected ? selected.split(",") : []), ...target.screens])].join(",");
   if (!selected) console.log("Aucun écran de l'outil n'est concerné par ces fichiers.");
+}
+/* --exclude=a,b leaves out screens whose files are being changed by an implementer. */
+const excluded = argument("exclude")?.split(",") ?? [];
+for (const id of excluded) if (!known.has(id)) throw new Error(`Écran inconnu : ${id}`);
+if (excluded.length) {
+  selected = (selected ? selected.split(",") : [...known]).filter((id) => !excluded.includes(id)).join(",");
+  console.log(`Écrans exclus de ce passage : ${excluded.join(", ")}`);
 }
 for (const id of selected ? selected.split(",") : []) if (!known.has(id)) throw new Error(`Écran inconnu : ${id}`);
 const intervalsOption = argument("intervals");
