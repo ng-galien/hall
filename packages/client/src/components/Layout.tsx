@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { GlobalSearchPalette } from "../features/search/GlobalSearchPalette";
 import { useI18n } from "../i18n/I18nProvider";
@@ -9,6 +9,7 @@ import {
   ScreenLeadingSlotContext,
   ScreenScrolledContext,
   ScreenTitleContext,
+  ScreenTitleSlotsContext,
 } from "../shell/headerTrail";
 import { PhoneNavigation } from "../shell/PhoneNavigation";
 import { isPhoneReadingLocation, usePhoneScrollMemory } from "../shell/phoneHistory";
@@ -48,6 +49,13 @@ export function Layout() {
   const [trailSlot, setTrailSlot] = useState<HTMLDivElement | null>(null);
   const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null);
   const [leadingSlot, setLeadingSlot] = useState<HTMLDivElement | null>(null);
+  const [titleIconSlot, setTitleIconSlot] = useState<HTMLSpanElement | null>(null);
+  const [titleCommandsSlot, setTitleCommandsSlot] = useState<HTMLDivElement | null>(null);
+  const [titleFactsSlot, setTitleFactsSlot] = useState<HTMLDivElement | null>(null);
+  const titleSlots = useMemo(
+    () => ({ icon: titleIconSlot, commands: titleCommandsSlot, facts: titleFactsSlot }),
+    [titleIconSlot, titleCommandsSlot, titleFactsSlot],
+  );
   const [pageTitle, setPageTitle] = useState<string | null>(null);
   const [mainElement, setMainElement] = useState<HTMLElement | null>(null);
   const [titleElement, setTitleElement] = useState<HTMLHeadingElement | null>(null);
@@ -74,7 +82,8 @@ export function Layout() {
   return (
     <HeaderTrailSlotContext.Provider value={trailSlot}>
       <ScreenLeadingSlotContext.Provider value={leadingSlot}>
-            <ScreenActionsSlotContext.Provider value={actionsSlot}>
+        <ScreenTitleSlotsContext.Provider value={titleSlots}>
+          <ScreenActionsSlotContext.Provider value={actionsSlot}>
             <ScreenTitleContext.Provider value={setPageTitle}>
               <ScreenScrolledContext.Provider value={scrolled}>
                 <div className="app-shell">
@@ -110,7 +119,7 @@ export function Layout() {
                       }}
                     />
                   )}
-                      <div className="app-column">
+                  <div className="app-column">
                     <ScreenHeader
                       phone={phone}
                       title={title}
@@ -127,7 +136,14 @@ export function Layout() {
                       data-testid="application-main"
                       data-route={location.pathname}
                     >
-                      {reading ? null : <ScreenLargeTitle phone={phone} title={title} titleRef={setTitleElement} />}
+                      {reading ? null : (
+                        <ScreenLargeTitle
+                          phone={phone}
+                          title={title}
+                          titleRef={setTitleElement}
+                          slots={{ icon: setTitleIconSlot, commands: setTitleCommandsSlot, facts: setTitleFactsSlot }}
+                        />
+                      )}
                       <div className="app-content">
                         <Suspense fallback={<div className="page-content">{t("common.loading")}</div>}>
                           <Outlet />
@@ -141,7 +157,8 @@ export function Layout() {
               </ScreenScrolledContext.Provider>
             </ScreenTitleContext.Provider>
           </ScreenActionsSlotContext.Provider>
-        </ScreenLeadingSlotContext.Provider>
+        </ScreenTitleSlotsContext.Provider>
+      </ScreenLeadingSlotContext.Provider>
     </HeaderTrailSlotContext.Provider>
   );
 }

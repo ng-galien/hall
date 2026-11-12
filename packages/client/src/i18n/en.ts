@@ -826,6 +826,7 @@ export const en = {
   "create.kind.choosePhoto.description": "Choose an existing photo",
   "workspace.new": "New",
   "workspace.browseFolder": "Browse folder",
+  "workspace.openFolder": "Open the folder",
   "workspace.createText": "New text",
   "workspace.createSpreadsheet": "New spreadsheet",
   "workspace.createRemote": "New web resource",
@@ -869,6 +870,9 @@ export const en = {
   "workspace.saved": "Saved",
   "workspace.autosaveOn": "Autosave enabled",
   "workspace.autosaveOff": "Autosave disabled",
+  "workspace.autosaveTurnOff": "Turn autosave off",
+  "workspace.autosaveTurnOn": "Turn autosave on",
+  "item.more": "More commands",
   "resourceChanges.open": "View changes",
   "resourceChanges.title": "Resource changes",
   "resourceChanges.description":
@@ -1117,13 +1121,13 @@ export const en = {
   "workspace.home.openMeeting": "View meeting",
   "workspace.home.loadError": "Council business could not be loaded.",
   "workspace.searchEverywhere": "Search matters and documents…",
+  "workspace.searchDocuments": "Search in Documents…",
+  "workspace.showAllFolders": "Show more folders…",
+  "workspace.showLessFolders": "Show less",
   "search.globalPlaceholder": "Search matters, documents, meetings, members…",
   "workspace.clearSearch": "Clear the search",
   "workspace.filters": "Filters",
   "workspace.facetType": "Type",
-  "workspace.searchDocuments": "Search in Documents…",
-  "workspace.showAllFolders": "Show more folders…",
-  "workspace.showLessFolders": "Show less",
   "workspace.facetFolder": "Folder",
   "workspace.facetState": "State",
   "workspace.noResults": "No result matches this search.",
@@ -1994,6 +1998,7 @@ export const en = {
   "mail.deleteDraftHelp": "This draft will be removed from the shared mailbox.",
   "mail.deleteGroupHelp": "Delete this saved group? Existing message recipients will be retained.",
   "mail.prepare": "Prepare an email",
+  "mail.preparePdf": "Prepare an email with the PDF preview",
 } as const;
 
 export type TranslationKey = keyof typeof en;

@@ -288,9 +288,10 @@ test("document previews share a contextual frame in both themes without changing
       }
       const text = resources.find((entry) => entry.kind === "text")!;
       await go(`workspace?path=${encodeURIComponent(text.path ?? "")}&resource=${text.id}`);
-      await page.getByTestId("resource-pdf-preview").click();
-      const without = page.getByTestId("resource-pdf-preview-without-documents");
+      await page.getByTestId("item-commands-more").click();
+      const without = page.getByRole("menu").getByTestId("resource-pdf-preview-without-documents");
       if (await without.isVisible()) await without.click();
+      else await page.getByRole("menu").getByTestId("resource-pdf-preview").click();
       const textPdf = page.getByTestId("resource-pdf-preview-dialog");
       await expect(textPdf.locator("header h2")).toContainText(text.name!);
       await pdfDigest(page, page.getByTestId("resource-pdf-preview-native-viewer"));
@@ -334,14 +335,20 @@ test("document previews share a contextual frame in both themes without changing
         observations.push(await aligned(page, viewer, `resource-${name}-${tone}`, true));
         if (name === "image")
           await expect(viewer.getByTestId("resource-preview-object")).toHaveAttribute("type", "image/png");
-        else await expect(viewer.getByTestId("resource-preview-download")).toBeVisible();
+        else {
+          await viewer.getByTestId("item-commands-more").click();
+          await expect(page.getByRole("menu").getByTestId("resource-preview-download")).toBeVisible();
+          await page.keyboard.press("Escape");
+          await expect(page.getByRole("menu")).toHaveCount(0);
+        }
         await page.getByTestId("resource-preview-close").click();
       }
       const business = businesses[0]!;
       await go(`workspace?path=${encodeURIComponent(business.folderPath ?? "")}&councilBusiness=${business.id}`);
-      await page.getByTestId("business-report-pdf-preview").click();
-      const withoutDocuments = page.getByTestId("business-report-pdf-preview-without-documents");
+      await page.getByTestId("item-commands-more").click();
+      const withoutDocuments = page.getByRole("menu").getByTestId("business-report-pdf-preview-without-documents");
       if (await withoutDocuments.isVisible()) await withoutDocuments.click();
+      else await page.getByRole("menu").getByTestId("business-report-pdf-preview").click();
       const businessPdf = page.getByTestId("business-report-pdf-preview-dialog");
       await expect(businessPdf.locator("header h2")).toContainText(business.title!);
       await pdfDigest(page, page.getByTestId("business-report-pdf-preview-native-viewer"));

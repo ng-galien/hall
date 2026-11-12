@@ -15,7 +15,6 @@ import {
 import { BusinessDeleteDialog } from "../../features/council-business/BusinessDeleteDialog";
 import type { DocumentaryLeafSummary } from "../../features/documents/DocumentaryResourceGlyph";
 import { photoFile } from "../../features/documents/photoFile";
-import { ResourceAutosaveToggle } from "../../features/resources/ResourceAutosaveToggle";
 import { ResourceChangesControl } from "../../features/resources/ResourceChangesControl";
 import { useResourceSession } from "../../features/resources/useResourceSession";
 import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/univerWorkbook";
@@ -40,6 +39,7 @@ import { PathContents } from "./PathContents";
 import { PinnedRow } from "./PinnedRow";
 import { isUnderPath } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
+import { useSessionControls } from "./useSessionControls";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
 import { WorkspaceCreateMenu } from "./WorkspaceCreateMenu";
 import {
@@ -175,41 +175,23 @@ export function WorkspacePage() {
         : null;
 
   const [searchResultsTarget, setSearchResultsTarget] = useState<HTMLElement | null>(null);
-  const openedControls = selection ? (
-    <>
-      {openedSession?.resource && openedSession.canConfigureAutosave ? (
-        <ResourceAutosaveToggle
-          enabled={openedSession.autosaveEnabled}
-          status={openedSession.saveStatus}
-          disabled={openedSession.submitting}
-          onChange={openedSession.updateAutosave}
-        />
-      ) : null}
-      {openedSession?.resource ? (
-        <ResourceChangesControl
-          resourceId={openedSession.resource.id}
-          representation={openedSession.representation}
-          onInvalidated={() => {
-            if (!openedSession.dirty && !openedSession.submitting) void openedSession.reload();
-          }}
-        />
-      ) : null}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="plain"
-            size="icon"
-            data-testid="workspace-breadcrumb-close"
-            aria-label={t("common.close")}
-            onClick={() => select(null)}
-          >
-            <CloseIcon />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{t("common.close")}</TooltipContent>
-      </Tooltip>
-    </>
-  ) : null;
+  const openedControls = useSessionControls(
+    openedSession?.resource ? openedSession : null,
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="plain"
+          size="icon"
+          data-testid="workspace-breadcrumb-close"
+          aria-label={t("common.close")}
+          onClick={() => select(null)}
+        >
+          <CloseIcon />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{t("common.close")}</TooltipContent>
+    </Tooltip>,
+  );
 
   const select = (next: WorkspaceSelection, nextPath?: string) => {
     const params = new URLSearchParams();
@@ -527,7 +509,7 @@ export function WorkspacePage() {
           />
         </HeaderTrail>
         <div className="workspace-topzone" data-item-open={selection ? "true" : undefined}>
-          {phone ? null : (
+          {phone || selection ? null : (
             <div className="workspace-bar-row">
               <div className="workspace-bar-search">
                 <WorkspaceSearch

@@ -1,5 +1,5 @@
 import { mkdir, readFile } from "node:fs/promises";
-import { expect, test } from "../fixtures/application";
+import { expect, runItemCommand, test } from "../fixtures/application";
 
 async function createSeedFolder(page: import("@playwright/test").Page) {
   const created = await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: "seed" } });
@@ -703,7 +703,7 @@ test.describe("workspace explorer", () => {
       })
       .toBe(content);
 
-    await page.getByTestId("workspace-workbench-rename").click();
+    await runItemCommand(page, "workspace-workbench-rename");
     await page.getByTestId("workspace-workbench-title-input").fill(renamedName);
     await page.getByTestId("workspace-workbench-title-input").press("Enter");
     await expect(page.getByTestId("screen-header-title")).toHaveText(renamedName);

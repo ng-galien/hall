@@ -17,6 +17,14 @@ import { ResourcePhoneView } from "./ResourcePhoneView";
 import { ResourceWorkbenchHeader } from "./ResourceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 
+/** Returns the focus to the full screen command after the full screen view closes, or to the « … » menu holding it. */
+function focusExtendedViewTrigger() {
+  const trigger =
+    document.querySelector<HTMLElement>('[data-testid="resource-open-extended"]') ??
+    document.querySelector<HTMLElement>('[data-testid="item-commands-more"]');
+  trigger?.focus({ preventScroll: true });
+}
+
 /** The businesses of the opened resource are found among the documents of every business, loaded on demand. */
 export function ResourceWorkbench({
   session,
@@ -31,7 +39,6 @@ export function ResourceWorkbench({
   const phone = usePhoneLayout();
   const [viewerOpen, setViewerOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const extendedViewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const viewerTransitionRef = useRef(false);
   const resource = session.resource;
   const businesses = useCouncilBusinessStore((state) => state.businesses);
@@ -96,7 +103,6 @@ export function ResourceWorkbench({
       className={`workbench resource-workbench${resource.kind === "spreadsheet" ? " resource-workbench-spreadsheet" : ""}`}
       data-testid="resource-workbench"
     >
-      {writing.control}
       <ResourceWorkbenchHeader
         resource={resource}
         relatedBusinesses={relatedBusinesses}
@@ -121,8 +127,8 @@ export function ResourceWorkbench({
             ? () => documentaryResourceFile(resource, representation)
             : undefined;
         })()}
-        extendedViewTriggerRef={extendedViewTriggerRef}
         pdfMarkdown={resource.kind === "text" ? session.content : undefined}
+        primary={writing.button}
       />
 
       <div className="workbench-main">
@@ -179,7 +185,7 @@ export function ResourceWorkbench({
           refreshSessionOnClose
           onClose={() => {
             setViewerOpen(false);
-            window.requestAnimationFrame(() => extendedViewTriggerRef.current?.focus({ preventScroll: true }));
+            window.requestAnimationFrame(() => focusExtendedViewTrigger());
           }}
         />
       ) : null}

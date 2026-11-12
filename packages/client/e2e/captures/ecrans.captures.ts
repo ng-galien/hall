@@ -66,7 +66,8 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
   if (text) {
     await open(page, `/workspace?resource=${text.id}`, "editeur-de-texte");
     await open(page, `/workspace?resource=${text.id}`, "historique-des-modifications", async () => {
-      await page.getByTestId("resource-changes-trigger").first().click();
+      await page.getByTestId("item-commands-more").first().click();
+      await page.getByRole("menu").getByTestId("resource-changes-trigger").click();
       await expect(page.getByTestId("resource-changes-panel")).toBeVisible();
     });
   }

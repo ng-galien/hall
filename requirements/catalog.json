@@ -11173,14 +11173,19 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-11-11"
+        "since": "2026-11-12"
       },
-      "statement": "Chaque écran de Hall est coiffé du même bandeau à grand titre : une première ligne qui dit où l’on est, le titre de l’écran en grand dessous.",
+      "statement": "Chaque écran de Hall est coiffé du même bandeau : une première ligne qui dit où l’on est, puis la ligne du titre qui dit ce qu’est l’écran ou l’élément ouvert et ce qu’on peut en faire.",
       "acceptanceCriteria": [
-        "Au téléphone, la première ligne porte le nom de la commune sur un écran de premier niveau et, sur un écran intérieur, le nom de l’écran parent précédé d’une flèche de retour ; sur ordinateur et tablette, le fil d’Ariane tient lieu de cette ligne.",
-        "À droite de la première ligne se trouvent l’action propre à l’écran puis les initiales de l’utilisateur, qui ouvrent son compte.",
+        "Au téléphone, la première ligne porte le nom de la commune sur un écran de premier niveau et, sur un écran intérieur, le nom de l’écran parent précédé d’une flèche de retour ; les commandes d’un élément ouvert y restent dans le bandeau, avec « Modifier » et le menu « ⋯ ».",
+        "Sur ordinateur et tablette, la première ligne tient sur une seule ligne de 44 pixels : le fil d’Ariane, qui se raccourcit par son milieu avec des points de suspension et sépare ses dossiers par une barre oblique grise, sans chevron ; le bouton qui rouvre un volet replié à son début quand il y a lieu ; l’action propre à un écran de liste, comme « Nouveau » ; les initiales de l’utilisateur à droite, qui ouvrent son compte. Elle ne porte aucune commande d’un élément ouvert.",
+        "Le nom d’un dossier du fil d’Ariane ouvre, d’un clic ou d’un clic droit, le menu qui ouvre ce dossier ou l’un de ses dossiers, affaires et documents.",
         "Tant que le serveur répond, y compris pendant le chargement et la synchronisation des données, la première ligne ne montre rien de la connexion. Quand la connexion est perdue, la première ligne écrit avant les initiales, après un point rouge, « Serveur injoignable » ou « Authentification nécessaire » ; ce texte est visible au téléphone, sur tablette et sur ordinateur, annoncé aux lecteurs d’écran, et laisse le titre, l’action et les initiales dans l’écran à 375 pixels de large.",
-        "Le titre de l’écran est écrit en grand sous la première ligne ; dès que le contenu défile, il remonte dans la première ligne et le bandeau tient sur une ligne.",
+        "Le titre de l’écran est écrit en grand sous la première ligne ; dès que le contenu défile, il remonte en petit dans la première ligne, sans les commandes, et le bandeau tient sur une ligne.",
+        "Sur ordinateur et tablette, la ligne du titre d’un élément ouvert (document, carte, tableur, texte, affaire), sur l’écran comme dans la fenêtre d’un document, porte à gauche l’icône de son type et son titre, qui peut passer sur deux lignes, et à droite, sur sa première ligne, dans cet ordre : la commande principale en bouton avec son libellé (« Modifier » ou « Terminé » pour un texte, « Ouvrir dans Cartes » pour une carte), au plus deux icônes pour les commandes les plus fréquentes (« Épingler », « Plein écran »), le menu « … » qui range les autres commandes avec leur libellé en clair (renommer, copier la référence, aperçu PDF, préparer un courriel, partager, télécharger, voir les modifications, couper ou activer la sauvegarde automatique), puis la croix qui ferme l’élément. Quand la largeur manque, les icônes rejoignent le menu « … » avant que le titre soit coupé.",
+        "Sous le titre d’un élément ouvert, une ligne de faits écrit sa date, « Modifié le … » ou « Créé le … », et son état d’enregistrement après un point : « Enregistré », « Enregistrement… » ou « Modifications en cours ».",
+        "La fenêtre d’un document suit la même règle : sa première ligne porte le chemin du document et la croix seulement, sa ligne de titre porte le titre et les commandes du document, une seule fois chacune.",
+        "La recherche dans Documents, « Rechercher dans Documents… » avec ses filtres, et le champ « Filtrer ce dossier… » apparaissent sur l’écran d’un dossier et jamais sur un élément ouvert.",
         "Le titre n’est pas répété dans le contenu de l’écran.",
         "Chaque écran est blanc : son contenu est posé sur le fond blanc et séparé par des filets, sans fond gris ni panneau blanc posé dessus."
       ],
@@ -11195,6 +11200,12 @@
           "key": "screen-header-connection-lost-only",
           "origin": "product",
           "statement": "Décision du propriétaire du 12 novembre 2026 sur l’indicateur de connexion du bandeau : le point vert permanent et le point gris de synchronisation sont retirés, seule la perte de connexion s’écrit, dans la forme des états après un point (choix 7) ; mots du propriétaire : « il y a cet indicateur de connexion, je pense qu'il est très vieux et plus ou moins historique. Je ne sais pas s'il a un grand intérêt », puis « Oui, fais-le ».",
+          "sourceIds": []
+        },
+        {
+          "key": "item-header-two-lines",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026, sur une carte ouverte dans Documents : « t'as vu la tête du header ? […] Pourquoi on a tout dans le fil d'Ariane, on a toutes les commandes. Ensuite, on a le gros titre en bas. […] c'est un sacré bordel » ; sur la recherche affichée sous le titre de la carte : « On recherche où ? On recherche dans le document ? […] c'est pas du tout raccord. »",
           "sourceIds": []
         }
       ]

@@ -1,6 +1,6 @@
 import { defaultDocumentTemplates } from "@hall/domain";
 import { type APIRequestContext, type Browser, expect, type Locator, type Page, test } from "@playwright/test";
-import { clearTestDatabase } from "../fixtures/application";
+import { clearTestDatabase, runItemCommand } from "../fixtures/application";
 import { establishRevision, generateCurrentNotice } from "../fixtures/meetingPreparation";
 
 const password = "Hall-personal-2026!";
@@ -199,7 +199,10 @@ test("gives council members read access and a personal folder that only they and
   await test.step("a council member reads a common document with reading actions only", async () => {
     await alicePage.goto(`/app/workspace?resource=${commonText.id}`);
     await expect(alicePage.getByTestId("screen-header-title")).toHaveText("Note commune");
-    await expect(alicePage.getByTestId("resource-changes-trigger")).toBeVisible();
+    await alicePage.getByTestId("item-commands-more").click();
+    await expect(alicePage.getByRole("menu").getByTestId("resource-changes-trigger")).toBeVisible();
+    await alicePage.keyboard.press("Escape");
+    await expect(alicePage.getByRole("menu")).toHaveCount(0);
     await expect(alicePage.getByTestId("resource-delete")).toHaveCount(0);
     await expect(alicePage.getByTestId("workspace-workbench-rename")).toHaveCount(0);
     await alicePage.goto(workspaceAt("Commun"));
@@ -228,11 +231,11 @@ test("gives council members read access and a personal folder that only they and
     await expect(alicePage.getByTestId("screen-header-title")).toHaveText("Brouillon");
     await alicePage.getByTestId("markdown-editor-compact").getByTestId("editor-writing-area").fill("Proposition");
     await expect.poll(async () => (await resourceProperties(alicePage, draftId)).content).toBe("Proposition");
-    await alicePage.getByTestId("workspace-workbench-rename").click();
+    await runItemCommand(alicePage, "workspace-workbench-rename");
     await alicePage.getByTestId("workspace-workbench-title-input").fill("Brouillon v2");
     await alicePage.getByTestId("workspace-workbench-title-input").press("Enter");
     await expect(alicePage.getByTestId("screen-header-title")).toHaveText("Brouillon v2");
-    await alicePage.getByTestId("resource-changes-trigger").click();
+    await runItemCommand(alicePage, "resource-changes-trigger");
     await expect(
       alicePage.getByTestId("resource-changes-panel").getByTestId("resource-changes-item").first(),
     ).toContainText("Alice Martin");
@@ -328,7 +331,7 @@ test("gives council members read access and a personal folder that only they and
     await expect
       .poll(async () => (await resourceProperties(contributorPage, contribution)).content)
       .toContain("Alésia");
-    await contributorPage.getByTestId("workspace-workbench-rename").click();
+    await runItemCommand(contributorPage, "workspace-workbench-rename");
     await contributorPage.getByTestId("workspace-workbench-title-input").fill("Contribution v2");
     await contributorPage.getByTestId("workspace-workbench-title-input").press("Enter");
     await expect(contributorPage.getByTestId("screen-header-title")).toHaveText("Contribution v2");
@@ -377,7 +380,7 @@ test("gives council members read access and a personal folder that only they and
     const addition = ((await (await creation).json()) as { properties: { id: string } }).properties.id;
     await clerkPage.getByTestId("markdown-editor-compact").getByTestId("editor-writing-area").fill("Complément");
     await expect.poll(async () => (await resourceProperties(clerkPage, addition)).content).toBe("Complément");
-    await clerkPage.getByTestId("resource-changes-trigger").click();
+    await runItemCommand(clerkPage, "resource-changes-trigger");
     await expect(clerkPage.getByTestId("resource-changes-panel")).toContainText("clerk@example.test");
     await clerkPage.keyboard.press("Escape");
     const deletion = clerkPage.waitForResponse((response) => response.request().method() === "DELETE");

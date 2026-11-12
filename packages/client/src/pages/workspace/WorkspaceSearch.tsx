@@ -28,6 +28,7 @@ export function WorkspaceSearch({
   resultsTarget: HTMLElement | null;
   autoFocus?: boolean;
 }) {
+  const { t } = useI18n();
   const wasActive = useRef(false);
   useEffect(() => {
     const active = isSearchActive(search);
@@ -41,6 +42,7 @@ export function WorkspaceSearch({
         onState={onSearch}
         scope={{ types: ["resource", "councilBusiness"], context }}
         testId="workspace-search"
+        placeholder={t("workspace.searchDocuments")}
         autoFocus={autoFocus}
         hideResultsWhenEmpty
         resultsTarget={resultsTarget}

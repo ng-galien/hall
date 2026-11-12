@@ -1,24 +1,36 @@
 import type { ResourceDetail } from "@hall/api-contract";
-import type { RefObject } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { FullscreenIcon, MapIcon, PinIcon, PinnedIcon } from "../../components/icons";
-import { ShareButton } from "../../components/ShareButton";
+import {
+  DownloadIcon,
+  FullscreenIcon,
+  MailIcon,
+  MapIcon,
+  PinIcon,
+  PinnedIcon,
+  ShareIcon,
+} from "../../components/icons";
 import { TagInput } from "../../components/TagInput";
+import type { ItemCommand } from "../../components/ui/item-commands";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "../../features/documents/DocumentaryResourceGlyph";
-import { PdfPreviewButton } from "../../features/documents/PdfPreviewButton";
-import { PrepareMailButton } from "../../features/mail/PrepareMailButton";
+import { usePdfCommands } from "../../features/documents/PdfPreviewButton";
+import { usePrepareMail } from "../../features/mail/PrepareMailButton";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { ApiErrorCode } from "../../services/apiClient";
-import type { SharedFile } from "../../services/fileSharing";
+import { type SharedFile, shareOrDownload } from "../../services/fileSharing";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
-/** @implements-requirement HALL-FR-WSP-340 */
+/**
+ * Title line of an opened resource: « Ouvrir dans Cartes » for a map, or the writing command of a text, as the main
+ * command; « Épingler » and « Plein écran » as icons; the PDF preview, the mail, the sharing and the download in the
+ * « … » menu.
+ * @implements-requirement HALL-FR-WSP-340
+ */
 export function ResourceWorkbenchHeader({
   resource,
   relatedBusinesses,
@@ -33,8 +45,8 @@ export function ResourceWorkbenchHeader({
   onOpenExtended,
   onDownload,
   shareFile,
-  extendedViewTriggerRef,
   pdfMarkdown,
+  primary,
 }: {
   resource: Exclude<ResourceDetail, { kind: "folder" }>;
   relatedBusinesses: CouncilBusinessView[];
@@ -49,13 +61,61 @@ export function ResourceWorkbenchHeader({
   onOpenExtended(): void;
   onDownload?(): void;
   shareFile?(): Promise<SharedFile>;
-  extendedViewTriggerRef: RefObject<HTMLButtonElement | null>;
   /** The current text of a text document, previewed as a PDF. */
   pdfMarkdown?: string;
+  /** The writing command of a text. */
+  primary?: ReactNode;
 }) {
   const { t } = useI18n();
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const pinned = isPinned({ kind: "resource", id: resource.id });
+  const pdf = usePdfCommands({
+    markdown: pdfMarkdown ?? "",
+    title: resource.name,
+    testId: "resource-pdf-preview",
+    disabled: pdfMarkdown === undefined,
+  });
+  const mail = usePrepareMail({ kind: "resource", resourceId: resource.id });
+  const menu: ItemCommand[] = [
+    ...(pdfMarkdown !== undefined ? pdf.commands : []),
+    ...(resource.kind === "document" && mail.available
+      ? [
+          {
+            id: "mail",
+            label: t("mail.prepare"),
+            icon: <MailIcon />,
+            testId: "resource-prepare-mail",
+            disabled: mail.busy,
+            onSelect: mail.prepare,
+          },
+        ]
+      : []),
+    ...(resource.kind === "document" && shareFile
+      ? [
+          {
+            id: "share",
+            label: t("common.share"),
+            icon: <ShareIcon />,
+            testId: "resource-workbench-share",
+            onSelect: () =>
+              void shareFile()
+                .then(shareOrDownload)
+                .catch(() => undefined),
+          },
+        ]
+      : []),
+    ...(resource.kind === "document" && onDownload
+      ? [
+          {
+            id: "download",
+            label: t("common.download"),
+            icon: <DownloadIcon />,
+            testId: "resource-workbench-download",
+            onSelect: onDownload,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <WorkspaceWorkbenchHeader
@@ -70,75 +130,37 @@ export function ResourceWorkbenchHeader({
         page: `/app/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id })}`,
         href: `/api/resources/${resource.slug}`,
       }}
-      actions={
-        <>
-          {resource.kind === "geographic" ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button asChild variant="secondary" className="resource-open-in-maps">
-                  <Link
-                    data-testid="resource-open-in-maps"
-                    aria-label={t("maps.openInMaps")}
-                    to={`/maps/${encodeURIComponent(resource.id)}`}
-                  >
-                    <MapIcon />
-                    <span className="resource-open-in-maps-label">{t("maps.openInMaps")}</span>
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t("maps.openInMaps")}</TooltipContent>
-            </Tooltip>
-          ) : null}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                ref={extendedViewTriggerRef}
-                variant="plain"
-                size="icon"
-                data-testid="resource-open-extended"
-                aria-label={t("common.fullscreen")}
-                onClick={onOpenExtended}
-              >
-                <FullscreenIcon />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{t("common.fullscreen")}</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="plain"
-                size="icon"
-                aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
-                aria-pressed={pinned}
-                onClick={() => togglePin({ kind: "resource", id: resource.id })}
-              >
-                {pinned ? <PinnedIcon /> : <PinIcon />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
-          </Tooltip>
-          {pdfMarkdown !== undefined ? (
-            <PdfPreviewButton
-              key={resource.id}
-              markdown={pdfMarkdown}
-              title={resource.name}
-              testId="resource-pdf-preview"
-            />
-          ) : null}
-          {resource.kind === "document" ? (
-            <PrepareMailButton input={{ kind: "resource", resourceId: resource.id }} testId="resource-prepare-mail" />
-          ) : null}
-          {resource.kind === "document" && shareFile ? (
-            <ShareButton testId="resource-workbench-share" file={shareFile} />
-          ) : null}
-          {resource.kind === "document" && onDownload ? (
-            <Button variant="secondary" data-testid="resource-workbench-download" onClick={onDownload}>
-              {t("common.download")}
-            </Button>
-          ) : null}
-        </>
+      primary={
+        resource.kind === "geographic" ? (
+          <Button asChild variant="secondary" className="resource-open-in-maps">
+            <Link data-testid="resource-open-in-maps" to={`/maps/${encodeURIComponent(resource.id)}`}>
+              <MapIcon />
+              {t("maps.openInMaps")}
+            </Link>
+          </Button>
+        ) : (
+          primary
+        )
       }
+      frequent={[
+        {
+          id: "pin",
+          label: t(pinned ? "workspace.unpinShort" : "workspace.pin"),
+          icon: pinned ? <PinnedIcon /> : <PinIcon />,
+          testId: "workspace-workbench-pin",
+          pressed: pinned,
+          onSelect: () => togglePin({ kind: "resource", id: resource.id }),
+        },
+        {
+          id: "fullscreen",
+          label: t("common.fullscreen"),
+          icon: <FullscreenIcon />,
+          testId: "resource-open-extended",
+          onSelect: onOpenExtended,
+        },
+      ]}
+      menu={menu}
+      dialogs={pdf.view}
       actionError={actionError}
       onDismissError={onDismissError}
       metadata={

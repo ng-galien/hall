@@ -17,11 +17,12 @@ export interface WritableText {
 
 /**
  * The two writing modes of a text (choice 8B), on phone, tablet and computer: a text opens for reading with
- * « Modifier » in the screen header for whoever may write it, as the last command before the initials; while writing, « Terminé » in solid blue saves it and
+ * « Modifier » for whoever may write it, as the main command of the line of the title on tablet and computer, and as
+ * the last command before the initials on a phone; while writing, « Terminé » in solid blue saves it and
  * returns to reading. A note still empty, just created, opens for writing.
  * @implements-requirement HALL-FR-LAY-130
  */
-export function useTextWriting(text: WritableText): { editing: boolean; control: ReactNode } {
+export function useTextWriting(text: WritableText): { editing: boolean; control: ReactNode; button: ReactNode } {
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const decided = useRef<string | null>(null);
@@ -34,23 +35,22 @@ export function useTextWriting(text: WritableText): { editing: boolean; control:
     await text.flush();
     if ((text.dirty ? await text.save() : true) && (await text.reload())) setEditing(false);
   };
-  const control = text.editable ? (
-    <ScreenActions>
-      {editing ? (
-        <Button className="screen-header-writing" data-testid="text-finish-editing" onClick={() => void finish()}>
-          {t("workspace.finishEditing")}
-        </Button>
-      ) : (
-        <Button
-          variant="secondary"
-          className="screen-header-writing"
-          data-testid="text-edit"
-          onClick={() => setEditing(true)}
-        >
-          {t("common.edit")}
-        </Button>
-      )}
-    </ScreenActions>
+  const button = text.editable ? (
+    editing ? (
+      <Button className="screen-header-writing" data-testid="text-finish-editing" onClick={() => void finish()}>
+        {t("workspace.finishEditing")}
+      </Button>
+    ) : (
+      <Button
+        variant="secondary"
+        className="screen-header-writing"
+        data-testid="text-edit"
+        onClick={() => setEditing(true)}
+      >
+        {t("common.edit")}
+      </Button>
+    )
   ) : null;
-  return { editing: editing && text.editable, control };
+  const control = button ? <ScreenActions>{button}</ScreenActions> : null;
+  return { editing: editing && text.editable, control, button };
 }

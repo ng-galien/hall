@@ -19,6 +19,9 @@
   /* When the commands of the screen do not fit beside the trail, they go to a second row, aligned to the right. */
   .screen-header-line { display: flex; min-width: 0; min-height: var(--hall-size-touch-control); flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-2); }
   .screen-header-place { display: flex; min-width: min(100%, var(--hall-size-relative-16rem)); flex: 1 1 0; align-items: center; gap: var(--hall-space-2); }
+  /* On tablet and computer the first line says where one is, on one line: the trail shortens instead of wrapping. */
+  .screen-header[data-format="wide"] .screen-header-line { flex-wrap: nowrap; }
+  .screen-header[data-format="wide"] .screen-header-place { min-width: 0; }
   .screen-header-commune {
     overflow: hidden;
     color: var(--hall-color-text-muted);
@@ -44,10 +47,6 @@
   .screen-header-trail-slot { display: flex; min-width: 0; align-items: center; }
   .screen-header-trail-slot:empty { display: none; }
   .screen-header-trail:has(.screen-header-trail-slot:not(:empty)) > :not(.screen-header-trail-slot) { display: none; }
-  /* The trail lists the screens above: the current folder is the large title, not repeated in the trail. */
-  .screen-header-trail-slot .workspace-crumb-group:has(> [aria-current="page"]),
-  .screen-header-trail-slot .workspace-crumb[aria-current="page"],
-  .screen-header-trail-slot .workspace-crumb[aria-current="page"] + * { display: none; }
   .screen-header-inline-title {
     display: none;
     overflow: hidden;
@@ -81,10 +80,19 @@
     font-weight: var(--hall-font-weight-bold);
   }
   .screen-header-initials:empty { display: none; }
+  /* The line of the title: what the screen is, with the type icon and the commands of an opened item at its right. */
+  .screen-title-block { display: grid; flex: none; gap: var(--hall-space-1); padding: 0 var(--hall-space-6) var(--hall-space-3); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
+  .screen-title-block:has(.screen-header-title:empty) { display: none; }
+  .screen-title-row { display: flex; min-width: 0; align-items: flex-start; gap: var(--hall-space-3); }
+  .screen-title-icon { display: inline-grid; min-height: var(--hall-line-height-display); flex: none; place-items: center; }
+  .screen-title-icon:empty,
+  .screen-title-commands:empty,
+  .screen-title-facts:empty { display: none; }
+  .screen-title-commands { display: flex; min-height: var(--hall-line-height-display); flex: none; align-items: center; gap: var(--hall-space-1); margin-left: auto; }
+  .screen-title-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-4); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .screen-header-title {
-    flex: none;
-    padding: 0 var(--hall-space-6) var(--hall-space-3);
-    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+    min-width: 0;
+    flex: 1;
     overflow-wrap: anywhere;
     font-size: var(--hall-font-size-display);
     font-weight: var(--hall-font-weight-heavy);
@@ -207,7 +215,7 @@
 
   @media (max-width: 760px) {
     .screen-header,
-    .screen-header-title { padding-inline: var(--hall-space-4); }
+    .screen-title-block { padding-inline: var(--hall-space-4); }
     .screen-header-title { font-size: var(--hall-font-size-display-small); line-height: var(--hall-line-height-display-small); }
     .page-header { padding: var(--hall-space-3) var(--hall-space-4) 0; }
     .page-header-description { display: none; }

@@ -1,4 +1,4 @@
-import { expect, test } from "../fixtures/application";
+import { expect, runItemCommand, test } from "../fixtures/application";
 
 // @verifies-requirement HALL-FR-DOC-280
 test("opens recorded history for a non-text resource and its folder", async ({ appPage: page }) => {
@@ -26,14 +26,14 @@ test("opens recorded history for a non-text resource and its folder", async ({ a
   }
   try {
     await page.goto(`/app/workspace?resource=${resource.id}`);
-    await page.getByTestId("resource-changes-trigger").click();
+    await runItemCommand(page, "resource-changes-trigger");
     const panel = page.getByTestId("resource-changes-panel");
     await expect(panel).toBeVisible();
     await expect(panel.getByTestId("resource-changes-item")).toHaveCount(3);
     await expect(panel.locator("time")).toHaveCount(3);
     await page.keyboard.press("Escape");
     await page.goto(`/app/workspace?path=${encodeURIComponent(folderName)}`);
-    await page.getByTestId("resource-changes-trigger").click();
+    await runItemCommand(page, "resource-changes-trigger");
     await expect(page.getByTestId("resource-changes-panel").getByTestId("resource-changes-item")).toHaveCount(1);
   } finally {
     await page.request.delete(`/api/resources/${resource.id}`);

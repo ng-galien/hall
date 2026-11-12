@@ -53,10 +53,18 @@ async function closeEnrichedEditor(page: Page): Promise<void> {
   await expect(enrichedEditor(page)).toBeHidden();
 }
 
+/** A text opens for reading: « Modifier » opens it for writing in the compact editor. */
+async function writeText(page: Page): Promise<void> {
+  const edit = page.getByTestId("text-edit");
+  await expect(edit.or(compactEditor(page))).toBeVisible();
+  if (await edit.isVisible()) await edit.click();
+  await expect(compactEditor(page)).toBeVisible();
+}
+
 async function openWorkspaceText(page: Page): Promise<{ id: string; slug: string; name: string }> {
   const resource = await createWorkspaceText(page, `Editor lifecycle ${crypto.randomUUID()}`);
   await page.goto(`/app/workspace?path=seed&resource=${encodeURIComponent(resource.id)}`);
-  await expect(compactEditor(page)).toBeVisible();
+  await writeText(page);
   return resource;
 }
 
@@ -533,6 +541,7 @@ test.describe("Markdown editor", () => {
     const pdf = await firstPdfResource(page);
     const text = await createWorkspaceText(page, "Inclusion PDF E2E");
     await page.goto(`/app/workspace?path=seed&resource=${encodeURIComponent(text.id)}`);
+    await writeText(page);
     await expect(compactEditor(page)).toBeVisible();
     const editor = await openEnrichedEditor(page);
     const search = await openResourceEmbedSearch(editor);
@@ -546,6 +555,7 @@ test.describe("Markdown editor", () => {
     const directive = `:resource[${pdf.name}]{#${pdf.id}}`;
     await expect.poll(() => persistedResourceContent(page, text.slug), { timeout: 15_000 }).toContain(directive);
     await page.reload();
+    await writeText(page);
 
     const reference = compactEditor(page).getByTestId(`editor-resource-reference-${pdf.id}`);
     await expect(reference).toBeVisible();
@@ -684,6 +694,7 @@ test.describe("Markdown editor", () => {
     const directive = `::resource-embed[${spreadsheet.name}]{#${spreadsheet.id} presentation="table" sheet="${spreadsheet.sheetId}" range="A1:A999999999"}`;
     const text = await createWorkspaceText(page, "Plage tableur invalide E2E", directive);
     await page.goto(`/app/workspace?path=seed&resource=${encodeURIComponent(text.id)}`);
+    await writeText(page);
 
     const editor = compactEditor(page);
     await expect(editor.getByTestId(`editor-resource-embed-${spreadsheet.id}`)).toBeVisible();
@@ -777,6 +788,7 @@ test.describe("Markdown editor", () => {
     await expect.poll(() => persistedResourceContent(page, resource.slug), { timeout: 15_000 }).toContain(assetId);
 
     await page.reload();
+    await writeText(page);
     const compactImage = compactEditor(page).getByTestId(`editor-image-${assetId}`);
     await expect(compactImage).toBeVisible();
     await compactImage.click();
@@ -813,6 +825,7 @@ test.describe("Markdown editor", () => {
       .poll(() => persistedResourceContent(page, resource.slug), { timeout: 15_000 })
       .toContain(representation.properties.title);
     await page.reload();
+    await writeText(page);
     await expect(compactEditor(page).getByTestId("editor-insert-image")).toHaveCount(0);
     const compactImage = compactEditor(page).getByTestId(`editor-image-${representation.properties.id}`);
     await expect(compactImage).toBeVisible();
@@ -834,6 +847,7 @@ test.describe("Markdown editor", () => {
     await expect.poll(() => persistedResourceContent(page, resource.slug), { timeout: 15_000 }).toContain(marker);
 
     await page.reload();
+    await writeText(page);
     await expect(compactEditor(page)).toContainText(marker);
   });
 });
@@ -841,6 +855,7 @@ test.describe("Markdown editor", () => {
 test("preserves nested lists and checklists across editor modes and reload", async ({ appPage: page }) => {
   const resource = await createWorkspaceText(page, `Lists ${crypto.randomUUID()}`, "- First\n- Second");
   await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  await writeText(page);
   const compact = compactEditor(page);
   await writingArea(compact).click();
   await writingArea(compact).press("ControlOrMeta+End");
@@ -889,6 +904,7 @@ test("preserves nested lists and checklists across editor modes and reload", asy
     .poll(async () => (await (await page.request.get(`/api/resources/${resource.id}`)).json()).properties.content)
     .toContain("[x] Second");
   await page.reload();
+  await writeText(page);
   await expect(compactEditor(page).getByTestId("editor-task-item").last()).toHaveAttribute("data-checked", "true");
 });
 

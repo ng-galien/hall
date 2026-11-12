@@ -1,5 +1,5 @@
 import { crc32 } from "node:zlib";
-import { expect, test } from "../fixtures/application";
+import { expect, runItemCommand, test } from "../fixtures/application";
 
 test.use({ builtInPdfViewer: true });
 
@@ -121,8 +121,12 @@ test("the business documents section folds by its header and opens each document
   // The dialog writes each command and the title once: save state, changes and close on its first line, the title below.
   await expect(viewer.getByTestId("resource-preview-close")).toHaveCount(1);
   await expect(viewer.getByTestId("workspace-breadcrumb-close")).toHaveCount(0);
-  await expect(viewer.getByTestId("resource-autosave-toggle")).toHaveCount(1);
-  await expect(viewer.getByTestId("resource-changes-trigger")).toHaveCount(1);
+  await expect(viewer.locator(".workspace-breadcrumb button")).toHaveCount(1);
+  await viewer.getByTestId("item-commands-more").click();
+  await expect(page.getByRole("menu").getByTestId("resource-autosave-toggle")).toHaveCount(1);
+  await expect(page.getByRole("menu").getByTestId("resource-changes-trigger")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(viewer.getByTestId("workspace-workbench-title")).toHaveCount(1);
   await expect(viewer.locator(".workspace-breadcrumb .workspace-crumb-current")).toHaveCount(0);
   const viewerBox = await viewer.boundingBox();
@@ -135,17 +139,21 @@ test("the business documents section folds by its header and opens each document
   await page.getByTestId(`business-document-view-${pdf.id}`).click();
   await expect(viewer).toBeVisible();
   await expect(viewer.getByTestId("resource-preview-object")).toHaveAttribute("src", /.+/);
-  await expect(viewer.getByTestId("resource-preview-download")).toBeVisible();
-  await expect(viewer.locator(".workspace-breadcrumb").getByTestId("resource-preview-download")).toHaveCount(1);
+  await viewer.getByTestId("item-commands-more").click();
+  await expect(page.getByRole("menu").getByTestId("resource-preview-download")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(viewer.locator(".workspace-breadcrumb button")).toHaveCount(1);
   await expect(viewer.getByTestId("resource-preview-close")).toHaveCount(1);
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(viewer).toBeHidden();
 
   await page.getByTestId(`business-document-view-${archive.id}`).click();
   await expect(viewer).toBeVisible();
   await expect(viewer.getByTestId("resource-preview-object-unavailable")).toBeVisible();
   const download = page.waitForEvent("download");
-  await viewer.getByTestId("resource-preview-download").click();
+  await runItemCommand(page, "resource-preview-download", viewer);
   expect((await download).suggestedFilename()).toBe("releves.odt");
   await page.keyboard.press("Escape");
   await expect(viewer).toBeHidden();

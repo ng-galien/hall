@@ -1,4 +1,4 @@
-/* Workspace: tree of the Documents pane, folder contents, workbench. */
+/* Workspace: tree of the Documents entry, folder contents, workbench. */
 @layer components {
   /* ---- Folder tree ---- */
   .workspace-tree { display: flex; flex-direction: column; margin: 0 0 var(--hall-space-1); padding: 0 0 0 var(--hall-space-2); list-style: none; }
@@ -116,7 +116,7 @@
 
   .workspace-list-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
 
-  /* ---- Tree of the Documents pane ---- */
+  /* ---- Tree of the Documents entry of the menu ---- */
   .workspace-tree-wrap { display: flex; flex-direction: column; }
   .workspace-tree-scroll { max-height: var(--hall-size-tree-max); overflow-y: auto; }
   .hall-button.workspace-tree-more { justify-content: flex-start; width: 100%; padding-left: var(--hall-space-6); color: var(--hall-color-brand); }

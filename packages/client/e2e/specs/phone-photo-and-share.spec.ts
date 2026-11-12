@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
-import { expect, test } from "../fixtures/application";
+import { expect, runItemCommand, test } from "../fixtures/application";
 
 /* A photo taken on the phone becomes an imported file of a folder, a council business or a map drawing, and Share
    hands a PDF to the device's share sheet. Chromium offers no share sheet under test: the page records the call. */
@@ -196,7 +196,7 @@ test("on a desktop browser without file sharing, Share downloads the PDF", async
   const pdf = await uploadPdf(page);
   await page.goto(`/app/workspace?path=seed&resource=${pdf.id}`);
   const download = page.waitForEvent("download", (candidate) => candidate.suggestedFilename() === "plan.pdf");
-  await page.getByTestId("resource-workbench-share").click();
+  await runItemCommand(page, "resource-workbench-share");
   const saved = await download;
   expect(saved.suggestedFilename()).toBe("plan.pdf");
 });

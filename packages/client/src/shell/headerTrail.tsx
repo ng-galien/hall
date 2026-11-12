@@ -43,3 +43,27 @@ export function ScreenLeading({ children }: { children: ReactNode }) {
   const slot = useContext(ScreenLeadingSlotContext);
   return slot ? createPortal(children, slot) : null;
 }
+
+export const ScreenTitleSlotsContext = createContext<{
+  icon: HTMLElement | null;
+  commands: HTMLElement | null;
+  facts: HTMLElement | null;
+}>({ icon: null, commands: null, facts: null });
+
+/** Renders the type icon of the opened item before the large title of the screen. */
+export function ScreenTitleIcon({ children }: { children: ReactNode }) {
+  const slot = useContext(ScreenTitleSlotsContext).icon;
+  return slot ? createPortal(children, slot) : null;
+}
+
+/** Renders the commands of the opened item on the line of the large title, at its right. */
+export function ScreenTitleCommands({ children }: { children: ReactNode }) {
+  const slot = useContext(ScreenTitleSlotsContext).commands;
+  return slot ? createPortal(children, slot) : null;
+}
+
+/** Renders the facts of the opened item under the large title: its date and its save state. */
+export function ScreenTitleFacts({ children }: { children: ReactNode }) {
+  const slot = useContext(ScreenTitleSlotsContext).facts;
+  return slot ? createPortal(children, slot) : null;
+}

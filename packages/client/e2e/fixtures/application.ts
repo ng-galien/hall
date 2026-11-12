@@ -164,3 +164,20 @@ export async function openAdministrationEntry(page: import("@playwright/test").P
   if ((await root.getAttribute("aria-expanded")) === "false") await root.click();
   await page.getByTestId(`navigation-${destination}`).click();
 }
+
+/**
+ * Runs a command of the opened item: directly when it is drawn on the line of the title, otherwise from its « … »
+ * menu. `scope` is the screen or the document dialog that holds the item.
+ */
+export async function runItemCommand(
+  page: import("@playwright/test").Page,
+  testId: string,
+  scope: import("@playwright/test").Locator = page.locator("body"),
+) {
+  const direct = scope.getByTestId(testId);
+  await expect(direct.or(scope.getByTestId("item-commands-more")).first()).toBeVisible();
+  if (await direct.isVisible()) return direct.click();
+  await scope.getByTestId("item-commands-more").first().click();
+  await page.getByRole("menu").getByTestId(testId).click();
+  await expect(page.getByRole("menu")).toHaveCount(0);
+}

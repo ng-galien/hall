@@ -1,6 +1,5 @@
-import { type ReactNode, type RefObject, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ChevronRightIcon, CloseIcon, CouncilBusinessIcon, FolderIcon } from "@/components/icons";
+import { type ReactNode, type RefObject, useEffect, useState } from "react";
+import { CloseIcon, CouncilBusinessIcon, FolderIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,26 +22,44 @@ import { listCatalogPaths } from "../paths";
 import { sameWorkspaceItem, type WorkspaceSelection } from "../workspaceItemReference";
 import "./WorkspaceBreadcrumb.css";
 
-function CrumbMenu({
+/** The separator of the trail: a discreet slash. */
+function Separator() {
+  return (
+    <span className="workspace-crumb-sep" aria-hidden="true">
+      /
+    </span>
+  );
+}
+
+/**
+ * One folder of the trail: its name opens, by a click or a right click, the menu that opens the folder or one of its
+ * folders, affaires and documents.
+ */
+function FolderCrumb({
   parent,
+  label,
+  here,
+  origin,
   allPaths,
   businesses,
   resources,
   currentSelection,
-  trailing,
+  testId,
   onSelect,
 }: {
   parent: string;
+  label: ReactNode;
+  here: boolean;
+  origin: boolean;
   allPaths: string[];
   businesses: CouncilBusinessView[];
   resources: DocumentaryLeafSummary[];
   currentSelection: WorkspaceSelection;
-  /** Last crumb: nothing follows it, so no chevron is drawn. */
-  trailing: boolean;
+  testId?: string;
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
   const { t } = useI18n();
-  if (trailing) return null;
+  const [open, setOpen] = useState(false);
   const prefix = parent ? `${parent}/` : "";
   const children = allPaths
     .filter((candidate) => candidate.startsWith(prefix) && candidate !== parent)
@@ -63,29 +80,35 @@ function CrumbMenu({
         (!currentSelection || !sameWorkspaceItem(currentSelection, { kind: "resource", id: resource.id })),
     )
     .sort((left, right) => left.name.localeCompare(right.name, "fr"));
-  const hasContents = children.length > 0 || directBusinesses.length > 0 || directResources.length > 0;
-  if (!hasContents) {
-    return (
-      <span className="workspace-crumb-sep" aria-hidden="true">
-        <ChevronRightIcon />
-      </span>
-    );
-  }
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="plain"
-          size="icon"
-          data-testid="workspace-breadcrumb-folder-menu"
+          className="workspace-crumb"
+          data-testid={testId}
           data-path={parent}
-          aria-label={t("workspace.browseFolder")}
+          data-origin={origin ? "true" : undefined}
+          aria-current={here ? "page" : undefined}
           title={t("workspace.browseFolder")}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            setOpen(true);
+          }}
         >
-          <ChevronRightIcon aria-hidden="true" />
+          {label}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="workspace-crumb-menu w-max max-w-(--hall-size-picker-panel-max)" align="start">
+        <DropdownMenuItem
+          data-testid="workspace-breadcrumb-open"
+          data-path={parent}
+          onSelect={() => onSelect(null, parent)}
+        >
+          <FolderIcon />
+          <span className="workspace-crumb-menu-label">{t("workspace.openFolder")}</span>
+        </DropdownMenuItem>
+        {children.length > 0 ? <DropdownMenuSeparator /> : null}
         {children.length > 0 ? <DropdownMenuLabel>{t("workspace.folders")}</DropdownMenuLabel> : null}
         {children.map((name) => {
           const childPath = prefix + name;
@@ -103,9 +126,7 @@ function CrumbMenu({
             </DropdownMenuItem>
           );
         })}
-        {children.length > 0 && (directBusinesses.length > 0 || directResources.length > 0) ? (
-          <DropdownMenuSeparator />
-        ) : null}
+        {directBusinesses.length > 0 ? <DropdownMenuSeparator /> : null}
         {directBusinesses.length > 0 ? (
           <DropdownMenuLabel>{t("workspace.councilBusinessHeading")}</DropdownMenuLabel>
         ) : null}
@@ -122,7 +143,7 @@ function CrumbMenu({
             </span>
           </DropdownMenuItem>
         ))}
-        {directBusinesses.length > 0 && directResources.length > 0 ? <DropdownMenuSeparator /> : null}
+        {directResources.length > 0 ? <DropdownMenuSeparator /> : null}
         {directResources.length > 0 ? <DropdownMenuLabel>{t("workspace.resourcesHeading")}</DropdownMenuLabel> : null}
         {directResources.map((resource) => (
           <DropdownMenuItem
@@ -177,14 +198,10 @@ function BreadcrumbActions({
   );
 }
 
-function workspaceFolderHref(path: string) {
-  return path ? `/workspace?${new URLSearchParams({ path })}` : "/workspace";
-}
-
 /**
- * Workspace breadcrumb. In the screen header it lists the folders above the screen, each one a link that opens that
- * folder and closes the open item; the open item itself is the title of the screen. In a dialog it is a plain trail
- * ending with the open item.
+ * Workspace breadcrumb, on one line separated by discreet slashes, without any command. In the screen header it lists
+ * the folders above the screen; the name of a folder opens, by a click or a right click, the menu that opens it or one
+ * of its contents, and the open item itself is the title of the screen. In a dialog it is a plain trail.
  */
 export function WorkspaceBreadcrumb({
   path,
@@ -253,17 +270,13 @@ export function WorkspaceBreadcrumb({
         </span>
         {segments.map((segment, index) => (
           <span className="workspace-crumb-group" key={segments.slice(0, index + 1).join("/")}>
-            <span className="workspace-crumb-sep" aria-hidden="true">
-              <ChevronRightIcon />
-            </span>
+            <Separator />
             <span className="workspace-crumb">{segment}</span>
           </span>
         ))}
         {currentLabel ? (
           <>
-            <span className="workspace-crumb-sep" aria-hidden="true">
-              <ChevronRightIcon />
-            </span>
+            <Separator />
             <span className="workspace-crumb-current">
               {currentIcon}
               <span className="workspace-crumb-current-label">{currentLabel}</span>
@@ -281,56 +294,42 @@ export function WorkspaceBreadcrumb({
     );
   }
 
-  const crumb = (target: string, here: boolean, children: ReactNode, testId?: string) => (
-    <Link
-      className="workspace-crumb"
-      data-origin={originPath === target ? "true" : undefined}
-      data-testid={testId}
-      aria-current={here ? "page" : undefined}
-      to={workspaceFolderHref(target)}
-      onClick={(event) => {
-        event.preventDefault();
-        onSelect?.(null, target);
-      }}
-    >
-      {children}
-    </Link>
+  const folderCrumb = (target: string, here: boolean, label: ReactNode, testId?: string) => (
+    <FolderCrumb
+      parent={target}
+      label={label}
+      here={here}
+      origin={originPath === target}
+      allPaths={allPaths}
+      businesses={businesses}
+      resources={resources}
+      currentSelection={currentSelection}
+      testId={testId}
+      onSelect={onSelect!}
+    />
   );
 
   return (
     <nav className="workspace-breadcrumb" aria-label={t("workspace.pathBreadcrumb")}>
-      {crumb(
+      {folderCrumb(
         "",
         segments.length === 0 && !currentLabel,
         <>
           <CouncilBusinessIcon aria-hidden="true" data-testid="workspace-root-business-icon" />
-          <span>{t("navigation.workspace")}</span>
+          <span className="workspace-crumb-label">{t("navigation.workspace")}</span>
         </>,
         "workspace-breadcrumb-root",
       )}
-      <CrumbMenu
-        parent=""
-        allPaths={allPaths}
-        businesses={businesses}
-        resources={resources}
-        currentSelection={currentSelection}
-        trailing={segments.length === 0 && !currentLabel}
-        onSelect={onSelect!}
-      />
       {segments.map((segment, index) => {
         const target = segments.slice(0, index + 1).join("/");
         return (
           <span className="workspace-crumb-group" key={target}>
-            {crumb(target, index === segments.length - 1 && !currentLabel, segment)}
-            <CrumbMenu
-              parent={target}
-              allPaths={allPaths}
-              businesses={businesses}
-              resources={resources}
-              currentSelection={currentSelection}
-              trailing={index === segments.length - 1 && !currentLabel}
-              onSelect={onSelect!}
-            />
+            <Separator />
+            {folderCrumb(
+              target,
+              index === segments.length - 1 && !currentLabel,
+              <span className="workspace-crumb-label">{segment}</span>,
+            )}
           </span>
         );
       })}

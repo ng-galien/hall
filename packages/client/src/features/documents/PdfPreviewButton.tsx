@@ -1,5 +1,5 @@
 import { collectResourceReferences, parse } from "@hall/templating";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,10 +7,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDownIcon, PdfIcon } from "../../components/icons";
+import { ChevronDownIcon, MailIcon, PdfIcon } from "../../components/icons";
+import type { ItemCommand } from "../../components/ui/item-commands";
 import { useI18n } from "../../i18n/I18nProvider";
 import { previewTemplatePdf } from "../../services/templatesApi";
-import { PrepareMailButton } from "../mail/PrepareMailButton";
+import { PrepareMailButton, usePrepareMail } from "../mail/PrepareMailButton";
 import { DocumentViewerDialog } from "./DocumentViewerDialog";
 import { NativeDocumentFrame } from "./NativeDocumentFrame";
 
@@ -145,4 +146,62 @@ export function PdfPreviewButton({
       {view}
     </>
   );
+}
+
+/** The PDF preview of a Markdown text as commands of the « … » menu, with the draft of a mail carrying it. */
+export function usePdfCommands({
+  markdown,
+  title,
+  testId,
+  disabled = false,
+}: {
+  markdown: string;
+  title: string;
+  testId: string;
+  disabled?: boolean;
+}): { commands: ItemCommand[]; view: ReactNode } {
+  const { t } = useI18n();
+  const { referencesDocuments, status, openPreview, view } = usePdfPreview({ markdown, title, testId });
+  const mail = usePrepareMail({ kind: "pdf", title, bodyMarkdown: markdown });
+  const unavailable = disabled || status === "loading";
+  const label = t(status === "loading" ? "editor.pdfPreviewLoading" : "editor.pdfPreview");
+  const commands: ItemCommand[] = referencesDocuments
+    ? [
+        {
+          id: "pdf-without-documents",
+          label: `${label} · ${t("editor.pdfWithoutDocuments")}`,
+          icon: <PdfIcon />,
+          testId: `${testId}-without-documents`,
+          disabled: unavailable,
+          onSelect: () => void openPreview(false),
+        },
+        {
+          id: "pdf-with-documents",
+          label: `${label} · ${t("editor.pdfWithDocuments")}`,
+          icon: <PdfIcon />,
+          testId: `${testId}-with-documents`,
+          disabled: unavailable,
+          onSelect: () => void openPreview(true),
+        },
+      ]
+    : [
+        {
+          id: "pdf",
+          label,
+          icon: <PdfIcon />,
+          testId,
+          disabled: unavailable,
+          onSelect: () => void openPreview(false),
+        },
+      ];
+  if (mail.available && !disabled)
+    commands.push({
+      id: "pdf-mail",
+      label: t("mail.preparePdf"),
+      icon: <MailIcon />,
+      testId: `${testId}-mail`,
+      disabled: mail.busy,
+      onSelect: mail.prepare,
+    });
+  return { commands, view };
 }

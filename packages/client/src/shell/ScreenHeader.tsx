@@ -238,18 +238,32 @@ export function ScreenLargeTitle({
   phone,
   title,
   titleRef,
+  slots,
 }: {
   phone: boolean;
   title: string;
   titleRef(element: HTMLHeadingElement | null): void;
+  /** Places of the type icon, the commands and the facts of an opened item around the title. */
+  slots: {
+    icon(element: HTMLSpanElement | null): void;
+    commands(element: HTMLDivElement | null): void;
+    facts(element: HTMLDivElement | null): void;
+  };
 }) {
   return (
-    <h1
-      ref={titleRef}
-      className="screen-header-title"
-      data-testid={phone ? "phone-header-title" : "screen-header-title"}
-    >
-      {title}
-    </h1>
+    <div className="screen-title-block">
+      <div className="screen-title-row">
+        <span ref={slots.icon} className="screen-title-icon" />
+        <h1
+          ref={titleRef}
+          className="screen-header-title"
+          data-testid={phone ? "phone-header-title" : "screen-header-title"}
+        >
+          {title}
+        </h1>
+        <div ref={slots.commands} className="screen-title-commands" data-testid="screen-title-commands" />
+      </div>
+      <div ref={slots.facts} className="screen-title-facts" />
+    </div>
   );
 }

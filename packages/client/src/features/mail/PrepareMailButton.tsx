@@ -9,9 +9,8 @@ import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, sirenRepresentation, submitSirenAction } from "../../services/apiClient";
 
-/** Uses the shared mailbox capability and opens the resulting draft; never sends. */
-export function PrepareMailButton({ input, testId }: { input: z.infer<typeof prepareMailSchema>; testId: string }) {
-  const { t } = useI18n();
+/** The shared mailbox capability that prepares a draft from an object and opens it; it never sends. */
+export function usePrepareMail(input: z.infer<typeof prepareMailSchema>) {
   const navigate = useNavigate();
   const [mailbox, setMailbox] = useState<SirenEntity | null>(null);
   const [busy, setBusy] = useState(false);
@@ -29,22 +28,27 @@ export function PrepareMailButton({ input, testId }: { input: z.infer<typeof pre
       active = false;
     };
   }, []);
-  if (!mailbox || !findSirenAction(mailbox, "mail.prepare")) return null;
+  const available = Boolean(mailbox && findSirenAction(mailbox, "mail.prepare"));
+  const prepare = () => {
+    if (!mailbox) return;
+    setBusy(true);
+    setError(null);
+    void submitSirenAction<MailMessage>(mailbox, "mail.prepare", input)
+      .then((result) => navigate(`/mail/drafts/${result.data.id}`))
+      .catch(setError)
+      .finally(() => setBusy(false));
+  };
+  return { available, busy, error, prepare };
+}
+
+/** A button that prepares a draft from an object and opens it; never sends. */
+export function PrepareMailButton({ input, testId }: { input: z.infer<typeof prepareMailSchema>; testId: string }) {
+  const { t } = useI18n();
+  const { available, busy, error, prepare } = usePrepareMail(input);
+  if (!available) return null;
   return (
     <>
-      <Button
-        variant="secondary"
-        data-testid={testId}
-        disabled={busy}
-        onClick={() => {
-          setBusy(true);
-          setError(null);
-          void submitSirenAction<MailMessage>(mailbox, "mail.prepare", input)
-            .then((result) => navigate(`/mail/drafts/${result.data.id}`))
-            .catch(setError)
-            .finally(() => setBusy(false));
-        }}
-      >
+      <Button variant="secondary" data-testid={testId} disabled={busy} onClick={prepare}>
         <MailIcon />
         {t("mail.prepare")}
       </Button>

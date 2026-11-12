@@ -1,4 +1,4 @@
-import { expect, test } from "../fixtures/application";
+import { expect, runItemCommand, test } from "../fixtures/application";
 
 // @verifies-requirement HALL-FR-CAL-010
 // @verifies-requirement HALL-FR-CAL-030
@@ -247,8 +247,14 @@ test("calendar completes every appointment field and changes schedule modes", as
   await page.getByTestId(`calendar-event-${id}`).click();
   await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17T19:30");
   await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17T20:30");
-  await page.getByTestId("resource-autosave-toggle").click();
-  await expect(page.getByTestId("resource-autosave-toggle")).toHaveAttribute("data-enabled", "false");
+  await runItemCommand(page, "resource-autosave-toggle");
+  await page.getByTestId("item-commands-more").first().click();
+  await expect(page.getByRole("menu").getByTestId("resource-autosave-toggle")).not.toHaveAttribute(
+    "data-pressed",
+    "true",
+  );
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
   await page.getByTestId("event-location").fill("Sauvegarde manuelle");
   const representation = await (await page.request.get(`/api/resources/${id}`)).json();
   const updateAction = representation.actions.find(
@@ -264,8 +270,11 @@ test("calendar completes every appointment field and changes schedule modes", as
   await page.unroute(updateUrl);
   await page.getByTestId("event-retry-save").click();
   await expect.poll(async () => (await read()).document.location).toBe("Sauvegarde manuelle");
-  await page.getByTestId("resource-autosave-toggle").click();
-  await expect(page.getByTestId("resource-autosave-toggle")).toHaveAttribute("data-enabled", "true");
+  await runItemCommand(page, "resource-autosave-toggle");
+  await page.getByTestId("item-commands-more").first().click();
+  await expect(page.getByRole("menu").getByTestId("resource-autosave-toggle")).toHaveAttribute("data-pressed", "true");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
   await page.getByTestId("event-all-day").check();
   await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17");
   await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17");
@@ -639,7 +648,7 @@ test("calendar uses one complete form for business, quarter hours and participan
   for (const response of await Promise.all([associatedResponse, dissociatedResponse])) {
     expect(response.ok(), await response.text()).toBeTruthy();
   }
-  await page.getByTestId("workspace-workbench-rename").click();
+  await runItemCommand(page, "workspace-workbench-rename");
   await page.getByTestId("workspace-workbench-title-input").fill("Rendez-vous renommé");
   await page.getByTestId("workspace-workbench-title-input").press("Enter");
   await expect(page.getByTestId("workspace-workbench-title")).toContainText("Rendez-vous renommé");

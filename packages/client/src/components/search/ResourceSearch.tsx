@@ -45,6 +45,8 @@ export interface ResourceSearchProps {
   presentItem?(item: Mentionable): Mentionable;
   /** Element that receives the full results screen, with count, folder filter and sort. */
   resultsTarget?: HTMLElement | null;
+  /** Text of the empty field, which says where one searches. */
+  placeholder?: string;
 }
 // @implements-requirement HALL-FR-SRC-030
 export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchProps>(function ResourceSearch(
@@ -65,6 +67,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
     hideResultsWhenEmpty = false,
     presentItem,
     resultsTarget,
+    placeholder,
   },
   ref,
 ) {
@@ -159,7 +162,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
         tagOptions={search.options.tags}
         stateOptions={search.options.states}
         mediaOptions={search.options.media}
-        placeholder={t("common.searchPlaceholder")}
+        placeholder={placeholder ?? t("common.searchPlaceholder")}
         onResultsKey={handleKey}
         autoFocus={autoFocus}
         testId={testId}

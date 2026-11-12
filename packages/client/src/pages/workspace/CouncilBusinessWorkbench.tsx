@@ -2,7 +2,6 @@ import { findSirenLink } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { copyObjectReference } from "../../components/CopyReferenceButton";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { EditIcon, FolderIcon, FolderOpenIcon, PinIcon, PinnedIcon } from "../../components/icons";
@@ -13,7 +12,7 @@ import { ListRow, ListRows } from "../../components/ui/list-row";
 import { CouncilBusinessCommittees } from "../../features/council-business/CouncilBusinessCommittees";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
-import { PdfPreviewButton, usePdfPreview } from "../../features/documents/PdfPreviewButton";
+import { usePdfCommands, usePdfPreview } from "../../features/documents/PdfPreviewButton";
 import { ResourcePreview } from "../../features/documents/ResourcePreview";
 import { useEditorDocumentUpload } from "../../features/documents/useEditorDocumentUpload";
 import { useWorkspaceResourceImageUpload } from "../../features/documents/useWorkspaceResourceImageUpload";
@@ -69,6 +68,12 @@ export function CouncilBusinessWorkbench({
     markdown: reportSession.content,
     title: `${t("meeting.report")} · ${business.title}`,
     testId: "business-report-pdf-preview",
+  });
+  const reportPdfCommands = usePdfCommands({
+    markdown: reportSession.content,
+    title: `${t("meeting.report")} · ${business.title}`,
+    testId: "business-report-pdf-preview",
+    disabled: !reportSession.resource,
   });
   const { submitting, run } = useSubmitting();
   const preparedSubjects = useCouncilBusinessStore((state) => state.preparedSubjects);
@@ -217,7 +222,7 @@ export function CouncilBusinessWorkbench({
         className={`workbench workspace-business-workbench${phone ? " phone-business" : ""}`}
         data-testid="council-business-workbench"
       >
-        {writing.control}
+        {phone ? writing.control : null}
         {phone ? (
           <>
             <PhoneDocumentActions actions={phoneActions} />
@@ -234,31 +239,19 @@ export function CouncilBusinessWorkbench({
             onTitleChange={folderCapabilities.relocate ? renameBusiness : undefined}
             hint={<CouncilBusinessCommittees businessId={business.id} />}
             reference={reference}
-            actions={
-              <>
-                <PdfPreviewButton
-                  key={business.id}
-                  markdown={reportSession.content}
-                  title={`${t("meeting.report")} · ${business.title}`}
-                  testId="business-report-pdf-preview"
-                  disabled={!reportSession.resource}
-                />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="plain"
-                      size="icon"
-                      aria-label={t(pinned ? "workspace.unpinShort" : "workspace.pin")}
-                      aria-pressed={pinned}
-                      onClick={() => togglePin({ kind: "councilBusiness", id: business.id })}
-                    >
-                      {pinned ? <PinnedIcon /> : <PinIcon />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t(pinned ? "workspace.unpinShort" : "workspace.pin")}</TooltipContent>
-                </Tooltip>
-              </>
-            }
+            primary={writing.button}
+            frequent={[
+              {
+                id: "pin",
+                label: t(pinned ? "workspace.unpinShort" : "workspace.pin"),
+                icon: pinned ? <PinnedIcon /> : <PinIcon />,
+                testId: "workspace-workbench-pin",
+                pressed: pinned,
+                onSelect: () => togglePin({ kind: "councilBusiness", id: business.id }),
+              },
+            ]}
+            menu={reportPdfCommands.commands}
+            dialogs={reportPdfCommands.view}
             actionError={actionError ?? reportSession.actionError}
           />
         )}

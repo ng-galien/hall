@@ -225,9 +225,9 @@ test("the screen header writes nothing of the connection until the server stops 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-/** Right edge of each command of the screen header, from left to right. */
+/** Test identifiers of the commands on the line of the title, from left to right. */
 async function headerCommands(page: import("@playwright/test").Page) {
-  const commands = await page.locator(".screen-header-actions > *").evaluateAll((elements) =>
+  const commands = await page.locator(".item-commands > *").evaluateAll((elements) =>
     elements
       .map((element) => ({
         testId: element.getAttribute("data-testid"),
@@ -240,7 +240,9 @@ async function headerCommands(page: import("@playwright/test").Page) {
 
 // @verifies-requirement HALL-FR-LAY-100
 // @verifies-requirement HALL-FR-LAY-130
-test("« Modifier » is the last command before the initials on a text and on an affaire", async ({ appPage: page }) => {
+test("« Modifier » is the main command, first on the line of the title, on a text and on an affaire", async ({
+  appPage: page,
+}) => {
   const text = await page.request.post("/api/resources", {
     data: { kind: "text", path: "seed", name: `Ordre ${crypto.randomUUID()}`, content: "Texte." },
   });
@@ -252,10 +254,11 @@ test("« Modifier » is the last command before the initials on a text and on an
 
   await page.goto(`/app/workspace?path=seed&resource=${(await text.json()).properties.id}`);
   await expect(page.getByTestId("text-edit")).toBeVisible();
-  expect((await headerCommands(page)).at(-1)).toBe("text-edit");
+  expect((await headerCommands(page))[0]).toBe("text-edit");
+  await expect(page.getByTestId("screen-header").getByTestId("text-edit")).toHaveCount(0);
   await page.getByTestId("text-edit").click();
   await expect(page.getByTestId("text-finish-editing")).toBeVisible();
-  expect((await headerCommands(page)).at(-1)).toBe("text-finish-editing");
+  expect((await headerCommands(page))[0]).toBe("text-finish-editing");
 
   // The label of the tags field stays above the tags it holds.
   await page.getByTestId("tag-input-draft").fill("voirie");
@@ -267,5 +270,5 @@ test("« Modifier » is the last command before the initials on a text and on an
 
   await page.goto(`/app/workspace?path=seed&councilBusiness=${(await business.json()).properties.id}`);
   await expect(page.getByTestId("text-edit")).toBeVisible();
-  expect((await headerCommands(page)).at(-1)).toBe("text-edit");
+  expect((await headerCommands(page))[0]).toBe("text-edit");
 });
