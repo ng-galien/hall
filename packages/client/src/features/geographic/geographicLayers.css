@@ -105,6 +105,7 @@
 .geographic-legend-controls { display: flex; flex: none; align-self: flex-start; align-items: center; gap: 0; }
 /* With the legend open beside the zoom of a narrow map, « Enregistrer ce cadrage » passes under « Légende ». */
 .geographic-legend:has(> .geographic-legend-content:not([hidden])) > .geographic-legend-controls { flex-wrap: wrap; }
+.geographic-legend:has(> .geographic-legend-content:not([hidden])) > .geographic-legend-controls > * { flex: 1 1 auto; }
 .geographic-legend-content { min-height: 0; overflow: auto; padding: var(--hall-space-1) var(--hall-space-2); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-medium); }
 .geographic-legend ul { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); list-style: none; padding: 0; margin: 0; }
 .geographic-legend li { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); margin: 0; font-size: var(--hall-font-size-caption); }
