@@ -92,7 +92,8 @@ function FolderBranch({
 }
 
 /**
- * Collapsible map selector of the Cartes surface: search, recent maps, reduced workspace tree, list by business.
+ * Collapsible map selector of the Cartes surface: search, recent maps, reduced workspace tree, list by business. The
+ * search, which looks among all the maps, shows only while no map is open.
  * @implements-requirement HALL-FR-WSP-320
  */
 export function MapsPanel({
@@ -122,7 +123,7 @@ export function MapsPanel({
   const recent = recentIds
     .map((id) => allMaps.find((map) => map.id === id))
     .filter((map): map is MapSummary => map !== undefined);
-  const found = query.trim() ? allMaps.filter((map) => matchesQuery(query, map.name, map.path)) : null;
+  const found = query.trim() && !activeId ? allMaps.filter((map) => matchesQuery(query, map.name, map.path)) : null;
 
   if (collapsed) {
     return (
@@ -159,13 +160,15 @@ export function MapsPanel({
           <CollapseIcon />
         </Button>
       </div>
-      <SearchInput
-        data-testid="maps-search"
-        value={query}
-        placeholder={t("maps.search")}
-        aria-label={t("maps.search")}
-        onChange={(event) => setQuery(event.currentTarget.value)}
-      />
+      {activeId ? null : (
+        <SearchInput
+          data-testid="maps-search"
+          value={query}
+          placeholder={t("maps.search")}
+          aria-label={t("maps.search")}
+          onChange={(event) => setQuery(event.currentTarget.value)}
+        />
+      )}
       <div className="maps-panel-body">
         {maps === null ? (
           <p className="maps-panel-empty">{t("common.loading")}</p>
