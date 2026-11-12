@@ -1,16 +1,4 @@
-/* @implements-requirement HALL-FR-LAY-010 */
-.editor-image-file-controls {
-  display: none;
-  flex-wrap: wrap;
-  gap: var(--hall-space-2);
-  padding-block: var(--hall-space-1);
-}
-.editor-image-file-controls.has-image-upload { display: flex; }
-.editor-photo-control { display: none; }
-.markdown-editor-compact:has(> .editor-image-file-controls.has-image-upload) { flex-direction: column; }
-
 @media (max-width: 1000px) {
-  .editor-image-file-controls, .editor-photo-control { display: flex; }
   :root {
     --hall-size-application-min: 0;
   }
@@ -80,8 +68,12 @@
   .phone-document .spreadsheet-editor { border: 0; border-radius: 0; }
   .phone-document .geographic-resource { height: 100%; border: 0; border-radius: 0; }
   .phone-document-information-body > .tag-input { justify-self: stretch; }
-  /* While a text is written, its tools stay under the screen header. */
-  .phone-document[data-editing="true"] .markdown-editor-compact > [role="toolbar"] { position: sticky; top: 0; z-index: var(--hall-z-sticky); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); background: var(--hall-color-surface); }
+  /* While a text is written, the text fills the screen under its writing tools and the details wait. */
+  :is(.phone-document, .phone-business)[data-editing="true"] :is(div, section):has(.markdown-editor-phone) { display: flex; min-height: 0; flex: 1; flex-direction: column; }
+  :is(.phone-document, .phone-business)[data-editing="true"] { min-height: 100%; }
+  .phone-document[data-editing="true"] .phone-document-information,
+  .phone-business[data-editing="true"] > :not(.workbench-section, .error-banner) { display: none; }
+  .phone-business[data-editing="true"] { padding: 0; }
   .phone-document-event .phone-document-content { padding: var(--hall-space-3); }
   .remote-resource-phone { display: grid; gap: var(--hall-space-3); padding: var(--hall-space-3); }
   .remote-resource-phone .remote-resource-url { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); overflow-wrap: anywhere; }

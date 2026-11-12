@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import {
   BoldIcon,
   BoxedTextIcon,
@@ -37,7 +38,7 @@ import {
   UndoIcon,
 } from "../icons";
 import { editorExtensions } from "./extensions";
-import { ImageFileControls } from "./ImageFileControls";
+import { ImageMenuButton, PhotoSheetButton, useImageFiles } from "./ImageFileControls";
 import {
   type ChooseSpreadsheetDrop,
   type EditorDocumentUpload,
@@ -53,6 +54,7 @@ import {
 import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
 import { referenceKindPresentations } from "./referenceKindPresentation";
 import type { Mentionable } from "./references";
+import { usePhoneEditorCommands } from "./phoneEditorCommands";
 import { insertMentionedResource } from "./resourceEmbeds";
 import { TableControls } from "./TableControls";
 
@@ -337,13 +339,18 @@ function CompactFormattingMenu({
   editor,
   state,
   onOpenChange,
+  control,
 }: {
   editor: Editor;
   state: NonNullable<ReturnType<typeof useToolbarState>>;
   onOpenChange(open: boolean): void;
+  /** On a phone the menu is opened from the « ⋯ » menu of the screen header and shows under the writing tools. */
+  control?: { open: boolean; setOpen(open: boolean): void };
 }) {
   const { t } = useI18n();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const menuOpen = control ? control.open : ownOpen;
+  const setMenuOpen = control ? control.setOpen : setOwnOpen;
   const [linkOpen, setLinkOpen] = useState(false);
   const controlHoldTimer = useRef<number | null>(null);
 
@@ -386,7 +393,7 @@ function CompactFormattingMenu({
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleWindowBlur);
     };
-  }, [editor, onOpenChange]);
+  }, [editor, onOpenChange, setMenuOpen]);
 
   const restoreEditorFocus = () => {
     requestAnimationFrame(() => editor.commands.focus());
@@ -401,26 +408,32 @@ function CompactFormattingMenu({
           onOpenChange(open);
         }}
       >
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="plain"
-                size="icon"
-                data-testid="editor-formatting-menu"
-                aria-label={t("editor.formatting")}
-                onMouseDown={(event) => event.preventDefault()}
-              >
-                <EditIcon />
-              </Button>
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="left" sideOffset={6}>
-            {t("editor.formatting")}
-          </TooltipContent>
-        </Tooltip>
+        {control ? (
+          <DropdownMenuTrigger asChild>
+            <span className="markdown-phone-toolbar-anchor" aria-hidden="true" tabIndex={-1} />
+          </DropdownMenuTrigger>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="plain"
+                  size="icon"
+                  data-testid="editor-formatting-menu"
+                  aria-label={t("editor.formatting")}
+                  onMouseDown={(event) => event.preventDefault()}
+                >
+                  <EditIcon />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="left" sideOffset={6}>
+              {t("editor.formatting")}
+            </TooltipContent>
+          </Tooltip>
+        )}
         <DropdownMenuContent
-          side="right"
+          side={control ? "bottom" : "right"}
           align="start"
           className="markdown-formatting-menu w-max"
           data-testid="editor-formatting-menu-content"
@@ -601,6 +614,115 @@ function CompactFormattingMenu({
   );
 }
 
+const narrowLayoutQuery = "(max-width: 1000px)";
+
+/** True on a phone or a tablet, where the photo choices of the editor are offered. */
+function useNarrowLayout(): boolean {
+  const [narrow, setNarrow] = useState(() => window.matchMedia(narrowLayoutQuery).matches);
+  useEffect(() => {
+    const query = window.matchMedia(narrowLayoutQuery);
+    const update = () => setNarrow(query.matches);
+    query.addEventListener("change", update);
+    update();
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return narrow;
+}
+
+/** One text tool of the phone writing bar: a short word drawn as the tool does, such as a bold « G ». */
+function PhoneTool({
+  label,
+  testId,
+  active,
+  className,
+  onClick,
+  children,
+}: {
+  label: string;
+  testId: string;
+  active: boolean;
+  className: string;
+  onClick(): void;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      variant="plain"
+      type="button"
+      className={cn("markdown-phone-tool", className)}
+      data-testid={testId}
+      aria-label={label}
+      aria-pressed={active}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  );
+}
+
+// @implements-requirement HALL-FR-DOC-270
+/**
+ * The writing tools of a phone (choice 8B), fixed under the screen header while the text scrolls: bold, italic,
+ * heading, bulleted list, then « Photo » at the right. The other formatting and the search of references are in the
+ * « ⋯ » menu of the screen header; the full-screen editor is not offered, the text already fills the screen.
+ */
+function PhoneWritingBar({
+  editor,
+  state,
+  photo,
+  formatting,
+}: {
+  editor: Editor;
+  state: NonNullable<ReturnType<typeof useToolbarState>>;
+  photo: ReactNode;
+  formatting: ReactNode;
+}) {
+  const { t } = useI18n();
+  return (
+    <div role="toolbar" aria-label={t("editor.formatting")} className="markdown-phone-toolbar" data-testid="editor-phone-toolbar">
+      {formatting}
+      <PhoneTool
+        label={t("editor.bold")}
+        testId="editor-bold"
+        active={state.bold}
+        className="markdown-phone-tool-bold"
+        onClick={() => editor.chain().focus().toggleBold().run()}
+      >
+        {t("editor.boldShort")}
+      </PhoneTool>
+      <PhoneTool
+        label={t("editor.italic")}
+        testId="editor-italic"
+        active={state.italic}
+        className="markdown-phone-tool-italic"
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+      >
+        {t("editor.italicShort")}
+      </PhoneTool>
+      <PhoneTool
+        label={t("editor.heading2")}
+        testId="editor-heading"
+        active={state.blockType === "h2"}
+        className="markdown-phone-tool-heading"
+        onClick={() => applyBlockType(editor, state.blockType === "h2" ? "p" : "h2")}
+      >
+        {t("editor.headingShort")}
+      </PhoneTool>
+      <PhoneTool
+        label={t("editor.bulletList")}
+        testId="editor-bullet-list"
+        active={state.bulletList}
+        className="markdown-phone-tool-list"
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+      >
+        {`• ${t("editor.listShort")}`}
+      </PhoneTool>
+      {photo}
+    </div>
+  );
+}
+
 function useMentionGroupLabels() {
   const { t } = useI18n();
   return {
@@ -671,6 +793,10 @@ export function MarkdownEditor({
   const groupLabels = useMentionGroupLabels();
   const facetLabels = useMentionFacetLabels();
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
+  const phone = usePhoneLayout();
+  const narrow = useNarrowLayout();
+  const phoneWriting = phone && !readOnly && variant === "compact";
+  const [formattingOpen, setFormattingOpen] = useState(false);
 
   const cancelCompactToolbarHide = useCallback(() => {
     if (compactToolbarHideTimer.current !== null) window.clearTimeout(compactToolbarHideTimer.current);
@@ -762,7 +888,7 @@ export function MarkdownEditor({
   useEffect(() => {
     const container = compactEditor.current;
     const toolbar = compactToolbar.current;
-    if (!inline || !container || !toolbar || readOnly || variant !== "compact") return;
+    if (!inline || !container || !toolbar || readOnly || variant !== "compact" || phoneWriting) return;
     let frame: number | null = null;
     const updatePosition = () => {
       if (frame !== null) cancelAnimationFrame(frame);
@@ -797,9 +923,36 @@ export function MarkdownEditor({
       inline.off("update", updatePosition);
       inline.off("focus", handleFocus);
     };
-  }, [inline, readOnly, revealCompactToolbar, variant]);
+  }, [inline, readOnly, revealCompactToolbar, variant, phoneWriting]);
 
   const state = useToolbarState(inline);
+  const images = useImageFiles({
+    editor: inline && !readOnly ? inline : null,
+    upload: onUploadImage,
+    uploadPhoto: onUploadPhoto,
+    onStatus: setImageStatus,
+  });
+  const imageBusy = imageStatus.kind === "uploading";
+  const setCommands = usePhoneEditorCommands((store) => store.set);
+
+  useEffect(() => {
+    if (!phoneWriting || !inline) return;
+    setCommands([
+      {
+        id: "editor-formatting",
+        label: t("editor.formatting"),
+        icon: <EditIcon />,
+        onSelect: () => window.setTimeout(() => setFormattingOpen(true), 0),
+      },
+      {
+        id: "editor-reference",
+        label: t("editor.searchReferences"),
+        icon: <ReferenceIcon />,
+        onSelect: () => setFullSearch({ query: "" }),
+      },
+    ]);
+    return () => setCommands([]);
+  }, [phoneWriting, inline, setCommands, t]);
 
   if (variant === "enriched" && !readOnly) {
     return (
@@ -827,19 +980,27 @@ export function MarkdownEditor({
     <>
       <div
         ref={compactEditor}
-        className="markdown-editor markdown-editor-compact"
+        className={cn("markdown-editor markdown-editor-compact", phoneWriting && "markdown-editor-phone")}
         data-testid={testId ?? "markdown-editor-compact"}
       >
-        {inline && !readOnly && (onUploadPhoto ?? onUploadImage) ? (
-          <ImageFileControls
+        {images.inputs}
+        {phoneWriting && inline && state ? (
+          <PhoneWritingBar
             editor={inline}
-            upload={onUploadImage}
-            uploadPhoto={onUploadPhoto}
-            status={imageStatus}
-            onStatus={setImageStatus}
+            state={state}
+            photo={<PhotoSheetButton choices={[...images.photos, ...images.uploads]} busy={imageBusy} />}
+            formatting={
+              <CompactFormattingMenu
+                editor={inline}
+                state={state}
+                onOpenChange={() => undefined}
+                control={{ open: formattingOpen, setOpen: setFormattingOpen }}
+              />
+            }
           />
         ) : null}
         <div
+          hidden={phoneWriting}
           ref={compactToolbar}
           role="toolbar"
           aria-label={t("editor.writeArea")}
@@ -881,6 +1042,9 @@ export function MarkdownEditor({
             >
               <FullscreenIcon />
             </ToolbarButton>
+          )}
+          {readOnly ? null : (
+            <ImageMenuButton choices={narrow ? [...images.photos, ...images.uploads] : images.uploads} busy={imageBusy} />
           )}
         </div>
         <div
@@ -1022,18 +1186,12 @@ function EnrichedEditor({
   });
 
   const state = useToolbarState(editor);
+  const narrow = useNarrowLayout();
+  const images = useImageFiles({ editor, upload: onUploadImage, uploadPhoto: onUploadPhoto, onStatus: onImageStatus });
 
   return (
     <div className="markdown-editor markdown-editor-large" data-testid={testId ?? "markdown-editor-enriched"}>
-      {editor && (onUploadPhoto ?? onUploadImage) ? (
-        <ImageFileControls
-          editor={editor}
-          upload={onUploadImage}
-          uploadPhoto={onUploadPhoto}
-          status={imageStatus}
-          onStatus={onImageStatus}
-        />
-      ) : null}
+      {images.inputs}
       <div role="toolbar" aria-label={t("editor.enrich")}>
         {editor && state ? (
           <>
@@ -1091,6 +1249,10 @@ function EnrichedEditor({
             >
               <ReferenceIcon />
             </ToolbarButton>
+            <ImageMenuButton
+              choices={narrow ? [...images.photos, ...images.uploads] : images.uploads}
+              busy={imageStatus.kind === "uploading"}
+            />
           </>
         ) : null}
       </div>

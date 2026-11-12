@@ -50,6 +50,56 @@
   transform: translateX(calc(-100% + var(--hall-space-1))) translateY(0);
   transition-delay: 0s;
 }
+/* @implements-requirement HALL-FR-DOC-270 */
+/* The writing tools of a phone (choice 8B): one row fixed under the screen header, never over the text. */
+.markdown-editor.markdown-editor-compact > .markdown-phone-toolbar {
+  position: sticky;
+  top: 0;
+  left: auto;
+  z-index: var(--hall-z-sticky);
+  display: flex;
+  width: auto;
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--hall-space-1);
+  padding: 0 var(--hall-space-2);
+  border: 0;
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: 0;
+  background: var(--hall-color-surface-subtle);
+  box-shadow: none;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition: none;
+}
+.markdown-phone-tool {
+  min-width: var(--hall-size-touch-control);
+  min-height: var(--hall-size-touch-control);
+  padding-inline: var(--hall-space-2);
+  color: var(--hall-color-text);
+  font-size: var(--hall-font-size-text);
+  font-weight: var(--hall-font-weight-semibold);
+}
+.markdown-phone-tool[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-surface-selected); }
+.markdown-phone-tool-bold { font-weight: var(--hall-font-weight-heavy); }
+.markdown-phone-tool-italic { font-style: italic; }
+.markdown-phone-toolbar > .editor-photo-control {
+  min-height: var(--hall-size-touch-control);
+  margin-left: auto;
+  padding-inline: var(--hall-space-2);
+  color: var(--hall-color-brand);
+  font-size: var(--hall-font-size-text);
+  font-weight: var(--hall-font-weight-bold);
+}
+.markdown-phone-toolbar-anchor { position: absolute; bottom: 0; left: 0; width: 1px; height: 1px; }
+.markdown-editor-phone { flex: 1; }
+.markdown-editor-phone .markdown-editor-canvas,
+.markdown-editor-phone .markdown-editor-content { flex: 1; }
+.markdown-editor-phone .markdown-editor-content > [contenteditable] { min-height: 100%; padding: var(--hall-space-4); }
+
 /* Positioning frame for the table handles. */
 .markdown-editor-canvas {
   position: relative;

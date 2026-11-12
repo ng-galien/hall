@@ -9,6 +9,7 @@ import {
   PinnedIcon,
   RedoIcon,
 } from "../../components/icons";
+import { usePhoneEditorCommands } from "../../components/editor/phoneEditorCommands";
 import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import {
@@ -36,9 +37,11 @@ export function pinIcon(pinned: boolean) {
   return pinned ? <PinnedIcon /> : <PinIcon />;
 }
 
-/** The single entry point of the actions of an opened item on a phone. */
-export function PhoneDocumentActions({ actions }: { actions: PhoneDocumentAction[] }) {
+/** The single entry point of the actions of an opened item on a phone; while a text is written, its writing commands come first. */
+export function PhoneDocumentActions({ actions: itemActions }: { actions: PhoneDocumentAction[] }) {
   const { t } = useI18n();
+  const writing = usePhoneEditorCommands((store) => store.commands);
+  const actions: PhoneDocumentAction[] = [...writing, ...itemActions];
   if (actions.length === 0) return null;
   return (
     <ScreenActions>

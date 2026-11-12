@@ -221,6 +221,7 @@ export function CouncilBusinessWorkbench({
       <div
         className={`workbench workspace-business-workbench${phone ? " phone-business" : ""}`}
         data-testid="council-business-workbench"
+        data-editing={phone && showReportEditor ? "true" : undefined}
       >
         {phone ? writing.control : null}
         {phone ? (
