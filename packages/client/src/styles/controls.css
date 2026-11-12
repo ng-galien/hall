@@ -177,6 +177,23 @@
   /* A command of the label line: the label and the command share a line above the field, which keeps its width. */
   .hall-field-head { display: flex; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-1); }
   .hall-field-head > .hall-field-label { position: static; width: auto; }
+  /* A field with only an information icon keeps the height of a field: its label and the icon are written over the
+     top of the field, as a plain label. */
+  .hall-field[data-hint="true"] > .hall-field-head {
+    position: absolute;
+    top: var(--hall-space-1-5);
+    left: 0;
+    right: 0;
+    z-index: var(--hall-z-content);
+    min-height: var(--hall-line-height-caption);
+    pointer-events: none;
+  }
+  .hall-field[data-hint="true"] > .hall-field-head > .hall-field-label { overflow: hidden; min-width: 0; }
+  .hall-field[data-hint="true"] > .hall-field-head > .hall-button {
+    margin-block: calc((var(--hall-line-height-caption) - var(--hall-size-control)) / 2);
+    pointer-events: auto;
+  }
+  .hall-field[data-hint="true"][data-variant="code"] > .hall-field-head { position: static; margin-bottom: var(--hall-space-1); }
   .hall-field-head > .hall-field-head-action { margin-left: auto; }
   .hall-field[data-label-action="true"] > .hall-input,
   .hall-field[data-label-action="true"] > .hall-input:focus { min-height: var(--hall-size-control); padding-top: 0; }

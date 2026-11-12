@@ -300,6 +300,16 @@
     .list-full-titles .list-row-detail { flex-direction: column; align-items: flex-start; }
     .list-full-titles .list-row-detail-text { max-width: 100%; }
     .member-contact-row .list-row-detail-text { overflow: visible; overflow-wrap: anywhere; white-space: normal; }
+    /* The object of a committee or a representation keeps two lines before it shortens, its count under it. */
+    .list-full-titles .body-row .list-row-detail-text { display: grid; white-space: normal; }
+    .list-full-titles .body-row-object {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+    .list-full-titles .body-row-count { white-space: nowrap; }
   }
   /* A committee or a representation: its object shortens first; its number of members and its state stay whole. */
   .body-row .list-row-detail-text { display: flex; min-width: auto; }
@@ -307,10 +317,10 @@
   .body-row-count { flex: none; white-space: pre; }
   .body-row .list-row-status { flex: none; }
   .body-row .list-row-detail { min-width: 0; overflow: hidden; }
-  /* On a phone, a list that opens the content, under the screen header and its rule, takes no second rule. */
-  @media (max-width: 760px) {
-    .page-content > .list-row-list:first-child { border-top: 0; }
-  }
+  /* A list that opens the content, under the screen header and its rule, takes no second rule. */
+  .page-content > .list-row-list:first-child { border-top: 0; }
+  /* A page header whose controls all render elsewhere takes no room. */
+  .page-header:not(:has(> :not(.page-header-controls))):has(> .page-header-controls:empty) { display: none; }
   /* A user: the roles keep one width at the right, so that the states fall in a column. */
   .user-row-roles { flex: none; width: var(--hall-size-relative-12rem); }
   /* A contact: its address and its telephone each keep their own column at the right of the row. */
@@ -715,7 +725,9 @@
   .section-header-title :is(.section-header-icon, .section-header-count) { vertical-align: middle; }
   .section-header-description { flex: 1 0 100%; order: 1; margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   /* The commands keep the right end of the title line, centred on it; passed under the title, they keep the right end. */
-  .section-header-commands { display: flex; min-width: 0; min-height: var(--hall-size-control); flex: 0 1 auto; justify-content: flex-end; margin-left: auto; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
+  .section-header-commands { display: flex; max-width: 100%; min-height: var(--hall-size-control); flex: 0 0 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); margin-left: auto; }
+  /* The count of a section stands one space after its title. */
+  .section-header-title > .section-header-count { margin-left: var(--hall-space-1-5); }
   /* A list right under a section header starts at its rule and leaves the space under the section to the screen. */
   .section-header + .list-row-list { margin-bottom: 0; border-top: 0; }
   .collapsible-section { display: grid; gap: var(--hall-space-2); }

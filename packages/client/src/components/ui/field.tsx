@@ -53,7 +53,8 @@ export function Field({
         data-invalid={error ? "true" : undefined}
         data-action={action ? "true" : undefined}
         data-variant={variant}
-        data-label-action={labelAction || hint ? "true" : undefined}
+        data-label-action={labelAction ? "true" : undefined}
+        data-hint={hint && !labelAction ? "true" : undefined}
       >
         {labelAction || hint ? (
           <div className="hall-field-head">

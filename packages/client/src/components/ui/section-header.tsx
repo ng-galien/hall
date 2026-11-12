@@ -61,7 +61,8 @@ export function SectionHeader({
     ) : null;
   /* Without a fold, the information icon is written with the last word of the title, so that it never stands alone
      on a line. */
-  const inlineExplanation = explanation && !fold && typeof title === "string";
+  const tailIcon = explanation ?? hint ?? null;
+  const inlineExplanation = Boolean(tailIcon) && !fold && typeof title === "string";
   const lastSpace = typeof title === "string" ? title.lastIndexOf(" ") : -1;
   const label = (
     <>
@@ -73,7 +74,7 @@ export function SectionHeader({
             <span className="title-tail">
               {title.slice(lastSpace + 1)}
               {"\u2060"}
-              {explanation}
+              {tailIcon}
             </span>
           </>
         ) : (
@@ -108,7 +109,7 @@ export function SectionHeader({
             )}
             {explanation && !inlineExplanation ? explanation : null}
           </Heading>
-          {hint}
+          {inlineExplanation && !explanation ? null : hint}
         </div>
         {description && typeof description !== "string" ? (
           <p className="section-header-description">{description}</p>
