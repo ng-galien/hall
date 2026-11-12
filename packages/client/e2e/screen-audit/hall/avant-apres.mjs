@@ -142,7 +142,7 @@ function page() {
     );
   };
   const sections = [];
-  for (const format of ["ordinateur", "telephone"]) {
+  for (const format of ["ordinateur", "800", "telephone"]) {
     const ids = new Set(
       ["avant", "apres"].flatMap((label) =>
         existsSync(join(output, label, format))
@@ -164,7 +164,7 @@ function page() {
         return `<p class="manque">Non ouvert : ${escape(missing(label, format)[id] ?? "capture absente")}</p>`;
       };
       const differences = screens?.[`${format}/${id}`] ?? screens?.[id] ?? null;
-      sections.push(`<section id="${format}-${id}"><h2>${escape(id)} · ${format === "ordinateur" ? "1280 px" : "375 px"}</h2>
+      sections.push(`<section id="${format}-${id}"><h2>${escape(id)} · ${{ ordinateur: "1280 px", 800: "800 px", telephone: "375 px" }[format]}</h2>
 <div class="paire"><figure><figcaption>Avant (${before})</figcaption>${cell("avant")}</figure><figure><figcaption>Après (${after})</figcaption>${cell("apres")}</figure></div>
 ${differences ? `<ul>${differences.map((line) => `<li>${escape(line)}</li>`).join("")}</ul>` : `<p class="attente">Différences : pas encore relevées.</p>`}</section>`);
     }

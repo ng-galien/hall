@@ -23,6 +23,13 @@ const formats = [
     exists: (screen: Screen) => screen.formats.includes("ordinateur") || screen.formats.includes("tablette"),
   },
   {
+    id: "800",
+    width: 800,
+    height: 900,
+    touch: false,
+    exists: (screen: Screen) => ["seance-en-cours", "mode-seance", "mode-seance-vote"].includes(screen.id),
+  },
+  {
     id: "telephone",
     width: 375,
     height: 812,

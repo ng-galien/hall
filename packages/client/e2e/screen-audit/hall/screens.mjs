@@ -108,6 +108,18 @@ export const screens = [
       (meeting) => meeting.startedAt && !meeting.closedAt,
     ),
   },
+  {
+    id: "mode-seance-vote",
+    title: "Mode séance, point en vote",
+    scenario: "default",
+    /** The live meeting with the vote of its current point open; the panel records nothing until a vote is entered. */
+    async open(page) {
+      const meeting = await first(page, "/api/council-meetings", (entry) => entry.startedAt && !entry.closedAt);
+      await page.goto(`/app/meetings/${meeting.id}/live`);
+      await page.getByTestId("live-ballot-open").first().click();
+      await visible(page, "live-ballot-preview");
+    },
+  },
   { id: "proces-verbaux", title: "Procès-verbaux", scenario: "minutes", open: route("/minutes") },
   {
     id: "proces-verbal",
