@@ -66,7 +66,8 @@ test("returning to a document retries a failed reference and concurrent badges s
   try {
     await show(true);
     assert.equal(open.mock.calls.length, 1, "two visible references share the in-flight GET");
-    assert.equal(host.querySelector("button.editor-reference"), null);
+    // A resolved resource reference is a link that opens its preview; an unresolved one opens nothing.
+    assert.equal(host.querySelector(".editor-reference.is-openable"), null);
     await act(async () => release(null));
     await show(false);
     await show(true);
@@ -84,7 +85,10 @@ test("returning to a document retries a failed reference and concurrent badges s
       });
       release({ data: { id, kind: "text" } });
     });
-    assert.equal(host.querySelectorAll("button.editor-reference").length, 2);
+    assert.equal(
+      host.querySelectorAll(`a.editor-reference.is-openable[data-testid="editor-resource-reference-${id}"]`).length,
+      2,
+    );
   } finally {
     await act(async () => root.unmount());
     useWorkspaceResourcesStore.setState(original, true);
