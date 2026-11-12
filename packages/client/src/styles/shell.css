@@ -16,8 +16,9 @@
     background: var(--hall-color-surface);
   }
   .screen-header[data-collapsed="true"] { border-bottom-color: var(--hall-color-border); }
-  .screen-header-line { display: flex; min-width: 0; min-height: var(--hall-size-touch-control); align-items: center; gap: var(--hall-space-2); }
-  .screen-header-place { display: flex; min-width: 0; flex: 1; align-items: center; gap: var(--hall-space-2); }
+  /* When the commands of the screen do not fit beside the trail, they go to a second row, aligned to the right. */
+  .screen-header-line { display: flex; min-width: 0; min-height: var(--hall-size-touch-control); flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-2); }
+  .screen-header-place { display: flex; min-width: min(100%, var(--hall-size-relative-16rem)); flex: 1 1 0; align-items: center; gap: var(--hall-space-2); }
   .screen-header-commune {
     overflow: hidden;
     color: var(--hall-color-text-muted);
@@ -39,7 +40,7 @@
   }
   .screen-header-back > svg { flex: none; font-size: var(--hall-font-size-icon-large); }
   .screen-header-parent { overflow: hidden; max-width: var(--hall-size-relative-14rem); text-overflow: ellipsis; white-space: nowrap; }
-  .screen-header-trail { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); }
+  .screen-header-trail { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); overflow: hidden; white-space: nowrap; }
   .screen-header-trail-slot { display: flex; min-width: 0; align-items: center; }
   .screen-header-trail-slot:empty { display: none; }
   .screen-header-trail:has(.screen-header-trail-slot:not(:empty)) > :not(.screen-header-trail-slot) { display: none; }
@@ -57,7 +58,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .screen-header-actions { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); }
+  .screen-header-actions { display: flex; max-width: 100%; flex: 0 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-1); }
   .screen-header-actions:empty { display: none; }
   .screen-header-status { width: var(--hall-space-2); height: var(--hall-space-2); flex: none; border-radius: var(--hall-radius-circular); background: var(--hall-color-success); }
   .screen-header-status[data-tone="pending"] { background: var(--hall-color-text-subtle); animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite; }

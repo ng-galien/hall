@@ -45,6 +45,7 @@
     .hall-button,
     .hall-input:not(.hall-field .hall-input) { min-height: var(--hall-size-touch-control); }
     .hall-button[data-size="icon"] { width: var(--hall-size-touch-control); }
+    .hall-button > svg { font-size: var(--hall-font-size-icon-large); }
   }
 }
 

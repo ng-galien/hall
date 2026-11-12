@@ -1245,7 +1245,7 @@ test("HALL-FR-SRC-030 web workbench previews a configured URL and edits it expli
     await page.reload();
     await expect(workbench.getByTestId("remote-resource-frame")).toHaveAttribute("src", nextUrl);
     await expect(workbench.getByTestId("resource-presentation-remote-edit")).toHaveCount(0);
-    await workbench.getByTestId("resource-open-extended").click();
+    await page.getByTestId("resource-open-extended").click();
     const preview = page.getByTestId("resource-preview");
     await expect(preview.getByTestId("remote-resource-frame")).toHaveAttribute("src", nextUrl);
     await expect(preview.getByTestId("resource-presentation-remote-edit")).toHaveCount(0);
