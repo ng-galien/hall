@@ -134,7 +134,8 @@ function AuthenticatedApplication() {
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:userId" element={<UserPage />} />
         <Route path="mail" element={<MailPage />} />
-        <Route path="mail/:mailId" element={<MailPage />} />
+        <Route path="mail/:folder" element={<MailPage />} />
+        <Route path="mail/:folder/:mailId" element={<MailPage />} />
         <Route path="contacts" element={<ContactsPage />} />
         <Route path="contacts/:contactId" element={<ContactPage />} />
         <Route path="council-committees" element={<CouncilCommitteesPage />} />

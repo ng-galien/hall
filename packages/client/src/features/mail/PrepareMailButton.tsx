@@ -40,7 +40,7 @@ export function PrepareMailButton({ input, testId }: { input: z.infer<typeof pre
           setBusy(true);
           setError(null);
           void submitSirenAction<MailMessage>(mailbox, "mail.prepare", input)
-            .then((result) => navigate(`/mail/${result.data.id}`))
+            .then((result) => navigate(`/mail/drafts/${result.data.id}`))
             .catch(setError)
             .finally(() => setBusy(false));
         }}

@@ -75,7 +75,7 @@ export function useScreenHeading(): { title: string; back: Back | null } {
   const segments = location.pathname.split("/").filter(Boolean);
   if (segments[0] === "workspace") return workspace;
   const title = segments.length === 0 ? t("navigation.home") : (trail.at(-1)?.label ?? "");
-  if (segments.length <= 1) {
+  if (segments.length <= 1 || (segments[0] === "mail" && segments.length === 2)) {
     return { title, back: topLevelRoutes.has(segments[0] ?? "") ? null : { to: "/", label: t("navigation.home") } };
   }
   const to = segments.length > 2 ? `/${segments[0]}/${segments[1]}` : `/${segments[0]}`;

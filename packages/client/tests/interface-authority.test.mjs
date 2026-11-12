@@ -319,3 +319,54 @@ test("a document dialog writes its close button and save state once, apart from 
   assert.equal(preview.match(/<ResourceChangesControl\b/g)?.length, 1);
   assert.doesNotMatch(preview, /currentLabel=/, "the dialog trail does not repeat the document title");
 });
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-LAY-110
+// @verifies-requirement HALL-FR-LAY-160
+test("one module pane, each fold control in its own panel, and no tree or flat administration in the menu", () => {
+  assert.deepEqual(offenders(/\bModulePaneSlotContext\b/), [
+    "components/Layout.tsx",
+    "components/ui/module-pane.tsx",
+    "shell/headerTrail.tsx",
+  ]);
+  assert.deepEqual(offenders(/className="module-pane"/), ["components/ui/module-pane.tsx"]);
+  assert.deepEqual(offenders(/<WorkspaceTree\b/), ["pages/workspace/WorkspacePage.tsx"]);
+  const sidebar = readFileSync(join(sourceRoot, "shell/AppSidebar.tsx"), "utf8");
+  assert.doesNotMatch(sidebar, /WorkspaceTree|workspace-tree-fold|Chevron/, "the menu has no tree and no chevron");
+  assert.match(sidebar, /data-testid="navigation-toggle"/, "the menu carries its own fold control");
+  const header = readFileSync(join(sourceRoot, "shell/ScreenHeader.tsx"), "utf8");
+  assert.doesNotMatch(
+    header,
+    /navigation-toggle|SidebarCollapseIcon|SidebarExpandIcon/,
+    "the screen header folds nothing",
+  );
+  const navigation = readFileSync(join(sourceRoot, "shell/navigation.tsx"), "utf8");
+  assert.match(
+    navigation,
+    /labelKey: "navigation\.administration",\n\s+folded:/,
+    "the administration is one folded root",
+  );
+  assert.doesNotMatch(navigation, /workspaceTree/);
+});
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-EML-100
+test("the mail screen keeps one « À » line, one « Joindre » and automatic saving: the retired controls do not come back", () => {
+  assert.equal(existsSync(join(sourceRoot, "features/mail/MailRecipients.tsx")), false);
+  assert.deepEqual(
+    offenders(
+      /"mail-(?:save|review|groups|upload-open|recipient-selection|toggle-copies|group-recipient-kind|save-leave|discard)"/,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    offenders(/\bt\("mail\.(?:address|contact|selectGroup|review|unsaved|unsavedHelp|discard|upload)"\)/),
+    [],
+  );
+  const mail = readFileSync(join(sourceRoot, "features/mail/MailPage.tsx"), "utf8");
+  assert.doesNotMatch(mail, /useBlocker/, "leaving a draft saves it instead of asking");
+  const french = Object.fromEntries(translationTexts("fr").map(({ key, text }) => [key, text]));
+  for (const key of ["mail.address", "mail.contact", "mail.selectGroup", "mail.review", "mail.unsaved", "mail.upload"])
+    assert.equal(french[key], undefined, `${key} is retired`);
+  assert.equal(french["mail.attach"], "Joindre");
+});

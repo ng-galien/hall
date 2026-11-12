@@ -164,7 +164,7 @@ export function EventResourceEditor({
               try {
                 if (await save()) {
                   const message = await prepareEventInvitationMail(representation, "request");
-                  navigate(`/mail/${message.id}`);
+                  navigate(`/mail/drafts/${message.id}`);
                 }
               } catch (error) {
                 onError(apiErrorCode(error));
@@ -185,7 +185,7 @@ export function EventResourceEditor({
               try {
                 if (await save()) {
                   const message = await prepareEventInvitationMail(representation, "cancel");
-                  navigate(`/mail/${message.id}`);
+                  navigate(`/mail/drafts/${message.id}`);
                 }
               } catch (error) {
                 onError(apiErrorCode(error));

@@ -17,6 +17,8 @@
   --hall-color-brand-hover: #1e4bbd;
   --hall-color-brand-pressed: #1a40a3;
   --hall-color-on-brand: #ffffff;
+  /* An outgoing message is previewed on white, as its recipients read it. */
+  --hall-color-mail-preview: #ffffff;
   /* Pale blue of the secondary button, with the dark text of the same blue. */
   --hall-color-brand-subtle: #e9edf7;
   --hall-color-brand-subtle-hover: #dde3f3;
@@ -169,6 +171,15 @@
   --hall-size-tag-input-min: 220px;
   --hall-size-entity-card: 240px;
   --hall-size-sidebar: 240px;
+  --hall-size-module-pane: 248px;
+  --hall-size-mail-list: 300px;
+  --hall-size-mail-chrome: 140px;
+  --hall-size-mail-kind: 32px;
+  --hall-size-mail-entry: 120px;
+  --hall-size-mail-suggestions: 360px;
+  --hall-size-mail-suggestions-height: 360px;
+  --hall-size-mail-body: 280px;
+  --hall-size-mail-preview: 288px;
   --hall-size-rollcall-tile: 240px;
   --hall-size-hit-card: 260px;
   --hall-size-mention-menu: 280px;

@@ -9,14 +9,19 @@ import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiErrorCode, apiSirenRequest, type SirenApiResult, submitSirenAction } from "../../services/apiClient";
 import { listMailGroups, type MailRecipientSelections } from "../../services/mailApi";
-import { MailRecipients } from "./MailRecipients";
+import { RecipientLine } from "./RecipientLine";
 
+/** The saved groups of recipients: their list, then the group opened for editing, its name and its members. */
+// biome-ignore-start lint/correctness/useExhaustiveDependencies: the group named on opening is opened once the list is read.
 export function MailGroups({
   contacts,
+  initialGroupId,
   onClose,
   onChanged,
 }: {
   contacts: MailRecipientSelections["contacts"];
+  /** Saved group opened for editing as soon as the list is read. */
+  initialGroupId?: string;
   onClose(): void;
   onChanged(): void;
 }) {
@@ -30,6 +35,7 @@ export function MailGroups({
   const [error, setError] = useState<unknown>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [opening, setOpening] = useState(initialGroupId);
   useEffect(() => {
     void listMailGroups().then(setGroups).catch(setError);
   }, []);
@@ -66,6 +72,12 @@ export function MailGroups({
       setBusy(false);
     }
   };
+  useEffect(() => {
+    const group = opening ? groups?.data.find((candidate) => candidate.id === opening) : undefined;
+    if (!group) return;
+    setOpening(undefined);
+    void edit(group);
+  }, [groups, opening]);
   return (
     <Modal open testId="mail-groups-dialog" title={t("mail.groups")} onClose={onClose}>
       <RequestErrorBanner error={error ? apiErrorCode(error) : null} />
@@ -109,9 +121,10 @@ export function MailGroups({
                 onChange={(event) => setName(event.target.value)}
               />
             </Field>
-            <MailRecipients
+            <RecipientLine
               kind="to"
               recipients={recipients}
+              groups={[]}
               contacts={contacts}
               onChange={setRecipients}
               disabled={!canSave || busy}
@@ -164,3 +177,4 @@ export function MailGroups({
     </Modal>
   );
 }
+// biome-ignore-end lint/correctness/useExhaustiveDependencies: the group named on opening is opened once the list is read.

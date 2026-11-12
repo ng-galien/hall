@@ -77,6 +77,10 @@ export function useRouteTrail(): BreadcrumbItem[] {
       const delegation = delegations.find((candidate) => candidate.id === segments[1]);
       if (delegation) items.push({ label: delegation.name });
     }
+  } else if (segments[0] === "mail") {
+    items.push({ label: t("mail.title"), to: "/mail" });
+    if (segments[1] === "drafts" || segments[1] === "sent")
+      items.push({ label: t(`mail.${segments[1]}`), to: `/mail/${segments[1]}` });
   } else if (segments[0] === "templates") {
     items.push({ label: t("navigation.templates"), to: "/templates" });
   } else if (segments[0] === "settings") {

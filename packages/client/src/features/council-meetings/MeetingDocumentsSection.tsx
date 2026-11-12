@@ -306,7 +306,7 @@ export function MeetingDocumentsSection({
                     onClick={() =>
                       perform(async () => {
                         const message = await prepareMeetingNoticeMail(meeting.reference, currentNotice.id);
-                        navigate(`/mail/${message.id}`);
+                        navigate(`/mail/drafts/${message.id}`);
                       })
                     }
                   >
