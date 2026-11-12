@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { HelpHint } from "../HelpHint";
 import { DisclosureBadge } from "./disclosure-badge";
 
 /** A header that folds its section: the whole title is the toggle. */
@@ -12,9 +13,10 @@ export type SectionHeaderFold = {
 };
 
 /**
- * The single header of a section of a screen: the title at the left, in one size and one weight, with its count; the
- * commands of the section at the right end of the same line; a rule under the line. A header that folds its section
- * shows the square « + / − » before the title, the whole line being the toggle.
+ * The single header of a section of a screen: the title at the left, in one size and one weight, with its count and
+ * the information icon of its explanation; the commands of the section at the right end of the same line; a rule
+ * under the line. A header that folds its section shows the square « + / − » before the title, the whole line being
+ * the toggle.
  */
 export function SectionHeader({
   title,
@@ -35,7 +37,7 @@ export function SectionHeader({
   title: ReactNode;
   titleId?: string;
   level?: 2 | 3;
-  /** One sentence under the title. */
+  /** One sentence that explains the section, shown behind the information icon beside the title. */
   description?: ReactNode;
   /** A help control written right after the title. */
   hint?: ReactNode;
@@ -85,8 +87,13 @@ export function SectionHeader({
             )}
           </Heading>
           {hint}
+          {typeof description === "string" && description ? (
+            <HelpHint text={description} testId={testId ? `${testId}-description` : undefined} />
+          ) : null}
         </div>
-        {description ? <p className="section-header-description">{description}</p> : null}
+        {description && typeof description !== "string" ? (
+          <p className="section-header-description">{description}</p>
+        ) : null}
       </div>
       {commands ? <div className="section-header-commands">{commands}</div> : null}
     </header>
