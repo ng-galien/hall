@@ -301,6 +301,11 @@
   .admin-hint,
   .admin-inline-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .admin-heading-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-4); }
+  /* A committee or a representation: its object shortens first; its number of members and its state stay whole. */
+  .body-row .list-row-detail-text { display: flex; min-width: auto; }
+  .body-row-object { overflow: hidden; min-width: 0; text-overflow: ellipsis; }
+  .body-row-count { flex: none; white-space: pre; }
+  .body-row .list-row-status { flex: none; }
   /* The contact line of a member writes its address and telephone in full, over two lines when needed. */
   .member-contact-row .list-row-detail,
   .member-contact-row .list-row-detail-text { white-space: normal; overflow-wrap: anywhere; }

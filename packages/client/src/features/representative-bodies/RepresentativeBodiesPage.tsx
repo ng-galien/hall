@@ -122,9 +122,15 @@ export function RepresentativeBodiesPage({
                   </ListRowIcon>
                 }
                 title={body.name}
-                detail={`${body.description || t(text.noDescription)} · ${t("members.count", {
-                  count: String(activeMembershipCount(body.id)),
-                })}`}
+                className="body-row"
+                detail={
+                  <>
+                    <span className="body-row-object">{body.description || t(text.noDescription)}</span>
+                    <span className="body-row-count">
+                      {` · ${t("members.count", { count: String(activeMembershipCount(body.id)) })}`}
+                    </span>
+                  </>
+                }
                 status={{
                   tone: body.archivedAt ? "neutral" : "success",
                   label: t(body.archivedAt ? text.archived : text.active),
