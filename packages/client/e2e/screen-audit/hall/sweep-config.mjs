@@ -137,7 +137,14 @@ const exceptions = {
     liveMeeting,
   ],
   "disclosure-mark": notDisclosures,
-  "font-family": [liveMeeting],
+  "font-family": [
+    liveMeeting,
+    {
+      selector:
+        "[data-testid=template-body-editor], [data-testid=template-header-source], [data-testid=template-footer-source], [data-testid=template-stylesheet]",
+      reason: "Sources d'un modèle de document en chasse fixe, à la demande du propriétaire.",
+    },
+  ],
   "button-form": [liveMeeting],
   "button-icon-unity": [liveMeeting],
   "state-pill": [liveMeeting],
