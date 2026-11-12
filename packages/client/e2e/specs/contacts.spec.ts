@@ -31,7 +31,7 @@ test("creates a contact, edits it and reuses it for a council mandate", async ({
   await page.reload();
   await expect(page.getByTestId("contact-jobTitle")).toHaveValue("Directrice de cabinet");
 
-  await openMenuEntry(page, "administration-council");
+  await openMenuEntry(page, "administration-commune");
   await expect(page.getByTestId("settings-expected-member-count")).toHaveValue("15");
   const settingsResponse = page.waitForResponse(
     (response) => response.url().endsWith("/api/council-terms") && response.request().method() === "PUT",

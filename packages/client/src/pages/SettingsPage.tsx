@@ -23,13 +23,12 @@ import { type ThemePreference, useThemePrefsStore } from "../theme/themePrefs";
 import { TemplatesPage } from "./TemplatesPage";
 
 /** The screens of the settings: five under Administration in the menu, and « Paramètres » for the person. */
-export type SettingsCategory = "commune" | "council" | "rights" | "documents" | "mail" | "preferences";
+export type SettingsCategory = "commune" | "rights" | "documents" | "mail" | "preferences";
 
-const administrationCategories = ["commune", "council", "rights", "documents", "mail"] as const;
+const administrationCategories = ["commune", "rights", "documents", "mail"] as const;
 
 const categoryTitles: Record<SettingsCategory, TranslationKey> = {
   commune: "navigation.commune",
-  council: "navigation.councilSettings",
   rights: "navigation.rights",
   documents: "navigation.documentSettings",
   mail: "navigation.mailSettings",
@@ -39,7 +38,8 @@ const categoryTitles: Record<SettingsCategory, TranslationKey> = {
 /** « Paramètres »: the preferences and the session of the person; an address of a former tab opens its own screen. */
 export function PersonalSettingsPage() {
   const [searchParams] = useSearchParams();
-  const requested = administrationCategories.find((value) => value === searchParams.get("category"));
+  const category = searchParams.get("category");
+  const requested = category === "council" ? "commune" : administrationCategories.find((value) => value === category);
   return requested ? <Navigate to={`/administration/${requested}`} replace /> : <SettingsPage category="preferences" />;
 }
 
@@ -121,10 +121,7 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
             {hallSettings ? (
               <CommuneSettings settings={hallSettings} canUpdate={settingsUpdateAvailable} onSaved={setHallSettings} />
             ) : null}
-          </>
-        ) : null}
-        {category === "council" ? (
-          <>
+
             {hallSettings && councilTermUpdateAvailable ? (
               <form className="creation-form" onSubmit={(event) => void submitCouncilTerm(event)}>
                 <h3>{t("settings.councilTerm")}</h3>

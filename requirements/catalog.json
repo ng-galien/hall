@@ -10833,9 +10833,10 @@
         "state": "accepted",
         "since": "2026-10-31"
       },
-      "statement": "La configuration est organisée en écrans Commune, Mandat et lieux de séance, Droits, Réglages des documents et Réglages des courriels, sous Administration dans le menu, et Paramètres pour les préférences et la session de la personne.",
+      "statement": "La configuration est organisée en écrans Commune, Droits, Réglages des documents et Réglages des courriels, sous Administration dans le menu, et Paramètres pour les préférences et la session de la personne.",
       "acceptanceCriteria": [
         "Chaque écran de configuration s’ouvre par sa propre entrée du menu, à sa propre adresse conservée au rechargement, sans onglets ; Droits n’apparaît que si les rôles sont disponibles pour la personne.",
+        "L’écran Commune présente les données de la commune, puis la partie « Mandature » avec l’effectif attendu du conseil, puis la partie « Lieux de séance », avec les mêmes champs, droits et enregistrements.",
         "Un changement sauvegardé reste visible après passage dans un autre écran de configuration.",
         "Paramètres présente la langue, l’apparence et la session de la personne ; le Lab éditeur, quand il existe, s’ouvre par un lien en bas de cet écran.",
         "Les droits ne sont proposés que par la capacité Siren de gestion des rôles."
@@ -11223,7 +11224,7 @@
         "Au téléphone, la barre du bas présente cinq entrées avec leur icône et leur libellé : Accueil, Documents, Agenda, Séances et Plus, selon les droits de l’utilisateur.",
         "L’entrée active est en bleu, son libellé en gras et son icône d’un trait plus épais ; les autres sont grises ; aucune icône n’est pleine et l’entrée active n’a ni pavé ni trait.",
         "Sur ordinateur et tablette, le menu a une seule forme d’entrée, icône et libellé, en trois blocs séparés par un filet : Accueil ; Conseil municipal, Documents, Courriels, Agenda ; Contacts, Cartes, Administration. Documentation et Paramètres forment son pied ; aucun titre de groupe n’est écrit.",
-        "Sous Conseil municipal : Séances, Procès-verbaux, Délibérations, Membres du conseil, Commissions et Représentations extérieures. Sous Documents : les dossiers et les affaires du conseil, à tous les niveaux, cibles de dépôt, sans fichier, texte, tableur ni carte. Sous Courriels : Brouillons et Envoyés avec leur nombre. Sous Administration : Commune, Mandat et lieux de séance, Utilisateurs, Droits, Modèles de documents, Réglages des documents et Réglages des courriels. Accueil, Agenda, Contacts et Cartes n’ont pas de sous-ressource.",
+        "Sous Conseil municipal : Séances, Procès-verbaux, Délibérations, Membres du conseil, Commissions et Représentations extérieures. Sous Documents : les dossiers et les affaires du conseil, à tous les niveaux, cibles de dépôt, sans fichier, texte, tableur ni carte. Sous Courriels : Brouillons et Envoyés avec leur nombre. Sous Administration : Commune, Utilisateurs, Droits, Modèles de documents, Réglages des documents et Réglages des courriels. Accueil, Agenda, Contacts et Cartes n’ont pas de sous-ressource.",
         "Les sous-ressources de l’entrée où l’on se trouve s’affichent en retrait sous elle ; une seule entrée est ouverte à la fois et les autres restent sur leur ligne. Conseil municipal et Administration mènent à leur première sous-ressource permise.",
         "L’entrée ou la sous-ressource courante est en bleu et en gras, avec son icône d’un trait plus épais. Un dossier ouvert de Documents se lit à son icône de dossier ouvert ; le menu ne porte ni chevron ni triangle.",
         "Chaque entrée et chaque sous-ressource nommée a son icône, différente de toutes les autres du menu ; dans Documents, les dossiers ont l’icône de dossier et les affaires celle des affaires.",
@@ -11249,13 +11250,19 @@
         {
           "key": "menu-sub-resources",
           "origin": "product",
-          "statement": "Mots du propriétaire du 12 novembre 2026, sur le document « Hall 1.3 — Design de référence » : « On met juste les sous-ressources. […] on ne dépasse pas des niveaux de granularité trop importants », « On n'invente pas des trucs pour remplir. On réaffecte », « Tout ce qui est du métier du conseil municipal, ça va dedans », « la barre latérale ne prend que les conteneurs », puis « tu as le truc. Vas-y, fais-le ». Libellés « Mandat et lieux de séance », « Réglages des documents » et « Réglages des courriels » proposés par le coordinateur, à confirmer.",
+          "statement": "Mots du propriétaire du 12 novembre 2026, sur le document « Hall 1.3 — Design de référence » : « On met juste les sous-ressources. […] on ne dépasse pas des niveaux de granularité trop importants », « On n'invente pas des trucs pour remplir. On réaffecte », « Tout ce qui est du métier du conseil municipal, ça va dedans », « la barre latérale ne prend que les conteneurs », puis « tu as le truc. Vas-y, fais-le ». Libellés « Réglages des documents » et « Réglages des courriels » proposés par le coordinateur, à confirmer.",
           "sourceIds": []
         },
         {
           "key": "folded-menu-panel",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026 : « les tooltips overlay qui sont noirs, ça me va pas », « quand il y a plusieurs choix en dessous, quand on clique, ça devrait ouvrir le menu et puis point barre. Et pas faire disparaître. » ; puis, sur le menu à 783 pixels : « je comprends qu'on ferme le menu quand c'est trop petit, mais là, les menus sont différents ».",
+          "sourceIds": []
+        },
+        {
+          "key": "term-and-places-in-commune",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 sur l’entrée « Mandat et lieux de séance » : « c'est pas le bon icône. C'est un icône de marqueur de map […] c'est dans la commune que tu mets les lieux […] C'est plutôt dans le réglage de la commune, tu mets la mandature, les lieux de séance et puis voilà. »",
           "sourceIds": []
         }
       ]

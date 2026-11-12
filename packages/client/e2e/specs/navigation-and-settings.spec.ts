@@ -110,7 +110,6 @@ test.describe("navigation and settings", () => {
     const administration = (await order()).slice((await order()).indexOf("navigation-administration") + 1, -2);
     expect(administration).toEqual([
       "navigation-administration-commune",
-      "navigation-administration-council",
       "navigation-users",
       "navigation-administration-rights",
       "navigation-templates",
@@ -118,6 +117,11 @@ test.describe("navigation and settings", () => {
       "navigation-administration-mail",
     ]);
     await expect(page.getByRole("tablist")).toHaveCount(0);
+    // The term and the meeting places are sections of the Commune screen.
+    await expect(
+      page.getByTestId("settings-commune-screen").getByTestId("settings-expected-member-count"),
+    ).toBeVisible();
+    await expect(page.getByTestId("settings-commune-screen")).toContainText("Meeting places");
     await page.getByTestId("navigation-administration-mail").click();
     await expect(page.getByTestId("settings-mail-screen")).toBeVisible();
 

@@ -141,7 +141,12 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
             {icon}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="right" align="start" className="nav-rail-menu w-max min-w-(--hall-size-sidebar)" data-testid="navigation-rail-panel">
+        <DropdownMenuContent
+          side="right"
+          align="start"
+          className="nav-rail-menu w-max min-w-(--hall-size-sidebar)"
+          data-testid="navigation-rail-panel"
+        >
           <DropdownMenuLabel>{label}</DropdownMenuLabel>
           {item.folderTree ? (
             <RailFolders />

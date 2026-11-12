@@ -15,7 +15,6 @@ import {
   HomeIcon,
   MailIcon,
   MapIcon,
-  MeetingPlacesIcon,
   MemberIcon,
   MinutesIcon,
   ReferenceIcon,
@@ -108,7 +107,6 @@ export const navigationBlocks: NavigationItem[][] = [
       Icon: AdministrationIcon,
       children: [
         leaf("administration-commune", "/administration/commune", "navigation.commune", CommuneIcon),
-        leaf("administration-council", "/administration/council", "navigation.councilSettings", MeetingPlacesIcon),
         leaf("users", "/users", "users.title", MemberIcon, "users"),
         leaf("administration-rights", "/administration/rights", "navigation.rights", RightsIcon, "roles"),
         leaf("templates", "/templates", "navigation.templates", TemplateIcon, "templates"),

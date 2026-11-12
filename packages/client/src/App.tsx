@@ -1,6 +1,6 @@
 import { matchDiscriminated, matchLiteral, type ReferenceEntityKind } from "@hall/domain";
 import { lazy, type ReactNode, Suspense, useCallback } from "react";
-import { createBrowserRouter, Route, RouterProvider, Routes } from "react-router-dom";
+import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApplicationErrorPage } from "./components/ApplicationErrorPage";
 import { AuthenticationGate } from "./components/AuthenticationGate";
@@ -149,7 +149,7 @@ function AuthenticatedApplication() {
         <Route path="council-delegations/:delegationId" element={<CouncilDelegationPage />} />
         <Route path="settings" element={<PersonalSettingsPage />} />
         <Route path="administration/commune" element={<SettingsPage category="commune" />} />
-        <Route path="administration/council" element={<SettingsPage category="council" />} />
+        <Route path="administration/council" element={<Navigate to="/administration/commune" replace />} />
         <Route path="administration/rights" element={<SettingsPage category="rights" />} />
         <Route path="administration/documents" element={<SettingsPage category="documents" />} />
         <Route path="administration/mail" element={<SettingsPage category="mail" />} />

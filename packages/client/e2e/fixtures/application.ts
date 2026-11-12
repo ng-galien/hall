@@ -168,7 +168,6 @@ const menuParents: Record<string, string> = {
   users: "administration",
   templates: "administration",
   "administration-commune": "administration",
-  "administration-council": "administration",
   "administration-rights": "administration",
   "administration-documents": "administration",
   "administration-mail": "administration",

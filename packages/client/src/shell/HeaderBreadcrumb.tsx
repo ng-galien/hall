@@ -89,7 +89,6 @@ export function useRouteTrail(): BreadcrumbItem[] {
   } else if (segments[0] === "administration") {
     const screen = {
       commune: "navigation.commune",
-      council: "navigation.councilSettings",
       rights: "navigation.rights",
       documents: "navigation.documentSettings",
       mail: "navigation.mailSettings",

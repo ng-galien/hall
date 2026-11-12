@@ -87,7 +87,6 @@ export {
   Lock as LockIcon,
   MagnifyingGlass as SearchIcon,
   MapPin as LocationIcon,
-  MapPinLine as MeetingPlacesIcon,
   MapTrifold as MapIcon,
   Megaphone as NoticeIcon,
   Minus as RuleIcon,

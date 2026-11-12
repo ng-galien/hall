@@ -79,7 +79,7 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     ["council-delegations", "/council-delegations"],
     ["templates", "/templates"],
     ["mail-drafts", "/mail/drafts"],
-    ["administration-council", "/administration/council"],
+    ["administration-commune", "/administration/commune"],
     ["account", "/settings"],
     ["help", "/docs"],
   ] as const) {
@@ -307,7 +307,7 @@ test("phone maps show several rows of the map tree until a map is chosen", async
 test("phone settings are one screen per entry, without tabs, within the width", async ({ appPage: page }) => {
   await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
   await page.setViewportSize({ width: 375, height: 812 });
-  for (const screen of ["settings", "administration/commune", "administration/council", "administration/mail"]) {
+  for (const screen of ["settings", "administration/commune", "administration/mail"]) {
     await page.goto(`/app/${screen}`);
     await expect(page.getByTestId(/^settings-.*-screen$/)).toBeVisible();
     await expect(page.getByRole("tablist")).toHaveCount(0);
