@@ -283,7 +283,11 @@ export function CalendarPage() {
         }}
         eventContent={(info) => {
           return (
-            <span className="hall-calendar-event-label">
+            <span
+              className="hall-calendar-event-label"
+              data-line={info.view.type.startsWith("dayGrid") ? "one" : undefined}
+              title={`${info.timeText} ${info.event.title}`.trim()}
+            >
               {info.timeText} {info.event.title}
             </span>
           );
