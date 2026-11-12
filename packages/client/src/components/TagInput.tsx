@@ -62,7 +62,7 @@ export function TagInput({
           data-testid="tag-input-draft"
           value={draft}
           readOnly={readOnly}
-          placeholder={!readOnly && value.length === 0 ? t("workspace.addTag") : ""}
+          placeholder={value.length === 0 ? t("common.notFilled") : ""}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={readOnly ? undefined : onKeyDown}
           onBlur={readOnly ? undefined : commit}

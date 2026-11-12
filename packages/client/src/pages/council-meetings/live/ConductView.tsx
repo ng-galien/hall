@@ -1154,12 +1154,7 @@ export function ConductView({
             >
               <div className="modal-form">
                 <Field label={t("meeting.subject")}>
-                  <Input
-                    name="title"
-                    data-testid="live-add-question-name"
-                    placeholder={t("meeting.subjectPlaceholder")}
-                    required
-                  />
+                  <Input name="title" data-testid="live-add-question-name" required />
                 </Field>
                 <ResourceSearchField
                   testId="live-add-question-business"

@@ -2,7 +2,7 @@ import { type Contact, formatPhoneNumber, normalizePhoneNumber } from "@hall/api
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Field, FieldRow } from "@/components/ui/field";
+import { Field, FieldRow, FieldValue } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DeleteIcon, PhoneIcon } from "../components/icons";
@@ -252,9 +252,7 @@ export function ContactPage() {
           data-testid={`contact-${key}`}
         />
       ) : (
-        <span className="hall-input hall-field-value" data-testid={`contact-${key}`}>
-          {readValue}
-        </span>
+        <FieldValue data-testid={`contact-${key}`}>{readValue}</FieldValue>
       )}
     </Field>
   );

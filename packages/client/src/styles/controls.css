@@ -51,7 +51,7 @@
 }
 
 /* @implements-requirement HALL-FR-LAY-140 */
-/* Field 12D: a filled field, underlined, its label written small inside; the line turns blue while typing. */
+/* An input outside a form field (search, filter): filled and underlined. A form field: see the Field rules below. */
 @layer components {
   .hall-input {
     display: flex;
@@ -95,19 +95,18 @@
   .hall-field-label {
     position: absolute;
     top: var(--hall-space-1-5);
-    left: var(--hall-space-3);
-    right: var(--hall-space-3);
+    left: 0;
+    right: 0;
     z-index: var(--hall-z-content);
     overflow: hidden;
-    color: var(--hall-color-text-muted);
+    color: var(--hall-color-field-label);
     font-size: var(--hall-font-size-caption);
     line-height: var(--hall-line-height-caption);
     text-overflow: ellipsis;
     white-space: nowrap;
     pointer-events: none;
   }
-  .hall-field:focus-within > .hall-field-label { color: var(--hall-color-brand); }
-  .hall-field[data-invalid="true"] > .hall-field-label { color: var(--hall-color-danger); }
+  /* The label stays grey while typing and in error: the rule and the message under it carry the state. */
   .hall-field > :is(.hall-input, .hall-textarea, .hall-select-trigger),
   .hall-field > * > :is(.hall-input, .hall-textarea, .hall-select-trigger) {
     min-height: calc(var(--hall-size-touch-control) + var(--hall-space-2));
@@ -116,7 +115,31 @@
   }
   .hall-field .hall-textarea,
   .hall-field .hall-textarea:focus { min-height: calc(var(--hall-size-textarea-min) + var(--hall-line-height-caption)); }
-  /* A control that is not an input, such as a search picker, sits under the label inside the same fill. */
+  /* @implements-requirement HALL-FR-LAY-140 */
+  /* Form field (reference design, page 5): no fill, the text aligned on a rule under the value only; the rule turns
+     blue and thicker while typing, red in error, and disappears when the field cannot be changed. */
+  .hall-field :is(.hall-input, .hall-textarea, .hall-select-trigger, .hall-field-value) {
+    padding-inline: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thin)) 0 var(--hall-color-field-rule);
+  }
+  .hall-field :is(.hall-input, .hall-textarea, .hall-select-trigger):hover:not(:disabled) { background: transparent; }
+  .hall-field :is(.hall-input, .hall-textarea, .hall-select-trigger):is(:focus, :focus-visible, [data-state="open"]) {
+    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-brand);
+  }
+  .hall-field :is(.hall-input, .hall-textarea, .hall-select-trigger)[aria-invalid="true"] {
+    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-danger);
+  }
+  .hall-field :is(input, textarea)[readonly],
+  .hall-field :is(input, textarea)[readonly]:is(:hover, :focus, :focus-visible),
+  .hall-field .hall-field-value,
+  .hall-field :is(.hall-input, .hall-select-trigger):disabled { box-shadow: none; }
+  /* An empty field writes « Non renseigné », never a value: in grey italics, gone as soon as something is written. */
+  .hall-field .hall-input::placeholder,
+  .hall-field .hall-select-trigger[data-placeholder] > [data-slot="select-value"],
+  .hall-field .hall-field-empty { color: var(--hall-color-field-empty); font-style: italic; opacity: 1; }
+  /* A control that is not an input, such as a search picker, sits under the label. */
   .hall-field > :not(.hall-field-label, .hall-input, .hall-textarea, .hall-select-trigger) { min-width: 0; }
   /* A control at the end of a field keeps the text of the field clear of it. */
   .hall-field[data-action="true"] > :is(.hall-input, .hall-field-value) { padding-right: calc(var(--hall-size-touch-control) + var(--hall-space-2)); }

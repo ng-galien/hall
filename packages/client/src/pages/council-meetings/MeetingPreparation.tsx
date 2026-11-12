@@ -267,7 +267,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                           testId="meeting-edit-location"
                           locations={settings?.meetingLocations ?? []}
                           current={meeting.location}
-                          placeholder={t("meetings.location")}
                           disabled={submitting}
                         />
                       </Field>
@@ -290,7 +289,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                       testId="meeting-edit-chair"
                       disabled={submitting}
                       onValueChange={() => setTimeout(() => detailsFormRef.current?.requestSubmit(), 0)}
-                      placeholder={t("meetings.chairUndesignated")}
                       options={rosterMembers.map((member) => ({
                         value: member.id,
                         label: `${member.contact.firstName} ${member.contact.lastName}`,
@@ -305,7 +303,6 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
                       testId="meeting-edit-secretary"
                       disabled={submitting}
                       onValueChange={() => setTimeout(() => detailsFormRef.current?.requestSubmit(), 0)}
-                      placeholder={t("meetings.secretaryUndesignated")}
                       options={rosterMembers.map((member) => ({
                         value: member.id,
                         label: `${member.contact.firstName} ${member.contact.lastName}`,

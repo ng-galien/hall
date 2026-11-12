@@ -167,7 +167,6 @@ export function MeetingAttendingPersons({
                 value={contactId}
                 onValueChange={setContactId}
                 disabled={submitting}
-                placeholder={t("auxiliary.chooseContact")}
                 options={candidates.map((contact) => ({
                   value: contact.id,
                   label: `${contact.firstName} ${contact.lastName}`,

@@ -47,7 +47,6 @@ export function AgendaItemRecusalDialog({
             value={memberId}
             onValueChange={setMemberId}
             disabled={controller.submitting}
-            placeholder={t("recusal.chooseMember")}
             options={availableMembers.map((member) => ({
               value: member.id,
               label: `${member.contact.firstName} ${member.contact.lastName}`,

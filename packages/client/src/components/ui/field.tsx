@@ -1,13 +1,15 @@
 import { type ComponentProps, createContext, type ReactNode, useContext, useId } from "react";
 import { ChevronDownIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { useI18n } from "../../i18n/I18nProvider";
 
 type FieldControl = { id: string; describedBy?: string; invalid: boolean };
 const FieldContext = createContext<FieldControl | null>(null);
 
 /**
- * The single form field of Hall (choice 12D): a filled, underlined field whose label is written small inside it,
- * with its help under it. The control inside (Input, Textarea, SelectTrigger, a picker) takes its id from the field.
+ * The single form field of Hall (reference design, page 5): no fill, a rule under its value, its label written small
+ * above the value, its help under it. An empty field writes « Non renseigné », never a value. The control inside
+ * (Input, Textarea, SelectTrigger, FieldPicker, FieldValue) takes its id from the field.
  * @implements-requirement HALL-FR-LAY-140
  */
 export function Field({
@@ -81,6 +83,30 @@ export function useFieldControl<T extends { id?: string; "aria-describedby"?: st
   };
 }
 
+/** The text an empty control of a Field shows in place of a value; none outside a Field. */
+export function useFieldEmptyText(): string | undefined {
+  const field = useContext(FieldContext);
+  const { t } = useI18n();
+  return field ? t("common.notFilled") : undefined;
+}
+
+const isEmpty = (value: ReactNode) => value === null || value === undefined || value === false || value === "";
+
+/** « Non renseigné » in place of an empty value. */
+function EmptyValue() {
+  const { t } = useI18n();
+  return <span className="hall-field-empty">{t("common.notFilled")}</span>;
+}
+
+/** The value of a Field that the person may read but not change; « Non renseigné » when it is empty. */
+export function FieldValue({ className, children, ...props }: ComponentProps<"span">) {
+  return (
+    <span className={cn("hall-input hall-field-value", className)} {...props}>
+      {isEmpty(children) ? <EmptyValue /> : children}
+    </span>
+  );
+}
+
 /** A control of a Field that opens a picker, drawn like the text of the field with a chevron at its end. */
 export function FieldPicker({ className, children, ...props }: ComponentProps<"button">) {
   return (
@@ -90,7 +116,7 @@ export function FieldPicker({ className, children, ...props }: ComponentProps<"b
       className={cn("hall-input hall-select-trigger", className)}
       {...useFieldControl(props)}
     >
-      <span className="hall-field-picker-value">{children}</span>
+      <span className="hall-field-picker-value">{isEmpty(children) ? <EmptyValue /> : children}</span>
       <ChevronDownIcon className="hall-select-chevron" aria-hidden="true" />
     </button>
   );

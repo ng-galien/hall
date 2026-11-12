@@ -190,7 +190,6 @@ export function UsersPage() {
                     value: contact.id,
                     label: `${contact.firstName} ${contact.lastName}`,
                   }))}
-                  placeholder={t("users.noContact")}
                   clearLabel={t("users.noContact")}
                 />
               </Field>

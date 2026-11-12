@@ -123,7 +123,6 @@ export function CouncilMembersPage() {
                 type="contact"
                 name="contactId"
                 testId="member-contact-select"
-                placeholder={t("members.chooseContact")}
                 options={eligibleContacts.map((contact) => ({
                   value: contact.id,
                   label: `${contact.firstName} ${contact.lastName}`,

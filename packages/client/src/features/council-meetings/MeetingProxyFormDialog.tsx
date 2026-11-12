@@ -47,7 +47,6 @@ export function MeetingProxyFormDialog({
                 if (value === holder) setHolder("");
               }}
               testId="meeting-proxy-grantor"
-              placeholder={t("meeting.proxyFormGrantorPlaceholder")}
               options={options}
             />
           </Field>
@@ -57,7 +56,6 @@ export function MeetingProxyFormDialog({
               value={holder}
               onValueChange={setHolder}
               testId="meeting-proxy-holder"
-              placeholder={t("meeting.proxyFormHolderPlaceholder")}
               options={options.filter((option) => option.value !== grantor)}
             />
           </Field>

@@ -11313,14 +11313,20 @@
         "state": "accepted",
         "since": "2026-11-11"
       },
-      "statement": "Les champs de saisie de Hall sont des champs pleins, soulignés, avec leur libellé écrit en petit à l’intérieur.",
+      "statement": "Les champs de formulaire de Hall sont posés sur le blanc de l’écran, sans fond, avec un filet sous la valeur et leur libellé écrit en petit au-dessus ; un champ vide écrit « Non renseigné ».",
       "acceptanceCriteria": [
-        "Un champ a un fond teinté et un trait sous la saisie, qui passe au bleu pendant la saisie ; il n’a pas de contour.",
-        "Le libellé reste visible en petit à l’intérieur du champ pendant la saisie ; l’aide est écrite sous le champ.",
+        "Un champ n’a ni fond ni contour : un filet gris de 1 pixel sous la valeur, qui passe au bleu de marque et à 2 pixels pendant la saisie, au rouge de blocage et à 2 pixels en erreur avec le message dessous ; un champ en lecture seule n’a pas de filet. Le texte s’aligne sur le bord du filet.",
+        "Le libellé reste visible en petit au-dessus de la valeur, en gris, pendant la saisie comme en erreur ; l’aide est écrite sous le champ. Un champ vide, en saisie comme en lecture seule, écrit « Non renseigné » en gris et en italique à la place de la valeur ; ce texte indicatif n’est jamais enregistré ni envoyé et disparaît dès qu’on écrit. Les champs de recherche et de filtre gardent leur forme propre.",
         "Les champs qui vont ensemble, comme une date et une heure ou un téléphone et une adresse électronique, partagent une rangée quand la largeur le permet.",
         "Le texte saisi mesure 16 pixels."
       ],
       "clauses": [
+        {
+          "key": "form-field-rule-only",
+          "origin": "product",
+          "statement": "Choix du propriétaire du 12 novembre 2026 (document « Hall 1.3 — Design de référence », page 5) : « ces trucs de formulaire-là, je dis pas qu'ils sont pas bien, mais la couleur est immonde. […] Ça fait Windows 98. » ; filet seul, « avec des placeholders obligatoires […] un placeholder qui discrimine d'une vraie donnée », choix « 4A, Non renseigné ».",
+          "sourceIds": []
+        },
         {
           "key": "fields-12d",
           "origin": "product",

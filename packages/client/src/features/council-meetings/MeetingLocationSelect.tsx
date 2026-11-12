@@ -5,14 +5,12 @@ export function MeetingLocationSelect({
   id,
   locations,
   current,
-  placeholder,
   testId,
   disabled = false,
 }: {
   id?: string;
   locations: string[];
   current: string | null;
-  placeholder: string;
   testId: string;
   disabled?: boolean;
 }) {
@@ -20,7 +18,7 @@ export function MeetingLocationSelect({
   return (
     <Select name="location" defaultValue={current || locations[0]} disabled={disabled} required>
       <SelectTrigger id={id} data-testid={testId}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {choices.map((name) => (

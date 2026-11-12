@@ -22,7 +22,8 @@ export function EntitySelect({
   defaultValue?: string;
   onValueChange?(value: string): void;
   name?: string;
-  placeholder: string;
+  /** Text shown while nothing is chosen, when it says more than « Non renseigné ». */
+  placeholder?: string;
   testId: string;
   disabled?: boolean;
   clearLabel?: string;
@@ -38,7 +39,7 @@ export function EntitySelect({
       {name && <input type="hidden" name={name} value={value} />}
       <ResourceSearchField
         testId={testId}
-        label={options.find((option) => option.value === value)?.label ?? placeholder}
+        label={options.find((option) => option.value === value)?.label ?? placeholder ?? ""}
         scope={{ types: [type], includedIds: options.map((option) => option.value) }}
         disabled={disabled}
         onPick={(item) => choose(item.id)}

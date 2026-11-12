@@ -2,7 +2,7 @@ import { Select as SelectPrimitive } from "radix-ui";
 import type * as React from "react";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import { useFieldControl } from "./field";
+import { useFieldControl, useFieldEmptyText } from "./field";
 
 function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
@@ -12,8 +12,10 @@ function SelectGroup({ className, ...props }: React.ComponentProps<typeof Select
   return <SelectPrimitive.Group data-slot="select-group" className={cn("scroll-my-1 p-1", className)} {...props} />;
 }
 
-function SelectValue({ ...props }: React.ComponentProps<typeof SelectPrimitive.Value>) {
-  return <SelectPrimitive.Value data-slot="select-value" {...props} />;
+/** The chosen value; inside a Field, « Non renseigné » while nothing is chosen. */
+function SelectValue({ placeholder, ...props }: React.ComponentProps<typeof SelectPrimitive.Value>) {
+  const empty = useFieldEmptyText();
+  return <SelectPrimitive.Value data-slot="select-value" placeholder={placeholder ?? empty} {...props} />;
 }
 
 function SelectTrigger({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
