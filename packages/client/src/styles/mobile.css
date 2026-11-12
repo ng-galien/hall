@@ -51,7 +51,7 @@
   .app-main .workspace > .workspace-topzone:not(:has(> :not(input))) { margin-bottom: calc(-1 * var(--hall-space-3)); }
   /* The workspace search of a phone covers the screen; its results scroll under the field. */
   /* A dialog of a phone opens under the line of the screen header, which stays visible above it. */
-  [data-slot="dialog-content"]:not(.workspace-phone-search, .document-viewer-phone-page) {
+  [data-slot="dialog-content"]:not(.workspace-phone-search, .document-viewer-phone-page, .app-sheet) {
     top: calc(var(--hall-size-header) + var(--hall-space-2));
     max-height: calc(100dvh - var(--hall-size-header) - var(--hall-space-4));
     --tw-translate-y: 0;
@@ -186,15 +186,15 @@
   .collection-toolbar .collection-toolbar-side { width: auto; flex: none; flex-wrap: nowrap; }
   .collection-toolbar .collection-toolbar-side:empty { display: none; }
   .docs-search { width: auto; flex: 1 1 auto; min-width: 0; }
-  .conduct { flex-direction: column; overflow-y: auto; }
+  .conduct { flex-direction: column; overflow-x: hidden; overflow-y: auto; }
   .conduct .conduct-rail { width: 100% !important; border-right: 0; border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .conduct-timeline { flex: none; max-height: var(--hall-size-tree-max); overflow-y: auto; }
   .conduct-rail-resizer { display: none; }
   .conduct .conduct-stage { flex: none; overflow: visible; }
   .conduct-stage-scroll { flex: none; overflow: visible; }
-  .conduct-stage-fixed-header, .conduct-stage-scroll, .conduct-stage-actions { padding: var(--hall-space-3) var(--hall-space-4); }
+  .conduct-stage-fixed-header, .conduct-stage-scroll, .conduct-stage-actions { padding: var(--hall-space-3); }
   .conduct-title-timer { flex-wrap: wrap; }
-  .conduct-stage-actions .hall-button { flex: 1 1 100%; }
+  .conduct-stage-actions > button { flex: 1; }
 }
 
 /* @implements-requirement HALL-FR-LAY-020 */

@@ -245,9 +245,9 @@ export function RollCallView({
     <section className="rollcall" aria-labelledby="rollcall-heading">
       <header className="rollcall-header">
         <div>
-          <h2 id="rollcall-heading" data-testid="live-rollcall-heading">
+          <h1 id="rollcall-heading" data-testid="live-rollcall-heading">
             {t(mode === "opening" ? "live.rollCallTitle" : "live.rollCallAdjustTitle")}
-          </h2>
+          </h1>
           <p>
             {t("meeting.attendanceProgress", {
               recorded: formatNumber(draftAttendance.length),
@@ -379,7 +379,7 @@ export function RollCallView({
                   {directStatuses.map((status) => (
                     <Button
                       variant="plain"
-                      className="rollcall-choice"
+                      className={`rollcall-choice rollcall-choice-${status}${current?.status === status ? " rollcall-choice-active" : ""}`}
                       aria-pressed={current?.status === status}
                       disabled={submitting}
                       data-testid={`live-attendance-${member.id}-${status}`}
@@ -391,7 +391,7 @@ export function RollCallView({
                   ))}
                   <Button
                     variant="plain"
-                    className="rollcall-choice"
+                    className={`rollcall-choice rollcall-choice-represented${current?.status === "represented" ? " rollcall-choice-active" : ""}`}
                     aria-pressed={current?.status === "represented"}
                     aria-expanded={editingProxy}
                     disabled={submitting}
@@ -467,6 +467,7 @@ export function RollCallView({
               />
             ) : null}
             <Button
+              variant="primary"
               disabled={
                 submitting ||
                 Boolean(openingBlock) ||
@@ -571,7 +572,7 @@ function ProxyModal({
               {holderCandidates.map(({ member: candidate, alreadyHolding }) => (
                 <Button
                   variant="plain"
-                  className="picker-card"
+                  className={`picker-card${holderId === candidate.id ? " picker-card-active" : ""}`}
                   aria-pressed={holderId === candidate.id}
                   disabled={alreadyHolding}
                   data-testid={`live-proxy-holder-${candidate.id}`}
@@ -601,7 +602,7 @@ function ProxyModal({
             {proxyDocuments.map((document) => (
               <Button
                 variant="plain"
-                className="picker-card"
+                className={`picker-card${documentId === document.id ? " picker-card-active" : ""}`}
                 aria-pressed={documentId === document.id}
                 data-testid={`live-proxy-document-${document.id}`}
                 onClick={() => setDocumentId(document.id)}
@@ -618,7 +619,7 @@ function ProxyModal({
               variant="plain"
               data-testid="live-proxy-upload"
               disabled={submitting}
-              className="picker-card"
+              className="picker-card picker-card-upload"
               onClick={() => fileInput.current?.click()}
             >
               <UploadIcon aria-hidden="true" />

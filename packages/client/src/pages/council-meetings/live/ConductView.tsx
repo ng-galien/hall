@@ -64,6 +64,7 @@ import type {
   LiveMeetingCouncilDecision,
   LiveMeetingPresentation,
 } from "../../../models/liveMeeting";
+import { usePhoneLayout } from "../../../shell/usePhoneLayout";
 import { agendaItemDecisionId, pendingBallotDecisions } from "../ballotDecisionPolicy";
 import { councilMemberName } from "../ballotParticipants";
 import { useConductAgendaSelection } from "./useConductAgendaSelection";
@@ -166,7 +167,10 @@ export function ConductView({
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
   const [closeConfirming, setCloseConfirming] = useState(false);
   const [now, setNow] = useState(Date.now());
-  const [railCollapsed, setRailCollapsed] = useState(false);
+  const [railFolded, setRailFolded] = useState(false);
+  /* Over the whole width (phone layout) the rail always shows its titles and labels; only a rail beside the item folds. */
+  const railStacked = usePhoneLayout();
+  const railCollapsed = railFolded && !railStacked;
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [questionBusiness, setQuestionBusiness] = useState<{ id: string; label: string } | "new" | null>(null);
   const closeAddItem = () => {
@@ -353,23 +357,24 @@ export function ConductView({
               </span>
             </>
           ) : null}
-          <Button
-            variant="plain"
-            size="icon"
-            data-testid="live-agenda-toggle"
-            aria-label={t(railCollapsed ? "live.railExpand" : "live.railCollapse")}
-            onClick={() => setRailCollapsed((collapsed) => !collapsed)}
-          >
-            {railCollapsed ? <ExpandIcon /> : <CollapseIcon />}
-          </Button>
+          {!railStacked ? (
+            <Button
+              variant="plain"
+              className="conduct-rail-toggle"
+              data-testid="live-agenda-toggle"
+              aria-label={t(railCollapsed ? "live.railExpand" : "live.railCollapse")}
+              onClick={() => setRailFolded((folded) => !folded)}
+            >
+              {railCollapsed ? <ExpandIcon /> : <CollapseIcon />}
+            </Button>
+          ) : null}
         </div>
         <ol className="conduct-timeline">
           {aggregate.meeting.openedAt ? (
             <li className="conduct-step conduct-step-done">
               <Button
                 variant="plain"
-                className="conduct-step-button"
-                data-active={openingSelected ? "true" : undefined}
+                className={`conduct-step-button${openingSelected ? " conduct-step-selected" : ""}`}
                 data-testid="live-opening"
                 aria-label={t("live.openingStep")}
                 aria-current={openingSelected ? "true" : undefined}
@@ -401,8 +406,7 @@ export function ConductView({
             const stepButton = (
               <Button
                 variant="plain"
-                className="conduct-step-button"
-                data-active={!openingSelected && selectedItem.id === item.id ? "true" : undefined}
+                className={`conduct-step-button${!openingSelected && selectedItem.id === item.id ? " conduct-step-selected" : ""}`}
                 data-testid={`live-agenda-item-${item.id}`}
                 disabled={submitting}
                 aria-label={
@@ -438,7 +442,7 @@ export function ConductView({
                     ) : null}
                     {itemBallot ? (
                       <span
-                        className="list-row-status"
+                        className="list-row-status conduct-step-vote-required"
                         data-tone={itemBallot.result === "adopted" ? "success" : "danger"}
                       >
                         {t(ballotVerdictKey(item.subjectKind === "minutesApproval", itemBallot.result === "adopted"))}{" "}
@@ -446,12 +450,12 @@ export function ConductView({
                         {formatNumber(itemBallot.abstentions)}
                       </span>
                     ) : voteRequired ? (
-                      <span className="list-row-status" data-tone="action">
+                      <span className="list-row-status conduct-step-vote-required" data-tone="action">
                         {t("live.voteRequired")}
                       </span>
                     ) : null}
                     {itemDone && item.status !== "examined" ? (
-                      <span className="conduct-step-state">{t("status.adjourned")}</span>
+                      <span className="list-row-status conduct-step-vote-required">{t("status.adjourned")}</span>
                     ) : null}
                   </span>
                 ) : null}
@@ -605,7 +609,7 @@ export function ConductView({
             <span className="live-eyebrow">
               {aggregate.meeting.openedAt ? formatTime(aggregate.meeting.openedAt) : ""}
             </span>
-            <h2 id="conduct-opening-title">{t("live.openingStep")}</h2>
+            <h1 id="conduct-opening-title">{t("live.openingStep")}</h1>
           </header>
           <div className="conduct-opening-content">
             <dl className="report-roll-call">
@@ -708,9 +712,9 @@ export function ConductView({
           </span>
           <div className="conduct-heading-row">
             <div className="conduct-title-timer">
-              <h2 id="conduct-item-title" data-testid="live-item-title">
+              <h1 id="conduct-item-title" data-testid="live-item-title">
                 {liveBusinessTitle(selectedItem.business, t("agendaSubject.minutesApproval"))}
-              </h2>
+              </h1>
               {isActive && selectedItem.startedAt ? (
                 <div className="conduct-timer" role="timer" data-testid="live-item-timer">
                   <span className="live-indicator" aria-hidden="true" />
@@ -740,7 +744,7 @@ export function ConductView({
                       </p>
                     ))}
                     {recusals.state.recusals.length > 0 ? (
-                      <p className="text-muted">{t("recusal.separateFromVotes")}</p>
+                      <p className="text-muted-foreground">{t("recusal.separateFromVotes")}</p>
                     ) : null}
                     {recusals.canRecord ? (
                       <Button
@@ -782,12 +786,14 @@ export function ConductView({
         <div className="conduct-stage-scroll" data-testid="live-item-scroll">
           <div className="conduct-stage-body">
             {selectedItem.business.kind === "minutesApproval" ? (
-              <Button asChild variant="plain" className="conduct-minutes-link">
-                <Link to={`/minutes/${selectedItem.business.minutesId}`} data-testid="live-minutes-link">
-                  <FileIcon aria-hidden="true" />
-                  {t("minutes.open")}
-                </Link>
-              </Button>
+              <Link
+                className="conduct-document-chip conduct-minutes-link"
+                to={`/minutes/${selectedItem.business.minutesId}`}
+                data-testid="live-minutes-link"
+              >
+                <FileIcon aria-hidden="true" />
+                {t("minutes.open")}
+              </Link>
             ) : null}
             {selectedItem.business.report ? (
               <details className="conduct-block" open={!voteOpen} key={`report-${selectedItem.id}-${voteOpen}`}>
@@ -826,6 +832,7 @@ export function ConductView({
                   {itemResources.map((resource) => (
                     <Button
                       variant="plain"
+                      className="conduct-document-chip"
                       key={resource.id}
                       data-testid={`live-document-${resource.id}`}
                       onClick={() => setViewedResourceId(resource.id)}
@@ -1026,6 +1033,7 @@ export function ConductView({
             {matchLiteral(continuation, {
               start: () => (
                 <Button
+                  variant="primary"
                   disabled={submitting}
                   data-testid="live-agenda-start"
                   onClick={() => void run(() => meetingActions.startAgendaItem(selectedItem.id))}
@@ -1036,12 +1044,18 @@ export function ConductView({
               ),
               vote: () =>
                 !voteOpen ? (
-                  <Button disabled={submitting} data-testid="live-ballot-open" onClick={() => setVoteOpen(true)}>
+                  <Button
+                    variant="primary"
+                    disabled={submitting}
+                    data-testid="live-ballot-open"
+                    onClick={() => setVoteOpen(true)}
+                  >
                     {t("live.openVote")}
                   </Button>
                 ) : null,
               complete: () => (
                 <Button
+                  variant="primary"
                   disabled={submitting}
                   data-testid="live-agenda-complete"
                   onClick={() => void completeItem("examined")}

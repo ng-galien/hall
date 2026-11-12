@@ -111,6 +111,7 @@
   --hall-line-height-body-small: 20px;
   --hall-line-height-body-large: 24px;
   --hall-line-height-heading: 28px;
+  --hall-line-height-heading-large: 32px;
   --hall-line-height-display-small: 36px;
   --hall-line-height-display: 40px;
   /* Running text read on a phone. */
@@ -119,6 +120,7 @@
   --hall-space-reading-heading: 22px;
   --hall-size-reading-list-indent: 22px;
   --hall-letter-spacing-heading: -0.02em;
+  --hall-letter-spacing-section: 0.08em;
   --hall-letter-spacing-brand: 0.18em;
 
   --hall-radius-none: 0;
@@ -192,6 +194,7 @@
   --hall-size-mail-body: 280px;
   --hall-size-mail-preview: 288px;
   --hall-size-rollcall-tile: 240px;
+  --hall-size-secret-participants-max: 240px;
   --hall-size-hit-card: 260px;
   --hall-size-mention-menu: 280px;
   --hall-size-workbench-aside-min: 280px;
@@ -259,6 +262,7 @@
   --hall-size-crumb-max: 40ch;
   --hall-size-editor-measure: 74ch;
   --hall-motion-distance: 4px;
+  --hall-motion-faster: 100ms;
   --hall-motion-fast: 140ms;
   --hall-motion-normal: 200ms;
   --hall-motion-status: 2000ms;

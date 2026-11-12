@@ -89,7 +89,7 @@ function VoteBadge({
   return (
     <Button
       variant="plain"
-      className={`vote-card vote-card-${zone}${proxyVote ? " vote-card-carried" : ""}${dragging ? " vote-card-dragging" : ""}`}
+      className={`vote-card vote-card-${zone}${proxyVote ? " vote-card-carried" : ""}${dragging ? " vote-card-dragging" : ""}${selected ? " vote-card-selected" : ""}`}
       aria-pressed={selected}
       data-testid={`live-vote-member-${participant.memberId}`}
       draggable
@@ -338,6 +338,7 @@ export function VotePanel({
         <div className="vote-method-toggle">
           <Button
             variant="plain"
+            className={`vote-method-choice${method === "public" ? " vote-method-choice-active" : ""}`}
             aria-pressed={method === "public"}
             data-testid="live-ballot-mode-public"
             onClick={() => {
@@ -352,6 +353,7 @@ export function VotePanel({
           </Button>
           <Button
             variant="plain"
+            className={`vote-method-choice${method === "secret" ? " vote-method-choice-active" : ""}`}
             aria-pressed={method === "secret"}
             data-testid="live-ballot-mode-secret"
             onClick={() => setMethod("secret")}
@@ -374,7 +376,12 @@ export function VotePanel({
               <span className="vote-source-tools">
                 <strong>{formatNumber(unassigned.length)}</strong>
                 {unassigned.length > 0 ? (
-                  <Button variant="plain" data-testid="live-ballot-all-for" onClick={assignRemainingFor}>
+                  <Button
+                    variant="plain"
+                    className="vote-reset"
+                    data-testid="live-ballot-all-for"
+                    onClick={assignRemainingFor}
+                  >
                     {t("live.remainingToFor")}
                   </Button>
                 ) : null}
@@ -405,6 +412,7 @@ export function VotePanel({
                       {canReceiveSelection ? (
                         <Button
                           variant="plain"
+                          className="vote-zone-drop-action"
                           data-testid={`live-vote-assign-${zone.choice}`}
                           onClick={() => dropIntoZone(zone.choice)}
                         >
@@ -424,8 +432,7 @@ export function VotePanel({
           {Object.keys(assignments).length > 0 ? (
             <Button
               variant="plain"
-              className="justify-self-start"
-              data-testid="live-ballot-reset"
+              className="vote-reset"
               onClick={() => {
                 setAssignments({});
                 setSelectedMemberIds(new Set());
@@ -564,12 +571,13 @@ export function VotePanel({
           )}
         </div>
         <div className="vote-panel-footer-actions">
-          <Button variant="plain" data-testid="live-ballot-cancel" onClick={() => onOpenChange(false)}>
+          <Button variant="plain" className="vote-cancel" onClick={() => onOpenChange(false)}>
             {t("common.cancel")}
           </Button>
           {actionContainer
             ? createPortal(
                 <Button
+                  variant="primary"
                   disabled={submitting || !chairPresent || (method === "public" ? !publicComplete : !secretValid)}
                   data-testid="live-ballot-preview-open"
                   onClick={() => void record()}
