@@ -848,6 +848,12 @@
   .conduct-stage-header .meeting-stepper-item[aria-current="step"] .meeting-stepper-title { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
 
 
+  /* Beside a narrow item, the item title takes the whole width; the timer and the recusals share the line under it. */
+  @media (max-width: 1100px) {
+    .conduct-title-timer { display: contents; }
+    .conduct-title-timer h1 { flex: 1 1 100%; }
+    .conduct-heading-row { align-items: center; gap: var(--hall-space-2) var(--hall-space-3); }
+  }
   @media (max-width: 1280px) {
     .conduct-rail:not(.conduct-rail-collapsed) { width: var(--hall-size-agenda-rail); }
     .conduct-stage-header h1 { font-size: var(--hall-font-size-display-small); line-height: var(--hall-line-height-display-small); }
@@ -861,10 +867,6 @@
     .live-header { flex-wrap: wrap; align-items: center; }
     .live-exit { min-width: 0; padding-inline: 0; }
     .live-header-status .live-clock { font-size: var(--hall-font-size-body); }
-    /* The item title takes the whole width; the timer and the recusals share the line under it. */
-    .conduct-title-timer { display: contents; }
-    .conduct-title-timer h1 { flex: 1 1 100%; }
-    .conduct-heading-row { align-items: center; gap: var(--hall-space-2) var(--hall-space-3); }
     .rollcall-header { flex-wrap: wrap; gap: var(--hall-space-2); padding: var(--hall-space-3); }
     .rollcall-grid { padding: var(--hall-space-2) var(--hall-space-3); }
     .rollcall-attending { padding: 0 var(--hall-space-3) var(--hall-space-3); }
