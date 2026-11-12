@@ -1,11 +1,10 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CopyReferenceButton, copyObjectReference } from "../../components/CopyReferenceButton";
 import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon, VisibleIcon } from "../../components/icons";
 import { ShareButton } from "../../components/ShareButton";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
-import { CollapsibleSection } from "../../components/ui/collapsible-section";
 import { SectionHeader } from "../../components/ui/section-header";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
@@ -51,7 +50,6 @@ function MinutesDetail({ id }: { id: string }) {
   const approvalMeeting = meetings.find((meeting) => meeting.previousCouncilMeetingId === minutes?.councilMeetingId);
   const phone = usePhoneLayout();
   const navigate = useNavigate();
-  const [factsOpen, setFactsOpen] = useState(false);
   const councilLabel = minutes ? t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) }) : "";
   const dateAndPlace = minutes
     ? [minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null, minutes.facts.meeting.location]
@@ -149,134 +147,171 @@ function MinutesDetail({ id }: { id: string }) {
           <div className="phone-record-heading">
             <p>{dateAndPlace}</p>
             {minutesState}
-            {minutes.documentId ? (
-              <Button
-                ref={documentTrigger}
-                className="w-full"
-                data-testid="minutes-view-document"
-                onClick={draft.openDocument}
-              >
-                <VisibleIcon aria-hidden="true" />
-                {t("minutes.viewDocument")}
-              </Button>
-            ) : null}
+            <section className="phone-minutes-document" aria-labelledby="minutes-phone-document-title">
+              <strong id="minutes-phone-document-title">{t("minutes.documentControl")}</strong>
+              <div className="minutes-header-document-actions">
+                {draft.canPreview ? (
+                  <Button
+                    variant="secondary"
+                    disabled={draft.previewing || draft.generating}
+                    data-testid="minutes-preview"
+                    ref={documentTrigger}
+                    onClick={() => void draft.preview()}
+                  >
+                    <VisibleIcon aria-hidden="true" />
+                    {t(draft.previewing ? "minutes.previewing" : "minutes.preview")}
+                  </Button>
+                ) : null}
+                {draft.canGenerate ? (
+                  <Button
+                    disabled={draft.generating || draft.previewing}
+                    data-testid="minutes-generate"
+                    onClick={() => void draft.generate()}
+                  >
+                    <PdfIcon aria-hidden="true" />
+                    {t(draft.generating ? "minutes.generating" : "minutes.generate")}
+                  </Button>
+                ) : null}
+                {minutes.documentId ? (
+                  <>
+                    <Button
+                      ref={documentTrigger}
+                      variant="secondary"
+                      data-testid="minutes-view-document"
+                      onClick={draft.openDocument}
+                    >
+                      <VisibleIcon aria-hidden="true" />
+                      {t("minutes.viewDocument")}
+                    </Button>
+                    <Button asChild variant="secondary">
+                      <a href={minutesContentHref(id)} download data-testid="minutes-download">
+                        <ArrowDownIcon aria-hidden="true" />
+                        {t("minutes.download")}
+                      </a>
+                    </Button>
+                  </>
+                ) : null}
+              </div>
+            </section>
           </div>
         </>
       ) : null}
-      <div className="minutes-detail-header" hidden={phone}>
-        <PageHeader
-          title={
-            minutes
-              ? t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) })
-              : t("navigation.minutes")
-          }
-          description={
-            minutes
-              ? [minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null, minutes.facts.meeting.location]
-                  .filter(Boolean)
-                  .join(" · ")
-              : t("minutes.detailDescription")
-          }
-          titleAction={
-            minutes ? (
-              <CopyReferenceButton
-                reference={{
-                  name: [
-                    t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) }),
-                    minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null,
-                  ]
+      {phone ? null : (
+        <div className="minutes-detail-header">
+          <PageHeader
+            title={
+              minutes
+                ? t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) })
+                : t("navigation.minutes")
+            }
+            description={
+              minutes
+                ? [minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null, minutes.facts.meeting.location]
                     .filter(Boolean)
-                    .join(" · "),
-                  page: `/app/minutes/${id}`,
-                  href: `/api/minutes/${id}`,
-                }}
-              />
-            ) : null
-          }
-        >
-          {minutes ? (
-            <>
-              {minutesState}
-              <div className="minutes-header-links">
-                <Link
-                  className="record-context-link"
-                  to={`/meetings/${minutes.councilMeetingId}`}
-                  data-testid="minutes-source-meeting"
-                >
-                  <CalendarIcon aria-hidden="true" />
-                  {t("minutes.sourceMeeting")}
-                </Link>
-                {approvalMeeting ? (
+                    .join(" · ")
+                : t("minutes.detailDescription")
+            }
+            titleAction={
+              minutes ? (
+                <CopyReferenceButton
+                  reference={{
+                    name: [
+                      t("minutes.councilNumber", { number: formatNumber(minutes.meetingNumber) }),
+                      minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · "),
+                    page: `/app/minutes/${id}`,
+                    href: `/api/minutes/${id}`,
+                  }}
+                />
+              ) : null
+            }
+          >
+            {minutes ? (
+              <>
+                {minutesState}
+                <div className="minutes-header-links">
                   <Link
                     className="record-context-link"
-                    to={`/meetings/${approvalMeeting.reference}`}
-                    data-testid="minutes-approval-meeting"
+                    to={`/meetings/${minutes.councilMeetingId}`}
+                    data-testid="minutes-source-meeting"
                   >
                     <CalendarIcon aria-hidden="true" />
-                    {t("minutes.approvalMeeting")} ·{" "}
-                    {t("minutes.councilNumber", { number: formatNumber(approvalMeeting.number) })}
+                    {t("minutes.sourceMeeting")}
                   </Link>
-                ) : null}
-              </div>
-              <section className="minutes-header-document" aria-labelledby="minutes-document-title">
-                <div className="minutes-section-title">
-                  <strong id="minutes-document-title">{t("minutes.documentControl")}</strong>
-                  <MinutesSectionHint
-                    text={minutes.generatedAt ? t("minutes.frozenDocumentHint") : t("minutes.generationHint")}
-                  />
+                  {approvalMeeting ? (
+                    <Link
+                      className="record-context-link"
+                      to={`/meetings/${approvalMeeting.reference}`}
+                      data-testid="minutes-approval-meeting"
+                    >
+                      <CalendarIcon aria-hidden="true" />
+                      {t("minutes.approvalMeeting")} ·{" "}
+                      {t("minutes.councilNumber", { number: formatNumber(approvalMeeting.number) })}
+                    </Link>
+                  ) : null}
                 </div>
-                <div className="minutes-header-document-actions">
-                  {draft.canPreview ? (
-                    <Button
-                      variant="secondary"
-                      disabled={draft.previewing || draft.generating}
-                      data-testid="minutes-preview"
-                      ref={documentTrigger}
-                      onClick={() => void draft.preview()}
-                    >
-                      <VisibleIcon aria-hidden="true" />
-                      {t(draft.previewing ? "minutes.previewing" : "minutes.preview")}
-                    </Button>
-                  ) : null}
-                  {draft.canGenerate ? (
-                    <Button
-                      disabled={draft.generating || draft.previewing}
-                      data-testid="minutes-generate"
-                      onClick={() => void draft.generate()}
-                    >
-                      <PdfIcon aria-hidden="true" />
-                      {t(draft.generating ? "minutes.generating" : "minutes.generate")}
-                    </Button>
-                  ) : null}
-                  {minutes.documentId ? (
-                    <>
+                <section className="minutes-header-document" aria-labelledby="minutes-document-title">
+                  <div className="minutes-section-title">
+                    <strong id="minutes-document-title">{t("minutes.documentControl")}</strong>
+                    <MinutesSectionHint
+                      text={minutes.generatedAt ? t("minutes.frozenDocumentHint") : t("minutes.generationHint")}
+                    />
+                  </div>
+                  <div className="minutes-header-document-actions">
+                    {draft.canPreview ? (
                       <Button
-                        ref={documentTrigger}
                         variant="secondary"
-                        data-testid="minutes-view-document"
-                        onClick={draft.openDocument}
+                        disabled={draft.previewing || draft.generating}
+                        data-testid="minutes-preview"
+                        ref={documentTrigger}
+                        onClick={() => void draft.preview()}
                       >
                         <VisibleIcon aria-hidden="true" />
-                        {t("minutes.viewDocument")}
+                        {t(draft.previewing ? "minutes.previewing" : "minutes.preview")}
                       </Button>
-                      <ShareButton
-                        testId="minutes-share"
-                        file={() => apiFile(minutesContentHref(id), "proces-verbal.pdf")}
-                      />
-                      <Button asChild variant="secondary">
-                        <a href={minutesContentHref(id)} download data-testid="minutes-download">
-                          <ArrowDownIcon aria-hidden="true" />
-                          {t("minutes.download")}
-                        </a>
+                    ) : null}
+                    {draft.canGenerate ? (
+                      <Button
+                        disabled={draft.generating || draft.previewing}
+                        data-testid="minutes-generate"
+                        onClick={() => void draft.generate()}
+                      >
+                        <PdfIcon aria-hidden="true" />
+                        {t(draft.generating ? "minutes.generating" : "minutes.generate")}
                       </Button>
-                    </>
-                  ) : null}
-                </div>
-              </section>
-            </>
-          ) : null}
-        </PageHeader>
-      </div>
+                    ) : null}
+                    {minutes.documentId ? (
+                      <>
+                        <Button
+                          ref={documentTrigger}
+                          variant="secondary"
+                          data-testid="minutes-view-document"
+                          onClick={draft.openDocument}
+                        >
+                          <VisibleIcon aria-hidden="true" />
+                          {t("minutes.viewDocument")}
+                        </Button>
+                        <ShareButton
+                          testId="minutes-share"
+                          file={() => apiFile(minutesContentHref(id), "proces-verbal.pdf")}
+                        />
+                        <Button asChild variant="secondary">
+                          <a href={minutesContentHref(id)} download data-testid="minutes-download">
+                            <ArrowDownIcon aria-hidden="true" />
+                            {t("minutes.download")}
+                          </a>
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
+                </section>
+              </>
+            ) : null}
+          </PageHeader>
+        </div>
+      )}
       <div className="page-content admin-detail-page minutes-editorial-page">
         <RequestErrorBanner error={draft.error} />
         {draft.loading ? (
@@ -288,19 +323,7 @@ function MinutesDetail({ id }: { id: string }) {
         ) : null}
         {minutes ? (
           <div className="admin-detail-surface minutes-editorial-surface">
-            {phone ? (
-              <CollapsibleSection
-                className="phone-document-information"
-                testId="minutes-phone-facts"
-                title={t("workspace.information")}
-                open={factsOpen}
-                onOpenChange={setFactsOpen}
-              >
-                {factsOpen ? <MinutesFacts facts={minutes.facts} /> : null}
-              </CollapsibleSection>
-            ) : (
-              <MinutesFacts facts={minutes.facts} />
-            )}
+            <MinutesFacts facts={minutes.facts} />
             <section className="admin-record" aria-labelledby="minutes-sections-title">
               <SectionHeader
                 titleId="minutes-sections-title"

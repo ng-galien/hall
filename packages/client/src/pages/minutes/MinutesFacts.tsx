@@ -1,6 +1,8 @@
 import type { MinutesFacts as Facts } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
+import { useId, useState } from "react";
 import { Disclosure } from "@/components/ui/disclosure";
+import { DisclosureBadge } from "@/components/ui/disclosure-badge";
 import { ListRow, ListRows } from "../../components/ui/list-row";
 import { SectionHeader } from "../../components/ui/section-header";
 import { ballotVerdictKey } from "../../features/council-meetings/ballotVerdictPresentation";
@@ -10,6 +12,9 @@ import { MinutesSectionHint } from "./MinutesSectionHint";
 // @implements-requirement HALL-FR-MIN-240
 export function MinutesFacts({ facts }: { facts: Facts }) {
   const { t, formatTime, formatNumber, formatDate, formatDateTime } = useI18n();
+  /* Folded at first, so that the course of the meeting shows from the start. */
+  const [open, setOpen] = useState(false);
+  const contentId = useId();
   const openingQuorum = facts.conduct.quorumObservations.find((observation) => observation.agendaItemId === null);
   const reconvocation = facts.conduct.reconvocations.at(-1);
   const reconvenedFrom = facts.meeting.reconvenedFrom;
@@ -30,97 +35,102 @@ export function MinutesFacts({ facts }: { facts: Facts }) {
         titleId="minutes-facts-title"
         title={t("minutes.facts")}
         hint={<MinutesSectionHint text={t("minutes.factsHint")} />}
+        icon={<DisclosureBadge />}
+        openIcon={<DisclosureBadge expanded />}
+        fold={{ open, onOpenChange: setOpen, controls: contentId, testId: "minutes-facts-toggle" }}
       />
-      <dl className="minutes-prose-facts">
-        <div>
-          <dt>{t("meetings.chair")}</dt>
-          <dd>{facts.meeting.chair?.name ?? t("common.none")}</dd>
-        </div>
-        <div>
-          <dt>{t("meetings.secretary")}</dt>
-          <dd>{facts.meeting.secretary?.name ?? t("common.none")}</dd>
-        </div>
-        <div>
-          <dt>{t("meeting.quorum")}</dt>
-          <dd>{formatNumber(facts.meeting.quorum)}</dd>
-        </div>
-        <div>
-          <dt>{t("meeting.openedAt")}</dt>
-          <dd>{formatTime(facts.meeting.startedAt)}</dd>
-        </div>
-        <div>
-          <dt>{t("meeting.closedAt")}</dt>
-          <dd>{formatTime(facts.meeting.closedAt)}</dd>
-        </div>
-        {openingQuorum ? (
-          <div data-testid="minutes-opening-quorum">
-            <dt>{t("minutes.openingQuorum")}</dt>
-            <dd>
-              {t("minutes.openingQuorumValue", {
-                verdict: t(`minutes.quorumVerdict.${openingQuorum.facts.verdict}`),
-                present: formatNumber(openingQuorum.facts.presentCount),
-                required: formatNumber(openingQuorum.facts.requiredPresent),
-              })}
-            </dd>
-          </div>
-        ) : null}
-        {reconvocation ? (
-          <div data-testid="minutes-second-convocation">
-            <dt>{t("minutes.secondConvocation")}</dt>
-            <dd>
-              {t("minutes.secondConvocationValue", {
-                sentAt: formatDateTime(reconvocation.sentAt),
-                scheduledAt: formatDateTime(reconvocation.scheduledAt),
-              })}
-            </dd>
-          </div>
-        ) : null}
-        {reconvenedFrom ? (
-          <div data-testid="minutes-reconvened-from">
-            <dt>{t("minutes.reconvenedFrom")}</dt>
-            <dd>
-              {t("minutes.reconvenedFromValue", {
-                number: formatNumber(reconvenedFrom.number),
-                date: formatDate(reconvenedFrom.scheduledAt),
-              })}
-            </dd>
-          </div>
-        ) : null}
-      </dl>
-      <section
-        className="minutes-attendance-text"
-        data-testid="minutes-attendance"
-        aria-labelledby="minutes-attendance-title"
-      >
-        <h3 id="minutes-attendance-title">{t("minutes.attendance")}</h3>
-        <dl className="minutes-attendance-groups" data-testid="minutes-attendance-content">
+      <div id={contentId} className="minutes-facts-content" hidden={!open}>
+        <dl className="minutes-prose-facts">
           <div>
-            <dt>{t("minutes.presentMembers", { count: formatNumber(present.length) })}</dt>
-            <dd>{names(present)}</dd>
+            <dt>{t("meetings.chair")}</dt>
+            <dd>{facts.meeting.chair?.name ?? t("common.none")}</dd>
           </div>
           <div>
-            <dt>{t("minutes.excusedMembers", { count: formatNumber(excused.length) })}</dt>
-            <dd>{names(excused)}</dd>
+            <dt>{t("meetings.secretary")}</dt>
+            <dd>{facts.meeting.secretary?.name ?? t("common.none")}</dd>
           </div>
           <div>
-            <dt>{t("minutes.absentMembers", { count: formatNumber(absent.length) })}</dt>
-            <dd>{names(absent)}</dd>
+            <dt>{t("meeting.quorum")}</dt>
+            <dd>{formatNumber(facts.meeting.quorum)}</dd>
           </div>
           <div>
-            <dt>{t("minutes.proxies", { count: formatNumber(represented.length) })}</dt>
-            <dd>
-              {represented.length > 0
-                ? represented
-                    .map((entry) => {
-                      const holder = facts.attendance.find((person) => person.id === entry.proxyHolderId);
-                      return `${entry.member.name} : ${t("minutes.proxyHolder")} ${holder?.member.name ?? t("common.none")}`;
-                    })
-                    .join("; ")
-                : t("common.none")}
-            </dd>
+            <dt>{t("meeting.openedAt")}</dt>
+            <dd>{formatTime(facts.meeting.startedAt)}</dd>
           </div>
+          <div>
+            <dt>{t("meeting.closedAt")}</dt>
+            <dd>{formatTime(facts.meeting.closedAt)}</dd>
+          </div>
+          {openingQuorum ? (
+            <div data-testid="minutes-opening-quorum">
+              <dt>{t("minutes.openingQuorum")}</dt>
+              <dd>
+                {t("minutes.openingQuorumValue", {
+                  verdict: t(`minutes.quorumVerdict.${openingQuorum.facts.verdict}`),
+                  present: formatNumber(openingQuorum.facts.presentCount),
+                  required: formatNumber(openingQuorum.facts.requiredPresent),
+                })}
+              </dd>
+            </div>
+          ) : null}
+          {reconvocation ? (
+            <div data-testid="minutes-second-convocation">
+              <dt>{t("minutes.secondConvocation")}</dt>
+              <dd>
+                {t("minutes.secondConvocationValue", {
+                  sentAt: formatDateTime(reconvocation.sentAt),
+                  scheduledAt: formatDateTime(reconvocation.scheduledAt),
+                })}
+              </dd>
+            </div>
+          ) : null}
+          {reconvenedFrom ? (
+            <div data-testid="minutes-reconvened-from">
+              <dt>{t("minutes.reconvenedFrom")}</dt>
+              <dd>
+                {t("minutes.reconvenedFromValue", {
+                  number: formatNumber(reconvenedFrom.number),
+                  date: formatDate(reconvenedFrom.scheduledAt),
+                })}
+              </dd>
+            </div>
+          ) : null}
         </dl>
-      </section>
+        <section
+          className="minutes-attendance-text"
+          data-testid="minutes-attendance"
+          aria-labelledby="minutes-attendance-title"
+        >
+          <h3 id="minutes-attendance-title">{t("minutes.attendance")}</h3>
+          <dl className="minutes-attendance-groups" data-testid="minutes-attendance-content">
+            <div>
+              <dt>{t("minutes.presentMembers", { count: formatNumber(present.length) })}</dt>
+              <dd>{names(present)}</dd>
+            </div>
+            <div>
+              <dt>{t("minutes.excusedMembers", { count: formatNumber(excused.length) })}</dt>
+              <dd>{names(excused)}</dd>
+            </div>
+            <div>
+              <dt>{t("minutes.absentMembers", { count: formatNumber(absent.length) })}</dt>
+              <dd>{names(absent)}</dd>
+            </div>
+            <div>
+              <dt>{t("minutes.proxies", { count: formatNumber(represented.length) })}</dt>
+              <dd>
+                {represented.length > 0
+                  ? represented
+                      .map((entry) => {
+                        const holder = facts.attendance.find((person) => person.id === entry.proxyHolderId);
+                        return `${entry.member.name} : ${t("minutes.proxyHolder")} ${holder?.member.name ?? t("common.none")}`;
+                      })
+                      .join("; ")
+                  : t("common.none")}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      </div>
     </section>
   );
 }

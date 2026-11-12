@@ -47,6 +47,9 @@
   :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"]) { min-height: var(--hall-size-touch-control); gap: var(--hall-space-3); padding-inline: var(--hall-space-3); border-radius: var(--hall-radius-medium); font-size: var(--hall-font-size-title); }
   :is([data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-sub-trigger"]) svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   [data-slot="dropdown-menu-label"] { padding-inline: var(--hall-space-3); font-size: var(--hall-font-size-caption); }
+  /* A label longer than the menu passes to a second line instead of being cut at the edge of the screen. */
+  [data-slot="dropdown-menu-item"] { height: auto; padding-block: var(--hall-space-2); white-space: normal; }
+  [data-slot="dropdown-menu-item"] > span { min-width: 0; overflow-wrap: anywhere; }
   /* With its search and creation in the header, the documents list starts under the header. */
   .app-main .workspace > .workspace-topzone:not(:has(> :not(input))) { margin-bottom: calc(-1 * var(--hall-space-3)); }
   /* The workspace search of a phone covers the screen; its results scroll under the field. */
@@ -135,6 +138,10 @@
   .phone-point .resource-preview-text { padding: 0; border: 0; }
   .phone-record-heading { display: grid; gap: var(--hall-space-2); padding: var(--hall-space-3); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); background: var(--hall-color-surface); }
   .phone-record-heading > p { margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
+  /* The state line keeps the flow of the heading, at the start of its line under the date. */
+  .phone-record-heading > .minutes-header-status { grid-area: auto; justify-self: start; }
+  .phone-minutes-document { display: grid; gap: var(--hall-space-2); margin-top: var(--hall-space-1); }
+  .phone-minutes-document > strong { font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-heavy); }
   .phone-points { display: grid; gap: var(--hall-space-2); }
   .phone-points > h2 { margin: 0; font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); }
 

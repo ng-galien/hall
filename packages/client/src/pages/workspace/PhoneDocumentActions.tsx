@@ -56,7 +56,7 @@ export function PhoneDocumentActions({ actions: itemActions }: { actions: PhoneD
             <MoreIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-max max-w-[calc(100vw-2rem)]">
+        <DropdownMenuContent align="end" collisionPadding={16} className="w-max max-w-[calc(100vw-2rem)]">
           {actions.map((action) => (
             <DropdownMenuItem
               key={action.id}

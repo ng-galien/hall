@@ -296,22 +296,24 @@
     background: var(--hall-color-surface);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
-  .minutes-detail-header > header {
+  /* Under the description: the states and the meeting links on one line, the reference copy at its end, then the
+     document section across the whole width, clear of the rule under the header. */
+  .minutes-detail-header .page-header { padding-bottom: var(--hall-space-3); }
+  .minutes-detail-header .page-header-controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
-      "title status"
-      "description links"
-      "document document";
+      "status links copy"
+      "document document document";
     align-items: center;
-    column-gap: var(--hall-space-5);
+    column-gap: var(--hall-space-4);
   }
-  .minutes-detail-header .page-title { grid-area: title; }
-  .minutes-detail-header > header > p { grid-area: description; }
-  .minutes-header-status { grid-area: status; }
+  .minutes-detail-header .page-header-controls > [data-testid="copy-object-reference"] { grid-area: copy; }
+  .minutes-header-status { grid-area: status; margin: 0; }
   .minutes-header-links {
     display: flex;
     grid-area: links;
+    min-width: 0;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--hall-space-2) var(--hall-space-4);
@@ -563,6 +565,8 @@
     background: var(--hall-color-surface);
   }
   .minutes-editorial-surface {
+    /* Its sections keep their own height; the free space stays under the last one. */
+    align-content: start;
     overflow: visible;
     border: 0;
     border-radius: 0;
@@ -680,11 +684,11 @@
 
   @media (max-width: 1000px) {
     .collection-toolbar { flex-wrap: wrap; }
-    .minutes-detail-header > header {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-areas: "title" "description" "status" "links" "document";
+    .minutes-detail-header .page-header-controls {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "status copy" "links links" "document document";
+      row-gap: var(--hall-space-2);
     }
-    .minutes-header-status { margin-top: var(--hall-space-3); }
     .minutes-header-document { align-items: flex-start; flex-direction: column; }
   }
   @media (prefers-reduced-motion: reduce) {
