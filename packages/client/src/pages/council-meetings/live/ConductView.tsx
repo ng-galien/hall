@@ -786,14 +786,12 @@ export function ConductView({
         <div className="conduct-stage-scroll" data-testid="live-item-scroll">
           <div className="conduct-stage-body">
             {selectedItem.business.kind === "minutesApproval" ? (
-              <Link
-                className="conduct-document-chip conduct-minutes-link"
-                to={`/minutes/${selectedItem.business.minutesId}`}
-                data-testid="live-minutes-link"
-              >
-                <FileIcon aria-hidden="true" />
-                {t("minutes.open")}
-              </Link>
+              <Button asChild variant="plain" className="conduct-document-chip conduct-minutes-link">
+                <Link to={`/minutes/${selectedItem.business.minutesId}`} data-testid="live-minutes-link">
+                  <FileIcon aria-hidden="true" />
+                  {t("minutes.open")}
+                </Link>
+              </Button>
             ) : null}
             {selectedItem.business.report ? (
               <details className="conduct-block" open={!voteOpen} key={`report-${selectedItem.id}-${voteOpen}`}>

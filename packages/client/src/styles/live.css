@@ -118,7 +118,7 @@
     flex: 1;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hall-size-rollcall-tile)), 1fr));
     align-content: start;
-    grid-auto-rows: var(--hall-size-rollcall-tile-height);
+    grid-auto-rows: minmax(var(--hall-size-rollcall-tile-height), auto);
     gap: var(--hall-space-3);
     overflow-y: auto;
     padding: var(--hall-space-2) var(--hall-space-7) var(--hall-space-6);
@@ -408,7 +408,6 @@
     font-size: var(--hall-font-size-display);
     font-weight: var(--hall-font-weight-bold);
     line-height: var(--hall-line-height-display);
-    text-wrap: balance;
   }
   .conduct-timer {
     display: inline-flex;
@@ -451,7 +450,10 @@
   .live-shell details.conduct-block > summary { display: flex; align-items: center; gap: var(--hall-space-2); cursor: pointer; list-style: none; }
   .live-shell details.conduct-block > summary::-webkit-details-marker { display: none; }
   .live-shell details.conduct-block[open] > summary { margin-bottom: var(--hall-space-2); }
-  .conduct-report { font-size: var(--hall-font-size-title); line-height: var(--hall-line-height-body); white-space: pre-wrap; }
+  .conduct-report { font-size: var(--hall-font-size-title); line-height: var(--hall-line-height-body); }
+  /* Paragraphs of a written text follow each other with one spacing, none after the last. */
+  :is(.conduct-report, .conduct-draft-decision blockquote) :is(p, ul, ol, h1, h2, h3, h4) { margin: 0; }
+  :is(.conduct-report, .conduct-draft-decision blockquote) :is(p, ul, ol, h1, h2, h3, h4) + :is(p, ul, ol, h1, h2, h3, h4) { margin-top: var(--hall-space-2); }
   .conduct-draft-decision blockquote {
     margin: 0;
     padding: var(--hall-space-3);
@@ -459,7 +461,6 @@
     background: var(--hall-color-brand-subtle);
     font-size: var(--hall-font-size-title);
     line-height: var(--hall-line-height-body);
-    white-space: pre-wrap;
   }
   .conduct-documents { display: flex; flex-wrap: wrap; gap: var(--hall-space-2); }
   .hall-button.conduct-document-chip {
@@ -557,12 +558,19 @@
   /* The title keeps at least 16 rem and wraps between words; the timer, then the recusal command, pass under it. */
   .conduct-title-timer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); min-width: 0; flex: 1 1 16rem; }
   .conduct-title-timer h1 { margin: 0; min-width: 0; flex: 1 1 12rem; overflow-wrap: break-word; }
-  .conduct-title-timer .conduct-timer { margin: 0; flex: none; font-size: var(--hall-font-size-body); }
+  .conduct-title-timer .conduct-timer { margin: 0; flex: none; min-height: var(--hall-size-control); padding-block: 0; font-size: var(--hall-font-size-body); }
   .hall-button.conduct-recusal-trigger { margin-left: auto; }
   .conduct-recusal-popover { width: var(--hall-size-picker-panel); max-width: calc(100vw - var(--hall-space-6)); max-height: var(--hall-size-dialog-height); overflow-y: auto; }
   .conduct-stage-scroll .conduct-stage-body { margin-top: 0; }
   .conduct-stage-actions .hall-button.conduct-adjourn-action { margin-right: auto; }
   .conduct-continuation { margin-left: auto; }
+  /* When the commands of the item no longer hold on one line, each takes its own line over the width. */
+  @media (max-width: 1000px) {
+    .conduct-stage-actions > * { flex: 1 1 auto; }
+    .conduct-stage-actions .hall-button.conduct-adjourn-action { margin-right: 0; }
+    .conduct-continuation { display: flex; margin-left: 0; }
+    .conduct-continuation > .hall-button { flex: 1 1 auto; }
+  }
   .conduct-action-blocker {
     color: var(--hall-color-text-muted);
     font-size: var(--hall-font-size-caption);
@@ -585,7 +593,8 @@
   }
   .vote-panel-collapsed { justify-items: center; border-style: dashed; background: transparent; box-shadow: none; }
   .vote-eligible-hint { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
-  .vote-panel-header { display: flex; align-items: center; justify-content: space-between; gap: var(--hall-space-4); }
+  .vote-panel-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--hall-space-2) var(--hall-space-4); }
+  .vote-panel-header h2 { white-space: nowrap; }
   .vote-panel-header h2 { font-size: var(--hall-font-size-heading); }
   .vote-method-toggle {
     display: flex;
@@ -615,6 +624,7 @@
   }
   .vote-source-zone {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--hall-space-2-5);
     padding: var(--hall-space-3);
     border: var(--hall-stroke-thick) solid var(--hall-color-brand-border);
@@ -653,6 +663,7 @@
   .hall-button.vote-zone-drop-action:hover { color: var(--hall-color-on-brand); background: var(--hall-color-brand); border-color: var(--hall-color-brand); }
   .vote-zone-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     justify-content: space-between;
     gap: var(--hall-space-2);
@@ -677,7 +688,11 @@
   .vote-zone-for.vote-zone-over { border-color: var(--hall-color-success); background: var(--hall-color-success-surface); }
   .vote-zone-against.vote-zone-over { border-color: var(--hall-color-danger); background: var(--hall-color-danger-surface); }
   .vote-zone-abstain.vote-zone-over { border-color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
-  .vote-zone-chips { display: flex; flex: 1; flex-wrap: wrap; align-content: flex-start; gap: var(--hall-space-2); }
+  /* The voters form a regular grid of equal columns. */
+  .vote-zone-chips { display: grid; flex: 1; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hall-size-relative-10rem)), 1fr)); align-content: flex-start; gap: var(--hall-space-2); }
+  .vote-zone-chips > .hall-button.vote-card { width: 100%; }
+  /* In the grid a name passes to a second line rather than being cut. */
+  .vote-zone-chips > .hall-button.vote-card .vote-card-copy :is(strong, span) { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: break-word; }
   .hall-button.vote-card {
     display: inline-flex;
     max-width: 100%;
@@ -863,8 +878,14 @@
     .live-header { flex-wrap: wrap; gap: var(--hall-space-2); padding: var(--hall-space-2) var(--hall-space-3); }
     .live-header-title { flex-basis: 100%; order: 1; }
     .live-header-status { margin-left: auto; gap: var(--hall-space-2); }
-    /* On a phone the exit and the quorum with the clock share the first line; the title takes the next one. */
-    .live-header { flex-wrap: wrap; align-items: center; }
+    /* On a phone the exit and the clock share the first line; the meeting title and the quorum the next one. */
+    .live-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "exit clock" "title quorum"; align-items: center; }
+    .live-header > .live-exit { grid-area: exit; justify-self: start; }
+    .live-header > .live-header-title { grid-area: title; }
+    .live-header > .live-header-status { display: contents; }
+    .live-header .live-clock { grid-area: clock; justify-self: end; }
+    .live-header .live-quorum-chip { grid-area: quorum; justify-self: end; }
+    .live-header-title strong { white-space: normal; }
     .live-exit { min-width: 0; padding-inline: 0; }
     .live-header-status .live-clock { font-size: var(--hall-font-size-body); }
     .rollcall-header { flex-wrap: wrap; gap: var(--hall-space-2); padding: var(--hall-space-3); }

@@ -199,8 +199,9 @@
   .collection-toolbar .collection-toolbar-side:empty { display: none; }
   .docs-search { width: auto; flex: 1 1 auto; min-width: 0; }
   .conduct { flex-direction: column; overflow-x: hidden; overflow-y: auto; }
-  .conduct .conduct-rail { width: 100% !important; border-right: 0; border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
-  .conduct-timeline { flex: none; max-height: var(--hall-size-tree-max); overflow-y: auto; }
+  /* On a phone the current item comes first; the agenda and the meeting tools follow it. */
+  .conduct .conduct-rail { order: 1; width: 100% !important; border-right: 0; border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
+  .conduct-timeline { flex: none; overflow: visible; }
   .conduct-rail-resizer { display: none; }
   .conduct .conduct-stage { flex: none; overflow: visible; }
   .conduct-stage-scroll { flex: none; overflow: visible; }
