@@ -668,6 +668,7 @@ export const fr: Messages = {
   "docs.search.placeholder": "Rechercher dans la documentation…",
   "docs.search.label": "Rechercher dans la documentation",
   "docs.search.noResult": "Aucune page ne correspond.",
+  "docs.download.pdfShort": "PDF",
   "docs.download.pdf": "Exporter la documentation en PDF",
   "docs.download.pdfPending": "Préparation du PDF…",
   "docs.download.pdfFailed": "Le PDF n’a pas pu être produit.",

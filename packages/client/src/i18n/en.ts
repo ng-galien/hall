@@ -657,6 +657,7 @@ export const en = {
   "docs.search.placeholder": "Search the documentation…",
   "docs.search.label": "Search the documentation",
   "docs.search.noResult": "No page matches.",
+  "docs.download.pdfShort": "PDF",
   "docs.download.pdf": "Export the documentation as PDF",
   "docs.download.pdfPending": "Preparing the PDF…",
   "docs.download.pdfFailed": "The PDF could not be produced.",

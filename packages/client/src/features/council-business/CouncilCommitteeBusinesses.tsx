@@ -44,7 +44,7 @@ export function CouncilCommitteeBusinesses({ committeeId }: { committeeId: strin
       {loading ? <p role="status">{t("common.loading")}</p> : null}
       {!loading && businesses.length === 0 && !error ? <p>{t("committees.noBusinesses")}</p> : null}
       {businesses.length > 0 ? (
-        <ListRows>
+        <ListRows className="committee-business-list">
           {businesses.map((business) => (
             <ListRow
               key={business.councilBusinessId}

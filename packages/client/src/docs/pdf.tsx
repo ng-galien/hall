@@ -51,7 +51,7 @@ export function DocsPdfExport({ className }: { className: string }) {
         data-testid="docs-export-pdf"
       >
         <PdfIcon aria-hidden="true" />
-        <span>{label}</span>
+        <span>{t("docs.download.pdfShort")}</span>
       </Button>
       {state === "failed" ? (
         <span role="alert" data-testid="docs-export-pdf-error">

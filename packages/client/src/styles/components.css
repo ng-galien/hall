@@ -214,6 +214,12 @@
 
   .template-editor { display: grid; gap: var(--hall-space-4); }
   .template-editor > .creation-form { padding-top: 0; }
+  .template-editor > .template-back { justify-self: start; font-size: var(--hall-font-size-body); }
+  /* The type of the template sits on the first field as closely as the link sits on it. */
+  .template-editor > .template-editor-status + .creation-form { margin-top: calc(-1 * var(--hall-space-2)); }
+  /* The affaires of a committee start at the left edge of the fields above them. */
+  .committee-business-list > .list-row { --list-row-head-width: auto; }
+  .committee-business-list .list-row-main { padding-left: 0; }
   .template-editor-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-4); margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .template-decoration,
   .template-body { display: grid; justify-items: start; gap: var(--hall-space-2); }
@@ -647,17 +653,19 @@
   /* The single section header: title at the left in one size and weight with its count, the commands of the section
      at the right end of the line, a rule under the line. */
   .section-header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--hall-space-1) var(--hall-space-4);
     padding-bottom: var(--hall-space-2);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
   .section-header[hidden] { display: none; }
-  /* The title and the commands share the first line; the description takes the whole width under them. */
+  /* The title and the commands share the first line; the description takes the whole width under them. When the
+     title and the commands do not fit side by side, the commands pass under the title, which is never cut inside a
+     word. */
   .section-header-text { display: contents; }
-  .section-header-line { display: flex; min-width: 0; min-height: var(--hall-size-control); grid-column: 1; grid-row: 1; align-items: center; gap: var(--hall-space-1); }
+  .section-header-line { display: flex; min-width: 0; min-height: var(--hall-size-control); flex: 1 1 auto; align-items: center; gap: var(--hall-space-1); }
   .section-header-title {
     display: flex;
     min-width: 0;
@@ -690,10 +698,10 @@
   .section-header-icon { display: inline-grid; flex: none; place-items: center; color: var(--hall-color-nature-folder); }
   .section-header-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   .section-header-icon .disclosure-badge svg { width: var(--hall-font-size-caption); height: var(--hall-font-size-caption); }
-  .section-header-title-text { min-width: 0; overflow-wrap: anywhere; }
-  .section-header-description { grid-column: 1 / -1; grid-row: 2; margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
-  /* The commands keep the right end of the title line, centred on it; when they do not fit, they wrap at its right. */
-  .section-header-commands { display: flex; min-width: 0; min-height: var(--hall-size-control); grid-column: 2; grid-row: 1; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); }
+  .section-header-title-text { min-width: 0; overflow-wrap: break-word; }
+  .section-header-description { flex: 1 0 100%; order: 1; margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
+  /* The commands keep the right end of the title line, centred on it. */
+  .section-header-commands { display: flex; min-width: 0; min-height: var(--hall-size-control); flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
   /* A list right under a section header starts at its rule and leaves the space under the section to the screen. */
   .section-header + .list-row-list { margin-bottom: 0; border-top: 0; }
   .collapsible-section { display: grid; gap: var(--hall-space-2); }
