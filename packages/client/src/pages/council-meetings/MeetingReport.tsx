@@ -79,8 +79,8 @@ export function MeetingReport({
           title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
           description={meeting.location ?? ""}
         >
-          <div className="meeting-report-band">
-            <dl className="meeting-facts" data-testid="meeting-report-facts">
+          <div className="meeting-report-band" data-layout-flow="true">
+            <dl className="meeting-facts" data-testid="meeting-report-facts" data-layout-flow="true">
               {facts.map((fact) => (
                 <div key={fact.key}>
                   <dt>{fact.label}</dt>
@@ -90,8 +90,8 @@ export function MeetingReport({
                 </div>
               ))}
             </dl>
-            <div className="meeting-report-band-attendance">
-              <dl className="meeting-facts" data-testid="report-attendance-counts">
+            <div className="meeting-report-band-attendance" data-layout-flow="true">
+              <dl className="meeting-facts" data-testid="report-attendance-counts" data-layout-flow="true">
                 {attendanceStatuses.map((status) => (
                   <div key={status}>
                     <dt>{t(`report.attendanceCount.${status}`)}</dt>

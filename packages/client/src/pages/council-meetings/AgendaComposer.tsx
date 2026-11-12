@@ -182,27 +182,21 @@ export function AgendaComposer({
             </span>
           </>
         }
-        hint={
+        commands={
           <>
             <HelpHint
               text={t(editable ? "meeting.composerDescription" : "meeting.composerLocked")}
               testId="agenda-composer-help"
             />
             {status}
+            {actions}
+            {editable && onQuickCreate ? (
+              <Button data-testid="agenda-question-create" variant="secondary" onClick={() => setQuickAddOpen(true)}>
+                <AddIcon />
+                {t("agendaSubject.openQuestion")}
+              </Button>
+            ) : null}
           </>
-        }
-        commands={
-          actions || (editable && onQuickCreate) ? (
-            <>
-              {actions}
-              {editable && onQuickCreate ? (
-                <Button data-testid="agenda-question-create" variant="secondary" onClick={() => setQuickAddOpen(true)}>
-                  <AddIcon />
-                  {t("agendaSubject.openQuestion")}
-                </Button>
-              ) : null}
-            </>
-          ) : undefined
         }
       />
       {caption ? <div className="agenda-composer-caption">{caption}</div> : null}

@@ -304,7 +304,7 @@ export function MeetingDocumentsSection({
     <>
       <RequestErrorBanner error={error} />
       <RequestErrorBanner error={meetingActions.actionError} />
-      <ListRows data-wrap="true">
+      <ListRows data-wrap="true" data-layout-flow="true">
         {showNoticeRow ? (
           <DocumentRow
             testId="meeting-document-notice"
@@ -564,7 +564,7 @@ export function MeetingDocumentsSection({
             countTestId="meeting-document-decisions-count"
           />
           {decisions.length ? (
-            <ListRows data-wrap="true">
+            <ListRows data-wrap="true" data-layout-flow="true">
               {decisions.map((decision) => {
                 const openPdf = () => perform(() => showDecision(decision.id, decision.title));
                 const number = decision.publicationNumber

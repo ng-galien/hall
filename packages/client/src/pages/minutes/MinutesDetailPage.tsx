@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CopyReferenceButton, copyObjectReference } from "../../components/CopyReferenceButton";
@@ -35,6 +35,8 @@ function MinutesDetail({ id }: { id: string }) {
   const { t, formatDate, formatNumber } = useI18n();
   const draft = useMinutesDraft(id);
   const documentTrigger = useRef<HTMLButtonElement>(null);
+  const [header, setHeader] = useState<HTMLDivElement | null>(null);
+  const headerHeight = useStickyHeaderHeight(header);
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
   const { minutes } = draft;
   const generatedDocument = draft.documentUrl === minutesContentHref(id) && Boolean(minutes?.documentId);
@@ -197,7 +199,7 @@ function MinutesDetail({ id }: { id: string }) {
         </>
       ) : null}
       {phone ? null : (
-        <div className="minutes-detail-header">
+        <div className="minutes-detail-header" ref={setHeader}>
           <PageHeader
             title={
               minutes
@@ -312,7 +314,10 @@ function MinutesDetail({ id }: { id: string }) {
           </PageHeader>
         </div>
       )}
-      <div className="page-content admin-detail-page minutes-editorial-page">
+      <div
+        className="page-content admin-detail-page minutes-editorial-page"
+        style={{ "--minutes-header-height": `${headerHeight}px` } as CSSProperties}
+      >
         <RequestErrorBanner error={draft.error} />
         {draft.loading ? (
           <EmptyState>{t("common.loading")}</EmptyState>
@@ -328,7 +333,7 @@ function MinutesDetail({ id }: { id: string }) {
               <SectionHeader
                 titleId="minutes-sections-title"
                 title={t(minutes.generatedAt ? "minutes.recordedSections" : "minutes.sections")}
-                hint={
+                commands={
                   <MinutesSectionHint text={t(minutes.generatedAt ? "minutes.frozenHint" : "minutes.sectionsHint")} />
                 }
               />
@@ -376,4 +381,17 @@ function MinutesDetail({ id }: { id: string }) {
       ) : null}
     </div>
   );
+}
+
+/** Height of the sticky header of the minutes, so that the fixed tools of an editor stop under it. */
+function useStickyHeaderHeight(header: HTMLElement | null) {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    if (!header) return;
+    const observer = new ResizeObserver(() => setHeight(header.offsetHeight));
+    observer.observe(header);
+    setHeight(header.offsetHeight);
+    return () => observer.disconnect();
+  }, [header]);
+  return height;
 }

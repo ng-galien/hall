@@ -75,7 +75,7 @@ export function CouncilDecisionsPage() {
                   </span>
                 </Link>
               </header>
-              <ListRows data-wrap="true">
+              <ListRows data-wrap="true" data-layout-flow="true">
                 {group.decisions.map((decision) => (
                   <ListRow
                     key={decision.id}

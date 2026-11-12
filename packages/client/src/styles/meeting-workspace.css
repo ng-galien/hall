@@ -278,20 +278,21 @@
   :is(.meeting-documents, .meeting-decisions) .list-row-action { gap: var(--hall-space-4); }
   :is(.meeting-documents, .meeting-decisions) .list-row-action > .hall-link { font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-regular); }
   :is(.meeting-documents, .meeting-decisions) .list-row-action > a.hall-link:hover { text-decoration: underline; }
-  /* On a phone the written commands take a line of their own under the text of the row, aligned with it. */
+  /* The written commands stay at the end of the line while the text keeps 14 rem; in a narrower row they take a
+     line of their own under the text, aligned with it. */
+  :is(.meeting-documents, .meeting-decisions) .list-row-line { flex-wrap: wrap; }
+  :is(.meeting-documents, .meeting-decisions) .list-row-main { min-width: min(100%, var(--hall-size-relative-14rem)); }
+  :is(.meeting-documents, .meeting-decisions) .list-row-action { flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
   @media (max-width: 760px) {
-    :is(.meeting-documents, .meeting-decisions) .list-row-line { flex-wrap: wrap; }
-    :is(.meeting-documents, .meeting-decisions) .list-row-action { width: 100%; padding: 0 var(--hall-space-3) var(--hall-space-2) calc(var(--hall-space-3) * 2 + var(--list-row-head-width, var(--hall-size-glyph-large))); }
     .meeting-decisions .list-row { --list-row-head-width: auto; }
-    .meeting-decisions .list-row-action { padding-left: var(--hall-space-3); }
   }
-  /* In a narrow column the deliberation keeps its number at the left; its tag and its command go under its text. */
-  .meeting-decisions { container-type: inline-size; }
-  @container (max-width: 760px) {
-    .meeting-decisions .list-row { --list-row-head-width: auto; }
-    .meeting-decisions .list-row-line { flex-wrap: wrap; }
-    .meeting-decisions .list-row-action { width: 100%; justify-content: flex-end; padding: 0 var(--hall-space-3) var(--hall-space-2); }
+  /* Under a finger each written command offers a 44-pixel target. */
+  @media (pointer: coarse) {
+    :is(.meeting-documents, .meeting-decisions) .list-row-action > .hall-link,
+    .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command,
+    .report-timeline .section-header-commands .hall-button.hall-link { display: inline-flex; min-height: var(--hall-size-touch-control); align-items: center; }
   }
+
   /* The facts of a closed meeting hold one row under the description, wrapping by whole facts on a narrow screen. */
   .meeting-report-header .page-header-controls { display: grid; gap: var(--hall-space-3); }
   /* A section that opens with its header takes the rule under the header instead of a rule above it. */
@@ -378,7 +379,6 @@
   .meeting-state > * + :not(.list-row-status)::before { margin-inline: var(--hall-space-1-5); color: var(--hall-color-text-muted); content: "·"; }
   /* A state after another fact keeps its own coloured dot as separator. */
   .meeting-state > * + .list-row-status { margin-left: var(--hall-space-3); }
-  .meeting-state > .list-row-status { color: var(--hall-color-text); }
   /* Meeting header of before the redesign: the console of facts and the stage bar with its circles. */
   .meeting-preparation .page-header .meeting-console { margin-top: var(--hall-space-3); margin-bottom: 0; border: 0; box-shadow: none; border-radius: 0; }
   .meeting-preparation .page-header .meeting-stepper { padding: var(--hall-space-3) 0; }
@@ -459,7 +459,8 @@
   .meeting-preparation .meeting-stepper-separator { position: absolute; top: 50%; left: 50%; width: 100%; height: var(--hall-stroke-thin); margin: 0; transform: translateY(-50%); }
   .meeting-preparation .meeting-stepper-title { margin-top: var(--hall-space-1); font-weight: var(--hall-font-weight-regular); }
   .meeting-preparation .meeting-stepper-item[data-status="active"] .meeting-stepper-title { font-weight: var(--hall-font-weight-semibold); }
-  .meeting-preparation .meeting-stepper-title { white-space: nowrap; }
+  .meeting-preparation .meeting-stepper-item { min-width: 0; }
+  .meeting-preparation .meeting-stepper-title { max-width: 100%; overflow-wrap: anywhere; }
   /* On a phone the steps are a vertical list, each circle with its title on one line beside it; the row layout above
      gives way to the drawing of the steps. */
   @media (max-width: 760px) {
@@ -489,7 +490,7 @@
   .report-main { display: grid; min-width: 0; gap: var(--hall-space-2); align-content: start; }
   .agenda-composer-heading { margin-bottom: var(--hall-space-2); }
   /* The count keeps its words together; the commands keep the right end, on the title line or under it. */
-  .agenda-composer-count { display: inline-block; color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-regular); white-space: nowrap; }
+  .agenda-composer-count { display: inline; color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-regular); overflow-wrap: anywhere; }
   .agenda-composer-heading > .section-header-commands { flex: 1 1 auto; justify-content: flex-end; }
   .agenda-composer-caption { margin-bottom: var(--hall-space-2); }
   .composer-list { margin-bottom: var(--hall-space-4); }
@@ -832,10 +833,6 @@
     /* On a phone the band follows the rule of the screen header without a second rule. */
     .meeting-report-band { margin-top: 0; padding-top: 0; border-top: 0; }
   }
-  @container (max-width: 760px) {
-    .meeting-decisions .list-row-main { padding-bottom: 0; }
-    .meeting-decisions .list-row-action { justify-content: flex-start; padding: 0 var(--hall-space-3) var(--hall-space-2); }
-  }
 
   /* Point of a closed meeting on a phone: the square stands at the start of the ballot line, the wrapped counts
      align with the verdict, and no empty space opens above it. */
@@ -861,3 +858,19 @@
    the tab bar; the editor frame hangs from it without a top border of its own. */
 .minutes-point-tabbar [data-slot="tabs-list"] { border-bottom: 0; }
 .minutes-point-editor .markdown-editor { margin-top: calc(-1 * var(--hall-space-3)); border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+
+@layer components {
+  /* On a phone the facts of a meeting in progress are written one under the other. */
+  @media (max-width: 760px) {
+    .live-resume-hero .meeting-state { display: grid; justify-items: start; gap: var(--hall-space-1); }
+    .live-resume-hero .meeting-state > * + :not(.list-row-status)::before { content: none; }
+    .live-resume-hero .meeting-state > * + .list-row-status { margin-left: 0; }
+  }
+  /* An agenda item keeps 12 rem for its title; its commands pass under it in a narrower row. */
+  .composer-list .list-row-line { flex-wrap: wrap; }
+  .composer-list .list-row-main { min-width: min(100%, var(--hall-size-relative-12rem)); }
+  .composer-list .list-row-action { margin-left: auto; }
+}
+
+/* Outside the layers, like the fixed tools of the editor: in the minutes the tools stop under the sticky header. */
+.minutes-editorial-page .markdown-editor.markdown-editor-compact > [role="toolbar"] { top: var(--minutes-header-height, 0px); }

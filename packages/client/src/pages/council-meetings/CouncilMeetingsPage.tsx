@@ -48,7 +48,7 @@ export function CouncilMeetingsPage() {
         <RequestErrorBanner error={error} />
 
         {nextMeeting ? (
-          <ListRows className="next-meeting-list" data-wrap="true">
+          <ListRows className="next-meeting-list" data-wrap="true" data-layout-flow="true">
             <ListRow
               prominent
               to={`/meetings/${nextMeeting.reference}`}
@@ -134,7 +134,7 @@ function MeetingGroup({
           </span>
         </span>
       </header>
-      <ListRows data-wrap="true">
+      <ListRows data-wrap="true" data-layout-flow="true">
         {meetings.map((meeting) => (
           <ListRow
             key={meeting.id}

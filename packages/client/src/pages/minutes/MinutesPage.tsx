@@ -53,7 +53,7 @@ export function MinutesPage() {
           <EmptyState>{t("minutes.empty")}</EmptyState>
         ) : null}
         {minutes.length > 0 ? (
-          <ListRows>
+          <ListRows data-wrap="true" data-layout-flow="true">
             {minutes.map((item) => (
               <ListRow
                 key={item.id}

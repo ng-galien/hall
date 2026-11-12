@@ -197,8 +197,8 @@
     .list-row-detail,
     .list-row-wide,
     .list-row-fact { font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
-    /* A state keeps the 14-pixel size of the states written outside the rows. */
-    .list-row-detail > .list-row-status { font-size: var(--hall-font-size-body); }
+    /* A state keeps the size of the states written outside the rows. */
+    .list-row-detail > .list-row-status { font-size: var(--hall-font-size-status); line-height: var(--hall-line-height-caption); }
     .list-row-number strong,
     .list-row-date strong { font-size: var(--hall-font-size-body); }
     .list-row-avatar { width: var(--hall-size-control-small); height: var(--hall-size-control-small); }

@@ -34,7 +34,7 @@ export function MinutesFacts({ facts }: { facts: Facts }) {
       <SectionHeader
         titleId="minutes-facts-title"
         title={t("minutes.facts")}
-        hint={<MinutesSectionHint text={t("minutes.factsHint")} />}
+        commands={<MinutesSectionHint text={t("minutes.factsHint")} />}
         icon={<DisclosureBadge />}
         openIcon={<DisclosureBadge expanded />}
         fold={{ open, onOpenChange: setOpen, controls: contentId, testId: "minutes-facts-toggle" }}
