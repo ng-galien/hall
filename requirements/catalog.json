@@ -11119,6 +11119,7 @@
       "acceptanceCriteria": [
         "Au téléphone, la première ligne porte le nom de la commune sur un écran de premier niveau et, sur un écran intérieur, le nom de l’écran parent précédé d’une flèche de retour ; sur ordinateur et tablette, le fil d’Ariane tient lieu de cette ligne.",
         "À droite de la première ligne se trouvent l’action propre à l’écran puis les initiales de l’utilisateur, qui ouvrent son compte.",
+        "Tant que le serveur répond, y compris pendant le chargement et la synchronisation des données, la première ligne ne montre rien de la connexion. Quand la connexion est perdue, la première ligne écrit avant les initiales, après un point rouge, « Serveur injoignable » ou « Authentification nécessaire » ; ce texte est visible au téléphone, sur tablette et sur ordinateur, annoncé aux lecteurs d’écran, et laisse le titre, l’action et les initiales dans l’écran à 375 pixels de large.",
         "Le titre de l’écran est écrit en grand sous la première ligne ; dès que le contenu défile, il remonte dans la première ligne et le bandeau tient sur une ligne.",
         "Le titre n’est pas répété dans le contenu de l’écran.",
         "Chaque écran est blanc : son contenu est posé sur le fond blanc et séparé par des filets, sans fond gris ni panneau blanc posé dessus."
@@ -11128,6 +11129,12 @@
           "key": "screen-header-2b",
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 2B et fond F2 ; mots du propriétaire : « je trouve que 2B est bien », « Les couleurs avec le fond gris et l’apparent en blanc, on avait dit qu’on ne prenait plus ».",
+          "sourceIds": []
+        },
+        {
+          "key": "screen-header-connection-lost-only",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 sur l’indicateur de connexion du bandeau : le point vert permanent et le point gris de synchronisation sont retirés, seule la perte de connexion s’écrit, dans la forme des états après un point (choix 7) ; mots du propriétaire : « il y a cet indicateur de connexion, je pense qu'il est très vieux et plus ou moins historique. Je ne sais pas s'il a un grand intérêt », puis « Oui, fais-le ».",
           "sourceIds": []
         }
       ]

@@ -141,3 +141,27 @@ test("stale meetings stay accessible with a yellow review badge and never become
   await expect(page.getByTestId(`meeting-history-${meetings[0].properties.id}`)).toBeVisible();
   await expect(page.getByTestId("meeting-next").getByTestId("meeting-needs-review")).toHaveCount(0);
 });
+
+// @verifies-requirement HALL-FR-LAY-100
+test("the screen header writes nothing of the connection until the server stops answering", async ({
+  appPage: page,
+  seededDatabase,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/app/");
+  const connection = page.getByTestId("application-sync-status");
+  await expect(connection).toHaveAttribute("data-sync-state", "synchronized");
+  await expect(connection).toHaveText("");
+  await expect(connection).toHaveAttribute("role", "status");
+  await seededDatabase.stop();
+  await page.getByTestId("phone-navigation-calendar").click();
+  await expect(connection).toHaveAttribute("data-sync-state", "failed");
+  await expect(connection).toHaveText("Server unreachable");
+  await expect(connection).toBeVisible();
+  const bounds = async (testId: string) => (await page.getByTestId(testId).boundingBox())!;
+  const state = await bounds("application-sync-status");
+  const initials = await bounds("screen-header-account");
+  expect(state.x + state.width).toBeLessThanOrEqual(initials.x);
+  expect(initials.x + initials.width).toBeLessThanOrEqual(375);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});

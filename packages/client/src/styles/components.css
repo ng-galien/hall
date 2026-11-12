@@ -177,9 +177,6 @@
     font-weight: var(--hall-font-weight-semibold);
   }
   @keyframes page-enter { from { opacity: 0; transform: translateY(var(--hall-motion-distance)); } to { opacity: 1; transform: none; } }
-  .connection-status-pending {
-    animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite;
-  }
   @keyframes connection-status-pulse { 50% { opacity: var(--hall-opacity-pulse); } }
 
   /* A settings or template section lies on the white screen; the next one starts under a rule. */

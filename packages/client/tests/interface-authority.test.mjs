@@ -104,6 +104,21 @@ test("one screen header and one navigation per format, the retired ones do not c
   assert.doesNotMatch(bar, /sr-only/, "the bottom bar labels are visible");
 });
 
+// @verifies-requirement HALL-FR-LAY-100
+test("the screen header writes the connection only when it is lost", () => {
+  assert.deepEqual(
+    offenders(/screen-header-status|connection-status-pending|common\.(?:serverConnected|syncing|initializing)\b/),
+    [],
+  );
+  const header = readFileSync(join(sourceRoot, "shell/ScreenHeader.tsx"), "utf8");
+  const status = header.slice(
+    header.indexOf("export function ApplicationConnectionStatus"),
+    header.indexOf("export function ScreenHeader"),
+  );
+  assert.match(status, /\{error \? \(\s*<span className="record-state" data-tone="danger">/);
+  assert.doesNotMatch(status, /data-tone=\{|title=|sr-only/);
+});
+
 // @verifies-requirement HALL-FR-LAY-110
 test("no icon of the interface is filled", () => {
   assert.deepEqual(offenders(/weight=["{]\s*"?(?:fill|duotone)/), []);

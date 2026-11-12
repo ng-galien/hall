@@ -115,31 +115,27 @@ function useScreenIdentity() {
   return identity;
 }
 
-/** Connection state of the application with the server, as a coloured dot. */
+// @implements-requirement HALL-FR-LAY-100
+/**
+ * A lost connection, written after a red dot beside the initials. While the server answers, the live region stays
+ * empty and takes no room; its synchronisation phase remains readable in `data-sync-state`.
+ */
 export function ApplicationConnectionStatus() {
   const { phase, error } = useApplicationStatus();
   const { t } = useI18n();
-  const connectionLabel = error
-    ? error === "authentication_required"
-      ? t("common.authenticationRequired")
-      : t("common.serverUnavailable")
-    : phase === "initializing"
-      ? t("common.initializing")
-      : phase === "synchronizing"
-        ? t("common.syncing")
-        : t("common.serverConnected");
-  const tone = error ? "danger" : phase === "initializing" || phase === "synchronizing" ? "pending" : "success";
   return (
     <span
-      className="screen-header-status"
+      className="screen-header-connection"
       role="status"
       aria-live="polite"
-      title={connectionLabel}
-      data-tone={tone}
       data-sync-state={phase}
       data-testid="application-sync-status"
     >
-      <span className="sr-only">{connectionLabel}</span>
+      {error ? (
+        <span className="record-state" data-tone="danger">
+          {error === "authentication_required" ? t("common.authenticationRequired") : t("common.serverUnavailable")}
+        </span>
+      ) : null}
     </span>
   );
 }
