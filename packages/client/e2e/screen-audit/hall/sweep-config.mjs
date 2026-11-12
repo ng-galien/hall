@@ -148,20 +148,23 @@ const unityComponents = {
     /* A large or prominent row takes the height of what it shows. */
     contentHeight: "[data-size=large], [data-prominent=true]",
   },
-  bandeau: { selector: ".screen-header-line", part: "", variants: [] },
-  "grand titre": { selector: "h1.screen-header-title", part: "", variants: [] },
+  /* The first line is compared by its own box, not by the text it happens to show first. */
+  bandeau: { selector: ".screen-header-line", part: "", text: ":scope", icon: "none", variants: [] },
+  /* A title takes the height of its lines. */
+  "grand titre": { selector: "h1.screen-header-title", part: "", variants: [], contentHeight: "*" },
   bouton: { selector: "[data-slot=button]", part: "", variants: ["data-variant", "data-size"] },
   champ: {
     selector: "[data-slot=field]:not(:has(textarea)) .hall-field",
     part: "",
     text: ".hall-input, .hall-select-trigger",
+    icon: "none",
     variants: [],
     kinds: [
       [".hall-select-trigger", "liste de choix"],
       [".tag-input", "étiquettes"],
     ],
   },
-  état: { selector: ".record-state, .list-row-status", part: "", variants: [] },
+  état: { selector: ".record-state, .list-row-status", part: "", icon: "none", variants: [], contentHeight: "*" },
   "en-tête de section": { selector: ".collapsible-section-header", part: "", variants: [] },
 };
 /**

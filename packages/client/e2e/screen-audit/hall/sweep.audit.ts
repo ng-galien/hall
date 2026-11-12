@@ -167,7 +167,8 @@ if (sweeping) {
               if (full)
                 for (const entry of await page.evaluate(readComponentUnity, {
                   components: sweepPlan.unityComponents,
-                  tactile: phone || input === "touch",
+                  phone,
+                  touch: input === "touch",
                 }))
                   unity.push({ ...entry, ...where });
               const areas = await page.evaluate(readContentWidth);

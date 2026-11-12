@@ -408,20 +408,6 @@
     },
     {
       "component": "bandeau",
-      "selector": "[data-testid=screen-header], [data-testid=phone-header]",
-      "property": "border-bottom-color",
-      "expected": "#DFE3E8",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Design de référence",
-        "page": 6,
-        "element": "v22"
-      },
-      "note": "« séparation des zones »"
-    },
-    {
-      "component": "bandeau",
       "selector": ".screen-header-back, .screen-header-parent",
       "property": "color",
       "expected": "#2457D6",
@@ -433,20 +419,6 @@
         "element": "v32"
       },
       "note": "« liens »"
-    },
-    {
-      "component": "barre du bas",
-      "selector": "nav.app-phone-bar",
-      "property": "border-top-color",
-      "expected": "#DFE3E8",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Design de référence",
-        "page": 6,
-        "element": "v22"
-      },
-      "note": "« séparation des zones »"
     },
     {
       "component": "barre du bas",
@@ -634,6 +606,10 @@
     {
       "component": "typographie",
       "values": "tailles du texte courant (16 px), secondaire (14 px), minimum (13 px) : écrites seulement dans l'ancien document"
+    },
+    {
+      "component": "bandeau et barre du bas",
+      "values": "présence et couleur d'un filet de séparation (la page 6 nomme le filet « séparation des lignes et des zones » sans dire si le bandeau ou la barre du bas en portent un)"
     }
   ]
 }

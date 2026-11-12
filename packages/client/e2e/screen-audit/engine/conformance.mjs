@@ -595,7 +595,13 @@ export function measureConformance(options) {
       const between = commands.filter((command) => {
         const rect = command.getBoundingClientRect();
         const middle = (rect.top + rect.bottom) / 2;
-        return middle > lineBottom && middle < titleTop && !command.closest(".screen-header-trail");
+        // Only the commands of the content column: the menu beside it is not between the first line and the title.
+        return (
+          middle > lineBottom &&
+          middle < titleTop &&
+          rect.left >= firstLine.getBoundingClientRect().left - 1 &&
+          !command.closest(".screen-header-trail")
+        );
       });
       if (between.length)
         add(
@@ -779,7 +785,8 @@ export function measureConformance(options) {
       if (title.getBoundingClientRect().height > lineHeight * 1.6) continue;
     }
     const height = line.getBoundingClientRect().height;
-    const ok = touch || phone ? height >= 63.5 : Math.abs(height - 40) <= 1 || Math.abs(height - 52) <= 1;
+    // Density follows the pointer: 64 px under a finger, 40 or 52 px under a mouse, whatever the width.
+    const ok = touch ? height >= 63.5 : Math.abs(height - 40) <= 1 || Math.abs(height - 52) <= 1;
     if (!ok) add("row-height", row, `${Math.round(height * 10) / 10} px`);
   }
 
@@ -797,7 +804,7 @@ export function measureConformance(options) {
  * on the element or its nearest ancestor that carries them.
  */
 export function readComponentUnity(options) {
-  const { components, tactile } = options;
+  const { components, phone, touch } = options;
   const round = (value) => Math.round(Number.parseFloat(value) * 2) / 2 || 0;
   const shown = (element) => {
     const style = getComputedStyle(element);
@@ -825,16 +832,16 @@ export function readComponentUnity(options) {
       }
       const style = getComputedStyle(line);
       const text =
-        (definition.text && line.querySelector(definition.text)) ||
+        (definition.text === ":scope" ? line : definition.text && line.querySelector(definition.text)) ||
         [...line.querySelectorAll("*"), line].find((node) =>
           [...node.childNodes].some((child) => child.nodeType === Node.TEXT_NODE && child.textContent.trim()),
         );
       const textStyle = text ? getComputedStyle(text) : style;
-      const icon = line.querySelector(definition.icon ?? "svg");
+      const icon = definition.icon === "none" ? null : line.querySelector(definition.icon ?? "svg");
       const ownHeight = !(definition.contentHeight && element.matches(definition.contentHeight));
       const parts = [
         `texte ${round(textStyle.fontSize)} px ${textStyle.fontWeight}`,
-        `icône ${icon ? round(icon.getBoundingClientRect().width) : 0} px`,
+        ...(icon ? [`icône ${round(icon.getBoundingClientRect().width)} px`] : []),
         ...(ownHeight ? [`hauteur ${round(line.getBoundingClientRect().height)} px`] : []),
         `marges ${round(style.paddingTop)} ${round(style.paddingRight)} ${round(style.paddingBottom)} ${round(style.paddingLeft)} px`,
         `écart ${style.display.includes("flex") || style.display.includes("grid") ? round(style.columnGap) : 0} px`,
@@ -850,7 +857,17 @@ export function readComponentUnity(options) {
         })
         .filter(Boolean)
         .join(" ");
-      const variant = [tactile ? "tactile" : "souris", declared, ...kinds].filter(Boolean).join(", ");
+      /* Declared variants: the phone layout, the pointer (density follows it), the named sizes and kinds; an icon or
+         none is the content of the component, not its drawing. */
+      const variant = [
+        phone ? "téléphone" : "ordinateur",
+        touch ? "doigt" : "souris",
+        declared,
+        ...kinds,
+        icon ? "avec icône" : "",
+      ]
+        .filter(Boolean)
+        .join(", ");
       const signature = parts.join(" · ");
       if (seen.has(`${variant}|${signature}`)) continue;
       seen.add(`${variant}|${signature}`);
@@ -972,7 +989,7 @@ export function measureDesignReference(options) {
                 ? "aucun filet"
                 : null;
         if (actual === null) continue;
-        ok = actual === entry.expected.toUpperCase();
+        ok = actual.toUpperCase() === entry.expected.toUpperCase();
       } else if (entry.property === "height" || entry.property === "width") {
         const rect = element.getBoundingClientRect();
         const value = entry.pseudo ? Number.parseFloat(style[entry.property]) : rect[entry.property];
@@ -980,7 +997,7 @@ export function measureDesignReference(options) {
         ok = Math.abs(value - Number.parseFloat(entry.expected)) <= tolerance.px;
       } else if (/color$/.test(entry.property)) {
         actual = hex(style.getPropertyValue(entry.property));
-        ok = actual === entry.expected.toUpperCase();
+        ok = actual.toUpperCase() === entry.expected.toUpperCase();
       } else if (entry.property === "font-family") {
         actual = style.fontFamily.split(",")[0].replace(/["']/g, "").trim();
         ok = actual.toLowerCase().startsWith(entry.expected.toLowerCase());
