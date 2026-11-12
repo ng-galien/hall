@@ -14,7 +14,7 @@ import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDia
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiFile, downloadFile, shareOrDownload } from "../../services/fileSharing";
-import { ScreenTitle } from "../../shell/headerTrail";
+import { ScreenTitle, ScreenTitleCommands } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { type PhoneDocumentAction, PhoneDocumentActions, phoneActionIcons } from "../workspace/PhoneDocumentActions";
 import { useCouncilDecisionDraft } from "./useCouncilDecisionDraft";
@@ -93,8 +93,12 @@ function CouncilDecisionDetail({ id }: { id: string }) {
       <PageHeader
         title={decision?.title ?? t("decisions.title")}
         description={decision?.number ? t("decisions.numberLabel", { number: decision.number }) : ""}
-        titleAction={decision && !phone ? <CopyReferenceButton reference={reference} /> : null}
       />
+      {decision && !phone ? (
+        <ScreenTitleCommands>
+          <CopyReferenceButton reference={reference} />
+        </ScreenTitleCommands>
+      ) : null}
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={draft.error} />
         {draft.loading ? (
@@ -106,14 +110,22 @@ function CouncilDecisionDetail({ id }: { id: string }) {
         ) : null}
         {decision ? (
           <>
+            {phone ? (
+              <div className="decision-phone-heading">
+                <h2>{decision.title}</h2>
+                {decision.number ? <p>{t("decisions.numberLabel", { number: decision.number })}</p> : null}
+              </div>
+            ) : null}
             <div className="flex flex-wrap items-center gap-3">
               {phone ? null : (
-                <Button asChild variant="secondary">
-                  <Link to={`/meetings/${decision.councilMeetingId}`} data-testid="decision-source-meeting">
-                    <CalendarIcon />
-                    {formatDateTime(decision.facts.meeting.startedAt)}
-                  </Link>
-                </Button>
+                <Link
+                  className="record-context-link"
+                  to={`/meetings/${decision.councilMeetingId}`}
+                  data-testid="decision-source-meeting"
+                >
+                  <CalendarIcon aria-hidden="true" />
+                  {formatDateTime(decision.facts.meeting.startedAt)}
+                </Link>
               )}
               <p className="meeting-state">
                 <span
@@ -134,7 +146,10 @@ function CouncilDecisionDetail({ id }: { id: string }) {
               </summary>
               <MarkdownView markdown={decision.facts.proposal.submittedText} />
             </details>
-            <section className="admin-detail-surface admin-record" aria-labelledby="decision-writing-title">
+            <section
+              className="admin-detail-surface admin-record decision-writing"
+              aria-labelledby="decision-writing-title"
+            >
               <SectionHeader
                 titleId="decision-writing-title"
                 title={t("decisionDocument.writing")}
