@@ -81,6 +81,8 @@
     cursor: pointer;
   }
 
+  .workspace-crumb-children > svg { font-size: var(--hall-font-size-icon-small); }
+
   .workspace-crumb-children:hover,
   .workspace-crumb-children:focus-visible {
     color: var(--hall-color-text-muted);
