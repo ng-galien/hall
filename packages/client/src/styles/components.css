@@ -674,8 +674,8 @@
   .section-header {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: var(--hall-space-1) var(--hall-space-4);
+    align-items: flex-start;
+    gap: var(--hall-space-3) var(--hall-space-2);
     padding-bottom: var(--hall-space-2);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
@@ -726,9 +726,22 @@
     margin-left: var(--hall-space-1);
     vertical-align: middle;
   }
-  /* Under a finger the icon keeps its whole target inside the line of the title, never over its neighbours. */
+  /* A title written over two lines starts on the line of the commands, centred on them. */
+  .section-header-line > .section-header-title {
+    padding-block: calc((var(--hall-size-control) - var(--hall-line-height-body-large)) / 2);
+  }
+  /* Under a finger the icon keeps its 44-pixel target without widening the line of the title nor its height: its
+     empty margins lie over the title and the gap under it, never over a command. */
   @media (pointer: coarse) {
-    :is(.section-header-title, .section-header-title-text) .hall-button { margin-block: 0; }
+    .section-header-line,
+    .section-header-commands { min-height: var(--hall-size-touch-control); }
+    .section-header-line > .section-header-title {
+      padding-block: calc((var(--hall-size-touch-control) - var(--hall-line-height-body-large)) / 2);
+    }
+    :is(.section-header-title, .section-header-title-text) .hall-button {
+      margin-block: calc((var(--hall-line-height-body-large) - var(--hall-size-touch-control)) / 2);
+    }
+    .title-tail > .hall-button { margin-inline: calc(-1 * var(--hall-space-2)); }
   }
   .section-header-title :is(.section-header-icon, .section-header-count) { vertical-align: middle; }
   /* A title that is not plain text, or that folds its section, lays its parts and its information icon side by side,
