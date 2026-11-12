@@ -83,7 +83,7 @@ function featureStyle(strokeColor: string, strokeWidth: number, fillColor: strin
 
 /**
  * Styles of every data layer: neutral (thin dark outline, light translucent fill, small discs), municipal property
- * (seal colour), selected feature (brand outline), and cached parcel labels.
+ * (violet of the visual nature), selected feature (brand outline), and cached parcel labels.
  */
 // @implements-requirement HALL-FR-DOC-340
 // @implements-requirement HALL-FR-DOC-370
@@ -94,7 +94,11 @@ function overlayStyles() {
     1.25,
     withAlpha(cssToken("--hall-color-surface"), 0.25),
   );
-  const municipal = featureStyle(cssToken("--hall-color-seal"), 2, withAlpha(cssToken("--hall-color-seal"), 0.25));
+  const municipal = featureStyle(
+    cssToken("--hall-color-nature-visual"),
+    2,
+    withAlpha(cssToken("--hall-color-nature-visual"), 0.25),
+  );
   const selected = featureStyle(cssToken("--hall-color-brand"), 3, withAlpha(cssToken("--hall-color-brand"), 0.2));
   const labelFill = new Fill({ color: cssToken("--hall-color-text") });
   const labelStroke = new Stroke({ color: cssToken("--hall-color-surface"), width: 3 });
@@ -105,7 +109,7 @@ function overlayStyles() {
       style = new Style({
         text: new Text({
           text,
-          font: `${cssToken("--hall-font-size-body") || "14px"} sans-serif`,
+          font: `${cssToken("--hall-font-size-body") || "14px"} ${cssToken("--hall-font-family-sans") || "sans-serif"}`,
           fill: labelFill,
           stroke: labelStroke,
           overflow: false,

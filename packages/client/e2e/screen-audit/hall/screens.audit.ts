@@ -25,6 +25,7 @@ for (const format of formats.filter((entry) => !onlyFormats || onlyFormats.inclu
         hasTouch: format.touch,
         isMobile: format.touch,
         locale: "fr-FR",
+        colorScheme: process.env.HALL_SCREEN_AUDIT_COLOR_SCHEME === "dark" ? "dark" : "light",
         seedScenario: scenario,
       });
 

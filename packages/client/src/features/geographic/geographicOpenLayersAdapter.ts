@@ -70,7 +70,7 @@ export function geographicFeatureStyle(
   const text = label
     ? new Text({
         text: label,
-        font: `600 ${cssToken("--hall-font-size-body") || "14px"} system-ui, sans-serif`,
+        font: `600 ${cssToken("--hall-font-size-body") || "14px"} ${cssToken("--hall-font-family-sans") || "sans-serif"}`,
         offsetY: feature.get("kind") === "marker" ? -38 : -18,
         fill: new Fill({ color: cssToken("--hall-color-text") }),
         stroke: new Stroke({ color: cssToken("--hall-color-surface"), width: 3 }),

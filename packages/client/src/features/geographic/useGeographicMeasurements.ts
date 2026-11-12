@@ -56,7 +56,7 @@ function labelText(text: string, offsetY = 0): Text {
   return new Text({
     text,
     offsetY,
-    font: `600 ${cssToken("--hall-font-size-body") || "14px"} system-ui, sans-serif`,
+    font: `600 ${cssToken("--hall-font-size-body") || "14px"} ${cssToken("--hall-font-family-sans") || "sans-serif"}`,
     fill: new Fill({ color: cssToken("--hall-color-text") }),
     stroke: new Stroke({ color: cssToken("--hall-color-surface"), width: 4 }),
     overflow: true,

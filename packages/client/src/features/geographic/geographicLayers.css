@@ -69,8 +69,8 @@
   margin: 0;
   padding: var(--hall-space-1) var(--hall-space-2);
   border-radius: var(--hall-radius-small);
-  color: var(--hall-color-seal);
-  background: var(--hall-color-seal-surface);
+  color: var(--hall-color-nature-visual);
+  background: var(--hall-color-surface-subtle);
   font-size: var(--hall-font-size-caption);
   font-weight: var(--hall-font-weight-medium);
 }
