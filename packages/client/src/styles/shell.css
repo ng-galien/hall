@@ -208,7 +208,7 @@
     cursor: pointer;
   }
   .app-phone-bar-icon { display: inline-grid; font-size: var(--hall-size-glyph-mark-large); }
-  :is(.app-phone-bar-icon, .nav-icon, .screen-header-back) > svg { font-size: inherit; }
+  :is(.app-phone-bar-icon, .nav-icon) > svg { font-size: inherit; }
   .app-phone-bar-label { letter-spacing: var(--hall-letter-spacing-tight); white-space: nowrap; }
   .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-bold); }
 
