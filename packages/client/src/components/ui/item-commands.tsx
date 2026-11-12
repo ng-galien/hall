@@ -21,6 +21,104 @@ export interface ItemCommand {
   /** A switch that is on, such as a pinned item. */
   pressed?: boolean;
   destructive?: boolean;
+  /** Commands of one group, such as the two PDF previews, share one icon that opens their choice when shown as icons. */
+  group?: string;
+}
+
+/** One command drawn as an icon with its label in a tooltip. */
+function CommandIcon({ command }: { command: ItemCommand }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="plain"
+          size="icon"
+          data-testid={command.testId}
+          aria-label={command.label}
+          aria-pressed={command.pressed}
+          disabled={command.disabled}
+          onClick={command.onSelect}
+        >
+          {command.icon}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{command.label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** The commands of one group as one icon that opens the choice between them. */
+function CommandGroupIcon({ commands }: { commands: ItemCommand[] }) {
+  const [first] = commands;
+  return (
+    <DropdownMenu>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="plain"
+              size="icon"
+              data-testid={`${first.group}-choices`}
+              aria-label={first.label.split(" · ")[0]}
+              disabled={commands.every((command) => command.disabled)}
+            >
+              {first.icon}
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{first.label.split(" · ")[0]}</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align="end" className="w-max">
+        {commands.map((command) => (
+          <DropdownMenuItem
+            key={command.id}
+            data-testid={command.testId}
+            disabled={command.disabled}
+            onSelect={command.onSelect}
+          >
+            {command.label.split(" · ").at(-1)}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/**
+ * Tablet and computer: every command of the item as an icon on the line of the title, in the order given, a group as
+ * one icon with its choice; no « … » menu.
+ */
+function ExpandedCommands({
+  primary,
+  commands,
+  visible,
+  close,
+}: {
+  primary?: ReactNode;
+  commands: ItemCommand[];
+  visible?: ReactNode;
+  close?: ReactNode;
+}) {
+  const groups: ItemCommand[][] = [];
+  for (const command of commands) {
+    const last = groups.at(-1);
+    if (command.group && last && last[0].group === command.group) last.push(command);
+    else groups.push([command]);
+  }
+  return (
+    <div className="item-commands" data-expanded="true">
+      {primary}
+      {groups.map((group) =>
+        group.length > 1 ? (
+          <CommandGroupIcon key={group[0].id} commands={group} />
+        ) : (
+          <CommandIcon key={group[0].id} command={group[0]} />
+        ),
+      )}
+      {visible}
+      {close}
+    </div>
+  );
 }
 
 /** Below this width of the line of the title, the frequent commands join the « … » menu. */
@@ -52,7 +150,10 @@ export function ItemCommands({
   visible,
   menu = [],
   close,
+  expanded = false,
 }: {
+  /** Every command as a visible icon in the order of `frequent` then `menu`, without the « … » menu. */
+  expanded?: boolean;
   primary?: ReactNode;
   frequent?: ItemCommand[];
   /** Controls that keep their own place on the line, such as the automatic saving; they never join the menu. */
@@ -66,6 +167,8 @@ export function ItemCommands({
   const shown = narrow ? [] : frequent.slice(0, 2);
   const listed = [...(narrow ? frequent : frequent.slice(2)), ...menu];
   const chosen = useRef(false);
+  if (expanded)
+    return <ExpandedCommands primary={primary} commands={[...frequent, ...menu]} visible={visible} close={close} />;
   return (
     <div ref={setElement} className="item-commands" data-narrow={narrow ? "true" : undefined}>
       {primary}

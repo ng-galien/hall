@@ -26,9 +26,8 @@ import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
 /**
- * Title line of an opened resource: « Ouvrir dans Cartes » for a map, or the writing command of a text, as the main
- * command; « Épingler » and « Plein écran » as icons; the PDF preview, the mail, the sharing and the download in the
- * « … » menu.
+ * Title line of an opened resource: « Ouvrir dans Cartes » for a map as the main command, then « Plein écran »,
+ * « Épingler », the PDF preview, the mail, the sharing and the download.
  * @implements-requirement HALL-FR-WSP-340
  */
 export function ResourceWorkbenchHeader({
@@ -144,19 +143,19 @@ export function ResourceWorkbenchHeader({
       }
       frequent={[
         {
+          id: "fullscreen",
+          label: t("common.fullscreen"),
+          icon: <FullscreenIcon />,
+          testId: "resource-open-extended",
+          onSelect: onOpenExtended,
+        },
+        {
           id: "pin",
           label: t(pinned ? "workspace.unpinShort" : "workspace.pin"),
           icon: pinned ? <PinnedIcon /> : <PinIcon />,
           testId: "workspace-workbench-pin",
           pressed: pinned,
           onSelect: () => togglePin({ kind: "resource", id: resource.id }),
-        },
-        {
-          id: "fullscreen",
-          label: t("common.fullscreen"),
-          icon: <FullscreenIcon />,
-          testId: "resource-open-extended",
-          onSelect: onOpenExtended,
         },
       ]}
       menu={menu}

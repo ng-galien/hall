@@ -7,6 +7,7 @@ import { type ItemCommand, ItemCommands } from "../../components/ui/item-command
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { ScreenTitle, ScreenTitleCommands, ScreenTitleFacts, ScreenTitleIcon } from "../../shell/headerTrail";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import type { SaveStatus } from "./saveStatusStore";
 
 /** The controls of an opened item that belong to its session: changes, automatic saving, closing. */
@@ -99,7 +100,8 @@ export function WorkspaceWorkbenchHeader({
   const screenControls = useContext(WorkbenchControlsContext);
   const controls = titleId ? ownControls : (ownControls ?? screenControls);
   const [editingTitle, setEditingTitle] = useState(false);
-  const commands: ItemCommand[] = [
+  const phone = usePhoneLayout();
+  const renameCommands: ItemCommand[] = [
     ...(onTitleChange
       ? [
           {
@@ -111,6 +113,8 @@ export function WorkspaceWorkbenchHeader({
           },
         ]
       : []),
+  ];
+  const referenceCommands: ItemCommand[] = [
     ...(reference
       ? [
           {
@@ -122,15 +126,18 @@ export function WorkspaceWorkbenchHeader({
           },
         ]
       : []),
-    ...menu,
-    ...(controls?.menu ?? []),
   ];
+  const commands: ItemCommand[] = [...renameCommands, ...referenceCommands, ...menu, ...(controls?.menu ?? [])];
   const itemCommands = (
     <ItemCommands
+      // On tablet and computer every command stays an icon on the line of the title, in its order of before the menu.
+      expanded={!phone}
       primary={primary}
-      frequent={frequent}
+      frequent={
+        phone ? frequent : [...renameCommands, ...frequent, ...menu, ...referenceCommands, ...(controls?.menu ?? [])]
+      }
       visible={controls?.visible}
-      menu={commands}
+      menu={phone ? commands : []}
       close={titleId ? undefined : controls?.close}
     />
   );
