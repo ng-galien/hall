@@ -155,9 +155,21 @@ export const screens = [
     open: detail("/api/council-business", (business) => `/workspace?councilBusiness=${business.id}`),
   },
   {
+    id: "affaire-sujets",
+    title: "Affaire avec éléments préparés",
+    scenario: "minutes",
+    async open(page) {
+      const subjects = await items(page, "/api/council-business/prepared-subjects");
+      const subject = subjects.find((entry) => entry.councilBusinessId);
+      if (!subject) throw new Error("No prepared subject names its business");
+      await page.goto(`/app/workspace?councilBusiness=${subject.councilBusinessId}`);
+    },
+  },
+  {
     id: "menu-nouveau",
     title: "Menu « Nouveau »",
     scenario: "minutes",
+    reopenAtEveryWidth: true,
     async open(page) {
       await page.goto("/app/workspace");
       const trigger = page.locator('[data-testid="workspace-create-menu"]:visible').first();
@@ -178,6 +190,7 @@ export const screens = [
     ),
   },
   { id: "calendrier", title: "Calendrier", scenario: "minutes", open: route("/calendar") },
+  { id: "courriels", title: "Courriels", scenario: "minutes", open: route("/mail") },
   { id: "contacts", title: "Contacts", scenario: "minutes", open: route("/contacts") },
   {
     id: "contact",
@@ -227,6 +240,7 @@ export const screens = [
     title: "Feuille « Plus »",
     scenario: "minutes",
     formats: phone,
+    reopenAtEveryWidth: true,
     async open(page) {
       await page.goto("/app/");
       await page.getByTestId("phone-navigation-more").click();
@@ -238,6 +252,7 @@ export const screens = [
     title: "Menu de navigation",
     scenario: "minutes",
     formats: ["tablette"],
+    reopenAtEveryWidth: true,
     async open(page) {
       await page.goto("/app/");
       await page.getByTestId("navigation-toggle").click();

@@ -6,11 +6,13 @@ import { ready, screens } from "./screens.mjs";
 /* Opens every Hall screen at every format on the seeded disposable database and records its measurements. */
 
 const outputDirectory = process.env.HALL_SCREEN_AUDIT_OUTPUT;
-if (!outputDirectory) throw new Error("HALL_SCREEN_AUDIT_OUTPUT names the screen-audit output directory");
+if (!outputDirectory && process.env.HALL_SCREEN_AUDIT_MODE !== "sweep") throw new Error("HALL_SCREEN_AUDIT_OUTPUT names the screen-audit output directory");
 const onlyScreens = process.env.HALL_SCREEN_AUDIT_SCREENS?.split(",");
 const onlyFormats = process.env.HALL_SCREEN_AUDIT_FORMATS?.split(",");
 
-for (const format of formats.filter((entry) => !onlyFormats || onlyFormats.includes(entry.id))) {
+const reporting = process.env.HALL_SCREEN_AUDIT_MODE !== "sweep";
+
+for (const format of formats.filter((entry) => reporting && (!onlyFormats || onlyFormats.includes(entry.id)))) {
   for (const scenario of ["minutes", "default"] as const) {
     const selected = screens.filter(
       (screen) =>
