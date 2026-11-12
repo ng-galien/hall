@@ -88,7 +88,7 @@ export function UserPage() {
     <div className="page">
       <PageHeader
         title={user?.displayName ?? t("users.title")}
-        description={t("users.detailDescription")}
+        hint={t("users.detailDescription")}
         describesItem
       />
       <div className="page-content admin-detail-page">

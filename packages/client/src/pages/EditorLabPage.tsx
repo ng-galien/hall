@@ -105,7 +105,7 @@ export function EditorLabPage() {
 
   return (
     <div className="page" data-testid="editor-lab-page">
-      <PageHeader title={t("editor.lab.title")} description={t("editor.lab.description")} />
+      <PageHeader title={t("editor.lab.title")} hint={t("editor.lab.description")} />
       <div className="page-content editor-lab">
         <div className="editor-lab-actions">
           <PdfPreviewButton

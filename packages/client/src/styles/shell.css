@@ -86,6 +86,9 @@
   /* The title keeps at least 12 rem; when the commands leave it less, they pass under it, at the right. */
   .screen-title-row { display: flex; min-width: 0; flex-wrap: wrap; align-items: flex-start; gap: var(--hall-space-1) var(--hall-space-3); }
   .screen-title-icon { display: inline-grid; min-height: var(--hall-line-height-display); flex: none; place-items: center; }
+  /* The information icon of the screen follows the last word of the title, on its line. */
+  .screen-title-hint { display: inline-flex; margin-left: var(--hall-space-1); vertical-align: middle; }
+  .screen-title-hint:empty { display: none; }
   .screen-title-icon:empty,
   .screen-title-commands:empty,
   .screen-title-facts:empty { display: none; }

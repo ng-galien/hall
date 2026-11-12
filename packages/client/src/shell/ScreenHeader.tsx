@@ -272,7 +272,13 @@ function useTitleTooLong(row: HTMLDivElement | null, title: string): boolean {
       const style = getComputedStyle(block);
       const width = block.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
       const gap = Number.parseFloat(getComputedStyle(row).columnGap) || 0;
-      const room = width - (icon?.offsetWidth ? icon.offsetWidth + gap : 0) - commands.offsetWidth - gap;
+      const hint = row.querySelector<HTMLElement>(".screen-title-hint");
+      const room =
+        width -
+        (icon?.offsetWidth ? icon.offsetWidth + gap : 0) -
+        commands.offsetWidth -
+        gap -
+        (hint?.offsetWidth ?? 0);
       setLong(titleWidth(heading, title) > room);
     };
     const observer = new ResizeObserver(measure);
@@ -300,11 +306,12 @@ export function ScreenLargeTitle({
   phone: boolean;
   title: string;
   titleRef(element: HTMLHeadingElement | null): void;
-  /** Places of the type icon, the commands and the facts of an opened item around the title. */
+  /** Places of the type icon, the commands, the facts and the information icon around the title. */
   slots: {
     icon(element: HTMLSpanElement | null): void;
     commands(element: HTMLDivElement | null): void;
     facts(element: HTMLDivElement | null): void;
+    hint(element: HTMLSpanElement | null): void;
   };
 }) {
   const [row, setRow] = useState<HTMLDivElement | null>(null);
@@ -319,6 +326,8 @@ export function ScreenLargeTitle({
           data-testid={phone ? "phone-header-title" : "screen-header-title"}
         >
           {title}
+          {title ? "\u2060" : null}
+          {title ? <span ref={slots.hint} className="screen-title-hint" /> : null}
         </h1>
         <div ref={slots.commands} className="screen-title-commands" data-testid="screen-title-commands" />
       </div>

@@ -72,7 +72,7 @@ export function TemplatePage() {
   if (!draft || !saved) {
     return (
       <div className="page">
-        <PageHeader title={t("templates.title")} description={t("templates.detailDescription")} />
+        <PageHeader title={t("templates.title")} hint={t("templates.detailDescription")} />
         <div className="page-content">
           <RequestErrorBanner error={error} />
           {missing ? <EmptyState>{t("templates.notFound")}</EmptyState> : null}
@@ -118,7 +118,7 @@ export function TemplatePage() {
     <div className="page">
       <PageHeader
         title={draft.name || t("templates.title")}
-        description={t("templates.detailDescription")}
+        hint={t("templates.detailDescription")}
         describesItem
       >
         <Button variant="secondary" disabled={submitting} data-testid="template-preview" onClick={showPreview}>

@@ -111,7 +111,7 @@ export function UsersPage() {
   if (!loading && !listed)
     return (
       <div className="page">
-        <PageHeader title={t("users.title")} description={t("users.description")} />
+        <PageHeader title={t("users.title")} hint={t("users.description")} />
         <div className="page-content">
           <RequestErrorBanner error={error} />
         </div>
@@ -119,7 +119,7 @@ export function UsersPage() {
     );
   return (
     <div className="page">
-      <PageHeader title={t("users.title")} description={t("users.description")} />
+      <PageHeader title={t("users.title")} hint={t("users.description")} />
       <div className="page-content">
         {!addOpen && <RequestErrorBanner error={error} />}
         <CollectionToolbar query={query} onQueryChange={setQuery}>

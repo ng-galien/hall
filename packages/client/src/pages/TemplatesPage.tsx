@@ -87,7 +87,7 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
           commands={<>{addButton}</>}
         />
       ) : (
-        <PageHeader title={t("templates.title")} description={t("templates.description")}>
+        <PageHeader title={t("templates.title")} hint={t("templates.description")}>
           {addButton}
         </PageHeader>
       )}

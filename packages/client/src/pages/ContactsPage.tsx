@@ -67,7 +67,7 @@ export function ContactsPage() {
   };
   return (
     <div className="page">
-      <PageHeader title={t("contacts.title")} description={t("contacts.description")} />
+      <PageHeader title={t("contacts.title")} hint={t("contacts.description")} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery}>

@@ -95,7 +95,7 @@ export function CouncilMembersPage() {
   };
   return (
     <div className="page">
-      <PageHeader title={t("members.title")} description={t("members.description")} />
+      <PageHeader title={t("members.title")} hint={t("members.description")} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery}>

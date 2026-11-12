@@ -66,7 +66,7 @@ export function RepresentativeBodiesPage({
 
   return (
     <div className="page">
-      <PageHeader title={t(text.title)} description={t(text.description)} />
+      <PageHeader title={t(text.title)} hint={t(text.description)} />
       <div className="page-content">
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery}>

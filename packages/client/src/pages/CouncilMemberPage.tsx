@@ -107,7 +107,7 @@ export function CouncilMemberPage() {
   if (!member) {
     return (
       <div className="page">
-        <PageHeader title={t("members.title")} description={t("members.description")} />
+        <PageHeader title={t("members.title")} hint={t("members.description")} />
         <div className="page-content">
           <EmptyState>{t("members.notFound")}</EmptyState>
         </div>
@@ -135,7 +135,7 @@ export function CouncilMemberPage() {
     <div className="page">
       <PageHeader
         title={`${member.contact.firstName} ${member.contact.lastName}`}
-        description={t("members.detailDescription")}
+        hint={t("members.detailDescription")}
         describesItem
       />
       <div className="page-content admin-detail-page">

@@ -199,7 +199,7 @@ export function ContactPage() {
   if (!contact) {
     return (
       <div className="page">
-        <PageHeader title={t("contacts.title")} description={t("contacts.description")} />
+        <PageHeader title={t("contacts.title")} hint={t("contacts.description")} />
         <div className="page-content">
           <EmptyState>{t("contacts.notFound")}</EmptyState>
         </div>
@@ -300,7 +300,7 @@ export function ContactPage() {
     <div className="page">
       <PageHeader
         title={`${contact.firstName} ${contact.lastName}`}
-        description={t("contacts.detailDescription")}
+        hint={t("contacts.detailDescription")}
         describesItem
       />
       <div className="page-content admin-detail-page">

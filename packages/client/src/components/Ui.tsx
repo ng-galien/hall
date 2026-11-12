@@ -5,26 +5,31 @@ import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { normalizeForSearch } from "../lib/search";
 import type { ApiErrorCode } from "../services/apiClient";
-import { ScreenTitle, ScreenTitleCommands } from "../shell/headerTrail";
+import { ScreenTitle, ScreenTitleCommands, ScreenTitleFacts, ScreenTitleHint } from "../shell/headerTrail";
 import { HelpHint } from "./HelpHint";
 import { CloseIcon } from "./icons";
 import { SearchInput } from "./ui/search-input";
 
 /**
- * Names the screen in the large title of the screen header and lays out what goes under it: the description, shown
- * from tablet width, and the controls of the page. It never repeats the title.
+ * Names the screen in the large title of the screen header and lays out what goes with it: the information icon of
+ * its explanation right after the title, its description (a fact such as a date or a place) under the title, and the
+ * controls of the page. It never repeats the title.
  */
 export function PageHeader({
   title,
   description,
+  hint,
   children,
   titleAction,
   above,
   describesItem,
 }: {
   title: string;
+  /** A fact about the screen, such as the date and place of a meeting, written under the title. */
   description?: string;
-  /** An opened item: its description goes behind the information icon and its commands on the line of the title. */
+  /** A sentence that explains the screen, behind the information icon right after the title. */
+  hint?: string;
+  /** An opened item: its description goes under its large title and its commands on the line of the title. */
   describesItem?: boolean;
   children?: ReactNode;
   titleAction?: ReactNode;
@@ -34,9 +39,18 @@ export function PageHeader({
   return (
     <>
       <ScreenTitle>{title}</ScreenTitle>
-      {describesItem && (description || controls) ? (
+      {hint ? (
+        <ScreenTitleHint>
+          <HelpHint text={hint} testId="page-hint" />
+        </ScreenTitleHint>
+      ) : null}
+      {describesItem && description ? (
+        <ScreenTitleFacts>
+          <p className="page-header-description">{description}</p>
+        </ScreenTitleFacts>
+      ) : null}
+      {describesItem && controls ? (
         <ScreenTitleCommands>
-          {description ? <HelpHint text={description} testId="page-description" /> : null}
           {titleAction}
           {children}
         </ScreenTitleCommands>

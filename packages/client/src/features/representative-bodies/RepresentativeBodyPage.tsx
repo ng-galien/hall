@@ -149,7 +149,7 @@ export function RepresentativeBodyPage({
   if (!body) {
     return (
       <div className="page">
-        <PageHeader title={t(text.title)} description={t(text.description)} />
+        <PageHeader title={t(text.title)} hint={t(text.description)} />
         <div className="page-content">
           <EmptyState>{t(text.notFound)}</EmptyState>
         </div>
@@ -283,7 +283,7 @@ export function RepresentativeBodyPage({
 
   return (
     <div className="page">
-      <PageHeader title={body.name} description={t(text.detailDescription)} describesItem />
+      <PageHeader title={body.name} hint={t(text.detailDescription)} describesItem />
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={error ?? contactsError} />
         <div className="admin-detail-surface">

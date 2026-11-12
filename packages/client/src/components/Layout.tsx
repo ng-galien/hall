@@ -42,9 +42,10 @@ export function Layout() {
   const [titleIconSlot, setTitleIconSlot] = useState<HTMLSpanElement | null>(null);
   const [titleCommandsSlot, setTitleCommandsSlot] = useState<HTMLDivElement | null>(null);
   const [titleFactsSlot, setTitleFactsSlot] = useState<HTMLDivElement | null>(null);
+  const [titleHintSlot, setTitleHintSlot] = useState<HTMLSpanElement | null>(null);
   const titleSlots = useMemo(
-    () => ({ icon: titleIconSlot, commands: titleCommandsSlot, facts: titleFactsSlot }),
-    [titleIconSlot, titleCommandsSlot, titleFactsSlot],
+    () => ({ icon: titleIconSlot, commands: titleCommandsSlot, facts: titleFactsSlot, hint: titleHintSlot }),
+    [titleIconSlot, titleCommandsSlot, titleFactsSlot, titleHintSlot],
   );
   const [pageTitle, setPageTitle] = useState<string | null>(null);
   const [mainElement, setMainElement] = useState<HTMLElement | null>(null);
@@ -107,7 +108,12 @@ export function Layout() {
                           phone={phone}
                           title={title}
                           titleRef={setTitleElement}
-                          slots={{ icon: setTitleIconSlot, commands: setTitleCommandsSlot, facts: setTitleFactsSlot }}
+                          slots={{
+                            icon: setTitleIconSlot,
+                            commands: setTitleCommandsSlot,
+                            facts: setTitleFactsSlot,
+                            hint: setTitleHintSlot,
+                          }}
                         />
                       )}
                       <div className="app-content">

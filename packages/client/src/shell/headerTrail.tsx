@@ -48,11 +48,18 @@ export const ScreenTitleSlotsContext = createContext<{
   icon: HTMLElement | null;
   commands: HTMLElement | null;
   facts: HTMLElement | null;
-}>({ icon: null, commands: null, facts: null });
+  hint: HTMLElement | null;
+}>({ icon: null, commands: null, facts: null, hint: null });
 
 /** Renders the type icon of the opened item before the large title of the screen. */
 export function ScreenTitleIcon({ children }: { children: ReactNode }) {
   const slot = useContext(ScreenTitleSlotsContext).icon;
+  return slot ? createPortal(children, slot) : null;
+}
+
+/** Renders the information icon of the screen right after the last word of its large title. */
+export function ScreenTitleHint({ children }: { children: ReactNode }) {
+  const slot = useContext(ScreenTitleSlotsContext).hint;
   return slot ? createPortal(children, slot) : null;
 }
 
