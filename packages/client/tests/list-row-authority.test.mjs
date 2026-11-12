@@ -203,3 +203,18 @@ test("the additional facts of a row shrink before its title and its state", () =
   assert.match(rule, /min-width: 0/);
   assert.doesNotMatch(rule, /flex: none/);
 });
+
+// @verifies-requirement HALL-FR-LAY-060
+test("with a mouse on a computer, the row takes the sizes of the side menu through its tokens", () => {
+  const tokens = read("styles/tokens.css");
+  assert.match(tokens, /--hall-size-list-row-pointer: 40px;/);
+  assert.match(tokens, /--hall-size-list-row-pointer-double: 52px;/);
+  const css = read("styles/list-row.css");
+  const start = css.indexOf("@media (min-width: 761px) and (pointer: fine)");
+  assert.ok(start > 0, "list-row.css declares no computer sizes");
+  const block = css.slice(start);
+  assert.match(block, /\.list-row-title \{ font-size: var\(--hall-font-size-body\);/);
+  assert.match(block, /\.list-row-fact \{ font-size: var\(--hall-font-size-caption\);/);
+  assert.match(block, /\.list-row-head > \.type-icon \{[^}]*font-size: var\(--hall-font-size-icon-large\);/);
+  assert.match(block, /min-height: var\(--hall-size-list-row-pointer-double\)/);
+});

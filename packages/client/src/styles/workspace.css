@@ -258,6 +258,9 @@
     min-inline-size: 0;
     box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
   }
+  /* The tools laid over the map keep the compact size of map controls, a finger-sized one under a touch pointer. */
+  .geographic-mode-switch .hall-button { min-height: var(--geographic-map-control); padding: 0 var(--hall-space-1-5); font-size: var(--hall-font-size-caption); }
+  :is(.geographic-zoom-tools, .geographic-composition-tools) .hall-button[data-size="icon"] { width: var(--geographic-map-control); min-height: var(--geographic-map-control); }
   .geographic-layer-drag-handle {
     display: inline-grid;
     width: var(--hall-size-control);

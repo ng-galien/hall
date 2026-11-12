@@ -78,6 +78,11 @@
   .hall-input[aria-invalid="true"] { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-danger); }
   .hall-input:disabled { cursor: default; opacity: var(--hall-opacity-disabled); }
   .hall-textarea { display: block; min-height: var(--hall-size-textarea-min); padding-block: var(--hall-space-2); field-sizing: content; resize: vertical; }
+  /* With a mouse on a computer, search and filter fields take the 14-pixel size of the side menu and the header. */
+  @media (min-width: 761px) and (pointer: fine) {
+    [data-slot="search-input"] > .hall-input,
+    .wsearch-field > .hall-input { font-size: var(--hall-font-size-body); }
+  }
   .hall-select-trigger { justify-content: space-between; gap: var(--hall-space-2); text-align: left; cursor: pointer; }
   .hall-select-trigger > [data-slot="select-value"] { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
   .hall-field-picker-value { overflow: hidden; min-width: 0; flex: 1; text-overflow: ellipsis; white-space: nowrap; }

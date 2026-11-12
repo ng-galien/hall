@@ -10992,11 +10992,12 @@
       "acceptanceCriteria": [
         "La ligne est posée sur le fond blanc de la surface et séparée de la suivante par un filet ; elle n’a ni pavé, ni ombre, ni badge, ni chevron.",
         "À gauche, la ligne montre l’icône du type en trait, sans pavé ; une délibération montre à la place son numéro, une séance sa date, une personne ses initiales.",
-        "Le titre tient sur une ligne de 16 pixels et se termine par des points de suspension avec une infobulle ; la seconde ligne, de 14 pixels, donne le type, la date ou le fait utile.",
+        "Le titre tient sur une ligne et se termine par des points de suspension avec une infobulle ; la seconde ligne donne le type, la date ou le fait utile. Au téléphone et sous un pointeur tactile, le titre mesure 16 pixels et la seconde ligne 14 pixels.",
         "Un état s’écrit en seconde ligne après un point de couleur : gris pour un état neutre, vert pour un succès, ambre pour une attention, rouge pour un danger.",
         "Une action est un bouton au bout de la ligne, présent seulement quand l’action Siren correspondante existe pour l’utilisateur.",
         "L’élément principal d’un écran est la même ligne en variante agrandie.",
-        "La ligne mesure au moins 64 pixels au téléphone ou sous un pointeur tactile, et 56 pixels à la souris sur ordinateur.",
+        "La ligne mesure au moins 64 pixels au téléphone ou sous un pointeur tactile.",
+        "À la souris, sur un écran de plus de 760 pixels de large, la ligne prend les tailles du menu latéral et du bandeau : titre de 14 pixels, seconde ligne et dates de 13 pixels, icône de type de 20 pixels, 40 pixels de haut pour une ligne de texte et 52 pixels pour deux ; les champs de recherche et de filtre sont en 14 pixels ; le titre de l’écran reste le plus grand texte ; la grande taille et la ligne agrandie gardent un cran de plus que la ligne courante.",
         "Les collections ne proposent pas de bouton pour passer en cartes ; les informations supplémentaires d’une ligne s’affichent à partir de 1000 pixels de large et sont masquées au téléphone.",
         "Les informations supplémentaires occupent au plus la moitié de la ligne et se raccourcissent par des points de suspension ; le titre et l’état restent lisibles côte à côte sans se recouvrir, et la page ne défile pas horizontalement, panneau latéral ouvert ou fermé.",
         "Une liste courte, comme la composition du conseil, emploie la grande taille de la même ligne : initiales et nom plus grands, nom en gras, puis la seconde ligne avec l’état et des lignes de faits qui passent à la ligne sur deux lignes au plus avant les points de suspension ; elle reste sur le fond blanc, séparée par des filets, sans bordure ni ombre. La grande taille est la seule variante de taille de la ligne."
@@ -11012,6 +11013,12 @@
           "key": "list-row-large-size",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026 sur la composition du conseil : « il y a un petit problème de CSS. On voit pas les noms. », « je pense qu'on peut faire une carte plus grande là. Parce qu'il y a des membres du conseil municipal, il n'y en a pas 36 000 » ; décision du coordinateur : une grande taille de la ligne partagée, pas une carte encadrée, avec les coordonnées sur une ligne puis le mandat et les commissions sur la suivante.",
+          "sourceIds": []
+        },
+        {
+          "key": "list-row-pointer-density",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 sur l’écran Documents à l’ordinateur : « on a un contenu qui est plus gros que les menus ou le titre ou le header. Je pense qu'on a un peu inversé les trucs » ; décision du coordinateur : à la souris sur ordinateur, le contenu descend au niveau du menu et du bandeau, le téléphone et la tablette tactile ne changent pas.",
           "sourceIds": []
         }
       ]

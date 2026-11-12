@@ -150,6 +150,37 @@ test.describe("person and body lists", () => {
     await expect(member.locator(".list-row-title")).toBeVisible();
     await expectReadable(member.locator(".list-row-title"));
   });
+
+  // @verifies-requirement HALL-FR-LAY-060
+  test("with a mouse on a computer, list rows take the size of the side menu", async ({ appPage: page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/app/contacts");
+    const row = page.locator('[data-slot="list-row"]').first();
+    await expect(row).toBeVisible();
+    const sizes = await page.evaluate(() => {
+      const size = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) return null;
+        return {
+          font: Number.parseFloat(getComputedStyle(element).fontSize),
+          height: Math.round(element.getBoundingClientRect().height),
+        };
+      };
+      return {
+        menu: size("aside .nav-row"),
+        title: size(".list-row-title"),
+        detail: size(".list-row-detail"),
+        line: size(".list-row-line"),
+        search: size('[data-slot="search-input"] > input'),
+        screenTitle: size("h1"),
+      };
+    });
+    expect(sizes.title?.font).toBe(sizes.menu?.font);
+    expect(sizes.detail!.font).toBeLessThan(sizes.title!.font);
+    expect(sizes.line?.height).toBe(52);
+    expect(sizes.search?.font).toBe(sizes.menu?.font);
+    expect(sizes.screenTitle!.font).toBeGreaterThan(sizes.title!.font);
+  });
 });
 
 // @verifies-requirement HALL-FR-LAY-010

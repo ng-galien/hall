@@ -159,4 +159,32 @@
     .list-row-list,
     .list-row { --list-row-height: var(--hall-size-list-row-touch); }
   }
+
+  /* @implements-requirement HALL-FR-LAY-060 */
+  /* With a mouse on a computer, the row takes the sizes of the side menu and the header: a 14-pixel title, 13-pixel
+     facts, a 20-pixel type icon, 40 pixels for one line of text and 52 for two. The large and prominent rows stay one
+     step above it. */
+  @media (min-width: 761px) and (pointer: fine) {
+    .list-row-main { padding-block: var(--hall-space-1-5); }
+    .list-row-main:has(> .list-row-text > :is(.list-row-detail, .list-row-overline, .list-row-fact)) { min-height: var(--hall-size-list-row-pointer-double); }
+    .list-row-head { width: var(--hall-size-control); }
+    .list-row-head > .type-icon { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); font-size: var(--hall-font-size-icon-large); }
+    .list-row-title { font-size: var(--hall-font-size-body); line-height: var(--hall-line-height-body-small); }
+    .list-row-detail,
+    .list-row-wide,
+    .list-row-fact { font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
+    .list-row-number strong,
+    .list-row-date strong { font-size: var(--hall-font-size-body); }
+    .list-row-avatar { width: var(--hall-size-control-small); height: var(--hall-size-control-small); }
+    .list-row-children { padding-left: calc(var(--hall-space-3) * 2 + var(--hall-size-control)); }
+
+    .list-row[data-size="large"] .list-row-main { padding-block: var(--hall-space-2-5); }
+    .list-row[data-size="large"] .list-row-avatar { width: var(--hall-size-control); height: var(--hall-size-control); font-size: var(--hall-font-size-caption); }
+    .list-row[data-size="large"] .list-row-title { font-size: var(--hall-font-size-title); line-height: var(--hall-line-height-body-large); }
+
+    .list-row[data-prominent="true"] .list-row-main { padding-block: var(--hall-space-3) var(--hall-space-1-5); }
+    .list-row[data-prominent="true"] .list-row-head > .type-icon { width: var(--hall-size-glyph); height: var(--hall-size-glyph); font-size: var(--hall-size-glyph-mark-large); }
+    .list-row[data-prominent="true"] :is(.list-row-date, .list-row-number) strong { font-size: var(--hall-font-size-heading); }
+    .list-row[data-prominent="true"] .list-row-title { font-size: var(--hall-font-size-title); line-height: var(--hall-line-height-body-large); }
+  }
 }

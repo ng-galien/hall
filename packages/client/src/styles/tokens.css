@@ -147,9 +147,10 @@
   --hall-size-phone-bar: 64px;
   --hall-size-sidebar-compact: 52px;
   --hall-size-data-row: 56px;
-  /* List row height: under a finger or at phone width, then with a pointer. */
+  /* List row height: under a finger or at phone width; with a mouse on a computer, one line of text, then two. */
   --hall-size-list-row-touch: 64px;
-  --hall-size-list-row-pointer: 56px;
+  --hall-size-list-row-pointer: 40px;
+  --hall-size-list-row-pointer-double: 52px;
   --hall-size-live-header: 60px;
   --hall-size-table-column-min: 60px;
   --hall-size-live-rail-collapsed: 64px;
