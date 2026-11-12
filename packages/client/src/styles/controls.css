@@ -235,7 +235,7 @@
   /* The list keeps room under its last row so the floating button never covers it. */
   body:has(.create-fab) .app-main { padding-bottom: calc(var(--hall-size-touch-control) + var(--hall-space-6)); }
   /* Each row holds its label on one line, and its description, when it has one, on a line of its own. */
-  .create-menu { min-width: var(--hall-size-hit-card); max-width: var(--radix-dropdown-menu-content-available-width); padding: var(--hall-space-1) 0; }
+  .create-menu { min-width: var(--hall-size-hit-card); padding: var(--hall-space-1) 0; }
   .create-menu-row { align-items: center; gap: var(--hall-space-3); min-height: var(--hall-size-list-row-pointer); padding: var(--hall-space-2) var(--hall-space-3); border-radius: 0; }
   .create-menu-row + .create-menu-row { border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .create-menu-text { display: grid; min-width: 0; gap: var(--hall-space-0-5); }
