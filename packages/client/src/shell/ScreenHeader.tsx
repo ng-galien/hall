@@ -257,8 +257,12 @@ function useTitleTooLong(row: HTMLDivElement | null, title: string): boolean {
       const icon = row.querySelector<HTMLElement>(".screen-title-icon");
       const commands = row.querySelector<HTMLElement>(".screen-title-commands");
       if (!text || !commands || commands.childElementCount === 0) return setLong(false);
+      const block = row.parentElement;
+      if (!block) return setLong(false);
+      const style = getComputedStyle(block);
+      const width = block.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
       const gap = Number.parseFloat(getComputedStyle(row).columnGap) || 0;
-      const room = row.clientWidth - (icon?.offsetWidth ? icon.offsetWidth + gap : 0) - commands.offsetWidth - gap;
+      const room = width - (icon?.offsetWidth ? icon.offsetWidth + gap : 0) - commands.offsetWidth - gap;
       setLong(text.offsetWidth > room);
     };
     const observer = new ResizeObserver(measure);
