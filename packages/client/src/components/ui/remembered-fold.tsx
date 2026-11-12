@@ -13,21 +13,25 @@ function storeFold(storageKey: string, folded: boolean) {
   }
 }
 
-/** The unfolded or folded state of a panel, chosen by this person in this browser. */
-export function useRememberedFold(key: string): [boolean, (folded: boolean) => void] {
+/**
+ * The unfolded or folded state of a panel, chosen by this person in this browser; until the person chooses, the state
+ * is `fallback`.
+ */
+export function useRememberedFold(key: string, fallback = false): [boolean, (folded: boolean) => void] {
   const storageKey = `mairie.fold.${key}`;
-  const [folded, setFolded] = useState(() => {
+  const [stored, setStored] = useState<boolean | null>(() => {
     try {
-      return localStorage.getItem(storageKey) === "true";
+      const value = localStorage.getItem(storageKey);
+      return value === null ? null : value === "true";
     } catch {
-      return false;
+      return null;
     }
   });
   const change = (next: boolean) => {
-    setFolded(next);
+    setStored(next);
     storeFold(storageKey, next);
   };
-  return [folded, change];
+  return [stored ?? fallback, change];
 }
 
 /**

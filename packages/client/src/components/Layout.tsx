@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { GlobalSearchPalette } from "../features/search/GlobalSearchPalette";
 import { useI18n } from "../i18n/I18nProvider";
@@ -16,35 +16,25 @@ import { isPhoneReadingLocation, usePhoneScrollMemory } from "../shell/phoneHist
 import { ScreenHeader, ScreenLargeTitle, useScreenHeading } from "../shell/ScreenHeader";
 import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
-import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import { useRememberedFold } from "./ui/remembered-fold";
 
 /** The large title counts as gone once less than this height of it remains on screen. */
 const collapseDistance = 8;
+/** Below this width the menu starts folded in its rail until the person chooses. */
+const narrowQuery = "(max-width: 1000px)";
 // @implements-requirement HALL-FR-LAY-010
 // @implements-requirement HALL-FR-LAY-100
 export function Layout() {
-  const [compact, setCompact] = useRememberedFold("navigation");
-  const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 1000px)").matches);
-  const [navigationOpen, setNavigationOpen] = useState(false);
+  const [narrow, setNarrow] = useState(() => window.matchMedia(narrowQuery).matches);
+  const [compact, setCompact] = useRememberedFold("navigation", narrow);
   const location = useLocation();
-  const previousLocation = useRef(location.pathname);
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 1000px)");
-    const update = () => {
-      setMobile(query.matches);
-      setNavigationOpen(false);
-    };
+    const query = window.matchMedia(narrowQuery);
+    const update = () => setNarrow(query.matches);
     query.addEventListener("change", update);
     update();
     return () => query.removeEventListener("change", update);
   }, []);
-  useEffect(() => {
-    if (previousLocation.current !== location.pathname) {
-      setNavigationOpen(false);
-      previousLocation.current = location.pathname;
-    }
-  }, [location.pathname]);
   const { t } = useI18n();
   const [trailSlot, setTrailSlot] = useState<HTMLDivElement | null>(null);
   const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null);
@@ -87,36 +77,10 @@ export function Layout() {
             <ScreenTitleContext.Provider value={setPageTitle}>
               <ScreenScrolledContext.Provider value={scrolled}>
                 <div className="app-shell">
-                  {phone ? null : mobile ? (
-                    <>
-                      <AppSidebar compact navigation={{ expanded: false, toggle: () => setNavigationOpen(true) }} />
-                      <Dialog open={navigationOpen} onOpenChange={setNavigationOpen}>
-                        <DialogContent
-                          className="app-mobile-navigation"
-                          placement="left"
-                          closeLabel={t("common.close")}
-                          aria-describedby={undefined}
-                          data-testid="mobile-navigation"
-                          onClick={(event) => {
-                            if (event.target instanceof Element && event.target.closest("a[href]"))
-                              setNavigationOpen(false);
-                          }}
-                        >
-                          <DialogTitle className="sr-only">{t("common.primaryNavigation")}</DialogTitle>
-                          <AppSidebar
-                            compact={false}
-                            navigation={{ expanded: true, toggle: () => setNavigationOpen(false) }}
-                          />
-                        </DialogContent>
-                      </Dialog>
-                    </>
-                  ) : (
+                  {phone ? null : (
                     <AppSidebar
                       compact={compact}
-                      navigation={{
-                        expanded: !compact,
-                        toggle: () => setCompact(!compact),
-                      }}
+                      navigation={{ expanded: !compact, toggle: () => setCompact(!compact) }}
                     />
                   )}
                   <div className="app-column">

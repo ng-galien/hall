@@ -15,7 +15,6 @@
     --hall-size-application-min: 0;
   }
   .app-main { overflow-x: hidden; }
-  .workspace-tree-toggle, .workspace-tree-link { min-height: var(--hall-size-touch-control); }
   .page-content, .workbench { padding: var(--hall-space-4); }
   .form-grid { grid-template-columns: minmax(0, 1fr); }
   .page-actions, .workbench-header, .workbench-header-side { flex-wrap: wrap; }

@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
-import { expect, test } from "../fixtures/application";
+import { expect, openMenuEntry, test } from "../fixtures/application";
 
 test.use({ hasTouch: true });
 
@@ -120,9 +120,16 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
       await page.screenshot({ path: testInfo.outputPath("phone-maps.png"), animations: "disabled" });
   }
 
+  // Above the phone, one menu anchored at the left: folded in its rail below 1000 pixels until the person chooses.
   await page.setViewportSize({ width: 768, height: 800 });
   await page.goto("/app/");
   await expect(page.getByTestId("phone-navigation")).toHaveCount(0);
+  const sidebar = page.locator(".app-sidebar");
+  await expect(sidebar).toHaveCount(1);
+  await expect(sidebar).toHaveAttribute("data-compact", "true");
+  await page.getByTestId("navigation-toggle").click();
+  await expect(sidebar).not.toHaveAttribute("data-compact", "true");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   for (const destination of [
     "contacts",
     "council-members",
@@ -135,31 +142,22 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     "council-committees",
     "settings",
   ]) {
-    await page.getByTestId("navigation-toggle").tap();
-    const menu = page.getByTestId("mobile-navigation");
-    await expect(menu).toBeVisible();
-    const link = menu.getByTestId(`navigation-${destination}`);
-    // A sub-resource shows under its entry once the entry is open: the entry goes to its first sub-resource.
-    if (!(await link.isVisible())) {
-      await menu.getByTestId("navigation-council").tap();
-      await expect(menu).toBeHidden();
-      await page.getByTestId("navigation-toggle").tap();
-      await expect(menu).toBeVisible();
-    }
-    const route = (await link.getAttribute("href"))?.replace(/^\/app/, "");
-    await link.tap();
-    await expect(menu).toBeHidden();
-    // The layout closes the menu when the route commits: wait for it before reopening the menu.
-    await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", route ?? "");
+    await openMenuEntry(page, destination);
+    await expect(sidebar).not.toHaveAttribute("data-compact", "true");
     await expectFitsWidth(page);
   }
-  await page.getByTestId("navigation-toggle").click();
-  await page.getByTestId("mobile-navigation").getByTestId("dialog-close").click();
-  await expect(page.getByTestId("mobile-navigation")).toBeHidden();
-
+  const measures: Array<{ width: number; row: number }> = [];
+  for (const width of [783, 1030, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expect(sidebar).not.toHaveAttribute("data-compact", "true");
+    measures.push({
+      width: Math.round((await sidebar.boundingBox())!.width),
+      row: Math.round((await page.getByTestId("navigation-overview").boundingBox())!.height),
+    });
+  }
+  expect(new Set(measures.map((measure) => `${measure.width}x${measure.row}`)).size, JSON.stringify(measures)).toBe(1);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(page.getByTestId("navigation-workspace")).toBeVisible();
-  await expect(page.getByTestId("mobile-navigation")).toHaveCount(0);
   await expect(page.getByTestId("phone-navigation")).toHaveCount(0);
 });
 
