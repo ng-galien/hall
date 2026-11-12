@@ -98,6 +98,8 @@
 
 /* A refused rename shows over the next row, without moving the list. */
 .workspace-business-workbench .business-subject-row { position: relative; }
+/* The command of a prepared subject ends on the right edge of its section, under « Nouveau » and « Joindre ». */
+.workspace-business-workbench .business-subject-row .list-row-action { padding-right: 0; }
 
 .workspace-business-workbench .business-subject-rename-error > .error-banner-compact {
   position: absolute;
@@ -166,6 +168,8 @@
 /* On a phone the content of an affaire keeps the margins of the header and of its title. */
 @media (max-width: 760px) {
   .workspace-business-workbench.phone-business:not([data-editing="true"]) {
-    padding-inline: var(--hall-space-4);
+    /* The empty search row above an affaire pulls it up by one step; the content starts 20 pixels under the rule. */
+    margin-top: var(--hall-space-3);
+    padding: var(--hall-space-5) var(--hall-space-4) var(--hall-space-4);
   }
 }
