@@ -54,6 +54,12 @@
   .choice-option-text > strong { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
   /* A choice label followed by the information icon of its explanation, on one line. */
   .choice-option-label { display: inline-flex; align-items: center; gap: var(--hall-space-1); }
+  /* The information icon keeps its target without making the line of the choice taller than its text, so that the
+     round button stays on the first line of the text. */
+  .choice-option-label > .hall-button { margin-block: calc((var(--hall-line-height-body-small) - var(--hall-size-control)) / 2); }
+  @media (pointer: coarse) {
+    .choice-option-label > .hall-button { margin-block: calc((var(--hall-line-height-body-small) - var(--hall-size-touch-control)) / 2); }
+  }
   .choice-option-hint { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
   .choice-group:disabled .choice-option { cursor: default; }
 
