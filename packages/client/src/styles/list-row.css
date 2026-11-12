@@ -145,6 +145,15 @@
   .list-row[data-prominent="true"] :is(.list-row-date, .list-row-number) strong { font-size: var(--hall-font-size-heading-large); }
   .list-row[data-prominent="true"] .list-row-title { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); line-height: var(--hall-line-height-heading); white-space: normal; }
   .list-row[data-prominent="true"] .list-row-action { width: 100%; flex-wrap: wrap; padding: 0 var(--hall-space-3) var(--hall-space-4) calc(var(--hall-space-3) * 2 + var(--hall-size-metric-icon)); }
+  /* In a phone-wide row, the date, time and place are read in full and the state passes whole under them when the
+     line is too short; the commands stand one under the other, each on the whole line. */
+  .list-row[data-prominent="true"] { container-type: inline-size; }
+  @container (max-width: 760px) {
+    .list-row[data-prominent="true"] .list-row-detail { flex-wrap: wrap; row-gap: var(--hall-space-1); white-space: normal; }
+    .list-row[data-prominent="true"] .list-row-detail-text { overflow: visible; flex: 0 1 auto; overflow-wrap: anywhere; }
+    .list-row[data-prominent="true"] .list-row-status { flex: none; }
+    .list-row[data-prominent="true"] .list-row-action { flex-direction: column; align-items: stretch; }
+  }
 
   /* @implements-requirement HALL-FR-LAY-060 */
   /* Large row of a short list: larger initials and name, then lines of facts that wrap over two lines at most. */
