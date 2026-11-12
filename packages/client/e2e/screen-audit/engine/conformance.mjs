@@ -130,6 +130,11 @@ export const conformanceRules = {
     expected:
       "Un champ n'a pas de fond, un filet dessous seulement (gris au repos, bleu et plus épais en saisie, rouge et plus épais en erreur, aucun en lecture seule), son libellé au-dessus, et écrit « Non renseigné » quand il est vide.",
   },
+  "section-header": {
+    title: "En-tête de section : commandes hors de l'extrémité droite, ou titres de sections de tailles différentes",
+    expected:
+      "Un en-tête de section porte son titre à gauche et ses commandes à l'extrémité droite de la même ligne ; tous les titres de section d'un écran ont la même taille et la même graisse.",
+  },
   "editor-tools": {
     title: "Choix 8B : outils d'écriture hors de leur barre fixe sous le bandeau",
     expected:
@@ -735,6 +740,50 @@ export function measureConformance(options) {
     }
   }
 
+  /* section-header: the commands of a section header at the right end of its line; one size and weight of title. */
+  const sectionHeaders = [
+    ...document.querySelectorAll(
+      ".collapsible-section-header, .admin-section-heading, section > header, [class*=section-heading], [class*=section-header]",
+    ),
+  ].filter(
+    (head) =>
+      !ignored(head) &&
+      shown(head) &&
+      !head.closest("[data-testid=screen-header], [data-testid=phone-header], [role=dialog], nav") &&
+      head.querySelector(":scope h2, :scope h3, :scope > * > h2, :scope > * > h3"),
+  );
+  const titleLooks = new Map();
+  for (const head of sectionHeaders) {
+    const title = head.querySelector("h2, h3");
+    const titleStyle = getComputedStyle(title);
+    const look = `${titleStyle.fontSize} ${titleStyle.fontWeight}`;
+    titleLooks.set(look, [...(titleLooks.get(look) ?? []), title]);
+    const titleRect = title.getBoundingClientRect();
+    const box = head.getBoundingClientRect();
+    const right = box.right - Number.parseFloat(getComputedStyle(head).paddingRight);
+    const own = commands.filter(
+      (command) => head.contains(command) && !title.contains(command) && !command.closest("[data-slot=list-row]"),
+    );
+    const sameLine = own.filter((command) => {
+      const rect = command.getBoundingClientRect();
+      return rect.top < titleRect.bottom && rect.bottom > titleRect.top;
+    });
+    if (!sameLine.length) continue;
+    const last = Math.max(...sameLine.map((command) => command.getBoundingClientRect().right));
+    if (right - last > 2)
+      add(
+        "section-header",
+        head,
+        `commandes finissant à ${Math.round(last - box.left)} px d'un en-tête de ${Math.round(box.width)} px`,
+      );
+  }
+  if (titleLooks.size > 1)
+    add(
+      "section-header",
+      [...titleLooks.values()][1][0],
+      `titres de section en ${[...titleLooks.entries()].map(([look, titles]) => `${look} (${titles.length})`).join(", ")}`,
+    );
+
   /* editor-tools: choice 8B, on a phone the tools of a text are one bar fixed under the header, with « Photo ». */
   if (phone) {
     const writing = commands.some((command) => command.matches("[data-testid=text-finish-editing]"));
@@ -846,6 +895,17 @@ export function readComponentUnity(options) {
         `marges ${round(style.paddingTop)} ${round(style.paddingRight)} ${round(style.paddingBottom)} ${round(style.paddingLeft)} px`,
         `écart ${style.display.includes("flex") || style.display.includes("grid") ? round(style.columnGap) : 0} px`,
       ];
+      /* Where its commands sit: at the right end of its line, or elsewhere. */
+      if (definition.commands) {
+        const own = [...line.querySelectorAll(definition.commands)].filter(
+          (command) => command.getClientRects().length,
+        );
+        if (own.length) {
+          const boxRight = line.getBoundingClientRect().right - Number.parseFloat(style.paddingRight);
+          const last = Math.max(...own.map((command) => command.getBoundingClientRect().right));
+          parts.push(`commandes ${boxRight - last <= 2 ? "à l'extrémité droite" : "ailleurs que l'extrémité droite"}`);
+        }
+      }
       /* Kinds the design names (a row on two lines, a list of choices, the active entry) are variants of their own. */
       const kinds = (definition.kinds ?? [])
         .filter(([selector]) => element.matches(selector) || element.querySelector(selector))

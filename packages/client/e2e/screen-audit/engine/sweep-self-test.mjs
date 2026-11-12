@@ -182,6 +182,12 @@ const cases = [
     `<button data-slot="button" data-variant="secondary" data-size="default" class="secondary">${icon("Plus")}Joindre</button>`,
   ],
   [
+    "section-header",
+    {},
+    `<section><header class="collapsible-section-header row" style="width:360px"><h2 style="font-size:16px">Éléments préparés</h2><button class="secondary">+ Nouveau</button></header></section><section><header class="collapsible-section-header row" style="width:360px;justify-content:space-between"><h3 style="font-size:14px">Documents</h3><button class="secondary">+ Joindre</button></header></section>`,
+    `<section><header class="collapsible-section-header row" style="width:360px;justify-content:space-between"><h2 style="font-size:16px">Éléments préparés</h2><button class="secondary">+ Nouveau</button></header></section><section><header class="collapsible-section-header row" style="width:360px;justify-content:space-between"><h2 style="font-size:16px">Documents</h2><button class="secondary">+ Joindre</button></header></section>`,
+  ],
+  [
     "editor-tools",
     { phone: true },
     `<header data-testid="phone-header" style="position:sticky;top:0;height:56px;background:white">Note</header><button data-testid="text-finish-editing">Terminé</button><button class="editor-photo-control">Choisir une photo</button><div role="toolbar" style="margin-top:40px">G I</div>`,
@@ -406,6 +412,36 @@ try {
     `${fieldOk ? "ok    " : "ÉCHEC "} form-field : ${onFaultyField.length} sur la page fautive, ${onCorrectField.length} sur la page correcte`,
   );
   if (!fieldOk) failures.push({ rule: "form-field", onFaultyField, onCorrectField });
+
+  /* Visual unity of position: a section header with its command at the right end, another with it beside the title. */
+  const sections = async (second) => {
+    await page.setContent(
+      `<!doctype html><html lang="fr"><head>${style}</head><body><header class="collapsible-section-header row" style="width:360px;justify-content:space-between"><h2>Documents</h2><button>+ Joindre</button></header><header class="collapsible-section-header row" style="width:360px;${second}"><h2>Éléments préparés</h2><button>+ Nouveau</button></header></body></html>`,
+    );
+    const entries = await page.evaluate(readComponentUnity, {
+      components: {
+        "en-tête de section": {
+          selector: ".collapsible-section-header",
+          part: "",
+          text: "h2, h3",
+          icon: "none",
+          variants: [],
+          commands: "button, a[href]",
+        },
+      },
+    });
+    return unityFindings(
+      entries.map((entry) => ({ ...entry, screen: "essai", width: 900, menu: "déplié" })),
+      () => "",
+    ).length;
+  };
+  const onFaultyPosition = await sections("");
+  const onCorrectPosition = await sections("justify-content:space-between");
+  const positionOk = onFaultyPosition > 0 && onCorrectPosition === 0;
+  console.log(
+    `${positionOk ? "ok    " : "ÉCHEC "} component-unity (position des commandes) : ${onFaultyPosition} sur la page fautive, ${onCorrectPosition} sur la page correcte`,
+  );
+  if (!positionOk) failures.push({ rule: "component-unity position", onFaultyPosition, onCorrectPosition });
 
   /* Thresholds: a min-width and a max-width query open ranges at the same width; rem is read at 16 px. */
   await page.setContent(`<!doctype html><html><head><style>

@@ -170,7 +170,7 @@ export const components = [
     name: "En-tête de section",
     code: ["packages/client/src/components/ui/collapsible-section.tsx"],
     variants: ["repliable", "section de dossier"],
-    rules: ["disclosure-chevron", "unlabelled-create", "component-unity"],
+    rules: ["section-header", "disclosure-chevron", "unlabelled-create", "component-unity"],
     values: [],
     decided: [],
   },

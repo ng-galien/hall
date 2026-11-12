@@ -165,7 +165,23 @@ const unityComponents = {
     ],
   },
   état: { selector: ".record-state, .list-row-status", part: "", icon: "none", variants: [], contentHeight: "*" },
-  "en-tête de section": { selector: ".collapsible-section-header", part: "", variants: [] },
+  "en-tête de section": {
+    selector: ".collapsible-section-header, .admin-section-heading, [class*=section-heading]",
+    part: "",
+    text: "h2, h3",
+    icon: "none",
+    variants: [],
+    commands: "button, a[href]",
+  },
+  "ligne de liste (action)": {
+    selector: "[data-slot=list-row]:has(.list-row-action)",
+    part: ":scope > .list-row-line",
+    text: ".list-row-title",
+    icon: "none",
+    variants: ["data-size", "data-prominent"],
+    contentHeight: "*",
+    commands: ".list-row-action button, .list-row-action a[href]",
+  },
 };
 /**
  * The retained form field, page 5 of « Hall 1.3 — Design de référence » (elements h72 to h80 and the classes f, foc,
