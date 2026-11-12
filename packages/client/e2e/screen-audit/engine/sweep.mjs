@@ -281,11 +281,11 @@ export function measureLayout(options) {
    * horizontal-scroll: the document or any area wider than its box, except a declared data table or strip. The finding
    * names the area and, after « déborde : », the deepest element that passes its right edge the most: the one to fix.
    */
-  const overflowing = (area, right) => {
+  const overflowing = (area, right, hidden = false) => {
     let culprit = null;
     let widest = right + 1;
     for (const element of area.querySelectorAll("*")) {
-      if (ignored(element) || !shown(element)) continue;
+      if (!hidden && (ignored(element) || !shown(element))) continue;
       const edge = element.getBoundingClientRect().right;
       // The deepest element at the widest edge: a child that reaches as far wins over its parent.
       if (edge > widest + 0.5 || (culprit && edge >= widest - 0.5 && culprit.contains(element))) {
@@ -293,7 +293,13 @@ export function measureLayout(options) {
         culprit = element;
       }
     }
-    return culprit ? { selector: selectorOf(culprit), right: Math.round(widest) } : null;
+    if (culprit) return { selector: selectorOf(culprit), right: Math.round(widest) };
+    // Nothing visible passes the edge: the width comes from an element not drawn (read by a screen reader, clipped).
+    if (!hidden) {
+      const unseen = overflowing(area, right, true);
+      if (unseen) return { ...unseen, selector: `${unseen.selector} (non dessiné)` };
+    }
+    return null;
   };
   const scrolling = document.scrollingElement ?? document.documentElement;
   if (scrolling.scrollWidth > width + 1) {
