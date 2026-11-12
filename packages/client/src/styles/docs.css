@@ -530,7 +530,7 @@ h4.docs-heading {
 }
 /* Under a finger each segment of the path offers a 44-pixel target. */
 @media (max-width: 760px) and (pointer: coarse) {
-  .docs-toolbar .docs-crumbs a { display: inline-block; line-height: var(--hall-size-touch-control); }
+  .docs-toolbar .docs-crumbs a { display: inline-block; min-width: var(--hall-size-touch-control); line-height: var(--hall-size-touch-control); }
 }
 
 /* The search is as wide as its placeholder, and narrows first when the path needs the room. */
