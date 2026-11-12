@@ -126,22 +126,31 @@ jobs:
 
           Cette version est une démonstration. Au premier lancement, l’application charge la commune fictive d’Alésia et s’ouvre connectée en tant que son administrateur, sans compte à créer ni mot de passe à saisir. Tout fonctionne sur l’ordinateur, avec une base de données embarquée ; rien n’est envoyé à un serveur. Le menu **Démonstration** remet le jeu de données à zéro.
           NOTICE
-          if [ "$TAG" = "v1.2.0" ]; then
+          if [ "$TAG" = "v1.3.0" ]; then
             cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
 
-          ## Nouveautés de la version 1.2.0
+          ## Nouveautés de la version 1.3.0
 
-          - Affichage pour téléphone : barre de navigation en bas de l’écran, en-tête avec bouton retour et titre de la page, geste retour du téléphone pris en charge.
-          - Nouvelle page d’accueil : la séance en cours ou la prochaine séance avec sa convocation et son ordre du jour, l’espace personnel avec ajout d’une photo ou d’une note, les derniers documents du conseil.
-          - Sur téléphone, documents, affaires, délibérations et procès-verbaux ouverts en pleine page, avec leurs actions réunies dans un menu : modifier, partager, télécharger, aperçu PDF, copier la référence. Une référence à un contact ou à un conseiller ouvre aussi sa page.
-          - Sur téléphone, chaque point de l’ordre du jour d’une séance s’ouvre sur sa propre page : textes, résultat du vote et documents.
-          - Documents PDF affichés page par page sur les téléphones sans lecteur PDF intégré, avec zoom par pincement ou double appui.
-          - Séance : ajout des autres personnes présentes depuis une fenêtre, parmi les contacts existants ou en créant un contact, avec leur qualité.
-          - Séance : une question ouverte ajoutée en cours de séance se rattache à une affaire existante, avec son rapport et ses pièces, ou à une nouvelle affaire.
-          - Corrections d’interface : candidats à l’ordre du jour alignés sur les lignes de l’ordre du jour, écran de connexion qui vérifie la session une seule fois, liens vers les délibérations d’une séance close qui ouvrent la délibération, dossiers de l’espace de travail repliés à l’ouverture, aperçus PDF des modèles affichés dans l’application de bureau.
-          - Sécurité et robustesse : tableurs de taille excessive refusés, droit d’export exigé pour tous les exports, application de bureau limitée aux pages de Hall avec les liens externes ouverts dans le navigateur, impression de la documentation dans la file de génération des PDF, erreurs détaillées dans le journal, connexion à la base écartée après une annulation en échec.
+          - Interface refaite sur ordinateur et sur téléphone : écrans blancs, un en-tête par écran avec un grand titre, des boutons et des champs de saisie de même forme partout.
+          - Menu en trois blocs : Accueil ; Conseil municipal, Documents, Courriels, Agenda ; Contacts, Cartes, Administration. Sur téléphone, « Plus » présente les autres écrans en grille d’icônes, par catégorie.
+          - Un seul bouton « + Nouveau » pour créer une note, une photo, une image, un fichier ou un autre élément.
+          - États écrits dans des pastilles de couleur : vert pour ce qui est réglé, orange pour ce qui attend une action, rouge pour ce qui bloque, gris pour le reste.
+          - Un contenu se déplie et se replie par un carré « + / − » placé devant sa ligne.
+          - Les explications d’un écran sont derrière l’icône d’information placée après son titre.
+          - Les dates de l’année en cours s’écrivent sans l’année, par exemple « 17 octobre ».
+          - Un texte ou le rapport d’une affaire s’ouvre en lecture ; « Modifier » permet de l’écrire, « Terminé » l’enregistre.
+          - Le mandat et les lieux de séance sont dans l’écran Commune.
+          - L’état de la connexion ne s’affiche plus que lorsque le serveur ne répond pas : « Serveur injoignable ».
+          - Courriels : brouillons communs, groupes de destinataires, pièces jointes, relecture avant envoi et historique des envois, par la messagerie de la mairie.
+          - Page d’une séance close : début, fin, durée, quorum, président et secrétaire, nombres de présents, représentés, excusés et absents ; documents de la séance avec « Ouvrir le PDF » ; liste des délibérations ; déroulé de chaque point, avec le vote de chaque conseiller à déplier.
+          - Mot de passe par lien à usage unique, envoyé par courriel : invitation à la création d’un compte, valable sept jours ; « Envoyer un lien de réinitialisation » depuis la page d’un utilisateur ; « Mot de passe oublié ? » sur l’écran de connexion, lien valable une heure. Chaque changement de mot de passe est confirmé par courriel.
+          - Un mot de passe remis en main propre peut être marqué temporaire : la personne en choisit un autre avant d’utiliser Hall.
+          - Contacts : trois numéros de téléphone, mobile, personnel et professionnel. Un numéro français s’écrit par paires de chiffres ; un texte qui n’est pas un numéro est refusé. L’ancien numéro est repris automatiquement, ou recopié dans les notes s’il n’est pas lisible. Sur un écran tactile, un numéro appelle le contact.
+          - Séance : un déport enregistré peut être retiré tant que le résultat du vote du point n’est pas enregistré ; le conseiller vote de nouveau.
+          - Séance : un clic droit sur un votant l’envoie à « Pour », « Contre » ou « Abstention », ou ouvre la déclaration de déport.
+          - Corrections : le nouveau nom d’un élément est conservé quand un enregistrement était en cours ; une image insérée pendant un enregistrement est conservée ; un texte comme « 19:30 » s’affiche tel quel dans les aperçus PDF et les courriels.
 
-          La version 1.2.0 modifie le schéma de la base de données. Pour un serveur existant en 1.1.0, suivre la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.2.0/docs/distribution.md#update-interruption-and-code-rollback). La mise à jour demande un arrêt du serveur et une sauvegarde vérifiée ; revenir en 1.1.0 nécessite de restaurer cette sauvegarde. Au premier lancement de la nouvelle version, la démonstration recharge la commune d’Alésia ; les modifications faites dans la démonstration précédente ne sont pas conservées.
+          La version 1.3.0 modifie le schéma de la base de données. Au premier lancement de la nouvelle version, la démonstration recharge la commune d’Alésia ; les modifications faites dans la démonstration précédente ne sont pas conservées.
           NOTICE
           fi
           cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
