@@ -78,7 +78,8 @@ function capture(label, application) {
       HALL_SCREEN_AUDIT: "true",
       HALL_SCREEN_AUDIT_MODE: "capture",
       HALL_SCREEN_AUDIT_OUTPUT: directory,
-      HALL_E2E_LANES: "2",
+      // One lane: the client of an earlier commit may share one Vite cache between lanes.
+      HALL_E2E_LANES: "1",
       CI: "true",
       // The disposable PostgreSQL of the journeys is shared: the exported application uses the same container.
       COMPOSE_PROJECT_NAME: "hall",
