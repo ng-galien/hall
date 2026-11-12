@@ -14,9 +14,9 @@ test("procès-verbal après la séance : des faits au PDF arrêté à la séance
     .first()
     .click();
   await expect(page.getByTestId("minutes-detail")).toBeVisible();
+  await expect(page.getByTestId("minutes-facts")).toBeVisible();
   await capture(page, `${journey}/02-brouillon`);
 
-  await expect(page.getByTestId("minutes-facts")).toBeVisible();
   await page.getByTestId("minutes-facts").scrollIntoViewIfNeeded();
   await capture(page, `${journey}/03-faits-de-la-seance`);
 
@@ -34,6 +34,9 @@ test("procès-verbal après la séance : des faits au PDF arrêté à la séance
   await expect(page.getByTestId("minutes-document-dialog")).toBeHidden();
 
   await page.getByTestId("minutes-generate").click();
+  await expect(page.getByTestId("minutes-document-dialog")).toBeVisible({ timeout: 60_000 });
+  await page.getByTestId("minutes-document-close").click();
+  await expect(page.getByTestId("minutes-document-dialog")).toBeHidden();
   await expect(page.getByTestId("minutes-download")).toBeVisible({ timeout: 60_000 });
   await capture(page, `${journey}/06-document-genere`);
 

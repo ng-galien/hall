@@ -8,9 +8,9 @@ test("préparation d’une affaire : création, rapport, documents, élément pr
   await page.goto("/app/workspace");
   await page.waitForLoadState("networkidle");
   await page.getByTestId("workspace-create-menu").first().click();
-  await expect(page.getByRole("menuitem", { name: "Nouvelle affaire" })).toBeVisible();
+  await expect(page.getByTestId("workspace-create-councilMatter")).toBeVisible();
   await capture(page, `${journey}/01-nouveau`);
-  await page.getByRole("menuitem", { name: "Nouvelle affaire" }).click();
+  await page.getByTestId("workspace-create-councilMatter").click();
   await expect(page.getByTestId("workspace-create-name")).toBeVisible();
   await page.getByTestId("workspace-create-name").fill("Réfection du pont de la Laume");
   await capture(page, `${journey}/02-nouvelle-affaire`);

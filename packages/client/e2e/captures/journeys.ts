@@ -52,6 +52,7 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
       .filter({ hasText: /Vercassivellaunos/ })
       .click(),
   );
+  await expect(page.getByTestId("meeting-details-status")).toBeHidden();
   await shot("02-proprietes-generales");
   await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
   if (prefix) {
