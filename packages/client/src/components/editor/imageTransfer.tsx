@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { Modal } from "../Ui";
 import type { ResourceImageAttributes } from "./images";
+import { beginImageUpload } from "./imageUploadGate";
 
 /** State of the image or document transfer shown under the writing area. */
 export type ImageUploadStatus =
@@ -130,9 +131,13 @@ export function insertImage(
     return;
   }
   onStatus({ kind: "uploading" });
-  void upload(file).then(
-    (image) => onStatus(placeImage(view, image, requestedPosition) === null ? { kind: "failed" } : idleUploadStatus),
-    () => onStatus({ kind: "failed" }),
+  void beginImageUpload().then((end) =>
+    upload(file)
+      .then(
+        (image) => onStatus(placeImage(view, image, requestedPosition) === null ? { kind: "failed" } : idleUploadStatus),
+        () => onStatus({ kind: "failed" }),
+      )
+      .finally(end),
   );
 }
 
@@ -170,7 +175,12 @@ async function insertDroppedFiles(
     try {
       if (image) {
         onStatus({ kind: "uploading" });
-        place(placeImage(view, await uploadImage!(file), position));
+        const end = await beginImageUpload();
+        try {
+          place(placeImage(view, await uploadImage!(file), position));
+        } finally {
+          end();
+        }
         continue;
       }
       const choice =

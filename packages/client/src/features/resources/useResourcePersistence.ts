@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { imageUploadsPending, trackTextSave, useImageUploadsPending } from "../../components/editor/imageUploadGate";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { apiErrorCode } from "../../services/apiClient";
@@ -61,6 +62,8 @@ export function useResourcePersistence({
     (nextTitle = name) => {
       if (savePromiseRef.current) return savePromiseRef.current;
       if (!resource || !capabilities.updateMetadata) return Promise.resolve(true);
+      // A save taken while an image uploads would not cite it and would make the server drop it.
+      if (imageUploadsPending()) return Promise.resolve(false);
       const current = resource;
       const pending = run(async () => {
         setActionError(null);
@@ -109,6 +112,7 @@ export function useResourcePersistence({
           if (savePromiseRef.current === pending) savePromiseRef.current = null;
         });
       savePromiseRef.current = pending;
+      trackTextSave(pending);
       return pending;
     },
     [
@@ -127,16 +131,17 @@ export function useResourcePersistence({
     ],
   );
 
+  const uploadingImage = useImageUploadsPending();
   useEffect(() => {
     if (!autosaveEnabled) {
       setSaveStatus("idle");
       return;
     }
-    if (!dirty || !capabilities.updateMetadata) return;
+    if (!dirty || !capabilities.updateMetadata || uploadingImage) return;
     setSaveStatus("dirty");
     const timer = window.setTimeout(() => void save(), 1000);
     return () => window.clearTimeout(timer);
-  }, [autosaveEnabled, capabilities.updateMetadata, dirty, save, setSaveStatus]);
+  }, [autosaveEnabled, capabilities.updateMetadata, dirty, save, setSaveStatus, uploadingImage]);
 
   const updateAutosave = useCallback(
     (enabled: boolean) => {
