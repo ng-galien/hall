@@ -234,7 +234,8 @@ if (sweeping) {
 
             for (let screen = queue.shift(); screen; screen = queue.shift()) {
               try {
-                await open(screen, sweepPlan.to);
+                // A screen that exists on a phone only (the « Plus » sheet) is opened at a phone width.
+                await open(screen, screen.formats.includes("ordinateur") ? sweepPlan.to : 375);
                 const sheets: Breakpoint[] = await page.evaluate(readBreakpoints);
                 const all = [...sheets, ...sweepPlan.scriptBreakpoints];
                 for (const entry of all)
@@ -252,6 +253,12 @@ if (sweeping) {
                       below: input === "touch" ? sweepPlan.touchBelow : Number.POSITIVE_INFINITY,
                       only: onlyIntervals,
                     });
+                // A screen is measured only at the widths of the formats where it exists.
+                const exists = (width: number) =>
+                  width < sweepPlan.wideFrom
+                    ? screen.formats.includes("telephone")
+                    : screen.formats.some((format: string) => format !== "telephone");
+                steps.splice(0, steps.length, ...steps.filter((step) => exists(step.width)));
                 const phoneSteps = steps.filter((step) => step.width < sweepPlan.wideFrom);
                 const wideSteps = steps.filter((step) => step.width >= sweepPlan.wideFrom);
 
