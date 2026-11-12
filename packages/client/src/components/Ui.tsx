@@ -259,6 +259,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   recusal_member_not_declared: "error.recusal_member_not_declared",
   recused_member_cannot_participate: "error.recused_member_cannot_participate",
   recusal_member_not_present: "error.recusal_member_not_present",
+  recusal_withdrawal_closed: "error.recusal_withdrawal_closed",
   ballot_chair_invalid: "error.ballot_chair_invalid",
   ballot_officers_not_present: "error.ballot_officers_not_present",
   meeting_officer_change_invalid: "error.meeting_officer_change_invalid",

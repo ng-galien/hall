@@ -40,6 +40,7 @@ export type ApiErrorCode =
   | "recusal_member_not_declared"
   | "recused_member_cannot_participate"
   | "recusal_member_not_present"
+  | "recusal_withdrawal_closed"
   | "ballot_chair_invalid"
   | "ballot_officers_not_present"
   | "meeting_officer_change_invalid"
@@ -176,6 +177,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "recusal_member_not_declared",
   "recused_member_cannot_participate",
   "recusal_member_not_present",
+  "recusal_withdrawal_closed",
   "ballot_chair_invalid",
   "ballot_officers_not_present",
   "meeting_officer_change_invalid",

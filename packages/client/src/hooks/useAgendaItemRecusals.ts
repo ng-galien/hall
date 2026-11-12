@@ -1,7 +1,11 @@
 // biome-ignore-all lint/correctness/useExhaustiveDependencies: The revision token deliberately reloads recusals after a mutation.
 import { findSirenAction, type RecordAgendaItemRecusal } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { openAgendaItemRecusals, recordAgendaItemRecusal } from "../services/agendaItemRecusalsApi";
+import {
+  openAgendaItemRecusals,
+  recordAgendaItemRecusal,
+  withdrawAgendaItemRecusal,
+} from "../services/agendaItemRecusalsApi";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 
 export function useAgendaItemRecusals(meetingReference: string, agendaItemId: string | null, revision: string) {
@@ -41,6 +45,9 @@ export function useAgendaItemRecusals(meetingReference: string, agendaItemId: st
     canRecord: Boolean(
       current?.representation && findSirenAction(current.representation, "agenda-item.record-recusal"),
     ),
+    canWithdraw: Boolean(
+      current?.representation && findSirenAction(current.representation, "agenda-item.withdraw-recusal"),
+    ),
     error,
     submitting,
     reload: load,
@@ -50,6 +57,22 @@ export function useAgendaItemRecusals(meetingReference: string, agendaItemId: st
       setSubmitting(true);
       try {
         await recordAgendaItemRecusal(current.representation, input);
+        await load();
+        return true;
+      } catch (cause) {
+        setError(apiErrorCode(cause));
+        return false;
+      } finally {
+        recording.current = false;
+        setSubmitting(false);
+      }
+    },
+    async withdraw(councilMemberId: string) {
+      if (recording.current || !current?.representation) return false;
+      recording.current = true;
+      setSubmitting(true);
+      try {
+        await withdrawAgendaItemRecusal(current.representation, { councilMemberId });
         await load();
         return true;
       } catch (cause) {

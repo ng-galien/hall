@@ -467,6 +467,8 @@ export const fr: Messages = {
     "Le déport ne peut plus être déclaré : une participation ou la clôture du point a déjà été enregistrée.",
   "error.recusal_member_not_declared": "Ce membre ne dispose pas d’une déclaration de présence dans cette séance.",
   "error.recusal_member_not_present": "Seul un membre présent ou représenté peut se déporter.",
+  "error.recusal_withdrawal_closed":
+    "Le déport ne peut plus être retiré : le résultat du scrutin de ce point est enregistré ou la séance est close.",
   "error.ballot_chair_invalid":
     "Le président du scrutin est déterminé par la séance : le président en titre, ou le président de ce point.",
   "error.ballot_officers_not_present":
@@ -500,6 +502,8 @@ export const fr: Messages = {
   "recusal.immutableHint":
     "La déclaration est conservée. Elle ne peut pas supprimer des votes ou des participations déjà enregistrés.",
   "recusal.record": "Déclarer le déport",
+  "recusal.withdraw": "Retirer",
+  "recusal.withdrawConfirm": "Retirer le déport de {name} ?",
   "recusal.recuse": "Déport",
   "recusal.separateFromVotes":
     "Ces déports sont distincts des abstentions et des non-participations. Leur effet sur les déclarations ne constitue pas un constat juridique complet du quorum.",

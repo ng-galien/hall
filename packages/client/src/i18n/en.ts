@@ -462,6 +462,8 @@ export const en = {
     "Recusal recording is closed: participation or completion has already been recorded.",
   "error.recusal_member_not_declared": "This member has no attendance declaration for this meeting.",
   "error.recusal_member_not_present": "Only a member present or represented can recuse.",
+  "error.recusal_withdrawal_closed":
+    "The recusal can no longer be withdrawn: the ballot result of this item is recorded or the meeting is closed.",
   "error.ballot_chair_invalid":
     "The ballot chair is determined by the meeting: the chair in office, or the chair of this item.",
   "error.ballot_officers_not_present": "The ballot chair and the meeting secretary must be physically present.",
@@ -491,6 +493,8 @@ export const en = {
     "Only when CGCT L1111-6 II / L2131-11 applies, after checking its conditions and exceptions. Being an organisation representative is not sufficient. Also reduces the membership denominator.",
   "recusal.immutableHint": "The declaration is retained. It cannot remove votes or participation already recorded.",
   "recusal.record": "Record the recusal",
+  "recusal.withdraw": "Withdraw",
+  "recusal.withdrawConfirm": "Withdraw the recusal of {name}?",
   "recusal.recuse": "Recusal",
   "recusal.separateFromVotes":
     "These recusals are distinct from abstentions and non-participation. Their impact on declarations is not a complete legal quorum finding.",

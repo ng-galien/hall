@@ -223,6 +223,8 @@ export function ConductView({
   const [officersOpen, setOfficersOpen] = useState(false);
   const [closedSessionOpen, setClosedSessionOpen] = useState(false);
   const [recusalDetailsOpen, setRecusalDetailsOpen] = useState(false);
+  /* The recusal whose withdrawal awaits confirmation. */
+  const [recusalWithdrawal, setRecusalWithdrawal] = useState<{ councilMemberId: string; memberName: string }>();
   const selectedItemRef = useRef(selectedItem);
   selectedItemRef.current = selectedItem;
   useEffect(() => {
@@ -230,6 +232,7 @@ export function ConductView({
     setVoteOpen(false);
     setRecusalOpen(false);
     setRecusalDetailsOpen(false);
+    setRecusalWithdrawal(undefined);
   }, [selectedItemId2]);
 
   useEffect(() => {
@@ -749,9 +752,30 @@ export function ConductView({
                       ) : null}
                     </div>
                     {recusals.state.recusals.map((entry) => (
-                      <p key={entry.id} data-testid={`agenda-item-recusal-${entry.councilMemberId}`}>
-                        <strong>{entry.memberName}</strong> · {t(recusalBasisLabel(entry.legalBasis))}
-                      </p>
+                      <div
+                        key={entry.id}
+                        className="flex items-center justify-between gap-2"
+                        data-testid={`agenda-item-recusal-${entry.councilMemberId}`}
+                      >
+                        <p>
+                          <strong>{entry.memberName}</strong> · {t(recusalBasisLabel(entry.legalBasis))}
+                        </p>
+                        {recusals.canWithdraw ? (
+                          <Button
+                            variant="secondary"
+                            data-testid={`agenda-item-recusal-withdraw-${entry.councilMemberId}`}
+                            onClick={() => {
+                              setRecusalDetailsOpen(false);
+                              setRecusalWithdrawal({
+                                councilMemberId: entry.councilMemberId,
+                                memberName: entry.memberName,
+                              });
+                            }}
+                          >
+                            {t("recusal.withdraw")}
+                          </Button>
+                        ) : null}
+                      </div>
                     ))}
                     {recusals.canRecord ? (
                       <Button
@@ -1126,6 +1150,40 @@ export function ConductView({
         </Modal>
       ) : null}
 
+      {recusalWithdrawal ? (
+        <Modal
+          open
+          title={t("recusal.withdrawConfirm", { name: recusalWithdrawal.memberName })}
+          onClose={() => setRecusalWithdrawal(undefined)}
+          testId="agenda-item-recusal-withdraw-dialog"
+        >
+          <div className="modal-form">
+            <RequestErrorBanner error={recusals.error} />
+            <div className="dialog-actions">
+              <Button
+                variant="secondary"
+                disabled={recusals.submitting}
+                data-testid="agenda-item-recusal-withdraw-cancel"
+                onClick={() => setRecusalWithdrawal(undefined)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={recusals.submitting}
+                data-testid="agenda-item-recusal-withdraw-confirm"
+                onClick={() =>
+                  void recusals
+                    .withdraw(recusalWithdrawal.councilMemberId)
+                    .then((withdrawn) => withdrawn && setRecusalWithdrawal(undefined))
+                }
+              >
+                {t("recusal.withdraw")}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
       {recusalOpen ? (
         <AgendaItemRecusalDialog
           key={selectedItem.id}

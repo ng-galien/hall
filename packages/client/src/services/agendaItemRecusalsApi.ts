@@ -3,6 +3,8 @@ import {
   type RecordAgendaItemRecusal,
   recordAgendaItemRecusalSchema,
   type SirenEntity,
+  type WithdrawAgendaItemRecusal,
+  withdrawAgendaItemRecusalSchema,
 } from "@hall/api-contract";
 import { apiSirenRequest, submitSirenAction } from "./apiClient";
 
@@ -21,6 +23,18 @@ export async function recordAgendaItemRecusal(
     representation,
     "agenda-item.record-recusal",
     recordAgendaItemRecusalSchema.parse(input),
+  );
+  return { ...result, data: agendaItemRecusalsSchema.parse(result.data) };
+}
+
+export async function withdrawAgendaItemRecusal(
+  representation: SirenEntity<Record<string, unknown>>,
+  input: WithdrawAgendaItemRecusal,
+) {
+  const result = await submitSirenAction<unknown>(
+    representation,
+    "agenda-item.withdraw-recusal",
+    withdrawAgendaItemRecusalSchema.parse(input),
   );
   return { ...result, data: agendaItemRecusalsSchema.parse(result.data) };
 }
