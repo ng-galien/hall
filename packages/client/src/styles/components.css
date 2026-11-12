@@ -724,6 +724,10 @@
     margin-left: var(--hall-space-1);
     vertical-align: middle;
   }
+  /* Under a finger the icon keeps its whole target inside the line of the title, never over its neighbours. */
+  @media (pointer: coarse) {
+    :is(.section-header-title, .section-header-title-text) .hall-button { margin-block: 0; }
+  }
   .section-header-title :is(.section-header-icon, .section-header-count) { vertical-align: middle; }
   /* A title that is not plain text, or that folds its section, lays its parts and its information icon side by side,
      each in its own box. */
