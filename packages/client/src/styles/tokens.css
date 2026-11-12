@@ -148,7 +148,9 @@
   --hall-size-glyph: 28px;
   --hall-size-timeline-marker: 28px;
   --hall-size-control: 32px;
-  --hall-size-touch-control: 44px;
+  /* The size of a target under a finger. */
+  --hall-size-finger: 44px;
+  --hall-size-touch-control: var(--hall-size-finger);
   --hall-font-size-touch-input: 16px;
   --hall-size-color-picker-named: 18rem;
   --hall-size-member-avatar: 32px;

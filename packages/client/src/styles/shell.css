@@ -126,6 +126,11 @@
     border-right: var(--hall-stroke-thin) solid var(--hall-color-border);
     background: var(--hall-color-surface);
   }
+  /* Its icon buttons, such as the fold control, keep the finger size under a finger. */
+  .app-sidebar .hall-button[data-size^="icon"] { --hall-size-touch-control: var(--hall-size-finger); }
+  @media (pointer: coarse) {
+    .app-sidebar .hall-button.workspace-tree-toggle { width: var(--hall-size-finger); min-height: var(--hall-size-finger); }
+  }
   .app-sidebar[data-compact="true"] { width: var(--hall-size-sidebar-compact); }
   /* The fold control of the menu is on the line of the brand, and under the « H » of the rail. */
   .app-sidebar-head { display: flex; flex: none; align-items: center; justify-content: space-between; padding-right: var(--hall-space-2); }
