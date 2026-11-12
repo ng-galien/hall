@@ -261,6 +261,7 @@ export function AgendaComposer({
                       onOpen: () => expandItem(expanded ? null : item),
                       openTestId: `agenda-item-expand-${item.id}`,
                       openProps: { "aria-expanded": expanded },
+                      expanded,
                     })}
                 action={
                   <>
@@ -454,6 +455,7 @@ export function AgendaComposer({
                             onOpen: () => setExpandedCandidateKey(expanded ? null : candidate.key),
                             openTestId: `agenda-candidate-preview-${candidate.key}`,
                             openProps: { "aria-expanded": expanded },
+                            expanded,
                           })}
                       action={
                         <>

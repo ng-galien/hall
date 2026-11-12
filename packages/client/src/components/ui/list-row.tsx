@@ -52,8 +52,10 @@ export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "child
     /** Test identifier of the zone that opens the object. */
     openTestId?: string;
     openLabel?: string;
-    /** A row whose open button carries `aria-expanded` unfolds its content: the square « + / − » precedes its line. */
     openProps?: Omit<ComponentPropsWithoutRef<"button">, "onClick" | "children">;
+    /** A row that unfolds its content, such as an agenda item: the square « + / − » precedes its line. A folder never
+     * takes it: its icon opens. */
+    expanded?: boolean;
     /** Handlers of the visible line, for selection, drag or a context menu on a tree row. */
     lineProps?: Omit<ComponentPropsWithoutRef<"div">, "children">;
     /** Wraps the visible line, for instance in a context menu trigger. */
@@ -84,6 +86,7 @@ export function ListRow({
   openTestId,
   openLabel,
   openProps,
+  expanded,
   lineProps,
   wrapLine,
   className,
@@ -95,10 +98,9 @@ export function ListRow({
       <span className="list-row-status-text">{status.label}</span>
     </span>
   ) : null;
-  const unfolds = openProps?.["aria-expanded"];
   const content = (
     <>
-      {typeof unfolds === "boolean" ? <DisclosureBadge expanded={unfolds} /> : null}
+      {expanded === undefined ? null : <DisclosureBadge expanded={expanded} />}
       {head && !headButton ? <span className="list-row-head">{head}</span> : null}
       <span className="list-row-text">
         {overline ? <span className="list-row-overline">{overline}</span> : null}

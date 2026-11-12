@@ -152,6 +152,7 @@ function SubjectRow({
       {...open}
       openTestId={`business-subject-${subject.id}-open`}
       openProps={{ "aria-expanded": expanded, title: subject.title }}
+      expanded={expanded}
       head={
         <Tooltip>
           <TooltipTrigger asChild>

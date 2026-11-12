@@ -389,6 +389,7 @@ export function MeetingProceedings({ aggregate }: { aggregate: LiveMeetingPresen
               onOpen={() => toggleItem(item.id)}
               openTestId={`report-item-toggle-${item.id}`}
               openProps={{ "aria-expanded": expanded }}
+              expanded={expanded}
             />
           ) : (
             <ListRow key={item.id} {...shared} />
