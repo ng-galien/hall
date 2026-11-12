@@ -105,13 +105,13 @@
   /* The title of an opened item is read in full: it passes to the next line beside its commands. */
   .screen-title-row:has(.screen-title-commands:not(:empty)) > .screen-header-title { overflow-wrap: break-word; }
   /* A title too long for the room beside its commands takes the whole line; its commands pass under it, on the line of
-     its facts, at the right. */
-  .screen-title-block:has(> .screen-title-row[data-long="true"]) { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--hall-space-3); }
+     its facts at the right, or on a line of their own when the facts leave them no room. */
+  .screen-title-block:has(> .screen-title-row[data-long="true"]) { display: flex; flex-wrap: wrap; align-items: flex-start; column-gap: var(--hall-space-3); row-gap: var(--hall-space-1); }
   .screen-title-row[data-long="true"] { display: contents; }
-  .screen-title-row[data-long="true"] > .screen-title-icon { grid-column: 1; grid-row: 1; align-self: start; }
-  .screen-title-row[data-long="true"] > .screen-header-title { grid-column: 2 / 4; grid-row: 1; }
-  .screen-title-row[data-long="true"] > .screen-title-commands { grid-column: 3; grid-row: 2; margin-left: 0; }
-  .screen-title-block.screen-title-block:has(> .screen-title-row[data-long="true"]) > .screen-title-facts { grid-column: 2; grid-row: 2; padding-left: 0; }
+  .screen-title-row[data-long="true"] > .screen-title-icon { order: 0; }
+  .screen-title-row[data-long="true"] > .screen-header-title { order: 1; flex: 1 1 calc(100% - var(--hall-size-glyph-large) - var(--hall-space-3)); }
+  .screen-title-block.screen-title-block:has(> .screen-title-row[data-long="true"]) > .screen-title-facts { order: 2; min-width: 0; flex: 0 1 auto; }
+  .screen-title-row[data-long="true"] > .screen-title-commands { order: 3; margin-left: auto; }
   /* The facts start under the title, after the type icon. */
   .screen-title-block:has(.screen-title-icon:not(:empty)) > .screen-title-facts { padding-left: calc(var(--hall-size-glyph-large) + var(--hall-space-3)); }
   /* Once the large title has scrolled away, the title is written in the first line. */
