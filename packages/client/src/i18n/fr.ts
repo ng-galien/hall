@@ -1092,6 +1092,7 @@ export const fr: Messages = {
   "workspace.agendaPosition": "point {position} de l’ordre du jour",
   "workspace.filing": "Classement",
   "workspace.filterFolder": "Filtrer ce dossier…",
+  "workspace.pinnedItem": "Épinglé",
   "workspace.pinned": "Épinglés",
   "workspace.pin": "Épingler",
   "workspace.unpin": "Désépingler {name}",

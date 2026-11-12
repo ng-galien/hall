@@ -146,11 +146,6 @@
   .wsearch-field > .hall-input:focus { width: auto; min-width: var(--hall-size-search-field-min); flex: 1; padding: 0; box-shadow: none; background: transparent; }
   .wsearch-chip { display: inline-flex; min-width: 0; align-items: center; }
 
-  .wpins { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
-  .wpins-icon { flex: none; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-icon); }
-  .wpins-item { display: inline-flex; min-width: 0; align-items: center; }
-  .wpins-item .type-icon { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); font-size: var(--hall-font-size-icon); }
-  .wpins-title { max-width: var(--hall-size-pin-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ---- Home ---- */
   .whome { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: var(--hall-space-5); overflow-y: auto; padding: var(--hall-space-3); }

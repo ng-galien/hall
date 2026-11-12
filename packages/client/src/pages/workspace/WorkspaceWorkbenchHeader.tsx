@@ -6,7 +6,7 @@ import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
-import { ScreenTitle } from "../../shell/headerTrail";
+import { ScreenActions, ScreenTitle } from "../../shell/headerTrail";
 
 /** Controls of the open item supplied by the page that hosts the workbench (save state, changes, close). */
 export const WorkbenchControlsContext = createContext<ReactNode>(null);
@@ -55,6 +55,25 @@ export function WorkspaceWorkbenchHeader({
     <ScreenTitle>{title}</ScreenTitle>
   );
 
+  const commands = (
+    <>
+      {onTitleChange && !editingTitle ? (
+        <Button
+          variant="plain"
+          size="icon"
+          data-testid="workspace-workbench-rename"
+          aria-label={`${t("common.edit")} · ${titleLabel}`}
+          onClick={() => setEditingTitle(true)}
+        >
+          <EditIcon aria-hidden="true" />
+        </Button>
+      ) : null}
+      {actions}
+      {reference ? <CopyReferenceButton reference={reference} /> : null}
+      {controls ? <span className="workbench-header-controls">{controls}</span> : null}
+    </>
+  );
+
   return (
     <div className="workspace-workbench-header" data-testid="resource-workbench-header">
       <header className="workbench-header">
@@ -81,22 +100,7 @@ export function WorkspaceWorkbenchHeader({
           </span>
           {hint}
         </div>
-        <div className="workbench-header-side">
-          {onTitleChange && !editingTitle ? (
-            <Button
-              variant="plain"
-              size="icon"
-              data-testid="workspace-workbench-rename"
-              aria-label={`${t("common.edit")} · ${titleLabel}`}
-              onClick={() => setEditingTitle(true)}
-            >
-              <EditIcon aria-hidden="true" />
-            </Button>
-          ) : null}
-          {actions}
-          {reference ? <CopyReferenceButton reference={reference} /> : null}
-          {controls ? <span className="workbench-header-controls">{controls}</span> : null}
-        </div>
+        {titleId ? <div className="workbench-header-side">{commands}</div> : <ScreenActions>{commands}</ScreenActions>}
       </header>
 
       <RequestErrorBanner error={actionError} onDismiss={onDismissError} />

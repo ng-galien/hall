@@ -1071,6 +1071,7 @@ export const en = {
   "workspace.agendaPosition": "item {position} on the agenda",
   "workspace.filing": "Filing",
   "workspace.filterFolder": "Filter this folder…",
+  "workspace.pinnedItem": "Pinned",
   "workspace.pinned": "Pinned",
   "workspace.pin": "Pin",
   "workspace.unpin": "Unpin {name}",

@@ -43,6 +43,10 @@
   .screen-header-trail-slot { display: flex; min-width: 0; align-items: center; }
   .screen-header-trail-slot:empty { display: none; }
   .screen-header-trail:has(.screen-header-trail-slot:not(:empty)) > :not(.screen-header-trail-slot) { display: none; }
+  /* The trail lists the screens above: the current folder is the large title, not repeated in the trail. */
+  .screen-header-trail-slot .workspace-crumb-group:has(> [aria-current="page"]),
+  .screen-header-trail-slot .workspace-crumb[aria-current="page"],
+  .screen-header-trail-slot .workspace-crumb[aria-current="page"] + * { display: none; }
   .screen-header-inline-title {
     display: none;
     overflow: hidden;

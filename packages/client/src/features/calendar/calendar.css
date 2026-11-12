@@ -4,6 +4,7 @@
 .calendar-toolbar-navigation,
 .calendar-toolbar-views { display: flex; align-items: center; gap: var(--hall-space-2); }
 .calendar-toolbar h2 { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); }
+.calendar-toolbar-actions { display: flex; align-items: center; gap: var(--hall-space-5); }
 .calendar-legend { display: flex; gap: var(--hall-space-4); font-size: var(--hall-font-size-body); color: var(--hall-color-text-muted); }
 .calendar-legend span::before { content: ''; display: inline-block; width: var(--hall-space-2); height: var(--hall-space-2); margin-right: var(--hall-space-1-5); border-radius: var(--hall-radius-circular); background: var(--hall-color-brand); }
 .calendar-legend .calendar-legend-council::before { background: var(--hall-color-council-business); }

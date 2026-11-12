@@ -176,6 +176,12 @@ export function CalendarPage() {
           <h2 data-testid="calendar-title">{title}</h2>
         </div>
         <div className="calendar-toolbar-actions">
+          {phone ? null : (
+            <div className="calendar-legend">
+              <span className="calendar-legend-event">{t("workspace.type.event")}</span>
+              <span className="calendar-legend-council">{t("navigation.meetings")}</span>
+            </div>
+          )}
           <div className="calendar-toolbar-views">
             {(
               [
@@ -197,12 +203,6 @@ export function CalendarPage() {
           </div>
         </div>
       </div>
-      {phone ? null : (
-        <div className="calendar-legend">
-          <span className="calendar-legend-event">{t("workspace.type.event")}</span>
-          <span className="calendar-legend-council">{t("navigation.meetings")}</span>
-        </div>
-      )}
       {loading && <p role="status">{t("calendar.loading")}</p>}
       {error && <p role="alert">{t("calendar.error")}</p>}
       <FullCalendar

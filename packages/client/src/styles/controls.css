@@ -113,7 +113,7 @@
   .hall-field > :not(.hall-field-label, .hall-input, .hall-textarea, .hall-select-trigger) { min-width: 0; }
   .hall-field-note { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
   .hall-field-note[data-tone="danger"] { color: var(--hall-color-danger); }
-  .hall-field-row { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-10rem)), 1fr)); gap: var(--hall-space-2); }
+  .hall-field-row { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-8rem)), 1fr)); gap: var(--hall-space-2); }
 }
 
 /* @implements-requirement HALL-FR-LAY-120 */
