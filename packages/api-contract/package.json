@@ -1,6 +1,6 @@
 {
   "name": "@hall/api-contract",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "license": "EUPL-1.2",
   "type": "module",

@@ -10,7 +10,7 @@ PostgreSQL, start Hall, or migrate a database.
 
 The sources, the desktop demonstration downloads and the GitHub Pages site are
 published from the same public repository, `ng-galien/hall`. Desktop demonstration
-executables are built only after pushing a version tag such as `v1.2.0` by
+executables are built only after pushing a version tag such as `v1.3.0` by
 [`.github/workflows/release.yml`](../.github/workflows/release.yml) into a draft
 GitHub release. The workflow rejects a tag that does not match the desktop package
 version and has no manual branch-build trigger. The executables have no publisher
@@ -198,7 +198,7 @@ npm ci
 npm run pack:distribution
 ```
 
-The artifact is `dist/npm/ng-galien-hall-1.2.0.tgz`, with a SHA-256 sidecar. The build
+The artifact is `dist/npm/ng-galien-hall-1.3.0.tgz`, with a SHA-256 sidecar. The build
 bundles the internal Hall modules and declares exact external dependency versions
 from the lockfile. Every runtime dependency must have a registry URL and integrity;
 the build no longer reads a local PostgreSQL catalog archive.
@@ -209,10 +209,10 @@ excluding private configuration, TRUST files and source checkouts.
 Install the tarball into a version-specific directory outside the source tree:
 
 ```sh
-npm install --prefix /srv/hall/releases/1.2.0 \
-  /absolute/path/ng-galien-hall-1.2.0.tgz
-/srv/hall/releases/1.2.0/node_modules/.bin/hall --version
-/srv/hall/releases/1.2.0/node_modules/.bin/hall --help
+npm install --prefix /srv/hall/releases/1.3.0 \
+  /absolute/path/ng-galien-hall-1.3.0.tgz
+/srv/hall/releases/1.3.0/node_modules/.bin/hall --version
+/srv/hall/releases/1.3.0/node_modules/.bin/hall --help
 ```
 
 After an authorized npm publication, an exact package version can replace the
@@ -253,8 +253,8 @@ Provision the dedicated empty database separately. Do not pass an unrelated
 database to Hall. Run:
 
 ```sh
-/srv/hall/releases/1.2.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
-/srv/hall/releases/1.2.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
+/srv/hall/releases/1.3.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
+/srv/hall/releases/1.3.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
 ```
 
 The same process serves the API and the bundled interface at `/app/`. The CLI
@@ -275,7 +275,7 @@ outside `/srv/hall/releases/` and `node_modules/`.
 ## Inspect compatibility before an update
 
 ```sh
-/srv/hall/releases/1.2.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
+/srv/hall/releases/1.3.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
 ```
 
 This checks the stored Hall schema fingerprint without starting the HTTP server,
@@ -292,9 +292,9 @@ metadata with the tarball and backup manifest.
 incompatible schema before listening. Install or upgrade the schema explicitly:
 
 ```sh
-/srv/hall/releases/1.2.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
-/srv/hall/releases/1.2.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
-/srv/hall/releases/1.2.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
+/srv/hall/releases/1.3.0/node_modules/.bin/hall migrate --env-file /etc/hall/hall.env
+/srv/hall/releases/1.3.0/node_modules/.bin/hall schema-check --env-file /etc/hall/hall.env
+/srv/hall/releases/1.3.0/node_modules/.bin/hall start --env-file /etc/hall/hall.env
 ```
 
 Use `migrate` only after stopping application writers and verifying recovery from
