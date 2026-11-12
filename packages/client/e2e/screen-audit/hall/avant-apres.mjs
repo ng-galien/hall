@@ -20,7 +20,10 @@ const before = spawnSync("git", ["rev-parse", "--short", argument("before") ?? "
   cwd: repository,
   encoding: "utf8",
 }).stdout.trim();
-const after = spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd: repository, encoding: "utf8" }).stdout.trim();
+const after = spawnSync("git", ["rev-parse", "--short", argument("after") ?? "HEAD"], {
+  cwd: repository,
+  encoding: "utf8",
+}).stdout.trim();
 const phase = argument("phase");
 
 /** The application of `commit` exported outside the repository, with its own packages and the shared dependencies. */
@@ -121,9 +124,23 @@ function capture(label, application) {
   );
   mkdirSync(directory, { recursive: true });
   writeFileSync(join(directory, "statut.txt"), `${result.status}\n`);
+  // The commit of each capture: the whole run, or the screens retaken.
+  const commits = existsSync(join(directory, "commits.json"))
+    ? JSON.parse(readFileSync(join(directory, "commits.json"), "utf8"))
+    : {};
+  commits[retake ?? "*"] = label === "avant" ? before : after;
+  writeFileSync(join(directory, "commits.json"), JSON.stringify(commits, null, 2));
 }
 
 const escape = (text) => String(text).replace(/[&<>"]/g, (character) => `&#${character.charCodeAt(0)};`);
+
+function commitsOf(label) {
+  const file = join(output, label, "commits.json");
+  if (!existsSync(file)) return label === "avant" ? before : after;
+  return Object.entries(JSON.parse(readFileSync(file, "utf8")))
+    .map(([screens, commit]) => (screens === "*" ? commit : `${commit} pour ${screens}`))
+    .join(", ");
+}
 
 function page() {
   // The differences are noted by hand in notes.json beside the captures (not tracked), with the order of the board.
@@ -174,7 +191,8 @@ ${differences ? `<ul>${differences.map((line) => `<li>${escape(line)}</li>`).joi
 <style>body{font:15px/1.45 system-ui,sans-serif;margin:24px;color:#161A20;background:#fff}h1{font-size:22px}h2{font-size:17px;margin:28px 0 8px}
 .paire{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}figure{margin:0}figcaption{font-weight:600;margin-bottom:4px}
 img{width:100%;border:1px solid #DFE3E8}ul{margin:8px 0 0}.manque,.attente{color:#5B6472}section{border-top:1px solid #DFE3E8;padding-top:8px}</style></head>
-<body><h1>Hall · avant (${before}) et après (${after}) la refonte</h1>
+<body><h1>Hall · avant et après la refonte</h1>
+<p>Commits capturés — avant : ${escape(commitsOf("avant"))} ; après : ${escape(commitsOf("apres"))}.</p>
 <p>Chaque écran de l'outil de vérification, ouvert sur la base jetable de chaque version, à 1280 px à la souris et à 375 px au doigt. Les différences sont relevées en comparant les deux images.</p>
 ${sections.join("\n")}</body></html>`;
   writeFileSync(join(output, "index.html"), html);
