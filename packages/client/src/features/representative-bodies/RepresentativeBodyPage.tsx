@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { AddIcon, DeleteIcon } from "../../components/icons";
+import { DeleteIcon } from "../../components/icons";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { Disclosure } from "../../components/ui/disclosure";
@@ -345,7 +345,6 @@ export function RepresentativeBodyPage({
                       aria-expanded={paletteOpen}
                       onClick={() => setPaletteOpen((open) => !open)}
                     >
-                      <AddIcon />
                       {t(text.addMembers)}
                     </Button>
                   ) : null}
