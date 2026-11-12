@@ -5,6 +5,7 @@ import { test } from "../../fixtures/application";
 import {
   measureConformance,
   readBreakpoints,
+  readComponentUnity,
   readContainers,
   readContentWidth,
   stretchTexts,
@@ -98,6 +99,7 @@ if (sweeping) {
             await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
             const findings: Array<Finding & Record<string, unknown>> = [];
             const contentWidths: Array<Record<string, unknown>> = [];
+            const unity: Array<Record<string, unknown>> = [];
             const breakpointsSeen = new Map<string, Breakpoint>();
             let measures = 0;
             const missing: string[] = [];
@@ -136,6 +138,32 @@ if (sweeping) {
                 await settleLayout(page);
                 const again = new Set((await evaluate()).map((finding) => `${finding.rule}|${finding.selector}`));
                 found = found.filter((finding) => again.has(`${finding.rule}|${finding.selector}`));
+              }
+              const tactile = phone || input === "touch";
+              if (text === "réel") {
+                const where = { screen: screen.id, width, input, menu, pane };
+                for (const entry of await page.evaluate(readComponentUnity, {
+                  components: sweepPlan.unityComponents,
+                  tactile,
+                }))
+                  unity.push({ ...entry, ...where });
+                /* Below the drawer width, the unfolded menu opens over the content: it is measured open, then closed. */
+                const toggle = page.getByTestId("navigation-toggle").first();
+                if (!phone && width < sweepPlan.drawerBelow && menu !== "replié" && (await toggle.isVisible())) {
+                  await toggle.click();
+                  const drawer = page.getByTestId("mobile-navigation");
+                  if (await drawer.isVisible({ timeout: 2_000 }).catch(() => false)) {
+                    await settleLayout(page);
+                    for (const entry of await page.evaluate(readComponentUnity, {
+                      components: sweepPlan.unityComponents,
+                      tactile,
+                    }))
+                      if (entry.component.includes("menu"))
+                        unity.push({ ...entry, ...where, menu: "ouvert par-dessus le contenu" });
+                    await page.keyboard.press("Escape");
+                    await drawer.waitFor({ state: "hidden", timeout: 2_000 }).catch(() => undefined);
+                  }
+                }
               }
               const areas = await page.evaluate(readContentWidth);
               measures += 1;
@@ -273,6 +301,7 @@ if (sweeping) {
                 missing,
                 findings,
                 contentWidths,
+                unity,
                 breakpoints: [...breakpointsSeen.values()],
               }),
             );

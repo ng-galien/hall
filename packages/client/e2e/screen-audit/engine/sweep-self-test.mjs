@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { chromium } from "@playwright/test";
-import { measureConformance, readBreakpoints } from "./conformance.mjs";
+import { measureConformance, readBreakpoints, readComponentUnity, unityFindings } from "./conformance.mjs";
 import { intervalsOf, measureLayout } from "./sweep.mjs";
 
 /*
@@ -233,6 +233,27 @@ try {
     );
     if (!ok) failures.push({ rule, onFaulty, onCorrect });
   }
+
+  /* Visual unity: the menu anchored and the menu opened over the content draw their rows alike. */
+  const menu = (height) =>
+    `<aside class="app-sidebar"><a class="nav-row" href="#" style="display:flex;height:32px;padding:0 8px;gap:8px">${icon("House")}<span>Accueil</span></a></aside>` +
+    `<div data-testid="mobile-navigation"><aside class="app-sidebar"><a class="nav-row" href="#" style="display:flex;height:${height}px;padding:0 8px;gap:8px">${icon("House")}<span>Accueil</span></a></aside></div>`;
+  const unity = async (height) => {
+    await page.setContent(`<!doctype html><html lang="fr"><head>${style}</head><body>${menu(height)}</body></html>`);
+    const entries = await page.evaluate(readComponentUnity, {
+      components: { menu: { selector: ".app-sidebar .nav-row", part: "", variants: ["data-compact"] } },
+      tactile: false,
+    });
+    return unityFindings(
+      entries.map((entry) => ({ ...entry, screen: "essai", width: 900, menu: "déplié" })),
+      () => "",
+    );
+  };
+  const onFaultyMenu = (await unity(47)).length;
+  const onCorrectMenu = (await unity(32)).length;
+  const unityOk = onFaultyMenu > 0 && onCorrectMenu === 0;
+  console.log(`${unityOk ? "ok    " : "ÉCHEC "} component-unity : ${onFaultyMenu} sur la page fautive, ${onCorrectMenu} sur la page correcte`);
+  if (!unityOk) failures.push({ rule: "component-unity", onFaultyMenu, onCorrectMenu });
 
   /* Thresholds: a min-width and a max-width query open ranges at the same width; rem is read at 16 px. */
   await page.setContent(`<!doctype html><html><head><style>

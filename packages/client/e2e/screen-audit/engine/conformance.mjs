@@ -28,6 +28,7 @@ export const conformanceRules = {
   "bottom-bar": "Choix 1 : barre du bas autre que cinq destinations avec icône et libellé",
   "writing-modes": "Choix 8 : « Modifier » et « Terminé » affichés ensemble",
   "pointer-scale": "Tailles à l'ordinateur : ligne de liste écrite plus grand que le menu",
+  "component-unity": "Unité visuelle : un composant partagé dessiné de plusieurs façons dans une même variante",
   "row-height": "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
 };
 
@@ -178,7 +179,8 @@ export function measureConformance(options) {
   /* Exceptions declared by the application, each with its reason: `{ rule: [{ selector, reason }] }`. */
   const exceptions = options.exceptions ?? {};
   const add = (rule, element, detail) => {
-    if (typeof element !== "string" && (exceptions[rule] ?? []).some((entry) => element.closest(entry.selector))) return;
+    if (typeof element !== "string" && (exceptions[rule] ?? []).some((entry) => element.closest(entry.selector)))
+      return;
     findings.push({ rule, selector: selectorOf(element), detail });
   };
   const ignored = (element) => ignoreSelectors.some((selector) => element.closest(selector));
@@ -600,4 +602,103 @@ export function measureConformance(options) {
   const unique = new Map();
   for (const finding of findings) unique.set(`${finding.rule}|${finding.selector}`, finding);
   return [...unique.values()];
+}
+
+/**
+ * Drawn measures of the shared components on the page, for the rule of visual unity: a component keeps the same text
+ * size and weight, icon size, height, inner margins and gaps on every screen and at every width, except between the
+ * variants the design declares. Returns `[{ component, variant, signature, selector }]`; `components` maps a component
+ * name to `{ selector, part, variants }`, where `part` is the selector of the drawn line inside the element (or empty)
+ * and `variants` lists the attributes that name a declared variant (`data-size`, `data-variant`, `data-compact`…), read
+ * on the element or its nearest ancestor that carries them.
+ */
+export function readComponentUnity(options) {
+  const { components, tactile } = options;
+  const round = (value) => Math.round(Number.parseFloat(value) * 2) / 2 || 0;
+  const shown = (element) => {
+    const style = getComputedStyle(element);
+    if (style.visibility === "hidden" || style.display === "none" || element.closest("[aria-hidden=true], [hidden]"))
+      return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 1 && rect.height > 1;
+  };
+  const keyOf = (element) => {
+    const key = element.closest("[data-testid]")?.getAttribute("data-testid");
+    return key ? `[${key.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}|\d{6,}/gi, "*")}]` : element.tagName.toLowerCase();
+  };
+  const result = [];
+  for (const [component, definition] of Object.entries(components)) {
+    const seen = new Set();
+    for (const element of document.querySelectorAll(definition.selector)) {
+      if (!shown(element)) continue;
+      const line = definition.part ? (element.querySelector(definition.part) ?? element) : element;
+      // A title written on two lines makes its row taller: the row is compared when its title holds on one line.
+      const title = line.querySelector(".list-row-title");
+      if (title) {
+        const titleStyle = getComputedStyle(title);
+        const lineHeight = Number.parseFloat(titleStyle.lineHeight) || Number.parseFloat(titleStyle.fontSize) * 1.3;
+        if (title.getBoundingClientRect().height > lineHeight * 1.6) continue;
+      }
+      const style = getComputedStyle(line);
+      const text = [...line.querySelectorAll("*"), line].find((node) =>
+        [...node.childNodes].some((child) => child.nodeType === Node.TEXT_NODE && child.textContent.trim()),
+      );
+      const textStyle = text ? getComputedStyle(text) : style;
+      const icon = line.querySelector("svg");
+      const parts = [
+        `texte ${round(textStyle.fontSize)} px ${textStyle.fontWeight}`,
+        `icône ${icon ? round(icon.getBoundingClientRect().width) : 0} px`,
+        `hauteur ${round(line.getBoundingClientRect().height)} px`,
+        `marges ${round(style.paddingTop)} ${round(style.paddingRight)} ${round(style.paddingBottom)} ${round(style.paddingLeft)} px`,
+        `écart ${style.display.includes("flex") || style.display.includes("grid") ? round(style.columnGap) : 0} px`,
+      ];
+      const declared = (definition.variants ?? [])
+        .map((attribute) => {
+          const owner = element.closest(`[${attribute}]`);
+          return owner ? `${attribute}=${owner.getAttribute(attribute)}` : "";
+        })
+        .filter(Boolean)
+        .join(" ");
+      const variant = [tactile ? "tactile" : "souris", declared].filter(Boolean).join(", ");
+      const signature = parts.join(" · ");
+      if (seen.has(`${variant}|${signature}`)) continue;
+      seen.add(`${variant}|${signature}`);
+      result.push({ component, variant, signature, selector: keyOf(element) });
+    }
+  }
+  return result;
+}
+
+/**
+ * Groups the drawn measures of `readComponentUnity` by component and declared variant; a component drawn with more
+ * than one signature in one variant is a finding `{ rule, screen, selector, detail, cases }`.
+ */
+export function unityFindings(entries, intervalLabel) {
+  const byVariant = new Map();
+  for (const entry of entries) {
+    const key = `${entry.component} | ${entry.variant}`;
+    const signatures = byVariant.get(key) ?? new Map();
+    const cases = signatures.get(entry.signature) ?? { count: 0, examples: new Set() };
+    cases.count += 1;
+    if (cases.examples.size < 4)
+      cases.examples.add(`${entry.screen} ${intervalLabel(entry.width)} (${entry.width} px), menu ${entry.menu}`);
+    signatures.set(entry.signature, cases);
+    byVariant.set(key, signatures);
+  }
+  const findings = [];
+  for (const [key, signatures] of byVariant) {
+    if (signatures.size < 2) continue;
+    const ordered = [...signatures.entries()].sort((a, b) => b[1].count - a[1].count);
+    findings.push({
+      key: `* | component-unity | ${key}`,
+      screen: "*",
+      rule: "component-unity",
+      selector: key,
+      detail: `${signatures.size} dessins dans la même variante`,
+      cases: ordered.map(
+        ([signature, cases]) => `${signature} : ${cases.count} mesures, par exemple ${[...cases.examples].join(" ; ")}`,
+      ),
+    });
+  }
+  return findings;
 }

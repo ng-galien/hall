@@ -125,6 +125,28 @@ const exceptions = {
   ],
 };
 
+/**
+ * Shared components held to one visual unity: the same text, icon, height, inner margins and gaps on every screen and
+ * at every width, except between the declared variants (the touch variant of the phone, the named sizes).
+ */
+const unityComponents = {
+  menu: { selector: ".app-sidebar .nav-row", part: "", variants: ["data-compact"] },
+  "titre de groupe du menu": { selector: ".app-sidebar .nav-section-label", part: "", variants: ["data-compact"] },
+  "ligne de liste": {
+    selector: "[data-slot=list-row]",
+    part: ":scope > .list-row-line",
+    variants: ["data-size", "data-prominent"],
+  },
+  bandeau: { selector: ".screen-header-line", part: "", variants: [] },
+  "grand titre": { selector: "h1.screen-header-title", part: "", variants: [] },
+  bouton: { selector: "[data-slot=button]", part: "", variants: ["data-variant", "data-size"] },
+  champ: { selector: "[data-slot=field]:not(:has(textarea)) .hall-field", part: "", variants: [] },
+  état: { selector: ".record-state, .list-row-status", part: "", variants: [] },
+  "en-tête de section": { selector: ".collapsible-section-header", part: "", variants: [] },
+};
+/** Below this width the menu opens over the content (`components/Layout.tsx`); it is opened to be measured. */
+const drawerQuery = scripts.find((entry) => entry.source.endsWith("components/Layout.tsx"));
+
 export const sweepPlan = {
   from: 320,
   to: 1600,
@@ -144,4 +166,6 @@ export const sweepPlan = {
   ),
   isItem: (screen) => itemScreens.has(screen.id),
   exceptions,
+  unityComponents,
+  drawerBelow: drawerQuery?.breakpoint ?? 0,
 };

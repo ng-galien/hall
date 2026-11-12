@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { conformanceRules } from "../engine/conformance.mjs";
+import { conformanceRules, unityFindings } from "../engine/conformance.mjs";
 import { groupFindings, intervalLabel, intervalsOf, sweepRules } from "../engine/sweep.mjs";
 import { screens } from "./screens.mjs";
 import { sourcesOf, sweepPlan } from "./sweep-config.mjs";
@@ -51,7 +51,8 @@ const records = existsSync(sweepDirectory)
   : [];
 const measures = records.reduce((total, record) => total + record.measures, 0);
 const expected = screens.filter((screen) => !selected || selected.split(",").includes(screen.id));
-const measuredBy = (input) => new Set(records.filter((record) => record.input === input).flatMap((record) => record.screens));
+const measuredBy = (input) =>
+  new Set(records.filter((record) => record.input === input).flatMap((record) => record.screens));
 const missing = [
   ...records.flatMap((record) => record.missing),
   ...expected
@@ -81,6 +82,12 @@ const intervals = intervalsOf(
 const groups = groupFindings(
   records.flatMap((record) => record.findings),
   intervals,
+);
+groups.push(
+  ...unityFindings(
+    records.flatMap((record) => record.unity ?? []),
+    (width) => intervalLabel(intervals, width),
+  ),
 );
 const accepted = JSON.parse(readFileSync(acceptedFile, "utf8")).accepted;
 const withoutReason = accepted.filter((entry) => !entry.reason?.trim());
@@ -129,7 +136,7 @@ for (const [rule, title] of Object.entries(titles)) {
 for (const line of missing) say(`Écran non ouvert : ${line}`);
 for (const group of open)
   say(
-    `\nÉcart : ${group.key}\n  ${titles[group.rule] ?? group.rule} — ${group.detail}\n  ${group.cases.slice(0, 4).join(" ; ")}${group.cases.length > 4 ? ` … (${group.cases.length} cas)` : ""}`,
+    `\nÉcart : ${group.key}\n  ${titles[group.rule] ?? group.rule} — ${group.detail}\n  ${group.rule === "component-unity" ? group.cases.join("\n  ") : `${group.cases.slice(0, 4).join(" ; ")}${group.cases.length > 4 ? ` … (${group.cases.length} cas)` : ""}`}`,
   );
 for (const entry of withoutReason) say(`\nÉcart accepté sans raison écrite, refusé : ${entry.key}`);
 for (const entry of stale) say(`\nÉcart accepté qui ne se produit plus, à retirer : ${entry.key}`);
