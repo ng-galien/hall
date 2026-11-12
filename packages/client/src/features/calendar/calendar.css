@@ -63,6 +63,9 @@
 /* The theme writes the weekday, first line of a day header, and the event label below the caption size. */
 .hall-calendar .hall-calendar-day-header > :first-child,
 .hall-calendar-event-label { font-size: var(--hall-font-size-caption); }
+/* Two events side by side in a narrow day column keep their labels inside their own box. */
+.hall-calendar-event { overflow: hidden; }
+.hall-calendar-event-label { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; }
 
 /* Resource form uses the same surface and spacing as the modal header. */
 .resource-preview-content:has(> .event-resource-editor) {
