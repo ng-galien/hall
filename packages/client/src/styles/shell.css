@@ -101,8 +101,8 @@
     line-height: var(--hall-line-height-display);
   }
   .screen-header-title:empty { display: none; }
-  /* The title of an opened item holds on its line beside the commands, cut at its end when the width lacks. */
-  .screen-title-row:has(.screen-title-commands:not(:empty)) > .screen-header-title { overflow: hidden; overflow-wrap: normal; text-overflow: ellipsis; white-space: nowrap; }
+  /* The title of an opened item is read in full: it passes to the next line beside its commands. */
+  .screen-title-row:has(.screen-title-commands:not(:empty)) > .screen-header-title { overflow-wrap: break-word; }
   /* Once the large title has scrolled away, the title is written in the first line. */
   .screen-header[data-collapsed="true"] .screen-header-inline-title { display: block; }
   .screen-header[data-collapsed="true"] :is(.screen-header-parent, .screen-header-commune, .screen-header-trail) { display: none; }
