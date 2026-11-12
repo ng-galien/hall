@@ -28,12 +28,35 @@ const detail = (listPath, routeOf, predicate) => async (page) => {
   await page.goto(`/app${routeOf(item)}`);
 };
 
+/**
+ * Waits until every ballot line with a verdict (« Adoptée », « Rejetée », « Arrêté »…) writes its counts (« Pour » and
+ * a number): the counts arrive after the rest of the screen, some seconds later.
+ */
+async function ballotCounts(page) {
+  await page
+    .waitForFunction(
+      () => {
+        const main = document.querySelector("main, [data-testid=application-main]");
+        if (!main) return false;
+        const verdicts = [...main.querySelectorAll(".list-row-status, .record-state, [data-tone]")].filter((element) =>
+          /^(Adoptée?|Rejetée?|Arrêtée?|Approuvée?)\b/.test((element.textContent ?? "").trim()),
+        ).length;
+        const counts = ((main.textContent ?? "").match(/Pour\s*:?\s*\d+/g) ?? []).length;
+        return verdicts > 0 && counts >= verdicts;
+      },
+      undefined,
+      { timeout: 15_000 },
+    )
+    .catch(() => undefined);
+}
+
 async function votedPoint(page) {
   const meetings = (await items(page, "/api/council-meetings")).filter((meeting) => meeting.closedAt);
   for (const meeting of meetings) {
     const [ballot] = await items(page, `/api/ballots?meetingId=${meeting.id}`);
     if (!ballot) continue;
     await page.goto(`/app/meetings/${meeting.id}/points/${ballot.agendaItemId}`);
+    await ballotCounts(page);
     return;
   }
   throw new Error("No closed meeting has a point with a vote");
@@ -100,11 +123,11 @@ export const screens = [
     id: "seance-close",
     title: "Séance close",
     scenario: "minutes",
-    open: detail(
-      "/api/council-meetings",
-      (meeting) => `/meetings/${meeting.id}`,
-      (meeting) => meeting.closedAt,
-    ),
+    async open(page) {
+      const meeting = await first(page, "/api/council-meetings", (entry) => entry.closedAt);
+      await page.goto(`/app/meetings/${meeting.id}`);
+      await ballotCounts(page);
+    },
   },
   {
     id: "seance-close-point-deplie",
@@ -121,6 +144,7 @@ export const screens = [
       if (!(await fold.isVisible().catch(() => false)))
         throw new Error("La séance close ne montre aucun contenu qui se déplie");
       await fold.click();
+      await ballotCounts(page);
     },
   },
   { id: "point-vote", title: "Point de séance avec vote", scenario: "minutes", open: votedPoint },
