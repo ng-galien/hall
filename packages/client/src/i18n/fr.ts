@@ -1368,6 +1368,7 @@ export const fr: Messages = {
   "members.identityDescription": "L’identité et le mandat sont enregistrés automatiquement.",
   "members.notFound": "Ce membre du conseil est introuvable.",
   "members.committees": "Commissions",
+  "members.noPhone": "Sans téléphone",
   "members.call": "Appeler",
   "members.committeesDescription": "Appartenances actuelles et passées aux commissions municipales.",
   "members.noCommittees": "Ce membre n’appartient encore à aucune commission.",

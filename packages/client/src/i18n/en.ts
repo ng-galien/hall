@@ -1340,6 +1340,7 @@ export const en = {
   "members.identityDescription": "Identity and term details are saved automatically.",
   "members.notFound": "This council member could not be found.",
   "members.committees": "Committee memberships",
+  "members.noPhone": "No phone number",
   "members.call": "Call",
   "members.committeesDescription": "Current and past municipal committee memberships.",
   "members.noCommittees": "This council member has no committee membership yet.",

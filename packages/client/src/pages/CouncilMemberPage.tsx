@@ -136,6 +136,7 @@ export function CouncilMemberPage() {
       <PageHeader
         title={`${member.contact.firstName} ${member.contact.lastName}`}
         description={t("members.detailDescription")}
+        describesItem
       />
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={memberError ?? error} />
@@ -160,6 +161,7 @@ export function CouncilMemberPage() {
             />
             <ListRows>
               <ListRow
+                className="member-contact-row"
                 to={`/contacts/${member.contact.id}`}
                 openTestId="member-contact-link"
                 head={
@@ -168,7 +170,7 @@ export function CouncilMemberPage() {
                   />
                 }
                 title={`${member.contact.firstName} ${member.contact.lastName}`}
-                detail={[t("members.contact"), member.contact.email, phone && formatPhoneNumber(phone)]
+                detail={[t("members.contact"), member.contact.email, phone ? formatPhoneNumber(phone) : t("members.noPhone")]
                   .filter(Boolean)
                   .join(" · ")}
                 action={

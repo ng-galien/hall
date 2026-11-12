@@ -282,6 +282,9 @@
   .admin-hint,
   .admin-inline-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .admin-heading-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-4); }
+  /* The contact line of a member writes its address and telephone in full, over two lines when needed. */
+  .member-contact-row .list-row-detail,
+  .member-contact-row .list-row-detail-text { white-space: normal; overflow-wrap: anywhere; }
   .admin-fields { display: grid; min-width: 0; gap: var(--hall-space-3); margin: 0; padding: 0; border: 0; }
   .admin-passphrase { display: grid; justify-items: start; gap: var(--hall-space-2); }
   .admin-passphrase-value { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
@@ -348,6 +351,11 @@
   .mail-composer,
   .mail-reader { display: flex; min-height: 100%; flex: 1; flex-direction: column; gap: var(--hall-space-2); }
   .mail-composer-head { display: grid; gap: var(--hall-space-1); }
+  /* On a phone the list takes the width of the screen and a message keeps the margins of the header. */
+  @media (max-width: 760px) {
+    .mail-page .mail-list { width: 100%; padding: var(--hall-space-2) var(--hall-space-4) 0; border-right: 0; }
+    .mail-page :is(.mail-composer, .mail-reader) { padding-inline: var(--hall-space-4); }
+  }
   /* The recipients of a line and the draft of the next one, in the shared field. */
   .mail-recipient-values { position: relative; display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1); }
   .mail-recipient-values > .mail-recipient-input { width: auto; min-width: var(--hall-size-mail-entry); flex: 1; }
@@ -445,8 +453,41 @@
   .dialog-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); }
   .checkbox-group { display: grid; gap: var(--hall-space-1); min-width: 0; margin: 0; padding: 0; border: 0; }
   .checkbox-group > legend { margin-bottom: var(--hall-space-2); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-bold); }
-  .checkbox-field { display: flex; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-2); font-size: var(--hall-font-size-text); cursor: pointer; }
-  .checkbox-field input { flex: none; width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); accent-color: var(--hall-color-brand); }
+  .checkbox-field { display: flex; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-2); font-size: var(--hall-font-size-body); cursor: pointer; }
+  /* A check box or a choice drawn by Hall: a 16-pixel square or circle on the field line, filled in blue once chosen. */
+  .checkbox-field input {
+    display: inline-grid;
+    flex: none;
+    width: var(--hall-size-glyph-mark);
+    height: var(--hall-size-glyph-mark);
+    margin: 0;
+    place-content: center;
+    border: var(--hall-stroke-thin) solid var(--hall-color-field-line);
+    border-radius: var(--hall-radius-small);
+    background: var(--hall-color-surface);
+    appearance: none;
+    cursor: pointer;
+  }
+  .checkbox-field input[type="radio"] { border-radius: var(--hall-radius-circular); }
+  .checkbox-field input:checked { border-color: var(--hall-color-brand); background: var(--hall-color-brand); }
+  .checkbox-field input[type="checkbox"]:checked::before {
+    width: var(--hall-space-1-5);
+    height: var(--hall-space-2-5);
+    margin-top: calc(-1 * var(--hall-space-0-5));
+    border: solid var(--hall-color-on-brand);
+    border-width: 0 var(--hall-stroke-thick) var(--hall-stroke-thick) 0;
+    transform: rotate(45deg);
+    content: "";
+  }
+  .checkbox-field input[type="radio"]:checked::before {
+    width: var(--hall-space-1-5);
+    height: var(--hall-space-1-5);
+    border-radius: var(--hall-radius-circular);
+    background: var(--hall-color-on-brand);
+    content: "";
+  }
+  .checkbox-field input:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: var(--hall-stroke-thin); }
+  .checkbox-field input:disabled { cursor: default; opacity: var(--hall-opacity-disabled); }
   .save-status-indicator {
     display: inline-flex;
     align-items: center;
@@ -572,7 +613,7 @@
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
   .section-header[hidden] { display: none; }
-  .section-header-text { display: grid; min-width: 0; flex: 1 1 16rem; gap: var(--hall-space-1); }
+  .section-header-text { display: grid; min-width: 0; flex: 1 1 var(--hall-size-relative-12rem); gap: var(--hall-space-1); }
   .section-header-line { display: flex; min-width: 0; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-1); }
   .section-header-title {
     display: flex;
@@ -607,8 +648,9 @@
   .section-header-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   .section-header-title-text { min-width: 0; overflow-wrap: anywhere; }
   .section-header-description { margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
-  /* The commands take the rest of the line at its right end, or a whole line of their own, still at its right end. */
-  .section-header-commands { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); }
+  /* The commands keep the right end of the title line, centred on it, and leave the rest of the line to the
+     description; when they do not fit, they go to a line of their own under it. */
+  .section-header-commands { display: flex; min-height: var(--hall-size-control); flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
   /* A list right under a section header starts at its rule and leaves the space under the section to the screen. */
   .section-header + .list-row-list { margin-bottom: 0; border-top: 0; }
   .collapsible-section { display: grid; gap: var(--hall-space-2); }

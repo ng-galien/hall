@@ -282,7 +282,7 @@ export function RepresentativeBodyPage({
 
   return (
     <div className="page">
-      <PageHeader title={body.name} description={t(text.detailDescription)} />
+      <PageHeader title={body.name} description={t(text.detailDescription)} describesItem />
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={error ?? contactsError} />
         <div className="admin-detail-surface">

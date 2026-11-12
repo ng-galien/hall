@@ -298,7 +298,11 @@ export function ContactPage() {
 
   return (
     <div className="page">
-      <PageHeader title={`${contact.firstName} ${contact.lastName}`} description={t("contacts.detailDescription")} />
+      <PageHeader
+        title={`${contact.firstName} ${contact.lastName}`}
+        description={t("contacts.detailDescription")}
+        describesItem
+      />
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={error} />
         <div className="admin-detail-surface">

@@ -25,6 +25,8 @@
   .hall-button[data-variant="primary"] { color: var(--hall-color-on-brand); background: var(--hall-color-brand); }
   .hall-button[data-variant="primary"]:hover:not(:disabled) { background: var(--hall-color-brand-hover); }
   .hall-button[data-variant="primary"]:active:not(:disabled) { background: var(--hall-color-brand-pressed); }
+  /* An unavailable main action turns grey, so that it never reads as the pale blue of its neighbours. */
+  .hall-button[data-variant="primary"]:disabled { color: var(--hall-color-text-muted); background: var(--hall-color-surface-selected); opacity: 1; }
   .hall-button[data-variant="secondary"] { color: var(--hall-color-on-brand-subtle); background: var(--hall-color-brand-subtle); }
   .hall-button[data-variant="secondary"]:hover:not(:disabled),
   .hall-button[data-variant="secondary"][aria-expanded="true"],
@@ -71,6 +73,8 @@
     line-height: var(--hall-line-height-body-large);
     outline: none;
   }
+  /* A date input is a block, so that its calendar button sits at the right edge of the field. */
+  .hall-input:is([type="date"], [type="time"], [type="datetime-local"]) { display: block; }
   .hall-input::placeholder,
   .hall-select-trigger[data-placeholder] { color: var(--hall-color-text-subtle); }
   .hall-input:hover:not(:disabled) { background: var(--hall-color-field-hover); }
@@ -170,6 +174,10 @@
   .hall-field-note { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
   .hall-field-note[data-tone="danger"] { color: var(--hall-color-danger); }
   .hall-field-row { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-8rem)), 1fr)); gap: var(--hall-space-2); }
+  /* On a phone, the fields of a row stand one under the other, each at full width. */
+  @media (max-width: 760px) {
+    .hall-field-row { grid-template-columns: minmax(0, 1fr); }
+  }
 }
 
 /* @implements-requirement HALL-FR-LAY-120 */
