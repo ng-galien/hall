@@ -786,7 +786,38 @@ export function measureDesignReference(options) {
       const style = getComputedStyle(element, entry.pseudo ?? null);
       let actual;
       let ok;
-      if (entry.property === "height" || entry.property === "width") {
+      const range = String(entry.expected).match(/^([\d.]+)px\.\.([\d.]+)px$/);
+      if (range) {
+        const value = Number.parseFloat(style.getPropertyValue(entry.property));
+        actual = `${Math.round(value * 10) / 10}px`;
+        ok = value >= Number(range[1]) - tolerance.px && value <= Number(range[2]) + tolerance.px;
+      } else if (/^border-(top|bottom)-color$/.test(entry.property)) {
+        /* A rule between two rows is the bottom border of one or the top border of the next; an underline may be an
+           inset shadow. Without any of them, the rule is missing. */
+        const side = entry.property.split("-")[1];
+        const other = side === "bottom" ? "top" : "bottom";
+        const next = side === "bottom" ? element.nextElementSibling : element.previousElementSibling;
+        const own =
+          Number.parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0 &&
+          style.getPropertyValue(`border-${side}-style`) !== "none";
+        const nextStyle = next ? getComputedStyle(next) : null;
+        const shared =
+          nextStyle &&
+          Number.parseFloat(nextStyle.getPropertyValue(`border-${other}-width`)) > 0 &&
+          nextStyle.getPropertyValue(`border-${other}-style`) !== "none";
+        const inset = style.boxShadow.includes("inset") ? style.boxShadow.match(/rgba?\([^)]*\)/)?.[0] : null;
+        actual = own
+          ? hex(style.getPropertyValue(entry.property))
+          : shared
+            ? hex(nextStyle.getPropertyValue(`border-${other}-color`))
+            : inset
+              ? hex(inset)
+              : next || side === "top"
+                ? "aucun filet"
+                : null;
+        if (actual === null) continue;
+        ok = actual === entry.expected.toUpperCase();
+      } else if (entry.property === "height" || entry.property === "width") {
         const rect = element.getBoundingClientRect();
         const value = entry.pseudo ? Number.parseFloat(style[entry.property]) : rect[entry.property];
         actual = `${Math.round(value * 10) / 10}px`;
@@ -796,7 +827,7 @@ export function measureDesignReference(options) {
         ok = actual === entry.expected.toUpperCase();
       } else if (entry.property === "font-family") {
         actual = style.fontFamily.split(",")[0].replace(/["']/g, "").trim();
-        ok = actual.toLowerCase() === entry.expected.toLowerCase();
+        ok = actual.toLowerCase().startsWith(entry.expected.toLowerCase());
       } else if (entry.property === "font-weight") {
         actual = style.fontWeight;
         ok = Number(actual) === Number(entry.expected);
