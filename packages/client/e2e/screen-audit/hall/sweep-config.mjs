@@ -121,7 +121,7 @@ const notDisclosures = [
     reason: "Menus (« Plus », « Nouveau », « Ajouter un filtre ») : hors du carré, décision de la page 10.",
   },
   {
-    selector: "[data-testid^=workspace-folder-expand-], [data-testid^=maps-tree-folder-]",
+    selector: "[data-testid^=workspace-folder-expand-], [data-testid^=workspace-folder-open-], [data-testid^=maps-tree-folder-]",
     reason: "Dossiers : l'icône du dossier s'ouvre, décision de la page 10.",
   },
 ];
