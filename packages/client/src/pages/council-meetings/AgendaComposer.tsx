@@ -279,6 +279,8 @@ export function AgendaComposer({
                           <CouncilBusinessIcon aria-hidden="true" />
                         </Link>
                       </Button>
+                    ) : !pointHref ? (
+                      <span className="agenda-command-slot" aria-hidden="true" />
                     ) : null}
                     {editable ? (
                       <>
@@ -321,7 +323,9 @@ export function AgendaComposer({
                           >
                             <DeleteIcon />
                           </Button>
-                        ) : null}
+                        ) : (
+                          <span className="agenda-command-slot" aria-hidden="true" />
+                        )}
                       </>
                     ) : null}
                   </>

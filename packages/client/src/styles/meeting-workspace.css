@@ -494,8 +494,7 @@
 
   /* Agenda revision beside the stage bar: its state written as text, its gestures as buttons. */
   .revision-control { display: inline-flex; align-items: center; gap: var(--hall-space-2); margin-left: var(--hall-space-3); }
-  .revision-control[data-state="open"] { height: var(--hall-size-control); padding: 0 var(--hall-space-1) 0 var(--hall-space-3); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-circular); background: var(--hall-color-surface-subtle); }
-  .revision-control .revision-control-confirm, .revision-control .revision-control-cancel { border-radius: var(--hall-radius-circular); }
+  .revision-control[data-state="open"] { min-height: var(--hall-size-control); }
   .revision-control-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-medium); white-space: nowrap; }
   .revision-control-revise { color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-regular); }
   .revision-hint { display: grid; gap: var(--hall-space-0-5); max-width: var(--hall-size-relative-22rem); white-space: normal; }
@@ -701,6 +700,11 @@
   .decision-phone-heading { display: grid; gap: var(--hall-space-1); }
   .decision-phone-heading h2 { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); line-height: var(--hall-line-height-heading); overflow-wrap: anywhere; }
   .decision-phone-heading p { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
+  /* An agenda row without one of the commands keeps its place, so the arrows of every row stand in one column. */
+  .agenda-command-slot { width: var(--hall-size-control); flex: none; }
+  @media (pointer: coarse) {
+    .agenda-command-slot { width: var(--hall-size-touch-control); }
+  }
   /* The next meeting heads its row like the past meetings, so every title starts at the same left edge. */
   .next-meeting-list > .list-row[data-prominent="true"] .list-row-head { width: var(--list-row-head-width, var(--hall-size-glyph-large)); }
 }
