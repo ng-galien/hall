@@ -67,6 +67,7 @@ vi.mock("../src/features/documents/ResourcePreview", () => ({ ResourcePreview: (
 vi.mock("../src/features/documents/PdfPreviewButton", () => ({
   PdfPreviewButton: () => null,
   usePdfPreview: () => ({ referencesDocuments: false, status: "idle", openPreview: () => undefined, view: null }),
+  usePdfCommands: () => ({ commands: [], view: null }),
 }));
 vi.mock("../src/pages/workspace/AttachmentPicker", () => ({ AttachmentPicker: () => null }));
 vi.mock("../src/pages/workspace/CouncilBusinessSubjects", () => ({ CouncilBusinessSubjects: () => null }));
