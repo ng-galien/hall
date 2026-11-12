@@ -455,14 +455,27 @@
   }
   /* Stage bar: compact circles, centered titles, connectors through the circle centre, no rule under it. */
   .meeting-preparation .page-header .meeting-stepper { padding: 0 0 var(--hall-space-2); border-bottom: 0; }
-  .meeting-preparation .meeting-stepper-list { gap: 0; }
-  .meeting-preparation .meeting-stepper-item { display: grid; justify-items: center; text-align: center; }
-  .meeting-preparation .meeting-stepper-marker { position: relative; display: grid; place-items: center; width: 100%; gap: 0; }
-  .meeting-preparation .meeting-stepper-indicator { position: relative; z-index: var(--hall-z-content); width: var(--hall-size-control); height: var(--hall-size-control); font-size: var(--hall-font-size-body); }
-  .meeting-preparation .meeting-stepper-indicator[data-status="active"] { box-shadow: none; }
-  .meeting-preparation .meeting-stepper-separator { position: absolute; top: 50%; left: 50%; width: 100%; height: var(--hall-stroke-thin); margin: 0; transform: translateY(-50%); }
-  .meeting-preparation .meeting-stepper-title { margin-top: var(--hall-space-1); font-weight: var(--hall-font-weight-regular); }
-  .meeting-preparation .meeting-stepper-item[data-status="active"] .meeting-stepper-title { font-weight: var(--hall-font-weight-semibold); }
+  /* Wider than a phone the steps stand in a row, each title centred under its circle. */
+  @media (min-width: 761px) {
+    .meeting-preparation .meeting-stepper-list { gap: 0; }
+    .meeting-preparation .meeting-stepper-item { display: grid; justify-items: center; text-align: center; }
+    .meeting-preparation .meeting-stepper-marker { position: relative; display: grid; place-items: center; width: 100%; gap: 0; }
+    .meeting-preparation .meeting-stepper-indicator { position: relative; z-index: var(--hall-z-content); width: var(--hall-size-control); height: var(--hall-size-control); font-size: var(--hall-font-size-body); }
+    .meeting-preparation .meeting-stepper-indicator[data-status="active"] { box-shadow: none; }
+    .meeting-preparation .meeting-stepper-separator { position: absolute; top: 50%; left: 50%; width: 100%; height: var(--hall-stroke-thin); margin: 0; transform: translateY(-50%); }
+    .meeting-preparation .meeting-stepper-title { margin-top: var(--hall-space-1); font-weight: var(--hall-font-weight-regular); }
+    .meeting-preparation .meeting-stepper-item[data-status="active"] .meeting-stepper-title { font-weight: var(--hall-font-weight-semibold); }
+  }
+  .meeting-preparation .meeting-stepper-title { white-space: nowrap; }
+  /* On a phone the steps are a vertical list, each circle with its title on one line beside it. */
+  @media (max-width: 760px) {
+    .meeting-preparation .meeting-stepper-list { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); }
+    .meeting-preparation .meeting-stepper-item { position: relative; display: flex; align-items: center; gap: var(--hall-space-3); }
+    .meeting-preparation .meeting-stepper-marker { gap: 0; }
+    .meeting-preparation .meeting-stepper-indicator { width: var(--hall-size-control); height: var(--hall-size-control); font-size: var(--hall-font-size-body); }
+    .meeting-preparation .meeting-stepper-title { margin-top: 0; font-size: var(--hall-font-size-body); }
+    .meeting-preparation .meeting-stepper-separator { position: absolute; top: 100%; left: calc(var(--hall-size-control) / 2); width: var(--hall-stroke-thin); height: var(--hall-space-2); }
+  }
   .meeting-preparation .page-header-controls { flex-wrap: nowrap; align-items: flex-start; }
   .meeting-preparation .page-header-controls > .meeting-console { order: -1; min-width: 0; flex: 1 1 0; }
   .meeting-stepper-hint { display: grid; gap: var(--hall-space-0-5); max-width: var(--hall-size-relative-22rem); white-space: normal; }
@@ -805,3 +818,46 @@
    with the text around it instead of pushing the column wider than the screen. */
 .report-point-detail .editor-reference { display: inline; white-space: normal; overflow-wrap: anywhere; }
 .report-point-detail .editor-reference > svg { display: inline-block; vertical-align: middle; }
+
+@layer components {
+  /* An unfolded agenda item is one block: the hover tint covers its line, its ballot and its record together. */
+  .report-points .list-row[data-openable="true"] > .list-row-line:hover { background: transparent; }
+  .report-points .list-row[data-openable="true"]:hover { background: var(--hall-color-surface-subtle); }
+  /* The facts of the band and the attendance counts share one baseline and one size; long names wrap in their fact. */
+  .meeting-report-band,
+  .meeting-report-band-attendance { align-items: flex-start; }
+  .meeting-report-band > .meeting-facts > div { max-width: var(--hall-size-relative-10rem); }
+  .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command,
+  .report-timeline .section-header-commands .hall-button.hall-link { min-height: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-regular); }
+  .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command { align-self: center; }
+  /* The count of a section title stands apart from its word. */
+  :is(.meeting-decisions, .report-timeline) .section-header-title { gap: var(--hall-space-2); }
+  @media (max-width: 760px) {
+    /* On a phone the band follows the rule of the screen header without a second rule. */
+    .meeting-report-band { margin-top: 0; padding-top: 0; border-top: 0; }
+  }
+  @container (max-width: 760px) {
+    .meeting-decisions .list-row-main { padding-bottom: 0; }
+    .meeting-decisions .list-row-action { justify-content: flex-start; padding: 0 var(--hall-space-3) var(--hall-space-2); }
+  }
+
+  /* Point of a closed meeting on a phone: the square stands at the start of the ballot line, the wrapped counts
+     align with the verdict, and no empty space opens above it. */
+  @media (max-width: 760px) {
+    .phone-point { align-content: start; }
+    .phone-point .report-ballot { padding-top: 0; align-content: start; }
+    .phone-point .report-ballot-heading.hall-button { position: relative; min-height: 0; padding-left: calc(var(--hall-size-glyph-intermediate) + var(--hall-space-3)); }
+    .phone-point .report-ballot-heading > .disclosure-badge { position: absolute; top: var(--hall-space-1); left: 0; }
+  }
+
+  /* Minutes: one spacing between the opening and the proceedings; the vote square on the first line of the vote;
+     one rule between the tabs and the editor; tab titles on one line; the document commands of a phone at one width. */
+  .minutes-editorial-surface > .minutes-opening-record { padding-bottom: 0; }
+  .minutes-point .hall-disclosure-line { align-items: flex-start; }
+  .minutes-point-editor [data-slot="tabs-content"] > .markdown-editor { border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+  .minutes-point-tabbar [data-slot="tabs-trigger"] { flex: none; white-space: nowrap; }
+  @media (max-width: 760px) {
+    .minutes-point-tabbar [data-slot="tabs-list"] { gap: var(--hall-space-3); }
+    .phone-minutes-document .minutes-header-document-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  }
+}

@@ -78,14 +78,13 @@ export function AgendaRevisionControl({
             >
               <Button
                 variant="primary"
-                size="icon"
                 className="revision-control-confirm"
                 data-testid="meeting-generate-notice"
-                aria-label={t("meeting.revision.generateNotice")}
                 disabled={busy}
                 onClick={onConfirm}
               >
                 <CheckIcon aria-hidden="true" />
+                {t("meeting.revision.generateNotice")}
               </Button>
             </Explained>
           ) : null}

@@ -253,3 +253,14 @@
     .page-header:not(:has(> :not(.page-header-description))) { display: none; }
   }
 }
+
+@layer components {
+  /* Between phone and computer widths the content has a 16-pixel margin: the description under the title keeps it. */
+  @media (max-width: 1000px) {
+    .page-header { padding-inline: var(--hall-space-4); }
+  }
+  /* On a phone the title written in the first line passes to the next line instead of being shortened. */
+  @media (max-width: 760px) {
+    .screen-header-inline-title { overflow: visible; white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+  }
+}
