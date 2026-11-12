@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 /*
  * Sentences of explanation or of instructions: decision of 12 November 2026, an explanation is not written in clear on a
@@ -85,14 +85,41 @@ function files(directory) {
 const hiddenAttributes = new Set(["aria-label", "aria-description", "title", "placeholder", "label", "tooltip"]);
 /** Whether the text at `position` of `line` is given to an attribute read on hover or by a screen reader, or a label. */
 const hiddenAt = (line, position) => {
-  const attribute = [...line.slice(0, position).matchAll(/([\w-]+)=\{?/g)].at(-1)?.[1];
+  const attribute = [...line.slice(0, position).matchAll(/([\w-]+)(?:=\{?|:\s*)/g)].at(-1)?.[1];
   return attribute ? hiddenAttributes.has(attribute) : false;
 };
+
+/**
+ * The shared components that write one of their props behind the information icon today: `{ Component: Set(prop) }`,
+ * read in their code (`<HelpHint text={prop}`), so that a text given to that prop is not counted as written in clear.
+ */
+export function componentsWithHelp() {
+  const found = {};
+  for (const path of files(join(clientDirectory, "src"))) {
+    const source = readFileSync(path, "utf8");
+    for (const match of source.matchAll(/<HelpHint\s+text=\{(\w+)\}/g)) {
+      const component = [
+        ...source.slice(0, match.index).matchAll(/(?:export\s+)(?:function|const)\s+([A-Z]\w*)\s*[(=<]/g),
+      ].at(-1)?.[1];
+      if (!component) continue;
+      found[component] ??= new Set();
+      found[component].add(match[1]);
+    }
+  }
+  return found;
+}
 
 /**
  * Every use, in the client sources, of a sentence of explanation, with the component that shows it; a message shown
  * beside a warning or a success icon stays in clear and is left out. A key composed at run time (`${kind}.membersDescription`) is found by its last segment.
  */
+/** The sources of the folder of `path`: a key composed in one file of a feature is used by its siblings. */
+const folderSource = (path) =>
+  readdirSync(dirname(path))
+    .filter((name) => /\.tsx?$/.test(name))
+    .map((name) => readFileSync(join(dirname(path), name), "utf8"))
+    .join("\n");
+
 export function inventory() {
   const texts = explanationTexts();
   const byKey = new Map(texts.map((entry) => [entry.key, entry]));
@@ -104,6 +131,13 @@ export function inventory() {
   }
   const uses = [];
   const seen = new Set();
+  const helped = componentsWithHelp();
+  // The functions whose returned key is written behind the icon: `<HelpHint text={t(name(…))} />`.
+  const helpCalls = new Set(
+    files(join(clientDirectory, "src")).flatMap((path) =>
+      [...readFileSync(path, "utf8").matchAll(/<HelpHint\s+text=\{t\((\w+)\(/g)].map((match) => match[1]),
+    ),
+  );
   for (const path of files(join(clientDirectory, "src"))) {
     const source = readFileSync(path, "utf8");
     const lines = source.split("\n");
@@ -112,21 +146,34 @@ export function inventory() {
       for (const match of line.matchAll(/["'`]([a-zA-Z][\w-]*(?:\.[\w-]+)+)["'`]/g))
         if (byKey.has(match[1])) found.push({ ...byKey.get(match[1]), position: match.index });
       // A key composed at run time: its last segment written alone, after an interpolation or a member (text.description).
-      for (const match of line.matchAll(
-        /(?:["'`]|\}\.|\btext\.)((?:[a-z][A-Za-z]*)?(?:[Dd]escription|Hint|Help|Intro))\b/g,
-      ))
-        for (const entry of bySegment.get(match[1]) ?? [])
-          if (
-            !found.some((other) => other.key === entry.key) &&
-            new RegExp(`[(|<]\\s*"${entry.key.split(".")[0]}"`).test(source)
-          )
-            found.push({ ...entry, composed: true, position: match.index });
+      if (!/^\s*"\w+",?\s*$/.test(line))
+        for (const match of line.matchAll(
+          /(?:["'`]|\}\.|\btext\.)((?:[a-z][A-Za-z]*)?(?:[Dd]escription|Hint|Help|Intro))\b/g,
+        ))
+          for (const entry of /^[Dd]escription$/.test(match[1]) && !match[0].startsWith("text.")
+            ? []
+            : (bySegment.get(match[1]) ?? []))
+            if (
+              !found.some((other) => other.key === entry.key) &&
+              new RegExp(`[(|<]\\s*"${entry.key.split(".")[0]}"`).test(folderSource(path))
+            )
+              found.push({ ...entry, composed: true, position: match.index });
       for (const entry of found) {
         const context = lines.slice(Math.max(0, index - 3), index + 1).join("\n");
         if (hiddenAt(line, entry.position) || /HelpHint|MinutesSectionHint|TooltipContent|<Explained\b/.test(context))
           continue;
-        const prop = [...context.matchAll(/(\w+)=\{/g)].at(-1)?.[1];
-        const tag = [...context.matchAll(/<([A-Z]?\w+)[\s>]/g)].at(-1)?.[1];
+        // The component and the prop that receive the text: read before the key, on its line and the lines above.
+        const before = `${lines.slice(Math.max(0, index - 8), index).join("\n")}\n${line.slice(0, entry.position)}`;
+        const prop = [...before.matchAll(/(\w+)=\{/g)].at(-1)?.[1];
+        const tag = [...before.matchAll(/<([A-Z]?\w+)[\s>]/g)].at(-1)?.[1];
+        // The text reaches the information icon through a constant (`const hint = t(…)`) or a function returning its key.
+        const constant = [...before.matchAll(/const\s+(\w+)\s*=\s*t\(/g)].at(-1)?.[1];
+        if (constant && new RegExp(`<HelpHint\\s+text=\\{${constant}\\}`).test(source)) continue;
+        const enclosing = [...before.matchAll(/function\s+(\w+)\s*\(/g)].at(-1)?.[1];
+        if (enclosing && helpCalls.has(enclosing)) continue;
+        // A prop the shared component writes behind its information icon (PageHeader description, Field hint…).
+        if (prop && tag && helped[tag]?.has(prop) && before.lastIndexOf(`${prop}={`) > before.lastIndexOf(`<${tag}`))
+          continue;
         const key = `${entry.key} ${path}:${index}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -136,7 +183,7 @@ export function inventory() {
           file: relative(repository, path),
           line: index + 1,
           shownBy:
-            prop && context.lastIndexOf(`${prop}={`) > context.lastIndexOf(`<${tag}`)
+            prop && before.lastIndexOf(`${prop}={`) > before.lastIndexOf(`<${tag}`)
               ? `${tag ?? "?"} ${prop}`
               : (tag ?? "?"),
         });
