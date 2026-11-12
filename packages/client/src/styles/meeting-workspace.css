@@ -772,34 +772,21 @@
   /* An agenda item of the proceedings: its square when it has a record, its number, its title and facts; its ballot
      on a third line, aligned with the title; its record unfolded under it. */
   .report-timeline { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); min-width: 0; }
-  .report-points { margin: 0; padding: 0; list-style: none; }
-  .report-point { padding-block: var(--hall-space-2); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
-  .report-point-line { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-3); }
-  .report-point-toggle {
-    display: flex;
-    min-width: 0;
-    flex: 1;
-    align-items: flex-start;
-    gap: var(--hall-space-3);
-    padding: var(--hall-space-1) 0;
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: inherit;
-    background: transparent;
-    font: inherit;
-    text-align: left;
+  .report-points {
+    --report-point-head-width: var(--hall-space-5);
+    margin-bottom: 0;
+    border-top: 0;
   }
-  button.report-point-toggle { cursor: pointer; }
-  button.report-point-toggle:hover .report-point-title { text-decoration: underline; text-underline-offset: var(--hall-space-1); }
-  button.report-point-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); }
-  .report-point-badge { display: inline-grid; width: var(--hall-size-glyph-intermediate); min-height: var(--hall-line-height-body-small); flex: none; place-items: center; }
-  .report-point-number { min-width: var(--hall-space-5); flex: none; color: var(--hall-color-text); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-heavy); line-height: var(--hall-line-height-body-small); font-variant-numeric: tabular-nums; }
-  .report-point-text { display: grid; min-width: 0; gap: var(--hall-space-0-5); }
-  .report-point-title { color: var(--hall-color-text); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-semibold); line-height: var(--hall-line-height-body-small); overflow-wrap: anywhere; }
-  .report-point-facts { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
-  .report-point-ballot,
-  .report-point-detail { padding-left: calc(var(--hall-size-glyph-intermediate) + var(--hall-space-5) + var(--hall-space-3) * 2); }
-  .report-point-ballot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); margin: var(--hall-space-1) 0 0; }
+  .report-points .list-row { --list-row-head-width: var(--report-point-head-width); }
+  .report-points .list-row-main { align-items: flex-start; }
+  .report-points .list-row-head { justify-items: start; }
+  .report-points .list-row-title { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
+  /* The ballot and the record start under the title, past the square and the number. */
+  .report-points .list-row-children { padding: 0 var(--hall-space-3) var(--hall-space-2) calc(var(--hall-space-3) * 3 + var(--hall-size-glyph-intermediate) + var(--report-point-head-width)); }
+  /* An item without a record has no square; its number keeps the column of the others. */
+  .report-point-plain .list-row-main { padding-left: calc(var(--hall-space-3) * 2 + var(--hall-size-glyph-intermediate)); }
+  .report-point-number { min-width: var(--hall-space-5); color: var(--hall-color-text); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-heavy); font-variant-numeric: tabular-nums; }
+  .report-point-ballot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); margin: 0; }
   /* The method and each count wrap as whole groups after the verdict. */
   .report-point-ballot-facts { display: contents; }
   .report-point-ballot-facts > span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); font-variant-numeric: tabular-nums; white-space: nowrap; }

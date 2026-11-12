@@ -300,14 +300,8 @@ export function MeetingDocumentsSection({
   const notice = noticeState();
   const showNoticeRow = Boolean(noticesHref) || canGenerateNotice;
 
-  const documents = (
-    <CollapsibleSection
-      title={t("meeting.documents.title")}
-      open={open}
-      onOpenChange={setOpen}
-      testId="meeting-documents"
-      className="meeting-documents"
-    >
+  const documentsContent = (
+    <>
       <RequestErrorBanner error={error} />
       <RequestErrorBanner error={meetingActions.actionError} />
       <ListRows data-wrap="true">
@@ -540,6 +534,23 @@ export function MeetingDocumentsSection({
           }}
         />
       ) : null}
+    </>
+  );
+  /* A closed meeting shows its documents always, under a header of the same form as its other sections. */
+  const documents = closed ? (
+    <section className="collapsible-section meeting-documents" data-testid="meeting-documents">
+      <SectionHeader title={t("meeting.documents.title")} />
+      <div className="collapsible-section-content">{documentsContent}</div>
+    </section>
+  ) : (
+    <CollapsibleSection
+      title={t("meeting.documents.title")}
+      open={open}
+      onOpenChange={setOpen}
+      testId="meeting-documents"
+      className="meeting-documents"
+    >
+      {documentsContent}
     </CollapsibleSection>
   );
   return (

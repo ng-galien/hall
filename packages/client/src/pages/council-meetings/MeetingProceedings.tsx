@@ -4,6 +4,7 @@ import { InfoIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { Button } from "../../components/ui/button";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
+import { ListRow, ListRows } from "../../components/ui/list-row";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { SectionHeader } from "../../components/ui/section-header";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
@@ -320,7 +321,7 @@ export function MeetingProceedings({ aggregate }: { aggregate: LiveMeetingPresen
           ) : null
         }
       />
-      <ol className="report-points">
+      <ListRows className="report-points">
         {orderedItems.map((item) => {
           const ballot = itemBallot(aggregate, item);
           const record = hasRecord(item);
@@ -331,76 +332,69 @@ export function MeetingProceedings({ aggregate }: { aggregate: LiveMeetingPresen
             ? `${formatTime(item.startedAt)}${item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}`
             : "";
           const facts = [nature === title ? "" : nature, hours].filter(Boolean).join(" · ");
-          const status = item.status === "examined" ? null : agendaItemRowStatus(item.status);
-          const line = (
-            <>
-              <span className="report-point-badge">{record ? <DisclosureBadge expanded={expanded} /> : null}</span>
-              <span className="report-point-number">{item.agendaNumber}</span>
-              <span className="report-point-text">
-                <span className="report-point-title">{title}</span>
-                {facts ? <span className="report-point-facts">{facts}</span> : null}
-              </span>
-            </>
-          );
-          return (
-            <li key={item.id} className="report-point" data-testid={`report-item-${item.id}`}>
-              <div className="report-point-line">
-                {record ? (
-                  <button
-                    type="button"
-                    className="report-point-toggle"
-                    aria-expanded={expanded}
-                    data-testid={`report-item-toggle-${item.id}`}
-                    onClick={() => toggleItem(item.id)}
-                  >
-                    {line}
-                  </button>
-                ) : (
-                  <div className="report-point-toggle">{line}</div>
-                )}
-                {status ? (
-                  <span className="list-row-status" data-tone="action" data-testid={status.testId}>
-                    {status.label}
-                  </span>
-                ) : null}
-              </div>
-              {ballot ? <ReportBallotLine ballot={ballot} isMinutes={item.subjectKind === "minutesApproval"} /> : null}
-              {expanded ? (
-                <div className="report-point-detail" data-testid={`report-item-detail-${item.id}`}>
-                  {ballot ? <ReportBallotDetails ballot={ballot} members={rosterMembers} /> : null}
-                  {item.discussionSummary ? (
-                    <ReportTextBlock
-                      label={t("report.sessionNotes")}
-                      context={t("report.recordedDuringItem")}
-                      tone="notes"
-                    >
-                      <MarkdownView markdown={item.discussionSummary} />
-                    </ReportTextBlock>
+          const status =
+            item.status === "examined" ? undefined : { ...agendaItemRowStatus(item.status), tone: "action" as const };
+          const shared = {
+            className: record ? "report-point" : "report-point report-point-plain",
+            "data-testid": `report-item-${item.id}`,
+            head: <span className="report-point-number">{item.agendaNumber}</span>,
+            title,
+            detail: facts || undefined,
+            status,
+            children:
+              ballot || expanded ? (
+                <>
+                  {ballot ? (
+                    <ReportBallotLine ballot={ballot} isMinutes={item.subjectKind === "minutesApproval"} />
                   ) : null}
-                  {item.councilDecisionSnapshot?.draftText ? (
-                    <ReportTextBlock
-                      label={t("report.submittedText")}
-                      context={t("report.recordedDuringMeeting")}
-                      tone="decision"
-                    >
-                      <MarkdownView markdown={item.councilDecisionSnapshot.draftText} />
-                    </ReportTextBlock>
+                  {expanded ? (
+                    <div className="report-point-detail" data-testid={`report-item-detail-${item.id}`}>
+                      {ballot ? <ReportBallotDetails ballot={ballot} members={rosterMembers} /> : null}
+                      {item.discussionSummary ? (
+                        <ReportTextBlock
+                          label={t("report.sessionNotes")}
+                          context={t("report.recordedDuringItem")}
+                          tone="notes"
+                        >
+                          <MarkdownView markdown={item.discussionSummary} />
+                        </ReportTextBlock>
+                      ) : null}
+                      {item.councilDecisionSnapshot?.draftText ? (
+                        <ReportTextBlock
+                          label={t("report.submittedText")}
+                          context={t("report.recordedDuringMeeting")}
+                          tone="decision"
+                        >
+                          <MarkdownView markdown={item.councilDecisionSnapshot.draftText} />
+                        </ReportTextBlock>
+                      ) : null}
+                      {item.business.report ? (
+                        <ReportTextBlock
+                          label={t("meeting.itemReport")}
+                          context={t("report.preparedBeforeMeeting")}
+                          tone="source"
+                        >
+                          <MarkdownView markdown={item.business.report} />
+                        </ReportTextBlock>
+                      ) : null}
+                    </div>
                   ) : null}
-                  {item.business.report ? (
-                    <ReportTextBlock
-                      label={t("meeting.itemReport")}
-                      context={t("report.preparedBeforeMeeting")}
-                      tone="source"
-                    >
-                      <MarkdownView markdown={item.business.report} />
-                    </ReportTextBlock>
-                  ) : null}
-                </div>
-              ) : null}
-            </li>
+                </>
+              ) : undefined,
+          };
+          return record ? (
+            <ListRow
+              key={item.id}
+              {...shared}
+              onOpen={() => toggleItem(item.id)}
+              openTestId={`report-item-toggle-${item.id}`}
+              openProps={{ "aria-expanded": expanded }}
+            />
+          ) : (
+            <ListRow key={item.id} {...shared} />
           );
         })}
-      </ol>
+      </ListRows>
     </section>
   );
 }
