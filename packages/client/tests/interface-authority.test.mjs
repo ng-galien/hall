@@ -128,6 +128,9 @@ const retiredHelpLabels = [
   [/Télécharger le PDF|Brouillon à préparer/, "the minutes write « Télécharger le document » and « Brouillon »"],
   [/Générer un pouvoir/, "the proxy form is printed with « Imprimer »"],
   [/Nouveau rendez-vous/, "creation goes through « Nouveau »"],
+  [/Terminer la modification/, "the end of writing a text is « Terminé »"],
+  [/\*\*Tags\*\*/, "the tags of a document are « Étiquettes »"],
+  [/Outlook/, "the mail is sent through the mailbox of the commune, whatever its provider"],
 ];
 
 // @verifies-requirement HALL-TR-LAY-030
@@ -139,6 +142,39 @@ test("the help names the interface as it is: retired destinations and commands d
     retiredHelpLabels.filter(([pattern]) => pattern.test(text)).map(([, reason]) => `${path}: ${reason}`),
   );
   assert.deepEqual(found, []);
+});
+
+/** Values of a translation file, read as the texts the interface shows. */
+function translationTexts(locale) {
+  const source = readFileSync(join(sourceRoot, `i18n/${locale}.ts`), "utf8");
+  return [...source.matchAll(/^\s*"([\w.-]+)":\s*\n?\s*"((?:[^"\\]|\\.)*)"/gm)].map(([, key, text]) => ({ key, text }));
+}
+
+/** Names the interface no longer shows, in the French and English texts, and the name that replaced each of them. */
+const retiredInterfaceLabels = {
+  fr: [
+    [/espace de travail/i, "the workspace destination is « Documents »"],
+    [/vue d’ensemble/i, "the home destination is « Accueil »"],
+    [/^Tags$/, "the tags of a document are « Étiquettes »"],
+    [/Outlook/, "the mail is sent through the mailbox of the commune, whatever its provider"],
+  ],
+  en: [[/Outlook/, "the mail is sent through the mailbox of the commune, whatever its provider"]],
+};
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-LAY-110
+test("the translations name the interface as it is: retired destinations and provider names do not come back", () => {
+  const found = Object.entries(retiredInterfaceLabels).flatMap(([locale, labels]) => {
+    const texts = translationTexts(locale);
+    assert.ok(texts.length > 1000, `the ${locale} texts are read`);
+    return texts.flatMap(({ key, text }) =>
+      labels.filter(([pattern]) => pattern.test(text)).map(([, reason]) => `${locale} ${key}: ${reason}`),
+    );
+  });
+  assert.deepEqual(found, []);
+  const french = Object.fromEntries(translationTexts("fr").map(({ key, text }) => [key, text]));
+  assert.equal(french["workspace.finishEditing"], "Terminé");
+  assert.equal(french["workspace.tags"], "Étiquettes");
 });
 
 // @verifies-requirement HALL-FR-LAY-100
