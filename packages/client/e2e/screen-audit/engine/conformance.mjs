@@ -889,9 +889,10 @@ export function measureConformance(options) {
     if (!shown(toggle)) continue;
     const label = nameOf(toggle).slice(0, 40);
     const badge = toggle.querySelector(".disclosure-badge");
-    /* A written command that opens a panel, a list or a tool (« Afficher le sommaire », « Liste des présences ») is a
-       button, not a content unfolding in the flow: it carries no square (coordinator's reading of page 10). */
-    if (!badge && toggle.matches("[data-slot=button]") && visibleText(toggle)) continue;
+    /* A command that opens a panel, a list or a tool (« Afficher le sommaire », « Masquer la liste », « Liste des
+       présences »), written or drawn as an icon, is a button, not a content unfolding in the flow: it carries no square
+       (coordinator's reading of page 10). */
+    if (!badge && toggle.matches("[data-slot=button]")) continue;
     if (!badge || !drawn(badge)) {
       add("disclosure-mark", toggle, `« ${label} » sans carré « + / − »`);
       continue;
