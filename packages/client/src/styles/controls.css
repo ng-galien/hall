@@ -135,6 +135,17 @@
   .hall-field :is(input, textarea)[readonly]:is(:hover, :focus, :focus-visible),
   .hall-field .hall-field-value,
   .hall-field :is(.hall-input, .hall-select-trigger):disabled { box-shadow: none; }
+  /* A control made of several parts, such as tags and the draft of the next one, takes the rule of the field as a
+     whole; the input inside it is bare text. */
+  .hall-field > .hall-field-composite {
+    min-height: calc(var(--hall-size-touch-control) + var(--hall-space-2));
+    padding: calc(var(--hall-space-1-5) + var(--hall-line-height-caption)) 0 var(--hall-space-1);
+    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thin)) 0 var(--hall-color-field-rule);
+  }
+  .hall-field > .hall-field-composite:focus-within { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-brand); }
+  .hall-field > .hall-field-composite:has(> .hall-input[readonly]) { box-shadow: none; }
+  .hall-field > .hall-field-composite > .hall-input,
+  .hall-field > .hall-field-composite > .hall-input:is(:hover, :focus, :focus-visible) { min-height: 0; padding: 0; box-shadow: none; background: transparent; }
   /* An empty field writes « Non renseigné », never a value: in grey italics, gone as soon as something is written. */
   .hall-field .hall-input::placeholder,
   .hall-field .hall-select-trigger[data-placeholder] > [data-slot="select-value"],

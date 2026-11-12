@@ -39,7 +39,7 @@ export function TagInput({
 
   return (
     <Field label={label} className="tag-input">
-      <div className="tag-input-row">
+      <div className="tag-input-row hall-field-composite">
         {value.map((tag) =>
           readOnly ? (
             <span className="tag-input-tag" key={tag}>
