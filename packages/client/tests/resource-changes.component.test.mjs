@@ -26,6 +26,13 @@ test("the separate history control reads the server on demand without changing c
     url: "http://localhost/app/",
     pretendToBeVisual: true,
   });
+  // jsdom answers no media query: the controls are read in a computer window, where no phone query matches.
+  dom.window.matchMedia = (media) => ({
+    media,
+    matches: false,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  });
   const names = [
     "window",
     "document",
