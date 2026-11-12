@@ -382,7 +382,8 @@
   /* The recipients of a line and the draft of the next one, in the shared field. */
   /* The value starts at the same distance from its label as the subject: the Cc and Cci commands hang from the top. */
   .mail-recipient-values { position: relative; display: flex; min-width: 0; flex-wrap: wrap; align-items: flex-start; gap: var(--hall-space-1); }
-  .mail-recipient-values > .mail-recipient-input { width: auto; min-width: var(--hall-size-mail-entry); flex: 1; }
+  /* The input of the next recipient shares the line of Cc and Cci, down to a short width, before it passes under them. */
+  .mail-recipient-values > .mail-recipient-input { width: auto; min-width: var(--hall-size-tag-input-field-min); flex: 1 1 0; }
   .mail-recipient {
     display: inline-flex;
     max-width: 100%;
@@ -412,12 +413,13 @@
   }
   .mail-recipient > .mail-recipient-remove:hover,
   .mail-attachment > .mail-attachment-control:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
-  .mail-recipient-trailing { display: inline-flex; flex: none; align-items: center; gap: var(--hall-space-1); margin-left: auto; }
+  /* Cc and Cci are buttons of the ordinary size, standing on the line of the value without making the field taller. */
+  .mail-recipient-trailing { display: inline-flex; flex: none; align-items: center; gap: var(--hall-space-1); margin-left: auto; margin-block: calc((var(--hall-size-control) - var(--hall-line-height-body-large)) / -2); }
   /* On a phone Cc and Cci keep their finger size and stand on the line of the value. */
   @media (max-width: 760px) {
     .mail-recipient-trailing { margin-block: calc((var(--hall-size-touch-control) - var(--hall-line-height-body-large)) / -2); }
   }
-  .hall-button.mail-copy-link { min-height: var(--hall-size-control-small); padding-inline: var(--hall-space-1); color: var(--hall-color-brand); }
+  .hall-button.mail-copy-link { min-height: var(--hall-size-control); padding-inline: var(--hall-space-3); color: var(--hall-color-brand); }
   .mail-suggestions {
     position: absolute;
     top: 100%;
