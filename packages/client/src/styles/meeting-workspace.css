@@ -470,7 +470,9 @@
   /* ---- Agenda ---- */
   .report-main { display: grid; min-width: 0; gap: var(--hall-space-2); align-content: start; }
   .agenda-composer-heading { margin-bottom: var(--hall-space-2); }
-  .agenda-composer-count { color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-regular); }
+  /* The count keeps its words together; the commands keep the right end, on the title line or under it. */
+  .agenda-composer-count { display: inline-block; color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-regular); white-space: nowrap; }
+  .agenda-composer-heading > .section-header-commands { flex: 1 1 auto; justify-content: flex-end; }
   .agenda-composer-caption { margin-bottom: var(--hall-space-2); }
   .composer-list { margin-bottom: var(--hall-space-4); }
   .composer-item-dragging { opacity: var(--hall-opacity-pulse); }
