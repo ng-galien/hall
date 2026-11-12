@@ -831,10 +831,11 @@
 
   /* The course of the current item in meeting mode: each stage is a title after a dot, the current one in blue. */
   .conduct-stage-header .meeting-stepper { padding: var(--hall-space-2) 0; }
-  /* The steps of an item follow one another at the left at one gap; on a narrow screen they pass to the next line
-     whole. */
-  .conduct-stage-header .meeting-stepper-list { display: flex; flex-wrap: wrap; gap: var(--hall-space-2) var(--hall-space-5); margin: 0; padding: 0; list-style: none; }
-  .conduct-stage-header .meeting-stepper-list > .meeting-stepper-item { flex: none; white-space: nowrap; }
+  /* The steps of an item follow one another at the left at one gap, on one line; when the line is too short, the
+     title of each step wraps inside its step. */
+  .conduct-stage-header .meeting-stepper-list { display: flex; flex-wrap: nowrap; gap: var(--hall-space-2) var(--hall-space-5); margin: 0; padding: 0; list-style: none; }
+  .conduct-stage-header .meeting-stepper-list > .meeting-stepper-item { flex: 0 1 auto; }
+  .conduct-stage-header .meeting-stepper-list .meeting-stepper-title { min-width: 0; overflow-wrap: anywhere; }
   .conduct-stage-header .meeting-stepper-item { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text-muted); }
   .conduct-stage-header .meeting-stepper-marker { display: flex; align-items: center; }
   .conduct-stage-header .meeting-stepper-indicator {
