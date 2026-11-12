@@ -55,6 +55,11 @@ function exportCommit(commit) {
       if (entry !== ".vite" && !entry.startsWith(".vite-e2e"))
         symlinkSync(join(modules, entry), join(source, "packages", name, "node_modules", entry));
   }
+  /* The packages the journeys runner does not build itself: PostgreSQL and those it depends on. */
+  for (const name of ["@hall/contracts", "@hall/api-contract", "@hall/domain", "@hall/templating", "@hall/postgres"]) {
+    const build = spawnSync("npm", ["run", "build", "-w", name], { cwd: source, stdio: "inherit" });
+    if (build.status !== 0) throw new Error(`La construction de ${name} dans ${source} a échoué`);
+  }
   /* The capture journey and the screen list of today, in place of the audit files of the commit. */
   const audit = join(source, "packages/client/e2e/screen-audit/hall");
   for (const file of readdirSync(audit)) if (/\.audit\.ts$/.test(file)) rmSync(join(audit, file));
@@ -80,6 +85,7 @@ function capture(label, application) {
     },
     stdio: "inherit",
   });
+  mkdirSync(directory, { recursive: true });
   writeFileSync(join(directory, "statut.txt"), `${result.status}\n`);
 }
 
