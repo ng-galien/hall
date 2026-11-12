@@ -82,7 +82,9 @@
   .app-column:has(.phone-document-text[data-editing="true"]) .screen-header-inline-title { display: block; }
   .app-column:has(.phone-document-text[data-editing="true"]) :is(.screen-header-parent, .screen-header-commune) { display: none; }
   .screen-title-facts:has(> [data-testid="phone-document-date"]) { column-gap: var(--hall-space-1-5); }
-  .phone-document-text:not([data-editing="true"]) .resource-preview-text { padding: var(--hall-space-5) var(--hall-space-4) var(--hall-space-6); }
+  /* The empty search row above an opened document pulls it up by one step: the text still starts 20 pixels under the
+     rule of its title. */
+  .phone-document-text:not([data-editing="true"]) .resource-preview-text { padding: calc(var(--hall-space-5) + var(--hall-space-3)) var(--hall-space-4) var(--hall-space-6); }
   .phone-document-text .resource-preview-text .markdown-content { font-size: var(--hall-font-size-text); line-height: var(--hall-line-height-reading); }
   .phone-document-text .resource-preview-text .markdown-content p { margin: 0 0 var(--hall-space-reading-paragraph); }
   .phone-document-text .resource-preview-text .markdown-content :is(h1, h2, h3, h4, h5, h6) { margin: var(--hall-space-reading-heading) 0 var(--hall-space-2); font-size: var(--hall-font-size-text); font-weight: var(--hall-font-weight-bold); line-height: var(--hall-line-height-reading); }
