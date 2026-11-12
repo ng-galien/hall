@@ -201,7 +201,7 @@ const cases = [
   [
     "horizontal-scroll",
     {},
-    `<div style="width:200px;overflow-x:auto"><div style="width:400px">Composition du conseil municipal</div></div>`,
+    `<div style="width:200px;overflow-x:auto"><div><span style="display:block;width:400px" data-testid="trop-large">Composition du conseil municipal</span></div></div>`,
     `<div style="width:200px;overflow-x:auto"><div>Composition du conseil municipal</div></div>`,
   ],
   [
@@ -253,6 +253,19 @@ try {
     );
     if (!ok) failures.push({ rule, onFaulty, onCorrect });
   }
+
+  /* The horizontal scroll names the element that passes the edge of its area. */
+  const scroll = (
+    await run(
+      `<div style="width:200px;overflow-x:auto"><div><span style="display:block;width:400px" data-testid="trop-large">Composition du conseil municipal</span></div></div>`,
+      {},
+    )
+  ).find((finding) => finding.rule === "horizontal-scroll");
+  const namesCulprit = Boolean(scroll?.selector.includes("déborde : [trop-large]"));
+  console.log(
+    `${namesCulprit ? "ok    " : "ÉCHEC "} horizontal-scroll nomme l'élément qui déborde : ${scroll?.selector ?? "aucun écart"}`,
+  );
+  if (!namesCulprit) failures.push({ rule: "horizontal-scroll culprit", scroll });
 
   /* Visual unity: the menu anchored and the menu opened over the content draw their rows alike. */
   const menu = (height) =>
@@ -359,7 +372,7 @@ try {
       field: {
         rest: { color: "#B4BECB", width: 1 },
         focus: { color: "#2457D6", width: 2 },
-        error: { color: "#B3261E", width: 2 },
+        error: { color: "#B42323", width: 2 },
         empty: { text: "Non renseigné", color: "#8A94A3" },
         label: "#5B6472",
       },

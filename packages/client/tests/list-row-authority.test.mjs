@@ -205,18 +205,41 @@ test("the additional facts of a row shrink before its title and its state", () =
 });
 
 // @verifies-requirement HALL-FR-LAY-060
-test("with a mouse on a computer, the row takes the sizes of the side menu through its tokens", () => {
+test("with a mouse the row takes the sizes of the side menu, under a finger 64 px and controls of 44 px", () => {
   const tokens = read("styles/tokens.css");
   assert.match(tokens, /--hall-size-list-row-pointer: 40px;/);
   assert.match(tokens, /--hall-size-list-row-pointer-double: 52px;/);
+  assert.match(tokens, /--hall-size-list-row-touch: 64px;/);
+  assert.match(tokens, /--hall-size-touch-control: 44px;/);
   const css = read("styles/list-row.css");
-  const start = css.indexOf("@media (min-width: 761px) and (pointer: fine)");
-  assert.ok(start > 0, "list-row.css declares no computer sizes");
-  const block = css.slice(start);
-  assert.match(block, /\.list-row-title \{ font-size: var\(--hall-font-size-body\);/);
-  assert.match(block, /\.list-row-fact \{ font-size: var\(--hall-font-size-caption\);/);
-  assert.match(block, /\.list-row-head > \.type-icon \{[^}]*font-size: var\(--hall-font-size-icon-large\);/);
-  assert.match(block, /min-height: var\(--hall-size-list-row-pointer-double\)/);
+  /** The rules of the media blocks whose condition names this pointer, whatever else the condition says. */
+  const blocks = (pointer) =>
+    [...css.matchAll(/@media\s*([^{]*)\{/g)]
+      .filter((match) => match[1].includes(`pointer: ${pointer}`))
+      .map((match) => {
+        let depth = 1;
+        let index = match.index + match[0].length;
+        while (depth > 0 && index < css.length) {
+          if (css[index] === "{") depth += 1;
+          else if (css[index] === "}") depth -= 1;
+          index += 1;
+        }
+        return css.slice(match.index + match[0].length, index - 1);
+      })
+      .join("\n");
+  const mouse = blocks("fine");
+  assert.ok(mouse, "list-row.css declares no sizes for a mouse");
+  assert.match(mouse, /\.list-row-title \{ font-size: var\(--hall-font-size-body\);/);
+  assert.match(mouse, /\.list-row-fact \{ font-size: var\(--hall-font-size-caption\);/);
+  assert.match(mouse, /\.list-row-head > \.type-icon \{[^}]*font-size: var\(--hall-font-size-icon-large\);/);
+  assert.match(mouse, /min-height: var\(--hall-size-list-row-pointer-double\)/);
+  const finger = blocks("coarse");
+  assert.match(finger, /--list-row-height: var\(--hall-size-list-row-touch\)/, "under a finger a row is 64 px");
+  // The menu, drawn for a mouse, writes its entries in the body size the row title takes.
+  const shell = read("styles/shell.css");
+  const navRow = shell.match(/^\s*\.nav-row \{([^}]*)\}/m)?.[1] ?? "";
+  assert.match(navRow, /min-height: var\(--hall-size-control\)/);
+  assert.match(navRow, /font-size: var\(--hall-font-size-body\)/);
 });
 
 // @verifies-requirement HALL-FR-WSP-270

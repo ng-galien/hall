@@ -147,27 +147,48 @@ test("a shared component drawn two ways in one variant is a finding; two variant
   assert.equal(finding.cases.length, 2);
 });
 
-test("the design table cites a Maket page and element for every value, and applies no contradiction", () => {
+test("the design table is drawn from « Design de référence » only, cites its page and element, and lists what it lacks", () => {
   const table = JSON.parse(
     readFileSync(join(import.meta.dirname, "../e2e/screen-audit/hall/design-reference.json"), "utf8"),
   );
   assert.deepEqual(table.tolerance, { color: 0, px: 1 });
   for (const entry of table.entries) {
     const name = `${entry.component} · ${entry.property}`;
-    assert.ok(entry.source?.doc && entry.source.page && entry.source.element, `${name}: source`);
-    assert.ok(["retenu", "contradiction"].includes(entry.status), `${name}: ${entry.status}`);
-    assert.ok(["all", "touch", "pointer-wide"].includes(entry.when), `${name}: ${entry.when}`);
-    if (entry.status === "contradiction") assert.ok(entry.note, `${name}: a contradiction cites the other board`);
+    assert.equal(entry.source?.doc, "Hall 1.3 — Design de référence", `${name}: source`);
+    assert.ok(entry.source.page >= 1 && entry.source.page <= 6 && entry.source.element, `${name}: page et élément`);
+    assert.equal(entry.status, "retenu", `${name}: no contradiction is kept`);
+    assert.ok(["all", "mouse", "finger", "touch", "pointer-wide"].includes(entry.when), `${name}: ${entry.when}`);
     if (/color$/.test(entry.property) && entry.expected !== "transparent")
       assert.match(entry.expected, /^#[0-9A-F]{6}$/, `${name}: couleur écrite en hexadécimal`);
     if (/^(height|width|font-size|border-radius|padding-\w+|column-gap|border-\w+-width)$/.test(entry.property))
       assert.match(String(entry.expected), /^\d+(\.\d+)?px(\.\.\d+(\.\d+)?px)?$/, `${name}: longueur en px`);
   }
-  const secondary = table.entries.filter(
-    (entry) => entry.component === "bouton secondaire" && /color$/.test(entry.property),
+  const value = (component, property) =>
+    table.entries.find((entry) => entry.component === component && entry.property === property)?.expected;
+  // Page 6 of « Design de référence » (elements v66, v67, v88 to v94, v118).
+  assert.equal(value("bouton secondaire", "background-color"), "#E8EEFC");
+  assert.equal(value("bouton secondaire", "color"), "#1B45AD");
+  assert.equal(value("bouton", "font-weight"), "650");
+  assert.equal(value("bouton", "border-radius"), "4px");
+  assert.deepEqual(
+    table.entries
+      .filter((entry) => entry.component === "bouton" && entry.property === "height")
+      .map((entry) => [entry.when, entry.expected]),
+    [
+      ["mouse", "32px"],
+      ["finger", "44px"],
+    ],
   );
-  assert.ok(
-    secondary.every((entry) => entry.status === "contradiction"),
-    "the secondary button colours wait for the owner",
-  );
+  assert.equal(value("état après un point", "width"), "8px");
+  const missing = table.missing.map((entry) => entry.component);
+  for (const component of ["ligne de liste", "bandeau", "barre du bas"])
+    assert.ok(missing.includes(component), component);
+  // A value the reference does not give is not applied: no list row, header or bottom bar dimension.
+  for (const component of ["ligne de liste", "bandeau", "barre du bas"])
+    assert.ok(
+      !table.entries.some(
+        (entry) => entry.component === component && /height|size|padding|radius|weight/.test(entry.property),
+      ),
+      component,
+    );
 });

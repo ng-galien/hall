@@ -751,8 +751,8 @@ export function unityFindings(entries, intervalLabel) {
 /**
  * Compares the computed styles of the page with the values the design fixed (`entries` of a design reference table:
  * `{ component, selector, pseudo?, property, expected, when, status, source }`). A colour is compared exactly, a
- * length within `tolerance.px`. Entries marked « contradiction » are not applied. `when` is `all`, `touch` (phone
- * layout or finger) or `pointer-wide` (mouse above the phone layout). Returns findings `{ rule, selector, detail }`.
+ * length within `tolerance.px`. Entries marked « contradiction » are not applied. `when` is `all`, `mouse`, `finger`,
+ * `touch` (phone layout or finger) or `pointer-wide` (mouse above the phone layout). Returns findings `{ rule, selector, detail }`.
  */
 export function measureDesignReference(options) {
   const { entries, tolerance, touch, phone, keyAttribute, ignoreSelectors } = options;
@@ -786,6 +786,8 @@ export function measureDesignReference(options) {
     if (entry.status === "contradiction") continue;
     if (entry.when === "touch" && !tactile) continue;
     if (entry.when === "pointer-wide" && tactile) continue;
+    if (entry.when === "mouse" && touch) continue;
+    if (entry.when === "finger" && !touch) continue;
     let checked = 0;
     for (const element of document.querySelectorAll(entry.selector)) {
       if (checked >= 12) break;

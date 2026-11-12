@@ -1,10 +1,50 @@
 {
-  "description": "Valeurs de dessin fixées par le design (Maket), comparées aux styles calculés de l'application par la règle design-reference du balayage. Une couleur se compare exactement, une dimension à 1 px près. Une ligne « contradiction » cite deux planches retenues qui se contredisent : elle n'est pas appliquée et attend la décision du propriétaire.",
+  "description": "Valeurs de dessin de « Hall 1.3 — Design de référence », pages 1 à 6, seule référence (décision du coordinateur du 12 novembre). La règle design-reference compare les styles calculés de l'application à ces valeurs : couleur exacte, dimension à 1 px près. « when » : all, mouse (souris), finger (doigt), touch (téléphone ou doigt), pointer-wide (souris au-dessus de la mise en page téléphone). Les composants dont ce document ne donne pas de valeur sont listés dans « missing » et ne sont pas appliqués.",
   "tolerance": {
     "color": 0,
     "px": 1
   },
   "entries": [
+    {
+      "component": "texte courant",
+      "selector": "body",
+      "property": "color",
+      "expected": "#161A20",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v10"
+      }
+    },
+    {
+      "component": "texte courant",
+      "selector": "body",
+      "property": "font-family",
+      "expected": "Archivo",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "page"
+      },
+      "note": "police de la planche"
+    },
+    {
+      "component": "fond des écrans",
+      "selector": "body",
+      "property": "background-color",
+      "expected": "#FFFFFF",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v25"
+      }
+    },
     {
       "component": "bouton principal",
       "selector": "[data-slot=button][data-variant=primary]:not(.create-fab)",
@@ -13,9 +53,9 @@
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 26,
-        "element": "t2a"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v61"
       }
     },
     {
@@ -26,155 +66,35 @@
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 26,
-        "element": "t2a"
-      }
-    },
-    {
-      "component": "bouton principal",
-      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab)",
-      "property": "font-weight",
-      "expected": "600",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 26,
-        "element": "t2a"
-      }
-    },
-    {
-      "component": "bouton principal",
-      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab)",
-      "property": "border-radius",
-      "expected": "6px",
-      "when": "pointer-wide",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h386"
-      }
-    },
-    {
-      "component": "bouton principal",
-      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab)",
-      "property": "padding-left",
-      "expected": "14px",
-      "when": "pointer-wide",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h386"
-      }
-    },
-    {
-      "component": "bouton principal",
-      "selector": "[data-slot=button][data-variant=primary]:not(.create-fab)",
-      "property": "font-size",
-      "expected": "14px",
-      "when": "pointer-wide",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h386"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v62"
       }
     },
     {
       "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]",
+      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on])",
       "property": "background-color",
       "expected": "#E8EEFC",
       "when": "all",
-      "status": "contradiction",
+      "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 26,
-        "element": "t2b"
-      },
-      "note": "Page 14 (b1o), citée par la page 1 pour le choix 5B (« page 11 » de l'ancienne numérotation), et pages 2, 19, 20, 23, 33 : #E9EDF7."
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v66"
+      }
     },
     {
       "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]",
+      "selector": "[data-slot=button][data-variant=secondary]:not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on])",
       "property": "color",
       "expected": "#1B45AD",
       "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 26,
-        "element": "t2b"
-      },
-      "note": "Page 14 (b1o) et pages 2, 19, 20, 23, 33 : #1B2A78."
-    },
-    {
-      "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]",
-      "property": "font-weight",
-      "expected": "600",
-      "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 26,
-        "element": "t2b"
-      }
-    },
-    {
-      "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]",
-      "property": "border-top-width",
-      "expected": "0px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 26,
-        "element": "t2b"
-      },
-      "note": "sans contour"
-    },
-    {
-      "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]",
-      "property": "border-radius",
-      "expected": "6px",
-      "when": "pointer-wide",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h130"
-      }
-    },
-    {
-      "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]",
-      "property": "padding-left",
-      "expected": "14px",
-      "when": "pointer-wide",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h130"
-      }
-    },
-    {
-      "component": "bouton secondaire",
-      "selector": "[data-slot=button][data-variant=secondary]",
-      "property": "font-size",
-      "expected": "14px",
-      "when": "pointer-wide",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h130"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v67"
       }
     },
     {
@@ -185,9 +105,9 @@
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 14,
-        "element": "b3p"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v71"
       }
     },
     {
@@ -198,429 +118,362 @@
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 14,
-        "element": "b3p"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v72"
       }
     },
     {
-      "component": "bouton de suppression",
-      "selector": "[data-slot=button][data-variant=danger]",
-      "property": "font-weight",
-      "expected": "600",
+      "component": "bouton sans fond",
+      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true])",
+      "property": "background-color",
+      "expected": "transparent",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 14,
-        "element": "b3p"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v76"
       }
     },
     {
-      "component": "bouton de création flottant",
+      "component": "bouton sans fond",
+      "selector": "[data-slot=button][data-variant=plain]:not(.hall-link):not([aria-expanded=true]):not([aria-pressed=true]):not([data-state=on]):not([data-active=true])",
+      "property": "color",
+      "expected": "#5B6472",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v78"
+      }
+    },
+    {
+      "component": "bouton de création",
       "selector": ".create-fab",
       "property": "background-color",
       "expected": "#2457D6",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 16,
-        "element": "v2ap"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v81"
       }
     },
     {
-      "component": "bouton de création flottant",
+      "component": "bouton de création",
       "selector": ".create-fab",
       "property": "color",
       "expected": "#FFFFFF",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 16,
-        "element": "v2ap"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v81"
       }
     },
     {
-      "component": "ligne de liste",
-      "selector": "[data-slot=list-row]:not([data-prominent=true]):not([data-size=large]) .list-row-title",
-      "property": "color",
-      "expected": "#17202E",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 4,
-        "element": "g2r1b"
-      },
-      "note": "« Hall 1.3 — Design de référence » (pages 1 à 5, dont la page 5 arrêtée le 12 novembre) écrit la teinte de texte #161A20."
-    },
-    {
-      "component": "ligne de liste",
-      "selector": "[data-slot=list-row]:not([data-prominent=true]):not([data-size=large]) .list-row-title",
-      "property": "font-weight",
-      "expected": "600",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 4,
-        "element": "g2r1b"
-      },
-      "note": "Page 21 (c3b, choix 10E) : 800 ; pages 4 et 33 : 600."
-    },
-    {
-      "component": "ligne de liste",
-      "selector": "[data-slot=list-row] .list-row-detail-text",
-      "property": "color",
-      "expected": "#5B6676",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 4,
-        "element": "g2r1m"
-      },
-      "note": "« Hall 1.3 — Design de référence » (pages 1 à 5, dont la page 5 arrêtée le 12 novembre) écrit la teinte de texte secondaire #5B6472."
-    },
-    {
-      "component": "ligne de liste",
-      "selector": "[data-slot=list-row]:not([data-prominent=true]):not([data-size=large]) > .list-row-line",
-      "property": "height",
-      "expected": "64px",
-      "when": "touch",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 1,
-        "element": "choix 11"
-      }
-    },
-    {
-      "component": "ligne de liste",
-      "selector": "[data-slot=list-row]:not([data-prominent=true]):not([data-size=large]) > .list-row-line",
-      "property": "height",
-      "expected": "64px",
-      "when": "pointer-wide",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h133"
-      },
-      "note": "Mots du propriétaire du 12 novembre (graphe, hall-ui-refinement) : à l'ordinateur, lignes de 40 et 52 px."
-    },
-    {
-      "component": "ligne de liste",
-      "selector": "[data-slot=list-row]:not([data-prominent=true]):not([data-size=large]) .list-row-title",
-      "property": "font-size",
-      "expected": "16px",
-      "when": "pointer-wide",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h133"
-      },
-      "note": "Mots du propriétaire du 12 novembre : le contenu descend à 14 px à l'ordinateur."
-    },
-    {
-      "component": "ligne de liste",
-      "selector": "[data-slot=list-row] .list-row-detail-text",
+      "component": "bouton",
+      "selector": "[data-slot=button][data-size=default]",
       "property": "font-size",
       "expected": "14px",
-      "when": "pointer-wide",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h133"
-      }
-    },
-    {
-      "component": "ligne de liste",
-      "selector": "[data-slot=list-row]",
-      "property": "border-bottom-color",
-      "expected": "#E3E7EC",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 3,
-        "element": "v2r1"
-      },
-      "note": "« Hall 1.3 — Design de référence » (pages 1 à 5, dont la page 5 arrêtée le 12 novembre) écrit la teinte de filet #DFE3E8."
-    },
-    {
-      "component": "icône de type",
-      "selector": ".type-icon[data-nature=writing]",
-      "property": "color",
-      "expected": "#2457D6",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 5,
-        "element": "p2i2t"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v88"
       }
     },
     {
-      "component": "icône de type",
-      "selector": ".type-icon[data-nature=data]",
-      "property": "color",
-      "expected": "#0E7FB0",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 5,
-        "element": "p2i6t"
-      }
-    },
-    {
-      "component": "icône de type",
-      "selector": ".type-icon[data-nature=visual]",
-      "property": "color",
-      "expected": "#6A4BC4",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 5,
-        "element": "p2i8t"
-      }
-    },
-    {
-      "component": "icône de type",
-      "selector": ".type-icon[data-nature=council]",
-      "property": "color",
-      "expected": "#17202E",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 5,
-        "element": "p2i10t"
-      },
-      "note": "« Hall 1.3 — Design de référence » (pages 1 à 5, dont la page 5 arrêtée le 12 novembre) écrit la teinte de texte #161A20."
-    },
-    {
-      "component": "icône de type",
-      "selector": ".type-icon[data-nature=folder]",
-      "property": "color",
-      "expected": "#42506A",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 5,
-        "element": "p2i0t"
-      }
-    },
-    {
-      "component": "bandeau, première ligne",
-      "selector": ".screen-header-commune",
-      "property": "color",
-      "expected": "#42506A",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 9,
-        "element": "b1x"
-      }
-    },
-    {
-      "component": "bandeau, première ligne",
-      "selector": ".screen-header-commune",
+      "component": "bouton",
+      "selector": "[data-slot=button][data-size=default]",
       "property": "font-weight",
-      "expected": "600",
+      "expected": "650",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 9,
-        "element": "b1x"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v88"
       }
     },
     {
-      "component": "bandeau, première ligne",
-      "selector": ".screen-header-back, .screen-header-parent",
-      "property": "color",
-      "expected": "#2457D6",
-      "when": "all",
+      "component": "bouton",
+      "selector": "[data-slot=button][data-size=default]",
+      "property": "height",
+      "expected": "32px",
+      "when": "mouse",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 9,
-        "element": "b3x"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v90"
       }
     },
     {
-      "component": "bandeau, première ligne",
-      "selector": "[data-testid=screen-header], [data-testid=phone-header]",
-      "property": "background-color",
-      "expected": "#FFFFFF",
-      "when": "all",
+      "component": "bouton",
+      "selector": "[data-slot=button][data-size=default]",
+      "property": "height",
+      "expected": "44px",
+      "when": "finger",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 9,
-        "element": "b1h"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v90"
       }
     },
     {
-      "component": "bandeau, première ligne",
-      "selector": "[data-testid=screen-header-account]",
-      "property": "background-color",
-      "expected": "#E9EDF7",
+      "component": "bouton",
+      "selector": "[data-slot=button][data-size=default]:not(.hall-link)",
+      "property": "padding-left",
+      "expected": "12px",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 2,
-        "element": "p1v"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v92"
       }
     },
     {
-      "component": "bandeau, première ligne",
-      "selector": "[data-testid=screen-header-account]",
-      "property": "color",
-      "expected": "#1B2A78",
+      "component": "bouton",
+      "selector": "[data-slot=button][data-size=default]:not(.hall-link)",
+      "property": "padding-right",
+      "expected": "12px",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 2,
-        "element": "p1v"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v92"
       }
     },
     {
-      "component": "bandeau, grand titre",
-      "selector": "h1.screen-header-title",
-      "property": "font-weight",
-      "expected": "800",
+      "component": "bouton",
+      "selector": "[data-slot=button][data-size=default]:not(.hall-link)",
+      "property": "border-radius",
+      "expected": "4px",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 21,
-        "element": "c1t"
-      },
-      "note": "Page 9 (b1t, antérieure au choix 10E) : 600."
-    },
-    {
-      "component": "bandeau, grand titre",
-      "selector": "h1.screen-header-title",
-      "property": "color",
-      "expected": "#17202E",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 3,
-        "element": "page"
-      },
-      "note": "« Hall 1.3 — Design de référence » (pages 1 à 5, dont la page 5 arrêtée le 12 novembre) écrit la teinte de texte #161A20."
-    },
-    {
-      "component": "bandeau, grand titre",
-      "selector": "h1.screen-header-title",
-      "property": "font-size",
-      "expected": "28px..32px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 21,
-        "element": "foot"
-      },
-      "note": "Page 21 : grand titre de 28 à 32 px ; la page 33 le dessine à 28 px."
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v94"
+      }
     },
     {
       "component": "état après un point",
-      "selector": ".record-state[data-tone=action], .list-row-status[data-tone=action]",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=action]",
       "property": "background-color",
       "expected": "#2457D6",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 19,
-        "element": "a1ap"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v101"
       },
       "pseudo": "::before"
     },
     {
       "component": "état après un point",
-      "selector": ".record-state[data-tone=success], .list-row-status[data-tone=success]",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=success], .record-state[data-save=saved]",
       "property": "background-color",
-      "expected": "#1E7F4F",
+      "expected": "#1F7A4A",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 19,
-        "element": "a2ap"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v105"
       },
       "pseudo": "::before"
     },
     {
       "component": "état après un point",
-      "selector": ".record-state[data-tone=danger], .list-row-status[data-tone=danger]",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=danger], .record-state[data-save=error]",
       "property": "background-color",
-      "expected": "#B4232C",
+      "expected": "#B42323",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 19,
-        "element": "a2bp"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v109"
       },
       "pseudo": "::before"
     },
     {
       "component": "état après un point",
-      "selector": ".list-row-status:not([data-tone]), .list-row-status[data-tone=neutral]",
+      "selector": ".list-row-status:not([data-tone]), :is(.record-state, .list-row-status)[data-tone=neutral]",
       "property": "background-color",
-      "expected": "#9AA5B4",
+      "expected": "#646D7A",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 19,
-        "element": "a1bp"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v113"
       },
       "pseudo": "::before"
-    },
-    {
-      "component": "état après un point",
-      "selector": ".record-state, .list-row-status",
-      "property": "color",
-      "expected": "#5B6676",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 19,
-        "element": "a1am"
-      },
-      "note": "Page 33 (h405) : #42506A."
     },
     {
       "component": "état après un point",
       "selector": ".record-state, .list-row-status",
       "property": "width",
       "expected": "8px",
-      "when": "pointer-wide",
+      "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h406"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v118"
       },
       "pseudo": "::before"
+    },
+    {
+      "component": "état après un point",
+      "selector": ".record-state, .list-row-status",
+      "property": "height",
+      "expected": "8px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v118"
+      },
+      "pseudo": "::before"
+    },
+    {
+      "component": "état après un point",
+      "selector": ".record-state, .list-row-status",
+      "property": "color",
+      "expected": "#161A20",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v118"
+      },
+      "note": "« le mot en texte courant » : couleur du texte (v10)"
+    },
+    {
+      "component": "ligne de liste",
+      "selector": "[data-slot=list-row] .list-row-title",
+      "property": "color",
+      "expected": "#161A20",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v12"
+      },
+      "note": "« titres, valeurs, libellés de liste »"
+    },
+    {
+      "component": "ligne de liste",
+      "selector": "[data-slot=list-row] .list-row-detail-text",
+      "property": "color",
+      "expected": "#5B6472",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v17"
+      },
+      "note": "« détails »"
+    },
+    {
+      "component": "ligne de liste",
+      "selector": "[data-slot=list-row]",
+      "property": "border-bottom-color",
+      "expected": "#DFE3E8",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v22"
+      },
+      "note": "« séparation des lignes »"
+    },
+    {
+      "component": "bandeau",
+      "selector": "[data-testid=screen-header], [data-testid=phone-header]",
+      "property": "border-bottom-color",
+      "expected": "#DFE3E8",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v22"
+      },
+      "note": "« séparation des zones »"
+    },
+    {
+      "component": "bandeau",
+      "selector": ".screen-header-back, .screen-header-parent",
+      "property": "color",
+      "expected": "#2457D6",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v32"
+      },
+      "note": "« liens »"
+    },
+    {
+      "component": "barre du bas",
+      "selector": "nav.app-phone-bar",
+      "property": "border-top-color",
+      "expected": "#DFE3E8",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v22"
+      },
+      "note": "« séparation des zones »"
+    },
+    {
+      "component": "barre du bas",
+      "selector": "nav.app-phone-bar",
+      "property": "background-color",
+      "expected": "#FFFFFF",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v25"
+      }
+    },
+    {
+      "component": "barre du bas",
+      "selector": ".app-phone-bar-item[data-active=true]",
+      "property": "color",
+      "expected": "#2457D6",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 6,
+        "element": "v32"
+      },
+      "note": "« entrée courante »"
     },
     {
       "component": "barre latérale",
@@ -637,122 +490,29 @@
     },
     {
       "component": "barre latérale",
-      "selector": "aside.app-sidebar:not([data-compact=true])",
-      "property": "width",
-      "expected": "240px",
-      "when": "pointer-wide",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h19"
-      }
-    },
-    {
-      "component": "barre latérale",
-      "selector": "aside.app-sidebar[data-compact=true]",
-      "property": "width",
-      "expected": "52px",
-      "when": "pointer-wide",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h162"
-      }
-    },
-    {
-      "component": "barre latérale",
       "selector": "aside.app-sidebar",
       "property": "border-right-color",
-      "expected": "#D5DBE3",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h19"
-      },
-      "note": "Design de référence, page 1 (a7) : #DFE3E8."
-    },
-    {
-      "component": "barre latérale, rangée",
-      "selector": ".app-sidebar .nav-row",
-      "property": "height",
-      "expected": "32px",
+      "expected": "#DFE3E8",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h25"
-      }
-    },
-    {
-      "component": "barre latérale, rangée",
-      "selector": ".app-sidebar:not([data-compact=true]) .nav-row",
-      "property": "padding-left",
-      "expected": "8px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h25"
-      }
-    },
-    {
-      "component": "barre latérale, rangée",
-      "selector": ".app-sidebar:not([data-compact=true]) .nav-row",
-      "property": "column-gap",
-      "expected": "10px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h25"
-      }
-    },
-    {
-      "component": "barre latérale, rangée",
-      "selector": ".app-sidebar .nav-row",
-      "property": "border-radius",
-      "expected": "4px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h25"
-      }
-    },
-    {
-      "component": "barre latérale, rangée",
-      "selector": ".app-sidebar .nav-label",
-      "property": "font-size",
-      "expected": "14px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h25"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 1,
+        "element": "a7"
       }
     },
     {
       "component": "barre latérale, rangée",
       "selector": ".app-sidebar .nav-row:not([aria-current=page]):not(.active)",
       "property": "color",
-      "expected": "#5B6676",
+      "expected": "#5B6472",
       "when": "all",
-      "status": "contradiction",
+      "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h25"
-      },
-      "note": "Design de référence, page 1 (a16) : #5B6472."
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 1,
+        "element": "a16"
+      }
     },
     {
       "component": "barre latérale, rangée active",
@@ -773,78 +533,24 @@
       "property": "font-weight",
       "expected": "700",
       "when": "all",
-      "status": "contradiction",
+      "status": "retenu",
       "source": {
         "doc": "Hall 1.3 — Design de référence",
         "page": 1,
         "element": "a91"
-      },
-      "note": "Page 33 (h41) : 800 et fond #E9EDF7 ; référence : sans fond."
-    },
-    {
-      "component": "barre latérale, titre de groupe",
-      "selector": ".app-sidebar .nav-section-label",
-      "property": "color",
-      "expected": "#5B6676",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h29"
-      },
-      "note": "« Hall 1.3 — Design de référence » (pages 1 à 5, dont la page 5 arrêtée le 12 novembre) écrit la teinte de texte secondaire #5B6472."
-    },
-    {
-      "component": "barre latérale, titre de groupe",
-      "selector": ".app-sidebar .nav-section-label",
-      "property": "font-weight",
-      "expected": "600",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h29"
       }
     },
     {
-      "component": "barre latérale, titre de groupe",
-      "selector": ".app-sidebar .nav-section-label",
-      "property": "font-size",
-      "expected": "13px",
+      "component": "barre latérale, rangée active",
+      "selector": ".app-sidebar .nav-row[aria-current=page]",
+      "property": "background-color",
+      "expected": "transparent",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h29"
-      }
-    },
-    {
-      "component": "barre latérale, titre de groupe",
-      "selector": ".app-sidebar .nav-section-label",
-      "property": "height",
-      "expected": "32px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h29"
-      }
-    },
-    {
-      "component": "barre latérale, marque",
-      "selector": ".app-sidebar-head",
-      "property": "height",
-      "expected": "44px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 33,
-        "element": "h20"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 1,
+        "element": "a91"
       }
     },
     {
@@ -853,112 +559,42 @@
       "property": "background-color",
       "expected": "#2457D6",
       "when": "all",
-      "status": "contradiction",
+      "status": "retenu",
       "source": {
         "doc": "Hall 1.3 — Design de référence",
         "page": 1,
         "element": "a10"
-      },
-      "note": "Page 33 (h21) : #1B2A78."
+      }
     },
     {
-      "component": "barre du bas",
-      "selector": "nav.app-phone-bar",
-      "property": "background-color",
+      "component": "barre latérale, marque",
+      "selector": ".app-brand-mark",
+      "property": "color",
       "expected": "#FFFFFF",
       "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 2,
-        "element": "p1q"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 1,
+        "element": "a10"
       }
     },
     {
-      "component": "barre du bas",
-      "selector": "nav.app-phone-bar",
-      "property": "border-top-color",
-      "expected": "#D5DBE3",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 2,
-        "element": "p1q"
-      },
-      "note": "« Hall 1.3 — Design de référence » (pages 1 à 5, dont la page 5 arrêtée le 12 novembre) écrit la teinte de filet #DFE3E8."
-    },
-    {
-      "component": "barre du bas",
-      "selector": ".app-phone-bar-item:not([data-active=true])",
-      "property": "color",
-      "expected": "#5B6676",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 2,
-        "element": "p1q1"
-      },
-      "note": "« Hall 1.3 — Design de référence » (pages 1 à 5, dont la page 5 arrêtée le 12 novembre) écrit la teinte de texte secondaire #5B6472."
-    },
-    {
-      "component": "barre du bas",
-      "selector": ".app-phone-bar-item[data-active=true]",
-      "property": "color",
-      "expected": "#2457D6",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 2,
-        "element": "p1q0"
-      }
-    },
-    {
-      "component": "barre du bas",
-      "selector": ".app-phone-bar-item[data-active=true]",
+      "component": "barre latérale, marque",
+      "selector": ".app-brand-name",
       "property": "font-weight",
       "expected": "800",
       "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 2,
-        "element": "p1q0"
-      },
-      "note": "Page 22 (bq2) : 600."
-    },
-    {
-      "component": "texte courant",
-      "selector": "body",
-      "property": "color",
-      "expected": "#17202E",
-      "when": "all",
-      "status": "contradiction",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 3,
-        "element": "page"
-      },
-      "note": "« Hall 1.3 — Design de référence » (pages 1 à 5, dont la page 5 arrêtée le 12 novembre) écrit la teinte de texte #161A20."
-    },
-    {
-      "component": "texte courant",
-      "selector": "body",
-      "property": "font-family",
-      "expected": "Archivo",
-      "when": "all",
       "status": "retenu",
       "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 21,
-        "element": "hc-s"
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 1,
+        "element": "a11"
       }
     },
     {
       "component": "champ de formulaire",
-      "selector": "[data-slot=field] .hall-field",
+      "selector": "[data-slot=field] .hall-field:not(:has(textarea))",
       "property": "height",
       "expected": "52px",
       "when": "all",
@@ -968,19 +604,36 @@
         "page": 5,
         "element": "h80"
       }
+    }
+  ],
+  "missing": [
+    {
+      "component": "ligne de liste",
+      "values": "hauteur (64 px au doigt ; 40 et 52 px à la souris selon les mots du propriétaire), tailles et graisses du titre et de la seconde ligne, icône de type et ses cinq teintes, marges"
+    },
+    {
+      "component": "ligne mise en avant et ligne grande",
+      "values": "toutes les valeurs de dessin"
+    },
+    {
+      "component": "bandeau",
+      "values": "taille, graisse et couleur de la commune et du grand titre, hauteur de la première ligne, marges, initiales"
+    },
+    {
+      "component": "barre du bas",
+      "values": "couleur des destinations au repos, graisse de la destination active, tailles du libellé et de l'icône, hauteur"
+    },
+    {
+      "component": "barre latérale",
+      "values": "hauteurs de la marque, des rangées et des titres de groupe, marges, écarts, tailles du texte et des icônes, largeurs déplié et replié"
     },
     {
       "component": "champ de formulaire",
-      "selector": "[data-slot=field] .hall-input",
-      "property": "font-size",
-      "expected": "16px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Choix de design des composants",
-        "page": 1,
-        "element": "choix 12"
-      }
+      "values": "taille du texte saisi et du libellé, marges intérieures (la planche 5 n'écrit en clair que la hauteur, les couleurs et les filets)"
+    },
+    {
+      "component": "typographie",
+      "values": "tailles du texte courant (16 px), secondaire (14 px), minimum (13 px) : écrites seulement dans l'ancien document"
     }
   ]
 }

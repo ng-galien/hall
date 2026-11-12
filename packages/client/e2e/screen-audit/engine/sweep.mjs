@@ -248,20 +248,44 @@ export function measureLayout(options) {
     }
   }
 
-  /* horizontal-scroll: the document or any area wider than its box, except a declared data table or strip. */
+  /*
+   * horizontal-scroll: the document or any area wider than its box, except a declared data table or strip. The finding
+   * names the area and, after « déborde : », the deepest element that passes its right edge the most: the one to fix.
+   */
+  const overflowing = (area, right) => {
+    let culprit = null;
+    let widest = right + 1;
+    for (const element of area.querySelectorAll("*")) {
+      if (ignored(element) || !shown(element)) continue;
+      const edge = element.getBoundingClientRect().right;
+      // The deepest element at the widest edge: a child that reaches as far wins over its parent.
+      if (edge > widest + 0.5 || (culprit && edge >= widest - 0.5 && culprit.contains(element))) {
+        widest = Math.max(widest, edge);
+        culprit = element;
+      }
+    }
+    return culprit ? { selector: selectorOf(culprit), right: Math.round(widest) } : null;
+  };
   const scrolling = document.scrollingElement ?? document.documentElement;
   if (scrolling.scrollWidth > width + 1) {
-    findings.push({ rule: "horizontal-scroll", selector: "document", detail: `${scrolling.scrollWidth} px` });
+    const culprit = overflowing(document.body, width);
+    findings.push({
+      rule: "horizontal-scroll",
+      selector: `document${culprit ? ` › déborde : ${culprit.selector}` : ""}`,
+      detail: `${scrolling.scrollWidth} px pour ${width} px${culprit ? `, ${culprit.selector} va jusqu'à ${culprit.right} px` : ""}`,
+    });
   }
   for (const element of document.querySelectorAll("body *")) {
     if (ignored(element) || declaredScroller(element)) continue;
     const style = getComputedStyle(element);
     if (!["auto", "scroll"].includes(style.overflowX)) continue;
     if (element.scrollWidth <= element.clientWidth + 1 || !shown(element)) continue;
+    const box = element.getBoundingClientRect();
+    const culprit = overflowing(element, box.left + element.clientWidth);
     findings.push({
       rule: "horizontal-scroll",
-      selector: selectorOf(element),
-      detail: `${element.scrollWidth} px pour ${element.clientWidth} px`,
+      selector: `${selectorOf(element)}${culprit ? ` › déborde : ${culprit.selector}` : ""}`,
+      detail: `${element.scrollWidth} px pour ${element.clientWidth} px${culprit ? `, ${culprit.selector} va jusqu'à ${culprit.right - Math.round(box.left)} px dans la zone` : ""}`,
     });
   }
 

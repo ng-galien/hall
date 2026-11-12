@@ -166,13 +166,14 @@ const unityComponents = {
 };
 /**
  * The retained form field, page 5 of « Hall 1.3 — Design de référence » (elements h72 to h80 and the classes f, foc,
- * err, ro, ph): no fill, a grey rule of 1 px at rest, blue of 2 px while writing, red of 2 px in error, none read only;
+ * err, ro, ph) and the red of page 6 (v49): no fill, a grey rule of 1 px at rest, blue of 2 px while writing, red of 2 px
+ * in error, none read only;
  * the label in grey above the value; an empty field writes « Non renseigné » in grey italics.
  */
 const formField = {
   rest: { color: "#B4BECB", width: 1 },
   focus: { color: "#2457D6", width: 2 },
-  error: { color: "#B3261E", width: 2 },
+  error: { color: "#B42323", width: 2 },
   empty: { text: "Non renseigné", color: "#8A94A3" },
   label: "#5B6472",
 };
