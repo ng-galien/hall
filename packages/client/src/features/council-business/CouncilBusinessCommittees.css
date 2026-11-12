@@ -25,9 +25,14 @@
 
 /* Under the title of an affaire, the committees take a line of their own under the date. */
 .screen-title-facts > .business-committees { flex-basis: 100%; margin-top: 0; }
+/* The other facts of the title then take a whole line each, above the committees. */
+.screen-title-facts:has(> .business-committees) > * { flex-basis: 100%; }
+/* The committees and their search stay beside their label, and wrap among themselves. */
+.screen-title-facts .business-committees-items { min-width: min(100%, var(--hall-size-relative-16rem)); flex: 1 1 0; }
 .screen-title-facts .business-committee-search { width: var(--hall-size-relative-16rem); }
 /* On a phone they follow the facts. */
 @media (max-width: 760px) {
+  .screen-title-facts:has(> .business-committees) > * { flex-basis: auto; }
   .screen-title-facts > .business-committees { flex-basis: auto; margin-top: var(--hall-space-2); }
   .screen-title-facts .business-committee-search { width: 100%; }
 }

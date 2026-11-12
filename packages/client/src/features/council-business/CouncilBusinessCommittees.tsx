@@ -110,7 +110,7 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
   return (
     <div className="business-committees" data-testid="business-committees">
       <span className="business-committees-label">{t("business.committees")}</span>
-      <div className="business-committees-items" data-testid="business-committee-badges">
+      <div className="business-committees-items" data-testid="business-committee-badges" data-layout-flow>
         {associations.map((association) => (
           <span key={association.committeeId} className="business-committee" data-testid="business-committee-badge">
             <Link
