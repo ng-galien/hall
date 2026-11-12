@@ -226,15 +226,28 @@ const expected = authPass
   : selected === ""
     ? []
     : screens.filter((screen) => !selected || selected.split(",").includes(screen.id));
-const measuredBy = (input) =>
-  new Set(records.filter((record) => record.input === input).flatMap((record) => record.screens));
+/* The scenarios the sweep runs: a screen of another scenario (the meeting opened from its preparation changes the
+   database) is out of the sweep, and said so, not counted as interrupted. */
+const sweptScenarios = ["minutes", "default"];
+const outOfSweep = expected
+  .filter((screen) => !sweptScenarios.includes(screen.scenario))
+  .map((screen) => `${screen.id} : hors balayage (scénario ${screen.scenario}, capturé sur la planche)`);
+const inSweep = expected.filter((screen) => sweptScenarios.includes(screen.scenario));
+// A screen that could not be opened is named by its record; only a screen no record mentions was cut off.
+const named = (input) =>
+  new Set(
+    records
+      .filter((record) => record.input === input)
+      .flatMap((record) => [...record.screens, ...record.missing.map((entry) => entry.split(/[: ]/)[0])]),
+  );
 const missing = [
   ...records.flatMap((record) => record.missing),
-  ...expected
-    .filter((screen) => !measuredBy("pointer").has(screen.id))
+  ...outOfSweep,
+  ...inSweep
+    .filter((screen) => !named("pointer").has(screen.id))
     .map((screen) => `${screen.id} (souris) : non mesuré, balayage interrompu`),
-  ...expected
-    .filter((screen) => screen.formats.some((format) => format !== "ordinateur") && !measuredBy("touch").has(screen.id))
+  ...inSweep
+    .filter((screen) => screen.formats.some((format) => format !== "ordinateur") && !named("touch").has(screen.id))
     .map((screen) => `${screen.id} (doigt) : non mesuré, balayage interrompu`),
 ];
 
