@@ -3628,7 +3628,7 @@
       "statement": "Le menu « Couches » d’une carte affiche ses couches liées comme des entrées cochables et donne accès au téléversement d’une nouvelle couche.",
       "acceptanceCriteria": [
         "Les couches liées apparaissent dans le menu « Couches » sous les lignes « Dessin » et des fonds IGN, une ligne par couche avec son nom, dans l’ordre des rangs.",
-        "Une couche visible est dessinée au-dessus des fonds et au-dessous du dessin de la carte, avec un style unique et neutre : contour sombre fin, remplissage clair translucide, points en petits disques.",
+        "Une couche visible est dessinée au-dessus des fonds et au-dessous du dessin de la carte.",
         "Pour un utilisateur qui peut modifier la carte, cocher ou décocher une couche enregistre sa visibilité dans la carte ; pour un lecteur, la case reflète la visibilité enregistrée et reste inactive.",
         "Pour un utilisateur qui peut modifier la carte, le menu propose « Ajouter une couche… », qui ouvre un écran de téléversement : choix du fichier, nom de la couche prérempli avec le nom du fichier, bouton d’envoi, liste des erreurs de validation.",
         "Une couche téléversée depuis cet écran est créée dans le dossier de la carte, liée à la carte et visible, et s’affiche sans recharger la page.",
@@ -3639,6 +3639,12 @@
           "key": "geographic-layer-display-and-upload",
           "origin": "product",
           "statement": "Afficher et ajouter des couches de données depuis la carte, sans quitter la carte.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -3713,7 +3719,7 @@
       "acceptanceCriteria": [
         "L’étiquette d’une parcelle est sa section suivie de son numéro sans zéros de tête, par exemple « A 221 » ; le préfixe précède la section lorsqu’il est différent de 000.",
         "Section et numéro sont lus dans les propriétés section et numero ; à défaut, ils sont lus dans l’identifiant de parcelle.",
-        "Les étiquettes sont dessinées au centre de chaque parcelle, en texte sombre détouré de clair, et ne se chevauchent pas.",
+        "Les étiquettes sont dessinées au centre de chaque parcelle et ne se chevauchent pas.",
         "En dessous du niveau de zoom 17, aucune étiquette n’est dessinée."
       ],
       "clauses": [
@@ -3721,6 +3727,12 @@
           "key": "geographic-parcel-labels",
           "origin": "product",
           "statement": "Lire le numéro des parcelles sur la carte comme sur le plan cadastral.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -3831,7 +3843,7 @@
         "Les longueurs et surfaces sont géodésiques, calculées sur la sphère terrestre à partir de la projection de la carte, et non mesurées dans le plan de la projection.",
         "Les longueurs s’expriment en mètres, puis en kilomètres à partir de 1 km ; les surfaces en mètres carrés, puis en hectares à partir de 1 ha, avec un arrondi adapté et la présentation numérique française.",
         "Le menu de chaque dessin dans Composition permet d’afficher ses mesures sur la carte ; il remplace l’option globale du panneau Mesures.",
-        "Le panneau Mesures a deux onglets, « Mesures » et « Coordonnées », atteignables au clavier ; l’onglet « Mesures », ouvert par défaut, ne montre aucune coordonnée ; le panneau garde la même largeur dans les deux onglets.",
+        "Le panneau Mesures a deux onglets, « Mesures » et « Coordonnées », atteignables au clavier ; l’onglet « Mesures », ouvert par défaut, ne montre aucune coordonnée.",
         "L’onglet « Coordonnées » donne la position du curseur et celle du centre de la vue en WGS84 (latitude et longitude en degrés décimaux) et dans le système projeté de la carte (EPSG:3857, en mètres), chacune copiable.",
         "Une mesure en cours est temporaire : elle n’entre dans la carte enregistrée que par l’action « Enregistrer la mesure » (HALL-FR-DOC-460) ; sinon elle ne déclenche aucun enregistrement et disparaît au changement d’outil ou d’onglet.",
         "Échap efface la mesure en cours sans quitter l’onglet ; dans la fenêtre de dialogue de la ressource, cet Échap ne ferme pas la fenêtre."
@@ -3841,6 +3853,12 @@
           "key": "geographic-map-measurements",
           "origin": "product",
           "statement": "Mesurer sur la carte une distance ou une surface et lire une position, sans modifier la carte enregistrée.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -3855,11 +3873,9 @@
       "statement": "Un dessin devenu trop petit à l’écran s’affiche comme un repère à son centre, avec son libellé, et retrouve sa géométrie quand on zoome.",
       "acceptanceCriteria": [
         "Une ligne ou une zone dont le plus grand côté de l’emprise à l’écran est inférieur au seuil s’affiche comme un repère à sa couleur, placé en son centre et accompagné de son libellé ; au-delà du seuil elle s’affiche avec sa géométrie.",
-        "Le seuil est une constante unique exprimée en pixels d’écran et documentée dans le code.",
         "Un point garde son repère à toutes les échelles.",
         "La sélection d’un dessin, par un clic sur la carte ou depuis la liste de composition, fonctionne sous les deux représentations et se voit sur le repère comme sur la géométrie.",
-        "Un point est représenté par une épingle cartographique colorée, ancrée à sa position ; les lignes et zones compactes conservent leur symbole distinct.",
-        "Les libellés des dessins, des couches liées et des mesures cartographiques utilisent une taille légèrement accrue, alignée sur le jeton de corps de texte (14 px), en conservant leur halo clair et la taille des épingles."
+        "Un point est représenté par une épingle cartographique colorée, ancrée à sa position ; les lignes et zones compactes conservent leur symbole distinct."
       ],
       "clauses": [
         {
@@ -3872,6 +3888,12 @@
           "key": "geographic-map-label-legibility",
           "origin": "product",
           "statement": "Demande du propriétaire du 11 octobre 2026 : augmenter légèrement la taille des libellés sur la carte, sans perdre leur détourage ni modifier les icônes des points.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -3894,7 +3916,7 @@
         "Le fichier d’une affaire exporté transporte, pour chaque carte qu’il contient, les notes de ses dessins avec leur lien au dessin (identifiant du dessin dans la carte), comme il transporte les notes des parcelles et des entités des couches (HALL-FR-DOC-390) ; l’import restaure chaque note sur le dessin de la carte importée, avec son texte et ses photos.",
         "Un lecteur sans droit de modifier la carte qui clique sur un dessin, en mode Carte de l’espace de travail comme dans « Cartes », ouvre la fiche du dessin en lecture : libellé, nature, mesures du dessin (longueur, ou surface et périmètre) et note rendue, sans « Modifier la forme », sans création de note et sans modification de la note ; le bouton de fermeture et Échap ferment la fiche.",
         "Pour qui peut créer la note, l’ouverture de la fiche prépare directement la note vide existante ou nouvelle et son éditeur, sans bouton « Ajouter une note ». Un lecteur ne crée aucune note ; les erreurs sont signalées sans relance automatique en boucle.",
-        "La fiche d’un dessin est la même en mode Éléments et en mode Mesures : icône de la géométrie à la place de sa nature écrite, nom, couleur et menu « ⋯ » de la ligne du dessin pour qui peut modifier la carte, centrage et fermeture ; « Modifier la forme » choisi en mode Mesures ouvre Éléments sur ce dessin.",
+        "La fiche d’un dessin est la même en mode Éléments et en mode Mesures : géométrie, nom, couleur et menu « ⋯ » de la ligne du dessin pour qui peut modifier la carte, centrage et fermeture ; « Modifier la forme » choisi en mode Mesures ouvre Éléments sur ce dessin.",
         "Les mesures d’une ligne ou d’une zone s’affichent dans sa fiche quand elles sont affichées sur la carte ; en mode Mesures, un clic sur un dessin affiche ses mesures sur la carte et dans la fiche ; un lecteur voit toujours les mesures dans la fiche.",
         "La note occupe directement le corps de la fiche, sans second cadre ni bandeau, en gardant la place de la barre de mise en forme de l’éditeur.",
         "La fiche d’un dessin se redimensionne avec sa poignée, dans la carte et au-dessus des outils de zoom ; sa taille est conservée pendant la session du navigateur."
@@ -3922,6 +3944,12 @@
           "key": "geographic-card-unified",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-12 : une seule fiche de dessin, celle du mode Éléments, compacte, avec les contrôles de la ligne du dessin ; les mesures affichées sur la carte apparaissent aussi dans la fiche.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -4094,15 +4122,13 @@
       },
       "statement": "La barre d’outils d’une carte ouvre et ferme les panneaux « Mesures » et « Composition » d’une pression, et ces panneaux prennent la hauteur de leur contenu dans les limites de la carte.",
       "acceptanceCriteria": [
-        "Les boutons « Éléments » et « Mesures », dans cet ordre, sont des bascules : une pression sur le mode actif ferme son panneau et laisse la carte seule, sans mode actif (aria-pressed faux sur les deux boutons) ; une pression sur l’autre mode passe directement à ce mode et à son panneau. Le bouton « Éléments » utilise l’icône de liste d’objets existante.",
+        "Les boutons « Éléments » et « Mesures », dans cet ordre, sont des bascules : une pression sur le mode actif ferme son panneau et laisse la carte seule, sans mode actif (aria-pressed faux sur les deux boutons) ; une pression sur l’autre mode passe directement à ce mode et à son panneau.",
         "Une carte s’ouvre seule, sans mode actif ni panneau (aria-pressed faux sur « Éléments » et « Mesures »), à chaque ouverture, dans une fenêtre de dialogue comme dans l’espace de travail ou Cartes, et à chaque changement de carte ; « Éléments » ouvre la liste des dessins, qui reste consultable en lecture seule sans commandes d’édition. Sur la carte seule, un clic sur un dessin ou sur une entité d’une couche liée ouvre sa fiche.",
         "Échap garde l’ordre décrit par HALL-FR-DOC-300 et HALL-FR-DOC-410 (dessin ou mesure en cours, fiche, puis fenêtre de dialogue) ; le mode actif et son panneau restent ouverts après Échap.",
-        "Les panneaux « Composition » et « Mesures » s’ouvrent à la hauteur de leur contenu, au moins celle de leur en-tête, de leurs outils et d’une ligne, au plus celle de la carte sous la barre d’outils ; au-delà, leur liste défile à l’intérieur du panneau, qui reste dans la carte.",
+        "Les panneaux « Composition » et « Mesures » s’ouvrent à la hauteur de leur contenu dans les limites de la carte ; au-delà, leur liste défile à l’intérieur du panneau, qui reste dans la carte.",
         "La taille donnée par l’utilisateur à un panneau avec sa poignée de redimensionnement est conservée pendant la session du navigateur, à chaque réouverture du panneau et après un rechargement de la page.",
-        "Le sélecteur « Éléments » / « Mesures », le bouton « Couches » et les outils de zoom forment une barre compacte : sélecteur et outils de zoom sans marge intérieure autour de leurs boutons, contrôles de la petite taille de Hall (28 px sur ordinateur, cible tactile sur téléphone), icônes à la petite taille d’icône, libellés à la taille de légende ; chaque bouton offre une cible d’au moins 28 px sur 28 px.",
         "Le panneau « Éléments » porte deux onglets, « Éléments » (outils et liste des dessins, avec leur nombre) et « Légende » (éditeur de la légende), sur un seul bandeau qui sert aussi de poignée de déplacement ; le panneau « Mesures » porte ses onglets « Mesures » et « Coordonnées » sur le même bandeau ; seule la liste ou la légende défile.",
         "Chaque ligne de dessin porte une poignée de déplacement ; glisser une ligne sur une autre la place à cet endroit, et l’ordre de la liste, qui est l’ordre enregistré dans la collection GeoJSON, est conservé au-delà de neuf dessins.",
-        "Le bouton « Mesures » de la barre d’outils porte l’icône de règle.",
         "Les libellés des dessins qui se chevauchent sont masqués jusqu’à ce que le zoom les sépare ; les repères, les flèches et les formes restent toujours affichés.",
         "Une ligne de dessin montre la poignée, l’icône de sa géométrie, son nom, le bouton de centrage, sa couleur et le menu « ⋯ » ; le menu contient « Masquer sur la carte » ou « Afficher sur la carte », « Modifier la forme », « Afficher les mesures » pour une ligne ou une zone, les flèches pour une ligne (sans flèche, sens du tracé, sens inverse, deux sens) et « Supprimer ».",
         "Le nom d’un dessin masqué est barré, dans la liste comme dans sa fiche.",
@@ -4156,6 +4182,12 @@
           "key": "plain-map-opening",
           "origin": "product",
           "statement": "Mots d’Alexandre du 5 novembre 2026 : « Ils sont trop gros. Sur la carte, ils sont beaucoup trop gros. Il y a trop de padding. Et le fait que Éléments soit sélectionné quand on ouvre la carte, c’est très désagréable. » Les boutons de la carte prennent la petite taille et la carte s’ouvre sans panneau ni mode sélectionné.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -4783,7 +4815,7 @@
       "acceptanceCriteria": [
         "L’en-tête reste visible pendant le défilement de la fiche.",
         "Dans la fiche déjà identifiée comme procès-verbal par la navigation, le titre présente seulement le numéro du conseil ; la date et le lieu de la séance sont présentés une seule fois dans l’en-tête.",
-        "L’état arrêté ou non arrêté du procès-verbal est projeté depuis le résultat du scrutin conservé en base et utilise le badge et la couleur de statut communs ; l’état de génération du document est présenté séparément.",
+        "L’état arrêté ou non arrêté du procès-verbal est projeté depuis le résultat du scrutin conservé en base et présenté comme les autres états de Hall ; l’état de génération du document est présenté séparément.",
         "Les accès à la séance d’origine et, lorsqu’elle existe, à la séance où le PV est à arrêter sont regroupés dans l’en-tête et reprennent la présentation du lien vers le procès-verbal depuis une séance.",
         "Les actions de prévisualisation, génération, consultation ou téléchargement du document sont regroupées dans une ligne « Document » distincte du même en-tête ; leur explication est portée par une infobulle et cette section n’est pas répétée en bas de la fiche."
       ],
@@ -4792,6 +4824,12 @@
           "key": "minutes-header",
           "origin": "product",
           "statement": "La fiche du procès-verbal présente un en-tête stable qui regroupe son contexte, son état et ses navigations associées sans répéter ces informations dans une barre séparée.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -4829,14 +4867,19 @@
       "acceptanceCriteria": [
         "La présidence, le secrétariat de séance, le quorum et les heures d’ouverture et de clôture sont présentés ligne à ligne, sans cartes de métriques.",
         "Les membres présents, excusés et absents sont regroupés dans des listes textuelles sans badges de statut.",
-        "Chaque pouvoir associe textuellement le membre représenté au porteur du pouvoir.",
-        "La zone de rédaction du procès-verbal n’utilise ni contour de carte ni ombre portée."
+        "Chaque pouvoir associe textuellement le membre représenté au porteur du pouvoir."
       ],
       "clauses": [
         {
           "key": "minutes-editorial-opening",
           "origin": "product",
           "statement": "L’ouverture du procès-verbal privilégie une lecture rédactionnelle continue des faits, des présences et des pouvoirs.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -4855,7 +4898,7 @@
         "Après la clôture, les notes de séance sont lues depuis le point à l’ordre du jour devenu immuable, sans être recopiées dans les faits du procès-verbal.",
         "Deux onglets distinguent les notes de séance en lecture seule de la rédaction du procès-verbal modifiable.",
         "L’état d’enregistrement de chaque rédaction est visible dans la barre de ses onglets.",
-        "Lorsque la rédaction diffère de la note originale, une action avec icône et infobulle permet de reprendre intégralement la note originale après confirmation explicite.",
+        "Lorsque la rédaction diffère de la note originale, une action permet de reprendre intégralement la note originale après confirmation explicite.",
         "In the minutes template, each point renders its historical title, its own subject text (decision proposal or open question), the final council narrative and aggregate ballot result as separate blocks, without automatically repeating the general business report, ordinary per-point quorum attained or examined status, or individual voter and non-participant lists. This presentation does not change the stored voting system, identities, choices, counts, editorial text, opening facts or special-event evidence."
       ],
       "clauses": [
@@ -4869,6 +4912,12 @@
           "key": "minutes-template-editorial-content",
           "origin": "product",
           "statement": "The minutes template shows the historical agenda title, the subject’s own text for both decision proposals and open questions, council narrative and aggregate vote counts in distinct blocks. It does not automatically repeat the general business report, named vote lists, ordinary per-point quorum attained or examined status. Subject text provenance is resolved separately from the council narrative. The owner subsequently authorized current subject resources for the current rendering request and deferred historical recovery (chat correction 01a198cd); current resources are labelled as current in the template context rather than claimed to be frozen historical content. Opening attendance and exceptional procedural events remain visible. The voting system and recorded data remain unchanged. Owner requests: chat 01a19873-f729-7353-a2b8-d34536679b47, corrections 01a198b9-9846-7d92-951e-8300ce116130 and 01a198bb-5b2f-7682-884e-a05a2fe3608c; owner clarification to recall the subject text in 01a198c5-ea2c and 01a198c6-e587; accepted framing pv-rendering-v5 in Topic Graph mairie 5a83ff96-14a7-447c-936f-f270b1ac10a3. This rendering choice is not a general legal-conformity claim.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -7949,7 +7998,7 @@
         "Depuis l’en-tête de la fiche d’une affaire, un utilisateur autorisé recherche une commission parmi plusieurs résultats et l’associe par le bouton + du résultat ou par Entrée sur le résultat sélectionné ; chaque association apparaît comme un badge sur la même ligne. Le nom de la commission ouvre sa fiche par un lien dont le soulignement apparaît après un bref survol ; la croix distincte retire le rattachement. Plusieurs commissions peuvent être associées et les liens enregistrés restent visibles après rechargement.",
         "Depuis la fiche d’une commission, un utilisateur peut retrouver les affaires qui lui sont associées et ouvrir leur fiche.",
         "L’ajout et le retrait d’une association sont des mises à jour d’une affaire existante et exigent une permission dédiée à cette mise à jour ; cette permission n’autorise ni la création ni la suppression d’une affaire et ne se confond ni avec workspace.write ni avec le droit de préparer les commissions.",
-        "Le choix d’une commission sur la fiche d’une affaire est une liste déroulante avec recherche, à la hauteur d’un petit contrôle : un clic ou la flèche vers le bas affiche toutes les commissions encore disponibles, la saisie filtre la liste, Entrée ou un clic associe la commission choisie, Échap ferme la liste."
+        "Le choix d’une commission sur la fiche d’une affaire est une liste déroulante avec recherche : un clic ou la flèche vers le bas affiche toutes les commissions encore disponibles, la saisie filtre la liste, Entrée ou un clic associe la commission choisie, Échap ferme la liste."
       ],
       "clauses": [
         {
@@ -7968,6 +8017,12 @@
           "key": "committee-combo-box",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-12 : le sélecteur de commission est une liste déroulante avec recherche, plus compacte, qui montre toute la liste au clic ou à la flèche vers le bas.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -8467,7 +8522,6 @@
         "La navigation clavier et souris désigne le même résultat ; la sélection produit une seule action.",
         "La sélection inline ne rouvre pas une recherche ; seule une configuration propre à la ressource peut suivre.",
         "L’insertion d’un PDF, depuis @ ou le bouton de recherche, utilise la référence inline existante (icône et nom cliquable) et non une carte pleine largeur. Le choix de présentation appartient à une seule autorité partagée.",
-        "Toutes les références inline partagent le même alignement avec le texte environnant, avec ou sans icône et quel que soit leur type (contact, membre, lien, ressource documentaire ou géographique). L’édition compacte, l’édition enrichie et le rendu utilisent cette présentation commune.",
         "Une référence native conserve le libellé explicitement fourni dans le texte, pour les ressources comme pour les contacts, sans renommer sa cible ; en l’absence de libellé, elle affiche le titre courant de la cible. Son lien et sa présentation inline sont conservés.",
         "Sur ordinateur et tablette, un clic normal sur une référence native de contact ouvre une fiche contact en lecture dans une modale dédiée, depuis le rapport, l’espace de travail, un document ou son aperçu agrandi. L’affaire, le document et le défilement restent en place ; Échap ou Fermer ferme la fiche et restitue le focus au lien. Les clics modifiés conservent le lien vers la page contact. Le chargement, le contact introuvable et le refus d’accès sont signalés dans la modale.",
         "La fiche contact modale reprend la hiérarchie visuelle et les composants de Hall : identité en en-tête, fonction et organisme, coordonnées regroupées, puis notes lisibles. Elle conserve toutes les informations du contact dans une présentation adaptée aux fenêtres étroites et reste en lecture seule.",
@@ -8478,7 +8532,7 @@
         "Les types de ressources documentaires sont distincts et les dossiers peuvent être explorés sans quitter le sélecteur.",
         "La fermeture restitue le focus ; le menu près du curseur s’adapte à l’espace disponible.",
         "Chaque nouvelle saisie de @ ouvre la recherche sans validation préalable, y compris après fermeture ou insertion dans le même éditeur. Les ouvertures successives restent utilisables au clavier comme à la souris.",
-        "Dans l’éditeur, # ouvre un overlay de catégories et de valeurs, sans champ de recherche supplémentaire ni panneau empilé. Le choix actif reste à la hauteur du # ; les autres choix défilent au-dessus et au-dessous, au clavier et à la souris. Les types sont proposés directement, sans en-tête « Type » ni icône de filtre. Les autres catégories se déploient dans ce même overlay. Sa présentation reste discrète, avec des lignes compactes et sans grandes marges vides. Le focus reste dans le texte ; Tab n’est pas nécessaire. Le placement respecte les limites de la fenêtre.",
+        "Dans l’éditeur, # ouvre un overlay de catégories et de valeurs, sans champ de recherche supplémentaire ni panneau empilé. Le choix actif reste à la hauteur du # ; les autres choix défilent au-dessus et au-dessous, au clavier et à la souris. Les types sont proposés directement, sans en-tête « Type » ni icône de filtre. Les autres catégories se déploient dans ce même overlay. Le focus reste dans le texte ; Tab n’est pas nécessaire. Le placement respecte les limites de la fenêtre.",
         "Les résultats, dossiers et pastilles affichent des noms métier lisibles ; un identifiant technique, notamment UUID, ne sert jamais de libellé de remplacement. Les captures de recette utilisent elles aussi des noms métier lisibles."
       ],
       "clauses": [
@@ -8493,6 +8547,12 @@
           "origin": "product",
           "statement": "Décision du propriétaire du 10 novembre 2026 : sur téléphone, la petite fenêtre des références à un contact ou à un conseiller disparaît ; ces références s’ouvrent en page entière comme les autres références, le bureau ne change pas.",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -8505,7 +8565,7 @@
       },
       "statement": "Le sélecteur « Joindre un document » présente chaque document sur deux lignes lisibles : son titre, puis son type et son dossier.",
       "acceptanceCriteria": [
-        "Le panneau du sélecteur mesure 640 px de large, limité à la largeur de la fenêtre moins une marge ; sa hauteur reste dans l’espace disponible et la liste des résultats défile à l’intérieur du panneau.",
+        "La hauteur du panneau du sélecteur reste dans l’espace disponible, sa largeur dans celle de la fenêtre, et la liste des résultats défile à l’intérieur du panneau.",
         "Chaque résultat affiche son titre sur une première ligne, puis le type de document et son dossier de classement sur une seconde ligne.",
         "Un titre plus long que la ligne se termine par des points de suspension en dernier recours ; le titre complet s’affiche alors en infobulle au survol du résultat.",
         "La même présentation sur deux lignes s’applique aux résultats de toutes les recherches partagées : recherche globale, recherche de l’espace de travail, champs de sélection et insertion depuis l’éditeur."
@@ -8515,6 +8575,12 @@
           "key": "resource-picker-readable-rows",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : le sélecteur « Joindre un document » doit permettre de lire le titre complet d’un document, avec son type et sa catégorie sur une seconde ligne.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -8555,15 +8621,19 @@
       "acceptanceCriteria": [
         "Le clic sur une affaire dans l’arborescence du menu ouvre son espace de travail existant, avec son identité conservée.",
         "Un répertoire ordinaire ouvre toujours son contenu documentaire.",
-        "L’affaire ouverte reste identifiable comme sélection active dans l’arbre.",
-        "L’arbre distingue les répertoires et les affaires par leurs icônes communes seules, sans fond, badge ni habillage supplémentaire autour de l’icône d’affaire.",
-        "La couleur d’un dossier (HALL-FR-WSP-480) colore seulement le trait de son icône, de répertoire ou d’affaire, sans fond, badge ni habillage ; les deux icônes restent distinctes par leur forme."
+        "L’affaire ouverte reste identifiable comme sélection active dans l’arbre."
       ],
       "clauses": [
         {
           "key": "sidebar-business-navigation",
           "origin": "product",
           "statement": "Le menu Espace de travail distingue l’ouverture d’une affaire du conseil de celle d’un répertoire documentaire.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -8623,17 +8693,15 @@
       "acceptanceCriteria": [
         "La page racine affiche uniquement l’explorateur documentaire existant, sans vue complémentaire des affaires du conseil.",
         "L’explorateur présente toute l’arborescence depuis la racine, dossiers compris, ainsi que les éléments directement classés à la racine.",
-        "À l’ouverture de l’espace de travail, sur ordinateur, tablette et téléphone, les dossiers de l’explorateur sont repliés et ne se déplient que sur une action de l’utilisateur. Sur ordinateur et tablette, l’icône d’un dossier qui a un contenu déplie ou replie sa branche sur place : dossier fermé quand il est replié, dossier ouvert quand il est déplié, avec une zone de clic d’au moins 32 pixels et un survol visible ; un clic sur le nom ou le reste de la ligne ouvre ce dossier comme dossier courant ; aucune ligne de dossier ne porte de chevron, dans l’explorateur comme dans l’arborescence du menu. Au clavier, les flèches déplient et replient, Entrée ouvre le dossier. Un dossier sans contenu garde son icône fermée.",
+        "À l’ouverture de l’espace de travail, sur ordinateur, tablette et téléphone, les dossiers de l’explorateur sont repliés et ne se déplient que sur une action de l’utilisateur. Sur ordinateur et tablette, l’icône d’un dossier qui a un contenu déplie ou replie sa branche sur place, et elle montre si la branche est dépliée ; un clic sur le nom ou le reste de la ligne ouvre ce dossier comme dossier courant. Au clavier, les flèches déplient et replient, Entrée ouvre le dossier. Un dossier sans contenu n’a rien à déplier.",
         "Un clic hors du titre d’une affaire, d’un document ou d’une note sélectionne seulement l’élément ; un clic sur son titre ouvre sa fiche sans déplier l’affaire.",
         "Après la sélection d’une affaire, d’un document ou d’une note, le focus reste dans l’arbre afin que la navigation au clavier puisse continuer.",
         "Depuis une affaire, un document ou une note, la flèche gauche replie son dossier parent et replace le focus sur ce dossier.",
         "L’explorateur permet la multisélection standard : clic simple pour une sélection unique, Maj pour une plage, Ctrl ou ⌘ pour ajouter ou retirer un élément, et Maj avec les flèches pour étendre la sélection au clavier.",
         "Le glisser-déposer d’un élément sélectionné déplace tous les éléments de la sélection vers le dossier cible.",
         "Chaque ligne d’affaire, de document ou de note présente son nom et sa dernière modification, sans en-tête de colonnes ; une ligne de dossier n’a pas de date ni d’icône d’ouverture à son extrémité ; le type n’est pas répété sous forme textuelle.",
-        "Les icônes d’affaire, de document et de note sont sobres, légèrement agrandies et alignées, avec leur couleur sémantique mais sans fond de badge.",
         "L’ouverture d’une affaire reprend la même structure d’en-tête et le même contrôle d’enregistrement automatique que l’ouverture d’une ressource ; seuls le rapport et les rubriques métier qui suivent diffèrent.",
-        "Les projets de délibération et les questions ouvertes d’une affaire sont chargés à son ouverture, puis réunis dans un tableau trié par création décroissante. Une section identifie ces éléments ; les lignes affichent une icône avec son intitulé au survol, l’élément, la séance ou l’ordre du jour et l’état. Chaque ligne peut être développée indépendamment et conserve l’éditeur ainsi que sa sauvegarde discrète dans la ligne ; la séance affichée est un lien. L’ajout se fait depuis le tableau et la suppression n’est proposée que lorsqu’une action serveur l’autorise.",
-        "L’entrée Documents de la navigation et la racine Tous les dossiers utilisent l’icône commune des affaires.",
+        "Les projets de délibération et les questions ouvertes d’une affaire sont chargés à son ouverture, puis réunis dans une liste triée par création décroissante. Une section identifie ces éléments ; chaque ligne donne le type de l’élément, son titre, la séance ou l’ordre du jour et l’état. Chaque ligne peut être développée indépendamment et conserve l’éditeur ainsi que sa sauvegarde dans la ligne ; la séance affichée est un lien. L’ajout se fait depuis la section et la suppression n’est proposée que lorsqu’une action serveur l’autorise.",
         "Un document peut être ouvert puis refermé en retrouvant la liste de la racine."
       ],
       "clauses": [
@@ -8659,6 +8727,12 @@
           "key": "folders-collapsed-by-default",
           "origin": "product",
           "statement": "Décision du propriétaire du 10 novembre 2026 : les dossiers de l’explorateur de l’espace de travail ne se déplient pas d’eux-mêmes, sur ordinateur comme sur téléphone (« J’aurais aimé que le bureau, ça se déplie pas non plus. »).",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -8912,7 +8986,7 @@
       },
       "statement": "La section « Documents » d’une affaire se replie par son en-tête et chaque document s’ouvre en plein écran depuis sa ligne.",
       "acceptanceCriteria": [
-        "L’en-tête de la section est un bouton de repli qui porte, sur une seule ligne alignée, le chevron, l’icône, le titre « Documents » et le nombre de documents rattachés ; il change de fond au survol et indique son état ouvert ou replié.",
+        "L’en-tête de la section, avec le titre « Documents » et le nombre de documents rattachés, la replie ou la rouvre et indique son état ouvert ou replié.",
         "Sur ordinateur et tablette, la section est repliée à l’ouverture d’une affaire et lors du changement d’affaire ; un clic sur l’en-tête la replie ou la rouvre ; une actualisation de la même affaire conserve le choix manuel et les branches de documents dépliées. Les actions de création et de rattachement restent visibles à droite de l’en-tête dans les deux états.",
         "Chaque ligne de document porte une action « Ouvrir en plein écran », visible avec son infobulle, qui ouvre le document dans la visionneuse partagée avec les droits de l’utilisateur.",
         "Sur ordinateur et tablette, le contenu d’un document reste aussi consultable dans la ligne dépliée. Sur un téléphone, la section présente la liste des documents de l’affaire et chaque document s’ouvre sur sa propre page.",
@@ -8924,7 +8998,7 @@
         "Dans l’affaire ouverte par son lien direct, chaque référence du rapport à une ressource s’ouvre : les résumés viennent des documents de l’affaire déjà chargés et une ressource non rattachée est lue seule, sans charger le catalogue complet.",
         "L’image d’une carte incluse dans un PDF reprend les repères en épingle de la carte, des traits et des zones assez épais pour la largeur de la page, et des libellés sans chevauchement.",
         "La page d’une affaire ne porte ni titre « Rapport du sujet » ni phrase de présentation fixe ; le bouton d’aperçu PDF du rapport est dans l’en-tête de l’affaire.",
-        "Le bouton de sauvegarde automatique d’un document montre seulement son icône d’état ; son infobulle donne l’état de la sauvegarde automatique et de l’enregistrement, et un clic l’active ou la désactive. L’indicateur d’enregistrement d’un procès-verbal suit la même règle."
+        "Le bouton de sauvegarde automatique d’un document montre son état ; son infobulle donne l’état de la sauvegarde automatique et de l’enregistrement, et un clic l’active ou la désactive. L’indicateur d’enregistrement d’un procès-verbal suit la même règle."
       ],
       "clauses": [
         {
@@ -8973,6 +9047,12 @@
           "key": "phone-own-pages",
           "origin": "product",
           "statement": "Décision du propriétaire du 9 novembre 2026 : sur téléphone, chaque contenu a sa propre page, le retour ramène à l’écran précédent, séances incluses, la barre du bas est masquée en lecture, le lecteur PDF offre zoom et indication de page ; le bureau ne change pas.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -9463,8 +9543,8 @@
       "name": "INTERFACE_LAYERING_SCALE",
       "nature": "technical",
       "lifecycle": {
-        "state": "accepted",
-        "since": "2026-10-10"
+        "state": "retired",
+        "since": "2026-11-12"
       },
       "statement": "Le client superpose ses éléments selon une échelle unique de cinq niveaux : contenu, éléments collants, fenêtres de dialogue, éléments flottants, notifications.",
       "acceptanceCriteria": [
@@ -9480,6 +9560,12 @@
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : une échelle de superposition délibérée et unique pour tous les popovers, menus, infobulles, listes de choix et fenêtres de dialogue, qui ne s’affichent jamais sous le contenu des éditeurs.",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -9492,11 +9578,11 @@
       },
       "statement": "Les mesures s’affichent dessin par dessin depuis une commande directe de chaque ligne de Composition ; une zone proche d’un rectangle donne sa largeur et sa hauteur, une autre zone donne les dimensions approximatives de son emprise orientée.",
       "acceptanceCriteria": [
-        "Un bouton compact avec l’icône de mesure dans chaque ligne ou zone mesurable active ou masque ses mesures sur la carte, indépendamment des autres dessins et du panneau Mesures ; son état actif est accessible, le choix reste temporaire et ne modifie pas la géométrie. Aucun bouton de mesure n’apparaît pour un marqueur ponctuel.",
+        "Une commande de mesure dans chaque ligne ou zone mesurable active ou masque ses mesures sur la carte, indépendamment des autres dessins et du panneau Mesures ; son état actif est accessible, le choix reste temporaire et ne modifie pas la géométrie. Aucune commande de mesure n’apparaît pour un marqueur ponctuel.",
         "L’option globale d’affichage des mesures des dessins dans le panneau Mesures et l’option de mesure du menu « … » sont remplacées par ces boutons directs.",
         "Quand les mesures de deux polygones sont activées successivement, les deux affichages restent visibles ensemble ; masquer l’un conserve l’autre et le réactiver restitue son affichage.",
         "Un polygone convexe sans trou avec quatre coins distincts, angles proches de 90° (écart maximal 5°) et côtés opposés de longueur voisine (écart maximal 10%) peut être reconnu comme un rectangle approximatif. Les dimensions sont calculées en mètres géodésiques, non en mètres projetés.",
-        "La largeur et la hauteur d’un rectangle reconnu apparaissent avant l’aire et le périmètre dans sa lecture de mesures ; la carte conserve l’aire sur la forme et présente les deux dimensions sur des lignes de cote extérieures aux côtés de l’emprise, avec rappels et flèches. Un autre polygone conserve ses mesures de surface et affiche la largeur et la longueur approximatives du rectangle orienté de plus petite aire encadrant son enveloppe convexe ; ces dimensions géodésiques sont explicitement approximatives dans la lecture et les cotes extérieures de carte (≈). L’écart des cotes reste constant en pixels à chaque niveau de zoom ; aucun dessin de cotation n’est enregistré.",
+        "La largeur et la hauteur d’un rectangle reconnu apparaissent avant l’aire et le périmètre dans sa lecture de mesures ; la carte conserve l’aire sur la forme et présente les deux dimensions sur des lignes de cote extérieures aux côtés de l’emprise, avec rappels et flèches. Un autre polygone conserve ses mesures de surface et affiche la largeur et la longueur approximatives du rectangle orienté de plus petite aire encadrant son enveloppe convexe ; ces dimensions géodésiques sont explicitement approximatives dans la lecture et les cotes extérieures de carte (≈). Aucun dessin de cotation n’est enregistré.",
         "La reconnaissance ne modifie ni les sommets ni les mesures enregistrées. Des points répétés, trous, formes concaves ou quadrilatères hors tolérance ne sont pas qualifiés de rectangles ; leur emprise peut être approximée sans altérer la forme. Une emprise dégénérée ou non finie ne produit aucune dimension."
       ],
       "clauses": [
@@ -9511,6 +9597,12 @@
           "origin": "product",
           "statement": "Retour du propriétaire du 11 octobre 2026 : commande compacte directe de mesure par ligne, état actif visible et accessible, affichage simultané de plusieurs polygones et délai de bascule à corriger.",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -9524,7 +9616,7 @@
       "statement": "La carte affiche une légende des couleurs de ses dessins, enregistrée dans leur collection GeoJSON et modifiable dans le panneau Dessin.",
       "acceptanceCriteria": [
         "La collection GeoJSON des dessins porte une liste optionnelle legend de couples color et label ; une carte sans légende continue de fonctionner.",
-        "La légende apparaît par défaut en bandeau horizontal compact en superposition à l’intérieur du bas de la carte, avec retour à la ligne selon la largeur disponible, sans couvrir les contrôles de zoom ni les attributions ; le bouton « Légende » et « Enregistrer ce cadrage » sont côte à côte. Elle est consultable en lecture seule et dans les cartes incorporées, et reste accessible sans défilement externe dans l’aperçu plein écran. Sur un téléphone, la légende est repliée à l’ouverture de la carte et le bouton « Légende » l’affiche.",
+        "La légende apparaît par défaut à l’intérieur du bas de la carte, sans couvrir les contrôles de zoom ni les attributions ; le bouton « Légende » et « Enregistrer ce cadrage » sont côte à côte. Elle est consultable en lecture seule et dans les cartes incorporées, et reste accessible sans défilement externe dans l’aperçu plein écran. Sur un téléphone, la légende est repliée à l’ouverture de la carte et le bouton « Légende » l’affiche.",
         "Dans le panneau Dessin, qui peut modifier la carte ajoute, renomme, recolore et retire les entrées de légende. Les libellés vides, couleurs invalides et listes de plus de 16 entrées sont refusés.",
         "La légende est conservée lors de la modification des dessins, des mesures et du cadrage, après sauvegarde et rechargement, et voyage dans le document de la carte.",
         "Le choix de couleur d’un dessin propose d’abord les couleurs de la légende, chacune avec sa signification, puis les couleurs standard et les couleurs déjà utilisées par les dessins de la carte, y compris les couleurs personnalisées.",
@@ -9548,6 +9640,12 @@
           "origin": "product",
           "statement": "Chantier d’interface téléphone construit et vérifié à l’écran le 9 novembre 2026, retenu par le propriétaire le 10 novembre 2026 pour la version 1.2.0 : « On a fait quelques évolutions IHM. Mobile surtout. […] Faudrait mettre tout ça dans la release note », puis « je suis d’accord pour la 1.2 ».",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -9561,8 +9659,8 @@
       "statement": "Hall est utilisable depuis un téléphone et permet d’ajouter une image existante ou une photo prise avec le téléphone.",
       "acceptanceCriteria": [
         "Sur une largeur de téléphone, une barre en bas de l’écran mène, dans cet ordre, à l’accueil, aux documents, à l’agenda et aux séances ; son entrée « Plus » ouvre l’espace personnel, les courriels, les délibérations, les procès-verbaux, les cartes, les utilisateurs, les contacts, les membres du conseil, les commissions, les délégations, les modèles de documents, l’aide et le compte. Chaque destination y est présentée selon les mêmes droits que dans le menu de l’ordinateur. Sur une largeur de tablette, la navigation principale s’ouvre et se ferme sans occuper en permanence la largeur du contenu ; choisir une destination referme le menu.",
-        "Les pages, formulaires, dialogues et commandes partagées restent accessibles sur une largeur de téléphone ; les contenus larges défilent dans leur propre conteneur.",
-        "En vue liste des élus, les identités restent lisibles sans chevauchement avec avatar, mandat ou commissions. Les titres et commandes des éléments préparés et de l’ordre du jour restent accessibles dans les séances et les affaires aux formats téléphone, tablette et bureau (correction propriétaire du 16 octobre 2026, Topic Graph 420eb39d-e972-418d-bdaf-cd7b6b433d47) ; sur téléphone, le titre d’un élément préparé ou d’un point ouvre sa page.",
+        "Les pages, formulaires, dialogues et commandes partagées restent accessibles et utilisables sur un téléphone.",
+        "Les titres et commandes des éléments préparés et de l’ordre du jour restent accessibles dans les séances et les affaires au téléphone, sur tablette et sur ordinateur ; sur téléphone, le titre d’un élément préparé ou d’un point ouvre sa page.",
         "Un texte modifiable propose le choix d’une photo existante et la capture depuis le téléphone dans l’éditeur compact comme en plein écran.",
         "L’import utilise les permissions, formats et stockage existants ; une image importée reste présente après réouverture et un échec est visible sans perte du texte.",
         "L’adaptation mobile conserve les fonctions et les permissions existantes sur ordinateur.",
@@ -9617,6 +9715,12 @@
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants » : barre du bas 1A à cinq entrées (Accueil, Documents, Agenda, Séances, Plus), bandeau 2B, création 6B-2, écriture 8B.",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -9627,11 +9731,8 @@
         "state": "accepted",
         "since": "2026-10-28"
       },
-      "statement": "Sous un pointeur tactile, chaque écran de Hall tient dans la largeur d’un téléphone sans défilement horizontal ni élément coupé, chaque cible mesure au moins 44 × 44 et aucun texte n’est plus petit que 14 pixels.",
+      "statement": "Sous un pointeur tactile, chaque écran de Hall s’utilise au doigt : chaque commande s’atteint et s’active au toucher, et l’appel des membres et la saisie d’un vote se font au toucher.",
       "acceptanceCriteria": [
-        "À 390 et à 768 de large, sous pointer: coarse, aucun écran n’a de défilement horizontal du document ni d’élément qui dépasse le bord droit.",
-        "Chaque bouton, champ, lien hors d’une phrase, onglet et case (avec son libellé) offre une cible d’au moins 44 × 44 ; un lien dans une phrase garde sa place dans le texte.",
-        "Aucun texte visible n’est plus petit que 14 pixels et aucun libellé d’action n’est coupé.",
         "L’appel des membres et la saisie d’un vote se font au toucher.",
         "L’affichage à la souris, au poste de travail, ne change pas."
       ],
@@ -9646,6 +9747,12 @@
           "key": "minimum-text-size-touch",
           "origin": "product",
           "statement": "Décision du propriétaire du 10 novembre 2026 sur les tailles de texte : 14 px sur tablette et sur téléphone (« ok, c’était pour un accord effectivement sur les tailles. En pixels. »).",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -11024,8 +11131,8 @@
       "name": "MINIMUM_DESKTOP_TEXT_SIZE",
       "nature": "functional",
       "lifecycle": {
-        "state": "accepted",
-        "since": "2026-11-10"
+        "state": "retired",
+        "since": "2026-11-12"
       },
       "statement": "À la souris, sur un poste de travail, aucun texte de l’interface de Hall n’est plus petit que 13 pixels.",
       "acceptanceCriteria": [
@@ -11039,6 +11146,12 @@
           "origin": "product",
           "statement": "Décision du propriétaire du 10 novembre 2026 : 13 px sur ordinateur, 14 px sur tablette et sur téléphone (« ok, c’était pour un accord effectivement sur les tailles. En pixels. ») ; à la question d’accepter le texte de 12 pixels sur ordinateur : « Non, agrandir à 13 ».",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -11049,19 +11162,12 @@
         "state": "accepted",
         "since": "2026-11-11"
       },
-      "statement": "Chaque liste d’objets de Hall présente ses éléments par une seule ligne de liste, la même au téléphone, sur tablette et sur ordinateur ; aucune liste n’offre de vue en cartes.",
+      "statement": "Chaque liste d’objets de Hall présente ses éléments de la même façon au téléphone, sur tablette et sur ordinateur : chaque élément s’ouvre depuis sa ligne, qui donne son nom, son type ou son fait utile et son état, et ne propose que les actions que le serveur offre à l’utilisateur.",
       "acceptanceCriteria": [
-        "La ligne est posée sur le fond blanc de la surface et séparée de la suivante par un filet ; elle n’a ni pavé, ni ombre, ni badge, ni chevron.",
-        "À gauche, la ligne montre l’icône du type en trait, sans pavé ; une délibération montre à la place son numéro, une séance sa date, une personne ses initiales.",
-        "Le titre tient sur une ligne et se termine par des points de suspension avec une infobulle ; la seconde ligne donne le type, la date ou le fait utile. Au téléphone et sous un pointeur tactile, le titre mesure 16 pixels et la seconde ligne 14 pixels.",
-        "Un état s’écrit en seconde ligne après un point de couleur : gris pour un état neutre, vert pour un succès, ambre pour une attention, rouge pour un danger.",
-        "Une action est un bouton au bout de la ligne, présent seulement quand l’action Siren correspondante existe pour l’utilisateur.",
-        "L’élément principal d’un écran est la même ligne en variante agrandie.",
-        "La ligne mesure au moins 64 pixels sous un pointeur tactile, donc au téléphone.",
-        "À la souris, la ligne prend les tailles du menu latéral et du bandeau : titre de 14 pixels, seconde ligne et dates de 13 pixels, icône de type de 20 pixels, 40 pixels de haut pour une ligne de texte et 52 pixels pour deux ; les champs de recherche et de filtre sont en 14 pixels ; le titre de l’écran reste le plus grand texte ; la grande taille et la ligne agrandie gardent un cran de plus que la ligne courante.",
-        "Les collections ne proposent pas de bouton pour passer en cartes ; les informations supplémentaires d’une ligne s’affichent quand la ligne elle-même mesure plus de 760 pixels de large et sont masquées sur une ligne plus étroite, donc au téléphone. Ses actions restent au bout de la ligne tant que son texte garde au moins 12 rem ; sur une ligne plus étroite, elles passent ensemble sur la ligne suivante, à son bout.",
-        "Les informations supplémentaires occupent au plus la moitié de la ligne et se raccourcissent par des points de suspension ; le titre et l’état restent lisibles côte à côte sans se recouvrir, et la page ne défile pas horizontalement, panneau latéral ouvert ou fermé.",
-        "Une liste courte, comme la composition du conseil, emploie la grande taille de la même ligne : initiales et nom plus grands, nom en gras, puis la seconde ligne avec l’état et des lignes de faits qui passent à la ligne sur deux lignes au plus avant les points de suspension ; elle reste sur le fond blanc, séparée par des filets, sans bordure ni ombre. La grande taille est la seule variante de taille de la ligne."
+        "Une action d’une ligne n’est présente que quand l’action Siren correspondante existe pour l’utilisateur.",
+        "Les collections ne proposent pas de vue en cartes ni de bouton pour y passer.",
+        "Un titre trop long pour sa ligne reste lisible en entier dans une infobulle.",
+        "L’élément principal d’un écran, comme la prochaine séance, est présenté en tête de la liste avec ses actions."
       ],
       "clauses": [
         {
@@ -11081,6 +11187,12 @@
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026 sur l’écran Documents à l’ordinateur : « on a un contenu qui est plus gros que les menus ou le titre ou le header. Je pense qu'on a un peu inversé les trucs » ; décision du coordinateur : à la souris sur ordinateur, le contenu descend au niveau du menu et du bandeau, le téléphone et la tablette tactile ne changent pas.",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -11088,8 +11200,8 @@
       "name": "RESOURCE_NATURE_COLOURS",
       "nature": "functional",
       "lifecycle": {
-        "state": "accepted",
-        "since": "2026-11-11"
+        "state": "retired",
+        "since": "2026-11-12"
       },
       "statement": "L’icône de type, partout dans Hall, prend la couleur de la nature de son type parmi cinq teintes froides, distinctes des couleurs d’état.",
       "acceptanceCriteria": [
@@ -11105,6 +11217,12 @@
           "origin": "product",
           "statement": "Choix C2 du propriétaire du 11 novembre 2026 : écrits en bleu, données en azur, visuels en violet, objets du conseil en ardoise foncée, dossiers en gris ; types absents de la planche rangés par décision du coordinateur : présentation et modèle en bleu, CSV en azur, couche en violet, événement, commission, délégation et question en ardoise foncée.",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -11112,8 +11230,8 @@
       "name": "INTERFACE_TYPOGRAPHY",
       "nature": "functional",
       "lifecycle": {
-        "state": "accepted",
-        "since": "2026-11-11"
+        "state": "retired",
+        "since": "2026-11-12"
       },
       "statement": "L’interface de Hall s’écrit dans une seule police, Archivo, avec un texte courant de 16 pixels, un texte secondaire de 14 pixels et des titres très gras et serrés.",
       "acceptanceCriteria": [
@@ -11128,6 +11246,12 @@
           "origin": "product",
           "statement": "Choix 10E du propriétaire du 11 novembre 2026 : « Archivo partout, titres très gras et serrés ».",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -11135,8 +11259,8 @@
       "name": "LIST_ROW_AUTHORITY",
       "nature": "technical",
       "lifecycle": {
-        "state": "accepted",
-        "since": "2026-11-11"
+        "state": "retired",
+        "since": "2026-11-12"
       },
       "statement": "Un seul composant, ListRow, rend les lignes de liste d’objets du client, et des contrôles exécutables empêchent le retour d’une ligne écrite à la main.",
       "acceptanceCriteria": [
@@ -11149,6 +11273,12 @@
           "origin": "product",
           "statement": "Mots du propriétaire : « faut absolument qu’on réfléchisse à faire un design système […] on s’en sortira pas si on n’a pas des systèmes quand même un peu automatisés pour les gros chantiers. Ou les alignements. »",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -11159,19 +11289,23 @@
         "state": "accepted",
         "since": "2026-11-11"
       },
-      "statement": "Les boutons de Hall suivent un seul dessin : l’action principale d’un écran en bleu plein, les autres actions sur fond bleu pâle, la suppression en rouge plein.",
+      "statement": "Un écran ne propose que les actions disponibles pour l’utilisateur et met en avant au plus une action principale ; la suppression est distinguée des autres actions et demande une confirmation.",
       "acceptanceCriteria": [
-        "Un écran porte au plus un bouton bleu plein, celui de son action principale.",
-        "Les autres actions sont des boutons sur fond bleu pâle sans contour ; une icône seule ou un menu ⋯ est dessiné sans fond.",
-        "Le rouge plein est réservé à la suppression et à sa confirmation ; il ne sert jamais au bouton principal.",
+        "Un écran met en avant au plus une action, son action principale.",
         "Une action indisponible pour l’utilisateur est absente, jamais grisée.",
-        "Les boutons ont des angles peu arrondis ; aucun bouton n’a une forme de pilule."
+        "La suppression se distingue des autres actions et passe par une confirmation ; elle n’est jamais l’action principale d’un écran."
       ],
       "clauses": [
         {
           "key": "buttons-5b",
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 5B ; mots du propriétaire : « 5B ».",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -11186,16 +11320,15 @@
       "statement": "Chaque écran de Hall est coiffé du même bandeau : une première ligne qui dit où l’on est, puis la ligne du titre qui dit ce qu’est l’écran ou l’élément ouvert et ce qu’on peut en faire.",
       "acceptanceCriteria": [
         "Au téléphone, la première ligne porte le nom de la commune sur un écran de premier niveau et, sur un écran intérieur, le nom de l’écran parent précédé d’une flèche de retour ; les commandes d’un élément ouvert y restent dans le bandeau, avec « Modifier » et le menu « ⋯ ».",
-        "Sur ordinateur et tablette, la première ligne tient sur une seule ligne de 44 pixels : le fil d’Ariane, qui se raccourcit par son milieu avec des points de suspension et sépare ses dossiers par une barre oblique grise, sans chevron ; le bouton qui rouvre un volet replié à son début quand il y a lieu ; l’action propre à un écran de liste, comme « Nouveau » ; les initiales de l’utilisateur à droite, qui ouvrent son compte. Elle ne porte aucune commande d’un élément ouvert.",
+        "Sur ordinateur et tablette, la première ligne tient sur une seule ligne : le fil d’Ariane, qui se raccourcit par son milieu ; le bouton qui rouvre un volet replié à son début quand il y a lieu ; l’action propre à un écran de liste, comme « Nouveau » ; les initiales de l’utilisateur à droite, qui ouvrent son compte. Elle ne porte aucune commande d’un élément ouvert.",
         "Le nom d’un dossier du fil d’Ariane ouvre, d’un clic ou d’un clic droit, le menu qui ouvre ce dossier ou l’un de ses dossiers, affaires et documents.",
-        "Tant que le serveur répond, y compris pendant le chargement et la synchronisation des données, la première ligne ne montre rien de la connexion. Quand la connexion est perdue, la première ligne écrit avant les initiales, après un point rouge, « Serveur injoignable » ou « Authentification nécessaire » ; ce texte est visible au téléphone, sur tablette et sur ordinateur, annoncé aux lecteurs d’écran, et laisse le titre, l’action et les initiales dans l’écran à 375 pixels de large.",
-        "Le titre de l’écran est écrit en grand sous la première ligne ; dès que le contenu défile, il remonte en petit dans la première ligne, sans les commandes, et le bandeau tient sur une ligne.",
+        "Tant que le serveur répond, y compris pendant le chargement et la synchronisation des données, la première ligne ne montre rien de la connexion. Quand la connexion est perdue, la première ligne écrit avant les initiales « Serveur injoignable » ou « Authentification nécessaire » ; ce texte est visible au téléphone, sur tablette et sur ordinateur, annoncé aux lecteurs d’écran, et laisse le titre, l’action et les initiales dans l’écran.",
+        "Le titre de l’écran est écrit sous la première ligne ; dès que le contenu défile, il remonte dans la première ligne, sans les commandes, et le bandeau tient sur une ligne.",
         "Sur ordinateur et tablette, la ligne du titre d’un élément ouvert (document, carte, tableur, texte, affaire), sur l’écran comme dans la fenêtre d’un document, porte à gauche l’icône de son type et son titre, qui peut passer sur deux lignes, et à droite, sur sa première ligne, dans cet ordre : la commande principale en bouton avec son libellé (« Modifier » ou « Terminé » pour un texte, « Ouvrir dans Cartes » pour une carte), au plus deux icônes pour les commandes les plus fréquentes (« Épingler », « Plein écran »), le menu « … » qui range les autres commandes avec leur libellé en clair (renommer, copier la référence, aperçu PDF, préparer un courriel, partager, télécharger, voir les modifications, couper ou activer la sauvegarde automatique), puis la croix qui ferme l’élément. Quand la largeur manque, les icônes rejoignent le menu « … » avant que le titre soit coupé.",
-        "Sous le titre d’un élément ouvert, une ligne de faits écrit sa date, « Modifié le … » ou « Créé le … », et son état d’enregistrement après un point : « Enregistré », « Enregistrement… » ou « Modifications en cours ».",
+        "Sous le titre d’un élément ouvert, une ligne de faits écrit sa date, « Modifié le … » ou « Créé le … », et son état d’enregistrement : « Enregistré », « Enregistrement… » ou « Modifications en cours ».",
         "La fenêtre d’un document suit la même règle : sa première ligne porte le chemin du document et la croix seulement, sa ligne de titre porte le titre et les commandes du document, une seule fois chacune.",
         "La recherche dans Documents, « Rechercher dans Documents… » avec ses filtres, et le champ « Filtrer ce dossier… » apparaissent sur l’écran d’un dossier et jamais sur un élément ouvert.",
-        "Le titre n’est pas répété dans le contenu de l’écran.",
-        "Chaque écran est blanc : son contenu est posé sur le fond blanc et séparé par des filets, sans fond gris ni panneau blanc posé dessus."
+        "Le titre n’est pas répété dans le contenu de l’écran."
       ],
       "clauses": [
         {
@@ -11215,6 +11348,12 @@
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026, sur une carte ouverte dans Documents : « t'as vu la tête du header ? […] Pourquoi on a tout dans le fil d'Ariane, on a toutes les commandes. Ensuite, on a le gros titre en bas. […] c'est un sacré bordel » ; sur la recherche affichée sous le titre de la carte : « On recherche où ? On recherche dans le document ? […] c'est pas du tout raccord. »",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -11228,14 +11367,13 @@
       "statement": "La navigation principale montre chaque entrée par une icône en trait qui lui est propre et un libellé permanent ; sous l’entrée où l’on se trouve, elle montre ses sous-ressources, les endroits où l’on va, jamais leur contenu.",
       "acceptanceCriteria": [
         "Au téléphone, la barre du bas présente cinq entrées avec leur icône et leur libellé : Accueil, Documents, Agenda, Séances et Plus, selon les droits de l’utilisateur.",
-        "L’entrée active est en bleu, son libellé en gras et son icône d’un trait plus épais ; les autres sont grises ; aucune icône n’est pleine et l’entrée active n’a ni pavé ni trait.",
-        "Sur ordinateur et tablette, le menu a une seule forme d’entrée, icône et libellé, en trois blocs séparés par un filet : Accueil ; Conseil municipal, Documents, Courriels, Agenda ; Contacts, Cartes, Administration. Documentation et Paramètres forment son pied ; aucun titre de groupe n’est écrit.",
+        "L’entrée active se distingue des autres.",
+        "Sur ordinateur et tablette, le menu a une seule forme d’entrée, icône et libellé, en trois blocs : Accueil ; Conseil municipal, Documents, Courriels, Agenda ; Contacts, Cartes, Administration. Documentation et Paramètres forment son pied ; aucun titre de groupe n’est écrit.",
         "Sous Conseil municipal : Séances, Procès-verbaux, Délibérations, Membres du conseil, Commissions et Représentations extérieures. Sous Documents : les dossiers et les affaires du conseil, à tous les niveaux, cibles de dépôt, sans fichier, texte, tableur ni carte. Sous Courriels : Brouillons et Envoyés avec leur nombre. Sous Administration : Commune, Utilisateurs, Droits, Modèles de documents, Réglages des documents et Réglages des courriels. Accueil, Agenda, Contacts et Cartes n’ont pas de sous-ressource.",
         "Les sous-ressources de l’entrée où l’on se trouve s’affichent en retrait sous elle ; une seule entrée est ouverte à la fois et les autres restent sur leur ligne. Conseil municipal et Administration mènent à leur première sous-ressource permise.",
-        "L’entrée ou la sous-ressource courante est en bleu et en gras, avec son icône d’un trait plus épais. Un dossier ouvert de Documents se lit à son icône de dossier ouvert ; le menu ne porte ni chevron ni triangle.",
-        "Chaque entrée et chaque sous-ressource nommée a son icône, différente de toutes les autres du menu ; dans Documents, les dossiers ont l’icône de dossier et les affaires celle des affaires.",
-        "Au-dessus de la largeur du téléphone, le menu est un seul et même panneau ancré à gauche, qui pousse le contenu, avec les mêmes tailles et les mêmes espacements à toute largeur ; il a deux états, déplié avec les libellés complets ou replié en rail d’une icône par entrée de premier niveau. Tant que la personne n’a rien choisi, il est replié sous 1000 pixels de large et déplié au-dessus ; dès qu’elle clique son bouton de repli, son choix est retenu et respecté à toute largeur.",
-        "Menu replié, le survol ou le focus de l’icône d’un écran fait paraître aussitôt à sa droite son libellé, et un clic va à l’écran. Un clic, ou Entrée ou Espace, sur l’icône d’une entrée à sous-ressources ouvre à sa droite le panneau qui les liste, chacune cliquable, et pour Documents les dossiers de premier niveau ; le panneau reste ouvert tant que la personne n’a pas choisi un endroit, cliqué ailleurs ou appuyé sur Échap, qui rend le focus à l’icône ; les flèches parcourent ses endroits. Libellé et panneau sont dessinés comme les menus de Hall : fond clair, filet gris, ombre légère, titre en gris. Le rail ne montre jamais les sous-ressources à plat.",
+        "L’entrée ou la sous-ressource courante se distingue des autres ; un dossier ouvert de Documents se lit à son icône de dossier ouvert.",
+        "Au-dessus de la largeur du téléphone, le menu est un seul et même panneau ancré à gauche, qui pousse le contenu ; il a deux états, déplié avec les libellés complets ou replié en rail d’une icône par entrée de premier niveau. Tant que la personne n’a rien choisi, il est replié sur un écran étroit et déplié sur un écran large ; dès qu’elle clique son bouton de repli, son choix est retenu et respecté à toute largeur.",
+        "Menu replié, le survol ou le focus de l’icône d’un écran fait paraître aussitôt à sa droite son libellé, et un clic va à l’écran. Un clic, ou Entrée ou Espace, sur l’icône d’une entrée à sous-ressources ouvre à sa droite le panneau qui les liste, chacune cliquable, et pour Documents les dossiers de premier niveau ; le panneau reste ouvert tant que la personne n’a pas choisi un endroit, cliqué ailleurs ou appuyé sur Échap, qui rend le focus à l’icône ; les flèches parcourent ses endroits. Le rail ne montre jamais les sous-ressources à plat.",
         "Le bouton de repli du menu est à droite de la marque « Hall », sur sa ligne ; menu replié, il est en haut du rail, juste sous le « H », au même endroit à chaque écran.",
         "Une entrée ou une sous-ressource que la personne n’a pas le droit d’ouvrir n’apparaît pas ; une entrée dont aucune sous-ressource n’est permise n’apparaît pas.",
         "Au téléphone, la barre du bas ne change pas ; la feuille « Plus » reprend les mêmes entrées et sous-ressources, dans la même forme, sans Accueil, Documents ni Agenda, puis l’espace personnel, l’aide et Paramètres."
@@ -11270,6 +11408,12 @@
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026 sur l’entrée « Mandat et lieux de séance » : « c'est pas le bon icône. C'est un icône de marqueur de map […] c'est dans la commune que tu mets les lieux […] C'est plutôt dans le réglage de la commune, tu mets la mandature, les lieux de séance et puis voilà. »",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -11282,8 +11426,8 @@
       },
       "statement": "Créer un élément passe par un seul bouton « + Nouveau » qui ouvre la liste des types qu’on peut créer à cet endroit.",
       "acceptanceCriteria": [
-        "Au téléphone, « + Nouveau » flotte en bas à droite de l’écran et se réduit à un « + » dès que le contenu défile ; la liste garde une marge sous sa dernière ligne.",
-        "Au téléphone, le bouton ouvre une feuille du bas où chaque type est une ligne de liste avec son icône, son nom et une phrase ; les gestes courants viennent d’abord et les autres types sont derrière « Autre ».",
+        "Au téléphone, « + Nouveau » reste accessible en bas de l’écran pendant le défilement, sans masquer la dernière ligne de la liste.",
+        "Au téléphone, le bouton ouvre une feuille où chaque type est présenté avec son nom et une phrase ; les gestes courants viennent d’abord et les autres types sont derrière « Autre ».",
         "Sur ordinateur et tablette, « + Nouveau » est dans le bandeau et ouvre un menu fait des mêmes lignes.",
         "Quand un seul type peut être créé, le bouton le crée directement.",
         "Le bouton n’apparaît que si l’utilisateur peut créer au moins un type à cet endroit."
@@ -11293,6 +11437,12 @@
           "key": "create-6b2-6m2",
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 6B-2 et 6M-2 ; mots du propriétaire : « Ouais, 6B2 ».",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -11308,13 +11458,19 @@
       "acceptanceCriteria": [
         "Une note qu’on vient de créer, encore vide, s’ouvre en écriture.",
         "Au téléphone, sur tablette et sur ordinateur, un texte existant et le compte rendu d’une affaire s’ouvrent en lecture, avec « Modifier » dans le bandeau pour qui peut les écrire ; une personne sans droit d’écriture ne voit que la lecture.",
-        "En écriture, les outils sont sous le bandeau et « Terminé », en bleu plein dans le bandeau, enregistre le texte et revient à la lecture."
+        "En écriture, les outils d’écriture sont disponibles et « Terminé », dans le bandeau, enregistre le texte et revient à la lecture."
       ],
       "clauses": [
         {
           "key": "writing-8b",
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 8B ; mots du propriétaire : « Donc, B. ».",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -11326,12 +11482,11 @@
         "state": "accepted",
         "since": "2026-11-11"
       },
-      "statement": "Les champs de formulaire de Hall sont posés sur le blanc de l’écran, sans fond, avec un filet sous la valeur et leur libellé écrit en petit au-dessus ; un champ vide écrit « Non renseigné ».",
+      "statement": "Un champ de formulaire de Hall montre toujours son libellé ; un champ vide le dit par « Non renseigné », qui n’est jamais une valeur.",
       "acceptanceCriteria": [
-        "Un champ n’a ni fond ni contour : un filet gris de 1 pixel sous la valeur, qui passe au bleu de marque et à 2 pixels pendant la saisie, au rouge de blocage et à 2 pixels en erreur avec le message dessous ; un champ en lecture seule n’a pas de filet. Le texte s’aligne sur le bord du filet.",
-        "Le libellé reste visible en petit au-dessus de la valeur, en gris, pendant la saisie comme en erreur ; l’aide est écrite sous le champ. Un champ vide, en saisie comme en lecture seule, écrit « Non renseigné » en gris et en italique à la place de la valeur ; ce texte indicatif n’est jamais enregistré ni envoyé et disparaît dès qu’on écrit. Les champs de recherche et de filtre gardent leur forme propre.",
-        "Les champs qui vont ensemble, comme une date et une heure ou un téléphone et une adresse électronique, partagent une rangée quand la largeur le permet.",
-        "Le texte saisi mesure 16 pixels."
+        "Le libellé d’un champ reste visible pendant la saisie comme en erreur ; l’aide et le message d’erreur sont écrits avec le champ.",
+        "Un champ vide, en saisie comme en lecture seule, écrit « Non renseigné » à la place de la valeur ; ce texte indicatif n’est jamais enregistré ni envoyé et disparaît dès qu’on écrit.",
+        "Un champ en lecture seule montre sa valeur sans permettre de la modifier."
       ],
       "clauses": [
         {
@@ -11345,6 +11500,12 @@
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 12D ; mots du propriétaire : « 12D ».",
           "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
         }
       ]
     },
@@ -11352,7 +11513,7 @@
       "name": "LAYOUT_ACROSS_WIDTHS",
       "nature": "functional",
       "lifecycle": {
-        "state": "accepted",
+        "state": "retired",
         "since": "2026-11-12"
       },
       "statement": "Chaque écran de Hall garde sa mise en page à toute largeur de fenêtre de 320 à 1600 pixels, menu et volet de module dépliés ou repliés, sous la souris comme sous le doigt.",
@@ -11370,6 +11531,12 @@
           "key": "layout-across-widths",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026 sur la fiche d’une affaire : « On peut pas avoir, à chaque fois qu'on redimensionne un écran, les trucs qui se mettent n'importe comment. […] je vais pas passer sur chaque écran, essayer de les redimensionner et voir les problèmes de CSS. » ; sur les sections : « on a là les documents, qui est juste un plus. Il n'y a pas de nouveau. […] plus ça va, plus ça commence à dériver. »",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -11417,7 +11584,7 @@
       },
       "statement": "Chaque objet d’interface a un seul composant, employé partout, et des contrôles exécutables empêchent le retour des composants, classes et jetons qu’il a remplacés.",
       "acceptanceCriteria": [
-        "packages/client/tests/interface-authority.test.mjs, exécuté en intégration continue, échoue si un bouton natif est écrit hors des composants partagés, si une variante de bouton retirée, un composant ou une classe retirés réapparaissent, si le fond gris de page revient, ou si une icône pleine est employée.",
+        "packages/client/tests/interface-authority.test.mjs, exécuté en intégration continue, échoue si un bouton natif est écrit hors des composants partagés, ou si une variante de bouton retirée, un composant ou une classe retirés réapparaissent.",
         "Le bandeau, la navigation principale, le bouton, le bouton de création, la feuille du bas et le champ ont chacun un seul composant dans packages/client/src."
       ],
       "clauses": [
@@ -11425,6 +11592,12 @@
           "key": "component-authority",
           "origin": "product",
           "statement": "Mots du propriétaire : « j’ai peur […] si on va pas faire des bricolages […] si on va pas conserver du legacy », « peut-être c’est plus raisonnable de partir sur une baseline plus propre ».",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -11510,7 +11683,7 @@
         "La ligne Convocation indique la révision ouverte et la convocation à générer, ou la convocation de la révision établie avec la date de son PDF ; sous une révision établie elle porte « Ouvrir », « Régénérer le PDF » et « Préparer le courriel », chacune seulement quand Siren l’offre, et elle liste les convocations des révisions précédentes.",
         "La section ne liste pas de pièces jointes et n’offre pas de dépôt de pièce : les pièces se déposent sur l’affaire.",
         "Après clôture, la ligne Procès-verbal indique brouillon ou document généré et mène à sa page ; la ligne Délibérations liste les points délibérés, chacun avec le lien vers sa délibération.",
-        "Un conseiller voit les mêmes lignes et ouvre ou génère les PDF en lecture ; les actions d’écriture n’apparaissent que si la capacité existe. À 800 px de large, la section ne déborde pas de la page."
+        "Un conseiller voit les mêmes lignes et ouvre ou génère les PDF en lecture ; les actions d’écriture n’apparaissent que si la capacité existe."
       ],
       "clauses": [
         {
@@ -11535,6 +11708,12 @@
           "key": "shared-mail-composer",
           "origin": "product",
           "statement": "On 11 November 2026 the user requested that the notice email action open the common composer under HALL-FR-EML-090; opening that composer does not send the message.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -11711,7 +11890,6 @@
         "La couleur se choisit depuis le menu d’un dossier, avec le sélecteur de couleur commun, par qui peut modifier les métadonnées du dossier (action resource.update-metadata) ; aucun droit nouveau n’est créé.",
         "La couleur est enregistrée sur le dossier au format #RRGGBB ; tous les utilisateurs voient la même couleur.",
         "Un dossier d’affaire se colore comme un autre dossier ; un sous-dossier ne prend pas la couleur de son parent.",
-        "Seule l’icône du dossier prend la couleur, sans fond ni badge, sur ordinateur, tablette et téléphone.",
         "Retirer la couleur rend au dossier son icône grise d’origine.",
         "Une couleur mal formée ou demandée pour une ressource qui n’est pas un dossier est refusée."
       ],
@@ -11732,6 +11910,12 @@
           "key": "coordinator-decision",
           "origin": "product",
           "statement": "Décision du coordinateur, 10 novembre 2026 : choix avec le sélecteur existant ; un dossier d’affaire se colore comme un autre ; pas d’héritage par les sous-dossiers ; même droit que le renommage ; retirer la couleur rend l’icône grise.",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]
@@ -12151,13 +12335,13 @@
       "statement": "L’écran Courriels présente les brouillons, les envois et la composition comme une messagerie courante, avec les mêmes fonctions que la boîte commune.",
       "acceptanceCriteria": [
         "Sur ordinateur et tablette, « Brouillons » et « Envoyés » s’affichent en retrait sous la ligne « Courriels » du menu tant que l’écran Courriels est ouvert ; chaque dossier a sa propre adresse. « Gérer les groupes… » est dans le menu « … » de l’écran et dans les propositions de la ligne « À ».",
-        "« Envoyés » commence par les messages dont le dernier envoi a échoué ou est à vérifier, avec leur état en rouge, puis présente les autres du plus récent au plus ancien.",
+        "« Envoyés » commence par les messages dont le dernier envoi a échoué ou est à vérifier, avec leur état, puis présente les autres du plus récent au plus ancien.",
         "La liste du dossier se replie par le bouton de son en-tête et commence par « Rechercher… », qui filtre les messages du dossier affiché par leur objet et leurs destinataires.",
         "La composition présente une ligne « À » où l’on tape un nom ; les suggestions viennent dans l’ordre groupes, contacts, adresse saisie, puis « Gérer les groupes… » ; un contact sans adresse est présenté avec « adresse manquante » et ne se choisit pas.",
         "Chaque destinataire est une étiquette rectangulaire qui se retire ; les destinataires qui forment tous les membres d’un groupe sont présentés en une seule étiquette au nom du groupe avec son effectif, et le message garde chaque destinataire.",
         "« Cc » et « Cci » sont des liens qui ajoutent chacun une ligne du même type ; l’objet suit, puis le corps sur toute la hauteur restante.",
         "Un bouton « Joindre » propose un fichier de l’ordinateur ou un document de Hall ; chaque pièce jointe est une étiquette avec son nom, sa taille, son téléchargement et, sur un brouillon, son retrait.",
-        "Le brouillon s’enregistre de lui-même peu après chaque changement, contre la révision lue ; le bandeau écrit « Enregistré » après un point vert, et un changement en attente est enregistré quand on quitte le brouillon.",
+        "Le brouillon s’enregistre de lui-même peu après chaque changement, contre la révision lue ; le bandeau écrit « Enregistré », et un changement en attente est enregistré quand on quitte le brouillon.",
         "Le bandeau d’un brouillon porte l’état d’enregistrement, un menu « … » qui contient « Supprimer » et « Gérer les groupes… », puis « Envoyer », qui ouvre la relecture : aperçu, destinataires, pièces jointes, anomalies et confirmation.",
         "Un message envoyé s’ouvre en lecture et finit par ses envois, chacun avec son état, sa date et « Aperçu du message » ; « Copier en brouillon » est dans le bandeau. Un envoi à vérifier présente son aide et « Consigner la vérification » en bouton principal ; un échec présente son aide.",
         "Au téléphone, deux onglets « Brouillons » et « Envoyés » commencent la liste, un message s’ouvre en plein écran et « Envoyer » est dans le bandeau.",
@@ -12168,6 +12352,12 @@
           "key": "mail-screen-page-31",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026 : « on ne sait pas trop s'il y a des brouillons, si c'est ce qui a été envoyé […] la composition, on perd beaucoup de place […] beaucoup de commandes, de boutons séparés […] Quand on envoie, on sélectionne les destinataires, ça doit être des champs renseignables où on a un groupe, où on a un contact » ; sur la planche 31 « Courriels » : « Elle est bien. […] il faudra qu'on puisse réduire le panneau latéral de la liste. Il faudrait peut-être une fonction de recherche aussi. » ; enregistrement automatique du brouillon : « OK » ; envoi en échec en tête de « Envoyés », en rouge : « OK ».",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
           "sourceIds": []
         }
       ]

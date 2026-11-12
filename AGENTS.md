@@ -28,6 +28,8 @@ personal name.
 
 The canonical behavior catalogue is [`requirements/catalog.json`](requirements/catalog.json). Its governance and commands are documented in [`requirements/README.md`](requirements/README.md). [`backlog/backlog.md`](backlog/backlog.md) tracks work; it does not redefine behavior.
 
+The catalogue states behavior: what Hall does for a person, functional rules, and server rules. It contains no display value or display form: no dimension, colour, weight, spacing, radius, text size, width threshold, component shape, or icon choice. Display rules belong to the screen audit (`packages/client/e2e/screen-audit/`), the single reference of the interface.
+
 Before changing behavior:
 
 1. Find the relevant requirement by identifier or business term.

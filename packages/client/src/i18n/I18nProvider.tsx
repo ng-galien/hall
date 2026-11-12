@@ -21,7 +21,6 @@ function writtenDate(date: Date): Intl.DateTimeFormatOptions {
     : { day: "numeric", month: "long", year: "numeric" };
 }
 
-// @implements-requirement HALL-FR-LAY-080
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   useEffect(() => {

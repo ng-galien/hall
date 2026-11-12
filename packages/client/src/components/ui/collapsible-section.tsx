@@ -3,7 +3,6 @@ import { type ReactNode, useId } from "react";
 /**
  * Section whose whole heading is the toggle: icon, title and count on one line, actions kept beside it. It draws no
  * chevron; a section with a two-state icon, such as a folder, shows `openIcon` while it is unfolded.
- * @implements-requirement HALL-FR-LAY-170
  */
 export function CollapsibleSection({
   title,

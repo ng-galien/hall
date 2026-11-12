@@ -1,5 +1,4 @@
 /* @implements-requirement HALL-FR-LAY-060 */
-/* @implements-requirement HALL-FR-LAY-070 */
 /* One row for every list of objects: white surface, rules between rows, the type at the left. */
 @layer components {
   .type-icon {
@@ -165,7 +164,6 @@
   }
 
   /* @implements-requirement HALL-FR-LAY-060 */
-  /* @implements-requirement HALL-FR-LAY-170 */
   /* A row with additional facts measures its own width: the facts show on a wide row only. */
   .list-row:has(> .list-row-line > .list-row-main > .list-row-wide) { container-type: inline-size; }
   @container (min-width: 761px) {

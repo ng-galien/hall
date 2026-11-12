@@ -77,7 +77,6 @@ test("the abandoned component libraries leave no trace", () => {
   assert.doesNotMatch(applicationSource, /from "lucide-react"/, "Icons must come from the local Phosphor module");
 });
 
-// @verifies-requirement HALL-TR-LAY-010
 test("every layer takes its z-index from the five-level scale", () => {
   const scale = [...tokens.matchAll(/--hall-z-([a-z]+):\s*(\d+);/g)].map((match) => [match[1], Number(match[2])]);
   assert.deepEqual(

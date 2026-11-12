@@ -75,7 +75,6 @@ export const toneLabelKeys: Record<ResourceTone, TranslationKey> = {
 
 /**
  * Nature of each type: writings in blue, data in azure, visuals in violet, council objects in dark slate.
- * @implements-requirement HALL-FR-LAY-070
  */
 export const toneNatures: Record<ResourceTone, ResourceNature> = {
   text: "writing",

@@ -27,7 +27,6 @@ async function expectOnTopOf(page: Page, floating: Locator, covered: Locator) {
   expect(results).toEqual(points.map(() => true));
 }
 
-// @verifies-requirement HALL-TR-LAY-010
 // @verifies-requirement HALL-FR-SRC-040
 test("the document picker and the editor menu open above an open subject editor, with readable rows", async ({
   appPage: page,
