@@ -78,9 +78,9 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     ["council-committees", "/council-committees"],
     ["council-delegations", "/council-delegations"],
     ["templates", "/templates"],
-    ["mail-drafts", "/mail/drafts"],
+    ["mail", "/mail"],
     ["administration-commune", "/administration/commune"],
-    ["account", "/settings"],
+    ["settings", "/settings"],
     ["help", "/docs"],
   ] as const) {
     await page.getByTestId("phone-navigation-more").tap();
@@ -103,7 +103,7 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
       await sheet.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
       await expect
         .poll(async () => {
-          const last = await sheet.getByTestId("phone-more-account").boundingBox();
+          const last = await sheet.getByTestId("phone-more-help").boundingBox();
           return last ? 800 - (last.y + last.height) : 0;
         })
         .toBeGreaterThanOrEqual(24);
@@ -111,8 +111,6 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     await sheet.getByTestId(`phone-more-${destination}`).tap();
     await expect(sheet).toBeHidden();
     await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", new RegExp(`^${route}(/|$)`));
-    // « Mon compte » opens the settings on the tab holding the password change and the logout.
-    if (destination === "account") await expect(page.getByTestId("settings-preferences-screen")).toBeVisible();
     // Maps records its view in the address once loaded; wait for it so that the next sheet stays open.
     if (destination === "maps") await expect(page).toHaveURL(/\/app\/maps\?view=/);
     await expectFitsWidth(page);

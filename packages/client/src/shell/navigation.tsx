@@ -1,5 +1,6 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
+  AccountIcon,
   AdministrationIcon,
   AgendaIcon,
   CommissionsIcon,
@@ -15,7 +16,6 @@ import {
   HomeIcon,
   MailIcon,
   MapIcon,
-  MemberIcon,
   MinutesIcon,
   ReferenceIcon,
   RightsIcon,
@@ -107,7 +107,7 @@ export const navigationBlocks: NavigationItem[][] = [
       Icon: AdministrationIcon,
       children: [
         leaf("administration-commune", "/administration/commune", "navigation.commune", CommuneIcon),
-        leaf("users", "/users", "users.title", MemberIcon, "users"),
+        leaf("users", "/users", "users.title", AccountIcon, "users"),
         leaf("administration-rights", "/administration/rights", "navigation.rights", RightsIcon, "roles"),
         leaf("templates", "/templates", "navigation.templates", TemplateIcon, "templates"),
         leaf("administration-documents", "/administration/documents", "navigation.documentSettings", TextDocumentIcon),

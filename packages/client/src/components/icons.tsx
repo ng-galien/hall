@@ -137,6 +137,7 @@ export {
   Trash as DeleteIcon,
   UploadSimple as UploadIcon,
   User as MemberIcon,
+  UserCircle as AccountIcon,
   UserSwitch as ProxyIcon,
   Users as MembersIcon,
   UsersThree as CommitteeIcon,

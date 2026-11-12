@@ -6,20 +6,23 @@ import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
 import { useI18n } from "../i18n/I18nProvider";
 import { isUnderPath } from "../pages/workspace/paths";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
-import { EntryRow, permittedEntry } from "./AppSidebar";
-import {
-  isCurrentEntry,
-  isUnder,
-  type NavigationItem,
-  navigationBlocks,
-  navigationItem,
-  phoneBarDestinations,
-} from "./navigation";
+import type { TranslationKey } from "../i18n/en";
+import { isUnder, type NavigationItem, navigationBlocks, navigationItem, phoneBarDestinations } from "./navigation";
+
+/** The short names written under the icons of the « Plus » grid; the screen and the screen reader keep the full one. */
+const gridLabels: Record<string, TranslationKey> = {
+  "council-delegations": "navigation.gridDelegations",
+  templates: "navigation.gridTemplates",
+  "administration-documents": "navigation.gridDocumentSettings",
+  "administration-mail": "navigation.gridMailSettings",
+};
 import { useApiRoot } from "./usePhoneLayout";
 
 export function personalWorkspaceHref(path: string) {
   return `/workspace?${new URLSearchParams({ path }).toString()}`;
 }
+
+type MoreRow = { to: string; testId: string; label: string; short: string; Icon: Icon };
 
 type BarDestination = { id: string; to: string; label: string; Icon: Icon; active: boolean };
 
@@ -39,8 +42,8 @@ function BarEntry({ id, label, Icon, active }: Pick<BarDestination, "id" | "labe
 
 // @implements-requirement HALL-FR-LAY-010
 // @implements-requirement HALL-FR-LAY-110
-/** Bottom bar of the phone (choice 1A): five destinations with icon and label; « Plus » lists the menu with the same
- * entries and sub-resources. */
+/** Bottom bar of the phone (choice 1A): five destinations with icon and label; « Plus » opens a sheet with the other
+ * ones as a grid of icons in the same form, by categories under a small grey title. */
 // biome-ignore-start lint/correctness/useExhaustiveDependencies: the sheet closes whenever the route changes.
 export function PhoneNavigation() {
   const { t } = useI18n();
@@ -95,25 +98,57 @@ export function PhoneNavigation() {
   const moreActive = moreOpen || !destinations.some((destination) => destination.active);
 
   const close = () => setMoreOpen(false);
-  const pathname = location.pathname;
-  const sheetEntries = navigationBlocks
-    .flat()
-    .flatMap((item) => permittedEntry(item, available) ?? [])
-    .filter((item) => item.children || !phoneBarDestinations.has(item.to ?? ""));
-  const accountRows: NavigationItem[] = [
-    ...(personalPath
-      ? [
-          {
-            id: "personal",
-            to: personalWorkspaceHref(personalPath),
-            labelKey: "workspace.personalWorkspace" as const,
-            Icon: MemberIcon,
-          },
-        ]
-      : []),
-    { id: "help", to: "/docs", labelKey: "navigation.help", Icon: DocsIcon },
-    { id: "account", to: "/settings", labelKey: "navigation.settings", Icon: SettingsIcon },
-  ];
+  const row = (item: NavigationItem): MoreRow => ({
+    to: item.to ?? "/",
+    testId: item.id,
+    label: t(item.labelKey),
+    short: t(gridLabels[item.id] ?? item.labelKey),
+    Icon: item.Icon,
+  });
+  const entry = (id: string) => navigationBlocks.flat().find((item) => item.id === id);
+  const children = (id: string) =>
+    (entry(id)?.children ?? []).filter(
+      (child) => available(child.requiredRelation) && !phoneBarDestinations.has(child.to ?? "") && child.id !== "meetings",
+    );
+  const tools = ["mail", "contacts", "maps"]
+    .flatMap((id) => entry(id) ?? [])
+    .filter((item) => available(item.requiredRelation));
+  const personal: MoreRow[] = personalPath
+    ? [
+        {
+          to: personalWorkspaceHref(personalPath),
+          testId: "personal",
+          label: t("workspace.personalWorkspace"),
+          short: t("workspace.personalWorkspace"),
+          Icon: MemberIcon,
+        },
+      ]
+    : [];
+  const moreGroups: Array<{ key: string; label: string; rows: MoreRow[] }> = [
+    { key: "council", label: t("navigation.council"), rows: children("council").map(row) },
+    { key: "tools", label: t("navigation.workTools"), rows: [...tools.map(row), ...personal] },
+    {
+      key: "administration",
+      label: t("navigation.administration"),
+      rows: [
+        ...children("administration").map(row),
+        {
+          to: "/settings",
+          testId: "settings",
+          label: t("navigation.settings"),
+          short: t("navigation.settings"),
+          Icon: SettingsIcon,
+        },
+        {
+          to: "/docs",
+          testId: "help",
+          label: t("navigation.documentation"),
+          short: t("navigation.documentation"),
+          Icon: DocsIcon,
+        },
+      ],
+    },
+  ].filter((group) => group.rows.length > 0);
 
   return (
     <>
@@ -151,43 +186,40 @@ export function PhoneNavigation() {
           data-testid="phone-more"
         >
           <DialogTitle>{t("navigation.more")}</DialogTitle>
-          <nav className="app-sheet-nav" aria-label={t("common.primaryNavigation")}>
-            {sheetEntries.map((item) => (
-              <div className="app-sidebar-item" key={item.id}>
-                <EntryRow
-                  item={item}
-                  current={!item.children && isCurrentEntry(pathname, item)}
-                  open={Boolean(item.children)}
-                  testId={`phone-more-${item.id}`}
-                  onNavigate={close}
-                />
-                {item.children ? (
-                  <div className="nav-sub-entries">
-                    {item.children.map((child) => (
-                      <EntryRow
-                        key={child.id}
-                        item={child}
-                        current={child.to !== undefined && isUnder(pathname, child.to)}
-                        sub
-                        testId={`phone-more-${child.id}`}
-                        onNavigate={close}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+          <nav className="app-sheet-grid" aria-label={t("common.primaryNavigation")}>
+            {moreGroups.map((group) => (
+              <section className="app-sheet-group" key={group.key} data-testid={`phone-more-group-${group.key}`}>
+                <h3 className="app-sheet-group-title">{group.label}</h3>
+                <div className="app-sheet-cells">
+                  {group.rows.map((item) => {
+                    const [path, query] = item.to.split("?");
+                    const current =
+                      (path === "/workspace"
+                        ? `${location.pathname}${location.search}` === item.to
+                        : isUnder(location.pathname, path)) && !query;
+                    return (
+                      <Link
+                        key={item.testId}
+                        to={item.to}
+                        className="app-sheet-cell"
+                        data-testid={`phone-more-${item.testId}`}
+                        data-active={current ? "true" : undefined}
+                        aria-current={current ? "page" : undefined}
+                        aria-label={item.label}
+                        onClick={close}
+                      >
+                        <span className="app-sheet-cell-icon" aria-hidden="true">
+                          <item.Icon weight={current ? "bold" : "regular"} />
+                        </span>
+                        <span className="app-sheet-cell-label" aria-hidden="true">
+                          {item.short}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
             ))}
-            <div className="app-sheet-footer">
-              {accountRows.map((item) => (
-                <EntryRow
-                  key={item.id}
-                  item={item}
-                  current={false}
-                  testId={`phone-more-${item.id}`}
-                  onNavigate={close}
-                />
-              ))}
-            </div>
           </nav>
         </DialogContent>
       </Dialog>
