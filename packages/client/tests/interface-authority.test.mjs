@@ -298,10 +298,15 @@ function hueAndSaturation(hex) {
 
 // @verifies-requirement HALL-TR-LAY-030
 // @verifies-requirement HALL-FR-LAY-100
-test("the charter holds no warm tint: no cream, orange, brown or amber token", () => {
-  const tokens = readFileSync(join(sourceRoot, "styles/tokens.css"), "utf8");
+test("the charter holds no warm tint: no cream, orange, brown or amber token, except the orange of a state awaiting action", () => {
+  // Decision of 12 November 2026 (Design de référence, page 9): orange is allowed for a state, never for the surround.
+  const tokens = ["styles/tokens.css", "styles/status.css"]
+    .filter((path) => existsSync(join(sourceRoot, path)))
+    .map((path) => readFileSync(join(sourceRoot, path), "utf8"))
+    .join("\n");
   const warm = [...tokens.matchAll(/(--hall-[\w-]+):\s*(#[0-9a-f]{6})\b/gi)]
     .map(([, name, hex]) => ({ name, hex, ...hueAndSaturation(hex) }))
+    .filter(({ name }) => !/^--hall-color-status-(?:warning|action)(?:-surface)?$/.test(name))
     .filter(({ hue, saturation }) => saturation > 0.15 && hue >= 15 && hue <= 75)
     .map(({ name, hex }) => `${name} ${hex}`);
   assert.deepEqual(warm, []);
