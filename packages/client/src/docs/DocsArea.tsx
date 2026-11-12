@@ -137,7 +137,7 @@ function DocsBreadcrumb({ path, locale }: { path: string; locale: Locale }) {
     if (page) crumbs.push({ label: page.title, to: `/docs/${partial}` });
   });
   return (
-    <nav aria-label={t("common.breadcrumb")} className="docs-crumbs" data-layout-flow="true">
+    <nav aria-label={t("common.breadcrumb")} className="docs-crumbs">
       <Link to="/docs">{t("docs.title")}</Link>
       {crumbs.map((crumb) => (
         <span key={crumb.to} className="docs-crumb">

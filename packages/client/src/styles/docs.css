@@ -517,17 +517,16 @@ h4.docs-heading {
 /* The path never passes under the PDF button: it shortens inside its own room. */
 .docs-toolbar .docs-crumbs { overflow: hidden; }
 
-/* On a phone the path passes to a second line rather than being shortened, as a free flow of segments. */
+/* On a phone the panel button and the PDF button share the first line; the path takes a whole line under them, on one
+   line, its folders shortening first; the search comes last. */
 @media (max-width: 760px) {
-  .docs-toolbar .docs-crumbs {
-    flex: 1 1 0;
-    flex-wrap: wrap;
-    row-gap: var(--hall-space-0-5);
-  }
-  .docs-toolbar .docs-crumbs .docs-crumb,
-  .docs-toolbar .docs-crumbs .docs-crumb > a {
-    min-width: auto;
-  }
+  .docs-toolbar .docs-pdf-link { margin-left: auto; }
+  .docs-toolbar .docs-crumbs { order: 1; flex: 1 1 100%; }
+  .docs-toolbar .docs-search { order: 2; }
+  .docs-toolbar .docs-crumbs > a:not(:last-child) { min-width: 0; flex: 0 1000 auto; }
+  .docs-toolbar .docs-crumbs > .docs-crumb:not(:last-child) { flex: none; }
+  .docs-toolbar .docs-crumbs > .docs-crumb:last-child { min-width: 0; flex: 0 1 auto; }
+  .docs-toolbar .docs-crumbs > .docs-crumb:last-child > a { min-width: 0; }
 }
 
 /* The search is as wide as its placeholder, and narrows first when the path needs the room. */
