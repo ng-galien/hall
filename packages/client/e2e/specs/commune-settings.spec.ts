@@ -1,5 +1,6 @@
 import type { APIResponse, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
+import { writtenDate } from "../fixtures/writtenDate";
 
 /* The municipality's data in Settings, and the indicative notice period it feeds on a scheduled meeting. */
 
@@ -122,9 +123,7 @@ test("a scheduled meeting shows the indicative notice period computed from the p
   const panel = page.getByTestId("meeting-notice-deadline");
   await expect(panel).toHaveAttribute("data-status", "qualificationRequired");
   const text = page.getByTestId("meeting-notice-deadline-date");
-  await expect(text).toContainText(
-    deadlineDay.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
-  );
+  await expect(text).toContainText(writtenDate(deadlineDay));
   await page.getByTestId("meeting-notice-deadline-help").hover();
   const explanation = page.getByRole("tooltip");
   await expect(explanation).toContainText("5 clear days");

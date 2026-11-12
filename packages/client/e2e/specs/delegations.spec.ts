@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
+import { writtenDate } from "../fixtures/writtenDate";
 
 /* Représentations extérieures: bodies where the municipality is represented by dated primary and alternate contacts. */
 
@@ -54,8 +55,8 @@ test("the secretariat records a representation with dated primary and alternate 
 
   await page.reload();
   await expect(page.getByTestId("delegation-name")).toHaveValue(name);
-  await expect(page.getByTestId("delegation-role-zone-primary")).toContainText("1 April 2026");
-  await expect(page.getByTestId("delegation-role-zone-alternate")).toContainText("15 May 2026");
+  await expect(page.getByTestId("delegation-role-zone-primary")).toContainText(writtenDate("2026-04-01"));
+  await expect(page.getByTestId("delegation-role-zone-alternate")).toContainText(writtenDate("2026-05-15"));
   const memberships = await properties<{ contactId: string; role: string; startedOn: string; endedOn: string | null }>(
     page,
     `/api/council-delegations/${delegationId}/memberships`,
@@ -81,7 +82,7 @@ test("the secretariat records a representation with dated primary and alternate 
   await page.getByTestId("delegation-end-membership-date").fill("2026-09-30");
   await page.getByTestId("delegation-end-membership-confirm").click();
   await expect(page.getByTestId(`delegation-membership-${outsider.id}`)).toHaveCount(0);
-  await expect(page.locator(".admin-membership-history")).toContainText("30 September 2026");
+  await expect(page.locator(".admin-membership-history")).toContainText(writtenDate("2026-09-30"));
 
   await page.getByTestId("delegation-archive").click();
   await expect(page).toHaveURL(/\/app\/council-delegations$/);

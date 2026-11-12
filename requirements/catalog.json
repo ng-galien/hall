@@ -11043,7 +11043,8 @@
       "acceptanceCriteria": [
         "Archivo est la seule police de l’interface et de la documentation ; aucune police à empattements n’est chargée.",
         "Le texte courant mesure 16 pixels et le texte secondaire 14 pixels ; les minimums restent ceux de HALL-FR-LAY-050 et de HALL-FR-LAY-020.",
-        "Les titres de page sont en graisse 800 avec un interlettrage de −0,02 em."
+        "Les titres de page sont en graisse 800 avec un interlettrage de −0,02 em.",
+        "Les dates s’écrivent en toutes lettres, jour et mois, « 17 octobre » ; l’année n’est écrite que si elle n’est pas l’année en cours."
       ],
       "clauses": [
         {

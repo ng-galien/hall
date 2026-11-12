@@ -14,6 +14,13 @@ function initialLocale(): Locale {
   return navigator.language.toLowerCase().startsWith("fr") ? "fr" : "en";
 }
 
+/** A date in words: day and month, and the year only when it is not the current year. */
+function writtenDate(date: Date): Intl.DateTimeFormatOptions {
+  return date.getFullYear() === new Date().getFullYear()
+    ? { day: "numeric", month: "long" }
+    : { day: "numeric", month: "long", year: "numeric" };
+}
+
 // @implements-requirement HALL-FR-LAY-080
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
@@ -31,10 +38,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLocale,
       t: (key, values) => interpolateMessage(messages[key], values),
       plural: (count, one, other) => pluralMessage(languageTag, count, messages[one], messages[other]),
-      formatDate: (date) =>
-        new Intl.DateTimeFormat(languageTag, { day: "numeric", month: "long", year: "numeric" }).format(new Date(date)),
+      formatDate: (date) => new Intl.DateTimeFormat(languageTag, writtenDate(new Date(date))).format(new Date(date)),
       formatDateTime: (date) =>
-        new Intl.DateTimeFormat(languageTag, { dateStyle: "long", timeStyle: "short" }).format(new Date(date)),
+        new Intl.DateTimeFormat(languageTag, {
+          ...writtenDate(new Date(date)),
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(new Date(date)),
       formatTime: (date) =>
         new Intl.DateTimeFormat(languageTag, { hour: "2-digit", minute: "2-digit" }).format(new Date(date)),
       formatNumber: (number, options) => new Intl.NumberFormat(languageTag, options).format(number),

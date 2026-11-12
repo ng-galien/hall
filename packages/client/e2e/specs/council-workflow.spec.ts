@@ -3,6 +3,7 @@ import type { APIResponse, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 import { backdateMeetingConduct } from "../fixtures/meetingHistory";
 import { establishRevision, generateCurrentNotice, saveMeetingField } from "../fixtures/meetingPreparation";
+import { writtenDate } from "../fixtures/writtenDate";
 
 test.use({ builtInPdfViewer: true });
 
@@ -1577,7 +1578,7 @@ test("prepares a meeting through its general properties and follows it when its 
   await expect(date).toBeEnabled();
   await saveMeetingField(page, () => date.fill("2026-12-03T12:00"));
   await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-03")}$`));
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("3 December 2026");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(writtenDate("2026-12-03"));
 
   let releaseRefresh!: () => void;
   const refreshGate = new Promise<void>((resolve) => {
@@ -1626,7 +1627,7 @@ test("prepares a meeting through its general properties and follows it when its 
   await expect(date).toBeEnabled();
   await saveMeetingField(page, () => date.fill("2026-12-10T12:00"));
   await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-10")}$`));
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("10 December 2026");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(writtenDate("2026-12-10"));
   const prepared = await sirenProperties<{ chairMemberId: string | null; secretaryMemberId: string | null }>(
     await page.request.get(`/api/council-meetings/${meeting.id}`),
   );
@@ -1635,7 +1636,7 @@ test("prepares a meeting through its general properties and follows it when its 
 
   await page.goto(`/app/meetings/${slug("2026-12-03")}`);
   await expect(page).toHaveURL(new RegExp(`/app/meetings/${slug("2026-12-10")}$`));
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("10 December 2026");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(writtenDate("2026-12-10"));
   await page.screenshot({ path: test.info().outputPath("meeting-followed-after-date-change.png") });
 });
 
@@ -1823,11 +1824,7 @@ test("holds the meeting after a second convocation as a new linked meeting under
   expect(reconvenedDeadline).toMatchObject({ status: "determined", deadline: { clearDays: 3 } });
   await expect(page.getByTestId("meeting-notice-deadline")).toHaveAttribute("data-status", "determined");
   await expect(page.getByTestId("meeting-notice-deadline-date")).toContainText(
-    new Date(`${reconvenedDeadline.deadline.deadlineDate}T12:00:00`).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }),
+    writtenDate(reconvenedDeadline.deadline.deadlineDate),
   );
   await page.getByTestId("meeting-notice-deadline-help").hover();
   await expect(page.getByRole("tooltip")).toContainText("3 clear days");
