@@ -37,7 +37,8 @@
   padding: var(--hall-space-0-5);
   border: 0;
   border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
-  border-radius: 0;
+  /* Its corners follow the rounded frame, which stays closed on its four sides. */
+  border-radius: calc(var(--hall-radius-medium) - var(--hall-stroke-thin)) calc(var(--hall-radius-medium) - var(--hall-stroke-thin)) 0 0;
   background: var(--hall-color-surface);
   box-shadow: none;
 }
