@@ -244,6 +244,16 @@ export function ScreenHeader({
   );
 }
 
+/** Width of the title written on one line in the font of its heading, measured without any element on the page. */
+function titleWidth(heading: HTMLElement, title: string): number {
+  const context = document.createElement("canvas").getContext("2d");
+  if (!context) return 0;
+  const style = getComputedStyle(heading);
+  context.font = style.font;
+  const spacing = Number.parseFloat(style.letterSpacing) || 0;
+  return context.measureText(title).width + spacing * title.length;
+}
+
 /**
  * True when the title, written on one line, needs more than the room its icon and commands leave it: it then takes
  * the whole line and the commands pass under it.
@@ -253,17 +263,17 @@ function useTitleTooLong(row: HTMLDivElement | null, title: string): boolean {
   useEffect(() => {
     if (!row) return;
     const measure = () => {
-      const text = row.querySelector<HTMLElement>(".screen-title-measure");
+      const heading = row.querySelector<HTMLElement>(".screen-header-title");
       const icon = row.querySelector<HTMLElement>(".screen-title-icon");
       const commands = row.querySelector<HTMLElement>(".screen-title-commands");
-      if (!text || !commands || commands.childElementCount === 0) return setLong(false);
+      if (!heading || !commands || commands.childElementCount === 0) return setLong(false);
       const block = row.parentElement;
       if (!block) return setLong(false);
       const style = getComputedStyle(block);
       const width = block.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
       const gap = Number.parseFloat(getComputedStyle(row).columnGap) || 0;
       const room = width - (icon?.offsetWidth ? icon.offsetWidth + gap : 0) - commands.offsetWidth - gap;
-      setLong(text.offsetWidth > room);
+      setLong(titleWidth(heading, title) > room);
     };
     const observer = new ResizeObserver(measure);
     observer.observe(row);
@@ -310,9 +320,6 @@ export function ScreenLargeTitle({
         >
           {title}
         </h1>
-        <span className="screen-header-title screen-title-measure" aria-hidden="true">
-          {title}
-        </span>
         <div ref={slots.commands} className="screen-title-commands" data-testid="screen-title-commands" />
       </div>
       <div ref={slots.facts} className="screen-title-facts" />
