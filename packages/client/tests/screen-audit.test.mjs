@@ -71,7 +71,7 @@ test("a changed file leads to its screens, a shared component to its declared sa
   );
   assert.deepEqual(
     new Set(target.screens),
-    new Set(["utilisateurs", "utilisateur", "contact", "seance-preparation", "parametres", "document-texte"]),
+    new Set(["utilisateurs", "utilisateur", "utilisateur-creation", "contact", "seance-preparation", "parametres", "document-texte"]),
   );
   assert.deepEqual(target.unmapped, ["src/lib/unknown.ts"]);
   assert.equal(target.reasons.find((reason) => reason.file.endsWith("field.tsx")).component, "champ de formulaire");
