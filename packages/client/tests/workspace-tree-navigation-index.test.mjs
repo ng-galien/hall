@@ -15,10 +15,9 @@ vi.mock("../src/stores/workspaceResourcesStore", () => ({
 }));
 vi.mock("../src/i18n/I18nProvider", () => ({ useI18n: () => ({ t: (key) => key }) }));
 vi.mock("../src/components/icons", () => ({
-  ChevronDownIcon: () => null,
-  ChevronRightIcon: () => null,
   CouncilBusinessIcon: () => null,
   FolderIcon: () => null,
+  FolderOpenIcon: () => null,
 }));
 vi.mock("../src/pages/workspace/workspaceOrg", () => ({
   DRAG_TYPE: "",
