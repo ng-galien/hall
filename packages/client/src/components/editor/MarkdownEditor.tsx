@@ -1081,7 +1081,7 @@ function EnrichedEditor({
   return (
     <div className="markdown-editor markdown-editor-large" data-testid={testId ?? "markdown-editor-enriched"}>
       {images.inputs}
-      <div role="toolbar" aria-label={t("editor.enrich")}>
+      <div role="toolbar" aria-label={t("editor.enrich")} data-layout-flow>
         {editor && state ? (
           <>
             <ToolbarButton
