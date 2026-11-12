@@ -65,7 +65,7 @@ export function PhoneDocumentActions({ actions: itemActions }: { actions: PhoneD
               onSelect={action.onSelect}
             >
               {action.icon}
-              <span>{action.label}</span>
+              <span className="phone-document-action-label">{action.label}</span>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

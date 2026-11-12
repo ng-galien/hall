@@ -321,6 +321,8 @@
   .page-content > .list-row-list:first-child { border-top: 0; }
   /* A page header whose controls all render elsewhere takes no room. */
   .page-header:not(:has(> :not(.page-header-controls))):has(> .page-header-controls:empty) { display: none; }
+  /* A command of the phone document menu holds one line; a long name ends with an ellipsis. */
+  .phone-document-action-label { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
   /* A user: the roles keep one width at the right, so that the states fall in a column. */
   .user-row-roles { flex: none; width: var(--hall-size-relative-12rem); }
   /* A contact: its address and its telephone each keep their own column at the right of the row. */
