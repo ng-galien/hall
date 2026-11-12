@@ -202,8 +202,14 @@ const cases = [
   [
     "header-line-height",
     {},
-    `<header data-testid="screen-header"><div class="screen-header-line" style="height:60px"><div class="screen-header-trail">Documents ${icon("CaretRight")} Finances</div></div></header>`,
-    `<header data-testid="screen-header"><div class="screen-header-line" style="height:44px"><div class="screen-header-trail">Documents / Finances</div></div></header>`,
+    `<header data-testid="screen-header"><div class="screen-header-line" style="height:60px"><div class="screen-header-trail">Documents / Finances</div></div></header>`,
+    `<header data-testid="screen-header"><div class="screen-header-line" style="height:44px"><div class="screen-header-trail">Documents ${icon("CaretDown")} Finances</div></div></header>`,
+  ],
+  [
+    "item-more-menu",
+    { item: true },
+    `<div class="row"><h1>Budget</h1><button data-testid="item-commands-more" aria-label="Autres commandes">…</button></div>`,
+    `<div class="row"><h1>Budget</h1><button aria-label="Partager">${icon("Plus")}</button></div>`,
   ],
   [
     "create-position",

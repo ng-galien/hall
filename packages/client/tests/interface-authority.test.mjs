@@ -310,7 +310,7 @@ test("the charter holds no warm tint: no cream, orange, brown or amber token", (
 
 // @verifies-requirement HALL-TR-LAY-030
 // @verifies-requirement HALL-FR-LAY-100
-test("the first line says where one is; the commands of an opened item and of a document dialog are on the line of its title, once", () => {
+test("the commands of an opened item and of a document dialog are on the line of its title, once", () => {
   const preview = readFileSync(join(sourceRoot, "features/documents/ResourcePreview.tsx"), "utf8");
   assert.equal(preview.match(/closeTestId=/g)?.length, 1, "a document dialog has one close cross");
   assert.equal(preview.match(/"resource-preview-close"/g)?.length, 1);
@@ -322,16 +322,8 @@ test("the first line says where one is; the commands of an opened item and of a 
   );
   const header = readFileSync(join(sourceRoot, "pages/workspace/WorkspaceWorkbenchHeader.tsx"), "utf8");
   assert.equal(header.match(/<ItemCommands\b/g)?.length, 1, "the commands of an item are drawn once");
-  assert.deepEqual(offenders(/workspace-breadcrumb-folder-menu/), [], "the breadcrumb carries no folder menu button");
-  const breadcrumb = readFileSync(
-    join(sourceRoot, "pages/workspace/WorkspaceBreadcrumb/WorkspaceBreadcrumb.tsx"),
-    "utf8",
-  );
-  assert.doesNotMatch(
-    breadcrumb,
-    /Chevron\w*Icon|Caret\w*/,
-    "the breadcrumb separates its folders by a slash, not a chevron",
-  );
+  // The breadcrumb of Documents opens each segment by a click and its menu by the chevron after it (decision of
+  // 12 November 2026, commits 0cc40c5 and b54caa1): its folder menu is part of it.
 });
 
 // @verifies-requirement HALL-TR-LAY-030

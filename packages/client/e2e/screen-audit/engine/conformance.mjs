@@ -147,10 +147,15 @@ export const conformanceRules = {
       "Une date s'écrit en toutes lettres, jour et mois (« 17 octobre ») ; l'année n'est écrite que si ce n'est pas l'année en cours.",
   },
   "header-line-height": {
-    title: "Première ligne du bandeau hors de 44 px, ou chevron dans le fil d'Ariane",
-    expected:
-      "Sur ordinateur et tablette, la première ligne du bandeau mesure 44 px et son fil d'Ariane sépare les dossiers par une barre oblique, sans chevron.",
+    title: "Première ligne du bandeau hors de 44 px",
+    expected: "Sur ordinateur et tablette, la première ligne du bandeau mesure 44 px.",
   },
+  "item-more-menu": {
+    title: "Menu « … » des commandes d'un élément ouvert hors du téléphone",
+    expected:
+      "À la tablette et à l'ordinateur, les commandes d'un élément ouvert sont des icônes visibles sur la ligne du titre, sans menu « … » ; le téléphone garde son menu « … ».",
+  },
+
   "create-position": {
     title: "« + Nouveau » flottant hors du coin bas droit",
     expected: "Au téléphone, « + Nouveau » flotte en bas à droite de l'écran, au-dessus de la barre du bas.",
@@ -856,9 +861,13 @@ export function measureConformance(options) {
   if (line && shown(line) && !phone) {
     const height = line.getBoundingClientRect().height;
     if (Math.abs(height - 44) > 1) add("header-line-height", line, `${Math.round(height)} px`);
-    for (const svg of line.querySelectorAll(".screen-header-trail svg"))
-      if (/^Caret/.test(iconOf(svg) ?? "")) add("header-line-height", svg, "chevron dans le fil d'Ariane");
+    /* The chevron after a segment of the breadcrumb opens its menu (decision of 12 November 2026). */
   }
+
+  /* item-more-menu: on a tablet and a computer, an opened item shows its commands as icons, without « … ». */
+  if (!phone && item)
+    for (const more of commands.filter((command) => command.matches("[data-testid=item-commands-more]")))
+      add("item-more-menu", more, "menu « … » sur la ligne du titre");
 
   /* create-position: on a phone, the floating « + Nouveau » at the bottom right, above the bottom bar. */
   if (phone) {
