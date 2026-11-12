@@ -95,7 +95,7 @@ export function ListRow({
             {detail ? <span className="list-row-detail-text">{detail}</span> : null}
             {status ? (
               <span className="list-row-status" data-tone={status.tone} data-testid={status.testId}>
-                {status.label}
+                <span className="list-row-status-text">{status.label}</span>
               </span>
             ) : null}
           </span>

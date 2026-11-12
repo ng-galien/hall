@@ -11,7 +11,7 @@
     font-size: var(--hall-font-size-icon-large);
   }
   .type-icon > svg { font-size: inherit; }
-  .list-row-head > .type-icon { font-size: var(--hall-size-glyph-mark-large); }
+  .list-row-head .type-icon { font-size: var(--hall-size-glyph-mark-large); }
   .type-icon-large { width: var(--hall-size-glyph-large); height: var(--hall-size-glyph-large); font-size: var(--hall-size-glyph-mark-large); }
   [data-nature="writing"] { --type-icon-color: var(--hall-color-nature-writing); }
   [data-nature="data"] { --type-icon-color: var(--hall-color-nature-data); }
@@ -37,14 +37,13 @@
   }
   .list-row:last-child { border-bottom: 0; }
   .list-row-list:empty { display: none; }
-  /* The text keeps at least its narrowest width beside the actions; when the line is narrower, the actions pass
-     together onto the next line and fill it, their commands at its end. */
-  .list-row-line { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; }
+  /* The actions keep the end of the line; the text shortens before them, its title ending with an ellipsis. */
+  .list-row-line { display: flex; min-width: 0; align-items: center; }
   .list-row-main {
     display: flex;
     min-width: 0;
     min-height: var(--list-row-height);
-    flex: 1000 1 var(--hall-size-list-row-text-min);
+    flex: 1 1 0;
     align-items: center;
     gap: var(--hall-space-3);
     padding: var(--hall-space-2) var(--hall-space-3);
@@ -78,10 +77,11 @@
     line-height: var(--hall-line-height-body-small);
     white-space: nowrap;
   }
-  /* The state keeps its full width beside the second line, which is shortened first; only a state longer than
-     the whole line wraps, between words. */
-  .list-row-detail-text { overflow: hidden; min-width: 0; text-overflow: ellipsis; }
-  .list-row-status { display: inline-flex; flex: none; max-width: 100%; align-items: center; gap: var(--hall-space-1-5); color: var(--hall-color-text); white-space: normal; }
+  /* The state keeps its width beside the second line, which is shortened first; on a line too narrow for both, the
+     state is shortened too, after its dot. */
+  .list-row-detail-text { overflow: hidden; min-width: 0; flex: 0 100 auto; text-overflow: ellipsis; }
+  .list-row-status { display: inline-flex; min-width: 0; flex: 0 1 auto; align-items: center; gap: var(--hall-space-1-5); color: var(--hall-color-text); white-space: nowrap; }
+  .list-row-status-text { overflow: hidden; min-width: 0; text-overflow: ellipsis; }
   .list-row-status::before {
     width: var(--hall-space-2);
     height: var(--hall-space-2);
@@ -110,7 +110,7 @@
   .list-row-head-button:hover { background: var(--hall-color-surface-selected); }
   .list-row-head-button:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); }
   .list-row-head-button + .list-row-main { padding-left: var(--hall-space-3); }
-  .list-row-action { display: flex; flex: 1 0 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-1); padding-right: var(--hall-space-3); }
+  .list-row-action { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); padding-right: var(--hall-space-3); }
   .list-row-children { padding: 0 var(--hall-space-3) var(--hall-space-3) calc(var(--hall-space-3) + var(--hall-size-glyph-large) + var(--hall-space-3)); }
   /* A nested list is a tree branch: one indentation step per level, rules continued. */
   .list-row-children:has(> ul, > ol) { padding: 0 0 0 var(--hall-space-4); }
@@ -141,10 +141,9 @@
   .list-row[data-prominent="true"] > .list-row-line { flex-wrap: wrap; }
   .list-row[data-prominent="true"] .list-row-main { padding-block: var(--hall-space-4) var(--hall-space-2); }
   .list-row[data-prominent="true"] .list-row-head { width: var(--hall-size-metric-icon); }
-  .list-row[data-prominent="true"] .list-row-head > .type-icon { font-size: var(--hall-size-glyph-large); }
+  .list-row[data-prominent="true"] .list-row-head .type-icon { font-size: var(--hall-size-glyph-large); }
   .list-row[data-prominent="true"] :is(.list-row-date, .list-row-number) strong { font-size: var(--hall-font-size-heading-large); }
   .list-row[data-prominent="true"] .list-row-title { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); line-height: var(--hall-line-height-heading); white-space: normal; }
-  .list-row[data-prominent="true"] .list-row-detail { flex-wrap: wrap; white-space: normal; }
   .list-row[data-prominent="true"] .list-row-action { width: 100%; flex-wrap: wrap; padding: 0 var(--hall-space-3) var(--hall-space-4) calc(var(--hall-space-3) * 2 + var(--hall-size-metric-icon)); }
 
   /* @implements-requirement HALL-FR-LAY-060 */
@@ -184,11 +183,13 @@
     .list-row-main:has(> .list-row-text > :is(.list-row-detail, .list-row-overline, .list-row-fact)) { min-height: var(--hall-size-list-row-pointer-double); }
     .list-row-list,
     .list-row { --list-row-head-width: var(--hall-size-control); }
-    .list-row-head > .type-icon { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); font-size: var(--hall-font-size-icon-large); }
+    .list-row-head .type-icon { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); font-size: var(--hall-font-size-icon-large); }
     .list-row-title { font-size: var(--hall-font-size-body); line-height: var(--hall-line-height-body-small); }
     .list-row-detail,
     .list-row-wide,
     .list-row-fact { font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
+    /* A state keeps the 14-pixel size of the states written outside the rows. */
+    .list-row-detail > .list-row-status { font-size: var(--hall-font-size-body); }
     .list-row-number strong,
     .list-row-date strong { font-size: var(--hall-font-size-body); }
     .list-row-avatar { width: var(--hall-size-control-small); height: var(--hall-size-control-small); }
@@ -199,7 +200,7 @@
     .list-row[data-size="large"] .list-row-title { font-size: var(--hall-font-size-title); line-height: var(--hall-line-height-body-large); }
 
     .list-row[data-prominent="true"] .list-row-main { padding-block: var(--hall-space-3) var(--hall-space-1-5); }
-    .list-row[data-prominent="true"] .list-row-head > .type-icon { width: var(--hall-size-glyph); height: var(--hall-size-glyph); font-size: var(--hall-size-glyph-mark-large); }
+    .list-row[data-prominent="true"] .list-row-head .type-icon { width: var(--hall-size-glyph); height: var(--hall-size-glyph); font-size: var(--hall-size-glyph-mark-large); }
     .list-row[data-prominent="true"] :is(.list-row-date, .list-row-number) strong { font-size: var(--hall-font-size-heading); }
     .list-row[data-prominent="true"] .list-row-title { font-size: var(--hall-font-size-title); line-height: var(--hall-line-height-body-large); }
   }

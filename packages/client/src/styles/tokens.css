@@ -113,6 +113,11 @@
   --hall-line-height-heading: 28px;
   --hall-line-height-display-small: 36px;
   --hall-line-height-display: 40px;
+  /* Running text read on a phone. */
+  --hall-line-height-reading: 26px;
+  --hall-space-reading-paragraph: 14px;
+  --hall-space-reading-heading: 22px;
+  --hall-size-reading-list-indent: 22px;
   --hall-letter-spacing-heading: -0.02em;
   --hall-letter-spacing-brand: 0.18em;
 
@@ -157,8 +162,6 @@
   --hall-size-list-row-touch: 64px;
   --hall-size-list-row-pointer: 40px;
   --hall-size-list-row-pointer-double: 52px;
-  /* Narrowest text of a list row beside its actions; below it, the actions pass under the text. */
-  --hall-size-list-row-text-min: 12rem;
   --hall-size-live-header: 60px;
   --hall-size-table-column-min: 60px;
   --hall-size-live-rail-collapsed: 64px;

@@ -340,7 +340,7 @@
   ul.meeting-evidence { padding-left: var(--hall-space-5); list-style: disc; }
   .meeting-evidence-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
   .meeting-evidence-title strong { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
-  .meeting-notice-deadline-value { display: inline-flex; align-items: center; gap: var(--hall-space-1); color: var(--hall-color-text); }
+  .meeting-notice-deadline-value { display: inline-flex; flex: 1 1 auto; align-items: center; gap: var(--hall-space-1); color: var(--hall-color-text); }
   .meeting-notice-deadline-value[data-reminder="overdue"] { color: var(--hall-color-danger); }
 
   /* Stage bar: each stage is a title after a dot; the current one in blue, the way into the meeting a blue button. */
@@ -427,7 +427,8 @@
 
   /* Agenda revision beside the stage bar: its state written as text, its gestures as buttons. */
   .revision-control { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2) var(--hall-space-3); }
-  .revision-control-label { min-width: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
+  /* The state fills its line and its commands keep the end of the line, or a line of their own. */
+  .revision-control-label { min-width: 0; flex: 1 1 12rem; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .revision-hint { display: grid; gap: var(--hall-space-0-5); max-width: var(--hall-size-relative-22rem); white-space: normal; }
   .revision-hint strong { font-weight: var(--hall-font-weight-semibold); }
 
