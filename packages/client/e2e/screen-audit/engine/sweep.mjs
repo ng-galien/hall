@@ -12,7 +12,7 @@ export const sweepRules = {
   "hidden-name": {
     title: "Titre ou nom de largeur nulle ou coupé à moins de trois caractères",
     expected:
-      "Chaque titre et chaque nom montrent au moins trois caractères ; un nom trop long finit par des points de suspension.",
+      "Chaque titre et chaque nom montrent au moins trois caractères ; un nom trop long finit par des points de suspension, et un nom tenu sur une ligne coupée par « … » donne son libellé entier au survol.",
   },
   overlap: {
     title: "Deux textes ou commandes qui se recouvrent",
@@ -215,6 +215,10 @@ export function measureLayout(options) {
       "h1, h2, h3, h4, [class*=title], [class*=name], [class*=label], button, a, th, td, li, dt, dd",
     );
     if (!container) continue;
+    // A name held on one line, ended by « … », with its whole label on hover (title), is shortened by design: an event
+    // in the month grid of the calendar (coordinator's request of 12 November 2026).
+    const whole = entry.parent.closest("[title]")?.getAttribute("title") ?? "";
+    if (style.textOverflow === "ellipsis" && whole.includes(entry.text.trim())) continue;
     const shownWidth = entry.visible.width;
     const clipped = shownWidth + 1 < entry.rect.width;
     if (entry.parent.getBoundingClientRect().width < 1 || (clipped && shownWidth < font * 1.6)) {

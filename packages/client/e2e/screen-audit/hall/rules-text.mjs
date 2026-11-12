@@ -55,7 +55,7 @@ function valuesOf(component) {
       "pointer-wide": " à la souris sur ordinateur",
     }[entry.when];
     lines.push(
-      `    ${entry.component} · ${entry.property}${entry.pseudo ? ` ${entry.pseudo}` : ""}${when} : ${entry.expected} (${entry.source.doc}, page ${entry.source.page}, ${entry.source.element})`,
+      `    ${entry.component} · ${entry.property}${entry.pseudo ? ` ${entry.pseudo}` : ""}${when} : ${entry.expected} (${entry.decision ? `décision du propriétaire du ${entry.decision.date}, ${entry.decision.words}, ${entry.decision.commits.join(", ")}` : `${entry.source.doc}, page ${entry.source.page}, ${entry.source.element}`})`,
     );
   }
   return lines;

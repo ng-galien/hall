@@ -154,7 +154,13 @@ export const components = [
     ],
     variants: ["dépliée", "repliée (data-compact)", "entrée courante"],
     rules: ["menu-icons", "disclosure-chevron", "filled-icon", "icon-weight", "component-unity", "design-reference"],
-    values: ["barre latérale", "barre latérale, rangée", "barre latérale, rangée active", "barre latérale, marque"],
+    values: [
+      "barre latérale",
+      "barre latérale, rangée",
+      "barre latérale, rangée active",
+      "barre latérale, marque",
+      "grille « Plus », entrée en cours",
+    ],
     decided: [
       { what: "chaque entrée a une icône distincte", source: `${reference}, page 1` },
       {
@@ -170,7 +176,7 @@ export const components = [
     code: ["packages/client/src/shell/PhoneNavigation.tsx"],
     variants: ["destination courante"],
     rules: ["bottom-bar", "filled-icon", "icon-weight", "overlap", "touch-target", "design-reference"],
-    values: ["barre du bas"],
+    values: ["barre du bas", "barre du bas, entrée en cours"],
     decided: [
       {
         what: "la destination courante a un libellé en gras et une icône au trait plus épais",

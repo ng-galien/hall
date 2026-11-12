@@ -405,13 +405,63 @@
       "component": "barre latérale, rangée active",
       "selector": ".app-sidebar .nav-row[aria-current=page]",
       "property": "font-weight",
-      "expected": "700",
+      "expected": "500",
       "when": "all",
       "status": "retenu",
       "source": {
         "doc": "Hall 1.3 — Design de référence",
         "page": 1,
         "element": "a91"
+      },
+      "decision": {
+        "words": "« c'est trop gras. Tu réduis la graisse »",
+        "date": "12 novembre 2026",
+        "commits": [
+          "f18ebbc",
+          "5176ee5"
+        ]
+      }
+    },
+    {
+      "component": "grille « Plus », entrée en cours",
+      "selector": ".nav-rail-place[aria-current=page]",
+      "property": "font-weight",
+      "expected": "500",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 1,
+        "element": "a91"
+      },
+      "decision": {
+        "words": "« c'est trop gras. Tu réduis la graisse »",
+        "date": "12 novembre 2026",
+        "commits": [
+          "f18ebbc",
+          "5176ee5"
+        ]
+      }
+    },
+    {
+      "component": "barre du bas, entrée en cours",
+      "selector": ".app-phone-bar-item[data-active=true]",
+      "property": "font-weight",
+      "expected": "500",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 1,
+        "element": "a91"
+      },
+      "decision": {
+        "words": "« c'est trop gras. Tu réduis la graisse »",
+        "date": "12 novembre 2026",
+        "commits": [
+          "f18ebbc",
+          "5176ee5"
+        ]
       }
     },
     {

@@ -66,8 +66,8 @@ const cases = [
   [
     "icon-weight",
     {},
-    `<a href="#">${icon("House", "bold")}Accueil</a>`,
     `<a href="#">${icon("House")}Accueil</a><a href="#" aria-current="page">${icon("House", "bold")}Documents</a>`,
+    `<a href="#">${icon("House")}Accueil</a><a href="#" aria-current="page" style="font-weight:500">${icon("House")}Documents</a>`,
   ],
   ["filled-icon", {}, `<a href="#">${icon("House", "fill")}Accueil</a>`, `<a href="#">${icon("House")}Accueil</a>`],
   [
@@ -234,7 +234,7 @@ const cases = [
     "disclosure-mark",
     {},
     `<details><summary>Notes de discussion</summary><p>Texte</p></details><button aria-expanded="true">Pour 9</button><nav aria-label="Fil d'Ariane"><ol><li><button aria-expanded="false">Séances</button></li></ol></nav>`,
-    `<style>.disclosure-badge{display:inline-flex;width:18px;height:18px}.disclosure-badge svg{width:12px;height:12px}.disclosure-badge-minus{display:none}details[open]>summary .disclosure-badge-minus,.disclosure-badge[data-expanded=true] .disclosure-badge-minus{display:block}details[open]>summary .disclosure-badge-plus,.disclosure-badge[data-expanded=true] .disclosure-badge-plus{display:none}</style><details><summary><span class="disclosure-badge" aria-hidden="true"><svg class="disclosure-badge-plus"><rect width="9" height="9"/></svg><svg class="disclosure-badge-minus"><rect width="9" height="9"/></svg></span><span>Notes de discussion</span></summary><p>Texte</p></details><button aria-expanded="true"><span class="disclosure-badge" data-expanded="true" aria-hidden="true"><svg class="disclosure-badge-plus"><rect width="9" height="9"/></svg><svg class="disclosure-badge-minus"><rect width="9" height="9"/></svg></span><span>Pour 9</span></button><nav aria-label="Fil d'Ariane"><ol><li><button aria-expanded="false">Séances</button></li></ol></nav>`,
+    `<style>.disclosure-badge{display:inline-flex;width:18px;height:18px}.disclosure-badge svg{width:12px;height:12px}.disclosure-badge-minus{display:none}details[open]>summary .disclosure-badge-minus,.disclosure-badge[data-expanded=true] .disclosure-badge-minus{display:block}details[open]>summary .disclosure-badge-plus,.disclosure-badge[data-expanded=true] .disclosure-badge-plus{display:none}</style><details><summary><span class="disclosure-badge" aria-hidden="true"><svg class="disclosure-badge-plus"><rect width="9" height="9"/></svg><svg class="disclosure-badge-minus"><rect width="9" height="9"/></svg></span><span>Notes de discussion</span></summary><p>Texte</p></details><button aria-expanded="true"><span class="disclosure-badge" data-expanded="true" aria-hidden="true"><svg class="disclosure-badge-plus"><rect width="9" height="9"/></svg><svg class="disclosure-badge-minus"><rect width="9" height="9"/></svg></span><span>Pour 9</span></button><button data-slot="button" aria-expanded="false">Afficher le sommaire</button><nav aria-label="Fil d'Ariane"><ol><li><button aria-expanded="false">Séances</button></li></ol></nav>`,
   ],
   [
     "state-pill",
@@ -270,7 +270,7 @@ const cases = [
     "hidden-name",
     {},
     `<div class="row" style="width:300px"><span class="list-row-title" style="width:0;overflow:hidden;white-space:nowrap">Marie Durand</span><span>Conseillère</span></div>`,
-    `<div class="row" style="width:300px"><span class="list-row-title">Marie Durand</span><span>Conseillère</span></div>`,
+    `<div class="row" style="width:300px"><span class="list-row-title">Marie Durand</span><span>Conseillère</span></div><a style="display:block;width:14px"><span class="event-label" title="18:00 Conseil municipal 3" style="display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">18:00 Conseil municipal 3</span></a>`,
   ],
   [
     "horizontal-scroll",

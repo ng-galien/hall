@@ -18,7 +18,7 @@ export const conformanceRules = {
   "disclosure-mark": {
     title: "Dépliage sans le carré « + / − »",
     expected:
-      "Un contenu qui se déplie porte devant son titre ou sa ligne un carré « + » quand il est fermé, « − » quand il est ouvert (composant de dépliage) ; la barre latérale, les dossiers de Documents, les listes déroulantes, les menus et le fil d'Ariane gardent leur forme.",
+      "Un contenu qui se déplie dans le flux porte devant son titre ou sa ligne un carré « + » quand il est fermé, « − » quand il est ouvert (composant de dépliage) ; une commande écrite qui ouvre un panneau, une liste ou un outil n'en porte pas, et la barre latérale, les dossiers de Documents, les listes déroulantes, les menus et le fil d'Ariane gardent leur forme.",
   },
   "unlabelled-create": {
     title: "Choix 6 : « + » de création ou d'ajout sans libellé",
@@ -31,7 +31,7 @@ export const conformanceRules = {
   "icon-weight": {
     title: "Choix 9R : icône hors de la graisse normale",
     expected:
-      "Les icônes sont dans la graisse normale de leur famille ; seule la destination courante d'une barre a un trait plus épais.",
+      "Les icônes sont dans la graisse normale de leur famille, l'entrée en cours d'une barre comprise : elle se distingue par le bleu et une graisse moyenne du libellé.",
   },
   "warm-tint": {
     title: "Charte : teinte chaude peinte sur l'habillage de l'interface (crème, orange, brun, ambre)",
@@ -438,12 +438,9 @@ export function measureConformance(options) {
     const [name, weight] = icon.split(":");
     /* filled-icon: choices 1 and 9, every icon is drawn in outline. */
     if (weight === "fill" || weight === "duotone") add("filled-icon", svg, `${name} en poids ${weight}`);
-    /* icon-weight: choice 9R, the regular weight of the family; the current destination of a bar is drawn bolder (1A). */
-    if (
-      ["bold", "light", "thin"].includes(weight) &&
-      !svg.closest("[aria-current=page], [data-active=true], [data-current=true], .app-sidebar [data-open=true]")
-    )
-      add("icon-weight", svg, `${name} en poids ${weight}`);
+    /* icon-weight: choice 9R, the regular weight of the family, the current entry of a bar included (owner's words of
+       12 November 2026: « c'est trop gras. Tu réduis la graisse »). */
+    if (["bold", "light", "thin"].includes(weight)) add("icon-weight", svg, `${name} en poids ${weight}`);
     /* disclosure-chevron: choice 14, a section or a folder unfolds without a chevron or a triangle. */
     if (/^(Caret(Down|Right|Up|Left|Circle\w*)|Triangle)$/.test(name)) {
       const owner = svg.closest("[aria-expanded], summary, [role=treeitem]");
@@ -886,6 +883,9 @@ export function measureConformance(options) {
     if (!shown(toggle)) continue;
     const label = nameOf(toggle).slice(0, 40);
     const badge = toggle.querySelector(".disclosure-badge");
+    /* A written command that opens a panel, a list or a tool (« Afficher le sommaire », « Liste des présences ») is a
+       button, not a content unfolding in the flow: it carries no square (coordinator's reading of page 10). */
+    if (!badge && toggle.matches("[data-slot=button]") && visibleText(toggle)) continue;
     if (!badge || !drawn(badge)) {
       add("disclosure-mark", toggle, `« ${label} » sans carré « + / − »`);
       continue;
@@ -1227,7 +1227,11 @@ export function measureDesignReference(options) {
       findings.push({
         rule: "design-reference",
         selector: `${entry.component} · ${entry.property}${entry.pseudo ? ` (${entry.pseudo})` : ""} · ${keyOf(element)}`,
-        detail: `design ${entry.expected} (Maket « ${entry.source.doc} » p. ${entry.source.page}, ${entry.source.element}), mesuré ${actual}`,
+        detail: `design ${entry.expected} (${
+          entry.decision
+            ? `décision du propriétaire du ${entry.decision.date}, ${entry.decision.words}`
+            : `Maket « ${entry.source.doc} » p. ${entry.source.page}, ${entry.source.element}`
+        }), mesuré ${actual}`,
       });
     }
   }

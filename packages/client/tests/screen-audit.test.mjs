@@ -71,7 +71,15 @@ test("a changed file leads to its screens, a shared component to its declared sa
   );
   assert.deepEqual(
     new Set(target.screens),
-    new Set(["utilisateurs", "utilisateur", "utilisateur-creation", "contact", "seance-preparation", "parametres", "document-texte"]),
+    new Set([
+      "utilisateurs",
+      "utilisateur",
+      "utilisateur-creation",
+      "contact",
+      "seance-preparation",
+      "parametres",
+      "document-texte",
+    ]),
   );
   assert.deepEqual(target.unmapped, ["src/lib/unknown.ts"]);
   assert.equal(target.reasons.find((reason) => reason.file.endsWith("field.tsx")).component, "champ de formulaire");
@@ -155,6 +163,8 @@ test("the design table is drawn from « Design de référence » only, cites its
   for (const entry of table.entries) {
     const name = `${entry.component} · ${entry.property}`;
     assert.equal(entry.source?.doc, "Hall 1.3 — Design de référence", `${name}: source`);
+    // A value the owner decided after the reference names his words and the commits that apply it.
+    if (entry.decision) assert.ok(entry.decision.words && entry.decision.commits?.length, `${name}: décision`);
     assert.ok(entry.source.page >= 1 && entry.source.page <= 10 && entry.source.element, `${name}: page et élément`);
     assert.equal(entry.status, "retenu", `${name}: no contradiction is kept`);
     assert.ok(["all", "mouse", "finger", "touch", "pointer-wide"].includes(entry.when), `${name}: ${entry.when}`);
