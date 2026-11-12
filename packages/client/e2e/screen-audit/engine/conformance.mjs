@@ -13,7 +13,12 @@ export const conformanceRules = {
   "disclosure-chevron": {
     title: "Choix 14 : chevron ou triangle de dépliage",
     expected:
-      "Une section ou un dossier se déplie par un clic sur son en-tête ou sur son icône de dossier, sans chevron ni triangle.",
+      "Un contenu se déplie sans chevron ni triangle : par le carré « + / − » devant sa ligne, un dossier par son icône.",
+  },
+  "disclosure-mark": {
+    title: "Dépliage sans le carré « + / − »",
+    expected:
+      "Un contenu qui se déplie porte devant son titre ou sa ligne un carré « + » quand il est fermé, « − » quand il est ouvert (composant de dépliage) ; la barre latérale, les dossiers de Documents, les listes déroulantes, les menus et le fil d'Ariane gardent leur forme.",
   },
   "unlabelled-create": {
     title: "Choix 6 : « + » de création ou d'ajout sans libellé",
@@ -844,6 +849,45 @@ export function measureConformance(options) {
     const height = line.getBoundingClientRect().height;
     if (Math.abs(height - 44) > 1) add("header-line-height", line, `${Math.round(height)} px`);
     /* The chevron after a segment of the breadcrumb opens its menu (decision of 12 November 2026). */
+  }
+
+  /* disclosure-mark: decision of 12 November 2026 (Design de référence, page 10, choice C), one folding form. */
+  const markExceptions = [
+    ".app-sidebar",
+    "[role=treeitem]",
+    "[data-testid^=workspace-tree]",
+    "[aria-haspopup]",
+    "[role=combobox]",
+    "[data-slot=select-trigger]",
+    "select",
+    "[role=menuitem]",
+    "nav[aria-label] ol",
+    ".breadcrumb, [data-testid*=breadcrumb]",
+  ].join(", ");
+  const drawn = (element) => {
+    const rect = element.getBoundingClientRect();
+    return rect.width > 1 && rect.height > 1 && getComputedStyle(element).display !== "none";
+  };
+  for (const toggle of document.querySelectorAll("[aria-expanded], summary")) {
+    if (ignored(toggle) || toggle.closest(markExceptions) || !drawn(toggle)) continue;
+    if (!shown(toggle)) continue;
+    const label = nameOf(toggle).slice(0, 40);
+    const badge = toggle.querySelector(".disclosure-badge");
+    if (!badge || !drawn(badge)) {
+      add("disclosure-mark", toggle, `« ${label} » sans carré « + / − »`);
+      continue;
+    }
+    const open = toggle.matches("summary")
+      ? Boolean(toggle.parentElement?.open)
+      : toggle.getAttribute("aria-expanded") === "true";
+    const plus = badge.querySelector(".disclosure-badge-plus");
+    const minus = badge.querySelector(".disclosure-badge-minus");
+    const sign = minus && drawn(minus) ? "−" : plus && drawn(plus) ? "+" : "rien";
+    if (sign !== (open ? "−" : "+"))
+      add("disclosure-mark", toggle, `« ${label} » ${open ? "ouvert" : "fermé"} montre « ${sign} »`);
+    const first = [...toggle.querySelectorAll("*")].find((child) => drawn(child) && child.childElementCount === 0);
+    if (first && !badge.contains(first) && first.getBoundingClientRect().left < badge.getBoundingClientRect().left - 1)
+      add("disclosure-mark", toggle, `« ${label} » : le carré n'est pas devant la ligne`);
   }
 
   /* item-more-menu: on a tablet and a computer, an opened item shows its commands as icons, without « … ». */

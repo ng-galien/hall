@@ -155,7 +155,7 @@ test("the design table is drawn from « Design de référence » only, cites its
   for (const entry of table.entries) {
     const name = `${entry.component} · ${entry.property}`;
     assert.equal(entry.source?.doc, "Hall 1.3 — Design de référence", `${name}: source`);
-    assert.ok(entry.source.page >= 1 && entry.source.page <= 9 && entry.source.element, `${name}: page et élément`);
+    assert.ok(entry.source.page >= 1 && entry.source.page <= 10 && entry.source.element, `${name}: page et élément`);
     assert.equal(entry.status, "retenu", `${name}: no contradiction is kept`);
     assert.ok(["all", "mouse", "finger", "touch", "pointer-wide"].includes(entry.when), `${name}: ${entry.when}`);
     if (/color$/.test(entry.property) && entry.expected !== "transparent")

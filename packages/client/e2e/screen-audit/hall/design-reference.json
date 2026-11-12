@@ -701,6 +701,84 @@
         "page": 9,
         "element": ".p"
       }
+    },
+    {
+      "component": "dépliage",
+      "selector": ".disclosure-badge",
+      "property": "width",
+      "expected": "18px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 10,
+        "element": ".bd"
+      }
+    },
+    {
+      "component": "dépliage",
+      "selector": ".disclosure-badge",
+      "property": "height",
+      "expected": "18px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 10,
+        "element": ".bd"
+      }
+    },
+    {
+      "component": "dépliage",
+      "selector": ".disclosure-badge",
+      "property": "border-top-width",
+      "expected": "1px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 10,
+        "element": ".bd"
+      }
+    },
+    {
+      "component": "dépliage",
+      "selector": ".disclosure-badge",
+      "property": "border-top-color",
+      "expected": "#C5CBD3",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 10,
+        "element": ".bd"
+      }
+    },
+    {
+      "component": "dépliage",
+      "selector": ".disclosure-badge",
+      "property": "border-radius",
+      "expected": "4px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 10,
+        "element": ".bd"
+      }
+    },
+    {
+      "component": "dépliage",
+      "selector": ".disclosure-badge",
+      "property": "color",
+      "expected": "#5B6472",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 10,
+        "element": ".bd"
+      }
     }
   ],
   "missing": [

@@ -183,9 +183,26 @@ export const components = [
     name: "En-tête de section",
     code: ["packages/client/src/components/ui/collapsible-section.tsx"],
     variants: ["repliable", "section de dossier"],
-    rules: ["section-header", "disclosure-chevron", "unlabelled-create", "component-unity"],
+    rules: ["section-header", "disclosure-chevron", "disclosure-mark", "unlabelled-create", "component-unity"],
     values: [],
     decided: [],
+  },
+  {
+    id: "dépliage",
+    name: "Dépliage",
+    code: [
+      "packages/client/src/components/ui/disclosure.tsx",
+      "packages/client/src/components/ui/disclosure-badge.tsx",
+    ],
+    variants: ["fermé « + »", "ouvert « − »"],
+    rules: ["disclosure-mark", "disclosure-chevron", "design-reference"],
+    values: ["dépliage"],
+    decided: [
+      {
+        what: "la barre latérale, les dossiers de Documents, les listes déroulantes, les menus et le fil d'Ariane gardent leur forme",
+        source: `${reference}, page 10`,
+      },
+    ],
   },
   {
     id: "menu-contextuel",
