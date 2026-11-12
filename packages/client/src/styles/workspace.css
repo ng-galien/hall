@@ -700,9 +700,12 @@
   /* The side padding keeps room for the floating tools of the compact editor, which open at its left. */
   .workbench { display: flex; flex-direction: column; gap: var(--hall-space-4); padding: var(--hall-space-4) var(--hall-space-5); }
   /* An opened item starts one step under the rule of its title: no search row, no second top padding above it. */
-  @media (min-width: 761px) {
-    .workspace-topzone[data-item-open="true"] { margin-bottom: calc(-1 * var(--hall-space-3)); }
-    .workspace-bench > .workbench { padding-top: 0; }
+  .workspace-topzone[data-item-open="true"] { margin-bottom: calc(-1 * var(--hall-space-3)); }
+  .workspace-bench > .workbench { padding-top: 0; }
+  /* On a phone an opened item keeps the padding of the screen. */
+  @media (max-width: 760px) {
+    .workspace-topzone[data-item-open="true"] { margin-bottom: 0; }
+    .workspace-bench > .workbench { padding-top: var(--hall-space-4); }
   }
   .workbench.resource-workbench,
   .workbench.workspace-business-workbench { gap: var(--hall-space-3); }

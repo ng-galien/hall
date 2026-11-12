@@ -143,11 +143,6 @@
     font-family: var(--hall-font-family-monospace);
     font-size: var(--hall-font-size-caption);
   }
-  @container (min-width: 761px) {
-    .editor-lab { grid-template-columns: 1fr 1fr; }
-    .editor-lab-source { grid-column: 1 / -1; }
-    .editor-lab-recipe { grid-column: 1 / -1; }
-  }
 
   .editor-lab-recipe ol {
     display: grid;
@@ -456,25 +451,26 @@
   /* Stage bar: compact circles, centered titles, connectors through the circle centre, no rule under it. */
   .meeting-preparation .page-header .meeting-stepper { padding: 0 0 var(--hall-space-2); border-bottom: 0; }
   /* Wider than a phone the steps stand in a row, each title centred under its circle. */
-  @media (min-width: 761px) {
-    .meeting-preparation .meeting-stepper-list { gap: 0; }
-    .meeting-preparation .meeting-stepper-item { display: grid; justify-items: center; text-align: center; }
-    .meeting-preparation .meeting-stepper-marker { position: relative; display: grid; place-items: center; width: 100%; gap: 0; }
-    .meeting-preparation .meeting-stepper-indicator { position: relative; z-index: var(--hall-z-content); width: var(--hall-size-control); height: var(--hall-size-control); font-size: var(--hall-font-size-body); }
-    .meeting-preparation .meeting-stepper-indicator[data-status="active"] { box-shadow: none; }
-    .meeting-preparation .meeting-stepper-separator { position: absolute; top: 50%; left: 50%; width: 100%; height: var(--hall-stroke-thin); margin: 0; transform: translateY(-50%); }
-    .meeting-preparation .meeting-stepper-title { margin-top: var(--hall-space-1); font-weight: var(--hall-font-weight-regular); }
-    .meeting-preparation .meeting-stepper-item[data-status="active"] .meeting-stepper-title { font-weight: var(--hall-font-weight-semibold); }
-  }
+  .meeting-preparation .meeting-stepper-list { gap: 0; }
+  .meeting-preparation .meeting-stepper-item { display: grid; justify-items: center; text-align: center; }
+  .meeting-preparation .meeting-stepper-marker { position: relative; display: grid; place-items: center; width: 100%; gap: 0; }
+  .meeting-preparation .meeting-stepper-indicator { position: relative; z-index: var(--hall-z-content); width: var(--hall-size-control); height: var(--hall-size-control); font-size: var(--hall-font-size-body); }
+  .meeting-preparation .meeting-stepper-indicator[data-status="active"] { box-shadow: none; }
+  .meeting-preparation .meeting-stepper-separator { position: absolute; top: 50%; left: 50%; width: 100%; height: var(--hall-stroke-thin); margin: 0; transform: translateY(-50%); }
+  .meeting-preparation .meeting-stepper-title { margin-top: var(--hall-space-1); font-weight: var(--hall-font-weight-regular); }
+  .meeting-preparation .meeting-stepper-item[data-status="active"] .meeting-stepper-title { font-weight: var(--hall-font-weight-semibold); }
   .meeting-preparation .meeting-stepper-title { white-space: nowrap; }
-  /* On a phone the steps are a vertical list, each circle with its title on one line beside it. */
+  /* On a phone the steps are a vertical list, each circle with its title on one line beside it; the row layout above
+     gives way to the drawing of the steps. */
   @media (max-width: 760px) {
     .meeting-preparation .meeting-stepper-list { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); }
-    .meeting-preparation .meeting-stepper-item { position: relative; display: flex; align-items: center; gap: var(--hall-space-3); }
-    .meeting-preparation .meeting-stepper-marker { gap: 0; }
-    .meeting-preparation .meeting-stepper-indicator { width: var(--hall-size-control); height: var(--hall-size-control); font-size: var(--hall-font-size-body); }
-    .meeting-preparation .meeting-stepper-title { margin-top: 0; font-size: var(--hall-font-size-body); }
-    .meeting-preparation .meeting-stepper-separator { position: absolute; top: 100%; left: calc(var(--hall-size-control) / 2); width: var(--hall-stroke-thin); height: var(--hall-space-2); }
+    .meeting-preparation .meeting-stepper-item { position: relative; display: flex; align-items: center; justify-items: normal; gap: var(--hall-space-3); text-align: inherit; }
+    .meeting-preparation .meeting-stepper-marker { position: static; display: block; width: auto; }
+    .meeting-preparation .meeting-stepper-indicator { position: static; width: var(--hall-size-control); height: var(--hall-size-control); font-size: var(--hall-font-size-body); }
+    .meeting-preparation .meeting-stepper-indicator[data-status="active"] { box-shadow: 0 0 0 var(--hall-space-1) var(--hall-color-brand-subtle); }
+    .meeting-preparation .meeting-stepper-title { margin-top: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-medium); }
+    .meeting-preparation .meeting-stepper-item[data-status="active"] .meeting-stepper-title { font-weight: var(--hall-font-weight-semibold); }
+    .meeting-preparation .meeting-stepper-separator { position: absolute; top: 100%; left: calc(var(--hall-size-control) / 2); width: var(--hall-stroke-thin); height: var(--hall-space-2); transform: none; }
   }
   .meeting-preparation .page-header-controls { flex-wrap: nowrap; align-items: flex-start; }
   .meeting-preparation .page-header-controls > .meeting-console { order: -1; min-width: 0; flex: 1 1 0; }
