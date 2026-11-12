@@ -63,17 +63,17 @@ export function SectionHeader({
      on a line. */
   const tailIcon = explanation ?? hint ?? null;
   const inlineExplanation = Boolean(tailIcon) && !fold && typeof title === "string";
-  const lastSpace = typeof title === "string" ? title.lastIndexOf(" ") : -1;
+  /* Only the last letter of the title is written with the icon, so that the title still wraps between its words. */
+  const tailStart = typeof title === "string" ? Math.max(0, title.length - 1) : 0;
   const label = (
     <>
       {shownIcon ? <span className="section-header-icon">{shownIcon}</span> : null}
       <span className="section-header-title-text">
         {inlineExplanation ? (
           <>
-            {title.slice(0, lastSpace + 1)}
+            {title.slice(0, tailStart)}
             <span className="title-tail">
-              {title.slice(lastSpace + 1)}
-              {"\u2060"}
+              {title.slice(tailStart)}
               {tailIcon}
             </span>
           </>

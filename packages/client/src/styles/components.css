@@ -342,8 +342,8 @@
   .admin-role-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-16rem)), 1fr)); gap: var(--hall-space-5); }
   .admin-role-zone { display: grid; align-content: start; gap: var(--hall-space-2); min-height: var(--hall-size-data-row); }
   .admin-role-zone[data-over="true"] { background: var(--hall-color-surface-selected); }
-  .admin-role-header { display: flex; min-height: var(--hall-size-control); align-items: center; justify-content: space-between; gap: var(--hall-space-2); }
-  .admin-role-header h3 { display: flex; align-items: baseline; gap: var(--hall-space-2); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-bold); }
+  .admin-role-header { display: flex; min-height: var(--hall-size-control); flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--hall-space-2); }
+  .admin-role-header h3 { display: flex; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: var(--hall-space-2); overflow-wrap: anywhere; font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-bold); }
   .admin-role-header h3 span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-regular); font-variant-numeric: tabular-nums; }
   .admin-role-zone .list-row-line[draggable="true"] { cursor: grab; }
   .admin-membership-actions { display: flex; flex-wrap: wrap; gap: var(--hall-space-2); }
