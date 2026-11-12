@@ -1,6 +1,15 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -277,6 +286,45 @@ function stopAll(signal) {
   for (const { child } of running) stopProcessGroup(child, signal);
 }
 
+/*
+ * One run at a time on the test database and its container: the run takes /private/tmp/hall-e2e.lock (mkdir is
+ * atomic), writes its owner in it, waits while another run holds it, and gives it back at its end, even on failure.
+ * A caller that already holds the lock sets HALL_E2E_LOCK_HELD=true.
+ */
+const lockDirectory = "/private/tmp/hall-e2e.lock";
+let lockTaken = false;
+function takeLock() {
+  if (process.env.HALL_E2E_LOCK_HELD === "true") return;
+  let announced = false;
+  for (;;) {
+    try {
+      mkdirSync(lockDirectory);
+      writeFileSync(
+        join(lockDirectory, "owner"),
+        `${process.env.HALL_E2E_LOCK_OWNER ?? "run.mjs"} — pid ${process.pid} — ${new Date().toISOString()} — ${process.argv.slice(2).join(" ")}\n`,
+      );
+      lockTaken = true;
+      return;
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      if (!announced) {
+        const owner = existsSync(join(lockDirectory, "owner"))
+          ? readFileSync(join(lockDirectory, "owner"), "utf8").trim()
+          : "inconnu";
+        console.log(`La base de test est tenue par : ${owner}. Attente de sa libération…`);
+        announced = true;
+      }
+      spawnSync("sleep", ["5"]);
+    }
+  }
+}
+function giveLock() {
+  if (lockTaken) rmSync(lockDirectory, { recursive: true, force: true });
+  lockTaken = false;
+}
+process.once("exit", giveLock);
+takeLock();
+
 const onInterrupt = (signal) => {
   interrupted = true;
   stopAll(signal);
@@ -397,4 +445,5 @@ try {
     !process.env.HALL_E2E_CLIENT_BUILD
   )
     rmSync(builtClientDirectory, { recursive: true, force: true });
+  giveLock();
 }
