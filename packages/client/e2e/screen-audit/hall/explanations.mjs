@@ -19,6 +19,11 @@ const explanationKey = /(Hint|Help|Description|Desc|Intro|Explanation|Explain|In
 const keptKey =
   /(^|\.)(error|errors|issue|empty|noMatch|none|blocked|blocker|blockers|warning|confirm\w*|docs|authorization)(\.|$)|(Error|Failed|Empty|Blocked|Blocker|Confirm|Warning|Unavailable)\w*$/i;
 const keptText = /^(Aucun|Aucune|Impossible|Erreur|Échec)\b/;
+/* The second line of an entry of the « Nouveau » menu and of a stage of a meeting: a short label. */
+const shortLabel = /^create\.kind\.[\w-]+\.description$|^meeting\.stage\.[\w-]+\.hint$/;
+/* A message the decision keeps in clear: an error, a conflict, a blocking warning, a confirmation, a result. */
+const message =
+  /(Conflict|conflict|Success|Recorded|Preserved|alreadyPresent|capacityReached|Incomplete|delete\w*Help|offline|WithoutQuorum|Prepared|passwordRecorded)\b|^applicationError\./;
 
 /** The texts of the French catalogue, by key. */
 export function catalogue() {
@@ -35,6 +40,8 @@ const sentences = (text) => text.split(/(?<=[.!?…])\s+(?=[A-ZÀ-Ý«])/u).filt
 /** Whether a text of the catalogue is a sentence of explanation, and why. */
 export function explanationOf(key, text) {
   if (keptKey.test(key) || keptText.test(text.trim())) return null;
+  // Decisions of 12 November 2026: messages stay in clear; short second lines are labels; the development page is out.
+  if (message.test(key) || shortLabel.test(key) || /^editor\.lab\./.test(key)) return null;
   if (words(text) < 4) return null;
   if (explanationKey.test(key)) return "clé d'explication";
   if (sentences(text) >= 2 && words(text) >= 10) return "deux phrases ou plus";
@@ -53,25 +60,23 @@ export function explanationTexts() {
 
 /** The texts as the screen shows them: placeholders become any text, spaces are collapsed. */
 export function screenPatterns() {
-  return explanationTexts()
-    .filter(({ key }) => !message.test(key))
-    .map(({ key, text }) => ({
-      key,
-      // A placeholder ({name}) becomes any text; every other character is written as itself.
-      pattern: text
-        .replace(/\s+/g, " ")
-        .trim()
-        .split(/\{[^{}]*\}/)
-        .map((part) => part.replace(/[.*+?^$(){}|[\]\\]/g, "\\$&"))
-        .join(".+?"),
-    }));
+  return explanationTexts().map(({ key, text }) => ({
+    key,
+    // A placeholder ({name}) becomes any text; every other character is written as itself.
+    pattern: text
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(/\{[^{}]*\}/)
+      .map((part) => part.replace(/[.*+?^$(){}|[\]\\]/g, "\\$&"))
+      .join(".+?"),
+  }));
 }
 
 function files(directory) {
   return readdirSync(directory).flatMap((name) => {
     const path = join(directory, name);
     if (statSync(path).isDirectory()) return name === "docs" || name === "i18n" ? [] : files(path);
-    return /\.tsx?$/.test(name) ? [path] : [];
+    return /\.tsx?$/.test(name) && name !== "EditorLabPage.tsx" ? [path] : [];
   });
 }
 
@@ -79,14 +84,9 @@ function files(directory) {
    clear in a component. */
 const hidden = /HelpHint|aria-label|aria-description|title=|placeholder|TooltipContent|tooltip|label=\{?\s*t\(/;
 
-/* A message the decision keeps in clear: an error, a conflict, a blocking warning, a confirmation, a result. */
-const message =
-  /(Conflict|conflict|Success|Recorded|Preserved|alreadyPresent|capacityReached|Incomplete|delete\w*Help|offline|WithoutQuorum|Prepared|passwordRecorded)\b|^applicationError\./;
-
 /**
- * Every use, in the client sources, of a sentence of explanation, with the component that shows it. `kind` is
- * « explication » or « message » (an error, a warning, a confirmation or a result, which the decision keeps in clear).
- * A key composed at run time (`${kind}.membersDescription`) is found by its last segment.
+ * Every use, in the client sources, of a sentence of explanation, with the component that shows it; a message shown
+ * beside a warning or a success icon stays in clear and is left out. A key composed at run time (`${kind}.membersDescription`) is found by its last segment.
  */
 export function inventory() {
   const texts = explanationTexts();
@@ -119,9 +119,9 @@ export function inventory() {
         const key = `${entry.key} ${path}:${index}`;
         if (seen.has(key)) continue;
         seen.add(key);
+        if (/Warning|Alert|CheckCircle/.test(context)) continue;
         uses.push({
           ...entry,
-          kind: message.test(entry.key) || /Warning|Alert|CheckCircle/.test(context) ? "message" : "explication",
           file: relative(repository, path),
           line: index + 1,
           shownBy:
@@ -135,7 +135,6 @@ export function inventory() {
       if (literal && sentences(literal[1]) >= 1 && words(literal[1]) >= 8)
         uses.push({
           key: "(écrit dans le code)",
-          kind: "explication",
           text: literal[1].trim(),
           why: "phrase écrite dans le code",
           file: relative(repository, path),
