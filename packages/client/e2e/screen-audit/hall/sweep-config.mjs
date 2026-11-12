@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { iconFingerprints } from "../engine/icon-fingerprints.mjs";
+import { screenPatterns } from "./explanations.mjs";
 
 /*
  * Hall settings of the width sweep. The widths are not written here: the sweep reads the width thresholds of the style
@@ -233,6 +234,8 @@ const formField = {
 const designReference = JSON.parse(readFileSync(resolve(import.meta.dirname, "design-reference.json"), "utf8"));
 
 export const sweepPlan = {
+  /** The sentences of explanation of the catalogue, as the screen writes them (rule explanation-text). */
+  explanations: screenPatterns(),
   from: 320,
   to: 1600,
   height: { pointer: 900, touch: 800 },

@@ -20,6 +20,11 @@ export const conformanceRules = {
     expected:
       "Un contenu qui se déplie dans le flux porte devant son titre ou sa ligne un carré « + » quand il est fermé, « − » quand il est ouvert (composant de dépliage) ; une commande écrite qui ouvre un panneau, une liste ou un outil n'en porte pas, et la barre latérale, les dossiers de Documents, les listes déroulantes, les menus et le fil d'Ariane gardent leur forme.",
   },
+  "explanation-text": {
+    title: "Phrase d'explication écrite en clair",
+    expected:
+      "Une phrase d'explication ou de mode d'emploi est derrière l'icône d'information (HelpHint) ; restent en clair les données, les libellés, les états, les erreurs, les états vides, les avertissements qui bloquent une action et l'aide.",
+  },
   "unlabelled-create": {
     title: "Choix 6 : « + » de création ou d'ajout sans libellé",
     expected: "Une commande de création ou d'ajout montre « + » suivi de son libellé.",
@@ -901,6 +906,32 @@ export function measureConformance(options) {
     const first = [...toggle.querySelectorAll("*")].find((child) => drawn(child) && child.childElementCount === 0);
     if (first && !badge.contains(first) && first.getBoundingClientRect().left < badge.getBoundingClientRect().left - 1)
       add("disclosure-mark", toggle, `« ${label} » : le carré n'est pas devant la ligne`);
+  }
+
+  /* explanation-text: decision of 12 November 2026, a sentence of explanation of the catalogue (explanations.mjs) is
+     not written in clear; the information icon, a tooltip, an alert and the help pages hold it. */
+  const explanations = (options.explanations ?? []).map(({ key, pattern }) => ({
+    key,
+    match: new RegExp(`^${pattern}$`, "u"),
+  }));
+  if (explanations.length && !location.pathname.startsWith("/app/docs")) {
+    const told = new Set();
+    for (const element of document.querySelectorAll("body *")) {
+      if (ignored(element) || told.has(element)) continue;
+      if (element.closest("[role=tooltip], .help-hint-content, [role=alert], [data-radix-popper-content-wrapper]"))
+        continue;
+      const text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
+      if (text.length < 20 || !shown(element)) continue;
+      const found = explanations.find((entry) => entry.match.test(text));
+      if (!found) continue;
+      // The innermost element that holds the whole sentence.
+      if (
+        [...element.children].some((child) => found.match.test((child.textContent ?? "").replace(/\s+/g, " ").trim()))
+      )
+        continue;
+      told.add(element);
+      add("explanation-text", element, `« ${text.slice(0, 60)}${text.length > 60 ? "…" : ""} » (${found.key})`);
+    }
   }
 
   /* item-more-menu: on a tablet and a computer, an opened item shows its commands as icons, without « … ». */

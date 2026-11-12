@@ -194,6 +194,20 @@ export const components = [
     decided: [],
   },
   {
+    id: "aide",
+    name: "Aide « i »",
+    code: ["packages/client/src/components/HelpHint.tsx"],
+    variants: ["icône d'information, explication au survol ou au focus"],
+    rules: ["explanation-text"],
+    values: [],
+    decided: [
+      {
+        what: "restent en clair les données, les libellés, les états, les erreurs, les états vides (« Aucun … »), les avertissements qui bloquent une action et le contenu de l'aide",
+        source: "décision du propriétaire du 12 novembre 2026",
+      },
+    ],
+  },
+  {
     id: "dépliage",
     name: "Dépliage",
     code: [

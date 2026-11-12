@@ -209,6 +209,7 @@ if (sweeping) {
                   phone,
                   item: sweepPlan.isItem(screen),
                   exceptions: sweepPlan.exceptions,
+                  explanations: sweepPlan.explanations,
                 };
                 const decisions: Finding[] = await page.evaluate(measureConformance, settings);
                 const fields: Finding[] = await page.evaluate(measureFormFields, {

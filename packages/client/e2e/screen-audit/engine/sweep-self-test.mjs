@@ -237,6 +237,16 @@ const cases = [
     `<style>.disclosure-badge{display:inline-flex;width:18px;height:18px}.disclosure-badge svg{width:12px;height:12px}.disclosure-badge-minus{display:none}details[open]>summary .disclosure-badge-minus,.disclosure-badge[data-expanded=true] .disclosure-badge-minus{display:block}details[open]>summary .disclosure-badge-plus,.disclosure-badge[data-expanded=true] .disclosure-badge-plus{display:none}</style><details><summary><span class="disclosure-badge" aria-hidden="true"><svg class="disclosure-badge-plus"><rect width="9" height="9"/></svg><svg class="disclosure-badge-minus"><rect width="9" height="9"/></svg></span><span>Notes de discussion</span></summary><p>Texte</p></details><button aria-expanded="true"><span class="disclosure-badge" data-expanded="true" aria-hidden="true"><svg class="disclosure-badge-plus"><rect width="9" height="9"/></svg><svg class="disclosure-badge-minus"><rect width="9" height="9"/></svg></span><span>Pour 9</span></button><button data-slot="button" aria-expanded="false">Afficher le sommaire</button><nav aria-label="Fil d'Ariane"><ol><li><button aria-expanded="false">Séances</button></li></ol></nav>`,
   ],
   [
+    "explanation-text",
+    {
+      explanations: [
+        { key: "live.publicVoteHint", pattern: "Glissez les badges dans la zone\\. Le registre conserve .+? votes\\." },
+      ],
+    },
+    `<section><h2>Vote</h2><p>Glissez les badges dans la zone. Le registre conserve 15 votes.</p></section>`,
+    `<section><h2>Vote <button aria-label="Glissez les badges dans la zone. Le registre conserve 15 votes.">i</button></h2><div role="tooltip" class="help-hint-content">Glissez les badges dans la zone. Le registre conserve 15 votes.</div><p>Pour 9 · Contre 1</p></section>`,
+  ],
+  [
     "state-pill",
     {},
     `<p><span role="status" class="dot">Enregistré</span> <span data-tone="action" style="background:rgb(234,240,255);color:rgb(27,69,173);padding:0 8px">Programmée</span></p>`,
