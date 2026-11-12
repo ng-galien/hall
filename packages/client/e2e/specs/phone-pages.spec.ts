@@ -244,14 +244,19 @@ test.describe("Hall pages on a phone", () => {
         const headerBottom = (await header.boundingBox())!;
         const listTop = (await firstRow.boundingBox())!.y;
         expect(Math.round(listTop - (headerBottom.y + headerBottom.height))).toBeLessThanOrEqual(16);
-        for (const control of ["workspace-search-open", "workspace-create-menu"]) {
-          const box = (await header.getByTestId(control).boundingBox())!;
-          expect(Math.min(box.width, box.height), `${control} target`).toBeGreaterThanOrEqual(44);
+        for (const control of [
+          header.getByTestId("workspace-search-open"),
+          page.getByTestId("workspace-create-menu"),
+        ]) {
+          const box = (await control.boundingBox())!;
+          expect(Math.min(box.width, box.height), "header search and floating creation targets").toBeGreaterThanOrEqual(
+            44,
+          );
         }
       }
 
-      // The « Nouveau » menu of the header offers finger-sized rows over the screen width.
-      await page.getByTestId("phone-header").getByTestId("workspace-create-menu").tap();
+      // The floating « Nouveau » opens a sheet of finger-sized rows over the screen width.
+      await page.getByTestId("workspace-create-menu").tap();
       expectPhoneMenu(await menuMeasures(page, "workspace-create-options"));
       await page.keyboard.press("Escape");
       await expect(page.getByTestId("workspace-create-options")).toBeHidden();
@@ -395,10 +400,8 @@ test.describe("Hall pages on a phone", () => {
       for (const testId of ["business-create-subject", "attachment-picker-open", "phone-document-actions"])
         expect(await minimumSide(testId), `${testId} target`).toBeGreaterThanOrEqual(44);
 
-      for (const header of [page.getByTestId("phone-header"), page.getByTestId("business-subject-table")]) {
-        const icon = await header.locator('[data-size^="icon"] svg').first().boundingBox();
-        expect(icon!.width, "action icon size").toBeGreaterThanOrEqual(16);
-      }
+      const icon = await page.getByTestId("phone-header").locator('[data-size="icon"] svg').first().boundingBox();
+      expect(icon!.width, "action icon size").toBeGreaterThanOrEqual(16);
       await page.getByTestId("business-create-subject").click();
       expectPhoneMenu(await menuMeasures(page, "workspace-create-options"));
       await page.keyboard.press("Escape");

@@ -5,18 +5,14 @@ const widths = [360, 390, 768, 852, 1440];
 /** At and below this width Hall uses its phone layout, where each item opens on its own page. */
 const phoneWidth = 760;
 
+/** A row title is visible inside the screen; a title longer than its line ends with an ellipsis (HALL-FR-LAY-060). */
 async function expectReadable(locator: Locator) {
   await expect(locator).toBeVisible();
   await expect
     .poll(() =>
       locator.evaluate((element) => {
         const bounds = element.getBoundingClientRect();
-        return (
-          bounds.width > 40 &&
-          element.scrollWidth <= element.clientWidth + 1 &&
-          bounds.left >= 0 &&
-          bounds.right <= window.innerWidth + 1
-        );
+        return bounds.width > 40 && bounds.left >= 0 && bounds.right <= window.innerWidth + 1;
       }),
     )
     .toBe(true);

@@ -172,7 +172,7 @@
   .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-bold); }
 
   /* The bottom sheet: rises from the bottom edge, its rows are list rows. */
-  .app-sheet { padding: var(--hall-space-4) 0 calc(var(--hall-space-4) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
+  .app-sheet { padding: var(--hall-space-4) 0 calc(var(--hall-space-6) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
   .app-sheet > [data-slot="dialog-title"] { padding: 0 var(--hall-size-touch-control) var(--hall-space-2) var(--hall-space-4); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); }
   .app-sheet .list-row-list { margin: 0; border-bottom: 0; }
 
