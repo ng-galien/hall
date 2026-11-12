@@ -136,10 +136,7 @@ test("the business documents section folds by its header and opens each document
   await page.getByTestId(`business-document-view-${pdf.id}`).click();
   await expect(viewer).toBeVisible();
   await expect(viewer.getByTestId("resource-preview-object")).toHaveAttribute("src", /.+/);
-  await viewer.getByTestId("item-commands-more").click();
-  await expect(page.getByRole("menu").getByTestId("resource-preview-download")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(viewer.getByTestId("resource-preview-download")).toBeVisible();
   await expect(viewer.locator(".workspace-breadcrumb button")).toHaveCount(1);
   await expect(viewer.getByTestId("resource-preview-close")).toHaveCount(1);
   await page.keyboard.press("Escape");

@@ -83,14 +83,14 @@ test("an opened item keeps its place in the first line and its commands on the l
         const label = `${kind} at ${width} px, menu ${folded ? "folded" : "unfolded"}, ${colorScheme}`;
         await page.goto(url);
         const commands = page.getByTestId("screen-title-commands");
-        await expect(commands.getByTestId("item-commands-more")).toBeVisible();
+        await expect(commands.getByTestId("workspace-workbench-pin")).toBeVisible();
         await expectPlaceLine(page, label);
         await expect(page.getByTestId("workspace-search-panel")).toHaveCount(0);
         await expect(page.getByTestId("workspace-breadcrumb-folder-menu")).toHaveCount(0);
         await expect(page.locator(".workspace-crumb-sep svg")).toHaveCount(0);
         await expect(page.getByTestId("item-save-state").or(page.locator(".workbench-eyebrow")).first()).toBeVisible();
         const title = await page.getByTestId("screen-header-title").boundingBox();
-        const more = await commands.getByTestId("item-commands-more").boundingBox();
+        const more = await commands.getByTestId("workspace-workbench-pin").boundingBox();
         expect(more!.y, `${label}: the commands start on the first line of the title`).toBeLessThan(title!.y + 40);
         if (colorScheme === "light" || kind === "map")
           await page.screenshot({

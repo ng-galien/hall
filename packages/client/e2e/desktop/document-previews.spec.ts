@@ -287,10 +287,12 @@ test("document previews share a contextual frame in both themes without changing
       }
       const text = resources.find((entry) => entry.kind === "text")!;
       await go(`workspace?path=${encodeURIComponent(text.path ?? "")}&resource=${text.id}`);
-      await page.getByTestId("item-commands-more").click();
-      const without = page.getByRole("menu").getByTestId("resource-pdf-preview-without-documents");
-      if (await without.isVisible()) await without.click();
-      else await page.getByRole("menu").getByTestId("resource-pdf-preview").click();
+      // The PDF preview is an icon of the title line; with cited documents it opens the choice between the two previews.
+      const choices = page.getByTestId("resource-pdf-preview-choices");
+      if (await choices.isVisible()) {
+        await choices.click();
+        await page.getByRole("menu").getByTestId("resource-pdf-preview-without-documents").click();
+      } else await page.getByTestId("resource-pdf-preview").click();
       const textPdf = page.getByTestId("resource-pdf-preview-dialog");
       await expect(textPdf.locator("header h2")).toContainText(text.name!);
       await pdfDigest(page, page.getByTestId("resource-pdf-preview-native-viewer"));
@@ -335,19 +337,17 @@ test("document previews share a contextual frame in both themes without changing
         if (name === "image")
           await expect(viewer.getByTestId("resource-preview-object")).toHaveAttribute("type", "image/png");
         else {
-          await viewer.getByTestId("item-commands-more").click();
-          await expect(page.getByRole("menu").getByTestId("resource-preview-download")).toBeVisible();
-          await page.keyboard.press("Escape");
-          await expect(page.getByRole("menu")).toHaveCount(0);
+          await expect(viewer.getByTestId("resource-preview-download")).toBeVisible();
         }
         await page.getByTestId("resource-preview-close").click();
       }
       const business = businesses[0]!;
       await go(`workspace?path=${encodeURIComponent(business.folderPath ?? "")}&councilBusiness=${business.id}`);
-      await page.getByTestId("item-commands-more").click();
-      const withoutDocuments = page.getByRole("menu").getByTestId("business-report-pdf-preview-without-documents");
-      if (await withoutDocuments.isVisible()) await withoutDocuments.click();
-      else await page.getByRole("menu").getByTestId("business-report-pdf-preview").click();
+      const reportChoices = page.getByTestId("business-report-pdf-preview-choices");
+      if (await reportChoices.isVisible()) {
+        await reportChoices.click();
+        await page.getByRole("menu").getByTestId("business-report-pdf-preview-without-documents").click();
+      } else await page.getByTestId("business-report-pdf-preview").click();
       const businessPdf = page.getByTestId("business-report-pdf-preview-dialog");
       await expect(businessPdf.locator("header h2")).toContainText(business.title!);
       await pdfDigest(page, page.getByTestId("business-report-pdf-preview-native-viewer"));
