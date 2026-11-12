@@ -326,10 +326,12 @@ export function ScreenLargeTitle({
           data-testid={phone ? "phone-header-title" : "screen-header-title"}
         >
           {title.slice(0, title.lastIndexOf(" ") + 1)}
-          {/* The information icon is written with the last word of the title, never alone on a line. */}
+          {/* The information icon is joined to the last word of the title (word joiner), never alone on a line; the
+              title itself wraps between its words, and a word longer than the line is cut. */}
           {title ? (
             <span className="title-tail">
               {title.slice(title.lastIndexOf(" ") + 1)}
+              {"\u2060"}
               <span ref={slots.hint} className="screen-title-hint" />
             </span>
           ) : null}

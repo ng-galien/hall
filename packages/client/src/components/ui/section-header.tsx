@@ -72,6 +72,7 @@ export function SectionHeader({
             {title.slice(0, lastSpace + 1)}
             <span className="title-tail">
               {title.slice(lastSpace + 1)}
+              {"\u2060"}
               {explanation}
             </span>
           </>

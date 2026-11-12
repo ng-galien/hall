@@ -170,3 +170,12 @@
   background: var(--hall-color-surface);
   box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
 }
+/* On a phone the zoom stands above the line of « Légende » and « Enregistrer ce cadrage », which keeps the width of the
+   map on one line; an opened legend keeps clear of the zoom. */
+@media (max-width: 760px) {
+  .geographic-zoom-tools { bottom: calc(var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control-small)) + var(--hall-space-2)); }
+  .geographic-resource .ol-attribution.ol-control {
+    bottom: calc(var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control-small)) * 4 + var(--hall-space-2) * 2);
+  }
+  .geographic-map-overlay:not(:has(.geographic-legend-content:not([hidden]))) { max-width: calc(100% - var(--hall-space-6)); }
+}

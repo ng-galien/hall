@@ -106,7 +106,7 @@
   }
   .screen-header-title:empty { display: none; }
   /* The title of an opened item is read in full: it passes to the next line beside its commands. */
-  .screen-title-row:has(.screen-title-commands:not(:empty)) > .screen-header-title { overflow-wrap: break-word; }
+  .screen-title-row:has(.screen-title-commands:not(:empty)) > .screen-header-title { overflow-wrap: anywhere; }
   /* A title too long for the room beside its commands takes the whole line; its commands pass under it, on the line of
      its facts at the right, or on a line of their own when the facts leave them no room. */
   .screen-title-block:has(> .screen-title-row[data-long="true"]) { display: flex; flex-wrap: wrap; align-items: flex-start; column-gap: var(--hall-space-3); row-gap: var(--hall-space-1); }

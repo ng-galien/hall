@@ -393,7 +393,7 @@
   /* The value starts at the same distance from its label as the subject: the Cc and Cci commands hang from the top. */
   .mail-recipient-values { position: relative; display: flex; min-width: 0; flex-wrap: wrap; align-items: flex-start; gap: var(--hall-space-1); }
   /* The input of the next recipient shares the line of Cc and Cci, down to a short width, before it passes under them. */
-  .mail-recipient-values > .mail-recipient-input { width: auto; min-width: var(--hall-size-tag-input-field-min); flex: 1 1 0; }
+  .mail-recipient-values > .mail-recipient-input { width: auto; min-width: var(--hall-size-relative-4rem); flex: 1 1 0; }
   .mail-recipient {
     display: inline-flex;
     max-width: 100%;
@@ -706,8 +706,7 @@
   .section-header-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   .section-header-icon .disclosure-badge svg { width: var(--hall-font-size-caption); height: var(--hall-font-size-caption); }
   .section-header-title-text { min-width: 0; overflow-wrap: break-word; }
-  /* The information icon follows the last word of the title, on its line. */
-  .title-tail { white-space: nowrap; }
+  /* The information icon follows the last word of the title, on its line, joined to it by a word joiner. */
   :is(.section-header-title, .section-header-title-text) .hall-button {
     margin-block: calc((var(--hall-line-height-body-large) - var(--hall-size-control)) / 2);
     margin-left: var(--hall-space-1);
