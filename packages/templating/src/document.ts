@@ -24,7 +24,51 @@ import {
 } from "./grammar.js";
 import { remarkUnderline } from "./underline.js";
 
-const processor = unified().use(remarkParse).use(remarkGfm).use(remarkDirective).use(remarkStringify);
+type PhrasingNode = {
+  type: string;
+  name?: string;
+  value?: string;
+  children?: PhrasingNode[];
+  data?: { literalSource?: boolean };
+  position?: { start: { offset?: number }; end: { offset?: number } };
+};
+
+/** Keeps an inline `:name` whose name is not a known directive as the text written, such as `19:30` or `:9`. */
+function remarkLiteralUnknownTextDirectives() {
+  return (tree: Root, file: { value?: unknown }) => {
+    const source = typeof file.value === "string" ? file.value : String(file.value ?? "");
+    const transform = (node: PhrasingNode) => {
+      if (!node.children) return;
+      node.children = node.children.map((child) => {
+        if (child.type !== "textDirective" || directiveSpec(child.name ?? "")) {
+          transform(child);
+          return child;
+        }
+        const start = child.position?.start.offset;
+        const end = child.position?.end.offset;
+        return {
+          type: "text",
+          value: start !== undefined && end !== undefined ? source.slice(start, end) : `:${child.name ?? ""}`,
+          data: { literalSource: true },
+          position: child.position,
+        };
+      });
+    };
+    transform(tree as PhrasingNode);
+  };
+}
+
+const processor = unified()
+  .use(remarkParse)
+  .use(remarkGfm)
+  .use(remarkDirective)
+  .use(remarkLiteralUnknownTextDirectives)
+  .use(remarkStringify, {
+    handlers: {
+      text: (node: PhrasingNode, _parent, state, info) =>
+        node.data?.literalSource ? (node.value ?? "") : state.safe(node.value ?? "", info),
+    },
+  });
 
 type HtmlElement = {
   type: "element";
@@ -175,7 +219,7 @@ const htmlProcessor = unified()
 export type TemplateAst = Root;
 
 export function parse(markdown: string): TemplateAst {
-  return processor.runSync(processor.parse(markdown)) as Root;
+  return processor.runSync(processor.parse(markdown), markdown) as Root;
 }
 
 /** Serializes a tree back to its canonical Markdown form. */

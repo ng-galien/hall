@@ -343,11 +343,35 @@ describe("structural validation", () => {
     expect(validateStructure(parse(markdown))).toEqual([]);
   });
 
-  it("reports an unknown directive", () => {
-    const [diagnostic] = validateStructure(parse(":inconnue[X]{#a}"));
+  it("reports an unknown block directive", () => {
+    const [diagnostic] = validateStructure(parse("::inconnue[X]{#a}"));
     expect(diagnostic.code).toBe("unknown_directive");
     expect(diagnostic.severity).toBe("error");
     expect(diagnostic.anchor.directive).toBe("inconnue");
+  });
+
+  it("keeps an inline colon followed by a word or a number as the text written", () => {
+    const sentences = [
+      "Résultat annoncé : CRTP :9+1 pouvoir pour,0 contre.",
+      "BejeanTP :0 pour,10 contre.",
+      "La séance ouvre à 19:30.",
+      "Source :p.3",
+      "Score final 9:1",
+      "Voir :inconnue[X]{#a} ici",
+    ];
+    for (const sentence of sentences) {
+      const tree = parse(sentence);
+      expect(validateStructure(tree)).toEqual([]);
+      expect(collectDirectives(tree)).toEqual([]);
+      expect(renderHtml(tree)).toBe(`<p>${sentence}</p>`);
+      expect(roundTrip(sentence)).toBe(sentence);
+    }
+  });
+
+  it("still resolves known inline directives next to literal colons", () => {
+    const tree = parse(":member[Alice]{#a} vote à 19:30, page :page-number.");
+    expect(validateStructure(tree)).toEqual([]);
+    expect(collectDirectives(tree).map((directive) => directive.name)).toEqual(["member", "page-number"]);
   });
 
   it("treats snippet as unsupported while it remains outside the scope", () => {
