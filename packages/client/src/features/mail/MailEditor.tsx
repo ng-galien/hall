@@ -1,7 +1,7 @@
 import { findSirenAction, type MailMessage, type MailPreview } from "@hall/api-contract";
 import { useRef, useState } from "react";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { AttachIcon, FileIcon, MoreIcon, UploadIcon } from "../../components/icons";
+import { AddIcon, AttachIcon, FileIcon, MoreIcon, UploadIcon } from "../../components/icons";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -115,6 +115,12 @@ export function MailEditor({
           </span>
         }
       >
+        {onCreate && !phone ? (
+          <Button variant="secondary" data-testid="mail-new" disabled={busy} onClick={onCreate}>
+            <AddIcon aria-hidden="true" />
+            {t("mail.new")}
+          </Button>
+        ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="plain" size="icon" data-testid="mail-more" aria-label={t("mail.more")}>
@@ -138,7 +144,13 @@ export function MailEditor({
           </DropdownMenuContent>
         </DropdownMenu>
         {canDelete && !phone ? (
-          <Button variant="plain" data-testid="mail-delete" disabled={busy} onClick={() => setDeleteOpen(true)}>
+          <Button
+            variant="plain"
+            className="mail-delete-command"
+            data-testid="mail-delete"
+            disabled={busy}
+            onClick={() => setDeleteOpen(true)}
+          >
             {t("common.delete")}
           </Button>
         ) : null}

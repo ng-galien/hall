@@ -278,7 +278,7 @@ export function MailPage() {
         </MessageCommands>
       )}
       <RequestErrorBanner error={error ? apiErrorCode(error) : null} onDismiss={() => setError(null)} />
-      {canCreate && (!mailId || !phone) ? (
+      {canCreate && !mailId ? (
         <CreateButton
           testId="mail-new"
           options={[{ id: "mail", label: t("mail.new"), Icon: MailIcon, nature: "writing", onSelect: create }]}

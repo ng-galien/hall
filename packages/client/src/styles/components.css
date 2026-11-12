@@ -356,7 +356,9 @@
   .settings-lab > a:hover { text-decoration: underline; }
   /* Courriels: the list of the folder beside the opened message. */
   .mail-count { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-variant-numeric: tabular-nums; }
-  .mail-screen { display: flex; padding-left: var(--hall-space-6); min-height: calc(100svh - var(--hall-size-mail-chrome)); align-items: stretch; }
+  /* The list and the message take the height of the screen, the rule between them down to its bottom. */
+  .mail-page { display: flex; flex-direction: column; }
+  .mail-screen { display: flex; flex: 1; padding-left: var(--hall-space-6); min-height: calc(100svh - var(--hall-size-mail-chrome)); align-items: stretch; }
   .mail-list { display: flex; width: var(--hall-size-mail-list); flex: none; flex-direction: column; gap: var(--hall-space-2); padding: var(--hall-space-2) var(--hall-space-3) 0 0; border-right: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .mail-list-head { display: flex; align-items: center; gap: var(--hall-space-2); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .mail-list [data-attention="true"] .list-row-title { color: var(--hall-color-danger); }
@@ -369,13 +371,16 @@
   .mail-composer,
   .mail-reader { display: flex; min-height: 100%; flex: 1; flex-direction: column; gap: var(--hall-space-2); }
   .mail-composer-head { display: grid; gap: var(--hall-space-1); }
+  /* Deleting a draft is a discreet command in the colour of danger. */
+  .hall-button.mail-delete-command[data-variant="plain"] { color: var(--hall-color-danger); }
   /* On a phone the list takes the width of the screen and a message keeps the margins of the header. */
   @media (max-width: 760px) {
     .mail-page .mail-list { width: 100%; padding: var(--hall-space-2) var(--hall-space-4) 0; border-right: 0; }
     .mail-page :is(.mail-composer, .mail-reader) { padding-inline: var(--hall-space-4); }
   }
   /* The recipients of a line and the draft of the next one, in the shared field. */
-  .mail-recipient-values { position: relative; display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1); }
+  /* The value starts at the same distance from its label as the subject: the Cc and Cci commands hang from the top. */
+  .mail-recipient-values { position: relative; display: flex; min-width: 0; flex-wrap: wrap; align-items: flex-start; gap: var(--hall-space-1); }
   .mail-recipient-values > .mail-recipient-input { width: auto; min-width: var(--hall-size-mail-entry); flex: 1; }
   .mail-recipient {
     display: inline-flex;
