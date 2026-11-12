@@ -27,7 +27,8 @@ const formats = [
     width: 800,
     height: 900,
     touch: false,
-    exists: (screen: Screen) => ["seance-en-cours", "mode-seance", "mode-seance-vote"].includes(screen.id),
+    exists: (screen: Screen) =>
+      ["seance-en-cours", "mode-seance", "mode-seance-appel", "mode-seance-vote"].includes(screen.id),
   },
   {
     id: "telephone",
@@ -41,7 +42,7 @@ const formats = [
 if (process.env.HALL_SCREEN_AUDIT_MODE === "capture") {
   if (!outputDirectory) throw new Error("HALL_SCREEN_AUDIT_OUTPUT names the capture directory");
   for (const format of formats) {
-    for (const scenario of ["minutes", "default"] as const) {
+    for (const scenario of ["minutes", "default", "preparation"] as const) {
       const selected = screens.filter(
         (screen: Screen) =>
           screen.scenario === scenario && format.exists(screen) && (!onlyScreens || onlyScreens.includes(screen.id)),

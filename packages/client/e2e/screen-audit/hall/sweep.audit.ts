@@ -75,7 +75,6 @@ if (sweeping) {
           const breakpointsSeen = new Map<string, Breakpoint>();
           const missing: string[] = [];
           const measured: string[] = [];
-          let measures = 0;
           const queue = [...selected];
           const menusOpened = new Set<string>();
           const menusFailed = new Map<string, string>();
@@ -240,7 +239,6 @@ if (sweeping) {
                   unity.push({ ...entry, ...where });
               if (full) await openMenus(screen, width, menu);
               const areas = await page.evaluate(readContentWidth);
-              measures += 1;
               measuresOf.set(screen.id, (measuresOf.get(screen.id) ?? 0) + 1);
               contentWidths.push({ ...where, content: areas.content, menuWidth: areas.menu, paneWidth: areas.pane });
               for (const finding of found) findings.push({ ...finding, ...where, text });

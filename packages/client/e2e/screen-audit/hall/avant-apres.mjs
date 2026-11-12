@@ -123,7 +123,25 @@ function capture(label, application) {
     }),
   );
   mkdirSync(directory, { recursive: true });
-  writeFileSync(join(directory, "statut.txt"), `${result.status}\n`);
+  // The commit captured and every screen that could not be opened, with its reason.
+  const unopened = ["ordinateur", "800", "telephone"].flatMap((format) =>
+    existsSync(join(directory, format))
+      ? readdirSync(join(directory, format))
+          .filter((file) => file.startsWith("non-ouverts"))
+          .flatMap((file) => Object.entries(JSON.parse(readFileSync(join(directory, format, file), "utf8"))))
+          .map(([id, reason]) => `- ${format}/${id} : ${reason}`)
+      : [],
+  );
+  writeFileSync(
+    join(directory, "statut.txt"),
+    [
+      `Commit capturé : ${label === "avant" ? before : after}${retake ? ` (reprise de ${retake})` : ""}`,
+      `Fin du lancement : ${result.status === 0 ? "réussie" : `code ${result.status}`}`,
+      unopened.length ? "Écrans non ouverts :" : "Écrans non ouverts : aucun",
+      ...unopened,
+      "",
+    ].join("\n"),
+  );
   // The commit of each capture: the whole run, or the screens retaken.
   const commits = existsSync(join(directory, "commits.json"))
     ? JSON.parse(readFileSync(join(directory, "commits.json"), "utf8"))
@@ -132,7 +150,7 @@ function capture(label, application) {
   writeFileSync(join(directory, "commits.json"), JSON.stringify(commits, null, 2));
 }
 
-const escape = (text) => String(text).replace(/[&<>"]/g, (character) => `&#${character.charCodeAt(0)};`);
+const escapeHtml = (text) => String(text).replace(/[&<>"]/g, (character) => `&#${character.charCodeAt(0)};`);
 
 function commitsOf(label) {
   const file = join(output, label, "commits.json");
@@ -179,12 +197,12 @@ function page() {
         const file = join(label, format, `${id}.png`);
         if (existsSync(join(output, file)))
           return `<a href="${file}"><img src="${file}" alt="${label} ${id}" loading="lazy"></a>`;
-        return `<p class="manque">Non ouvert : ${escape(missing(label, format)[id] ?? "capture absente")}</p>`;
+        return `<p class="manque">Non ouvert : ${escapeHtml(missing(label, format)[id] ?? "capture absente")}</p>`;
       };
       const differences = screens?.[`${format}/${id}`] ?? screens?.[id] ?? null;
-      sections.push(`<section id="${format}-${id}"><h2>${escape(id)} · ${{ ordinateur: "1280 px", 800: "800 px", telephone: "375 px" }[format]}</h2>
+      sections.push(`<section id="${format}-${id}"><h2>${escapeHtml(id)} · ${{ ordinateur: "1280 px", 800: "800 px", telephone: "375 px" }[format]}</h2>
 <div class="paire"><figure><figcaption>Avant (${before})</figcaption>${cell("avant")}</figure><figure><figcaption>Après (${after})</figcaption>${cell("apres")}</figure></div>
-${differences ? `<ul>${differences.map((line) => `<li>${escape(line)}</li>`).join("")}</ul>` : `<p class="attente">Différences : pas encore relevées.</p>`}</section>`);
+${differences ? `<ul>${differences.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>` : `<p class="attente">Différences : pas encore relevées.</p>`}</section>`);
     }
   }
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Hall · avant et après la refonte</title>
@@ -192,7 +210,7 @@ ${differences ? `<ul>${differences.map((line) => `<li>${escape(line)}</li>`).joi
 .paire{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}figure{margin:0}figcaption{font-weight:600;margin-bottom:4px}
 img{width:100%;border:1px solid #DFE3E8}ul{margin:8px 0 0}.manque,.attente{color:#5B6472}section{border-top:1px solid #DFE3E8;padding-top:8px}</style></head>
 <body><h1>Hall · avant et après la refonte</h1>
-<p>Commits capturés — avant : ${escape(commitsOf("avant"))} ; après : ${escape(commitsOf("apres"))}.</p>
+<p>Commits capturés — avant : ${escapeHtml(commitsOf("avant"))} ; après : ${escapeHtml(commitsOf("apres"))}.</p>
 <p>Chaque écran de l'outil de vérification, ouvert sur la base jetable de chaque version, à 1280 px à la souris et à 375 px au doigt. Les différences sont relevées en comparant les deux images.</p>
 ${sections.join("\n")}</body></html>`;
   writeFileSync(join(output, "index.html"), html);

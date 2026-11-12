@@ -39,6 +39,25 @@ async function votedPoint(page) {
   throw new Error("No closed meeting has a point with a vote");
 }
 
+/** The meeting in preparation of the seed, prepared and convened through the API, as the officer screens do it. */
+async function convenedMeeting(page) {
+  const meeting = await first(page, "/api/council-meetings", (entry) => !entry.closedAt);
+  if (meeting.startedAt) return meeting;
+  const [chair, secretary] = (await items(page, "/api/council-members")).filter((member) => member.active);
+  const prepare = await page.request.put(`/api/council-meetings/${meeting.id}/prepare`, {
+    data: {
+      scheduledAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+      location: "Maison commune de l’oppidum",
+      chairMemberId: chair.id,
+      secretaryMemberId: secretary.id,
+    },
+  });
+  if (!prepare.ok() && prepare.status() !== 409) throw new Error(`prepare answered ${prepare.status()}`);
+  const notices = await page.request.post(`/api/council-meetings/${meeting.id}/notices`, { data: {} });
+  if (!notices.ok() && notices.status() !== 409) throw new Error(`notices answered ${notices.status()}`);
+  return meeting;
+}
+
 /** Waits until the lazy page and its data have replaced the loading placeholders; a screen still loading is measured anyway. */
 export async function ready(page) {
   await page
@@ -87,6 +106,23 @@ export const screens = [
       (meeting) => meeting.closedAt,
     ),
   },
+  {
+    id: "seance-close-point-deplie",
+    title: "Séance close, un point déplié",
+    scenario: "minutes",
+    /** The closed meeting with its first folded content unfolded by its square « + ». */
+    async open(page) {
+      const meeting = await first(page, "/api/council-meetings", (entry) => entry.closedAt);
+      await page.goto(`/app/meetings/${meeting.id}`);
+      await ready(page);
+      const fold = page
+        .locator("main summary:has(.disclosure-badge), main [aria-expanded=false]:has(.disclosure-badge)")
+        .first();
+      if (!(await fold.isVisible().catch(() => false)))
+        throw new Error("La séance close ne montre aucun contenu qui se déplie");
+      await fold.click();
+    },
+  },
   { id: "point-vote", title: "Point de séance avec vote", scenario: "minutes", open: votedPoint },
   {
     id: "seance-en-cours",
@@ -109,30 +145,40 @@ export const screens = [
     ),
   },
   {
+    id: "mode-seance-appel",
+    title: "Mode séance, appel",
+    scenario: "preparation",
+    /** The meeting in preparation, prepared and convened as an officer does it, then opened in meeting mode. */
+    async open(page) {
+      const meeting = await convenedMeeting(page);
+      await page.goto(`/app/meetings/${meeting.id}/live`);
+      await visible(page, "live-rollcall-heading");
+    },
+  },
+  {
     id: "mode-seance-vote",
     title: "Mode séance, point en vote",
-    scenario: "default",
-    /** The live meeting with the vote of its current point open; the panel records nothing until a vote is entered. */
+    scenario: "preparation",
+    /**
+     * The meeting in preparation, convened, opened with every member present, its first point started and its vote
+     * open; the panel records nothing until a vote is entered.
+     */
     async open(page) {
-      const meeting = await first(page, "/api/council-meetings", (entry) => entry.startedAt && !entry.closedAt);
+      const meeting = await convenedMeeting(page);
       await page.goto(`/app/meetings/${meeting.id}/live`);
-      const ballot = page.getByTestId("live-ballot-open").first();
-      /* The current point of the seed is an open question: it is closed and the next point, which is voted, is
-         started, in the disposable database. */
-      // Each step waits for the commands of the point to settle: a voted point shows its ballot after it is started.
-      const shown = (locator) =>
-        locator
-          .waitFor({ state: "visible", timeout: 5_000 })
+      const call = page.getByTestId("live-attendance-all-present");
+      if (
+        await call
+          .waitFor({ state: "visible", timeout: 10_000 })
           .then(() => true)
-          .catch(() => false);
-      for (let step = 0; step < 4 && !(await shown(ballot)); step++) {
-        const start = page.getByTestId("live-agenda-start").first();
-        if (await start.isVisible()) await start.click();
-        else await page.getByTestId("live-agenda-complete").first().click();
-        await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+          .catch(() => false)
+      ) {
+        await call.click();
+        await page.getByTestId("live-meeting-start").click();
       }
-      await ballot.click();
-      await visible(page, "live-ballot-preview");
+      await page.getByTestId("live-agenda-start").first().click();
+      await page.getByTestId("live-ballot-open").first().click();
+      await visible(page, "live-ballot-all-for");
     },
   },
   { id: "proces-verbaux", title: "Procès-verbaux", scenario: "minutes", open: route("/minutes") },
@@ -141,6 +187,16 @@ export const screens = [
     title: "Procès-verbal",
     scenario: "minutes",
     open: detail("/api/minutes", (minutes) => `/minutes/${minutes.id}`),
+  },
+  {
+    id: "proces-verbal-brouillon",
+    title: "Procès-verbal en brouillon",
+    scenario: "minutes",
+    open: detail(
+      "/api/minutes",
+      (minutes) => `/minutes/${minutes.id}`,
+      (minutes) => !minutes.generatedAt,
+    ),
   },
   { id: "deliberations", title: "Délibérations", scenario: "minutes", open: route("/council-decisions") },
   {
