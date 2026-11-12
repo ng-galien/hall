@@ -17,39 +17,31 @@
 
 .markdown-editor-compact {
   position: relative;
-  flex-direction: row;
+  flex-direction: column;
   align-items: stretch;
   min-height: var(--hall-size-editor-compact-min);
   overflow: visible;
 }
-.markdown-editor-compact > [role="toolbar"] {
-  position: absolute;
-  left: 0;
-  z-index: calc(var(--hall-z-content) + 4);
-  width: min-content;
-  flex-direction: column;
+/* The tools of an editor: one fixed line at the top of its frame, above the text, kept in view while the text
+   scrolls in the page. */
+.markdown-editor.markdown-editor-compact > [role="toolbar"] {
+  position: sticky;
+  top: 0;
+  z-index: var(--hall-z-sticky);
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--hall-space-0-5);
   padding: var(--hall-space-0-5);
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(calc(-100% + var(--hall-space-1))) translateY(var(--hall-space-1));
-  border: var(--hall-stroke-thin) solid var(--hall-color-border);
-  border-radius: var(--hall-radius-small);
+  border: 0;
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: 0;
   background: var(--hall-color-surface);
-  box-shadow: var(--hall-shadow-medium);
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease,
-    visibility 0s linear 140ms;
+  box-shadow: none;
 }
-.markdown-editor-compact > [role="toolbar"].is-visible {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(calc(-100% + var(--hall-space-1))) translateY(0);
-  transition-delay: 0s;
-}
+.markdown-editor.markdown-editor-compact > [role="toolbar"][hidden] { display: none; }
 /* @implements-requirement HALL-FR-DOC-270 */
 /* The writing tools of a phone (choice 8B): one row fixed under the screen header, never over the text. */
 .markdown-editor.markdown-editor-compact > .markdown-phone-toolbar {

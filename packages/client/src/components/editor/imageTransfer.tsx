@@ -134,7 +134,8 @@ export function insertImage(
   void beginImageUpload().then((end) =>
     upload(file)
       .then(
-        (image) => onStatus(placeImage(view, image, requestedPosition) === null ? { kind: "failed" } : idleUploadStatus),
+        (image) =>
+          onStatus(placeImage(view, image, requestedPosition) === null ? { kind: "failed" } : idleUploadStatus),
         () => onStatus({ kind: "failed" }),
       )
       .finally(end),

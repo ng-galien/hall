@@ -200,7 +200,7 @@ export function ImageMenuButton({ choices, busy }: { choices: ImageChoice[]; bus
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent side="left" sideOffset={6}>
+        <TooltipContent side="top" sideOffset={4}>
           {t("editor.insertImage")}
         </TooltipContent>
       </Tooltip>

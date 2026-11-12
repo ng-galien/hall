@@ -1,5 +1,5 @@
 import { type Editor, EditorContent, useEditor, useEditorState } from "@tiptap/react";
-import { type FormEvent, type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { type FormEvent, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -51,10 +51,10 @@ import {
   useImageDropZone,
   useSpreadsheetDropChoice,
 } from "./imageTransfer";
+import { usePhoneEditorCommands } from "./phoneEditorCommands";
 import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
 import { referenceKindPresentations } from "./referenceKindPresentation";
 import type { Mentionable } from "./references";
-import { usePhoneEditorCommands } from "./phoneEditorCommands";
 import { insertMentionedResource } from "./resourceEmbeds";
 import { TableControls } from "./TableControls";
 
@@ -89,8 +89,6 @@ export interface MarkdownEditorProps {
 }
 
 const compactFormattingMenuHoldDelay = 1000;
-const compactToolbarIdleDelay = 2400;
-const compactToolbarLeaveDelay = 900;
 
 function ToolbarButton({
   label,
@@ -99,7 +97,6 @@ function ToolbarButton({
   disabled,
   onClick,
   children,
-  tooltipSide,
 }: {
   label: string;
   testId: string;
@@ -107,7 +104,6 @@ function ToolbarButton({
   disabled?: boolean;
   onClick(): void;
   children: ReactNode;
-  tooltipSide?: "top" | "left";
 }) {
   return (
     <Tooltip>
@@ -125,7 +121,7 @@ function ToolbarButton({
           {children}
         </Button>
       </TooltipTrigger>
-      <TooltipContent side={tooltipSide} sideOffset={tooltipSide === "left" ? 6 : undefined}>
+      <TooltipContent side="top" sideOffset={4}>
         {label}
       </TooltipContent>
     </Tooltip>
@@ -293,7 +289,9 @@ function LinkControl({ editor, active }: { editor: Editor; active: boolean }) {
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent>{t("editor.link")}</TooltipContent>
+        <TooltipContent side="top" sideOffset={4}>
+          {t("editor.link")}
+        </TooltipContent>
       </Tooltip>
       <PopoverContent align="start" className="markdown-link-popover">
         {open ? <LinkEditorForm editor={editor} active={active} onDone={() => setOpen(false)} /> : null}
@@ -345,12 +343,10 @@ function MarksButtons({ editor, state }: { editor: Editor; state: NonNullable<Re
 function CompactFormattingMenu({
   editor,
   state,
-  onOpenChange,
   control,
 }: {
   editor: Editor;
   state: NonNullable<ReturnType<typeof useToolbarState>>;
-  onOpenChange(open: boolean): void;
   /** On a phone the menu is opened from the « ⋯ » menu of the screen header and shows under the writing tools. */
   control?: { open: boolean; setOpen(open: boolean): void };
 }) {
@@ -376,10 +372,7 @@ function CompactFormattingMenu({
       controlPressed = true;
       controlHoldTimer.current = window.setTimeout(() => {
         controlHoldTimer.current = null;
-        if (controlPressed && editor.isFocused) {
-          setMenuOpen(true);
-          onOpenChange(true);
-        }
+        if (controlPressed && editor.isFocused) setMenuOpen(true);
       }, compactFormattingMenuHoldDelay);
     };
     const handleKeyUp = (event: KeyboardEvent) => {
@@ -400,7 +393,7 @@ function CompactFormattingMenu({
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleWindowBlur);
     };
-  }, [editor, onOpenChange, setMenuOpen]);
+  }, [editor, setMenuOpen]);
 
   const restoreEditorFocus = () => {
     requestAnimationFrame(() => editor.commands.focus());
@@ -408,13 +401,7 @@ function CompactFormattingMenu({
 
   return (
     <>
-      <DropdownMenu
-        open={menuOpen}
-        onOpenChange={(open) => {
-          setMenuOpen(open);
-          onOpenChange(open);
-        }}
-      >
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         {control ? (
           <DropdownMenuTrigger asChild>
             <span className="markdown-phone-toolbar-anchor" aria-hidden="true" tabIndex={-1} />
@@ -434,13 +421,13 @@ function CompactFormattingMenu({
                 </Button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent side="left" sideOffset={6}>
+            <TooltipContent side="top" sideOffset={4}>
               {t("editor.formatting")}
             </TooltipContent>
           </Tooltip>
         )}
         <DropdownMenuContent
-          side={control ? "bottom" : "right"}
+          side="bottom"
           align="start"
           className="markdown-formatting-menu w-max"
           data-testid="editor-formatting-menu-content"
@@ -687,7 +674,12 @@ function PhoneWritingBar({
 }) {
   const { t } = useI18n();
   return (
-    <div role="toolbar" aria-label={t("editor.formatting")} className="markdown-phone-toolbar" data-testid="editor-phone-toolbar">
+    <div
+      role="toolbar"
+      aria-label={t("editor.formatting")}
+      className="markdown-phone-toolbar"
+      data-testid="editor-phone-toolbar"
+    >
       {formatting}
       <PhoneTool
         label={t("editor.bold")}
@@ -785,13 +777,7 @@ export function MarkdownEditor({
   const inlineDropZone = useImageDropZone(!readOnly);
   const latest = useRef(markdown);
   const compactEditor = useRef<HTMLDivElement>(null);
-  const compactToolbar = useRef<HTMLDivElement>(null);
   const inlineCanvas = useRef<HTMLDivElement>(null);
-  const [compactToolbarTop, setCompactToolbarTop] = useState<number | null>(null);
-  const [compactToolbarVisible, setCompactToolbarVisible] = useState(false);
-  const compactToolbarHideTimer = useRef<number | null>(null);
-  const compactToolbarInteractionOpen = useRef(false);
-  const compactToolbarHasFocus = useRef(false);
   const callbacks = useRef({ onChange, onBlur });
   callbacks.current = { onChange, onBlur };
   const members = useRef<Mentionable[]>([]);
@@ -806,43 +792,6 @@ export function MarkdownEditor({
   const narrow = useNarrowLayout();
   const phoneWriting = phoneWritingScreen && phone && !readOnly && variant === "compact";
   const [formattingOpen, setFormattingOpen] = useState(false);
-
-  const cancelCompactToolbarHide = useCallback(() => {
-    if (compactToolbarHideTimer.current !== null) window.clearTimeout(compactToolbarHideTimer.current);
-    compactToolbarHideTimer.current = null;
-  }, []);
-
-  const hideCompactToolbar = useCallback(() => {
-    cancelCompactToolbarHide();
-    if (!compactToolbarInteractionOpen.current && !compactToolbarHasFocus.current) setCompactToolbarVisible(false);
-  }, [cancelCompactToolbarHide]);
-
-  const revealCompactToolbar = useCallback(
-    (hideAfter: number | null = compactToolbarIdleDelay) => {
-      if (readOnly || variant !== "compact") return;
-      cancelCompactToolbarHide();
-      setCompactToolbarVisible(true);
-      if (hideAfter !== null) {
-        compactToolbarHideTimer.current = window.setTimeout(() => {
-          compactToolbarHideTimer.current = null;
-          if (!compactToolbarInteractionOpen.current && !compactToolbarHasFocus.current) {
-            setCompactToolbarVisible(false);
-          }
-        }, hideAfter);
-      }
-    },
-    [cancelCompactToolbarHide, readOnly, variant],
-  );
-
-  const handleCompactMenuOpenChange = useCallback(
-    (open: boolean) => {
-      compactToolbarInteractionOpen.current = open;
-      revealCompactToolbar(open ? null : compactToolbarLeaveDelay);
-    },
-    [revealCompactToolbar],
-  );
-
-  useEffect(() => cancelCompactToolbarHide, [cancelCompactToolbarHide]);
 
   const inline = useEditor({
     extensions: editorExtensions({
@@ -868,7 +817,6 @@ export function MarkdownEditor({
       ...imageTransferHandlers(imageUpload, imageStatusChange, documentUpload, spreadsheetChoice),
     },
     onUpdate: ({ editor }) => {
-      hideCompactToolbar();
       latest.current = editor.getMarkdown();
       callbacks.current.onChange(latest.current);
     },
@@ -893,46 +841,6 @@ export function MarkdownEditor({
   useEffect(() => {
     inline?.setEditable(!readOnly);
   }, [inline, readOnly]);
-
-  useEffect(() => {
-    const container = compactEditor.current;
-    const toolbar = compactToolbar.current;
-    if (!inline || !container || !toolbar || readOnly || variant !== "compact" || phoneWriting) return;
-    let frame: number | null = null;
-    const updatePosition = () => {
-      if (frame !== null) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        const coordinates = inline.view.coordsAtPos(inline.state.selection.head);
-        const containerBounds = container.getBoundingClientRect();
-        const toolbarBounds = toolbar.getBoundingClientRect();
-        const firstControlBounds = toolbar.querySelector("button")?.getBoundingClientRect();
-        const caretCenter = coordinates.top + (coordinates.bottom - coordinates.top) / 2;
-        const firstControlCenter = firstControlBounds
-          ? firstControlBounds.top - toolbarBounds.top + firstControlBounds.height / 2
-          : 0;
-        const requestedTop = caretCenter - containerBounds.top - firstControlCenter;
-        const inset = Number.parseFloat(getComputedStyle(container).getPropertyValue("--hall-space-1")) || 4;
-        const maximumTop = Math.max(inset, containerBounds.height - toolbarBounds.height - inset);
-        setCompactToolbarTop(Math.min(maximumTop, Math.max(inset, requestedTop)));
-      });
-    };
-    const observer = new ResizeObserver(updatePosition);
-    const handleFocus = () => revealCompactToolbar();
-    observer.observe(container);
-    observer.observe(toolbar);
-    inline.on("selectionUpdate", updatePosition);
-    inline.on("update", updatePosition);
-    inline.on("focus", handleFocus);
-    updatePosition();
-    return () => {
-      if (frame !== null) cancelAnimationFrame(frame);
-      observer.disconnect();
-      inline.off("selectionUpdate", updatePosition);
-      inline.off("update", updatePosition);
-      inline.off("focus", handleFocus);
-    };
-  }, [inline, readOnly, revealCompactToolbar, variant, phoneWriting]);
 
   const state = useToolbarState(inline);
   const images = useImageFiles({
@@ -1003,7 +911,6 @@ export function MarkdownEditor({
               <CompactFormattingMenu
                 editor={inline}
                 state={state}
-                onOpenChange={() => undefined}
                 control={{ open: formattingOpen, setOpen: setFormattingOpen }}
               />
             }
@@ -1011,63 +918,33 @@ export function MarkdownEditor({
         ) : null}
         <div
           hidden={phoneWriting}
-          ref={compactToolbar}
           role="toolbar"
           aria-label={t("editor.writeArea")}
-          className={cn("markdown-editor-compact-toolbar", compactToolbarVisible && "is-visible")}
-          data-visible={compactToolbarVisible ? "true" : "false"}
-          style={compactToolbarTop === null ? undefined : { top: compactToolbarTop }}
-          onPointerEnter={() => revealCompactToolbar(null)}
-          onPointerLeave={() => revealCompactToolbar(compactToolbarLeaveDelay)}
-          onFocusCapture={() => {
-            compactToolbarHasFocus.current = true;
-            revealCompactToolbar(null);
-          }}
-          onBlurCapture={(event) => {
-            const next = event.relatedTarget;
-            if (next instanceof Node && event.currentTarget.contains(next)) return;
-            compactToolbarHasFocus.current = false;
-            revealCompactToolbar(compactToolbarInteractionOpen.current ? null : compactToolbarLeaveDelay);
-          }}
+          className="markdown-editor-compact-toolbar"
         >
-          {inline && state && !readOnly ? (
-            <CompactFormattingMenu editor={inline} state={state} onOpenChange={handleCompactMenuOpenChange} />
-          ) : null}
+          {inline && state && !readOnly ? <CompactFormattingMenu editor={inline} state={state} /> : null}
           {inline && !readOnly ? (
             <ToolbarButton
               label={t("editor.searchReferences")}
               testId="editor-insert-reference"
-              tooltipSide="left"
               onClick={() => setFullSearch({ query: "" })}
             >
               <ReferenceIcon />
             </ToolbarButton>
           ) : null}
           {readOnly ? null : (
-            <ToolbarButton
-              label={t("editor.enrich")}
-              testId="editor-open-enriched"
-              tooltipSide="left"
-              onClick={() => setEnriched(true)}
-            >
+            <ToolbarButton label={t("editor.enrich")} testId="editor-open-enriched" onClick={() => setEnriched(true)}>
               <FullscreenIcon />
             </ToolbarButton>
           )}
           {readOnly ? null : (
-            <ImageMenuButton choices={narrow ? [...images.photos, ...images.uploads] : images.uploads} busy={imageBusy} />
+            <ImageMenuButton
+              choices={narrow ? [...images.photos, ...images.uploads] : images.uploads}
+              busy={imageBusy}
+            />
           )}
         </div>
-        <div
-          className="markdown-editor-canvas"
-          ref={inlineCanvas}
-          {...inlineDropZone.handlers}
-          onClickCapture={(event) => {
-            const target = event.target;
-            if (target instanceof Element && target.closest("[data-editor-table-control], .column-resize-handle"))
-              return;
-            revealCompactToolbar();
-          }}
-        >
+        <div className="markdown-editor-canvas" ref={inlineCanvas} {...inlineDropZone.handlers}>
           <EditorContent editor={inline} className="markdown-editor-content" />
           {inline ? <TableControls editor={inline} canvasRef={inlineCanvas} /> : null}
           <ImageDropZone active={inlineDropZone.active} documents={Boolean(onUploadDocument)} />
