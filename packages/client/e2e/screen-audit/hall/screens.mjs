@@ -119,9 +119,15 @@ export const screens = [
       const ballot = page.getByTestId("live-ballot-open").first();
       /* The current point of the seed is an open question: it is closed and the next point, which is voted, is
          started, in the disposable database. */
-      for (let step = 0; step < 3 && !(await ballot.isVisible({ timeout: 3_000 }).catch(() => false)); step++) {
+      // Each step waits for the commands of the point to settle: a voted point shows its ballot after it is started.
+      const shown = (locator) =>
+        locator
+          .waitFor({ state: "visible", timeout: 5_000 })
+          .then(() => true)
+          .catch(() => false);
+      for (let step = 0; step < 4 && !(await shown(ballot)); step++) {
         const start = page.getByTestId("live-agenda-start").first();
-        if (await start.isVisible().catch(() => false)) await start.click();
+        if (await start.isVisible()) await start.click();
         else await page.getByTestId("live-agenda-complete").first().click();
         await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
       }

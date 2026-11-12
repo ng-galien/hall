@@ -82,6 +82,11 @@ if (process.env.HALL_SCREEN_AUDIT_MODE === "capture") {
               await page.screenshot({ path: join(directory, `${screen.id}.png`), fullPage: true });
             } catch (error) {
               missing[screen.id] = error instanceof Error ? error.message.split("\n")[0] : String(error);
+              // The state of the screen when it could not be opened, beside the captures, out of the board.
+              mkdirSync(join(outputDirectory, "echecs", format.id), { recursive: true });
+              await page
+                .screenshot({ path: join(outputDirectory, "echecs", format.id, `${screen.id}.png`), fullPage: true })
+                .catch(() => undefined);
             }
           }
           writeFileSync(
