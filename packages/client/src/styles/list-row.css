@@ -55,7 +55,7 @@
   .list-row[data-openable="true"] > .list-row-line { cursor: pointer; }
   .list-row[data-openable="true"] > .list-row-line:hover { background: var(--hall-color-surface-subtle); }
   .list-row[data-selected="true"] > .list-row-line { background: var(--hall-color-selection-subtle); box-shadow: inset var(--hall-stroke-thick) 0 0 var(--hall-color-brand); }
-  .list-row-head { display: inline-grid; flex: none; place-items: center; width: var(--hall-size-glyph-large); }
+  .list-row-head { display: inline-grid; flex: none; place-items: center; width: var(--list-row-head-width, var(--hall-size-glyph-large)); }
   .list-row-text { display: grid; min-width: 0; flex: 1; gap: var(--hall-space-0-5); }
   .list-row-title {
     overflow: hidden;
@@ -162,8 +162,23 @@
     line-clamp: 2;
   }
 
-  @media (min-width: 1000px) {
+  /* @implements-requirement HALL-FR-LAY-060 */
+  /* @implements-requirement HALL-FR-LAY-170 */
+  /* A row with additional facts or actions measures its own width: the facts show on a wide row, and the actions of a
+     narrow row pass together under its text. */
+  .list-row:has(> .list-row-line > .list-row-action, > .list-row-line > .list-row-main > .list-row-wide) {
+    container-type: inline-size;
+  }
+  @container (min-width: 40rem) {
     .list-row-wide { display: flex; }
+  }
+  @container (max-width: 32rem) {
+    .list-row-line:has(> .list-row-action) { flex-wrap: wrap; }
+    .list-row-line > .list-row-action {
+      width: 100%;
+      flex-wrap: wrap;
+      padding: 0 var(--hall-space-3) var(--hall-space-2) calc(var(--hall-space-3) * 2 + var(--list-row-head-width, var(--hall-size-glyph-large)));
+    }
   }
   @media (max-width: 760px) {
     .list-row-list,
@@ -181,7 +196,8 @@
   @media (min-width: 761px) and (pointer: fine) {
     .list-row-main { padding-block: var(--hall-space-1-5); }
     .list-row-main:has(> .list-row-text > :is(.list-row-detail, .list-row-overline, .list-row-fact)) { min-height: var(--hall-size-list-row-pointer-double); }
-    .list-row-head { width: var(--hall-size-control); }
+    .list-row-list,
+    .list-row { --list-row-head-width: var(--hall-size-control); }
     .list-row-head > .type-icon { width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); font-size: var(--hall-font-size-icon-large); }
     .list-row-title { font-size: var(--hall-font-size-body); line-height: var(--hall-line-height-body-small); }
     .list-row-detail,

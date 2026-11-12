@@ -5,7 +5,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { copyObjectReference } from "../../components/CopyReferenceButton";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { EditIcon, FolderIcon, PinIcon, PinnedIcon } from "../../components/icons";
+import { EditIcon, FolderIcon, FolderOpenIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ExplorerTree } from "../../components/ui/explorer-tree";
@@ -334,6 +334,7 @@ export function CouncilBusinessWorkbench({
           testId="business-category-documents"
           title={t("workspace.documentCategory")}
           icon={<FolderIcon />}
+          openIcon={<FolderOpenIcon />}
           count={documentsLoaded ? attachedResources.length : undefined}
           open={documentsOpen}
           onOpenChange={setDocumentsOpen}

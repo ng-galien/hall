@@ -616,10 +616,11 @@
 
   .collapsible-section { display: grid; gap: var(--hall-space-2); }
   .collapsible-section-header { display: flex; min-height: var(--hall-size-control-small); align-items: center; gap: var(--hall-space-2); }
-  .collapsible-section-header h2 { display: flex; min-width: 0; margin: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-semibold); }
+  .collapsible-section-header h2 { display: flex; min-width: 0; flex: 1; margin: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-semibold); }
   .collapsible-section-toggle {
     display: inline-flex;
     min-width: 0;
+    flex: 1;
     min-height: var(--hall-size-control-small);
     align-items: center;
     gap: var(--hall-space-2);
@@ -636,14 +637,6 @@
   }
   .collapsible-section-toggle:hover { background: var(--hall-color-surface-subtle); }
   .collapsible-section-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
-  .collapsible-section-chevron {
-    flex: none;
-    width: var(--hall-font-size-icon);
-    height: var(--hall-font-size-icon);
-    color: var(--hall-color-text-subtle);
-    transition: transform var(--hall-motion-fast) var(--hall-motion-curve-standard);
-  }
-  .collapsible-section-toggle[aria-expanded="true"] .collapsible-section-chevron { transform: rotate(90deg); }
   .collapsible-section-icon { display: inline-grid; flex: none; place-items: center; color: var(--hall-color-brand); }
   .collapsible-section-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   .collapsible-section-title { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }

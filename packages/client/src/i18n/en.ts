@@ -575,6 +575,7 @@ export const en = {
   "app.offlineMessage": "The application needs the network to show current data. Check the connection, then try again.",
   "app.offlineRetry": "Try again",
   "common.add": "Add",
+  "common.attach": "Attach",
   "common.cancel": "Cancel",
   "common.close": "Close",
   "common.create": "Create",

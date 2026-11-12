@@ -1,10 +1,14 @@
 import { type ReactNode, useId } from "react";
-import { ChevronRightIcon } from "../icons";
 
-/** Section whose heading is the toggle: chevron, icon, title and count on one line, actions kept beside it. */
+/**
+ * Section whose whole heading is the toggle: icon, title and count on one line, actions kept beside it. It draws no
+ * chevron; a section with a two-state icon, such as a folder, shows `openIcon` while it is unfolded.
+ * @implements-requirement HALL-FR-LAY-170
+ */
 export function CollapsibleSection({
   title,
   icon,
+  openIcon,
   count,
   actions,
   open,
@@ -15,6 +19,8 @@ export function CollapsibleSection({
 }: {
   title: ReactNode;
   icon?: ReactNode;
+  /** The icon shown while the section is unfolded, such as an open folder. */
+  openIcon?: ReactNode;
   count?: number;
   actions?: ReactNode;
   open: boolean;
@@ -36,8 +42,7 @@ export function CollapsibleSection({
             aria-controls={contentId}
             onClick={() => onOpenChange(!open)}
           >
-            <ChevronRightIcon className="collapsible-section-chevron" aria-hidden="true" />
-            {icon ? <span className="collapsible-section-icon">{icon}</span> : null}
+            {icon ? <span className="collapsible-section-icon">{open && openIcon ? openIcon : icon}</span> : null}
             <span className="collapsible-section-title">{title}</span>
             {count === undefined ? null : (
               <span className="collapsible-section-count" data-testid={`${testId}-count`}>

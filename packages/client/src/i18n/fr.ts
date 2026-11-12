@@ -586,6 +586,7 @@ export const fr: Messages = {
     "L’application a besoin du réseau pour afficher les données à jour. Vérifiez la connexion, puis réessayez.",
   "app.offlineRetry": "Réessayer",
   "common.add": "Ajouter",
+  "common.attach": "Joindre",
   "common.cancel": "Annuler",
   "common.close": "Fermer",
   "common.create": "Créer",

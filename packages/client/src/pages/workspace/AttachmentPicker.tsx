@@ -123,14 +123,13 @@ export function AttachmentPicker({
           <PopoverTrigger asChild>
             <Button
               data-testid="attachment-picker-open"
-              variant="plain"
-              size="icon"
-              aria-label={t("workspace.addResource")}
+              variant="secondary"
               title={t("workspace.addResource")}
               disabled={disabled}
               aria-expanded={open}
             >
-              <AddIcon />
+              <AddIcon aria-hidden="true" />
+              {t("common.attach")}
             </Button>
           </PopoverTrigger>
         )}

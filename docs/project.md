@@ -54,6 +54,28 @@ Do not create a second catalogue, policy, state machine, parser, or permission r
 - Do not locate functional controls by translated text, placeholders, titles, or ARIA labels.
 - After a Playwright failure, rerun the focused scenario before the full suite.
 
+### Layout across widths
+
+Every screen holds at any window width from 320 to 1600 pixels, with the menu and the module pane unfolded or
+folded. The width sweep of the screen audit (`docs/development.md`) checks it.
+
+- Content is fluid: it takes the width of its column. A width in pixels comes from a token of `tokens.css`, never
+  from a literal in a component.
+- A text column of a flex or grid row has `min-width: 0`, so that it shrinks before its neighbours overflow.
+- A name or a title stays on one line and ends with an ellipsis before anything wraps; its state and its commands
+  keep their width beside it.
+- A row passes to the next line by whole groups: the commands of a list row go together under its text, a toolbar
+  wraps by declared groups. No single item is pushed alone under the others. A free flow of tags or chips is
+  marked `data-layout-flow`.
+- A component placed in a column of variable width reacts to its container with a container query, not to the
+  window with a media query. Window queries stay in the shell, the screen layouts and the pointer density.
+- Nothing scrolls sideways, neither the document nor an area, except a data table marked
+  `data-horizontal-scroll`.
+- Lists of objects use `ListRow`; a list is never a `<table>` or a local grid of rows.
+- A section that folds is unfolded by its whole header, without a chevron; a folder section shows its folder closed
+  or open. An add command in a section header is the secondary button « + » with its label, « + Nouveau » to create
+  and « + Joindre » to attach an existing document.
+
 ## Verification
 
 Before adding a module, find the existing union, policy, catalogue, or adapter that owns the concept. After a structural change, run the focused test and the applicable repository checks:

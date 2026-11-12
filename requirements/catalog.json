@@ -11051,7 +11051,7 @@
         "L’élément principal d’un écran est la même ligne en variante agrandie.",
         "La ligne mesure au moins 64 pixels au téléphone ou sous un pointeur tactile.",
         "À la souris, sur un écran de plus de 760 pixels de large, la ligne prend les tailles du menu latéral et du bandeau : titre de 14 pixels, seconde ligne et dates de 13 pixels, icône de type de 20 pixels, 40 pixels de haut pour une ligne de texte et 52 pixels pour deux ; les champs de recherche et de filtre sont en 14 pixels ; le titre de l’écran reste le plus grand texte ; la grande taille et la ligne agrandie gardent un cran de plus que la ligne courante.",
-        "Les collections ne proposent pas de bouton pour passer en cartes ; les informations supplémentaires d’une ligne s’affichent à partir de 1000 pixels de large et sont masquées au téléphone.",
+        "Les collections ne proposent pas de bouton pour passer en cartes ; les informations supplémentaires d’une ligne s’affichent quand la ligne elle-même mesure au moins 640 pixels de large et sont masquées sur une ligne plus étroite, donc au téléphone. Sur une ligne de moins de 512 pixels, ses actions passent ensemble sous son texte, alignées sur le titre.",
         "Les informations supplémentaires occupent au plus la moitié de la ligne et se raccourcissent par des points de suspension ; le titre et l’état restent lisibles côte à côte sans se recouvrir, et la page ne défile pas horizontalement, panneau latéral ouvert ou fermé.",
         "Une liste courte, comme la composition du conseil, emploie la grande taille de la même ligne : initiales et nom plus grands, nom en gras, puis la seconde ligne avec l’état et des lignes de faits qui passent à la ligne sur deux lignes au plus avant les points de suspension ; elle reste sur le fond blanc, séparée par des filets, sans bordure ni ombre. La grande taille est la seule variante de taille de la ligne."
       ],
@@ -11298,6 +11298,32 @@
           "key": "fields-12d",
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 12D ; mots du propriétaire : « 12D ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-170": {
+      "name": "LAYOUT_ACROSS_WIDTHS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-12"
+      },
+      "statement": "Chaque écran de Hall garde sa mise en page à toute largeur de fenêtre de 320 à 1600 pixels, menu et volet de module dépliés ou repliés, sous la souris comme sous le doigt.",
+      "acceptanceCriteria": [
+        "Chaque titre et chaque nom montrent au moins trois caractères ; un nom trop long se termine par des points de suspension.",
+        "Deux textes ou commandes ne se recouvrent jamais.",
+        "Ni le document ni aucune zone ne défilent horizontalement, sauf un tableau de données déclaré comme tel.",
+        "Les éléments d’une même rangée restent sur une rangée ou passent à la ligne par groupes entiers : les actions d’une ligne de liste passent ensemble sous son texte, une barre d’outils passe à la ligne par groupes déclarés.",
+        "Chaque texte et chaque commande restent dans la largeur de l’écran.",
+        "Au téléphone, chaque commande offre une cible d’au moins 44 pixels.",
+        "Une section repliable se déplie par un clic sur son en-tête entier, sans chevron ; une section de dossier montre son dossier fermé ou ouvert. Une commande d’ajout dans un en-tête de section est le bouton secondaire « + » avec son libellé : « + Nouveau » pour créer, « + Joindre » pour rattacher un document existant."
+      ],
+      "clauses": [
+        {
+          "key": "layout-across-widths",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 sur la fiche d’une affaire : « On peut pas avoir, à chaque fois qu'on redimensionne un écran, les trucs qui se mettent n'importe comment. […] je vais pas passer sur chaque écran, essayer de les redimensionner et voir les problèmes de CSS. » ; sur les sections : « on a là les documents, qui est juste un plus. Il n'y a pas de nouveau. […] plus ça va, plus ça commence à dériver. »",
           "sourceIds": []
         }
       ]

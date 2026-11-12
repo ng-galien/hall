@@ -103,7 +103,8 @@ export function usePreparedSubjectPhoneActions(
   ];
 }
 
-function SubjectTableRow({
+/** A prepared subject on the shared list row: its title opens its text under the row. */
+function SubjectRow({
   subject,
   representation,
   expanded,
@@ -141,124 +142,114 @@ function SubjectTableRow({
       .catch((failure) => setActionError(apiErrorCode(failure)))
       .finally(() => setPending(false));
   };
+  const open = editingTitle ? {} : { onOpen: onExpand };
   return (
-    <>
-      <tr
-        data-testid={`business-subject-${subject.id}`}
-        className={expanded ? "business-subject-table-row-open" : undefined}
-      >
-        <td>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="business-subject-type">
-                <AgendaSubjectGlyph kind={subject.kind} tree />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{t(agendaSubjectPresentation[subject.kind].label)}</TooltipContent>
-          </Tooltip>
-        </td>
-        <td>
-          <div className="business-subject-title-stack">
-            <div className="business-subject-title-cell">
-              <InlineRenameField
-                value={subject.title}
-                editing={editingTitle}
-                onEditingChange={(next) => {
-                  setEditingTitle(next);
-                  if (!next) rename.dismissError();
-                }}
-                onCommit={rename.commit}
-                label={t("common.rename")}
-                className="hall-input workbench-title-inline-input"
-                testId={`business-subject-rename-${subject.id}-name`}
-                invalid={Boolean(rename.error)}
-                onDraftChange={rename.dismissError}
+    <ListRow
+      data-testid={`business-subject-${subject.id}`}
+      className="business-subject-row"
+      selected={expanded}
+      {...open}
+      openTestId={`business-subject-${subject.id}-open`}
+      openProps={{ "aria-expanded": expanded, title: subject.title }}
+      head={
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="business-subject-type">
+              <AgendaSubjectGlyph kind={subject.kind} tree />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t(agendaSubjectPresentation[subject.kind].label)}</TooltipContent>
+        </Tooltip>
+      }
+      title={
+        <InlineRenameField
+          value={subject.title}
+          editing={editingTitle}
+          onEditingChange={(next) => {
+            setEditingTitle(next);
+            if (!next) rename.dismissError();
+          }}
+          onCommit={rename.commit}
+          label={t("common.rename")}
+          className="hall-input workbench-title-inline-input"
+          testId={`business-subject-rename-${subject.id}-name`}
+          invalid={Boolean(rename.error)}
+          onDraftChange={rename.dismissError}
+        >
+          {subject.title}
+        </InlineRenameField>
+      }
+      action={
+        <>
+          {editingTitle && rename.error ? (
+            <span className="business-subject-rename-error">
+              <RequestErrorBanner compact error={rename.error} />
+            </span>
+          ) : null}
+          <span ref={setAutosaveActionsHost} className="business-subject-autosave" />
+          {rename.canRename && !editingTitle ? (
+            <Button
+              variant="plain"
+              size="icon"
+              data-testid={`business-subject-rename-${subject.id}`}
+              aria-label={`${t("common.edit")} · ${subject.title}`}
+              onClick={() => {
+                rename.dismissError();
+                setEditingTitle(true);
+              }}
+            >
+              <EditIcon aria-hidden="true" />
+            </Button>
+          ) : null}
+          {meeting?.reference && meetingLabel ? (
+            <span className="business-subject-schedule">
+              <Link
+                data-testid={`business-subject-meeting-${subject.agenda.agendaItemId}`}
+                to={`/meetings/${meeting.reference}`}
               >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="plain"
-                      className="business-subject-title"
-                      data-testid={`business-subject-${subject.id}-open`}
-                      aria-expanded={expanded}
-                      onClick={onExpand}
-                    >
-                      <span>{subject.title}</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{subject.title}</TooltipContent>
-                </Tooltip>
-              </InlineRenameField>
-              {rename.canRename && !editingTitle ? (
+                {meetingLabel}
+              </Link>
+              {deprogram ? (
                 <Button
                   variant="plain"
                   size="icon"
-                  data-testid={`business-subject-rename-${subject.id}`}
-                  aria-label={`${t("common.edit")} · ${subject.title}`}
-                  onClick={() => {
-                    rename.dismissError();
-                    setEditingTitle(true);
-                  }}
+                  data-testid={`business-subject-unschedule-${subject.id}`}
+                  disabled={pending}
+                  aria-label={`${t("workspace.unschedule")} · ${meetingLabel}`}
+                  onClick={() => run("agenda-item.deprogram")}
                 >
-                  <EditIcon aria-hidden="true" />
+                  <CloseIcon />
                 </Button>
               ) : null}
-            </div>
-            {editingTitle && rename.error ? <RequestErrorBanner compact error={rename.error} /> : null}
-          </div>
-        </td>
-        <td>
-          <div className="business-subject-table-actions">
-            <span ref={setAutosaveActionsHost} />
-            {meeting?.reference && meetingLabel ? (
-              <span className="business-subject-schedule">
-                <Link
-                  data-testid={`business-subject-meeting-${subject.agenda.agendaItemId}`}
-                  to={`/meetings/${meeting.reference}`}
-                >
-                  {meetingLabel}
-                </Link>
-                {deprogram ? (
-                  <Button
-                    variant="plain"
-                    size="icon"
-                    data-testid={`business-subject-unschedule-${subject.id}`}
-                    disabled={pending}
-                    aria-label={`${t("workspace.unschedule")} · ${meetingLabel}`}
-                    onClick={() => run("agenda-item.deprogram")}
-                  >
-                    <CloseIcon />
-                  </Button>
-                ) : null}
-              </span>
-            ) : schedule ? (
-              <Button
-                variant="secondary"
-                data-testid={`business-subject-schedule-${subject.id}`}
-                disabled={pending}
-                onClick={() => run("agenda-item.schedule-prepared")}
-              >
-                <CalendarAddIcon />
-                {t("workspace.scheduleInMeeting")}
-              </Button>
-            ) : null}
-            <RequestErrorBanner
-              compact
-              error={actionError}
-              onDismiss={() => setActionError(null)}
-              testId={`business-subject-action-${subject.id}-error-dismiss`}
-            />
-          </div>
-        </td>
-      </tr>
-      {expanded ? (
-        <tr className="business-subject-table-detail">
-          <td colSpan={3}>
+            </span>
+          ) : schedule ? (
+            <Button
+              variant="secondary"
+              data-testid={`business-subject-schedule-${subject.id}`}
+              disabled={pending}
+              onClick={() => run("agenda-item.schedule-prepared")}
+            >
+              <CalendarAddIcon />
+              {t("workspace.scheduleInMeeting")}
+            </Button>
+          ) : null}
+        </>
+      }
+    >
+      {actionError || expanded ? (
+        <>
+          <RequestErrorBanner
+            compact
+            error={actionError}
+            onDismiss={() => setActionError(null)}
+            testId={`business-subject-action-${subject.id}-error-dismiss`}
+          />
+          {expanded ? (
             <InlineResourceContent resourceId={subject.textResourceId} compact actionsHost={autosaveActionsHost} />
-          </td>
-        </tr>
+          ) : null}
+        </>
       ) : null}
-    </>
+    </ListRow>
   );
 }
 
@@ -308,31 +299,24 @@ export function CouncilBusinessSubjects({ businessId }: { businessId: string }) 
               ))}
             </ListRows>
           ) : (
-            <table className="business-subject-table">
-              <colgroup>
-                <col className="business-subject-table-type-column" />
-                <col />
-                <col className="business-subject-table-actions-column" />
-              </colgroup>
-              <tbody>
-                {sortedSubjects.map((subject) => (
-                  <SubjectTableRow
-                    key={subject.id}
-                    subject={subject}
-                    expanded={expandedSubjectIds.has(subject.id)}
-                    representation={subjectRepresentations[`${subject.kind}:${subject.id}`]}
-                    onExpand={() =>
-                      setExpandedSubjectIds((current) => {
-                        const next = new Set(current);
-                        if (next.has(subject.id)) next.delete(subject.id);
-                        else next.add(subject.id);
-                        return next;
-                      })
-                    }
-                  />
-                ))}
-              </tbody>
-            </table>
+            <ListRows className="business-subject-list">
+              {sortedSubjects.map((subject) => (
+                <SubjectRow
+                  key={subject.id}
+                  subject={subject}
+                  expanded={expandedSubjectIds.has(subject.id)}
+                  representation={subjectRepresentations[`${subject.kind}:${subject.id}`]}
+                  onExpand={() =>
+                    setExpandedSubjectIds((current) => {
+                      const next = new Set(current);
+                      if (next.has(subject.id)) next.delete(subject.id);
+                      else next.add(subject.id);
+                      return next;
+                    })
+                  }
+                />
+              ))}
+            </ListRows>
           )}
         </section>
       )}
