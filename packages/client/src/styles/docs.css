@@ -654,9 +654,14 @@ h4.docs-heading {
   margin-block: var(--hall-space-5);
 }
 
-@media (min-width: 761px) {
+/* Two columns, one on a phone. */
+.docs-cards {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
   .docs-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: none;
   }
 }
 
@@ -733,9 +738,14 @@ h4.docs-heading {
   list-style: none;
 }
 
-@media (min-width: 761px) {
+/* Two columns, one on a phone. */
+.docs-legend {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
   .docs-legend {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: none;
   }
 }
 
@@ -830,9 +840,14 @@ h4.docs-heading {
   margin-block: var(--hall-space-4);
 }
 
-@media (min-width: 761px) {
+/* Two columns, one on a phone. */
+.docs-compare {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
   .docs-compare {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: none;
   }
 }
 

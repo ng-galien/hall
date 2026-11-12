@@ -94,7 +94,7 @@
   .list-row-status[data-tone="action"]::before { background: var(--hall-color-brand); }
   .list-row-status[data-tone="danger"]::before { background: var(--hall-color-danger); }
   /* The additional facts take at most half of the line and are shortened before the title and the state. */
-  .list-row-wide { display: none; min-width: 0; max-width: 50%; flex: 0 1 auto; align-items: center; gap: var(--hall-space-4); overflow: hidden; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
+  .list-row-wide { display: flex; min-width: 0; max-width: 50%; flex: 0 1 auto; align-items: center; gap: var(--hall-space-4); overflow: hidden; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
   .list-row-wide > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   /* A head that is a button of its own, such as the folder icon that unfolds a folder: same place, its own hover. */
   .list-row-head-button {
@@ -166,8 +166,8 @@
   /* @implements-requirement HALL-FR-LAY-060 */
   /* A row with additional facts measures its own width: the facts show on a wide row only. */
   .list-row:has(> .list-row-line > .list-row-main > .list-row-wide) { container-type: inline-size; }
-  @container (min-width: 761px) {
-    .list-row-wide { display: flex; }
+  @container (max-width: 760px) {
+    .list-row-wide { display: none; }
   }
   /* In a narrow list (a phone), a list marked data-wrap writes its titles and facts in full: they pass to the next
      line instead of being shortened, and the state goes whole to the next line when it does not fit after the facts. */

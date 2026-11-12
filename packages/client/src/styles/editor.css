@@ -87,7 +87,7 @@
   font-size: var(--hall-font-size-text);
   font-weight: var(--hall-font-weight-bold);
 }
-.markdown-phone-toolbar-anchor { position: absolute; bottom: 0; left: 0; width: 1px; height: 1px; }
+.markdown-phone-toolbar-anchor { position: absolute; bottom: 0; left: 0; width: var(--hall-size-pixel); height: var(--hall-size-pixel); }
 .markdown-editor.markdown-editor-phone { flex: 1; border: 0; border-radius: 0; }
 .markdown-editor-phone .markdown-editor-canvas,
 .markdown-editor-phone .markdown-editor-content { flex: 1; }

@@ -66,7 +66,7 @@
   /* A lost connection is written beside the initials; while the server answers, the live region takes no room. */
   .screen-header-connection { display: flex; min-width: 0; flex: 0 1 auto; }
   .screen-header-connection > .record-state { overflow: hidden; min-width: 0; white-space: nowrap; }
-  .screen-header-connection:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .screen-header-connection:empty { position: absolute; width: var(--hall-size-pixel); height: var(--hall-size-pixel); overflow: hidden; clip-path: inset(50%); }
   .screen-header-initials {
     display: inline-grid;
     width: var(--hall-size-control);

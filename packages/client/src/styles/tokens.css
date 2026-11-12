@@ -278,6 +278,20 @@
   --hall-z-dialog: 100;
   --hall-z-popover: 200;
   --hall-z-toast: 300;
+
+  /* States, written in a tinted tag. */
+  --hall-color-status-success: #17633a;
+  --hall-color-status-success-surface: #e3f4ea;
+  --hall-color-status-warning: #8a4b08;
+  --hall-color-status-warning-surface: #fdebd2;
+  --hall-color-status-danger: #9b1c1c;
+  --hall-color-status-danger-surface: #fbe3e3;
+  --hall-color-status-neutral: #4a5362;
+  --hall-color-status-neutral-surface: #eceff3;
+  --hall-font-weight-status: 650;
+  --hall-font-size-status: 12px;
+  /* An element kept for assistive technologies only: one pixel. */
+  --hall-size-pixel: 1px;
 }
 
 /* Dark theme. Literal values only, never an alias, so the derived layers follow. */
@@ -327,4 +341,13 @@
   --hall-shadow-small: 0 1px 2px rgb(0 0 0 / 45%);
   --hall-shadow-medium: 0 2px 6px rgb(0 0 0 / 50%);
   --hall-shadow-large: 0 6px 18px rgb(0 0 0 / 55%);
+
+  --hall-color-status-success: #8fd0a8;
+  --hall-color-status-success-surface: #17301f;
+  --hall-color-status-warning: #f2b770;
+  --hall-color-status-warning-surface: #3a2810;
+  --hall-color-status-danger: #f0a6a3;
+  --hall-color-status-danger-surface: #3a1d1d;
+  --hall-color-status-neutral: #c3c9d3;
+  --hall-color-status-neutral-surface: #2a2f38;
 }

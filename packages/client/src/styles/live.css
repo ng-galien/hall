@@ -556,8 +556,8 @@
   .conduct-stage-fixed-header { padding: var(--hall-space-4) var(--hall-space-7) var(--hall-space-3); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .conduct-heading-row { display: flex; align-items: center; justify-content: space-between; gap: var(--hall-space-4); flex-wrap: wrap; }
   /* The title keeps at least 16 rem and wraps between words; the timer, then the recusal command, pass under it. */
-  .conduct-title-timer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); min-width: 0; flex: 1 1 16rem; }
-  .conduct-title-timer h1 { margin: 0; min-width: 0; flex: 1 1 12rem; overflow-wrap: break-word; }
+  .conduct-title-timer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); min-width: 0; flex: 1 1 var(--hall-size-relative-16rem); }
+  .conduct-title-timer h1 { margin: 0; min-width: 0; flex: 1 1 var(--hall-size-relative-12rem); overflow-wrap: break-word; }
   .conduct-title-timer .conduct-timer { margin: 0; flex: none; min-height: var(--hall-size-control); padding-block: 0; font-size: var(--hall-font-size-body); }
   .hall-button.conduct-recusal-trigger { margin-left: auto; }
   .conduct-recusal-popover { width: var(--hall-size-picker-panel); max-width: calc(100vw - var(--hall-space-6)); max-height: var(--hall-size-dialog-height); overflow-y: auto; }
