@@ -1,5 +1,6 @@
 import type { MeetingConductState, MeetingOffice, MeetingOfficerChange } from "@hall/api-contract";
 import { type FormEvent, useState } from "react";
+import { HelpHint } from "../../components/HelpHint";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -129,7 +130,7 @@ export function MeetingOfficersDialog({
           </fieldset>
           <Field
             label={t("officers.successor")}
-            help={t(office === "chair" ? "officers.chairRule" : "officers.secretaryRule")}
+            labelAction={<HelpHint text={t(office === "chair" ? "officers.chairRule" : "officers.secretaryRule")} />}
           >
             <EntitySelect
               type="member"

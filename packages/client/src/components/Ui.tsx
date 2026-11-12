@@ -112,9 +112,12 @@ export function Modal({
   initialFocusRef,
   returnFocusRef,
   size = "default",
+  hint,
 }: {
   open: boolean;
   title: string;
+  /** The explanation of the window, behind the information icon after its title. */
+  hint?: string;
   children: ReactNode;
   onClose(): void;
   testId?: string;
@@ -153,6 +156,7 @@ export function Modal({
       >
         <header className="modal-header">
           <DialogTitle>{title}</DialogTitle>
+          {hint ? <HelpHint text={hint} /> : null}
           <Button
             size="icon"
             variant="plain"

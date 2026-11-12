@@ -1,5 +1,6 @@
 import type { RecordMeetingClosedSession } from "@hall/api-contract";
 import { type FormEvent, useState } from "react";
+import { HelpHint } from "../../components/HelpHint";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Field } from "../../components/ui/field";
@@ -63,12 +64,12 @@ export function MeetingClosedSessionDialog({
     <Modal
       open
       title={t("closedSession.title")}
+      hint={t("closedSession.description")}
       onClose={() => !submitting && onClose()}
       testId="live-closed-session-dialog"
     >
       <form className="modal-form" data-testid="live-closed-session-form" onSubmit={submit}>
         <RequestErrorBanner error={error} />
-        <p className="text-sm text-muted">{t("closedSession.description")}</p>
         <fieldset className="grid gap-2" disabled={submitting}>
           <legend>{t("closedSession.requestedBy")}</legend>
           <label className="flex items-center gap-2">
@@ -113,10 +114,14 @@ export function MeetingClosedSessionDialog({
         </fieldset>
         <Field
           label={t("closedSession.approvals")}
-          help={t("closedSession.majorityHint", {
-            count: formatNumber(presentOrRepresentedCount),
-            required: formatNumber(Math.floor(presentOrRepresentedCount / 2) + 1),
-          })}
+          labelAction={
+            <HelpHint
+              text={t("closedSession.majorityHint", {
+                count: formatNumber(presentOrRepresentedCount),
+                required: formatNumber(Math.floor(presentOrRepresentedCount / 2) + 1),
+              })}
+            />
+          }
         >
           <Input
             data-testid="live-closed-session-approvals"

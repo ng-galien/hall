@@ -176,7 +176,7 @@ export function MinutesAgendaFacts({ item, ballots }: { item: Facts["agenda"][nu
   return (
     <Disclosure
       title={
-        <span className="minutes-vote-summary">
+        <span className="minutes-vote-summary" data-layout-flow="true">
           <strong>{t("minutes.vote")}</strong>
           <span
             className="list-row-status"

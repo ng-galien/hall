@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { SectionHeader } from "@/components/ui/section-header";
+import { HelpHint } from "../../components/HelpHint";
 import {
   AttendanceSheetIcon,
   DecisionsIcon,
@@ -427,7 +428,8 @@ export function MeetingDocumentsSection({
                 : undefined
             }
             pdf
-            state={revisionEstablished ? t("meeting.dossierDescription") : t("meeting.documents.dossierAfterRevision")}
+            state={revisionEstablished ? "" : t("meeting.documents.dossierAfterRevision")}
+            actions={revisionEstablished ? <HelpHint text={t("meeting.dossierDescription")} /> : undefined}
           />
         ) : null}
 

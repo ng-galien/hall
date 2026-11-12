@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { Input } from "@/components/ui/input";
+import { HelpHint } from "../../components/HelpHint";
 import { AddIcon, ArrowUpIcon, DeleteIcon, LocationIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
@@ -73,8 +74,10 @@ export function MeetingLocationsSettings({
 
   return (
     <section className="creation-form" data-testid="settings-meeting-locations-section">
-      <h3>{t("settings.meetingLocations")}</h3>
-      <p className="text-xs text-muted">{t("settings.meetingLocationsDescription")}</p>
+      <h3 className="meeting-locations-title">
+        {t("settings.meetingLocations")}
+        <HelpHint text={t("settings.meetingLocationsDescription")} />
+      </h3>
       <RequestErrorBanner error={error} />
       {locations.length === 0 ? (
         <p className="settings-location-empty" data-testid="settings-meeting-locations-empty">

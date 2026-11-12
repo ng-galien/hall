@@ -21,6 +21,7 @@ import { MinutesPoint } from "./MinutesPoint";
 import { MinutesSectionHint } from "./MinutesSectionHint";
 import { useMinutesDraft } from "./useMinutesDraft";
 import "../../features/documents/DocumentViewer.css";
+import { HelpHint } from "../../components/HelpHint";
 
 // @implements-requirement HALL-FR-MIN-220
 // @implements-requirement HALL-FR-MIN-230
@@ -211,7 +212,7 @@ function MinutesDetail({ id }: { id: string }) {
                 ? [minutes.scheduledAt ? formatDate(minutes.scheduledAt) : null, minutes.facts.meeting.location]
                     .filter(Boolean)
                     .join(" · ")
-                : t("minutes.detailDescription")
+                : undefined
             }
             titleAction={
               minutes ? (
@@ -227,7 +228,9 @@ function MinutesDetail({ id }: { id: string }) {
                     href: `/api/minutes/${id}`,
                   }}
                 />
-              ) : null
+              ) : (
+                <HelpHint text={t("minutes.detailDescription")} />
+              )
             }
           >
             {minutes ? (
@@ -364,7 +367,7 @@ function MinutesDetail({ id }: { id: string }) {
           testId="minutes-document-dialog"
           titleId="minutes-document-dialog-title"
           title={documentTitle}
-          description={t(generatedDocument ? "minutes.frozenDocumentHint" : "minutes.previewHint")}
+          description={<HelpHint text={t(generatedDocument ? "minutes.frozenDocumentHint" : "minutes.previewHint")} />}
           documentKind={generatedDocument ? "generated" : "draft"}
           closeTestId="minutes-document-close"
           returnFocusRef={documentTrigger}
@@ -388,9 +391,11 @@ function useStickyHeaderHeight(header: HTMLElement | null) {
   const [height, setHeight] = useState(0);
   useEffect(() => {
     if (!header) return;
-    const observer = new ResizeObserver(() => setHeight(header.offsetHeight));
+    /* A header that scrolls with the page, between phone and computer widths, leaves the tools at the top. */
+    const measure = () => setHeight(getComputedStyle(header).position === "sticky" ? header.offsetHeight : 0);
+    const observer = new ResizeObserver(measure);
     observer.observe(header);
-    setHeight(header.offsetHeight);
+    measure();
     return () => observer.disconnect();
   }, [header]);
   return height;

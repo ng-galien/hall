@@ -1,12 +1,14 @@
 import type { MinutesSummary } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { HelpHint } from "../../components/HelpHint";
 import { MinutesIcon } from "../../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listMinutes } from "../../services/minutesApi";
+import { ScreenTitleCommands } from "../../shell/headerTrail";
 
 export function MinutesPage() {
   const { t, formatDate, formatNumber } = useI18n();
@@ -39,7 +41,10 @@ export function MinutesPage() {
   }, [load]);
   return (
     <div className="page" data-testid="minutes-page">
-      <PageHeader title={t("navigation.minutes")} description={t("minutes.description")} />
+      <PageHeader title={t("navigation.minutes")} />
+      <ScreenTitleCommands>
+        <HelpHint text={t("minutes.description")} />
+      </ScreenTitleCommands>
       <div className="page-content">
         <RequestErrorBanner error={error} />
         {error ? (

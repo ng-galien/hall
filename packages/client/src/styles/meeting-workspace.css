@@ -286,12 +286,7 @@
   @media (max-width: 760px) {
     .meeting-decisions .list-row { --list-row-head-width: auto; }
   }
-  /* Under a finger each written command offers a 44-pixel target. */
-  @media (pointer: coarse) {
-    :is(.meeting-documents, .meeting-decisions) .list-row-action > .hall-link,
-    .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command,
-    .report-timeline .section-header-commands .hall-button.hall-link { display: inline-flex; min-height: var(--hall-size-touch-control); align-items: center; }
-  }
+
 
   /* The facts of a closed meeting hold one row under the description, wrapping by whole facts on a narrow screen. */
   .meeting-report-header .page-header-controls { display: grid; gap: var(--hall-space-3); }
@@ -866,11 +861,25 @@
     .live-resume-hero .meeting-state > * + :not(.list-row-status)::before { content: none; }
     .live-resume-hero .meeting-state > * + .list-row-status { margin-left: 0; }
   }
-  /* An agenda item keeps 12 rem for its title; its commands pass under it in a narrower row. */
+  /* An agenda item keeps 22 rem for its title and its state; its commands pass under them in a narrower row. */
   .composer-list .list-row-line { flex-wrap: wrap; }
-  .composer-list .list-row-main { min-width: min(100%, var(--hall-size-relative-12rem)); }
+  .composer-list .list-row-main { min-width: min(100%, var(--hall-size-relative-22rem)); }
   .composer-list .list-row-action { margin-left: auto; }
 }
 
 /* Outside the layers, like the fixed tools of the editor: in the minutes the tools stop under the sticky header. */
 .minutes-editorial-page .markdown-editor.markdown-editor-compact > [role="toolbar"] { top: var(--minutes-header-height, 0px); }
+
+@layer components {
+  /* A title followed by the information icon of its explanation. */
+  .meeting-locations-title { display: flex; align-items: center; gap: var(--hall-space-1); }
+}
+
+@layer components {
+  /* Under a finger each written command offers a 44-pixel target. */
+  @media (pointer: coarse) {
+    :is(.meeting-documents, .meeting-decisions) .list-row-action > .hall-link,
+    .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command,
+    .report-timeline .section-header-commands .hall-button.hall-link { display: inline-flex; min-height: var(--hall-size-touch-control); align-items: center; }
+  }
+}

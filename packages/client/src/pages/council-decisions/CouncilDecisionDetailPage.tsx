@@ -18,6 +18,7 @@ import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { type PhoneDocumentAction, PhoneDocumentActions, phoneActionIcons } from "../workspace/PhoneDocumentActions";
 import { useCouncilDecisionDraft } from "./useCouncilDecisionDraft";
 import "../../features/documents/DocumentViewer.css";
+import { HelpHint } from "../../components/HelpHint";
 import { Disclosure } from "../../components/ui/disclosure";
 
 export function CouncilDecisionDetailPage() {
@@ -156,7 +157,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
               <SectionHeader
                 titleId="decision-writing-title"
                 title={t("decisionDocument.writing")}
-                description={t("decisionDocument.fidelity")}
+                hint={<HelpHint text={t("decisionDocument.fidelity")} />}
                 hidden={phone && !draft.canEdit}
                 commands={
                   <>

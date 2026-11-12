@@ -45,7 +45,7 @@ function ReportTextBlock({
 }) {
   return (
     <section className={`report-text-block report-text-block-${tone}`}>
-      <header className="report-text-block-heading">
+      <header className="report-text-block-heading" data-layout-flow="true">
         <strong>{label}</strong>
         <span>{context}</span>
       </header>

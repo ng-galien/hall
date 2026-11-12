@@ -2,6 +2,7 @@
 import type { CouncilDecisionSummary } from "@hall/api-contract";
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { HelpHint } from "../components/HelpHint";
 import { GavelIcon } from "../components/icons";
 import {
   CollectionToolbar,
@@ -15,6 +16,7 @@ import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
+import { ScreenTitleCommands } from "../shell/headerTrail";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
 
@@ -41,7 +43,10 @@ export function CouncilDecisionsPage() {
   }, [councilDecisions, meetings, query]);
   return (
     <div className="page" data-testid="decisions-page">
-      <PageHeader title={t("decisions.title")} description={t("decisions.description")} />
+      <PageHeader title={t("decisions.title")} />
+      <ScreenTitleCommands>
+        <HelpHint text={t("decisions.description")} />
+      </ScreenTitleCommands>
       <div className="page-content">
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery} />

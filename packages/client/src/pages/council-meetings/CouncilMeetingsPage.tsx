@@ -1,4 +1,6 @@
 // TODO REMOVE_STALE: incomplete sessions remain accessible in history with the review badge.
+
+import { HelpHint } from "../../components/HelpHint";
 import { CalendarIcon } from "../../components/icons";
 import {
   CollectionToolbar,
@@ -17,6 +19,7 @@ import {
   councilMeetingIsFinished,
   upcomingCouncilMeetings,
 } from "../../models/councilMeeting";
+import { ScreenTitleCommands } from "../../shell/headerTrail";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 
 /** List of council meetings, each dated by its day and its time to the minute. */
@@ -43,7 +46,10 @@ export function CouncilMeetingsPage() {
 
   return (
     <div className="page">
-      <PageHeader title={t("meetings.title")} description={t("meetings.description")} />
+      <PageHeader title={t("meetings.title")} />
+      <ScreenTitleCommands>
+        <HelpHint text={t("meetings.description")} />
+      </ScreenTitleCommands>
       <div className="page-content">
         <RequestErrorBanner error={error} />
 

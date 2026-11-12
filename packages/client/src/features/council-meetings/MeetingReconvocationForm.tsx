@@ -66,12 +66,12 @@ export function MeetingReconvocationForm({
       <Modal
         open={open}
         title={t("meeting.reconveneAction")}
+        hint={t("meeting.reconveneDescription")}
         onClose={() => {
           if (!submitting) setOpen(false);
         }}
       >
         <form className="grid gap-4" data-testid="live-reconvocation-form" onSubmit={submit}>
-          <p>{t("meeting.reconveneDescription")}</p>
           <ul className="text-sm text-muted" data-testid="live-reconvocation-agenda">
             {remainingItems.map((item) => (
               <li key={item.id}>{item.title}</li>
