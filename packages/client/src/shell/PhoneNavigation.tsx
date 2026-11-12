@@ -1,5 +1,5 @@
 import type { Icon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CalendarIcon, DocsIcon, MemberIcon, MoreIcon, SettingsIcon } from "../components/icons";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
@@ -179,7 +179,7 @@ export function PhoneNavigation() {
       </nav>
       <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
         <DialogContent
-          className="app-sheet"
+          className="app-sheet px-0"
           placement="bottom"
           closeLabel={t("common.close")}
           aria-describedby={undefined}
@@ -212,7 +212,12 @@ export function PhoneNavigation() {
                           <item.Icon weight={current ? "bold" : "regular"} />
                         </span>
                         <span className="app-sheet-cell-label" aria-hidden="true">
-                          {item.short}
+                          {item.short.split(" ").map((word, index) => (
+                            <Fragment key={`${index}-${word}`}>
+                              {index > 0 ? " " : null}
+                              <span className="app-sheet-cell-word">{word}</span>
+                            </Fragment>
+                          ))}
                         </span>
                       </Link>
                     );

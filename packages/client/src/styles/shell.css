@@ -222,11 +222,14 @@
   .app-sheet:has(.app-sheet-grid) { padding-top: var(--hall-space-5); }
   .app-sheet-grid .app-sheet-group-title { padding-inline: var(--hall-space-4); }
   .app-sheet-group-title { padding: 0 var(--hall-space-1) var(--hall-space-1); color: var(--hall-color-text); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-bold); }
-  .app-sheet-cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--hall-space-1) 0; }
+  /* The columns follow the room: each cell is at least wide enough for the longest name on one line. */
+  .app-sheet-cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--hall-size-sheet-cell), 1fr)); gap: var(--hall-space-1) 0; }
   .app-sheet-cell { display: flex; min-width: 0; min-height: var(--hall-size-phone-bar); flex-direction: column; align-items: center; justify-content: flex-start; gap: var(--hall-space-1); padding: var(--hall-space-2) 0; border-radius: var(--hall-radius-small); color: var(--hall-color-text); font-size: var(--hall-font-size-caption); text-align: center; }
   .app-sheet-cell-icon { display: inline-grid; font-size: var(--hall-size-glyph-mark-large); }
   .app-sheet-cell-icon > svg { font-size: inherit; }
-  .app-sheet-cell-label { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; max-width: 100%; align-self: stretch; overflow-wrap: break-word; hyphens: auto; letter-spacing: -0.02em; line-height: var(--hall-line-height-caption); }
+  .app-sheet-cell-label { max-width: 100%; align-self: stretch; letter-spacing: var(--hall-letter-spacing-tight); line-height: var(--hall-line-height-caption); }
+  /* A name passes to the next line between its words, never inside one. */
+  .app-sheet-cell-word { white-space: nowrap; }
   .app-sheet-cell[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-bold); }
   .app-sheet-cell:active { background: var(--hall-color-surface-selected); }
 
