@@ -104,8 +104,14 @@
   .screen-header-title:empty { display: none; }
   /* The title of an opened item is read in full: it passes to the next line beside its commands. */
   .screen-title-row:has(.screen-title-commands:not(:empty)) > .screen-header-title { overflow-wrap: break-word; }
-  /* A title too long for the room beside its commands takes the whole line, its commands passing under it. */
-  .screen-title-row[data-long="true"] > .screen-header-title { flex-basis: calc(100% - var(--hall-size-glyph-large) - var(--hall-space-3)); }
+  /* A title too long for the room beside its commands takes the whole line; its commands pass under it, on the line of
+     its facts, at the right. */
+  .screen-title-block:has(> .screen-title-row[data-long="true"]) { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--hall-space-3); }
+  .screen-title-row[data-long="true"] { display: contents; }
+  .screen-title-row[data-long="true"] > .screen-title-icon { grid-column: 1; grid-row: 1; align-self: start; }
+  .screen-title-row[data-long="true"] > .screen-header-title { grid-column: 2 / 4; grid-row: 1; }
+  .screen-title-row[data-long="true"] > .screen-title-commands { grid-column: 3; grid-row: 2; margin-left: 0; }
+  .screen-title-block.screen-title-block:has(> .screen-title-row[data-long="true"]) > .screen-title-facts { grid-column: 2; grid-row: 2; padding-left: 0; }
   .screen-title-measure { position: absolute; visibility: hidden; white-space: nowrap; pointer-events: none; }
   /* The facts start under the title, after the type icon. */
   .screen-title-block:has(.screen-title-icon:not(:empty)) > .screen-title-facts { padding-left: calc(var(--hall-size-glyph-large) + var(--hall-space-3)); }
