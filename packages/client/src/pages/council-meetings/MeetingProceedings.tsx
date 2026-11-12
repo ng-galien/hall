@@ -217,11 +217,13 @@ function ReportBallotLine({ ballot, isMinutes }: { ballot: Ballot; isMinutes: bo
       </span>
       <span className="report-point-ballot-facts">
         <span>{t(ballot.method === "public" ? "ballot.method.public" : "ballot.method.secret")}</span>
-        {counts.map(([label, count]) => (
-          <span key={label} className="report-ballot-count">
-            {label} <strong>{formatNumber(count)}</strong>
-          </span>
-        ))}
+        {ballot.countsLoaded === false
+          ? null
+          : counts.map(([label, count]) => (
+              <span key={label} className="report-ballot-count">
+                {label} <strong>{formatNumber(count)}</strong>
+              </span>
+            ))}
       </span>
     </p>
   );

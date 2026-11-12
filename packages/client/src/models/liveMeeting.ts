@@ -65,6 +65,8 @@ export interface LiveMeetingBallot {
   abstentions: number;
   notVoting: number;
   votesCast: number;
+  /** False while the votes of the ballot are still loading: its counts are not known yet. */
+  countsLoaded?: boolean;
   votes: Array<{ id: string; ballotId: string; memberId: string; castByMemberId: string; choice: LiveVoteChoice }>;
   chairTieBreakApplied: boolean;
   recusedMemberIds: string[];
@@ -224,6 +226,7 @@ export function presentLiveMeeting(
       abstentions: preview?.calculation.totals.abstain ?? total("abstain"),
       notVoting: preview?.calculation.totals.nonParticipation ?? 0,
       votesCast: preview?.calculation.expressedCount ?? total("approve") + total("reject"),
+      countsLoaded: ballotVotes.has(ballot.id),
       votes: publicVotes,
       chairTieBreakApplied: preview?.calculation.tieBreakApplied ?? false,
       recusedMemberIds: preview?.quorum.excludedMemberIds ?? [],

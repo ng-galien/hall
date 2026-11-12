@@ -85,7 +85,9 @@ function CouncilDecisionDetail({ id }: { id: string }) {
       {phone && decision ? (
         <>
           <ScreenTitle>
-            {decision.number ? t("decisions.numberLabel", { number: decision.number }) : decision.title}
+            {decision.number
+              ? t("decisions.numberLabel", { number: unbreakableNumber(decision.number) })
+              : decision.title}
           </ScreenTitle>
           <PhoneDocumentActions actions={phoneActions} />
         </>
@@ -272,4 +274,9 @@ function CouncilDecisionDetail({ id }: { id: string }) {
       </div>
     </div>
   );
+}
+
+/** A word joiner after each hyphen keeps a decision number on one line: the title wraps between words only. */
+function unbreakableNumber(number: string) {
+  return number.replaceAll("-", "-\u2060");
 }

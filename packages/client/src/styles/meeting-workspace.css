@@ -850,10 +850,14 @@
      one rule between the tabs and the editor; tab titles on one line; the document commands of a phone at one width. */
   .minutes-editorial-surface > .minutes-opening-record { padding-bottom: 0; }
   .minutes-point .hall-disclosure-line { align-items: flex-start; }
-  .minutes-point-editor [data-slot="tabs-content"] > .markdown-editor { border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
   .minutes-point-tabbar [data-slot="tabs-trigger"] { flex: none; white-space: nowrap; }
   @media (max-width: 760px) {
     .minutes-point-tabbar [data-slot="tabs-list"] { gap: var(--hall-space-3); }
     .phone-minutes-document .minutes-header-document-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
   }
 }
+
+/* Outside the layers, like the utilities of the tabs: under the tabs of a minutes item there is one rule, the rule of
+   the tab bar; the editor frame hangs from it without a top border of its own. */
+.minutes-point-tabbar [data-slot="tabs-list"] { border-bottom: 0; }
+.minutes-point-editor .markdown-editor { margin-top: calc(-1 * var(--hall-space-3)); border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
