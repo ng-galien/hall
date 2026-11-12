@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
+import { imageUploadsPending, imageUploadsSettled } from "../../components/editor/imageUploadGate";
 import { useI18n } from "../../i18n/I18nProvider";
 import { ScreenActions } from "../../shell/headerTrail";
 
@@ -31,14 +32,30 @@ export function useTextWriting(text: WritableText): { editing: boolean; control:
     decided.current = text.id;
     setEditing(text.editable && text.content.trim() === "");
   }, [text.id, text.editable, text.content]);
+  const latest = useRef(text);
+  latest.current = text;
+  const [finishing, setFinishing] = useState(false);
+  /** « Terminé » saves in one gesture, after the image being uploaded is placed in the text. */
   const finish = async () => {
-    await text.flush();
-    if ((text.dirty ? await text.save() : true) && (await text.reload())) setEditing(false);
+    setFinishing(true);
+    try {
+      if (imageUploadsPending()) await imageUploadsSettled();
+      await latest.current.flush();
+      const current = latest.current;
+      if ((current.dirty ? await current.save() : true) && (await current.reload())) setEditing(false);
+    } finally {
+      setFinishing(false);
+    }
   };
   const button = text.editable ? (
     editing ? (
-      <Button className="screen-header-writing" data-testid="text-finish-editing" onClick={() => void finish()}>
-        {t("workspace.finishEditing")}
+      <Button
+        className="screen-header-writing"
+        data-testid="text-finish-editing"
+        disabled={finishing}
+        onClick={() => void finish()}
+      >
+        {finishing ? t("common.saving") : t("workspace.finishEditing")}
       </Button>
     ) : (
       <Button

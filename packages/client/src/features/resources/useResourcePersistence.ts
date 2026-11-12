@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
-import { imageUploadsPending, trackTextSave, useImageUploadsPending } from "../../components/editor/imageUploadGate";
+import {
+  imageUploadsPending,
+  imageUploadsSettled,
+  trackTextSave,
+  useImageUploadsPending,
+} from "../../components/editor/imageUploadGate";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { apiErrorCode } from "../../services/apiClient";
@@ -48,6 +53,11 @@ export function useResourcePersistence({
   const bodyFlushRef = useRef<(() => Promise<boolean>) | null>(null);
   const persistenceResourceIdRef = useRef<string | null | undefined>(undefined);
   const { status: saveStatus, setStatus: setSaveStatus } = useResourceSaveStatus(resourceId);
+  /** The save and flush of the last render, which hold the content written since a call began to wait. */
+  const latest = useRef<{ save(nextTitle?: string): Promise<boolean>; flush(): Promise<boolean> }>({
+    save: () => Promise.resolve(true),
+    flush: () => Promise.resolve(true),
+  });
 
   useEffect(() => {
     if (persistenceResourceIdRef.current !== resourceId) {
@@ -62,8 +72,11 @@ export function useResourcePersistence({
     (nextTitle = name) => {
       if (savePromiseRef.current) return savePromiseRef.current;
       if (!resource || !capabilities.updateMetadata) return Promise.resolve(true);
-      // A save taken while an image uploads would not cite it and would make the server drop it.
-      if (imageUploadsPending()) return Promise.resolve(false);
+      // A save asked while an image uploads waits for it and leaves with the content that cites it.
+      if (imageUploadsPending()) {
+        setSaveStatus("saving");
+        return imageUploadsSettled().then(() => latest.current.save(nextTitle));
+      }
       const current = resource;
       const pending = run(async () => {
         setActionError(null);
@@ -187,13 +200,19 @@ export function useResourcePersistence({
     bodyFlushRef.current = flush;
   }, []);
 
-  const flush = useCallback(async () => {
+  const flush = useCallback(async (): Promise<boolean> => {
+    if (imageUploadsPending()) {
+      setSaveStatus("saving");
+      await imageUploadsSettled();
+      return latest.current.flush();
+    }
     const pendingSaved = await (savePromiseRef.current ?? Promise.resolve(true));
     if (!autosaveEnabled) return pendingSaved;
     const bodySaved = await (bodyFlushRef.current?.() ?? Promise.resolve(true));
     if (!bodySaved) return false;
     return dirty && capabilities.updateMetadata ? save() : pendingSaved;
-  }, [autosaveEnabled, capabilities.updateMetadata, dirty, save]);
+  }, [autosaveEnabled, capabilities.updateMetadata, dirty, save, setSaveStatus]);
+  latest.current = { save, flush };
 
   return { saveStatus, save, updateAutosave, registerBodyFlush, flush };
 }

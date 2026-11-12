@@ -8,6 +8,7 @@ import { useSyncExternalStore } from "react";
 let uploads = 0;
 const saves = new Set<Promise<unknown>>();
 const listeners = new Set<() => void>();
+let settledWaiters: Array<() => void> = [];
 
 function notify() {
   for (const listener of listeners) listener();
@@ -32,8 +33,25 @@ export async function beginImageUpload(): Promise<() => void> {
     ended = true;
     uploads -= 1;
     notify();
+    if (uploads === 0) {
+      const waiters = settledWaiters;
+      settledWaiters = [];
+      for (const waiter of waiters) waiter();
+    }
   };
 }
+
+/**
+ * Resolves once no image is uploading and the text has taken the last placed image, so that a save asked meanwhile
+ * leaves with the content that cites it.
+ */
+export async function imageUploadsSettled(): Promise<void> {
+  if (uploads > 0) await new Promise<void>((resolve) => settledWaiters.push(resolve));
+  await new Promise((resolve) => window.setTimeout(resolve, contentSettleDelay));
+}
+
+/** Time left to the editor and the screen to take the content holding a placed image. */
+const contentSettleDelay = 50;
 
 export function imageUploadsPending(): boolean {
   return uploads > 0;
