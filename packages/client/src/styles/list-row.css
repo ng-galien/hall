@@ -91,7 +91,9 @@
   .list-row-status[data-tone="success"]::before { background: var(--hall-color-success); }
   .list-row-status[data-tone="action"]::before { background: var(--hall-color-brand); }
   .list-row-status[data-tone="danger"]::before { background: var(--hall-color-danger); }
-  .list-row-wide { display: none; flex: none; align-items: center; gap: var(--hall-space-4); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
+  /* The additional facts take at most half of the line and are shortened before the title and the state. */
+  .list-row-wide { display: none; min-width: 0; max-width: 50%; flex: 0 1 auto; align-items: center; gap: var(--hall-space-4); overflow: hidden; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
+  .list-row-wide > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .list-row-action { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); padding-right: var(--hall-space-3); }
   .list-row-children { padding: 0 var(--hall-space-3) var(--hall-space-3) calc(var(--hall-space-3) + var(--hall-size-glyph-large) + var(--hall-space-3)); }
   /* A nested list is a tree branch: one indentation step per level, rules continued. */
@@ -128,6 +130,23 @@
   .list-row[data-prominent="true"] .list-row-title { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); line-height: var(--hall-line-height-heading); white-space: normal; }
   .list-row[data-prominent="true"] .list-row-detail { flex-wrap: wrap; white-space: normal; }
   .list-row[data-prominent="true"] .list-row-action { width: 100%; flex-wrap: wrap; padding: 0 var(--hall-space-3) var(--hall-space-4) calc(var(--hall-space-3) * 2 + var(--hall-size-metric-icon)); }
+
+  /* @implements-requirement HALL-FR-LAY-060 */
+  /* Large row of a short list: larger initials and name, then lines of facts that wrap over two lines at most. */
+  .list-row[data-size="large"] .list-row-main { align-items: flex-start; padding-block: var(--hall-space-3); }
+  .list-row[data-size="large"] .list-row-avatar { width: var(--hall-size-metric-icon); height: var(--hall-size-metric-icon); font-size: var(--hall-font-size-body); }
+  .list-row[data-size="large"] .list-row-title { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-bold); line-height: var(--hall-line-height-heading); }
+  .list-row-fact {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--hall-color-text-muted);
+    font-size: var(--hall-font-size-body);
+    line-height: var(--hall-line-height-body-small);
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
 
   @media (min-width: 1000px) {
     .list-row-wide { display: flex; }

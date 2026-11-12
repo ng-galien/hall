@@ -175,3 +175,31 @@ test("the interface loads no serif typeface", () => {
     [],
   );
 });
+
+// @verifies-requirement HALL-FR-LAY-060
+test("the large row is the only size of ListRow and only the list row stylesheet draws it", () => {
+  const listRow = read("components/ui/list-row.tsx");
+  const sizes = [...listRow.matchAll(/\bsize\??: (?!never)([^;]+);/g)].map((match) => match[1].trim());
+  assert.deepEqual(sizes, ['"large"']);
+  const sizesRow = (selector, body) =>
+    /\.list-row\[data-size/.test(selector) ||
+    (/\.list-row-(?:avatar|title|fact)\s*$/.test(selector) &&
+      /(?:^|[\s;])(?:font-size|height|width|line-height):/.test(body));
+  const drawers = files
+    .filter(({ path }) => path.endsWith(".css"))
+    .filter(({ source }) =>
+      [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)].some(([, selector, body]) => sizesRow(selector, body)),
+    )
+    .map(({ path }) => path);
+  assert.deepEqual(drawers, ["styles/list-row.css"]);
+});
+
+// @verifies-requirement HALL-FR-LAY-060
+test("the additional facts of a row shrink before its title and its state", () => {
+  const css = read("styles/list-row.css");
+  const rule = css.match(/\.list-row-wide \{([^}]*)\}/)?.[1] ?? "";
+  assert.match(rule, /max-width: 50%/);
+  assert.match(rule, /flex: 0 1 auto/);
+  assert.match(rule, /min-width: 0/);
+  assert.doesNotMatch(rule, /flex: none/);
+});

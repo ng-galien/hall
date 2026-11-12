@@ -15,8 +15,18 @@ type ListRowOpen =
   | { onOpen: () => void; to?: never; state?: never }
   | { to?: never; onOpen?: never; state?: never };
 
+/** Large row of a short list, such as the members of the council: larger initials and name, more lines of facts. */
+type ListRowSize =
+  | { size?: never; lines?: never }
+  | {
+      size: "large";
+      /** Lines of facts under the second line; each wraps over two lines at most and ends with an ellipsis. */
+      lines: ReactNode[];
+    };
+
 export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "children"> &
-  ListRowOpen & {
+  ListRowOpen &
+  ListRowSize & {
     head?: ReactNode;
     /** Short line above the title of a prominent row, such as « Prochaine séance ». */
     overline?: ReactNode;
@@ -54,6 +64,8 @@ export function ListRow({
   detail,
   status,
   wide,
+  size,
+  lines,
   action,
   children,
   prominent,
@@ -85,6 +97,14 @@ export function ListRow({
             ) : null}
           </span>
         ) : null}
+        {lines?.map((line, index) =>
+          line ? (
+            // biome-ignore lint/suspicious/noArrayIndexKey: the lines of a row are a fixed sequence of facts.
+            <span key={index} className="list-row-fact">
+              {line}
+            </span>
+          ) : null,
+        )}
       </span>
       {wide ? <span className="list-row-wide">{wide}</span> : null}
     </>
@@ -115,6 +135,7 @@ export function ListRow({
       className={cn("list-row", className)}
       data-slot="list-row"
       data-prominent={prominent ? "true" : undefined}
+      data-size={size}
       data-selected={selected ? "true" : undefined}
       data-openable={to || onOpen || lineProps?.onClick ? "true" : undefined}
     >

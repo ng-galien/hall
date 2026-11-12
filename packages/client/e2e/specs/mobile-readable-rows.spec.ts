@@ -1,4 +1,4 @@
-import type { Locator } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
 const widths = [360, 390, 768, 852, 1440];
@@ -69,6 +69,87 @@ test("member list preserves identities beside status and commissions at every re
     }
     await expectOpensRecord(rows.first());
   }
+});
+
+/**
+ * Every visible row shows its title, keeps its state clear of the facts beside it and stays inside its line; the
+ * page does not scroll sideways, neither the document nor the content area beside the side panel.
+ */
+async function expectRowsFit(page: Page, screen: string) {
+  const defects = await page.evaluate(() => {
+    const crosses = (a: DOMRect, b: DOMRect) =>
+      a.width > 0 &&
+      b.width > 0 &&
+      a.left < b.right - 1 &&
+      b.left < a.right - 1 &&
+      a.top < b.bottom - 1 &&
+      b.top < a.bottom - 1;
+    const found: string[] = [];
+    for (const row of document.querySelectorAll<HTMLElement>('[data-slot="list-row"]')) {
+      if (!row.offsetParent) continue;
+      const title = row.querySelector<HTMLElement>(".list-row-title");
+      const name = title?.textContent?.trim() || row.dataset.testid || "row";
+      if (title && title.getBoundingClientRect().width < 40) found.push(`${name}: title hidden`);
+      const status = row.querySelector(".list-row-status")?.getBoundingClientRect();
+      for (const fact of row.querySelectorAll(".list-row-detail-text, .list-row-wide > *, .list-row-fact")) {
+        if (status && crosses(status, fact.getBoundingClientRect())) found.push(`${name}: state covers a fact`);
+      }
+      const line = row.querySelector<HTMLElement>(".list-row-line");
+      if (line && line.scrollWidth > line.clientWidth + 1) found.push(`${name}: line wider than the row`);
+    }
+    if (document.documentElement.scrollWidth > window.innerWidth + 1) found.push("document scrolls sideways");
+    for (const element of document.querySelectorAll<HTMLElement>("body *")) {
+      const overflow = getComputedStyle(element).overflowX;
+      if ((overflow === "auto" || overflow === "scroll") && element.scrollWidth > element.clientWidth + 1) {
+        found.push(`${element.className || element.tagName} scrolls sideways`);
+      }
+    }
+    return found;
+  });
+  expect(defects, screen).toEqual([]);
+}
+
+test.describe("person and body lists", () => {
+  test.use({ seedScenario: "minutes" });
+
+  // @verifies-requirement HALL-FR-LAY-060
+  test("rows keep name, state and facts apart without sideways scrolling at every width and theme", async ({
+    appPage: page,
+  }) => {
+    test.setTimeout(120_000);
+    const closed = (await (await page.request.get("/api/council-meetings")).json()).entities
+      .map((entry: { properties: { id: string; closedAt: string | null } }) => entry.properties)
+      .find((meeting: { closedAt: string | null }) => meeting.closedAt);
+    expect(closed).toBeTruthy();
+    const screens = [
+      "/app/council-members",
+      "/app/users",
+      "/app/contacts",
+      "/app/council-committees",
+      "/app/council-delegations",
+      `/app/meetings/${closed.id}`,
+    ];
+    for (const path of screens) {
+      await page.goto(path);
+      await expect(page.locator('[data-slot="list-row"]').first()).toBeVisible();
+      if (path === `/app/meetings/${closed.id}`) {
+        await page.getByTestId("report-attendance-toggle").click();
+        await expect(page.getByTestId("report-attendance-list")).toBeVisible();
+      }
+      for (const width of [1030, 1280, 768, 375]) {
+        await page.setViewportSize({ width, height: 900 });
+        for (const colorScheme of ["light", "dark"] as const) {
+          await page.emulateMedia({ colorScheme });
+          await expectRowsFit(page, `${path} at ${width} px, ${colorScheme}`);
+        }
+      }
+    }
+    await page.goto("/app/council-members");
+    await page.setViewportSize({ width: 1030, height: 900 });
+    const member = page.getByTestId(/^member-record-/).first();
+    await expect(member.locator(".list-row-title")).toBeVisible();
+    await expectReadable(member.locator(".list-row-title"));
+  });
 });
 
 // @verifies-requirement HALL-FR-LAY-010

@@ -191,16 +191,13 @@ export function CouncilMembersPage() {
                   title={fullName}
                   detail={`${t(`role.${member.role}`)}${member.rank == null ? "" : ` · ${t("members.rank")} ${member.rank}`}`}
                   status={rowStatus(member.active ? "active" : "inactive")}
-                  wide={
-                    <>
-                      <span>{member.contact.email || t("members.noEmail")}</span>
-                      <span>
-                        {member.contact.phone ? formatPhoneNumber(member.contact.phone) : t("members.noPhone")}
-                      </span>
-                      <span>{t("members.termSince", { date: formatDate(member.termStartedOn) })}</span>
-                      <span>{committeeSummary(member.id)}</span>
-                    </>
-                  }
+                  size="large"
+                  lines={[
+                    `${member.contact.email || t("members.noEmail")} · ${
+                      member.contact.phone ? formatPhoneNumber(member.contact.phone) : t("members.noPhone")
+                    }`,
+                    `${t("members.termSince", { date: formatDate(member.termStartedOn) })} · ${committeeSummary(member.id)}`,
+                  ]}
                 />
               );
             })}

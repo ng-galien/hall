@@ -10997,13 +10997,21 @@
         "Une action est un bouton au bout de la ligne, présent seulement quand l’action Siren correspondante existe pour l’utilisateur.",
         "L’élément principal d’un écran est la même ligne en variante agrandie.",
         "La ligne mesure au moins 64 pixels au téléphone ou sous un pointeur tactile, et 56 pixels à la souris sur ordinateur.",
-        "Les collections ne proposent pas de bouton pour passer en cartes ; les informations supplémentaires d’une ligne s’affichent à partir de 1000 pixels de large et sont masquées au téléphone."
+        "Les collections ne proposent pas de bouton pour passer en cartes ; les informations supplémentaires d’une ligne s’affichent à partir de 1000 pixels de large et sont masquées au téléphone.",
+        "Les informations supplémentaires occupent au plus la moitié de la ligne et se raccourcissent par des points de suspension ; le titre et l’état restent lisibles côte à côte sans se recouvrir, et la page ne défile pas horizontalement, panneau latéral ouvert ou fermé.",
+        "Une liste courte, comme la composition du conseil, emploie la grande taille de la même ligne : initiales et nom plus grands, nom en gras, puis la seconde ligne avec l’état et des lignes de faits qui passent à la ligne sur deux lignes au plus avant les points de suspension ; elle reste sur le fond blanc, séparée par des filets, sans bordure ni ombre. La grande taille est la seule variante de taille de la ligne."
       ],
       "clauses": [
         {
           "key": "list-row-presentation",
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches de composants (ligne F2, icône G2, couleurs C2, état 7B, action A1, élément mis en avant 4D, densité 11B) ; mots du propriétaire : « Pour moi, la hauteur des lignes, faut être compact. Je t’ai dit la liste, on abandonne les cartes. », « la photo ou les initiales à gauche pour une personne, bah ça pour l’instant on met les initiales ».",
+          "sourceIds": []
+        },
+        {
+          "key": "list-row-large-size",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 sur la composition du conseil : « il y a un petit problème de CSS. On voit pas les noms. », « je pense qu'on peut faire une carte plus grande là. Parce qu'il y a des membres du conseil municipal, il n'y en a pas 36 000 » ; décision du coordinateur : une grande taille de la ligne partagée, pas une carte encadrée, avec les coordonnées sur une ligne puis le mandat et les commissions sur la suivante.",
           "sourceIds": []
         }
       ]
