@@ -19,11 +19,13 @@
   --hall-color-on-brand: #ffffff;
   /* An outgoing message is previewed on white, as its recipients read it. */
   --hall-color-mail-preview: #ffffff;
-  /* Pale blue of the secondary button, with the dark text of the same blue. */
-  --hall-color-brand-subtle: #e9edf7;
-  --hall-color-brand-subtle-hover: #dde3f3;
-  --hall-color-on-brand-subtle: #1b2a78;
-  --hall-color-brand-border: #c3caec;
+  /* Pale tint of the brand blue for the secondary button (choice 5B), with the dark text of the same blue:
+     7.2:1 at rest, 6.4:1 hovered, 5.7:1 pressed. */
+  --hall-color-brand-subtle: #e8eefc;
+  --hall-color-brand-subtle-hover: #d6e0fa;
+  --hall-color-brand-subtle-pressed: #c6d4f6;
+  --hall-color-on-brand-subtle: #1b45ad;
+  --hall-color-brand-border: #becdf4;
   --hall-color-selection-subtle: #f5f6fc;
   --hall-color-selection-border: #d9def3;
   --hall-color-council-business: #087e8b;
@@ -278,10 +280,11 @@
   --hall-color-brand-hover: #98b0f4;
   --hall-color-brand-pressed: #6b8ae6;
   --hall-color-on-brand: #0c1030;
-  --hall-color-brand-subtle: #232a4d;
-  --hall-color-brand-subtle-hover: #2c3460;
-  --hall-color-on-brand-subtle: #c9d3f8;
-  --hall-color-brand-border: #383f6e;
+  --hall-color-brand-subtle: #1f2947;
+  --hall-color-brand-subtle-hover: #25325b;
+  --hall-color-brand-subtle-pressed: #2b3c6e;
+  --hall-color-on-brand-subtle: #c8d4f9;
+  --hall-color-brand-border: #36477d;
   --hall-color-selection-subtle: #1c2030;
   --hall-color-selection-border: #343b5e;
   --hall-color-success: #6fbc8e;

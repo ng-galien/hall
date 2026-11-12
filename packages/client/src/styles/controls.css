@@ -30,6 +30,7 @@
   .hall-button[data-variant="secondary"][aria-expanded="true"],
   .hall-button[data-variant="secondary"][aria-pressed="true"],
   .hall-button[data-variant="secondary"][data-state="on"] { background: var(--hall-color-brand-subtle-hover); }
+  .hall-button[data-variant="secondary"]:active:not(:disabled) { background: var(--hall-color-brand-subtle-pressed); }
   .hall-button[data-variant="danger"] { color: var(--hall-color-on-brand); background: var(--hall-color-danger); }
   .hall-button[data-variant="danger"]:hover:not(:disabled) { background: var(--hall-color-danger-strong); }
   .hall-button[data-variant="plain"] { color: var(--hall-color-text-muted); background: transparent; }
