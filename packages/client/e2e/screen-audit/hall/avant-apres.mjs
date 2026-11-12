@@ -218,5 +218,19 @@ ${sections.join("\n")}</body></html>`;
 }
 
 if (!phase || phase === "avant") capture("avant", exportCommit(before));
-if (!phase || phase === "apres") capture("apres", exportCommit(after));
+/* --from-checkout captures « après » on the repository itself (its HEAD, sources unchanged): the disposable database
+   keeps its container, which an exported copy would recreate with its own mounts. */
+const fromCheckout = process.argv.includes("--from-checkout");
+if (fromCheckout) {
+  const changed = spawnSync(
+    "git",
+    ["status", "--porcelain", "--", "packages/client/src", "packages/server", "packages/postgres"],
+    {
+      cwd: repository,
+      encoding: "utf8",
+    },
+  ).stdout.trim();
+  if (changed) throw new Error(`--from-checkout demande des sources inchangées :\n${changed}`);
+}
+if (!phase || phase === "apres") capture("apres", fromCheckout ? repository : exportCommit(after));
 page();
