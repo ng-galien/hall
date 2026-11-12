@@ -116,7 +116,16 @@ export const screens = [
     async open(page) {
       const meeting = await first(page, "/api/council-meetings", (entry) => entry.startedAt && !entry.closedAt);
       await page.goto(`/app/meetings/${meeting.id}/live`);
-      await page.getByTestId("live-ballot-open").first().click();
+      const ballot = page.getByTestId("live-ballot-open").first();
+      /* The current point of the seed is an open question: it is closed and the next point, which is voted, is
+         started, in the disposable database. */
+      for (let step = 0; step < 3 && !(await ballot.isVisible({ timeout: 3_000 }).catch(() => false)); step++) {
+        const start = page.getByTestId("live-agenda-start").first();
+        if (await start.isVisible().catch(() => false)) await start.click();
+        else await page.getByTestId("live-agenda-complete").first().click();
+        await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+      }
+      await ballot.click();
       await visible(page, "live-ballot-preview");
     },
   },
