@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "vitest";
 import { unityFindings } from "../e2e/screen-audit/engine/conformance.mjs";
@@ -191,4 +191,38 @@ test("the design table is drawn from « Design de référence » only, cites its
       ),
       component,
     );
+});
+
+test("docs/interface.md names code that exists and rules the screen audit has", async () => {
+  const { conformanceRules } = await import("../e2e/screen-audit/engine/conformance.mjs");
+  const { sweepRules } = await import("../e2e/screen-audit/engine/sweep.mjs");
+  const repository = join(import.meta.dirname, "../../..");
+  const text = readFileSync(join(repository, "docs/interface.md"), "utf8");
+  const rules = new Set([...Object.keys(conformanceRules), ...Object.keys(sweepRules)]);
+  const paths = [...text.matchAll(/`(packages\/client\/[^`]+)`/g)].map((match) => match[1]);
+  assert.ok(paths.length > 10, "the reference names the code of its components");
+  for (const path of paths) assert.ok(existsSync(join(repository, path)), `${path} n'existe pas`);
+  const named = [
+    ...[...text.matchAll(/^- Rules: (.+)$/gm)].flatMap((match) =>
+      [...match[1].matchAll(/`([a-z-]+)`/g)].map((rule) => rule[1]),
+    ),
+    ...[...text.matchAll(/\(`([a-z-]+)`(?:, `([a-z-]+)`)*\)/g)].flatMap((match) =>
+      [...match[0].matchAll(/`([a-z-]+)`/g)].map((rule) => rule[1]),
+    ),
+  ];
+  assert.ok(named.length > 20, "the reference names the rules that check it");
+  for (const rule of named) assert.ok(rules.has(rule), `la règle ${rule} n'existe pas dans l'outil`);
+  for (const heading of [
+    "Button",
+    "Add command",
+    "Form field",
+    "State",
+    "List row",
+    "Screen header and line of the title",
+    "Side menu",
+    "Phone bottom bar",
+    "Section header",
+    "Window",
+  ])
+    assert.match(text, new RegExp(`^### ${heading}$`, "m"), heading);
 });
