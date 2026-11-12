@@ -523,7 +523,7 @@ h4.docs-heading {
   .docs-toolbar .docs-pdf-link { margin-left: auto; }
   .docs-toolbar .docs-crumbs { order: 1; flex: 1 1 100%; }
   .docs-toolbar .docs-search { order: 2; }
-  .docs-toolbar .docs-crumbs > a:not(:last-child) { min-width: 0; flex: 0 1000 auto; }
+  .docs-toolbar .docs-crumbs > a:not(:last-child) { min-width: var(--hall-size-touch-control); flex: 0 1000 auto; }
   .docs-toolbar .docs-crumbs > .docs-crumb:not(:last-child) { flex: none; }
   .docs-toolbar .docs-crumbs > .docs-crumb:last-child { min-width: 0; flex: 0 1 auto; }
   .docs-toolbar .docs-crumbs > .docs-crumb:last-child > a { min-width: 0; }
