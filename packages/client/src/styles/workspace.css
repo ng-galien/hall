@@ -118,6 +118,8 @@
 
   /* ---- Tree of the Documents pane ---- */
   .workspace-tree-wrap { display: flex; flex-direction: column; }
+  .workspace-tree-scroll { max-height: var(--hall-size-tree-max); overflow-y: auto; }
+  .hall-button.workspace-tree-more { justify-content: flex-start; width: 100%; padding-left: var(--hall-space-6); color: var(--hall-color-brand); }
 
   /* ---- Top bar: faceted search, creation, pins ---- */
   .workspace-topzone { display: flex; flex-direction: column; gap: var(--hall-space-2); }

@@ -8553,7 +8553,7 @@
       },
       "statement": "Dans l’arbre du menu Espace de travail, cliquer sur une affaire du conseil ouvre cette affaire, et non la liste du répertoire documentaire associé.",
       "acceptanceCriteria": [
-        "Le clic sur une affaire dans le volet de l’écran Documents ouvre son espace de travail existant, avec son identité conservée.",
+        "Le clic sur une affaire dans l’arborescence du menu ouvre son espace de travail existant, avec son identité conservée.",
         "Un répertoire ordinaire ouvre toujours son contenu documentaire.",
         "L’affaire ouverte reste identifiable comme sélection active dans l’arbre.",
         "L’arbre distingue les répertoires et les affaires par leurs icônes communes seules, sans fond, badge ni habillage supplémentaire autour de l’icône d’affaire.",
@@ -8623,7 +8623,7 @@
       "acceptanceCriteria": [
         "La page racine affiche uniquement l’explorateur documentaire existant, sans vue complémentaire des affaires du conseil.",
         "L’explorateur présente toute l’arborescence depuis la racine, dossiers compris, ainsi que les éléments directement classés à la racine.",
-        "À l’ouverture de l’espace de travail, sur ordinateur, tablette et téléphone, les dossiers de l’explorateur sont repliés et ne se déplient que sur une action de l’utilisateur. Sur ordinateur et tablette, l’icône d’un dossier qui a un contenu déplie ou replie sa branche sur place : dossier fermé quand il est replié, dossier ouvert quand il est déplié, avec une zone de clic d’au moins 32 pixels et un survol visible ; un clic sur le nom ou le reste de la ligne ouvre ce dossier comme dossier courant ; aucune ligne de dossier ne porte de chevron, dans l’explorateur comme dans l’arborescence du volet de l’écran Documents. Au clavier, les flèches déplient et replient, Entrée ouvre le dossier. Un dossier sans contenu garde son icône fermée.",
+        "À l’ouverture de l’espace de travail, sur ordinateur, tablette et téléphone, les dossiers de l’explorateur sont repliés et ne se déplient que sur une action de l’utilisateur. Sur ordinateur et tablette, l’icône d’un dossier qui a un contenu déplie ou replie sa branche sur place : dossier fermé quand il est replié, dossier ouvert quand il est déplié, avec une zone de clic d’au moins 32 pixels et un survol visible ; un clic sur le nom ou le reste de la ligne ouvre ce dossier comme dossier courant ; aucune ligne de dossier ne porte de chevron, dans l’explorateur comme dans l’arborescence du menu. Au clavier, les flèches déplient et replient, Entrée ouvre le dossier. Un dossier sans contenu garde son icône fermée.",
         "Un clic hors du titre d’une affaire, d’un document ou d’une note sélectionne seulement l’élément ; un clic sur son titre ouvre sa fiche sans déplier l’affaire.",
         "Après la sélection d’une affaire, d’un document ou d’une note, le focus reste dans l’arbre afin que la navigation au clavier puisse continuer.",
         "Depuis une affaire, un document ou une note, la flèche gauche replie son dossier parent et replace le focus sur ce dossier.",
@@ -11214,7 +11214,7 @@
         "La racine « Administration » est repliée par défaut et se déplie sur place en Utilisateurs, Membres du conseil, Commissions, Représentations extérieures et Modèles de documents ; elle est dépliée d’elle-même sur l’un de ses écrans. Son état se lit à l’épaisseur de son icône et à la présence de ses entrées, sans chevron.",
         "Le menu a deux états, déplié avec les libellés complets ou replié en rail d’icônes dont le libellé est donné en infobulle et aux lecteurs d’écran ; la personne choisit l’état par le bouton de repli du menu et le retrouve à sa visite suivante.",
         "Le bouton de repli du menu est à droite de la marque « Hall », sur sa ligne ; menu replié, il est en haut du rail, juste sous le « H », au même endroit à chaque écran. Entre 761 et 1000 pixels de large, le rail reste affiché et ce bouton ouvre le menu déplié par-dessus le contenu.",
-        "L’entrée Documents du menu ne porte ni arborescence ni bouton de dépliage ; l’arborescence des dossiers et des affaires est le volet de l’écran Documents.",
+        "L’entrée Documents du menu ne porte pas de chevron ni de bouton de dépliage ; tant que l’écran Documents est ouvert, l’arborescence des dossiers et des affaires s’affiche sous elle, dans le menu déplié, et reçoit les éléments qu’on y dépose.",
         "Sur ordinateur et tablette, le menu emploie les mêmes icônes en trait et le même état actif que la barre du bas.",
         "Au téléphone, la feuille « Plus » reprend les groupes du menu, « Conseil municipal », « Outils de travail » et « Administration », sans les entrées de la barre du bas, puis l’espace personnel, l’aide et le compte."
       ],
@@ -11335,12 +11335,12 @@
         "state": "accepted",
         "since": "2026-11-12"
       },
-      "statement": "Sur ordinateur et tablette, l’écran d’un module qui sert à naviguer, filtrer ou déposer a un volet entre le menu et le contenu, et chaque panneau repliable porte son propre bouton de repli.",
+      "statement": "Sur ordinateur et tablette, l’écran Courriels a un volet entre le menu et le contenu, et chaque panneau repliable porte son propre bouton de repli.",
       "acceptanceCriteria": [
         "Le volet occupe toute la hauteur entre le menu et le contenu ; son en-tête porte son titre et son bouton de repli, et son contenu défile seul.",
-        "Seuls les écrans Documents et Courriels ont un volet : l’arborescence des dossiers et des affaires, cible de dépôt, pour Documents ; Brouillons, Envoyés et les groupes de destinataires pour Courriels. Un écran sans volet donne toute la largeur au contenu après le menu.",
+        "Seul l’écran Courriels a un volet : Brouillons, Envoyés et les groupes de destinataires. L’écran Documents n’a pas de volet ; un écran sans volet donne toute la largeur au contenu après le menu.",
         "Le volet replié laisse toute la largeur au contenu ; la personne retrouve l’état choisi pour chaque volet à sa visite suivante.",
-        "Chaque panneau repliable porte son bouton de repli dans son propre en-tête : le menu, le volet du module et la liste des courriels. Le bandeau du contenu ne porte aucun bouton de repli et son fil d’Ariane commence au bord gauche.",
+        "Chaque panneau repliable porte son bouton de repli dans son propre en-tête : le menu, le volet de Courriels et la liste des courriels. Le bandeau du contenu ne porte aucun bouton de repli et son fil d’Ariane commence au bord gauche.",
         "Quand un volet ou la liste des courriels est replié et n’a plus d’en-tête visible, le bouton qui le rouvre est au début du bandeau de l’écran.",
         "Au téléphone, l’écran n’a pas de volet : il présente sa propre navigation dans son contenu."
       ],
@@ -11349,6 +11349,12 @@
           "key": "module-pane-variant-3",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026 : « avoir un explorateur contextuel dans la barre […] l'explorateur prend la majorité de la place […] C'est le même esprit avec les courriers […] la barre latérale doit être stable, on doit accéder à toutes les racines » ; « le but de l'arborescence ici, c'était pour déplacer des éléments dans des affaires ou dans des dossiers de documents. Donc ça, je veux qu'on le garde. » ; « je n'aime pas les chevrons […] je préfère une icône de dossier qui bouge plutôt que ces chevrons. » ; planche 33 « Barre latérale — troisième forme et hauteurs réelles », « menu repliable et volet du module » : « Oui, lance ».",
+          "sourceIds": []
+        },
+        {
+          "key": "no-documents-pane",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026, devant le volet de Documents : « le truc des documents, avec les doubles gouttières rétractables, on n'y comprend rien. C'est pas du tout ce que j'avais demandé. […] C'est un empilement de trucs », puis « quand je dis je veux dans le menu des sous-sections, tu en as fait une nouvelle section verticale ». L’arborescence revient sous l’entrée Documents du menu ; la forme définitive du menu se décide sur une maquette.",
           "sourceIds": []
         }
       ]

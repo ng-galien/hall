@@ -141,7 +141,6 @@
   .app-sidebar-section { display: flex; flex-direction: column; gap: var(--hall-space-0-5); }
   .app-sidebar-section + .app-sidebar-section { margin-top: var(--hall-space-2); }
   .app-sidebar-item { display: flex; flex-direction: column; }
-  .app-sidebar-item-line { display: flex; align-items: center; gap: var(--hall-space-0-5); }
   .hall-button.nav-root { justify-content: flex-start; gap: var(--hall-space-2-5); padding: 0 var(--hall-space-2); color: var(--hall-color-text-muted); font-weight: inherit; text-align: left; }
   .hall-button.nav-root[data-compact="true"] { justify-content: center; padding: 0; }
   .hall-button.nav-root[aria-expanded="true"]:not(:hover) { background: none; }

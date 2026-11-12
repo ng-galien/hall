@@ -68,9 +68,14 @@ test.describe("navigation and settings", () => {
       "navigation-administration",
       "navigation-settings",
     ]);
-    // « Documents » carries neither a fold control nor the tree: the tree is the pane of the Documents screen.
+    // « Documents » carries no fold control; its tree shows under it while the Documents screen is open.
     await expect(sidebar.getByTestId("workspace-tree")).toHaveCount(0);
     await expect(sidebar.locator("[aria-expanded]")).toHaveCount(2);
+    await page.getByTestId("navigation-workspace").click();
+    await expect(sidebar.getByTestId("workspace-tree")).toBeVisible();
+    await expect(page.getByTestId("workspace-pane")).toHaveCount(0);
+    await expect(page.getByTestId("workspace-pane-toggle")).toHaveCount(0);
+    await page.getByTestId("navigation-overview").click();
 
     const administration = page.getByTestId("navigation-administration");
     await expect(administration).toHaveAttribute("aria-expanded", "false");

@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { CouncilBusinessIcon, FolderIcon, FolderOpenIcon } from "../components/icons";
 import { Button } from "../components/ui/button";
 import { councilBusinessHref } from "../features/references/referenceNavigation";
+import { useI18n } from "../i18n/I18nProvider";
 import { folderColorIconProps } from "../pages/workspace/folderColor";
 import { buildPathTree, type PathNode } from "../pages/workspace/paths";
 import { DRAG_TYPE, decodeDragPayload, moveToPath } from "../pages/workspace/workspaceOrg";
@@ -111,8 +112,7 @@ function TreeNode({
   );
 }
 
-/** Tree of the folders and the affaires, in the pane of Documents: each row opens its folder or affaire and receives
- * the items dropped on it. */
+/** Filing path tree rendered in the menu under the Documents entry, while the Documents screen is open. */
 // biome-ignore-start lint/correctness/useExhaustiveDependencies: the structure signature is the refresh trigger.
 export function WorkspaceTree() {
   const selectedBusinesses = useCouncilBusinessStore((state) => state.businesses);
@@ -168,6 +168,9 @@ export function WorkspaceTree() {
     });
   };
 
+  const [showAll, setShowAll] = useState(false);
+  const { t } = useI18n();
+
   const structure = useMemo(
     () =>
       [
@@ -192,21 +195,45 @@ export function WorkspaceTree() {
 
   if (tree.length === 0) return null;
 
+  const VISIBLE_LIMIT = 6;
+  const activeTop = activePath ? (activePath.split("/").filter(Boolean)[0] ?? null) : null;
+  let visible = tree;
+  let hiddenCount = 0;
+  if (!showAll && tree.length > VISIBLE_LIMIT + 1) {
+    visible = tree.slice(0, VISIBLE_LIMIT);
+    if (activeTop && !visible.some((node) => node.path === activeTop)) {
+      const active = tree.find((node) => node.path === activeTop);
+      if (active) visible = [...visible, active];
+    }
+    hiddenCount = tree.length - visible.length;
+  }
+
   return (
     <div className="workspace-tree-wrap" data-testid="workspace-tree">
-      <ul className="workspace-tree">
-        {tree.map((node) => (
-          <TreeNode
-            key={node.path}
-            node={node}
-            depth={0}
-            activePath={activePath}
-            activeBusinessId={activeBusinessId}
-            expanded={expanded}
-            onToggle={onToggle}
-          />
-        ))}
-      </ul>
+      <div className="workspace-tree-scroll">
+        <ul className="workspace-tree">
+          {visible.map((node) => (
+            <TreeNode
+              key={node.path}
+              node={node}
+              depth={0}
+              activePath={activePath}
+              activeBusinessId={activeBusinessId}
+              expanded={expanded}
+              onToggle={onToggle}
+            />
+          ))}
+        </ul>
+      </div>
+      {hiddenCount > 0 ? (
+        <Button variant="plain" className="workspace-tree-more" onClick={() => setShowAll(true)}>
+          {t("workspace.showAllFolders")}
+        </Button>
+      ) : showAll && tree.length > VISIBLE_LIMIT + 1 ? (
+        <Button variant="plain" className="workspace-tree-more" onClick={() => setShowAll(false)}>
+          {t("workspace.showLessFolders")}
+        </Button>
+      ) : null}
     </div>
   );
 }

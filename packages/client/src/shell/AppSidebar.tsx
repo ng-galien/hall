@@ -7,6 +7,7 @@ import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { type NavigationItem, type NavigationSection, navigationSections } from "./navigation";
 import { useApiRoot } from "./usePhoneLayout";
+import { WorkspaceTree } from "./WorkspaceTree";
 
 /** One destination of the navigation panel: outline icon and label, the active one in blue with a thicker stroke. */
 function NavigationRow({
@@ -100,7 +101,7 @@ function FoldedRoot({ section, compact }: { section: NavigationSection; compact:
 // @implements-requirement HALL-FR-LAY-110
 /**
  * Navigation panel of the tablet and the computer: the roots grouped by subject, with labels when unfolded or as a
- * rail of icons when folded. Its own fold control is on the line of the brand, and under the « H » of the rail.
+ * rail of icons when folded. On the Documents screen, the tree of the folders and affaires shows under its entry. Its own fold control is on the line of the brand, and under the « H » of the rail.
  */
 export function AppSidebar({
   compact,
@@ -112,6 +113,7 @@ export function AppSidebar({
 }) {
   const { t } = useI18n();
   const { available } = useApiRoot();
+  const inDocuments = useLocation().pathname === "/workspace";
 
   return (
     <aside
@@ -145,14 +147,16 @@ export function AppSidebar({
             <div className="app-sidebar-section" key={section.labelKey ?? section.items[0].to}>
               {section.labelKey && !compact ? <span className="nav-section-label">{t(section.labelKey)}</span> : null}
               {items.map((item) => (
-                <NavigationRow
-                  key={item.to}
-                  to={item.to}
-                  labelKey={item.labelKey}
-                  Icon={item.Icon}
-                  compact={compact}
-                  testId={`navigation-${item.to === "/" ? "overview" : item.to.slice(1)}`}
-                />
+                <div className="app-sidebar-item" key={item.to}>
+                  <NavigationRow
+                    to={item.to}
+                    labelKey={item.labelKey}
+                    Icon={item.Icon}
+                    compact={compact}
+                    testId={`navigation-${item.to === "/" ? "overview" : item.to.slice(1)}`}
+                  />
+                  {item.to === "/workspace" && inDocuments && !compact ? <WorkspaceTree /> : null}
+                </div>
               ))}
             </div>
           );
