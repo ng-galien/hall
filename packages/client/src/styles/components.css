@@ -725,6 +725,10 @@
     vertical-align: middle;
   }
   .section-header-title :is(.section-header-icon, .section-header-count) { vertical-align: middle; }
+  /* A title that is not plain text, or that folds its section, lays its parts and its information icon side by side,
+     each in its own box. */
+  .section-header-title:not(:has(.title-tail)) { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; column-gap: var(--hall-space-1); }
+  .section-header-title:not(:has(.title-tail)) > .hall-button { margin-left: 0; }
   .section-header-description { flex: 1 0 100%; order: 1; margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   /* The commands keep the right end of the title line, centred on it; passed under the title, they keep the right end. */
   .section-header-commands { display: flex; max-width: 100%; min-height: var(--hall-size-control); flex: 0 0 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); margin-left: auto; }
