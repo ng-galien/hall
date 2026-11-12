@@ -3,10 +3,10 @@ import { Fragment, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CalendarIcon, DocsIcon, MemberIcon, MoreIcon, SettingsIcon } from "../components/icons";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
+import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { isUnderPath } from "../pages/workspace/paths";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
-import type { TranslationKey } from "../i18n/en";
 import { isUnder, type NavigationItem, navigationBlocks, navigationItem, phoneBarDestinations } from "./navigation";
 
 /** The short names written under the icons of the « Plus » grid; the screen and the screen reader keep the full one. */
@@ -16,6 +16,7 @@ const gridLabels: Record<string, TranslationKey> = {
   "administration-documents": "navigation.gridDocumentSettings",
   "administration-mail": "navigation.gridMailSettings",
 };
+
 import { useApiRoot } from "./usePhoneLayout";
 
 export function personalWorkspaceHref(path: string) {
@@ -108,7 +109,8 @@ export function PhoneNavigation() {
   const entry = (id: string) => navigationBlocks.flat().find((item) => item.id === id);
   const children = (id: string) =>
     (entry(id)?.children ?? []).filter(
-      (child) => available(child.requiredRelation) && !phoneBarDestinations.has(child.to ?? "") && child.id !== "meetings",
+      (child) =>
+        available(child.requiredRelation) && !phoneBarDestinations.has(child.to ?? "") && child.id !== "meetings",
     );
   const tools = ["mail", "contacts", "maps"]
     .flatMap((id) => entry(id) ?? [])

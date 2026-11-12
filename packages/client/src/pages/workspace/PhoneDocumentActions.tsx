@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { usePhoneEditorCommands } from "../../components/editor/phoneEditorCommands";
 import {
   CopyIcon,
   DeleteIcon,
@@ -9,7 +10,6 @@ import {
   PinnedIcon,
   RedoIcon,
 } from "../../components/icons";
-import { usePhoneEditorCommands } from "../../components/editor/phoneEditorCommands";
 import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import {

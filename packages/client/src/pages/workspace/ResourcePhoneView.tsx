@@ -300,7 +300,12 @@ export function ResourcePhoneView({
               </span>
             ))}
           </ScreenTitleFacts>
-          <Modal open={tagsOpen} title={t("workspace.tags")} testId="phone-document-tags-dialog" onClose={() => setTagsOpen(false)}>
+          <Modal
+            open={tagsOpen}
+            title={t("workspace.tags")}
+            testId="phone-document-tags-dialog"
+            onClose={() => setTagsOpen(false)}
+          >
             <TagInput value={session.tags} onChange={session.setTags} label={t("workspace.tags")} />
           </Modal>
         </>
