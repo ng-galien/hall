@@ -221,11 +221,12 @@
   .template-body > .hall-field-block { width: 100%; }
   .template-source,
   .template-decoration-source { font-family: var(--hall-font-family-monospace); font-size: var(--hall-font-size-body); }
-  .template-body-source { min-height: var(--hall-size-relative-24rem); white-space: pre; }
+  /* The template source wraps its long lines instead of scrolling sideways; its indentation is kept. */
+  .template-body-source { min-height: var(--hall-size-relative-24rem); white-space: pre-wrap; overflow-wrap: anywhere; }
   .template-examples { font-size: var(--hall-font-size-body); }
   .template-examples summary { cursor: pointer; font-weight: var(--hall-font-weight-semibold); }
   .template-examples p { margin: var(--hall-space-2) 0; color: var(--hall-color-text-muted); }
-  .template-examples pre { overflow: auto; font-size: var(--hall-font-size-caption); }
+  .template-examples pre { font-size: var(--hall-font-size-caption); white-space: pre-wrap; overflow-wrap: anywhere; }
   .template-preview-diagnostics { padding-left: var(--hall-space-5); font-size: var(--hall-font-size-body); list-style: disc; }
   .template-preview-frame { width: 100%; height: var(--hall-size-embed-height); border: var(--hall-stroke-thin) solid var(--hall-color-border); background: var(--hall-color-surface); }
 
