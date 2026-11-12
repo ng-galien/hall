@@ -35,6 +35,8 @@ const outputDirectory = process.env.HALL_SCREEN_AUDIT_OUTPUT ?? "";
 const sweeping = process.env.HALL_SCREEN_AUDIT_MODE === "sweep";
 const onlyScreens = process.env.HALL_SCREEN_AUDIT_SCREENS?.split(",");
 const onlyIntervals = parseRanges(process.env.HALL_SCREEN_AUDIT_INTERVALS ?? "");
+/** Exact window widths of a targeted pass, measured with every rule instead of the ends of the intervals. */
+const onlyWidths = process.env.HALL_SCREEN_AUDIT_WIDTHS?.split(",").map(Number) ?? null;
 
 async function setMenu(page: Page, expanded: boolean) {
   const toggle = page.getByTestId("navigation-toggle").first();
@@ -218,10 +220,14 @@ if (sweeping) {
                   sweepPlan.from,
                   sweepPlan.to,
                 );
-                const steps: Step[] = planWidths(intervals, {
-                  below: input === "touch" ? sweepPlan.touchBelow : Number.POSITIVE_INFINITY,
-                  only: onlyIntervals,
-                });
+                const steps: Step[] = onlyWidths
+                  ? onlyWidths
+                      .filter((width) => input === "pointer" || width < sweepPlan.touchBelow)
+                      .map((width) => ({ width, full: true }))
+                  : planWidths(intervals, {
+                      below: input === "touch" ? sweepPlan.touchBelow : Number.POSITIVE_INFINITY,
+                      only: onlyIntervals,
+                    });
                 const phoneSteps = steps.filter((step) => step.width < sweepPlan.wideFrom);
                 const wideSteps = steps.filter((step) => step.width >= sweepPlan.wideFrom);
 
@@ -243,7 +249,7 @@ if (sweeping) {
                       await setMenu(page, menu);
                     }
                     const extra =
-                      input === "pointer"
+                      input === "pointer" && !onlyWidths
                         ? await containerWidths(all.filter((entry) => entry.kind === "container"))
                         : [];
                     const plan = [...wideSteps, ...extra.map((width) => ({ width, full: false }))].sort(

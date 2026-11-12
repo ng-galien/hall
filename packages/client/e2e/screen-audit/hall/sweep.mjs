@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { conformanceRules, unityFindings } from "../engine/conformance.mjs";
 import { groupFindings, intervalLabel, intervalsOf, sweepRules } from "../engine/sweep.mjs";
@@ -18,6 +19,8 @@ import { sourcesOf, sweepPlan } from "./sweep-config.mjs";
  *   --screens=a,b                these screens;
  *   --intervals=761-1000,…       only the intervals that cross these window widths;
  *   --exclude=a,b                leave these screens out (their files are being changed);
+ *   --widths=783,1030            measure only these window widths, with every rule;
+ *   --commit=<commit>            the commit whose client is built and measured (HEAD by default);
  *   --report-only                rewrite the report from the last measurements;
  *   --rules[=component]          write the rules of the interface (all, or one component), without a browser;
  *   --explain=<file or screen>   write the rules that apply to this file or screen.
@@ -81,6 +84,44 @@ if (excluded.length) {
 }
 for (const id of selected ? selected.split(",") : []) if (!known.has(id)) throw new Error(`Écran inconnu : ${id}`);
 const intervalsOption = argument("intervals");
+const widthsOption = argument("widths");
+
+/*
+ * The measured client is built from a commit, never from the working tree: the commit is exported with `git archive`
+ * outside the repository, its client is built there once and served by the journeys. The server and the database of
+ * the disposable instance come from the packages built in the repository.
+ */
+const repository = resolve(clientDirectory, "../..");
+const commit = spawnSync("git", ["rev-parse", "--short", argument("commit") ?? "HEAD"], {
+  cwd: repository,
+  encoding: "utf8",
+}).stdout.trim();
+function buildClient() {
+  const root = resolve(process.env.HALL_SCREEN_AUDIT_BUILDS ?? join(tmpdir(), "hall-screen-audit-builds"), commit);
+  const built = join(root, "client");
+  if (existsSync(join(built, "index.html"))) return built;
+  rmSync(root, { recursive: true, force: true });
+  mkdirSync(join(root, "source"), { recursive: true });
+  const archive = spawnSync("sh", ["-c", `git archive ${commit} | tar -x -C "${join(root, "source")}"`], {
+    cwd: repository,
+    stdio: "inherit",
+  });
+  if (archive.status !== 0) throw new Error(`git archive ${commit} a échoué`);
+  for (const modules of ["node_modules", "packages/client/node_modules"])
+    if (existsSync(join(repository, modules))) symlinkSync(join(repository, modules), join(root, "source", modules));
+  console.log(`Construction du client de ${commit} dans ${built}`);
+  const build = spawnSync(
+    process.execPath,
+    [join(repository, "node_modules/vite/bin/vite.js"), "build", "--outDir", built, "--emptyOutDir"],
+    {
+      cwd: join(root, "source", "packages/client"),
+      env: { ...process.env, HALL_VITE_CACHE_DIR: join(root, "vite-cache") },
+      stdio: "inherit",
+    },
+  );
+  if (build.status !== 0) throw new Error(`La construction du client de ${commit} a échoué`);
+  return built;
+}
 
 const started = Date.now();
 if (!reportOnly && selected !== "") {
@@ -93,6 +134,9 @@ if (!reportOnly && selected !== "") {
     process.exit(1);
   }
   rmSync(outputDirectory, { recursive: true, force: true });
+  const clientBuild = buildClient();
+  mkdirSync(outputDirectory, { recursive: true });
+  writeFileSync(join(outputDirectory, "commit.txt"), `${commit}\n`);
   const result = spawnSync(process.execPath, [resolve(clientDirectory, "e2e/run.mjs")], {
     cwd: resolve(clientDirectory, "../.."),
     env: {
@@ -105,12 +149,17 @@ if (!reportOnly && selected !== "") {
       HALL_E2E_LANES: process.env.HALL_E2E_LANES ?? "2",
       ...(selected ? { HALL_SCREEN_AUDIT_SCREENS: selected } : {}),
       ...(intervalsOption ? { HALL_SCREEN_AUDIT_INTERVALS: intervalsOption } : {}),
+      ...(widthsOption ? { HALL_SCREEN_AUDIT_WIDTHS: widthsOption } : {}),
+      HALL_E2E_CLIENT_BUILD: clientBuild,
     },
     stdio: "inherit",
   });
   if (result.status !== 0) console.error(`Le balayage s'est terminé avec le statut ${result.status}.`);
 }
 const seconds = Math.round((Date.now() - started) / 1000);
+const measuredCommit = existsSync(join(outputDirectory, "commit.txt"))
+  ? readFileSync(join(outputDirectory, "commit.txt"), "utf8").trim()
+  : commit;
 
 const sweepDirectory = join(outputDirectory, "sweep");
 const records = existsSync(sweepDirectory)
@@ -186,7 +235,7 @@ const titles = Object.fromEntries(
 );
 const lines = [];
 const say = (line = "") => lines.push(line);
-say(`Balayage : ${measuredScreens.size} écrans, ${measures} mesures, ${seconds} s.`);
+say(`Balayage du commit ${measuredCommit} : ${measuredScreens.size} écrans, ${measures} mesures, ${seconds} s.`);
 say(`\nSeuils de largeur relevés (${thresholdList.length}, première largeur de la plage ouverte) :`);
 for (const entry of thresholdList)
   say(
