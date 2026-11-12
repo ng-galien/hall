@@ -104,6 +104,11 @@
   .screen-header-title:empty { display: none; }
   /* The title of an opened item is read in full: it passes to the next line beside its commands. */
   .screen-title-row:has(.screen-title-commands:not(:empty)) > .screen-header-title { overflow-wrap: break-word; }
+  /* A title too long for the room beside its commands takes the whole line, its commands passing under it. */
+  .screen-title-row[data-long="true"] > .screen-header-title { flex-basis: calc(100% - var(--hall-size-glyph-large) - var(--hall-space-3)); }
+  .screen-title-measure { position: absolute; visibility: hidden; white-space: nowrap; pointer-events: none; }
+  /* The facts start under the title, after the type icon. */
+  .screen-title-block:has(.screen-title-icon:not(:empty)) > .screen-title-facts { padding-left: calc(var(--hall-size-glyph-large) + var(--hall-space-3)); }
   /* Once the large title has scrolled away, the title is written in the first line. */
   .screen-header[data-collapsed="true"] .screen-header-inline-title { display: block; }
   .screen-header[data-collapsed="true"] :is(.screen-header-parent, .screen-header-commune, .screen-header-trail) { display: none; }

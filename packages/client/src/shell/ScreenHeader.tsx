@@ -244,6 +244,38 @@ export function ScreenHeader({
   );
 }
 
+/**
+ * True when the title, written on one line, needs more than the room its icon and commands leave it: it then takes
+ * the whole line and the commands pass under it.
+ */
+function useTitleTooLong(row: HTMLDivElement | null, title: string): boolean {
+  const [long, setLong] = useState(false);
+  useEffect(() => {
+    if (!row) return;
+    const measure = () => {
+      const text = row.querySelector<HTMLElement>(".screen-title-measure");
+      const icon = row.querySelector<HTMLElement>(".screen-title-icon");
+      const commands = row.querySelector<HTMLElement>(".screen-title-commands");
+      if (!text || !commands || commands.childElementCount === 0) return setLong(false);
+      const gap = Number.parseFloat(getComputedStyle(row).columnGap) || 0;
+      const room = row.clientWidth - (icon?.offsetWidth ? icon.offsetWidth + gap : 0) - commands.offsetWidth - gap;
+      setLong(text.offsetWidth > room);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    const commands = row.querySelector(".screen-title-commands");
+    if (commands) observer.observe(commands);
+    const mutations = new MutationObserver(measure);
+    if (commands) mutations.observe(commands, { childList: true, subtree: true });
+    measure();
+    return () => {
+      observer.disconnect();
+      mutations.disconnect();
+    };
+  }, [row, title]);
+  return long;
+}
+
 /** The large title of the screen, first line of its content. */
 export function ScreenLargeTitle({
   phone,
@@ -261,9 +293,11 @@ export function ScreenLargeTitle({
     facts(element: HTMLDivElement | null): void;
   };
 }) {
+  const [row, setRow] = useState<HTMLDivElement | null>(null);
+  const long = useTitleTooLong(row, title);
   return (
     <div className="screen-title-block">
-      <div className="screen-title-row">
+      <div ref={setRow} className="screen-title-row" data-long={long ? "true" : undefined}>
         <span ref={slots.icon} className="screen-title-icon" />
         <h1
           ref={titleRef}
@@ -272,6 +306,9 @@ export function ScreenLargeTitle({
         >
           {title}
         </h1>
+        <span className="screen-header-title screen-title-measure" aria-hidden="true">
+          {title}
+        </span>
         <div ref={slots.commands} className="screen-title-commands" data-testid="screen-title-commands" />
       </div>
       <div ref={slots.facts} className="screen-title-facts" />
