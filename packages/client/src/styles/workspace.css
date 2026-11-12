@@ -63,7 +63,8 @@
   .workbench-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
   .workbench-meta-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .workbench-meta-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
-  .workbench-meta-row > .tag-input { min-width: var(--hall-size-tag-input-min); }
+  /* The tags field fills the rest of the line, and the whole line when it passes under the other facts. */
+  .workbench-meta-row > .tag-input { min-width: min(100%, var(--hall-size-tag-input-min)); flex: 1 1 var(--hall-size-tag-input-min); }
 
   /* ---- Tags: one field, each tag a button that removes it ---- */
   .tag-input-row { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1); }
@@ -814,6 +815,8 @@
 
 .workspace-explorer-drop { outline: var(--hall-stroke-thick) dashed var(--hall-color-brand); outline-offset: calc(-1 * var(--hall-stroke-thick)); background: var(--hall-color-brand-subtle); }
 .workspace-explorer-empty { margin: auto; padding: var(--hall-space-6); color: var(--hall-color-text-muted); }
+/* In a narrow column the view switcher takes a whole line, then the filter shares the next one with the commands. */
 @container (max-width: 760px) {
-  .workspace-explorer-filter { width: 100%; }
+  .workspace-view-switcher { flex-basis: 100%; }
+  .workspace-explorer-toolbar > .workspace-explorer-filter { flex: 1 1 0; margin-inline-start: 0; }
 }

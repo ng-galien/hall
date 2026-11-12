@@ -293,8 +293,11 @@
   }
   .minutes-section-title { display: flex; align-items: center; gap: var(--hall-space-1); }
   .minutes-section-hint { flex: none; }
+  /* The document of the minutes is a section of its own under the rule: it always takes the whole line. */
   .minutes-header-document {
     display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
     grid-area: document;
     align-items: center;
     justify-content: space-between;
@@ -384,9 +387,11 @@
   /* ---- Agenda ---- */
   .report-main { display: grid; min-width: 0; gap: var(--hall-space-2); align-content: start; }
   .agenda-composer-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--hall-space-2) var(--hall-space-3); margin-bottom: var(--hall-space-2); }
-  .agenda-composer-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
+  /* The title keeps its help beside it, its text wrapping first; the commands pass together under it. */
+  .agenda-composer-title { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; gap: var(--hall-space-2); }
+  .agenda-composer-title > h2 { min-width: 0; }
   .agenda-composer-count { color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-regular); }
-  .agenda-composer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); margin-left: auto; }
+  .agenda-composer-actions { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); margin-left: auto; }
   .agenda-composer-caption { margin-bottom: var(--hall-space-2); }
   .composer-list { margin-bottom: var(--hall-space-4); }
   .composer-item-dragging { opacity: var(--hall-opacity-pulse); }
@@ -480,8 +485,10 @@
   .report-votes-actions { display: flex; align-items: center; gap: var(--hall-space-1); }
 
   /* Attendance of a closed meeting: each status after its dot, its count beside it. */
-  .report-attendance-overview { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2) var(--hall-space-5); }
-  .report-attendance-counts { display: flex; flex-wrap: wrap; gap: var(--hall-space-2) var(--hall-space-5); margin: 0; }
+  /* Title, counts and the detail command stay on one line; the counts wrap among themselves. */
+  .report-attendance-overview { display: flex; align-items: center; gap: var(--hall-space-2) var(--hall-space-5); }
+  .report-attendance-overview > h2 { flex: none; }
+  .report-attendance-counts { display: flex; min-width: 0; flex: 1 1 auto; flex-wrap: wrap; gap: var(--hall-space-2) var(--hall-space-5); margin: 0; }
   .report-attendance-counts > div { display: flex; align-items: baseline; gap: var(--hall-space-2); }
   .report-attendance-counts dd { margin: 0; font-weight: var(--hall-font-weight-heavy); font-variant-numeric: tabular-nums; }
 

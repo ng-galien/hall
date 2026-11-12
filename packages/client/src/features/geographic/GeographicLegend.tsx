@@ -37,7 +37,7 @@ export function GeographicLegend({
         {actions}
       </div>
       <div id={contentId} className="geographic-legend-content" data-testid="geographic-legend-content" hidden={!open}>
-        <ul>
+        <ul data-layout-flow>
           {entries.map(({ color, label }, index) => (
             <li key={`${index}:${color}:${label}`}>
               <span className="geographic-legend-swatch" style={{ backgroundColor: color }} aria-hidden="true" />
