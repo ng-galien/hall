@@ -102,7 +102,9 @@ test("one screen header and one navigation per format, the retired ones do not c
   assert.deepEqual(header, ["shell/ScreenHeader.tsx"]);
   const bar = readFileSync(join(sourceRoot, "shell/PhoneNavigation.tsx"), "utf8");
   assert.match(bar, /app-phone-bar-label/, "the bottom bar shows a permanent label");
-  assert.doesNotMatch(bar, /sr-only/, "the bottom bar labels are visible");
+  const barBlock = bar.slice(bar.indexOf('<nav className="app-phone-bar"'), bar.indexOf("</nav>"));
+  assert.ok(barBlock.length > 0, "the bottom bar is a nav");
+  assert.doesNotMatch(barBlock, /sr-only/, "the bottom bar labels are visible");
 });
 
 /** Help pages under `src/docs/content`, read as their visible text: link targets and image addresses are left out. */

@@ -109,6 +109,13 @@ const ignoreSelectors = [".ol-viewport", ".univer-spreadsheet", "[data-testid=ap
 
 /** Exceptions to the decision rules, each with the reason that makes it conform to the decision. */
 const exceptions = {
+  "plus-not-add": [
+    {
+      selector: "[data-testid=agenda-question-create]",
+      reason:
+        "« + Question ouverte » ajoute une question ouverte à l'ordre du jour : le libellé nomme ce qu'on ajoute.",
+    },
+  ],
   "unlabelled-create": [
     {
       selector: "[data-testid=editor-table-add-column], [data-testid=editor-table-add-row]",

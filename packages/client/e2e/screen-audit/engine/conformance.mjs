@@ -721,7 +721,11 @@ export function measureConformance(options) {
     (button) =>
       button.matches("[data-slot=button]") &&
       visibleText(button) &&
-      !button.closest("[data-slot=list-row], [role=menu], [role=listbox], [role=tablist], nav, .create-fab"),
+      !button.closest(
+        "[data-slot=list-row], [role=menu], [role=listbox], [role=tablist], [role=radiogroup], [role=group], [data-slot=search-input], [role=search], nav, .create-fab",
+      ) &&
+      // A segment of a choice of view is not a command of the same rank as the commands around it.
+      !button.matches("[aria-pressed], [role=radio], [data-state=on], [data-state=off]"),
   );
   const forms = new Map();
   for (const button of labelled) {

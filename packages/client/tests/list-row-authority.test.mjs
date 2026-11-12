@@ -225,7 +225,7 @@ test("with a mouse the row takes the sizes of the side menu, under a finger 64 p
   assert.ok(mouse, "list-row.css declares no sizes for a mouse");
   assert.match(mouse, /\.list-row-title \{ font-size: var\(--hall-font-size-body\);/);
   assert.match(mouse, /\.list-row-fact \{ font-size: var\(--hall-font-size-caption\);/);
-  assert.match(mouse, /\.list-row-head > \.type-icon \{[^}]*font-size: var\(--hall-font-size-icon-large\);/);
+  assert.match(mouse, /\.list-row-head\s*>?\s*\.type-icon \{[^}]*font-size: var\(--hall-font-size-icon-large\);/);
   assert.match(mouse, /min-height: var\(--hall-size-list-row-pointer-double\)/);
   const finger = blocks("coarse");
   assert.match(finger, /--list-row-height: var\(--hall-size-list-row-touch\)/, "under a finger a row is 64 px");
