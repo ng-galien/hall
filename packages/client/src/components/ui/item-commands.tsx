@@ -49,11 +49,14 @@ function useNarrowLine(element: HTMLElement | null) {
 export function ItemCommands({
   primary,
   frequent = [],
+  visible,
   menu = [],
   close,
 }: {
   primary?: ReactNode;
   frequent?: ItemCommand[];
+  /** Controls that keep their own place on the line, such as the automatic saving; they never join the menu. */
+  visible?: ReactNode;
   menu?: ItemCommand[];
   close?: ReactNode;
 }) {
@@ -84,6 +87,7 @@ export function ItemCommands({
           <TooltipContent>{command.label}</TooltipContent>
         </Tooltip>
       ))}
+      {visible}
       {listed.length > 0 ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

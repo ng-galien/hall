@@ -19,6 +19,8 @@ export interface WorkbenchControls {
   save?: { status: SaveStatus; enabled: boolean };
   /** Dialogs opened by these controls. */
   dialogs?: ReactNode;
+  /** Controls always shown on the line of the title, before the « … » menu: the automatic saving and the changes. */
+  visible?: ReactNode;
 }
 
 /** Controls of the item opened on the workspace screen; a dialog passes its own. */
@@ -124,7 +126,13 @@ export function WorkspaceWorkbenchHeader({
     ...(controls?.menu ?? []),
   ];
   const itemCommands = (
-    <ItemCommands primary={primary} frequent={frequent} menu={commands} close={titleId ? undefined : controls?.close} />
+    <ItemCommands
+      primary={primary}
+      frequent={frequent}
+      visible={controls?.visible}
+      menu={commands}
+      close={titleId ? undefined : controls?.close}
+    />
   );
   const facts = (
     <>

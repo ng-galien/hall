@@ -3,6 +3,7 @@ import { Button } from "../../components/ui/button";
 import { imageUploadsPending, imageUploadsSettled } from "../../components/editor/imageUploadGate";
 import { useI18n } from "../../i18n/I18nProvider";
 import { ScreenActions } from "../../shell/headerTrail";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
 /** The part of a text session the two writing modes need. */
 export interface WritableText {
@@ -25,6 +26,7 @@ export interface WritableText {
  */
 export function useTextWriting(text: WritableText): { editing: boolean; control: ReactNode; button: ReactNode } {
   const { t } = useI18n();
+  const phone = usePhoneLayout();
   const [editing, setEditing] = useState(false);
   const decided = useRef<string | null>(null);
   useEffect(() => {
@@ -68,6 +70,8 @@ export function useTextWriting(text: WritableText): { editing: boolean; control:
       </Button>
     )
   ) : null;
+  // « Modifier » and « Terminé » belong to the phone: on tablet and computer a text opens for writing to whoever may.
+  if (!phone) return { editing: text.editable, control: null, button: null };
   const control = button ? <ScreenActions>{button}</ScreenActions> : null;
   return { editing: editing && text.editable, control, button };
 }
