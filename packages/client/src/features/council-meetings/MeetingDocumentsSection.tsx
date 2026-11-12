@@ -16,7 +16,7 @@ import {
   ProxyIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
-import { ListRow, ListRowIcon, ListRowNumber, type ListRowStatusTone, ListRows } from "../../components/ui/list-row";
+import { ListRow, ListRowIcon, type ListRowStatusTone, ListRows } from "../../components/ui/list-row";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -463,15 +463,18 @@ export function MeetingDocumentsSection({
                     to={`/council-decisions/${decision.id}`}
                     openTestId={`meeting-decision-link-${decision.id}`}
                     head={
-                      decision.number === null ? (
-                        <ListRowIcon nature="council">
-                          <DecisionsIcon />
-                        </ListRowIcon>
-                      ) : (
-                        <ListRowNumber number={formatNumber(decision.number)} />
-                      )
+                      <ListRowIcon nature="council">
+                        <DecisionsIcon />
+                      </ListRowIcon>
                     }
-                    title={decision.title}
+                    title={
+                      decision.number === null
+                        ? decision.title
+                        : t("meeting.documents.decisionItem", {
+                            number: formatNumber(decision.number),
+                            title: decision.title,
+                          })
+                    }
                   />
                 ))}
               </ListRows>
