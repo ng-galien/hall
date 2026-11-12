@@ -150,7 +150,7 @@ jobs:
           - Séance : un clic droit sur un votant l’envoie à « Pour », « Contre » ou « Abstention », ou ouvre la déclaration de déport.
           - Corrections : le nouveau nom d’un élément est conservé quand un enregistrement était en cours ; une image insérée pendant un enregistrement est conservée ; un texte comme « 19:30 » s’affiche tel quel dans les aperçus PDF et les courriels.
 
-          La version 1.3.0 modifie le schéma de la base de données. Au premier lancement de la nouvelle version, la démonstration recharge la commune d’Alésia ; les modifications faites dans la démonstration précédente ne sont pas conservées.
+          La version 1.3.0 modifie le schéma de la base de données. Pour un serveur existant en 1.2.0, suivre la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.3.0/docs/distribution.md#update-procedure-from-120-to-130-on-the-municipal-computer). La mise à jour demande un arrêt du serveur et une sauvegarde vérifiée ; revenir en 1.2.0 nécessite de restaurer cette sauvegarde. Au premier lancement de la nouvelle version, la démonstration recharge la commune d’Alésia ; les modifications faites dans la démonstration précédente ne sont pas conservées.
           NOTICE
           fi
           cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
