@@ -102,7 +102,7 @@ async function replaceEditorText(editor: Locator, value: string): Promise<void> 
 async function openReferenceSearch(editor: Locator): Promise<Locator> {
   if (await editor.evaluate((element) => element.classList.contains("markdown-editor-compact"))) {
     await writingArea(editor).click();
-    await expect(editor.locator('[role="toolbar"]')).toHaveAttribute("data-visible", "true");
+    await expect(editor.locator('[role="toolbar"]')).toBeVisible();
   }
   await editor.getByTestId("editor-insert-reference").click();
   const dialog = editor.page().getByTestId("reference-search-dialog");
@@ -259,17 +259,17 @@ test.describe("Markdown editor", () => {
   });
 
   // @verifies-requirement HALL-FR-DOC-270
-  test("keeps the compact overlay visible while one of its controls has keyboard focus", async ({ appPage: page }) => {
+  test("keeps the tools of the compact editor on their own line above the text", async ({ appPage: page }) => {
     await openEditorLab(page);
     const compact = compactEditor(page);
     const toolbar = compact.locator('[role="toolbar"]');
+    await expect(toolbar).toBeVisible();
     await writingArea(compact).click();
-    await expect(toolbar).toHaveAttribute("data-visible", "true");
-    await compact.getByTestId("editor-open-enriched").focus();
-    await expect(compact.getByTestId("editor-open-enriched")).toBeFocused();
     await page.waitForTimeout(2_600);
-    await expect(toolbar).toHaveAttribute("data-visible", "true");
     await expect(compact.getByTestId("editor-open-enriched")).toBeVisible();
+    const tools = (await toolbar.boundingBox())!;
+    const text = (await writingArea(compact).boundingBox())!;
+    expect(tools.y + tools.height).toBeLessThanOrEqual(text.y + 1);
   });
 
   test("selects an existing image and exposes its contextual controls in compact mode", async ({ appPage: page }) => {
