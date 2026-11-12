@@ -7,6 +7,7 @@ import { useWorkspaceResourceImageUpload } from "../../features/documents/useWor
 import { ResourceDeleteDialog } from "../../features/resources/ResourceDeleteDialog";
 import { ResourcePresentationBody } from "../../features/resources/ResourcePresentationBody";
 import type { ResourceSession } from "../../features/resources/useResourceSession";
+import { useTextWriting } from "../../features/resources/useTextWriting";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
 import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
@@ -47,6 +48,16 @@ export function ResourceWorkbench({
     [businesses, resource],
   );
 
+  const writing = useTextWriting({
+    id: !phone && resource?.kind === "text" ? resource.id : null,
+    editable: !phone && resource?.kind === "text" && session.editable,
+    content: session.content,
+    dirty: session.dirty,
+    flush: session.flush,
+    save: () => session.save(),
+    reload: session.reload,
+  });
+
   if (!resource) return <RequestErrorBanner error={session.actionError} />;
   if (phone) {
     return (
@@ -85,6 +96,7 @@ export function ResourceWorkbench({
       className={`workbench resource-workbench${resource.kind === "spreadsheet" ? " resource-workbench-spreadsheet" : ""}`}
       data-testid="resource-workbench"
     >
+      {writing.control}
       <ResourceWorkbenchHeader
         resource={resource}
         relatedBusinesses={relatedBusinesses}
@@ -119,7 +131,7 @@ export function ResourceWorkbench({
             <ResourcePresentationBody
               resource={resource}
               representation={session.representation}
-              mode={session.mode}
+              mode={resource.kind === "text" && !writing.editing ? "read" : session.mode}
               layout="workbench"
               capabilities={session.capabilities}
               content={session.content}

@@ -66,7 +66,8 @@ test("keeps folder icons upright and navigates workspace rows with the keyboard"
   await page.getByTestId(`workspace-folder-open-${path}`).press("Tab");
   await expect(first).toBeFocused();
   await first.press("Enter");
-  await expect(page.getByTestId("resource-presentation-text-edit")).toBeVisible();
+  // An existing text opens for reading, with « Modifier » in the screen header.
+  await expect(page.getByTestId("text-edit")).toBeVisible();
 });
 
 // @verifies-requirement HALL-FR-AGI-280
@@ -689,6 +690,7 @@ test.describe("workspace explorer", () => {
     await page.getByTestId(`workspace-folder-toggle-seed/${renamedFolder}`).click();
     await expect(page.getByTestId(`workspace-resource-title-${created.id}`)).toBeVisible();
     await page.getByTestId(`workspace-resource-title-${created.id}`).click();
+    await page.getByTestId("text-edit").click();
     const lastEdit = `${content}, avant fermeture`;
     await page.getByTestId("markdown-editor-compact").getByTestId("editor-writing-area").fill(lastEdit);
     // Close before the debounce expires: the pending content must be flushed first.

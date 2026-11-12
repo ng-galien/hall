@@ -171,3 +171,23 @@ test("the interface is written in lower case and draws no pill or large rounding
     [],
   );
 });
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-LAY-130
+test("the two writing modes of a text have one implementation on every format", () => {
+  const owners = files
+    .filter(({ source }) => /data-testid="text-(?:edit|finish-editing)"/.test(source))
+    .map(({ path }) => path);
+  assert.deepEqual(owners, ["features/resources/useTextWriting.tsx"]);
+  assert.deepEqual(offenders(/\bphoneEditing\b|phone-document-action-(?:edit|finish-editing)/), []);
+  for (const path of [
+    "pages/workspace/ResourcePhoneView.tsx",
+    "pages/workspace/ResourceWorkbench.tsx",
+    "pages/workspace/CouncilBusinessWorkbench.tsx",
+  ])
+    assert.match(
+      readFileSync(join(sourceRoot, path), "utf8"),
+      /useTextWriting\(/,
+      `${path} does not use useTextWriting`,
+    );
+});

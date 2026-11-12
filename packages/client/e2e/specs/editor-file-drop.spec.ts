@@ -56,6 +56,7 @@ test("files dropped on the business report editor become cited documents of the 
   const business = (await created.json()).properties as { id: string; reportResourceId: string };
 
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  await page.getByTestId("text-edit").click();
   const compact = page.getByTestId("business-report-editor").getByTestId("markdown-editor-compact");
   await expect(compact).toBeVisible();
   await page.getByTestId("business-category-documents-toggle").click();
@@ -100,6 +101,7 @@ test("a csv dropped on the business report editor becomes a table of the text, t
   expect(created.ok()).toBeTruthy();
   const business = (await created.json()).properties as { id: string; reportResourceId: string };
   await page.goto(`/app/workspace?path=seed&councilBusiness=${business.id}`);
+  await page.getByTestId("text-edit").click();
   const compact = page.getByTestId("business-report-editor").getByTestId("markdown-editor-compact");
   await expect(compact).toBeVisible();
   await page.getByTestId("business-category-documents-toggle").click();
@@ -144,6 +146,7 @@ test("files dropped on a workspace text outside a business become documents of i
   expect(created.ok()).toBe(true);
   const text = (await created.json()).properties as { id: string };
   await page.goto(`/app/workspace?path=seed&resource=${encodeURIComponent(text.id)}`);
+  await page.getByTestId("text-edit").click();
   const compact = page.getByTestId("markdown-editor-compact").first();
   await expect(compact).toBeVisible();
 

@@ -20,12 +20,12 @@ import { useWorkspaceResourceImageUpload } from "../../features/documents/useWor
 import { ResourceChangesControl } from "../../features/resources/ResourceChangesControl";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import type { ResourceSession } from "../../features/resources/useResourceSession";
+import { useTextWriting } from "../../features/resources/useTextWriting";
 import { ReferenceBusinessContext, useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { ApiErrorCode } from "../../services/apiClient";
-import { ScreenActions } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
@@ -62,7 +62,6 @@ export function CouncilBusinessWorkbench({
   const uploadDocument = useEditorDocumentUpload(business.folderPath, business.id);
   const { t, formatDate } = useI18n();
   const phone = usePhoneLayout();
-  const [phoneEditing, setPhoneEditing] = useState(false);
   const [phoneRenaming, setPhoneRenaming] = useState(false);
   const [informationOpen, setInformationOpen] = useState(false);
   const openReportChanges = useRef<(() => void) | null>(null);
@@ -97,7 +96,20 @@ export function CouncilBusinessWorkbench({
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const pinned = isPinned({ kind: "councilBusiness", id: business.id });
   const editable = reportSession.editable;
-  const showReportEditor = reportSession.editable && (!phone || phoneEditing);
+  const writing = useTextWriting({
+    id: reportSession.resource?.id ?? null,
+    editable: reportSession.editable,
+    content: reportSession.content,
+    dirty: reportSession.dirty,
+    flush: reportSession.flush,
+    save: async () => {
+      const saved = await reportSession.save();
+      if (saved) await useCouncilBusinessStore.getState().refresh(business.id);
+      return saved;
+    },
+    reload: reportSession.reload,
+  });
+  const showReportEditor = writing.editing;
 
   const documentsLoaded = useCouncilBusinessStore((state) => Boolean(state.resourceItemsLoadedById?.[business.id]));
   const documentsError = useCouncilBusinessStore((state) => state.resourceItemsErrorById?.[business.id] ?? null);
@@ -146,10 +158,6 @@ export function CouncilBusinessWorkbench({
   const phoneDate = editable
     ? t("workspace.updatedOn", { date: formatDate(business.updatedAt) })
     : t("workspace.createdOn", { date: formatDate(business.createdAt) });
-  const finishEditing = async () => {
-    await reportSession.flush();
-    if ((reportSession.dirty ? await saveReport() : true) && (await reportSession.reload())) setPhoneEditing(false);
-  };
   const phoneActions: PhoneDocumentAction[] = [
     ...(reportSession.resource
       ? reportPdf.referencesDocuments
@@ -209,25 +217,9 @@ export function CouncilBusinessWorkbench({
         className={`workbench workspace-business-workbench${phone ? " phone-business" : ""}`}
         data-testid="council-business-workbench"
       >
+        {writing.control}
         {phone ? (
           <>
-            {reportSession.editable ? (
-              <ScreenActions>
-                {phoneEditing ? (
-                  <Button data-testid="phone-document-action-finish-editing" onClick={() => void finishEditing()}>
-                    {t("workspace.finishEditing")}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    data-testid="phone-document-action-edit"
-                    onClick={() => setPhoneEditing(true)}
-                  >
-                    {t("common.edit")}
-                  </Button>
-                )}
-              </ScreenActions>
-            ) : null}
             <PhoneDocumentActions actions={phoneActions} />
             <RequestErrorBanner error={actionError ?? reportSession.actionError} />
           </>

@@ -396,7 +396,7 @@ test("phone photo selection and camera input persist images through the shared e
   const resource = (await created.json()).properties as { id: string; slug: string };
   const url = `/app/workspace?path=seed&resource=${resource.id}`;
   const editNote = async () => {
-    await page.getByTestId("phone-document-action-edit").click();
+    await page.getByTestId("text-edit").click();
   };
   await page.goto(url);
   await editNote();
@@ -468,7 +468,7 @@ test("phone photo selection and camera input persist images through the shared e
   await expect(page.getByTestId("application-main")).toContainText("Texte conservé.");
   await page.getByTestId("phone-document-actions").click();
   await expect(page.getByTestId("phone-document-action-copy-reference")).toBeVisible();
-  await expect(page.getByTestId("phone-document-action-edit")).toHaveCount(0);
+  await expect(page.getByTestId("text-edit")).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("editor-choose-image")).toHaveCount(0);
   await expect(page.getByTestId("editor-take-photo")).toHaveCount(0);

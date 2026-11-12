@@ -11179,8 +11179,8 @@
       },
       "statement": "Un texte s’ouvre en lecture ou en écriture selon deux modes nets, « Modifier » puis « Terminé ».",
       "acceptanceCriteria": [
-        "Une note qu’on vient de créer s’ouvre en écriture.",
-        "Au téléphone, un texte existant s’ouvre en lecture, avec « Modifier » dans le bandeau pour qui peut l’écrire ; une personne sans droit d’écriture ne voit que la lecture.",
+        "Une note qu’on vient de créer, encore vide, s’ouvre en écriture.",
+        "Au téléphone, sur tablette et sur ordinateur, un texte existant et le compte rendu d’une affaire s’ouvrent en lecture, avec « Modifier » dans le bandeau pour qui peut les écrire ; une personne sans droit d’écriture ne voit que la lecture.",
         "En écriture, les outils sont sous le bandeau et « Terminé », en bleu plein dans le bandeau, enregistre le texte et revient à la lecture."
       ],
       "clauses": [

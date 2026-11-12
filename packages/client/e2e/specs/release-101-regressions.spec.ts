@@ -9,6 +9,7 @@ test("photo actions stay on mobile without occupying the desktop text editor", a
   const { id } = (await created.json()).properties;
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`/app/workspace?path=seed&resource=${id}`);
+  await page.getByTestId("text-edit").click();
   const editor = page.getByTestId("markdown-editor-compact").first();
   await expect(editor.getByTestId("editor-writing-area")).toBeVisible();
   await expect(editor.getByTestId("editor-choose-image")).toBeHidden();
@@ -17,7 +18,7 @@ test("photo actions stay on mobile without occupying the desktop text editor", a
   await page.screenshot({ path: testInfo.outputPath("desktop-photo-controls.png"), animations: "disabled" });
   await page.setViewportSize({ width: 390, height: 844 });
   // On a phone the note opens for reading; « Modifier » in the screen header opens the editor.
-  await page.getByTestId("phone-document-action-edit").click();
+  await page.getByTestId("text-edit").click();
   await expect(editor.getByTestId("editor-choose-image")).toBeVisible();
   await expect(editor.getByTestId("editor-take-photo")).toBeVisible();
   await expect(editor.getByTestId("editor-camera-file")).toHaveAttribute("capture", "environment");
