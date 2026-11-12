@@ -52,7 +52,6 @@ export const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
 
 /** Tone of the dot written before a domain status in a list row. */
 export function domainStatusTone(value: DomainStatus): ListRowStatusTone {
-  if (value === "excused") return "warning";
   if (["adopted", "enforceable", "ready", "present", "published"].includes(value)) return "success";
   if (["rejected", "cancelled", "absent"].includes(value)) return "danger";
   return "neutral";
@@ -85,8 +84,8 @@ export function useAgendaItemRowStatus(): (status: LiveAgendaItemStatus) => List
       scheduled: () => "neutral" as const,
       inProgress: () => "success" as const,
       examined: () => "success" as const,
-      adjourned: () => "warning" as const,
-      carriedForward: () => "warning" as const,
+      adjourned: () => "neutral" as const,
+      carriedForward: () => "neutral" as const,
     }),
     label: t(domainStatusKeys[status]),
     testId: `agenda-status-${status}`,
@@ -110,7 +109,7 @@ export function useMeetingRowStatus(): (status: LiveMeetingStatus, stale?: boole
   const { t } = useI18n();
   return (status, stale = false) =>
     stale
-      ? { tone: "warning", label: t("meetings.needsReview"), testId: "meeting-needs-review" }
+      ? { tone: "action", label: t("meetings.needsReview"), testId: "meeting-needs-review" }
       : {
           tone: status === "inProgress" ? "success" : status === "cancelled" ? "danger" : "neutral",
           label: t(meetingStatusKeys[status]),

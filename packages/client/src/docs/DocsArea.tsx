@@ -169,7 +169,7 @@ function PageHead({ page, fallback }: { page: DocsPage; fallback: boolean }) {
           </span>
         ) : null}
         {page.draft ? (
-          <span className="record-state" data-tone="warning">
+          <span className="record-state" data-tone="neutral">
             {t("docs.page.draft")}
           </span>
         ) : null}

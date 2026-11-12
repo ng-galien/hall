@@ -40,7 +40,7 @@
   --fc-monarch-event: var(--hall-color-brand);
   --fc-monarch-event-contrast: var(--hall-color-on-brand);
   --fc-monarch-highlight: var(--hall-color-brand-subtle);
-  --fc-monarch-now: var(--hall-color-seal);
+  --fc-monarch-now: var(--hall-color-brand);
   --fc-monarch-selected: var(--hall-color-brand);
   --fc-monarch-selected-foreground: var(--hall-color-on-brand);
   --fc-monarch-selected-over: var(--hall-color-brand-hover);

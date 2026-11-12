@@ -1116,7 +1116,7 @@ export function PathContents({
                   ? undefined
                   : {
                       tone: matchLiteral(readiness, {
-                        incomplete: () => "warning" as const,
+                        incomplete: () => "action" as const,
                         empty: () => "neutral" as const,
                       }),
                       label: t(`workspace.resourceState.${readiness}`),

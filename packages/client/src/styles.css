@@ -52,7 +52,6 @@
   --color-on-brand: var(--hall-color-on-brand);
   --color-brand-soft: var(--hall-color-brand-subtle);
   --color-success: var(--hall-color-success);
-  --color-warning: var(--hall-color-warning);
   --color-danger: var(--hall-color-danger);
   --font-sans: var(--hall-font-family-sans);
   --radius-small: var(--hall-radius-small);
@@ -135,9 +134,9 @@
   --sidebar-border: var(--hall-color-border);
   --sidebar-ring: var(--hall-color-focus);
   --chart-1: var(--hall-color-brand);
-  --chart-2: var(--hall-color-seal);
+  --chart-2: var(--hall-color-nature-visual);
   --chart-3: var(--hall-color-success);
-  --chart-4: var(--hall-color-warning);
+  --chart-4: var(--hall-color-nature-data);
   --chart-5: var(--hall-color-danger);
 }
 

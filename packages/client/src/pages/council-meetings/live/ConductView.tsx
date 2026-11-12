@@ -446,7 +446,7 @@ export function ConductView({
                         {formatNumber(itemBallot.abstentions)}
                       </span>
                     ) : voteRequired ? (
-                      <span className="list-row-status" data-tone="warning">
+                      <span className="list-row-status" data-tone="action">
                         {t("live.voteRequired")}
                       </span>
                     ) : null}

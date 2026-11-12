@@ -341,8 +341,8 @@
   }
   .record-state[data-tone="success"]::before,
   .record-state[data-save="saved"]::before { background: var(--hall-color-success); }
-  .record-state[data-tone="warning"]::before,
-  .record-state[data-save="dirty"]::before { background: var(--hall-color-warning); }
+  .record-state[data-tone="action"]::before,
+  .record-state[data-save="dirty"]::before { background: var(--hall-color-brand); }
   .record-state[data-tone="danger"]::before,
   .record-state[data-save="error"]::before { background: var(--hall-color-danger); }
   .record-state[data-save="saving"]::before { animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite; }

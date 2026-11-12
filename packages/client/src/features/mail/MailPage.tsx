@@ -151,7 +151,7 @@ export function MailPage() {
         submitting: () => "neutral" as const,
         accepted: () => "success" as const,
         failed: () => "danger" as const,
-        unknown: () => "warning" as const,
+        unknown: () => "neutral" as const,
       }),
       label: t(`mail.${latest.status}`),
     };

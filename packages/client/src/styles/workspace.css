@@ -562,10 +562,10 @@
     align-items: center;
     gap: var(--hall-space-3);
     padding: var(--hall-space-2) var(--hall-space-3);
-    border: var(--hall-stroke-thin) solid var(--hall-color-warning-border);
+    border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-medium);
-    color: var(--hall-color-warning-strong);
-    background: var(--hall-color-warning-surface);
+    color: var(--hall-color-text);
+    background: var(--hall-color-surface-subtle);
     font-size: var(--hall-font-size-caption);
   }
   .geographic-conflict button { flex: none; }
@@ -619,7 +619,7 @@
     cursor: pointer;
   }
   .legal-reference-result:last-child { border-bottom: 0; }
-  .legal-reference-result > svg { color: var(--hall-color-seal); font-size: var(--hall-font-size-icon-large); }
+  .legal-reference-result > svg { color: var(--hall-color-nature-council); font-size: var(--hall-font-size-icon-large); }
   .legal-reference-result:hover { background: var(--hall-color-surface-subtle); }
   .legal-reference-result-selected {
     background: var(--hall-color-selection-subtle);
@@ -647,7 +647,7 @@
     color: var(--hall-color-success-strong);
     font-size: var(--hall-font-size-caption);
   }
-  .legal-reference-verification-verificationUnavailable { color: var(--hall-color-warning-strong); }
+  .legal-reference-verification-verificationUnavailable { color: var(--hall-color-text-muted); }
   .legal-reference-heading-actions { flex: none; }
   .legal-reference-notice,
   .legal-reference-warning {
@@ -656,10 +656,10 @@
     gap: var(--hall-space-2);
     margin: 0;
     padding: var(--hall-space-2) var(--hall-space-3);
-    border: var(--hall-stroke-thin) solid var(--hall-color-warning-border);
+    border: var(--hall-stroke-thin) solid var(--hall-color-border);
     border-radius: var(--hall-radius-medium);
-    color: var(--hall-color-warning-strong);
-    background: var(--hall-color-warning-surface);
+    color: var(--hall-color-text);
+    background: var(--hall-color-surface-subtle);
     font-size: var(--hall-font-size-caption);
   }
   .legal-reference-metadata {
@@ -685,7 +685,7 @@
   .legal-reference-article header { display: grid; gap: var(--hall-space-1); }
   .legal-reference-article h2,
   .legal-reference-history h2 { margin: 0; font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-semibold); }
-  .legal-reference-article header span { color: var(--hall-color-seal); font-size: var(--hall-font-size-caption); }
+  .legal-reference-article header span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .legal-reference-text {
     max-width: var(--hall-size-editor-measure);
     color: var(--hall-color-text);
@@ -710,7 +710,7 @@
     color: var(--hall-color-text-muted);
     font-size: var(--hall-font-size-caption);
   }
-  .legal-reference-history li.current { border-left-color: var(--hall-color-seal); color: var(--hall-color-text); }
+  .legal-reference-history li.current { border-left-color: var(--hall-color-brand); color: var(--hall-color-text); }
   .legal-reference-history li strong { font-weight: var(--hall-font-weight-semibold); }
   @container (max-width: 760px) {
     .legal-reference-heading { align-items: stretch; flex-direction: column; }

@@ -89,7 +89,7 @@
     content: "";
   }
   .list-row-status[data-tone="success"]::before { background: var(--hall-color-success); }
-  .list-row-status[data-tone="warning"]::before { background: var(--hall-color-warning); }
+  .list-row-status[data-tone="action"]::before { background: var(--hall-color-brand); }
   .list-row-status[data-tone="danger"]::before { background: var(--hall-color-danger); }
   .list-row-wide { display: none; flex: none; align-items: center; gap: var(--hall-space-4); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
   .list-row-action { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); padding-right: var(--hall-space-3); }

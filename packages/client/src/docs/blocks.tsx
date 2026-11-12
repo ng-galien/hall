@@ -73,7 +73,7 @@ export function PageCards({ of }: { of?: string }) {
           <span className="docs-card-title">
             {child.page.title}
             {child.page.draft ? (
-              <span className="record-state" data-tone="warning">
+              <span className="record-state" data-tone="neutral">
                 {t("docs.page.draft")}
               </span>
             ) : null}

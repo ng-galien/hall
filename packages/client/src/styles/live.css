@@ -100,7 +100,7 @@
   }
   .rollcall-tile-present { border-color: var(--hall-color-success); }
   .rollcall-tile-represented { border-color: var(--hall-color-brand); }
-  .rollcall-tile-excused { border-color: var(--hall-color-warning); }
+  .rollcall-tile-excused { border-color: var(--hall-color-text-subtle); }
   .rollcall-tile-absent { border-color: var(--hall-color-danger); }
   .rollcall-tile-identity { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2-5); }
   .rollcall-tile-identity > div { display: grid; min-width: 0; flex: 1; }
@@ -145,7 +145,7 @@
   .rollcall-check { display: inline-flex; align-items: center; gap: var(--hall-space-2-5); font-weight: var(--hall-font-weight-semibold); }
   .rollcall-check svg { font-size: var(--hall-font-size-icon); }
   .rollcall-check-prepared { color: var(--hall-color-text-muted); }
-  .rollcall-check-pending { color: var(--hall-color-warning); }
+  .rollcall-check-pending { color: var(--hall-color-brand); }
   .rollcall-footer-actions { display: flex; align-items: center; gap: var(--hall-space-3); }
 
   /* ===== Proceedings ===== */
@@ -413,7 +413,7 @@
   }
   .vote-zone-for .vote-zone-header > span:first-child::before { background: var(--hall-color-success); }
   .vote-zone-against .vote-zone-header > span:first-child::before { background: var(--hall-color-danger); }
-  .vote-zone-abstain .vote-zone-header > span:first-child::before { background: var(--hall-color-warning); }
+  .vote-zone-abstain .vote-zone-header > span:first-child::before { background: var(--hall-color-text-subtle); }
   .vote-source-zone .vote-zone-header > span:first-child::before { display: none; }
   .vote-zone-header strong { font-size: var(--hall-font-size-title); font-variant-numeric: tabular-nums; }
   .vote-zone-over { border-style: solid; border-color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }

@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 export type ResourceNature = "writing" | "data" | "visual" | "council" | "folder";
 
 /** Fact written after a coloured dot on the second line; never an action. */
-export type ListRowStatusTone = "neutral" | "success" | "warning" | "danger";
+/** Neutral is a plain fact in slate grey, action a state that asks the person to act, in blue. */
+export type ListRowStatusTone = "neutral" | "action" | "success" | "danger";
 export type ListRowStatus = { tone: ListRowStatusTone; label: ReactNode; testId?: string };
 
 type ListRowOpen =

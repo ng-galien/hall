@@ -163,7 +163,7 @@ export function BallotOutcome({
                           data-tone={matchLiteral(vote.choice, {
                             for: () => "success" as const,
                             against: () => "danger" as const,
-                            abstain: () => "warning" as const,
+                            abstain: () => "neutral" as const,
                             notVoting: () => "neutral" as const,
                           })}
                         >

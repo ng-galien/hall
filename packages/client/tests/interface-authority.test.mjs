@@ -191,3 +191,29 @@ test("the two writing modes of a text have one implementation on every format", 
       `${path} does not use useTextWriting`,
     );
 });
+
+/** Hue in degrees and saturation of a colour written #rrggbb. */
+function hueAndSaturation(hex) {
+  const [r, g, b] = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  const lightness = (max + min) / 2;
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  if (delta === 0) return { hue: 0, saturation };
+  const hue =
+    max === r ? 60 * (((g - b) / delta + 6) % 6) : max === g ? 60 * ((b - r) / delta + 2) : 60 * ((r - g) / delta + 4);
+  return { hue, saturation };
+}
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-LAY-100
+test("the charter holds no warm tint: no cream, orange, brown or amber token", () => {
+  const tokens = readFileSync(join(sourceRoot, "styles/tokens.css"), "utf8");
+  const warm = [...tokens.matchAll(/(--hall-[\w-]+):\s*(#[0-9a-f]{6})\b/gi)]
+    .map(([, name, hex]) => ({ name, hex, ...hueAndSaturation(hex) }))
+    .filter(({ hue, saturation }) => saturation > 0.15 && hue >= 15 && hue <= 75)
+    .map(({ name, hex }) => `${name} ${hex}`);
+  assert.deepEqual(warm, []);
+  assert.deepEqual(offenders(/--hall-color-(?:warning|seal)\b|data-tone="warning"|tone: "warning"/), []);
+});
