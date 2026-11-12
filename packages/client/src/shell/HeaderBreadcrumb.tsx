@@ -10,7 +10,7 @@ import { useCouncilMembersStore } from "../stores/councilMembersStore";
 import { useUsersStore } from "../stores/usersStore";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 
-/** Trail of the current route; the workspace builds its own from the opened folder. */
+/** Trail of the current route; the workspace builds its own from the opened folder. A record whose page names itself in the screen title ends the trail with an unnamed item, so that its list is the screen above it. */
 export function useRouteTrail(): BreadcrumbItem[] {
   const { t, formatDate } = useI18n();
   const location = useLocation();
@@ -41,12 +41,14 @@ export function useRouteTrail(): BreadcrumbItem[] {
     }
   } else if (segments[0] === "council-decisions") {
     items.push({ label: t("navigation.decisions"), to: "/council-decisions" });
+    if (segments[1]) items.push({ label: "" });
   } else if (segments[0] === "maps") {
     items.push({ label: t("navigation.maps"), to: "/maps" });
     const map = segments[1] ? resourceSummaries[segments[1]] : undefined;
     if (map) items.push({ label: map.name });
   } else if (segments[0] === "minutes") {
     items.push({ label: t("navigation.minutes"), to: "/minutes" });
+    if (segments[1]) items.push({ label: "" });
   } else if (segments[0] === "council-members") {
     items.push({ label: t("navigation.members"), to: "/council-members" });
     if (segments[1]) {

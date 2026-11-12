@@ -83,13 +83,15 @@ function CouncilDecisionDetail({ id }: { id: string }) {
     <div className="page" data-testid="decision-detail">
       {phone && decision ? (
         <>
-          <ScreenTitle>{decision.number || decision.title}</ScreenTitle>
+          <ScreenTitle>
+            {decision.number ? t("decisions.numberLabel", { number: decision.number }) : decision.title}
+          </ScreenTitle>
           <PhoneDocumentActions actions={phoneActions} />
         </>
       ) : null}
       <PageHeader
         title={decision?.title ?? t("decisions.title")}
-        description={phone ? "" : (decision?.number ?? "")}
+        description={decision?.number ? t("decisions.numberLabel", { number: decision.number }) : ""}
         titleAction={decision && !phone ? <CopyReferenceButton reference={reference} /> : null}
       />
       <div className="page-content admin-detail-page">

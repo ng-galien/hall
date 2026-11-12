@@ -23,3 +23,25 @@ test("the page of a closed meeting opens the list of deliberations examined", as
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toMatch(/application\/pdf/);
 });
+
+// @verifies-requirement HALL-FR-LAY-100
+test("a deliberation row shows its number, and a record names its list above its title", async ({ appPage: page }) => {
+  const decisions = await items<{ id: string; number: string | null }>(page, "/api/council-decisions");
+  const numbered = decisions.find((decision) => decision.number)!;
+  const [period, index] = [numbered.number!.slice(0, 7), numbered.number!.slice(8)];
+  await page.goto("/app/council-decisions");
+  const head = page.getByTestId(`decision-open-${numbered.id}`).locator(".list-row-number");
+  await expect(head.locator("strong")).toHaveText(`n° ${index}`);
+  await expect(head.locator("small")).toHaveText(period);
+
+  await page.getByTestId(`decision-open-${numbered.id}`).click();
+  await expect(page.getByTestId("decision-detail")).toBeVisible();
+  const trail = page.locator(".screen-header-trail");
+  await expect(trail.locator('a[href$="/council-decisions"]')).toBeVisible();
+  await expect(trail.locator(".screen-header-commune")).toHaveCount(0);
+
+  const minutes = await items<{ id: string }>(page, "/api/minutes");
+  await page.goto(`/app/minutes/${minutes[0]!.id}`);
+  await expect(trail.locator('a[href$="/minutes"]')).toBeVisible();
+  await expect(trail.locator(".screen-header-commune")).toHaveCount(0);
+});

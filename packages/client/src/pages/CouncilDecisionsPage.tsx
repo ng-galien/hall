@@ -83,7 +83,6 @@ export function CouncilDecisionsPage() {
                     openTestId={`decision-open-${decision.id}`}
                     head={<DecisionNumberHead number={decision.number} />}
                     title={decision.title}
-                    detail={decision.number ?? undefined}
                     status={{
                       tone: decision.state === "draft" ? "neutral" : "success",
                       label: t(decision.state === "draft" ? "decisionDocument.draft" : "decisionDocument.frozen"),
@@ -99,7 +98,8 @@ export function CouncilDecisionsPage() {
   );
 }
 
-/** Head of a decision row: the index of its number above its year; a draft without number shows the gavel. */
+/** Head of a decision row: « n° » and the index of its number above its numbering period; a draft without number
+ * shows the gavel. */
 function DecisionNumberHead({ number }: { number: string | null }) {
   if (!number) {
     return (
@@ -110,7 +110,7 @@ function DecisionNumberHead({ number }: { number: string | null }) {
   }
   const separator = number.lastIndexOf("-");
   return separator > 0 ? (
-    <ListRowNumber number={number.slice(separator + 1)} year={number.slice(0, 4)} />
+    <ListRowNumber number={`n° ${number.slice(separator + 1)}`} year={number.slice(0, separator)} />
   ) : (
     <ListRowNumber number={number} />
   );
