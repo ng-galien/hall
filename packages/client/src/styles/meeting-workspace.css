@@ -59,6 +59,10 @@
   .choice-option-label > .hall-button { margin-block: calc((var(--hall-line-height-body-small) - var(--hall-size-control)) / 2); }
   @media (pointer: coarse) {
     .choice-option-label > .hall-button { margin-block: calc((var(--hall-line-height-body-small) - var(--hall-size-touch-control)) / 2); }
+    /* The label of the group keeps clear of the target of the first choice. */
+    .choice-group:has(.choice-option-label > .hall-button) > .choice-group-label {
+      margin-bottom: calc((var(--hall-size-touch-control) - var(--hall-line-height-body-small)) / 2);
+    }
   }
   .choice-option-hint { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
   .choice-group:disabled .choice-option { cursor: default; }
