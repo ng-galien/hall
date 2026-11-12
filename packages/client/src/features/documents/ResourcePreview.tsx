@@ -64,6 +64,7 @@ export function ResourcePreviewWithSession({
     onClose();
   }, [closing, onClose, refreshSessionOnClose, session]);
 
+  const [commandsTarget, setCommandsTarget] = useState<HTMLSpanElement | null>(null);
   const resource = session.resource;
   const download = () => {
     const representation = session.representation;
@@ -85,8 +86,6 @@ export function ResourcePreviewWithSession({
         <div className="resource-preview-shell-header">
           <WorkspaceBreadcrumb
             path={resource?.path ?? ""}
-            currentLabel={resource?.name}
-            currentIcon={resource ? <DocumentaryResourceGlyph resource={resource} /> : undefined}
             currentSelection={resource ? { kind: "resource", id: resource.id } : null}
             interactive={false}
             closeButtonRef={closeButtonRef}
@@ -103,15 +102,14 @@ export function ResourcePreviewWithSession({
                       onChange={session.updateAutosave}
                     />
                   ) : null}
-                  {resource ? (
-                    <ResourceChangesControl
-                      resourceId={resource.id}
-                      representation={session.representation}
-                      onInvalidated={() => {
-                        if (!session.dirty && !session.submitting) void session.reload();
-                      }}
-                    />
-                  ) : null}
+                  <ResourceChangesControl
+                    resourceId={resource.id}
+                    representation={session.representation}
+                    onInvalidated={() => {
+                      if (!session.dirty && !session.submitting) void session.reload();
+                    }}
+                  />
+                  <span ref={setCommandsTarget} className="resource-preview-commands" />
                 </>
               ) : null
             }
@@ -121,6 +119,7 @@ export function ResourcePreviewWithSession({
               icon={<DocumentaryResourceGlyph resource={resource} large />}
               title={resource.name}
               titleId="resource-preview-title"
+              commandsTarget={commandsTarget}
               titleLabel={t("resources.textTitle")}
               onTitleChange={
                 resource.kind === "event" && session.capabilities.updateMetadata

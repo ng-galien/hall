@@ -48,3 +48,13 @@
   border: 0;
   border-radius: 0;
 }
+
+/* The commands of the opened item sit on the first line of the dialog, after its save state and before the close button. */
+.resource-preview-commands {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hall-space-1);
+}
+.resource-preview-commands:empty {
+  display: none;
+}

@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useContext, useState } from "react";
+import { createPortal } from "react-dom";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { CopyReferenceButton, type ObjectReference } from "../../components/CopyReferenceButton";
 import { EditIcon } from "../../components/icons";
@@ -8,7 +9,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { ScreenActions, ScreenTitle } from "../../shell/headerTrail";
 
-/** Controls of the open item supplied by the page that hosts the workbench (save state, changes, close). */
+/** Controls of the item opened on the workspace screen (save state, changes, close); a dialog has its own. */
 export const WorkbenchControlsContext = createContext<ReactNode>(null);
 
 /**
@@ -27,6 +28,7 @@ export function WorkspaceWorkbenchHeader({
   onDismissError,
   metadata,
   titleId,
+  commandsTarget,
   reference,
 }: {
   icon?: ReactNode;
@@ -41,10 +43,13 @@ export function WorkspaceWorkbenchHeader({
   metadata?: ReactNode;
   /** Identifier of the dialog title; set only when the header is shown in a dialog. */
   titleId?: string;
+  /** In a dialog: the place of its first line where the commands of the item are written, before the close button. */
+  commandsTarget?: HTMLElement | null;
   reference?: ObjectReference;
 }) {
   const { t, formatDate } = useI18n();
-  const controls = useContext(WorkbenchControlsContext);
+  const screenControls = useContext(WorkbenchControlsContext);
+  const controls = titleId ? null : screenControls;
   const [editingTitle, setEditingTitle] = useState(false);
   const heading = titleId ? (
     <h2 id={titleId} className="workbench-dialog-title" data-testid="workspace-workbench-title">
@@ -100,7 +105,13 @@ export function WorkspaceWorkbenchHeader({
           </span>
           {hint}
         </div>
-        {titleId ? <div className="workbench-header-side">{commands}</div> : <ScreenActions>{commands}</ScreenActions>}
+        {titleId ? (
+          commandsTarget ? (
+            createPortal(commands, commandsTarget)
+          ) : null
+        ) : (
+          <ScreenActions>{commands}</ScreenActions>
+        )}
       </header>
 
       <RequestErrorBanner error={actionError} onDismiss={onDismissError} />

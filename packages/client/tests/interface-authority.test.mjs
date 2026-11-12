@@ -232,3 +232,17 @@ test("the charter holds no warm tint: no cream, orange, brown or amber token", (
   assert.deepEqual(warm, []);
   assert.deepEqual(offenders(/--hall-color-(?:warning|seal)\b|data-tone="warning"|tone: "warning"/), []);
 });
+
+// @verifies-requirement HALL-TR-LAY-030
+test("a document dialog writes its close button and save state once, apart from the commands of the screen", () => {
+  const header = readFileSync(join(sourceRoot, "pages/workspace/WorkspaceWorkbenchHeader.tsx"), "utf8");
+  assert.match(
+    header,
+    /const controls = titleId \? null : screenControls;/,
+    "a dialog must not take the screen controls",
+  );
+  const preview = readFileSync(join(sourceRoot, "features/documents/ResourcePreview.tsx"), "utf8");
+  assert.equal(preview.match(/<ResourceAutosaveToggle\b/g)?.length, 1);
+  assert.equal(preview.match(/<ResourceChangesControl\b/g)?.length, 1);
+  assert.doesNotMatch(preview, /currentLabel=/, "the dialog trail does not repeat the document title");
+});

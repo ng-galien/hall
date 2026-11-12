@@ -118,6 +118,13 @@ test("the business documents section folds by its header and opens each document
   await expect(viewer).toHaveAttribute("data-resource-mode", "edit");
   await expect(viewer.getByTestId("editor-writing-area").locator("strong")).toHaveText("rendu");
   await expect(viewer.getByTestId("editor-writing-area")).toHaveAttribute("contenteditable", "true");
+  // The dialog writes each command and the title once: save state, changes and close on its first line, the title below.
+  await expect(viewer.getByTestId("resource-preview-close")).toHaveCount(1);
+  await expect(viewer.getByTestId("workspace-breadcrumb-close")).toHaveCount(0);
+  await expect(viewer.getByTestId("resource-autosave-toggle")).toHaveCount(1);
+  await expect(viewer.getByTestId("resource-changes-trigger")).toHaveCount(1);
+  await expect(viewer.getByTestId("workspace-workbench-title")).toHaveCount(1);
+  await expect(viewer.locator(".workspace-breadcrumb .workspace-crumb-current")).toHaveCount(0);
   const viewerBox = await viewer.boundingBox();
   const viewport = page.viewportSize();
   expect(viewerBox!.width).toBeGreaterThan(viewport!.width * 0.9);
@@ -129,6 +136,8 @@ test("the business documents section folds by its header and opens each document
   await expect(viewer).toBeVisible();
   await expect(viewer.getByTestId("resource-preview-object")).toHaveAttribute("src", /.+/);
   await expect(viewer.getByTestId("resource-preview-download")).toBeVisible();
+  await expect(viewer.locator(".workspace-breadcrumb").getByTestId("resource-preview-download")).toHaveCount(1);
+  await expect(viewer.getByTestId("resource-preview-close")).toHaveCount(1);
   await page.keyboard.press("Escape");
   await expect(viewer).toBeHidden();
 
