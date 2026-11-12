@@ -18,27 +18,38 @@ vi.mock("../src/components/ui/dialog", () => ({
 import { Layout } from "../src/components/Layout.tsx";
 
 // @verifies-requirement HALL-FR-LAY-010
-test("a viewport change before the media subscription still removes desktop navigation", async () => {
+test("a viewport change before the media subscription still removes the anchored menu below the phone threshold", async () => {
   const original = Object.getOwnPropertyDescriptor(window, "matchMedia");
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  // jsdom measures nothing: the screen header observes its row without receiving sizes.
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
   const host = document.createElement("div");
   const root = createRoot(host);
-  const query = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() };
-  const phoneQuery = { matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() };
-  const drawerQuery = vi.fn().mockReturnValueOnce({ matches: false }).mockReturnValue(query);
+  // The window becomes a phone between the first reading and the subscription.
+  const phoneQuery = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  const readPhone = vi.fn().mockReturnValueOnce({ matches: false }).mockReturnValue(phoneQuery);
+  // Below 1000 pixels the menu stays anchored at the left, folded in its rail (decision of 12 November 2026).
+  const narrowQuery = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() };
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
-    value: vi.fn((media) => (media === "(max-width: 760px)" ? phoneQuery : drawerQuery())),
+    value: vi.fn((media) => (media === "(max-width: 760px)" ? readPhone() : narrowQuery)),
   });
   try {
     await act(async () => root.render(h(MemoryRouter, null, h(Layout))));
-    assert.equal(host.querySelector('[data-testid="sidebar"]') === null, true);
-    const listener = query.addEventListener.mock.calls[0][1];
+    assert.equal(host.querySelector('[data-testid="sidebar"]'), null, "no anchored menu on a phone");
+    const listener = phoneQuery.addEventListener.mock.calls[0][1];
     await act(async () => {
-      query.matches = false;
+      phoneQuery.matches = false;
       listener();
     });
-    assert.ok(host.querySelector('[data-testid="sidebar"]'));
+    assert.ok(host.querySelector('[data-testid="sidebar"]'), "the anchored menu above the phone, also below 1000 px");
   } finally {
     await act(async () => root.unmount());
     if (original) Object.defineProperty(window, "matchMedia", original);
