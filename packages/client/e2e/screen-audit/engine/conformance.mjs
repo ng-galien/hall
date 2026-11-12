@@ -190,7 +190,8 @@ export const conformanceRules = {
   },
   "row-height": {
     title: "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
-    expected: "Une ligne de liste mesure 64 px au doigt ; à la souris, 40 px sur une ligne et 52 px sur deux.",
+    expected:
+      "Une ligne de liste mesure 64 px au doigt ; à la souris, 40 px sur une ligne et 52 px sur deux ; au téléphone, son titre se lit en entier et la ligne peut dépasser 64 px.",
   },
 };
 
@@ -1019,7 +1020,11 @@ export function measureConformance(options) {
     }
     const height = line.getBoundingClientRect().height;
     // Density follows the pointer: 64 px under a finger, 40 or 52 px under a mouse, whatever the width.
-    const ok = touch ? height >= 63.5 : Math.abs(height - 40) <= 1 || Math.abs(height - 52) <= 1;
+    // On a phone the title of a row is read whole and wraps: the row is 64 px at least (coordinator's arbitration).
+    const ok =
+      touch || phone
+        ? height >= 63.5 || (!touch && (Math.abs(height - 40) <= 1 || Math.abs(height - 52) <= 1))
+        : Math.abs(height - 40) <= 1 || Math.abs(height - 52) <= 1;
     if (!ok) add("row-height", row, `${Math.round(height * 10) / 10} px`);
   }
 
@@ -1374,8 +1379,9 @@ export async function measureFormFields(options) {
         add(label, "couleur du libellé", field.label, labelColor);
     }
     /* An empty field writes « Non renseigné », grey and italic. */
+    // A field that already shows its values beside its input (the tags of a document) is not empty.
     const empty = input
-      ? input.value === ""
+      ? input.value === "" && !(control.textContent ?? "").trim()
       : !(control.textContent ?? "").trim() || Boolean(control.querySelector(".hall-field-empty"));
     if (empty) {
       if (input) {

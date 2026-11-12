@@ -128,6 +128,13 @@ const notDisclosures = [
   },
 ];
 const exceptions = {
+  "local-list": [
+    {
+      selector: ".docs-area",
+      reason:
+        "Listes des articles de l'aide : contenu rédactionnel, pas une liste d'objets (décision du coordinateur).",
+    },
+  ],
   "disclosure-mark": notDisclosures,
   "font-family": [liveMeeting],
   "button-form": [liveMeeting],
