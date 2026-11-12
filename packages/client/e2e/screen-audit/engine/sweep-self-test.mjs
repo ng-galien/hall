@@ -240,7 +240,7 @@ const cases = [
     "state-pill",
     {},
     `<p><span role="status" class="dot">Enregistré</span> <span data-tone="action" style="background:rgb(234,240,255);color:rgb(27,69,173);padding:0 8px">Programmée</span></p>`,
-    `<p><span role="status" data-tone="success" style="background:rgb(227,244,234);color:rgb(23,99,58);padding:0 8px;border-radius:4px">Enregistré</span> <span data-tone="action" style="background:rgb(253,235,210);color:rgb(138,75,8);padding:0 8px;border-radius:4px">À réviser</span></p>`,
+    `<p><span role="status" data-tone="success" style="background:rgb(227,244,234);color:rgb(23,99,58);padding:0 8px;border-radius:4px">Enregistré</span> <span data-tone="action" style="background:rgb(253,235,210);color:rgb(138,75,8);padding:0 8px;border-radius:4px">À réviser</span> <span class="list-row-status nodot" style="background:rgb(236,239,243);color:rgb(74,83,98)">Close</span></p><style>.nodot::before{content:"";width:8px;height:8px;background:rgb(23,99,58);display:none}</style>`,
   ],
   [
     "writing-modes",

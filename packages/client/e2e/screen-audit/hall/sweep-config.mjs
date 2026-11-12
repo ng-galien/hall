@@ -108,7 +108,31 @@ const itemScreens = new Set([
 const ignoreSelectors = [".ol-viewport", ".univer-spreadsheet", "[data-testid=application-sync-status]"];
 
 /** Exceptions to the decision rules, each with the reason that makes it conform to the decision. */
+/* Meeting mode brought back as it was laid out after the mock-up (owner's decision of 12 November 2026, c97b4f3f). */
+const liveMeeting = {
+  selector: "[data-testid=live-meeting-page]",
+  reason: "Mode séance rétabli tel qu'il était après la maquette, décision du propriétaire du 12 novembre.",
+};
+/* Page 10, choice C: the exceptions decided to the square « + / − ». */
+const notDisclosures = [
+  {
+    selector:
+      "[data-testid=phone-navigation-more], [data-testid=workspace-create-menu], [data-testid=business-create-subject], [data-testid$=-add-filter]",
+    reason: "Menus (« Plus », « Nouveau », « Ajouter un filtre ») : hors du carré, décision de la page 10.",
+  },
+  {
+    selector: "[data-testid^=workspace-folder-expand-], [data-testid^=maps-tree-folder-]",
+    reason: "Dossiers : l'icône du dossier s'ouvre, décision de la page 10.",
+  },
+];
 const exceptions = {
+  "disclosure-mark": notDisclosures,
+  "font-family": [liveMeeting],
+  "button-form": [liveMeeting],
+  "local-list": [liveMeeting],
+  "button-icon-unity": [liveMeeting],
+  "state-pill": [liveMeeting],
+  "text-size": [liveMeeting],
   "plus-not-add": [
     {
       selector: "[data-testid=agenda-question-create]",

@@ -229,7 +229,8 @@ export function measureLayout(options) {
   /* overlap: two text boxes, or a text box and a command, or two commands, unrelated in the tree, that cross. */
   const floating = (element) => {
     for (let current = element; current && current !== document.body; current = current.parentElement)
-      if (getComputedStyle(current).position === "fixed") return true;
+      // A fixed or sticky band (the editor tools, a header held at the top) lies over the content that scrolls under it.
+      if (["fixed", "sticky"].includes(getComputedStyle(current).position)) return true;
     return false;
   };
   const boxes = [

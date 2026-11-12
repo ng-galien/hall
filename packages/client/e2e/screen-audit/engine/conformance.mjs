@@ -72,7 +72,8 @@ export const conformanceRules = {
   },
   "text-size": {
     title: "Choix 10 : texte de moins de 14 px sous le doigt, de 13 px à la souris",
-    expected: "Le texte mesure au moins 14 px au doigt et 13 px à la souris.",
+    expected:
+      "Le texte mesure au moins 14 px au doigt et 13 px à la souris ; un état s'écrit à 12 px dans sa pastille.",
   },
   "state-pill": {
     title: "État écrit avec un rond ou sans pastille",
@@ -482,7 +483,9 @@ export function measureConformance(options) {
       if (!/^archivo/i.test(family)) add("font-family", parent, `police ${family}`);
     }
     const size = Number.parseFloat(style.fontSize);
-    if (size + 0.01 < minimum) add("text-size", parent, `${size} px pour ${minimum} px`);
+    // A state is written at 12 px in its pill (Design de référence, page 9, decision of 12 November 2026).
+    const state = parent.closest(".list-row-status, .record-state, [data-save], [data-tone]");
+    if (size + 0.01 < minimum && !state) add("text-size", parent, `${size} px pour ${minimum} px`);
   }
 
   /* warm-tint: no cream, orange, brown or amber painted on the screen. A colour the user chose (inline style) is data. */
@@ -591,8 +594,13 @@ export function measureConformance(options) {
     const text = visibleText(state);
     if (!text || text.length > 40) continue;
     const before = getComputedStyle(state, "::before");
-    if (before.content !== "none" && before.content !== "normal" && painted(before.backgroundColor))
-      add("state-pill", state, `« ${text} » écrit après un rond`);
+    const dot =
+      before.content !== "none" &&
+      before.content !== "normal" &&
+      before.display !== "none" &&
+      Number.parseFloat(before.width) > 0 &&
+      painted(before.backgroundColor);
+    if (dot) add("state-pill", state, `« ${text} » écrit après un rond`);
     const fill = painted(getComputedStyle(state).backgroundColor);
     if (!fill) add("state-pill", state, `« ${text} » sans pastille`);
     else if (isBlue(fill) || isBlue(parseColor(getComputedStyle(state).color) ?? { r: 0, g: 0, b: 0 }))
