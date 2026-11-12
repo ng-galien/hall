@@ -64,6 +64,9 @@
   .workbench-meta { display: grid; gap: var(--hall-space-0-5); padding-top: var(--hall-space-1-5); }
   .workbench-meta-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); }
   .workbench-meta-values { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
+  /* A related business reads as a blue link, without a filled button behind it. */
+  .workbench-meta-values .hall-button.workbench-related-business { padding-inline: 0; background: none; color: var(--hall-color-brand); }
+  .workbench-meta-values .hall-button.workbench-related-business:hover { background: none; text-decoration: underline; }
   .workbench-meta-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   /* The tags field fills the rest of the line, and the whole line when it passes under the other facts. */
   .workbench-meta-row > .tag-input { min-width: min(100%, var(--hall-size-tag-input-min)); flex: 1 1 var(--hall-size-tag-input-min); }

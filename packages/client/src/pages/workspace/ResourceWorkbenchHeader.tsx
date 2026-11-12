@@ -174,7 +174,8 @@ export function ResourceWorkbenchHeader({
                 relatedBusinesses.map((business) => (
                   <Button
                     key={business.id}
-                    variant="secondary"
+                    variant="plain"
+                    className="workbench-related-business"
                     data-testid={`resource-related-business-${business.id}`}
                     onClick={() => onSelect({ kind: "councilBusiness", id: business.id })}
                   >
