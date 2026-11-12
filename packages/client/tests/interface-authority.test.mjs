@@ -370,3 +370,54 @@ test("the mail screen keeps one « À » line, one « Joindre » and automatic s
     assert.equal(french[key], undefined, `${key} is retired`);
   assert.equal(french["mail.attach"], "Joindre");
 });
+
+/*
+ * Width thresholds of the product. A layout changes at one of these widths only; a threshold proper to one file is a
+ * gap. Viewport: the phone layout ends at 760 px (`shell/usePhoneLayout.ts`), the tablet layout at 1000 px, and the
+ * wide layout starts above 1280 px. Container: a component's container changes at 760 px.
+ */
+const viewportThresholds = [760, 1000, 1280];
+const containerThresholds = [760];
+/** A `min-width: N` query opens its range at N, a `max-width: N` one at N + 1: both name the threshold N or N − 1. */
+const declared = (list, operator, value) => list.includes(operator === "min" ? value - 1 : value);
+const tailwindScreens = { sm: 640, md: 768, lg: 1024, xl: 1280, "2xl": 1536 };
+
+test("every width threshold of the interface is one of the declared thresholds of the product", () => {
+  const isolated = [];
+  for (const { path, source } of files) {
+    for (const match of source.matchAll(/@(media|container)\s[^{]*/g)) {
+      const list = match[1] === "media" ? viewportThresholds : containerThresholds;
+      for (const query of match[0].matchAll(/\((min|max)-width:\s*([\d.]+)(px|rem|em)\)/g)) {
+        const value = Number(query[2]) * (query[3] === "px" ? 1 : 16);
+        if (!declared(list, query[1], value)) isolated.push(`${path}: @${match[1]} ${query[0]}`);
+      }
+    }
+    if (/\.tsx?$/.test(path)) {
+      for (const query of source.matchAll(/["'`]\((min|max)-width:\s*(\d+)px\)/g))
+        if (!declared(viewportThresholds, query[1], Number(query[2])))
+          isolated.push(`${path}: script ${query[0].slice(1)}`);
+      for (const variant of source.matchAll(/(?:^|[\s"'`])(max-)?(sm|md|lg|xl|2xl):[a-z][\w-]*/g)) {
+        const value = tailwindScreens[variant[2]];
+        if (!declared(viewportThresholds, variant[1] ? "max" : "min", value))
+          isolated.push(`${path}: Tailwind ${variant[0].replace(/^[\s"'`]+/, "")}`);
+      }
+    }
+  }
+  assert.deepEqual([...new Set(isolated)], []);
+});
+
+test("a shared component and the list row follow the width of their container, never the width of the window", () => {
+  const shared = files.filter(
+    ({ path }) => path.startsWith("components/ui/") || ["styles/list-row.css", "styles/controls.css"].includes(path),
+  );
+  const windowDependent = [];
+  for (const { path, source } of shared) {
+    for (const match of source.matchAll(/@media\s[^{]*\b(?:min|max)-width[^{]*/g))
+      windowDependent.push(`${path}: ${match[0].trim()}`);
+    // The phone layout itself (`usePhoneLayout`) is the application mode of choice 6, not a width of the component.
+    for (const match of source.matchAll(/matchMedia\([^)]*width/g)) windowDependent.push(`${path}: ${match[0]}`);
+    for (const match of source.matchAll(/(?:^|[\s"'`])(?:max-)?(?:sm|md|lg|xl|2xl):[a-z][\w-]*/g))
+      windowDependent.push(`${path}: Tailwind ${match[0].replace(/^[\s"'`]+/, "")}`);
+  }
+  assert.deepEqual(windowDependent, []);
+});

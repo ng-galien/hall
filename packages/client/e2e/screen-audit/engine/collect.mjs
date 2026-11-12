@@ -113,6 +113,26 @@ export function collectSnapshot(options) {
   const indexOf = new Map();
   const page = { x: -1e6, y: -1e6, w: 2e6, h: 2e6 };
 
+  /** Visible text of a command, without its icons: an icon beside a label is not the only mark of its action. */
+  const commandLabel = (element) => {
+    let text = "";
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const parent = node.parentElement;
+      if (!parent || parent.closest("svg")) continue;
+      const parentStyle = getComputedStyle(parent);
+      if (
+        parentStyle.visibility === "hidden" ||
+        parentStyle.display === "none" ||
+        /^inset\(50%/.test(parentStyle.clipPath)
+      )
+        continue;
+      if (parentStyle.position === "absolute" && parentStyle.clip.startsWith("rect(0")) continue;
+      text += node.textContent ?? "";
+    }
+    return text.replace(/\s+/g, " ").trim();
+  };
+  const interactiveOwner = (element) => element.parentElement?.closest(options.interactiveSelector) ?? null;
   const visit = (element, parentIndex, clip, clipOwner, interactiveAncestor) => {
     if (ignore && element.matches(ignore)) return;
     const style = getComputedStyle(element);
@@ -168,6 +188,20 @@ export function collectSnapshot(options) {
         insideInteractive: interactiveAncestor,
         text: text.slice(0, 300),
         textRect: text ? textRect(element) : null,
+        /* The text as shown: its box cut by the ancestors that clip it (an ellipsis hides the rest). */
+        visibleTextRect: text && textRect(element) ? box(intersect(textRect(element), clip)) : null,
+        /* For an icon: the command that holds it shows a label of its own. */
+        commandLabelled:
+          isSvg && interactiveAncestor ? Boolean(commandLabel(interactiveOwner(element) ?? element)) : false,
+        /* A search field and a form field are two components. */
+        fieldKind:
+          tag === "input" || tag === "textarea"
+            ? element.closest("[data-slot=search-input], [role=search]") || element.getAttribute("type") === "search"
+              ? "recherche"
+              : element.closest("[data-slot=field]")
+                ? "champ"
+                : "saisie libre"
+            : "",
         textContent: interactive || /^h[1-6]$/.test(tag) ? textContent.slice(0, 120) : "",
         placeholder: element.getAttribute("placeholder") ?? "",
         ariaLabel: element.getAttribute("aria-label") ?? "",
@@ -232,7 +266,12 @@ export function collectSnapshot(options) {
       nextClip = page;
       nextOwner = -1;
     }
-    for (const child of element.children)
+    // A closed <details> shows its summary only.
+    const shownChildren =
+      tag === "details" && !element.open
+        ? [...element.children].filter((child) => child.tagName === "SUMMARY")
+        : element.children;
+    for (const child of shownChildren)
       visit(child, index, nextClip, nextOwner, interactiveAncestor || (visible && interactive));
   };
   const modals = [

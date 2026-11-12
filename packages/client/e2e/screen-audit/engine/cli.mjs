@@ -147,6 +147,6 @@ export async function runAudit(config, argv = process.argv.slice(2)) {
   for (const entry of missing) console.log(`Écran non ouvert : ${entry.format} ${entry.screen.id} : ${entry.error}`);
   console.log(`Rapport : ${join(outputDirectory, "index.html")}`);
   console.log(`Durée : ${Math.round((Date.now() - started) / 1000)} s.`);
-  const failed = captureFailed || missing.length > 0 || (!options["update-baseline"] && baseline.fresh.length > 0);
+  const failed = captureFailed || missing.length > 0 || baseline.fresh.length > 0;
   process.exitCode = failed ? 1 : 0;
 }

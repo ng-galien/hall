@@ -181,7 +181,8 @@ export const actionIconSize = {
   defaults: { formats: "all", severity: "error", params: { minimum: 16 } },
   evaluate({ snapshot, params }) {
     return snapshot.elements.flatMap((entry, index) => {
-      if (!entry.isSvg || !entry.insideInteractive) return [];
+      // An icon beside the label of its command is not the only mark of the action.
+      if (!entry.isSvg || !entry.insideInteractive || entry.commandLabelled) return [];
       const size = Math.max(entry.rect.w, entry.rect.h);
       return size > 0 && size < params.minimum - 0.5
         ? [{ index, value: Math.round(size * 10) / 10, threshold: params.minimum }]
@@ -342,10 +343,12 @@ export const edgeMargin = {
   evaluate({ snapshot, params }) {
     const width = snapshot.viewport.width;
     return snapshot.elements.flatMap((entry, index) => {
-      if (!entry.textRect || entry.visibleRect.w < 1) return [];
+      // The text as shown: an ellipsis or a clipping ancestor hides the rest of it.
+      const shownText = entry.visibleTextRect ?? entry.textRect;
+      if (!shownText || shownText.w < 1 || entry.visibleRect.w < 1) return [];
       if (insideHorizontalScroller(snapshot, index)) return [];
-      const left = entry.textRect.x;
-      const right = width - (entry.textRect.x + entry.textRect.w);
+      const left = shownText.x;
+      const right = width - (shownText.x + shownText.w);
       const margin = Math.min(left, right);
       if (margin >= params.minimum || margin < -1) return [];
       return [
@@ -366,7 +369,9 @@ export const textLineLength = {
   defaults: { formats: "all", severity: "error", params: { minimum: 25, minimumLines: 3 } },
   evaluate({ snapshot, params }) {
     return snapshot.elements.flatMap((entry, index) => {
+      // Preformatted text keeps the line breaks of its content.
       if (!entry.textRect || entry.textRect.lines < params.minimumLines || entry.interactive) return [];
+      if (entry.tag === "pre" || entry.whiteSpace === "pre") return [];
       const lines = Math.max(1, Math.round(entry.textRect.h / entry.lineHeight));
       if (lines < params.minimumLines) return [];
       const perLine = Math.round(entry.text.length / lines);
@@ -395,11 +400,14 @@ export const componentSizeConsistency = {
       record.elements.forEach((entry, index) => {
         if (!entry.interactive || entry.insideInteractive || entry.rect.h < 1) return;
         if (entry.tag === "textarea" || entry.rect.h > params.maximumControlHeight) return;
+        // An icon-only command is compared with the same icon in the same component; a field with fields of its kind.
         const signature = entry.iconOnly
-          ? `icône seule ${entry.iconHash}`
-          : entry.slot
-            ? `${entry.slot} ${entry.variant} ${entry.size}`.trim()
-            : null;
+          ? `icône seule ${entry.iconHash} ${entry.slot || entry.tag}`
+          : entry.fieldKind
+            ? `${entry.fieldKind} ${entry.tag}`
+            : entry.slot
+              ? `${entry.slot} ${entry.variant} ${entry.size}`.trim()
+              : null;
         if (!signature) return;
         const measure = entry.iconOnly ? Math.round(Math.max(entry.rect.w, entry.rect.h)) : Math.round(entry.rect.h);
         if (!groups.has(signature)) groups.set(signature, []);

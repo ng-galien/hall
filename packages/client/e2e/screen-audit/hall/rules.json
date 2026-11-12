@@ -86,10 +86,11 @@
     "truncated-heading": {
       "enabled": true,
       "formats": "all",
-      "severity": "indicator",
+      "severity": "error",
       "params": {
         "tolerance": 1
-      }
+      },
+      "justification": "Bloquant depuis le 12 novembre 2026 : à 1030 px les noms de « Composition du conseil » disparaissaient ; un titre ou un nom coupé est un écart."
     },
     "nested-scroll": {
       "enabled": true,
@@ -210,20 +211,35 @@
     "list-row-legacy": {
       "enabled": true,
       "formats": "all",
-      "severity": "indicator",
+      "severity": "error",
       "params": {
         "minimumItems": 3,
         "minimumWidth": 0.5,
         "rowSlot": "list-row",
         "exclusions": [
-          { "key": "[live-agenda-rail]", "reason": "Rail des points du mode séance : tuiles de séance, exclues de la reprise." },
-          { "key": "[agenda-candidate-", "reason": "Éditeur d'ordre du jour réordonnable, exclu de la reprise." },
-          { "key": "[agenda-item-", "reason": "Éditeur d'ordre du jour réordonnable, exclu de la reprise." },
-          { "key": "[markdown-editor-compact]", "reason": "Barre d'outils de l'éditeur, pas une liste d'objets." },
-          { "key": "[maps-panel]", "reason": "Blocs du panneau des cartes (recherche, récentes, arbre), chacun déjà rendu en lignes." }
+          {
+            "key": "[live-agenda-rail]",
+            "reason": "Rail des points du mode séance : tuiles de séance, exclues de la reprise."
+          },
+          {
+            "key": "[agenda-candidate-",
+            "reason": "Éditeur d'ordre du jour réordonnable, exclu de la reprise."
+          },
+          {
+            "key": "[agenda-item-",
+            "reason": "Éditeur d'ordre du jour réordonnable, exclu de la reprise."
+          },
+          {
+            "key": "[markdown-editor-compact]",
+            "reason": "Barre d'outils de l'éditeur, pas une liste d'objets."
+          },
+          {
+            "key": "[maps-panel]",
+            "reason": "Blocs du panneau des cartes (recherche, récentes, arbre), chacun déjà rendu en lignes."
+          }
         ]
       },
-      "justification": "Indicateur de la reprise des listes sur ListRow (HALL-TR-LAY-020) ; arbres, tableaux, tuiles de séance et panneaux de carte ne sont pas des listes d'objets et peuvent y apparaître."
+      "justification": "Bloquant depuis le 12 novembre 2026 : choix 3 du document « Hall 1.3 — Choix de design des composants », une seule forme de ligne de liste ; un tableau ou une liste locale est un écart."
     },
     "density-coverage": {
       "enabled": false,

@@ -15,16 +15,20 @@ export const sweepRules = {
 };
 
 /**
- * Widths of the sweep: every `step` pixels from `from` to `to`, plus the width just before and just after every CSS
- * threshold of the application. A `max-width: N` query holds at N, so N and N + 1 frame it, with N − 1 for a
- * `min-width: N` query.
+ * Intervals between width thresholds. A threshold is the first width of the range it opens (`min-width: 761px` and
+ * `max-width: 760px` both open a range at 761 px). Returns `[{ from, to }]` covering `low` to `high`, in order; the sweep
+ * measures both ends of each interval, which are also the two widths framing each threshold.
  */
-export function sweepWidths({ from, to, step, thresholds }) {
-  const widths = new Set();
-  for (let width = from; width <= to; width += step) widths.add(width);
-  widths.add(to);
-  for (const threshold of thresholds) for (const width of [threshold - 1, threshold, threshold + 1]) widths.add(width);
-  return [...widths].filter((width) => width >= from && width <= to).sort((a, b) => a - b);
+export function intervalsOf(breakpoints, low, high) {
+  const inside = [...new Set(breakpoints)].filter((value) => value > low && value <= high).sort((a, b) => a - b);
+  const starts = [low, ...inside];
+  return starts.map((from, index) => ({ from, to: index + 1 < starts.length ? starts[index + 1] - 1 : high }));
+}
+
+/** The interval of `intervals` that holds `width`, written « de 761 à 999 px ». */
+export function intervalLabel(intervals, width) {
+  const interval = intervals.find((entry) => width >= entry.from && width <= entry.to);
+  return interval ? `de ${interval.from} à ${interval.to} px` : `${width} px`;
 }
 
 /** Lets the layout settle after a resize: two frames, then until the element count stops changing. */
@@ -40,6 +44,14 @@ export async function settleLayout(page) {
       if (current === previous) break;
       previous = current;
     }
+    // Transitions started by the resize (a bar or a pane sliding in) end before the measure.
+    const finite = document
+      .getAnimations()
+      .filter((animation) => Number.isFinite(animation.effect?.getComputedTiming?.().endTime ?? Number.POSITIVE_INFINITY));
+    await Promise.race([
+      Promise.all(finite.map((animation) => animation.finished.catch(() => undefined))),
+      new Promise((done) => setTimeout(done, 1000)),
+    ]);
     await document.fonts.ready;
   });
 }
@@ -104,6 +116,9 @@ export function measureLayout(options) {
     if (rect.width <= 1 && rect.height <= 1) return false;
     if (/^inset\(50%/.test(style.clipPath) || (style.position === "absolute" && style.clip.startsWith("rect(0")))
       return false;
+    // A closed <details> shows its summary only.
+    const closed = element.parentElement?.closest("details:not([open])");
+    if (closed && !element.closest("summary")) return false;
     return element.getClientRects().length > 0;
   };
   /** Declared horizontal scrolling: a data table or a strip that scrolls sideways by design. */
@@ -167,6 +182,9 @@ export function measureLayout(options) {
       const a = boxes[i];
       const b = boxes[j];
       if (a.owner === b.owner || a.owner.contains(b.owner) || b.owner.contains(a.owner)) continue;
+      // A form field (choice 12D) writes its label inside the box of its control.
+      const field = a.owner.closest("[data-slot=field]");
+      if (field && field === b.owner.closest("[data-slot=field]")) continue;
       const crossing = intersect(a.rect, b.rect);
       if (crossing.width < 3 || crossing.height < 3) continue;
       const pair = `${selectorOf(a.owner)} | ${selectorOf(b.owner)}`;
@@ -245,8 +263,16 @@ export function measureLayout(options) {
 
   /* off-screen: a text or a command whose visible part goes past the left or right edge of the screen. */
   const outside = (rect) => rect.left < -1 || rect.right > width + 1;
-  for (const entry of [...texts.map((text) => ({ owner: text.parent, visible: text.visible })), ...commands.map((command) => ({ owner: command.element, visible: command.visible }))]) {
-    if (entry.visible.width <= 0 || entry.visible.height <= 0 || entry.visible.bottom < 0 || entry.visible.top > height * 20)
+  for (const entry of [
+    ...texts.map((text) => ({ owner: text.parent, visible: text.visible })),
+    ...commands.map((command) => ({ owner: command.element, visible: command.visible })),
+  ]) {
+    if (
+      entry.visible.width <= 0 ||
+      entry.visible.height <= 0 ||
+      entry.visible.bottom < 0 ||
+      entry.visible.top > height * 20
+    )
       continue;
     if (!outside(entry.visible) || declaredScroller(entry.owner)) continue;
     if (getComputedStyle(entry.owner).position === "fixed" && entry.visible.right <= 0) continue;
@@ -281,10 +307,10 @@ export function measureLayout(options) {
 }
 
 /**
- * Groups raw findings `{ screen, width, input, menu, pane, rule, selector, detail }` by screen, rule and selector,
- * with the widths and states where each one appears.
+ * Groups raw findings `{ screen, width, input, menu, pane, text, rule, selector, detail }` by screen, rule and selector,
+ * with, for each one, the intervals and states where it appears.
  */
-export function groupFindings(raw) {
+export function groupFindings(raw, intervals) {
   const groups = new Map();
   for (const finding of raw) {
     const key = `${finding.screen} | ${finding.rule} | ${finding.selector}`;
@@ -296,7 +322,8 @@ export function groupFindings(raw) {
       detail: finding.detail,
       cases: [],
     };
-    group.cases.push(`${finding.width} px ${finding.input}, menu ${finding.menu}, volet ${finding.pane}`);
+    const where = `${intervalLabel(intervals, finding.width)} (${finding.width} px), ${finding.input === "touch" ? "doigt" : "souris"}, menu ${finding.menu}, volet ${finding.pane}${finding.text === "long" ? ", textes longs" : ""}`;
+    if (!group.cases.includes(where)) group.cases.push(where);
     groups.set(key, group);
   }
   return [...groups.values()].sort((a, b) => a.key.localeCompare(b.key));

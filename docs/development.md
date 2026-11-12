@@ -37,13 +37,37 @@ Initial database/seed fixture setup has its own 120-second failure bound. Browse
 
 ## Screen audit
 
-`npm run audit:screens` opens every Hall screen, a detail of every object type and the open menus at three formats (phone 360 × 740, tablet 768 × 1024, desktop 1440 × 900) on the disposable instance and database of the browser journeys, measures their rendered geometry and writes a report to the ignored `packages/client/test-results/screen-audit/`: `index.html` (summary by screen, by rule and by balance indicator), one page per screen and format with its screenshots and numbered findings, and `textes.json` (visible texts, with their kind and whether they come from the message catalogue or from data).
+The screen audit has two commands. Both run on the disposable instance and database of the browser journeys (their own server, database and Vite cache); neither touches the shared development session.
 
-The engine in `packages/client/e2e/screen-audit/engine/` contains no Hall name, route or selector. Hall supplies `hall/config.mjs` (formats, selectors, defects observed by hand), `hall/screens.mjs` (screens and how to open them) and `hall/rules.json` (every rule with its formats, severity and thresholds). A rule is one object in `engine/rules/sizing.mjs`, `engine/rules/lists.mjs` or `engine/rules/balance.mjs`; list and balance rules, and any rule set to the `indicator` severity in `rules.json`, are exploratory indicators that never fail the command.
+### Width sweep: `npm run audit:screens`
 
-The command fails for a sizing finding absent from `hall/baseline.json` or for a screen that could not be opened, lists known findings without failing, and lists baseline lines that no longer match a finding. Options: `--update-baseline`, `--report-only` (re-evaluate the last capture after changing `rules.json`), `--screens=calendrier,aide`, `--formats=telephone`, `--output=<directory>`, `--label=<text>`, `--revision=<commit>`, `--compare-with=<other report directory>`. A capture limited by `--screens` or `--formats` replaces only those records. The report is titled « Relevé », the name of the engine.
+The command first runs `packages/client/e2e/screen-audit/engine/sweep-self-test.mjs`: every rule of the sweep runs on a minimal page drawn wrong, where it must report, and on the same page drawn right, where it must stay silent. A rule that misses its faulty page stops the command.
 
-`node packages/client/e2e/screen-audit/engine/self-audit.mjs packages/client/test-results/screen-audit` audits a generated report with the engine itself, at the tablet and desktop formats, and writes its own report next to it. `engine/rules/accessibility.mjs` reserves the family where an accessibility engine such as axe-core would report its violations; no engine is connected.
+It then opens every screen of `hall/screens.mjs` and measures it without screenshots:
+
+- **Widths.** The sweep reads the width thresholds of the style sheets the application has loaded (`@media` and `@container` queries on the width, Tailwind variants included) and of its scripts (`matchMedia` queries under `src/`, among them the phone layout of `shell/usePhoneLayout.ts`). It measures both ends of every interval between two consecutive thresholds, from 320 to 1600 px; these are also the two widths that frame each threshold. No width is written by hand.
+- **Panels.** Above the phone layout, every interval is measured with the menu unfolded and folded and the module pane open and folded. For a container query, the sweep sets the window so that the container is one pixel under its threshold and at it, in each state of the panels. The report gives the width of the content area for each state at each end of each interval.
+- **Inputs.** Under a mouse at every interval, under a finger at every interval below 1280 px.
+- **Long texts.** A last pass lengthens names and titles to the longest a council writes and measures the narrowest end of every interval again.
+- **Rules.** Geometry (`engine/sweep.mjs`): a name or title shown on less than three characters, two texts or commands that overlap, horizontal scrolling of the document or of any area, an item rejected alone under its row, a text or command off screen, a touch target under 44 px. Design decisions (`engine/conformance.mjs`), one rule per choice of the document « Hall 1.3 — Choix de design des composants »: a disclosure chevron or triangle, a « + » without its label, a filled icon, a warm tint painted on screen, a retired label, a table or a local list instead of the list row, a form field outside `Field`, a button outside the four forms and more than one solid main button, a state drawn as a tinted label, a text outside Archivo or under the minimum size, a command in the first line of the header (the creation of a list screen excepted), a row of commands between the first line and the large title, a search on an opened element, a command, title or save state written twice in one window, a bottom bar other than five labelled destinations, and a list row outside 64 px under a finger or 40 and 52 px under a mouse.
+
+The report, `packages/client/test-results/screen-audit-sweep/report.txt` and `findings.json`, lists the thresholds found with the file that writes each of them, the intervals, the content widths, and every finding grouped by screen, rule and selector with the intervals, input and panel states where it appears. The command fails for a finding absent from `hall/sweep-accepted.json`, an accepted entry without a written reason, an accepted entry that no longer matches anything, or a screen that did not open. Options: `--screens=affaire,commissions`, `--report-only` (rewrite the report from the last measurements).
+
+**Before delivering a screen**, its implementer runs `npm run audit:screens -- --screens=<the screens touched>` and delivers with no open finding on them. A finding is corrected in the application; it is never added to `sweep-accepted.json` by the implementer.
+
+**To verify a delivery**, the verifier, who did not write it, runs `npm run audit:screens` on the delivered commit, on every screen. Only the verifier writes the engine, the rules, the screen list and the accepted entries. A defect the sweep does not yet catch becomes a rule with its faulty and correct pages in `sweep-self-test.mjs` before the delivery is judged again.
+
+### Screenshot report: `npm run audit:screens:captures`
+
+`npm run audit:screens:captures` opens every screen at three formats (phone 360 × 740, tablet 768 × 1024, desktop 1440 × 900), measures its rendered geometry and writes `packages/client/test-results/screen-audit/index.html` with one page per screen and format, its screenshots and numbered findings, and `textes.json` (visible texts). Hall supplies `hall/config.mjs`, `hall/screens.mjs` and `hall/rules.json` (every rule with its formats, severity and thresholds); a rule is one object in `engine/rules/`. Rules set to `indicator` never fail the command.
+
+The command fails for a blocking finding absent from `hall/baseline.json`, for a finding whose measured value differs from the accepted one, and for a screen that could not be opened. `hall/baseline.json` lists accepted findings, each with its value and the reason written by the verifier; an entry without a reason accepts nothing. `--update-baseline` writes the current findings as entries with an empty reason, which accept nothing until a reason is written. Other options: `--report-only`, `--screens=calendrier,aide`, `--formats=telephone`, `--output=<directory>`, `--label=<text>`, `--revision=<commit>`, `--compare-with=<other report directory>`.
+
+`node packages/client/e2e/screen-audit/engine/self-audit.mjs packages/client/test-results/screen-audit` audits a generated report with the engine itself.
+
+### Static controls
+
+`packages/client/tests/interface-authority.test.mjs` and `list-row-authority.test.mjs` read the sources: retired components and variants, the single implementation of each interface object, and the width thresholds. A width threshold is one of the declared thresholds of the product (window: 760, 1000 and 1280 px; container: 760 px), and a shared component of `components/ui/`, the list row and the controls follow the width of their container, not the window.
 
 ## Demonstration dataset
 
