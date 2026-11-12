@@ -109,7 +109,7 @@ export function inventory() {
       // A key composed at run time: its last segment written alone, or after an interpolation.
       for (const match of line.matchAll(/(?:["'`]|\}\.)([a-z][A-Za-z]*(?:Description|Hint|Help|Intro))["'`]?/g))
         for (const entry of bySegment.get(match[1]) ?? [])
-          if (!found.includes(entry) && source.includes(`"${entry.key.split(".")[0]}"`))
+          if (!found.includes(entry) && new RegExp(`[(|<]\\s*"${entry.key.split(".")[0]}"`).test(source))
             found.push({ ...entry, composed: true });
       for (const entry of found) {
         const context = lines.slice(Math.max(0, index - 3), index + 1).join("\n");
