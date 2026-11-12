@@ -276,6 +276,8 @@
   .meeting-decisions > .section-header + .list-row-list { border-top: 0; }
   .meeting-decisions .list-row { --list-row-head-width: var(--hall-size-relative-8rem); }
   .meeting-decisions .list-row-head { justify-items: start; }
+  .meeting-decisions .list-row-title { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
+  .meeting-report-documents .list-row-list { margin-bottom: 0; }
   .meeting-decision-number { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
   /* The written commands of a document row: « Ouvrir le PDF », « Rédaction ». */
   :is(.meeting-documents, .meeting-decisions) .list-row-action { gap: var(--hall-space-4); }
@@ -288,8 +290,15 @@
     .meeting-decisions .list-row { --list-row-head-width: auto; }
     .meeting-decisions .list-row-action { padding-left: var(--hall-space-3); }
   }
+  /* In a narrow column the deliberation keeps its number at the left; its tag and its command go under its text. */
+  .meeting-decisions { container-type: inline-size; }
+  @container (max-width: 760px) {
+    .meeting-decisions .list-row { --list-row-head-width: auto; }
+    .meeting-decisions .list-row-line { flex-wrap: wrap; }
+    .meeting-decisions .list-row-action { width: 100%; justify-content: flex-end; padding: 0 var(--hall-space-3) var(--hall-space-2); }
+  }
   /* The facts of a closed meeting hold one row under the description, wrapping by whole facts on a narrow screen. */
-  .meeting-report-header .page-header-controls > .meeting-facts { flex: 1 1 100%; grid-template-columns: repeat(auto-fit, minmax(var(--hall-size-relative-8rem), 1fr)); }
+  .meeting-report-header .page-header-controls { display: grid; gap: var(--hall-space-3); }
   /* A section that opens with its header takes the rule under the header instead of a rule above it. */
   :is(.meeting-section, .meeting-general, .meeting-documents, .agenda-composer):has(> .section-header:first-child) { border-top: 0; }
   .meeting-section > h2,
@@ -731,3 +740,81 @@
   /* The next meeting heads its row like the past meetings, so every title starts at the same left edge. */
   .next-meeting-list > .list-row[data-prominent="true"] .list-row-head { width: var(--list-row-head-width, var(--hall-size-glyph-large)); }
 }
+
+@layer components {
+  /* Closed meeting: one band of facts under the title, then the proceedings beside the documents. */
+  .meeting-report-band {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--hall-space-3) var(--hall-space-5);
+    margin-top: var(--hall-space-1);
+    padding-top: var(--hall-space-3);
+    border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
+  }
+  .meeting-report-band > .meeting-facts { display: flex; flex-wrap: wrap; gap: var(--hall-space-3) var(--hall-space-4); margin: 0; }
+  .meeting-report-band > .meeting-facts > div { flex: none; max-width: var(--hall-size-relative-14rem); }
+  .meeting-report-band .meeting-facts dd strong { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
+  .meeting-report-band-attendance { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-3) var(--hall-space-4); margin-left: auto; }
+  .meeting-report-band-attendance > .meeting-facts { display: flex; flex-wrap: wrap; gap: var(--hall-space-3) var(--hall-space-4); margin: 0; }
+  .meeting-report-attendance-command { font-size: var(--hall-font-size-body); }
+  .meeting-report-header .page-header-controls > .list-row-list { margin: 0; }
+  /* One column at every width: the documents, the deliberations, then the proceedings. */
+  .meeting-report-layout { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .meeting-report-documents,
+  .meeting-report-proceedings { min-width: 0; }
+  .meeting-report-documents > :first-child { padding-top: 0; }
+  @media (max-width: 1000px) {
+    .meeting-report-header { position: static; }
+    .meeting-report-band-attendance { margin-left: 0; }
+  }
+
+  /* An agenda item of the proceedings: its square when it has a record, its number, its title and facts; its ballot
+     on a third line, aligned with the title; its record unfolded under it. */
+  .report-timeline { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); min-width: 0; }
+  .report-points { margin: 0; padding: 0; list-style: none; }
+  .report-point { padding-block: var(--hall-space-2); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
+  .report-point-line { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-3); }
+  .report-point-toggle {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: flex-start;
+    gap: var(--hall-space-3);
+    padding: var(--hall-space-1) 0;
+    border: 0;
+    border-radius: var(--hall-radius-small);
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+  }
+  button.report-point-toggle { cursor: pointer; }
+  button.report-point-toggle:hover .report-point-title { text-decoration: underline; text-underline-offset: var(--hall-space-1); }
+  button.report-point-toggle:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); }
+  .report-point-badge { display: inline-grid; width: var(--hall-size-glyph-intermediate); min-height: var(--hall-line-height-body-small); flex: none; place-items: center; }
+  .report-point-number { min-width: var(--hall-space-5); flex: none; color: var(--hall-color-text); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-heavy); line-height: var(--hall-line-height-body-small); font-variant-numeric: tabular-nums; }
+  .report-point-text { display: grid; min-width: 0; gap: var(--hall-space-0-5); }
+  .report-point-title { color: var(--hall-color-text); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-semibold); line-height: var(--hall-line-height-body-small); overflow-wrap: anywhere; }
+  .report-point-facts { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
+  .report-point-ballot,
+  .report-point-detail { padding-left: calc(var(--hall-size-glyph-intermediate) + var(--hall-space-5) + var(--hall-space-3) * 2); }
+  .report-point-ballot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); margin: var(--hall-space-1) 0 0; }
+  /* The method and each count wrap as whole groups after the verdict. */
+  .report-point-ballot-facts { display: contents; }
+  .report-point-ballot-facts > span { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .report-point-ballot-facts strong { color: var(--hall-color-text); }
+  .report-point-detail { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-3); overflow-wrap: anywhere; padding-top: var(--hall-space-3); padding-bottom: var(--hall-space-1); }
+  .report-point-block { display: grid; gap: var(--hall-space-1); padding-inline-start: var(--hall-space-3); border-inline-start: var(--hall-stroke-thick) solid var(--hall-color-border-strong); font-size: var(--hall-font-size-body); }
+  .report-point-block h3 { font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-bold); }
+  .report-point-block p { margin: 0; color: var(--hall-color-text); }
+  .report-point-detail .report-text-block-content { white-space: normal; }
+  /* A table or a reference written in a text of the record stays within the width of the column. */
+  .report-point-detail table { width: 100%; table-layout: fixed; }
+  .report-point-detail :is(th, td) { overflow-wrap: anywhere; }
+}
+
+/* Outside the layers, like the reference rules of the editor: a reference in the record of an agenda item wraps
+   with the text around it instead of pushing the column wider than the screen. */
+.report-point-detail .editor-reference { display: inline; white-space: normal; overflow-wrap: anywhere; }
+.report-point-detail .editor-reference > svg { display: inline-block; vertical-align: middle; }

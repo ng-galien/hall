@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { PageHeader } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
-import { DisclosureBadge } from "../../components/ui/disclosure-badge";
 import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
 import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
@@ -45,107 +44,100 @@ export function MeetingReport({
     });
   })();
 
+  const facts: Array<{ key: string; label: string; value: string }> = [
+    {
+      key: "start",
+      label: t("calendar.start"),
+      value: meeting.openedAt ? formatTime(meeting.openedAt) : t("common.none"),
+    },
+    { key: "end", label: t("calendar.end"), value: meeting.closedAt ? formatTime(meeting.closedAt) : t("common.none") },
+    { key: "duration", label: t("meeting.duration"), value: duration ?? t("common.none") },
+    {
+      key: "quorum",
+      label: t("meeting.quorum"),
+      value: `${formatNumber(aggregate.quorum.physicallyPresent)} / ${
+        aggregate.quorum.required === null ? t("meeting.quorumUnestablished") : formatNumber(aggregate.quorum.required)
+      }`,
+    },
+    {
+      key: "chair",
+      label: t("meetings.chair"),
+      value: meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none"),
+    },
+    {
+      key: "secretary",
+      label: t("meetings.secretary"),
+      value: meeting.secretaryMemberId ? councilMemberName(members, meeting.secretaryMemberId) : t("common.none"),
+    },
+  ];
+  const attendanceStatuses = ["present", "represented", "excused", "absent"] as const;
+
   return (
-    <div className="page">
+    <div className="page meeting-report">
       <div className="meeting-report-header">
         <PageHeader
           title={formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate)}
           description={meeting.location ?? ""}
         >
-          <dl className="meeting-facts" data-testid="meeting-report-facts">
-            <div>
-              <dt>{t("calendar.start")}</dt>
-              <dd>
-                <strong>{meeting.openedAt ? formatTime(meeting.openedAt) : t("common.none")}</strong>
-              </dd>
-            </div>
-            <div>
-              <dt>{t("calendar.end")}</dt>
-              <dd>
-                <strong>{meeting.closedAt ? formatTime(meeting.closedAt) : t("common.none")}</strong>
-              </dd>
-            </div>
-            <div>
-              <dt>{t("meeting.duration")}</dt>
-              <dd>
-                <strong>{duration ?? t("common.none")}</strong>
-              </dd>
-            </div>
-            <div>
-              <dt>{t("meeting.quorum")}</dt>
-              <dd>
-                <strong>
-                  {formatNumber(aggregate.quorum.physicallyPresent)} /{" "}
-                  {aggregate.quorum.required === null
-                    ? t("meeting.quorumUnestablished")
-                    : formatNumber(aggregate.quorum.required)}
-                </strong>
-              </dd>
-            </div>
-            <div>
-              <dt>{t("meetings.chair")}</dt>
-              <dd>
-                <strong>
-                  {meeting.chairMemberId ? councilMemberName(members, meeting.chairMemberId) : t("common.none")}
-                </strong>
-              </dd>
-            </div>
-            <div>
-              <dt>{t("meetings.secretary")}</dt>
-              <dd>
-                <strong>
-                  {meeting.secretaryMemberId ? councilMemberName(members, meeting.secretaryMemberId) : t("common.none")}
-                </strong>
-              </dd>
-            </div>
-          </dl>
-        </PageHeader>
-      </div>
-      <div className="page-content meeting-page-content">
-        <div className="report-main">
-          <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
-          <section className="meeting-section" aria-labelledby="report-attendance-heading">
-            <div className="report-attendance-overview">
-              <h2 id="report-attendance-heading">{t("meeting.attendance")}</h2>
-              <dl className="report-attendance-counts">
-                {(["present", "represented", "excused", "absent"] as const).map((status) => (
+          <div className="meeting-report-band">
+            <dl className="meeting-facts" data-testid="meeting-report-facts">
+              {facts.map((fact) => (
+                <div key={fact.key}>
+                  <dt>{fact.label}</dt>
+                  <dd>
+                    <strong>{fact.value}</strong>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <div className="meeting-report-band-attendance">
+              <dl className="meeting-facts" data-testid="report-attendance-counts">
+                {attendanceStatuses.map((status) => (
                   <div key={status}>
-                    <dt>
-                      <span className="list-row-status" data-tone={rowStatus(status).tone}>
-                        {t(`attendance.${status}`)}
-                      </span>
-                    </dt>
-                    <dd>{formatNumber(attendanceCounts[status])}</dd>
+                    <dt>{t(`report.attendanceCount.${status}`)}</dt>
+                    <dd>
+                      <strong>{formatNumber(attendanceCounts[status])}</strong>
+                    </dd>
                   </div>
                 ))}
               </dl>
               <Button
                 variant="plain"
+                className="hall-link meeting-report-attendance-command"
                 aria-expanded={attendanceVisible}
+                aria-controls="report-attendance-list"
                 data-testid="report-attendance-toggle"
                 onClick={() => setAttendanceVisible((visible) => !visible)}
               >
-                <DisclosureBadge expanded={attendanceVisible} />
-                {t("report.attendanceDetails")}
+                {t("report.attendanceList")}
               </Button>
             </div>
-            {attendanceVisible ? (
-              <ListRows data-testid="report-attendance-list">
-                {aggregate.attendance.map((attendance) => {
-                  const member = members.find((candidate) => candidate.id === attendance.memberId);
-                  return (
-                    <ListRow
-                      key={attendance.memberId}
-                      head={member ? <ListRowAvatar initials={memberInitials(member)} /> : undefined}
-                      title={councilMemberName(members, attendance.memberId)}
-                      status={rowStatus(attendance.status)}
-                    />
-                  );
-                })}
-              </ListRows>
-            ) : null}
-          </section>
-          <MeetingProceedings aggregate={aggregate} defaultCollapsed />
+          </div>
+          {attendanceVisible ? (
+            <ListRows id="report-attendance-list" data-testid="report-attendance-list" data-wrap="true">
+              {aggregate.attendance.map((attendance) => {
+                const member = members.find((candidate) => candidate.id === attendance.memberId);
+                return (
+                  <ListRow
+                    key={attendance.memberId}
+                    head={member ? <ListRowAvatar initials={memberInitials(member)} /> : undefined}
+                    title={councilMemberName(members, attendance.memberId)}
+                    status={rowStatus(attendance.status)}
+                  />
+                );
+              })}
+            </ListRows>
+          ) : null}
+        </PageHeader>
+      </div>
+      <div className="page-content meeting-page-content">
+        <div className="meeting-report-layout">
+          <div className="meeting-report-documents">
+            <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
+          </div>
+          <div className="meeting-report-proceedings">
+            <MeetingProceedings aggregate={aggregate} />
+          </div>
         </div>
       </div>
     </div>

@@ -4,8 +4,8 @@ import { InfoIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { Button } from "../../components/ui/button";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
-import { ListRow, ListRowNumber, ListRows } from "../../components/ui/list-row";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
+import { SectionHeader } from "../../components/ui/section-header";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
 import { agendaSubjectPresentation } from "../../features/council-meetings/AgendaSubjectGlyph";
 import { ballotVerdictKey } from "../../features/council-meetings/ballotVerdictPresentation";
@@ -19,7 +19,6 @@ import type {
   LiveMeetingPresentation,
   LiveVoteChoice as VoteChoice,
 } from "../../models/liveMeeting";
-import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { agendaItemDecisionId } from "./ballotDecisionPolicy";
 import { councilMemberName } from "./ballotParticipants";
@@ -199,21 +198,102 @@ export function itemBallot(aggregate: LiveMeetingPresentation, item: AgendaItem)
   );
 }
 
-/** Full proceedings of a meeting: opening, agenda items, ballots and closing. */
-export function MeetingProceedings({
-  aggregate,
-  defaultCollapsed = true,
-}: {
-  aggregate: LiveMeetingPresentation;
-  /** Collapses agenda item bodies by default. */
-  defaultCollapsed?: boolean;
-}) {
-  const { t, formatTime } = useI18n();
-  const agendaItemRowStatus = useAgendaItemRowStatus();
-  const phone = usePhoneLayout();
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(
-    () => new Set(defaultCollapsed ? [] : aggregate.agendaItems.map((item) => item.id)),
+const voteChoices: VoteChoice[] = ["for", "against", "abstain", "notVoting"];
+
+/** The verdict, the method and the counts of a ballot, on one line under its agenda item. */
+function ReportBallotLine({ ballot, isMinutes }: { ballot: Ballot; isMinutes: boolean }) {
+  const { t, formatNumber } = useI18n();
+  const counts: Array<[string, number]> = [
+    [t("ballot.votesFor"), ballot.votesFor],
+    [t("ballot.votesAgainst"), ballot.votesAgainst],
+    [t("ballot.abstentions"), ballot.abstentions],
+    [t("ballot.notVoting"), ballot.notVoting],
+  ];
+  return (
+    <p className="report-point-ballot" data-testid={`report-ballot-${ballot.id}`}>
+      <span className="list-row-status" data-tone={ballot.result === "adopted" ? "success" : "danger"}>
+        {t(ballotVerdictKey(isMinutes, ballot.result === "adopted"))}
+      </span>
+      <span className="report-point-ballot-facts">
+        <span>{t(ballot.method === "public" ? "ballot.method.public" : "ballot.method.secret")}</span>
+        {counts.map(([label, count]) => (
+          <span key={label} className="report-ballot-count">
+            {label} <strong>{formatNumber(count)}</strong>
+          </span>
+        ))}
+      </span>
+    </p>
   );
+}
+
+/** Everything recorded on a ballot: the members by choice with their proxies, the recusals and the rules applied. */
+function ReportBallotDetails({ ballot, members }: { ballot: Ballot; members: CouncilMemberView[] }) {
+  const { t, formatNumber } = useI18n();
+  const voterName = (vote: Ballot["votes"][number]) =>
+    vote.castByMemberId === vote.memberId
+      ? councilMemberName(members, vote.memberId)
+      : `${councilMemberName(members, vote.memberId)} (${t("ballot.representedBy", {
+          holder: councilMemberName(members, vote.castByMemberId),
+        })})`;
+  return (
+    <section className="report-point-block" data-testid={`report-public-votes-${ballot.id}`}>
+      <h3>{t("ballot.voteDetails")}</h3>
+      {ballot.method === "public"
+        ? voteChoices.map((choice) => {
+            const votes = ballot.votes.filter((vote) => vote.choice === choice);
+            return votes.length ? (
+              <p key={choice}>
+                <strong>{t(voteChoiceKeys[choice])}</strong> : {votes.map(voterName).join(", ")}
+              </p>
+            ) : null;
+          })
+        : null}
+      {ballot.recusedMemberIds.length ? (
+        <p>
+          <strong>{t("ballot.recusedMembers")}</strong> :{" "}
+          {ballot.recusedMemberIds.map((memberId) => councilMemberName(members, memberId)).join(", ")}
+        </p>
+      ) : null}
+      {ballot.chairTieBreakApplied ? <p>{t("ballot.chairTieBreakApplied")}</p> : null}
+      <p>{t("ballot.expressedMajority", { expressed: formatNumber(ballot.votesCast) })}</p>
+      <p>
+        {t("ballot.participationEvidence", {
+          present: formatNumber(ballot.participationEvidence.quorum.physicallyPresent),
+          required:
+            ballot.participationEvidence.quorum.required === null
+              ? t("meeting.quorumUnestablished")
+              : formatNumber(ballot.participationEvidence.quorum.required),
+          roster: formatNumber(ballot.participationEvidence.quorum.activeMembers),
+        })}
+      </p>
+    </section>
+  );
+}
+
+/**
+ * Proceedings of a closed meeting: one line per agenda item with its number, title, nature and hours, its ballot on a
+ * third line. One square unfolds the whole record of the item: the vote of each member and the texts of the item.
+ * Only a state out of the ordinary course is written at the right of the line.
+ */
+export function MeetingProceedings({ aggregate }: { aggregate: LiveMeetingPresentation }) {
+  const { t, formatTime, formatNumber } = useI18n();
+  const agendaItemRowStatus = useAgendaItemRowStatus();
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
+  const { members } = useCouncilMembersStore();
+  const rosterMembers = members.filter((member) => aggregate.rosterMemberIds.includes(member.id));
+  const orderedItems = useMemo(
+    () => [...aggregate.agendaItems].sort((left, right) => left.position - right.position),
+    [aggregate.agendaItems],
+  );
+  const hasRecord = (item: AgendaItem) =>
+    Boolean(
+      itemBallot(aggregate, item) ||
+        item.business.report ||
+        item.councilDecisionSnapshot?.draftText ||
+        item.discussionSummary,
+    );
+  const unfoldable = orderedItems.filter(hasRecord).map((item) => item.id);
+  const allExpanded = unfoldable.length > 0 && unfoldable.every((id) => expandedItems.has(id));
   const toggleItem = (itemId: string) =>
     setExpandedItems((current) => {
       const next = new Set(current);
@@ -221,106 +301,106 @@ export function MeetingProceedings({
       else next.add(itemId);
       return next;
     });
-  const { members } = useCouncilMembersStore();
-  const rosterMembers = members.filter((member) => aggregate.rosterMemberIds.includes(member.id));
-  const orderedItems = useMemo(
-    () => [...aggregate.agendaItems].sort((left, right) => left.position - right.position),
-    [aggregate.agendaItems],
-  );
-  if (phone) {
-    return (
-      <div className="report-main">
-        <section className="phone-points" data-testid="report-timeline" aria-labelledby="report-timeline-heading">
-          <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
-          <ListRows data-wrap="true">
-            {orderedItems.map((item) => (
-              <ListRow
-                key={item.id}
-                to={`/meetings/${aggregate.meeting.slug || aggregate.meeting.id}/points/${item.id}`}
-                openTestId={`meeting-point-open-${item.id}`}
-                head={<ListRowNumber number={item.agendaNumber} />}
-                title={liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"))}
-                detail={t(agendaSubjectPresentation[item.subjectKind].label)}
-                status={agendaItemRowStatus(item.status)}
-              />
-            ))}
-          </ListRows>
-        </section>
-      </div>
-    );
-  }
   return (
-    <div className="report-main">
-      <section className="meeting-section report-timeline" data-testid="report-timeline">
-        <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
-        <ListRows data-wrap="true">
-          {orderedItems.map((item) => {
-            const ballot = itemBallot(aggregate, item);
-            const expanded = expandedItems.has(item.id);
-            const title = liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"));
-            return (
-              <ListRow
-                key={item.id}
-                onOpen={() => toggleItem(item.id)}
-                openTestId={`report-item-toggle-${item.id}`}
-                openLabel={title}
-                openProps={{ "aria-expanded": expanded }}
-                selected={expanded}
-                head={<ListRowNumber number={item.agendaNumber} />}
-                title={title}
-                detail={`${t(agendaSubjectPresentation[item.subjectKind].label)}${
-                  item.startedAt ? ` · ${formatTime(item.startedAt)}` : ""
-                }${item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}`}
-                status={agendaItemRowStatus(item.status)}
-              >
-                {expanded || ballot ? (
-                  <>
-                    {expanded ? (
-                      <div className="report-item-texts">
-                        {item.business.report ? (
-                          <ReportTextBlock
-                            label={t("meeting.itemReport")}
-                            context={t("report.preparedBeforeMeeting")}
-                            tone="source"
-                          >
-                            <MarkdownView markdown={item.business.report} />
-                          </ReportTextBlock>
-                        ) : null}
-                        {item.councilDecisionSnapshot?.draftText ? (
-                          <ReportTextBlock
-                            label={t("report.submittedText")}
-                            context={t("report.recordedDuringMeeting")}
-                            tone="decision"
-                          >
-                            <MarkdownView markdown={item.councilDecisionSnapshot.draftText} />
-                          </ReportTextBlock>
-                        ) : null}
-                        {item.discussionSummary ? (
-                          <ReportTextBlock
-                            label={t("report.sessionNotes")}
-                            context={t("report.recordedDuringItem")}
-                            tone="notes"
-                          >
-                            <MarkdownView markdown={item.discussionSummary} />
-                          </ReportTextBlock>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {ballot ? (
-                      <BallotOutcome
-                        ballot={ballot}
-                        members={rosterMembers}
-                        isMinutes={item.subjectKind === "minutesApproval"}
-                        defaultCollapsed
-                      />
-                    ) : null}
-                  </>
+    <section className="report-timeline" data-testid="report-timeline">
+      <SectionHeader
+        title={t("meeting.timeline")}
+        count={formatNumber(orderedItems.length)}
+        commands={
+          unfoldable.length ? (
+            <Button
+              variant="plain"
+              className="hall-link"
+              data-testid="report-timeline-toggle-all"
+              aria-expanded={allExpanded}
+              onClick={() => setExpandedItems(new Set(allExpanded ? [] : unfoldable))}
+            >
+              {t(allExpanded ? "report.collapseAll" : "report.expandAll")}
+            </Button>
+          ) : null
+        }
+      />
+      <ol className="report-points">
+        {orderedItems.map((item) => {
+          const ballot = itemBallot(aggregate, item);
+          const record = hasRecord(item);
+          const expanded = record && expandedItems.has(item.id);
+          const title = liveBusinessTitle(item.business, t("agendaSubject.minutesApproval"));
+          const nature = t(agendaSubjectPresentation[item.subjectKind].label);
+          const hours = item.startedAt
+            ? `${formatTime(item.startedAt)}${item.completedAt ? ` → ${formatTime(item.completedAt)}` : ""}`
+            : "";
+          const facts = [nature === title ? "" : nature, hours].filter(Boolean).join(" · ");
+          const status = item.status === "examined" ? null : agendaItemRowStatus(item.status);
+          const line = (
+            <>
+              <span className="report-point-badge">{record ? <DisclosureBadge expanded={expanded} /> : null}</span>
+              <span className="report-point-number">{item.agendaNumber}</span>
+              <span className="report-point-text">
+                <span className="report-point-title">{title}</span>
+                {facts ? <span className="report-point-facts">{facts}</span> : null}
+              </span>
+            </>
+          );
+          return (
+            <li key={item.id} className="report-point" data-testid={`report-item-${item.id}`}>
+              <div className="report-point-line">
+                {record ? (
+                  <button
+                    type="button"
+                    className="report-point-toggle"
+                    aria-expanded={expanded}
+                    data-testid={`report-item-toggle-${item.id}`}
+                    onClick={() => toggleItem(item.id)}
+                  >
+                    {line}
+                  </button>
+                ) : (
+                  <div className="report-point-toggle">{line}</div>
+                )}
+                {status ? (
+                  <span className="list-row-status" data-tone="action" data-testid={status.testId}>
+                    {status.label}
+                  </span>
                 ) : null}
-              </ListRow>
-            );
-          })}
-        </ListRows>
-      </section>
-    </div>
+              </div>
+              {ballot ? <ReportBallotLine ballot={ballot} isMinutes={item.subjectKind === "minutesApproval"} /> : null}
+              {expanded ? (
+                <div className="report-point-detail" data-testid={`report-item-detail-${item.id}`}>
+                  {ballot ? <ReportBallotDetails ballot={ballot} members={rosterMembers} /> : null}
+                  {item.discussionSummary ? (
+                    <ReportTextBlock
+                      label={t("report.sessionNotes")}
+                      context={t("report.recordedDuringItem")}
+                      tone="notes"
+                    >
+                      <MarkdownView markdown={item.discussionSummary} />
+                    </ReportTextBlock>
+                  ) : null}
+                  {item.councilDecisionSnapshot?.draftText ? (
+                    <ReportTextBlock
+                      label={t("report.submittedText")}
+                      context={t("report.recordedDuringMeeting")}
+                      tone="decision"
+                    >
+                      <MarkdownView markdown={item.councilDecisionSnapshot.draftText} />
+                    </ReportTextBlock>
+                  ) : null}
+                  {item.business.report ? (
+                    <ReportTextBlock
+                      label={t("meeting.itemReport")}
+                      context={t("report.preparedBeforeMeeting")}
+                      tone="source"
+                    >
+                      <MarkdownView markdown={item.business.report} />
+                    </ReportTextBlock>
+                  ) : null}
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
