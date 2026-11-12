@@ -67,7 +67,7 @@ const cases = [
     "icon-weight",
     {},
     `<a href="#">${icon("House")}Accueil</a><a href="#" aria-current="page">${icon("House", "bold")}Documents</a>`,
-    `<a href="#">${icon("House")}Accueil</a><a href="#" aria-current="page" style="font-weight:500">${icon("House")}Documents</a>`,
+    `<a href="#">${icon("House")}Accueil</a><a href="#" aria-current="page" style="font-weight:500">${icon("House")}Documents</a><nav class="app-sidebar"><a href="#" data-open="true">${icon("House", "bold")}Conseil municipal</a></nav>`,
   ],
   ["filled-icon", {}, `<a href="#">${icon("House", "fill")}Accueil</a>`, `<a href="#">${icon("House")}Accueil</a>`],
   [

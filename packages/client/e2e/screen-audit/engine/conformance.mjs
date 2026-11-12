@@ -36,7 +36,7 @@ export const conformanceRules = {
   "icon-weight": {
     title: "Choix 9R : icône hors de la graisse normale",
     expected:
-      "Les icônes sont dans la graisse normale de leur famille, l'entrée en cours d'une barre comprise : elle se distingue par le bleu et une graisse moyenne du libellé.",
+      "Les icônes sont dans la graisse normale de leur famille, l'entrée en cours d'une barre comprise : elle se distingue par le bleu et une graisse moyenne du libellé ; seul le groupe ouvert de la barre latérale, quand il n'est pas l'entrée en cours, garde une icône forte.",
   },
   "warm-tint": {
     title: "Charte : teinte chaude peinte sur l'habillage de l'interface (crème, orange, brun, ambre)",
@@ -186,7 +186,8 @@ export const conformanceRules = {
   },
   "menu-item-wrap": {
     title: "Ligne de menu écrite sur plusieurs lignes",
-    expected: "Chaque ligne d'un menu tient sur une seule ligne de texte, à toutes les largeurs.",
+    expected:
+      "Chaque ligne d'un menu tient sur une seule ligne de texte, à toutes les largeurs ; une entrée du menu « Nouveau » a une seconde ligne, son libellé court, tenue elle aussi sur une ligne.",
   },
   "row-height": {
     title: "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
@@ -445,8 +446,13 @@ export function measureConformance(options) {
     /* filled-icon: choices 1 and 9, every icon is drawn in outline. */
     if (weight === "fill" || weight === "duotone") add("filled-icon", svg, `${name} en poids ${weight}`);
     /* icon-weight: choice 9R, the regular weight of the family, the current entry of a bar included (owner's words of
-       12 November 2026: « c'est trop gras. Tu réduis la graisse »). */
-    if (["bold", "light", "thin"].includes(weight)) add("icon-weight", svg, `${name} en poids ${weight}`);
+       12 November 2026: « c'est trop gras. Tu réduis la graisse »); the open group of the side menu that is not the
+       current entry keeps its bold icon (Design de référence, page 1). */
+    if (
+      ["bold", "light", "thin"].includes(weight) &&
+      !svg.closest(".app-sidebar [data-open=true]:not([aria-current=page]):not([data-active=true])")
+    )
+      add("icon-weight", svg, `${name} en poids ${weight}`);
     /* disclosure-chevron: choice 14, a section or a folder unfolds without a chevron or a triangle. */
     if (/^(Caret(Down|Right|Up|Left|Circle\w*)|Triangle)$/.test(name)) {
       const owner = svg.closest("[aria-expanded], summary, [role=treeitem]");
@@ -1442,19 +1448,22 @@ export function measureMenuLines(options) {
   )) {
     if (item.getClientRects().length === 0) continue;
     items += 1;
+    // The declared short label of an entry (« Nouveau » menu) is its second line: each of the two holds on one line.
     const tops = new Set();
+    const labelTops = new Set();
     const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       if (!(node.textContent ?? "").trim() || node.parentElement?.closest("svg, kbd")) continue;
       const range = document.createRange();
       range.selectNodeContents(node);
-      for (const rect of range.getClientRects()) if (rect.width > 0) tops.add(Math.round(rect.top));
+      const lines = node.parentElement?.closest(".create-menu-description") ? labelTops : tops;
+      for (const rect of range.getClientRects()) if (rect.width > 0) lines.add(Math.round(rect.top));
     }
-    if (tops.size > 1)
+    if (tops.size > 1 || labelTops.size > 1)
       findings.push({
         rule: "menu-item-wrap",
         selector: keyOf(item),
-        detail: `« ${(item.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 40)} » sur ${tops.size} lignes`,
+        detail: `« ${(item.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 40)} » sur ${tops.size + labelTops.size} lignes`,
       });
   }
   return { findings, items };

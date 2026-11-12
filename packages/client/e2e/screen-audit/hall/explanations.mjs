@@ -82,7 +82,12 @@ function files(directory) {
 
 /* What the use of a text shows: behind the information icon, in an attribute read on hover or by a screen reader, or in
    clear in a component. */
-const hidden = /HelpHint|aria-label|aria-description|title=|placeholder|TooltipContent|tooltip|label=\{?\s*t\(/;
+const hiddenAttributes = new Set(["aria-label", "aria-description", "title", "placeholder", "label", "tooltip"]);
+/** Whether the text at `position` of `line` is given to an attribute read on hover or by a screen reader, or a label. */
+const hiddenAt = (line, position) => {
+  const attribute = [...line.slice(0, position).matchAll(/([\w-]+)=\{?/g)].at(-1)?.[1];
+  return attribute ? hiddenAttributes.has(attribute) : false;
+};
 
 /**
  * Every use, in the client sources, of a sentence of explanation, with the component that shows it; a message shown
@@ -105,15 +110,21 @@ export function inventory() {
     lines.forEach((line, index) => {
       const found = [];
       for (const match of line.matchAll(/["'`]([a-zA-Z][\w-]*(?:\.[\w-]+)+)["'`]/g))
-        if (byKey.has(match[1])) found.push(byKey.get(match[1]));
-      // A key composed at run time: its last segment written alone, or after an interpolation.
-      for (const match of line.matchAll(/(?:["'`]|\}\.)([a-z][A-Za-z]*(?:Description|Hint|Help|Intro))["'`]?/g))
+        if (byKey.has(match[1])) found.push({ ...byKey.get(match[1]), position: match.index });
+      // A key composed at run time: its last segment written alone, after an interpolation or a member (text.description).
+      for (const match of line.matchAll(
+        /(?:["'`]|\}\.|\btext\.)((?:[a-z][A-Za-z]*)?(?:[Dd]escription|Hint|Help|Intro))\b/g,
+      ))
         for (const entry of bySegment.get(match[1]) ?? [])
-          if (!found.includes(entry) && new RegExp(`[(|<]\\s*"${entry.key.split(".")[0]}"`).test(source))
-            found.push({ ...entry, composed: true });
+          if (
+            !found.some((other) => other.key === entry.key) &&
+            new RegExp(`[(|<]\\s*"${entry.key.split(".")[0]}"`).test(source)
+          )
+            found.push({ ...entry, composed: true, position: match.index });
       for (const entry of found) {
         const context = lines.slice(Math.max(0, index - 3), index + 1).join("\n");
-        if (hidden.test(line) || /HelpHint|MinutesSectionHint|TooltipContent|<Explained\b/.test(context)) continue;
+        if (hiddenAt(line, entry.position) || /HelpHint|MinutesSectionHint|TooltipContent|<Explained\b/.test(context))
+          continue;
         const prop = [...context.matchAll(/(\w+)=\{/g)].at(-1)?.[1];
         const tag = [...context.matchAll(/<([A-Z]?\w+)[\s>]/g)].at(-1)?.[1];
         const key = `${entry.key} ${path}:${index}`;

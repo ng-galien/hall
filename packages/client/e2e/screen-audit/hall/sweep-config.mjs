@@ -130,9 +130,9 @@ const notDisclosures = [
 const exceptions = {
   "local-list": [
     {
-      selector: ".docs-area",
+      selector: ".docs-area, [data-testid=docs-article], .docs-toc",
       reason:
-        "Listes des articles de l'aide : contenu rédactionnel, pas une liste d'objets (décision du coordinateur).",
+        "Sommaire et listes des articles de l'aide : contenu rédactionnel, pas une liste d'objets (décision du coordinateur).",
     },
   ],
   "disclosure-mark": notDisclosures,
