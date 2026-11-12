@@ -248,13 +248,7 @@ test("calendar completes every appointment field and changes schedule modes", as
   await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17T19:30");
   await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17T20:30");
   await runItemCommand(page, "resource-autosave-toggle");
-  await page.getByTestId("item-commands-more").first().click();
-  await expect(page.getByRole("menu").getByTestId("resource-autosave-toggle")).not.toHaveAttribute(
-    "data-pressed",
-    "true",
-  );
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(page.getByTestId("resource-autosave-toggle")).toHaveAttribute("aria-checked", "false");
   await page.getByTestId("event-location").fill("Sauvegarde manuelle");
   const representation = await (await page.request.get(`/api/resources/${id}`)).json();
   const updateAction = representation.actions.find(
@@ -271,10 +265,7 @@ test("calendar completes every appointment field and changes schedule modes", as
   await page.getByTestId("event-retry-save").click();
   await expect.poll(async () => (await read()).document.location).toBe("Sauvegarde manuelle");
   await runItemCommand(page, "resource-autosave-toggle");
-  await page.getByTestId("item-commands-more").first().click();
-  await expect(page.getByRole("menu").getByTestId("resource-autosave-toggle")).toHaveAttribute("data-pressed", "true");
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(page.getByTestId("resource-autosave-toggle")).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("event-all-day").check();
   await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17");
   await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17");

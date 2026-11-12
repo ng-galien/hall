@@ -122,11 +122,8 @@ test("the business documents section folds by its header and opens each document
   await expect(viewer.getByTestId("resource-preview-close")).toHaveCount(1);
   await expect(viewer.getByTestId("workspace-breadcrumb-close")).toHaveCount(0);
   await expect(viewer.locator(".workspace-breadcrumb button")).toHaveCount(1);
-  await viewer.getByTestId("item-commands-more").click();
-  await expect(page.getByRole("menu").getByTestId("resource-autosave-toggle")).toHaveCount(1);
-  await expect(page.getByRole("menu").getByTestId("resource-changes-trigger")).toHaveCount(1);
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(viewer.getByTestId("resource-autosave-toggle")).toHaveCount(1);
+  await expect(viewer.getByTestId("resource-changes-trigger")).toHaveCount(1);
   await expect(viewer.getByTestId("workspace-workbench-title")).toHaveCount(1);
   await expect(viewer.locator(".workspace-breadcrumb .workspace-crumb-current")).toHaveCount(0);
   const viewerBox = await viewer.boundingBox();

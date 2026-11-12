@@ -301,22 +301,9 @@ test("the screen header writes nothing of the connection until the server stops 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-/** Test identifiers of the commands on the line of the title, from left to right. */
-async function headerCommands(page: import("@playwright/test").Page) {
-  const commands = await page.locator(".item-commands > *").evaluateAll((elements) =>
-    elements
-      .map((element) => ({
-        testId: element.getAttribute("data-testid"),
-        right: element.getBoundingClientRect().right,
-      }))
-      .sort((a, b) => a.right - b.right),
-  );
-  return commands.map(({ testId }) => testId);
-}
-
 // @verifies-requirement HALL-FR-LAY-100
 // @verifies-requirement HALL-FR-LAY-130
-test("« Modifier » is the main command, first on the line of the title, on a text and on an affaire", async ({
+test("on a computer a text and an affaire report open for writing, with the automatic saving on the title line", async ({
   appPage: page,
 }) => {
   const text = await page.request.post("/api/resources", {
@@ -329,12 +316,11 @@ test("« Modifier » is the main command, first on the line of the title, on a t
   expect(business.ok()).toBeTruthy();
 
   await page.goto(`/app/workspace?path=seed&resource=${(await text.json()).properties.id}`);
-  await expect(page.getByTestId("text-edit")).toBeVisible();
-  expect((await headerCommands(page))[0]).toBe("text-edit");
-  await expect(page.getByTestId("screen-header").getByTestId("text-edit")).toHaveCount(0);
-  await page.getByTestId("text-edit").click();
-  await expect(page.getByTestId("text-finish-editing")).toBeVisible();
-  expect((await headerCommands(page))[0]).toBe("text-finish-editing");
+  // On a computer a text opens for writing: no « Modifier », the automatic saving and the changes on the title line.
+  await expect(page.getByTestId("markdown-editor-compact")).toBeVisible();
+  await expect(page.getByTestId("text-edit")).toHaveCount(0);
+  await expect(page.getByTestId("screen-title-commands").getByTestId("resource-autosave-toggle")).toBeVisible();
+  await expect(page.getByTestId("screen-title-commands").getByTestId("resource-changes-trigger")).toBeVisible();
 
   // The label of the tags field stays above the tags it holds.
   await page.getByTestId("tag-input-draft").fill("voirie");
@@ -345,6 +331,6 @@ test("« Modifier » is the main command, first on the line of the title, on a t
   expect(label!.y + label!.height).toBeLessThanOrEqual(tag!.y + 1);
 
   await page.goto(`/app/workspace?path=seed&councilBusiness=${(await business.json()).properties.id}`);
-  await expect(page.getByTestId("text-edit")).toBeVisible();
-  expect((await headerCommands(page))[0]).toBe("text-edit");
+  await expect(page.getByTestId("business-report-editor")).toBeVisible();
+  await expect(page.getByTestId("text-edit")).toHaveCount(0);
 });

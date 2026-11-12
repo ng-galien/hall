@@ -9,7 +9,8 @@ test("photo actions stay on mobile without occupying the desktop text editor", a
   const { id } = (await created.json()).properties;
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(`/app/workspace?path=seed&resource=${id}`);
-  await page.getByTestId("text-edit").click();
+  // On a computer a text opens for writing, without « Modifier ».
+  await expect(page.getByTestId("text-edit")).toHaveCount(0);
   const editor = page.getByTestId("markdown-editor-compact").first();
   await expect(editor.getByTestId("editor-writing-area")).toBeVisible();
   await expect(editor.getByTestId("editor-choose-image")).toBeHidden();

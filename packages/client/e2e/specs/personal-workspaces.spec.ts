@@ -200,10 +200,7 @@ test("gives council members read access and a personal folder that only they and
   await test.step("a council member reads a common document with reading actions only", async () => {
     await alicePage.goto(`/app/workspace?resource=${commonText.id}`);
     await expect(alicePage.getByTestId("screen-header-title")).toHaveText("Note commune");
-    await alicePage.getByTestId("item-commands-more").click();
-    await expect(alicePage.getByRole("menu").getByTestId("resource-changes-trigger")).toBeVisible();
-    await alicePage.keyboard.press("Escape");
-    await expect(alicePage.getByRole("menu")).toHaveCount(0);
+    await expect(alicePage.getByTestId("resource-changes-trigger")).toBeVisible();
     await expect(alicePage.getByTestId("resource-delete")).toHaveCount(0);
     await expect(alicePage.getByTestId("workspace-workbench-rename")).toHaveCount(0);
     await alicePage.goto(workspaceAt("Commun"));
