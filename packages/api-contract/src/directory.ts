@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { phoneNumberInputSchema } from "./phoneNumber.js";
 
 const identifierSchema = z.string().uuid();
 const nonEmptyNameSchema = z.string().trim().min(1).max(160);
@@ -20,7 +21,9 @@ export const contactSchema = z
     organizationName: z.string().nullable(),
     jobTitle: z.string().nullable(),
     email: z.string().nullable(),
-    phone: z.string().nullable(),
+    mobilePhone: z.string().nullable(),
+    personalPhone: z.string().nullable(),
+    professionalPhone: z.string().nullable(),
     notes: z.string(),
     archivedAt: z.iso.datetime({ offset: true }).nullable(),
     createdAt: z.iso.datetime({ offset: true }),
@@ -38,10 +41,9 @@ export const saveContactSchema = z
       (value) => (value === "" ? null : value),
       z.string().trim().toLowerCase().email().nullable().default(null),
     ),
-    phone: z.preprocess(
-      (value) => (value === "" ? null : value),
-      z.string().trim().min(3).max(40).nullable().default(null),
-    ),
+    mobilePhone: phoneNumberInputSchema,
+    personalPhone: phoneNumberInputSchema,
+    professionalPhone: phoneNumberInputSchema,
     notes: z.string().trim().max(10_000).default(""),
   })
   .strict();

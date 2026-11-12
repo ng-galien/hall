@@ -1,4 +1,4 @@
-import type { Contact, CouncilDecisionSummary } from "@hall/api-contract";
+import { type Contact, type CouncilDecisionSummary, formatPhoneNumber } from "@hall/api-contract";
 import type { CouncilMember, ReferenceEntityKind } from "@hall/domain";
 import { useMemo } from "react";
 import type { TranslationKey } from "../../i18n/en";
@@ -12,6 +12,7 @@ import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { contactPhoneFields } from "../contacts/contactPhones";
 import { formatMeetingLabel } from "../council-meetings/meetingPresentation";
 import { type DocumentaryLeafSummary, documentaryResourceTone } from "../documents/DocumentaryResourceGlyph";
 
@@ -119,7 +120,12 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
         kind: "contact" as const,
         id: contact.id,
         label: `${contact.firstName} ${contact.lastName}`,
-        extra: [contact.organizationName, contact.jobTitle, contact.email, contact.phone],
+        extra: [
+          contact.organizationName,
+          contact.jobTitle,
+          contact.email,
+          ...contactPhoneFields.map((field) => contact[field]).map((phone) => phone && formatPhoneNumber(phone)),
+        ],
         entity: { entityKind: "contact" as const, contact },
       })),
     ];

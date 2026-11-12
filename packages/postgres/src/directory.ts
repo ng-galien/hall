@@ -34,7 +34,9 @@ export const postgresContactSchema = z.object({
   organizationName: z.string().nullable(),
   jobTitle: z.string().nullable(),
   email: z.string().nullable(),
-  phone: z.string().nullable(),
+  mobilePhone: z.string().nullable(),
+  personalPhone: z.string().nullable(),
+  professionalPhone: z.string().nullable(),
   notes: z.string(),
   archivedAt: timestampSchema.nullable(),
   createdAt: timestampSchema,
@@ -85,7 +87,9 @@ export type SavePostgresContact = Readonly<{
   organizationName: string | null;
   jobTitle: string | null;
   email: string | null;
-  phone: string | null;
+  mobilePhone: string | null;
+  personalPhone: string | null;
+  professionalPhone: string | null;
   notes: string;
 }>;
 
@@ -186,7 +190,7 @@ export class PostgresDirectory {
       async (client) => {
         const contact = await callJson(client, {
           text: `SELECT hall_api.create_contact(
-            $1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::text
+            $1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::text, $8::text, $9::text
           ) AS payload`,
           values: [
             input.firstName,
@@ -194,7 +198,9 @@ export class PostgresDirectory {
             input.organizationName,
             input.jobTitle,
             input.email,
-            input.phone,
+            input.mobilePhone,
+            input.personalPhone,
+            input.professionalPhone,
             input.notes,
           ],
           schema: postgresContactSchema,
@@ -212,7 +218,7 @@ export class PostgresDirectory {
       async (client) => {
         const contact = await callJson(client, {
           text: `SELECT hall_api.update_contact(
-            $1::uuid, $2::text, $3::text, $4::text, $5::text, $6::text, $7::text, $8::text
+            $1::uuid, $2::text, $3::text, $4::text, $5::text, $6::text, $7::text, $8::text, $9::text, $10::text
           ) AS payload`,
           values: [
             contactId,
@@ -221,7 +227,9 @@ export class PostgresDirectory {
             input.organizationName,
             input.jobTitle,
             input.email,
-            input.phone,
+            input.mobilePhone,
+            input.personalPhone,
+            input.professionalPhone,
             input.notes,
           ],
           schema: postgresContactSchema,

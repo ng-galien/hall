@@ -1,3 +1,4 @@
+import { formatPhoneNumber } from "@hall/api-contract";
 import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
@@ -16,7 +17,7 @@ import {
 } from "../components/Ui";
 import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
-import { formatPhoneNumber } from "../features/council-members/phonePresentation";
+import { contactPhoneFields, preferredPhone } from "../features/contacts/contactPhones";
 import { useDomainRowStatus } from "../features/status/DomainStatusBadge";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
@@ -39,7 +40,7 @@ export function CouncilMembersPage() {
       member.contact.firstName,
       member.contact.lastName,
       member.contact.email,
-      member.contact.phone,
+      ...contactPhoneFields.map((field) => member.contact[field]).map((phone) => phone && formatPhoneNumber(phone)),
       t(`role.${member.role}`),
     ),
   );
@@ -176,6 +177,8 @@ export function CouncilMembersPage() {
           <ListRows>
             {visibleMembers.map((member) => {
               const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
+              const phone = preferredPhone(member.contact);
+              const coordinates = [member.contact.email, phone && formatPhoneNumber(phone)].filter(Boolean).join(" · ");
               return (
                 <ListRow
                   key={member.id}
@@ -193,9 +196,7 @@ export function CouncilMembersPage() {
                   status={rowStatus(member.active ? "active" : "inactive")}
                   size="large"
                   lines={[
-                    `${member.contact.email || t("members.noEmail")} · ${
-                      member.contact.phone ? formatPhoneNumber(member.contact.phone) : t("members.noPhone")
-                    }`,
+                    ...(coordinates ? [coordinates] : []),
                     `${t("members.termSince", { date: formatDate(member.termStartedOn) })} · ${committeeSummary(member.id)}`,
                   ]}
                 />

@@ -43,7 +43,9 @@ describe("event calendar invitation", () => {
       organizationName: null,
       jobTitle: null,
       email: "alice@example.test",
-      phone: null,
+      mobilePhone: null,
+      personalPhone: null,
+      professionalPhone: null,
       notes: "",
     });
     const withoutEmail = await directoryClient.createContact({
@@ -52,7 +54,9 @@ describe("event calendar invitation", () => {
       organizationName: null,
       jobTitle: null,
       email: null,
-      phone: null,
+      mobilePhone: null,
+      personalPhone: null,
+      professionalPhone: null,
       notes: "",
     });
     const created = await resourcesClient.create({

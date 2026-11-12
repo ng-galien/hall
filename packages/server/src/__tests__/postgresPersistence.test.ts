@@ -535,7 +535,9 @@ postgres("PostgreSQL persistence", () => {
             organizationName: null,
             jobTitle: null,
             email: null,
-            phone: null,
+            mobilePhone: null,
+            personalPhone: null,
+            professionalPhone: null,
             notes: "",
           }),
         });
@@ -704,7 +706,7 @@ postgres("PostgreSQL persistence", () => {
       const contactIds: string[] = [];
       for (const firstName of ["Alice", "Benoît"]) {
         const created = await setup.query<{ contact: { id: string } }>(
-          "SELECT hall_api.create_contact($1, 'Martin', NULL, NULL, NULL, NULL, '') AS contact",
+          "SELECT hall_api.create_contact($1, 'Martin', NULL, NULL, NULL, NULL, NULL, NULL, '') AS contact",
           [firstName],
         );
         contactIds.push(created.rows[0]!.contact.id);

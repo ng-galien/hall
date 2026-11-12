@@ -275,7 +275,7 @@ FROM provisioned_meeting_subject;
 
 SELECT hall_api.configure_active_council_term(1);
 CREATE TEMP TABLE contact_result AS
-SELECT hall_api.create_contact('Alice', 'Martin', NULL, NULL, NULL, NULL, '') AS payload;
+SELECT hall_api.create_contact('Alice', 'Martin', NULL, NULL, NULL, NULL, NULL, NULL, '') AS payload;
 CREATE TEMP TABLE member_result AS
 SELECT hall_api.create_council_member(
   (SELECT (payload ->> 'id')::UUID FROM contact_result),

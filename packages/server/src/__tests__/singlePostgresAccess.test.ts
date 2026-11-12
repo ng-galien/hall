@@ -84,7 +84,9 @@ it("commits or rolls back an account write and a business write as one transacti
           organizationName: null,
           jobTitle: null,
           email: null,
-          phone: null,
+          mobilePhone: null,
+          personalPhone: null,
+          professionalPhone: null,
           notes: "",
         });
         if (fail) throw new Error("business failure after both writes");

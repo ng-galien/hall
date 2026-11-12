@@ -71,7 +71,7 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
           .replace("    'password_change_required', account.password_change_required,\n", "")
           .replace("user_roles TEXT[],\n  require_password_change BOOLEAN DEFAULT false", "user_roles TEXT[]")
           .replace(
-            /  -- Marking a password as temporary closes every session of the account\.\n  IF require_password_change[^\n]*\n[^\n]*\n  END IF;\n/,
+            / {2}-- Marking a password as temporary closes every session of the account\.\n {2}IF require_password_change[^\n]*\n[^\n]*\n {2}END IF;\n/,
             "",
           )
           .replace("contact_id, password_change_required)", "contact_id)")
@@ -288,6 +288,45 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
       ).rows,
     ).toEqual(tables.map((table) => ({ table, last: true })));
     expect((await pool.query("SELECT options FROM hall.contact")).rows).toEqual([{ options: {} }]);
+  });
+
+  // @verifies-requirement HALL-FR-DIR-170
+  it("adds the three telephone numbers to an installed contact table and copies the former telephone into them", async () => {
+    await reset();
+    const bootstrap = new PostgresSchemaBootstrap(pool);
+    await bootstrap.install();
+    // The installed schema of version 1.2.0: one free-text telephone, read and written by the contact API.
+    await pool.query(`
+      DROP FUNCTION hall_api.create_contact(text, text, text, text, text, text, text, text, text);
+      DROP FUNCTION hall_api.update_contact(uuid, text, text, text, text, text, text, text, text, text);
+      ALTER TABLE hall.contact DROP COLUMN mobile_phone, DROP COLUMN personal_phone, DROP COLUMN professional_phone;
+      CREATE OR REPLACE FUNCTION hall.contact_projection(target hall.contact) RETURNS jsonb LANGUAGE sql STABLE
+        SET search_path = pg_catalog, hall
+        AS $$ SELECT jsonb_build_object('id', target.id, 'phone', target.phone) $$;
+      UPDATE hall_meta.schema_contract SET manifest_sha256 = repeat('d', 64);
+    `);
+    await pool.query(
+      "INSERT INTO hall.contact (first_name, last_name, organization_name, phone, notes) VALUES ('Anne', 'Martin', 'Syndicat des eaux', '03 84 87 42 31 / 07 86 29 55 76 / bureau', 'Rencontrée en mai.')",
+    );
+
+    await expect(bootstrap.install()).resolves.toBe("upgraded");
+    await expect(bootstrap.verify()).resolves.toBeUndefined();
+    expect(
+      (
+        await pool.query(
+          "SELECT phone, mobile_phone, personal_phone, professional_phone, notes, hall.contact_projection(contact) ? 'phone' AS projected FROM hall.contact AS contact",
+        )
+      ).rows,
+    ).toEqual([
+      {
+        phone: "03 84 87 42 31 / 07 86 29 55 76 / bureau",
+        mobile_phone: "+33786295576",
+        personal_phone: null,
+        professional_phone: "+33384874231",
+        notes: "Rencontrée en mai.\n\nTéléphone repris : bureau",
+        projected: false,
+      },
+    ]);
   });
 
   it("recreates SQL routines that call each other whatever their catalog order", async () => {

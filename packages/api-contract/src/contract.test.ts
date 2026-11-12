@@ -441,10 +441,10 @@ describe("shared HTTP contract", () => {
         organizationName: null,
         jobTitle: null,
         email: null,
-        phone: "",
+        mobilePhone: "",
         notes: "",
       }),
-    ).toMatchObject({ firstName: "Alice", phone: null });
+    ).toMatchObject({ firstName: "Alice", mobilePhone: null, personalPhone: null, professionalPhone: null });
 
     const mandate = {
       contactId: "11111111-1111-4111-8111-111111111111",

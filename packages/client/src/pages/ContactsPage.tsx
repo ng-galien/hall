@@ -1,3 +1,4 @@
+import { formatPhoneNumber, normalizePhoneNumber } from "@hall/api-contract";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
@@ -14,7 +15,7 @@ import {
 } from "../components/Ui";
 import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
-import { formatPhoneNumber } from "../features/council-members/phonePresentation";
+import { type ContactPhoneField, contactPhoneFields, preferredPhone } from "../features/contacts/contactPhones";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
 import { useContactsStore } from "../stores/contactsStore";
@@ -24,6 +25,7 @@ export function ContactsPage() {
   const { submitting, run } = useSubmitting();
   const { contacts, create, error, canCreate } = useContactsStore();
   const [addOpen, setAddOpen] = useState(false);
+  const [phonesInvalid, setPhonesInvalid] = useState<ContactPhoneField[]>([]);
   const { query, setQuery } = useCollectionView();
   const visibleContacts = contacts.filter((contact) =>
     matchesQuery(
@@ -33,13 +35,17 @@ export function ContactsPage() {
       contact.organizationName,
       contact.jobTitle,
       contact.email,
-      contact.phone,
+      ...contactPhoneFields.map((field) => contact[field]).map((phone) => phone && formatPhoneNumber(phone)),
     ),
   );
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+    const phone = (field: ContactPhoneField) => String(form.get(field) ?? "").trim();
+    const refusedPhones = contactPhoneFields.filter((field) => phone(field) && !normalizePhoneNumber(phone(field)));
+    setPhonesInvalid(refusedPhones);
+    if (refusedPhones.length > 0) return;
     await run(async () => {
       const created = await create({
         firstName: form.get("firstName"),
@@ -47,7 +53,9 @@ export function ContactsPage() {
         organizationName: form.get("organizationName") || null,
         jobTitle: form.get("jobTitle") || null,
         email: form.get("email") || null,
-        phone: form.get("phone") || null,
+        mobilePhone: phone("mobilePhone") || null,
+        personalPhone: phone("personalPhone") || null,
+        professionalPhone: phone("professionalPhone") || null,
         notes: "",
       });
       if (created) {
@@ -98,13 +106,19 @@ export function ContactsPage() {
                 <Input name="jobTitle" />
               </Field>
             </FieldRow>
+            <Field label={t("contacts.email")}>
+              <Input name="email" type="email" />
+            </Field>
             <FieldRow>
-              <Field label={t("contacts.phone")}>
-                <Input name="phone" type="tel" />
-              </Field>
-              <Field label={t("contacts.email")}>
-                <Input name="email" type="email" />
-              </Field>
+              {contactPhoneFields.map((field) => (
+                <Field
+                  key={field}
+                  label={t(`contacts.${field}`)}
+                  error={phonesInvalid.includes(field) ? t("contacts.phoneInvalid") : undefined}
+                >
+                  <Input name={field} type="tel" inputMode="tel" data-testid={`contact-create-${field}`} />
+                </Field>
+              ))}
             </FieldRow>
             <div className="dialog-actions">
               <Button
@@ -127,6 +141,7 @@ export function ContactsPage() {
           <ListRows>
             {visibleContacts.map((contact) => {
               const name = `${contact.firstName} ${contact.lastName}`;
+              const phone = preferredPhone(contact);
               return (
                 <ListRow
                   key={contact.id}
@@ -139,10 +154,14 @@ export function ContactsPage() {
                     .filter(Boolean)
                     .join(" · ")}
                   wide={
-                    <>
-                      <span>{contact.email || t("contacts.noEmail")}</span>
-                      <span>{contact.phone ? formatPhoneNumber(contact.phone) : t("contacts.noPhone")}</span>
-                    </>
+                    contact.email || phone ? (
+                      <>
+                        {contact.email ? <span>{contact.email}</span> : null}
+                        {phone ? (
+                          <span data-testid={`contact-phone-${contact.id}`}>{formatPhoneNumber(phone)}</span>
+                        ) : null}
+                      </>
+                    ) : undefined
                   }
                 />
               );

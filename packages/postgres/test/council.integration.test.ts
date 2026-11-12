@@ -291,7 +291,9 @@ postgresDescribe("PostgreSQL council client", () => {
       organizationName: null,
       jobTitle: null,
       email: null,
-      phone: null,
+      mobilePhone: null,
+      personalPhone: null,
+      professionalPhone: null,
       notes: "",
     });
     const member = await directory.createCouncilMember(request, {
@@ -361,7 +363,9 @@ postgresDescribe("PostgreSQL council client", () => {
         organizationName: null,
         jobTitle: null,
         email: null,
-        phone: null,
+        mobilePhone: null,
+        personalPhone: null,
+        professionalPhone: null,
         notes: "",
       });
       members.push(
@@ -475,7 +479,9 @@ postgresDescribe("PostgreSQL council client", () => {
         organizationName: null,
         jobTitle: null,
         email: null,
-        phone: null,
+        mobilePhone: null,
+        personalPhone: null,
+        professionalPhone: null,
         notes: "",
       });
       members.push(
@@ -580,7 +586,9 @@ postgresDescribe("PostgreSQL council client", () => {
         organizationName: null,
         jobTitle: null,
         email: null,
-        phone: null,
+        mobilePhone: null,
+        personalPhone: null,
+        professionalPhone: null,
         notes: "",
       });
       members.push(
@@ -660,7 +668,9 @@ postgresDescribe("PostgreSQL council client", () => {
       organizationName: null,
       jobTitle: null,
       email: null,
-      phone: null,
+      mobilePhone: null,
+      personalPhone: null,
+      professionalPhone: null,
       notes: "",
     });
     const member = await directory.createCouncilMember(request, {

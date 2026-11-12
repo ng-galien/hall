@@ -31,9 +31,9 @@ GRANT EXECUTE ON FUNCTION hall_api.list_contacts(BOOLEAN)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.open_contact(UUID)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.create_contact(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT)
+GRANT EXECUTE ON FUNCTION hall_api.create_contact(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT)
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.update_contact(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT)
+GRANT EXECUTE ON FUNCTION hall_api.update_contact(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.archive_contact(UUID)
   TO hall_api_authenticated, hall_api_worker;

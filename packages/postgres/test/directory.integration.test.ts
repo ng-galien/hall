@@ -23,7 +23,9 @@ postgresDescribe("PostgreSQL council directory", () => {
     organizationName: null,
     jobTitle: null,
     email: null,
-    phone: null,
+    mobilePhone: null,
+    personalPhone: null,
+    professionalPhone: null,
     notes: "",
   });
 
@@ -45,6 +47,32 @@ postgresDescribe("PostgreSQL council directory", () => {
     });
     await expect(directory.listContacts(request)).resolves.toEqual([]);
     await expect(directory.listContacts(request, true)).resolves.toEqual([expect.objectContaining({ id: contact.id })]);
+  });
+
+  // @verifies-requirement HALL-FR-DIR-170
+  it("stores three distinct numbers, refuses an unnormalized one and leaves the former telephone column unwritten", async () => {
+    const contact = await directory.createContact(request, {
+      ...contactInput("Céline", "Roux"),
+      mobilePhone: "+33786295576",
+      professionalPhone: "+33384874231",
+    });
+    expect(contact).toMatchObject({
+      mobilePhone: "+33786295576",
+      personalPhone: null,
+      professionalPhone: "+33384874231",
+    });
+    expect(contact).not.toHaveProperty("phone");
+    const updated = await directory.updateContact(request, contact.id, {
+      ...contactInput("Céline", "Roux"),
+      personalPhone: "+41221234567",
+    });
+    expect(updated).toMatchObject({ mobilePhone: null, personalPhone: "+41221234567", professionalPhone: null });
+    expect((await pool.query("SELECT phone FROM hall.contact WHERE id = $1", [contact.id])).rows).toEqual([
+      { phone: null },
+    ]);
+    await expect(
+      directory.createContact(request, { ...contactInput("Denis", "Roux"), mobilePhone: "07 86 29 55 76" }),
+    ).rejects.toMatchObject({ sqlState: "23514", constraint: "contact_phone_numbers_are_normalized" });
   });
 
   it("projects normalized council mandates and enforces one active mandate per contact", async () => {

@@ -1,4 +1,4 @@
-import type { Contact, CouncilMember } from "@hall/api-contract";
+import { type Contact, type CouncilMember, formatPhoneNumber } from "@hall/api-contract";
 import { useEffect, useState } from "react";
 import { EmptyState, RequestErrorBanner } from "../../components/Ui";
 import { LoadingIndicator } from "../../components/ui/loading-indicator";
@@ -8,7 +8,7 @@ import { getContactSiren } from "../../services/contactsApi";
 import { getCouncilMemberSiren } from "../../services/councilMembersApi";
 import { PhonePageOpening } from "../../shell/PhonePageOpening";
 import { usePhoneDocumentPages } from "../../shell/usePhoneLayout";
-import { formatPhoneNumber, phoneHref } from "../council-members/phonePresentation";
+import { contactPhoneFields, phoneHref } from "../contacts/contactPhones";
 import { StatusBadge } from "../status/DomainStatusBadge";
 import { PersonDetailField, PersonReferenceDialog } from "./PersonReferenceDialog";
 
@@ -115,16 +115,18 @@ function MemberReferenceModal({ memberId, onClose }: { memberId: string; onClose
                 testId="member-reference-email"
                 href={detail.contact.email ? `mailto:${detail.contact.email}` : undefined}
               />
-              <PersonDetailField
-                label={t("members.phone")}
-                value={detail.contact.phone ? formatPhoneNumber(detail.contact.phone) : t("members.noPhone")}
-                testId="member-reference-phone"
-                href={
-                  detail.contact.phone && !/[/,;]/.test(detail.contact.phone)
-                    ? phoneHref(detail.contact.phone)
-                    : undefined
-                }
-              />
+              {contactPhoneFields.map((field) => {
+                const phone = detail.contact[field];
+                return phone ? (
+                  <PersonDetailField
+                    key={field}
+                    label={t(`contacts.${field}`)}
+                    value={formatPhoneNumber(phone)}
+                    testId={`member-reference-${field}`}
+                    href={phoneHref(phone)}
+                  />
+                ) : null;
+              })}
             </dl>
           </section>
         </div>

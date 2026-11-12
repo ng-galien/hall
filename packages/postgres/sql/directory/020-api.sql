@@ -14,7 +14,9 @@ AS $function$
     'organizationName', target.organization_name,
     'jobTitle', target.job_title,
     'email', target.email,
-    'phone', target.phone,
+    'mobilePhone', target.mobile_phone,
+    'personalPhone', target.personal_phone,
+    'professionalPhone', target.professional_phone,
     'notes', target.notes,
     'archivedAt', target.archived_at,
     'createdAt', target.created_at,
@@ -138,7 +140,9 @@ CREATE FUNCTION hall_api.create_contact(
   contact_organization_name TEXT,
   contact_job_title TEXT,
   contact_email TEXT,
-  contact_phone TEXT,
+  contact_mobile_phone TEXT,
+  contact_personal_phone TEXT,
+  contact_professional_phone TEXT,
   contact_notes TEXT
 )
 RETURNS JSONB
@@ -151,10 +155,12 @@ DECLARE
   created hall.contact;
 BEGIN
   INSERT INTO hall.contact (
-    first_name, last_name, organization_name, job_title, email, phone, notes
+    first_name, last_name, organization_name, job_title, email,
+    mobile_phone, personal_phone, professional_phone, notes
   ) VALUES (
     contact_first_name, contact_last_name, contact_organization_name,
-    contact_job_title, contact_email, contact_phone, contact_notes
+    contact_job_title, contact_email,
+    contact_mobile_phone, contact_personal_phone, contact_professional_phone, contact_notes
   ) RETURNING * INTO created;
 
   RETURN hall.contact_projection(created);
@@ -168,7 +174,9 @@ CREATE FUNCTION hall_api.update_contact(
   contact_organization_name TEXT,
   contact_job_title TEXT,
   contact_email TEXT,
-  contact_phone TEXT,
+  contact_mobile_phone TEXT,
+  contact_personal_phone TEXT,
+  contact_professional_phone TEXT,
   contact_notes TEXT
 )
 RETURNS JSONB
@@ -186,7 +194,9 @@ BEGIN
       organization_name = contact_organization_name,
       job_title = contact_job_title,
       email = contact_email,
-      phone = contact_phone,
+      mobile_phone = contact_mobile_phone,
+      personal_phone = contact_personal_phone,
+      professional_phone = contact_professional_phone,
       notes = contact_notes,
       updated_at = transaction_timestamp()
   WHERE id = target_contact

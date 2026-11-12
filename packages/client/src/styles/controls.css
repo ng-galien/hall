@@ -117,6 +117,16 @@
   .hall-field .hall-textarea:focus { min-height: calc(var(--hall-size-textarea-min) + var(--hall-line-height-caption)); }
   /* A control that is not an input, such as a search picker, sits under the label inside the same fill. */
   .hall-field > :not(.hall-field-label, .hall-input, .hall-textarea, .hall-select-trigger) { min-width: 0; }
+  /* A control at the end of a field keeps the text of the field clear of it. */
+  .hall-field[data-action="true"] > :is(.hall-input, .hall-field-value) { padding-right: calc(var(--hall-size-touch-control) + var(--hall-space-2)); }
+  .hall-field > .hall-field-action { position: absolute; top: 50%; right: var(--hall-space-1); z-index: var(--hall-z-content); display: flex; align-items: center; transform: translateY(-50%); }
+  /* The value of a field that the person may read but not change, with its link. */
+  .hall-field > .hall-field-value { display: flex; align-items: center; min-width: 0; overflow-wrap: anywhere; }
+  /* A link inside text: a telephone link, or a Button drawn as a link. */
+  .hall-link,
+  .hall-button.hall-link[data-variant="plain"] { min-height: 0; padding: 0; color: var(--hall-color-brand); background: transparent; font: inherit; text-align: left; text-underline-offset: var(--hall-space-1); }
+  .hall-link:hover,
+  .hall-button.hall-link[data-variant="plain"]:hover:not(:disabled) { color: var(--hall-color-brand); background: transparent; text-decoration: underline; }
   .hall-field-note { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
   .hall-field-note[data-tone="danger"] { color: var(--hall-color-danger); }
   .hall-field-row { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-8rem)), 1fr)); gap: var(--hall-space-2); }

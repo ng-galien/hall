@@ -52,7 +52,9 @@ it("conducts handovers through the form, attending persons and the ballot chair 
         organizationName: null,
         jobTitle: null,
         email: null,
-        phone: null,
+        mobilePhone: null,
+        personalPhone: null,
+        professionalPhone: null,
         notes: "",
       });
     const mayorContact = await person("Marie", "Maire");

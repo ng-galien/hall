@@ -46,6 +46,13 @@ export async function seedDirectory({ post, put, signedInEmail }, { daysFromNow,
     ["Cotuatos", "le Carnute", "councillor"],
     ["Conconnetodumnos", "le Carnute", "councillor"],
   ];
+  /** Fictional numbers from the ranges reserved for audiovisual works. */
+  const memberPhones = {
+    Vercingétorix: { mobilePhone: "06 39 98 00 01", professionalPhone: "03 53 01 00 01" },
+    Vercassivellaunos: { mobilePhone: "06 39 98 00 02" },
+    Commius: { professionalPhone: "03 53 01 00 03" },
+    Luctérios: { mobilePhone: "06 39 98 00 04", personalPhone: "03 53 01 00 04" },
+  };
   const members = {};
   const memberContactIds = {};
   for (const [firstName, lastName, role] of membersSpec) {
@@ -56,7 +63,10 @@ export async function seedDirectory({ post, put, signedInEmail }, { daysFromNow,
         .toLowerCase()
         .normalize("NFD")
         .replace(/[^a-z-]/g, "")}@alesia.example`,
-      phone: null,
+      mobilePhone: null,
+      personalPhone: null,
+      professionalPhone: null,
+      ...memberPhones[firstName],
       organizationName: "Oppidum d’Alésia",
       jobTitle: "Conseil de l’oppidum",
       notes: "",
@@ -75,7 +85,9 @@ export async function seedDirectory({ post, put, signedInEmail }, { daysFromNow,
     organizationName: "Armée romaine",
     jobTitle: "Proconsul",
     email: "jules.cesar@alesia.example",
-    phone: null,
+    mobilePhone: "06 39 98 00 50",
+    personalPhone: null,
+    professionalPhone: "+39 06 1234 5678",
     notes: "Interlocuteur pour les pourparlers devant les lignes romaines.",
   });
   await post("/contacts", {
@@ -84,7 +96,9 @@ export async function seedDirectory({ post, put, signedInEmail }, { daysFromNow,
     organizationName: "Armée romaine",
     jobTitle: "Légat de César",
     email: "titus.labienus@alesia.example",
-    phone: null,
+    mobilePhone: null,
+    personalPhone: null,
+    professionalPhone: null,
     notes: "Organisation du passage des délégations entre les deux lignes.",
   });
 

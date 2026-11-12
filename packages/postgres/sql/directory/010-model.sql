@@ -20,6 +20,7 @@ CREATE TABLE hall.contact (
   organization_name TEXT,
   job_title TEXT,
   email TEXT,
+  -- Former free-text telephone: kept for one version, neither read nor written.
   phone TEXT,
   notes TEXT NOT NULL DEFAULT ''::text,
   archived_at TIMESTAMPTZ,
@@ -27,6 +28,11 @@ CREATE TABLE hall.contact (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
   -- @implements-requirement HALL-TR-SCH-060
   options JSONB NOT NULL DEFAULT '{}'::jsonb CONSTRAINT "contact_options_is_object" CHECK (jsonb_typeof(options) = 'object'::text),
+  -- @implements-requirement HALL-FR-DIR-170
+  mobile_phone TEXT,
+  personal_phone TEXT,
+  professional_phone TEXT,
+  CONSTRAINT "contact_phone_numbers_are_normalized" CHECK ((mobile_phone IS NULL OR mobile_phone ~ '^\+(33[1-9][0-9]{8}|(?!33)[1-9][0-9]{6,14})$'::text) AND (personal_phone IS NULL OR personal_phone ~ '^\+(33[1-9][0-9]{8}|(?!33)[1-9][0-9]{6,14})$'::text) AND (professional_phone IS NULL OR professional_phone ~ '^\+(33[1-9][0-9]{8}|(?!33)[1-9][0-9]{6,14})$'::text)),
   CONSTRAINT "contact_optional_fields_are_not_blank" CHECK ((organization_name IS NULL OR btrim(organization_name) <> ''::text) AND (job_title IS NULL OR btrim(job_title) <> ''::text) AND (email IS NULL OR btrim(email) <> ''::text) AND (phone IS NULL OR btrim(phone) <> ''::text))
 );
 

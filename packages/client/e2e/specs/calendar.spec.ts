@@ -561,7 +561,7 @@ test("calendar uses one complete form for business, quarter hours and participan
   const business = businessCollection.entities[0].properties;
   const otherBusiness = businessCollection.entities[1].properties;
   const missingContactResponse = await page.request.post("/api/contacts", {
-    data: { firstName: "Sans", lastName: `Courriel-${Date.now()}`, email: null, phone: null },
+    data: { firstName: "Sans", lastName: `Courriel-${Date.now()}`, email: null },
   });
   expect(missingContactResponse.status(), await missingContactResponse.text()).toBe(201);
   const missingContact = (await missingContactResponse.json()).properties;

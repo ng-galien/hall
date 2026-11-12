@@ -134,7 +134,17 @@ test("gives council members read access and a personal folder that only they and
   const member = async (firstName: string, lastName: string, role: "mayor" | "councillor") => {
     const contact = await created<{ id: string }>(
       await admin.request.post("/api/contacts", {
-        data: { firstName, lastName, organizationName: null, jobTitle: null, email: null, phone: null, notes: "" },
+        data: {
+          firstName,
+          lastName,
+          organizationName: null,
+          jobTitle: null,
+          email: null,
+          mobilePhone: null,
+          personalPhone: null,
+          professionalPhone: null,
+          notes: "",
+        },
       }),
     );
     const mandate = await created<{ id: string }>(
@@ -527,7 +537,9 @@ test("the home page lists the latest council documents without the personal fold
         organizationName: null,
         jobTitle: null,
         email: null,
-        phone: null,
+        mobilePhone: null,
+        personalPhone: null,
+        professionalPhone: null,
         notes: "",
       },
     }),
@@ -602,7 +614,9 @@ test("on a phone the personal folder opens from Plus, which alone is active, and
         organizationName: null,
         jobTitle: null,
         email: null,
-        phone: null,
+        mobilePhone: null,
+        personalPhone: null,
+        professionalPhone: null,
         notes: "",
       },
     }),

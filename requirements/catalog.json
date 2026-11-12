@@ -2853,6 +2853,53 @@
         }
       ]
     },
+    "HALL-FR-DIR-170": {
+      "name": "CONTACT_HAS_THREE_PHONE_NUMBERS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-12"
+      },
+      "statement": "Un contact porte trois numéros de téléphone distincts et facultatifs : mobile, personnel et professionnel ; chacun est un vrai numéro, enregistré sous une forme unique et affiché par paires de chiffres.",
+      "acceptanceCriteria": [
+        "Un numéro français de dix chiffres commençant par 0, saisi avec ou sans espaces, points, tirets ou indicatif +33, est enregistré sous la forme +33 suivie de neuf chiffres ; un numéro étranger saisi avec + et son indicatif est enregistré avec ses seuls chiffres.",
+        "Un texte qui n’est pas un numéro de téléphone est refusé : la fiche affiche sous le champ « Saisir dix chiffres commençant par 0, ou un numéro international commençant par + » et n’enregistre pas le contact ; l’API refuse la requête et la base refuse une valeur non normalisée.",
+        "Un numéro français s’affiche par paires de chiffres, par exemple « 07 86 29 55 76 » ; un numéro étranger s’affiche sous sa forme enregistrée.",
+        "La mise à niveau copie l’ancien téléphone de chaque contact : chaque numéro lisible séparé par « / », « , », « ; », « ou » ou un retour à la ligne est normalisé ; un 06 ou un 07 va dans le mobile ; un autre numéro va dans le professionnel si le contact a un organisme, sinon dans le personnel ; un numéro en trop pour sa case et un texte illisible sont ajoutés aux notes sous la forme « Téléphone repris : … ».",
+        "Une nouvelle exécution de la reprise ne modifie aucun contact ; l’ancienne colonne de téléphone garde sa valeur dans cette version, et aucune fonction de l’application ne la lit ni ne l’écrit."
+      ],
+      "clauses": [
+        {
+          "key": "three-phone-numbers",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 : « Il y a un sérieux problème de téléphone. Parce que là, on n'a qu'une seule ligne de téléphone. […] On peut pas rentrer un vrai numéro de téléphone. » ; à la proposition de deux numéros : « C'est trop limité, on va dire 3, mobile, perso, pro ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-DIR-180": {
+      "name": "CONTACT_SHEET_PRESENTS_IDENTITY_COORDINATES_NOTES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-12"
+      },
+      "statement": "La fiche d’un contact présente son identité, ses coordonnées et ses notes ; les listes de personnes montrent un seul numéro et n’affichent pas une information absente.",
+      "acceptanceCriteria": [
+        "La fiche d’un contact présente trois parties dans cet ordre : « Identité » (prénom, nom, fonction, organisme), « Coordonnées » (courriel, mobile, personnel, professionnel) et « Notes ».",
+        "Quand le courriel partagé offre la création d’un message, le courriel du contact ouvre un nouveau courriel de Hall adressé à ce contact : la valeur elle-même en lecture, l’enveloppe au bout du champ en écriture ; sinon le courriel reste du texte.",
+        "Sur un écran tactile, chaque numéro de la fiche est un lien d’appel.",
+        "La liste des contacts et la liste des membres du conseil montrent un seul numéro, le mobile, à défaut le professionnel, à défaut le personnel ; un courriel ou un numéro absent n’est pas affiché."
+      ],
+      "clauses": [
+        {
+          "key": "contact-sheet",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 : « Est-ce qu'on doit un peu mieux hiérarchiser? Le mail, est-ce qu'il faut que ça soit un lien cliquable vers un nouvel email? […] ces fiches sont quand même assez fouillis. »",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-DOC-010": {
       "name": "RESOURCE_HAS_EXACTLY_ONE_NATURE",
       "nature": "functional",

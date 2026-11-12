@@ -106,7 +106,9 @@ test("preserves a rejected administrator role change and duplicate account form"
       organizationName: null,
       jobTitle: null,
       email: null,
-      phone: null,
+      mobilePhone: null,
+      personalPhone: null,
+      professionalPhone: null,
       notes: "",
     },
   });

@@ -128,14 +128,24 @@ test("contact click opens a read-only dedicated dialog and close preserves the r
         organizationName: "Commune",
         jobTitle: null,
         email: "julien@example.test",
-        phone: "01 23 45 67 89 / 06 12 34 56 78",
+        mobilePhone: "+33612345678",
+        personalPhone: null,
+        professionalPhone: "+33123456789",
         notes: "Contact notes",
       },
     }),
   );
   assert.match(dialog.textContent, /Julien Savourez/);
   assert.match(dialog.textContent, /julien@example.test/);
-  assert.equal(dialog.querySelector('[data-testid="contact-reference-phone"] a'), null);
+  assert.equal(
+    dialog.querySelector('[data-testid="contact-reference-mobilePhone"] a').getAttribute("href"),
+    "tel:+33612345678",
+  );
+  assert.match(
+    dialog.querySelector('[data-testid="contact-reference-professionalPhone"]').textContent,
+    /01 23 45 67 89/,
+  );
+  assert.equal(dialog.querySelector('[data-testid="contact-reference-personalPhone"]'), null);
   assert.equal(dialog.querySelectorAll("input, textarea, [contenteditable]").length, 0);
   const report = document.querySelector('[data-testid="report"]');
   await click(dialog.querySelector('[data-testid="dialog-close"]'));

@@ -1,18 +1,28 @@
-import type { Contact } from "@hall/api-contract";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type Contact, formatPhoneNumber, normalizePhoneNumber } from "@hall/api-contract";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DeleteIcon } from "../components/icons";
+import { DeleteIcon, PhoneIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
+import { ContactEmailAction, ContactEmailLink } from "../features/contacts/ContactEmailLink";
+import {
+  type ContactPhoneField,
+  contactPhoneFields,
+  phoneHref,
+  useTouchScreen,
+} from "../features/contacts/contactPhones";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
 import { useContactsStore } from "../stores/contactsStore";
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
-type Draft = Pick<Contact, "firstName" | "lastName" | "organizationName" | "jobTitle" | "email" | "phone" | "notes">;
+type Draft = Pick<
+  Contact,
+  "firstName" | "lastName" | "organizationName" | "jobTitle" | "email" | ContactPhoneField | "notes"
+>;
 
 const emptyDraft: Draft = {
   firstName: "",
@@ -20,7 +30,9 @@ const emptyDraft: Draft = {
   organizationName: null,
   jobTitle: null,
   email: null,
-  phone: null,
+  mobilePhone: null,
+  personalPhone: null,
+  professionalPhone: null,
   notes: "",
 };
 const draftKeys = Object.keys(emptyDraft) as Array<keyof Draft>;
@@ -32,7 +44,9 @@ function contactDraft(contact: Contact): Draft {
     organizationName: contact.organizationName,
     jobTitle: contact.jobTitle,
     email: contact.email,
-    phone: contact.phone,
+    mobilePhone: contact.mobilePhone && formatPhoneNumber(contact.mobilePhone),
+    personalPhone: contact.personalPhone && formatPhoneNumber(contact.personalPhone),
+    professionalPhone: contact.professionalPhone && formatPhoneNumber(contact.professionalPhone),
     notes: contact.notes,
   };
 }
@@ -43,6 +57,14 @@ function sameDraft(left: Draft, right: Draft): boolean {
 
 function validIdentity(draft: Draft): boolean {
   return Boolean(draft.firstName.trim() && draft.lastName.trim());
+}
+
+/** The numbers of a draft that are not telephone numbers; they keep the contact from being saved. */
+function invalidPhones(draft: Draft): ContactPhoneField[] {
+  return contactPhoneFields.filter((key) => {
+    const value = draft[key];
+    return Boolean(value?.trim()) && normalizePhoneNumber(value ?? "") === null;
+  });
 }
 
 export function ContactPage() {
@@ -58,6 +80,8 @@ export function ContactPage() {
   const [draftRevision, setDraftRevision] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [identityInvalid, setIdentityInvalid] = useState(false);
+  const [phonesInvalid, setPhonesInvalid] = useState<ContactPhoneField[]>([]);
+  const touchScreen = useTouchScreen();
   const draftRef = useRef<Draft>(emptyDraft);
   const baselineRef = useRef<Draft>(emptyDraft);
   const draftIdRef = useRef<string | null>(null);
@@ -84,6 +108,7 @@ export function ContactPage() {
     setDraftId(contact.id);
     setSaveState("idle");
     setIdentityInvalid(false);
+    setPhonesInvalid([]);
   }, [contact]);
 
   const dirty = Boolean(draftId === contactId && !sameDraft(draft, baseline));
@@ -97,6 +122,12 @@ export function ContactPage() {
       const candidate = draftRef.current;
       if (!validIdentity(candidate)) {
         setIdentityInvalid(true);
+        setSaveState("error");
+        return false;
+      }
+      const refusedPhones = invalidPhones(candidate);
+      if (refusedPhones.length > 0) {
+        setPhonesInvalid(refusedPhones);
         setSaveState("error");
         return false;
       }
@@ -183,7 +214,73 @@ export function ContactPage() {
     setDraftState(next);
     setSaveState("dirty");
     if (identityInvalid && validIdentity(next)) setIdentityInvalid(false);
+    if (phonesInvalid.length > 0)
+      setPhonesInvalid(invalidPhones(next).filter((field) => phonesInvalid.includes(field)));
     if (error) clearError();
+  };
+  const editable = Boolean(canUpdate[contact.id]);
+  const name = `${contact.firstName} ${contact.lastName}`;
+  const textField = (key: "firstName" | "lastName" | "jobTitle" | "organizationName") => {
+    const identityField = key === "firstName" || key === "lastName";
+    return (
+      <Field key={key} label={t(`contacts.${key === "organizationName" ? "organization" : key}`)}>
+        <Input
+          value={draft[key] ?? ""}
+          readOnly={!editable}
+          required={identityField}
+          aria-invalid={identityField && identityInvalid}
+          onChange={(event) => setDraft(key, event.currentTarget.value || (identityField ? "" : null))}
+          data-testid={`contact-${key}`}
+        />
+      </Field>
+    );
+  };
+  /** A coordinate: an input for a person who edits the contact, its value as a link for a person who reads it. */
+  const coordinateField = (
+    key: "email" | ContactPhoneField,
+    readValue: ReactNode,
+    action: ReactNode,
+    error?: ReactNode,
+  ) => (
+    <Field key={key} label={t(`contacts.${key}`)} error={error} action={editable ? action : undefined}>
+      {editable ? (
+        <Input
+          type={key === "email" ? "email" : "tel"}
+          inputMode={key === "email" ? "email" : "tel"}
+          value={draft[key] ?? ""}
+          onChange={(event) => setDraft(key, event.currentTarget.value || null)}
+          data-testid={`contact-${key}`}
+        />
+      ) : (
+        <span className="hall-input hall-field-value" data-testid={`contact-${key}`}>
+          {readValue}
+        </span>
+      )}
+    </Field>
+  );
+  const phoneField = (key: ContactPhoneField) => {
+    const stored = contact[key];
+    const shown = stored ? formatPhoneNumber(stored) : null;
+    const call =
+      stored && touchScreen ? (
+        <a href={phoneHref(stored)} className="hall-link" data-testid={`contact-${key}-call`}>
+          {shown}
+        </a>
+      ) : (
+        shown
+      );
+    return coordinateField(
+      key,
+      call,
+      stored && touchScreen ? (
+        <Button asChild variant="plain" size="icon">
+          <a href={phoneHref(stored)} aria-label={t("contacts.call")} data-testid={`contact-${key}-call`}>
+            <PhoneIcon />
+          </a>
+        </Button>
+      ) : null,
+      phonesInvalid.includes(key) ? t("contacts.phoneInvalid") : undefined,
+    );
   };
   const saveLabels: Record<SaveState, string> = {
     idle: "",
@@ -206,11 +303,11 @@ export function ContactPage() {
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={error} />
         <div className="admin-detail-surface">
-          <section className="admin-record" aria-labelledby="contact-record-title">
+          <section className="admin-record" aria-labelledby="contact-identity-title">
             <div className="admin-section-heading">
               <div>
-                <h2 id="contact-record-title">{t("contacts.identity")}</h2>
-                <p>{t("contacts.identityDescription")}</p>
+                <h2 id="contact-identity-title">{t("contacts.identity")}</h2>
+                {editable ? <p>{t("contacts.identityDescription")}</p> : null}
               </div>
               {saveState !== "idle" ? (
                 <span className="record-state" data-save={saveState} role="status">
@@ -224,47 +321,56 @@ export function ContactPage() {
               </p>
             ) : null}
             <div className="admin-fields">
-              {(
-                [
-                  ["firstName", "lastName"],
-                  ["organizationName", "jobTitle"],
-                  ["phone", "email"],
-                ] as const
-              ).map((pair) => (
-                <FieldRow key={pair[0]}>
-                  {pair.map((key) => {
-                    const identityField = key === "firstName" || key === "lastName";
-                    return (
-                      <Field
-                        key={key}
-                        label={t(
-                          `contacts.${key === "organizationName" ? "organization" : key}` as Parameters<typeof t>[0],
-                        )}
-                      >
-                        <Input
-                          type={key === "email" ? "email" : key === "phone" ? "tel" : "text"}
-                          value={draft[key] ?? ""}
-                          readOnly={!canUpdate[contact.id]}
-                          required={identityField}
-                          aria-invalid={identityField && identityInvalid}
-                          onChange={(event) => setDraft(key, event.currentTarget.value || (identityField ? "" : null))}
-                          data-testid={`contact-${key}`}
-                        />
-                      </Field>
-                    );
-                  })}
-                </FieldRow>
-              ))}
-              <Field label={t("contacts.notes")}>
-                <Textarea
-                  value={draft.notes}
-                  readOnly={!canUpdate[contact.id]}
-                  onChange={(event) => setDraft("notes", event.currentTarget.value)}
-                  data-testid="contact-notes"
-                />
-              </Field>
+              <FieldRow>
+                {textField("firstName")}
+                {textField("lastName")}
+              </FieldRow>
+              <FieldRow>
+                {textField("jobTitle")}
+                {textField("organizationName")}
+              </FieldRow>
             </div>
-            {saveState === "error" && !identityInvalid ? (
+          </section>
+          <section className="admin-record" aria-labelledby="contact-coordinates-title">
+            <div className="admin-section-heading">
+              <h2 id="contact-coordinates-title">{t("contacts.coordinates")}</h2>
+            </div>
+            <div className="admin-fields">
+              {coordinateField(
+                "email",
+                contact.email ? (
+                  <ContactEmailLink
+                    contactId={contact.id}
+                    name={name}
+                    email={contact.email}
+                    testId="contact-email-write"
+                  />
+                ) : null,
+                contact.email ? (
+                  <ContactEmailAction
+                    contactId={contact.id}
+                    name={name}
+                    email={contact.email}
+                    testId="contact-email-write"
+                  />
+                ) : null,
+              )}
+              <FieldRow>{contactPhoneFields.map(phoneField)}</FieldRow>
+            </div>
+          </section>
+          <section className="admin-record" aria-labelledby="contact-notes-title">
+            <div className="admin-section-heading">
+              <h2 id="contact-notes-title">{t("contacts.notes")}</h2>
+            </div>
+            <Field label={t("contacts.notes")}>
+              <Textarea
+                value={draft.notes}
+                readOnly={!editable}
+                onChange={(event) => setDraft("notes", event.currentTarget.value)}
+                data-testid="contact-notes"
+              />
+            </Field>
+            {saveState === "error" && !identityInvalid && phonesInvalid.length === 0 ? (
               <Button variant="secondary" onClick={() => void flush()} data-testid="contact-save-retry">
                 {t("common.retry")}
               </Button>

@@ -91,6 +91,7 @@ export {
   Path as LineIcon,
   PencilSimple as EditIcon,
   PencilSimpleLine as SignIcon,
+  Phone as PhoneIcon,
   Play as PlayIcon,
   Plus as AddIcon,
   Polygon as AreaIcon,

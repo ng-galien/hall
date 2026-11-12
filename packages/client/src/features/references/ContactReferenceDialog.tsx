@@ -1,4 +1,4 @@
-import type { Contact } from "@hall/api-contract";
+import { type Contact, formatPhoneNumber } from "@hall/api-contract";
 import { useEffect, useState } from "react";
 import { EmptyState, RequestErrorBanner } from "../../components/Ui";
 import { LoadingIndicator } from "../../components/ui/loading-indicator";
@@ -7,7 +7,7 @@ import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { getContactSiren } from "../../services/contactsApi";
 import { PhonePageOpening } from "../../shell/PhonePageOpening";
 import { usePhoneDocumentPages } from "../../shell/usePhoneLayout";
-import { formatPhoneNumber, phoneHref } from "../council-members/phonePresentation";
+import { contactPhoneFields, phoneHref } from "../contacts/contactPhones";
 import { PersonDetailField, PersonReferenceDialog } from "./PersonReferenceDialog";
 
 type ContactDetail =
@@ -91,16 +91,18 @@ function ContactReferenceModal({ contactId, onClose }: { contactId: string; onCl
                 testId="contact-reference-email"
                 href={detail.contact.email ? `mailto:${detail.contact.email}` : undefined}
               />
-              <PersonDetailField
-                label={t("contacts.phone")}
-                value={detail.contact.phone ? formatPhoneNumber(detail.contact.phone) : t("common.none")}
-                testId="contact-reference-phone"
-                href={
-                  detail.contact.phone && !/[/,;]/.test(detail.contact.phone)
-                    ? phoneHref(detail.contact.phone)
-                    : undefined
-                }
-              />
+              {contactPhoneFields.map((field) => {
+                const phone = detail.contact[field];
+                return phone ? (
+                  <PersonDetailField
+                    key={field}
+                    label={t(`contacts.${field}`)}
+                    value={formatPhoneNumber(phone)}
+                    testId={`contact-reference-${field}`}
+                    href={phoneHref(phone)}
+                  />
+                ) : null;
+              })}
             </dl>
           </section>
           <section className="border-t px-6 py-5" aria-labelledby="contact-reference-notes-title">

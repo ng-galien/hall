@@ -1,3 +1,4 @@
+import { formatPhoneNumber } from "@hall/api-contract";
 import type { CouncilMember } from "@hall/domain";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -8,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CommitteeIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { ListRow, ListRowAvatar, ListRowIcon, ListRows } from "../components/ui/list-row";
-import { formatPhoneNumber, phoneHref } from "../features/council-members/phonePresentation";
+import { phoneHref, preferredPhone } from "../features/contacts/contactPhones";
 import { MemberDelegations } from "../features/representative-bodies/MemberDelegations";
 import { committeeKind } from "../features/representative-bodies/representativeBodyKinds";
 import { useI18n } from "../i18n/I18nProvider";
@@ -120,6 +121,7 @@ export function CouncilMemberPage() {
         .map((membership) => ({ committee: detail.body, membership })),
     )
     .sort((left, right) => right.membership.startedOn.localeCompare(left.membership.startedOn));
+  const phone = preferredPhone(member.contact);
   const saveLabels: Record<SaveState, string> = {
     idle: "",
     dirty: t("workspace.saveDirty"),
@@ -165,14 +167,13 @@ export function CouncilMemberPage() {
                 }
                 overline={t("members.contact")}
                 title={`${member.contact.firstName} ${member.contact.lastName}`}
-                detail={[
-                  member.contact.email ?? t("members.noEmail"),
-                  member.contact.phone ? formatPhoneNumber(member.contact.phone) : t("members.noPhone"),
-                ].join(" · ")}
+                detail={
+                  [member.contact.email, phone && formatPhoneNumber(phone)].filter(Boolean).join(" · ") || undefined
+                }
                 action={
-                  member.contact.phone ? (
+                  phone ? (
                     <Button asChild variant="secondary">
-                      <a href={phoneHref(member.contact.phone)} data-testid="member-call">
+                      <a href={phoneHref(phone)} data-testid="member-call">
                         {t("members.call")}
                       </a>
                     </Button>

@@ -79,7 +79,7 @@ export async function createTestCouncilMember(
     firstName: string;
     lastName?: string;
     email?: string | null;
-    phone?: string | null;
+    mobilePhone?: string | null;
     role?: "mayor" | "deputyMayor" | "councillor";
     termStartedOn?: string;
   },
@@ -91,7 +91,7 @@ export async function createTestCouncilMember(
         firstName: input.firstName,
         lastName: input.lastName ?? "Martin",
         email: input.email ?? null,
-        phone: input.phone ?? null,
+        mobilePhone: input.mobilePhone ?? null,
       })
       .expect(201),
   );

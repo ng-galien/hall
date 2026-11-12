@@ -6,7 +6,7 @@ describe("council committees", () => {
     const { agent } = await createTestServer();
     const contactResponse = await agent
       .post("/api/contacts")
-      .send({ firstName: "Alice", lastName: "Martin", phone: "+33 6 12 34 56 78" })
+      .send({ firstName: "Alice", lastName: "Martin", mobilePhone: "+33 6 12 34 56 78" })
       .expect(201);
     const contact = domainBody<{ id: string; contactId: string }>(contactResponse);
     const memberResponse = await agent

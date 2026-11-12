@@ -27,7 +27,9 @@ test("edits account identity with autosave and safely changes and resets passwor
         organizationName: null,
         jobTitle: null,
         email: null,
-        phone: null,
+        mobilePhone: null,
+        personalPhone: null,
+        professionalPhone: null,
         notes: "",
       },
     });

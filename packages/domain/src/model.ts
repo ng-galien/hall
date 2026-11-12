@@ -88,7 +88,9 @@ export interface Contact {
   organizationName: string | null;
   jobTitle: string | null;
   email: string | null;
-  phone: string | null;
+  mobilePhone: string | null;
+  personalPhone: string | null;
+  professionalPhone: string | null;
   notes: string;
   activeCouncilMemberId: Identifier | null;
   archivedAt: IsoDateTime | null;

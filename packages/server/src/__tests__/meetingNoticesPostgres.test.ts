@@ -48,7 +48,7 @@ postgres("meeting notice PDF and email through PostgreSQL", () => {
         ...Array.from({ length: 13 }, (_, i) => `member${i}@example.test`),
       ].entries()) {
         const contact = (
-          await pool.query("SELECT hall_api.create_contact($1,'Martin',NULL,NULL,$2,NULL,'') contact", [
+          await pool.query("SELECT hall_api.create_contact($1,'Martin',NULL,NULL,$2,NULL,NULL,NULL,'') contact", [
             index === 0 ? "Alice" : index === 1 ? "Benoît" : `Member ${index}`,
             email,
           ])

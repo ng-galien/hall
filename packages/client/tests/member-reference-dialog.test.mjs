@@ -125,7 +125,9 @@ test("member reference reads its real Siren role in a dialog and restores report
       organizationName: null,
       jobTitle: null,
       email: "epona@example.test",
-      phone: null,
+      mobilePhone: null,
+      personalPhone: null,
+      professionalPhone: null,
       notes: "",
     },
   });

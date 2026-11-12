@@ -63,6 +63,7 @@ export * from "./liveEvents.js";
 export * from "./meetingConduct.js";
 export * from "./meetingDocuments.js";
 export * from "./minutes.js";
+export * from "./phoneNumber.js";
 export * from "./problem.js";
 export * from "./recusal.js";
 export * from "./resources.js";

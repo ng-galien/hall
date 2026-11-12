@@ -2,7 +2,16 @@ import type { Contact, CouncilMember as CouncilMemberRecord } from "@hall/api-co
 
 export type ContactSummary = Pick<
   Contact,
-  "id" | "firstName" | "lastName" | "organizationName" | "jobTitle" | "email" | "phone" | "archivedAt"
+  | "id"
+  | "firstName"
+  | "lastName"
+  | "organizationName"
+  | "jobTitle"
+  | "email"
+  | "mobilePhone"
+  | "personalPhone"
+  | "professionalPhone"
+  | "archivedAt"
 >;
 
 /** Client projection assembled from the independent Contact and CouncilMember resources. */
@@ -18,7 +27,9 @@ export function councilMemberView(member: CouncilMemberRecord, contact: Contact)
       organizationName: contact.organizationName,
       jobTitle: contact.jobTitle,
       email: contact.email,
-      phone: contact.phone,
+      mobilePhone: contact.mobilePhone,
+      personalPhone: contact.personalPhone,
+      professionalPhone: contact.professionalPhone,
       archivedAt: contact.archivedAt,
     },
   };
