@@ -555,7 +555,7 @@ export function WorkspacePage() {
               <PhoneWorkspaceSearch onSelect={select} context={path} />
             </ScreenActions>
           ) : null}
-          {phone && selection ? null : createMenu}
+          {selection ? null : createMenu}
           {folderCapabilities.uploadDocument || folderCapabilities.importSpreadsheet ? (
             <input
               ref={fileInput}

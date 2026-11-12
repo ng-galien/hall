@@ -58,7 +58,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .screen-header-actions { display: flex; max-width: 100%; flex: 0 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-1); }
+  .screen-header-tools { display: flex; max-width: 100%; flex: 0 1 auto; align-items: center; gap: var(--hall-space-2); margin-left: auto; }
+  .screen-header-actions { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-1); }
   .screen-header-actions:empty { display: none; }
   .screen-header-status { width: var(--hall-space-2); height: var(--hall-space-2); flex: none; border-radius: var(--hall-radius-circular); background: var(--hall-color-success); }
   .screen-header-status[data-tone="pending"] { background: var(--hall-color-text-subtle); animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite; }

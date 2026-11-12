@@ -231,16 +231,18 @@ export function ScreenHeader({
             </span>
           )}
         </div>
-        <div ref={actionsSlot} className="screen-header-actions" />
-        <ApplicationConnectionStatus />
-        <Link
-          className="screen-header-initials"
-          to="/settings?category=preferences"
-          data-testid="screen-header-account"
-          aria-label={t("navigation.account")}
-        >
-          {initials}
-        </Link>
+        <div className="screen-header-tools">
+          <div ref={actionsSlot} className="screen-header-actions" />
+          <ApplicationConnectionStatus />
+          <Link
+            className="screen-header-initials"
+            to="/settings?category=preferences"
+            data-testid="screen-header-account"
+            aria-label={t("navigation.account")}
+          >
+            {initials}
+          </Link>
+        </div>
       </div>
       {phone ? <div ref={trailSlot} hidden /> : null}
     </header>
