@@ -291,7 +291,14 @@ if (sweeping) {
                 for (const step of steps.filter((entry) => entry.full)) await measure(screen, step, "déplié", "long");
                 done(screen.id);
               } catch (error) {
-                missing.push(`${screen.id}: ${error instanceof Error ? error.message.split("\n")[0] : error}`);
+                // The call log of Playwright says what blocked the step (an element covering another, for instance).
+                const message = error instanceof Error ? error.message : String(error);
+                const blocked = message
+                  .split("\n")
+                  .filter((line) => /intercepts|not visible|not stable|outside|waiting for/.test(line));
+                missing.push(
+                  `${screen.id}: ${message.split("\n")[0]}${blocked.length ? ` — ${[...new Set(blocked.map((line) => line.trim()))].slice(-2).join(" ; ")}` : ""}`,
+                );
               }
             }
             await context.close();
