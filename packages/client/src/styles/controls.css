@@ -157,6 +157,14 @@
   }
   .hall-field > .hall-field-composite > .hall-input,
   .hall-field > .hall-field-composite > .hall-input:is(:hover, :focus, :focus-visible) { min-height: 0; padding: 0; box-shadow: none; background: transparent; }
+  /* Under a finger, the input of a composite field (the next tag, the next recipient) also reaches 44 pixels. */
+  @media (pointer: coarse) {
+    .hall-field > .hall-field-composite > .hall-input,
+    .hall-field > .hall-field-composite > .hall-input:is(:hover, :focus, :focus-visible) {
+      min-height: var(--hall-size-touch-control);
+      margin-block: calc((var(--hall-line-height-body-large) - var(--hall-size-touch-control)) / 2);
+    }
+  }
   /* An empty field writes « Non renseigné », never a value: in grey italics, gone as soon as something is written. */
   .hall-field .hall-input::placeholder,
   .hall-field .hall-select-trigger[data-placeholder] > [data-slot="select-value"],
@@ -226,10 +234,12 @@
   body:has([data-slot="dialog-content"]) .hall-button.create-fab { visibility: hidden; }
   /* The list keeps room under its last row so the floating button never covers it. */
   body:has(.create-fab) .app-main { padding-bottom: calc(var(--hall-size-touch-control) + var(--hall-space-6)); }
-  .create-menu { min-width: var(--hall-size-hit-card); max-width: var(--hall-size-mention-menu-max); padding: var(--hall-space-1) 0; }
+  /* Each row holds its label on one line, and its description, when it has one, on a line of its own. */
+  .create-menu { min-width: var(--hall-size-hit-card); max-width: var(--radix-dropdown-menu-content-available-width); padding: var(--hall-space-1) 0; }
   .create-menu-row { align-items: center; gap: var(--hall-space-3); min-height: var(--hall-size-list-row-pointer); padding: var(--hall-space-2) var(--hall-space-3); border-radius: 0; }
   .create-menu-row + .create-menu-row { border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .create-menu-text { display: grid; min-width: 0; gap: var(--hall-space-0-5); }
+  .create-menu-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .create-menu-label { color: var(--hall-color-text); font-size: var(--hall-font-size-text); font-weight: var(--hall-font-weight-semibold); }
   .create-menu-description { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
 }

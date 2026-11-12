@@ -274,3 +274,5 @@
     .screen-header-inline-title { overflow: visible; white-space: normal; overflow-wrap: break-word; text-overflow: clip; }
   }
 }
+  /* In the panel, the number of a folder is written in the size of its label, on the same line. */
+  .nav-rail-place > .nav-count { font-size: var(--hall-font-size-body); }

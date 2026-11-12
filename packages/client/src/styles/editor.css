@@ -43,6 +43,8 @@
   box-shadow: none;
 }
 .markdown-editor.markdown-editor-compact > [role="toolbar"][hidden] { display: none; }
+/* The paragraph style keeps its whole name; the tools wrap onto a second line before it shrinks. */
+.markdown-editor [role="toolbar"] .hall-select-trigger[data-testid="editor-block-style"] { width: max-content; flex: none; }
 /* @implements-requirement HALL-FR-DOC-270 */
 /* The writing tools of a phone (choice 8B): one row fixed under the screen header, never over the text. */
 .markdown-editor.markdown-editor-compact > .markdown-phone-toolbar {
