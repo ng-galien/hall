@@ -601,11 +601,17 @@
   }
 }
 @layer components {
-  .disclosure-badge { display: inline-flex; align-items: center; justify-content: center; width: var(--hall-size-glyph-compact); height: var(--hall-size-glyph-compact); flex: none; border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-small); background: var(--hall-color-surface-subtle); color: var(--hall-color-text); }
-  .disclosure-badge svg { width: var(--hall-font-size-body); height: var(--hall-font-size-body); }
+  /* The single folding form (reference design, page 10, choice C): an 18-pixel square with a thin grey rule before the
+     line, « + » while folded, « − » while unfolded; the whole line is the toggle. */
+  .disclosure-badge { display: inline-flex; align-items: center; justify-content: center; width: var(--hall-size-glyph-intermediate); height: var(--hall-size-glyph-intermediate); flex: none; border: var(--hall-stroke-thin) solid var(--hall-color-border-strong); border-radius: var(--hall-radius-small); background: transparent; color: var(--hall-color-text-muted); }
+  .disclosure-badge svg { width: var(--hall-font-size-caption); height: var(--hall-font-size-caption); }
   .disclosure-badge-minus { display: none; }
   details[open] > summary .disclosure-badge-minus, .disclosure-badge[data-expanded="true"] .disclosure-badge-minus { display: block; }
   details[open] > summary .disclosure-badge-plus, .disclosure-badge[data-expanded="true"] .disclosure-badge-plus { display: none; }
+  .hall-disclosure-line { display: flex; align-items: center; gap: var(--hall-space-3); padding-block: var(--hall-space-2); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); cursor: pointer; list-style: none; }
+  .hall-disclosure-line::-webkit-details-marker { display: none; }
+  .hall-disclosure-title { min-width: 0; }
+  .hall-disclosure-content { padding: var(--hall-space-2) 0 var(--hall-space-2) calc(var(--hall-size-glyph-intermediate) + var(--hall-space-3)); }
 
   /* The single section header: title at the left in one size and weight with its count, the commands of the section
      at the right end of the line, a rule under the line. */

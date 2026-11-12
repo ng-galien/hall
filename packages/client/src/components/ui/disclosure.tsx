@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: summary is the native interactive control of details. */
 import { type ReactNode, useId } from "react";
-import { ChevronRightIcon } from "../icons";
+import { DisclosureBadge } from "./disclosure-badge";
 
 type DisclosureProps = {
   title: ReactNode;
@@ -13,6 +13,10 @@ type DisclosureProps = {
   active?: boolean;
 };
 
+/**
+ * The single folding form of Hall (reference design, page 10, choice C): a small square before the line, « + » while
+ * folded and « − » while unfolded; the whole line is the toggle.
+ */
 export function Disclosure({
   title,
   children,
@@ -25,9 +29,9 @@ export function Disclosure({
 }: DisclosureProps) {
   const contentId = useId();
   return (
-    <details open={open} className="[&[open]>summary>svg]:rotate-90" data-testid={testId}>
+    <details open={open} className="hall-disclosure" data-testid={testId}>
       <summary
-        className="flex cursor-pointer list-none items-center gap-3 rounded-md py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-[var(--hall-color-surface-subtle)] hover:text-foreground [&::-webkit-details-marker]:hidden"
+        className="hall-disclosure-line"
         id={toggleTestId}
         aria-controls={contentId}
         data-active={active || undefined}
@@ -42,10 +46,10 @@ export function Disclosure({
         }
         data-testid={toggleTestId}
       >
-        <ChevronRightIcon className="size-4 shrink-0" aria-hidden="true" />
-        <span>{title}</span>
+        <DisclosureBadge />
+        <span className="hall-disclosure-title">{title}</span>
       </summary>
-      <div className="ml-2 border-l border-border/60 py-2 pl-5" id={contentId} data-testid={contentTestId}>
+      <div className="hall-disclosure-content" id={contentId} data-testid={contentTestId}>
         {children}
       </div>
     </details>
