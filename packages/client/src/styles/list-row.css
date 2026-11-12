@@ -169,6 +169,14 @@
   @container (min-width: 761px) {
     .list-row-wide { display: flex; }
   }
+  /* On a phone, a list marked data-wrap writes its titles and facts in full: they pass to the next line instead of
+     being shortened, and the state goes whole to the next line when it does not fit after the facts. */
+  @media (max-width: 760px) {
+    .list-row-list[data-wrap="true"] .list-row-title { overflow: visible; overflow-wrap: anywhere; white-space: normal; }
+    .list-row-list[data-wrap="true"] .list-row-detail { flex-wrap: wrap; row-gap: var(--hall-space-0-5); white-space: normal; }
+    .list-row-list[data-wrap="true"] .list-row-detail-text { overflow: visible; flex: 0 1 auto; overflow-wrap: anywhere; }
+    .list-row-list[data-wrap="true"] .list-row-status { flex: none; }
+  }
   @media (pointer: coarse) {
     .list-row-list,
     .list-row { --list-row-height: var(--hall-size-list-row-touch); }

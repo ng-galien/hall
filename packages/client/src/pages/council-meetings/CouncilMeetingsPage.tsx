@@ -48,15 +48,15 @@ export function CouncilMeetingsPage() {
         <RequestErrorBanner error={error} />
 
         {nextMeeting ? (
-          <ListRows className="next-meeting-list">
+          <ListRows className="next-meeting-list" data-wrap="true">
             <ListRow
               prominent
               to={`/meetings/${nextMeeting.reference}`}
               openTestId="meeting-next"
               head={<MeetingDateHead meeting={nextMeeting} />}
+              overline={t("dashboard.nextMeeting")}
               title={meetingRowTitle(nextMeeting)}
               detail={[
-                t("dashboard.nextMeeting"),
                 nextMeeting.scheduledAt ? formatMeetingTime(nextMeeting.scheduledAt) : t("dashboard.toSchedule"),
                 nextMeeting.location,
               ]
@@ -134,7 +134,7 @@ function MeetingGroup({
           </span>
         </span>
       </header>
-      <ListRows>
+      <ListRows data-wrap="true">
         {meetings.map((meeting) => (
           <ListRow
             key={meeting.id}

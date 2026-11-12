@@ -232,7 +232,7 @@ export function MeetingProceedings({
       <div className="report-main">
         <section className="phone-points" data-testid="report-timeline" aria-labelledby="report-timeline-heading">
           <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
-          <ListRows>
+          <ListRows data-wrap="true">
             {orderedItems.map((item) => (
               <ListRow
                 key={item.id}
@@ -253,7 +253,7 @@ export function MeetingProceedings({
     <div className="report-main">
       <section className="meeting-section report-timeline" data-testid="report-timeline">
         <h2 id="report-timeline-heading">{t("meeting.timeline")}</h2>
-        <ListRows>
+        <ListRows data-wrap="true">
           {orderedItems.map((item) => {
             const ballot = itemBallot(aggregate, item);
             const expanded = expandedItems.has(item.id);

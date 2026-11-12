@@ -1,6 +1,6 @@
 // biome-ignore-all lint/correctness/useExhaustiveDependencies: Notice and minutes changes intentionally reload their state.
 import type { MeetingNotice, MeetingNoticeMessagePreparation } from "@hall/api-contract";
-import { type ReactNode, useEffect, useState } from "react";
+import { Children, type ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -77,7 +77,7 @@ function DocumentRow({
     head: <ListRowIcon nature="council">{icon}</ListRowIcon>,
     title: name,
     action: actions,
-    children,
+    children: Children.toArray(children).length ? children : undefined,
     ...facts,
   };
   if (!opening) return <ListRow {...shared} />;
@@ -260,7 +260,7 @@ export function MeetingDocumentsSection({
     >
       <RequestErrorBanner error={error} />
       <RequestErrorBanner error={meetingActions.actionError} />
-      <ListRows>
+      <ListRows data-wrap="true">
         {showNoticeRow ? (
           <DocumentRow
             testId="meeting-document-notice"

@@ -11,7 +11,7 @@ import {
   RequestErrorBanner,
   useCollectionView,
 } from "../components/Ui";
-import { ListRow, ListRowIcon, ListRowNumber, ListRows } from "../components/ui/list-row";
+import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
@@ -75,14 +75,19 @@ export function CouncilDecisionsPage() {
                   </span>
                 </Link>
               </header>
-              <ListRows>
+              <ListRows data-wrap="true">
                 {group.decisions.map((decision) => (
                   <ListRow
                     key={decision.id}
                     to={`/council-decisions/${decision.id}`}
                     openTestId={`decision-open-${decision.id}`}
-                    head={<DecisionNumberHead number={decision.number} />}
+                    head={
+                      <ListRowIcon nature="council">
+                        <GavelIcon />
+                      </ListRowIcon>
+                    }
                     title={decision.title}
+                    detail={decision.number ?? undefined}
                     status={{
                       tone: decision.state === "draft" ? "neutral" : "success",
                       label: t(decision.state === "draft" ? "decisionDocument.draft" : "decisionDocument.frozen"),
@@ -95,23 +100,5 @@ export function CouncilDecisionsPage() {
         )}
       </div>
     </div>
-  );
-}
-
-/** Head of a decision row: « n° » and the index of its number above its numbering period; a draft without number
- * shows the gavel. */
-function DecisionNumberHead({ number }: { number: string | null }) {
-  if (!number) {
-    return (
-      <ListRowIcon nature="council">
-        <GavelIcon />
-      </ListRowIcon>
-    );
-  }
-  const separator = number.lastIndexOf("-");
-  return separator > 0 ? (
-    <ListRowNumber number={`n° ${number.slice(separator + 1)}`} year={number.slice(0, separator)} />
-  ) : (
-    <ListRowNumber number={number} />
   );
 }

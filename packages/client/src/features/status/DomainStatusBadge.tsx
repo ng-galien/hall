@@ -54,6 +54,8 @@ export const domainStatusKeys: Record<DomainStatus, TranslationKey> = {
 export function domainStatusTone(value: DomainStatus): ListRowStatusTone {
   if (["adopted", "enforceable", "ready", "present", "published"].includes(value)) return "success";
   if (["rejected", "cancelled", "absent"].includes(value)) return "danger";
+  /* A represented member votes through a proxy: told apart from an excused member, who does not vote. */
+  if (value === "represented") return "action";
   return "neutral";
 }
 
@@ -111,7 +113,14 @@ export function useMeetingRowStatus(): (status: LiveMeetingStatus, stale?: boole
     stale
       ? { tone: "action", label: t("meetings.needsReview"), testId: "meeting-needs-review" }
       : {
-          tone: status === "inProgress" ? "success" : status === "cancelled" ? "danger" : "neutral",
+          tone:
+            status === "inProgress"
+              ? "success"
+              : status === "cancelled"
+                ? "danger"
+                : status === "scheduled"
+                  ? "action"
+                  : "neutral",
           label: t(meetingStatusKeys[status]),
         };
 }

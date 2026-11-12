@@ -269,6 +269,14 @@
     padding: var(--hall-space-4) 0;
     border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
+  /* The list of the meeting documents starts at the rule of its section header, without a second rule. */
+  .meeting-documents > .collapsible-section-content > .list-row-list:first-child { border-top: 0; }
+  /* A document that opens names itself with a link. */
+  .meeting-documents .list-row[data-openable="true"] > .list-row-line .list-row-title { color: var(--hall-color-brand); text-decoration: underline; text-underline-offset: var(--hall-space-1); }
+  /* The decisions of a closed meeting are rows of the same list: same rule edges and same column of heads. */
+  .meeting-documents .list-row-children:has(> .list-row-list:only-child) { padding: 0; }
+  /* The facts of a closed meeting hold one row under the description, wrapping by whole facts on a narrow screen. */
+  .meeting-report-header .page-header-controls > .meeting-facts { flex: 1 1 100%; grid-template-columns: repeat(auto-fit, minmax(var(--hall-size-relative-8rem), 1fr)); }
   /* A section that opens with its header takes the rule under the header instead of a rule above it. */
   :is(.meeting-section, .meeting-general, .meeting-documents, .agenda-composer):has(> .section-header:first-child) { border-top: 0; }
   .meeting-section > h2,
@@ -340,16 +348,17 @@
   .meeting-facts dd strong { overflow: hidden; font-size: var(--hall-font-size-body); text-overflow: ellipsis; white-space: nowrap; }
 
   /* State of a meeting, minutes or decision: the state after its dot, then its facts, separated by a middle dot. */
+  /* The facts flow as text: a middle dot stays with the fact it introduces, so a line never starts with a lone dot. */
   .meeting-state {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--hall-space-1) 0;
+    display: block;
     margin: 0;
     color: var(--hall-color-text-muted);
     font-size: var(--hall-font-size-body);
+    line-height: var(--hall-line-height-body);
   }
-  .meeting-state > * + *::before { margin-inline: var(--hall-space-1-5); color: var(--hall-color-text-muted); content: "·"; }
+  .meeting-state > * + :not(.list-row-status)::before { margin-inline: var(--hall-space-1-5); color: var(--hall-color-text-muted); content: "·"; }
+  /* A state after another fact keeps its own coloured dot as separator. */
+  .meeting-state > * + .list-row-status { margin-left: var(--hall-space-3); }
   .meeting-state > .list-row-status { color: var(--hall-color-text); }
   /* Meeting header of before the redesign: the console of facts and the stage bar with its circles. */
   .meeting-preparation .page-header .meeting-console { margin-top: var(--hall-space-3); margin-bottom: 0; border: 0; box-shadow: none; border-radius: 0; }
@@ -436,6 +445,9 @@
   .meeting-stepper-hint strong { font-weight: var(--hall-font-weight-semibold); }
 
   /* In progress: the state and the one gesture, resuming the meeting. */
+  /* The block of a meeting in progress opens the content: the rule of the screen header is its only rule above. */
+  .meeting-page-content > .live-resume-hero:first-child,
+  .page-content > .live-resume-hero:first-child { border-top: 0; }
   .live-resume-hero { display: grid; justify-items: start; gap: var(--hall-space-3); }
 
   .meeting-prep-layout { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--hall-space-5); }
@@ -483,9 +495,9 @@
   /* Agenda revision beside the stage bar: its state written as text, its gestures as buttons. */
   .revision-control { display: inline-flex; align-items: center; gap: var(--hall-space-2); margin-left: var(--hall-space-3); }
   .revision-control[data-state="open"] { height: var(--hall-size-control); padding: 0 var(--hall-space-1) 0 var(--hall-space-3); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-circular); background: var(--hall-color-surface-subtle); }
+  .revision-control .revision-control-confirm, .revision-control .revision-control-cancel { border-radius: var(--hall-radius-circular); }
   .revision-control-label { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-medium); white-space: nowrap; }
   .revision-control-revise { color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-regular); }
-  .revision-control .revision-control-confirm, .revision-control .revision-control-cancel { border-radius: var(--hall-radius-circular); }
   .revision-hint { display: grid; gap: var(--hall-space-0-5); max-width: var(--hall-size-relative-22rem); white-space: normal; }
   .revision-hint strong { font-weight: var(--hall-font-weight-semibold); }
 
@@ -679,4 +691,16 @@
   @media (prefers-reduced-motion: reduce) {
     .live-indicator { animation: none; }
   }
+}
+
+@layer components {
+  /* Council decision: the writing section and its editor take the whole width, with one rule above the editor. */
+  .admin-detail-surface.decision-writing { max-width: none; }
+  .decision-writing > .section-header { border-bottom: 0; padding-bottom: 0; }
+  .decision-writing .section-header-text { flex-grow: 1000; }
+  .decision-phone-heading { display: grid; gap: var(--hall-space-1); }
+  .decision-phone-heading h2 { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); line-height: var(--hall-line-height-heading); overflow-wrap: anywhere; }
+  .decision-phone-heading p { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
+  /* The next meeting heads its row like the past meetings, so every title starts at the same left edge. */
+  .next-meeting-list > .list-row[data-prominent="true"] .list-row-head { width: var(--list-row-head-width, var(--hall-size-glyph-large)); }
 }
