@@ -337,8 +337,9 @@ export function ResourcePhoneView({
         name={resource.name}
         onClose={() => setRenaming(false)}
         onRename={async (name) => {
-          session.setTitle(name);
-          return session.save(name);
+          const saved = await session.save(name);
+          if (saved) session.setTitle(name);
+          return saved;
         }}
       />
       {confirmingDelete ? (

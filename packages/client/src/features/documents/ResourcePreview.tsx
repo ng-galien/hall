@@ -124,8 +124,9 @@ export function ResourcePreviewWithSession({
               onTitleChange={
                 resource.kind === "event" && session.capabilities.updateMetadata
                   ? async (nextTitle) => {
-                      session.setTitle(nextTitle);
-                      return session.save(nextTitle);
+                      const saved = await session.save(nextTitle);
+                      if (saved) session.setTitle(nextTitle);
+                      return saved;
                     }
                   : undefined
               }

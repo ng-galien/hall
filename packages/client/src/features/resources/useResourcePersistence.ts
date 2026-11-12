@@ -69,13 +69,14 @@ export function useResourcePersistence({
   }, [resourceId, setSaveStatus]);
 
   const save = useCallback(
-    (nextTitle = name) => {
-      if (savePromiseRef.current) return savePromiseRef.current;
+    (requestedTitle?: string) => {
+      // A save asked while another is on its way leaves after it, with what it asks, such as a new name.
+      if (savePromiseRef.current) return savePromiseRef.current.then(() => latest.current.save(requestedTitle));
       if (!resource || !capabilities.updateMetadata) return Promise.resolve(true);
       // A save asked while an image uploads waits for it and leaves with the content that cites it.
       if (imageUploadsPending()) {
         setSaveStatus("saving");
-        return imageUploadsSettled().then(() => latest.current.save(nextTitle));
+        return imageUploadsSettled().then(() => latest.current.save(requestedTitle));
       }
       const current = resource;
       const pending = run(async () => {
@@ -83,7 +84,7 @@ export function useResourcePersistence({
         setSaveStatus("saving");
         try {
           let updated = current;
-          const nextName = nextTitle;
+          const nextName = requestedTitle ?? name;
           if (
             nextName !== current.name ||
             tags.join("\u0000") !== current.tags.join("\u0000") ||

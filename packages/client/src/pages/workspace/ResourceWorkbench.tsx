@@ -79,9 +79,11 @@ export function ResourceWorkbench({
     );
   }
 
+  /** The title line shows the new name once it is saved. */
   const renameResource = async (nextTitle: string) => {
-    session.setTitle(nextTitle);
-    return session.save(nextTitle);
+    const saved = await session.save(nextTitle);
+    if (saved) session.setTitle(nextTitle);
+    return saved;
   };
   const remove = async () => {
     if (await session.remove()) onSelect(null);
