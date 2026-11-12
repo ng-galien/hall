@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { chromium } from "@playwright/test";
-import { measureConformance, readBreakpoints, readComponentUnity, unityFindings } from "./conformance.mjs";
+import {
+  measureConformance,
+  measureDesignReference,
+  readBreakpoints,
+  readComponentUnity,
+  unityFindings,
+} from "./conformance.mjs";
 import { intervalsOf, measureLayout } from "./sweep.mjs";
 
 /*
@@ -26,6 +32,7 @@ const fingerprints = {
   [pathOf("Plus")]: "Plus:regular",
   [pathOf("House", "fill")]: "House:fill",
   [pathOf("House")]: "House:regular",
+  [pathOf("PencilSimple")]: "PencilSimple:regular",
 };
 
 const style = `<style>
@@ -155,6 +162,18 @@ const cases = [
     `<p><span role="status" class="dot">Enregistré</span></p>`,
   ],
   [
+    "button-icon-unity",
+    {},
+    `<button data-slot="button" data-variant="secondary" data-size="default" class="secondary">${icon("PencilSimple")}Modifier les rôles</button><button data-slot="button" data-variant="secondary" data-size="default" class="secondary">Réinitialiser le mot de passe</button>`,
+    `<button data-slot="button" data-variant="secondary" data-size="default" class="secondary">Modifier les rôles</button><button data-slot="button" data-variant="secondary" data-size="default" class="secondary">Réinitialiser le mot de passe</button>`,
+  ],
+  [
+    "plus-not-add",
+    {},
+    `<button data-slot="button" data-variant="secondary" data-size="default" class="secondary">${icon("Plus")}Imprimer</button>`,
+    `<button data-slot="button" data-variant="secondary" data-size="default" class="secondary">${icon("Plus")}Joindre</button>`,
+  ],
+  [
     "writing-modes",
     {},
     `<button class="secondary" data-testid="text-edit">Modifier</button><button class="primary" data-testid="text-finish-editing">Terminé</button>`,
@@ -252,8 +271,75 @@ try {
   const onFaultyMenu = (await unity(47)).length;
   const onCorrectMenu = (await unity(32)).length;
   const unityOk = onFaultyMenu > 0 && onCorrectMenu === 0;
-  console.log(`${unityOk ? "ok    " : "ÉCHEC "} component-unity : ${onFaultyMenu} sur la page fautive, ${onCorrectMenu} sur la page correcte`);
+  console.log(
+    `${unityOk ? "ok    " : "ÉCHEC "} component-unity : ${onFaultyMenu} sur la page fautive, ${onCorrectMenu} sur la page correcte`,
+  );
   if (!unityOk) failures.push({ rule: "component-unity", onFaultyMenu, onCorrectMenu });
+
+  /* Design reference: the secondary button and the menu row against the values of a design table. */
+  const reference = async (body) => {
+    await page.setContent(`<!doctype html><html lang="fr"><head>${style}</head><body>${body}</body></html>`);
+    return page.evaluate(measureDesignReference, {
+      entries: [
+        {
+          component: "bouton secondaire",
+          selector: "[data-variant=secondary]",
+          property: "background-color",
+          expected: "#E9EDF7",
+          when: "all",
+          status: "retenu",
+          source: { doc: "essai", page: 14, element: "b1o" },
+        },
+        {
+          component: "bouton secondaire",
+          selector: "[data-variant=secondary]",
+          property: "color",
+          expected: "#1B2A78",
+          when: "all",
+          status: "retenu",
+          source: { doc: "essai", page: 14, element: "b1o" },
+        },
+        {
+          component: "barre latérale, rangée",
+          selector: ".nav-row",
+          property: "height",
+          expected: "32px",
+          when: "all",
+          status: "retenu",
+          source: { doc: "essai", page: 33, element: "h25" },
+        },
+        {
+          component: "écartée",
+          selector: "[data-variant=secondary]",
+          property: "color",
+          expected: "#000000",
+          when: "all",
+          status: "contradiction",
+          source: { doc: "essai", page: 26, element: "t2b" },
+        },
+      ],
+      tolerance: { color: 0, px: 1 },
+      touch: false,
+      phone: false,
+      keyAttribute: "data-testid",
+      ignoreSelectors: [],
+    });
+  };
+  const onFaultyDesign = (
+    await reference(
+      `<button data-variant="secondary" style="background:#e8eefc;color:#1b45ad">Imprimer</button><a class="nav-row" style="display:flex;height:47px">Accueil</a>`,
+    )
+  ).length;
+  const onCorrectDesign = (
+    await reference(
+      `<button data-variant="secondary" style="background:#e9edf7;color:#1b2a78">Imprimer</button><a class="nav-row" style="display:flex;height:32px">Accueil</a>`,
+    )
+  ).length;
+  const designOk = onFaultyDesign === 3 && onCorrectDesign === 0;
+  console.log(
+    `${designOk ? "ok    " : "ÉCHEC "} design-reference : ${onFaultyDesign} sur la page fautive, ${onCorrectDesign} sur la page correcte`,
+  );
+  if (!designOk) failures.push({ rule: "design-reference", onFaultyDesign, onCorrectDesign });
 
   /* Thresholds: a min-width and a max-width query open ranges at the same width; rem is read at 16 px. */
   await page.setContent(`<!doctype html><html><head><style>

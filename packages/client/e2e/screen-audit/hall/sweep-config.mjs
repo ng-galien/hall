@@ -147,6 +147,9 @@ const unityComponents = {
 /** Below this width the menu opens over the content (`components/Layout.tsx`); it is opened to be measured. */
 const drawerQuery = scripts.find((entry) => entry.source.endsWith("components/Layout.tsx"));
 
+/** Values the design fixed, read from the Maket boards (`design-reference.json`). */
+const designReference = JSON.parse(readFileSync(resolve(import.meta.dirname, "design-reference.json"), "utf8"));
+
 export const sweepPlan = {
   from: 320,
   to: 1600,
@@ -167,5 +170,6 @@ export const sweepPlan = {
   isItem: (screen) => itemScreens.has(screen.id),
   exceptions,
   unityComponents,
+  designReference,
   drawerBelow: drawerQuery?.breakpoint ?? 0,
 };

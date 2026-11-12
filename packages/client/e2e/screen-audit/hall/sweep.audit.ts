@@ -4,6 +4,7 @@ import type { Page } from "@playwright/test";
 import { test } from "../../fixtures/application";
 import {
   measureConformance,
+  measureDesignReference,
   readBreakpoints,
   readComponentUnity,
   readContainers,
@@ -128,7 +129,18 @@ if (sweeping) {
                         exceptions: sweepPlan.exceptions,
                       })
                     : [];
-                return [...geometry, ...decisions];
+                const design: Finding[] =
+                  text === "réel"
+                    ? await page.evaluate(measureDesignReference, {
+                        entries: sweepPlan.designReference.entries,
+                        tolerance: sweepPlan.designReference.tolerance,
+                        touch: input === "touch",
+                        phone,
+                        keyAttribute: "data-testid",
+                        ignoreSelectors: sweepPlan.ignoreSelectors,
+                      })
+                    : [];
+                return [...geometry, ...decisions, ...design];
               };
               /* A finding counts when a second measure, after the layout has had time to settle, finds it again: a
                  layout still switching after the resize is not measured as a defect. */
@@ -160,6 +172,17 @@ if (sweeping) {
                     }))
                       if (entry.component.includes("menu"))
                         unity.push({ ...entry, ...where, menu: "ouvert par-dessus le contenu" });
+                    for (const finding of (await page.evaluate(measureDesignReference, {
+                      entries: sweepPlan.designReference.entries.filter((entry: { component: string }) =>
+                        entry.component.startsWith("barre latérale"),
+                      ),
+                      tolerance: sweepPlan.designReference.tolerance,
+                      touch: input === "touch",
+                      phone,
+                      keyAttribute: "data-testid",
+                      ignoreSelectors: sweepPlan.ignoreSelectors,
+                    })) as Finding[])
+                      findings.push({ ...finding, ...where, menu: "ouvert par-dessus le contenu", text });
                     await page.keyboard.press("Escape");
                     await drawer.waitFor({ state: "hidden", timeout: 2_000 }).catch(() => undefined);
                   }

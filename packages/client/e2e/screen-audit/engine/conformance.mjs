@@ -29,6 +29,9 @@ export const conformanceRules = {
   "writing-modes": "Choix 8 : « Modifier » et « Terminé » affichés ensemble",
   "pointer-scale": "Tailles à l'ordinateur : ligne de liste écrite plus grand que le menu",
   "component-unity": "Unité visuelle : un composant partagé dessiné de plusieurs façons dans une même variante",
+  "button-icon-unity": "Boutons de même forme sur un écran, les uns avec une icône, les autres sans",
+  "plus-not-add": "« + » sur une commande qui n'ajoute ni ne crée",
+  "design-reference": "Valeur de dessin différente du design (Maket)",
   "row-height": "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
 };
 
@@ -561,6 +564,40 @@ export function measureConformance(options) {
     }
   }
 
+  /* button-icon-unity and plus-not-add: the labelled buttons of one form (variant and size) on one screen are all drawn
+     with an icon or all without; « + » marks an addition or a creation only (choice 6, HALL-FR-LAY-170). */
+  const addition = /nouveau|nouvelle|ajouter|joindre|créer|inviter|importer/i;
+  const labelled = commands.filter(
+    (button) =>
+      button.matches("[data-slot=button]") &&
+      visibleText(button) &&
+      !button.closest("[data-slot=list-row], [role=menu], [role=listbox], [role=tablist], nav, .create-fab"),
+  );
+  const forms = new Map();
+  for (const button of labelled) {
+    const scope = button.closest("[role=dialog]") ?? document.body;
+    const icons = [...button.querySelectorAll("svg")].map((svg) => iconOf(svg) ?? "icône");
+    const plus = icons.some((icon) => /Plus:/.test(icon));
+    if (plus && !addition.test(visibleText(button)))
+      add("plus-not-add", button, `« + » sur « ${visibleText(button).slice(0, 30)} »`);
+    if (plus) continue;
+    const key = `${button.getAttribute("data-variant")}|${button.getAttribute("data-size")}`;
+    const form = forms.get(scope) ?? new Map();
+    const sides = form.get(key) ?? { with: [], without: [] };
+    sides[icons.length ? "with" : "without"].push(button);
+    form.set(key, sides);
+    forms.set(scope, form);
+  }
+  for (const form of forms.values())
+    for (const [key, sides] of form)
+      if (sides.with.length && sides.without.length)
+        for (const button of sides.with)
+          add(
+            "button-icon-unity",
+            button,
+            `« ${visibleText(button).slice(0, 30)} » a une icône, « ${visibleText(sides.without[0]).slice(0, 30)} » n'en a pas (bouton ${key.split("|")[0]})`,
+          );
+
   /* writing-modes: choice 8B, a text is read with « Modifier » or written with « Terminé », never both. */
   const editing = commands.filter((command) => command.matches("[data-testid=text-edit]"));
   const finishing = commands.filter((command) => command.matches("[data-testid=text-finish-editing]"));
@@ -699,6 +736,81 @@ export function unityFindings(entries, intervalLabel) {
         ([signature, cases]) => `${signature} : ${cases.count} mesures, par exemple ${[...cases.examples].join(" ; ")}`,
       ),
     });
+  }
+  return findings;
+}
+
+/**
+ * Compares the computed styles of the page with the values the design fixed (`entries` of a design reference table:
+ * `{ component, selector, pseudo?, property, expected, when, status, source }`). A colour is compared exactly, a
+ * length within `tolerance.px`. Entries marked « contradiction » are not applied. `when` is `all`, `touch` (phone
+ * layout or finger) or `pointer-wide` (mouse above the phone layout). Returns findings `{ rule, selector, detail }`.
+ */
+export function measureDesignReference(options) {
+  const { entries, tolerance, touch, phone, keyAttribute, ignoreSelectors } = options;
+  const findings = [];
+  const tactile = touch || phone;
+  const shown = (element) => {
+    const style = getComputedStyle(element);
+    if (style.visibility === "hidden" || style.display === "none" || element.closest("[aria-hidden=true], [hidden]"))
+      return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0.5 && rect.height > 0.5;
+  };
+  const keyOf = (element) => {
+    const key = element.closest(`[${keyAttribute}]`)?.getAttribute(keyAttribute);
+    const own = `${element.tagName.toLowerCase()}${[...element.classList]
+      .slice(0, 2)
+      .map((name) => `.${name}`)
+      .join("")}`;
+    return key ? `[${key.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}|\d{6,}/gi, "*")}] › ${own}` : own;
+  };
+  const hex = (value) => {
+    const numbers = (value.match(/[\d.]+/g) ?? []).map(Number);
+    if (value === "transparent" || numbers.length < 3) return "transparent";
+    let [r, g, b, a = 1] = numbers;
+    if (value.startsWith("color(")) [r, g, b] = [r * 255, g * 255, b * 255];
+    if (a < 0.05) return "transparent";
+    const part = (n) => Math.round(n).toString(16).padStart(2, "0").toUpperCase();
+    return `#${part(r)}${part(g)}${part(b)}${a < 0.99 ? ` (opacité ${Math.round(a * 100)} %)` : ""}`;
+  };
+  for (const entry of entries) {
+    if (entry.status === "contradiction") continue;
+    if (entry.when === "touch" && !tactile) continue;
+    if (entry.when === "pointer-wide" && tactile) continue;
+    let checked = 0;
+    for (const element of document.querySelectorAll(entry.selector)) {
+      if (checked >= 12) break;
+      if (ignoreSelectors.some((selector) => element.closest(selector)) || !shown(element)) continue;
+      checked += 1;
+      const style = getComputedStyle(element, entry.pseudo ?? null);
+      let actual;
+      let ok;
+      if (entry.property === "height" || entry.property === "width") {
+        const rect = element.getBoundingClientRect();
+        const value = entry.pseudo ? Number.parseFloat(style[entry.property]) : rect[entry.property];
+        actual = `${Math.round(value * 10) / 10}px`;
+        ok = Math.abs(value - Number.parseFloat(entry.expected)) <= tolerance.px;
+      } else if (/color$/.test(entry.property)) {
+        actual = hex(style.getPropertyValue(entry.property));
+        ok = actual === entry.expected.toUpperCase();
+      } else if (entry.property === "font-family") {
+        actual = style.fontFamily.split(",")[0].replace(/["']/g, "").trim();
+        ok = actual.toLowerCase() === entry.expected.toLowerCase();
+      } else if (entry.property === "font-weight") {
+        actual = style.fontWeight;
+        ok = Number(actual) === Number(entry.expected);
+      } else {
+        actual = style.getPropertyValue(entry.property);
+        ok = Math.abs(Number.parseFloat(actual) - Number.parseFloat(entry.expected)) <= tolerance.px;
+      }
+      if (ok) continue;
+      findings.push({
+        rule: "design-reference",
+        selector: `${entry.component} · ${entry.property}${entry.pseudo ? ` (${entry.pseudo})` : ""} · ${keyOf(element)}`,
+        detail: `design ${entry.expected} (Maket « ${entry.source.doc} » p. ${entry.source.page}, ${entry.source.element}), mesuré ${actual}`,
+      });
+    }
   }
   return findings;
 }
