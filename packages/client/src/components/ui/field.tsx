@@ -20,6 +20,7 @@ export function Field({
   className,
   testId,
   action,
+  labelAction,
   variant,
   children,
 }: {
@@ -32,6 +33,8 @@ export function Field({
   testId?: string;
   /** A control at the end of the field, such as the call of a number or a message to an address. */
   action?: ReactNode;
+  /** A command written at the right end of the label line, above the field, such as « Insérer une image ». */
+  labelAction?: ReactNode;
   /** `code`: a source text, framed, in monospace, one line per source line, its label above the frame. */
   variant?: "code";
   children: ReactNode;
@@ -46,10 +49,20 @@ export function Field({
         data-invalid={error ? "true" : undefined}
         data-action={action ? "true" : undefined}
         data-variant={variant}
+        data-label-action={labelAction ? "true" : undefined}
       >
-        <label className="hall-field-label" htmlFor={id}>
-          {label}
-        </label>
+        {labelAction ? (
+          <div className="hall-field-head">
+            <label className="hall-field-label" htmlFor={id}>
+              {label}
+            </label>
+            {labelAction}
+          </div>
+        ) : (
+          <label className="hall-field-label" htmlFor={id}>
+            {label}
+          </label>
+        )}
         <FieldContext.Provider value={{ id, describedBy: noteId, invalid: Boolean(error) }}>
           {children}
         </FieldContext.Provider>

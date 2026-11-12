@@ -32,7 +32,7 @@
   align-items: center;
   gap: var(--hall-space-1);
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 1;
   font-size: var(--hall-font-size-body);
   color: var(--hall-color-text-muted);
 }
@@ -499,18 +499,38 @@ h4.docs-heading {
   flex-shrink: 0;
 }
 
+/* The path takes the room left by the commands and passes to a second line rather than being shortened. */
+.docs-toolbar {
+  height: auto;
+  min-height: var(--hall-size-touch-control);
+  padding-block: var(--hall-space-1);
+}
+.docs-toolbar .docs-crumbs {
+  flex: 1 1 0;
+  flex-wrap: wrap;
+  row-gap: var(--hall-space-0-5);
+}
+.docs-toolbar .docs-crumbs .docs-crumb,
+.docs-toolbar .docs-crumbs .docs-crumb > a {
+  min-width: auto;
+}
+
+/* Under 1280 pixels the search narrows; on a phone the PDF button keeps its icon only. */
 @media (max-width: 1280px) {
+  .docs-toolbar .docs-search {
+    width: var(--hall-size-relative-12rem);
+  }
+}
+@media (max-width: 760px) {
   .docs-toolbar .docs-pdf-link span {
     display: none;
   }
 }
 
-/* The search narrows before the path of the open page is shortened. */
 .docs-search {
   position: relative;
   width: var(--hall-size-fixed-288px);
-  min-width: var(--hall-size-relative-12rem);
-  flex: 0 1000 auto;
+  flex-shrink: 0;
 }
 
 .docs-search-results {

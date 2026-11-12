@@ -260,7 +260,7 @@ export function UsersPage() {
               </p>
             )}
             <div className="dialog-actions">
-              <Button variant="secondary" type="button" onClick={closeCreate} data-testid="user-create-cancel">
+              <Button variant="plain" type="button" onClick={closeCreate} data-testid="user-create-cancel">
                 {t("common.cancel")}
               </Button>
               <Button
@@ -289,6 +289,7 @@ export function UsersPage() {
             {visible.map((user) => (
               <ListRow
                 key={user.id}
+                className="user-row"
                 to={`/users/${user.id}`}
                 openTestId={`user-open-${user.id}`}
                 openLabel={t("users.openNamed", { name: user.displayName })}
@@ -307,7 +308,7 @@ export function UsersPage() {
                   tone: user.status === "active" ? "success" : "danger",
                   label: t(`users.status.${user.status}`),
                 }}
-                wide={<span>{user.roles.map((role) => roleName(role)).join(" · ")}</span>}
+                wide={<span className="user-row-roles">{user.roles.map((role) => roleName(role)).join(" · ")}</span>}
               />
             ))}
           </ListRows>

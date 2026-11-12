@@ -156,10 +156,13 @@ export function ContactsPage() {
                   wide={
                     contact.email || phone ? (
                       <>
-                        {contact.email ? <span>{contact.email}</span> : null}
-                        {phone ? (
-                          <span data-testid={`contact-phone-${contact.id}`}>{formatPhoneNumber(phone)}</span>
-                        ) : null}
+                        <span className="contact-row-email">{contact.email}</span>
+                        <span
+                          className="contact-row-phone"
+                          data-testid={phone ? `contact-phone-${contact.id}` : undefined}
+                        >
+                          {phone ? formatPhoneNumber(phone) : null}
+                        </span>
                       </>
                     ) : undefined
                   }

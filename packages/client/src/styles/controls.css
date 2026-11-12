@@ -25,8 +25,6 @@
   .hall-button[data-variant="primary"] { color: var(--hall-color-on-brand); background: var(--hall-color-brand); }
   .hall-button[data-variant="primary"]:hover:not(:disabled) { background: var(--hall-color-brand-hover); }
   .hall-button[data-variant="primary"]:active:not(:disabled) { background: var(--hall-color-brand-pressed); }
-  /* An unavailable main action turns grey, so that it never reads as the pale blue of its neighbours. */
-  .hall-button[data-variant="primary"]:disabled { color: var(--hall-color-text-muted); background: var(--hall-color-surface-selected); opacity: 1; }
   .hall-button[data-variant="secondary"] { color: var(--hall-color-on-brand-subtle); background: var(--hall-color-brand-subtle); }
   .hall-button[data-variant="secondary"]:hover:not(:disabled),
   .hall-button[data-variant="secondary"][aria-expanded="true"],
@@ -166,9 +164,14 @@
   /* A control at the end of a field keeps the text of the field clear of it. */
   .hall-field[data-action="true"] > :is(.hall-input, .hall-field-value) { padding-right: calc(var(--hall-size-touch-control) + var(--hall-space-2)); }
   .hall-field > .hall-field-action { position: absolute; top: 50%; right: var(--hall-space-1); z-index: var(--hall-z-content); display: flex; align-items: center; transform: translateY(-50%); }
-  /* On a text over several lines, the control keeps the top right corner, on the line of the label. */
-  .hall-field[data-action="true"] > .hall-textarea { padding-right: var(--hall-size-relative-12rem); }
-  .hall-field[data-action="true"]:has(> .hall-textarea) > .hall-field-action { top: 0; transform: none; }
+  /* A command of the label line: the label and the command share a line above the field, which keeps its width. */
+  .hall-field-head { display: flex; min-height: var(--hall-size-control); align-items: center; justify-content: space-between; gap: var(--hall-space-2); }
+  .hall-field-head > .hall-field-label { position: static; }
+  .hall-field[data-label-action="true"] > :is(.hall-input, .hall-textarea),
+  .hall-field[data-label-action="true"] > :is(.hall-input, .hall-textarea):focus { min-height: var(--hall-size-textarea-min); padding-top: var(--hall-space-1); }
+  @media (pointer: coarse) {
+    .hall-field-head { min-height: var(--hall-size-touch-control); }
+  }
   /* A source text (variant code): its label above a frame, monospace, one line per source line, scrolled inside. */
   .hall-field[data-variant="code"] > .hall-field-label { position: static; margin-bottom: var(--hall-space-1); }
   .hall-field[data-variant="code"] > .hall-textarea,
@@ -214,6 +217,8 @@
   }
   .hall-button.create-fab[data-reduced="true"] { width: var(--hall-size-touch-control); padding: 0; }
   .hall-button.create-fab > svg { font-size: var(--hall-font-size-icon-large); }
+  /* A window open over the screen hides the floating button of the screen under it. */
+  body:has([data-slot="dialog-content"]) .hall-button.create-fab { visibility: hidden; }
   /* The list keeps room under its last row so the floating button never covers it. */
   body:has(.create-fab) .app-main { padding-bottom: calc(var(--hall-size-touch-control) + var(--hall-space-6)); }
   .create-menu { min-width: var(--hall-size-hit-card); max-width: var(--hall-size-mention-menu-max); padding: var(--hall-space-1) 0; }

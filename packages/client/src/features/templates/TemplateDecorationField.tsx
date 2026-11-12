@@ -66,7 +66,7 @@ export function TemplateDecorationField({
         label={label}
         help={t("templates.decorationHelp")}
         error={problem ? <span data-testid={`${testId}-problem`}>{problem}</span> : undefined}
-        action={
+        labelAction={
           readOnly ? undefined : (
             <Button
               type="button"

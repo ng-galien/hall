@@ -190,8 +190,6 @@ export function UserPage() {
                   {t("common.retry")}
                 </Button>
               )}
-            </section>
-            <section className="admin-record">
               <TemporaryPasswordSetting
                 value={user.passwordChangeRequired}
                 disabled={!canUpdate[userId] || submitting}

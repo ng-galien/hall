@@ -110,7 +110,7 @@ export function RepresentativeBodiesPage({
         {visibleBodies.length === 0 ? (
           <EmptyState>{t(bodies.length === 0 ? text.empty : "common.noSearchResults")}</EmptyState>
         ) : (
-          <ListRows>
+          <ListRows data-wrap="true">
             {visibleBodies.map((body) => (
               <ListRow
                 key={body.id}

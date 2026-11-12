@@ -213,6 +213,7 @@
   .authorization-grants td:last-child { min-width: var(--hall-size-relative-12rem); }
 
   .template-editor { display: grid; gap: var(--hall-space-4); }
+  .template-editor > .creation-form { padding-top: 0; }
   .template-editor-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-4); margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .template-decoration,
   .template-body { display: grid; justify-items: start; gap: var(--hall-space-2); }
@@ -283,6 +284,24 @@
   .body-row-object { overflow: hidden; min-width: 0; text-overflow: ellipsis; }
   .body-row-count { flex: none; white-space: pre; }
   .body-row .list-row-status { flex: none; }
+  /* In a narrow list (a phone), the object wraps under the name instead of being shortened. */
+  @container (max-width: 760px) {
+    .body-row .list-row-detail-text { display: block; }
+    .body-row-object { overflow: visible; }
+  }
+  /* On a phone, a list that opens the content, under the screen header and its rule, takes no second rule. */
+  @media (max-width: 760px) {
+    .page-content > .list-row-list:first-child { border-top: 0; }
+  }
+  /* A user: the roles keep one width at the right, so that the states fall in a column; on a phone the name is
+     written in full and the state goes on its own line under the address. */
+  .user-row-roles { flex: none; width: var(--hall-size-relative-12rem); }
+  .user-row .list-row-title { white-space: normal; overflow-wrap: anywhere; }
+  .user-row .list-row-detail { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; }
+  .user-row .list-row-detail-text { max-width: 100%; }
+  /* A contact: its address and its telephone each keep their own column at the right of the row. */
+  .contact-row-email { flex: none; width: var(--hall-size-relative-16rem); }
+  .contact-row-phone { flex: none; width: var(--hall-size-relative-8rem); }
   /* The contact line of a member writes its address and telephone in full, over two lines when needed. */
   .member-contact-row .list-row-detail,
   .member-contact-row .list-row-detail-text { white-space: normal; overflow-wrap: anywhere; }
@@ -450,6 +469,15 @@
 
   /* Dialog footer: « Annuler » on pale blue, then the action. */
   .dialog-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); }
+  /* In a window whose content scrolls, its actions stay whole at its bottom edge. */
+  .modal-content .dialog-actions {
+    position: sticky;
+    bottom: calc(-1 * var(--hall-space-5));
+    z-index: var(--hall-z-content);
+    margin-bottom: calc(-1 * var(--hall-space-5));
+    padding-block: var(--hall-space-3) var(--hall-space-5);
+    background: var(--hall-color-surface);
+  }
   .checkbox-group { display: grid; gap: var(--hall-space-1); min-width: 0; margin: 0; padding: 0; border: 0; }
   .checkbox-group > legend { margin-bottom: var(--hall-space-2); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-bold); }
   .checkbox-field { display: flex; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-2); font-size: var(--hall-font-size-body); cursor: pointer; }
@@ -610,16 +638,17 @@
   /* The single section header: title at the left in one size and weight with its count, the commands of the section
      at the right end of the line, a rule under the line. */
   .section-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: var(--hall-space-2) var(--hall-space-4);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--hall-space-1) var(--hall-space-4);
     padding-bottom: var(--hall-space-2);
     border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   }
   .section-header[hidden] { display: none; }
-  .section-header-text { display: grid; min-width: 0; flex: 1 1 var(--hall-size-relative-12rem); gap: var(--hall-space-1); }
-  .section-header-line { display: flex; min-width: 0; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-1); }
+  /* The title and the commands share the first line; the description takes the whole width under them. */
+  .section-header-text { display: contents; }
+  .section-header-line { display: flex; min-width: 0; min-height: var(--hall-size-control); grid-column: 1; grid-row: 1; align-items: center; gap: var(--hall-space-1); }
   .section-header-title {
     display: flex;
     min-width: 0;
@@ -653,10 +682,9 @@
   .section-header-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   .section-header-icon .disclosure-badge svg { width: var(--hall-font-size-caption); height: var(--hall-font-size-caption); }
   .section-header-title-text { min-width: 0; overflow-wrap: anywhere; }
-  .section-header-description { margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
-  /* The commands keep the right end of the title line, centred on it, and leave the rest of the line to the
-     description; when they do not fit, they go to a line of their own under it. */
-  .section-header-commands { display: flex; min-height: var(--hall-size-control); flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
+  .section-header-description { grid-column: 1 / -1; grid-row: 2; margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
+  /* The commands keep the right end of the title line, centred on it; when they do not fit, they wrap at its right. */
+  .section-header-commands { display: flex; min-width: 0; min-height: var(--hall-size-control); grid-column: 2; grid-row: 1; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); }
   /* A list right under a section header starts at its rule and leaves the space under the section to the screen. */
   .section-header + .list-row-list { margin-bottom: 0; border-top: 0; }
   .collapsible-section { display: grid; gap: var(--hall-space-2); }
