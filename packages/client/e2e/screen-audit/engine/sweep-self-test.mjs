@@ -74,7 +74,7 @@ const cases = [
     "warm-tint",
     {},
     `<p style="" class="x"><span class="warm">Brouillon</span></p><style>.warm{background: rgb(253, 230, 138)}</style>`,
-    `<p><span>Brouillon</span></p>`,
+    `<p><span>Brouillon</span> <span class="record-state" data-tone="action" style="background:rgb(253,235,210);color:rgb(138,75,8)">À réviser</span></p>`,
   ],
   ["forbidden-text", {}, `<p>Ouvrir dans Outlook</p>`, `<p>Ouvrir dans la messagerie de la commune</p>`],
   [
@@ -106,12 +106,6 @@ const cases = [
     {},
     `<button class="primary">Établir</button><button class="primary">Imprimer</button>`,
     `<button class="primary">Établir</button><button class="secondary">Imprimer</button>`,
-  ],
-  [
-    "state-badge",
-    {},
-    `<p>Convocation <span class="badge">À réviser</span></p><style>.badge{background: rgb(254, 226, 226); color: rgb(185, 28, 28); padding: 2px 6px}</style>`,
-    `<p>Convocation <span class="dot">À réviser</span></p>`,
   ],
   [
     "font-family",
@@ -163,12 +157,6 @@ const cases = [
     {},
     `<aside class="app-sidebar"><span class="nav-label" style="font-size:14px">Documents</span></aside><div data-slot="list-row"><span class="list-row-title" style="font-size:16px">Budget</span></div>`,
     `<aside class="app-sidebar"><span class="nav-label" style="font-size:14px">Documents</span></aside><div data-slot="list-row"><span class="list-row-title" style="font-size:14px">Budget</span></div>`,
-  ],
-  [
-    "state-without-dot",
-    {},
-    `<p><span role="status">Enregistré</span></p>`,
-    `<p><span role="status" class="dot">Enregistré</span></p>`,
   ],
   [
     "button-icon-unity",
@@ -241,6 +229,12 @@ const cases = [
     {},
     `<header data-testid="screen-header" style="position:fixed;top:0;left:0;right:0;height:60px;background:white">Finances</header><p style="margin-top:20px">Budget communal 2026</p>`,
     `<header data-testid="screen-header" style="position:sticky;top:0;height:60px;background:white">Finances</header><p>Budget communal 2026</p>`,
+  ],
+  [
+    "state-pill",
+    {},
+    `<p><span role="status" class="dot">Enregistré</span> <span data-tone="action" style="background:rgb(234,240,255);color:rgb(27,69,173);padding:0 8px">Programmée</span></p>`,
+    `<p><span role="status" data-tone="success" style="background:rgb(227,244,234);color:rgb(23,99,58);padding:0 8px;border-radius:4px">Enregistré</span> <span data-tone="action" style="background:rgb(253,235,210);color:rgb(138,75,8);padding:0 8px;border-radius:4px">À réviser</span></p>`,
   ],
   [
     "writing-modes",

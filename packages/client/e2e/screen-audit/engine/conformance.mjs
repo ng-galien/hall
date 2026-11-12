@@ -29,9 +29,9 @@ export const conformanceRules = {
       "Les icônes sont dans la graisse normale de leur famille ; seule la destination courante d'une barre a un trait plus épais.",
   },
   "warm-tint": {
-    title: "Charte : teinte chaude peinte à l'écran (crème, orange, brun, ambre)",
+    title: "Charte : teinte chaude peinte sur l'habillage de l'interface (crème, orange, brun, ambre)",
     expected:
-      "Aucune teinte chaude (crème, orange, brun, ambre) n'est peinte à l'écran ; une couleur choisie par la personne est une donnée.",
+      "Aucune teinte chaude (crème, orange, brun, ambre) n'habille l'interface ; l'orange d'un état qui attend une action est un indicateur, et une couleur choisie par la personne est une donnée.",
   },
   "forbidden-text": {
     title: "Choix 16 : texte retiré (« Outlook », « espace de travail », « Tags »)",
@@ -60,10 +60,7 @@ export const conformanceRules = {
     title: "Choix 5 : plus d'un bouton principal plein dans un écran",
     expected: "Un écran ou une fenêtre a au plus un bouton plein bleu, pour son action principale.",
   },
-  "state-badge": {
-    title: "Choix 7 : état en étiquette teintée au lieu du point de couleur",
-    expected: "Un état s'écrit sans fond teinté : un point de couleur puis le mot.",
-  },
+
   "font-family": {
     title: "Choix 10 : texte hors de la police Archivo",
     expected: "Tout le texte est en Archivo.",
@@ -72,10 +69,12 @@ export const conformanceRules = {
     title: "Choix 10 : texte de moins de 14 px sous le doigt, de 13 px à la souris",
     expected: "Le texte mesure au moins 14 px au doigt et 13 px à la souris.",
   },
-  "state-without-dot": {
-    title: "Choix 7 : état écrit sans son point de couleur",
-    expected: "Un état s'écrit après son point de couleur.",
+  "state-pill": {
+    title: "État écrit avec un rond ou sans pastille",
+    expected:
+      "Un état s'écrit dans une pastille teintée, sans rond devant : vert acquis, orange en attente d'une action, rouge bloquant, gris neutre ou passé ; le bleu n'est pas une couleur d'état.",
   },
+
   "header-first-line": {
     title: "Choix 2 : commande dans la première ligne du bandeau",
     expected:
@@ -485,6 +484,8 @@ export function measureConformance(options) {
   for (const element of document.querySelectorAll("body *")) {
     if (ignored(element) || element.closest("img, picture, video, canvas, iframe")) continue;
     if (/color|background|fill|stroke/.test(element.getAttribute("style") ?? "")) continue;
+    // The orange of a state (waiting for an action) is an indicator, not the dressing of the interface.
+    if (element.closest("[data-tone], [data-save], .record-state, .list-row-status")) continue;
     if (!shown(element)) continue;
     const style = getComputedStyle(element);
     const candidates = [["fond", style.backgroundColor]];
@@ -577,43 +578,20 @@ export function measureConformance(options) {
         buttons.map((button) => `« ${nameOf(button).slice(0, 24)} »`).join(", "),
       );
 
-  /* state-badge: choice 7B, a state is a coloured dot and a word, never a tinted label. */
-  for (const element of textParents) {
-    if (element.closest(interactiveSelector) || element.children.length > 1) continue;
-    const text = visibleText(element);
-    if (!text || text.length > 30 || /^[A-ZÀ-Ý]{1,3}$/.test(text)) continue;
-    const style = getComputedStyle(element);
-    const fill = painted(style.backgroundColor);
-    if (!fill || hsl(fill).s < 0.15 || hsl(fill).l > 0.985) continue;
-    const parentFill = painted(getComputedStyle(element.parentElement).backgroundColor);
-    if (parentFill && parentFill.r === fill.r && parentFill.g === fill.g && parentFill.b === fill.b) continue;
-    const rect = element.getBoundingClientRect();
-    if (rect.height > 36) continue;
-    add("state-badge", element, `« ${text} » sur ${style.backgroundColor}`);
-  }
-
-  /* state-without-dot: choice 7B, a state (a status or a save state) is written after its coloured dot. */
-  const hasDot = (element) => {
-    for (const pseudo of ["::before", "::after"]) {
-      const style = getComputedStyle(element, pseudo);
-      if (style.content === "none" || style.content === "normal") continue;
-      if (painted(style.backgroundColor) && Number.parseFloat(style.width) <= 14) return true;
-    }
-    return [...element.children].some((child) => {
-      const rect = child.getBoundingClientRect();
-      return (
-        !child.textContent?.trim() &&
-        rect.width > 0 &&
-        rect.width <= 14 &&
-        painted(getComputedStyle(child).backgroundColor)
-      );
-    });
-  };
-  for (const state of document.querySelectorAll("[role=status], [data-save], [data-tone]")) {
+  /* state-pill: a state is a tinted pill without a dot, never blue (decision of 12 November 2026, page 9). */
+  for (const state of document.querySelectorAll(
+    "[role=status], [data-save], [data-tone], .record-state, .list-row-status",
+  )) {
     if (ignored(state) || !shown(state) || state.closest(interactiveSelector)) continue;
     const text = visibleText(state);
     if (!text || text.length > 40) continue;
-    if (!hasDot(state)) add("state-without-dot", state, `« ${text} »`);
+    const before = getComputedStyle(state, "::before");
+    if (before.content !== "none" && before.content !== "normal" && painted(before.backgroundColor))
+      add("state-pill", state, `« ${text} » écrit après un rond`);
+    const fill = painted(getComputedStyle(state).backgroundColor);
+    if (!fill) add("state-pill", state, `« ${text} » sans pastille`);
+    else if (isBlue(fill) || isBlue(parseColor(getComputedStyle(state).color) ?? { r: 0, g: 0, b: 0 }))
+      add("state-pill", state, `« ${text} » en bleu`);
   }
 
   /* header-first-line and title-after-commands: choice 2 and the rule of an opened element. */

@@ -155,7 +155,7 @@ test("the design table is drawn from « Design de référence » only, cites its
   for (const entry of table.entries) {
     const name = `${entry.component} · ${entry.property}`;
     assert.equal(entry.source?.doc, "Hall 1.3 — Design de référence", `${name}: source`);
-    assert.ok(entry.source.page >= 1 && entry.source.page <= 6 && entry.source.element, `${name}: page et élément`);
+    assert.ok(entry.source.page >= 1 && entry.source.page <= 9 && entry.source.element, `${name}: page et élément`);
     assert.equal(entry.status, "retenu", `${name}: no contradiction is kept`);
     assert.ok(["all", "mouse", "finger", "touch", "pointer-wide"].includes(entry.when), `${name}: ${entry.when}`);
     if (/color$/.test(entry.property) && entry.expected !== "transparent")
@@ -179,7 +179,12 @@ test("the design table is drawn from « Design de référence » only, cites its
       ["finger", "44px"],
     ],
   );
-  assert.equal(value("état après un point", "width"), "8px");
+  // Page 9: a state is a tinted pill, text 12 px at weight 650, radius 4 px, without a dot or a border.
+  assert.equal(value("état", "font-size"), "12px");
+  assert.equal(value("état", "font-weight"), "650");
+  assert.equal(value("état", "border-radius"), "4px");
+  assert.equal(value("état", "border-top-width"), "0px");
+  assert.ok(!table.entries.some((entry) => entry.component === "état après un point"), "no dot before a state");
   const missing = table.missing.map((entry) => entry.component);
   for (const component of ["ligne de liste", "bandeau", "barre du bas"])
     assert.ok(missing.includes(component), component);

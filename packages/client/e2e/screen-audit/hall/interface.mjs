@@ -81,9 +81,15 @@ export const components = [
       "packages/client/src/components/ui/list-row.tsx",
       "packages/client/src/components/ui/save-status-indicator.tsx",
     ],
-    variants: ["action (bleu)", "success (vert)", "danger (rouge)", "neutral (gris)", "état d'enregistrement"],
-    rules: ["state-badge", "state-without-dot", "design-reference"],
-    values: ["état après un point"],
+    variants: [
+      "success (vert, acquis)",
+      "action (orange, attend une action)",
+      "danger (rouge, bloquant)",
+      "neutral (gris, neutre ou passé)",
+      "état d'enregistrement",
+    ],
+    rules: ["state-pill", "warm-tint", "design-reference"],
+    values: ["état"],
     decided: [{ what: "une action est un bouton, jamais un état cliquable", source: `${reference}, page 6, v122` }],
   },
   {

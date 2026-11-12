@@ -204,7 +204,10 @@ test("with a mouse the row takes the sizes of the side menu, under a finger 64 p
   assert.match(tokens, /--hall-size-list-row-pointer: 40px;/);
   assert.match(tokens, /--hall-size-list-row-pointer-double: 52px;/);
   assert.match(tokens, /--hall-size-list-row-touch: 64px;/);
-  assert.match(tokens, /--hall-size-touch-control: 44px;/);
+  // The touch control is 44 px, written or through the finger size it names.
+  const touchControl = tokens.match(/--hall-size-touch-control: ([^;]+);/)?.[1];
+  const fingerSize = tokens.match(/--hall-size-finger: ([^;]+);/)?.[1];
+  assert.equal(touchControl === "var(--hall-size-finger)" ? fingerSize : touchControl, "44px");
   const css = read("styles/list-row.css");
   /** The rules of the media blocks whose condition names this pointer, whatever else the condition says. */
   const blocks = (pointer) =>

@@ -267,104 +267,6 @@
       }
     },
     {
-      "component": "état après un point",
-      "selector": ":is(.record-state, .list-row-status)[data-tone=action]",
-      "property": "background-color",
-      "expected": "#2457D6",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Design de référence",
-        "page": 6,
-        "element": "v101"
-      },
-      "pseudo": "::before"
-    },
-    {
-      "component": "état après un point",
-      "selector": ":is(.record-state, .list-row-status)[data-tone=success], .record-state[data-save=saved]",
-      "property": "background-color",
-      "expected": "#1F7A4A",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Design de référence",
-        "page": 6,
-        "element": "v105"
-      },
-      "pseudo": "::before"
-    },
-    {
-      "component": "état après un point",
-      "selector": ":is(.record-state, .list-row-status)[data-tone=danger], .record-state[data-save=error]",
-      "property": "background-color",
-      "expected": "#B42323",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Design de référence",
-        "page": 6,
-        "element": "v109"
-      },
-      "pseudo": "::before"
-    },
-    {
-      "component": "état après un point",
-      "selector": ".list-row-status:not([data-tone]), :is(.record-state, .list-row-status)[data-tone=neutral]",
-      "property": "background-color",
-      "expected": "#646D7A",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Design de référence",
-        "page": 6,
-        "element": "v113"
-      },
-      "pseudo": "::before"
-    },
-    {
-      "component": "état après un point",
-      "selector": ".record-state, .list-row-status",
-      "property": "width",
-      "expected": "8px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Design de référence",
-        "page": 6,
-        "element": "v118"
-      },
-      "pseudo": "::before"
-    },
-    {
-      "component": "état après un point",
-      "selector": ".record-state, .list-row-status",
-      "property": "height",
-      "expected": "8px",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Design de référence",
-        "page": 6,
-        "element": "v118"
-      },
-      "pseudo": "::before"
-    },
-    {
-      "component": "état après un point",
-      "selector": ".record-state, .list-row-status",
-      "property": "color",
-      "expected": "#161A20",
-      "when": "all",
-      "status": "retenu",
-      "source": {
-        "doc": "Hall 1.3 — Design de référence",
-        "page": 6,
-        "element": "v118"
-      },
-      "note": "« le mot en texte courant » : couleur du texte (v10)"
-    },
-    {
       "component": "ligne de liste",
       "selector": "[data-slot=list-row] .list-row-title",
       "property": "color",
@@ -604,6 +506,201 @@
         "element": "v90"
       },
       "note": "Variante tactile du bouton flottant, mesurée au doigt seulement."
+    },
+    {
+      "component": "état",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=success], .record-state[data-save=saved]",
+      "property": "background-color",
+      "expected": "#E3F4EA",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p.v"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=success], .record-state[data-save=saved]",
+      "property": "color",
+      "expected": "#17633A",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p.v"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=action], .record-state[data-save=dirty]",
+      "property": "background-color",
+      "expected": "#FDEBD2",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p.o"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=action], .record-state[data-save=dirty]",
+      "property": "color",
+      "expected": "#8A4B08",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p.o"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=danger], .record-state[data-save=error]",
+      "property": "background-color",
+      "expected": "#FBE3E3",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p.r"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=danger], .record-state[data-save=error]",
+      "property": "color",
+      "expected": "#9B1C1C",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p.r"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=neutral], .list-row-status:not([data-tone])",
+      "property": "background-color",
+      "expected": "#ECEFF3",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p.g"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ":is(.record-state, .list-row-status)[data-tone=neutral], .list-row-status:not([data-tone])",
+      "property": "color",
+      "expected": "#4A5362",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p.g"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ".record-state, .list-row-status",
+      "property": "font-size",
+      "expected": "12px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ".record-state, .list-row-status",
+      "property": "font-weight",
+      "expected": "650",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ".record-state, .list-row-status",
+      "property": "line-height",
+      "expected": "20px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ".record-state, .list-row-status",
+      "property": "padding-left",
+      "expected": "8px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ".record-state, .list-row-status",
+      "property": "padding-right",
+      "expected": "8px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ".record-state, .list-row-status",
+      "property": "border-radius",
+      "expected": "4px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p"
+      }
+    },
+    {
+      "component": "état",
+      "selector": ".record-state, .list-row-status",
+      "property": "border-top-width",
+      "expected": "0px",
+      "when": "all",
+      "status": "retenu",
+      "source": {
+        "doc": "Hall 1.3 — Design de référence",
+        "page": 9,
+        "element": ".p"
+      }
     }
   ],
   "missing": [
