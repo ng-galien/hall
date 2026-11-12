@@ -79,6 +79,8 @@ export interface MarkdownEditorProps {
   readOnly?: boolean;
   /** Renders the enriched body directly when an outer surface already provides the extended envelope. */
   variant?: "compact" | "enriched";
+  /** The enriched body takes the focus when it opens, unless the surface leads elsewhere first. */
+  autoFocus?: boolean;
 }
 
 const compactFormattingMenuHoldDelay = 1000;
@@ -762,6 +764,7 @@ export function MarkdownEditor({
   onUploadDocument,
   readOnly = false,
   variant = "compact",
+  autoFocus = true,
 }: MarkdownEditorProps) {
   const { t } = useI18n();
   const [enriched, setEnriched] = useState(false);
@@ -957,6 +960,7 @@ export function MarkdownEditor({
   if (variant === "enriched" && !readOnly) {
     return (
       <EnrichedEditor
+        autoFocus={autoFocus}
         testId={testId}
         initial={latest.current}
         placeholder={placeholder}
@@ -1115,6 +1119,7 @@ export function MarkdownEditor({
 }
 
 function EnrichedEditor({
+  autoFocus = true,
   testId,
   initial,
   placeholder,
@@ -1128,6 +1133,7 @@ function EnrichedEditor({
   onBlur,
   onChange,
 }: {
+  autoFocus?: boolean;
   testId?: string;
   initial: string;
   placeholder?: string;
@@ -1172,7 +1178,7 @@ function EnrichedEditor({
     }),
     content: initial,
     contentType: "markdown",
-    autofocus: true,
+    autofocus: autoFocus,
     editorProps: {
       attributes: {
         "data-testid": "editor-writing-area",

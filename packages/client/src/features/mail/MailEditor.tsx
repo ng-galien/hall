@@ -18,6 +18,7 @@ import { apiErrorCode, type SirenApiResult, submitSirenAction } from "../../serv
 import { type MailRecipientSelections, previewMail } from "../../services/mailApi";
 import { MailAttachments } from "./MailAttachments";
 import { MailReview } from "./MailReview";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { MessageCommands } from "./MessageCommands";
 import type { RecipientGroup } from "./mailFolders";
 import { RecipientLine } from "./RecipientLine";
@@ -51,6 +52,7 @@ export function MailEditor({
   onCreate?: () => void;
 }) {
   const { t } = useI18n();
+  const phone = usePhoneLayout();
   const { stored, draft, setDraft, status, error: saveError, flush, adopt } = useMailAutosave(initial, onChanged);
   const representation = stored.representation;
   const uploadInput = useRef<HTMLInputElement>(null);
@@ -190,6 +192,9 @@ export function MailEditor({
       <div className="mail-body">
         <MarkdownEditor
           testId="mail-body"
+          // On tablet and computer the body of a mail has the full tool bar at the top of its frame.
+          variant={phone ? "compact" : "enriched"}
+          autoFocus={false}
           markdown={draft.bodyMarkdown}
           onChange={(bodyMarkdown) => setDraft({ ...draft, bodyMarkdown })}
           readOnly={busy}
