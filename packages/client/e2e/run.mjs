@@ -294,6 +294,11 @@ try {
     builtClientDirectory = resolve(clientDirectory, "dist");
     if (!existsSync(join(builtClientDirectory, "index.html")))
       throw new Error("Build the current client before the complete E2E gate");
+  } else if (process.env.HALL_E2E_CLIENT_BUILD) {
+    // A client built elsewhere, such as from an exported commit for the screen audit, served as it is.
+    builtClientDirectory = resolve(process.env.HALL_E2E_CLIENT_BUILD);
+    if (!existsSync(join(builtClientDirectory, "index.html")))
+      throw new Error(`HALL_E2E_CLIENT_BUILD names no built client: ${builtClientDirectory}`);
   } else if (documentationCaptures) {
     builtClientDirectory = mkdtempSync(join(tmpdir(), "hall-docs-client-"));
     run("npm", ["run", "build", "-w", "@hall/client", "--", "--outDir", builtClientDirectory, "--emptyOutDir"]);
