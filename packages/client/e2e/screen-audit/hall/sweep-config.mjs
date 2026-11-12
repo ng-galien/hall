@@ -134,11 +134,11 @@ const exceptions = {
       reason:
         "Sommaire et listes des articles de l'aide : contenu rédactionnel, pas une liste d'objets (décision du coordinateur).",
     },
+    liveMeeting,
   ],
   "disclosure-mark": notDisclosures,
   "font-family": [liveMeeting],
   "button-form": [liveMeeting],
-  "local-list": [liveMeeting],
   "button-icon-unity": [liveMeeting],
   "state-pill": [liveMeeting],
   "text-size": [liveMeeting],
