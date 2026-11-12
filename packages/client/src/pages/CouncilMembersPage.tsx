@@ -177,7 +177,10 @@ export function CouncilMembersPage() {
             {visibleMembers.map((member) => {
               const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
               const phone = preferredPhone(member.contact);
-              const coordinates = [member.contact.email, phone && formatPhoneNumber(phone)].filter(Boolean).join(" · ");
+              // The number never splits between two lines.
+              const coordinates = [member.contact.email, phone && formatPhoneNumber(phone).replaceAll(" ", "\u00a0")]
+                .filter(Boolean)
+                .join(" · ");
               return (
                 <ListRow
                   key={member.id}
