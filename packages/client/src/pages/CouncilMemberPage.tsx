@@ -170,7 +170,11 @@ export function CouncilMemberPage() {
                   />
                 }
                 title={`${member.contact.firstName} ${member.contact.lastName}`}
-                detail={[t("members.contact"), member.contact.email, phone ? formatPhoneNumber(phone) : t("members.noPhone")]
+                detail={[
+                  t("members.contact"),
+                  member.contact.email,
+                  phone ? formatPhoneNumber(phone) : t("members.noPhone"),
+                ]
                   .filter(Boolean)
                   .join(" · ")}
                 action={

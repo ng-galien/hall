@@ -164,6 +164,26 @@
   /* A control at the end of a field keeps the text of the field clear of it. */
   .hall-field[data-action="true"] > :is(.hall-input, .hall-field-value) { padding-right: calc(var(--hall-size-touch-control) + var(--hall-space-2)); }
   .hall-field > .hall-field-action { position: absolute; top: 50%; right: var(--hall-space-1); z-index: var(--hall-z-content); display: flex; align-items: center; transform: translateY(-50%); }
+  /* On a text over several lines, the control keeps the top right corner, on the line of the label. */
+  .hall-field[data-action="true"] > .hall-textarea { padding-right: var(--hall-size-relative-12rem); }
+  .hall-field[data-action="true"]:has(> .hall-textarea) > .hall-field-action { top: 0; transform: none; }
+  /* A source text (variant code): its label above a frame, monospace, one line per source line, scrolled inside. */
+  .hall-field[data-variant="code"] > .hall-field-label { position: static; margin-bottom: var(--hall-space-1); }
+  .hall-field[data-variant="code"] > .hall-textarea,
+  .hall-field[data-variant="code"] > .hall-textarea:focus {
+    height: var(--hall-size-relative-24rem);
+    padding: var(--hall-space-2) var(--hall-space-3);
+    border: var(--hall-stroke-thin) solid var(--hall-color-field-line);
+    border-radius: var(--hall-radius-small);
+    box-shadow: none;
+    font-family: var(--hall-font-family-monospace);
+    font-size: var(--hall-font-size-body);
+    overflow: auto;
+    white-space: pre;
+    overflow-wrap: normal;
+    field-sizing: fixed;
+  }
+  .hall-field[data-variant="code"] > .hall-textarea:focus { border-color: var(--hall-color-brand); }
   /* The value of a field that the person may read but not change, with its link. */
   .hall-field > .hall-field-value { display: flex; align-items: center; min-width: 0; overflow-wrap: anywhere; }
   /* A link inside text: a telephone link, or a Button drawn as a link. */
@@ -173,11 +193,8 @@
   .hall-button.hall-link[data-variant="plain"]:hover:not(:disabled) { color: var(--hall-color-brand); background: transparent; text-decoration: underline; }
   .hall-field-note { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-caption); }
   .hall-field-note[data-tone="danger"] { color: var(--hall-color-danger); }
-  .hall-field-row { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-8rem)), 1fr)); gap: var(--hall-space-2); }
-  /* On a phone, the fields of a row stand one under the other, each at full width. */
-  @media (max-width: 760px) {
-    .hall-field-row { grid-template-columns: minmax(0, 1fr); }
-  }
+  /* The fields of a row share it while each keeps 12rem; in a narrower row (a phone) they stand one under the other. */
+  .hall-field-row { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--hall-size-relative-12rem)), 1fr)); gap: var(--hall-space-2); }
 }
 
 /* @implements-requirement HALL-FR-LAY-120 */

@@ -20,6 +20,7 @@ export function Field({
   className,
   testId,
   action,
+  variant,
   children,
 }: {
   label: ReactNode;
@@ -31,6 +32,8 @@ export function Field({
   testId?: string;
   /** A control at the end of the field, such as the call of a number or a message to an address. */
   action?: ReactNode;
+  /** `code`: a source text, framed, in monospace, one line per source line, its label above the frame. */
+  variant?: "code";
   children: ReactNode;
 }) {
   const generated = useId();
@@ -38,7 +41,12 @@ export function Field({
   const noteId = help || error ? `${id}-note` : undefined;
   return (
     <div className={cn("hall-field-block", className)} data-slot="field" data-testid={testId}>
-      <div className="hall-field" data-invalid={error ? "true" : undefined} data-action={action ? "true" : undefined}>
+      <div
+        className="hall-field"
+        data-invalid={error ? "true" : undefined}
+        data-action={action ? "true" : undefined}
+        data-variant={variant}
+      >
         <label className="hall-field-label" htmlFor={id}>
           {label}
         </label>

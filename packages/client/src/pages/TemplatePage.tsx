@@ -115,7 +115,11 @@ export function TemplatePage() {
 
   return (
     <div className="page">
-      <PageHeader title={draft.name || t("templates.title")} description={t("templates.detailDescription")} describesItem>
+      <PageHeader
+        title={draft.name || t("templates.title")}
+        description={t("templates.detailDescription")}
+        describesItem
+      >
         <Button variant="secondary" disabled={submitting} data-testid="template-preview" onClick={showPreview}>
           {t("templates.preview")}
         </Button>
@@ -174,7 +178,7 @@ export function TemplatePage() {
             />
           )}
           <div className="template-body" data-testid="template-body">
-            <Field label={t("templates.body")} help={t("templates.jinjaHelp")}>
+            <Field label={t("templates.body")} help={t("templates.jinjaHelp")} variant="code">
               <Textarea
                 data-testid="template-body-editor"
                 className="template-source template-body-source"

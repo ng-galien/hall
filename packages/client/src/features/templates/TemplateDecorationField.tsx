@@ -49,34 +49,36 @@ export function TemplateDecorationField({
   return (
     <div className="template-decoration" data-testid={testId}>
       {readOnly ? null : (
-        <>
-          <Button
-            type="button"
-            variant="secondary"
-            data-testid={`${testId}-insert-image`}
-            onClick={() => input.current?.click()}
-          >
-            <ImageIcon aria-hidden="true" />
-            {t("templates.insertImage")}
-          </Button>
-          <input
-            ref={input}
-            hidden
-            type="file"
-            accept="image/jpeg,image/png"
-            data-testid={`${testId}-image-file`}
-            onChange={(event) => {
-              const file = event.currentTarget.files?.[0];
-              event.currentTarget.value = "";
-              if (file) void insert(file);
-            }}
-          />
-        </>
+        <input
+          ref={input}
+          hidden
+          type="file"
+          accept="image/jpeg,image/png"
+          data-testid={`${testId}-image-file`}
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = "";
+            if (file) void insert(file);
+          }}
+        />
       )}
       <Field
         label={label}
         help={t("templates.decorationHelp")}
         error={problem ? <span data-testid={`${testId}-problem`}>{problem}</span> : undefined}
+        action={
+          readOnly ? undefined : (
+            <Button
+              type="button"
+              variant="secondary"
+              data-testid={`${testId}-insert-image`}
+              onClick={() => input.current?.click()}
+            >
+              <ImageIcon aria-hidden="true" />
+              {t("templates.insertImage")}
+            </Button>
+          )
+        }
       >
         <Textarea
           className="template-decoration-source"
