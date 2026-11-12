@@ -228,7 +228,9 @@
   .committee-business-list .list-row-main { padding-left: 0; }
   .template-editor-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-4); margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .template-decoration,
-  .template-body { display: grid; justify-items: start; gap: var(--hall-space-2); }
+  .template-body { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: var(--hall-space-2); }
+  .template-editor > *,
+  .template-editor .creation-form > * { min-width: 0; }
   .template-decoration > .hall-field-block,
   .template-body > .hall-field-block { width: 100%; }
   .template-editor .hall-field :is(.template-source, .template-decoration-source) { font-family: var(--hall-font-family-monospace); font-size: var(--hall-font-size-body); }
@@ -291,6 +293,14 @@
   .admin-hint,
   .admin-inline-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .admin-heading-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-4); }
+  /* On a phone the title of a row of these lists is read in full, over several lines; only its facts shorten. */
+  /* Its facts keep one line, shortened at its end, and its state always stands whole under them. */
+  @media (max-width: 760px) {
+    .list-full-titles .list-row-title { overflow: visible; overflow-wrap: break-word; white-space: normal; }
+    .list-full-titles .list-row-detail { flex-direction: column; align-items: flex-start; }
+    .list-full-titles .list-row-detail-text { max-width: 100%; }
+    .member-contact-row .list-row-detail-text { overflow: visible; overflow-wrap: anywhere; white-space: normal; }
+  }
   /* A committee or a representation: its object shortens first; its number of members and its state stay whole. */
   .body-row .list-row-detail-text { display: flex; min-width: auto; }
   .body-row-object { overflow: hidden; min-width: 0; text-overflow: ellipsis; }
@@ -662,9 +672,9 @@
      title and the commands do not fit side by side, the commands pass under the title, which is never cut inside a
      word. */
   .section-header-text { display: contents; }
-  .section-header-line { display: flex; min-width: 0; min-height: var(--hall-size-control); flex: 1 1 auto; align-items: center; gap: var(--hall-space-1); }
+  .section-header-line { display: flex; min-width: auto; min-height: var(--hall-size-control); flex: 1 1 0; align-items: center; gap: var(--hall-space-1); }
   .section-header-title {
-    display: flex;
+    display: block;
     min-width: 0;
     margin: 0;
     color: var(--hall-color-text);
@@ -696,9 +706,17 @@
   .section-header-icon svg { width: var(--hall-font-size-icon-large); height: var(--hall-font-size-icon-large); }
   .section-header-icon .disclosure-badge svg { width: var(--hall-font-size-caption); height: var(--hall-font-size-caption); }
   .section-header-title-text { min-width: 0; overflow-wrap: break-word; }
+  /* The information icon follows the last word of the title, on its line. */
+  .title-tail { white-space: nowrap; }
+  :is(.section-header-title, .section-header-title-text) .hall-button {
+    margin-block: calc((var(--hall-line-height-body-large) - var(--hall-size-control)) / 2);
+    margin-left: var(--hall-space-1);
+    vertical-align: middle;
+  }
+  .section-header-title :is(.section-header-icon, .section-header-count) { vertical-align: middle; }
   .section-header-description { flex: 1 0 100%; order: 1; margin: 0; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
-  /* The commands keep the right end of the title line, centred on it. */
-  .section-header-commands { display: flex; min-width: 0; min-height: var(--hall-size-control); flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
+  /* The commands keep the right end of the title line, centred on it; passed under the title, they keep the right end. */
+  .section-header-commands { display: flex; min-width: 0; min-height: var(--hall-size-control); flex: 0 1 auto; justify-content: flex-end; margin-left: auto; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
   /* A list right under a section header starts at its rule and leaves the space under the section to the screen. */
   .section-header + .list-row-list { margin-bottom: 0; border-top: 0; }
   .collapsible-section { display: grid; gap: var(--hall-space-2); }

@@ -55,10 +55,30 @@ export function SectionHeader({
   const Heading = level === 3 ? "h3" : "h2";
   const givenIcon = fold?.open && openIcon ? openIcon : icon;
   const shownIcon = fold ? (givenIcon ?? <DisclosureBadge expanded={fold.open} />) : null;
+  const explanation =
+    typeof description === "string" && description ? (
+      <HelpHint text={description} testId={testId ? `${testId}-description` : undefined} />
+    ) : null;
+  /* Without a fold, the information icon is written with the last word of the title, so that it never stands alone
+     on a line. */
+  const inlineExplanation = explanation && !fold && typeof title === "string";
+  const lastSpace = typeof title === "string" ? title.lastIndexOf(" ") : -1;
   const label = (
     <>
       {shownIcon ? <span className="section-header-icon">{shownIcon}</span> : null}
-      <span className="section-header-title-text">{title}</span>
+      <span className="section-header-title-text">
+        {inlineExplanation ? (
+          <>
+            {title.slice(0, lastSpace + 1)}
+            <span className="title-tail">
+              {title.slice(lastSpace + 1)}
+              {explanation}
+            </span>
+          </>
+        ) : (
+          title
+        )}
+      </span>
       {count === undefined || count === null ? null : (
         <span className="section-header-count" data-testid={countTestId}>
           {count}
@@ -85,11 +105,9 @@ export function SectionHeader({
             ) : (
               label
             )}
+            {explanation && !inlineExplanation ? explanation : null}
           </Heading>
           {hint}
-          {typeof description === "string" && description ? (
-            <HelpHint text={description} testId={testId ? `${testId}-description` : undefined} />
-          ) : null}
         </div>
         {description && typeof description !== "string" ? (
           <p className="section-header-description">{description}</p>

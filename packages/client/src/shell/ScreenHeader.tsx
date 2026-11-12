@@ -325,9 +325,14 @@ export function ScreenLargeTitle({
           className="screen-header-title"
           data-testid={phone ? "phone-header-title" : "screen-header-title"}
         >
-          {title}
-          {title ? "\u2060" : null}
-          {title ? <span ref={slots.hint} className="screen-title-hint" /> : null}
+          {title.slice(0, title.lastIndexOf(" ") + 1)}
+          {/* The information icon is written with the last word of the title, never alone on a line. */}
+          {title ? (
+            <span className="title-tail">
+              {title.slice(title.lastIndexOf(" ") + 1)}
+              <span ref={slots.hint} className="screen-title-hint" />
+            </span>
+          ) : null}
         </h1>
         <div ref={slots.commands} className="screen-title-commands" data-testid="screen-title-commands" />
       </div>

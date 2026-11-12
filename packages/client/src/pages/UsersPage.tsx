@@ -261,7 +261,7 @@ export function UsersPage() {
               </p>
             )}
             <div className="dialog-actions">
-              <Button variant="plain" type="button" onClick={closeCreate} data-testid="user-create-cancel">
+              <Button variant="secondary" type="button" onClick={closeCreate} data-testid="user-create-cancel">
                 {t("common.cancel")}
               </Button>
               <Button
@@ -286,7 +286,7 @@ export function UsersPage() {
             {t(users.length === 0 ? "users.empty" : "common.noSearchResults")}
           </EmptyState>
         ) : (
-          <ListRows data-testid="users-collection">
+          <ListRows className="list-full-titles" data-testid="users-collection">
             {visible.map((user) => (
               <ListRow
                 key={user.id}

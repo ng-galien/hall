@@ -125,7 +125,7 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
             {hallSettings && councilTermUpdateAvailable ? (
               <form className="creation-form" onSubmit={(event) => void submitCouncilTerm(event)}>
                 <h3>{t("settings.councilTerm")}</h3>
-                <Field label={t("settings.expectedMemberCount")} help={t("settings.expectedMemberCountDescription")}>
+                <Field label={t("settings.expectedMemberCount")} hint={t("settings.expectedMemberCountDescription")}>
                   <Input
                     type="number"
                     min="1"
@@ -175,7 +175,7 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
           <>
             <section className="creation-form">
               <h3>{t("settings.display")}</h3>
-              <Field label={t("settings.language")} help={t("settings.languageDescription")}>
+              <Field label={t("settings.language")} hint={t("settings.languageDescription")}>
                 <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
                   <SelectTrigger className="w-full" data-testid="settings-language">
                     <SelectValue />
@@ -190,7 +190,7 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label={t("settings.theme")} help={t("settings.themeDescription")}>
+              <Field label={t("settings.theme")} hint={t("settings.themeDescription")}>
                 <Select value={preference} onValueChange={(value) => setPreference(value as ThemePreference)}>
                   <SelectTrigger className="w-full" data-testid="settings-theme">
                     <SelectValue />

@@ -32,7 +32,7 @@
   align-items: center;
   gap: var(--hall-space-1);
   min-width: 0;
-  flex: 1;
+  flex: 1 1 auto;
   font-size: var(--hall-font-size-body);
   color: var(--hall-color-text-muted);
 }
@@ -259,6 +259,8 @@
 
 .docs-article-inner strong {
   font-weight: var(--hall-font-weight-semibold);
+  /* A command named in the text stays on one line, so that two names never share a line box. */
+  white-space: nowrap;
 }
 
 .docs-article-inner code {
@@ -506,8 +508,16 @@ h4.docs-heading {
   padding-block: var(--hall-space-1);
   gap: var(--hall-space-2);
 }
-/* On a phone the path passes to a second line rather than being shortened; wider, it holds one line and its folders
-   shorten when the toolbar is narrow. */
+/* Up to the tablet width the search takes a line of its own under the path, so that the path keeps its room. */
+@media (max-width: 1000px) {
+  .docs-toolbar { flex-wrap: wrap; }
+  .docs-toolbar .docs-search { width: auto; flex: 1 1 100%; }
+}
+
+/* The path never passes under the PDF button: it shortens inside its own room. */
+.docs-toolbar .docs-crumbs { overflow: hidden; }
+
+/* On a phone the path passes to a second line rather than being shortened, as a free flow of segments. */
 @media (max-width: 760px) {
   .docs-toolbar .docs-crumbs {
     flex: 1 1 0;
@@ -520,11 +530,12 @@ h4.docs-heading {
   }
 }
 
-/* The search is as wide as its placeholder, so that it reads in full. */
+/* The search is as wide as its placeholder, and narrows first when the path needs the room. */
 .docs-search {
   position: relative;
   width: calc(var(--hall-size-relative-16rem) + var(--hall-space-4));
-  flex-shrink: 0;
+  min-width: var(--hall-size-relative-10rem);
+  flex: 0 1000 auto;
 }
 
 .docs-search-results {

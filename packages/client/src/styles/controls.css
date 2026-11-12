@@ -76,7 +76,7 @@
   .hall-input::placeholder,
   .hall-select-trigger[data-placeholder] { color: var(--hall-color-text-subtle); }
   /* An empty date is written like an empty field: grey and italic. */
-  .hall-input[data-empty="true"] { color: var(--hall-color-text-subtle); font-style: italic; }
+  .hall-input[data-empty="true"] { color: var(--hall-color-field-empty); font-style: italic; }
   .hall-input:hover:not(:disabled) { background: var(--hall-color-field-hover); }
   .hall-input:focus,
   .hall-input:focus-visible,
@@ -189,9 +189,11 @@
   .hall-field[data-variant="code"] > .hall-field-label { position: static; margin-bottom: var(--hall-space-1); }
   .hall-field[data-variant="code"] > .hall-textarea,
   .hall-field[data-variant="code"] > .hall-textarea:focus {
+    width: 100%;
+    min-width: 0;
     height: var(--hall-size-relative-24rem);
     padding: var(--hall-space-2) var(--hall-space-3);
-    border: var(--hall-stroke-thin) solid var(--hall-color-field-line);
+    border: var(--hall-stroke-thin) solid var(--hall-color-field-rule);
     border-radius: var(--hall-radius-small);
     box-shadow: none;
     font-family: var(--hall-font-family-monospace);

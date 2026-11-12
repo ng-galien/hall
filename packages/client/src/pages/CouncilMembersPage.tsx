@@ -173,7 +173,7 @@ export function CouncilMembersPage() {
         {visibleMembers.length === 0 ? (
           <EmptyState>{t(members.length === 0 ? "members.empty" : "common.noSearchResults")}</EmptyState>
         ) : (
-          <ListRows>
+          <ListRows className="list-full-titles">
             {visibleMembers.map((member) => {
               const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
               const phone = preferredPhone(member.contact);
