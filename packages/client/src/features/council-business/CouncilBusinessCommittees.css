@@ -22,3 +22,10 @@
 .business-committee-result { padding: var(--hall-space-2) var(--hall-space-3); color: var(--hall-color-text); font-size: var(--hall-font-size-body); cursor: pointer; }
 .business-committee-result[aria-selected="true"] { background: var(--hall-color-surface-selected); }
 .business-committee-result[aria-disabled="true"] { opacity: var(--hall-opacity-disabled); cursor: wait; }
+
+/* Under the title of an affaire, the committees are facts of its line: they follow the date and wrap one by one. */
+@media (min-width: 761px) {
+  .screen-title-facts > .business-committees,
+  .screen-title-facts .business-committees-items { display: contents; }
+  .screen-title-facts .business-committee-search { width: min(var(--hall-size-relative-14rem), 100%); }
+}
