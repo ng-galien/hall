@@ -192,3 +192,10 @@
   height: 100%;
   min-height: 0;
 }
+
+/* On a phone the blocks keep the margins of the title; with no map chosen, the list of maps is the whole screen. */
+@media (max-width: 760px) {
+  .app-main .maps-page.maps-page { padding-inline: var(--hall-space-4); }
+  .app-main .maps-page[data-map-open="false"] > .maps-main { display: none; }
+  .app-main .maps-page[data-map-open="false"] > .maps-panel { border-bottom: 0; }
+}

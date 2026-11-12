@@ -9,6 +9,7 @@ import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBus
 import { DocumentaryResourceGlyph } from "../../features/documents/DocumentaryResourceGlyph";
 import { FolderGlyph } from "../../features/documents/FolderGlyph";
 import { useI18n } from "../../i18n/I18nProvider";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { buildPathTree } from "../workspace/paths";
@@ -124,12 +125,13 @@ export function MapsPanel({
     .filter((map): map is MapSummary => map !== undefined);
   const found = query.trim() ? allMaps.filter((map) => matchesQuery(query, map.name, map.path)) : null;
 
+  const phone = usePhoneLayout();
   if (collapsed) {
     return (
       <aside className="maps-panel maps-panel-collapsed" data-testid="maps-panel" aria-label={t("maps.panel")}>
         <Button
-          variant="plain"
-          size="icon"
+          variant={phone ? "secondary" : "plain"}
+          size={phone ? "default" : "icon"}
           type="button"
           data-testid="maps-panel-toggle"
           aria-expanded={false}
@@ -138,6 +140,7 @@ export function MapsPanel({
           onClick={() => onCollapsedChange(false)}
         >
           <ExpandIcon />
+          {phone ? t("maps.expandPanel") : null}
         </Button>
       </aside>
     );
@@ -147,18 +150,20 @@ export function MapsPanel({
     <aside className="maps-panel" data-testid="maps-panel" aria-label={t("maps.panel")}>
       <div className="maps-panel-header">
         <h2 className="maps-panel-title">{t("navigation.maps")}</h2>
-        <Button
-          variant="plain"
-          size="icon"
-          type="button"
-          data-testid="maps-panel-toggle"
-          aria-expanded
-          aria-label={t("maps.collapsePanel")}
-          title={t("maps.collapsePanel")}
-          onClick={() => onCollapsedChange(true)}
-        >
-          <CollapseIcon />
-        </Button>
+        {phone && !activeId ? null : (
+          <Button
+            variant="plain"
+            size="icon"
+            type="button"
+            data-testid="maps-panel-toggle"
+            aria-expanded
+            aria-label={t("maps.collapsePanel")}
+            title={t("maps.collapsePanel")}
+            onClick={() => onCollapsedChange(true)}
+          >
+            <CollapseIcon />
+          </Button>
+        )}
       </div>
       <SearchInput
         data-testid="maps-search"

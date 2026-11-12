@@ -27,6 +27,7 @@ import {
   parseMapsViewParameter,
 } from "./mapsView";
 import "./MapsPage.css";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
 type GeographicResource = Extract<ResourceDetail, { kind: "geographic" }>;
 
@@ -146,6 +147,7 @@ export function MapsPage() {
   const [surface, setSurface] = useState<MapsSurface | null>(null);
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [recentIds, setRecentIds] = useState<string[]>(readRecentMapIds);
+  const phone = usePhoneLayout();
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const businesses = useCouncilBusinessStore((state) => state.businesses);
   const loadCatalog = useWorkspaceResourcesStore((state) => state.loadCatalog);
@@ -243,6 +245,10 @@ export function MapsPage() {
   const openMapRoute = useCallback((id: string) => navigate(`/maps/${encodeURIComponent(id)}`), [navigate]);
 
   const opened = surface?.routeId ? surface.resource : null;
+  // On a phone an opened map comes first: the list of maps waits behind its command.
+  useEffect(() => {
+    if (phone && opened?.id) setPanelCollapsed(true);
+  }, [phone, opened?.id]);
   const openedId = opened?.id ?? null;
   const businessIds = useMemo(() => businesses.map((business) => business.id).join(","), [businesses]);
   useEffect(() => {
@@ -283,6 +289,7 @@ export function MapsPage() {
               </Link>
             </div>
             <nav className="maps-context-path" aria-label={t("maps.folder")}>
+              <span className="maps-context-label">{t("maps.folder")}</span>
               <Link data-testid="maps-context-folder" data-path="" to="/workspace">
                 {t("navigation.workspace")}
               </Link>
