@@ -166,6 +166,25 @@ export const screens = [
     },
   },
   {
+    id: "fenetre-document",
+    title: "Fenêtre d'un document",
+    scenario: "minutes",
+    /* A modal dialog keeps the menu behind it: the dialog is opened again at every width. */
+    reopenAtEveryWidth: true,
+    /** The document dialog opened from an affaire, as a council member opens one of its documents. */
+    async open(page) {
+      for (const business of await items(page, "/api/council-business")) {
+        await page.goto(`/app/workspace?councilBusiness=${business.id}`);
+        const view = page.locator('[data-testid^="business-document-view-"]').first();
+        if (!(await view.isVisible({ timeout: 5_000 }).catch(() => false))) continue;
+        await view.click();
+        await visible(page, "resource-preview");
+        return;
+      }
+      throw new Error("No affaire shows a document to open");
+    },
+  },
+  {
     id: "menu-nouveau",
     title: "Menu « Nouveau »",
     scenario: "minutes",

@@ -196,8 +196,10 @@ export function measureLayout(options) {
       })),
   ];
   const reported = new Set();
+  // Sorted by their top edge, a box is only compared with the boxes that start above its bottom edge.
+  boxes.sort((first, second) => first.rect.top - second.rect.top);
   for (let i = 0; i < boxes.length; i++) {
-    for (let j = i + 1; j < boxes.length; j++) {
+    for (let j = i + 1; j < boxes.length && boxes[j].rect.top < boxes[i].rect.bottom; j++) {
       const a = boxes[i];
       const b = boxes[j];
       if (a.owner === b.owner || a.owner.contains(b.owner) || b.owner.contains(a.owner)) continue;

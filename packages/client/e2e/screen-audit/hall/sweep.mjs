@@ -50,11 +50,16 @@ const records = existsSync(sweepDirectory)
       .map((file) => JSON.parse(readFileSync(join(sweepDirectory, file), "utf8")))
   : [];
 const measures = records.reduce((total, record) => total + record.measures, 0);
-const expected = selected ? selected.split(",") : screens.map((screen) => screen.id);
-const measuredIds = new Set(records.flatMap((record) => record.screens));
+const expected = screens.filter((screen) => !selected || selected.split(",").includes(screen.id));
+const measuredBy = (input) => new Set(records.filter((record) => record.input === input).flatMap((record) => record.screens));
 const missing = [
   ...records.flatMap((record) => record.missing),
-  ...expected.filter((id) => !measuredIds.has(id)).map((id) => `${id}: non mesuré (balayage interrompu)`),
+  ...expected
+    .filter((screen) => !measuredBy("pointer").has(screen.id))
+    .map((screen) => `${screen.id} (souris) : non mesuré, balayage interrompu`),
+  ...expected
+    .filter((screen) => screen.formats.some((format) => format !== "ordinateur") && !measuredBy("touch").has(screen.id))
+    .map((screen) => `${screen.id} (doigt) : non mesuré, balayage interrompu`),
 ];
 
 /* Thresholds: every width threshold read in the loaded style sheets and in the scripts, with its origin. */
