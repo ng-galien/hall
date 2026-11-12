@@ -34,6 +34,7 @@ import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
 
 // @implements-requirement HALL-FR-LAY-010
+// @implements-requirement HALL-FR-LAY-130
 /** Phone reading view of a resource: the content first, the actions in the header menu, the details below. */
 export function ResourcePhoneView({
   session,
@@ -71,8 +72,6 @@ export function ResourcePhoneView({
     title: resource?.name ?? "",
     testId: "resource-pdf-preview",
   });
-  // @implements-requirement HALL-FR-LAY-130
-  // A note just created, still empty, opens for writing; an existing text opens for reading.
   useEffect(() => {
     if (!resource || openedForWriting.current === resource.id) return;
     if (resource.kind !== "text" || !session.editable) return;

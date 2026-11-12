@@ -14,6 +14,7 @@ function initialLocale(): Locale {
   return navigator.language.toLowerCase().startsWith("fr") ? "fr" : "en";
 }
 
+// @implements-requirement HALL-FR-LAY-080
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   useEffect(() => {
@@ -30,7 +31,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLocale,
       t: (key, values) => interpolateMessage(messages[key], values),
       plural: (count, one, other) => pluralMessage(languageTag, count, messages[one], messages[other]),
-      // @implements-requirement HALL-FR-LAY-080
       formatDate: (date) =>
         new Intl.DateTimeFormat(languageTag, { day: "numeric", month: "long", year: "numeric" }).format(new Date(date)),
       formatDateTime: (date) =>

@@ -189,7 +189,6 @@ function ContentRow({
   return (
     <ListRow
       {...line}
-      // A row being renamed has no open handler: its line holds the name field instead of a button.
       onOpen={onOpen as () => void}
       className={`${className}${dropActive ? " workspace-explorer-drop" : ""}`}
       data-testid={testId}
@@ -571,7 +570,6 @@ export function PathContents({
   };
 
   const [colorTarget, setColorTarget] = useState<string | null>(null);
-  /** The colour picker takes the focus: the closing context menu must not give it back to the row. */
   const colorRequested = useRef(false);
   const takeColorRequest = () => {
     const requested = colorRequested.current;
@@ -971,7 +969,6 @@ export function PathContents({
     setFeedback(t("workspace.attachedFeedback", { name: resource.name }));
   };
 
-  /** A click with Ctrl, Cmd or Shift only extends the selection; a plain click selects the line and opens it. */
   const treeLineProps = (key: string, renaming: boolean): ListRowProps["lineProps"] =>
     renaming
       ? undefined
@@ -1187,7 +1184,6 @@ export function PathContents({
             <span data-testid={`workspace-folder-name-${folderPath}`}>{folderPath.split("/").at(-1)}</span>
           </InlineRenameField>
         }
-        // The line handles the click: it opens the folder on a phone, folds or unfolds it elsewhere.
         onOpen={(renaming ? undefined : () => undefined) as () => void}
         openTestId={`workspace-folder-toggle-${folderPath}`}
         openProps={treeNodeProps(key, {

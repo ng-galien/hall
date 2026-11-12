@@ -18,6 +18,9 @@ import { useApiRoot } from "../../shell/usePhoneLayout";
 import { useApplicationSyncStore } from "../../stores/applicationSyncStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 
+// @implements-requirement HALL-FR-LAY-040
+// @implements-requirement HALL-FR-LAY-060
+/** The meeting that matters now, as the prominent row of the home. */
 export function HomeMeeting() {
   const { t, formatDate, formatTime, formatDayMonth } = useI18n();
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
@@ -67,8 +70,6 @@ export function HomeMeeting() {
   };
   const detail = (target: CouncilMeetingView) => [when(target), target.location].filter(Boolean).join(" · ");
 
-  // @implements-requirement HALL-FR-LAY-040
-  // @implements-requirement HALL-FR-LAY-060
   return (
     <section className="home-meeting" data-testid="home-meeting">
       <RequestErrorBanner error={error} onDismiss={() => setError(null)} />

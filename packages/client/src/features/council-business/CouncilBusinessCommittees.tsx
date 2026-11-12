@@ -3,6 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDownIcon, CloseIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
+import { ActiveOption } from "../../components/ui/active-option";
 import { Button } from "../../components/ui/button";
 import { SearchInput } from "../../components/ui/search-input";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -201,8 +202,7 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
                 ) : (
                   <div id={listId} role="listbox" aria-label={t("business.committees")}>
                     {matches.map((candidate, index) => (
-                      // biome-ignore lint/a11y/useKeyWithClickEvents: the search field moves the selection with the arrow keys through aria-activedescendant.
-                      <div
+                      <ActiveOption
                         key={candidate.id}
                         id={`${listId}-${index}`}
                         role="option"
@@ -216,7 +216,7 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
                         onClick={() => void mutate(candidate.id, "associate")}
                       >
                         {candidate.name}
-                      </div>
+                      </ActiveOption>
                     ))}
                   </div>
                 )}

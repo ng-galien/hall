@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import { normalizeForSearch, type SearchableMedia, type SearchableState } from "../../lib/search";
 import { CloseIcon, FilterIcon, SearchIcon } from "../icons";
+import { ActiveOption } from "../ui/active-option";
 import { Button } from "../ui/button";
 import { Disclosure } from "../ui/disclosure";
 import { Input } from "../ui/input";
@@ -341,8 +342,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
             {visible.map((entry, rowIndex) =>
               matchDiscriminated(entry, "kind", {
                 category: (row) => (
-                  // biome-ignore lint/a11y/useKeyWithClickEvents: the search field drives the rows with the arrow keys through aria-activedescendant.
-                  <div
+                  <ActiveOption
                     role="treeitem"
                     tabIndex={-1}
                     key={row.category}
@@ -360,11 +360,10 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
                   >
                     <span>{labels[row.category]}</span>
                     <span aria-hidden="true">{opened === row.category ? "−" : "+"}</span>
-                  </div>
+                  </ActiveOption>
                 ),
                 value: (row) => (
-                  // biome-ignore lint/a11y/useKeyWithClickEvents: the search field drives the rows with the arrow keys through aria-activedescendant.
-                  <div
+                  <ActiveOption
                     role="treeitem"
                     tabIndex={-1}
                     key={`${row.value.facet}:${row.value.value}`}
@@ -377,7 +376,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
                     onClick={() => choose(row.value)}
                   >
                     <span>{row.value.label}</span>
-                  </div>
+                  </ActiveOption>
                 ),
               }),
             )}
@@ -408,8 +407,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
             >
               <div role="listbox" aria-label={labels[group.category]}>
                 {group.values.map((f) => (
-                  // biome-ignore lint/a11y/useKeyWithClickEvents: the search field drives the options with the arrow keys through aria-activedescendant.
-                  <div
+                  <ActiveOption
                     key={`${f.facet}:${f.value}`}
                     role="option"
                     tabIndex={-1}
@@ -429,7 +427,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
                     onClick={() => choose(f)}
                   >
                     {f.label}
-                  </div>
+                  </ActiveOption>
                 ))}
               </div>
             </Disclosure>

@@ -58,8 +58,6 @@ export function Layout() {
     mainElement.addEventListener("scroll", update, { passive: true });
     return () => mainElement.removeEventListener("scroll", update);
   }, [mainElement]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new screen starts with its large title.
-  useEffect(() => setScrolled((mainElement?.scrollTop ?? 0) > collapseDistance), [location.pathname, location.search]);
   const loadPersonalWorkspace = useWorkspaceResourcesStore((state) => state.loadPersonalWorkspace);
   useEffect(() => {
     void loadPersonalWorkspace();

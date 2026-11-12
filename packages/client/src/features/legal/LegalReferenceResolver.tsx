@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { LegalReferenceIcon, OpenIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
+import { ActiveOption } from "../../components/ui/active-option";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -143,14 +144,12 @@ export function LegalReferenceResolver({
         {results.map((result) => {
           const selectedResult = result.versionId === selectedVersionId;
           return (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: the search field moves the selection with the arrow keys through aria-activedescendant.
-            <div
+            <ActiveOption
               id={`legal-reference-result-${result.versionId}`}
               key={result.versionId}
               className={`legal-reference-result${selectedResult ? " legal-reference-result-selected" : ""}`}
               data-testid={`legal-reference-result-${result.versionId}`}
               role="option"
-              tabIndex={-1}
               aria-selected={selectedResult}
               onClick={() => setSelectedVersionId(result.versionId)}
             >
@@ -161,7 +160,7 @@ export function LegalReferenceResolver({
                   {legalStatusLabel(result.legalStatus, t)} · {result.versionId}
                 </span>
               </span>
-            </div>
+            </ActiveOption>
           );
         })}
         {searched && !error && results.length === 0 ? (
