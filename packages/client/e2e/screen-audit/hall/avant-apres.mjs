@@ -30,7 +30,13 @@ function exportCommit(commit) {
     `${commit}-application`,
   );
   const source = join(root, "source");
-  if (existsSync(join(source, "package.json"))) return source;
+  if (existsSync(join(source, "package.json"))) {
+    // The capture journey and the screen list of today are copied again at every run.
+    const audit = join(source, "packages/client/e2e/screen-audit/hall");
+    cpSync(join(here, "capture.audit.ts"), join(audit, "capture.audit.ts"));
+    cpSync(join(here, "screens.mjs"), join(audit, "screens.mjs"));
+    return source;
+  }
   rmSync(root, { recursive: true, force: true });
   mkdirSync(source, { recursive: true });
   const archive = spawnSync("sh", ["-c", `git archive ${commit} | tar -x -C "${source}"`], {
@@ -68,24 +74,51 @@ function exportCommit(commit) {
   return source;
 }
 
+/** --screens=a,b retakes these screens only and keeps the other captures. */
+const retake = argument("screens");
+
+/** The lock of the test database (the same as e2e/run.mjs), taken around a run of an exported commit. */
+const lockDirectory = "/private/tmp/hall-e2e.lock";
+function withLock(run) {
+  for (;;) {
+    try {
+      mkdirSync(lockDirectory);
+      break;
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      spawnSync("sleep", ["5"]);
+    }
+  }
+  writeFileSync(join(lockDirectory, "owner"), `vérificateur (avant-apres.mjs) — pid ${process.pid}\n`);
+  try {
+    return run();
+  } finally {
+    rmSync(lockDirectory, { recursive: true, force: true });
+  }
+}
+
 function capture(label, application) {
   const directory = join(output, label);
-  rmSync(directory, { recursive: true, force: true });
-  const result = spawnSync(process.execPath, [join(application, "packages/client/e2e/run.mjs")], {
-    cwd: application,
-    env: {
-      ...process.env,
-      HALL_SCREEN_AUDIT: "true",
-      HALL_SCREEN_AUDIT_MODE: "capture",
-      HALL_SCREEN_AUDIT_OUTPUT: directory,
-      // One lane: the client of an earlier commit may share one Vite cache between lanes.
-      HALL_E2E_LANES: "1",
-      CI: "true",
-      // The disposable PostgreSQL of the journeys is shared: the exported application uses the same container.
-      COMPOSE_PROJECT_NAME: "hall",
-    },
-    stdio: "inherit",
-  });
+  if (!retake) rmSync(directory, { recursive: true, force: true });
+  const result = withLock(() =>
+    spawnSync(process.execPath, [join(application, "packages/client/e2e/run.mjs")], {
+      cwd: application,
+      env: {
+        ...process.env,
+        HALL_SCREEN_AUDIT: "true",
+        HALL_SCREEN_AUDIT_MODE: "capture",
+        HALL_SCREEN_AUDIT_OUTPUT: directory,
+        ...(retake ? { HALL_SCREEN_AUDIT_SCREENS: retake } : {}),
+        // One lane: the client of an earlier commit may share one Vite cache between lanes.
+        HALL_E2E_LANES: "1",
+        CI: "true",
+        // The disposable PostgreSQL of the journeys is shared: the exported application uses the same container.
+        COMPOSE_PROJECT_NAME: "hall",
+        HALL_E2E_LOCK_HELD: "true",
+      },
+      stdio: "inherit",
+    }),
+  );
   mkdirSync(directory, { recursive: true });
   writeFileSync(join(directory, "statut.txt"), `${result.status}\n`);
 }

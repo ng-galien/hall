@@ -152,6 +152,7 @@ if (!reportOnly && selected !== "") {
     env: {
       ...process.env,
       HALL_SCREEN_AUDIT: "true",
+      HALL_E2E_LOCK_OWNER: "vérificateur (outil de vérification des écrans)",
       HALL_SCREEN_AUDIT_MODE: authPass ? "auth-sweep" : "sweep",
       ...(authPass ? { HALL_E2E_AUTH_MODE: "true" } : {}),
       // A complete sweep lasts longer than the ten minutes the runner gives a local suite: it takes the time of a CI run.

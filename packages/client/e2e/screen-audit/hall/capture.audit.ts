@@ -13,6 +13,7 @@ import { ready, screens } from "./screens.mjs";
 type Screen = (typeof screens)[number];
 
 const outputDirectory = process.env.HALL_SCREEN_AUDIT_OUTPUT ?? "";
+const onlyScreens = process.env.HALL_SCREEN_AUDIT_SCREENS?.split(",");
 const formats = [
   {
     id: "ordinateur",
@@ -34,7 +35,10 @@ if (process.env.HALL_SCREEN_AUDIT_MODE === "capture") {
   if (!outputDirectory) throw new Error("HALL_SCREEN_AUDIT_OUTPUT names the capture directory");
   for (const format of formats) {
     for (const scenario of ["minutes", "default"] as const) {
-      const selected = screens.filter((screen: Screen) => screen.scenario === scenario && format.exists(screen));
+      const selected = screens.filter(
+        (screen: Screen) =>
+          screen.scenario === scenario && format.exists(screen) && (!onlyScreens || onlyScreens.includes(screen.id)),
+      );
       if (!selected.length) continue;
       test.describe(`captures ${format.id} ${scenario}`, () => {
         test.use({
@@ -57,13 +61,26 @@ if (process.env.HALL_SCREEN_AUDIT_MODE === "capture") {
               await screen.open(page);
               await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
               await ready(page);
-              await page.waitForTimeout(400);
+              // A screen still compiling or loading shows an empty main area: wait until it shows content.
+              await page
+                .waitForFunction(
+                  () =>
+                    (document.querySelector("main, [data-testid=application-main]")?.textContent ?? "").trim().length >
+                    20,
+                  undefined,
+                  { timeout: 20_000 },
+                )
+                .catch(() => undefined);
+              await page.waitForTimeout(600);
               await page.screenshot({ path: join(directory, `${screen.id}.png`), fullPage: true });
             } catch (error) {
               missing[screen.id] = error instanceof Error ? error.message.split("\n")[0] : String(error);
             }
           }
-          writeFileSync(join(directory, `non-ouverts-${scenario}.json`), JSON.stringify(missing, null, 2));
+          writeFileSync(
+            join(directory, `non-ouverts-${scenario}${onlyScreens ? "-reprise" : ""}.json`),
+            JSON.stringify(missing, null, 2),
+          );
         });
       });
     }
