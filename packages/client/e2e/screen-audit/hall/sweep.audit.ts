@@ -74,6 +74,28 @@ if (sweeping) {
           const measured: string[] = [];
           let measures = 0;
           const queue = [...selected];
+          const directory = join(outputDirectory, "sweep");
+          mkdirSync(directory, { recursive: true });
+          const measuresOf = new Map<string, number>();
+          /* Each screen writes its own record as soon as it is measured: an interrupted pass keeps what it measured. */
+          const done = (id: string) => {
+            measured.push(id);
+            const mine = (entry: Record<string, unknown>) => entry.screen === id;
+            writeFileSync(
+              join(directory, `${input}-${scenario}-${id}.json`),
+              JSON.stringify({
+                input,
+                scenario,
+                screens: [id],
+                measures: measuresOf.get(id) ?? 0,
+                missing: [],
+                findings: findings.filter(mine),
+                contentWidths: contentWidths.filter(mine),
+                unity: unity.filter(mine),
+                breakpoints: [...breakpointsSeen.values()],
+              }),
+            );
+          };
 
           const worker = async (browserInstance: Browser) => {
             const context = await browserInstance.newContext({
@@ -148,6 +170,7 @@ if (sweeping) {
                   unity.push({ ...entry, ...where });
               const areas = await page.evaluate(readContentWidth);
               measures += 1;
+              measuresOf.set(screen.id, (measuresOf.get(screen.id) ?? 0) + 1);
               contentWidths.push({ ...where, content: areas.content, menuWidth: areas.menu, paneWidth: areas.pane });
               for (const finding of found) findings.push({ ...finding, ...where, text });
             };
@@ -207,7 +230,7 @@ if (sweeping) {
                     await open(screen, step.width);
                     await measure(screen, step, "—", "réel");
                   }
-                  measured.push(screen.id);
+                  done(screen.id);
                   continue;
                 }
                 for (const step of [...phoneSteps].reverse()) await measure(screen, step, "—", "réel");
@@ -236,7 +259,7 @@ if (sweeping) {
                 await resize(sweepPlan.to);
                 await page.evaluate(stretchTexts);
                 for (const step of steps.filter((entry) => entry.full)) await measure(screen, step, "déplié", "long");
-                measured.push(screen.id);
+                done(screen.id);
               } catch (error) {
                 missing.push(`${screen.id}: ${error instanceof Error ? error.message.split("\n")[0] : error}`);
               }
@@ -245,20 +268,17 @@ if (sweeping) {
           };
 
           await Promise.all(Array.from({ length: Math.min(sweepPlan.pages, selected.length) }, () => worker(browser)));
-          const directory = join(outputDirectory, "sweep");
-          mkdirSync(directory, { recursive: true });
           writeFileSync(
-            join(directory, `${input}-${scenario}.json`),
+            join(directory, `${input}-${scenario}-non-ouverts.json`),
             JSON.stringify({
               input,
               scenario,
-              screens: measured,
-              measures,
+              screens: [],
+              measures: 0,
               missing,
-              findings,
-              contentWidths,
-              unity,
-              breakpoints: [...breakpointsSeen.values()],
+              findings: [],
+              contentWidths: [],
+              unity: [],
             }),
           );
         });
