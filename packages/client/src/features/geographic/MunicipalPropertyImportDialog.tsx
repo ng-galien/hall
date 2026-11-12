@@ -83,9 +83,8 @@ export function MunicipalPropertyImportDialog({
               {t("municipalProperty.import.empty")}
             </p>
           ) : null}
-          <p>{t("municipalProperty.import.description")}</p>
           <fieldset className="admin-fields" disabled={submitting}>
-            <Field label={t("municipalProperty.import.label")}>
+            <Field label={t("municipalProperty.import.label")} hint={t("municipalProperty.import.description")}>
               <Input
                 required
                 maxLength={200}

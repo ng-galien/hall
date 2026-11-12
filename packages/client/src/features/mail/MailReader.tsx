@@ -1,5 +1,6 @@
 import { findSirenAction, type MailMessage, type MailPreview, type SirenEntity } from "@hall/api-contract";
 import { useState } from "react";
+import { HelpHint } from "../../components/HelpHint";
 import { MarkdownView } from "../../components/MarkdownView";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -135,6 +136,9 @@ export function MailReader({
                 <span className="record-state" data-tone={status.tone}>
                   {status.label}
                 </span>
+                {submission.errorCode && !submission.verification && submission.status === "unknown" ? (
+                  <HelpHint text={t("mail.unknownHelp")} />
+                ) : null}
                 <span>{formatDateTime(submission.startedAt)}</span>
                 <Button
                   variant="plain"
@@ -150,9 +154,9 @@ export function MailReader({
                   {t("mail.preview")}
                 </Button>
               </p>
-              {submission.errorCode && !submission.verification ? (
+              {submission.errorCode && !submission.verification && submission.status !== "unknown" ? (
                 <p className="mail-sending-help" data-tone="danger">
-                  {t(submission.status === "unknown" ? "mail.unknownHelp" : "mail.failedHelp")}
+                  {t("mail.failedHelp")}
                 </p>
               ) : null}
               {submission.verification ? (
@@ -167,9 +171,14 @@ export function MailReader({
       </section>
       {review ? <MailReview review={review} onClose={() => setReview(null)} /> : null}
       {verification ? (
-        <Modal open testId="mail-verify-dialog" title={t("mail.verify")} onClose={() => setVerification(null)}>
+        <Modal
+          open
+          testId="mail-verify-dialog"
+          title={t("mail.verify")}
+          hint={t("mail.verificationHelp")}
+          onClose={() => setVerification(null)}
+        >
           <div className="modal-form">
-            <p>{t("mail.verificationHelp")}</p>
             <Field label={t("mail.verificationOutcome")}>
               <Select value={outcome} onValueChange={(value) => setOutcome(value === "sent" ? "sent" : "not-sent")}>
                 <SelectTrigger data-testid="mail-verification-outcome">

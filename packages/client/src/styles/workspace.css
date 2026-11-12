@@ -144,7 +144,8 @@
 
   /* ---- Home ---- */
   .whome { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: var(--hall-space-5); overflow-y: auto; padding: var(--hall-space-3); }
-  .whome-intro { display: block; padding: var(--hall-space-2) 0; }
+  /* A title and the information icon of its explanation share a line. */
+  .whome-intro { display: flex; align-items: center; gap: var(--hall-space-1); padding: var(--hall-space-2) 0; }
   .whome-intro h2 { margin-top: var(--hall-space-1); font-size: var(--hall-font-size-title); letter-spacing: normal; }
   .whome-intro p { margin-top: var(--hall-space-1); color: var(--hall-color-text-muted); }
   .whome-work { display: grid; gap: var(--hall-space-5); }
@@ -207,6 +208,8 @@
   .legal-reference-setup h2 { margin: 0; font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); }
   .remote-resource-setup p,
   .legal-reference-setup p { margin: var(--hall-space-1) 0 0; color: var(--hall-color-text-muted); }
+  .remote-resource-setup-heading,
+  .legal-reference-setup-heading { display: flex; align-items: center; gap: var(--hall-space-1); }
   .remote-resource-setup-field { display: flex; align-items: flex-end; gap: var(--hall-space-2); }
   .remote-resource-setup-field > .hall-field-block { flex: 1; }
   .legal-reference-setup-actions {

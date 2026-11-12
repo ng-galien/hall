@@ -351,9 +351,14 @@ export function useSpreadsheetDropChoice() {
     setPending(null);
   };
   const dialog = pending ? (
-    <Modal open title={t("editor.spreadsheetDropTitle")} onClose={() => settle(null)} testId="editor-spreadsheet-drop">
+    <Modal
+      open
+      title={t("editor.spreadsheetDropTitle")}
+      hint={t("editor.spreadsheetDropDescription", { name: pending.file.name })}
+      onClose={() => settle(null)}
+      testId="editor-spreadsheet-drop"
+    >
       <div className="modal-form">
-        <p>{t("editor.spreadsheetDropDescription", { name: pending.file.name })}</p>
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="secondary" data-testid="editor-spreadsheet-drop-attach" onClick={() => settle("attach")}>
             {t("editor.spreadsheetDropAttach")}

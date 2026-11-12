@@ -24,7 +24,8 @@
 }
 
 .resource-changes-panel-heading {
-  display: grid;
-  gap: var(--hall-space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--hall-space-1);
   padding-right: var(--hall-space-7);
 }

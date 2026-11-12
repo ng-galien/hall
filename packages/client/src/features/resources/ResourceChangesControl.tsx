@@ -1,6 +1,7 @@
 import { findSirenLink, type ResourceChange, type SirenEntity } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { HelpHint } from "../../components/HelpHint";
 import { RedoIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
@@ -197,7 +198,8 @@ export function ResourceChangesControl({
         >
           <header className="resource-changes-panel-heading">
             <DialogTitle>{t("resourceChanges.title")}</DialogTitle>
-            <DialogDescription>{t("resourceChanges.description")}</DialogDescription>
+            <HelpHint text={t("resourceChanges.description")} />
+            <DialogDescription className="sr-only">{t("resourceChanges.description")}</DialogDescription>
           </header>
           {loading && !changes ? <p role="status">{t("resourceChanges.loading")}</p> : null}
           {failed ? <p role="alert">{t("resourceChanges.error")}</p> : null}

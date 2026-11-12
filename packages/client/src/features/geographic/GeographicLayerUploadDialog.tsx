@@ -106,9 +106,8 @@ export function GeographicLayerUploadDialog({
             </ul>
           </div>
         ) : null}
-        <p>{t("geographicLayer.upload.description")}</p>
         <fieldset className="admin-fields" disabled={submitting}>
-          <Field label={t("geographicLayer.upload.file")}>
+          <Field label={t("geographicLayer.upload.file")} hint={t("geographicLayer.upload.description")}>
             <Input
               type="file"
               accept=".geojson,.json,application/geo+json,application/json"

@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { HelpHint } from "@/components/HelpHint";
 import { Button } from "@/components/ui/button";
 import { InlineRenameField } from "@/components/ui/inline-rename-field";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -362,6 +363,9 @@ export function GeographicMeasurePanel({
                 <Icon />
               </Button>
             ))}
+            {tool !== "none" && !current ? (
+              <HelpHint text={t(tool === "length" ? "geographic.measure.hintLength" : "geographic.measure.hintArea")} />
+            ) : null}
           </div>
           <div className="geographic-measures-body">
             {tool !== "none" ? (
@@ -391,11 +395,7 @@ export function GeographicMeasurePanel({
                     </p>
                   ) : null}
                 </div>
-              ) : (
-                <p className="geographic-measures-hint">
-                  {t(tool === "length" ? "geographic.measure.hintLength" : "geographic.measure.hintArea")}
-                </p>
-              )
+              ) : null
             ) : drawingMeasure && drawingMeasure.measure.kind !== "position" ? (
               <div data-testid="geographic-measure-drawing">
                 <p className="geographic-measures-title">{drawingMeasure.label ?? t("geographic.measure.drawing")}</p>

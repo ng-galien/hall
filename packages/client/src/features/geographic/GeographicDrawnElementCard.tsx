@@ -1,6 +1,7 @@
 import type { GeographicFeatureNote, SirenEntity } from "@hall/api-contract";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import type { EditorImageUpload } from "../../components/editor/imageTransfer";
+import { HelpHint } from "../../components/HelpHint";
 import { CenterOnFeatureIcon, CloseIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -144,6 +145,7 @@ export function GeographicDrawnElementCard({
           >
             {label}
           </h2>
+          {modifying ? <HelpHint text={t("geographic.shape.modifyingHint")} /> : null}
         </div>
         {actions}
         <Button
@@ -176,13 +178,7 @@ export function GeographicDrawnElementCard({
             className={`geographic-drawn-element-shape${modifying ? " geographic-drawn-element-shape-modifying" : ""}`}
             data-testid="geographic-drawn-element-shape"
             data-modifying={modifying}
-          >
-            {modifying ? (
-              <p className="geographic-feature-card-muted" aria-live="polite">
-                {t("geographic.shape.modifyingHint")}
-              </p>
-            ) : null}
-          </div>
+          ></div>
         )}
         <div className="geographic-feature-card-note" data-testid="geographic-drawn-element-card-note">
           {loading || creatingNote ? (

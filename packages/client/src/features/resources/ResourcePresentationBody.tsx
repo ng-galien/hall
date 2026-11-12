@@ -1,6 +1,7 @@
 import type { ResourceDetail, SirenEntity } from "@hall/api-contract";
 import { matchDiscriminated } from "@hall/domain";
 import { lazy, Suspense, useState } from "react";
+import { HelpHint } from "@/components/HelpHint";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -136,9 +137,9 @@ export function ResourcePresentationBody({
               });
           }}
         >
-          <div>
+          <div className="remote-resource-setup-heading">
             <h2>{t(targetUrl ? "workspace.editRemoteUrl" : "workspace.remoteSetupTitle")}</h2>
-            {!targetUrl ? <p>{t("workspace.remoteSetupDescription")}</p> : null}
+            {!targetUrl ? <HelpHint text={t("workspace.remoteSetupDescription")} /> : null}
           </div>
           <div className="remote-resource-setup-field">
             <Field label={t("workspace.remoteUrl")}>

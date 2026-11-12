@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { HelpHint } from "../../components/HelpHint";
 import { CalendarIcon, ChevronRightIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
 import { ListRow, ListRows } from "../../components/ui/list-row";
@@ -122,7 +123,7 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
     <div className="whome">
       <header className="whome-intro">
         <h2>{t("workspace.home.title")}</h2>
-        <p>{t("workspace.home.description")}</p>
+        <HelpHint text={t("workspace.home.description")} />
       </header>
       {error ? (
         <div className="workspace-list-empty" role="alert" data-testid="workspace-home-error">

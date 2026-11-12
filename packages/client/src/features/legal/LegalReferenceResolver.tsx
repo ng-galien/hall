@@ -2,6 +2,7 @@ import type { LegalReferenceSearchResult, ResourceDetail } from "@hall/api-contr
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
+import { HelpHint } from "../../components/HelpHint";
 import { LegalReferenceIcon, OpenIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ActiveOption } from "../../components/ui/active-option";
@@ -105,7 +106,7 @@ export function LegalReferenceResolver({
     <div className="legal-reference-setup">
       <div className="legal-reference-setup-heading">
         <h2>{t("legalReference.setupTitle")}</h2>
-        <p>{t("legalReference.searchDescription")}</p>
+        <HelpHint text={t("legalReference.searchDescription")} />
       </div>
       <RequestErrorBanner error={error} />
       <SearchInput

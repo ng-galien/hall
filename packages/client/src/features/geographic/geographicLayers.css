@@ -43,6 +43,8 @@
   border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
 }
 .geographic-feature-card-title { display: grid; flex: 1; min-width: 0; gap: var(--hall-space-0-5); }
+/* While a shape is modified, the information icon of its instructions follows the title on its line. */
+.geographic-feature-card-title:has(> .hall-button) { display: flex; align-items: center; }
 .geographic-feature-card-kind { display: inline-grid; flex: none; place-items: center; color: var(--hall-color-text-muted); }
 .geographic-feature-card-color { display: inline-grid; place-items: center; }
 .geographic-feature-card-title h2 {

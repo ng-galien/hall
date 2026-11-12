@@ -41,6 +41,7 @@ export function BusinessBundleExportDialog({ businessId, onClose }: { businessId
     <Modal
       open
       title={t("bundles.export")}
+      hint={t("bundles.senderDescription")}
       testId="bundle-export-dialog"
       onClose={() => {
         if (!submitting) onClose();
@@ -48,7 +49,6 @@ export function BusinessBundleExportDialog({ businessId, onClose }: { businessId
     >
       <form className="modal-form" onSubmit={submit}>
         <RequestErrorBanner error={error} />
-        <p>{t("bundles.senderDescription")}</p>
         <fieldset className="grid gap-3" disabled={submitting}>
           <FieldRow>
             <Field label={t("bundles.lastName")}>
