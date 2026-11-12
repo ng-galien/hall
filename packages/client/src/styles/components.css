@@ -179,6 +179,9 @@
   .creation-form { display: grid; gap: var(--hall-space-4); max-width: var(--hall-size-relative-52rem); padding: var(--hall-space-5) 0; }
   .creation-form + .creation-form { border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .creation-form:first-child { padding-top: 0; }
+  /* A title with the information icon of its explanation. */
+  .creation-form-title,
+  .authentication-title { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-1); }
   .creation-form h3 { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); line-height: var(--hall-line-height-heading); }
   .creation-form h4 { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-bold); }
   .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-3); margin-bottom: var(--hall-space-4); }

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
+import { HelpHint } from "../../components/HelpHint";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -56,8 +57,10 @@ export function MailSettings({
   };
   return (
     <form className="creation-form" onSubmit={submit} data-testid="settings-mail">
-      <h3>{t("settings.category.mail")}</h3>
-      <p className="admin-hint">{t("settings.mail.description")}</p>
+      <div className="creation-form-title">
+        <h3>{t("settings.category.mail")}</h3>
+        <HelpHint text={t("settings.mail.description")} />
+      </div>
       <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
       {(["outboundEmailSenderName", "outboundEmailSenderAddress", "outboundEmailReplyToAddress"] as const).map(
         (field) => (

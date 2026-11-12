@@ -1,3 +1,4 @@
+import { HelpHint } from "../../components/HelpHint";
 import { useI18n } from "../../i18n/I18nProvider";
 
 // @implements-requirement HALL-FR-USR-070
@@ -22,8 +23,8 @@ export function TemporaryPasswordSetting({
           data-testid="user-temporary-password"
         />
         {t("users.temporaryPassword")}
+        <HelpHint text={t("users.temporaryPasswordDescription")} />
       </label>
-      <p className="admin-hint">{t("users.temporaryPasswordDescription")}</p>
     </div>
   );
 }

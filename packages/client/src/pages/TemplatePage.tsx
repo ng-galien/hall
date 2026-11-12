@@ -179,7 +179,7 @@ export function TemplatePage() {
             />
           )}
           <div className="template-body" data-testid="template-body">
-            <Field label={t("templates.body")} help={t("templates.jinjaHelp")} variant="code">
+            <Field label={t("templates.body")} hint={t("templates.jinjaHelp")} variant="code">
               <Textarea
                 data-testid="template-body-editor"
                 className="template-source template-body-source"
@@ -211,7 +211,7 @@ export function TemplatePage() {
             />
           ) : null}
           {draft.kind === "pdf" ? (
-            <Field label={t("templates.stylesheet")} help={t("templates.stylesheetDescription")}>
+            <Field label={t("templates.stylesheet")} hint={t("templates.stylesheetDescription")}>
               <Textarea
                 className="template-source"
                 value={draft.stylesheet}

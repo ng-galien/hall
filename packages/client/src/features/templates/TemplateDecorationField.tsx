@@ -63,7 +63,7 @@ export function TemplateDecorationField({
       )}
       <Field
         label={label}
-        help={t("templates.decorationHelp")}
+        hint={t("templates.decorationHelp")}
         error={problem ? <span data-testid={`${testId}-problem`}>{problem}</span> : undefined}
         labelAction={
           readOnly ? undefined : (

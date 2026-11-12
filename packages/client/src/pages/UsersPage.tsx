@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CreateButton } from "@/components/ui/create-button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { HelpHint } from "../components/HelpHint";
 import { MembersIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
 import {
@@ -173,6 +174,7 @@ export function UsersPage() {
                     data-testid="user-access-invitation"
                   />
                   {t("users.accessInvitation")}
+                  <HelpHint text={t("users.accessInvitationDescription")} />
                 </label>
                 <label className="checkbox-field">
                   <input
@@ -183,15 +185,14 @@ export function UsersPage() {
                     data-testid="user-access-hand-delivered"
                   />
                   {t("users.accessHandDelivered")}
+                  <HelpHint text={t("users.accessHandDeliveredDescription")} />
                 </label>
-                <p className="admin-hint">
-                  {t(handDelivered ? "users.accessHandDeliveredDescription" : "users.accessInvitationDescription")}
-                </p>
               </fieldset>
               {handDelivered && (
                 <Field
                   label={t("users.password")}
-                  help={t(passphrase ? "users.generatedPasswordHint" : "users.passwordHint")}
+                  help={passphrase ? undefined : t("users.passwordHint")}
+                  hint={passphrase ? t("users.generatedPasswordHint") : undefined}
                 >
                   <Input
                     name="password"

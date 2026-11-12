@@ -2,6 +2,7 @@ import { type ComponentProps, createContext, type ReactNode, useContext, useId }
 import { ChevronDownIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useI18n } from "../../i18n/I18nProvider";
+import { HelpHint } from "../HelpHint";
 
 type FieldControl = { id: string; describedBy?: string; invalid: boolean };
 const FieldContext = createContext<FieldControl | null>(null);
@@ -21,6 +22,7 @@ export function Field({
   testId,
   action,
   labelAction,
+  hint,
   variant,
   children,
 }: {
@@ -35,6 +37,8 @@ export function Field({
   action?: ReactNode;
   /** A command written at the right end of the label line, above the field, such as « Insérer une image ». */
   labelAction?: ReactNode;
+  /** The explanation of the field, behind the information icon after its label. */
+  hint?: string;
   /** `code`: a source text, framed, in monospace, one line per source line, its label above the frame. */
   variant?: "code";
   children: ReactNode;
@@ -49,14 +53,15 @@ export function Field({
         data-invalid={error ? "true" : undefined}
         data-action={action ? "true" : undefined}
         data-variant={variant}
-        data-label-action={labelAction ? "true" : undefined}
+        data-label-action={labelAction || hint ? "true" : undefined}
       >
-        {labelAction ? (
+        {labelAction || hint ? (
           <div className="hall-field-head">
             <label className="hall-field-label" htmlFor={id}>
               {label}
             </label>
-            {labelAction}
+            {hint ? <HelpHint text={hint} /> : null}
+            {labelAction ? <div className="hall-field-head-action">{labelAction}</div> : null}
           </div>
         ) : (
           <label className="hall-field-label" htmlFor={id}>

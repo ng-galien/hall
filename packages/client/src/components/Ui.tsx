@@ -5,7 +5,8 @@ import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { normalizeForSearch } from "../lib/search";
 import type { ApiErrorCode } from "../services/apiClient";
-import { ScreenTitle, ScreenTitleCommands, ScreenTitleFacts } from "../shell/headerTrail";
+import { ScreenTitle, ScreenTitleCommands } from "../shell/headerTrail";
+import { HelpHint } from "./HelpHint";
 import { CloseIcon } from "./icons";
 import { SearchInput } from "./ui/search-input";
 
@@ -23,7 +24,7 @@ export function PageHeader({
 }: {
   title: string;
   description?: string;
-  /** An opened item: its description goes under its large title and its commands on the line of the title. */
+  /** An opened item: its description goes behind the information icon and its commands on the line of the title. */
   describesItem?: boolean;
   children?: ReactNode;
   titleAction?: ReactNode;
@@ -33,13 +34,9 @@ export function PageHeader({
   return (
     <>
       <ScreenTitle>{title}</ScreenTitle>
-      {describesItem && description ? (
-        <ScreenTitleFacts>
-          <p className="page-header-description">{description}</p>
-        </ScreenTitleFacts>
-      ) : null}
-      {describesItem && controls ? (
+      {describesItem && (description || controls) ? (
         <ScreenTitleCommands>
+          {description ? <HelpHint text={description} testId="page-description" /> : null}
           {titleAction}
           {children}
         </ScreenTitleCommands>

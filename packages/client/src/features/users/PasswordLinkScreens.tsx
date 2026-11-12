@@ -1,5 +1,6 @@
 import type { ApiPasswordLink, SirenEntity } from "@hall/api-contract";
 import { type FormEvent, useEffect, useState } from "react";
+import { HelpHint } from "../../components/HelpHint";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Field } from "../../components/ui/field";
@@ -48,14 +49,16 @@ export function PasswordRecoveryScreen({
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit} data-testid="password-recovery">
         <p className="eyebrow">{t("navigation.council")}</p>
-        <h1>{t("auth.recoveryTitle")}</h1>
+        <div className="authentication-title">
+          <h1>{t("auth.recoveryTitle")}</h1>
+          {sent ? null : <HelpHint text={t("auth.recoveryDescription")} />}
+        </div>
         {sent ? (
           <p role="status" data-testid="password-recovery-sent">
             {t("auth.recoverySent")}
           </p>
         ) : (
           <>
-            <p>{t("auth.recoveryDescription")}</p>
             <RequestErrorBanner error={error} />
             <Field label={t("auth.email")}>
               <Input

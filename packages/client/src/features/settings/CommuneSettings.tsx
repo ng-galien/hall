@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { HelpHint } from "../../components/HelpHint";
 import { RequestErrorBanner } from "../../components/Ui";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import type { TranslationKey } from "../../i18n/en";
@@ -121,8 +122,10 @@ export function CommuneSettings({
 
   return (
     <form className="creation-form" data-testid="settings-commune" onSubmit={submit}>
-      <h3>{t("settings.commune")}</h3>
-      <p className="admin-hint">{t("settings.communeDescription")}</p>
+      <div className="creation-form-title">
+        <h3>{t("settings.commune")}</h3>
+        <HelpHint text={t("settings.communeDescription")} />
+      </div>
       <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
       <div className="admin-fields">
         {fieldRows.map((row) => (

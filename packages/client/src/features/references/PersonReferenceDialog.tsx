@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { HelpHint } from "../../components/HelpHint";
 import { ContactIcon } from "../../components/icons";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -39,8 +40,11 @@ export function PersonReferenceDialog({
               {initials ?? <ContactIcon />}
             </span>
             <div className="min-w-0">
-              <DialogTitle className="break-words text-lg leading-snug font-semibold">{name}</DialogTitle>
-              <DialogDescription>{description}</DialogDescription>
+              <div className="flex min-w-0 items-center gap-1">
+                <DialogTitle className="break-words text-lg leading-snug font-semibold">{name}</DialogTitle>
+                <HelpHint text={description} />
+              </div>
+              <DialogDescription className="sr-only">{description}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
