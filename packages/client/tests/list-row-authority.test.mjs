@@ -218,3 +218,13 @@ test("with a mouse on a computer, the row takes the sizes of the side menu throu
   assert.match(block, /\.list-row-head > \.type-icon \{[^}]*font-size: var\(--hall-font-size-icon-large\);/);
   assert.match(block, /min-height: var\(--hall-size-list-row-pointer-double\)/);
 });
+
+// @verifies-requirement HALL-FR-WSP-270
+test("a folder row unfolds by its folder icon, never by a chevron", () => {
+  for (const path of ["pages/workspace/PathContents.tsx", "shell/WorkspaceTree.tsx"]) {
+    assert.doesNotMatch(read(path), /Chevron(?:Right|Down)Icon|CaretRight|CaretDown/, `${path} draws a chevron`);
+  }
+  assert.match(read("pages/workspace/PathContents.tsx"), /headButton=\{/);
+  assert.match(read("shell/WorkspaceTree.tsx"), /FolderOpenIcon/);
+  assert.doesNotMatch(read("components/ui/list-row.tsx"), /list-row-lead/);
+});

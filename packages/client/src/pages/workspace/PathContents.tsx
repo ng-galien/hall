@@ -33,7 +33,6 @@ import {
   EditIcon,
   FolderAddIcon,
   LinkIcon,
-  OpenIcon,
   WorkspaceIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
@@ -1157,6 +1156,13 @@ export function PathContents({
     );
     const folderColor = folderEntry?.color ?? null;
     const folderName = folderPath.split("/").at(-1) ?? folderPath;
+    // A folder whose listing is loaded and empty has nothing to unfold; an unread folder may have content.
+    const hasContent =
+      children.length > 0 ||
+      visibleBusinesses.some((business) => business.folderPath === folderPath) ||
+      visibleResources.some((resource) => resource.path === folderPath) ||
+      !resourcesStore.loadedPaths.includes(folderPath);
+    const unfoldable = !phone && !normalizedQuery && hasContent;
     return (
       <ListRow
         key={folderPath}
@@ -1166,9 +1172,23 @@ export function PathContents({
           folderEntry?.id,
           folderColor,
           <span className="workspace-explorer-color-anchor">
-            <FolderGlyph open={isExpanded} color={folderColor} />
+            <FolderGlyph open={isExpanded && hasContent} color={folderColor} />
           </span>,
         )}
+        headButton={
+          unfoldable
+            ? {
+                tabIndex: -1,
+                "aria-expanded": isExpanded,
+                "aria-label": folderName,
+                ...testIdProps(`workspace-folder-expand-${folderPath}`),
+                onClick: (event) => {
+                  event.stopPropagation();
+                  toggle(folderPath);
+                },
+              }
+            : undefined
+        }
         title={
           <InlineRenameField
             value={folderName}
@@ -1185,42 +1205,23 @@ export function PathContents({
           </InlineRenameField>
         }
         onOpen={(renaming ? undefined : () => undefined) as () => void}
-        openTestId={`workspace-folder-toggle-${folderPath}`}
+        openTestId={`workspace-folder-open-${folderPath}`}
         openProps={treeNodeProps(key, {
           "data-workspace-folder-path": folderPath,
           "aria-expanded": isExpanded,
           "aria-label": folderName,
         })}
-        action={
-          phone ? undefined : (
-            <Button
-              variant="plain"
-              size="icon"
-              data-testid={`workspace-folder-open-${folderPath}`}
-              aria-label={t("workspace.open")}
-              title={t("workspace.open")}
-              onClick={(event) => {
-                event.stopPropagation();
-                onSelect(null, folderPath);
-              }}
-            >
-              <OpenIcon aria-hidden="true" className="size-5" />
-            </Button>
-          )
-        }
         lineProps={{
           className: dropPath === folderPath ? "workspace-explorer-drop" : undefined,
           ...testIdProps(`workspace-folder-${folderPath}`),
           onClick: (event) => {
-            if (phone) {
-              onSelect(null, folderPath);
+            if (renaming) return;
+            const modifiers = selectionModifiers(event);
+            if (modifiers.toggle || modifiers.range) {
+              selectTreeItem(key, modifiers);
               return;
             }
-            selectTreeItem(key, selectionModifiers(event));
-            event.currentTarget
-              .querySelector<HTMLButtonElement>("button[data-workspace-tree-node]")
-              ?.focus({ preventScroll: true });
-            if (event.detail === 1) toggle(folderPath);
+            onSelect(null, folderPath);
           },
           onKeyDown: (event) => {
             if (event.key === "Enter" || event.key === " ") selectTreeItem(key);

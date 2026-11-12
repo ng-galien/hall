@@ -28,6 +28,8 @@ export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "child
   ListRowOpen &
   ListRowSize & {
     head?: ReactNode;
+    /** Makes the head a button of its own beside the open zone, such as the folder icon that unfolds a tree folder. */
+    headButton?: Omit<ComponentPropsWithoutRef<"button">, "children">;
     /** Short line above the title of a prominent row, such as « Prochaine séance ». */
     overline?: ReactNode;
     title: ReactNode;
@@ -59,6 +61,7 @@ export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "child
  */
 export function ListRow({
   head,
+  headButton,
   overline,
   title,
   detail,
@@ -83,7 +86,7 @@ export function ListRow({
 }: ListRowProps) {
   const content = (
     <>
-      {head ? <span className="list-row-head">{head}</span> : null}
+      {head && !headButton ? <span className="list-row-head">{head}</span> : null}
       <span className="list-row-text">
         {overline ? <span className="list-row-overline">{overline}</span> : null}
         <span className="list-row-title">{title}</span>
@@ -141,6 +144,15 @@ export function ListRow({
     >
       {(wrapLine ?? ((element: ReactElement) => element))(
         <div {...lineProps} className={cn("list-row-line", lineProps?.className)}>
+          {head && headButton ? (
+            <button
+              type="button"
+              {...headButton}
+              className={cn("list-row-head list-row-head-button", headButton.className)}
+            >
+              {head}
+            </button>
+          ) : null}
           {main}
           {action ? <div className="list-row-action">{action}</div> : null}
         </div>,

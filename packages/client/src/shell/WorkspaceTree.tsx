@@ -1,7 +1,7 @@
 import type { CouncilBusinessNavigationIndex } from "@hall/api-contract";
 import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronDownIcon, ChevronRightIcon, CouncilBusinessIcon, FolderIcon } from "../components/icons";
+import { CouncilBusinessIcon, FolderIcon, FolderOpenIcon } from "../components/icons";
 import { Button } from "../components/ui/button";
 import { councilBusinessHref } from "../features/references/referenceNavigation";
 import { useI18n } from "../i18n/I18nProvider";
@@ -36,6 +36,13 @@ function TreeNode({
 }) {
   const [dropping, setDropping] = useState(false);
   const isExpanded = expanded.has(node.path);
+  /* The folder icon unfolds the folder: open while its children show, closed otherwise. */
+  const Glyph = node.business
+    ? CouncilBusinessIcon
+    : isExpanded && node.children.length > 0
+      ? FolderOpenIcon
+      : FolderIcon;
+  const glyph = <Glyph {...folderColorIconProps(node.color)} />;
   const isActive = node.business
     ? activeBusinessId === node.business.id
     : !activeBusinessId && activePath === node.path;
@@ -56,10 +63,12 @@ function TreeNode({
             aria-label={node.name}
             onClick={() => onToggle(node.path)}
           >
-            {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+            {glyph}
           </Button>
         ) : (
-          <span className="workspace-tree-toggle" aria-hidden="true" />
+          <span className="workspace-tree-toggle" aria-hidden="true">
+            {glyph}
+          </span>
         )}
         <Link
           className="workspace-tree-link"
@@ -81,11 +90,6 @@ function TreeNode({
             if (payload) void Promise.all(payload.map((entry) => moveToPath(entry, node.path)));
           }}
         >
-          {node.business ? (
-            <CouncilBusinessIcon {...folderColorIconProps(node.color)} />
-          ) : (
-            <FolderIcon {...folderColorIconProps(node.color)} />
-          )}
           <span className="workspace-tree-name">{node.name}</span>
         </Link>
       </div>

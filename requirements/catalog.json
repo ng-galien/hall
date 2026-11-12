@@ -8576,13 +8576,13 @@
       "acceptanceCriteria": [
         "La page racine affiche uniquement l’explorateur documentaire existant, sans vue complémentaire des affaires du conseil.",
         "L’explorateur présente toute l’arborescence depuis la racine, dossiers compris, ainsi que les éléments directement classés à la racine.",
-        "À l’ouverture de l’espace de travail, sur ordinateur, tablette et téléphone, les dossiers de l’explorateur sont repliés et ne se déplient que sur une action de l’utilisateur. Sur ordinateur et tablette, un clic sur un dossier déplie ou replie sa branche ; son action dédiée ouvre ce dossier comme dossier courant.",
+        "À l’ouverture de l’espace de travail, sur ordinateur, tablette et téléphone, les dossiers de l’explorateur sont repliés et ne se déplient que sur une action de l’utilisateur. Sur ordinateur et tablette, l’icône d’un dossier qui a un contenu déplie ou replie sa branche sur place : dossier fermé quand il est replié, dossier ouvert quand il est déplié, avec une zone de clic d’au moins 32 pixels et un survol visible ; un clic sur le nom ou le reste de la ligne ouvre ce dossier comme dossier courant ; aucune ligne de dossier ne porte de chevron, dans l’explorateur comme dans l’arborescence du menu latéral. Au clavier, les flèches déplient et replient, Entrée ouvre le dossier. Un dossier sans contenu garde son icône fermée.",
         "Un clic hors du titre d’une affaire, d’un document ou d’une note sélectionne seulement l’élément ; un clic sur son titre ouvre sa fiche sans déplier l’affaire.",
         "Après la sélection d’une affaire, d’un document ou d’une note, le focus reste dans l’arbre afin que la navigation au clavier puisse continuer.",
         "Depuis une affaire, un document ou une note, la flèche gauche replie son dossier parent et replace le focus sur ce dossier.",
         "L’explorateur permet la multisélection standard : clic simple pour une sélection unique, Maj pour une plage, Ctrl ou ⌘ pour ajouter ou retirer un élément, et Maj avec les flèches pour étendre la sélection au clavier.",
         "Le glisser-déposer d’un élément sélectionné déplace tous les éléments de la sélection vers le dossier cible.",
-        "Chaque ligne d’affaire, de document ou de note présente son nom et sa dernière modification, sans en-tête de colonnes ; l’action d’ouverture du dossier reste immédiatement à côté de son nom, sans date de dossier ; le type n’est pas répété sous forme textuelle.",
+        "Chaque ligne d’affaire, de document ou de note présente son nom et sa dernière modification, sans en-tête de colonnes ; une ligne de dossier n’a pas de date ni d’icône d’ouverture à son extrémité ; le type n’est pas répété sous forme textuelle.",
         "Les icônes d’affaire, de document et de note sont sobres, légèrement agrandies et alignées, avec leur couleur sémantique mais sans fond de badge.",
         "L’ouverture d’une affaire reprend la même structure d’en-tête et le même contrôle d’enregistrement automatique que l’ouverture d’une ressource ; seuls le rapport et les rubriques métier qui suivent diffèrent.",
         "Les projets de délibération et les questions ouvertes d’une affaire sont chargés à son ouverture, puis réunis dans un tableau trié par création décroissante. Une section identifie ces éléments ; les lignes affichent une icône avec son intitulé au survol, l’élément, la séance ou l’ordre du jour et l’état. Chaque ligne peut être développée indépendamment et conserve l’éditeur ainsi que sa sauvegarde discrète dans la ligne ; la séance affichée est un lien. L’ajout se fait depuis le tableau et la suppression n’est proposée que lorsqu’une action serveur l’autorise.",
@@ -8590,6 +8590,12 @@
         "Un document peut être ouvert puis refermé en retrouvant la liste de la racine."
       ],
       "clauses": [
+        {
+          "key": "workspace-folder-icon-unfolds",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 : « l'icône là pour ouvrir le dossier. Franchement, elle est trop loin déjà et j'aime pas trop cette icône », puis, devant un chevron placé devant l’icône du dossier : « Soit on a le chevron, soit on a le dossier qui change de forme. Mais chevron plus dossier, ça me va pas. […] je préfère à la rigueur une icône de dossier qui bouge plutôt que ces chevrons. »",
+          "sourceIds": []
+        },
         {
           "key": "root-documents",
           "origin": "product",

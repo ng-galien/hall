@@ -38,36 +38,77 @@ test("keeps folder icons upright and navigates workspace rows with the keyboard"
     ids.push((await response.json()).properties.id);
   }
   await page.goto("/app/workspace");
-  const toggle = page.getByTestId(`workspace-folder-toggle-${path}`);
+  const folderRow = page.getByTestId(`workspace-folder-open-${path}`);
   // Folders stay collapsed until the user unfolds them.
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(folderRow).toHaveAttribute("aria-expanded", "false");
   const first = page.getByTestId(`workspace-resource-title-${ids[0]}`);
   const second = page.getByTestId(`workspace-resource-title-${ids[1]}`);
   await expect(first).toBeHidden();
-  expect(await toggle.evaluate((element) => getComputedStyle(element.querySelector("svg")!).transform)).toBe("none");
-  await toggle.press("ArrowRight");
-  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const folderIcon = page.getByTestId(`workspace-folder-expand-${path}`);
+  expect(await folderIcon.evaluate((element) => getComputedStyle(element.querySelector("svg")!).transform)).toBe(
+    "none",
+  );
+  await folderRow.press("ArrowRight");
+  await expect(folderRow).toHaveAttribute("aria-expanded", "true");
   await expect(first).toBeVisible();
-  await toggle.press("ArrowRight");
+  await folderRow.press("ArrowRight");
   await expect(first).toBeFocused();
   await first.press("ArrowDown");
   await expect(second).toBeFocused();
   await second.press("ArrowUp");
   await expect(first).toBeFocused();
   await first.press("ArrowLeft");
-  await expect(toggle).toBeFocused();
-  await toggle.press("ArrowLeft");
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(folderRow).toBeFocused();
+  await folderRow.press("ArrowLeft");
+  await expect(folderRow).toHaveAttribute("aria-expanded", "false");
   await expect(first).toBeHidden();
-  await toggle.press("ArrowRight");
+  await folderRow.press("ArrowRight");
   await expect(first).toBeVisible();
-  await toggle.press("Tab");
-  await expect(page.getByTestId(`workspace-folder-open-${path}`)).toBeFocused();
-  await page.getByTestId(`workspace-folder-open-${path}`).press("Tab");
+  await folderRow.press("Tab");
   await expect(first).toBeFocused();
   await first.press("Enter");
   // An existing text opens for reading, with « Modifier » in the screen header.
   await expect(page.getByTestId("text-edit")).toBeVisible();
+});
+
+// @verifies-requirement HALL-FR-WSP-270
+test("the folder icon unfolds a folder in place and the rest of its row enters it", async ({ appPage: page }) => {
+  const path = `Icone ${Date.now()}`;
+  const folder = await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: path } });
+  expect(folder.status()).toBe(201);
+  const empty = await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: `${path} vide` } });
+  expect(empty.status()).toBe(201);
+  const note = await page.request.post("/api/resources", {
+    data: { kind: "text", path, name: "Note du dossier", content: "Contenu" },
+  });
+  expect(note.status()).toBe(201);
+  const noteId = (await note.json()).properties.id;
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/app/workspace");
+  const row = page.getByTestId(`workspace-folder-open-${path}`);
+  const folderIcon = page.getByTestId(`workspace-folder-expand-${path}`);
+  const child = page.getByTestId(`workspace-resource-title-${noteId}`);
+  await expect(folderIcon).toHaveAttribute("aria-expanded", "false");
+  const iconBox = await folderIcon.boundingBox();
+  expect(iconBox!.width).toBeGreaterThanOrEqual(32);
+  expect(iconBox!.height).toBeGreaterThanOrEqual(32);
+  await folderIcon.click();
+  await expect(child).toBeVisible();
+  await expect(folderIcon).toHaveAttribute("aria-expanded", "true");
+  await expect(row).toHaveAttribute("aria-expanded", "true");
+  expect(new URL(page.url()).searchParams.get("path")).toBeNull();
+  await folderIcon.click();
+  await expect(child).toBeHidden();
+  // Once its listing is read, a folder without content keeps its closed icon and has nothing to unfold.
+  await page.getByTestId(`workspace-folder-expand-${path} vide`).click();
+  await expect(page.getByTestId(`workspace-folder-expand-${path} vide`)).toHaveCount(0);
+  await expect(page.getByTestId(`workspace-folder-open-${path} vide`).locator("svg")).toBeVisible();
+  await row.click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("path")).toBe(path);
+  await expect(child).toBeVisible();
+  await page.goto("/app/workspace");
+  await page.getByTestId(`workspace-folder-open-${path}`).press("Enter");
+  await expect.poll(() => new URL(page.url()).searchParams.get("path")).toBe(path);
 });
 
 // @verifies-requirement HALL-FR-AGI-280
@@ -687,7 +728,7 @@ test.describe("workspace explorer", () => {
     await page.getByTestId("workspace-tree-rename-input").press("Enter");
     await expect(page.getByTestId(`workspace-folder-name-seed/${renamedFolder}`)).toBeVisible();
     // Renaming the containing folder must retain its loaded children; folders stay collapsed until unfolded.
-    await page.getByTestId(`workspace-folder-toggle-seed/${renamedFolder}`).click();
+    await page.getByTestId(`workspace-folder-expand-seed/${renamedFolder}`).click();
     await expect(page.getByTestId(`workspace-resource-title-${created.id}`)).toBeVisible();
     await page.getByTestId(`workspace-resource-title-${created.id}`).click();
     await page.getByTestId("text-edit").click();
@@ -732,7 +773,7 @@ test.describe("workspace explorer", () => {
     const agenda = await page.request.get(`/api/council-business/agenda-items?councilBusinessId=${business.id}`);
     expect(agenda.ok()).toBeTruthy();
     expect((await agenda.json()).entities).toEqual([]);
-    await expect(page.getByTestId("workspace-folder-toggle-seed")).toHaveCount(0);
+    await expect(page.getByTestId("workspace-folder-open-seed")).toHaveCount(0);
 
     const meetings = await page.request.get("/api/council-meetings");
     const meeting = (await meetings.json()).entities
@@ -1123,15 +1164,17 @@ test("HALL-FR-WSP-240 sidebar opens the council business instead of its folder",
   await page.goto(`/app/workspace?${new URLSearchParams({ path: business.folderPath })}`);
   const link = page.getByTestId("workspace-sidebar-link").and(page.locator(`[data-path="${folder.fullPath}"]`));
   await expect(link).toHaveAttribute("data-kind", "councilBusiness");
-  await expect(link.locator("svg")).toHaveCount(1);
-  await expect(link.locator(".type-icon")).toHaveCount(0);
+  const linkRow = link.locator("xpath=..");
+  await expect(link.locator("svg")).toHaveCount(0);
+  await expect(linkRow.locator("svg")).toHaveCount(1);
+  await expect(linkRow.locator(".type-icon")).toHaveCount(0);
   await link.click();
   await expect(page.getByTestId("council-business-workbench")).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`councilBusiness=${business.id}`));
   await expect(link).toHaveAttribute("aria-current", "page");
   const parent = page.getByTestId("workspace-sidebar-link").and(page.locator(`[data-path="${business.folderPath}"]`));
   await expect(parent).toHaveAttribute("data-kind", "folder");
-  await expect(parent.locator("svg")).toHaveCount(1);
+  await expect(parent.locator("xpath=..").locator("svg")).toHaveCount(1);
   await parent.click();
   await expect(page.getByTestId("council-business-workbench")).toBeHidden();
   expect(new URL(page.url()).searchParams.get("path")).toBe(business.folderPath);
@@ -1197,7 +1240,7 @@ test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns 
   await expect(page.getByTestId("workspace-root-business-icon")).toBeVisible();
   await expect(page.getByTestId("workspace-tree-root")).toContainText("Documents");
   await expect(page.locator(".whome")).toHaveCount(0);
-  await expect(page.getByTestId(`workspace-folder-toggle-${folder.fullPath}`)).toBeVisible();
+  await expect(page.getByTestId(`workspace-folder-open-${folder.fullPath}`)).toBeVisible();
   // The root document is attached to a business: the documents view lists it at the root.
   await page.getByTestId("workspace-view-resources").click();
   const row = page.getByTestId(`workspace-resource-title-${document.id}`);
@@ -1282,8 +1325,8 @@ test("colours a folder icon from its menu, keeps it after reload and removes it"
   const child = await page.request.post("/api/resources", { data: { kind: "folder", path: name, name: "Enfant" } });
   expect(child.status()).toBe(201);
   await page.goto("/app/workspace");
-  const explorerIcon = page.getByTestId(`workspace-folder-toggle-${name}`).locator("svg");
-  const sidebarIcon = page.locator(`[data-testid="workspace-sidebar-link"][data-path="${name}"] svg`);
+  const explorerIcon = page.getByTestId(`workspace-folder-expand-${name}`).locator("svg");
+  const sidebarIcon = page.locator(`[data-testid="workspace-sidebar-toggle"][data-path="${name}"] svg`);
   await expect(explorerIcon).toBeVisible();
   const greyColor = await iconColor(explorerIcon);
 
@@ -1309,8 +1352,8 @@ test("colours a folder icon from its menu, keeps it after reload and removes it"
   await expect(explorerIcon).toHaveAttribute("data-folder-color", chosen);
   await expect(sidebarIcon).toHaveAttribute("data-folder-color", chosen);
   expect(await iconColor(explorerIcon)).toBe(expected);
-  await page.getByTestId(`workspace-folder-toggle-${name}`).click();
-  await expect(page.getByTestId(`workspace-folder-toggle-${name}/Enfant`).locator("svg")).not.toHaveAttribute(
+  await page.getByTestId(`workspace-folder-expand-${name}`).click();
+  await expect(page.getByTestId(`workspace-folder-expand-${name}/Enfant`).locator("svg")).not.toHaveAttribute(
     "data-folder-color",
     /.+/,
   );
@@ -1323,7 +1366,7 @@ test("colours a folder icon from its menu, keeps it after reload and removes it"
   await expect(sidebarIcon).not.toHaveAttribute("data-folder-color", /.+/);
   await page.reload();
   await expect(explorerIcon).not.toHaveAttribute("data-folder-color", /.+/);
-  expect(await iconColor(page.getByTestId(`workspace-folder-toggle-${name}`).locator("svg"))).toBe(greyColor);
+  expect(await iconColor(page.getByTestId(`workspace-folder-expand-${name}`).locator("svg"))).toBe(greyColor);
 });
 
 // @verifies-requirement HALL-FR-WSP-480
@@ -1345,8 +1388,11 @@ for (const viewport of [
       expect(updated.status()).toBe(200);
       expect((await updated.json()).properties.color).toBe("#1F7A4A");
       await page.goto("/app/workspace");
-      const marker = page.getByTestId(`workspace-folder-toggle-${name}`);
-      const icon = marker.locator("svg");
+      const marker = page.getByTestId(`workspace-folder-open-${name}`);
+      // On a tablet the folder icon is the button that unfolds the folder; on a phone it sits in the row that opens it.
+      const icon = (viewport.label === "phone" ? marker : page.getByTestId(`workspace-folder-expand-${name}`)).locator(
+        "svg",
+      );
       await expect(icon).toHaveAttribute("data-folder-color", "#1F7A4A");
       expect(await iconColor(icon)).toBe(await rgbOf(page, "#1F7A4A"));
       expect(await marker.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgba(0, 0, 0, 0)");

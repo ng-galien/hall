@@ -12,7 +12,10 @@
   .workspace-tree-row:hover { background: var(--hall-color-surface-subtle); }
   .workspace-tree-row-active { background: var(--hall-color-surface-selected); }
   .workspace-tree-row-drop { outline: var(--hall-stroke-thick) dashed var(--hall-color-brand); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
+  /* The folder icon of a tree row, a button that unfolds the folder when it has children. */
+  .workspace-tree-toggle { display: inline-grid; flex: none; place-items: center; width: var(--hall-size-tree-toggle); }
   .hall-button.workspace-tree-toggle { width: var(--hall-size-tree-toggle); min-height: var(--hall-size-tree-toggle); }
+  .workspace-tree-toggle + .workspace-tree-link { padding-left: var(--hall-space-1-5); }
   .workspace-tree-link {
     display: flex;
     flex: 1;

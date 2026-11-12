@@ -94,6 +94,20 @@
   /* The additional facts take at most half of the line and are shortened before the title and the state. */
   .list-row-wide { display: none; min-width: 0; max-width: 50%; flex: 0 1 auto; align-items: center; gap: var(--hall-space-4); overflow: hidden; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); white-space: nowrap; }
   .list-row-wide > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* A head that is a button of its own, such as the folder icon that unfolds a folder: same place, its own hover. */
+  .list-row-head-button {
+    height: var(--hall-size-control);
+    margin-left: var(--hall-space-3);
+    padding: 0;
+    border: 0;
+    border-radius: var(--hall-radius-small);
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+  .list-row-head-button:hover { background: var(--hall-color-surface-selected); }
+  .list-row-head-button:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); }
+  .list-row-head-button + .list-row-main { padding-left: var(--hall-space-3); }
   .list-row-action { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); padding-right: var(--hall-space-3); }
   .list-row-children { padding: 0 var(--hall-space-3) var(--hall-space-3) calc(var(--hall-space-3) + var(--hall-size-glyph-large) + var(--hall-space-3)); }
   /* A nested list is a tree branch: one indentation step per level, rules continued. */
