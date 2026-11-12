@@ -104,6 +104,43 @@ test("one screen header and one navigation per format, the retired ones do not c
   assert.doesNotMatch(bar, /sr-only/, "the bottom bar labels are visible");
 });
 
+/** Help pages under `src/docs/content`, read as their visible text: link targets and image addresses are left out. */
+function helpPages(directory = join(sourceRoot, "docs/content")) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) return helpPages(path);
+    if (!entry.name.endsWith(".mdx")) return [];
+    return [{ path: relative(sourceRoot, path), text: readFileSync(path, "utf8").replace(/\]\([^)]*\)/g, "]") }];
+  });
+}
+
+/** Names and commands the interface no longer shows, and the screen element that replaced each of them. */
+const retiredHelpLabels = [
+  [/espace de travail/i, "the workspace destination is « Documents »"],
+  [/calendrier/i, "the calendar destination is « Agenda »"],
+  [/vue d’ensemble/i, "the home destination is « Accueil »"],
+  [/vue (?:en )?cartes|vue liste/i, "collections are lists only"],
+  [/Propriétés générales/, "a meeting is set in its « Séance » part"],
+  [/Générer la convocation/, "the notice is « Valider la révision », then « Établir »"],
+  [/Documents de la séance/, "the meeting documents part is « Documents de séance »"],
+  [/Régénérer le PDF/, "the notice command is « Régénérer »"],
+  [/Télécharger le courriel/, "the notice mail is prepared in « Courriels »"],
+  [/Télécharger le PDF|Brouillon à préparer/, "the minutes write « Télécharger le document » and « Brouillon »"],
+  [/Générer un pouvoir/, "the proxy form is printed with « Imprimer »"],
+  [/Nouveau rendez-vous/, "creation goes through « Nouveau »"],
+];
+
+// @verifies-requirement HALL-TR-LAY-030
+// @verifies-requirement HALL-FR-LAY-110
+test("the help names the interface as it is: retired destinations and commands do not come back", () => {
+  const pages = helpPages();
+  assert.ok(pages.length > 30, "the help pages are read");
+  const found = pages.flatMap(({ path, text }) =>
+    retiredHelpLabels.filter(([pattern]) => pattern.test(text)).map(([, reason]) => `${path}: ${reason}`),
+  );
+  assert.deepEqual(found, []);
+});
+
 // @verifies-requirement HALL-FR-LAY-100
 test("the screen header writes the connection only when it is lost", () => {
   assert.deepEqual(
