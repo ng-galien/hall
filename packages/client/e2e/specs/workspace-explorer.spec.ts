@@ -67,8 +67,9 @@ test("keeps folder icons upright and navigates workspace rows with the keyboard"
   await folderRow.press("Tab");
   await expect(first).toBeFocused();
   await first.press("Enter");
-  // An existing text opens for reading, with « Modifier » in the screen header.
-  await expect(page.getByTestId("text-edit")).toBeVisible();
+  // On a computer an existing text opens for writing, without « Modifier ».
+  await expect(page.getByTestId("markdown-editor-compact").getByTestId("editor-writing-area")).toBeVisible();
+  await expect(page.getByTestId("text-edit")).toHaveCount(0);
 });
 
 // @verifies-requirement HALL-FR-WSP-270
@@ -731,7 +732,6 @@ test.describe("workspace explorer", () => {
     await page.getByTestId(`workspace-folder-expand-seed/${renamedFolder}`).click();
     await expect(page.getByTestId(`workspace-resource-title-${created.id}`)).toBeVisible();
     await page.getByTestId(`workspace-resource-title-${created.id}`).click();
-    await page.getByTestId("text-edit").click();
     const lastEdit = `${content}, avant fermeture`;
     await page.getByTestId("markdown-editor-compact").getByTestId("editor-writing-area").fill(lastEdit);
     // Close before the debounce expires: the pending content must be flushed first.
@@ -1237,7 +1237,7 @@ test("HALL-FR-WSP-270 opens root documents from the shared explorer and returns 
   expect(folder).toBeTruthy();
   await page.goto("/app/workspace");
   await expect(page.getByTestId("navigation-workspace")).toBeVisible();
-  await expect(page.getByTestId("workspace-root-business-icon")).toBeVisible();
+  await expect(page.getByTestId("workspace-root-icon")).toBeVisible();
   await expect(page.getByTestId("workspace-tree-root")).toContainText("Documents");
   await expect(page.locator(".whome")).toHaveCount(0);
   await expect(page.getByTestId(`workspace-folder-open-${folder.fullPath}`)).toBeVisible();

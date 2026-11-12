@@ -1,5 +1,5 @@
 import { type ReactNode, type RefObject, useEffect, useState } from "react";
-import { CloseIcon, CouncilBusinessIcon, FolderIcon } from "@/components/icons";
+import { CloseIcon, FolderIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -266,7 +266,7 @@ export function WorkspaceBreadcrumb({
           title={t("workspace.allPaths")}
           aria-label={t("workspace.allPaths")}
         >
-          <CouncilBusinessIcon aria-hidden="true" data-testid="workspace-root-business-icon" />
+          <FolderIcon aria-hidden="true" data-testid="workspace-root-icon" />
         </span>
         {segments.map((segment, index) => (
           <span className="workspace-crumb-group" key={segments.slice(0, index + 1).join("/")}>
@@ -315,7 +315,7 @@ export function WorkspaceBreadcrumb({
         "",
         segments.length === 0 && !currentLabel,
         <>
-          <CouncilBusinessIcon aria-hidden="true" data-testid="workspace-root-business-icon" />
+          <FolderIcon aria-hidden="true" data-testid="workspace-root-icon" />
           <span className="workspace-crumb-label">{t("navigation.workspace")}</span>
         </>,
         "workspace-breadcrumb-root",
