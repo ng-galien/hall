@@ -411,7 +411,11 @@
   }
   .mail-recipient > .mail-recipient-remove:hover,
   .mail-attachment > .mail-attachment-control:hover { color: var(--hall-color-text); background: var(--hall-color-surface-subtle); }
-  .mail-recipient-trailing { display: inline-flex; flex: none; gap: var(--hall-space-1); margin-left: auto; }
+  .mail-recipient-trailing { display: inline-flex; flex: none; align-items: center; gap: var(--hall-space-1); margin-left: auto; }
+  /* On a phone Cc and Cci keep their finger size and stand on the line of the value. */
+  @media (max-width: 760px) {
+    .mail-recipient-trailing { margin-block: calc((var(--hall-size-touch-control) - var(--hall-line-height-body-large)) / -2); }
+  }
   .hall-button.mail-copy-link { min-height: var(--hall-size-control-small); padding-inline: var(--hall-space-1); color: var(--hall-color-brand); }
   .mail-suggestions {
     position: absolute;
