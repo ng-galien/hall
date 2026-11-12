@@ -677,18 +677,25 @@ export function readComponentUnity(options) {
         if (title.getBoundingClientRect().height > lineHeight * 1.6) continue;
       }
       const style = getComputedStyle(line);
-      const text = [...line.querySelectorAll("*"), line].find((node) =>
-        [...node.childNodes].some((child) => child.nodeType === Node.TEXT_NODE && child.textContent.trim()),
-      );
+      const text =
+        (definition.text && line.querySelector(definition.text)) ||
+        [...line.querySelectorAll("*"), line].find((node) =>
+          [...node.childNodes].some((child) => child.nodeType === Node.TEXT_NODE && child.textContent.trim()),
+        );
       const textStyle = text ? getComputedStyle(text) : style;
-      const icon = line.querySelector("svg");
+      const icon = line.querySelector(definition.icon ?? "svg");
+      const ownHeight = !(definition.contentHeight && element.matches(definition.contentHeight));
       const parts = [
         `texte ${round(textStyle.fontSize)} px ${textStyle.fontWeight}`,
         `icône ${icon ? round(icon.getBoundingClientRect().width) : 0} px`,
-        `hauteur ${round(line.getBoundingClientRect().height)} px`,
+        ...(ownHeight ? [`hauteur ${round(line.getBoundingClientRect().height)} px`] : []),
         `marges ${round(style.paddingTop)} ${round(style.paddingRight)} ${round(style.paddingBottom)} ${round(style.paddingLeft)} px`,
         `écart ${style.display.includes("flex") || style.display.includes("grid") ? round(style.columnGap) : 0} px`,
       ];
+      /* Kinds the design names (a row on two lines, a list of choices, the active entry) are variants of their own. */
+      const kinds = (definition.kinds ?? [])
+        .filter(([selector]) => element.matches(selector) || element.querySelector(selector))
+        .map(([, label]) => label);
       const declared = (definition.variants ?? [])
         .map((attribute) => {
           const owner = element.closest(`[${attribute}]`);
@@ -696,7 +703,7 @@ export function readComponentUnity(options) {
         })
         .filter(Boolean)
         .join(" ");
-      const variant = [tactile ? "tactile" : "souris", declared].filter(Boolean).join(", ");
+      const variant = [tactile ? "tactile" : "souris", declared, ...kinds].filter(Boolean).join(", ");
       const signature = parts.join(" · ");
       if (seen.has(`${variant}|${signature}`)) continue;
       seen.add(`${variant}|${signature}`);

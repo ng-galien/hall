@@ -130,17 +130,37 @@ const exceptions = {
  * at every width, except between the declared variants (the touch variant of the phone, the named sizes).
  */
 const unityComponents = {
-  menu: { selector: ".app-sidebar .nav-row", part: "", variants: ["data-compact"] },
+  menu: {
+    selector: ".app-sidebar .nav-row",
+    part: "",
+    text: ".nav-label",
+    variants: ["data-compact"],
+    kinds: [["[aria-current=page], .active", "entrée active"]],
+  },
   "titre de groupe du menu": { selector: ".app-sidebar .nav-section-label", part: "", variants: ["data-compact"] },
   "ligne de liste": {
     selector: "[data-slot=list-row]",
     part: ":scope > .list-row-line",
+    text: ".list-row-title",
+    icon: ".list-row-head svg, .list-row-head-button svg",
     variants: ["data-size", "data-prominent"],
+    kinds: [[":scope > .list-row-line :is(.list-row-detail, .list-row-overline, .list-row-fact)", "deux lignes"]],
+    /* A large or prominent row takes the height of what it shows. */
+    contentHeight: "[data-size=large], [data-prominent=true]",
   },
   bandeau: { selector: ".screen-header-line", part: "", variants: [] },
   "grand titre": { selector: "h1.screen-header-title", part: "", variants: [] },
   bouton: { selector: "[data-slot=button]", part: "", variants: ["data-variant", "data-size"] },
-  champ: { selector: "[data-slot=field]:not(:has(textarea)) .hall-field", part: "", variants: [] },
+  champ: {
+    selector: "[data-slot=field]:not(:has(textarea)) .hall-field",
+    part: "",
+    text: ".hall-input, .hall-select-trigger",
+    variants: [],
+    kinds: [
+      [".hall-select-trigger", "liste de choix"],
+      [".tag-input", "étiquettes"],
+    ],
+  },
   état: { selector: ".record-state, .list-row-status", part: "", variants: [] },
   "en-tête de section": { selector: ".collapsible-section-header", part: "", variants: [] },
 };
