@@ -217,9 +217,11 @@
   .app-sheet > [data-slot="dialog-title"] { padding: 0 var(--hall-size-touch-control) var(--hall-space-2) var(--hall-space-4); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); }
   /* « Plus »: the other destinations as a grid of icons in the form of the bottom bar, by categories. */
   .app-sheet:has(.app-sheet-grid) { max-height: calc(100dvh - var(--hall-space-6)); overflow-y: auto; }
-  .app-sheet-grid { display: grid; gap: var(--hall-space-3); }
+  .app-sheet-grid { display: grid; gap: var(--hall-space-6); }
+  /* Without a visible title, the sheet starts beside its close button. */
+  .app-sheet:has(.app-sheet-grid) { padding-top: var(--hall-space-5); }
   .app-sheet-grid .app-sheet-group-title { padding-inline: var(--hall-space-4); }
-  .app-sheet-group-title { padding: 0 var(--hall-space-1) var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-regular); }
+  .app-sheet-group-title { padding: 0 var(--hall-space-1) var(--hall-space-1); color: var(--hall-color-text); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-bold); }
   .app-sheet-cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--hall-space-1) 0; }
   .app-sheet-cell { display: flex; min-width: 0; min-height: var(--hall-size-phone-bar); flex-direction: column; align-items: center; justify-content: flex-start; gap: var(--hall-space-1); padding: var(--hall-space-2) 0; border-radius: var(--hall-radius-small); color: var(--hall-color-text); font-size: var(--hall-font-size-caption); text-align: center; }
   .app-sheet-cell-icon { display: inline-grid; font-size: var(--hall-size-glyph-mark-large); }

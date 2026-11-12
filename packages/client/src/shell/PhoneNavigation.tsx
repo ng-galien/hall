@@ -185,7 +185,7 @@ export function PhoneNavigation() {
           aria-describedby={undefined}
           data-testid="phone-more"
         >
-          <DialogTitle>{t("navigation.more")}</DialogTitle>
+          <DialogTitle className="sr-only">{t("navigation.more")}</DialogTitle>
           <nav className="app-sheet-grid" aria-label={t("common.primaryNavigation")}>
             {moreGroups.map((group) => (
               <section className="app-sheet-group" key={group.key} data-testid={`phone-more-group-${group.key}`}>
