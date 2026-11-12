@@ -17,7 +17,7 @@ export interface WritableText {
 
 /**
  * The two writing modes of a text (choice 8B), on phone, tablet and computer: a text opens for reading with
- * « Modifier » in the screen header for whoever may write it; while writing, « Terminé » in solid blue saves it and
+ * « Modifier » in the screen header for whoever may write it, as the last command before the initials; while writing, « Terminé » in solid blue saves it and
  * returns to reading. A note still empty, just created, opens for writing.
  * @implements-requirement HALL-FR-LAY-130
  */
@@ -37,11 +37,16 @@ export function useTextWriting(text: WritableText): { editing: boolean; control:
   const control = text.editable ? (
     <ScreenActions>
       {editing ? (
-        <Button data-testid="text-finish-editing" onClick={() => void finish()}>
+        <Button className="screen-header-writing" data-testid="text-finish-editing" onClick={() => void finish()}>
           {t("workspace.finishEditing")}
         </Button>
       ) : (
-        <Button variant="secondary" data-testid="text-edit" onClick={() => setEditing(true)}>
+        <Button
+          variant="secondary"
+          className="screen-header-writing"
+          data-testid="text-edit"
+          onClick={() => setEditing(true)}
+        >
           {t("common.edit")}
         </Button>
       )}

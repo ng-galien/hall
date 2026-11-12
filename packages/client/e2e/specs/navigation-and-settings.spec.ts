@@ -165,3 +165,48 @@ test("the screen header writes nothing of the connection until the server stops 
   expect(initials.x + initials.width).toBeLessThanOrEqual(375);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+/** Right edge of each command of the screen header, from left to right. */
+async function headerCommands(page: import("@playwright/test").Page) {
+  const commands = await page.locator(".screen-header-actions > *").evaluateAll((elements) =>
+    elements
+      .map((element) => ({
+        testId: element.getAttribute("data-testid"),
+        right: element.getBoundingClientRect().right,
+      }))
+      .sort((a, b) => a.right - b.right),
+  );
+  return commands.map(({ testId }) => testId);
+}
+
+// @verifies-requirement HALL-FR-LAY-100
+// @verifies-requirement HALL-FR-LAY-130
+test("« Modifier » is the last command before the initials on a text and on an affaire", async ({ appPage: page }) => {
+  const text = await page.request.post("/api/resources", {
+    data: { kind: "text", path: "seed", name: `Ordre ${crypto.randomUUID()}`, content: "Texte." },
+  });
+  expect(text.status()).toBe(201);
+  const business = await page.request.post("/api/council-business", {
+    data: { path: "seed", name: `Ordre ${crypto.randomUUID()}`, reportName: "Report", reportContent: "Rapport." },
+  });
+  expect(business.ok()).toBeTruthy();
+
+  await page.goto(`/app/workspace?path=seed&resource=${(await text.json()).properties.id}`);
+  await expect(page.getByTestId("text-edit")).toBeVisible();
+  expect((await headerCommands(page)).at(-1)).toBe("text-edit");
+  await page.getByTestId("text-edit").click();
+  await expect(page.getByTestId("text-finish-editing")).toBeVisible();
+  expect((await headerCommands(page)).at(-1)).toBe("text-finish-editing");
+
+  // The label of the tags field stays above the tags it holds.
+  await page.getByTestId("tag-input-draft").fill("voirie");
+  await page.getByTestId("tag-input-draft").press("Enter");
+  const field = page.locator(".tag-input .hall-field");
+  const label = await field.locator(".hall-field-label").boundingBox();
+  const tag = await field.locator(".tag-input-row > .hall-button").first().boundingBox();
+  expect(label!.y + label!.height).toBeLessThanOrEqual(tag!.y + 1);
+
+  await page.goto(`/app/workspace?path=seed&councilBusiness=${(await business.json()).properties.id}`);
+  await expect(page.getByTestId("text-edit")).toBeVisible();
+  expect((await headerCommands(page)).at(-1)).toBe("text-edit");
+});

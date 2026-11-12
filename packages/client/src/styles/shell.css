@@ -61,6 +61,7 @@
   .screen-header-tools { display: flex; max-width: 100%; flex: 0 1 auto; align-items: center; gap: var(--hall-space-2); margin-left: auto; }
   .screen-header-actions { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-1); }
   .screen-header-actions:empty { display: none; }
+  .screen-header-actions > .screen-header-writing { order: 1; }
   /* A lost connection is written beside the initials; while the server answers, the live region takes no room. */
   .screen-header-connection { display: flex; min-width: 0; flex: 0 1 auto; }
   .screen-header-connection > .record-state { overflow: hidden; min-width: 0; white-space: nowrap; }

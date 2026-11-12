@@ -59,6 +59,7 @@ export function TagInput({
         )}
         <Input
           type="text"
+          data-testid="tag-input-draft"
           value={draft}
           readOnly={readOnly}
           placeholder={!readOnly && value.length === 0 ? t("workspace.addTag") : ""}
