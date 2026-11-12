@@ -26,8 +26,8 @@ type MoreRow = { to: string; testId: string; label: string; short: string; Icon:
 
 type BarDestination = { id: string; to: string; label: string; Icon: Icon; active: boolean };
 
-/** One entry of the bottom bar: outline icon and permanent label; the active one in blue, bold, thicker stroke. */
-function BarEntry({ id, label, Icon, active }: Pick<BarDestination, "id" | "label" | "Icon" | "active">) {
+/** One entry of the bottom bar: outline icon and permanent label; the active one in blue. */
+function BarEntry({ id, label, Icon }: Pick<BarDestination, "id" | "label" | "Icon">) {
   return (
     <>
       <span className="app-phone-bar-icon" aria-hidden="true">
@@ -174,7 +174,7 @@ export function PhoneNavigation() {
           aria-expanded={moreOpen}
           onClick={() => setMoreOpen(true)}
         >
-          <BarEntry id="more" label={t("navigation.more")} Icon={MoreIcon} active={moreActive} />
+          <BarEntry id="more" label={t("navigation.more")} Icon={MoreIcon} />
         </button>
       </nav>
       <Dialog open={moreOpen} onOpenChange={setMoreOpen}>

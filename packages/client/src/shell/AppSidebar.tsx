@@ -69,7 +69,7 @@ export function EntryRow({
       onClick={onNavigate}
     >
       <span className="nav-icon">
-        <item.Icon weight={current || open ? "bold" : "regular"} />
+        <item.Icon weight={open && !current ? "bold" : "regular"} />
       </span>
       <span className="nav-label">{t(item.labelKey)}</span>
       {count !== null ? <span className="nav-count">{count}</span> : null}
@@ -90,7 +90,7 @@ function RailPlace({ item, pathname }: { item: NavigationItem; pathname: string 
         data-testid={item.testId ?? `navigation-${item.id}`}
         aria-current={current ? "page" : undefined}
       >
-        <item.Icon weight={current ? "bold" : "regular"} />
+        <item.Icon weight="regular" />
         <span className="nav-label">{t(item.labelKey)}</span>
         {count !== null ? <span className="nav-count">{count}</span> : null}
       </Link>
@@ -160,7 +160,7 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
   useEffect(() => keep, []);
   const icon = (
     <span className="nav-icon">
-      <item.Icon weight={current ? "bold" : "regular"} />
+      <item.Icon weight="regular" />
     </span>
   );
   if (item.children || item.folderTree)
