@@ -252,6 +252,17 @@ export const screens = [
     scenario: "minutes",
     open: detail("/api/users", (user) => `/users/${user.id}`),
   },
+  {
+    id: "utilisateur-creation",
+    title: "Création d'un utilisateur",
+    scenario: "minutes",
+    reopenAtEveryWidth: true,
+    async open(page) {
+      await page.goto("/app/users");
+      await page.getByTestId("users-add").click();
+      await visible(page, "user-access");
+    },
+  },
   { id: "parametres", title: "Paramètres", scenario: "minutes", open: route("/settings") },
   /* Two pages of the help: its index and one article; the other articles share their layout. */
   { id: "aide", title: "Aide", scenario: "minutes", open: route("/docs") },

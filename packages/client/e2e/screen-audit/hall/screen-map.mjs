@@ -78,7 +78,7 @@ export const screenFiles = [
     ["commissions", "commission", "representations", "representation"],
   ],
   [/pages\/Template/, ["modeles", "modele"]],
-  [/pages\/User|features\/users\/|features\/authorization\//, ["utilisateurs", "utilisateur"]],
+  [/pages\/User|features\/users\/|features\/authorization\//, ["utilisateurs", "utilisateur", "utilisateur-creation"]],
   [/pages\/SettingsPage|features\/settings\//, ["parametres"]],
   [/docs\/|styles\/docs\.css$/, ["aide", "aide-article"]],
 ];

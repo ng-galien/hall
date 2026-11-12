@@ -21,6 +21,7 @@ import { sourcesOf, sweepPlan } from "./sweep-config.mjs";
  *   --exclude=a,b                leave these screens out (their files are being changed);
  *   --widths=783,1030            measure only these window widths, with every rule;
  *   --commit=<commit>            the commit whose client is built and measured (HEAD by default);
+ *   --auth                       the screens without a session, in the authenticated mode of the journeys;
  *   --build-only                 build the client of the commit and write its directory, for the journeys of a pass;
  *   --report-only                rewrite the report from the last measurements;
  *   --rules[=component]          write the rules of the interface (all, or one component), without a browser;
@@ -86,6 +87,8 @@ if (excluded.length) {
 for (const id of selected ? selected.split(",") : []) if (!known.has(id)) throw new Error(`Écran inconnu : ${id}`);
 const intervalsOption = argument("intervals");
 const widthsOption = argument("widths");
+/* --auth measures the screens shown without a session (sign-in, forgotten password, password link). */
+const authPass = process.argv.includes("--auth");
 
 /*
  * The measured client is built from a commit, never from the working tree: the commit is exported with `git archive`
@@ -149,7 +152,8 @@ if (!reportOnly && selected !== "") {
     env: {
       ...process.env,
       HALL_SCREEN_AUDIT: "true",
-      HALL_SCREEN_AUDIT_MODE: "sweep",
+      HALL_SCREEN_AUDIT_MODE: authPass ? "auth-sweep" : "sweep",
+      ...(authPass ? { HALL_E2E_AUTH_MODE: "true" } : {}),
       // A complete sweep lasts longer than the ten minutes the runner gives a local suite: it takes the time of a CI run.
       CI: process.env.CI ?? "true",
       HALL_SCREEN_AUDIT_OUTPUT: outputDirectory,
@@ -175,8 +179,11 @@ const records = existsSync(sweepDirectory)
       .map((file) => JSON.parse(readFileSync(join(sweepDirectory, file), "utf8")))
   : [];
 const measures = records.reduce((total, record) => total + record.measures, 0);
-const expected =
-  selected === "" ? [] : screens.filter((screen) => !selected || selected.split(",").includes(screen.id));
+const expected = authPass
+  ? []
+  : selected === ""
+    ? []
+    : screens.filter((screen) => !selected || selected.split(",").includes(screen.id));
 const measuredBy = (input) =>
   new Set(records.filter((record) => record.input === input).flatMap((record) => record.screens));
 const missing = [
