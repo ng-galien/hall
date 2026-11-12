@@ -603,7 +603,12 @@ export function measureConformance(options) {
     if (dot) add("state-pill", state, `« ${text} » écrit après un rond`);
     const fill = painted(getComputedStyle(state).backgroundColor);
     if (!fill) add("state-pill", state, `« ${text} » sans pastille`);
-    else if (isBlue(fill) || isBlue(parseColor(getComputedStyle(state).color) ?? { r: 0, g: 0, b: 0 }))
+    // The grey of a neutral state (#ECEFF3, #4A5362) leans slightly to blue: only a saturated blue is a blue state.
+    else if (
+      [fill, parseColor(getComputedStyle(state).color) ?? { r: 0, g: 0, b: 0 }].some(
+        (color) => isBlue(color) && hsl(color).s >= 0.4,
+      )
+    )
       add("state-pill", state, `« ${text} » en bleu`);
   }
 
