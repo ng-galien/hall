@@ -126,8 +126,9 @@ function capture(label, application) {
 const escape = (text) => String(text).replace(/[&<>"]/g, (character) => `&#${character.charCodeAt(0)};`);
 
 function page() {
-  const notes = existsSync(join(here, "avant-apres-notes.json"))
-    ? JSON.parse(readFileSync(join(here, "avant-apres-notes.json"), "utf8"))
+  // The differences are noted by hand in notes.json beside the captures (not tracked), with the order of the board.
+  const notes = existsSync(join(output, "notes.json"))
+    ? JSON.parse(readFileSync(join(output, "notes.json"), "utf8"))
     : {};
   const { screens } = notes;
   const order = notes.order ?? [];
