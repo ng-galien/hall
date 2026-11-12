@@ -14,7 +14,7 @@ import { HeaderBreadcrumb, useRouteTrail } from "./HeaderBreadcrumb";
 import { navigationSections } from "./navigation";
 import { hasPreviousApplicationScreen } from "./phoneHistory";
 
-type Back = { to: string; label: string };
+export type Back = { to: string; label: string };
 
 function workspaceHref(path: string) {
   return path ? `/workspace?${new URLSearchParams({ path }).toString()}` : "/workspace";
@@ -68,7 +68,7 @@ function useWorkspaceHeading(): { title: string; back: Back | null } {
 const topLevelRoutes = new Set(["", "meetings", "calendar"]);
 
 /** Title of the current screen and, inside an area, the screen above it. */
-function useScreenHeading(): { title: string; back: Back | null } {
+export function useScreenHeading(): { title: string; back: Back | null } {
   const { t } = useI18n();
   const location = useLocation();
   const trail = useRouteTrail();
@@ -146,21 +146,26 @@ export function ApplicationConnectionStatus() {
 
 // @implements-requirement HALL-FR-LAY-100
 /**
- * The single screen header of Hall (choice 2B), on phone, tablet and computer: where one is on the first line, with
- * the action of the screen and the user's initials at its right; the title in large type below, which rises into the
- * first line once the content scrolls.
+ * The first line of every screen of Hall (choice 2B), on phone, tablet and computer: where one is, with the action of
+ * the screen and the user's initials at its right. The large title is the first line of the content, so it scrolls
+ * away without moving the content; once it is gone, the title is written in this line.
  */
 export function ScreenHeader({
   phone,
-  pageTitle,
+  title,
+  back,
   collapsed,
+  reading,
   navigation,
   actionsSlot,
   trailSlot,
 }: {
   phone: boolean;
-  pageTitle: string | null;
+  title: string;
+  back: Back | null;
   collapsed: boolean;
+  /** A document read on a phone has no large title: its name is the heading of this line. */
+  reading: boolean;
   /** On tablet and computer: the control that opens or folds the navigation panel. */
   navigation?: { expanded: boolean; toggle(): void };
   actionsSlot(element: HTMLDivElement | null): void;
@@ -168,9 +173,7 @@ export function ScreenHeader({
 }) {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const heading = useScreenHeading();
   const { commune, initials } = useScreenIdentity();
-  const title = pageTitle ?? heading.title;
   return (
     <header
       className="screen-header"
@@ -192,11 +195,11 @@ export function ScreenHeader({
           </Button>
         ) : null}
         <div className="screen-header-place">
-          {phone && heading.back ? (
+          {phone && back ? (
             <Link
               className="screen-header-back"
               data-testid="phone-header-back"
-              to={heading.back.to}
+              to={back.to}
               aria-label={t("common.back")}
               onClick={(event) => {
                 if (!hasPreviousApplicationScreen()) return;
@@ -205,7 +208,7 @@ export function ScreenHeader({
               }}
             >
               <ChevronLeftIcon aria-hidden="true" />
-              <span className="screen-header-parent">{heading.back.label}</span>
+              <span className="screen-header-parent">{back.label}</span>
             </Link>
           ) : null}
           {!phone ? (
@@ -214,10 +217,19 @@ export function ScreenHeader({
               <div ref={trailSlot} className="screen-header-trail-slot" />
             </div>
           ) : null}
-          {phone && !heading.back ? <span className="screen-header-commune">{commune}</span> : null}
-          <span className="screen-header-inline-title" aria-hidden="true">
-            {title}
-          </span>
+          {phone && !back ? <span className="screen-header-commune">{commune}</span> : null}
+          {reading ? (
+            <h1
+              className="screen-header-inline-title"
+              data-testid={phone ? "phone-header-title" : "screen-header-title"}
+            >
+              {title}
+            </h1>
+          ) : (
+            <span className="screen-header-inline-title" aria-hidden="true">
+              {title}
+            </span>
+          )}
         </div>
         <div ref={actionsSlot} className="screen-header-actions" />
         <ApplicationConnectionStatus />
@@ -230,10 +242,28 @@ export function ScreenHeader({
           {initials}
         </Link>
       </div>
-      <h1 className="screen-header-title" data-testid={phone ? "phone-header-title" : "screen-header-title"}>
-        {title}
-      </h1>
       {phone ? <div ref={trailSlot} hidden /> : null}
     </header>
+  );
+}
+
+/** The large title of the screen, first line of its content. */
+export function ScreenLargeTitle({
+  phone,
+  title,
+  titleRef,
+}: {
+  phone: boolean;
+  title: string;
+  titleRef(element: HTMLHeadingElement | null): void;
+}) {
+  return (
+    <h1
+      ref={titleRef}
+      className="screen-header-title"
+      data-testid={phone ? "phone-header-title" : "screen-header-title"}
+    >
+      {title}
+    </h1>
   );
 }

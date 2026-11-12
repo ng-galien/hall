@@ -259,7 +259,11 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
             <MoreIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="table-controls-menu">
+        <DropdownMenuContent
+          align="start"
+          className="table-controls-menu"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
           <DropdownMenuItem onSelect={run(() => editor.chain().focus().addColumnBefore().run())}>
             <ColumnBeforeIcon /> {t("editor.table.insertColumnLeft")}
           </DropdownMenuItem>
@@ -308,7 +312,11 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
             <MoreVerticalIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="table-controls-menu">
+        <DropdownMenuContent
+          align="start"
+          className="table-controls-menu"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
           <DropdownMenuItem onSelect={run(() => editor.chain().focus().addRowBefore().run())}>
             <RowBeforeIcon /> {t("editor.table.insertRowAbove")}
           </DropdownMenuItem>

@@ -2,16 +2,20 @@
 @layer components {
   .app-shell { display: flex; height: 100svh; overflow: hidden; color: var(--hall-color-text); background: var(--hall-color-surface); }
   .app-column { display: flex; min-width: 0; flex: 1; flex-direction: column; }
-  .app-main { position: relative; min-width: 0; min-height: 0; flex: 1; overflow-y: auto; }
+  .app-main { position: relative; display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; overflow-y: auto; }
+  /* The content below the large title keeps the remaining height, so a full-height screen still fills it. */
+  .app-content { display: flex; min-width: 0; flex: 1 0 auto; flex-direction: column; }
+  .app-content > * { flex: 1 0 auto; }
 
   /* @implements-requirement HALL-FR-LAY-100 */
   .screen-header {
     display: grid;
     flex: none;
-    padding: var(--hall-space-1) var(--hall-space-6) var(--hall-space-3);
-    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+    padding: var(--hall-space-1) var(--hall-space-6);
+    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-transparent);
     background: var(--hall-color-surface);
   }
+  .screen-header[data-collapsed="true"] { border-bottom-color: var(--hall-color-border); }
   .screen-header-line { display: flex; min-width: 0; min-height: var(--hall-size-touch-control); align-items: center; gap: var(--hall-space-2); }
   .screen-header-place { display: flex; min-width: 0; flex: 1; align-items: center; gap: var(--hall-space-2); }
   .screen-header-commune {
@@ -68,6 +72,9 @@
   }
   .screen-header-initials:empty { display: none; }
   .screen-header-title {
+    flex: none;
+    padding: 0 var(--hall-space-6) var(--hall-space-3);
+    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
     overflow-wrap: anywhere;
     font-size: var(--hall-font-size-display);
     font-weight: var(--hall-font-weight-heavy);
@@ -75,9 +82,7 @@
     line-height: var(--hall-line-height-display);
   }
   .screen-header-title:empty { display: none; }
-  /* Once the content scrolls, the large title rises into the first line. */
-  .screen-header[data-collapsed="true"] { padding-bottom: var(--hall-space-1); }
-  .screen-header[data-collapsed="true"] .screen-header-title { position: absolute; width: var(--hall-stroke-thin); height: var(--hall-stroke-thin); overflow: hidden; clip-path: inset(50%); }
+  /* Once the large title has scrolled away, the title is written in the first line. */
   .screen-header[data-collapsed="true"] .screen-header-inline-title { display: block; }
   .screen-header[data-collapsed="true"] :is(.screen-header-parent, .screen-header-commune, .screen-header-trail) { display: none; }
 
@@ -182,7 +187,8 @@
   .page-header-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-2); }
 
   @media (max-width: 760px) {
-    .screen-header { padding-inline: var(--hall-space-4); }
+    .screen-header,
+    .screen-header-title { padding-inline: var(--hall-space-4); }
     .screen-header-title { font-size: var(--hall-font-size-display-small); line-height: var(--hall-line-height-display-small); }
     .page-header { padding: var(--hall-space-3) var(--hall-space-4) 0; }
     .page-header-description { display: none; }

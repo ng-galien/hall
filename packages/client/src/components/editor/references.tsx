@@ -505,6 +505,8 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
                 document.body.appendChild(component.element);
                 observer = new ResizeObserver(reposition);
                 observer.observe(component.element);
+                observer.observe(latest.editor.view.dom);
+                latest.editor.on("transaction", reposition);
                 selectionObserver = new MutationObserver(reposition);
                 selectionObserver.observe(component.element, {
                   subtree: true,
@@ -530,6 +532,7 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
               cancelAnimationFrame(frame);
               observer?.disconnect();
               selectionObserver?.disconnect();
+              latest?.editor.off("transaction", reposition);
               window.removeEventListener("resize", reposition);
               window.removeEventListener("scroll", reposition, true);
               const exiting = component;

@@ -11,12 +11,12 @@ import {
 } from "../shell/headerTrail";
 import { PhoneNavigation } from "../shell/PhoneNavigation";
 import { isPhoneReadingLocation, usePhoneScrollMemory } from "../shell/phoneHistory";
-import { ScreenHeader } from "../shell/ScreenHeader";
+import { ScreenHeader, ScreenLargeTitle, useScreenHeading } from "../shell/ScreenHeader";
 import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 
-/** The content has scrolled past this distance: the large title rises into the first line of the header. */
+/** The large title counts as gone once less than this height of it remains on screen. */
 const collapseDistance = 8;
 
 // @implements-requirement HALL-FR-LAY-010
@@ -48,16 +48,22 @@ export function Layout() {
   const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null);
   const [pageTitle, setPageTitle] = useState<string | null>(null);
   const [mainElement, setMainElement] = useState<HTMLElement | null>(null);
+  const [titleElement, setTitleElement] = useState<HTMLHeadingElement | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const phone = usePhoneLayout();
+  const heading = useScreenHeading();
+  const title = pageTitle ?? heading.title;
   usePhoneScrollMemory(phone, mainElement);
   useEffect(() => {
     if (!mainElement) return;
-    const update = () => setScrolled(mainElement.scrollTop > collapseDistance);
+    const update = () =>
+      setScrolled(
+        mainElement.scrollTop > Math.max(collapseDistance, (titleElement?.offsetHeight ?? 0) - collapseDistance),
+      );
     update();
     mainElement.addEventListener("scroll", update, { passive: true });
     return () => mainElement.removeEventListener("scroll", update);
-  }, [mainElement]);
+  }, [mainElement, titleElement]);
   const loadPersonalWorkspace = useWorkspaceResourcesStore((state) => state.loadPersonalWorkspace);
   useEffect(() => {
     void loadPersonalWorkspace();
@@ -91,7 +97,9 @@ export function Layout() {
               <div className="app-column">
                 <ScreenHeader
                   phone={phone}
-                  pageTitle={pageTitle}
+                  title={title}
+                  back={heading.back}
+                  reading={reading}
                   collapsed={scrolled || reading}
                   navigation={
                     phone
@@ -109,9 +117,12 @@ export function Layout() {
                   data-testid="application-main"
                   data-route={location.pathname}
                 >
-                  <Suspense fallback={<div className="page-content">{t("common.loading")}</div>}>
-                    <Outlet />
-                  </Suspense>
+                  {reading ? null : <ScreenLargeTitle phone={phone} title={title} titleRef={setTitleElement} />}
+                  <div className="app-content">
+                    <Suspense fallback={<div className="page-content">{t("common.loading")}</div>}>
+                      <Outlet />
+                    </Suspense>
+                  </div>
                 </main>
                 {phone && !isPhoneReadingLocation(location) ? <PhoneNavigation /> : null}
               </div>
