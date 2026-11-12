@@ -107,21 +107,19 @@ export function HomeMeeting() {
             openTestId="home-meeting-open"
             action={
               <>
+                <Button
+                  variant="secondary"
+                  data-testid="home-meeting-notice"
+                  disabled={!meeting.agendaRevision.noticeId || opening}
+                  onClick={() => {
+                    if (meeting.agendaRevision.noticeId) void openNotice(meeting, meeting.agendaRevision.noticeId);
+                  }}
+                >
+                  {t("meeting.notice.title")}
+                </Button>
                 <Button asChild data-testid="home-meeting-agenda">
                   <Link to={`/meetings/${meeting.reference}#agenda`}>{t("meeting.agenda")}</Link>
                 </Button>
-                {meeting.agendaRevision.noticeId ? (
-                  <Button
-                    variant="secondary"
-                    data-testid="home-meeting-notice"
-                    disabled={opening}
-                    onClick={() => {
-                      if (meeting.agendaRevision.noticeId) void openNotice(meeting, meeting.agendaRevision.noticeId);
-                    }}
-                  >
-                    {t("meeting.notice.title")}
-                  </Button>
-                ) : null}
               </>
             }
           />
