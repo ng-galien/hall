@@ -347,8 +347,9 @@
   .conduct-stage-scroll { min-height: 0; flex: 1; overflow-y: auto; padding: 0 var(--hall-space-6) var(--hall-space-4); }
   .conduct-stage-fixed-header { padding: var(--hall-space-4) var(--hall-space-6) var(--hall-space-2); }
   .conduct-heading-row { display: flex; align-items: center; justify-content: space-between; gap: var(--hall-space-4); flex-wrap: wrap; }
-  .conduct-title-timer { display: flex; align-items: baseline; gap: var(--hall-space-3); min-width: 0; flex: 1; }
-  .conduct-title-timer h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  /* The title keeps at least 16 rem and wraps between words; the timer, then the recusal command, pass under it. */
+  .conduct-title-timer { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--hall-space-1) var(--hall-space-3); min-width: 0; flex: 1 1 16rem; }
+  .conduct-title-timer h2 { margin: 0; min-width: 0; flex: 1 1 12rem; overflow-wrap: break-word; }
   .conduct-recusal-trigger { margin-left: auto; }
   .conduct-recusal-popover { width: var(--hall-size-picker-panel); max-width: calc(100vw - var(--hall-space-6)); max-height: var(--hall-size-dialog-height); overflow-y: auto; }
   .conduct-stage-actions .conduct-adjourn-action { margin-right: auto; }
