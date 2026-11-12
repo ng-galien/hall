@@ -820,7 +820,10 @@
   /* The facts of the band and the attendance counts share one baseline and one size; long names wrap in their fact. */
   .meeting-report-band,
   .meeting-report-band-attendance { align-items: flex-start; }
-  .meeting-report-band > .meeting-facts > div { max-width: var(--hall-size-relative-8rem); }
+  /* Each fact takes the width of its label and value, written on one line; the facts pass to the next line whole. */
+  .meeting-report-band > .meeting-facts > div,
+  .meeting-report-band-attendance > .meeting-facts > div { flex: none; max-width: none; }
+  .meeting-report-band .meeting-facts :is(dt, dd strong) { white-space: nowrap; }
   .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command,
   .report-timeline .section-header-commands .hall-button.hall-link { min-height: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-regular); }
   .meeting-report-band .hall-button.hall-link.meeting-report-attendance-command { align-self: center; }
@@ -897,5 +900,19 @@
     .meeting-decisions .list-row-action { padding-left: var(--hall-space-3); }
     /* The save state of the decision writing stays on the line of its title. */
     .decision-writing .section-header-text { flex-basis: 0; }
+  }
+}
+
+@layer components {
+  /* On a phone the written commands of a document follow its facts at the spacing of a line of text; under a finger
+     their 44-pixel target reaches over that spacing. */
+  @media (max-width: 760px) {
+    :is(.meeting-documents, .meeting-decisions) .list-row-main { padding-bottom: 0; }
+    :is(.meeting-documents, .meeting-decisions) .list-row-action { padding-top: var(--hall-space-1); }
+  }
+  @media (max-width: 760px) and (pointer: coarse) {
+    :is(.meeting-documents, .meeting-decisions) .list-row-action > .hall-link {
+      margin-block: calc((var(--hall-line-height-body-small) - var(--hall-size-touch-control)) / 2);
+    }
   }
 }
