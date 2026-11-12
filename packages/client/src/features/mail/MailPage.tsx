@@ -24,11 +24,12 @@ import {
   type MailRecipientSelections,
   openMail,
 } from "../../services/mailApi";
-import { ScreenActions, ScreenTitle } from "../../shell/headerTrail";
+import { ScreenTitle } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { MailEditor } from "./MailEditor";
 import { MailGroups } from "./MailGroups";
 import { MailReader } from "./MailReader";
+import { MessageCommands } from "./MessageCommands";
 import { useMailCountsStore } from "./mailCounts";
 import {
   displayRecipients,
@@ -259,7 +260,7 @@ export function MailPage() {
     <div className="page mail-page">
       <ScreenTitle>{t(`mail.${folder}`)}</ScreenTitle>
       {editable && opened?.data.id === mailId ? null : (
-        <ScreenActions>
+        <MessageCommands>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="plain" size="icon" data-testid="mail-more" aria-label={t("mail.more")}>
@@ -272,7 +273,7 @@ export function MailPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </ScreenActions>
+        </MessageCommands>
       )}
       <RequestErrorBanner error={error ? apiErrorCode(error) : null} onDismiss={() => setError(null)} />
       {canCreate && !mailId ? (
