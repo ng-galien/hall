@@ -136,9 +136,12 @@
   font-size: var(--hall-font-size-body);
 }
 
+/* The folder of a map reads as one line: its label in grey, like « Affaires », then the folders as values. */
 .maps-context-path a {
-  color: var(--hall-color-text-muted);
+  color: var(--hall-color-text);
 }
+.maps-context-path > .maps-context-label { margin-right: var(--hall-space-0-5); }
+.maps-context-path-end { margin-left: auto; }
 
 .maps-context-path a:hover {
   color: var(--hall-color-brand);

@@ -260,6 +260,18 @@ export function MapsPage() {
     [businesses, opened],
   );
 
+  const copyReference = opened ? (
+    <CopyReferenceButton
+      size="icon"
+      reference={{
+        name: opened.name,
+        path: opened.path || undefined,
+        page: `/app/maps/${opened.id}`,
+        href: `/api/resources/${opened.slug}`,
+      }}
+    />
+  ) : null;
+
   return (
     <div className="maps-page" data-testid="maps-page" data-map-open={opened ? "true" : "false"}>
       <MapsPanel
@@ -274,15 +286,7 @@ export function MapsPage() {
         {opened ? (
           <header className="maps-context" data-testid="maps-context">
             <div className="maps-context-title-row">
-              <CopyReferenceButton
-                size="icon"
-                reference={{
-                  name: opened.name,
-                  path: opened.path || undefined,
-                  page: `/app/maps/${opened.id}`,
-                  href: `/api/resources/${opened.slug}`,
-                }}
-              />
+              {phone ? null : copyReference}
               <Link className="maps-context-open" data-testid="maps-open-workspace" to={workspaceResourceHref(opened)}>
                 <OpenIcon />
                 <span className="maps-context-open-label">{t("maps.openInWorkspace")}</span>
@@ -305,6 +309,7 @@ export function MapsPage() {
                   </Link>
                 </span>
               ))}
+              {phone ? <span className="maps-context-path-end">{copyReference}</span> : null}
             </nav>
             <div className="maps-context-businesses">
               <span className="maps-context-label">{t("maps.businesses")}</span>
