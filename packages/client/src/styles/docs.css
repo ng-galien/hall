@@ -658,7 +658,7 @@ h4.docs-heading {
   margin-block: var(--hall-space-5);
 }
 
-@media (min-width: 760px) {
+@media (min-width: 761px) {
   .docs-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -737,7 +737,7 @@ h4.docs-heading {
   list-style: none;
 }
 
-@media (min-width: 760px) {
+@media (min-width: 761px) {
   .docs-legend {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -834,7 +834,7 @@ h4.docs-heading {
   margin-block: var(--hall-space-4);
 }
 
-@media (min-width: 760px) {
+@media (min-width: 761px) {
   .docs-compare {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

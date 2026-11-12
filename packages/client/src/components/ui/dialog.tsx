@@ -42,7 +42,7 @@ export function escapeBelongsToRichTextEditor(target: EventTarget | null): boole
 
 const dialogPlacementClasses = {
   center:
-    "top-1/2 left-1/2 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg sm:max-w-sm data-open:zoom-in-95 data-closed:zoom-out-95",
+    "top-1/2 left-1/2 grid w-full max-w-[min(calc(100%-2rem),24rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg data-open:zoom-in-95 data-closed:zoom-out-95",
   left: "inset-y-0 left-0 flex h-dvh w-full max-w-sm flex-col overflow-y-auto rounded-none data-open:slide-in-from-left data-closed:slide-out-to-left",
   right:
     "inset-y-0 right-0 flex h-dvh w-full max-w-sm flex-col overflow-y-auto rounded-none data-open:slide-in-from-right data-closed:slide-out-to-right",
@@ -109,7 +109,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        "-mx-4 -mb-4 flex flex-wrap justify-end gap-2 rounded-b-xl border-t bg-muted/50 p-4",
         className,
       )}
       {...props}

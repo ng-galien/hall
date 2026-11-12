@@ -136,7 +136,7 @@ export function MeetingAttendingPersons({
       >
         <form className="modal-form" data-testid="live-auxiliaries-form" onSubmit={declare}>
           <RequestErrorBanner error={failed ? (error ?? "request_failed") : null} compact />
-          <fieldset className="grid gap-2 sm:grid-cols-2" disabled={submitting}>
+          <fieldset className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-2" disabled={submitting}>
             <legend className="sr-only">{t("auxiliary.contact")}</legend>
             <Button
               type="button"

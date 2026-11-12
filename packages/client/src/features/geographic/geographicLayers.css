@@ -139,6 +139,6 @@
 .geographic-layer-drag-handle.hall-button { cursor: grab; }
 .geographic-measurement { grid-template-columns: var(--hall-size-control) minmax(0, 1fr) auto var(--hall-size-control); }
 /* On a narrow map, the layers command passes under the mode switch instead of overlapping it. */
-@container (max-width: 30rem) {
+@container (max-width: 760px) {
   .geographic-layers { top: calc(var(--hall-space-3) * 2 + var(--geographic-map-control, var(--hall-size-control-small))); }
 }

@@ -81,7 +81,7 @@ function MemberReferenceModal({ memberId, onClose }: { memberId: string; onClose
               </h3>
               <StatusBadge value={detail.member.active ? "active" : "inactive"} />
             </div>
-            <dl className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+            <dl className="mt-4 grid gap-x-6 gap-y-5 grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
               <PersonDetailField
                 label={t("members.role")}
                 value={t(`role.${detail.member.role}`)}
@@ -108,7 +108,7 @@ function MemberReferenceModal({ memberId, onClose }: { memberId: string; onClose
             <h3 id="member-reference-contact-title" className="text-sm font-semibold">
               {t("members.contact")}
             </h3>
-            <dl className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+            <dl className="mt-4 grid gap-x-6 gap-y-5 grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
               <PersonDetailField
                 label={t("members.email")}
                 value={detail.contact.email || t("members.noEmail")}

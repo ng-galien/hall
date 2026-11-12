@@ -127,7 +127,7 @@
     font-family: var(--hall-font-family-monospace);
     font-size: var(--hall-font-size-caption);
   }
-  @container (min-width: 760px) {
+  @container (min-width: 761px) {
     .editor-lab { grid-template-columns: 1fr 1fr; }
     .editor-lab-source { grid-column: 1 / -1; }
     .editor-lab-recipe { grid-column: 1 / -1; }

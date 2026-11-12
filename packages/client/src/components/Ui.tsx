@@ -117,8 +117,8 @@ export function Modal({
       <DialogContent
         className={`modal-surface gap-0 p-0 ${
           size === "wide"
-            ? "modal-surface-wide sm:max-w-[var(--hall-size-modal-wide)]"
-            : "sm:max-w-[var(--hall-size-modal)]"
+            ? "modal-surface-wide max-w-[min(calc(100%-2rem),var(--hall-size-modal-wide))]"
+            : "max-w-[min(calc(100%-2rem),var(--hall-size-modal))]"
         }`}
         showCloseButton={false}
         aria-describedby={undefined}

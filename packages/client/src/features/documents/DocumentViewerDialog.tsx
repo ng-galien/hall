@@ -58,7 +58,7 @@ export function DocumentViewerDialog({
     <Dialog open onOpenChange={(open) => !open && close()}>
       <DialogContent
         className={cn(
-          "document-viewer gap-0 p-0 sm:max-w-[var(--hall-size-viewer-width)]",
+          "document-viewer gap-0 p-0 max-w-[min(calc(100%-2rem),var(--hall-size-viewer-width))]",
           phonePage && "document-viewer-phone-page",
           className,
         )}

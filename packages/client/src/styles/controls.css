@@ -42,7 +42,8 @@
   .hall-button[data-size="icon"] { width: var(--hall-size-control); padding: 0; }
   .hall-button[data-size="icon"] > svg { font-size: var(--hall-font-size-icon-large); }
   /* At phone width every button is a finger-sized target, with or without a touch screen. */
-  @media (max-width: 760px) {
+  /* Under a finger, every command offers a 44-pixel target. */
+  @media (pointer: coarse) {
     .hall-button,
     .hall-input:not(.hall-field .hall-input) { min-height: var(--hall-size-touch-control); }
     .hall-button[data-size="icon"] { width: var(--hall-size-touch-control); }
@@ -80,7 +81,7 @@
   .hall-input:disabled { cursor: default; opacity: var(--hall-opacity-disabled); }
   .hall-textarea { display: block; min-height: var(--hall-size-textarea-min); padding-block: var(--hall-space-2); field-sizing: content; resize: vertical; }
   /* With a mouse on a computer, search and filter fields take the 14-pixel size of the side menu and the header. */
-  @media (min-width: 761px) and (pointer: fine) {
+  @media (pointer: fine) {
     [data-slot="search-input"] > .hall-input,
     .wsearch-field > .hall-input { font-size: var(--hall-font-size-body); }
   }

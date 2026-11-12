@@ -158,6 +158,8 @@
   --hall-size-list-row-touch: 64px;
   --hall-size-list-row-pointer: 40px;
   --hall-size-list-row-pointer-double: 52px;
+  /* Narrowest text of a list row beside its actions; below it, the actions pass under the text. */
+  --hall-size-list-row-text-min: 12rem;
   --hall-size-live-header: 60px;
   --hall-size-table-column-min: 60px;
   --hall-size-live-rail-collapsed: 64px;

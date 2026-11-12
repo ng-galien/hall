@@ -70,7 +70,7 @@ function ContactReferenceModal({ contactId, onClose }: { contactId: string; onCl
       ) : null}
       {detail.status === "ready" ? (
         <div data-testid="contact-reference-details">
-          <dl className="grid gap-x-6 gap-y-5 px-6 py-5 sm:grid-cols-2">
+          <dl className="grid gap-x-6 gap-y-5 px-6 py-5 grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
             {(["jobTitle", "organizationName"] as const).map((key) => (
               <PersonDetailField
                 key={key}
@@ -84,7 +84,7 @@ function ContactReferenceModal({ contactId, onClose }: { contactId: string; onCl
             <h3 id="contact-reference-coordinates" className="text-sm font-semibold">
               {t("contacts.identity")}
             </h3>
-            <dl className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+            <dl className="mt-4 grid gap-x-6 gap-y-5 grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
               <PersonDetailField
                 label={t("contacts.email")}
                 value={detail.contact.email || t("common.none")}

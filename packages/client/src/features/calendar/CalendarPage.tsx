@@ -74,8 +74,9 @@ export function CalendarPage() {
     x: number;
     y: number;
   } | null>(null);
-  const [phoneWidth] = useState(() => window.matchMedia("(max-width: 600px)").matches);
   const phone = usePhoneLayout();
+  /* The view chosen at opening follows the phone layout of that moment. */
+  const [phoneWidth] = useState(phone);
   const [phoneScrollTime] = useState(() => `${String(Math.max(new Date().getHours() - 1, 0)).padStart(2, "0")}:30:00`);
   const [view, setView] = useState(phoneWidth ? "timeGridDay" : "dayGridMonth");
   useEffect(() => {
@@ -450,7 +451,7 @@ export function CalendarPage() {
           if (!open && !saving) setDraft(null);
         }}
       >
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[var(--hall-size-modal)]">
+        <DialogContent className="max-h-[85vh] overflow-y-auto max-w-[min(calc(100%-2rem),var(--hall-size-modal))]">
           <DialogHeader>
             <DialogTitle>{t("workspace.createEvent")}</DialogTitle>
           </DialogHeader>

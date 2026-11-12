@@ -28,7 +28,7 @@ export function PersonReferenceDialog({
       }}
     >
       <DialogContent
-        className="max-h-[85vh] gap-0 overflow-y-auto p-0 sm:max-w-xl"
+        className="max-h-[85vh] gap-0 overflow-y-auto p-0 max-w-[min(calc(100%-2rem),36rem)]"
         closeLabel={t("common.close")}
         data-testid={testId}
         onCloseAutoFocus={(event) => event.preventDefault()}
