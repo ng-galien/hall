@@ -193,10 +193,10 @@ export const sweepPlan = {
   /** Browser contexts that take the screens of one test from its queue. */
   pages: 6,
   ignoreSelectors,
-  /** Only the drawings the rules look for: chevrons, triangles and « + » in every weight, and every filled drawing. */
+  /** Only the drawings the rules look for: chevrons, triangles and « + » in every weight, and every drawing not regular. */
   fingerprints: Object.fromEntries(
     Object.entries(iconFingerprints(sourceDirectory, clientDirectory)).filter(([, icon]) =>
-      /^(Caret|Triangle|\w*Plus)|:(fill|duotone)$/.test(icon),
+      /^(Caret|Triangle|\w*Plus)|:(fill|duotone|bold|light|thin)$/.test(icon),
     ),
   ),
   isItem: (screen) => itemScreens.has(screen.id),

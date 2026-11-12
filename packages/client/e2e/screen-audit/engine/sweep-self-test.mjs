@@ -33,6 +33,7 @@ const fingerprints = {
   [pathOf("Plus")]: "Plus:regular",
   [pathOf("House", "fill")]: "House:fill",
   [pathOf("House")]: "House:regular",
+  [pathOf("House", "bold")]: "House:bold",
   [pathOf("PencilSimple")]: "PencilSimple:regular",
 };
 
@@ -60,6 +61,12 @@ const cases = [
     {},
     `<button class="secondary" aria-label="Ajouter">${icon("Plus")}</button>`,
     `<button class="secondary">${icon("Plus")}Nouveau</button><button class="primary create-fab" data-reduced="true" aria-label="Nouveau">${icon("Plus")}</button>`,
+  ],
+  [
+    "icon-weight",
+    {},
+    `<a href="#">${icon("House", "bold")}Accueil</a>`,
+    `<a href="#">${icon("House")}Accueil</a><a href="#" aria-current="page">${icon("House", "bold")}Documents</a>`,
   ],
   ["filled-icon", {}, `<a href="#">${icon("House", "fill")}Accueil</a>`, `<a href="#">${icon("House")}Accueil</a>`],
   [
@@ -173,6 +180,18 @@ const cases = [
     {},
     `<button data-slot="button" data-variant="secondary" data-size="default" class="secondary">${icon("Plus")}Imprimer</button>`,
     `<button data-slot="button" data-variant="secondary" data-size="default" class="secondary">${icon("Plus")}Joindre</button>`,
+  ],
+  [
+    "editor-tools",
+    { phone: true },
+    `<header data-testid="phone-header" style="position:sticky;top:0;height:56px;background:white">Note</header><button data-testid="text-finish-editing">Terminé</button><button class="editor-photo-control">Choisir une photo</button><div role="toolbar" style="margin-top:40px">G I</div>`,
+    `<header data-testid="phone-header" style="position:sticky;top:0;height:56px;background:white">Note</header><div role="toolbar" style="position:sticky;top:56px;height:44px">G I <button class="editor-photo-control">Photo</button></div><button data-testid="text-finish-editing">Terminé</button>`,
+  ],
+  [
+    "under-header",
+    {},
+    `<header data-testid="screen-header" style="position:fixed;top:0;left:0;right:0;height:60px;background:white">Finances</header><p style="margin-top:20px">Budget communal 2026</p>`,
+    `<header data-testid="screen-header" style="position:sticky;top:0;height:60px;background:white">Finances</header><p>Budget communal 2026</p>`,
   ],
   [
     "writing-modes",

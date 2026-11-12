@@ -32,6 +32,10 @@ export const sweepRules = {
     title: "Texte ou commande hors de l'écran",
     expected: "Chaque texte et chaque commande restent dans la largeur de l'écran.",
   },
+  "under-header": {
+    title: "Élément du contenu recouvert par le bandeau",
+    expected: "Au chargement d'un écran, aucun élément du contenu ne passe sous le bandeau.",
+  },
   "touch-target": {
     title: "Cible tactile de moins de 44 px au téléphone",
     expected: "Au doigt, sur téléphone, chaque commande offre une cible d'au moins 44 px.",
@@ -379,6 +383,33 @@ export function measureLayout(options) {
       selector: selectorOf(entry.owner),
       detail: `de ${Math.round(entry.visible.left)} à ${Math.round(entry.visible.right)} px sur ${width} px`,
     });
+  }
+
+  /* under-header: on the screen as it loads, no text or command of the content lies under the header. */
+  const header = document.querySelector("[data-testid=screen-header], [data-testid=phone-header]");
+  if (header && shown(header)) {
+    const band = header.getBoundingClientRect();
+    for (const entry of [
+      ...texts.map((text) => ({ owner: text.parent, visible: text.visible })),
+      ...commands.map((command) => ({ owner: command.element, visible: command.visible })),
+    ]) {
+      if (header.contains(entry.owner) || entry.owner.contains(header)) continue;
+      if (getComputedStyle(entry.owner).position === "fixed") continue;
+      const { visible } = entry;
+      if (visible.width <= 0 || visible.height <= 0) continue;
+      if (
+        visible.top < band.bottom - 1 &&
+        visible.bottom > band.top + 1 &&
+        visible.right > band.left &&
+        visible.left < band.right
+      ) {
+        findings.push({
+          rule: "under-header",
+          selector: selectorOf(entry.owner),
+          detail: `de ${Math.round(visible.top)} à ${Math.round(visible.bottom)} px sous un bandeau qui finit à ${Math.round(band.bottom)} px`,
+        });
+      }
+    }
   }
 
   /* touch-target: under a finger at phone width, every command offers 44 px; a link inside a sentence is exempt. */

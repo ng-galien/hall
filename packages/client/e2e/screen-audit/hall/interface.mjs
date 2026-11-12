@@ -140,7 +140,7 @@ export const components = [
       "packages/client/src/shell/WorkspaceTree.tsx",
     ],
     variants: ["dépliée", "repliée (data-compact)", "entrée courante"],
-    rules: ["disclosure-chevron", "filled-icon", "component-unity", "design-reference"],
+    rules: ["disclosure-chevron", "filled-icon", "icon-weight", "component-unity", "design-reference"],
     values: ["barre latérale", "barre latérale, rangée", "barre latérale, rangée active", "barre latérale, marque"],
     decided: [
       { what: "chaque entrée a une icône distincte", source: `${reference}, page 1` },
@@ -156,7 +156,7 @@ export const components = [
     name: "Barre du bas du téléphone",
     code: ["packages/client/src/shell/PhoneNavigation.tsx"],
     variants: ["destination courante"],
-    rules: ["bottom-bar", "filled-icon", "overlap", "touch-target", "design-reference"],
+    rules: ["bottom-bar", "filled-icon", "icon-weight", "overlap", "touch-target", "design-reference"],
     values: ["barre du bas"],
     decided: [
       {
@@ -191,7 +191,7 @@ export const components = [
     name: "Texte et écriture",
     code: ["packages/client/src/features/resources/useTextWriting.tsx", "packages/client/src/styles/tokens.css"],
     variants: ["lecture (« Modifier »)", "écriture (« Terminé »)"],
-    rules: ["writing-modes", "font-family", "text-size", "forbidden-text", "warm-tint"],
+    rules: ["writing-modes", "editor-tools", "font-family", "text-size", "forbidden-text", "warm-tint"],
     values: ["texte courant", "fond des écrans"],
     decided: [
       {

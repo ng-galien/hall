@@ -23,6 +23,11 @@ export const conformanceRules = {
     title: "Choix 1 et 9 : icône pleine",
     expected: "Toutes les icônes sont dessinées en trait.",
   },
+  "icon-weight": {
+    title: "Choix 9R : icône hors de la graisse normale",
+    expected:
+      "Les icônes sont dans la graisse normale de leur famille ; seule la destination courante d'une barre a un trait plus épais.",
+  },
   "warm-tint": {
     title: "Charte : teinte chaude peinte à l'écran (crème, orange, brun, ambre)",
     expected:
@@ -124,6 +129,11 @@ export const conformanceRules = {
     title: "Choix 12 : champ hors de la forme retenue (fond, filet, libellé, « Non renseigné »)",
     expected:
       "Un champ n'a pas de fond, un filet dessous seulement (gris au repos, bleu et plus épais en saisie, rouge et plus épais en erreur, aucun en lecture seule), son libellé au-dessus, et écrit « Non renseigné » quand il est vide.",
+  },
+  "editor-tools": {
+    title: "Choix 8B : outils d'écriture hors de leur barre fixe sous le bandeau",
+    expected:
+      "Au téléphone, en écriture, une seule barre d'outils est fixée sous le bandeau et porte « Photo » ; en lecture, aucune barre d'outils ni bouton photo n'est affiché.",
   },
   "row-height": {
     title: "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
@@ -380,6 +390,9 @@ export function measureConformance(options) {
     const [name, weight] = icon.split(":");
     /* filled-icon: choices 1 and 9, every icon is drawn in outline. */
     if (weight === "fill" || weight === "duotone") add("filled-icon", svg, `${name} en poids ${weight}`);
+    /* icon-weight: choice 9R, the regular weight of the family; the current destination of a bar is drawn bolder (1A). */
+    if (["bold", "light", "thin"].includes(weight) && !svg.closest("[aria-current=page], [data-active=true]"))
+      add("icon-weight", svg, `${name} en poids ${weight}`);
     /* disclosure-chevron: choice 14, a section or a folder unfolds without a chevron or a triangle. */
     if (/^(Caret(Down|Right|Up|Left|Circle\w*)|Triangle)$/.test(name)) {
       const owner = svg.closest("[aria-expanded], summary, [role=treeitem]");
@@ -713,6 +726,44 @@ export function measureConformance(options) {
           break;
         }
       }
+    }
+  }
+
+  /* editor-tools: choice 8B, on a phone the tools of a text are one bar fixed under the header, with « Photo ». */
+  if (phone) {
+    const writing = commands.some((command) => command.matches("[data-testid=text-finish-editing]"));
+    const reading = commands.some((command) => command.matches("[data-testid=text-edit]"));
+    const band = document
+      .querySelector("[data-testid=phone-header], [data-testid=screen-header]")
+      ?.getBoundingClientRect();
+    const toolbars = [...document.querySelectorAll("[role=toolbar]")].filter(
+      (bar) =>
+        !ignored(bar) && shown(bar) && !bar.closest("[data-testid=phone-header], [data-testid=screen-header], nav"),
+    );
+    const photos = [
+      ...document.querySelectorAll(
+        ".editor-photo-control, [data-testid=editor-choose-image], [data-testid=editor-take-photo]",
+      ),
+    ].filter((control) => !ignored(control) && shown(control));
+    if (writing) {
+      if (toolbars.length !== 1)
+        add("editor-tools", toolbars[1] ?? "écran", `${toolbars.length} barres d'outils en écriture`);
+      const bar = toolbars[0];
+      for (const photo of photos)
+        if (!bar?.contains(photo)) add("editor-tools", photo, "bouton photo hors de la barre d'outils");
+      if (bar && band) {
+        const position = getComputedStyle(bar).position;
+        const top = bar.getBoundingClientRect().top;
+        if (!["sticky", "fixed"].includes(position) || Math.abs(top - band.bottom) > 2)
+          add(
+            "editor-tools",
+            bar,
+            `barre en position ${position}, à ${Math.round(top)} px pour un bandeau qui finit à ${Math.round(band.bottom)} px`,
+          );
+      }
+    } else if (reading) {
+      for (const bar of toolbars) add("editor-tools", bar, "barre d'outils affichée en lecture");
+      for (const photo of photos) add("editor-tools", photo, "bouton photo affiché en lecture");
     }
   }
 
