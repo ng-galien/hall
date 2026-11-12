@@ -147,7 +147,15 @@
         "doc": "Hall 1.3 — Design de référence",
         "page": 6,
         "element": "v78"
-      }
+      },
+      "variants": [
+        {
+          "name": "rang dangereux",
+          "label": "^Supprimer",
+          "expected": "#B42323",
+          "source": "couleur de danger des jetons (--hall-color-danger), décision du coordinateur du 12 novembre 2026"
+        }
+      ]
     },
     {
       "component": "bouton de création",

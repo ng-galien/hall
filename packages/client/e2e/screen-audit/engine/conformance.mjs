@@ -1214,10 +1214,15 @@ export function measureDesignReference(options) {
       // An element under the pointer shows its hover state, not its drawing at rest.
       if (element.matches(":hover")) continue;
       checked += 1;
+      // A declared variant of the component (a plain button of the dangerous rank) takes its own value.
+      const variant = (entry.variants ?? []).find((candidate) =>
+        new RegExp(candidate.label, "u").test((element.textContent ?? "").replace(/\s+/g, " ").trim()),
+      );
+      const expected = variant ? variant.expected : entry.expected;
       const style = getComputedStyle(element, entry.pseudo ?? null);
       let actual;
       let ok;
-      const range = String(entry.expected).match(/^([\d.]+)px\.\.([\d.]+)px$/);
+      const range = String(expected).match(/^([\d.]+)px\.\.([\d.]+)px$/);
       if (range) {
         const value = Number.parseFloat(style.getPropertyValue(entry.property));
         actual = `${Math.round(value * 10) / 10}px`;
@@ -1247,33 +1252,35 @@ export function measureDesignReference(options) {
                 ? "aucun filet"
                 : null;
         if (actual === null) continue;
-        ok = actual.toUpperCase() === entry.expected.toUpperCase();
+        ok = actual.toUpperCase() === expected.toUpperCase();
       } else if (entry.property === "height" || entry.property === "width") {
         const rect = element.getBoundingClientRect();
         const value = entry.pseudo ? Number.parseFloat(style[entry.property]) : rect[entry.property];
         actual = `${Math.round(value * 10) / 10}px`;
-        ok = Math.abs(value - Number.parseFloat(entry.expected)) <= tolerance.px;
+        ok = Math.abs(value - Number.parseFloat(expected)) <= tolerance.px;
       } else if (/color$/.test(entry.property)) {
         actual = hex(style.getPropertyValue(entry.property));
-        ok = actual.toUpperCase() === entry.expected.toUpperCase();
+        ok = actual.toUpperCase() === expected.toUpperCase();
       } else if (entry.property === "font-family") {
         actual = style.fontFamily.split(",")[0].replace(/["']/g, "").trim();
-        ok = actual.toLowerCase().startsWith(entry.expected.toLowerCase());
+        ok = actual.toLowerCase().startsWith(expected.toLowerCase());
       } else if (entry.property === "font-weight") {
         actual = style.fontWeight;
-        ok = Number(actual) === Number(entry.expected);
+        ok = Number(actual) === Number(expected);
       } else {
         actual = style.getPropertyValue(entry.property);
-        ok = Math.abs(Number.parseFloat(actual) - Number.parseFloat(entry.expected)) <= tolerance.px;
+        ok = Math.abs(Number.parseFloat(actual) - Number.parseFloat(expected)) <= tolerance.px;
       }
       if (ok) continue;
       findings.push({
         rule: "design-reference",
         selector: `${entry.component} · ${entry.property}${entry.pseudo ? ` (${entry.pseudo})` : ""} · ${keyOf(element)}`,
-        detail: `design ${entry.expected} (${
-          entry.decision
-            ? `décision du propriétaire du ${entry.decision.date}, ${entry.decision.words}`
-            : `Maket « ${entry.source.doc} » p. ${entry.source.page}, ${entry.source.element}`
+        detail: `design ${expected} (${
+          variant
+            ? `variante « ${variant.name} », ${variant.source}`
+            : entry.decision
+              ? `décision du propriétaire du ${entry.decision.date}, ${entry.decision.words}`
+              : `Maket « ${entry.source.doc} » p. ${entry.source.page}, ${entry.source.element}`
         }), mesuré ${actual}`,
       });
     }
@@ -1369,8 +1376,20 @@ export async function measureFormFields(options) {
     const label = box.querySelector(":scope > .hall-field-label");
     if (label && shown(label)) {
       const labelRect = label.getBoundingClientRect();
-      const text = input ?? control;
-      const textLeft = text.getBoundingClientRect().left + Number.parseFloat(getComputedStyle(text).paddingLeft);
+      // Values written before the input (the tags of a document) start the field: the field is measured, not the
+      // input of the next value.
+      const leading = input
+        ? [...control.querySelectorAll("*")].find(
+            (child) =>
+              !child.contains(input) &&
+              child.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING &&
+              (child.textContent ?? "").trim() &&
+              child.getClientRects().length,
+          )
+        : null;
+      const text = leading ?? input ?? control;
+      const textLeft =
+        text.getBoundingClientRect().left + (leading ? 0 : Number.parseFloat(getComputedStyle(text).paddingLeft));
       const ruleLeft = control.getBoundingClientRect().left;
       if (Math.abs(textLeft - ruleLeft) > 1)
         add(control, "texte aligné sur le filet", `${Math.round(ruleLeft)} px`, `${Math.round(textLeft)} px`);

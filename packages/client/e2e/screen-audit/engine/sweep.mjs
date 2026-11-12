@@ -26,7 +26,7 @@ export const sweepRules = {
   "lone-wrap": {
     title: "Élément rejeté seul sous les autres éléments de sa rangée",
     expected:
-      "Les éléments d'une rangée tiennent sur une ligne ou passent à la ligne par groupes entiers ; un flot libre d'étiquettes porte data-layout-flow.",
+      "Les éléments d'une rangée tiennent sur une ligne ou passent à la ligne par groupes entiers ; un flot libre d'étiquettes porte data-layout-flow ; au téléphone, une pastille d'état peut passer seule sur la dernière ligne.",
   },
   "off-screen": {
     title: "Texte ou commande hors de l'écran",
@@ -365,6 +365,11 @@ export function measureLayout(options) {
       const [{ item, rect }] = line.items;
       // A full-width item (a search field, the action row of a prominent row) is a whole group of its own.
       if (rect.width >= box.width * 0.6) continue;
+      // On a phone, a state pill passes onto its own line under a fact read whole (coordinator's decision).
+      const pill = item.matches(".list-row-status, .record-state, [data-tone]")
+        ? item
+        : item.querySelector(":scope > :is(.list-row-status, .record-state, [data-tone])");
+      if (width <= 760 && pill && line === lines.at(-1)) continue;
       findings.push({
         rule: "lone-wrap",
         selector: `${selectorOf(container)} › ${selectorOf(item).split(" › ").at(-1)}`,
