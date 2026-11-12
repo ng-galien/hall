@@ -5,7 +5,9 @@ import { useI18n } from "../i18n/I18nProvider";
 import { AppSidebar } from "../shell/AppSidebar";
 import {
   HeaderTrailSlotContext,
+  ModulePaneSlotContext,
   ScreenActionsSlotContext,
+  ScreenLeadingSlotContext,
   ScreenScrolledContext,
   ScreenTitleContext,
 } from "../shell/headerTrail";
@@ -15,14 +17,14 @@ import { ScreenHeader, ScreenLargeTitle, useScreenHeading } from "../shell/Scree
 import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import { useRememberedFold } from "./ui/module-pane";
 
 /** The large title counts as gone once less than this height of it remains on screen. */
 const collapseDistance = 8;
-
 // @implements-requirement HALL-FR-LAY-010
 // @implements-requirement HALL-FR-LAY-100
 export function Layout() {
-  const [compact, setCompact] = useState(false);
+  const [compact, setCompact] = useRememberedFold("navigation");
   const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 1000px)").matches);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const location = useLocation();
@@ -46,6 +48,8 @@ export function Layout() {
   const { t } = useI18n();
   const [trailSlot, setTrailSlot] = useState<HTMLDivElement | null>(null);
   const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null);
+  const [leadingSlot, setLeadingSlot] = useState<HTMLDivElement | null>(null);
+  const [paneSlot, setPaneSlot] = useState<HTMLDivElement | null>(null);
   const [pageTitle, setPageTitle] = useState<string | null>(null);
   const [mainElement, setMainElement] = useState<HTMLElement | null>(null);
   const [titleElement, setTitleElement] = useState<HTMLHeadingElement | null>(null);
@@ -71,66 +75,78 @@ export function Layout() {
   const reading = phone && isPhoneReadingLocation(location);
   return (
     <HeaderTrailSlotContext.Provider value={trailSlot}>
-      <ScreenActionsSlotContext.Provider value={actionsSlot}>
-        <ScreenTitleContext.Provider value={setPageTitle}>
-          <ScreenScrolledContext.Provider value={scrolled}>
-            <div className="app-shell">
-              {phone ? null : mobile ? (
-                <Dialog open={navigationOpen} onOpenChange={setNavigationOpen}>
-                  <DialogContent
-                    className="app-mobile-navigation"
-                    placement="left"
-                    closeLabel={t("common.close")}
-                    aria-describedby={undefined}
-                    data-testid="mobile-navigation"
-                    onClick={(event) => {
-                      if (event.target instanceof Element && event.target.closest("a[href]")) setNavigationOpen(false);
-                    }}
-                  >
-                    <DialogTitle className="sr-only">{t("common.primaryNavigation")}</DialogTitle>
-                    <AppSidebar compact={false} />
-                  </DialogContent>
-                </Dialog>
-              ) : (
-                <AppSidebar compact={compact} />
-              )}
-              <div className="app-column">
-                <ScreenHeader
-                  phone={phone}
-                  title={title}
-                  back={heading.back}
-                  reading={reading}
-                  collapsed={scrolled || reading}
-                  navigation={
-                    phone
-                      ? undefined
-                      : mobile
-                        ? { expanded: navigationOpen, toggle: () => setNavigationOpen((value) => !value) }
-                        : { expanded: !compact, toggle: () => setCompact((value) => !value) }
-                  }
-                  actionsSlot={setActionsSlot}
-                  trailSlot={setTrailSlot}
-                />
-                <main
-                  ref={setMainElement}
-                  className="app-main"
-                  data-testid="application-main"
-                  data-route={location.pathname}
-                >
-                  {reading ? null : <ScreenLargeTitle phone={phone} title={title} titleRef={setTitleElement} />}
-                  <div className="app-content">
-                    <Suspense fallback={<div className="page-content">{t("common.loading")}</div>}>
-                      <Outlet />
-                    </Suspense>
+      <ScreenLeadingSlotContext.Provider value={leadingSlot}>
+        <ModulePaneSlotContext.Provider value={phone ? null : paneSlot}>
+          <ScreenActionsSlotContext.Provider value={actionsSlot}>
+            <ScreenTitleContext.Provider value={setPageTitle}>
+              <ScreenScrolledContext.Provider value={scrolled}>
+                <div className="app-shell">
+                  {phone ? null : mobile ? (
+                    <>
+                      <AppSidebar compact navigation={{ expanded: false, toggle: () => setNavigationOpen(true) }} />
+                      <Dialog open={navigationOpen} onOpenChange={setNavigationOpen}>
+                        <DialogContent
+                          className="app-mobile-navigation"
+                          placement="left"
+                          closeLabel={t("common.close")}
+                          aria-describedby={undefined}
+                          data-testid="mobile-navigation"
+                          onClick={(event) => {
+                            if (event.target instanceof Element && event.target.closest("a[href]"))
+                              setNavigationOpen(false);
+                          }}
+                        >
+                          <DialogTitle className="sr-only">{t("common.primaryNavigation")}</DialogTitle>
+                          <AppSidebar
+                            compact={false}
+                            navigation={{ expanded: true, toggle: () => setNavigationOpen(false) }}
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    </>
+                  ) : (
+                    <AppSidebar
+                      compact={compact}
+                      navigation={{
+                        expanded: !compact,
+                        toggle: () => setCompact(!compact),
+                      }}
+                    />
+                  )}
+                  {phone ? null : <div ref={setPaneSlot} className="app-module-pane-slot" />}
+                  <div className="app-column">
+                    <ScreenHeader
+                      phone={phone}
+                      title={title}
+                      back={heading.back}
+                      reading={reading}
+                      collapsed={scrolled || reading}
+                      leadingSlot={setLeadingSlot}
+                      actionsSlot={setActionsSlot}
+                      trailSlot={setTrailSlot}
+                    />
+                    <main
+                      ref={setMainElement}
+                      className="app-main"
+                      data-testid="application-main"
+                      data-route={location.pathname}
+                    >
+                      {reading ? null : <ScreenLargeTitle phone={phone} title={title} titleRef={setTitleElement} />}
+                      <div className="app-content">
+                        <Suspense fallback={<div className="page-content">{t("common.loading")}</div>}>
+                          <Outlet />
+                        </Suspense>
+                      </div>
+                    </main>
+                    {phone && !isPhoneReadingLocation(location) ? <PhoneNavigation /> : null}
                   </div>
-                </main>
-                {phone && !isPhoneReadingLocation(location) ? <PhoneNavigation /> : null}
-              </div>
-            </div>
-            <GlobalSearchPalette />
-          </ScreenScrolledContext.Provider>
-        </ScreenTitleContext.Provider>
-      </ScreenActionsSlotContext.Provider>
+                </div>
+                <GlobalSearchPalette />
+              </ScreenScrolledContext.Provider>
+            </ScreenTitleContext.Provider>
+          </ScreenActionsSlotContext.Provider>
+        </ModulePaneSlotContext.Provider>
+      </ScreenLeadingSlotContext.Provider>
     </HeaderTrailSlotContext.Provider>
   );
 }

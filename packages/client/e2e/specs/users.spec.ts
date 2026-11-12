@@ -1,4 +1,4 @@
-import { expect, test } from "../fixtures/application";
+import { expect, openAdministrationEntry, test } from "../fixtures/application";
 
 test("creates a linked user, assigns cumulative roles and disables the account", async ({ appPage: page }) => {
   const contactsResponse = await page.request.get("/api/contacts");
@@ -19,7 +19,7 @@ test("creates a linked user, assigns cumulative roles and disables the account",
       !existing.some((user: { contactId: string | null }) => user.contactId === candidate.id),
   );
   expect(contact).toBeTruthy();
-  await page.getByTestId("navigation-users").click();
+  await openAdministrationEntry(page, "users");
   await page.getByTestId("users-add").click();
   await page.getByTestId("user-display-name").fill("Responsable des approvisionnements");
   await page.getByTestId("user-email").fill(`approvisionnements-${Date.now()}@alesia.example`);
@@ -54,7 +54,7 @@ test("creates a linked user, assigns cumulative roles and disables the account",
     ]),
   );
   await expect(page.getByTestId("user-roles")).toHaveText(assignedRoles.map((role) => roleNames.get(role)).join(" · "));
-  await page.getByTestId("navigation-users").click();
+  await openAdministrationEntry(page, "users");
   await page.getByTestId("collection-search").fill("Responsable des approvisionnements");
   await expect(page.getByTestId("users-collection").locator('[data-slot="list-row"]')).toHaveCount(1);
   await page.goto(detailUrl);
@@ -86,7 +86,7 @@ test("preserves a rejected administrator role change and duplicate account form"
   await expect(page.getByTestId("user-role-contributor")).toBeChecked();
   await expect(page.getByTestId("user-role-administrator")).not.toBeChecked();
   await page.keyboard.press("Escape");
-  await page.getByTestId("navigation-users").click();
+  await openAdministrationEntry(page, "users");
   await page.getByTestId("users-add").click();
   await page.getByTestId("user-display-name").fill("Doublon à corriger");
   await page.getByTestId("user-email").fill(admin.email);

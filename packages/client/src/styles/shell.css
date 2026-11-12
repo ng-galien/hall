@@ -1,6 +1,13 @@
 /* Frame of every screen: navigation panel or bottom bar, screen header, content. */
 @layer components {
   .app-shell { display: flex; height: 100svh; overflow: hidden; color: var(--hall-color-text); background: var(--hall-color-surface); }
+  .app-module-pane-slot { display: flex; flex: none; }
+  .app-module-pane-slot:empty { display: none; }
+  /* The module pane: between the menu and the content, over the whole height; its content scrolls on its own. */
+  .module-pane { display: flex; width: var(--hall-size-module-pane); height: 100%; flex-direction: column; overflow: hidden; border-right: var(--hall-stroke-thin) solid var(--hall-color-border); background: var(--hall-color-surface); }
+  .module-pane-head { display: flex; min-height: var(--hall-size-touch-control); flex: none; align-items: center; justify-content: space-between; gap: var(--hall-space-2); padding: var(--hall-space-1) var(--hall-space-2) var(--hall-space-1) var(--hall-space-3); }
+  .module-pane-title { overflow: hidden; min-width: 0; font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-bold); text-overflow: ellipsis; white-space: nowrap; }
+  .module-pane-body { min-height: 0; flex: 1; overflow-y: auto; padding: 0 var(--hall-space-2) var(--hall-space-3); }
   .app-column { display: flex; min-width: 0; flex: 1; flex-direction: column; }
   .app-main { position: relative; display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; overflow-y: auto; }
   /* The content below the large title keeps the remaining height, so a full-height screen still fills it. */
@@ -61,6 +68,8 @@
   .screen-header-tools { display: flex; max-width: 100%; flex: 0 1 auto; align-items: center; gap: var(--hall-space-2); margin-left: auto; }
   .screen-header-actions { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-1); }
   .screen-header-actions:empty { display: none; }
+  .screen-header-leading { display: flex; flex: none; align-items: center; }
+  .screen-header-leading:empty { display: none; }
   .screen-header-actions > .screen-header-writing { order: 1; }
   /* A lost connection is written beside the initials; while the server answers, the live region takes no room. */
   .screen-header-connection { display: flex; min-width: 0; flex: 0 1 auto; }
@@ -111,6 +120,9 @@
     background: var(--hall-color-surface);
   }
   .app-sidebar[data-compact="true"] { width: var(--hall-size-sidebar-compact); }
+  /* The fold control of the menu is on the line of the brand, and under the « H » of the rail. */
+  .app-sidebar-head { display: flex; flex: none; align-items: center; justify-content: space-between; padding-right: var(--hall-space-2); }
+  .app-sidebar[data-compact="true"] .app-sidebar-head { flex-direction: column; padding: 0 0 var(--hall-space-1); }
   .app-brand { display: flex; min-height: var(--hall-size-touch-control); flex: none; align-items: center; gap: var(--hall-space-2-5); padding: var(--hall-space-1) var(--hall-space-3); }
   .app-sidebar[data-compact="true"] .app-brand { justify-content: center; padding-inline: 0; }
   .app-brand-mark {
@@ -130,6 +142,11 @@
   .app-sidebar-section + .app-sidebar-section { margin-top: var(--hall-space-2); }
   .app-sidebar-item { display: flex; flex-direction: column; }
   .app-sidebar-item-line { display: flex; align-items: center; gap: var(--hall-space-0-5); }
+  .hall-button.nav-root { justify-content: flex-start; gap: var(--hall-space-2-5); padding: 0 var(--hall-space-2); color: var(--hall-color-text-muted); font-weight: inherit; text-align: left; }
+  .hall-button.nav-root[data-compact="true"] { justify-content: center; padding: 0; }
+  .hall-button.nav-root[aria-expanded="true"]:not(:hover) { background: none; }
+  .nav-root-entries { display: flex; flex-direction: column; gap: var(--hall-space-0-5); }
+  .app-sidebar:not([data-compact="true"]) .nav-root-entries { padding-left: var(--hall-space-4); }
   .app-sidebar-footer { display: grid; gap: var(--hall-space-0-5); padding: var(--hall-space-2); border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .nav-section-label { padding: var(--hall-space-3) var(--hall-space-2) var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-semibold); }
   .nav-row {
@@ -187,6 +204,7 @@
   /* The bottom sheet: rises from the bottom edge, its rows are list rows. */
   .app-sheet { padding: var(--hall-space-4) 0 calc(var(--hall-space-6) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
   .app-sheet > [data-slot="dialog-title"] { padding: 0 var(--hall-size-touch-control) var(--hall-space-2) var(--hall-space-4); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); }
+  .app-sheet-group-title { padding: var(--hall-space-2) var(--hall-space-4) var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-weight: var(--hall-font-weight-semibold); }
   .app-sheet .list-row-list { margin: 0 0 var(--hall-space-6); border-bottom: 0; }
   .app-sheet .list-row { font-size: var(--hall-font-size-text); }
 

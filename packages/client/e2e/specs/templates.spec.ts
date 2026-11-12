@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "../fixtures/application";
+import { expect, openAdministrationEntry, test } from "../fixtures/application";
 
 test.use({ seedScenario: "minutes", builtInPdfViewer: true });
 
@@ -31,7 +31,7 @@ test("an editor changes a template's name, text and header with a logo, then fin
 }) => {
   test.setTimeout(90_000);
   const minutes = (await templates(page)).find((entry) => entry.documentType === "minutes")!;
-  await page.getByTestId("navigation-templates").click();
+  await openAdministrationEntry(page, "templates");
   await expect(page.getByTestId("templates-list")).toBeVisible();
   await expect(page.getByTestId(`template-row-${minutes.id}`)).toContainText("Minutes");
   await page.getByTestId(`template-row-${minutes.id}`).click();

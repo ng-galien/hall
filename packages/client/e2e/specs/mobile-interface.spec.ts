@@ -137,6 +137,12 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     await page.getByTestId("navigation-toggle").tap();
     const menu = page.getByTestId("mobile-navigation");
     await expect(menu).toBeVisible();
+    const administration = menu.getByTestId("navigation-administration");
+    if (
+      ["council-members", "council-committees"].includes(destination) &&
+      (await administration.getAttribute("aria-expanded")) === "false"
+    )
+      await administration.tap();
     const link = menu.getByTestId(`navigation-${destination}`);
     const route = (await link.getAttribute("href"))?.replace(/^\/app/, "");
     await link.tap();

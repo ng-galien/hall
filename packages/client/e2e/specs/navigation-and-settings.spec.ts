@@ -1,4 +1,4 @@
-import { expect, test } from "../fixtures/application";
+import { expect, openAdministrationEntry, test } from "../fixtures/application";
 
 test.describe("navigation and settings", () => {
   test("keeps primary navigation focus visible and keyboard-operable", async ({ appPage: page }) => {
@@ -25,14 +25,16 @@ test.describe("navigation and settings", () => {
       ["council-decisions", /\/app\/council-decisions$/, "Council decisions"],
       ["workspace", /\/app\/workspace$/, null],
       ["maps", /\/app\/maps\?view=/, null],
-      ["mail", /\/app\/mail$/, "Mail"],
+      ["mail", /\/app\/mail\/drafts$/, "Drafts"],
       ["contacts", /\/app\/contacts$/, "Contacts"],
       ["council-members", /\/app\/council-members$/, "Council composition"],
       ["council-committees", /\/app\/council-committees$/, null],
     ] as const;
 
     for (const [linkName, url, heading] of routes) {
-      await page.getByTestId(`navigation-${linkName}`).click();
+      if (linkName.startsWith("council-") && linkName !== "council-decisions")
+        await openAdministrationEntry(page, linkName);
+      else await page.getByTestId(`navigation-${linkName}`).click();
       await expect(page).toHaveURL(url);
       if (heading) await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
     }
@@ -42,27 +44,79 @@ test.describe("navigation and settings", () => {
     await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
   });
 
+  // @verifies-requirement HALL-FR-LAY-110
   // @verifies-requirement HALL-FR-WSP-310
-  test("places Cartes right after the workspace entry and its tree, before the calendar", async ({ appPage: page }) => {
-    await expect(page.getByTestId("workspace-sidebar-link").first()).toBeVisible();
-    const order = await page
-      .locator('a[data-testid^="navigation-"], a[data-testid="workspace-sidebar-link"]')
-      .evaluateAll((elements) =>
-        elements
-          .map((element) => element.getAttribute("data-testid"))
-          .filter((testId, index, all) => testId !== "workspace-sidebar-link" || all[index - 1] !== testId),
-      );
-    expect(order.slice(0, 9)).toEqual([
+  test("groups the menu by subject and folds the administration under one root", async ({ appPage: page }) => {
+    const sidebar = page.locator(".app-sidebar");
+    const order = () =>
+      sidebar
+        .locator('[data-testid^="navigation-"]')
+        .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-testid")));
+    const groups = () => sidebar.locator(".nav-section-label").allTextContents();
+    expect(await groups()).toEqual(["Municipal council", "Work tools"]);
+    expect(await order()).toEqual([
+      "navigation-toggle",
       "navigation-overview",
       "navigation-meetings",
       "navigation-minutes",
       "navigation-council-decisions",
       "navigation-workspace",
-      "workspace-sidebar-link",
-      "navigation-maps",
       "navigation-mail",
       "navigation-calendar",
+      "navigation-contacts",
+      "navigation-maps",
+      "navigation-administration",
+      "navigation-settings",
     ]);
+    // « Documents » carries neither a fold control nor the tree: the tree is the pane of the Documents screen.
+    await expect(sidebar.getByTestId("workspace-tree")).toHaveCount(0);
+    await expect(sidebar.locator("[aria-expanded]")).toHaveCount(2);
+
+    const administration = page.getByTestId("navigation-administration");
+    await expect(administration).toHaveAttribute("aria-expanded", "false");
+    await administration.click();
+    await expect(administration).toHaveAttribute("aria-expanded", "true");
+    const entries = (await order()).slice((await order()).indexOf("navigation-administration") + 1);
+    expect(entries.filter((entry) => entry !== "navigation-editor-lab")).toEqual([
+      "navigation-users",
+      "navigation-council-members",
+      "navigation-council-committees",
+      "navigation-council-delegations",
+      "navigation-templates",
+      "navigation-settings",
+    ]);
+    await administration.click();
+    await expect(page.getByTestId("navigation-users")).toHaveCount(0);
+    // The root unfolds by itself on one of its own screens.
+    await page.goto("/app/templates");
+    await expect(administration).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByTestId("navigation-templates")).toHaveAttribute("aria-current", "page");
+  });
+
+  // @verifies-requirement HALL-FR-LAY-110
+  // @verifies-requirement HALL-FR-LAY-160
+  test("the menu folds into a rail by its own control, remembered, and the screen header has no fold control", async ({
+    appPage: page,
+  }) => {
+    const sidebar = page.locator(".app-sidebar");
+    const toggle = page.getByTestId("navigation-toggle");
+    await expect(page.getByTestId("screen-header").getByTestId("navigation-toggle")).toHaveCount(0);
+    await expect(sidebar.getByTestId("navigation-toggle")).toHaveAttribute("aria-expanded", "true");
+    const brand = await sidebar.locator(".app-brand").boundingBox();
+    const control = await toggle.boundingBox();
+    expect(Math.abs(brand!.y + brand!.height / 2 - (control!.y + control!.height / 2))).toBeLessThanOrEqual(2);
+    expect(control!.x).toBeGreaterThan(brand!.x);
+    await toggle.click();
+    await expect(sidebar).toHaveAttribute("data-compact", "true");
+    await expect(page.locator(".nav-label")).toHaveCount(0);
+    await expect(page.getByTestId("navigation-mail")).toHaveAttribute("aria-label", "Mail");
+    const mark = await sidebar.locator(".app-brand-mark").boundingBox();
+    const railControl = await toggle.boundingBox();
+    expect(railControl!.y).toBeGreaterThanOrEqual(mark!.y + mark!.height - 1);
+    await page.reload();
+    await expect(sidebar).toHaveAttribute("data-compact", "true");
+    await page.getByTestId("navigation-toggle").click();
+    await expect(sidebar).not.toHaveAttribute("data-compact", "true");
   });
 
   test("persists the selected interface language after a reload", async ({ appPage: page }) => {

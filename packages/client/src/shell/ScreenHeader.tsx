@@ -2,8 +2,7 @@ import type { ApiPrincipal } from "@hall/api-contract";
 import type { HallSettings } from "@hall/domain";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeftIcon, SidebarCollapseIcon, SidebarExpandIcon } from "../components/icons";
-import { Button } from "../components/ui/button";
+import { ChevronLeftIcon } from "../components/icons";
 import { useApplicationStatus } from "../hooks/useApplicationData";
 import { useI18n } from "../i18n/I18nProvider";
 import { isUnderPath } from "../pages/workspace/paths";
@@ -152,7 +151,7 @@ export function ScreenHeader({
   back,
   collapsed,
   reading,
-  navigation,
+  leadingSlot,
   actionsSlot,
   trailSlot,
 }: {
@@ -162,8 +161,8 @@ export function ScreenHeader({
   collapsed: boolean;
   /** A document read on a phone has no large title: its name is the heading of this line. */
   reading: boolean;
-  /** On tablet and computer: the control that opens or folds the navigation panel. */
-  navigation?: { expanded: boolean; toggle(): void };
+  /** On tablet and computer: the place of the control that reopens a folded panel of the screen. */
+  leadingSlot(element: HTMLDivElement | null): void;
   actionsSlot(element: HTMLDivElement | null): void;
   trailSlot(element: HTMLDivElement | null): void;
 }) {
@@ -178,18 +177,7 @@ export function ScreenHeader({
       data-testid={phone ? "phone-header" : "screen-header"}
     >
       <div className="screen-header-line">
-        {navigation ? (
-          <Button
-            variant="plain"
-            size="icon"
-            data-testid="navigation-toggle"
-            aria-label={navigation.expanded ? t("common.collapseNavigation") : t("common.expandNavigation")}
-            aria-expanded={navigation.expanded}
-            onClick={navigation.toggle}
-          >
-            {navigation.expanded ? <SidebarCollapseIcon /> : <SidebarExpandIcon />}
-          </Button>
-        ) : null}
+        {phone ? null : <div ref={leadingSlot} className="screen-header-leading" />}
         <div className="screen-header-place">
           {phone && back ? (
             <Link

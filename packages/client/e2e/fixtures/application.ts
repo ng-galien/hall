@@ -157,3 +157,10 @@ export const test = base.extend<
 });
 
 export { expect };
+
+/** Opens a destination of the folded « Administration » root of the menu, unfolding the root first when needed. */
+export async function openAdministrationEntry(page: import("@playwright/test").Page, destination: string) {
+  const root = page.getByTestId("navigation-administration");
+  if ((await root.getAttribute("aria-expanded")) === "false") await root.click();
+  await page.getByTestId(`navigation-${destination}`).click();
+}

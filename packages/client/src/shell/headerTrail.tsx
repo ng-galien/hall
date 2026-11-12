@@ -35,3 +35,13 @@ export const ScreenScrolledContext = createContext(false);
 export function useScreenScrolled(): boolean {
   return useContext(ScreenScrolledContext);
 }
+
+export const ScreenLeadingSlotContext = createContext<HTMLElement | null>(null);
+
+/** Renders at the start of the screen header, on tablet and computer: the control that reopens a folded panel. */
+export function ScreenLeading({ children }: { children: ReactNode }) {
+  const slot = useContext(ScreenLeadingSlotContext);
+  return slot ? createPortal(children, slot) : null;
+}
+
+export const ModulePaneSlotContext = createContext<HTMLElement | null>(null);

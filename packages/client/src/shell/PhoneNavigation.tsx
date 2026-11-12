@@ -7,12 +7,14 @@ import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { useI18n } from "../i18n/I18nProvider";
 import { isUnderPath } from "../pages/workspace/paths";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
-import { navigationItem, phoneMoreDestinations } from "./navigation";
+import { navigationItem, navigationSections, phoneBarDestinations } from "./navigation";
 import { useApiRoot } from "./usePhoneLayout";
 
 export function personalWorkspaceHref(path: string) {
   return `/workspace?${new URLSearchParams({ path }).toString()}`;
 }
+
+type MoreRow = { to: string; testId: string; label: string; Icon: Icon };
 
 type BarDestination = { id: string; to: string; label: string; Icon: Icon; active: boolean };
 
@@ -32,7 +34,7 @@ function BarEntry({ id, label, Icon, active }: Pick<BarDestination, "id" | "labe
 
 // @implements-requirement HALL-FR-LAY-010
 // @implements-requirement HALL-FR-LAY-110
-/** Bottom bar of the phone (choice 1A): five destinations with icon and label, the rest under Plus. */
+/** Bottom bar of the phone (choice 1A): five destinations with icon and label, the other ones under Plus, in the groups of the menu. */
 // biome-ignore-start lint/correctness/useExhaustiveDependencies: the sheet closes whenever the route changes.
 export function PhoneNavigation() {
   const { t } = useI18n();
@@ -86,24 +88,34 @@ export function PhoneNavigation() {
   ].flatMap((destination) => (destination ? [destination] : []));
   const moreActive = moreOpen || !destinations.some((destination) => destination.active);
 
-  const moreRows = [
-    ...(personalPath
-      ? [
-          {
-            to: personalWorkspaceHref(personalPath),
-            testId: "personal",
-            label: t("workspace.personalWorkspace"),
-            Icon: MemberIcon,
-          },
-        ]
-      : []),
-    ...phoneMoreDestinations
-      .map(navigationItem)
-      .filter((item) => available(item.requiredRelation))
-      .map((item) => ({ to: item.to, testId: item.to.slice(1), label: t(item.labelKey), Icon: item.Icon })),
-    { to: "/docs", testId: "help", label: t("navigation.help"), Icon: DocsIcon },
-    { to: "/settings?category=preferences", testId: "account", label: t("navigation.account"), Icon: SettingsIcon },
-  ];
+  const personalRows = personalPath
+    ? [
+        {
+          to: personalWorkspaceHref(personalPath),
+          testId: "personal",
+          label: t("workspace.personalWorkspace"),
+          Icon: MemberIcon,
+        },
+      ]
+    : [];
+  const moreGroups: Array<{ key: string; label?: string; rows: MoreRow[] }> = [
+    ...navigationSections.map((section) => ({
+      key: section.folded?.id ?? section.labelKey ?? section.items[0].to,
+      label: section.labelKey ? t(section.labelKey) : undefined,
+      rows: section.items
+        .filter((item) => !phoneBarDestinations.has(item.to) && item.to !== "/editor-lab")
+        .filter((item) => available(item.requiredRelation))
+        .map((item) => ({ to: item.to, testId: item.to.slice(1), label: t(item.labelKey), Icon: item.Icon })),
+    })),
+    {
+      key: "account",
+      rows: [
+        ...personalRows,
+        { to: "/docs", testId: "help", label: t("navigation.help"), Icon: DocsIcon },
+        { to: "/settings?category=preferences", testId: "account", label: t("navigation.account"), Icon: SettingsIcon },
+      ],
+    },
+  ].filter((group) => group.rows.length > 0);
 
   return (
     <>
@@ -141,22 +153,27 @@ export function PhoneNavigation() {
           data-testid="phone-more"
         >
           <DialogTitle>{t("navigation.more")}</DialogTitle>
-          <ListRows>
-            {moreRows.map((row) => (
-              <ListRow
-                key={row.to}
-                to={row.to}
-                openTestId={`phone-more-${row.testId}`}
-                head={
-                  <ListRowIcon nature="folder">
-                    <row.Icon />
-                  </ListRowIcon>
-                }
-                title={row.label}
-                onClick={() => setMoreOpen(false)}
-              />
-            ))}
-          </ListRows>
+          {moreGroups.map((group) => (
+            <section className="app-sheet-group" key={group.key} data-testid={`phone-more-group-${group.key}`}>
+              {group.label ? <h3 className="app-sheet-group-title">{group.label}</h3> : null}
+              <ListRows>
+                {group.rows.map((row) => (
+                  <ListRow
+                    key={row.to}
+                    to={row.to}
+                    openTestId={`phone-more-${row.testId}`}
+                    head={
+                      <ListRowIcon nature="folder">
+                        <row.Icon />
+                      </ListRowIcon>
+                    }
+                    title={row.label}
+                    onClick={() => setMoreOpen(false)}
+                  />
+                ))}
+              </ListRows>
+            </section>
+          ))}
         </DialogContent>
       </Dialog>
     </>

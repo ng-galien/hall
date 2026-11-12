@@ -8553,7 +8553,7 @@
       },
       "statement": "Dans l’arbre du menu Espace de travail, cliquer sur une affaire du conseil ouvre cette affaire, et non la liste du répertoire documentaire associé.",
       "acceptanceCriteria": [
-        "Le clic sur une affaire dans le menu latéral ouvre son espace de travail existant, avec son identité conservée.",
+        "Le clic sur une affaire dans le volet de l’écran Documents ouvre son espace de travail existant, avec son identité conservée.",
         "Un répertoire ordinaire ouvre toujours son contenu documentaire.",
         "L’affaire ouverte reste identifiable comme sélection active dans l’arbre.",
         "L’arbre distingue les répertoires et les affaires par leurs icônes communes seules, sans fond, badge ni habillage supplémentaire autour de l’icône d’affaire.",
@@ -8600,7 +8600,7 @@
       },
       "statement": "Dans les documents d’une affaire, chaque dossier est désigné par son nom lisible, et jamais uniquement par la notation relative « .. ».",
       "acceptanceCriteria": [
-        "Les dossiers parents affichent leur nom réel ; la racine est désignée par le libellé commun Espace de travail.",
+        "Les dossiers parents affichent leur nom réel ; la racine est désignée par le libellé commun Documents.",
         "Les documents conservent leur classement et leur ouverture existants."
       ],
       "clauses": [
@@ -8623,7 +8623,7 @@
       "acceptanceCriteria": [
         "La page racine affiche uniquement l’explorateur documentaire existant, sans vue complémentaire des affaires du conseil.",
         "L’explorateur présente toute l’arborescence depuis la racine, dossiers compris, ainsi que les éléments directement classés à la racine.",
-        "À l’ouverture de l’espace de travail, sur ordinateur, tablette et téléphone, les dossiers de l’explorateur sont repliés et ne se déplient que sur une action de l’utilisateur. Sur ordinateur et tablette, l’icône d’un dossier qui a un contenu déplie ou replie sa branche sur place : dossier fermé quand il est replié, dossier ouvert quand il est déplié, avec une zone de clic d’au moins 32 pixels et un survol visible ; un clic sur le nom ou le reste de la ligne ouvre ce dossier comme dossier courant ; aucune ligne de dossier ne porte de chevron, dans l’explorateur comme dans l’arborescence du menu latéral. Au clavier, les flèches déplient et replient, Entrée ouvre le dossier. Un dossier sans contenu garde son icône fermée.",
+        "À l’ouverture de l’espace de travail, sur ordinateur, tablette et téléphone, les dossiers de l’explorateur sont repliés et ne se déplient que sur une action de l’utilisateur. Sur ordinateur et tablette, l’icône d’un dossier qui a un contenu déplie ou replie sa branche sur place : dossier fermé quand il est replié, dossier ouvert quand il est déplié, avec une zone de clic d’au moins 32 pixels et un survol visible ; un clic sur le nom ou le reste de la ligne ouvre ce dossier comme dossier courant ; aucune ligne de dossier ne porte de chevron, dans l’explorateur comme dans l’arborescence du volet de l’écran Documents. Au clavier, les flèches déplient et replient, Entrée ouvre le dossier. Un dossier sans contenu garde son icône fermée.",
         "Un clic hors du titre d’une affaire, d’un document ou d’une note sélectionne seulement l’élément ; un clic sur son titre ouvre sa fiche sans déplier l’affaire.",
         "Après la sélection d’une affaire, d’un document ou d’une note, le focus reste dans l’arbre afin que la navigation au clavier puisse continuer.",
         "Depuis une affaire, un document ou une note, la flèche gauche replie son dossier parent et replace le focus sur ce dossier.",
@@ -8633,7 +8633,7 @@
         "Les icônes d’affaire, de document et de note sont sobres, légèrement agrandies et alignées, avec leur couleur sémantique mais sans fond de badge.",
         "L’ouverture d’une affaire reprend la même structure d’en-tête et le même contrôle d’enregistrement automatique que l’ouverture d’une ressource ; seuls le rapport et les rubriques métier qui suivent diffèrent.",
         "Les projets de délibération et les questions ouvertes d’une affaire sont chargés à son ouverture, puis réunis dans un tableau trié par création décroissante. Une section identifie ces éléments ; les lignes affichent une icône avec son intitulé au survol, l’élément, la séance ou l’ordre du jour et l’état. Chaque ligne peut être développée indépendamment et conserve l’éditeur ainsi que sa sauvegarde discrète dans la ligne ; la séance affichée est un lien. L’ajout se fait depuis le tableau et la suppression n’est proposée que lorsqu’une action serveur l’autorise.",
-        "L’entrée Espace de travail de la navigation et la racine Tous les dossiers utilisent l’icône commune des affaires.",
+        "L’entrée Documents de la navigation et la racine Tous les dossiers utilisent l’icône commune des affaires.",
         "Un document peut être ouvert puis refermé en retrouvant la liste de la racine."
       ],
       "clauses": [
@@ -8771,7 +8771,7 @@
       },
       "statement": "L’entrée « Cartes » du menu principal ouvre les cartes de l’espace de travail en consultation, une carte à la fois, à une adresse qui désigne la carte et la vue.",
       "acceptanceCriteria": [
-        "L’entrée « Cartes » figure dans le menu principal juste après « Espace de travail » et son arborescence, avant « Calendrier », pour tout utilisateur qui consulte l’espace de travail.",
+        "L’entrée « Cartes » figure dans le groupe « Outils de travail » du menu principal, après « Contacts », pour tout utilisateur qui consulte les documents.",
         "L’adresse /maps/<identifiant de la carte> ouvre la carte désignée ; le paramètre view=<longitude>,<latitude>,<zoom> fixe le centre et le zoom de la vue à l’ouverture ; un paramètre view mal formé est ignoré.",
         "Un déplacement ou un zoom remplace le paramètre view de l’adresse sans ajouter d’entrée à l’historique du navigateur ; l’ouverture d’une autre carte ajoute une entrée à l’historique.",
         "L’adresse /maps sans carte affiche la vue cadrée sur la position de la commune enregistrée dans les réglages ; sans position enregistrée, la vue est cadrée sur l’emprise des dessins de toutes les cartes."
@@ -11204,19 +11204,31 @@
       "nature": "functional",
       "lifecycle": {
         "state": "accepted",
-        "since": "2026-11-11"
+        "since": "2026-11-12"
       },
       "statement": "La navigation principale montre chaque destination par une icône en trait et un libellé permanent, et marque la destination active en bleu.",
       "acceptanceCriteria": [
         "Au téléphone, la barre du bas présente cinq entrées avec leur icône et leur libellé : Accueil, Documents, Agenda, Séances et Plus, selon les droits de l’utilisateur.",
         "L’entrée active est en bleu, son libellé en gras et son icône d’un trait plus épais ; les autres sont grises ; aucune icône n’est pleine et l’entrée active n’a ni pavé ni trait.",
-        "Sur ordinateur et tablette, le panneau latéral et son arbre emploient les mêmes icônes en trait et le même état actif."
+        "Sur ordinateur et tablette, le menu présente Accueil, puis le groupe « Conseil municipal » avec Séances, Procès-verbaux et Délibérations, puis le groupe « Outils de travail » avec Documents, Courriels, Agenda, Contacts et Cartes, puis la racine « Administration » ; Documentation et Paramètres de l’application forment son pied.",
+        "La racine « Administration » est repliée par défaut et se déplie sur place en Utilisateurs, Membres du conseil, Commissions, Représentations extérieures et Modèles de documents ; elle est dépliée d’elle-même sur l’un de ses écrans. Son état se lit à l’épaisseur de son icône et à la présence de ses entrées, sans chevron.",
+        "Le menu a deux états, déplié avec les libellés complets ou replié en rail d’icônes dont le libellé est donné en infobulle et aux lecteurs d’écran ; la personne choisit l’état par le bouton de repli du menu et le retrouve à sa visite suivante.",
+        "Le bouton de repli du menu est à droite de la marque « Hall », sur sa ligne ; menu replié, il est en haut du rail, juste sous le « H », au même endroit à chaque écran. Entre 761 et 1000 pixels de large, le rail reste affiché et ce bouton ouvre le menu déplié par-dessus le contenu.",
+        "L’entrée Documents du menu ne porte ni arborescence ni bouton de dépliage ; l’arborescence des dossiers et des affaires est le volet de l’écran Documents.",
+        "Sur ordinateur et tablette, le menu emploie les mêmes icônes en trait et le même état actif que la barre du bas.",
+        "Au téléphone, la feuille « Plus » reprend les groupes du menu, « Conseil municipal », « Outils de travail » et « Administration », sans les entrées de la barre du bas, puis l’espace personnel, l’aide et le compte."
       ],
       "clauses": [
         {
           "key": "primary-navigation-1a",
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 1A sans le trait, icônes en trait ; mots du propriétaire : « je préfère un A ».",
+          "sourceIds": []
+        },
+        {
+          "key": "primary-navigation-groups",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 : « la partie séance procès-verbaux délibération […] c'est un même groupe. […] Carte, courrier, agenda […] c'est des choses différentes, c'est bien. Par contre, les contacts je pense que ça peut être remonté […] Et après, le reste, c'est quand même plus de l'ordre du paramètre, de l'administration. » ; sur le bouton de repli du bandeau : « Il devrait être à mon avis placé au niveau du menu », puis, sur la proposition de le placer à droite de « Hall » : « C'est bon. On y va comme ça. » ; forme retenue sur la planche 33 « Barre latérale — troisième forme et hauteurs réelles » : « Oui, lance ».",
           "sourceIds": []
         }
       ]
@@ -11286,6 +11298,31 @@
           "key": "fields-12d",
           "origin": "product",
           "statement": "Choix du propriétaire du 11 novembre 2026 sur les planches « Hall 1.3 — Choix de design des composants », choix 12D ; mots du propriétaire : « 12D ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-LAY-160": {
+      "name": "MODULE_PANE_AND_FOLD_CONTROLS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-12"
+      },
+      "statement": "Sur ordinateur et tablette, l’écran d’un module qui sert à naviguer, filtrer ou déposer a un volet entre le menu et le contenu, et chaque panneau repliable porte son propre bouton de repli.",
+      "acceptanceCriteria": [
+        "Le volet occupe toute la hauteur entre le menu et le contenu ; son en-tête porte son titre et son bouton de repli, et son contenu défile seul.",
+        "Seuls les écrans Documents et Courriels ont un volet : l’arborescence des dossiers et des affaires, cible de dépôt, pour Documents ; Brouillons, Envoyés et les groupes de destinataires pour Courriels. Un écran sans volet donne toute la largeur au contenu après le menu.",
+        "Le volet replié laisse toute la largeur au contenu ; la personne retrouve l’état choisi pour chaque volet à sa visite suivante.",
+        "Chaque panneau repliable porte son bouton de repli dans son propre en-tête : le menu, le volet du module et la liste des courriels. Le bandeau du contenu ne porte aucun bouton de repli et son fil d’Ariane commence au bord gauche.",
+        "Quand un volet ou la liste des courriels est replié et n’a plus d’en-tête visible, le bouton qui le rouvre est au début du bandeau de l’écran.",
+        "Au téléphone, l’écran n’a pas de volet : il présente sa propre navigation dans son contenu."
+      ],
+      "clauses": [
+        {
+          "key": "module-pane-variant-3",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 : « avoir un explorateur contextuel dans la barre […] l'explorateur prend la majorité de la place […] C'est le même esprit avec les courriers […] la barre latérale doit être stable, on doit accéder à toutes les racines » ; « le but de l'arborescence ici, c'était pour déplacer des éléments dans des affaires ou dans des dossiers de documents. Donc ça, je veux qu'on le garde. » ; « je n'aime pas les chevrons […] je préfère une icône de dossier qui bouge plutôt que ces chevrons. » ; planche 33 « Barre latérale — troisième forme et hauteurs réelles », « menu repliable et volet du module » : « Oui, lance ».",
           "sourceIds": []
         }
       ]
@@ -11680,7 +11717,7 @@
       "statement": "Hall provides a shared outgoing mailbox for the municipality.",
       "acceptanceCriteria": [
         "Every authenticated active user can create a message. Messages are shared from creation; editing and sending follow the configured authorizations.",
-        "Drafts can be saved, closed and reopened. The mailbox distinguishes messages in preparation, submission in progress, submitted messages and failures or uncertain outcomes.",
+        "A draft saves itself while it is written and can be closed and reopened. The mailbox shows drafts in « Brouillons » and every message with at least one submission in « Envoyés », where a submission in progress, a submitted message, a failure and an uncertain outcome each have their own state.",
         "The first version excludes incoming mail, mailbox synchronization, automatic or scheduled sending, filtering rules and campaign management."
       ],
       "clauses": [
@@ -11807,7 +11844,7 @@
         "A known failure retains the message for correction and explicit retry. An uncertain transport outcome is shown separately and is not automatically retried.",
         "Repeating a send command must not silently submit the same attempt twice. Hall must not claim exactly-once remote delivery from a transport acknowledgment.",
         "Transport acceptance is not evidence of receipt, reading, or fulfillment of a legal notice obligation.",
-        "After an uncertain submission, sending again is unavailable until an authorized user records a verification in Outlook. A warning alone does not authorize resubmission.",
+        "After an uncertain submission, sending again is unavailable until an authorized user records a verification made in the mailbox of the commune. A warning alone does not authorize resubmission.",
         "Attachment size rejection, a stale draft revision and a submission that blocks modification have distinct API error codes and localized explanations."
       ],
       "clauses": [
@@ -11891,6 +11928,37 @@
           "key": "owner-request",
           "origin": "product",
           "statement": "The user requested the complete shared outgoing-mail feature on 11 November 2026, selected shared drafts and saved custom recipient groups, required existing authorization and Markdown interfaces, clarified ordinary attachments, and included MCP. Incoming mail, synchronization and automatic sending were explicitly excluded. These accepted behaviors do not approve a particular persistence schema. Evidence: Topic Graph message 5fd39a12-834e-4c99-bc2b-bf29abf3025f records the user conversation and exact decisions; sourceIds remains empty because product clauses do not cite legal sources.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-EML-100": {
+      "name": "MAIL_SCREEN",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-12"
+      },
+      "statement": "L’écran Courriels présente les brouillons, les envois et la composition comme une messagerie courante, avec les mêmes fonctions que la boîte commune.",
+      "acceptanceCriteria": [
+        "Sur ordinateur et tablette, le volet de Courriels présente « Brouillons » et « Envoyés » avec leur nombre, puis les groupes de destinataires enregistrés avec leur effectif et « Gérer les groupes… » ; chaque dossier a sa propre adresse.",
+        "« Envoyés » commence par les messages dont le dernier envoi a échoué ou est à vérifier, avec leur état en rouge, puis présente les autres du plus récent au plus ancien.",
+        "La liste du dossier se replie par le bouton de son en-tête et commence par « Rechercher… », qui filtre les messages du dossier affiché par leur objet et leurs destinataires.",
+        "La composition présente une ligne « À » où l’on tape un nom ; les suggestions viennent dans l’ordre groupes, contacts, adresse saisie, puis « Gérer les groupes… » ; un contact sans adresse est présenté avec « adresse manquante » et ne se choisit pas.",
+        "Chaque destinataire est une étiquette rectangulaire qui se retire ; les destinataires qui forment tous les membres d’un groupe sont présentés en une seule étiquette au nom du groupe avec son effectif, et le message garde chaque destinataire.",
+        "« Cc » et « Cci » sont des liens qui ajoutent chacun une ligne du même type ; l’objet suit, puis le corps sur toute la hauteur restante.",
+        "Un bouton « Joindre » propose un fichier de l’ordinateur ou un document de Hall ; chaque pièce jointe est une étiquette avec son nom, sa taille, son téléchargement et, sur un brouillon, son retrait.",
+        "Le brouillon s’enregistre de lui-même peu après chaque changement, contre la révision lue ; le bandeau écrit « Enregistré » après un point vert, et un changement en attente est enregistré quand on quitte le brouillon.",
+        "Le bandeau d’un brouillon porte l’état d’enregistrement, un menu « … » qui contient « Supprimer » et « Gérer les groupes… », puis « Envoyer », qui ouvre la relecture : aperçu, destinataires, pièces jointes, anomalies et confirmation.",
+        "Un message envoyé s’ouvre en lecture et finit par ses envois, chacun avec son état, sa date et « Aperçu du message » ; « Copier en brouillon » est dans le bandeau. Un envoi à vérifier présente son aide et « Consigner la vérification » en bouton principal ; un échec présente son aide.",
+        "Au téléphone, deux onglets « Brouillons » et « Envoyés » commencent la liste, un message s’ouvre en plein écran et « Envoyer » est dans le bandeau.",
+        "Un courriel préparé depuis un autre écran arrive dans « Brouillons »."
+      ],
+      "clauses": [
+        {
+          "key": "mail-screen-page-31",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 12 novembre 2026 : « on ne sait pas trop s'il y a des brouillons, si c'est ce qui a été envoyé […] la composition, on perd beaucoup de place […] beaucoup de commandes, de boutons séparés […] Quand on envoie, on sélectionne les destinataires, ça doit être des champs renseignables où on a un groupe, où on a un contact » ; sur la planche 31 « Courriels » : « Elle est bien. […] il faudra qu'on puisse réduire le panneau latéral de la liste. Il faudrait peut-être une fonction de recherche aussi. » ; enregistrement automatique du brouillon : « OK » ; envoi en échec en tête de « Envoyés », en rouge : « OK ».",
           "sourceIds": []
         }
       ]

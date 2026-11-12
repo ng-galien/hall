@@ -1,4 +1,4 @@
-import { expect, test } from "../fixtures/application";
+import { expect, openAdministrationEntry, test } from "../fixtures/application";
 
 test("creates a contact, edits it and reuses it for a council mandate", async ({ appPage: page }) => {
   test.setTimeout(60_000);
@@ -42,7 +42,7 @@ test("creates a contact, edits it and reuses it for a council mandate", async ({
   await settingsResponse;
   await expect(page.getByTestId("settings-council-term-saved")).toBeVisible();
 
-  await page.getByTestId("navigation-council-members").click();
+  await openAdministrationEntry(page, "council-members");
   await page.getByTestId("member-add").click();
   await page.getByTestId("member-contact-select").click();
   await page
@@ -69,7 +69,7 @@ test("creates a contact, edits it and reuses it for a council mandate", async ({
     (response) => response.url().endsWith(`/api/contacts/${contact?.id}`) && response.request().method() === "PUT",
   );
   await page.getByTestId("contact-firstName").fill("Arielle");
-  await page.getByTestId("navigation-council-members").click();
+  await openAdministrationEntry(page, "council-members");
   await renameResponse;
   await expect(page.getByTestId(`member-open-${member?.id}`)).toBeVisible();
   await page.getByTestId(`member-open-${member?.id}`).click();
@@ -77,7 +77,7 @@ test("creates a contact, edits it and reuses it for a council mandate", async ({
 
   await page.getByTestId("member-contact-link").click();
   await page.getByTestId("contact-firstName").fill("");
-  await page.getByTestId("navigation-council-members").click();
+  await openAdministrationEntry(page, "council-members");
   await expect(page).toHaveURL(new RegExp(`/app/contacts/${contact?.id}$`));
   await expect(page.getByTestId("contact-identity-error")).toBeVisible();
 

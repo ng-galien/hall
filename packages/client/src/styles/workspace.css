@@ -1,4 +1,4 @@
-/* Workspace: sidebar tree, folder contents, workbench. */
+/* Workspace: tree of the Documents pane, folder contents, workbench. */
 @layer components {
   /* ---- Folder tree ---- */
   .workspace-tree { display: flex; flex-direction: column; margin: 0 0 var(--hall-space-1); padding: 0 0 0 var(--hall-space-2); list-style: none; }
@@ -116,24 +116,8 @@
 
   .workspace-list-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
 
-  /* ---- Tree folding ---- */
-  .workspace-tree-fold {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: var(--hall-size-tree-toggle);
-    height: var(--hall-size-tree-toggle);
-    padding: 0;
-    border: 0;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-text-subtle);
-    background: transparent;
-    cursor: pointer;
-  }
+  /* ---- Tree of the Documents pane ---- */
   .workspace-tree-wrap { display: flex; flex-direction: column; }
-  .workspace-tree-scroll { max-height: var(--hall-size-tree-max); overflow-y: auto; }
-  .hall-button.workspace-tree-more { justify-content: flex-start; width: 100%; padding-left: var(--hall-space-6); color: var(--hall-color-brand); }
 
   /* ---- Top bar: faceted search, creation, pins ---- */
   .workspace-topzone { display: flex; flex-direction: column; gap: var(--hall-space-2); }

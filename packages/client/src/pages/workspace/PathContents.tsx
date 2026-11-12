@@ -1156,7 +1156,6 @@ export function PathContents({
     );
     const folderColor = folderEntry?.color ?? null;
     const folderName = folderPath.split("/").at(-1) ?? folderPath;
-    // A folder whose listing is loaded and empty has nothing to unfold; an unread folder may have content.
     const hasContent =
       children.length > 0 ||
       visibleBusinesses.some((business) => business.folderPath === folderPath) ||

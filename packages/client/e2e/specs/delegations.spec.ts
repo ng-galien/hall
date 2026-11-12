@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "../fixtures/application";
+import { expect, openAdministrationEntry, test } from "../fixtures/application";
 import { writtenDate } from "../fixtures/writtenDate";
 
 /* Représentations extérieures: bodies where the municipality is represented by dated primary and alternate contacts. */
@@ -29,7 +29,7 @@ test("the secretariat records a representation with dated primary and alternate 
   const name = `Syndicat des eaux ${Date.now()}`;
 
   await page.goto("/app/");
-  await page.getByTestId("navigation-council-delegations").click();
+  await openAdministrationEntry(page, "council-delegations");
   await expect(page).toHaveURL(/\/app\/council-delegations$/);
   await page.getByTestId("delegation-create-open").click();
   await page.getByTestId("delegation-create-name").fill(name);

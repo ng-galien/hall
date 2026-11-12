@@ -1,7 +1,6 @@
 @layer components {
   /* Glyphs are sized in 1em, so any more specific font-size drives them. */
   .app-icon { font-size: var(--hall-font-size-icon); }
-  .workspace-tree-fold svg { font-size: var(--hall-font-size-icon-small); }
 
   .spinner {
     display: inline-flex;

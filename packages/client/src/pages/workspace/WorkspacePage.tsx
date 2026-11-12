@@ -6,6 +6,7 @@ import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { ListRow, ListRows } from "../../components/ui/list-row";
 import { LoadingIndicator } from "../../components/ui/loading-indicator";
+import { ModulePane } from "../../components/ui/module-pane";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { emptyEventDocument } from "../../features/calendar/eventDates";
 import {
@@ -26,6 +27,7 @@ import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { type DocumentDuplicate, findDocumentDuplicates } from "../../services/documentDuplicates";
 import { HeaderTrail, ScreenActions } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
+import { WorkspaceTree } from "../../shell/WorkspaceTree";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { CouncilBusinessWorkbench } from "./CouncilBusinessWorkbench";
@@ -517,6 +519,9 @@ export function WorkspacePage() {
         {submitting ? (
           <LoadingIndicator data-testid="workspace-import-progress">{t("common.saving")}</LoadingIndicator>
         ) : null}
+        <ModulePane id="documents" title={t("navigation.documents")} testId="workspace-pane">
+          <WorkspaceTree />
+        </ModulePane>
         <HeaderTrail>
           <WorkspaceBreadcrumb
             path={selectedBusiness?.folderPath ?? presentedResource?.path ?? path}
