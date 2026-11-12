@@ -18,7 +18,9 @@ import { sourcesOf, sweepPlan } from "./sweep-config.mjs";
  *   --screens=a,b                these screens;
  *   --intervals=761-1000,…       only the intervals that cross these window widths;
  *   --exclude=a,b                leave these screens out (their files are being changed);
- *   --report-only                rewrite the report from the last measurements.
+ *   --report-only                rewrite the report from the last measurements;
+ *   --rules[=component]          write the rules of the interface (all, or one component), without a browser;
+ *   --explain=<file or screen>   write the rules that apply to this file or screen.
  * Without --changed, --files or --screens, every screen is measured: the complete pass, before a release.
  */
 
@@ -28,6 +30,17 @@ const outputDirectory = resolve(clientDirectory, "test-results/screen-audit-swee
 const acceptedFile = resolve(here, "sweep-accepted.json");
 const argument = (name) => process.argv.find((entry) => entry.startsWith(`--${name}=`))?.slice(name.length + 3) ?? null;
 const reportOnly = process.argv.includes("--report-only");
+
+/* --rules[=component] and --explain=<file or screen> write the rules of the interface and stop: no browser. */
+if (
+  process.argv.some((entry) => entry === "--rules" || entry.startsWith("--rules=") || entry.startsWith("--explain="))
+) {
+  const { explain, writeRules } = await import("./rules-text.mjs");
+  console.log(
+    argument("explain") ? explain(argument("explain")) : writeRules(argument("rules") ?? argument("component")),
+  );
+  process.exit(0);
+}
 const known = new Set(screens.map((screen) => screen.id));
 
 /* Targeted pass: the screens of the changed files, or the declared sample of a shared component. */
@@ -71,6 +84,14 @@ const intervalsOption = argument("intervals");
 
 const started = Date.now();
 if (!reportOnly && selected !== "") {
+  /* The rules are proven on their faulty and correct pages before any measure. */
+  const proof = spawnSync(process.execPath, [resolve(clientDirectory, "e2e/screen-audit/engine/sweep-self-test.mjs")], {
+    stdio: "inherit",
+  });
+  if (proof.status !== 0) {
+    console.error("Une règle ne passe pas sa preuve : le passage n'est pas lancé.");
+    process.exit(1);
+  }
   rmSync(outputDirectory, { recursive: true, force: true });
   const result = spawnSync(process.execPath, [resolve(clientDirectory, "e2e/run.mjs")], {
     cwd: resolve(clientDirectory, "../.."),
@@ -160,7 +181,9 @@ for (const entry of records.flatMap((record) => record.contentWidths ?? [])) {
   content.set(key, range);
 }
 
-const titles = { ...sweepRules, ...conformanceRules };
+const titles = Object.fromEntries(
+  Object.entries({ ...sweepRules, ...conformanceRules }).map(([rule, definition]) => [rule, definition.title]),
+);
 const lines = [];
 const say = (line = "") => lines.push(line);
 say(`Balayage : ${measuredScreens.size} écrans, ${measures} mesures, ${seconds} s.`);

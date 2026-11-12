@@ -73,7 +73,7 @@ Canonical terms include `HallSettings`, `CouncilTerm`, `Contact`, `CouncilMember
 
 ## Frontend
 
-Before modifying `packages/client`, read the base components and conventions in [`docs/interface.md`](docs/interface.md) and the interface rules in [`docs/project.md`](docs/project.md).
+Before modifying `packages/client`, read the output of `npm run audit:screens -- --rules` (the interface rules, from the screen audit that checks them) and the interface rules in [`docs/project.md`](docs/project.md).
 
 - Read the existing HTTP/Siren contract before designing a component or asking for an arbitration. During design review, assess whether the planned Siren representation and actions are sufficient for the agreed UI; do not confuse a contract that has not yet been implemented with an incomplete design. Siren supplies the data and actions available to the user; the server owns permission checks and the mapping of resource commands to a CouncilBusiness. The frontend consumes those actions and does not invent a permission, command, or parallel authorization rule. Escalate to the user only a genuine unresolved product contradiction.
 - Maintain one visual identity and compose screens from shared primitives in `packages/client/src/components/ui/`.

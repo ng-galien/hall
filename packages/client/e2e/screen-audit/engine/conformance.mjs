@@ -5,35 +5,130 @@
  * `page.evaluate`: it must not use anything outside its own body.
  */
 
-/** Decision rules of the sweep, with the choice of page 1 they enforce and their French title for the report. */
+/**
+ * Decision rules of the sweep: the French title of a finding, and `expected`, the sentence an implementer reads before
+ * touching the interface, in the present and in the positive. The sentence is what the tool says about the rule.
+ */
 export const conformanceRules = {
-  "disclosure-chevron": "Choix 14 : chevron ou triangle de dépliage",
-  "unlabelled-create": "Choix 6 : « + » de création ou d'ajout sans libellé",
-  "filled-icon": "Choix 1 et 9 : icône pleine",
-  "warm-tint": "Charte : teinte chaude peinte à l'écran (crème, orange, brun, ambre)",
-  "forbidden-text": "Choix 16 : texte retiré (« Outlook », « espace de travail », « Tags »)",
-  "local-table": "Choix 3 : tableau au lieu de la ligne de liste",
-  "local-list": "Choix 3 : liste locale au lieu de la ligne de liste",
-  "field-form": "Choix 12 : champ hors du composant Field (libellé dans le champ)",
-  "button-form": "Choix 5 : bouton hors des quatre formes (plein bleu, teinté, rouge, sans fond)",
-  "single-primary": "Choix 5 : plus d'un bouton principal plein dans un écran",
-  "state-badge": "Choix 7 : état en étiquette teintée au lieu du point de couleur",
-  "font-family": "Choix 10 : texte hors de la police Archivo",
-  "text-size": "Choix 10 : texte de moins de 14 px sous le doigt, de 13 px à la souris",
-  "state-without-dot": "Choix 7 : état écrit sans son point de couleur",
-  "header-first-line": "Choix 2 : commande dans la première ligne du bandeau",
-  "title-after-commands": "Choix 2 : rangée de commandes entre la première ligne et le grand titre",
-  "search-on-item": "Recherche ou filtre affiché sur un élément ouvert",
-  "duplicate-command": "Commande, titre ou état d'enregistrement en double dans une même fenêtre",
-  "bottom-bar": "Choix 1 : barre du bas autre que cinq destinations avec icône et libellé",
-  "writing-modes": "Choix 8 : « Modifier » et « Terminé » affichés ensemble",
-  "pointer-scale": "Tailles à l'ordinateur : ligne de liste écrite plus grand que le menu",
-  "component-unity": "Unité visuelle : un composant partagé dessiné de plusieurs façons dans une même variante",
-  "button-icon-unity": "Boutons de même forme sur un écran, les uns avec une icône, les autres sans",
-  "plus-not-add": "« + » sur une commande qui n'ajoute ni ne crée",
-  "design-reference": "Valeur de dessin différente du design (Maket)",
-  "form-field": "Choix 12 : champ hors de la forme retenue (fond, filet, libellé, « Non renseigné »)",
-  "row-height": "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
+  "disclosure-chevron": {
+    title: "Choix 14 : chevron ou triangle de dépliage",
+    expected:
+      "Une section ou un dossier se déplie par un clic sur son en-tête ou sur son icône de dossier, sans chevron ni triangle.",
+  },
+  "unlabelled-create": {
+    title: "Choix 6 : « + » de création ou d'ajout sans libellé",
+    expected: "Une commande de création ou d'ajout montre « + » suivi de son libellé.",
+  },
+  "filled-icon": {
+    title: "Choix 1 et 9 : icône pleine",
+    expected: "Toutes les icônes sont dessinées en trait.",
+  },
+  "warm-tint": {
+    title: "Charte : teinte chaude peinte à l'écran (crème, orange, brun, ambre)",
+    expected:
+      "Aucune teinte chaude (crème, orange, brun, ambre) n'est peinte à l'écran ; une couleur choisie par la personne est une donnée.",
+  },
+  "forbidden-text": {
+    title: "Choix 16 : texte retiré (« Outlook », « espace de travail », « Tags »)",
+    expected:
+      "Les libellés nomment la fonction (« la messagerie de la commune », « Documents », « Étiquettes »), jamais le produit technique.",
+  },
+  "local-table": {
+    title: "Choix 3 : tableau au lieu de la ligne de liste",
+    expected:
+      "Une liste d'objets est faite de lignes de liste (ListRow) ; un tableau n'apparaît que dans le contenu d'un document.",
+  },
+  "local-list": {
+    title: "Choix 3 : liste locale au lieu de la ligne de liste",
+    expected: "Une liste d'objets cliquables est faite de lignes de liste (ListRow).",
+  },
+  "field-form": {
+    title: "Choix 12 : champ hors du composant Field (libellé dans le champ)",
+    expected:
+      "Un champ de saisie est dans un Field, son libellé écrit dans le champ ; seule la recherche a sa propre forme.",
+  },
+  "button-form": {
+    title: "Choix 5 : bouton hors des quatre formes (plein bleu, teinté, rouge, sans fond)",
+    expected: "Un bouton est plein bleu, bleu pâle, rouge plein ou sans fond, et n'a pas de contour.",
+  },
+  "single-primary": {
+    title: "Choix 5 : plus d'un bouton principal plein dans un écran",
+    expected: "Un écran ou une fenêtre a au plus un bouton plein bleu, pour son action principale.",
+  },
+  "state-badge": {
+    title: "Choix 7 : état en étiquette teintée au lieu du point de couleur",
+    expected: "Un état s'écrit sans fond teinté : un point de couleur puis le mot.",
+  },
+  "font-family": {
+    title: "Choix 10 : texte hors de la police Archivo",
+    expected: "Tout le texte est en Archivo.",
+  },
+  "text-size": {
+    title: "Choix 10 : texte de moins de 14 px sous le doigt, de 13 px à la souris",
+    expected: "Le texte mesure au moins 14 px au doigt et 13 px à la souris.",
+  },
+  "state-without-dot": {
+    title: "Choix 7 : état écrit sans son point de couleur",
+    expected: "Un état s'écrit après son point de couleur.",
+  },
+  "header-first-line": {
+    title: "Choix 2 : commande dans la première ligne du bandeau",
+    expected:
+      "La première ligne du bandeau porte le chemin et les initiales ; sur un écran de liste, aussi « + Nouveau » ; au téléphone, les commandes d'un élément ouvert avec « Modifier » et « … ».",
+  },
+  "title-after-commands": {
+    title: "Choix 2 : rangée de commandes entre la première ligne et le grand titre",
+    expected:
+      "Le grand titre suit directement la première ligne du bandeau ; les commandes d'un élément ouvert sont sur la ligne du titre.",
+  },
+  "search-on-item": {
+    title: "Recherche ou filtre affiché sur un élément ouvert",
+    expected:
+      "Un élément ouvert n'affiche ni recherche ni filtre de son dossier ; un sélecteur qui cherche quoi rattacher est permis.",
+  },
+  "duplicate-command": {
+    title: "Commande, titre ou état d'enregistrement en double dans une même fenêtre",
+    expected: "Dans une fenêtre, chaque commande, chaque titre et l'état d'enregistrement apparaissent une seule fois.",
+  },
+  "bottom-bar": {
+    title: "Choix 1 : barre du bas autre que cinq destinations avec icône et libellé",
+    expected: "Au téléphone, la barre du bas montre cinq destinations, chacune avec son icône en trait et son libellé.",
+  },
+  "writing-modes": {
+    title: "Choix 8 : « Modifier » et « Terminé » affichés ensemble",
+    expected: "Un texte se lit avec « Modifier » ou s'écrit avec « Terminé », jamais les deux à la fois.",
+  },
+  "pointer-scale": {
+    title: "Tailles à l'ordinateur : ligne de liste écrite plus grand que le menu",
+    expected: "À la souris, le titre d'une ligne de liste est écrit à la taille du texte du menu.",
+  },
+  "component-unity": {
+    title: "Unité visuelle : un composant partagé dessiné de plusieurs façons dans une même variante",
+    expected:
+      "Un composant garde le même texte, la même icône, la même hauteur, les mêmes marges et écarts sur tous les écrans et à toutes les largeurs, sauf entre ses variantes nommées.",
+  },
+  "button-icon-unity": {
+    title: "Boutons de même forme sur un écran, les uns avec une icône, les autres sans",
+    expected: "Sur un écran, les boutons à libellé de même forme ont tous une icône ou n'en ont aucun.",
+  },
+  "plus-not-add": {
+    title: "« + » sur une commande qui n'ajoute ni ne crée",
+    expected: "« + » marque seulement l'ajout et la création.",
+  },
+  "design-reference": {
+    title: "Valeur de dessin différente du design (Maket)",
+    expected:
+      "Chaque composant prend les valeurs de dessin de « Hall 1.3 — Design de référence » (table design-reference.json).",
+  },
+  "form-field": {
+    title: "Choix 12 : champ hors de la forme retenue (fond, filet, libellé, « Non renseigné »)",
+    expected:
+      "Un champ n'a pas de fond, un filet dessous seulement (gris au repos, bleu et plus épais en saisie, rouge et plus épais en erreur, aucun en lecture seule), son libellé au-dessus, et écrit « Non renseigné » quand il est vide.",
+  },
+  "row-height": {
+    title: "Choix 11 : hauteur d'une ligne de liste hors de 64 px (doigt) ou 40 et 52 px (souris)",
+    expected: "Une ligne de liste mesure 64 px au doigt ; à la souris, 40 px sur une ligne et 52 px sur deux.",
+  },
 };
 
 /**

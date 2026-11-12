@@ -48,14 +48,13 @@ Do not create a second catalogue, policy, state machine, parser, or permission r
 ## Interface rules
 
 - Siren actions define what the user may do. The client does not infer permissions.
-- Reuse components from `packages/client/src/components/ui/` and the existing workspace TreeView, as described in [`docs/interface.md`](interface.md).
+- Reuse components from `packages/client/src/components/ui/` and the existing workspace TreeView.
 - Keep one owner for navigation, autosave, forms, mutations, and visual tokens.
 - Give Playwright targets stable, function-based `data-testid` values.
 - Do not locate functional controls by translated text, placeholders, titles, or ARIA labels.
 - After a Playwright failure, rerun the focused scenario before the full suite.
-
-The base components, their variants, the conventions of the interface and the layout across widths are defined in
-[`docs/interface.md`](interface.md); their drawing values are in the table of the screen audit it names.
+- The visual rules of the interface (components, variants, values, layout across widths) are held by the screen audit:
+  read `npm run audit:screens -- --rules` before changing `packages/client` (see [`docs/development.md`](development.md#screen-audit)).
 
 ## Verification
 

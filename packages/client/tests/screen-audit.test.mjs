@@ -193,36 +193,50 @@ test("the design table is drawn from « Design de référence » only, cites its
     );
 });
 
-test("docs/interface.md names code that exists and rules the screen audit has", async () => {
+test("every rule of the screen audit says what is expected, and the interface names only code and rules that exist", async () => {
   const { conformanceRules } = await import("../e2e/screen-audit/engine/conformance.mjs");
   const { sweepRules } = await import("../e2e/screen-audit/engine/sweep.mjs");
+  const { components } = await import("../e2e/screen-audit/hall/interface.mjs");
+  const rules = { ...sweepRules, ...conformanceRules };
+  for (const [id, definition] of Object.entries(rules)) {
+    assert.ok(definition.title?.trim(), `${id}: titre`);
+    assert.ok(definition.expected?.trim().endsWith("."), `${id}: phrase de ce qui est attendu`);
+  }
   const repository = join(import.meta.dirname, "../../..");
-  const text = readFileSync(join(repository, "docs/interface.md"), "utf8");
-  const rules = new Set([...Object.keys(conformanceRules), ...Object.keys(sweepRules)]);
-  const paths = [...text.matchAll(/`(packages\/client\/[^`]+)`/g)].map((match) => match[1]);
-  assert.ok(paths.length > 10, "the reference names the code of its components");
-  for (const path of paths) assert.ok(existsSync(join(repository, path)), `${path} n'existe pas`);
-  const named = [
-    ...[...text.matchAll(/^- Rules: (.+)$/gm)].flatMap((match) =>
-      [...match[1].matchAll(/`([a-z-]+)`/g)].map((rule) => rule[1]),
-    ),
-    ...[...text.matchAll(/\(`([a-z-]+)`(?:, `([a-z-]+)`)*\)/g)].flatMap((match) =>
-      [...match[0].matchAll(/`([a-z-]+)`/g)].map((rule) => rule[1]),
-    ),
-  ];
-  assert.ok(named.length > 20, "the reference names the rules that check it");
-  for (const rule of named) assert.ok(rules.has(rule), `la règle ${rule} n'existe pas dans l'outil`);
+  const table = JSON.parse(
+    readFileSync(join(import.meta.dirname, "../e2e/screen-audit/hall/design-reference.json"), "utf8"),
+  );
+  const tableComponents = new Set([...table.entries, ...table.missing].map((entry) => entry.component));
+  for (const component of components) {
+    for (const path of component.code)
+      assert.ok(existsSync(join(repository, path)), `${component.name}: ${path} n'existe pas`);
+    for (const rule of component.rules) assert.ok(rules[rule], `${component.name}: la règle ${rule} n'existe pas`);
+    for (const name of component.values)
+      assert.ok(tableComponents.has(name), `${component.name}: ${name} absent de la table`);
+  }
+});
+
+test("the rules of the interface are written out from the tool, for all or one component, and explained for a file", async () => {
+  const { explain, writeRules } = await import("../e2e/screen-audit/hall/rules-text.mjs");
+  const all = writeRules();
   for (const heading of [
-    "Button",
-    "Add command",
-    "Form field",
-    "State",
-    "List row",
-    "Screen header and line of the title",
-    "Side menu",
-    "Phone bottom bar",
-    "Section header",
-    "Window",
+    "Bouton",
+    "Champ de formulaire",
+    "État",
+    "Ligne de liste",
+    "Barre latérale",
+    "Barre du bas du téléphone",
+    "Règles transverses",
   ])
-    assert.match(text, new RegExp(`^### ${heading}$`, "m"), heading);
+    assert.match(all, new RegExp(`^## ${heading}`, "m"), heading);
+  assert.match(all, /Valeur manquante/);
+  assert.match(all, /Décidé, non contrôlé/);
+  const button = writeRules("bouton");
+  assert.match(button, /\[single-primary\]/);
+  assert.match(button, /bouton secondaire · background-color : #E8EEFC/);
+  assert.doesNotMatch(button, /## Champ de formulaire/);
+  assert.match(writeRules("champ"), /« Non renseigné »/);
+  assert.throws(() => writeRules("inexistant"), /Composant inconnu/);
+  assert.match(explain("src/components/ui/field.tsx"), /## Champ de formulaire/);
+  assert.match(explain("document-texte"), /Élément ouvert/);
 });

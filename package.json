@@ -35,7 +35,7 @@
     "test:e2e": "npm run test:e2e -w @hall/client --",
     "test:e2e:auth": "cross-env HALL_E2E_AUTH_MODE=true npm run test:e2e",
     "test:e2e:docs": "cross-env HALL_DOCS_JOURNEYS=true npm run test:e2e -- --project=docs-journeys",
-    "audit:screens": "node packages/client/e2e/screen-audit/engine/sweep-self-test.mjs && node packages/client/e2e/screen-audit/hall/sweep.mjs",
+    "audit:screens": "node packages/client/e2e/screen-audit/hall/sweep.mjs",
     "audit:screens:captures": "node packages/client/e2e/screen-audit/hall/run.mjs",
     "test:e2e:rules": "cross-env HALL_E2E_MEETING_RULES=true npm run test:e2e -- --project=meeting-rules",
     "test:i18n-hmr": "npm run test:i18n-hmr -w @hall/client",

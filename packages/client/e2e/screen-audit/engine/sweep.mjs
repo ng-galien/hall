@@ -4,14 +4,38 @@
  * input, the states, the rule and a selector.
  */
 
-/** Layout rules of the sweep, with their French title for the report. */
+/**
+ * Layout rules of the sweep: the French title of a finding, and `expected`, the sentence an implementer reads before
+ * touching the interface. The sentence is what the tool says about the rule; a rule without one fails the checks.
+ */
 export const sweepRules = {
-  "hidden-name": "Titre ou nom de largeur nulle ou coupé à moins de trois caractères",
-  overlap: "Deux textes ou commandes qui se recouvrent",
-  "horizontal-scroll": "Défilement horizontal du document ou d'une zone",
-  "lone-wrap": "Élément rejeté seul sous les autres éléments de sa rangée",
-  "off-screen": "Texte ou commande hors de l'écran",
-  "touch-target": "Cible tactile de moins de 44 px au téléphone",
+  "hidden-name": {
+    title: "Titre ou nom de largeur nulle ou coupé à moins de trois caractères",
+    expected:
+      "Chaque titre et chaque nom montrent au moins trois caractères ; un nom trop long finit par des points de suspension.",
+  },
+  overlap: {
+    title: "Deux textes ou commandes qui se recouvrent",
+    expected: "Deux textes ou commandes ne se recouvrent jamais ; seul un bouton flottant se pose sur le contenu.",
+  },
+  "horizontal-scroll": {
+    title: "Défilement horizontal du document ou d'une zone",
+    expected:
+      "Ni la page ni aucune zone ne défile horizontalement, sauf un tableau de données marqué data-horizontal-scroll.",
+  },
+  "lone-wrap": {
+    title: "Élément rejeté seul sous les autres éléments de sa rangée",
+    expected:
+      "Les éléments d'une rangée tiennent sur une ligne ou passent à la ligne par groupes entiers ; un flot libre d'étiquettes porte data-layout-flow.",
+  },
+  "off-screen": {
+    title: "Texte ou commande hors de l'écran",
+    expected: "Chaque texte et chaque commande restent dans la largeur de l'écran.",
+  },
+  "touch-target": {
+    title: "Cible tactile de moins de 44 px au téléphone",
+    expected: "Au doigt, sur téléphone, chaque commande offre une cible d'au moins 44 px.",
+  },
 };
 
 /**

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "vitest";
+import { declaredThresholds } from "../e2e/screen-audit/hall/interface.mjs";
 
 const sourceRoot = join(import.meta.dirname, "..", "src");
 
@@ -373,13 +374,8 @@ test("the mail screen keeps one « À » line, one « Joindre » and automatic s
   assert.equal(french["mail.attach"], "Joindre");
 });
 
-/*
- * Width thresholds of the product. A layout changes at one of these widths only; a threshold proper to one file is a
- * gap. Viewport: the phone layout ends at 760 px (`shell/usePhoneLayout.ts`), the tablet layout at 1000 px, and the
- * wide layout starts above 1280 px. Container: a component's container changes at 760 px.
- */
-const viewportThresholds = [760, 1000, 1280];
-const containerThresholds = [760];
+/* Width thresholds of the product, declared once in the screen audit (hall/interface.mjs). */
+const { viewport: viewportThresholds, container: containerThresholds } = declaredThresholds;
 /** A `min-width: N` query opens its range at N, a `max-width: N` one at N + 1: both name the threshold N or N − 1. */
 const declared = (list, operator, value) => list.includes(operator === "min" ? value - 1 : value);
 const tailwindScreens = { sm: 640, md: 768, lg: 1024, xl: 1280, "2xl": 1536 };
