@@ -166,7 +166,7 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
   await expect.poll(() => mapVersion(page.request, roads.id)).toBe(roads.version + 1);
   await expect(saveView).toBeDisabled();
 
-  await workbench.getByTestId("resource-open-in-maps").click();
+  await page.getByTestId("resource-open-in-maps").click();
   await expect(page).toHaveURL(new RegExp(`/maps/${roads.id}\\?view=`));
   await expect(page.getByTestId("screen-header-title")).toHaveText("Routes");
 });
