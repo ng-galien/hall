@@ -1,5 +1,5 @@
 import type { Icon } from "@phosphor-icons/react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../i18n/I18nProvider";
 import { ScreenActions, useScreenScrolled } from "../../shell/headerTrail";
@@ -9,6 +9,15 @@ import { Button } from "./button";
 import { Dialog, DialogContent, DialogTitle } from "./dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu";
 import { ListRow, ListRowIcon, ListRows, type ResourceNature } from "./list-row";
+
+const menuGap = 4;
+
+/** The menu of a command of the screen header opens below the header, never over its lower edge. */
+function offsetBelowHeader(trigger: HTMLElement): number {
+  const header = trigger.closest<HTMLElement>("[data-testid=screen-header]");
+  if (!header) return menuGap;
+  return Math.max(menuGap, header.getBoundingClientRect().bottom - trigger.getBoundingClientRect().bottom + menuGap);
+}
 
 /** One type the user may create at this place. */
 export interface CreateOption {
@@ -52,6 +61,8 @@ export function CreateButton({
   const scrolled = useScreenScrolled();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [showOthers, setShowOthers] = useState(false);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const [menuOffset, setMenuOffset] = useState(menuGap);
   if (options.length === 0) return null;
   const text = label ?? t("workspace.new");
   const single = options.length === 1 ? options[0] : null;
@@ -137,9 +148,20 @@ export function CreateButton({
     );
   } else {
     control = (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>{trigger({})}</DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="create-menu w-max px-0" data-testid={optionsTestId}>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open && menuTrigger.current) setMenuOffset(offsetBelowHeader(menuTrigger.current));
+        }}
+      >
+        <DropdownMenuTrigger asChild ref={menuTrigger}>
+          {trigger({})}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          sideOffset={menuOffset}
+          className="create-menu w-max px-0"
+          data-testid={optionsTestId}
+        >
           {ordered.map((option) => (
             <DropdownMenuItem
               key={option.id}
