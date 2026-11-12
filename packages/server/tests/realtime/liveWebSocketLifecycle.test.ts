@@ -55,14 +55,18 @@ const reset = () => Object.assign(new Error("read ECONNRESET"), { code: "ECONNRE
 
 // @verifies-requirement HALL-FR-MTG-320
 it("contains a connection reset while authentication is pending", async () => {
-  const authentication = Promise.withResolvers<Awaited<ReturnType<AuthService["authenticate"]>>>();
-  const f = fixture(() => authentication.promise);
+  type Authentication = Awaited<ReturnType<AuthService["authenticate"]>>;
+  let resolveAuthentication: (value: Authentication) => void = () => undefined;
+  const pendingAuthentication = new Promise<Authentication>((resolve) => {
+    resolveAuthentication = resolve;
+  });
+  const f = fixture(() => pendingAuthentication);
   const pending = f.upgrade();
   try {
     expect(() => f.socket.emit("error", reset())).not.toThrow();
     expect(f.socket.destroyed).toBe(true);
   } finally {
-    authentication.resolve(null);
+    resolveAuthentication(null);
     await pending;
   }
   expect(f.subscribe).not.toHaveBeenCalled();
