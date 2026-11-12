@@ -274,6 +274,7 @@ export function CouncilBusinessWorkbench({
                         : undefined
                     }
                     onUploadDocument={uploadDocument}
+                    phoneWriting
                   />
                 </div>
               ) : (

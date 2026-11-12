@@ -56,6 +56,7 @@ export function ResourcePresentationBody({
   onRegisterFlush,
   autosaveEnabled,
   readOnlyTextEditor = false,
+  phoneWriting = false,
 }: {
   resource: ResourceDetail;
   representation: SirenEntity | null;
@@ -80,6 +81,8 @@ export function ResourcePresentationBody({
   onRegisterFlush?(flush: (() => Promise<boolean>) | null): void;
   autosaveEnabled: boolean;
   readOnlyTextEditor?: boolean;
+  /** The text is written on its own phone screen, with the writing tools fixed under the header. */
+  phoneWriting?: boolean;
 }) {
   const { t } = useI18n();
   const uploadDocument = useEditorDocumentUpload(resource.path);
@@ -103,6 +106,7 @@ export function ResourcePresentationBody({
             onUploadDocument={capabilities.updateContent ? uploadDocument : undefined}
             readOnly={!editingResource}
             variant={layout === "extended" ? "enriched" : "compact"}
+            phoneWriting={phoneWriting}
           />
         </div>
       ) : (

@@ -81,6 +81,11 @@ export interface MarkdownEditorProps {
   variant?: "compact" | "enriched";
   /** The enriched body takes the focus when it opens, unless the surface leads elsewhere first. */
   autoFocus?: boolean;
+  /**
+   * The text written on its own phone screen (a text of Documents, the report of an affaire): its tools stay fixed
+   * under the header and its other commands join the « … » menu of the screen. Every other editor keeps its own tools.
+   */
+  phoneWriting?: boolean;
 }
 
 const compactFormattingMenuHoldDelay = 1000;
@@ -765,6 +770,7 @@ export function MarkdownEditor({
   readOnly = false,
   variant = "compact",
   autoFocus = true,
+  phoneWriting: phoneWritingScreen = false,
 }: MarkdownEditorProps) {
   const { t } = useI18n();
   const [enriched, setEnriched] = useState(false);
@@ -798,7 +804,7 @@ export function MarkdownEditor({
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
   const phone = usePhoneLayout();
   const narrow = useNarrowLayout();
-  const phoneWriting = phone && !readOnly && variant === "compact";
+  const phoneWriting = phoneWritingScreen && phone && !readOnly && variant === "compact";
   const [formattingOpen, setFormattingOpen] = useState(false);
 
   const cancelCompactToolbarHide = useCallback(() => {

@@ -282,6 +282,7 @@ export function ResourcePhoneView({
           onError={session.setActionError}
           onRegisterFlush={session.registerBodyFlush}
           autosaveEnabled={session.autosaveEnabled}
+          phoneWriting
         />
       </div>
       {text ? (
