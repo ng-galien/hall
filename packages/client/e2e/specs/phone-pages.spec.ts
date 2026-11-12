@@ -222,7 +222,7 @@ test.describe("Hall pages on a phone", () => {
     });
 
     // @verifies-requirement HALL-FR-LAY-010
-    test("the documents search and creation sit in the header and the search opens over the screen", async ({
+    test("the documents search sits in the header, creation floats and the search opens over the screen", async ({
       appPage: page,
     }) => {
       const name = `Note cherchée ${crypto.randomUUID().slice(0, 8)}`;
@@ -236,7 +236,7 @@ test.describe("Hall pages on a phone", () => {
         await page.goto(address);
         const header = page.getByTestId("phone-header");
         await expect(header.getByTestId("workspace-search-open")).toBeVisible();
-        await expect(header.getByTestId("workspace-create-menu")).toBeVisible();
+        await expect(page.getByTestId("workspace-create-menu")).toBeVisible();
         await expect(page.getByTestId("workspace-search-input")).toHaveCount(0);
         // The list of folders starts right under the header.
         const firstRow = page.getByTestId("application-main").locator(".workspace-contents").first();

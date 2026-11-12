@@ -51,13 +51,19 @@ test("phone navigation and sections fit the viewport and preserve desktop naviga
     await page.getByTestId(`phone-navigation-${destination}`).tap();
     await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", route);
     await expect(page.getByTestId(`phone-navigation-${destination}`)).toHaveAttribute("aria-current", "page");
-    // Only the active destination carries a tinted pill behind its icon.
+    // Choice 1A: only the active destination is marked, in blue and bold, and no icon has a pad behind it.
     await expect
       .poll(() =>
         page
           .getByTestId("phone-navigation")
-          .locator(':scope > [data-testid] > [aria-hidden="true"]')
-          .evaluateAll((icons) => icons.map((icon) => getComputedStyle(icon).backgroundColor !== "rgba(0, 0, 0, 0)")),
+          .locator(":scope > [data-testid]")
+          .evaluateAll((items) =>
+            items.map((item) => {
+              const icon = item.querySelector(".app-phone-bar-icon");
+              const padded = icon !== null && getComputedStyle(icon).backgroundColor !== "rgba(0, 0, 0, 0)";
+              return item.getAttribute("data-active") === "true" && !padded;
+            }),
+          ),
       )
       .toEqual(["home", "documents", "calendar", "meetings", "more"].map((entry) => entry === destination));
     await expectFitsWidth(page);
@@ -329,7 +335,9 @@ async function focusMarks(field: Locator, frame: Locator) {
 }
 
 // @verifies-requirement HALL-FR-LAY-010
-test("a focused field shows one sober mark on its own border, without a frame around it", async ({ appPage: page }) => {
+test("a focused field shows one sober mark, its underline turning blue, without a frame around it", async ({
+  appPage: page,
+}) => {
   for (const viewport of [
     { width: 360, height: 740 },
     { width: 1440, height: 1000 },
@@ -337,20 +345,16 @@ test("a focused field shows one sober mark on its own border, without a frame ar
     await page.setViewportSize(viewport);
     await page.goto("/app/meetings");
     const search = page.getByTestId("collection-search");
-    const searchMarks = await focusMarks(search, page.locator(".collection-search", { has: search }));
+    const searchMarks = await focusMarks(search, search);
     expect(searchMarks.field.outline, "search field outline").toBe(false);
-    expect(searchMarks.field.shadow, "search field ring").toBe("none");
-    expect(searchMarks.frame.outline, "search container outline").toBe(false);
-    expect(searchMarks.frame.shadow, "search container ring").toBe("none");
-    expect(searchMarks.frame.border, "search container border on focus").not.toBe(searchMarks.before.border);
+    expect(searchMarks.field.shadow, "search underline on focus").not.toBe(searchMarks.before.shadow);
 
     await page.goto("/app/contacts");
     await page.getByTestId("contacts-add").click();
     const firstName = page.getByTestId("contact-first-name");
     const fieldMarks = await focusMarks(firstName, firstName);
     expect(fieldMarks.field.outline, "form field outline").toBe(false);
-    expect(fieldMarks.field.shadow, "form field ring").toBe("none");
-    expect(fieldMarks.field.border, "form field border on focus").not.toBe(fieldMarks.before.border);
+    expect(fieldMarks.field.shadow, "form field underline on focus").not.toBe(fieldMarks.before.shadow);
     await page.keyboard.press("Escape");
   }
 });
@@ -359,12 +363,13 @@ test("a focused field shows one sober mark on its own border, without a frame ar
 test("phone form can be completed and submitted without horizontal overflow", async ({ appPage: page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/app/contacts");
-  // The search keeps the width beside the creation button.
+  // The search takes the width; creation is the floating « + Nouveau » at the bottom right.
   await expect(page.getByTestId("collection-search")).toBeVisible();
-  const searchBox = (await page.locator(".collection-search").boundingBox())!;
+  const searchBox = (await page.getByTestId("collection-search").boundingBox())!;
   const addBox = (await page.getByTestId("contacts-add").boundingBox())!;
-  expect(Math.abs(searchBox.y + searchBox.height / 2 - (addBox.y + addBox.height / 2)), "same row").toBeLessThan(4);
-  expect(searchBox.width + addBox.width, "search and button over the width").toBeGreaterThanOrEqual(360 - 24 - 16);
+  expect(searchBox.width, "search over the width").toBeGreaterThanOrEqual(360 - 2 * 16);
+  expect(addBox.x + addBox.width, "floating button inside the screen").toBeLessThanOrEqual(360);
+  expect(addBox.y, "floating button at the bottom").toBeGreaterThan(740 / 2);
   await page.getByTestId("contacts-add").tap();
   const form = page.getByTestId("contact-create-form");
   await expect(form).toBeVisible();

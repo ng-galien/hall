@@ -104,7 +104,7 @@ test("prepared and scheduled titles keep their actions reachable in meetings and
     const candidate = page.getByTestId(
       width <= phoneWidth ? `agenda-candidate-open-${subject.id}` : `agenda-candidate-preview-${subject.id}`,
     );
-    await expectReadable(candidate.locator("strong"));
+    await expectReadable(candidate.locator(".list-row-title"));
     await expectReachable(candidate);
     await expectReachable(add);
   }
@@ -123,12 +123,12 @@ test("prepared and scheduled titles keep their actions reachable in meetings and
     await page.setViewportSize({ width, height: 900 });
     if (width <= phoneWidth) {
       const point = page.getByTestId(`agenda-item-open-${agenda[0].id}`);
-      await expectReadable(point.locator("strong"));
+      await expectReadable(point.locator(".list-row-title"));
       await expectReachable(point);
       continue;
     }
     const scheduled = page.getByTestId(`agenda-item-expand-${agenda[0].id}`);
-    await expectReadable(scheduled.locator("strong"));
+    await expectReadable(scheduled.locator(".list-row-title"));
     await expectReachable(scheduled);
     await expectReachable(page.getByTestId(`agenda-item-open-business-${agenda[0].id}`));
   }

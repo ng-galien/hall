@@ -183,9 +183,8 @@ for (const [device, viewport] of [
           await expect(page.getByTestId("meeting-report-facts")).toBeVisible();
           const minutesLink = page.getByTestId("meeting-document-minutes-open");
           await expect(minutesLink).toBeVisible();
-          // On a phone the meeting title moves from the page to the phone header.
-          const meetingTitle =
-            device === "phone" ? page.getByTestId("phone-header-title") : page.locator(".meeting-report-header h1");
+          // The meeting title is the large title of the screen header on every format.
+          const meetingTitle = page.getByTestId(device === "phone" ? "phone-header-title" : "screen-header-title");
           await expect(meetingTitle).toBeVisible();
           await expect
             .poll(

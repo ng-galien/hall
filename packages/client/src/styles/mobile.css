@@ -163,7 +163,7 @@
      two rows and only the grid scrolls, from edge to edge. */
   .app-main .hall-calendar { height: 100%; padding: 0; gap: 0; }
   .app-main .hall-calendar > .fc { min-height: 0; }
-  .app-main .hall-calendar .calendar-toolbar { display: grid; flex: none; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); padding: 0 0 var(--hall-space-2); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
+  .app-main .hall-calendar .calendar-toolbar { display: grid; flex: none; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); padding: var(--hall-space-2) var(--hall-space-4); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .app-main .hall-calendar .calendar-toolbar-navigation { display: grid; grid-template-columns: auto auto auto minmax(0, 1fr); }
   .app-main .hall-calendar .calendar-toolbar h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .app-main .hall-calendar .calendar-toolbar-views { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
