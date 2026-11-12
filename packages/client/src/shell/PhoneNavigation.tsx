@@ -31,7 +31,7 @@ function BarEntry({ id, label, Icon, active }: Pick<BarDestination, "id" | "labe
   return (
     <>
       <span className="app-phone-bar-icon" aria-hidden="true">
-        <Icon weight={active ? "bold" : "regular"} />
+        <Icon weight="regular" />
       </span>
       <span className="app-phone-bar-label" data-destination-label={id}>
         {label}
@@ -209,7 +209,7 @@ export function PhoneNavigation() {
                         onClick={close}
                       >
                         <span className="app-sheet-cell-icon" aria-hidden="true">
-                          <item.Icon weight={current ? "bold" : "regular"} />
+                          <item.Icon weight="regular" />
                         </span>
                         <span className="app-sheet-cell-label" aria-hidden="true">
                           {item.short.split(" ").map((word, index) => (

@@ -215,7 +215,7 @@
   .app-phone-bar-icon { display: inline-grid; font-size: var(--hall-size-glyph-mark-large); }
   :is(.app-phone-bar-icon, .nav-icon) > svg { font-size: inherit; }
   .app-phone-bar-label { letter-spacing: var(--hall-letter-spacing-tight); white-space: nowrap; }
-  .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-bold); }
+  .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-medium); }
 
   /* The bottom sheet: rises from the bottom edge, its rows are list rows. */
   .app-sheet { padding: var(--hall-space-4) 0 calc(var(--hall-space-6) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
@@ -236,7 +236,7 @@
   .app-sheet-cell-label { max-width: 100%; align-self: stretch; letter-spacing: var(--hall-letter-spacing-tight); line-height: var(--hall-line-height-caption); }
   /* A name passes to the next line between its words, never inside one. */
   .app-sheet-cell-word { white-space: nowrap; }
-  .app-sheet-cell[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-bold); }
+  .app-sheet-cell[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-medium); }
   .app-sheet-cell:active { background: var(--hall-color-surface-selected); }
 
   .page-header { display: grid; gap: var(--hall-space-2); padding: var(--hall-space-3) var(--hall-space-7) 0; }
