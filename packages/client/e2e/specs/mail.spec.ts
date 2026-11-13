@@ -130,17 +130,18 @@ test("the menu holds the folders of the mailbox, the list folds and searches, th
   await expect(page.getByTestId("mail-list").locator('[data-testid^="mail-open-"]')).toHaveCount(1);
   await page.getByTestId("mail-list").locator('[data-testid^="mail-open-"]').click();
   await expect(page.getByTestId("mail-subject")).toHaveValue("Ordre du jour");
-  // The header carries the save state, the « … » menu and « Envoyer »; the old commands are gone.
-  const header = page.getByTestId("screen-header");
-  await expect(header.getByTestId("mail-save-state")).toBeVisible();
-  await expect(header.getByTestId("mail-send")).toBeVisible();
+  // The title line carries the save state, the « … » menu and « Envoyer »; the old commands are gone.
+  const titleCommands = page.getByTestId("screen-title-commands");
+  await expect(titleCommands.getByTestId("mail-save-state")).toBeVisible();
+  await expect(titleCommands.getByTestId("mail-send")).toBeVisible();
   for (const retired of ["mail-save", "mail-review", "mail-groups", "mail-upload-open", "mail-recipient-selection"])
     await expect(page.getByTestId(retired)).toHaveCount(0);
-  await header.getByTestId("mail-more").click();
+  await titleCommands.getByTestId("mail-more").click();
   await expect(page.getByTestId("mail-delete")).toBeVisible();
   await expect(page.getByTestId("mail-more-groups")).toBeVisible();
   await page.keyboard.press("Escape");
 
+  const header = page.getByTestId("screen-header");
   await page.getByTestId("mail-list-toggle").click();
   await expect(page.getByTestId("mail-list")).toHaveCount(0);
   await expect(header.getByTestId("mail-list-toggle")).toHaveAttribute("aria-expanded", "false");
