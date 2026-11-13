@@ -48,7 +48,6 @@ const sentences = (text) => text.split(/(?<=[.!?…])\s+(?=[A-ZÀ-Ý«])/u).filt
 /** Whether a text of the catalogue is a sentence of explanation, and why. */
 export function explanationOf(key, text) {
   if (keptKey.test(key) || keptText.test(text.trim())) return null;
-  // Decisions of 12 November 2026: messages stay in clear; short second lines are labels; the development page is out.
   if (message.test(key) || shortLabel.test(key) || /^editor\.lab\./.test(key) || keptInClear.has(key)) return null;
   if (words(text) < 4) return null;
   if (explanationKey.test(key)) return "clé d'explication";
@@ -70,7 +69,6 @@ export function explanationTexts() {
 export function screenPatterns() {
   return explanationTexts().map(({ key, text }) => ({
     key,
-    // A placeholder ({name}) becomes any text; every other character is written as itself.
     pattern: text
       .replace(/\s+/g, " ")
       .trim()
@@ -140,7 +138,6 @@ export function inventory() {
   const uses = [];
   const seen = new Set();
   const helped = componentsWithHelp();
-  // The functions whose returned key is written behind the icon: `<HelpHint text={t(name(…))} />`.
   const helpCalls = new Set(
     files(join(clientDirectory, "src")).flatMap((path) =>
       [...readFileSync(path, "utf8").matchAll(/<HelpHint\s+text=\{t\((\w+)\(/g)].map((match) => match[1]),
@@ -153,7 +150,6 @@ export function inventory() {
       const found = [];
       for (const match of line.matchAll(/["'`]([a-zA-Z][\w-]*(?:\.[\w-]+)+)["'`]/g))
         if (byKey.has(match[1])) found.push({ ...byKey.get(match[1]), position: match.index });
-      // A key composed at run time: its last segment written alone, after an interpolation or a member (text.description).
       if (!/^\s*"\w+",?\s*$/.test(line))
         for (const match of line.matchAll(
           /(?:["'`]|\}\.|\btext\.)((?:[a-z][A-Za-z]*)?(?:[Dd]escription|Hint|Help|Intro))\b/g,
@@ -170,16 +166,13 @@ export function inventory() {
         const context = lines.slice(Math.max(0, index - 3), index + 1).join("\n");
         if (hiddenAt(line, entry.position) || /HelpHint|MinutesSectionHint|TooltipContent|<Explained\b/.test(context))
           continue;
-        // The component and the prop that receive the text: read before the key, on its line and the lines above.
         const before = `${lines.slice(Math.max(0, index - 8), index).join("\n")}\n${line.slice(0, entry.position)}`;
         const prop = [...before.matchAll(/(\w+)=\{/g)].at(-1)?.[1];
         const tag = [...before.matchAll(/<([A-Z]?\w+)[\s>]/g)].at(-1)?.[1];
-        // The text reaches the information icon through a constant (`const hint = t(…)`) or a function returning its key.
         const constant = [...before.matchAll(/const\s+(\w+)\s*=\s*t\(/g)].at(-1)?.[1];
         if (constant && new RegExp(`<HelpHint\\s+text=\\{${constant}\\}`).test(source)) continue;
         const enclosing = [...before.matchAll(/function\s+(\w+)\s*\(/g)].at(-1)?.[1];
         if (enclosing && helpCalls.has(enclosing)) continue;
-        // A prop the shared component writes behind its information icon (PageHeader description, Field hint…).
         if (prop && tag && helped[tag]?.has(prop) && before.lastIndexOf(`${prop}={`) > before.lastIndexOf(`<${tag}`))
           continue;
         const key = `${entry.key} ${path}:${index}`;
@@ -196,7 +189,6 @@ export function inventory() {
               : (tag ?? "?"),
         });
       }
-      /* A sentence written in the source itself, outside the catalogue. */
       const literal = line.match(/>\s*([A-ZÀ-Ý][^<>{}]{40,})\s*</u);
       if (literal && sentences(literal[1]) >= 1 && words(literal[1]) >= 8)
         uses.push({
