@@ -1,6 +1,7 @@
 import { Popover as PopoverPrimitive } from "radix-ui";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
+import { focusFirstCommand } from "./initial-focus";
 
 function Popover({ ...props }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
   return <PopoverPrimitive.Root data-slot="popover" {...props} />;
@@ -14,6 +15,7 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
+  onOpenAutoFocus = focusFirstCommand,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
@@ -22,6 +24,7 @@ function PopoverContent({
         data-slot="popover-content"
         align={align}
         sideOffset={sideOffset}
+        onOpenAutoFocus={onOpenAutoFocus}
         className={cn(
           "z-(--hall-z-popover) w-72 rounded-lg bg-popover p-3 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-hidden data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className,
