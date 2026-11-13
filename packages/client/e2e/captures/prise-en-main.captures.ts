@@ -23,6 +23,8 @@ test("prise en main de Hall", async ({ docsPage: page }) => {
   await waitForPageEntrance(page);
   await capture(page, `${journey}/02-vue-d-ensemble`);
 
+  // The folders of Documents are listed under its entry of the menu once Documents is the current screen.
+  await page.locator(".app-sidebar").getByTestId("navigation-workspace").click();
   await page.locator('[data-testid="workspace-sidebar-toggle"][data-path="Défense"]').click();
   await expect(page.locator('[data-testid="workspace-sidebar-link"][data-path^="Défense/"]').first()).toBeVisible();
   await page.locator('[data-testid="workspace-sidebar-link"][data-path="Défense"]').click();
