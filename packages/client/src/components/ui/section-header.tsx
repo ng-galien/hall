@@ -16,7 +16,8 @@ export type SectionHeaderFold = {
  * The single header of a section of a screen: the title at the left, in one size and one weight, with its count and
  * the information icon of its explanation; the commands of the section at the right end of the same line; a rule
  * under the line. A header that folds its section shows the square « + / − » before the title, the whole line being
- * the toggle.
+ * the toggle. Without a fold, the information icon is written with the last letter of the title, so that it never stands
+ * alone on a line while the title still wraps between its words.
  */
 export function SectionHeader({
   title,
@@ -59,11 +60,8 @@ export function SectionHeader({
     typeof description === "string" && description ? (
       <HelpHint text={description} testId={testId ? `${testId}-description` : undefined} />
     ) : null;
-  /* Without a fold, the information icon is written with the last word of the title, so that it never stands alone
-     on a line. */
   const tailIcon = explanation ?? hint ?? null;
   const inlineExplanation = Boolean(tailIcon) && !fold && typeof title === "string";
-  /* Only the last letter of the title is written with the icon, so that the title still wraps between its words. */
   const tailStart = typeof title === "string" ? Math.max(0, title.length - 1) : 0;
   const label = (
     <>
