@@ -89,7 +89,13 @@ test("an opened item keeps its place in the first line and its commands on the l
         await expect(page.getByTestId("item-save-state").or(page.locator(".workbench-eyebrow")).first()).toBeVisible();
         const title = await page.getByTestId("screen-header-title").boundingBox();
         const more = await commands.getByTestId("workspace-workbench-pin").boundingBox();
-        expect(more!.y, `${label}: the commands start on the first line of the title`).toBeLessThan(title!.y + 40);
+        /* A title too long for the room beside its commands takes the whole line and its commands pass under it. */
+        const long = (await page.locator(".screen-title-row").getAttribute("data-long")) === "true";
+        if (long)
+          expect(more!.y, `${label}: the commands of a long title pass under it`).toBeGreaterThanOrEqual(
+            title!.y + title!.height - 1,
+          );
+        else expect(more!.y, `${label}: the commands start on the first line of the title`).toBeLessThan(title!.y + 40);
         if (colorScheme === "light" || kind === "map")
           await page.screenshot({
             path: testInfo.outputPath(`${kind}-${width}-${folded ? "rail" : "menu"}-${colorScheme}.png`),
