@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef, ReactElement, ReactNode } from "react";
+import { Children, type ComponentPropsWithoutRef, type ReactElement, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
@@ -111,14 +111,7 @@ export function ListRow({
             {phone ? statusTag : null}
           </span>
         ) : null}
-        {lines?.map((line, index) =>
-          line ? (
-            // biome-ignore lint/suspicious/noArrayIndexKey: the lines of a row are a fixed sequence of facts.
-            <span key={index} className="list-row-fact">
-              {line}
-            </span>
-          ) : null,
-        )}
+        {Children.map(lines, (line) => (line ? <span className="list-row-fact">{line}</span> : null))}
       </span>
       {phone ? null : statusTag}
       {wide ? <span className="list-row-wide">{wide}</span> : null}
