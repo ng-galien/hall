@@ -231,7 +231,7 @@ const unityComponents = {
   },
 };
 /**
- * The retained form field, page 5 of « Hall 1.3 — Design de référence » (elements h72 to h80 and the classes f, foc,
+ * The retained form field, page 5 of « Hall 1.3 - Design de référence » (elements h72 to h80 and the classes f, foc,
  * err, ro, ph) and the red of page 6 (v49): no fill, a grey rule of 1 px at rest, blue of 2 px while writing, red of 2 px
  * in error, none read only;
  * the label in grey above the value; an empty field writes « Non renseigné » in grey italics.
