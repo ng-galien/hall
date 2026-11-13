@@ -106,8 +106,8 @@ test("findings are grouped by screen, rule and selector, with the intervals and 
       detail: "d",
       width: 320,
       input: "touch",
-      menu: "—",
-      pane: "—",
+      menu: "\u2014",
+      pane: "\u2014",
       text: "réel",
     },
     {
@@ -117,8 +117,8 @@ test("findings are grouped by screen, rule and selector, with the intervals and 
       detail: "d",
       width: 760,
       input: "touch",
-      menu: "—",
-      pane: "—",
+      menu: "\u2014",
+      pane: "\u2014",
       text: "réel",
     },
     {
@@ -128,15 +128,15 @@ test("findings are grouped by screen, rule and selector, with the intervals and 
       detail: "d",
       width: 320,
       input: "touch",
-      menu: "—",
-      pane: "—",
+      menu: "\u2014",
+      pane: "\u2014",
       text: "réel",
     },
   ];
   const [group] = groupFindings(raw, intervals);
   assert.equal(group.key, "accueil | overlap | a");
   assert.equal(group.cases.length, 2);
-  assert.match(group.cases[0], /^de 320 à 760 px \(320 px\), doigt, menu —/);
+  assert.match(group.cases[0], /^de 320 à 760 px \(320 px\), doigt, menu \u2014/);
 });
 
 test("a shared component drawn two ways in one variant is a finding; two variants are not", () => {
@@ -162,7 +162,7 @@ test("the design table is drawn from « Design de référence » only, cites its
   assert.deepEqual(table.tolerance, { color: 0, px: 1 });
   for (const entry of table.entries) {
     const name = `${entry.component} · ${entry.property}`;
-    assert.equal(entry.source?.doc, "Hall 1.3 — Design de référence", `${name}: source`);
+    assert.equal(entry.source?.doc, "Hall 1.3 \u2014 Design de référence", `${name}: source`);
     // A value the owner decided after the reference names his words and the commits that apply it.
     if (entry.decision) assert.ok(entry.decision.words && entry.decision.commits?.length, `${name}: décision`);
     assert.ok(entry.source.page >= 1 && entry.source.page <= 10 && entry.source.element, `${name}: page et élément`);
