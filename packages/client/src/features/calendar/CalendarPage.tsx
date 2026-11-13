@@ -75,7 +75,6 @@ export function CalendarPage() {
     y: number;
   } | null>(null);
   const phone = usePhoneLayout();
-  /* The view chosen at opening follows the phone layout of that moment. */
   const [phoneWidth] = useState(phone);
   const [phoneScrollTime] = useState(() => `${String(Math.max(new Date().getHours() - 1, 0)).padStart(2, "0")}:30:00`);
   const [view, setView] = useState(phoneWidth ? "timeGridDay" : "dayGridMonth");
