@@ -27,7 +27,6 @@ export function AgendaSubjectEditor({
   const [canEdit, setCanEdit] = useState(false);
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
-  /** The text as last written, read when a save waited for an image being uploaded. */
   const latestContent = useRef(content);
   latestContent.current = content;
   const [error, setError] = useState<ApiErrorCode | null>(null);
