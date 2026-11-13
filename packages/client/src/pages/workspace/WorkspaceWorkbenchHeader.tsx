@@ -130,7 +130,6 @@ export function WorkspaceWorkbenchHeader({
   const commands: ItemCommand[] = [...renameCommands, ...referenceCommands, ...menu, ...(controls?.menu ?? [])];
   const itemCommands = (
     <ItemCommands
-      // On tablet and computer every command stays an icon on the line of the title, in its order of before the menu.
       expanded={!phone}
       primary={primary}
       frequent={
