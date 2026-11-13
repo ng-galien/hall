@@ -296,7 +296,10 @@ function useTitleTooLong(row: HTMLDivElement | null, title: string): boolean {
   return long;
 }
 
-/** The large title of the screen, first line of its content. */
+/**
+ * The large title of the screen, first line of its content. The information icon is written with the last letter of
+ * the title, so that it never stands alone on a line while the title still wraps between its words.
+ */
 export function ScreenLargeTitle({
   phone,
   title,
@@ -326,8 +329,6 @@ export function ScreenLargeTitle({
           data-testid={phone ? "phone-header-title" : "screen-header-title"}
         >
           {title.slice(0, -1)}
-          {/* The information icon is written with the last letter of the title, so that it never stands alone on a
-              line while the title still wraps between its words. */}
           {title ? (
             <span className="title-tail">
               {title.slice(-1)}
