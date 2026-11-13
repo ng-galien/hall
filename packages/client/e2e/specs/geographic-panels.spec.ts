@@ -20,7 +20,11 @@ test("the plain map opens by default, and each panel returns to the plain map on
   await expect(drawMode).toHaveAttribute("aria-pressed", "false");
   await expect(measureMode).toHaveAttribute("aria-pressed", "false");
   const switchBox = await page.locator(".geographic-mode-switch").boundingBox();
-  expect(switchBox!.height).toBeLessThanOrEqual(29);
+  const layersBox = await page.getByTestId("geographic-layers-trigger").boundingBox();
+  expect(
+    Math.abs(switchBox!.height - layersBox!.height),
+    "The two modes have the height of the ordinary « Couches » button beside them",
+  ).toBeLessThanOrEqual(1);
   for (const control of [
     measureMode,
     drawMode,
