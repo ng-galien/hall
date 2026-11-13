@@ -86,11 +86,7 @@ export function UserPage() {
   };
   return (
     <div className="page">
-      <PageHeader
-        title={user?.displayName ?? t("users.title")}
-        hint={t("users.detailDescription")}
-        describesItem
-      />
+      <PageHeader title={user?.displayName ?? t("users.title")} hint={t("users.detailDescription")} describesItem />
       <div className="page-content admin-detail-page">
         {!rolesOpen && !disableOpen && !revokeOpen && <RequestErrorBanner error={error} />}
         {loading ? (

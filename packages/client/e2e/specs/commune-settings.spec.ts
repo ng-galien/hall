@@ -106,7 +106,10 @@ test("a scheduled meeting shows the indicative notice period computed from the p
   await properties(await page.request.put("/api/settings", { data: { ...current, population: null } }));
   await page.goto(`/app/meetings/${meeting.id}`);
   await expect(page.getByTestId("meeting-notice-deadline")).toHaveAttribute("data-status", "indeterminate");
-  await expect(page.getByTestId("meeting-notice-deadline-settings")).toHaveAttribute("href", "/app/administration/commune");
+  await expect(page.getByTestId("meeting-notice-deadline-settings")).toHaveAttribute(
+    "href",
+    "/app/administration/commune",
+  );
 
   await properties(await page.request.put("/api/settings", { data: { ...current, population: 4200 } }));
   const computed = (

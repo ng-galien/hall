@@ -116,11 +116,7 @@ export function TemplatePage() {
 
   return (
     <div className="page">
-      <PageHeader
-        title={draft.name || t("templates.title")}
-        hint={t("templates.detailDescription")}
-        describesItem
-      >
+      <PageHeader title={draft.name || t("templates.title")} hint={t("templates.detailDescription")} describesItem>
         <Button variant="secondary" disabled={submitting} data-testid="template-preview" onClick={showPreview}>
           {t("templates.preview")}
         </Button>
