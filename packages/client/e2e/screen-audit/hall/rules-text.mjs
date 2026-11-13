@@ -77,7 +77,7 @@ function writeComponent(component) {
   if (component.settings === "formField") {
     const field = sweepPlan.formField;
     values.push(
-      `    filet au repos : ${field.rest.color}, ${field.rest.width} px ; en saisie : ${field.focus.color}, ${field.focus.width} px ; en erreur : ${field.error.color}, ${field.error.width} px ; en lecture seule : aucun (${table.entries.find((entry) => entry.component === "champ de formulaire")?.source.doc ?? "Hall 1.3 — Design de référence"}, page 5, h74)`,
+      `    filet au repos : ${field.rest.color}, ${field.rest.width} px ; en saisie : ${field.focus.color}, ${field.focus.width} px ; en erreur : ${field.error.color}, ${field.error.width} px ; en lecture seule : aucun (${table.entries.find((entry) => entry.component === "champ de formulaire")?.source.doc ?? "Hall 1.3 \u2014 Design de référence"}, page 5, h74)`,
       `    libellé : ${field.label} ; champ vide : « ${field.empty.text} », ${field.empty.color}, italique (page 5, h76 et h78)`,
     );
   }
@@ -90,7 +90,7 @@ function writeComponent(component) {
   for (const [rule, list] of Object.entries(sweepPlan.exceptions))
     for (const exception of list)
       if (component.rules.includes(rule))
-        lines.push(`  Exception à ${rule} : ${exception.selector} — ${exception.reason}`);
+        lines.push(`  Exception à ${rule} : ${exception.selector} : ${exception.reason}`);
   const sample = component.code.map((path) => sharedSamples.find((entry) => entry.files.test(path))).find(Boolean);
   if (sample)
     lines.push(
@@ -113,7 +113,7 @@ export function writeRules(only = null) {
   const lines = [
     "# Règles de l'interface de Hall",
     "Source : l'outil de vérification des écrans (packages/client/e2e/screen-audit). Chaque phrase est la définition d'une règle exécutée ; entre crochets, son nom dans les rapports.",
-    `Valeurs : « Hall 1.3 — Design de référence », table hall/design-reference.json ; couleur exacte, dimension à ${table.tolerance.px} px près.`,
+    `Valeurs : « Hall 1.3 \u2014 Design de référence », table hall/design-reference.json ; couleur exacte, dimension à ${table.tolerance.px} px près.`,
     "",
   ];
   for (const component of chosen) lines.push(...writeComponent(component), "");
