@@ -35,7 +35,6 @@ function exportCommit(commit) {
   );
   const source = join(root, "source");
   if (existsSync(join(source, "package.json"))) {
-    // The capture journey and the screen list of today are copied again at every run.
     const audit = join(source, "packages/client/e2e/screen-audit/hall");
     cpSync(join(here, "capture.audit.ts"), join(audit, "capture.audit.ts"));
     cpSync(join(here, "screens.mjs"), join(audit, "screens.mjs"));
@@ -48,7 +47,6 @@ function exportCommit(commit) {
     stdio: "inherit",
   });
   if (archive.status !== 0) throw new Error(`git archive ${commit} a échoué`);
-  /* Shared dependencies come from the repository; the packages of Hall resolve to the exported ones. */
   mkdirSync(join(source, "node_modules", "@hall"), { recursive: true });
   for (const entry of readdirSync(join(repository, "node_modules"))) {
     if (entry === "@hall" || entry === ".bin" || entry.startsWith(".vite")) continue;
@@ -65,12 +63,10 @@ function exportCommit(commit) {
       if (entry !== ".vite" && !entry.startsWith(".vite-e2e"))
         symlinkSync(join(modules, entry), join(source, "packages", name, "node_modules", entry));
   }
-  /* The packages the journeys runner does not build itself: PostgreSQL and those it depends on. */
   for (const name of ["@hall/contracts", "@hall/api-contract", "@hall/domain", "@hall/templating", "@hall/postgres"]) {
     const build = spawnSync("npm", ["run", "build", "-w", name], { cwd: source, stdio: "inherit" });
     if (build.status !== 0) throw new Error(`La construction de ${name} dans ${source} a échoué`);
   }
-  /* The capture journey and the screen list of today, in place of the audit files of the commit. */
   const audit = join(source, "packages/client/e2e/screen-audit/hall");
   for (const file of readdirSync(audit)) if (/\.audit\.ts$/.test(file)) rmSync(join(audit, file));
   cpSync(join(here, "capture.audit.ts"), join(audit, "capture.audit.ts"));
@@ -93,7 +89,7 @@ function withLock(run) {
       spawnSync("sleep", ["5"]);
     }
   }
-  writeFileSync(join(lockDirectory, "owner"), `vérificateur (avant-apres.mjs) — pid ${process.pid}\n`);
+  writeFileSync(join(lockDirectory, "owner"), `vérificateur (avant-apres.mjs), pid ${process.pid}\n`);
   try {
     return run();
   } finally {
@@ -113,10 +109,8 @@ function capture(label, application) {
         HALL_SCREEN_AUDIT_MODE: "capture",
         HALL_SCREEN_AUDIT_OUTPUT: directory,
         ...(retake ? { HALL_SCREEN_AUDIT_SCREENS: retake } : {}),
-        // One lane: the client of an earlier commit may share one Vite cache between lanes.
         HALL_E2E_LANES: "1",
         CI: "true",
-        // The disposable PostgreSQL of the journeys is shared: the exported application uses the same container.
         COMPOSE_PROJECT_NAME: "hall",
         HALL_E2E_LOCK_HELD: "true",
       },
@@ -124,13 +118,11 @@ function capture(label, application) {
     }),
   );
   mkdirSync(directory, { recursive: true });
-  // The commit of each capture: the whole run, or the screens retaken.
   const commits = existsSync(join(directory, "commits.json"))
     ? JSON.parse(readFileSync(join(directory, "commits.json"), "utf8"))
     : {};
   commits[retake ?? "*"] = label === "avant" ? before : after;
   writeFileSync(join(directory, "commits.json"), JSON.stringify(commits, null, 2));
-  // The commit captured and every screen that could not be opened, with its reason.
   const unopened = ["ordinateur", "800", "telephone"].flatMap((format) =>
     existsSync(join(directory, format))
       ? readdirSync(join(directory, format))
@@ -162,7 +154,6 @@ function commitsOf(label) {
 }
 
 function page() {
-  // The differences are noted by hand in notes.json beside the captures (not tracked), with the order of the board.
   const notes = existsSync(join(output, "notes.json"))
     ? JSON.parse(readFileSync(join(output, "notes.json"), "utf8"))
     : {};
@@ -211,7 +202,7 @@ ${differences ? `<ul>${differences.map((line) => `<li>${escapeHtml(line)}</li>`)
 .paire{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}figure{margin:0}figcaption{font-weight:600;margin-bottom:4px}
 img{width:100%;border:1px solid #DFE3E8}ul{margin:8px 0 0}.manque,.attente{color:#5B6472}section{border-top:1px solid #DFE3E8;padding-top:8px}</style></head>
 <body><h1>Hall · avant et après la refonte</h1>
-<p>Commits capturés — avant : ${escapeHtml(commitsOf("avant"))} ; après : ${escapeHtml(commitsOf("apres"))}.</p>
+<p>Commits capturés, avant : ${escapeHtml(commitsOf("avant"))} ; après : ${escapeHtml(commitsOf("apres"))}.</p>
 <p>Chaque écran de l'outil de vérification, ouvert sur la base jetable de chaque version, à 1280 px à la souris et à 375 px au doigt. Les différences sont relevées en comparant les deux images.</p>
 ${sections.join("\n")}</body></html>`;
   writeFileSync(join(output, "index.html"), html);
