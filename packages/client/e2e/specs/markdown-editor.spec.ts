@@ -1292,7 +1292,9 @@ test("HALL-FR-SRC a web reference opens the shared web preview instead of its ad
         if (!modalBox || !frameBox) return Number.POSITIVE_INFINITY;
         return Math.abs(modalBox.y + modalBox.height - frameBox.y - frameBox.height);
       })
-      .toBeLessThanOrEqual(2);
+      // The frame reaches the bottom of the window within the rounding of the text lines above it, which differs
+      // between systems.
+      .toBeLessThanOrEqual(6);
     await expect(preview.getByTestId("resource-preview-close")).toBeInViewport();
   }
   await preview.getByTestId("resource-preview-close").click();

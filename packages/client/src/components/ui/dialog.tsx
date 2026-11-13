@@ -50,6 +50,11 @@ const dialogPlacementClasses = {
     "inset-x-0 bottom-0 flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-t-lg data-open:slide-in-from-bottom data-closed:slide-out-to-bottom",
 } as const;
 
+/** An editor left focused behind a dialog does not keep Escape: the key then closes the dialog. */
+function writtenInsideDialog(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('[data-slot="dialog-content"]') !== null;
+}
+
 function DialogContent({
   className,
   children,
@@ -74,7 +79,7 @@ function DialogContent({
           className,
         )}
         onEscapeKeyDown={(event) => {
-          if (escapeBelongsToRichTextEditor(event.target)) event.preventDefault();
+          if (writtenInsideDialog(event.target) && escapeBelongsToRichTextEditor(event.target)) event.preventDefault();
           onEscapeKeyDown?.(event);
         }}
         {...props}

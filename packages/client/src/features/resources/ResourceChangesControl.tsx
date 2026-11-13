@@ -34,6 +34,7 @@ export function ResourceChangesControl({
   const { t, formatDateTime } = useI18n();
   const [changes, setChanges] = useState<ResourceChange[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hinted, setHinted] = useState(false);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
   const [changeVersion, setChangeVersion] = useState(0);
@@ -155,7 +156,7 @@ export function ResourceChangesControl({
   const latest = changes?.[0];
 
   const trigger = openRef ? null : (
-    <Tooltip>
+    <Tooltip open={hinted && !open} onOpenChange={setHinted}>
       <TooltipTrigger asChild>
         <Button
           variant="plain"
@@ -195,6 +196,10 @@ export function ResourceChangesControl({
           className="resource-changes-panel"
           data-testid="resource-changes-panel"
           closeLabel={t("common.close")}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            (event.currentTarget as HTMLElement).focus();
+          }}
         >
           <header className="resource-changes-panel-heading">
             <DialogTitle>{t("resourceChanges.title")}</DialogTitle>
