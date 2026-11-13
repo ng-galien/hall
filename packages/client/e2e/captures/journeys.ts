@@ -19,7 +19,6 @@ export async function prepareMeeting(page: Page, prefix?: string, meetingNumber 
     await page.waitForTimeout(1500);
     await capture(page, "ecrans/vue-d-ensemble");
   }
-  // « Séances » is an entry of the « Conseil municipal » group of the side menu: the group is unfolded first.
   const meetings = page.getByTestId("navigation-meetings");
   if (!(await meetings.isVisible())) await page.getByTestId("navigation-council").click();
   await meetings.click();
