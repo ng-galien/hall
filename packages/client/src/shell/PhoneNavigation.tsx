@@ -27,6 +27,16 @@ type MoreRow = { to: string; testId: string; label: string; short: string; Icon:
 
 type BarDestination = { id: string; to: string; label: string; Icon: Icon; active: boolean };
 
+/** The words of a short label with their position in it. */
+function labelWords(label: string) {
+  let offset = 0;
+  return label.split(" ").map((word) => {
+    const entry = { word, offset };
+    offset += word.length + 1;
+    return entry;
+  });
+}
+
 /** One entry of the bottom bar: outline icon and permanent label; the active one in blue. */
 function BarEntry({ id, label, Icon }: Pick<BarDestination, "id" | "label" | "Icon">) {
   return (
@@ -214,9 +224,9 @@ export function PhoneNavigation() {
                           <item.Icon weight="regular" />
                         </span>
                         <span className="app-sheet-cell-label" aria-hidden="true">
-                          {item.short.split(" ").map((word, index) => (
-                            <Fragment key={`${index}-${word}`}>
-                              {index > 0 ? " " : null}
+                          {labelWords(item.short).map(({ word, offset }) => (
+                            <Fragment key={offset}>
+                              {offset > 0 ? " " : null}
                               <span className="app-sheet-cell-word">{word}</span>
                             </Fragment>
                           ))}
