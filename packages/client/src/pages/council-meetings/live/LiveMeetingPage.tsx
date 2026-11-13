@@ -90,7 +90,7 @@ export function LiveMeetingPage() {
         <div className="live-header-status">
           <span
             className="list-row-status live-quorum-chip"
-            data-tone={!quorumObservation ? undefined : quorum.reached ? "success" : "danger"}
+            data-tone={!quorumObservation ? "neutral" : quorum.reached ? "success" : "danger"}
             data-testid="live-quorum-observation"
             title={quorumLabel}
           >
