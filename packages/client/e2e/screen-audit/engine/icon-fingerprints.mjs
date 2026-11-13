@@ -52,7 +52,6 @@ export function iconFingerprints(sourceDirectory, resolveFrom = sourceDirectory)
       const block = source.split(`"${weight}",`)[1];
       const path = block?.match(/d:\s*"([^"]+)"/)?.[1];
       if (!path) continue;
-      // A weight drawn like the regular one is not a different drawing.
       if (fingerprints[path] && weight !== "regular") continue;
       fingerprints[path] = `${name}:${weight}`;
     }
