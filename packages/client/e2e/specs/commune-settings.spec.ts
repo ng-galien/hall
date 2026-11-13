@@ -41,7 +41,7 @@ test("an administrator records the municipality and finds it again; another acco
   appPage: page,
 }) => {
   const before = await settings(page);
-  await page.goto("/app/settings");
+  await page.goto("/app/administration/commune");
   const section = page.getByTestId("settings-commune");
   await expect(section).toBeVisible();
   for (const [field, value] of Object.entries(commune))
@@ -106,7 +106,7 @@ test("a scheduled meeting shows the indicative notice period computed from the p
   await properties(await page.request.put("/api/settings", { data: { ...current, population: null } }));
   await page.goto(`/app/meetings/${meeting.id}`);
   await expect(page.getByTestId("meeting-notice-deadline")).toHaveAttribute("data-status", "indeterminate");
-  await expect(page.getByTestId("meeting-notice-deadline-settings")).toHaveAttribute("href", "/app/settings");
+  await expect(page.getByTestId("meeting-notice-deadline-settings")).toHaveAttribute("href", "/app/administration/commune");
 
   await properties(await page.request.put("/api/settings", { data: { ...current, population: 4200 } }));
   const computed = (
