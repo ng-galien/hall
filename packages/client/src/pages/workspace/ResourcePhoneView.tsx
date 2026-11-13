@@ -36,7 +36,10 @@ import { useWorkspacePrefsStore } from "./workspacePrefs";
 
 // @implements-requirement HALL-FR-LAY-010
 // @implements-requirement HALL-FR-LAY-130
-/** Phone reading view of a resource: the content first, the actions in the header menu, the details below. */
+/**
+ * Phone reading view of a resource: the content first, the actions in the header menu, the details below. A text has
+ * no details block: its affaires open from the header menu.
+ */
 export function ResourcePhoneView({
   session,
   relatedBusinesses,
@@ -190,7 +193,6 @@ export function ResourcePhoneView({
           },
         ]
       : []),
-    // A text read on a phone has no details block: its affaires open from this menu, its tags change while it is written.
     ...(text
       ? relatedBusinesses.map((business) => ({
           id: `business-${business.id}`,
