@@ -127,10 +127,13 @@ test("a scheduled meeting shows the indicative notice period computed from the p
   await expect(panel).toHaveAttribute("data-status", "qualificationRequired");
   const text = page.getByTestId("meeting-notice-deadline-date");
   await expect(text).toContainText(writtenDate(deadlineDay));
-  await page.getByTestId("meeting-notice-deadline-help").hover();
-  const explanation = page.getByRole("tooltip");
-  await expect(explanation).toContainText("5 clear days");
-  await expect(explanation).toContainText("This date is ahead.");
-  await expect(explanation).toContainText("Hall checks neither the sending nor the applicable regime.");
-  await expect(explanation).not.toContainText(/complian|respect|on time|late/i);
+  // The explanation is read in one go while the pointer rests on its icon: a tooltip closes as soon as it leaves.
+  await expect(async () => {
+    await page.getByTestId("meeting-notice-deadline-help").hover();
+    const explanation = (await page.getByRole("tooltip").textContent({ timeout: 2_000 })) ?? "";
+    expect(explanation).toContain("5 clear days");
+    expect(explanation).toContain("This date is ahead.");
+    expect(explanation).toContain("Hall checks neither the sending nor the applicable regime.");
+    expect(explanation).not.toMatch(/complian|respect|on time|late/i);
+  }).toPass({ timeout: 15_000 });
 });
