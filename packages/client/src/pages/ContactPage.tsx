@@ -236,7 +236,6 @@ export function ContactPage() {
       </Field>
     );
   };
-  /** A coordinate: an input for a person who edits the contact, its value as a link for a person who reads it. */
   const coordinateField = (
     key: "email" | ContactPhoneField,
     readValue: ReactNode,
