@@ -48,8 +48,8 @@ test("no contract, adapter, server, interface or seed carries a single contact t
     ),
     ...files(join(root, "scripts/seed"), [".mjs", ".js", ".ts"]),
   ];
-  // The phone layout of the interface is a boolean, not a telephone.
-  const layout = /phone\??:\s*boolean|\? "phone"/;
+  // The phone layout of the interface is a boolean, not a telephone; a comment line names the layout, not a field.
+  const layout = /phone\??:\s*boolean|\? "phone"|^\s*(\/\/|\/?\*)/;
   expect(occurrences(sources, /(^|[^A-Za-z0-9_$])phone\??\s*:|\.phone\b|["']phone["']/, layout)).toEqual({
     // The telephone of the commune in its settings.
     "packages/client/src/features/settings/CommuneSettings.tsx": 2,
