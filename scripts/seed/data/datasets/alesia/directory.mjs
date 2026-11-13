@@ -2,6 +2,7 @@ import { alesiaMailPresentation } from "./configuration.mjs";
 /** The Alésia administrator: the first account on a server without development access. */
 export const alesiaAdministrator = { email: "vercingetorix@alesia.example", displayName: "Vercingétorix l’Arverne" };
 
+/** Seeds the Alésia directory; member telephones are fictional numbers from the ranges reserved for audiovisual works. */
 export async function seedDirectory({ post, put, signedInEmail }, { daysFromNow, password }) {
   console.log("- Configuration de la commune");
   await put("/settings", {
@@ -46,7 +47,6 @@ export async function seedDirectory({ post, put, signedInEmail }, { daysFromNow,
     ["Cotuatos", "le Carnute", "councillor"],
     ["Conconnetodumnos", "le Carnute", "councillor"],
   ];
-  /** Fictional numbers from the ranges reserved for audiovisual works. */
   const memberPhones = {
     Vercingétorix: { mobilePhone: "06 39 98 00 01", professionalPhone: "03 53 01 00 01" },
     Vercassivellaunos: { mobilePhone: "06 39 98 00 02" },
