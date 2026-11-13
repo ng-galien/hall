@@ -22,6 +22,7 @@ import { useRememberedFold } from "./ui/remembered-fold";
 const collapseDistance = 8;
 /** Below this width the menu starts folded in its rail until the person chooses. */
 const narrowQuery = "(max-width: 1000px)";
+/** A text read on a phone has the large title of every screen; other opened documents name themselves in the header. */
 // @implements-requirement HALL-FR-LAY-010
 // @implements-requirement HALL-FR-LAY-100
 export function Layout() {
@@ -70,7 +71,6 @@ export function Layout() {
     void loadPersonalWorkspace();
   }, [loadPersonalWorkspace]);
   const openedKind = useOpenedResourceKind();
-  // A text read on a phone has the large title of every screen; other opened documents name themselves in the header.
   const reading = phone && isPhoneReadingLocation(location) && openedKind !== "text";
   return (
     <HeaderTrailSlotContext.Provider value={trailSlot}>
