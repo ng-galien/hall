@@ -20,8 +20,10 @@
 }
 .geographic-layer-summary dt { color: var(--hall-color-text-muted); }
 .geographic-layer-summary dd { margin: 0; }
+/* The card is one layer of the map: none of its parts rises above the panel of elements beside it. */
 .geographic-feature-card {
   position: absolute;
+  isolation: isolate;
   top: calc(var(--hall-space-3) + var(--hall-size-control) + var(--hall-space-2));
   right: var(--hall-space-3);
   display: flex;

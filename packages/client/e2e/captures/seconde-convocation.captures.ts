@@ -160,6 +160,8 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
   await capture(page, `${journey}/07-ouverture-en-seconde-convocation`);
 
   await signIn(page, "secretariat", `/app/minutes/${closedFirst.minutesId}`);
+  // The facts of the meeting unfold from their header.
+  await page.getByTestId("minutes-facts-toggle").click();
   await expect(page.getByTestId("minutes-second-convocation")).toBeVisible();
   await page.waitForLoadState("networkidle");
   await capture(page, `${journey}/08-proces-verbal-premiere-seance`);
@@ -187,6 +189,7 @@ test("séance sans quorum, seconde convocation et séance reconvoquée", async (
     (meeting) => meeting.id === reconvened.id,
   )!.minutesId;
   await signIn(page, "secretariat", `/app/minutes/${reconvenedMinutes}`);
+  await page.getByTestId("minutes-facts-toggle").click();
   await expect(page.getByTestId("minutes-reconvened-from")).toBeVisible();
   await page.waitForLoadState("networkidle");
   await capture(page, `${journey}/09-proces-verbal-seance-reconvoquee`);

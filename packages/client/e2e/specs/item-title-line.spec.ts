@@ -33,7 +33,10 @@ async function openedItems(page: Page) {
   };
 }
 
-/** The first line of the screen header says where one is: one line of at most 44 pixels, no command of the item. */
+/**
+ * The first line of the screen header says where one is: one line of at most 44 pixels, no command of the item. The
+ * creation of a folder is a command of the screen and stays beside the initials.
+ */
 async function expectPlaceLine(page: Page, label: string) {
   const line = page.getByTestId("screen-header").locator(".screen-header-line");
   const box = await line.boundingBox();
@@ -42,6 +45,7 @@ async function expectPlaceLine(page: Page, label: string) {
     elements
       .filter((element) => (element as HTMLElement).offsetParent !== null)
       .filter((element) => !element.closest(".screen-header-leading, .workspace-breadcrumb"))
+      .filter((element) => element.getAttribute("data-testid") !== "workspace-create-menu")
       .map((element) => element.getAttribute("data-testid") ?? element.textContent),
   );
   expect(commands, `${label}: commands in the first line`).toEqual([]);

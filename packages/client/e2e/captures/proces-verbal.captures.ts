@@ -1,3 +1,4 @@
+import { openMenuEntry } from "../fixtures/application";
 import { capture, expect, test } from "./fixtures";
 
 test.setTimeout(3 * 60_000);
@@ -5,7 +6,7 @@ test.use({ seedScenario: "minutes" });
 
 test("procès-verbal après la séance : des faits au PDF arrêté à la séance suivante", async ({ docsPage: page }) => {
   const journey = "proces-verbal";
-  await page.getByRole("link", { name: "Procès-verbaux" }).first().click();
+  await openMenuEntry(page, "minutes");
   await expect(page.getByTestId("minutes-page")).toBeVisible();
   await capture(page, `${journey}/01-liste-des-proces-verbaux`);
 

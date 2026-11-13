@@ -1,3 +1,4 @@
+import { openMenuEntry } from "../fixtures/application";
 import { capture, expect, test } from "./fixtures";
 
 test.setTimeout(3 * 60_000);
@@ -5,7 +6,7 @@ test.use({ seedScenario: "default" });
 
 test("délibérations après le vote : du brouillon au document figé", async ({ docsPage: page }) => {
   const journey = "deliberations";
-  await page.getByRole("link", { name: "Délibérations" }).first().click();
+  await openMenuEntry(page, "council-decisions");
   await expect(page.getByTestId("decisions-page")).toBeVisible();
   await capture(page, `${journey}/01-liste-des-deliberations`);
 
