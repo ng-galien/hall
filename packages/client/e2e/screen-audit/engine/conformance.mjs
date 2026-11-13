@@ -1,7 +1,7 @@
 /*
  * Browser functions of the width sweep that do not measure geometry: the width thresholds of the loaded style sheets,
  * the width of the content area, the long-text stress, and the rules that hold a screen to the design decisions of the
- * owner (document Maket « Hall 1.3 — Choix de design des composants », page 1). Each function runs in the page through
+ * owner (document Maket « Hall 1.3 - Choix de design des composants », page 1). Each function runs in the page through
  * `page.evaluate`: it must not use anything outside its own body.
  */
 
@@ -135,7 +135,7 @@ export const conformanceRules = {
   "design-reference": {
     title: "Valeur de dessin différente du design (Maket)",
     expected:
-      "Chaque composant prend les valeurs de dessin de « Hall 1.3 — Design de référence » (table design-reference.json).",
+      "Chaque composant prend les valeurs de dessin de « Hall 1.3 \u2014 Design de référence » (table design-reference.json).",
   },
   "form-field": {
     title: "Choix 12 : champ hors de la forme retenue (fond, filet, libellé, « Non renseigné »)",
@@ -236,13 +236,18 @@ export function readBreakpoints() {
       if (rule.cssRules) visit(rule.cssRules, source);
     }
   };
-  for (const sheet of document.styleSheets) {
+  const readable = (sheet) => {
     try {
-      visit(sheet.cssRules, sourceOf(sheet));
+      return sheet.cssRules;
     } catch {
-      /* a cross-origin sheet without CORS has no readable rules */
+      return null;
     }
+  };
+  for (const sheet of document.styleSheets) {
+    const rules = readable(sheet);
+    if (rules) visit(rules, sourceOf(sheet));
   }
+
   const unique = new Map();
   for (const entry of found)
     unique.set(`${entry.kind}|${entry.breakpoint}|${entry.container}|${entry.source}|${entry.query}`, entry);
@@ -300,8 +305,6 @@ export function readContentWidth() {
  * Returns the number of texts lengthened.
  */
 export function stretchTexts() {
-  /* Data written by people: titles, names, the facts of a row, the values of a record. Labels of the interface keep
-     their length. */
   const selector =
     "h1, h2, h3, .list-row-title, .list-row-detail, .list-row-fact, [class*=title], [class*=name], dd, td";
   const long = [
@@ -340,7 +343,6 @@ export function measureConformance(options) {
   const { ignoreSelectors, keyAttribute, touch, phone, item } = options;
   const fingerprints = options.fingerprints ?? window.__screenAuditIcons ?? {};
   const findings = [];
-  /* Exceptions declared by the application, each with its reason: `{ rule: [{ selector, reason }] }`. */
   const exceptions = options.exceptions ?? {};
   const add = (rule, element, detail) => {
     if (typeof element !== "string" && (exceptions[rule] ?? []).some((entry) => element.closest(entry.selector)))
@@ -394,7 +396,6 @@ export function measureConformance(options) {
     (element) => !ignored(element) && shown(element),
   );
 
-  /* Colours: computed colours are rgb()/rgba() or color(srgb …). */
   const parseColor = (value) => {
     const numbers = (value.match(/[\d.]+/g) ?? []).map(Number);
     if (!numbers.length || value === "transparent") return null;
@@ -435,7 +436,6 @@ export function measureConformance(options) {
     return s < 0.12 && l < 0.97;
   };
 
-  /* Icons: an <svg> is identified by the `d` of its first path. */
   const iconOf = (svg) => fingerprints[svg.querySelector("path")?.getAttribute("d") ?? ""] ?? null;
   const svgs = [...document.querySelectorAll("svg")].filter((svg) => !ignored(svg) && shown(svg));
 
@@ -443,36 +443,28 @@ export function measureConformance(options) {
     const icon = iconOf(svg);
     if (!icon) continue;
     const [name, weight] = icon.split(":");
-    /* filled-icon: choices 1 and 9, every icon is drawn in outline. */
     if (weight === "fill" || weight === "duotone") add("filled-icon", svg, `${name} en poids ${weight}`);
-    /* icon-weight: choice 9R, the regular weight of the family, the current entry of a bar included (owner's words of
-       12 November 2026: « c'est trop gras. Tu réduis la graisse »); the open group of the side menu that is not the
-       current entry keeps its bold icon (Design de référence, page 1). */
     if (
       ["bold", "light", "thin"].includes(weight) &&
       !svg.closest(".app-sidebar [data-open=true]:not([aria-current=page]):not([data-active=true])")
     )
       add("icon-weight", svg, `${name} en poids ${weight}`);
-    /* disclosure-chevron: choice 14, a section or a folder unfolds without a chevron or a triangle. */
     if (/^(Caret(Down|Right|Up|Left|Circle\w*)|Triangle)$/.test(name)) {
       const owner = svg.closest("[aria-expanded], summary, [role=treeitem]");
       const menu = owner?.matches("[aria-haspopup], [role=combobox], [data-slot=select-trigger]");
       if (owner && !menu) add("disclosure-chevron", owner, `${name} dans « ${nameOf(owner).slice(0, 40)} »`);
     }
-    /* unlabelled-create: choice 6, a creation or an addition is « + » with its label. */
     if (/Plus$/.test(name) || name === "Plus") {
       const command = svg.closest("button, a[href], [role=button], [role=menuitem]");
       if (command && !visibleText(command)) add("unlabelled-create", command, `${name} sans libellé visible`);
     }
   }
 
-  /* Texts: forbidden labels, font family and size, warm text colour. */
   const forbidden = [
     [/outlook/i, "« Outlook »"],
     [/espace de travail/i, "« espace de travail »"],
     [/\bTags?\b/, "« Tags »"],
   ];
-  /* HALL-FR-LAY-020 and 050: 14 px under a finger, 13 px under a mouse, whatever the width. */
   const minimum = touch ? 14 : 13;
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const textParents = new Set();
@@ -492,16 +484,13 @@ export function measureConformance(options) {
       if (!/^archivo/i.test(family)) add("font-family", parent, `police ${family}`);
     }
     const size = Number.parseFloat(style.fontSize);
-    // A state is written at 12 px in its pill (Design de référence, page 9, decision of 12 November 2026).
     const state = parent.closest(".list-row-status, .record-state, [data-save], [data-tone]");
     if (size + 0.01 < minimum && !state) add("text-size", parent, `${size} px pour ${minimum} px`);
   }
 
-  /* warm-tint: no cream, orange, brown or amber painted on the screen. A colour the user chose (inline style) is data. */
   for (const element of document.querySelectorAll("body *")) {
     if (ignored(element) || element.closest("img, picture, video, canvas, iframe")) continue;
     if (/color|background|fill|stroke/.test(element.getAttribute("style") ?? "")) continue;
-    // The orange of a state (waiting for an action) is an indicator, not the dressing of the interface.
     if (element.closest("[data-tone], [data-save], .record-state, .list-row-status")) continue;
     if (!shown(element)) continue;
     const style = getComputedStyle(element);
@@ -520,7 +509,6 @@ export function measureConformance(options) {
     }
   }
 
-  /* local-table and local-list: choice 3, every list is drawn by ListRow. A table of a document's own content is data. */
   const contentOfDocument =
     "[contenteditable], .markdown-view, .markdown-editor, .ProseMirror, [data-horizontal-scroll]";
   for (const table of document.querySelectorAll("table")) {
@@ -542,7 +530,6 @@ export function measureConformance(options) {
     if (items.length >= 3 && actionable.length >= 3) add("local-list", list, `${actionable.length} éléments`);
   }
 
-  /* field-form: choice 12D, a form field is a Field with its label inside it. */
   for (const control of document.querySelectorAll(
     "input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=search]), textarea, select, [data-slot=select-trigger]",
   )) {
@@ -562,7 +549,6 @@ export function measureConformance(options) {
     );
   }
 
-  /* button-form and single-primary: choice 5B, solid blue for the one main action, pale blue, solid red, or no fill. */
   const primaries = new Map();
   for (const button of commands) {
     if (!button.matches("button, [role=button], a[data-slot=button]")) continue;
@@ -595,7 +581,6 @@ export function measureConformance(options) {
         buttons.map((button) => `« ${nameOf(button).slice(0, 24)} »`).join(", "),
       );
 
-  /* state-pill: a state is a tinted pill without a dot, never blue (decision of 12 November 2026, page 9). */
   for (const state of document.querySelectorAll(
     "[role=status], [data-save], [data-tone], .record-state, .list-row-status",
   )) {
@@ -612,7 +597,6 @@ export function measureConformance(options) {
     if (dot) add("state-pill", state, `« ${text} » écrit après un rond`);
     const fill = painted(getComputedStyle(state).backgroundColor);
     if (!fill) add("state-pill", state, `« ${text} » sans pastille`);
-    // The grey of a neutral state (#ECEFF3, #4A5362) leans slightly to blue: only a saturated blue is a blue state.
     else if (
       [fill, parseColor(getComputedStyle(state).color) ?? { r: 0, g: 0, b: 0 }].some(
         (color) => isBlue(color) && hsl(color).s >= 0.4,
@@ -621,15 +605,11 @@ export function measureConformance(options) {
       add("state-pill", state, `« ${text} » en bleu`);
   }
 
-  /* header-first-line and title-after-commands: choice 2 and the rule of an opened element. */
   const header = document.querySelector("[data-testid=screen-header], [data-testid=phone-header]");
   const firstLine = header?.querySelector(".screen-header-line");
-  /* On a phone, the commands of an opened element stay in the header with « Modifier » and « ⋯ » (HALL-FR-LAY-100, choice 8). */
   if (firstLine && shown(firstLine) && !phone) {
     const allowed =
       ".screen-header-trail, .screen-header-back, [data-testid=screen-header-account], [data-testid=navigation-toggle], [data-testid=application-sync-status], [data-testid=phone-header-back]";
-    /* The creation of a list screen (« + Nouveau », HALL-FR-LAY-100 and 120) and the control that reopens a folded pane
-       belong to the first line; an opened element has no command there. */
     const isCreate = (command) =>
       [...command.querySelectorAll("svg")].some((svg) => /Plus:/.test(iconOf(svg) ?? "")) && visibleText(command);
     for (const command of commands) {
@@ -646,7 +626,6 @@ export function measureConformance(options) {
       const between = commands.filter((command) => {
         const rect = command.getBoundingClientRect();
         const middle = (rect.top + rect.bottom) / 2;
-        // Only the commands of the content column: the menu beside it is not between the first line and the title.
         return (
           middle > lineBottom &&
           middle < titleTop &&
@@ -666,12 +645,10 @@ export function measureConformance(options) {
     }
   }
 
-  /* search-on-item: an opened element shows no search or filter of its folder. */
   if (item) {
     for (const control of document.querySelectorAll(
       "input[type=search], [data-slot=search-input] input, [role=search] input",
     )) {
-      // A picker that looks up what to attach (a combobox) is not a search of the folder.
       if (ignored(control) || !shown(control) || control.closest("[role=dialog]") || control.matches("[role=combobox]"))
         continue;
       add(
@@ -682,7 +659,6 @@ export function measureConformance(options) {
     }
   }
 
-  /* duplicate-command: in one window (the screen header and title, or a dialog), a command, a heading or a save state appears once. */
   const windows = [...document.querySelectorAll("[role=dialog]")].filter(shown);
   const screenParts = [header, document.querySelector(".screen-title-block")].filter(Boolean);
   const scopes = [
@@ -719,7 +695,6 @@ export function measureConformance(options) {
       add("duplicate-command", saves[1], `état d'enregistrement ${saves.length} fois (${scope.name})`);
   }
 
-  /* bottom-bar: choice 1A, five destinations with an outline icon and a permanent label. */
   if (phone) {
     const bar = document.querySelector("[data-testid=phone-navigation], nav.app-phone-bar, .app-phone-bar");
     if (bar && shown(bar)) {
@@ -730,8 +705,6 @@ export function measureConformance(options) {
     }
   }
 
-  /* button-icon-unity and plus-not-add: the labelled buttons of one form (variant and size) on one screen are all drawn
-     with an icon or all without; « + » marks an addition or a creation only (choice 6). */
   const addition = /nouveau|nouvelle|ajouter|joindre|créer|inviter|importer/i;
   const labelled = commands.filter(
     (button) =>
@@ -740,7 +713,6 @@ export function measureConformance(options) {
       !button.closest(
         "[data-slot=list-row], [role=menu], [role=listbox], [role=tablist], [role=radiogroup], [role=group], [data-slot=search-input], [role=search], nav, .create-fab",
       ) &&
-      // A segment of a choice of view is not a command of the same rank as the commands around it.
       !button.matches("[aria-pressed], [role=radio], [data-state=on], [data-state=off]"),
   );
   const forms = new Map();
@@ -768,7 +740,6 @@ export function measureConformance(options) {
             `« ${visibleText(button).slice(0, 30)} » a une icône, « ${visibleText(sides.without[0]).slice(0, 30)} » n'en a pas (bouton ${key.split("|")[0]})`,
           );
 
-  /* writing-modes: choice 8B, a text is read with « Modifier » or written with « Terminé », never both. */
   const editing = commands.filter((command) => command.matches("[data-testid=text-edit]"));
   const finishing = commands.filter((command) => command.matches("[data-testid=text-finish-editing]"));
   if (phone && editing.length && finishing.length)
@@ -777,7 +748,6 @@ export function measureConformance(options) {
     for (const command of [...editing, ...finishing])
       add("writing-modes", command, `« ${nameOf(command).slice(0, 20)} » hors du téléphone`);
 
-  /* pointer-scale: under a mouse, the content comes down to the size of the menu and the header (12 November 2026). */
   if (!touch && !phone) {
     const menuLabel = [...document.querySelectorAll(".app-sidebar .nav-label")].find(shown);
     if (menuLabel) {
@@ -793,7 +763,6 @@ export function measureConformance(options) {
     }
   }
 
-  /* section-header: the commands of a section header at the right end of its line; one size and weight of title. */
   const sectionHeaders = [
     ...document.querySelectorAll(
       ".collapsible-section-header, .admin-section-heading, section > header, [class*=section-heading], [class*=section-header]",
@@ -837,7 +806,6 @@ export function measureConformance(options) {
       `titres de section en ${[...titleLooks.entries()].map(([look, titles]) => `${look} (${titles.length})`).join(", ")}`,
     );
 
-  /* menu-icons: each entry of the side menu draws its own icon. */
   const drawings = new Map();
   for (const row of document.querySelectorAll(".app-sidebar .nav-row")) {
     if (ignored(row) || !shown(row)) continue;
@@ -848,7 +816,6 @@ export function measureConformance(options) {
   for (const rows of drawings.values())
     if (rows.length > 1) add("menu-icons", rows[1], `même icône que « ${nameOf(rows[0]).slice(0, 30)} »`);
 
-  /* date-format: a date in letters, the current year left out. */
   const months = "janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre";
   const year = new Date().getFullYear();
   for (const parent of textParents) {
@@ -865,15 +832,12 @@ export function measureConformance(options) {
       add("date-format", parent, `année en cours écrite : « ${text.trim().slice(0, 40)} »`);
   }
 
-  /* header-line-height: on a computer and a tablet, a first line of 44 px and a breadcrumb without a chevron. */
   const line = document.querySelector("[data-testid=screen-header] > .screen-header-line");
   if (line && shown(line) && !phone) {
     const height = line.getBoundingClientRect().height;
     if (Math.abs(height - 44) > 1) add("header-line-height", line, `${Math.round(height)} px`);
-    /* The chevron after a segment of the breadcrumb opens its menu (decision of 12 November 2026). */
   }
 
-  /* disclosure-mark: decision of 12 November 2026 (Design de référence, page 10, choice C), one folding form. */
   const markExceptions = [
     ".app-sidebar",
     "[role=treeitem]",
@@ -895,9 +859,6 @@ export function measureConformance(options) {
     if (!shown(toggle)) continue;
     const label = nameOf(toggle).slice(0, 40);
     const badge = toggle.querySelector(".disclosure-badge");
-    /* A command that opens a panel, a list or a tool (« Afficher le sommaire », « Masquer la liste », « Liste des
-       présences »), written or drawn as an icon, is a button, not a content unfolding in the flow: it carries no square
-       (coordinator's reading of page 10). */
     if (!badge && toggle.matches("[data-slot=button]")) continue;
     if (!badge || !drawn(badge)) {
       add("disclosure-mark", toggle, `« ${label} » sans carré « + / − »`);
@@ -916,8 +877,6 @@ export function measureConformance(options) {
       add("disclosure-mark", toggle, `« ${label} » : le carré n'est pas devant la ligne`);
   }
 
-  /* explanation-text: decision of 12 November 2026, a sentence of explanation of the catalogue (explanations.mjs) is
-     not written in clear; the information icon, a tooltip, an alert and the help pages hold it. */
   const explanations = (options.explanations ?? []).map(({ key, pattern }) => ({
     key,
     match: new RegExp(`^${pattern}$`, "u"),
@@ -932,7 +891,6 @@ export function measureConformance(options) {
       if (text.length < 20 || !shown(element)) continue;
       const found = explanations.find((entry) => entry.match.test(text));
       if (!found) continue;
-      // The innermost element that holds the whole sentence.
       if (
         [...element.children].some((child) => found.match.test((child.textContent ?? "").replace(/\s+/g, " ").trim()))
       )
@@ -942,12 +900,10 @@ export function measureConformance(options) {
     }
   }
 
-  /* item-more-menu: on a tablet and a computer, an opened item shows its commands as icons, without « … ». */
   if (!phone && item)
     for (const more of commands.filter((command) => command.matches("[data-testid=item-commands-more]")))
       add("item-more-menu", more, "menu « … » sur la ligne du titre");
 
-  /* create-position: on a phone, the floating « + Nouveau » at the bottom right, above the bottom bar. */
   if (phone) {
     const fab = [...document.querySelectorAll(".create-fab")].find(shown);
     const bar = document.querySelector("[data-testid=phone-navigation]");
@@ -963,20 +919,17 @@ export function measureConformance(options) {
     }
   }
 
-  /* type-icon-pad: the type icon of a row stands alone, without a pad. */
   for (const glyph of document.querySelectorAll("[data-slot=list-row] .type-icon")) {
     if (ignored(glyph) || !shown(glyph)) continue;
     const fill = painted(getComputedStyle(glyph).backgroundColor);
     if (fill) add("type-icon-pad", glyph, `pavé ${getComputedStyle(glyph).backgroundColor}`);
   }
 
-  /* large-row: the members of the council are listed in the large row. */
   for (const row of document.querySelectorAll("[data-slot=list-row]:has([data-testid^=member-open-])")) {
     if (ignored(row) || !shown(row)) continue;
     if (!row.matches("[data-size=large]")) add("large-row", row, "ligne courante au lieu de la grande ligne");
   }
 
-  /* editor-tools: choice 8B, on a phone the tools of a text are one bar fixed under the header, with « Photo ». */
   if (phone) {
     const writing = commands.some((command) => command.matches("[data-testid=text-finish-editing]"));
     const reading = commands.some((command) => command.matches("[data-testid=text-edit]"));
@@ -1014,10 +967,8 @@ export function measureConformance(options) {
     }
   }
 
-  /* row-height: choice 11B, 64 px under a finger; 40 px or 52 px with two lines under a mouse. */
   for (const row of document.querySelectorAll("[data-slot=list-row]")) {
     if (ignored(row) || !shown(row) || row.matches("[data-prominent=true], [data-size=large]")) continue;
-    // The line of the row, without the rows unfolded under it; a title written on two lines is another rule's matter.
     const line = row.querySelector(":scope > .list-row-line") ?? row;
     const title = line.querySelector(".list-row-title");
     if (title) {
@@ -1026,8 +977,6 @@ export function measureConformance(options) {
       if (title.getBoundingClientRect().height > lineHeight * 1.6) continue;
     }
     const height = line.getBoundingClientRect().height;
-    // Density follows the pointer: 64 px under a finger, 40 or 52 px under a mouse, whatever the width.
-    // On a phone the title of a row is read whole and wraps: the row is 64 px at least (coordinator's arbitration).
     const ok =
       touch || phone
         ? height >= 63.5 || (!touch && (Math.abs(height - 40) <= 1 || Math.abs(height - 52) <= 1))
@@ -1068,7 +1017,6 @@ export function readComponentUnity(options) {
     for (const element of document.querySelectorAll(definition.selector)) {
       if (!shown(element)) continue;
       const line = definition.part ? (element.querySelector(definition.part) ?? element) : element;
-      // A title written on two lines makes its row taller: the row is compared when its title holds on one line.
       const title = line.querySelector(".list-row-title");
       if (title) {
         const titleStyle = getComputedStyle(title);
@@ -1091,7 +1039,6 @@ export function readComponentUnity(options) {
         `marges ${round(style.paddingTop)} ${round(style.paddingRight)} ${round(style.paddingBottom)} ${round(style.paddingLeft)} px`,
         `écart ${style.display.includes("flex") || style.display.includes("grid") ? round(style.columnGap) : 0} px`,
       ];
-      /* Where its commands sit: at the right end of its line, or elsewhere. */
       if (definition.commands) {
         const own = [...line.querySelectorAll(definition.commands)].filter(
           (command) => command.getClientRects().length,
@@ -1102,7 +1049,6 @@ export function readComponentUnity(options) {
           parts.push(`commandes ${boxRight - last <= 2 ? "à l'extrémité droite" : "ailleurs que l'extrémité droite"}`);
         }
       }
-      /* Kinds the design names (a row on two lines, a list of choices, the active entry) are variants of their own. */
       const kinds = (definition.kinds ?? [])
         .filter(([selector]) => element.matches(selector) || element.querySelector(selector))
         .map(([, label]) => label);
@@ -1113,8 +1059,6 @@ export function readComponentUnity(options) {
         })
         .filter(Boolean)
         .join(" ");
-      /* Declared variants: the phone layout, the pointer (density follows it), the named sizes and kinds; an icon or
-         none is the content of the component, not its drawing. */
       const variant = [
         phone ? "téléphone" : "ordinateur",
         touch ? "doigt" : "souris",
@@ -1211,10 +1155,8 @@ export function measureDesignReference(options) {
     for (const element of document.querySelectorAll(entry.selector)) {
       if (checked >= 12) break;
       if (ignoreSelectors.some((selector) => element.closest(selector)) || !shown(element)) continue;
-      // An element under the pointer shows its hover state, not its drawing at rest.
       if (element.matches(":hover")) continue;
       checked += 1;
-      // A declared variant of the component (a plain button of the dangerous rank) takes its own value.
       const variant = (entry.variants ?? []).find((candidate) =>
         new RegExp(candidate.label, "u").test((element.textContent ?? "").replace(/\s+/g, " ").trim()),
       );
@@ -1228,8 +1170,6 @@ export function measureDesignReference(options) {
         actual = `${Math.round(value * 10) / 10}px`;
         ok = value >= Number(range[1]) - tolerance.px && value <= Number(range[2]) + tolerance.px;
       } else if (/^border-(top|bottom)-color$/.test(entry.property)) {
-        /* A rule between two rows is the bottom border of one or the top border of the next; an underline may be an
-           inset shadow. Without any of them, the rule is missing. */
         const side = entry.property.split("-")[1];
         const other = side === "bottom" ? "top" : "bottom";
         const next = side === "bottom" ? element.nextElementSibling : element.previousElementSibling;
@@ -1323,7 +1263,6 @@ export async function measureFormFields(options) {
     const rect = element.getBoundingClientRect();
     return rect.width > 1 && rect.height > 1;
   };
-  /** The rule under a control: its bottom border, or an inset shadow drawn at its bottom. */
   const ruleOf = (element) => {
     const style = getComputedStyle(element);
     const border = Number.parseFloat(style.borderBottomWidth);
@@ -1372,12 +1311,9 @@ export async function measureFormFields(options) {
         describe(expected),
         describe(rule),
       );
-    /* Label above the value, the value on the edge of the rule. */
     const label = box.querySelector(":scope > .hall-field-label");
     if (label && shown(label)) {
       const labelRect = label.getBoundingClientRect();
-      // Values written before the input (the tags of a document) start the field: the field is measured, not the
-      // input of the next value.
       const leading = input
         ? [...control.querySelectorAll("*")].find(
             (child) =>
@@ -1404,8 +1340,6 @@ export async function measureFormFields(options) {
       if (!invalid && document.activeElement !== input && labelColor !== field.label)
         add(label, "couleur du libellé", field.label, labelColor);
     }
-    /* An empty field writes « Non renseigné », grey and italic. */
-    // A field that already shows its values beside its input (the tags of a document) is not empty.
     const empty = input
       ? input.value === "" && !(control.textContent ?? "").trim()
       : !(control.textContent ?? "").trim() || Boolean(control.querySelector(".hall-field-empty"));
@@ -1427,12 +1361,10 @@ export async function measureFormFields(options) {
           add(control, "champ vide", `${field.empty.color} en italique`, `${hex(look.color)} ${look.fontStyle}`);
       }
     }
-    /* While writing: one editable field is focused, measured, then left. */
     if (!focused && input && !readOnly && !invalid) {
       focused = true;
       const previous = document.activeElement;
       input.focus({ preventScroll: true });
-      // The rule may be drawn by a transition: wait for its end before reading it.
       const target = control.matches(".hall-field-composite") ? control : input;
       const duration = Math.max(
         0,
@@ -1467,7 +1399,6 @@ export function measureMenuLines(options) {
   )) {
     if (item.getClientRects().length === 0) continue;
     items += 1;
-    // The declared short label of an entry (« Nouveau » menu) is its second line: each of the two holds on one line.
     const tops = new Set();
     const labelTops = new Set();
     const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
