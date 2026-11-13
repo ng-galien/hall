@@ -141,7 +141,6 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
     keep();
     setOpen(true);
   };
-  /** The pointer that only crosses an icon on its way to an open panel does not open its own. */
   const hover = () => {
     keep();
     opening.current = window.setTimeout(() => {
@@ -157,7 +156,13 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
       setOpen(false);
     }, railPanelLeaveDelay);
   };
-  useEffect(() => keep, []);
+  useEffect(
+    () => () => {
+      if (closing.current !== null) window.clearTimeout(closing.current);
+      if (opening.current !== null) window.clearTimeout(opening.current);
+    },
+    [],
+  );
   const icon = (
     <span className="nav-icon">
       <item.Icon weight="regular" />
