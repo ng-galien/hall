@@ -142,7 +142,7 @@ function takeLock() {
       mkdirSync(lockDirectory);
       writeFileSync(
         join(lockDirectory, "owner"),
-        `vérificateur (outil de vérification des écrans) — pid ${process.pid} — ${new Date().toISOString()} — ${process.argv.slice(2).join(" ")}\n`,
+        `vérificateur (outil de vérification des écrans), pid ${process.pid}, ${new Date().toISOString()}, ${process.argv.slice(2).join(" ")}\n`,
       );
       lockTaken = true;
       return;
@@ -295,7 +295,7 @@ for (const entry of records.flatMap((record) => record.contentWidths ?? [])) {
   const range = content.get(key) ?? { min: Infinity, max: -Infinity, menus: new Set(), panes: new Set() };
   range.min = Math.min(range.min, entry.content);
   range.max = Math.max(range.max, entry.content);
-  range.menus.add(entry.menu === "—" ? (entry.menuWidth ?? "—") : String(entry.menuWidth ?? "absent"));
+  range.menus.add(entry.menu === "\u2014" ? (entry.menuWidth ?? "\u2014") : String(entry.menuWidth ?? "absent"));
   range.panes.add(String(entry.paneWidth ?? "absent"));
   content.set(key, range);
 }
@@ -338,14 +338,14 @@ for (const line of missing) say(`Écran non ouvert : ${line}`);
   }
   for (const name of opened) failed.delete(name);
   if (files.length) say(`Menus ouverts : ${opened.size} ; non ouverts : ${failed.size}.`);
-  for (const [name, reason] of failed) say(`Menu non ouvert : ${name} — ${reason}`);
+  for (const [name, reason] of failed) say(`Menu non ouvert : ${name} : ${reason}`);
 }
 if (existsSync(join(outputDirectory, "lenteurs.txt")))
   for (const line of readFileSync(join(outputDirectory, "lenteurs.txt"), "utf8").split("\n").filter(Boolean))
     say(`Étape lente : ${line}`);
 for (const group of open)
   say(
-    `\nÉcart : ${group.key}\n  ${titles[group.rule] ?? group.rule} — ${group.detail}\n  ${group.rule === "component-unity" ? group.cases.join("\n  ") : `${group.cases.slice(0, 4).join(" ; ")}${group.cases.length > 4 ? ` … (${group.cases.length} cas)` : ""}`}`,
+    `\nÉcart : ${group.key}\n  ${titles[group.rule] ?? group.rule} : ${group.detail}\n  ${group.rule === "component-unity" ? group.cases.join("\n  ") : `${group.cases.slice(0, 4).join(" ; ")}${group.cases.length > 4 ? ` … (${group.cases.length} cas)` : ""}`}`,
   );
 for (const entry of withoutReason) say(`\nÉcart accepté sans raison écrite, refusé : ${entry.key}`);
 for (const entry of stale) say(`\nÉcart accepté qui ne se produit plus, à retirer : ${entry.key}`);
