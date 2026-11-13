@@ -234,7 +234,7 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
       "--config",
       "e2e/playwright.config.ts",
       ...requestedArguments,
-      ...(allFamilies ? ["--max-failures=1"] : []),
+      ...(allFamilies ? [`--max-failures=${process.env.HALL_E2E_MAX_FAILURES ?? "1"}`] : []),
       ...shard,
     ],
     {
