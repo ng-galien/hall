@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { testDatabaseLockDirectory } from "../../test-database-lock.mjs";
 
 /*
  * Before-and-after board: captures every screen of screens.mjs with the whole application (client, server, database)
@@ -81,7 +82,7 @@ function exportCommit(commit) {
 const retake = argument("screens");
 
 /** The lock of the test database (the same as e2e/run.mjs), taken around a run of an exported commit. */
-const lockDirectory = "/private/tmp/hall-e2e.lock";
+const lockDirectory = testDatabaseLockDirectory;
 function withLock(run) {
   for (;;) {
     try {

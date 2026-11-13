@@ -15,6 +15,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { verifyBuild } from "../../../scripts/testing/build.mjs";
+import { testDatabaseLockDirectory } from "./test-database-lock.mjs";
 
 const require = createRequire(import.meta.url);
 const projectDirectory = resolve(import.meta.dirname, "../../..");
@@ -287,11 +288,11 @@ function stopAll(signal) {
 }
 
 /*
- * One run at a time on the test database and its container: the run takes /private/tmp/hall-e2e.lock (mkdir is
- * atomic), writes its owner in it, waits while another run holds it, and gives it back at its end, even on failure.
+ * One run at a time on the test database and its container: the run takes the lock of test-database-lock.mjs (mkdir
+ * is atomic), writes its owner in it, waits while another run holds it, and gives it back at its end, even on failure.
  * A caller that already holds the lock sets HALL_E2E_LOCK_HELD=true.
  */
-const lockDirectory = "/private/tmp/hall-e2e.lock";
+const lockDirectory = testDatabaseLockDirectory;
 let lockTaken = false;
 function takeLock() {
   if (process.env.HALL_E2E_LOCK_HELD === "true") return;

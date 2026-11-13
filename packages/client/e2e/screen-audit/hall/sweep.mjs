@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { testDatabaseLockDirectory } from "../../test-database-lock.mjs";
 import { conformanceRules, unityFindings } from "../engine/conformance.mjs";
 import { groupFindings, intervalLabel, intervalsOf, sweepRules } from "../engine/sweep.mjs";
 import { screensForFiles } from "./screen-map.mjs";
@@ -131,7 +132,7 @@ function buildClient() {
  * The lock of the test database (the same as e2e/run.mjs), held from the first write in the output directory to the
  * last line of the report: a second pass waits for it instead of emptying the directory of the pass under way.
  */
-const lockDirectory = "/private/tmp/hall-e2e.lock";
+const lockDirectory = testDatabaseLockDirectory;
 let lockTaken = false;
 function takeLock() {
   if (process.env.HALL_E2E_LOCK_HELD === "true") return;
