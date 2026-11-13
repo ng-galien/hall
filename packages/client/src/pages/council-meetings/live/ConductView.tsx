@@ -169,7 +169,6 @@ export function ConductView({
   const [closeConfirming, setCloseConfirming] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [railFolded, setRailFolded] = useState(false);
-  /* Over the whole width (phone layout) the rail always shows its titles and labels; only a rail beside the item folds. */
   const railStacked = usePhoneLayout();
   const railCollapsed = railFolded && !railStacked;
   const [addItemOpen, setAddItemOpen] = useState(false);
@@ -218,12 +217,10 @@ export function ConductView({
     `${selectedItem?.status}:${aggregate.ballots.length}:${JSON.stringify(aggregate.attendance)}`,
   );
   const [recusalOpen, setRecusalOpen] = useState(false);
-  /* The member chosen from the menu of a voter when the dialog opens from there. */
   const [recusalMemberId, setRecusalMemberId] = useState<string>();
   const [officersOpen, setOfficersOpen] = useState(false);
   const [closedSessionOpen, setClosedSessionOpen] = useState(false);
   const [recusalDetailsOpen, setRecusalDetailsOpen] = useState(false);
-  /* The recusal whose withdrawal awaits confirmation. */
   const [recusalWithdrawal, setRecusalWithdrawal] = useState<{ councilMemberId: string; memberName: string }>();
   const selectedItemRef = useRef(selectedItem);
   selectedItemRef.current = selectedItem;
