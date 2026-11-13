@@ -13,6 +13,8 @@ const desktopRoot = import.meta.dirname;
 const require = createRequire(import.meta.url);
 const runtimePackages = ["contracts", "api-contract", "mcp", "domain", "templating", "postgres", "server"];
 const browserDirectory = join(desktopRoot, "dist", "playwright");
+/** Outlook transport bridge: the server refuses it under Electron before loading it, and it does not compile for Electron. */
+const excludedRuntimePackages = new Set(["edge-js"]);
 
 async function packageDirectory(name, from, optional = false) {
   let directory = from;
@@ -77,6 +79,7 @@ async function copyProductionRuntime(buildPath) {
     const optional = metadata.optionalDependencies ?? {};
     const dependencies = { ...metadata.peerDependencies, ...metadata.dependencies, ...optional };
     for (const name of Object.keys(dependencies)) {
+      if (excludedRuntimePackages.has(name)) continue;
       const dependency = await packageDirectory(
         name,
         source,
