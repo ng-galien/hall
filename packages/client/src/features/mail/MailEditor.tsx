@@ -211,7 +211,6 @@ export function MailEditor({
       <div className="mail-body">
         <MarkdownEditor
           testId="mail-body"
-          // On tablet and computer the body of a mail has the full tool bar at the top of its frame.
           variant={phone ? "compact" : "enriched"}
           autoFocus={false}
           markdown={draft.bodyMarkdown}
