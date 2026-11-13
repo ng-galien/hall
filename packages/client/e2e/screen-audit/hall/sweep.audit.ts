@@ -112,15 +112,12 @@ if (sweeping) {
             });
             await context.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
             const page = await context.newPage();
-            /* Without a bound, an action on a covered element waits for the end of the test: a step fails after 15 s
-               and the screen is reported as not opened, with the reason. */
             page.setDefaultTimeout(15_000);
             page.setDefaultNavigationTimeout(30_000);
             const resize = async (width: number) => {
               await page.setViewportSize({ width, height });
               await settleLayout(page);
             };
-            /* The time of each step, written to the log, so that a slow pass says where its time goes. */
             const timed = async <T>(label: string, step: () => Promise<T>) => {
               const begin = Date.now();
               const result = await step();
@@ -135,7 +132,6 @@ if (sweeping) {
             const open = async (screen: Screen, width: number) => {
               await page.setViewportSize({ width, height });
               await timed(`${screen.id} ouverture`, () => screen.open(page));
-              // A screen that keeps a connection open (live updates) never reaches network idle: wait 5 s at most.
               await timed(`${screen.id} réseau au repos`, () =>
                 page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined),
               );
@@ -144,7 +140,6 @@ if (sweeping) {
                 (window as unknown as { __screenAuditIcons: unknown }).__screenAuditIcons = icons;
               }, sweepPlan.fingerprints);
             };
-            /* Every menu of the screen (a command with aria-haspopup="menu") is opened, read and closed. */
             const openMenus = async (screen: Screen, width: number, menu: string) => {
               const triggers = page.locator('[aria-haspopup="menu"]:visible');
               const count = Math.min(await triggers.count(), 12);
@@ -168,7 +163,7 @@ if (sweeping) {
                       width,
                       input,
                       menu,
-                      pane: "—",
+                      pane: "\u2014",
                       text: "réel",
                     });
                 } catch (error) {
@@ -194,7 +189,7 @@ if (sweeping) {
               await resize(width);
               const phone = width < sweepPlan.wideFrom;
               const full = step.full && text === "réel";
-              const where = { screen: screen.id, width, input, menu, pane: "—" };
+              const where = { screen: screen.id, width, input, menu, pane: "\u2014" };
               const evaluate = async () => {
                 const geometry: Finding[] = await page.evaluate(measureLayout, {
                   ignoreSelectors: sweepPlan.ignoreSelectors,
@@ -223,7 +218,6 @@ if (sweeping) {
                 });
                 return [...geometry, ...decisions, ...fields, ...design];
               };
-              /* A finding counts when a second measure, once the layout has settled, finds it again. */
               let found = await evaluate();
               if (found.length) {
                 await page.waitForTimeout(150);
@@ -245,7 +239,6 @@ if (sweeping) {
               for (const finding of found) findings.push({ ...finding, ...where, text });
             };
 
-            /** Window widths that put each query container one pixel under and at its threshold. */
             const containerWidths = async (queries: Breakpoint[]) => {
               const targets = new Set<number>();
               const containers: Container[] = await page.evaluate(readContainers);
@@ -278,7 +271,6 @@ if (sweeping) {
 
             for (let screen = queue.shift(); screen; screen = queue.shift()) {
               try {
-                // A screen that exists on a phone only (the « Plus » sheet) is opened at a phone width.
                 await open(screen, screen.formats.includes("ordinateur") ? sweepPlan.to : 375);
                 const sheets: Breakpoint[] = await page.evaluate(readBreakpoints);
                 const all = [...sheets, ...sweepPlan.scriptBreakpoints];
@@ -297,7 +289,6 @@ if (sweeping) {
                       below: input === "touch" ? sweepPlan.touchBelow : Number.POSITIVE_INFINITY,
                       only: onlyIntervals,
                     });
-                // A screen is measured only at the widths of the formats where it exists.
                 const exists = (width: number) =>
                   width < sweepPlan.wideFrom
                     ? screen.formats.includes("telephone")
@@ -309,12 +300,12 @@ if (sweeping) {
                 if (screen.reopenAtEveryWidth) {
                   for (const step of steps) {
                     await open(screen, step.width);
-                    await measure(screen, step, "—", "réel");
+                    await measure(screen, step, "\u2014", "réel");
                   }
                   done(screen.id);
                   continue;
                 }
-                for (const step of [...phoneSteps].reverse()) await measure(screen, step, "—", "réel");
+                for (const step of [...phoneSteps].reverse()) await measure(screen, step, "\u2014", "réel");
                 if (wideSteps.length) {
                   await resize(sweepPlan.to);
                   const menus = (await setMenu(page, true)) ? [true, false] : [null];
@@ -331,24 +322,22 @@ if (sweeping) {
                       (a, b) => a.width - b.width,
                     );
                     for (const step of plan)
-                      await measure(screen, step, menu === null ? "—" : menu ? "déplié" : "replié", "réel");
+                      await measure(screen, step, menu === null ? "\u2014" : menu ? "déplié" : "replié", "réel");
                   }
                   await resize(sweepPlan.to);
                   await setMenu(page, true);
                 }
-                /* Long texts: the narrowest end of every interval, menu unfolded. */
                 await resize(sweepPlan.to);
                 await page.evaluate(stretchTexts);
                 for (const step of steps.filter((entry) => entry.full)) await measure(screen, step, "déplié", "long");
                 done(screen.id);
               } catch (error) {
-                // The call log of Playwright says what blocked the step (an element covering another, for instance).
                 const message = error instanceof Error ? error.message : String(error);
                 const blocked = message
                   .split("\n")
                   .filter((line) => /intercepts|not visible|not stable|outside|waiting for/.test(line));
                 missing.push(
-                  `${screen.id}: ${message.split("\n")[0]}${blocked.length ? ` — ${[...new Set(blocked.map((line) => line.trim()))].slice(-2).join(" ; ")}` : ""}`,
+                  `${screen.id}: ${message.split("\n")[0]}${blocked.length ? ` : ${[...new Set(blocked.map((line) => line.trim()))].slice(-2).join(" ; ")}` : ""}`,
                 );
               }
             }
