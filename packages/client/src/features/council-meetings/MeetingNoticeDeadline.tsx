@@ -30,7 +30,7 @@ export function MeetingNoticeDeadline({ deadline }: { deadline: NoticeDeadline }
       reason === "scheduleUnknown" ? null : reason === "populationUnknown" ? (
         <p data-testid="meeting-notice-deadline-unknown">
           {t("meeting.noticeDeadlinePopulationUnknown")}{" "}
-          <Link to="/settings" data-testid="meeting-notice-deadline-settings">
+          <Link to="/administration/commune" data-testid="meeting-notice-deadline-settings">
             {t("meeting.noticeDeadlineSettings")}
           </Link>
         </p>
