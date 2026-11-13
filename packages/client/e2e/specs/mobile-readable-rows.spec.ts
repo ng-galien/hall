@@ -189,7 +189,8 @@ test("prepared and scheduled titles keep their actions reachable in meetings and
 }) => {
   test.setTimeout(60_000);
   const response = await page.request.post("/api/council-business", {
-    data: { path: "", name: `Mobile rows ${crypto.randomUUID()}`, reportName: "Report", reportContent: "" },
+    // A written report opens the business for reading on a phone; an empty one opens it for writing, alone on the screen.
+    data: { path: "", name: `Mobile rows ${crypto.randomUUID()}`, reportName: "Report", reportContent: "Rapport." },
   });
   expect(response.status()).toBe(201);
   const business = (await response.json()).properties;
