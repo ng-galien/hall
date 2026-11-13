@@ -113,7 +113,6 @@ export function collectSnapshot(options) {
   const indexOf = new Map();
   const page = { x: -1e6, y: -1e6, w: 2e6, h: 2e6 };
 
-  /** Visible text of a command, without its icons: an icon beside a label is not the only mark of its action. */
   const commandLabel = (element) => {
     let text = "";
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
@@ -188,12 +187,9 @@ export function collectSnapshot(options) {
         insideInteractive: interactiveAncestor,
         text: text.slice(0, 300),
         textRect: text ? textRect(element) : null,
-        /* The text as shown: its box cut by the ancestors that clip it (an ellipsis hides the rest). */
         visibleTextRect: text && textRect(element) ? box(intersect(textRect(element), clip)) : null,
-        /* For an icon: the command that holds it shows a label of its own. */
         commandLabelled:
           isSvg && interactiveAncestor ? Boolean(commandLabel(interactiveOwner(element) ?? element)) : false,
-        /* A search field and a form field are two components. */
         fieldKind:
           tag === "input" || tag === "textarea"
             ? element.closest("[data-slot=search-input], [role=search]") || element.getAttribute("type") === "search"
@@ -266,7 +262,6 @@ export function collectSnapshot(options) {
       nextClip = page;
       nextOwner = -1;
     }
-    // A closed <details> shows its summary only.
     const shownChildren =
       tag === "details" && !element.open
         ? [...element.children].filter((child) => child.tagName === "SUMMARY")
