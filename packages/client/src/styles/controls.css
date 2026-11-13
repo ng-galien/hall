@@ -41,12 +41,6 @@
   .hall-button[data-variant="plain"][data-active="true"] { color: var(--hall-color-brand); background: var(--hall-color-brand-subtle); }
   .hall-button[data-size="icon"] { width: var(--hall-size-control); padding: 0; }
   .hall-button[data-size="icon"] > svg { font-size: var(--hall-font-size-icon-large); }
-  /* At phone width every button is a finger-sized target, with or without a touch screen. */
-  @media (max-width: 760px) {
-    .hall-button,
-    .hall-input:not(.hall-field .hall-input) { min-height: var(--hall-size-touch-control); }
-    .hall-button[data-size="icon"] { width: var(--hall-size-touch-control); }
-  }
   /* Under a finger, every command offers a 44-pixel target. */
   @media (pointer: coarse) {
     .hall-button,

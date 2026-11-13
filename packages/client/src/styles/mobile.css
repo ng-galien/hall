@@ -40,6 +40,11 @@
 }
 
 @media (max-width: 760px) {
+  /* At phone width every button is a finger-sized target, with or without a touch screen. */
+  @layer components {
+    .hall-button { min-height: var(--hall-size-touch-control); }
+    .hall-button[data-size="icon"] { width: var(--hall-size-touch-control); }
+  }
   /* A point of the agenda being prepared: its title wraps over the width, its commands take the line under it. */
   .composer-list .list-row-line { flex-wrap: wrap; }
   .composer-list .list-row-main { flex: 1 1 100%; }
@@ -127,7 +132,7 @@
   .app-main .business-committees-items { display: flex; flex-wrap: wrap; gap: var(--hall-space-2); }
   .app-main .business-committee-link { overflow-wrap: anywhere; }
   .app-main .business-committee-search { width: 100%; flex: 1 0 100%; }
-  .app-main .business-committee-search .business-committee-search-input { padding-right: var(--hall-size-touch-control); }
+  .app-main .business-committee-search .business-committee-search-input { min-height: var(--hall-size-touch-control); padding-right: var(--hall-size-touch-control); }
   .app-main .business-committee-results { inset-inline: 0; width: auto; min-width: 0; max-width: none; }
   .app-main .business-committee-result { display: flex; min-height: var(--hall-size-touch-control); align-items: center; }
 

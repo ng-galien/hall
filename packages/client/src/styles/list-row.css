@@ -223,4 +223,8 @@
     .list-row[data-prominent="true"] :is(.list-row-date, .list-row-number) strong { font-size: var(--hall-font-size-heading); }
     .list-row[data-prominent="true"] .list-row-title { font-size: var(--hall-font-size-title); line-height: var(--hall-line-height-body-large); }
   }
+  /* A row of a bottom sheet, which only a phone layout opens, is a finger-sized target with its title at the size of
+     the phone, with or without a touch screen. */
+  .app-sheet .list-row-main { min-height: var(--hall-size-finger); }
+  .app-sheet .list-row-title { font-size: var(--hall-font-size-title); }
 }

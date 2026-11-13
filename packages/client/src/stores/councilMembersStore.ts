@@ -25,6 +25,9 @@ interface CouncilMembersState {
   update(reference: string, input: Record<string, unknown>): Promise<boolean>;
 }
 
+/** Only the answer of the latest load is kept: an older answer arriving late would restore stale capabilities. */
+let latestLoad = 0;
+
 export const useCouncilMembersStore = create<CouncilMembersState>((set, get) => ({
   members: [],
   loading: false,
@@ -42,9 +45,12 @@ export const useCouncilMembersStore = create<CouncilMembersState>((set, get) => 
     }));
   },
   async load() {
+    latestLoad += 1;
+    const current = latestLoad;
     set({ loading: true, error: null });
     try {
       const [result, contactsResult] = await Promise.all([listCouncilMembersSiren(), listContactsSiren()]);
+      if (current !== latestLoad) return;
       const contactsById = new Map(contactsResult.data.map((contact) => [contact.id, contact] as const));
       const members = result.data.flatMap((member) => {
         const contact = contactsById.get(member.contactId);
@@ -65,7 +71,7 @@ export const useCouncilMembersStore = create<CouncilMembersState>((set, get) => 
         loading: false,
       });
     } catch (error) {
-      set({ error: apiErrorCode(error), loading: false });
+      if (current === latestLoad) set({ error: apiErrorCode(error), loading: false });
     }
   },
   async loadDetail(reference) {

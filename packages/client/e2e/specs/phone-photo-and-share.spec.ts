@@ -135,8 +135,9 @@ test.describe("Photos and sharing on a phone", () => {
     const card = page.getByTestId("geographic-drawn-element-card");
     await expect(card.getByTestId("geographic-drawn-element-card-title")).toHaveText("Nid-de-poule");
     await expect(card.getByTestId("editor-camera-file")).toHaveAttribute("capture", "environment");
-    await card.getByTestId("editor-photo").click();
-    await takePhoto(page, page.getByTestId("editor-photo-sheet").getByTestId("editor-take-photo"));
+    // In the note of a drawing, the image command of the tool bar lists the photo choices.
+    await card.getByTestId("editor-image-menu").click();
+    await takePhoto(page, page.getByTestId("editor-take-photo"));
     await expect(card.locator(".editor-image-node")).toHaveCount(1);
     let imageId = "";
     await expect

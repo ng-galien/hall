@@ -289,6 +289,11 @@ test("the screen header writes nothing of the connection until the server stops 
   await expect(connection).toHaveAttribute("data-sync-state", "synchronized");
   await expect(connection).toHaveText("");
   await expect(connection).toHaveAttribute("role", "status");
+  // The calendar screen is loaded once while the server answers: a stopped server no longer serves its files.
+  await page.getByTestId("phone-navigation-calendar").click();
+  await expect(page.getByTestId("calendar-title")).not.toBeEmpty();
+  await page.getByTestId("phone-navigation-home").click();
+  await expect(page.getByTestId("application-main")).toHaveAttribute("data-route", "/");
   await seededDatabase.stop();
   await page.getByTestId("phone-navigation-calendar").click();
   await expect(connection).toHaveAttribute("data-sync-state", "failed");

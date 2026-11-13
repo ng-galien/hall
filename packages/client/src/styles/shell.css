@@ -242,9 +242,6 @@
   .app-sheet { padding: var(--hall-space-4) 0 calc(var(--hall-space-6) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
   .app-sheet > [data-slot="dialog-title"] { padding: 0 var(--hall-size-touch-control) var(--hall-space-2) var(--hall-space-4); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); }
   /* « Plus »: the other destinations as a grid of icons in the form of the bottom bar, by categories. */
-  /* A row of a sheet is a finger-sized target at phone width, with or without a touch screen. */
-  .app-sheet .list-row-main { min-height: var(--hall-size-finger); }
-  .app-sheet .list-row-title { font-size: var(--hall-font-size-title); }
   .app-sheet:has(.app-sheet-grid) { max-height: calc(100dvh - var(--hall-space-6)); overflow-y: auto; }
   .app-sheet-grid { display: grid; gap: var(--hall-space-6); padding-inline: var(--hall-space-2); }
   /* A category title takes the height of the close button, so that its icons start under it. */
