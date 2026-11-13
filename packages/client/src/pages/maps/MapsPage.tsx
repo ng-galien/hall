@@ -125,7 +125,8 @@ function workspaceResourceHref(resource: GeographicResource): string {
 }
 
 /**
- * Cartes entry: one map at a time, read-only, with a view that lives in the address and is never saved.
+ * Cartes entry: one map at a time, read-only, with a view that lives in the address and is never saved. On a phone an
+ * opened map comes first and the list of maps is folded.
  * @implements-requirement HALL-FR-WSP-310
  * @implements-requirement HALL-FR-WSP-330
  * @implements-requirement HALL-FR-WSP-340 (also: the businesses of the opened map are found among the documents of
@@ -245,7 +246,6 @@ export function MapsPage() {
   const openMapRoute = useCallback((id: string) => navigate(`/maps/${encodeURIComponent(id)}`), [navigate]);
 
   const opened = surface?.routeId ? surface.resource : null;
-  // On a phone an opened map comes first: the list of maps waits behind its command.
   useEffect(() => {
     if (phone && opened?.id) setPanelCollapsed(true);
   }, [phone, opened?.id]);
