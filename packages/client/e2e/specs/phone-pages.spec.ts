@@ -58,7 +58,7 @@ async function menuMeasures(page: Page, testId: string) {
     viewport: document.documentElement.clientWidth,
     rows: [...element.querySelectorAll('[data-slot="dropdown-menu-item"], [data-slot="list-row"]')].map((row) => ({
       height: row.getBoundingClientRect().height,
-      font: Number.parseFloat(getComputedStyle(row).fontSize),
+      font: Number.parseFloat(getComputedStyle(row.querySelector(".list-row-title") ?? row).fontSize),
       icon: row.querySelector("svg")?.getBoundingClientRect().width ?? 0,
     })),
   }));
@@ -317,12 +317,14 @@ test.describe("Hall pages on a phone", () => {
       const meetingRow = await meeting.evaluate((element) => {
         const texts = element.querySelector(".list-row-detail-text")!.getBoundingClientRect();
         const badge = element.querySelector(".list-row-status")!.getBoundingClientRect();
+        const row = element.getBoundingClientRect();
         return {
-          sameLine: badge.top < texts.bottom && texts.top < badge.bottom,
-          height: element.getBoundingClientRect().height,
+          withTexts: badge.top >= texts.top - 1 && badge.left >= texts.left - 1 && badge.bottom <= row.bottom + 1,
+          height: row.height,
         };
       });
-      expect(meetingRow.sameLine, "meeting state beside its texts").toBe(true);
+      // The state is written beside the hour and place of the meeting, or under them when they fill the line.
+      expect(meetingRow.withTexts, "meeting state with its texts").toBe(true);
       expect(meetingRow.height).toBeGreaterThanOrEqual(44);
     });
 
@@ -394,6 +396,7 @@ test.describe("Hall pages on a phone", () => {
       );
       await expect(page.getByTestId("council-business-workbench")).toBeVisible();
       const minimumSide = async (testId: string) => {
+        await expect(page.getByTestId(testId).first(), `${testId} shown`).toBeVisible();
         const box = (await page.getByTestId(testId).first().boundingBox())!;
         return Math.min(box.width, box.height);
       };

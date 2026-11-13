@@ -131,6 +131,7 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
   const [pinned, setPinned] = useState(false);
   const closing = useRef<number | null>(null);
   const opening = useRef<number | null>(null);
+  const focusReturned = useRef(false);
   const keep = () => {
     if (closing.current !== null) window.clearTimeout(closing.current);
     if (opening.current !== null) window.clearTimeout(opening.current);
@@ -189,7 +190,9 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
             aria-label={label}
             onPointerEnter={hover}
             onPointerLeave={leave}
-            onFocus={show}
+            onFocus={() => {
+              if (!focusReturned.current) show();
+            }}
             onPointerDown={(event) => event.preventDefault()}
             onClick={() => {
               keep();
@@ -208,7 +211,12 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
           data-pinned={pinned ? "true" : undefined}
           onPointerEnter={keep}
           onPointerLeave={leave}
-          onCloseAutoFocus={(event) => event.preventDefault()}
+          onCloseAutoFocus={() => {
+            focusReturned.current = true;
+            window.setTimeout(() => {
+              focusReturned.current = false;
+            });
+          }}
         >
           <DropdownMenuLabel>{label}</DropdownMenuLabel>
           {item.folderTree ? (

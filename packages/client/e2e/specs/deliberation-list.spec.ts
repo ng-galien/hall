@@ -28,11 +28,9 @@ test("the page of a closed meeting opens the list of deliberations examined", as
 test("a deliberation row shows its number, and a record names its list above its title", async ({ appPage: page }) => {
   const decisions = await items<{ id: string; number: string | null }>(page, "/api/council-decisions");
   const numbered = decisions.find((decision) => decision.number)!;
-  const [period, index] = [numbered.number!.slice(0, 7), numbered.number!.slice(8)];
   await page.goto("/app/council-decisions");
-  const head = page.getByTestId(`decision-open-${numbered.id}`).locator(".list-row-number");
-  await expect(head.locator("strong")).toHaveText(`n° ${index}`);
-  await expect(head.locator("small")).toHaveText(period);
+  const row = page.getByTestId(`decision-open-${numbered.id}`);
+  await expect(row.locator(".list-row-detail-text")).toHaveText(numbered.number!);
 
   await page.getByTestId(`decision-open-${numbered.id}`).click();
   await expect(page.getByTestId("decision-detail")).toBeVisible();

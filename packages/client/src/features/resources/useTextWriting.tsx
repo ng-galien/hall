@@ -15,6 +15,8 @@ export interface WritableText {
   flush(): Promise<boolean>;
   save(): Promise<boolean>;
   reload(): Promise<boolean>;
+  /** A note opens for writing while it is still empty; the report of a business always opens for reading. */
+  opensEmptyForWriting?: boolean;
 }
 
 /**
@@ -32,8 +34,8 @@ export function useTextWriting(text: WritableText): { editing: boolean; control:
   useEffect(() => {
     if (!text.id || decided.current === text.id) return;
     decided.current = text.id;
-    setEditing(text.editable && text.content.trim() === "");
-  }, [text.id, text.editable, text.content]);
+    setEditing(text.opensEmptyForWriting !== false && text.editable && text.content.trim() === "");
+  }, [text.id, text.editable, text.content, text.opensEmptyForWriting]);
   const latest = useRef(text);
   latest.current = text;
   const [finishing, setFinishing] = useState(false);

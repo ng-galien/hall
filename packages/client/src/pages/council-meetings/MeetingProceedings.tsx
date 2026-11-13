@@ -20,6 +20,7 @@ import type {
   LiveMeetingPresentation,
   LiveVoteChoice as VoteChoice,
 } from "../../models/liveMeeting";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
 import { agendaItemDecisionId } from "./ballotDecisionPolicy";
 import { councilMemberName } from "./ballotParticipants";
@@ -286,11 +287,14 @@ function ReportBallotDetails({ ballot, members }: { ballot: Ballot; members: Cou
 /**
  * Proceedings of a closed meeting: one line per agenda item with its number, title, nature and hours, its ballot on a
  * third line. One square unfolds the whole record of the item: the vote of each member and the texts of the item.
- * Only a state out of the ordinary course is written at the right of the line.
+ * Only a state out of the ordinary course is written at the right of the line. On a phone, the title of an item opens
+ * the page of the item instead.
+ * @implements-requirement HALL-FR-LAY-010
  */
 export function MeetingProceedings({ aggregate }: { aggregate: LiveMeetingPresentation }) {
   const { t, formatTime, formatNumber } = useI18n();
   const agendaItemRowStatus = useAgendaItemRowStatus();
+  const phone = usePhoneLayout();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
   const { members } = useCouncilMembersStore();
   const rosterMembers = members.filter((member) => aggregate.rosterMemberIds.includes(member.id));
@@ -320,7 +324,7 @@ export function MeetingProceedings({ aggregate }: { aggregate: LiveMeetingPresen
         title={t("meeting.timeline")}
         count={formatNumber(orderedItems.length)}
         commands={
-          unfoldable.length ? (
+          unfoldable.length && !phone ? (
             <Button
               variant="plain"
               className="hall-link"
@@ -394,6 +398,15 @@ export function MeetingProceedings({ aggregate }: { aggregate: LiveMeetingPresen
                 </>
               ) : undefined,
           };
+          if (phone)
+            return (
+              <ListRow
+                key={item.id}
+                {...shared}
+                to={`/meetings/${aggregate.meeting.slug || aggregate.meeting.id}/points/${item.id}`}
+                openTestId={`meeting-point-open-${item.id}`}
+              />
+            );
           return record ? (
             <ListRow
               key={item.id}

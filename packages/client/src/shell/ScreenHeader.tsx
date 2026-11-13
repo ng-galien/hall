@@ -326,6 +326,7 @@ export function ScreenLargeTitle({
         <h1
           ref={titleRef}
           className="screen-header-title"
+          aria-label={title || undefined}
           data-testid={phone ? "phone-header-title" : "screen-header-title"}
         >
           {title.slice(0, -1)}

@@ -280,7 +280,9 @@ test("phone maps show several rows of the map tree until a map is chosen", async
   await page.goto("/app/maps");
   const tree = page.getByTestId("maps-tree");
   await expect(tree).toBeVisible();
-  await expect(page.getByTestId("maps-context-empty")).toBeVisible();
+  // With no map chosen, the list of maps is the whole screen: the empty map area is not shown.
+  await expect(page.getByTestId("maps-surface")).toBeHidden();
+  await expect(page.getByTestId("maps-context-empty")).toBeHidden();
   const visibleRows = await tree.evaluate((element) => {
     const bar = document.querySelector('[data-testid="phone-navigation"]')?.getBoundingClientRect().top ?? innerHeight;
     let top = 0;

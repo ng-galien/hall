@@ -113,6 +113,7 @@ export function CouncilBusinessWorkbench({
       return saved;
     },
     reload: reportSession.reload,
+    opensEmptyForWriting: false,
   });
   const showReportEditor = writing.editing;
 

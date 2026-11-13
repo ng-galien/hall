@@ -375,7 +375,7 @@
   .record-state[data-save="error"]::before { background: var(--hall-color-danger); }
   .record-state[data-save="saving"]::before { animation: connection-status-pulse var(--hall-motion-status) var(--hall-motion-curve-standard) infinite; }
 
-  .settings-lab > a { color: var(--hall-color-brand); }
+  .settings-lab > a { display: inline-flex; min-height: var(--hall-size-touch-control); align-items: center; color: var(--hall-color-brand); }
   .settings-lab > a:hover { text-decoration: underline; }
   /* Courriels: the list of the folder beside the opened message. */
   .mail-count { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-caption); font-variant-numeric: tabular-nums; }

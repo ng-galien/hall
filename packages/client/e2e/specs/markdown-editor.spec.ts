@@ -264,7 +264,7 @@ test.describe("Markdown editor", () => {
     const compact = compactEditor(page);
     const toolbar = compact.locator('[role="toolbar"]');
     await expect(toolbar).toBeVisible();
-    await writingArea(compact).click();
+    await writingArea(compact).click({ position: { x: 8, y: 8 } });
     await page.waitForTimeout(2_600);
     await expect(compact.getByTestId("editor-open-enriched")).toBeVisible();
     const tools = (await toolbar.boundingBox())!;
@@ -947,24 +947,25 @@ test("HALL-FR-SRC shared title search, filters and inline selection", async ({ a
   await expect(inline.getByTestId("editor-mention-filter-category-type")).toHaveCount(0);
   await expect(inline.getByTestId("editor-mention-filter-type-member")).toBeVisible();
   await expect(writingArea(editor)).toBeFocused();
-  const hashCenter = await writingArea(editor).evaluate((element) => {
-    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      const offset = node.textContent?.lastIndexOf("#") ?? -1;
-      if (offset < 0) continue;
-      const range = document.createRange();
-      range.setStart(node, offset);
-      range.setEnd(node, offset + 1);
-      const rect = range.getBoundingClientRect();
-      return (rect.top + rect.bottom) / 2;
-    }
-    throw new Error("Missing filter anchor");
-  });
+  const hashCenter = () =>
+    writingArea(editor).evaluate((element) => {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const offset = node.textContent?.lastIndexOf("#") ?? -1;
+        if (offset < 0) continue;
+        const range = document.createRange();
+        range.setStart(node, offset);
+        range.setEnd(node, offset + 1);
+        const rect = range.getBoundingClientRect();
+        return (rect.top + rect.bottom) / 2;
+      }
+      throw new Error("Missing filter anchor");
+    });
   const expectCentered = async () => {
     await expect
       .poll(async () => {
         const rect = await inline.locator('[data-active="true"]').boundingBox();
-        return rect ? Math.abs(rect.y + rect.height / 2 - hashCenter) : Infinity;
+        return rect ? Math.abs(rect.y + rect.height / 2 - (await hashCenter())) : Infinity;
       })
       .toBeLessThan(3);
   };

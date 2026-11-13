@@ -183,11 +183,12 @@ test.describe("navigation and settings", () => {
     await page.keyboard.press("Escape");
     await expect(panel).toHaveCount(0);
     await expect(page.getByTestId("navigation-council")).toBeFocused();
-    // Keyboard: Enter opens the panel, the arrows go through its places.
+    // Keyboard: Enter opens the panel on its first place, the arrows go through the others.
     await page.keyboard.press("Enter");
     await expect(panel).toBeVisible();
+    await expect(panel.getByTestId("navigation-meetings")).toBeFocused();
     await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
+    await expect(panel.getByTestId("navigation-minutes")).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(panel.getByTestId("navigation-council-decisions")).toBeFocused();
     await page.keyboard.press("Enter");

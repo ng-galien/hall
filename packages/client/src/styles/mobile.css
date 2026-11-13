@@ -56,7 +56,7 @@
   [data-slot="dropdown-menu-item"] { height: auto; padding-block: var(--hall-space-2); white-space: normal; }
   [data-slot="dropdown-menu-item"] > span { min-width: 0; overflow-wrap: anywhere; }
   /* With its search and creation in the header, the documents list starts under the header. */
-  .app-main .workspace > .workspace-topzone:not(:has(> :not(input))) { margin-bottom: calc(-1 * var(--hall-space-3)); }
+  .app-main .workspace > .workspace-topzone:not(:has(> :not(input))) { margin-top: calc(-1 * var(--hall-space-4)); margin-bottom: calc(-1 * var(--hall-space-3)); }
   /* The workspace search of a phone covers the screen; its results scroll under the field. */
   /* A dialog of a phone opens under the line of the screen header, which stays visible above it. */
   [data-slot="dialog-content"]:not(.workspace-phone-search, .document-viewer-phone-page, .app-sheet) {
@@ -72,6 +72,8 @@
   .app-main .workspace-container-body,
   .app-main .workspace-container-body > .workspace-bench { overflow: visible; }
   .app-main .workspace:has(.phone-document, .phone-business) { padding: 0; gap: 0; }
+  /* The rule of the screen header is the first rule of the list of folders. */
+  .app-main .workspace > .workspace-topzone:not(:has(> :not(input))) + .workspace-contents .list-row-list:first-of-type { border-top: 0; }
   .phone-document { display: flex; min-height: 100%; flex-direction: column; }
   .phone-document-content { display: flex; min-width: 0; flex-direction: column; flex: 1; }
   .phone-document .resource-preview-text { padding: var(--hall-space-3); border: 0; }
@@ -209,7 +211,7 @@
   .conduct-stage-scroll { flex: none; overflow: visible; }
   .conduct-stage-fixed-header, .conduct-stage-scroll, .conduct-stage-actions { padding: var(--hall-space-3); }
   .conduct-title-timer { flex-wrap: wrap; }
-  .conduct-stage-actions > button { flex: 1; }
+  .conduct-stage-actions > button { flex: 1 1 auto; }
 }
 
 /* @implements-requirement HALL-FR-LAY-020 */

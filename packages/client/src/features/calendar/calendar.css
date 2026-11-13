@@ -10,6 +10,8 @@
 /* On a phone, the views open their own line from its left edge. */
 @media (max-width: 760px) {
   .calendar-toolbar-actions { justify-content: flex-start; }
+  /* The period is read whole beside « Aujourd'hui » and the two arrows on the narrowest phone. */
+  .calendar-toolbar-navigation { gap: var(--hall-space-1); }
 }
 .calendar-legend { display: flex; gap: var(--hall-space-4); font-size: var(--hall-font-size-body); color: var(--hall-color-text-muted); }
 .calendar-legend span::before { content: ''; display: inline-block; width: var(--hall-space-2); height: var(--hall-space-2); margin-right: var(--hall-space-1-5); border-radius: var(--hall-radius-circular); background: var(--hall-color-brand); }
@@ -69,6 +71,8 @@
 /* The theme writes the weekday, first line of a day header, and the event label below the caption size. */
 .hall-calendar .hall-calendar-day-header > :first-child,
 .hall-calendar-event-label { font-size: var(--hall-font-size-caption); }
+/* The number of a day in the grid of a month keeps the size of the running text in a narrow grid. */
+.hall-calendar .hall-calendar-day-number { font-size: var(--hall-font-size-body); }
 /* Two events side by side in a narrow day column keep their labels inside their own box. */
 .hall-calendar-event { overflow: hidden; }
 .hall-calendar-event-label { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; }

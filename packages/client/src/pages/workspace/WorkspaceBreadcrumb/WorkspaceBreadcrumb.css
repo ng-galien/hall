@@ -145,6 +145,10 @@
   font-size: var(--hall-font-size-body);
 }
 .screen-header-trail-slot .workspace-crumb { white-space: nowrap; }
+/* Under a finger, a crumb takes the height of the first line of the header. */
+@media (pointer: coarse) {
+  .screen-header-trail-slot :is(.workspace-crumb, .workspace-crumb-children) { min-height: var(--hall-size-finger); }
+}
 .screen-header-trail-slot .workspace-crumb-group:has(> [aria-current="page"]) {
   display: none;
 }

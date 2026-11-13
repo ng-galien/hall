@@ -213,6 +213,7 @@ export function CalendarPage() {
         headerToolbar={false}
         height="100%"
         dayHeaderInnerClass="hall-calendar-day-header"
+        dayCellTopInnerClass="hall-calendar-day-number"
         {...(phone
           ? {
               borderless: true,
