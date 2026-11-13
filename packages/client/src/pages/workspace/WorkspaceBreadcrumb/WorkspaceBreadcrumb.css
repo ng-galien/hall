@@ -28,9 +28,9 @@
     box-shadow: none;
   }
 
+  /* The root « Documents » has no icon since the trail was restored: it takes the height of the other crumbs. */
   .workspace-crumb-root {
     display: inline-flex;
-    height: var(--hall-size-control-small);
     align-items: center;
     gap: var(--hall-space-1-5);
   }
