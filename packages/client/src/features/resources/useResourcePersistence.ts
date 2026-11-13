@@ -32,7 +32,10 @@ interface ResourcePersistenceOptions {
   setActionError(error: ApiErrorCode | null): void;
 }
 
-/** Owns generic resource persistence, autosave scheduling and child-editor flush coordination. */
+/**
+ * Owns generic resource persistence, autosave scheduling and child-editor flush coordination. A save asked while
+ * another is on its way leaves after it; a save asked while an image uploads waits for it.
+ */
 export function useResourcePersistence({
   resourceId,
   resource,
@@ -53,7 +56,6 @@ export function useResourcePersistence({
   const bodyFlushRef = useRef<(() => Promise<boolean>) | null>(null);
   const persistenceResourceIdRef = useRef<string | null | undefined>(undefined);
   const { status: saveStatus, setStatus: setSaveStatus } = useResourceSaveStatus(resourceId);
-  /** The save and flush of the last render, which hold the content written since a call began to wait. */
   const latest = useRef<{ save(nextTitle?: string): Promise<boolean>; flush(): Promise<boolean> }>({
     save: () => Promise.resolve(true),
     flush: () => Promise.resolve(true),
@@ -70,10 +72,8 @@ export function useResourcePersistence({
 
   const save = useCallback(
     (requestedTitle?: string) => {
-      // A save asked while another is on its way leaves after it, with what it asks, such as a new name.
       if (savePromiseRef.current) return savePromiseRef.current.then(() => latest.current.save(requestedTitle));
       if (!resource || !capabilities.updateMetadata) return Promise.resolve(true);
-      // A save asked while an image uploads waits for it and leaves with the content that cites it.
       if (imageUploadsPending()) {
         setSaveStatus("saving");
         return imageUploadsSettled().then(() => latest.current.save(requestedTitle));
