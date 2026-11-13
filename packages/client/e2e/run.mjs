@@ -302,7 +302,7 @@ function takeLock() {
       mkdirSync(lockDirectory);
       writeFileSync(
         join(lockDirectory, "owner"),
-        `${process.env.HALL_E2E_LOCK_OWNER ?? "run.mjs"} — pid ${process.pid} — ${new Date().toISOString()} — ${process.argv.slice(2).join(" ")}\n`,
+        `${process.env.HALL_E2E_LOCK_OWNER ?? "run.mjs"}, pid ${process.pid}, ${new Date().toISOString()}, ${process.argv.slice(2).join(" ")}\n`,
       );
       lockTaken = true;
       return;
