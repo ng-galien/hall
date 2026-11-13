@@ -86,12 +86,12 @@ test("the business documents section folds by its header and opens each document
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(tree).toBeVisible();
 
-  const chevronBox = await toggle.locator("svg").first().boundingBox();
+  const squareBox = await toggle.locator(".disclosure-badge").boundingBox();
   const titleBox = await toggle.locator(".section-header-title-text").boundingBox();
-  expect(chevronBox && titleBox).toBeTruthy();
+  expect(squareBox && titleBox).toBeTruthy();
   expect(
-    Math.abs(chevronBox!.y + chevronBox!.height / 2 - (titleBox!.y + titleBox!.height / 2)),
-    "The chevron is aligned with the title",
+    Math.abs(squareBox!.y + squareBox!.height / 2 - (titleBox!.y + titleBox!.height / 2)),
+    "The folding square is aligned with the title",
   ).toBeLessThanOrEqual(2);
   await page.mouse.move(0, 0);
   await expect.poll(() => toggle.evaluate((element) => element.matches(":hover"))).toBe(false);
