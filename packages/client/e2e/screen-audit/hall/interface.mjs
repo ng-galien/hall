@@ -6,8 +6,8 @@
  * design-reference.json or a sentence of a rule.
  */
 
-const reference = "Hall 1.3 — Design de référence";
-const choices = "Hall 1.3 — Choix de design des composants";
+const reference = "Hall 1.3 \u2014 Design de référence";
+const choices = "Hall 1.3 \u2014 Choix de design des composants";
 
 /** Width thresholds of the product, in window pixels and in container pixels; any other threshold is a gap. */
 export const declaredThresholds = { viewport: [760, 1000, 1280], container: [760] };
