@@ -99,7 +99,6 @@ export async function settleLayout(page) {
       if (current === previous) break;
       previous = current;
     }
-    // Transitions started by the resize (a bar or a pane sliding in) end before the measure.
     const finite = document
       .getAnimations()
       .filter((animation) =>
@@ -150,7 +149,6 @@ export function measureLayout(options) {
     return { left, top, right, bottom, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
   };
   const clipCache = new Map();
-  /** The part of the page an element can show: its ancestors that clip their overflow, intersected. */
   const clipOf = (element) => {
     if (!element || element === document.documentElement) return { left: -1e6, top: -1e6, right: 1e6, bottom: 1e6 };
     if (clipCache.has(element)) return clipCache.get(element);
@@ -173,15 +171,12 @@ export function measureLayout(options) {
     if (rect.width <= 1 && rect.height <= 1) return false;
     if (/^inset\(50%/.test(style.clipPath) || (style.position === "absolute" && style.clip.startsWith("rect(0")))
       return false;
-    // A closed <details> shows its summary only.
     const closed = element.parentElement?.closest("details:not([open])");
     if (closed && !element.closest("summary")) return false;
     return element.getClientRects().length > 0;
   };
-  /** Declared horizontal scrolling: a data table or a strip that scrolls sideways by design. */
   const declaredScroller = (element) => Boolean(element.closest("[data-horizontal-scroll]"));
 
-  /* Text boxes: each non-empty text node, measured by its own range and clipped by its ancestors. */
   const texts = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -204,10 +199,8 @@ export function measureLayout(options) {
     })
     .filter((entry) => entry.visible.width > 0 && entry.visible.height > 0);
 
-  /* hidden-name: a title or a name whose box shows less than three characters. */
   for (const entry of texts) {
     if (entry.text.length < 3) continue;
-    // The detail and the facts of a list row shrink before its title; the title is measured.
     if (entry.parent.closest(".list-row-detail, .list-row-fact")) continue;
     const style = getComputedStyle(entry.parent);
     const font = Number.parseFloat(style.fontSize) || 14;
@@ -215,8 +208,6 @@ export function measureLayout(options) {
       "h1, h2, h3, h4, [class*=title], [class*=name], [class*=label], button, a, th, td, li, dt, dd",
     );
     if (!container) continue;
-    // A name held on one line, ended by « … », with its whole label on hover (title), is shortened by design: an event
-    // in the month grid of the calendar (coordinator's request of 12 November 2026).
     const whole = entry.parent.closest("[title]")?.getAttribute("title") ?? "";
     if (style.textOverflow === "ellipsis" && whole.includes(entry.text.trim())) continue;
     const shownWidth = entry.visible.width;
@@ -230,10 +221,8 @@ export function measureLayout(options) {
     }
   }
 
-  /* overlap: two text boxes, or a text box and a command, or two commands, unrelated in the tree, that cross. */
   const floating = (element) => {
     for (let current = element; current && current !== document.body; current = current.parentElement)
-      // A fixed or sticky band (the editor tools, a header held at the top) lies over the content that scrolls under it.
       if (["fixed", "sticky"].includes(getComputedStyle(current).position)) return true;
     return false;
   };
@@ -256,16 +245,13 @@ export function measureLayout(options) {
       })),
   ];
   const reported = new Set();
-  // Sorted by their top edge, a box is only compared with the boxes that start above its bottom edge.
   boxes.sort((first, second) => first.rect.top - second.rect.top);
   for (let i = 0; i < boxes.length; i++) {
     for (let j = i + 1; j < boxes.length && boxes[j].rect.top < boxes[i].rect.bottom; j++) {
       const a = boxes[i];
       const b = boxes[j];
       if (a.owner === b.owner || a.owner.contains(b.owner) || b.owner.contains(a.owner)) continue;
-      // A floating control (« + Nouveau » of choice 6B) lies over the content by decision.
       if (a.floating !== b.floating) continue;
-      // A form field (choice 12D) writes its label inside the box of its control.
       const field = a.owner.closest("[data-slot=field]");
       if (field && field === b.owner.closest("[data-slot=field]")) continue;
       const crossing = intersect(a.rect, b.rect);
@@ -281,24 +267,18 @@ export function measureLayout(options) {
     }
   }
 
-  /*
-   * horizontal-scroll: the document or any area wider than its box, except a declared data table or strip. The finding
-   * names the area and, after « déborde : », the deepest element that passes its right edge the most: the one to fix.
-   */
   const overflowing = (area, right, hidden = false) => {
     let culprit = null;
     let widest = right + 1;
     for (const element of area.querySelectorAll("*")) {
       if (!hidden && (ignored(element) || !shown(element))) continue;
       const edge = element.getBoundingClientRect().right;
-      // The deepest element at the widest edge: a child that reaches as far wins over its parent.
       if (edge > widest + 0.5 || (culprit && edge >= widest - 0.5 && culprit.contains(element))) {
         widest = Math.max(widest, edge);
         culprit = element;
       }
     }
     if (culprit) return { selector: selectorOf(culprit), right: Math.round(widest) };
-    // Nothing visible passes the edge: the width comes from an element not drawn (read by a screen reader, clipped).
     if (!hidden) {
       const unseen = overflowing(area, right, true);
       if (unseen) return { ...unseen, selector: `${unseen.selector} (non dessiné)` };
@@ -328,11 +308,6 @@ export function measureLayout(options) {
     });
   }
 
-  /*
-   * lone-wrap: in a row (a flex row or a table row), the items share one line or wrap by whole groups; one narrow item
-   * alone on its line under or above the others is a broken row. A free-flow container (tags, chips) declares
-   * `data-layout-flow`.
-   */
   for (const container of document.querySelectorAll("body *")) {
     if (ignored(container) || container.closest("[data-layout-flow]")) continue;
     const style = getComputedStyle(container);
@@ -363,9 +338,7 @@ export function measureLayout(options) {
     for (const line of lines) {
       if (line.items.length !== 1) continue;
       const [{ item, rect }] = line.items;
-      // A full-width item (a search field, the action row of a prominent row) is a whole group of its own.
       if (rect.width >= box.width * 0.6) continue;
-      // On a phone, a state pill passes onto its own line under a fact read whole (coordinator's decision).
       const pill = item.matches(".list-row-status, .record-state, [data-tone]")
         ? item
         : item.querySelector(":scope > :is(.list-row-status, .record-state, [data-tone])");
@@ -379,7 +352,6 @@ export function measureLayout(options) {
     }
   }
 
-  /* off-screen: a text or a command whose visible part goes past the left or right edge of the screen. */
   const outside = (rect) => rect.left < -1 || rect.right > width + 1;
   for (const entry of [
     ...texts.map((text) => ({ owner: text.parent, visible: text.visible })),
@@ -401,7 +373,6 @@ export function measureLayout(options) {
     });
   }
 
-  /* under-header: on the screen as it loads, no text or command of the content lies under the header. */
   const header = document.querySelector("[data-testid=screen-header], [data-testid=phone-header]");
   if (header && shown(header)) {
     const band = header.getBoundingClientRect();
@@ -428,7 +399,6 @@ export function measureLayout(options) {
     }
   }
 
-  /* touch-target: under a finger at phone width, every command offers 44 px; a link inside a sentence is exempt. */
   if (touch) {
     for (const { element, rect } of commands) {
       if (element.tagName === "A" && getComputedStyle(element).display.startsWith("inline")) {
