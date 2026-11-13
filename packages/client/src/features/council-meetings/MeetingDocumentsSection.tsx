@@ -216,7 +216,6 @@ export function MeetingDocumentsSection({
   const showNotice = async (id: string) => {
     setViewer({ title: `${t("meeting.notice.title")} · ${meetingLabel}`, href: await meetingNoticeContentHref(id) });
   };
-  /** Opens the PDF of a decision from the content link of its representation. */
   const showDecision = async (id: string, title: string) => {
     const opened = await openCouncilDecisionDocument(id);
     const link = opened.representation ? findSirenLink(opened.representation, "content") : undefined;
@@ -538,7 +537,6 @@ export function MeetingDocumentsSection({
       ) : null}
     </>
   );
-  /* A closed meeting shows its documents always, under a header of the same form as its other sections. */
   const documents = closed ? (
     <section className="collapsible-section meeting-documents" data-testid="meeting-documents">
       <SectionHeader title={t("meeting.documents.title")} />
