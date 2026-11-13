@@ -797,7 +797,7 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   await expect(page.getByTestId("meeting-enter-live")).toHaveAttribute("aria-disabled", "true");
   await expect(page.getByTestId("meeting-enter-live")).not.toHaveAttribute("href");
   await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "neutral");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "action");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   await expect(page.getByTestId("live-meeting-start")).toHaveCount(0);
@@ -809,7 +809,8 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   await generateCurrentNotice(page);
   expect((await established).ok()).toBeTruthy();
   await expect(page.getByTestId("meeting-live-entry-reason")).toHaveCount(0);
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "success");
+  await expect(page.getByTestId("meeting-document-notice-state")).not.toHaveAttribute("data-tone");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveText(/^Notice no\. 1 · generated on .+$/);
   await page.getByTestId("meeting-enter-live").click();
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
   await expect(page.getByTestId("meeting-entry-blocker-scheduledTimeNotReached")).toBeVisible();
@@ -820,7 +821,7 @@ test("shows canonical meeting entry requirements and blocks entry again when the
   await expect(page.getByTestId("meeting-enter-live")).toHaveAttribute("aria-disabled", "true");
   await expect(page.getByTestId("meeting-enter-live")).not.toHaveAttribute("href");
   await expect(page.getByTestId("meeting-agenda-revision")).toHaveAttribute("data-state", "open");
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "neutral");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "action");
   await page.goto(`${detailUrl}/live`);
   await expect(page.getByTestId("live-meeting-entry-blocked")).toBeVisible();
   const after = await sirenProperties<typeof initial>(await page.request.get(conductUrl));
@@ -1170,6 +1171,9 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   const narrativeEditor = page.getByTestId(`minutes-section-${publicItem.id}`).getByTestId("editor-writing-area");
   await expect(narrativeEditor).toContainText("Discussion recorded during the meeting.");
   await page.screenshot({ path: testInfo.outputPath("minutes-draft.png"), fullPage: true });
+  // « Ouverture de la séance » opens folded; its square unfolds the attendance.
+  await expect(page.getByTestId("minutes-attendance-content")).toBeHidden();
+  await page.getByTestId("minutes-facts-toggle").click();
   await expect(page.getByTestId("minutes-attendance-content")).toBeVisible();
   await page.getByTestId(`minutes-section-vote-toggle-${publicItem.id}`).click();
   await expect(page.getByTestId(`minutes-section-vote-${publicItem.id}`)).toHaveAttribute("open", "");
@@ -1852,6 +1856,7 @@ test("holds the meeting after a second convocation as a new linked meeting under
     await page.request.get(`/api/council-meetings/${first.id}`),
   );
   await page.goto(`/app/minutes/${firstMeeting.minutesId}`);
+  await page.getByTestId("minutes-facts-toggle").click();
   await expect(page.getByTestId("minutes-opening-quorum")).toBeVisible();
   await expect(page.getByTestId("minutes-second-convocation")).toBeVisible();
 });
