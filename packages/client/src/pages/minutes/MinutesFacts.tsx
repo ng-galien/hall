@@ -9,10 +9,10 @@ import { ballotVerdictKey } from "../../features/council-meetings/ballotVerdictP
 import { useI18n } from "../../i18n/I18nProvider";
 import { MinutesSectionHint } from "./MinutesSectionHint";
 
+/** The facts of the meeting, folded at first so that the course of the meeting shows from the start. */
 // @implements-requirement HALL-FR-MIN-240
 export function MinutesFacts({ facts }: { facts: Facts }) {
   const { t, formatTime, formatNumber, formatDate, formatDateTime } = useI18n();
-  /* Folded at first, so that the course of the meeting shows from the start. */
   const [open, setOpen] = useState(false);
   const contentId = useId();
   const openingQuorum = facts.conduct.quorumObservations.find((observation) => observation.agendaItemId === null);
