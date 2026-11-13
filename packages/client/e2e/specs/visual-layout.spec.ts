@@ -96,7 +96,7 @@ for (const [device, viewport] of [
       const meeting = await meetingInPreparation(page);
       await page.goto(`/app/meetings/${meeting.id}`);
       await expectLoaded(page);
-      await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "neutral");
+      await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "action");
       await expect(page.getByTestId("meeting-details-inline")).toBeVisible();
       await expectIconsBesideLabel(page.getByTestId("meeting-proxy-form-open"));
       await expectIconsBesideLabel(page.getByTestId("meeting-enter-live").first());
