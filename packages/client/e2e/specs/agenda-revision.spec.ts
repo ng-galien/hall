@@ -85,12 +85,16 @@ test("establishes, revises and resets the agenda revision with its notices", asy
   await expect(page.getByTestId("meeting-document-notice-open")).toBeVisible();
   await expect(page.getByTestId("meeting-generate-notice")).toHaveCount(0);
   await expect(page.getByTestId("meeting-revise-agenda")).toBeVisible();
-  // The established revision is written beside « Réviser », readable without hovering it.
-  await expect(state.getByTestId("meeting-agenda-revision-state")).toBeVisible();
-  await expect(state.getByTestId("meeting-agenda-revision-state")).toHaveText(
+  // The established revision is the title of the label of « Réviser ».
+  await expect(state.getByTestId("meeting-agenda-revision-state")).toHaveCount(0);
+  await page.getByTestId("meeting-revise-agenda").hover();
+  await expect(page.getByRole("tooltip").locator("strong")).toHaveText(
     /^Révision 1 établie le .+ · Convocation n° 1$/,
   );
-  await expect(page.getByTestId("meeting-document-notice-state")).toHaveAttribute("data-tone", "success");
+  await page.mouse.move(0, 0);
+  // A generated notice says its state in text, without a state tag.
+  await expect(page.getByTestId("meeting-document-notice-state")).not.toHaveAttribute("data-tone");
+  await expect(page.getByTestId("meeting-document-notice-state")).toHaveText(/^Convocation n° 1 · générée le .+$/);
   await expect(page.getByTestId("meeting-document-notice-open")).toBeEnabled();
   await capture(page, "2-apres-generer");
 
