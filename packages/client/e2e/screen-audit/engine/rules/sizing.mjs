@@ -400,7 +400,6 @@ export const componentSizeConsistency = {
       record.elements.forEach((entry, index) => {
         if (!entry.interactive || entry.insideInteractive || entry.rect.h < 1) return;
         if (entry.tag === "textarea" || entry.rect.h > params.maximumControlHeight) return;
-        // An icon-only command is compared with the same icon in the same component; a field with fields of its kind.
         const signature = entry.iconOnly
           ? `icône seule ${entry.iconHash} ${entry.slot || entry.tag}`
           : entry.fieldKind
