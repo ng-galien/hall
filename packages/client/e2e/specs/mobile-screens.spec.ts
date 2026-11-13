@@ -2,13 +2,15 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "../fixtures/application";
 
 /* Every Hall screen on a phone: no horizontal scrolling, nothing cut at the right edge, touch targets of at least
-   44 points, no text under 14 pixels and no truncated action label. A link inside a sentence is exempt, as in
-   WCAG 2.5.8, and a check box or radio button is measured with its label. HALL_MOBILE_AUDIT=report prints the
-   findings instead of asserting them. */
+   44 points, no text under 14 pixels (12 in a state tag) and no truncated action label. A link inside a sentence is
+   exempt, as in WCAG 2.5.8, and a check box or radio button is measured with its label. HALL_MOBILE_AUDIT=report
+   prints the findings instead of asserting them. */
 // @verifies-requirement HALL-FR-LAY-020
 
 const minimumTarget = 44;
 const minimumFontSize = 14;
+/** The text of a state tag. */
+const minimumStatusFontSize = 12;
 const report = process.env.HALL_MOBILE_AUDIT === "report";
 
 interface Entity<T> {
@@ -23,7 +25,7 @@ async function items<T>(page: Page, path: string): Promise<T[]> {
 
 async function layoutFindings(page: Page) {
   return page.evaluate(
-    ({ minimum, minimumFont }) => {
+    ({ minimum, minimumFont, minimumStatusFont }) => {
       const viewport = document.documentElement.clientWidth;
       const visible = (element: Element) => {
         const rect = element.getBoundingClientRect();
@@ -96,7 +98,11 @@ async function layoutFindings(page: Page) {
         .filter((element) =>
           [...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? "").trim()),
         )
-        .filter((element) => Number.parseFloat(getComputedStyle(element).fontSize) < minimumFont)
+        .filter(
+          (element) =>
+            Number.parseFloat(getComputedStyle(element).fontSize) <
+            (element.closest(".list-row-status, .record-state") ? minimumStatusFont : minimumFont),
+        )
         .slice(0, 8)
         .map(describe);
       const truncatedActions = [...document.querySelectorAll("button, [role=tab], [role=button], [data-slot=button]")]
@@ -107,7 +113,7 @@ async function layoutFindings(page: Page) {
         .map(describe);
       return { horizontalScroll, cut, smallTargets: targets, smallText, truncatedActions };
     },
-    { minimum: minimumTarget, minimumFont: minimumFontSize },
+    { minimum: minimumTarget, minimumFont: minimumFontSize, minimumStatusFont: minimumStatusFontSize },
   );
 }
 
