@@ -88,9 +88,7 @@ test("establishes, revises and resets the agenda revision with its notices", asy
   // The established revision is the title of the label of « Réviser ».
   await expect(state.getByTestId("meeting-agenda-revision-state")).toHaveCount(0);
   await page.getByTestId("meeting-revise-agenda").hover();
-  await expect(page.getByRole("tooltip").locator("strong")).toHaveText(
-    /^Révision 1 établie le .+ · Convocation n° 1$/,
-  );
+  await expect(page.getByRole("tooltip").locator("strong")).toHaveText(/^Révision 1 établie le .+ · Convocation n° 1$/);
   await page.mouse.move(0, 0);
   // A generated notice says its state in text, without a state tag.
   await expect(page.getByTestId("meeting-document-notice-state")).not.toHaveAttribute("data-tone");
