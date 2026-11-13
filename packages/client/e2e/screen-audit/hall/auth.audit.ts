@@ -120,8 +120,8 @@ if (process.env.HALL_SCREEN_AUDIT_MODE === "auth-sweep") {
                   screen: screen.id,
                   width: step.width,
                   input,
-                  menu: "—",
-                  pane: "—",
+                  menu: "\u2014",
+                  pane: "\u2014",
                   text: "réel",
                 });
             }
