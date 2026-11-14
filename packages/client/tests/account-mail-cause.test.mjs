@@ -32,7 +32,8 @@ test("each recorded cause of an account email has its own label, without its tec
       assert.ok(!messages[key].includes(recordedCauses[index]));
     }
   }
-  assert.equal(fr[accountMailCauseKey("outlook_unavailable")], "Outlook indisponible");
+  for (const messages of [fr, en]) assert.equal(new Set(keys.map((key) => messages[key])).size, keys.length);
+  assert.equal(fr[accountMailCauseKey("outlook_unavailable")], "Messagerie indisponible");
 });
 
 // @verifies-requirement HALL-FR-USR-090
