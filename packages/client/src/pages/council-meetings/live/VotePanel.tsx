@@ -669,7 +669,7 @@ export function VotePanel({
             </dl>
             <p data-testid="live-ballot-preview-final">{t("ballot.previewFinal")}</p>
             <RequestErrorBanner error={error} />
-            <div className="ballot-preview-actions">
+            <div className="dialog-actions">
               <Button
                 data-testid="live-ballot-preview-correct"
                 variant="secondary"
