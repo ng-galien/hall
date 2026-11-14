@@ -1,11 +1,9 @@
 /** Bounds of a photo sent to Hall: the only place where they are written. */
 export const photoReduction = {
-  /** Longest side, in pixels, of a reduced photo. */
+  /** Upper limit, in pixels, of the longest side of a photo sent; a photo within it is sent as it is. */
   longestSide: 2560,
   /** JPEG quality of a reduced photo. */
   jpegQuality: 0.8,
-  /** An image within the longest side and lighter than this many bytes is sent as it is. */
-  keptBelowBytes: 500_000,
 } as const;
 
 /** Image formats of a camera or a gallery; a vector image, an animation or a PDF is never reduced. */
@@ -61,6 +59,31 @@ const decodeInBrowser: DecodePhoto = async (file) => {
   };
 };
 
+/** Size of a decoded photo, in pixels, turned as its orientation says. */
+export interface PhotoSize {
+  width: number;
+  height: number;
+}
+
+const sizeWatchers = new WeakMap<Blob, (size: PhotoSize) => void>();
+
+/**
+ * Calls back once with the size of the photo when its reduction decodes it, before it is sent; the returned function
+ * stops watching. A file that is not decoded is never reported.
+ */
+export function watchPhotoSize(file: Blob, watcher: (size: PhotoSize) => void): () => void {
+  sizeWatchers.set(file, watcher);
+  return () => {
+    if (sizeWatchers.get(file) === watcher) sizeWatchers.delete(file);
+  };
+}
+
+function reportPhotoSize(file: Blob, image: DecodedPhoto) {
+  const watcher = sizeWatchers.get(file);
+  sizeWatchers.delete(file);
+  watcher?.({ width: image.width, height: image.height });
+}
+
 function jpegName(name: string): string {
   if (/\.jpe?g$/i.test(name)) return name;
   const dot = name.lastIndexOf(".");
@@ -70,7 +93,7 @@ function jpegName(name: string): string {
 // @implements-requirement HALL-FR-LAY-010
 /**
  * The photo to send instead of the chosen one: brought down to the longest side of photoReduction and encoded as
- * JPEG, turned as its orientation says. An image within that side and lighter than its bound, an image with a
+ * JPEG, turned as its orientation says. An image within that side, whatever its weight, an image with a
  * transparent pixel, a file that is not a photo and an image the browser cannot decode are sent as they are.
  */
 export async function reducePhoto(file: File, decode: DecodePhoto = decodeInBrowser): Promise<File> {
@@ -78,9 +101,10 @@ export async function reducePhoto(file: File, decode: DecodePhoto = decodeInBrow
   let image: DecodedPhoto | undefined;
   try {
     image = await decode(file);
+    reportPhotoSize(file, image);
     const longest = Math.max(image.width, image.height);
-    if (longest <= photoReduction.longestSide && file.size < photoReduction.keptBelowBytes) return file;
-    const scale = Math.min(1, photoReduction.longestSide / longest);
+    if (longest <= photoReduction.longestSide) return file;
+    const scale = photoReduction.longestSide / longest;
     const width = Math.max(1, Math.round(image.width * scale));
     const height = Math.max(1, Math.round(image.height * scale));
     const drawn = image.draw(width, height);
