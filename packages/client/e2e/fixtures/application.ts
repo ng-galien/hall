@@ -187,7 +187,11 @@ export async function openMenuEntry(page: import("@playwright/test").Page, desti
     return;
   }
   await expect(async () => {
-    if (!(await link.isVisible())) await sidebar.getByTestId(`navigation-${parent}`).click();
+    const shown = await link.waitFor({ state: "visible", timeout: 1_500 }).then(
+      () => true,
+      () => false,
+    );
+    if (!shown) await sidebar.getByTestId(`navigation-${parent}`).click();
     await link.click({ timeout: 2_000 });
   }).toPass({ timeout: 30_000 });
 }
