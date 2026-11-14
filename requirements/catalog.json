@@ -2549,6 +2549,30 @@
         }
       ]
     },
+    "HALL-FR-CAL-210": {
+      "name": "OPEN_CALENDAR_FOLLOWS_APPOINTMENTS_CHANGED_BY_OTHERS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "L'agenda ouvert montre sans rechargement de la page les rendez-vous créés, modifiés, déplacés ou supprimés par une autre session.",
+      "acceptanceCriteria": [
+        "Un rendez-vous créé par une autre session apparaît dans l'agenda ouvert.",
+        "Un rendez-vous renommé ou déplacé par une autre session change de titre ou d'horaire dans l'agenda ouvert.",
+        "Un rendez-vous supprimé par une autre session disparaît de l'agenda ouvert.",
+        "L'agenda relit les rendez-vous avec les droits de la personne connectée : il ne montre que les rendez-vous qu'elle peut lire, et l'événement temps réel ne transporte aucun contenu de rendez-vous.",
+        "Une saisie en cours dans un formulaire de rendez-vous ouvert est conservée pendant cette actualisation."
+      ],
+      "clauses": [
+        {
+          "key": "live-calendar",
+          "origin": "product",
+          "statement": "Constat du propriétaire du 14 novembre 2026 sur Hall 1.3.0 : « l'agenda ne se met pas à jour quand un autre utilisateur le modifie. »",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-DIR-010": {
       "name": "CONTACT_EXISTS_INDEPENDENTLY",
       "nature": "functional",

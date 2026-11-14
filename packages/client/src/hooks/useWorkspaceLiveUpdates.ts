@@ -5,8 +5,26 @@ import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
 
 const rereadDelayMs = 200;
+const screenRereads = new Set<() => Promise<unknown>>();
 
-/** Rereads the businesses, the selected business, the resource catalog and every loaded folder. */
+/**
+ * Registers, while the screen is shown, the reread of what it reads beyond the businesses, the catalog and the loaded
+ * folders; it runs after them in each grouped reread.
+ */
+// @implements-requirement HALL-FR-CAL-210
+export function useWorkspaceReread(reread: () => Promise<unknown>): void {
+  useEffect(() => {
+    screenRereads.add(reread);
+    return () => {
+      screenRereads.delete(reread);
+    };
+  }, [reread]);
+}
+
+/**
+ * Rereads the businesses, the selected business, the resource catalog and every loaded folder, then what the shown
+ * screens registered.
+ */
 export async function rereadWorkspace(selectedBusinessId: string | null): Promise<void> {
   const rereadResources = async () => {
     if (useWorkspaceResourcesStore.getState().collectionRepresentation)
@@ -18,6 +36,7 @@ export async function rereadWorkspace(selectedBusinessId: string | null): Promis
     useCouncilBusinessStore.getState().reloadAfterExternalChange(selectedBusinessId),
     rereadResources(),
   ]);
+  await Promise.all([...screenRereads].map((reread) => reread()));
 }
 
 /**

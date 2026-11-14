@@ -19,6 +19,7 @@ import {
 } from "../../components/ui/dropdown-menu";
 import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
+import { useWorkspaceReread } from "../../hooks/useWorkspaceLiveUpdates";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CouncilMeetingPage } from "../../pages/council-meetings/CouncilMeetingPage";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
@@ -27,6 +28,7 @@ import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { formatMeetingLabel } from "../council-meetings/meetingPresentation";
 import { ResourcePreview } from "../documents/ResourcePreview";
+import { openCatalogAppointments } from "./calendarAppointments";
 import { EventFields } from "./EventFields";
 import { emptyEventDocument, eventDocumentUsesQuarterHours, localDate, nextDate } from "./eventDates";
 import "@fullcalendar/react/skeleton.css";
@@ -45,6 +47,7 @@ import "./calendar.css";
 // @implements-requirement HALL-FR-CAL-100
 // @implements-requirement HALL-FR-CAL-110
 // @implements-requirement HALL-FR-CAL-130
+// @implements-requirement HALL-FR-CAL-210
 /**
  * Council calendar. On a phone the day view opens half an hour before the current hour, so that the hour label is
  * whole, and the grid runs from edge to edge with a short date in the title of the day.
@@ -83,14 +86,10 @@ export function CalendarPage() {
     void (async () => {
       const store = useWorkspaceResourcesStore.getState();
       await Promise.all([store.loadCatalog(), useCouncilMeetingsStore.getState().load()]);
-      const catalog = useWorkspaceResourcesStore.getState().catalog;
-      const result = await Promise.all(
-        catalog.filter((entry) => entry.kind === "event").map((entry) => store.open(entry.id)),
-      );
+      const opened = await openCatalogAppointments();
       if (active) {
         setError(
-          result.some((entry) => !entry) ||
-            Boolean(useWorkspaceResourcesStore.getState().error || useCouncilMeetingsStore.getState().error),
+          !opened || Boolean(useWorkspaceResourcesStore.getState().error || useCouncilMeetingsStore.getState().error),
         );
         setLoading(false);
       }
@@ -99,6 +98,7 @@ export function CalendarPage() {
       active = false;
     };
   }, []);
+  useWorkspaceReread(openCatalogAppointments);
   const eventResources = Object.values(resources.details).filter((entry) => entry.kind === "event");
   const events = [
     ...eventResources.map((entry) => ({
