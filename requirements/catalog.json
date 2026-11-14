@@ -12134,6 +12134,35 @@
         }
       ]
     },
+    "HALL-FR-WSP-490": {
+      "name": "EXPLORER_BUSINESS_ROW_UNFOLDS_ITS_FOLDER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "Dans l’explorateur de l’espace de travail, une affaire apparaît une seule fois, sur sa ligne d’affaire, et cette ligne se déplie pour montrer les fichiers de son dossier à leur place réelle.",
+      "acceptanceCriteria": [
+        "Le dossier d’une affaire n’est jamais listé comme un dossier à côté de la ligne d’affaire, quels que soient les dossiers déjà chargés.",
+        "Sur ordinateur et tablette, la ligne d’affaire se déplie et se replie par son icône, comme un dossier ; son nom ouvre l’affaire.",
+        "Dépliée, elle montre le rapport, les pièces, les textes des sujets, les fichiers libres et les sous-dossiers du dossier de l’affaire, chacun à sa place réelle.",
+        "Les actions de la ligne d’affaire restent celles de la ligne d’affaire."
+      ],
+      "clauses": [
+        {
+          "key": "owner-decision",
+          "origin": "product",
+          "statement": "Mots du propriétaire, 14 novembre 2026, à la question « Dans l'explorateur, une affaire tient-elle sur une seule ligne qui se déplie ? » : « Oui, une ligne dépliable ».",
+          "sourceIds": []
+        },
+        {
+          "key": "real-folder",
+          "origin": "product",
+          "statement": "Décision du 5 novembre 2026 conservée : l’arborescence affiche chaque fichier dans son dossier réel, pièces, textes de sujets et rapport compris.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-SCH-060": {
       "name": "STABLE_ENTITY_OPTIONS",
       "nature": "technical",

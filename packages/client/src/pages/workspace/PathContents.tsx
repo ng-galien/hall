@@ -53,7 +53,7 @@ import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { FolderColorPicker } from "./FolderColorPicker";
-import { isUnderPath, listCatalogPaths } from "./paths";
+import { businessFolderPath, explorerFolderPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKindTones } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { DRAG_TYPE, type DragPayload, decodeDragPayload, encodeDragPayload, moveToPath } from "./workspaceOrg";
@@ -180,6 +180,8 @@ function ContentRow({
   wide: ReactNode;
   selected: boolean;
   lineProps?: ListRowProps["lineProps"];
+  headButton?: ListRowProps["headButton"];
+  children?: ReactNode;
   wrapLine: (line: ReactElement) => ReactNode;
 }) {
   const [dropActive, setDropActive] = useState(false);
@@ -230,6 +232,7 @@ function ContentRow({
 }
 
 // @implements-requirement HALL-FR-WSP-480
+// @implements-requirement HALL-FR-WSP-490
 export function PathContents({
   path,
   businesses,
@@ -306,17 +309,10 @@ export function PathContents({
   const [creatingFolderParent, setCreatingFolderParent] = useState<string | null>(null);
   const [createTarget, setCreateTarget] = useState<CreateTarget | null>(null);
 
-  const allPaths = useMemo(() => {
-    const known = new Set(listCatalogPaths(resourcesStore.catalog));
-    for (const folderPath of councilBusinessStore.businesses.map((business) => business.folderPath)) {
-      const segments = folderPath.split("/").filter(Boolean);
-      segments.forEach((_segment, index) => {
-        known.add(segments.slice(0, index + 1).join("/"));
-      });
-    }
-    return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
-  }, [councilBusinessStore.businesses, resourcesStore.catalog]);
-  const paths = useMemo(() => allPaths.filter((candidate) => isUnderPath(candidate, path)), [allPaths, path]);
+  const paths = useMemo(
+    () => explorerFolderPaths(resourcesStore.catalog, councilBusinessStore.businesses, path),
+    [councilBusinessStore.businesses, resourcesStore.catalog, path],
+  );
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const matches = (title: string) => !normalizedQuery || title.toLocaleLowerCase().includes(normalizedQuery);
   const visibleBusinesses = businesses.filter((business) => mode !== "resources" && matches(business.title));
@@ -351,10 +347,10 @@ export function PathContents({
 
   useEffect(() => {
     if (hidden) return;
-    for (const folderPath of paths) {
+    for (const folderPath of [...paths, ...businesses.map(businessFolderPath)]) {
       if (isFolderExpanded(folderPath)) void resourcesStore.loadFolder(folderPath);
     }
-  }, [paths, isFolderExpanded, resourcesStore.loadFolder, hidden]);
+  }, [paths, businesses, isFolderExpanded, resourcesStore.loadFolder, hidden]);
 
   useEffect(() => {
     if (hidden) return;
@@ -977,9 +973,22 @@ export function PathContents({
 
   const renderItems = (folderPath: string) => (
     <>
-      {visibleBusinesses
-        .filter((business) => business.folderPath === folderPath)
+      {businesses
+        .filter(
+          (business) =>
+            business.folderPath === folderPath &&
+            (visibleBusinesses.includes(business) || branchHasVisibleResources(businessFolderPath(business))),
+        )
         .map((business) => {
+          const businessFolder = businessFolderPath(business);
+          const businessChildren = directChildrenOf(businessFolder, paths).filter(branchHasVisibleItems);
+          const businessExpanded = !phone && (isFolderExpanded(businessFolder) || Boolean(normalizedQuery));
+          const businessHasContent =
+            businessChildren.length > 0 ||
+            visibleBusinesses.some((nested) => nested.folderPath === businessFolder) ||
+            visibleResources.some((resource) => resource.path === businessFolder) ||
+            !resourcesStore.loadedPaths.includes(businessFolder);
+          const businessUnfoldable = !phone && !normalizedQuery && businessHasContent;
           const payload: DragPayload = { kind: "councilBusiness", id: business.id };
           const key = itemKey(payload);
           const renaming = renameTarget?.kind === payload.kind && renameTarget.id === payload.id;
@@ -1004,6 +1013,20 @@ export function PathContents({
               testId={`workspace-business-${business.id}`}
               className="path-contents-business"
               selected={selectedKeys.has(key)}
+              headButton={
+                businessUnfoldable
+                  ? {
+                      tabIndex: -1,
+                      "aria-expanded": businessExpanded,
+                      "aria-label": business.title,
+                      ...testIdProps(`workspace-business-expand-${business.id}`),
+                      onClick: (event) => {
+                        event.stopPropagation();
+                        toggle(businessFolder);
+                      },
+                    }
+                  : undefined
+              }
               head={withFolderColorPicker(
                 business.folderResourceId,
                 "business",
@@ -1055,7 +1078,14 @@ export function PathContents({
                   {line}
                 </RenameContextMenu>
               )}
-            />
+            >
+              {businessExpanded ? (
+                <ListRows className="path-contents-branch">
+                  {renderItems(businessFolder)}
+                  {businessChildren.map(renderFolder)}
+                </ListRows>
+              ) : null}
+            </ContentRow>
           );
         })}
       {visibleResources
@@ -1120,6 +1150,9 @@ export function PathContents({
         })}
     </>
   );
+
+  const branchHasVisibleResources = (folderPath: string): boolean =>
+    visibleResources.some((resource) => resource.path === folderPath || resource.path.startsWith(`${folderPath}/`));
 
   const branchHasVisibleItems = (folderPath: string): boolean =>
     visibleBusinesses.some(

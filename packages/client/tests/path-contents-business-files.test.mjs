@@ -53,7 +53,8 @@ const file = (id, name) => ({
   state: { readiness: "ready" },
 });
 
-test("the tree lists every file of a business folder: report, attachments, subject texts and loose files", async () => {
+// @verifies-requirement HALL-FR-WSP-490
+test("the unfolded business row lists every file of its folder: report, attachments, subject texts and loose files", async () => {
   const host = document.createElement("div");
   const root = createRoot(host);
   const resources = [
@@ -90,12 +91,14 @@ test("the tree lists every file of a business folder: report, attachments, subje
     ),
   );
   try {
-    // A folder unfolds by its icon; its row opens it (5bc958d5).
-    for (const folderPath of ["Conseil", folder]) {
-      const toggle = host.querySelector(`[data-testid="workspace-folder-expand-${folderPath}"]`);
-      assert.ok(toggle, folderPath);
+    // A folder and a business unfold by their icon; their row opens them.
+    for (const testId of ["workspace-folder-expand-Conseil", "workspace-business-expand-commissions"]) {
+      const toggle = host.querySelector(`[data-testid="${testId}"]`);
+      assert.ok(toggle, testId);
       await act(async () => toggle.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 })));
     }
+    assert.equal(host.querySelector(`[data-testid="workspace-folder-${folder}"]`), null);
+    assert.equal(host.querySelectorAll('[data-testid="workspace-business-commissions"]').length, 1);
     for (const resource of resources)
       assert.ok(host.querySelector(`[data-testid="workspace-resource-${resource.id}"]`), resource.name);
   } finally {

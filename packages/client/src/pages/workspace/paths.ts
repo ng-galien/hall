@@ -51,6 +51,34 @@ export function listCatalogPaths(catalog: ResourceCatalogEntry[]): string[] {
   return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
 }
 
+/** Full path of the folder of a council business. */
+export function businessFolderPath(business: Pick<PathBusiness, "folderPath" | "title">): string {
+  return business.folderPath ? `${business.folderPath}/${business.title}` : business.title;
+}
+
+/**
+ * Folder paths shown by the explorer under `path`, sorted. The folder of a business is not a folder of the explorer:
+ * the business row stands for it and unfolds its content.
+ * @implements-requirement HALL-FR-WSP-490
+ */
+export function explorerFolderPaths(
+  catalog: ResourceCatalogEntry[],
+  businesses: Pick<PathBusiness, "folderPath" | "title">[],
+  path: string,
+): string[] {
+  const known = new Set(listCatalogPaths(catalog));
+  for (const folderPath of businesses.map((business) => business.folderPath)) {
+    const segments = folderPath.split("/").filter(Boolean);
+    segments.forEach((_segment, index) => {
+      known.add(segments.slice(0, index + 1).join("/"));
+    });
+  }
+  for (const business of businesses) known.delete(businessFolderPath(business));
+  return [...known]
+    .sort((left, right) => left.localeCompare(right, "fr-FR"))
+    .filter((candidate) => isUnderPath(candidate, path));
+}
+
 /** Folder colours of the catalogue, keyed by folder full path. */
 export function folderColorsByPath(catalog: ResourceCatalogEntry[]): Map<string, string> {
   return new Map(
