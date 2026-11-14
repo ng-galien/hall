@@ -175,17 +175,6 @@
   .app-sidebar[data-compact="true"] .app-sidebar-head { flex-direction: column; padding: 0 0 var(--hall-space-1); }
   .app-brand { display: flex; min-height: var(--hall-size-touch-control); flex: none; align-items: center; gap: var(--hall-space-2-5); padding: var(--hall-space-1) var(--hall-space-3); }
   .app-sidebar[data-compact="true"] .app-brand { justify-content: center; padding-inline: 0; }
-  .app-brand-mark {
-    display: inline-grid;
-    width: var(--hall-size-control-small);
-    height: var(--hall-size-control-small);
-    place-items: center;
-    border-radius: var(--hall-radius-small);
-    color: var(--hall-color-on-brand);
-    background: var(--hall-color-brand);
-    font-size: var(--hall-font-size-caption);
-    font-weight: var(--hall-font-weight-heavy);
-  }
   .app-brand-name { font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); }
   .app-sidebar-sections { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: var(--hall-space-0-5); overflow-y: auto; padding: var(--hall-space-1) var(--hall-space-2) var(--hall-space-3); }
   .app-sidebar-item { display: flex; flex-direction: column; }

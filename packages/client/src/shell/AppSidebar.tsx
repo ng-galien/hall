@@ -9,6 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import { HallLogo } from "../components/ui/hall-logo";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 import { useMailCountsStore } from "../features/mail/mailCounts";
 import { useI18n } from "../i18n/I18nProvider";
@@ -328,7 +329,7 @@ export function AppSidebar({
     >
       <div className="app-sidebar-head">
         <a href="/app/" className="app-brand" aria-label={t("app.home")}>
-          <span className="app-brand-mark">H</span>
+          <HallLogo />
           {!compact ? <span className="app-brand-name">{t("app.name")}</span> : null}
         </a>
         <Button

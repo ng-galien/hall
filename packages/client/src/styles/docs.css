@@ -915,15 +915,8 @@ h4.docs-heading {
 }
 
 .docs-site-mark {
-  display: grid;
-  place-items: center;
   width: var(--hall-size-glyph-mark-large);
   height: var(--hall-size-glyph-mark-large);
-  border-radius: var(--hall-radius-small);
-  background: var(--hall-color-brand);
-  color: var(--hall-color-on-brand);
-  font-size: var(--hall-font-size-caption);
-  font-weight: var(--hall-font-weight-bold);
 }
 
 .docs-site-name {

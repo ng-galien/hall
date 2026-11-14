@@ -1,6 +1,7 @@
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { DarkThemeIcon, LightThemeIcon } from "../components/icons";
 import { Button } from "../components/ui/button";
+import { HallLogo } from "../components/ui/hall-logo";
 import type { Locale } from "../i18n/I18nProvider";
 import { useI18n } from "../i18n/I18nProvider";
 import { resolveTone, useThemePrefsStore } from "../theme/themePrefs";
@@ -20,7 +21,7 @@ export function DocsSite() {
     <div className="docs-site">
       <header className="docs-site-header">
         <span className="docs-site-brand">
-          <span className="docs-site-mark">H</span>
+          <HallLogo className="docs-site-mark" />
           <span className="docs-site-name">{t("app.name")}</span>
           <span className="docs-site-subtitle">· {t("docs.title")}</span>
         </span>

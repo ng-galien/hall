@@ -1,6 +1,8 @@
 @layer components {
   /* Glyphs are sized in 1em, so any more specific font-size drives them. */
   .app-icon { font-size: var(--hall-font-size-icon); }
+  /* The logo of Hall, beside its name. */
+  .hall-logo { display: block; flex: none; width: var(--hall-size-control-small); height: var(--hall-size-control-small); }
 
   .spinner {
     display: inline-flex;
