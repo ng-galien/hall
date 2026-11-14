@@ -715,10 +715,14 @@
   }
   .workbench.resource-workbench,
   .workbench.workspace-business-workbench { gap: var(--hall-space-3); }
-  .resource-workbench-spreadsheet { height: 100%; min-height: 0; }
-  .resource-workbench-spreadsheet > .workspace-workbench-header { flex: none; }
-  .resource-workbench-spreadsheet > .workbench-main { flex: 1; min-height: 0; }
-  .resource-workbench-spreadsheet .workbench-section {
+  /* An opened item whose content fills the screen ends at the bottom of the window; in a very low window its content
+     keeps a minimum height and the item scrolls. */
+  :is(.resource-workbench-spreadsheet, .app-main[data-fills-screen="true"] .resource-workbench) { height: 100%; min-height: 0; }
+  :is(.resource-workbench-spreadsheet, .app-main[data-fills-screen="true"] .resource-workbench) > .workspace-workbench-header { flex: none; }
+  :is(.resource-workbench-spreadsheet, .app-main[data-fills-screen="true"] .resource-workbench) > .workbench-main { flex: 1; min-height: 0; }
+  .app-main[data-fills-screen="true"] .workbench-section > :is(.geographic-resource, .document-embed) { height: auto; min-height: var(--hall-size-fill-screen-min); flex: 1 1 0; }
+  .app-main[data-fills-screen="true"] .workbench-section > .workbench-actions:empty { display: none; }
+  :is(.resource-workbench-spreadsheet, .app-main[data-fills-screen="true"] .resource-workbench) .workbench-section {
     display: flex;
     min-height: 0;
     flex: 1;

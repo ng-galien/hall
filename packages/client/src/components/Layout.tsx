@@ -115,6 +115,7 @@ export function Layout() {
                       className="app-main"
                       data-testid="application-main"
                       data-route={location.pathname}
+                      data-fills-screen={fillsScreen ? "true" : undefined}
                     >
                       {reading || fillsScreen ? null : (
                         <ScreenLargeTitle

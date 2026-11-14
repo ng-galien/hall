@@ -210,6 +210,7 @@
   --hall-size-auth-panel: 440px;
   --hall-size-preview-failure: 520px;
   --hall-size-editor-pdf-preview-min: 560px;
+  --hall-size-fill-screen-min: 320px;
   --hall-size-resource-picker: 640px;
   --hall-size-dialog-height-max: 640px;
   --hall-size-modal: 680px;
