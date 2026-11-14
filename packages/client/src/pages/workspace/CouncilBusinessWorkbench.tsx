@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { copyObjectReference } from "../../components/CopyReferenceButton";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
-import { EditIcon, PinIcon, PinnedIcon } from "../../components/icons";
+import { ColorIcon, EditIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ExplorerTree } from "../../components/ui/explorer-tree";
@@ -33,6 +33,7 @@ import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore
 import { AttachmentPicker } from "./AttachmentPicker";
 import { BusinessDocumentTree } from "./BusinessDocumentTree";
 import { CouncilBusinessSubjects } from "./CouncilBusinessSubjects";
+import { FolderColorPicker } from "./FolderColorPicker";
 import {
   type PhoneDocumentAction,
   PhoneDocumentActions,
@@ -47,6 +48,7 @@ import { useWorkspacePrefsStore } from "./workspacePrefs";
 import "./CouncilBusinessWorkbench.css";
 
 // @implements-requirement HALL-FR-WSP-370
+// @implements-requirement HALL-FR-WSP-480
 export function CouncilBusinessWorkbench({
   business,
   reportSession,
@@ -87,6 +89,10 @@ export function CouncilBusinessWorkbench({
     (state) => state.representations[business.folderResourceId] ?? null,
   );
   const folderCapabilities = resourceCapabilities(folderRepresentation);
+  const folderColor = useWorkspaceResourcesStore(
+    (state) => state.catalog.find((entry) => entry.id === business.folderResourceId)?.color ?? null,
+  );
+  const [choosingColor, setChoosingColor] = useState(false);
   const loadCouncilActivity = useWorkspaceCouncilActivityStore((state) => state.load);
   const [actionError, setActionError] = useState<ApiErrorCode | null>(null);
   const [viewedResourceId, setViewedResourceId] = useState<string | null>(null);
@@ -215,6 +221,16 @@ export function CouncilBusinessWorkbench({
     ...(folderCapabilities.relocate
       ? [{ id: "rename", label: t("common.rename"), icon: <EditIcon />, onSelect: () => setPhoneRenaming(true) }]
       : []),
+    ...(folderCapabilities.updateMetadata
+      ? [
+          {
+            id: "folder-color",
+            label: t("workspace.folderColor"),
+            icon: <ColorIcon />,
+            onSelect: () => window.setTimeout(() => setChoosingColor(true), 0),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -228,11 +244,20 @@ export function CouncilBusinessWorkbench({
         {phone ? (
           <>
             <PhoneDocumentActions actions={phoneActions} />
+            {choosingColor ? (
+              <FolderColorPicker
+                folderId={business.folderResourceId}
+                color={folderColor}
+                anchor={<span data-testid="business-folder-color-anchor" />}
+                onClose={() => setChoosingColor(false)}
+                onError={setActionError}
+              />
+            ) : null}
             <RequestErrorBanner error={actionError ?? reportSession.actionError} />
           </>
         ) : (
           <WorkspaceWorkbenchHeader
-            icon={<CouncilBusinessGlyph business={business} large />}
+            icon={<CouncilBusinessGlyph business={business} large color={folderColor} />}
             title={business.title}
             titleLabel={t("meeting.subject")}
             date={

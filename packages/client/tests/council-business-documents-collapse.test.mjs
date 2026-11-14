@@ -53,7 +53,7 @@ vi.mock("../src/stores/workspaceCouncilActivityStore", () => ({
   useWorkspaceCouncilActivityStore: (select) => select({ load: vi.fn() }),
 }));
 vi.mock("../src/stores/workspaceResourcesStore", () => ({
-  useWorkspaceResourcesStore: (select) => select({ representations: {} }),
+  useWorkspaceResourcesStore: (select) => select({ representations: {}, catalog: [] }),
 }));
 vi.mock("../src/pages/workspace/workspacePrefs", () => ({ useWorkspacePrefsStore: () => ({ isPinned: () => false }) }));
 vi.mock("../src/pages/workspace/WorkspaceWorkbenchHeader", () => ({ WorkspaceWorkbenchHeader: () => null }));

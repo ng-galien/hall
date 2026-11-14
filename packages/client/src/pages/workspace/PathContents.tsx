@@ -13,8 +13,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { ColorPicker } from "@/components/ui/color-picker";
-import { standardColorPresets } from "@/components/ui/color-presets";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -54,6 +52,7 @@ import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { FolderColorPicker } from "./FolderColorPicker";
 import { isUnderPath, listCatalogPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKindTones } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
@@ -582,36 +581,14 @@ export function PathContents({
           afterContextMenuCloses(() => setColorTarget(folderId));
         }
       : undefined;
-  const changeFolderColor = async (folderId: string, color: string | null) => {
-    setRenameError(null);
-    const store = useWorkspaceResourcesStore.getState();
-    const folder = store.summaries[folderId] ?? store.details[folderId] ?? (await store.open(folderId))?.data;
-    if (folder?.kind !== "folder") return;
-    const updated = await useWorkspaceResourcesStore.getState().updateMetadata(folderId, {
-      path: folder.path,
-      name: folder.name,
-      tags: folder.tags,
-      color,
-      editing: { kind: "fixed" },
-    });
-    if (!updated) setRenameError(useWorkspaceResourcesStore.getState().error);
-  };
   const withFolderColorPicker = (folderId: string | undefined, color: string | null, anchor: ReactElement) =>
     folderId && colorTarget === folderId ? (
-      <ColorPicker
+      <FolderColorPicker
+        folderId={folderId}
+        color={color}
         anchor={anchor}
-        open
-        value={color ?? ""}
-        presets={standardColorPresets(t)}
-        ariaLabel={t("workspace.folderColor")}
-        customLabel={t("geographic.color.custom")}
-        clearLabel={t("workspace.folderColorClear")}
-        testId="workspace-folder-color-picker"
-        onOpenChange={(open) => {
-          if (!open) setColorTarget(null);
-        }}
-        onValueChange={(value) => void changeFolderColor(folderId, value)}
-        onClear={() => void changeFolderColor(folderId, null)}
+        onClose={() => setColorTarget(null)}
+        onError={setRenameError}
       />
     ) : (
       anchor
