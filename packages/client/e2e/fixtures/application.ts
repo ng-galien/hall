@@ -175,17 +175,21 @@ const menuParents: Record<string, string> = {
 
 /**
  * Opens a destination of the menu: directly when its line is shown, otherwise through its entry, which opens its first
- * permitted sub-resource and shows the other ones under it.
+ * permitted sub-resource and shows the other ones under it. The sidebar may still fold the entry of the previous screen
+ * after the line was seen, so each attempt looks again at the line and reopens its entry when the line is hidden.
  */
 export async function openMenuEntry(page: import("@playwright/test").Page, destination: string) {
-  const link = page.locator(".app-sidebar").getByTestId(`navigation-${destination}`);
+  const sidebar = page.locator(".app-sidebar");
+  const link = sidebar.getByTestId(`navigation-${destination}`);
   const parent = menuParents[destination];
-  const shown = await link
-    .waitFor({ state: "visible", timeout: 1_500 })
-    .then(() => true)
-    .catch(() => false);
-  if (parent && !shown) await page.locator(".app-sidebar").getByTestId(`navigation-${parent}`).click();
-  await link.click();
+  if (!parent) {
+    await link.click();
+    return;
+  }
+  await expect(async () => {
+    if (!(await link.isVisible())) await sidebar.getByTestId(`navigation-${parent}`).click();
+    await link.click({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
 }
 
 /**
