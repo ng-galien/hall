@@ -97,6 +97,36 @@ test("after a photo the writing goes on below it: the next words never replace t
   await unmount();
 });
 
+/** The text of the writing as a list of paragraphs and photos, in order. */
+const blocks = (editor) =>
+  editor.getJSON().content.map((node) => (node.type === "resourceImage" ? "[photo]" : (node.content?.[0]?.text ?? "")));
+
+// @verifies-requirement HALL-FR-LAY-130
+test("everything written from the choice of a photo, while it is sent and after, goes under it, photo after photo", async () => {
+  const { editor, unmount } = await mountEditor();
+  for (const [index, caret] of [6, undefined, undefined].entries()) {
+    const request = deferred();
+    await act(async () =>
+      insertImage(editor.view, photo(), caret ?? editor.state.selection.from, sendingUpload(request), () => undefined),
+    );
+    await settle();
+    await act(async () => editor.commands.insertContent(`Pendant ${index + 1}`));
+    await act(async () => request.resolve({ id: `photo-${index + 1}`, label: "Photo" }));
+    await settle();
+    await act(async () => editor.commands.insertContent(`, après ${index + 1}`));
+  }
+  assert.deepEqual(blocks(editor), [
+    "Avant la photo",
+    "[photo]",
+    "Pendant 1, après 1",
+    "[photo]",
+    "Pendant 2, après 2",
+    "[photo]",
+    "Pendant 3, après 3",
+  ]);
+  await unmount();
+});
+
 // @verifies-requirement HALL-FR-LAY-130
 test("words written while a photo is sent stay where they are written when the photo arrives", async () => {
   const { editor, unmount } = await mountEditor();

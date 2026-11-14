@@ -94,7 +94,11 @@ test("a chosen photo shows a low place with the loading indicator in the text wh
   assert.ok(placeholder, "the place of the image shows as soon as the photo is chosen");
   assert.equal(placeholder.style.aspectRatio, "", "the place does not take the proportions of the photo");
   assert.ok(placeholder.querySelector('[data-testid="loading-indicator"]'), "the place carries the loading indicator");
-  assert.equal(editor.getJSON().content.length, 1, "the place is not part of the text");
+  assert.deepEqual(
+    editor.getJSON().content.map((node) => node.type),
+    ["paragraph", "paragraph"],
+    "the place is not part of the text; the writing goes on in the line opened under it",
+  );
 
   await act(async () => editor.commands.insertContentAt(1, "Texte écrit pendant l’envoi. "));
   assert.match(editor.getText(), /^Texte écrit pendant l’envoi\. Avant la photo/);

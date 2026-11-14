@@ -3,6 +3,7 @@ import { imageWidthRange } from "@hall/templating";
 import type { Editor } from "@tiptap/core";
 import { Fragment, type ResolvedPos, Slice } from "@tiptap/pm/model";
 import { Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
+import { insertPoint } from "@tiptap/pm/transform";
 import type { EditorView } from "@tiptap/pm/view";
 import { type DragEvent, type RefObject, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,43 @@ function insertionTarget(view: EditorView, requestedPosition: number | undefined
     : textSelectionAt(doc.resolve(Math.min(requestedPosition ?? selection.from, doc.content.size)));
 }
 
+/** Where an image chosen at a text position goes: the place in the text, and whether a line was opened under it. */
+interface ImagePlace {
+  anchor: number;
+  openedLine: boolean;
+}
+
+/**
+ * Prepares the place of an image chosen at the target: the image goes after the paragraph of the caret, or before it
+ * when it is empty, and the writing goes on in the line under that place, opened when the paragraph has text.
+ */
+function openImagePlace(view: EditorView, target: Selection): ImagePlace {
+  const { $from } = target;
+  const imageType = view.state.schema.nodes.resourceImage!;
+  const depth = $from.depth;
+  const container = depth > 0 ? $from.node(depth - 1) : null;
+  const index = depth > 0 ? $from.index(depth - 1) : 0;
+  if (!$from.parent.isTextblock || !container?.canReplaceWith(index, index, imageType))
+    return { anchor: target.from, openedLine: false };
+  if ($from.parent.content.size === 0) {
+    view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, $from.pos)));
+    return { anchor: $from.before(depth), openedLine: false };
+  }
+  const boundary = $from.after(depth);
+  const transaction = view.state.tr.insert(boundary, view.state.schema.nodes.paragraph!.create());
+  view.dispatch(transaction.setSelection(TextSelection.create(transaction.doc, boundary + 1)).scrollIntoView());
+  return { anchor: boundary, openedLine: true };
+}
+
+/** Removes the line opened under the place of an image that was not placed, when nothing was written in it. */
+function closeImagePlace(view: EditorView, anchor: number | undefined) {
+  if (anchor === undefined || view.isDestroyed) return;
+  const line = view.state.doc.resolve(anchor).nodeAfter;
+  if (!line?.isTextblock || line.content.size > 0) return;
+  const transaction = view.state.tr.delete(anchor, anchor + line.nodeSize);
+  view.dispatch(transaction.setSelection(textSelectionAt(transaction.doc.resolve(anchor))));
+}
+
 /**
  * Inserts an uploaded image and returns the position right after it, or null when it was not placed. The writing goes
  * on after the image, in the paragraph that follows it, created when there is none; a selection the person made while
@@ -114,6 +152,32 @@ function placeImage(
   return after;
 }
 
+/**
+ * Inserts an uploaded image at its place between two paragraphs and returns the position of the writing under it, or
+ * null when it was not placed. The caret, already in the line under the place or where the person moved it, keeps its
+ * place in the text.
+ */
+function placeImageAtPlace(
+  view: EditorView,
+  image: { id: string; label: string },
+  anchor: number,
+  prepare: (transaction: Transaction) => void,
+  personSelection: Selection | undefined,
+) {
+  if (view.isDestroyed) return null;
+  const node = view.state.schema.nodes.resourceImage!.create(imageAttributes(image));
+  if (insertPoint(view.state.doc, anchor, node.type) !== anchor)
+    return placeImage(view, image, anchor, prepare, personSelection);
+  const transaction = view.state.tr.insert(anchor, node);
+  const after = anchor + node.nodeSize;
+  if (!transaction.doc.resolve(after).nodeAfter?.isTextblock)
+    transaction.insert(after, view.state.schema.nodes.paragraph!.create());
+  if (!personSelection) transaction.setSelection(TextSelection.create(transaction.doc, after + 1));
+  prepare(transaction);
+  view.dispatch(transaction);
+  return after + 1;
+}
+
 /** Inserts the reference of an uploaded document followed by a space and returns the position after that space. */
 function placeDocumentReference(
   view: EditorView,
@@ -147,8 +211,9 @@ function placeMarkdown(view: EditorView, markdown: string, requestedPosition: nu
 // @implements-requirement HALL-FR-LAY-010
 /**
  * Sends an image while its place, a low box with the loading indicator, is shown in the text; the image then takes that
- * place at its own size, after what was written meanwhile. Returns the position right after the
- * image, or null when it was not placed; the place is removed when the image is not placed.
+ * place at its own size. The writing goes on under the place from the choice of the image, so what is written meanwhile
+ * stays under the image. Returns the position of the writing under the image, or null when it was not placed; the
+ * place, and the line opened under it when nothing was written there, are removed when the image is not placed.
  */
 async function uploadIntoPlace(
   view: EditorView,
@@ -156,9 +221,12 @@ async function uploadIntoPlace(
   requestedPosition: number | undefined,
   upload: EditorImageUpload,
 ): Promise<number | null> {
-  const placeholder = startImagePlaceholder(view, insertionTarget(view, requestedPosition).from);
+  const place = openImagePlace(view, insertionTarget(view, requestedPosition));
+  const placeholder = startImagePlaceholder(view, place.anchor);
+  view.focus();
   const startDocument = view.state.doc;
   const startSelection = view.state.selection;
+  let placed = false;
   let ratio: number | null = null;
   const unwatch = watchPhotoSize(file, ({ width, height }) => {
     if (width <= 0 || height <= 0) return;
@@ -170,18 +238,22 @@ async function uploadIntoPlace(
       const image = await upload(file);
       if (view.isDestroyed) return null;
       if (ratio !== null) rememberImageRatio(image.id, ratio);
-      return placeImage(
+      const after = placeImageAtPlace(
         view,
         image,
-        imagePlaceholderAnchor(view.state, placeholder) ?? requestedPosition,
+        imagePlaceholderAnchor(view.state, placeholder) ?? place.anchor,
         (transaction) => endImagePlaceholder(transaction, placeholder),
         view.state.doc.eq(startDocument) && view.state.selection.eq(startSelection) ? undefined : view.state.selection,
       );
+      placed = after !== null;
+      return after;
     } finally {
       end();
     }
   } finally {
     unwatch();
+    if (!view.isDestroyed && !placed && place.openedLine)
+      closeImagePlace(view, imagePlaceholderAnchor(view.state, placeholder));
     if (!view.isDestroyed) removeImagePlaceholder(view, placeholder);
   }
 }
