@@ -13,6 +13,7 @@ import { AgendaRevisionControl } from "../../features/council-meetings/AgendaRev
 import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
 import { MeetingEntryBlockers } from "../../features/council-meetings/MeetingEntryBlockers";
 import { MeetingLocationSelect } from "../../features/council-meetings/MeetingLocationSelect";
+import { MeetingProxiesSection } from "../../features/council-meetings/MeetingProxiesSection";
 import {
   formatMeetingLabel,
   meetingScheduleInputValue,
@@ -338,6 +339,7 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
           />
         </div>
         <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
+        <MeetingProxiesSection meetingActions={meetingActions} aggregate={aggregate} />
       </div>
     </div>
   );

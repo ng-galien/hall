@@ -15,7 +15,6 @@ import {
   MinutesIcon,
   NoticeIcon,
   PrintIcon,
-  ProxyIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { DisclosureBadge } from "../../components/ui/disclosure-badge";
@@ -45,7 +44,6 @@ import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { liveBusinessTitle } from "../council-business/presentation";
 import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
 import { MeetingNoticeDeadline } from "./MeetingNoticeDeadline";
-import { MeetingProxyFormDialog } from "./MeetingProxyFormDialog";
 import { formatMeetingLabel } from "./meetingPresentation";
 
 /** A document is available, not yet established (a fact, never a request), or in default. */
@@ -132,7 +130,6 @@ function DocumentRow({
 
 // @implements-requirement HALL-FR-NOT-120 (the meeting dossier is offered with the meeting documents)
 // @implements-requirement HALL-FR-ATT-170
-// @implements-requirement HALL-FR-ATT-180
 // @implements-requirement HALL-FR-MTG-390
 // @implements-requirement HALL-FR-NOT-100
 /**
@@ -159,7 +156,6 @@ export function MeetingDocumentsSection({
   const [open, setOpen] = useState(true);
   const [error, setError] = useState<ApiErrorCode | null>(null);
   const [viewer, setViewer] = useState<{ title: string; href: string } | null>(null);
-  const [proxyOpen, setProxyOpen] = useState(false);
 
   const noticesHref = meetingActions.link("notices");
   const agendaRevision = meeting.agendaRevision;
@@ -248,7 +244,6 @@ export function MeetingDocumentsSection({
   const dossierHref = `/api/council-meetings/${meeting.id}/dossier`;
 
   const attendanceSheetHref = meetingActions.link("attendance-sheet");
-  const proxyFormHref = meetingActions.link("proxy-form");
   const showAttendanceSheet = () => {
     if (attendanceSheetHref)
       setViewer({ title: `${t("meeting.attendanceSheet")} · ${meetingLabel}`, href: attendanceSheetHref });
@@ -508,33 +503,7 @@ export function MeetingDocumentsSection({
             }
           />
         ) : null}
-
-        {proxyFormHref ? (
-          <DocumentRow
-            testId="meeting-document-proxy-form"
-            icon={<ProxyIcon />}
-            name={t("meeting.proxyForm")}
-            state={t("meeting.documents.proxyFormState")}
-            actions={
-              <Button variant="secondary" data-testid="meeting-proxy-form-open" onClick={() => setProxyOpen(true)}>
-                <PrintIcon aria-hidden="true" />
-                {t("meeting.proxyFormOpen")}
-              </Button>
-            }
-          />
-        ) : null}
       </ListRows>
-      {proxyFormHref ? (
-        <MeetingProxyFormDialog
-          open={proxyOpen}
-          proxyFormHref={proxyFormHref}
-          onClose={() => setProxyOpen(false)}
-          onGenerate={(href) => {
-            setProxyOpen(false);
-            setViewer({ title: `${t("meeting.proxyForm")} · ${meetingLabel}`, href });
-          }}
-        />
-      ) : null}
     </>
   );
   const documents = closed ? (

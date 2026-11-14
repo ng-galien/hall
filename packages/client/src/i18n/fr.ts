@@ -494,6 +494,16 @@ export const fr: Messages = {
     "Une présence de membre est déclarée pour une personne hors du registre des mandats de la séance.",
   "error.proxy_consecutive_limit":
     "Ce pouvoir a déjà servi aux trois séances consécutives précédentes : il faut un nouveau pouvoir, sauf maladie dûment constatée ou congé de maternité.",
+  "error.proxy_registration_closed":
+    "Les pouvoirs s’enregistrent avant l’ouverture de la séance ; à l’appel, saisissez le pouvoir sur la ligne du conseiller.",
+  "error.proxy_holder_already_registered":
+    "Ce conseiller porte déjà un pouvoir pour cette séance : un conseiller ne peut porter qu’un seul pouvoir.",
+  "error.proxy_grantor_already_registered":
+    "Ce conseiller a déjà donné un pouvoir pour cette séance ; modifiez ou retirez le pouvoir enregistré.",
+  "error.proxy_registration_invalid":
+    "Le pouvoir est donné par un conseiller en mandat à un autre conseiller en mandat.",
+  "error.proxy_document_already_registered":
+    "Cette pièce justifie déjà un autre pouvoir de la séance.",
   "error.closed_session_invalid":
     "Le huis clos ne peut pas être enregistré : vérifiez la demande, la majorité absolue et les points désignés.",
   "error.recused_member_cannot_participate":
@@ -2023,6 +2033,16 @@ export const fr: Messages = {
   "live.noHolderCandidates": "Aucun membre présent ne peut porter ce pouvoir. Marquez d’abord le porteur présent.",
   "live.uploadProxyHint": "PDF ou image de cette séance",
   "live.alreadyHoldsProxy": "Porte déjà un pouvoir (maximum légal : un, CGCT L2121-20)",
+  "proxies.title": "Pouvoirs",
+  "proxies.register": "Enregistrer un pouvoir",
+  "proxies.change": "Modifier le pouvoir",
+  "proxies.row": "{grantor} donne pouvoir à {holder}",
+  "proxies.document": "Pièce signée",
+  "proxies.chooseDocument": "Choisir un document",
+  "proxies.withdraw": "Retirer",
+  "proxies.withdrawTitle": "Retirer le pouvoir",
+  "proxies.withdrawConfirmation": "Le pouvoir de {grantor} à {holder} sera retiré de la séance. La pièce reste dans les documents.",
+  "live.proxyHolderNotPresent": "Porteur non coché présent",
   "live.proxyChoice": "Pouvoir",
   "live.unassignedZone": "Votants à pointer",
   "live.remainingToFor": "Tous les restants votent pour",

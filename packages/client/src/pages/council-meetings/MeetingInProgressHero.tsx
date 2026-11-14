@@ -4,6 +4,7 @@ import { PlayIcon } from "../../components/icons";
 import { PageHeader } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { MeetingDocumentsSection } from "../../features/council-meetings/MeetingDocumentsSection";
+import { MeetingProxiesSection } from "../../features/council-meetings/MeetingProxiesSection";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../../features/status/DomainStatusBadge";
 import type { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
@@ -49,6 +50,7 @@ export function MeetingInProgressHero({
           </Button>
         </section>
         <MeetingDocumentsSection meetingActions={meetingActions} aggregate={aggregate} />
+        <MeetingProxiesSection meetingActions={meetingActions} aggregate={aggregate} />
       </div>
     </div>
   );

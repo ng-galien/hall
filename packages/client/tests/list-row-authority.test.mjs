@@ -116,6 +116,7 @@ const listFiles = [
   "features/council-meetings/MeetingDocumentsSection.tsx",
   "features/council-meetings/MeetingLocationsSettings.tsx",
   "features/council-meetings/MeetingOfficersDialog.tsx",
+  "features/council-meetings/MeetingProxiesSection.tsx",
   "features/legal/LegalReferenceResourceView.tsx",
   "features/mail/MailGroups.tsx",
   "features/mail/MailPage.tsx",

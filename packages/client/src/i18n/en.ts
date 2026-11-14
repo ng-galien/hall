@@ -488,6 +488,16 @@ export const en = {
     "A member attendance is declared for a person outside the membership roster of the meeting.",
   "error.proxy_consecutive_limit":
     "This proxy already served in the three preceding consecutive meetings: a new proxy is required, except for duly established illness or maternity leave.",
+  "error.proxy_registration_closed":
+    "Proxies are registered before the meeting opens; at the roll call, enter the proxy on the member’s line.",
+  "error.proxy_holder_already_registered":
+    "This member already holds a proxy for this meeting: a member holds one proxy only.",
+  "error.proxy_grantor_already_registered":
+    "This member already gave a proxy for this meeting; change or withdraw the registered proxy.",
+  "error.proxy_registration_invalid":
+    "A proxy is given by a member in mandate to another member in mandate.",
+  "error.proxy_document_already_registered":
+    "This document already supports another proxy of this meeting.",
   "error.closed_session_invalid":
     "The closed session cannot be recorded: check the request, the absolute majority and the designated items.",
   "error.recused_member_cannot_participate": "A recused member cannot participate, personally or as a proxy holder.",
@@ -1986,6 +1996,16 @@ export const en = {
   "live.noHolderCandidates": "No present member can carry this proxy. Mark the holder as present first.",
   "live.uploadProxyHint": "PDF or image from this meeting",
   "live.alreadyHoldsProxy": "Already carries a proxy (legal maximum: one, CGCT L2121-20)",
+  "proxies.title": "Proxies",
+  "proxies.register": "Register a proxy",
+  "proxies.change": "Change the proxy",
+  "proxies.row": "{grantor} gives a proxy to {holder}",
+  "proxies.document": "Signed document",
+  "proxies.chooseDocument": "Choose a document",
+  "proxies.withdraw": "Withdraw",
+  "proxies.withdrawTitle": "Withdraw the proxy",
+  "proxies.withdrawConfirmation": "The proxy of {grantor} to {holder} will be withdrawn from the meeting. The document stays in the documents.",
+  "live.proxyHolderNotPresent": "Holder not marked present",
   "live.proxyChoice": "Proxy",
   "live.unassignedZone": "Voters to point",
   "live.remainingToFor": "Everyone remaining votes in favour",

@@ -1,6 +1,8 @@
 import {
   type CorrectMeetingAuxiliaryAttendance,
+  type CorrectMeetingProxyRegistration,
   correctMeetingAuxiliaryAttendanceSchema,
+  correctMeetingProxyRegistrationSchema,
   type DeclareMeetingAuxiliaryAttendance,
   declareMeetingAuxiliaryAttendanceSchema,
   meetingConductWorkspaceSchema,
@@ -10,12 +12,14 @@ import {
   type RecordMeetingOpening,
   type RecordMeetingQuorum,
   type RecordMeetingReconvocation,
+  type RegisterMeetingProxy,
   recordMeetingAttendanceEventsSchema,
   recordMeetingClosedSessionSchema,
   recordMeetingOfficerChangeSchema,
   recordMeetingOpeningSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
+  registerMeetingProxySchema,
 } from "@hall/api-contract";
 import { apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
@@ -77,5 +81,16 @@ export async function declareMeetingAuxiliaryAttendance(reference: string, input
     conductPath(reference),
     "meeting.declare-auxiliary-attendance",
     declareMeetingAuxiliaryAttendanceSchema.parse(input),
+  );
+}
+
+export async function registerMeetingProxy(reference: string, input: RegisterMeetingProxy) {
+  return submitSirenActionAt(conductPath(reference), "meeting.register-proxy", registerMeetingProxySchema.parse(input));
+}
+export async function correctMeetingProxyRegistration(reference: string, input: CorrectMeetingProxyRegistration) {
+  return submitSirenActionAt(
+    conductPath(reference),
+    "meeting.correct-proxy-registration",
+    correctMeetingProxyRegistrationSchema.parse(input),
   );
 }

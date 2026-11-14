@@ -34,6 +34,7 @@ test("every visible mutation prevents duplicate submissions and reports progress
     "src/pages/workspace/CouncilBusinessWorkbench.tsx",
     "src/pages/council-meetings/AgendaComposer.tsx",
     "src/features/council-meetings/MeetingDocumentsSection.tsx",
+    "src/features/council-meetings/MeetingProxiesSection.tsx",
     "src/pages/council-meetings/MeetingPreparation.tsx",
     "src/pages/council-meetings/live/ConductView.tsx",
     "src/pages/council-meetings/live/RollCallView.tsx",

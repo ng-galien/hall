@@ -49,6 +49,11 @@ export type ApiErrorCode =
   | "agenda_revision_item_moved"
   | "proxy_consecutive_limit"
   | "closed_session_invalid"
+  | "proxy_registration_closed"
+  | "proxy_holder_already_registered"
+  | "proxy_grantor_already_registered"
+  | "proxy_registration_invalid"
+  | "proxy_document_already_registered"
   | "recusal_immutable"
   | "recusal_occurrence_locked"
   | "agenda_ballot_required"
@@ -188,6 +193,11 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "agenda_revision_item_moved",
   "proxy_consecutive_limit",
   "closed_session_invalid",
+  "proxy_registration_closed",
+  "proxy_holder_already_registered",
+  "proxy_grantor_already_registered",
+  "proxy_registration_invalid",
+  "proxy_document_already_registered",
   "recusal_immutable",
   "recusal_occurrence_locked",
   "agenda_ballot_required",

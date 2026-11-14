@@ -2,6 +2,7 @@ import {
   type ApiActionName,
   type BallotResultPreview,
   type CorrectMeetingAuxiliaryAttendance,
+  type CorrectMeetingProxyRegistration,
   type DeclareMeetingAuxiliaryAttendance,
   findSirenAction,
   findSirenLink,
@@ -12,6 +13,7 @@ import {
   type RecordMeetingOfficerChange,
   type RecordMeetingOpening,
   type RecordMeetingReconvocation,
+  type RegisterMeetingProxy,
   type ScheduleAgendaItem,
   type ScheduleCouncilMeeting,
   type SchedulePreparedCouncilSubject,
@@ -52,6 +54,7 @@ import {
 } from "../services/councilMeetingsApi";
 import {
   correctMeetingAuxiliaryAttendance,
+  correctMeetingProxyRegistration,
   declareMeetingAuxiliaryAttendance,
   openMeetingConduct,
   recordMeetingAttendanceEvents,
@@ -60,6 +63,7 @@ import {
   recordMeetingOpening,
   recordMeetingQuorum,
   recordMeetingReconvocation,
+  registerMeetingProxy,
 } from "../services/meetingConductApi";
 import {
   establishMeetingAgendaRevision,
@@ -393,6 +397,12 @@ export function useCouncilMeeting(meetingReference: string) {
     },
     correctAuxiliaryAttendance(input: CorrectMeetingAuxiliaryAttendance) {
       return mutate(() => correctMeetingAuxiliaryAttendance(meetingReference, input));
+    },
+    registerProxy(input: RegisterMeetingProxy) {
+      return mutate(() => registerMeetingProxy(meetingReference, input));
+    },
+    correctProxyRegistration(input: CorrectMeetingProxyRegistration) {
+      return mutate(() => correctMeetingProxyRegistration(meetingReference, input));
     },
     recordQuorum() {
       return mutate(() => recordMeetingQuorum(meetingReference, { agendaItemId: null }));

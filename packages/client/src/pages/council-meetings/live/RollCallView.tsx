@@ -1,9 +1,5 @@
 // biome-ignore-all lint/a11y/noNoninteractiveTabindex: The scrollable roll-call region must be focusable for keyboard scrolling.
-import type { ProxyLimitException, ResourceDetail } from "@hall/api-contract";
-import { HelpHint } from "../../../components/HelpHint";
-
-type ProxyDocument = Extract<ResourceDetail, { kind: "document" }>;
-
+import type { ProxyLimitException } from "@hall/api-contract";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HelpHint } from "../../../components/HelpHint";
 import {
   CheckCircleIcon,
   FileIcon,
@@ -25,18 +22,16 @@ import { Modal, RequestErrorBanner } from "../../../components/Ui";
 import { MeetingAttendingPersons } from "../../../features/council-meetings/MeetingAttendingPersons";
 import { MeetingEntryBlockers } from "../../../features/council-meetings/MeetingEntryBlockers";
 import { MeetingReconvocationForm } from "../../../features/council-meetings/MeetingReconvocationForm";
+import { type ProxyDocument, uploadProxyDocument } from "../../../features/council-meetings/proxyDocumentUpload";
+import { withRegisteredProxies } from "../../../features/council-meetings/proxyRegistrationRollCall";
 import { quorumFailureAwaitingReconvocation } from "../../../features/council-meetings/reconvocationPolicy";
 import type { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import { useI18n } from "../../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../../models/directory";
 import type { LiveMeetingMemberAttendance as Attendance, LiveMeetingPresentation } from "../../../models/liveMeeting";
-import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../../../services/apiClient";
-import {
-  listDocumentaryResourceFolder,
-  openDocumentaryResource,
-  uploadDocumentaryResource,
-} from "../../../services/resourcesApi";
+import { type ApiErrorCode, apiErrorCode } from "../../../services/apiClient";
+import { openDocumentaryResource } from "../../../services/resourcesApi";
 import { meetingOpeningBlock } from "../meetingOpeningPolicy";
 
 const directStatuses = ["present", "excused", "absent"] as const;
@@ -46,6 +41,7 @@ export function memberInitials(member: CouncilMemberView): string {
 }
 
 // @implements-requirement HALL-FR-ATT-160 (the exception declared for each written proxy at the roll call)
+// @implements-requirement HALL-FR-ATT-190 (the proxies registered before the meeting are applied at the opening roll call)
 export function RollCallView({
   aggregate,
   members,
@@ -83,15 +79,17 @@ export function RollCallView({
     secretaryMemberId: aggregate.meeting.secretaryMemberId,
   });
   const meeting = { ...aggregate.meeting, ...draftOfficers };
-  const [draftAttendance, setDraftAttendance] = useState<Attendance[]>(aggregate.attendance);
-  const persistedAttendance = useRef(JSON.stringify(aggregate.attendance));
+  const registrations = mode === "opening" ? (conduct?.proxyRegistrations ?? []) : [];
+  const startingAttendance = withRegisteredProxies(aggregate.attendance, registrations, aggregate.meeting.id);
+  const [draftAttendance, setDraftAttendance] = useState<Attendance[]>(startingAttendance);
+  const startingSnapshot = JSON.stringify(startingAttendance);
+  const persistedAttendance = useRef(startingSnapshot);
   useEffect(() => {
-    const snapshot = JSON.stringify(aggregate.attendance);
-    if (snapshot !== persistedAttendance.current) {
-      persistedAttendance.current = snapshot;
-      setDraftAttendance(aggregate.attendance);
+    if (startingSnapshot !== persistedAttendance.current) {
+      persistedAttendance.current = startingSnapshot;
+      setDraftAttendance(JSON.parse(startingSnapshot));
     }
-  }, [aggregate.attendance]);
+  }, [startingSnapshot]);
   const attendanceByMember = useMemo(
     () => new Map(draftAttendance.map((attendance) => [attendance.memberId, attendance])),
     [draftAttendance],
@@ -99,7 +97,11 @@ export function RollCallView({
   useEffect(() => {
     let cancelled = false;
     const ids = [
-      ...new Set(aggregate.attendance.flatMap((entry) => (entry.proxyDocumentId ? [entry.proxyDocumentId] : []))),
+      ...new Set(
+        (JSON.parse(startingSnapshot) as Attendance[]).flatMap((entry) =>
+          entry.proxyDocumentId ? [entry.proxyDocumentId] : [],
+        ),
+      ),
     ];
     void Promise.all(ids.map(openDocumentaryResource))
       .then((results) => {
@@ -117,7 +119,7 @@ export function RollCallView({
     return () => {
       cancelled = true;
     };
-  }, [aggregate.attendance]);
+  }, [startingSnapshot]);
   const openingBlock = meetingOpeningBlock({
     ...aggregate,
     meeting,
@@ -142,15 +144,20 @@ export function RollCallView({
 
   const markAllPresent = () => {
     setDraftAttendance(
-      members.map((member) => ({
-        id: attendanceByMember.get(member.id)?.id ?? `draft-${member.id}`,
-        meetingId: meeting.id,
-        memberId: member.id,
-        status: "present",
-        proxyHolderMemberId: null,
-        proxyDocumentId: null,
-        version: 1,
-      })),
+      members.map((member) => {
+        const current = attendanceByMember.get(member.id);
+        return current?.status === "represented"
+          ? current
+          : {
+              id: current?.id ?? `draft-${member.id}`,
+              meetingId: meeting.id,
+              memberId: member.id,
+              status: "present",
+              proxyHolderMemberId: null,
+              proxyDocumentId: null,
+              version: 1,
+            };
+      }),
     );
   };
 
@@ -181,37 +188,19 @@ export function RollCallView({
     setProxyMemberId(null);
   };
 
-  const uploadProxyDocument = (file: File) => {
-    const form = new FormData();
-    form.set("file", file);
-    return run(async () => {
+  const uploadRollCallProxyDocument = (file: File) =>
+    run(async () => {
       setUploadError(null);
       try {
-        const { data: documents } = await listDocumentaryResourceFolder("");
-        const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()))]
-          .map((byte) => byte.toString(16).padStart(2, "0"))
-          .join("");
-        const existing = documents.find(
-          (document) =>
-            document.kind === "document" && document.name === file.name && document.binary.contentSha256 === hash,
-        );
-        if (existing?.kind === "document") {
-          setProxyDocuments((current) => [...current.filter((document) => document.id !== existing.id), existing]);
-          return existing;
-        }
-        const representation = await sirenRepresentation("/resources");
-        const { data } = await uploadDocumentaryResource(representation, form);
-        if (data.kind === "document") {
-          setProxyDocuments((current) => [...current, data]);
-          return data;
-        }
-        return null;
+        const document = await uploadProxyDocument(file);
+        if (document)
+          setProxyDocuments((current) => [...current.filter((entry) => entry.id !== document.id), document]);
+        return document;
       } catch (error) {
         setUploadError(apiErrorCode(error));
         return null;
       }
     });
-  };
 
   const officersEditable = meetingActions.can("meeting.set-officers");
   const designateOfficer = (memberId: string, seat: "chair" | "secretary") => {
@@ -412,6 +401,16 @@ export function RollCallView({
                     })}
                   </p>
                 ) : null}
+                {current?.status === "represented" &&
+                current.proxyHolderMemberId &&
+                attendanceByMember.get(current.proxyHolderMemberId)?.status !== "present" ? (
+                  <p
+                    className="rollcall-proxy-summary rollcall-check-pending"
+                    data-testid={`live-proxy-holder-absent-${member.id}`}
+                  >
+                    <WarningIcon aria-hidden="true" /> {t("live.proxyHolderNotPresent")}
+                  </p>
+                ) : null}
               </li>
             );
           })}
@@ -508,7 +507,7 @@ export function RollCallView({
             submitting={submitting}
             uploadError={uploadError}
             onDismissError={() => setUploadError(null)}
-            onUploadFile={uploadProxyDocument}
+            onUploadFile={uploadRollCallProxyDocument}
             onSubmit={(holderId, documentId, exception) => submitProxy(proxyMember.id, holderId, documentId, exception)}
             onClose={() => setProxyMemberId(null)}
           />
