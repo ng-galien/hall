@@ -120,6 +120,30 @@
   /* Once the large title has scrolled away, the title is written in the first line. */
   .screen-header[data-collapsed="true"] .screen-header-inline-title { display: block; }
   .screen-header[data-collapsed="true"] :is(.screen-header-parent, .screen-header-commune, .screen-header-trail) { display: none; }
+  /* An opened item whose content fills the screen opens with this reduced line: the place, then the type icon, the
+     title and the facts of the item, its commands before the initials. When the line lacks room, the commands and the
+     initials keep their place at the right, and the facts, then the title, pass under the place instead of being
+     shortened. */
+  .screen-header[data-item-line="true"] .screen-header-place { flex-wrap: wrap; row-gap: 0; }
+  .screen-header[data-item-line="true"] .screen-header-tools { flex: none; }
+  .screen-header[data-item-line="true"] .screen-header-trail { display: flex; flex: 0 1 auto; }
+  .screen-header-item-title { display: flex; min-width: 0; flex: 0 1 auto; align-items: center; gap: var(--hall-space-2); }
+  .screen-header[data-item-line="true"] .screen-title-icon { min-height: 0; }
+  .screen-header[data-item-line="true"] .screen-header-inline-title { white-space: normal; overflow-wrap: break-word; }
+  .screen-header[data-item-line="true"] .screen-title-facts { flex: none; }
+  .screen-header[data-item-line="true"] .screen-title-commands { min-height: 0; margin-left: 0; }
+  /* On a tablet the commands leave the place too little room: the place keeps the first row with the initials, and
+     the title, its facts and its commands take the second row. */
+  @media (max-width: 1000px) {
+    .screen-header[data-item-line="true"] .screen-header-line { flex-wrap: wrap; row-gap: 0; }
+    .screen-header[data-item-line="true"] :is(.screen-header-place, .screen-header-tools) { display: contents; }
+    .screen-header[data-item-line="true"] .screen-header-line::after { flex-basis: 100%; order: 3; content: ""; }
+    .screen-header[data-item-line="true"] .screen-header-trail { flex: 1 1 0; order: 1; }
+    .screen-header[data-item-line="true"] :is(.screen-header-actions, .screen-header-connection, .screen-header-initials) { order: 2; }
+    .screen-header[data-item-line="true"] .screen-header-item-title { order: 4; }
+    .screen-header[data-item-line="true"] .screen-title-facts { order: 5; }
+    .screen-header[data-item-line="true"] .screen-title-commands { order: 6; margin-left: auto; }
+  }
 
   .breadcrumb { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-1); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
   .breadcrumb a { color: var(--hall-color-brand); }

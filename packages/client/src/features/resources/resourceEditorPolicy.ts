@@ -9,20 +9,22 @@ export interface ResourceEditorState {
 
 interface StaticResourceEditorPolicy {
   fillsExtendedView: boolean;
+  /** Its content takes the whole height of the screen when it is opened: no large title above it. */
+  fillsScreen: boolean;
   supportsAutosave: boolean;
 }
 
 /** Static editor behavior owned by the canonical documentary kind union. */
 const resourceKindEditorPolicies: Record<ResourceKind, StaticResourceEditorPolicy> = {
-  folder: { fillsExtendedView: false, supportsAutosave: false },
-  text: { fillsExtendedView: false, supportsAutosave: true },
-  spreadsheet: { fillsExtendedView: true, supportsAutosave: true },
-  document: { fillsExtendedView: true, supportsAutosave: false },
-  remote: { fillsExtendedView: true, supportsAutosave: true },
-  geographic: { fillsExtendedView: true, supportsAutosave: true },
-  event: { fillsExtendedView: false, supportsAutosave: true },
-  legalReference: { fillsExtendedView: false, supportsAutosave: false },
-  geographicLayer: { fillsExtendedView: false, supportsAutosave: false },
+  folder: { fillsExtendedView: false, fillsScreen: false, supportsAutosave: false },
+  text: { fillsExtendedView: false, fillsScreen: false, supportsAutosave: true },
+  spreadsheet: { fillsExtendedView: true, fillsScreen: true, supportsAutosave: true },
+  document: { fillsExtendedView: true, fillsScreen: true, supportsAutosave: false },
+  remote: { fillsExtendedView: true, fillsScreen: false, supportsAutosave: true },
+  geographic: { fillsExtendedView: true, fillsScreen: true, supportsAutosave: true },
+  event: { fillsExtendedView: false, fillsScreen: false, supportsAutosave: true },
+  legalReference: { fillsExtendedView: false, fillsScreen: false, supportsAutosave: false },
+  geographicLayer: { fillsExtendedView: false, fillsScreen: true, supportsAutosave: false },
 };
 
 export function resourceEditorState(resource: ResourceDetail): ResourceEditorState {
@@ -78,6 +80,11 @@ export function resourceContentDirty(resource: ResourceDetail, state: ResourceEd
 
 export function resourceFillsExtendedView(resource: ResourceDetail): boolean {
   return resourceKindEditorPolicies[resource.kind].fillsExtendedView;
+}
+
+/** True when the content of an opened resource of this kind takes the whole height of the screen. */
+export function resourceFillsScreen(kind: ResourceKind): boolean {
+  return resourceKindEditorPolicies[kind].fillsScreen;
 }
 
 export function resourceSupportsAutosave(resource: ResourceDetail): boolean {

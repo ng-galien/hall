@@ -1,4 +1,4 @@
-import type { ApiPrincipal } from "@hall/api-contract";
+import type { ApiPrincipal, ResourceKind } from "@hall/api-contract";
 import type { HallSettings } from "@hall/domain";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -65,7 +65,7 @@ function useWorkspaceHeading(): { title: string; back: Back | null } {
 }
 
 /** The kind of the resource opened on the workspace screen, when one is open and known. */
-export function useOpenedResourceKind(): string | null {
+export function useOpenedResourceKind(): ResourceKind | null {
   const location = useLocation();
   const summaries = useWorkspaceResourcesStore((state) => state.summaries);
   const details = useWorkspaceResourcesStore((state) => state.details);
@@ -154,7 +154,9 @@ export function ApplicationConnectionStatus() {
 /**
  * The first line of every screen of Hall (choice 2B), on phone, tablet and computer: where one is, with the action of
  * the screen and the user's initials at its right. The large title is the first line of the content, so it scrolls
- * away without moving the content; once it is gone, the title is written in this line.
+ * away without moving the content; once it is gone, the title is written in this line. An opened item whose content
+ * fills the screen has no large title: on tablet and computer this line, already reduced, also holds its type icon,
+ * its title, its facts and its commands, after the place.
  */
 export function ScreenHeader({
   phone,
@@ -165,6 +167,7 @@ export function ScreenHeader({
   leadingSlot,
   actionsSlot,
   trailSlot,
+  itemSlots,
 }: {
   phone: boolean;
   title: string;
@@ -176,6 +179,13 @@ export function ScreenHeader({
   leadingSlot(element: HTMLDivElement | null): void;
   actionsSlot(element: HTMLDivElement | null): void;
   trailSlot(element: HTMLDivElement | null): void;
+  /** Places of the type icon, the commands, the facts and the information icon of an opened item in this line. */
+  itemSlots?: {
+    icon(element: HTMLSpanElement | null): void;
+    commands(element: HTMLDivElement | null): void;
+    facts(element: HTMLDivElement | null): void;
+    hint(element: HTMLSpanElement | null): void;
+  };
 }) {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -184,6 +194,7 @@ export function ScreenHeader({
     <header
       className="screen-header"
       data-collapsed={collapsed ? "true" : undefined}
+      data-item-line={itemSlots ? "true" : undefined}
       data-format={phone ? "phone" : "wide"}
       data-testid={phone ? "phone-header" : "screen-header"}
     >
@@ -213,7 +224,15 @@ export function ScreenHeader({
             </div>
           ) : null}
           {phone && !back ? <span className="screen-header-commune">{commune}</span> : null}
-          {reading ? (
+          {itemSlots ? (
+            <span className="screen-header-item-title">
+              <span ref={itemSlots.icon} className="screen-title-icon" />
+              <h1 className="screen-header-inline-title" data-testid="screen-header-title">
+                {title}
+                <span ref={itemSlots.hint} className="screen-title-hint" />
+              </h1>
+            </span>
+          ) : reading ? (
             <h1
               className="screen-header-inline-title"
               data-testid={phone ? "phone-header-title" : "screen-header-title"}
@@ -225,8 +244,12 @@ export function ScreenHeader({
               {title}
             </span>
           )}
+          {itemSlots ? <div ref={itemSlots.facts} className="screen-title-facts" /> : null}
         </div>
         <div className="screen-header-tools">
+          {itemSlots ? (
+            <div ref={itemSlots.commands} className="screen-title-commands" data-testid="screen-title-commands" />
+          ) : null}
           <div ref={actionsSlot} className="screen-header-actions" />
           <ApplicationConnectionStatus />
           <Link

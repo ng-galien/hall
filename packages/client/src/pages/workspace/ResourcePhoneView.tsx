@@ -1,5 +1,4 @@
 import { findSirenLink } from "@hall/api-contract";
-import { matchLiteral } from "@hall/domain";
 import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { copyObjectReference } from "../../components/CopyReferenceButton";
@@ -16,6 +15,7 @@ import type { UploadedResourceImage } from "../../features/documents/useResource
 import { ResourceChangesControl } from "../../features/resources/ResourceChangesControl";
 import { ResourceDeleteDialog } from "../../features/resources/ResourceDeleteDialog";
 import { ResourcePresentationBody } from "../../features/resources/ResourcePresentationBody";
+import { resourceFillsScreen } from "../../features/resources/resourceEditorPolicy";
 import type { ResourceSession } from "../../features/resources/useResourceSession";
 import { useTextWriting } from "../../features/resources/useTextWriting";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -97,17 +97,7 @@ export function ResourcePhoneView({
   };
   const date = documentaryResourceDate(resource);
   const text = resource.kind === "text";
-  const fillsScreen = matchLiteral(resource.kind, {
-    folder: () => false,
-    text: () => false,
-    remote: () => false,
-    event: () => false,
-    legalReference: () => false,
-    document: () => true,
-    spreadsheet: () => true,
-    geographic: () => true,
-    geographicLayer: () => true,
-  });
+  const fillsScreen = resourceFillsScreen(resource.kind);
   const actions: PhoneDocumentAction[] = [
     ...subjectActions,
     ...(resource.kind === "document" && representation

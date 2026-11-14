@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { resourceFillsScreen } from "../features/resources/resourceEditorPolicy";
 import { GlobalSearchPalette } from "../features/search/GlobalSearchPalette";
 import { useI18n } from "../i18n/I18nProvider";
 import { AppSidebar } from "../shell/AppSidebar";
@@ -22,7 +23,11 @@ import { useRememberedFold } from "./ui/remembered-fold";
 const collapseDistance = 8;
 /** Below this width the menu starts folded in its rail until the person chooses. */
 const narrowQuery = "(max-width: 1000px)";
-/** A text read on a phone has the large title of every screen; other opened documents name themselves in the header. */
+/**
+ * A text read on a phone has the large title of every screen; other opened documents name themselves in the header.
+ * On tablet and computer, an opened item whose content fills the screen also names itself in the header, which opens
+ * reduced to its first line with the place, the title, the facts and the commands of the item.
+ */
 // @implements-requirement HALL-FR-LAY-010
 // @implements-requirement HALL-FR-LAY-100
 export function Layout() {
@@ -72,6 +77,13 @@ export function Layout() {
   }, [loadPersonalWorkspace]);
   const openedKind = useOpenedResourceKind();
   const reading = phone && isPhoneReadingLocation(location) && openedKind !== "text";
+  const fillsScreen = !phone && openedKind !== null && resourceFillsScreen(openedKind);
+  const largeTitleSlots = {
+    icon: setTitleIconSlot,
+    commands: setTitleCommandsSlot,
+    facts: setTitleFactsSlot,
+    hint: setTitleHintSlot,
+  };
   return (
     <HeaderTrailSlotContext.Provider value={trailSlot}>
       <ScreenLeadingSlotContext.Provider value={leadingSlot}>
@@ -92,10 +104,11 @@ export function Layout() {
                       title={title}
                       back={heading.back}
                       reading={reading}
-                      collapsed={scrolled || reading}
+                      collapsed={scrolled || reading || fillsScreen}
                       leadingSlot={setLeadingSlot}
                       actionsSlot={setActionsSlot}
                       trailSlot={setTrailSlot}
+                      itemSlots={fillsScreen ? largeTitleSlots : undefined}
                     />
                     <main
                       ref={setMainElement}
@@ -103,17 +116,12 @@ export function Layout() {
                       data-testid="application-main"
                       data-route={location.pathname}
                     >
-                      {reading ? null : (
+                      {reading || fillsScreen ? null : (
                         <ScreenLargeTitle
                           phone={phone}
                           title={title}
                           titleRef={setTitleElement}
-                          slots={{
-                            icon: setTitleIconSlot,
-                            commands: setTitleCommandsSlot,
-                            facts: setTitleFactsSlot,
-                            hint: setTitleHintSlot,
-                          }}
+                          slots={largeTitleSlots}
                         />
                       )}
                       <div className="app-content">
