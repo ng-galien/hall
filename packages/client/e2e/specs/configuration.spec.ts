@@ -118,7 +118,9 @@ test("all default templates preview real Alésia data with saved presentation", 
     expect(preview.html, String(template.documentType)).not.toContain("nom non renseigné");
     if (template.documentType === "council-decision") expect(preview.html).toContain("<h1>Commune de Alésia</h1>");
     if (template.kind === "pdf") {
-      expect(template.headerHtml).toBeTruthy();
+      // The Alésia minutes follow the default model, which has no page header (HALL-FR-MIN-290).
+      if (template.documentType === "minutes") expect(template.headerHtml).toBe("");
+      else expect(template.headerHtml).toBeTruthy();
       expect(template.footerHtml).toBeTruthy();
     } else expect(preview.html).toContain("Démonstration Hall");
   }
