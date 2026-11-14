@@ -369,6 +369,7 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
     (entry) => entry.request().method() === "POST" && entry.url().endsWith(`/agenda-items/${treatedItem.id}/complete`),
   );
   await page.getByTestId("live-agenda-complete").click();
+  await page.getByTestId("live-complete-confirm").click();
   expect((await completing).ok()).toBeTruthy();
   await page.getByTestId("live-meeting-close").click();
   await expect(page.getByTestId("live-meeting-close")).toContainText(/not examined|non examinés/i);
