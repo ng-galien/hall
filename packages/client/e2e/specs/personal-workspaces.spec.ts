@@ -696,3 +696,102 @@ test("on a phone the personal folder opens from Plus, which alone is active, and
   });
   await context.close();
 });
+
+// @verifies-requirement HALL-FR-CAL-210
+test("the calendar of another account shows an appointment created, moved, renamed and deleted without a reload", async ({
+  page: admin,
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+  admin.setDefaultTimeout(20_000);
+  await admin.addInitScript(() => localStorage.setItem("mairie.locale", "en"));
+  expect(
+    (
+      await admin.request.post("/api/auth/bootstrap", {
+        data: { displayName: "Administrator", email: "admin@example.test", password },
+      })
+    ).status(),
+  ).toBe(201);
+  await created(
+    await admin.request.post("/api/users", {
+      data: { email: "clerk@example.test", displayName: "Clerk", password, roles: ["clerk"], contactId: null },
+    }),
+  );
+  const clerk = await sessionPage(browser, baseURL ?? "", "clerk@example.test");
+  const dayKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const today = new Date();
+  const offset = today.getDay() === 1 ? 1 : -1;
+  const movedDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
+  const dayAfterMoved = new Date(movedDay.getFullYear(), movedDay.getMonth(), movedDay.getDate() + 1);
+  const resource = async (id: string) =>
+    (
+      (await (await admin.request.get(`/api/resources/${id}`)).json()) as {
+        properties: {
+          path: string;
+          name: string;
+          version: number;
+          tags: string[];
+          autosaveEnabled: boolean;
+          document: Record<string, unknown>;
+        };
+      }
+    ).properties;
+  try {
+    await clerk.goto("/app/calendar");
+    await expect(clerk.getByTestId("calendar-page")).toBeVisible();
+    await clerk.evaluate(() => {
+      (window as Window & { hallSameDocument?: boolean }).hallSameDocument = true;
+    });
+
+    await admin.goto("/app/calendar");
+    await admin.getByTestId("calendar-new").click();
+    await admin.getByTestId("calendar-name").fill("Réunion de chantier");
+    const creation = admin.waitForResponse(
+      (response) => response.url().endsWith("/api/resources") && response.request().method() === "POST",
+    );
+    await admin.getByTestId("calendar-create").click();
+    const id = ((await (await creation).json()) as { properties: { id: string } }).properties.id;
+    const shown = clerk.getByTestId(`calendar-event-${id}`);
+    await expect(shown).toContainText("Réunion de chantier");
+    await expect(clerk.getByTestId(`calendar-day-${dayKey(today)}`).getByTestId(`calendar-event-${id}`)).toBeVisible();
+
+    const created = await resource(id);
+    const moved = await admin.request.put(`/api/resources/${id}/content`, {
+      data: {
+        kind: "event",
+        expectedVersion: created.version,
+        document: {
+          ...created.document,
+          schedule: { kind: "allDay", start: dayKey(movedDay), end: dayKey(dayAfterMoved) },
+        },
+      },
+    });
+    expect(moved.ok(), await moved.text()).toBeTruthy();
+    await expect(
+      clerk.getByTestId(`calendar-day-${dayKey(movedDay)}`).getByTestId(`calendar-event-${id}`),
+    ).toBeVisible();
+
+    const beforeRename = await resource(id);
+    const renamed = await admin.request.patch(`/api/resources/${id}/metadata`, {
+      data: {
+        path: beforeRename.path,
+        name: "Réunion de chantier déplacée",
+        tags: beforeRename.tags,
+        editing: { kind: "autosave", enabled: beforeRename.autosaveEnabled },
+      },
+    });
+    expect(renamed.ok(), await renamed.text()).toBeTruthy();
+    await expect(shown).toContainText("Réunion de chantier déplacée");
+
+    expect((await admin.request.delete(`/api/resources/${id}`)).ok()).toBeTruthy();
+    await expect(shown).toHaveCount(0);
+    expect(
+      await clerk.evaluate(() => (window as Window & { hallSameDocument?: boolean }).hallSameDocument),
+      "the calendar of the other account was not reloaded",
+    ).toBe(true);
+  } finally {
+    await clerk.context().close();
+  }
+});
