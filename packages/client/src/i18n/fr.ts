@@ -716,6 +716,7 @@ export const fr: Messages = {
   "auth.backToSignIn": "Retour à la connexion",
   "auth.invitationTitle": "Choisissez votre mot de passe",
   "auth.passwordLinkTitle": "Choisissez un nouveau mot de passe",
+  "auth.passwordLinkExpiredTitle": "Lien expiré",
   "auth.passwordLinkAccount": "Compte : {email}",
   "auth.requestNewLink": "Demander un nouveau lien",
   "auth.passwordRecorded": "Votre mot de passe est enregistré. Connectez-vous avec ce mot de passe.",

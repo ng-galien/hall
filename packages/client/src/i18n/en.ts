@@ -703,6 +703,7 @@ export const en = {
   "auth.backToSignIn": "Back to sign-in",
   "auth.invitationTitle": "Choose your password",
   "auth.passwordLinkTitle": "Choose a new password",
+  "auth.passwordLinkExpiredTitle": "Link expired",
   "auth.passwordLinkAccount": "Account: {email}",
   "auth.requestNewLink": "Request a new link",
   "auth.passwordRecorded": "Your password is saved. Sign in with this password.",
