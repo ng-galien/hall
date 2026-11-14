@@ -87,23 +87,26 @@ Before modifying `packages/client`, read the output of `npm run audit:screens --
 
 ## Verification
 
-Match verification to the change and inspect the final result.
+Before pushing, run locally the groups that match the change, then inspect the final result. CI confirms a result already obtained locally; it is not the place where failures are found. The CI durations and what CI runs are in [`docs/development.md`](docs/development.md#ci-gate).
+
+| Change | Commands to run before pushing |
+| --- | --- |
+| Any change, including documentation only | `node scripts/testing/gate.mjs checks` |
+| `packages/client` | `node scripts/testing/gate.mjs units`; `npm run test:e2e -- <spec>` for each scenario the change touches; `npm run test:e2e:auth`, `npm run test:e2e:docs` or `npm run test:e2e:rules` when the change concerns that family |
+| Server, domain, contracts | `node scripts/testing/gate.mjs backend` |
+| `packages/postgres` or any SQL schema, migration, invariant, seed or PostgreSQL test helper | the focused SQL or pgTAP test during iteration, then `node scripts/testing/gate.mjs postgres`, then `node scripts/testing/gate.mjs backend` |
+| Distribution package, installation or upgrade | `node scripts/testing/gate.mjs distribution` |
+
+Run the complete gate, `npm run test:all`, before a push that groups several deliveries and before a version tag, on a checkout that no other agent modifies during the run. A branch push runs the push gate in CI; policy mutation, the Windows installation and the documentation journeys run only in the release gate, started by a version tag push or a manual run of `ci.yml`.
 
 - Vitest is the only runner for JavaScript and TypeScript unit, component, integration, and repository-control tests. These tests live in a `tests/` directory. Do not add `node:test`, another JavaScript test runner, or test files under `scripts/`.
 - Browser and Electron journeys use Playwright. SQL invariants and stored functions use pgTAP through `pg_prove`, with shared fixtures in `packages/postgres/sql/council/test/support/`; PostgreSQL adapters and server contracts still use Vitest. `npm run test:postgres` combines pgTAP with the PostgreSQL adapter and server Vitest suites on a disposable database. Mutation testing uses Stryker with its Vitest runner. These tools cover execution models that Vitest does not provide.
 
 - Bug fixes must reproduce the failure and verify the same scenario after the change.
-- Documentation-only changes require diff review and local-link verification; do not start application runtimes or application test suites.
+- Documentation-only changes require diff review, local-link verification and the `checks` group; do not start application runtimes or other test groups.
 - When a test exposes a functional conflict, report it and obtain a decision instead of silently changing the rule.
 
-For changes under `packages/postgres/` or any SQL schema, migration, invariant, seed, or PostgreSQL test helper, run all of these before completion:
-
-1. The focused SQL or pgTAP test during iteration.
-2. `npm run test:postgres:council`.
-3. `npm run test:postgres:document`.
-4. `npm run test:postgres`.
-
-`npm run test:postgres` uses one disposable PostgreSQL database: pgTAP runs first, then the database is reset before backend integration tests. Do not retain stale fixtures to accommodate removed schema fields.
+The `postgres` group uses one disposable PostgreSQL database for pgTAP and the PostgreSQL adapter tests. Do not retain stale fixtures to accommodate removed schema fields.
 
 PDF rendering tests launch Chromium. A `MachPortRendezvousServer` or `EPERM` failure in the macOS sandbox is an environment limitation; rerun the affected test outside the sandbox without hiding application errors.
 
@@ -111,7 +114,7 @@ PDF rendering tests launch Chromium. A `MachPortRendezvousServer` or `EPERM` fai
 
 Use `scripts/distribution/release-publication.mjs` for release preparation and final
 GitHub publication, as documented in `docs/distribution.md`. Final publication
-requires the complete green CI gate for the exact tag commit and matching maker
+requires the green CI release gate started by the push of the tag, at the exact tag commit, and matching maker
 provenance. Do not bypass a refusal with raw `gh release edit` or API calls. The
 guard controls this entry point and the tag workflow, not arbitrary external
 GitHub commands. Building installers may proceed in parallel with validation.
