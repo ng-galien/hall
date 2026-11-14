@@ -20,7 +20,9 @@ import {
 import { useI18n } from "../../i18n/I18nProvider";
 import { AlignCenterIcon, AlignLeftIcon } from "../icons";
 import { Button } from "../ui/button";
+import { LoadingIndicator } from "../ui/loading-indicator";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
+import { imageUploadPlaceholders, sentImageRatio } from "./imageUploadPlaceholder";
 import { useResourceAppearance } from "./references";
 
 export interface ResourceImageAttributes {
@@ -140,7 +142,8 @@ export function ResourceImageFigure({
 }: ResourceImageAttributes & { className?: string; testId?: string }) {
   const { t } = useI18n();
   const { href, failed } = useResourceImageHref(id);
-  const style = { width: `${width}%` } satisfies CSSProperties;
+  const ratio = sentImageRatio(id);
+  const style = { width: `${width}%`, ...(ratio ? { aspectRatio: String(ratio) } : {}) } satisfies CSSProperties;
   if (failed) {
     return (
       <span
@@ -150,6 +153,17 @@ export function ResourceImageFigure({
         aria-label={alt}
       >
         {t("editor.imageUnavailable")}
+      </span>
+    );
+  }
+  if (!href && ratio) {
+    return (
+      <span
+        className={`editor-image-placeholder hall-template-image-${align} ${className ?? ""}`}
+        style={style}
+        data-testid="editor-image-placeholder"
+      >
+        <LoadingIndicator aria-hidden="true" />
       </span>
     );
   }
@@ -305,6 +319,10 @@ export const ResourceImage = Node.create<{ controls: boolean }>({
 
   addOptions() {
     return { controls: false };
+  },
+
+  addProseMirrorPlugins() {
+    return [imageUploadPlaceholders()];
   },
 
   addAttributes() {

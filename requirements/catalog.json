@@ -9747,7 +9747,8 @@
         "Sur un téléphone, la page d’une séance présente ses informations et la liste de ses points ; chaque point s’ouvre sur sa page, à l’adresse /meetings/:id/points/:pointId. Le procès-verbal et la délibération d’une séance s’ouvrent sur leur page, leurs actions dans le menu ⋯.",
         "Sur un téléphone, la page d’une séance montre la barre d’étapes et la pastille de révision à l’utilisateur qui peut préparer la séance.",
         "Sur un téléphone, une carte occupe tout l’écran et une ressource distante présente son adresse avec un bouton qui ouvre le lien.",
-        "Sur un téléphone, la page Documents, à la racine comme dans un dossier, porte la recherche dans son bandeau et le bouton flottant « + Nouveau » ; l’icône de recherche ouvre la recherche de l’espace de travail sur tout l’écran, le champ actif, et sa fermeture ramène à la liste, qui commence directement sous le bandeau. L’ordinateur et la tablette gardent la recherche au-dessus de la liste et « + Nouveau » dans le bandeau."
+        "Sur un téléphone, la page Documents, à la racine comme dans un dossier, porte la recherche dans son bandeau et le bouton flottant « + Nouveau » ; l’icône de recherche ouvre la recherche de l’espace de travail sur tout l’écran, le champ actif, et sa fermeture ramène à la liste, qui commence directement sous le bandeau. L’ordinateur et la tablette gardent la recherche au-dessus de la liste et « + Nouveau » dans le bandeau.",
+        "As soon as a photo is chosen or taken for a text, on a phone as on a computer, the place of the image appears in the text where it is inserted, at its proportions once the photo is decoded, with a loading indicator; the person keeps writing meanwhile. When the sending ends, the image takes that place without the text moving; when it fails, the place disappears and the failure is said where the editor says it."
       ],
       "clauses": [
         {
@@ -9802,6 +9803,12 @@
           "key": "behaviour-only-catalogue",
           "origin": "product",
           "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
+        },
+        {
+          "key": "photo-placeholder-during-upload",
+          "origin": "product",
+          "statement": "Owner request of 14 November 2026: « Quand on upload une image, on ne sait pas trop ce qui se passe pendant trois plombes. […] Les expériences habituelles sur mobile pour charger une image, c’est au moins une image qui se met, un placeholder, un petit truc de chargement dans le placeholder de l’image, quelque chose de propre. »",
           "sourceIds": []
         }
       ]

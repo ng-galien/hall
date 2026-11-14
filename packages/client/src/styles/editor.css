@@ -300,6 +300,14 @@
   background: var(--hall-color-surface-subtle);
   font-size: var(--hall-font-size-caption);
 }
+/* The place of an image being sent: its width and proportions, with the loading indicator in its middle. */
+.editor-image-placeholder {
+  display: grid;
+  max-width: 100%;
+  place-items: center;
+  border: var(--hall-stroke-thin) dashed var(--hall-color-border-strong);
+  background: var(--hall-color-surface-subtle);
+}
 .editor-image-node {
   position: relative;
   display: block;

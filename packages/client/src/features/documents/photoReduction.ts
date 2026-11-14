@@ -81,7 +81,8 @@ export function watchPhotoSize(file: Blob, watcher: (size: PhotoSize) => void): 
 function reportPhotoSize(file: Blob, image: DecodedPhoto) {
   const watcher = sizeWatchers.get(file);
   sizeWatchers.delete(file);
-  watcher?.({ width: image.width, height: image.height });
+  const size = { width: image.width, height: image.height };
+  if (watcher) queueMicrotask(() => watcher(size));
 }
 
 function jpegName(name: string): string {

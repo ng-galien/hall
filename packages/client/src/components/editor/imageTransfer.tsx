@@ -2,14 +2,23 @@ import { matchDiscriminated } from "@hall/domain";
 import { imageWidthRange } from "@hall/templating";
 import type { Editor } from "@tiptap/core";
 import { Fragment, type ResolvedPos, Slice } from "@tiptap/pm/model";
-import { NodeSelection, Selection, TextSelection } from "@tiptap/pm/state";
+import { NodeSelection, Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { type DragEvent, type RefObject, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { watchPhotoSize } from "../../features/documents/photoReduction";
 import { useI18n } from "../../i18n/I18nProvider";
 import { Modal } from "../Ui";
 import type { ResourceImageAttributes } from "./images";
 import { beginImageUpload } from "./imageUploadGate";
+import {
+  endImagePlaceholder,
+  imagePlaceholderAnchor,
+  rememberImageRatio,
+  removeImagePlaceholder,
+  sizeImagePlaceholder,
+  startImagePlaceholder,
+} from "./imageUploadPlaceholder";
 
 /** State of the image or document transfer shown under the writing area. */
 export type ImageUploadStatus =
@@ -71,7 +80,12 @@ function insertionTarget(view: EditorView, requestedPosition: number | undefined
 }
 
 /** Inserts an uploaded image, selects it and returns the position right after it, or null when it was not placed. */
-function placeImage(view: EditorView, image: { id: string; label: string }, requestedPosition: number | undefined) {
+function placeImage(
+  view: EditorView,
+  image: { id: string; label: string },
+  requestedPosition: number | undefined,
+  prepare?: (transaction: Transaction) => void,
+) {
   if (view.isDestroyed) return null;
   const node = view.state.schema.nodes.resourceImage!.create(imageAttributes(image));
   const transaction = view.state.tr.setSelection(insertionTarget(view, requestedPosition)).replaceSelectionWith(node);
@@ -85,6 +99,7 @@ function placeImage(view: EditorView, image: { id: string; label: string }, requ
   });
   if (insertedPosition === null) return null;
   transaction.setSelection(NodeSelection.create(transaction.doc, insertedPosition));
+  prepare?.(transaction);
   view.dispatch(transaction);
   return (insertedPosition as number) + node.nodeSize;
 }
@@ -119,6 +134,46 @@ function placeMarkdown(view: EditorView, markdown: string, requestedPosition: nu
   return view.state.selection.to;
 }
 
+// @implements-requirement HALL-FR-LAY-010
+/**
+ * Sends an image while its place is shown in the text, at its proportions once the photo is decoded, with the loading
+ * indicator; the image then takes that place, after what was written meanwhile. Returns the position right after the
+ * image, or null when it was not placed; the place is removed when the image is not placed.
+ */
+async function uploadIntoPlace(
+  view: EditorView,
+  file: File,
+  requestedPosition: number | undefined,
+  upload: EditorImageUpload,
+): Promise<number | null> {
+  const placeholder = startImagePlaceholder(view, insertionTarget(view, requestedPosition).from);
+  let ratio: number | null = null;
+  const unwatch = watchPhotoSize(file, ({ width, height }) => {
+    if (width <= 0 || height <= 0) return;
+    ratio = width / height;
+    sizeImagePlaceholder(view, placeholder, ratio);
+  });
+  try {
+    const end = await beginImageUpload();
+    try {
+      const image = await upload(file);
+      if (view.isDestroyed) return null;
+      if (ratio !== null) rememberImageRatio(image.id, ratio);
+      return placeImage(
+        view,
+        image,
+        imagePlaceholderAnchor(view.state, placeholder) ?? requestedPosition,
+        (transaction) => endImagePlaceholder(transaction, placeholder),
+      );
+    } finally {
+      end();
+    }
+  } finally {
+    unwatch();
+    if (!view.isDestroyed) removeImagePlaceholder(view, placeholder);
+  }
+}
+
 export function insertImage(
   view: EditorView,
   file: File,
@@ -131,14 +186,9 @@ export function insertImage(
     return;
   }
   onStatus({ kind: "uploading" });
-  void beginImageUpload().then((end) =>
-    upload(file)
-      .then(
-        (image) =>
-          onStatus(placeImage(view, image, requestedPosition) === null ? { kind: "failed" } : idleUploadStatus),
-        () => onStatus({ kind: "failed" }),
-      )
-      .finally(end),
+  void uploadIntoPlace(view, file, requestedPosition, upload).then(
+    (placed) => onStatus(placed === null ? { kind: "failed" } : idleUploadStatus),
+    () => onStatus({ kind: "failed" }),
   );
 }
 
@@ -176,12 +226,7 @@ async function insertDroppedFiles(
     try {
       if (image) {
         onStatus({ kind: "uploading" });
-        const end = await beginImageUpload();
-        try {
-          place(placeImage(view, await uploadImage!(file), position));
-        } finally {
-          end();
-        }
+        place(await uploadIntoPlace(view, file, position, uploadImage!));
         continue;
       }
       const choice =
