@@ -52,7 +52,8 @@ export function insertResourceImage(editor: Editor, attributes: ResourceImageAtt
 }
 
 type ResourceImageResolver = (resourceId: string) => Promise<string>;
-type ResourceImagePreviewRenderer = (resourceId: string, onClose: () => void) => ReactNode;
+/** Opens the image itself from its name; the label is the name of the image. */
+type ResourceImagePreviewRenderer = (resourceId: string, label: string, onClose: () => void) => ReactNode;
 
 const ResourceImageResolverContext = createContext<ResourceImageResolver | null>(null);
 const ResourceImagePreviewContext = createContext<ResourceImagePreviewRenderer | null>(null);
@@ -339,7 +340,7 @@ function ResourceImageNodeView({
         ) : null}
       </figure>
       {controls && previewing
-        ? renderResourcePreview?.(attributes.id, () => {
+        ? renderResourcePreview?.(attributes.id, attributes.alt, () => {
             setPreviewing(false);
             window.requestAnimationFrame(() => {
               previewTriggerRef.current?.focus({ preventScroll: true });

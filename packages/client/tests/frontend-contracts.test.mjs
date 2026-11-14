@@ -252,7 +252,11 @@ test("editor images keep immutable resource references and follow document capab
     app,
     /ResourceImagePresentationProvider[\s\S]{0,180}resolveContentHref=\{documentaryBinaryReferenceContentHref\}/,
   );
-  assert.match(app, /ResourceImagePresentationProvider[\s\S]{0,220}renderResourcePreview=\{renderResourcePreview\}/);
+  // The name of an image of a text opens the image itself, never the preview of a workspace resource.
+  assert.match(
+    app,
+    /ResourceImagePresentationProvider[\s\S]{0,220}renderResourcePreview=\{\(id, label, onClose\) => <EditorImageViewer /,
+  );
   assert.match(app, /const EditorLabPage = import\.meta\.env\.DEV/);
   assert.match(styles, /\.hall-template-image[\s\S]*height: auto/);
   // The compact editor is the frame named markdown-editor-compact, up to the dialog of its enriched editor.

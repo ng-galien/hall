@@ -11,6 +11,7 @@ import { IconDefaults } from "./components/icons";
 import { Layout } from "./components/Layout";
 import { formatMeetingLabel } from "./features/council-meetings/meetingPresentation";
 import { DocumentaryResourceGlyph, documentaryResourceTone } from "./features/documents/DocumentaryResourceGlyph";
+import { EditorImageViewer } from "./features/documents/EditorImageViewer";
 import { toneIcons, toneLabelKeys, toneNatures } from "./features/documents/ResourceGlyph";
 import { ResourcePreview } from "./features/documents/ResourcePreview";
 import { ContactReferenceDialog } from "./features/references/ContactReferenceDialog";
@@ -253,7 +254,7 @@ export function ApplicationPresentationProviders({ children }: { children: React
       >
         <ResourceImagePresentationProvider
           resolveContentHref={documentaryBinaryReferenceContentHref}
-          renderResourcePreview={renderResourcePreview}
+          renderResourcePreview={(id, label, onClose) => <EditorImageViewer id={id} label={label} onClose={onClose} />}
         >
           {children}
         </ResourceImagePresentationProvider>
