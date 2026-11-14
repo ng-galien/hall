@@ -2224,7 +2224,8 @@
       },
       "statement": "Un rendez-vous futur peut être créé depuis le calendrier.",
       "acceptanceCriteria": [
-        "La création conserve le titre, la planification, le lieu, les participants et le contexte saisis."
+        "La création conserve le titre, la planification, le lieu, les participants et le contexte saisis.",
+        "Au téléphone, toucher un jour ou un créneau du calendrier ouvre le formulaire de création à ce jour ou à cette heure, dans une feuille qui monte du bas de l’écran ; à l’ordinateur, le formulaire s’ouvre dans un panneau au bord droit, le calendrier restant visible."
       ],
       "clauses": [
         {
@@ -2245,7 +2246,8 @@
       "statement": "Un rendez-vous peut être ouvert et modifié sans quitter le calendrier.",
       "acceptanceCriteria": [
         "L'ouverture conserve le calendrier comme page d'origine.",
-        "Les modifications enregistrées sont visibles après fermeture et réouverture."
+        "Les modifications enregistrées sont visibles après fermeture et réouverture.",
+        "Au téléphone, un rendez-vous ouvert depuis l’agenda s’affiche dans une feuille qui monte du bas de l’écran, avec le même formulaire que sa création ; la feuille se referme en la tirant vers le bas ou par son bouton de fermeture, après l’enregistrement de la saisie."
       ],
       "clauses": [
         {
@@ -2263,9 +2265,9 @@
         "state": "accepted",
         "since": "2026-09-12"
       },
-      "statement": "La création d'un rendez-vous peut être abandonnée sans écriture.",
+      "statement": "La création d’un rendez-vous peut être abandonnée sans écriture.",
       "acceptanceCriteria": [
-        "Fermer ou annuler le dialogue, y compris avec Escape, ne crée aucune ressource."
+        "Fermer ou annuler le formulaire de création, par son bouton, en tirant la feuille vers le bas au téléphone ou avec Escape, ne crée aucune ressource."
       ],
       "clauses": [
         {
@@ -2286,7 +2288,8 @@
       "statement": "Un rendez-vous futur peut être supprimé depuis son menu contextuel.",
       "acceptanceCriteria": [
         "Le menu propose « Modifier » et « Supprimer » lorsque le serveur expose la capacité correspondante.",
-        "La suppression demande deux confirmations et empêche les doubles soumissions."
+        "La suppression demande deux confirmations et empêche les doubles soumissions.",
+        "Au téléphone, la feuille d’un rendez-vous futur propose « Supprimer » lorsque le serveur expose la capacité correspondante, avec les mêmes deux confirmations."
       ],
       "clauses": [
         {
@@ -2569,6 +2572,53 @@
           "key": "live-calendar",
           "origin": "product",
           "statement": "Constat du propriétaire du 14 novembre 2026 sur Hall 1.3.0 : « l'agenda ne se met pas à jour quand un autre utilisateur le modifie. »",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-CAL-220": {
+      "name": "CALENDAR_LISTS_COMING_APPOINTMENTS_BY_DAY",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-15"
+      },
+      "statement": "L’agenda présente aussi en liste les rendez-vous et les séances à venir, groupés par jour.",
+      "acceptanceCriteria": [
+        "La vue « Liste » se choisit à côté des vues mois, semaine et jour et montre, à partir d’aujourd’hui ou de la date choisie, les rendez-vous et les séances planifiées groupés par jour dans l’ordre du temps.",
+        "Chaque ligne donne l’heure ou « Toute la journée », le titre et le lieu ; un rendez-vous de plusieurs jours apparaît sous chacun de ses jours.",
+        "Toucher une ligne ouvre le rendez-vous ou la séance comme depuis le calendrier.",
+        "Sans rendez-vous ni séance à venir, la liste l’écrit."
+      ],
+      "clauses": [
+        {
+          "key": "upcoming-list",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 15 novembre 2026, transmis par le coordinateur : « c’est un peu grossier de mettre les sélections de mois, années, comme ça. On pourrait mieux le gérer. Ça prend trop de place. En mobile, il faut gagner quand même pas mal de place. » ; « les formulaires, c’est souvent des fenêtres glissantes par le bas… Tu cliques sur une date, ça fait ça. » ; « le fait d’avoir la liste des dates prochaines… c’est bien de les avoir en calendrier, mais c’est bien aussi de les avoir en liste. » ; noté auparavant : « revoir les popup des rdv de l’agenda, virer le natif ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-CAL-230": {
+      "name": "CALENDAR_DATES_ARE_CHOSEN_IN_HALL_PICKERS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-15"
+      },
+      "statement": "On se déplace dans l’agenda et on choisit les dates et les heures d’un rendez-vous avec les sélecteurs de Hall, sans contrôle de date ou d’heure du navigateur.",
+      "acceptanceCriteria": [
+        "Toucher la période affichée ouvre un calendrier d’un mois, du lundi au dimanche, dont le titre ouvre les douze mois d’une année ; choisir un jour ou un mois y amène l’agenda ; les jours qui portent un rendez-vous ou une séance y sont marqués.",
+        "« Aujourd’hui » ramène l’agenda au jour courant en un toucher.",
+        "Au téléphone, un glissement horizontal sur le calendrier passe à la période suivante ou précédente ; à l’ordinateur, les flèches font de même.",
+        "Le début et la fin d’un rendez-vous se choisissent dans ce même calendrier, et leurs heures dans la liste des quarts d’heure de la journée ; la fin indique sa durée lorsqu’elle tombe le jour du début.",
+        "Aucun champ de date ou d’heure du navigateur n’apparaît dans l’agenda ni dans le formulaire d’un rendez-vous."
+      ],
+      "clauses": [
+        {
+          "key": "hall-pickers",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 15 novembre 2026, transmis par le coordinateur : « c’est un peu grossier de mettre les sélections de mois, années, comme ça. On pourrait mieux le gérer. Ça prend trop de place. En mobile, il faut gagner quand même pas mal de place. » ; « les formulaires, c’est souvent des fenêtres glissantes par le bas… Tu cliques sur une date, ça fait ça. » ; « le fait d’avoir la liste des dates prochaines… c’est bien de les avoir en calendrier, mais c’est bien aussi de les avoir en liste. » ; noté auparavant : « revoir les popup des rdv de l’agenda, virer le natif ».",
           "sourceIds": []
         }
       ]
@@ -4098,7 +4148,7 @@
       "acceptanceCriteria": [
         "La visionneuse est une fenêtre de dialogue qui occupe presque tout l’écran, avec le titre du document et un bouton de fermeture ; ce bouton la ferme, et Échap la ferme lorsque le focus n’est pas dans un éditeur de texte, où Échap reste à l’éditeur. Sur un téléphone, hors conduite de la séance en direct, elle occupe tout l’écran avec une flèche de retour à la place du bouton de fermeture ; la flèche et le retour du téléphone la ferment et ramènent à l’écran d’où le document a été ouvert.",
         "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur, et un PDF s’affiche page après page, dessiné par Hall, dans un navigateur sans lecteur PDF intégré ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
-        "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré. Sur un téléphone, hors conduite de la séance en direct, un document de l’espace de travail ouvert depuis une référence, la recherche, le calendrier ou la composition de l’ordre du jour s’ouvre sur sa propre page.",
+        "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré. Sur un téléphone, hors conduite de la séance en direct, un document de l’espace de travail ouvert depuis une référence, la recherche ou la composition de l’ordre du jour s’ouvre sur sa propre page ; un rendez-vous ouvert depuis l’agenda s’ouvre dans la feuille du bas de l’agenda (HALL-FR-CAL-060).",
         "La visionneuse présente le document avec les droits de l’utilisateur, quel que soit l’endroit d’où il est ouvert : une carte, un texte ou un tableur que l’utilisateur peut modifier y est modifiable avec son propre éditeur, exactement comme dans la ligne dépliée (pour une carte : mode Dessin, mesures, notes et « Enregistrer ce cadrage »), et il y est présenté en lecture sinon.",
         "Les aperçus de PV, délibérations, PDF temporaires et modèles HTML réutilisent le cadre commun, avec un titre identifiant leur document et son contexte ; le corps reste adapté au format. L’en-tête, le contenu et la fermeture sont alignés en clair et sombre, sans changer les octets des documents figés.",
         "Un tableur ouvert dans la ligne dépliée des documents d’une affaire présente une grille de cellules visible et utilisable, sans devoir passer en plein écran ; les modifications restent enregistrées après réouverture.",

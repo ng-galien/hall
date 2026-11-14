@@ -6,10 +6,11 @@ import themePlugin from "@fullcalendar/react/themes/monarch";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import { type EventDocument, eventDocumentSchema, findSirenAction } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "../../components/icons";
+import { CalendarIcon } from "../../components/icons";
 import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { CreateButton } from "../../components/ui/create-button";
+import { type CalendarDay, calendarDay, dayDate } from "../../components/ui/date-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import {
   DropdownMenu,
@@ -17,23 +18,58 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
-import { Field } from "../../components/ui/field";
-import { Input } from "../../components/ui/input";
 import { useWorkspaceReread } from "../../hooks/useWorkspaceLiveUpdates";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CouncilMeetingPage } from "../../pages/council-meetings/CouncilMeetingPage";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
-import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { formatMeetingLabel } from "../council-meetings/meetingPresentation";
 import { ResourcePreview } from "../documents/ResourcePreview";
+import { CalendarHeader, type CalendarView } from "./CalendarHeader";
+import { CalendarList, type CalendarOccurrence } from "./CalendarList";
 import { openCatalogAppointments } from "./calendarAppointments";
-import { EventFields } from "./EventFields";
-import { emptyEventDocument, eventDocumentUsesQuarterHours, localDate, nextDate } from "./eventDates";
+import { EventCreateSheet } from "./EventCreateSheet";
+import { EventSheet } from "./EventSheet";
+import { emptyEventDocument, localDate, nextDate } from "./eventDates";
+import { useCalendarSwipe } from "./useCalendarSwipe";
 import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/monarch/theme.css";
 import "./calendar.css";
+
+function shiftMonths(day: CalendarDay, months: number): CalendarDay {
+  const date = dayDate(day);
+  return calendarDay(new Date(date.getFullYear(), date.getMonth() + months, 1, 12));
+}
+
+function oneHourLater(start: Date): Date {
+  const midnight = new Date(start);
+  midnight.setHours(24, 0, 0, 0);
+  return new Date(Math.min(start.getTime() + 60 * 60 * 1000, midnight.getTime()));
+}
+
+/** The shown period, in words: the month, the two months of a week across them, or the day; the year when not current. */
+function usePeriodTitle() {
+  const { locale } = useI18n();
+  const languageTag = locale === "fr" ? "fr-FR" : "en-GB";
+  return (view: CalendarView, start: Date, end: Date) => {
+    const year = (date: Date) => (date.getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" as const });
+    const last = new Date(end.getTime() - 1);
+    if (view === "timeGridDay")
+      return new Intl.DateTimeFormat(languageTag, {
+        weekday: "short",
+        day: "numeric",
+        month: "long",
+        ...year(start),
+      }).format(start);
+    if (view === "timeGridWeek" && last.getMonth() !== start.getMonth()) {
+      const short = (date: Date) => new Intl.DateTimeFormat(languageTag, { month: "short" }).format(date);
+      const suffix = last.getFullYear() === new Date().getFullYear() ? "" : ` ${last.getFullYear()}`;
+      return `${short(start)} – ${short(last)}${suffix}`;
+    }
+    return new Intl.DateTimeFormat(languageTag, { month: "long", ...year(start) }).format(start);
+  };
+}
 
 // @implements-requirement HALL-FR-CAL-010
 // @implements-requirement HALL-FR-CAL-050
@@ -48,25 +84,27 @@ import "./calendar.css";
 // @implements-requirement HALL-FR-CAL-110
 // @implements-requirement HALL-FR-CAL-130
 // @implements-requirement HALL-FR-CAL-210
+// @implements-requirement HALL-FR-CAL-220
+// @implements-requirement HALL-FR-CAL-230
 /**
- * Council calendar. On a phone the day view opens half an hour before the current hour, so that the hour label is
- * whole, and the grid runs from edge to edge with a short date in the title of the day.
+ * Council calendar. On a phone the day view opens half an hour before the current hour, a swipe changes the period,
+ * a touch on a day or an hour opens the creation sheet and an appointment opens in a sheet from the bottom. The list
+ * view gives the coming appointments and meetings day by day.
  */
 export function CalendarPage() {
   const { t, locale, formatDate } = useI18n();
+  const periodTitle = usePeriodTitle();
   const calendar = useRef<CalendarRef>(null);
+  const grid = useRef<HTMLDivElement>(null);
   const deleting = useRef(false);
   const contextMenuListeners = useRef(new WeakMap<HTMLElement, EventListener>());
   const resources = useWorkspaceResourcesStore();
   const meetings = useCouncilMeetingsStore((state) => state.meetings);
-  const businesses = useCouncilBusinessStore((state) => state.businesses);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
-  const [name, setName] = useState("");
-  const [councilBusinessId, setCouncilBusinessId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<EventDocument | null>(null);
+  const [creation, setCreation] = useState<EventDocument | null>(null);
   const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
   const [selectedMeetingReference, setSelectedMeetingReference] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -80,7 +118,9 @@ export function CalendarPage() {
   const phone = usePhoneLayout();
   const [phoneWidth] = useState(phone);
   const [phoneScrollTime] = useState(() => `${String(Math.max(new Date().getHours() - 1, 0)).padStart(2, "0")}:30:00`);
-  const [view, setView] = useState(phoneWidth ? "timeGridDay" : "dayGridMonth");
+  const [view, setView] = useState<CalendarView>(phoneWidth ? "timeGridDay" : "dayGridMonth");
+  const [anchor, setAnchor] = useState<CalendarDay>(() => calendarDay(new Date()));
+  const [range, setRange] = useState<{ start: Date; end: Date } | null>(null);
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -99,20 +139,23 @@ export function CalendarPage() {
     };
   }, []);
   useWorkspaceReread(openCatalogAppointments);
+  const api = () => calendar.current?.getApi();
+  useCalendarSwipe(
+    grid,
+    phone && view !== "list",
+    () => api()?.prev(),
+    () => api()?.next(),
+  );
   const eventResources = Object.values(resources.details).filter((entry) => entry.kind === "event");
-  const events = [
+  const occurrences: CalendarOccurrence[] = [
     ...eventResources.map((entry) => ({
       id: entry.id,
       title: entry.name,
       start: entry.document.schedule.start,
       end: entry.document.schedule.end,
       allDay: entry.document.schedule.kind === "allDay",
-      className: "hall-calendar-appointment",
-      editable: Boolean(
-        resources.representations[entry.id] &&
-          findSirenAction(resources.representations[entry.id], "resource.update-content"),
-      ),
-      extendedProps: { resourceId: entry.id },
+      location: entry.document.location,
+      resourceId: entry.id,
     })),
     ...meetings
       .filter((entry) => entry.scheduledAt)
@@ -120,24 +163,65 @@ export function CalendarPage() {
         id: `meeting-${entry.id}`,
         title: t("calendar.meetingLabel", { number: String(entry.number) }),
         start: entry.scheduledAt!,
-        editable: false,
-        className: "hall-calendar-council",
-        extendedProps: { meetingReference: entry.reference },
+        allDay: false,
+        meetingReference: entry.reference,
       })),
   ];
+  const events = occurrences.map((occurrence) => ({
+    id: occurrence.id,
+    title: occurrence.title,
+    start: occurrence.start,
+    end: occurrence.end,
+    allDay: occurrence.allDay,
+    className: occurrence.resourceId ? "hall-calendar-appointment" : "hall-calendar-council",
+    editable: Boolean(
+      occurrence.resourceId &&
+        resources.representations[occurrence.resourceId] &&
+        findSirenAction(resources.representations[occurrence.resourceId], "resource.update-content"),
+    ),
+    extendedProps: { resourceId: occurrence.resourceId, meetingReference: occurrence.meetingReference },
+  }));
+  const marked = new Set(
+    occurrences.map((occurrence) =>
+      occurrence.allDay ? occurrence.start.slice(0, 10) : calendarDay(new Date(occurrence.start)),
+    ),
+  );
   const contextResource = contextTarget?.resourceId ? resources.details[contextTarget.resourceId] : null;
   const contextEvent = contextResource?.kind === "event" ? contextResource : null;
+  const canCreate = resources.collectionCapabilities.create;
+  const open = (target: { resourceId?: string; meetingReference?: string }) => {
+    if (target.meetingReference) setSelectedMeetingReference(target.meetingReference);
+    else if (target.resourceId && resources.details[target.resourceId]) setSelectedResourceId(target.resourceId);
+  };
   const startEvent = () => {
-    setName("");
-    setCouncilBusinessId(null);
-    setDraft(emptyEventDocument());
+    const today = calendarDay(new Date());
+    const shown = range && calendarDay(range.start) <= today && today < calendarDay(range.end) ? today : anchor;
+    setCreation(emptyEventDocument(view === "list" ? today : shown));
+  };
+  const changeView = (next: CalendarView) => {
+    setView(next);
+    if (next === "list") {
+      setTitle(periodTitle("dayGridMonth", dayDate(anchor), dayDate(anchor)));
+      return;
+    }
+    api()?.changeView(next, anchor);
+  };
+  const goTo = (day: CalendarDay) => {
+    setAnchor(day);
+    if (view === "list") setTitle(periodTitle("dayGridMonth", dayDate(day), dayDate(day)));
+    else api()?.gotoDate(day);
+  };
+  const shift = (direction: -1 | 1) => {
+    if (view === "list") goTo(shiftMonths(anchor, direction));
+    else if (direction < 0) api()?.prev();
+    else api()?.next();
   };
   return (
-    <div className="hall-calendar" data-testid="calendar-page">
+    <div className="hall-calendar" data-testid="calendar-page" data-view={view}>
       <CreateButton
         testId="calendar-new"
         options={
-          resources.collectionCapabilities.create
+          canCreate
             ? [
                 {
                   id: "event",
@@ -150,183 +234,150 @@ export function CalendarPage() {
             : []
         }
       />
-      <div className="calendar-toolbar">
-        <div className="calendar-toolbar-navigation">
-          <Button variant="secondary" data-testid="calendar-today" onClick={() => calendar.current?.getApi().today()}>
-            {t("calendar.today")}
-          </Button>
-          <Button
-            variant="plain"
-            size="icon"
-            data-testid="calendar-previous"
-            aria-label={t("calendar.previous")}
-            onClick={() => calendar.current?.getApi().prev()}
-          >
-            <ChevronLeftIcon />
-          </Button>
-          <Button
-            variant="plain"
-            size="icon"
-            data-testid="calendar-next"
-            aria-label={t("calendar.next")}
-            onClick={() => calendar.current?.getApi().next()}
-          >
-            <ChevronRightIcon />
-          </Button>
-          <h2 data-testid="calendar-title">{title}</h2>
-        </div>
-        <div className="calendar-toolbar-actions">
-          {phone ? null : (
-            <div className="calendar-legend">
-              <span className="calendar-legend-event">{t("workspace.type.event")}</span>
-              <span className="calendar-legend-council">{t("navigation.meetings")}</span>
-            </div>
-          )}
-          <div className="calendar-toolbar-views">
-            {(
-              [
-                { id: "dayGridMonth", label: "calendar.month" },
-                { id: "timeGridWeek", label: "calendar.week" },
-                { id: "timeGridDay", label: "calendar.day" },
-              ] as const
-            ).map((item) => (
-              <Button
-                key={item.id}
-                variant="secondary"
-                aria-pressed={view === item.id}
-                data-testid={`calendar-view-${item.id}`}
-                onClick={() => calendar.current?.getApi().changeView(item.id)}
-              >
-                {t(item.label)}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <CalendarHeader
+        phone={phone}
+        view={view}
+        title={title}
+        anchor={anchor}
+        marked={marked}
+        onView={changeView}
+        onGoTo={goTo}
+        onToday={() => goTo(calendarDay(new Date()))}
+        onPrevious={() => shift(-1)}
+        onNext={() => shift(1)}
+      />
       {loading && <p role="status">{t("calendar.loading")}</p>}
       {error && <p role="alert">{t("calendar.error")}</p>}
-      <FullCalendar
-        ref={calendar}
-        plugins={[themePlugin, dayGridPlugin, timeGridPlugin, interactionPlugin]}
-        locale={locale === "fr" ? frLocale : "en"}
-        initialView={phoneWidth ? "timeGridDay" : "dayGridMonth"}
-        headerToolbar={false}
-        height="100%"
-        dayHeaderInnerClass="hall-calendar-day-header"
-        dayCellTopInnerClass="hall-calendar-day-number"
-        {...(phone
-          ? {
-              borderless: true,
-              scrollTime: phoneScrollTime,
-              allDayHeaderClass: "hall-calendar-all-day",
-              views: { timeGridDay: { titleFormat: { day: "numeric", month: "short", year: "numeric" } } },
-            }
-          : {})}
-        events={events}
-        firstDay={1}
-        nowIndicator
-        selectable={resources.collectionCapabilities.create}
-        editable={!saving}
-        eventDurationEditable={!saving}
-        datesSet={(info) => {
-          setTitle(info.view.title);
-          setView(info.view.type);
-        }}
-        select={(info) => {
-          setName("");
-          setCouncilBusinessId(null);
-          setDraft({
-            ...emptyEventDocument(),
-            schedule: info.allDay
-              ? { kind: "allDay", start: info.startStr.slice(0, 10), end: info.endStr.slice(0, 10) }
-              : { kind: "timed", start: info.startStr, end: info.endStr },
-          });
-          calendar.current?.getApi().unselect();
-        }}
-        eventClick={(info) => {
-          const props = info.event.extendedProps;
-          if (props.meetingReference) setSelectedMeetingReference(props.meetingReference);
-          else {
-            const resource = resources.details[props.resourceId];
-            if (resource) setSelectedResourceId(resource.id);
-          }
-        }}
-        eventChange={async (info) => {
-          const resource = resources.details[info.event.extendedProps.resourceId];
-          if (resource?.kind !== "event" || saving) {
-            info.revert();
-            return;
-          }
-          const start = info.event.startStr;
-          const end = info.event.endStr || (info.event.allDay ? nextDate(start.slice(0, 10)) : "");
-          const document: EventDocument = {
-            ...resource.document,
-            schedule: info.event.allDay
-              ? { kind: "allDay", start: start.slice(0, 10), end: end.slice(0, 10) }
-              : { kind: "timed", start, end },
-          };
-          if (!eventDocumentSchema.safeParse(document).success) {
-            info.revert();
-            return;
-          }
-          setSaving(true);
-          const result = await resources.updateContent(resource.id, {
-            kind: "event",
-            expectedVersion: resource.version,
-            document,
-          });
-          if (!result) {
-            info.revert();
-            setError(true);
-          }
-          setSaving(false);
-        }}
-        eventContent={(info) => {
-          return (
-            <span
-              className="hall-calendar-event-label"
-              data-line={info.view.type.startsWith("dayGrid") ? "one" : undefined}
-              title={`${info.timeText} ${info.event.title}`.trim()}
-            >
-              {info.timeText} {info.event.title}
-            </span>
-          );
-        }}
-        eventDidMount={(info) => {
-          info.el.dataset.testid = `calendar-event-${info.event.id}`;
-          info.el.classList.add("hall-calendar-event");
-          const listener: EventListener = (rawEvent) => {
-            const event = rawEvent as MouseEvent;
-            event.preventDefault();
-            setContextTarget({
-              resourceId: info.event.extendedProps.resourceId,
-              meetingReference: info.event.extendedProps.meetingReference,
-              x: event.clientX,
-              y: event.clientY,
+      {view === "list" ? <CalendarList occurrences={occurrences} from={anchor} onOpen={open} /> : null}
+      <div className="hall-calendar-grid" ref={grid} hidden={view === "list"}>
+        <FullCalendar
+          ref={calendar}
+          plugins={[themePlugin, dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          locale={locale === "fr" ? frLocale : "en"}
+          initialView={phoneWidth ? "timeGridDay" : "dayGridMonth"}
+          headerToolbar={false}
+          height="100%"
+          dayHeaderInnerClass="hall-calendar-day-header"
+          dayCellTopInnerClass="hall-calendar-day-number"
+          {...(phone
+            ? {
+                borderless: true,
+                scrollTime: phoneScrollTime,
+                allDayHeaderClass: "hall-calendar-all-day",
+              }
+            : {})}
+          events={events}
+          firstDay={1}
+          nowIndicator
+          selectable={canCreate && !phone}
+          editable={!saving}
+          eventDurationEditable={!saving}
+          datesSet={(info) => {
+            const type = info.view.type as CalendarView;
+            setTitle(periodTitle(type, info.view.currentStart, info.view.currentEnd));
+            setRange({ start: info.view.currentStart, end: info.view.currentEnd });
+            const today = calendarDay(new Date());
+            const first = calendarDay(info.view.currentStart);
+            setAnchor(first <= today && today < calendarDay(info.view.currentEnd) ? today : first);
+            setView((current) => (current === "list" ? current : type));
+          }}
+          select={(info) => {
+            setCreation({
+              ...emptyEventDocument(),
+              schedule: info.allDay
+                ? { kind: "allDay", start: info.startStr.slice(0, 10), end: info.endStr.slice(0, 10) }
+                : { kind: "timed", start: info.startStr, end: info.endStr },
             });
-          };
-          contextMenuListeners.current.set(info.el, listener);
-          info.el.addEventListener("contextmenu", listener);
-        }}
-        eventWillUnmount={(info) => {
-          const listener = contextMenuListeners.current.get(info.el);
-          if (listener) info.el.removeEventListener("contextmenu", listener);
-        }}
-        dayCellDidMount={(info) => {
-          info.el.dataset.testid = `calendar-day-${localDate(info.date)}`;
-        }}
-        slotHeaderDidMount={(info) => {
-          info.el.dataset.testid = "calendar-slot-label";
-        }}
-        slotLaneDidMount={(info) => {
-          info.el.dataset.testid = `calendar-slot-${info.el.dataset.time}`;
-        }}
-      />
+            api()?.unselect();
+          }}
+          dateClick={(info) => {
+            if (!phone || !canCreate) return;
+            const day = localDate(info.date);
+            setCreation({
+              ...emptyEventDocument(day),
+              schedule: info.allDay
+                ? { kind: "allDay", start: day, end: nextDate(day) }
+                : { kind: "timed", start: info.date.toISOString(), end: oneHourLater(info.date).toISOString() },
+            });
+          }}
+          eventClick={(info) => open(info.event.extendedProps)}
+          eventChange={async (info) => {
+            const resource = resources.details[info.event.extendedProps.resourceId];
+            if (resource?.kind !== "event" || saving) {
+              info.revert();
+              return;
+            }
+            const start = info.event.startStr;
+            const end = info.event.endStr || (info.event.allDay ? nextDate(start.slice(0, 10)) : "");
+            const document: EventDocument = {
+              ...resource.document,
+              schedule: info.event.allDay
+                ? { kind: "allDay", start: start.slice(0, 10), end: end.slice(0, 10) }
+                : { kind: "timed", start, end },
+            };
+            if (!eventDocumentSchema.safeParse(document).success) {
+              info.revert();
+              return;
+            }
+            setSaving(true);
+            const result = await resources.updateContent(resource.id, {
+              kind: "event",
+              expectedVersion: resource.version,
+              document,
+            });
+            if (!result) {
+              info.revert();
+              setError(true);
+            }
+            setSaving(false);
+          }}
+          eventContent={(info) => {
+            return (
+              <span
+                className="hall-calendar-event-label"
+                data-line={info.view.type.startsWith("dayGrid") ? "one" : undefined}
+                title={`${info.timeText} ${info.event.title}`.trim()}
+              >
+                {info.timeText} {info.event.title}
+              </span>
+            );
+          }}
+          eventDidMount={(info) => {
+            info.el.dataset.testid = `calendar-event-${info.event.id}`;
+            info.el.classList.add("hall-calendar-event");
+            const listener: EventListener = (rawEvent) => {
+              const event = rawEvent as MouseEvent;
+              event.preventDefault();
+              setContextTarget({
+                resourceId: info.event.extendedProps.resourceId,
+                meetingReference: info.event.extendedProps.meetingReference,
+                x: event.clientX,
+                y: event.clientY,
+              });
+            };
+            contextMenuListeners.current.set(info.el, listener);
+            info.el.addEventListener("contextmenu", listener);
+          }}
+          eventWillUnmount={(info) => {
+            const listener = contextMenuListeners.current.get(info.el);
+            if (listener) info.el.removeEventListener("contextmenu", listener);
+          }}
+          dayCellDidMount={(info) => {
+            info.el.dataset.testid = `calendar-day-${localDate(info.date)}`;
+          }}
+          slotHeaderDidMount={(info) => {
+            info.el.dataset.testid = "calendar-slot-label";
+          }}
+          slotLaneDidMount={(info) => {
+            info.el.dataset.testid = `calendar-slot-${info.el.dataset.time}`;
+          }}
+        />
+      </div>
       {contextTarget ? (
         <DropdownMenu
           open
-          onOpenChange={(open) => {
-            if (!open) setContextTarget(null);
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setContextTarget(null);
           }}
         >
           <DropdownMenuTrigger asChild>
@@ -336,8 +387,7 @@ export function CalendarPage() {
             <DropdownMenuItem
               data-testid="calendar-event-open"
               onSelect={() => {
-                if (contextTarget.meetingReference) setSelectedMeetingReference(contextTarget.meetingReference);
-                else if (contextTarget.resourceId) setSelectedResourceId(contextTarget.resourceId);
+                open(contextTarget);
                 setContextTarget(null);
               }}
             >
@@ -382,8 +432,8 @@ export function CalendarPage() {
       )}
       <Dialog
         open={deleteId !== null}
-        onOpenChange={(open) => {
-          if (!open && !saving) {
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !saving) {
             setDeleteId(null);
             setDeleteStep(1);
           }
@@ -437,9 +487,20 @@ export function CalendarPage() {
           </div>
         </DialogContent>
       </Dialog>
-      {selectedResourceId && (
-        <ResourcePreview resourceId={selectedResourceId} onClose={() => setSelectedResourceId(null)} />
-      )}
+      {selectedResourceId ? (
+        phone ? (
+          <EventSheet
+            resourceId={selectedResourceId}
+            onClose={() => setSelectedResourceId(null)}
+            onDelete={(resourceId) => {
+              setDeleteStep(1);
+              setDeleteId(resourceId);
+            }}
+          />
+        ) : (
+          <ResourcePreview resourceId={selectedResourceId} onClose={() => setSelectedResourceId(null)} />
+        )
+      ) : null}
       <Modal
         open={selectedMeetingReference !== null}
         title={t("navigation.meetings")}
@@ -449,80 +510,7 @@ export function CalendarPage() {
       >
         {selectedMeetingReference ? <CouncilMeetingPage meetingReference={selectedMeetingReference} /> : null}
       </Modal>
-      <Dialog
-        open={draft !== null}
-        onOpenChange={(open) => {
-          if (!open && !saving) setDraft(null);
-        }}
-      >
-        <DialogContent className="max-h-[85vh] overflow-y-auto max-w-[min(calc(100%-2rem),var(--hall-size-modal))]">
-          <DialogHeader>
-            <DialogTitle>{t("workspace.createEvent")}</DialogTitle>
-          </DialogHeader>
-          {draft && (
-            <form
-              className="modal-form"
-              onSubmit={async (event) => {
-                event.preventDefault();
-                if (saving) return;
-                setSaving(true);
-                const business = businesses.find((entry) => entry.id === councilBusinessId);
-                const created = await resources.create({
-                  kind: "event",
-                  path: business?.folderPath ?? "",
-                  name,
-                  document: draft,
-                  ...(councilBusinessId ? { councilBusinessId } : {}),
-                });
-                setSaving(false);
-                if (created) {
-                  if (councilBusinessId) await useCouncilBusinessStore.getState().loadResources(councilBusinessId);
-                  setDraft(null);
-                } else setError(true);
-              }}
-            >
-              <Field label={t("calendar.title")}>
-                <Input
-                  data-testid="calendar-name"
-                  required
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </Field>
-              <EventFields
-                value={draft}
-                onChange={setDraft}
-                councilBusinessId={councilBusinessId}
-                onCouncilBusinessChange={setCouncilBusinessId}
-                readOnly={saving}
-              />
-              <div className="dialog-actions">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  data-testid="calendar-cancel"
-                  disabled={saving}
-                  onClick={() => setDraft(null)}
-                >
-                  {t("calendar.cancel")}
-                </Button>
-                <Button
-                  type="submit"
-                  data-testid="calendar-create"
-                  disabled={
-                    saving ||
-                    !name.trim() ||
-                    !eventDocumentSchema.safeParse(draft).success ||
-                    !eventDocumentUsesQuarterHours(draft)
-                  }
-                >
-                  {t("calendar.create")}
-                </Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EventCreateSheet initial={creation} onClose={() => setCreation(null)} onFailed={() => setError(true)} />
     </div>
   );
 }

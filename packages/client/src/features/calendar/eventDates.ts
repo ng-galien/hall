@@ -8,8 +8,8 @@ export function shiftDate(date: string, days: number): string {
   value.setDate(value.getDate() + days);
   return localDate(value);
 }
-export function emptyEventDocument(): EventDocument {
-  const start = localDate(new Date());
+export function emptyEventDocument(day: string = localDate(new Date())): EventDocument {
+  const start = day;
   return { content: "", location: "", participants: [], schedule: { kind: "allDay", start, end: nextDate(start) } };
 }
 export function localDateTime(value: string): string {

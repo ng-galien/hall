@@ -13,6 +13,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { useContactsStore } from "../../stores/contactsStore";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useCouncilMembersStore } from "../../stores/councilMembersStore";
+import { DayField, TimeField } from "./EventScheduleFields";
 import { localDateTime, nextDate, shiftDate } from "./eventDates";
 
 // @implements-requirement HALL-FR-CAL-120
@@ -87,28 +88,39 @@ export function EventFields({
         />
         {t("calendar.allDay")}
       </label>
-      <FieldRow>
-        <Field label={t("calendar.start")}>
-          <Input
-            data-testid="event-start"
-            type={allDay ? "date" : "datetime-local"}
-            step={allDay ? undefined : 900}
-            readOnly={readOnly}
-            value={allDay ? value.schedule.start : localDateTime(value.schedule.start)}
-            onChange={(event) => updateDate("start", event.target.value)}
-          />
-        </Field>
-        <Field label={t("calendar.end")}>
-          <Input
-            data-testid="event-end"
-            type={allDay ? "date" : "datetime-local"}
-            step={allDay ? undefined : 900}
-            readOnly={readOnly}
-            value={allDay ? shiftDate(value.schedule.end, -1) : localDateTime(value.schedule.end)}
-            onChange={(event) => updateDate("end", event.target.value)}
-          />
-        </Field>
-      </FieldRow>
+      {(["start", "end"] as const).map((field) => {
+        const local = allDay ? null : localDateTime(value.schedule[field]);
+        const day = allDay
+          ? field === "end"
+            ? shiftDate(value.schedule.end, -1)
+            : value.schedule.start
+          : local!.slice(0, 10);
+        const time = local?.slice(11, 16) ?? "";
+        const startLocal = allDay ? null : localDateTime(value.schedule.start);
+        return (
+          <FieldRow key={field} className="event-schedule-row">
+            <DayField
+              label={t(field === "start" ? "calendar.start" : "calendar.end")}
+              testId={`event-${field}-date`}
+              value={day}
+              readOnly={readOnly}
+              onChange={(next) => updateDate(field, allDay ? next : `${next}T${time}`)}
+            />
+            {allDay ? null : (
+              <TimeField
+                label={t(field === "start" ? "calendar.startTime" : "calendar.endTime")}
+                testId={`event-${field}-time`}
+                value={time}
+                readOnly={readOnly}
+                durationFrom={
+                  field === "end" && startLocal?.slice(0, 10) === day ? startLocal.slice(11, 16) : undefined
+                }
+                onChange={(next) => updateDate(field, `${day}T${next}`)}
+              />
+            )}
+          </FieldRow>
+        );
+      })}
       {onCouncilBusinessChange ? (
         <Field label={t("calendar.councilBusiness")}>
           <ResourceSearchField

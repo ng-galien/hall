@@ -14,6 +14,11 @@ const firstId = "11111111-1111-4111-8111-111111111111";
 const secondId = "22222222-2222-4222-8222-222222222222";
 const actor = { id: "33333333-3333-4333-8333-333333333333", displayName: "Agent A" };
 
+function todayAt(hour) {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour).toISOString();
+}
+
 function appointment(id, name, start, end, version) {
   return {
     id,
@@ -52,9 +57,9 @@ test("an open calendar shows the appointments another session creates, moves, re
       `export { useWorkspaceLiveUpdates } from ${JSON.stringify(join(clientRoot, "src/hooks/useWorkspaceLiveUpdates.ts"))};\n` +
       `export { I18nProvider } from ${JSON.stringify(join(clientRoot, "src/i18n/I18nProvider.tsx"))};\n` +
       `export { TooltipProvider } from ${JSON.stringify(join(clientRoot, "src/components/ui/tooltip.tsx"))};\n` +
-      `export { ScreenActionsSlotContext } from ${JSON.stringify(join(clientRoot, "src/shell/headerTrail.tsx"))};\n`,
+      `export { ScreenActionsSlotContext, ScreenTitleSlotsContext } from ${JSON.stringify(join(clientRoot, "src/shell/headerTrail.tsx"))};\n`,
   );
-  const dom = new JSDOM('<!doctype html><div id="actions"></div><div id="root"></div>', {
+  const dom = new JSDOM('<!doctype html><div id="actions"></div><div id="title-commands"></div><div id="root"></div>', {
     url: "http://localhost/app/calendar",
     pretendToBeVisual: true,
   });
@@ -148,7 +153,7 @@ test("an open calendar shows the appointments another session creates, moves, re
   dom.window.localStorage.setItem("mairie.locale", "en");
 
   const appointments = new Map([
-    [firstId, appointment(firstId, "Weekly review", "2026-11-14T09:00:00+01:00", "2026-11-14T10:00:00+01:00", 1)],
+    [firstId, appointment(firstId, "Weekly review", todayAt(9), todayAt(10), 1)],
   ]);
   const siren = (body) => new Response(JSON.stringify(body), { headers: { "content-type": sirenType } });
   globalThis.fetch = async (input) => {
@@ -227,8 +232,14 @@ test("an open calendar shows the appointments another session creates, moves, re
       plugins: [emptyCss],
       logLevel: "silent",
     });
-    const { CalendarPage, useWorkspaceLiveUpdates, I18nProvider, TooltipProvider, ScreenActionsSlotContext } =
-      await import(pathToFileURL(output).href);
+    const {
+      CalendarPage,
+      useWorkspaceLiveUpdates,
+      I18nProvider,
+      TooltipProvider,
+      ScreenActionsSlotContext,
+      ScreenTitleSlotsContext,
+    } = await import(pathToFileURL(output).href);
     function OpenCalendar() {
       useWorkspaceLiveUpdates();
       return createElement(CalendarPage);
@@ -250,7 +261,18 @@ test("an open calendar shows the appointments another session creates, moves, re
               createElement(
                 ScreenActionsSlotContext.Provider,
                 { value: dom.window.document.getElementById("actions") },
-                createElement(OpenCalendar),
+                createElement(
+                  ScreenTitleSlotsContext.Provider,
+                  {
+                    value: {
+                      icon: null,
+                      commands: dom.window.document.getElementById("title-commands"),
+                      facts: null,
+                      hint: null,
+                    },
+                  },
+                  createElement(OpenCalendar),
+                ),
               ),
             ),
           ),
@@ -285,14 +307,14 @@ test("an open calendar shows the appointments another session creates, moves, re
 
     appointments.set(
       secondId,
-      appointment(secondId, "Site visit", "2026-11-14T11:00:00+01:00", "2026-11-14T12:00:00+01:00", 1),
+      appointment(secondId, "Site visit", todayAt(11), todayAt(12), 1),
     );
     await announceChange();
     assert.ok(shown()[secondId]?.includes("Site visit"), "an appointment created elsewhere appears");
 
     appointments.set(
       firstId,
-      appointment(firstId, "Weekly review moved", "2026-11-14T14:00:00+01:00", "2026-11-14T15:00:00+01:00", 2),
+      appointment(firstId, "Weekly review moved", todayAt(14), todayAt(15), 2),
     );
     await announceChange();
     assert.match(shown()[firstId] ?? "", /Weekly review moved/, "an appointment renamed elsewhere changes");

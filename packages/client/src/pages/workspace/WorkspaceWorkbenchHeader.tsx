@@ -28,7 +28,7 @@ export interface WorkbenchControls {
 export const WorkbenchControlsContext = createContext<WorkbenchControls | null>(null);
 
 /** The save state of an opened item, written after a dot. */
-function SaveFact({ save }: { save: NonNullable<WorkbenchControls["save"]> }) {
+export function SaveFact({ save }: { save: NonNullable<WorkbenchControls["save"]> }) {
   const { t } = useI18n();
   const status = !save.enabled && save.status === "idle" ? "off" : save.status;
   if (status === "idle") return null;

@@ -1,17 +1,49 @@
 .hall-calendar { height: 100%; padding: var(--hall-space-5); display: flex; flex-direction: column; gap: var(--hall-space-3); }
-.hall-calendar > .fc { flex: 1; min-height: var(--hall-size-relative-24rem); }
-.calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--hall-space-4); flex-wrap: wrap; }
-.calendar-toolbar-navigation,
-.calendar-toolbar-views { display: flex; align-items: center; gap: var(--hall-space-2); }
-.calendar-toolbar h2 { font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); }
-/* Navigation and actions are two groups: each fills its line when they no longer fit side by side. */
-.calendar-toolbar-navigation { flex: 1 1 auto; }
-.calendar-toolbar-actions { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2) var(--hall-space-5); }
-/* On a phone, the views open their own line from its left edge. */
+.calendar-list { display: grid; align-content: start; gap: var(--hall-space-3); overflow-y: auto; min-height: 0; flex: 1; padding-bottom: var(--hall-space-10); }
+.calendar-list-day { display: grid; gap: var(--hall-space-1); }
+.calendar-list-day-title { position: sticky; top: 0; z-index: var(--hall-z-content); padding-block: var(--hall-space-1); background: var(--hall-color-surface); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-bold); }
+.calendar-list-day-title::first-letter { text-transform: uppercase; }
+.calendar-list-day-title[data-today="true"] { color: var(--hall-color-brand); }
+.calendar-list-empty { color: var(--hall-color-text-muted); }
+.event-schedule-row.event-schedule-row { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.event-schedule-row > .event-day-field:only-child { grid-column: 1 / -1; }
+.event-date-popover.event-date-popover { width: min(calc(100vw - var(--hall-space-6)), var(--hall-size-relative-22rem)); }
+.event-time-options { max-height: min(var(--hall-size-relative-22rem), var(--radix-select-content-available-height)); }
+.event-time-option { font-variant-numeric: tabular-nums; }
+.event-time-duration { margin-left: var(--hall-space-2); color: var(--hall-color-text-muted); }
+.event-sheet-facts:empty { display: none; }
+.event-sheet-delete.event-sheet-delete { color: var(--hall-color-danger); }
 @media (max-width: 760px) {
-  .calendar-toolbar-actions { justify-content: flex-start; }
-  /* The period is read whole beside « Aujourd'hui » and the two arrows on the narrowest phone. */
-  .calendar-toolbar-navigation { gap: var(--hall-space-1); }
+  .event-time-option { min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-text); }
+}
+.hall-calendar-grid { display: flex; min-height: var(--hall-size-relative-24rem); flex: 1; flex-direction: column; overflow: hidden; }
+.hall-calendar-grid[hidden] { display: none; }
+.hall-calendar-grid > .fc { flex: 1; min-height: 0; }
+.calendar-toolbar { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); }
+.calendar-period {
+  display: inline-flex;
+  min-width: 0;
+  min-height: var(--hall-size-control);
+  align-items: center;
+  gap: var(--hall-space-2);
+  padding: 0 var(--hall-space-2);
+  border-radius: var(--hall-radius-small);
+  color: var(--hall-color-text);
+}
+.calendar-period:hover,
+.calendar-period[data-state="open"] { background: var(--hall-color-surface-subtle); }
+.calendar-period:focus-visible { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
+.calendar-period h2 { overflow: hidden; min-width: 0; font-size: var(--hall-font-size-heading); font-weight: var(--hall-font-weight-heavy); letter-spacing: var(--hall-letter-spacing-heading); text-overflow: ellipsis; white-space: nowrap; }
+.calendar-period-icon { flex: none; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-icon-small); }
+.calendar-period-popover.calendar-period-popover { width: min(calc(100vw - var(--hall-space-6)), var(--hall-size-relative-22rem)); }
+.calendar-views { display: flex; align-items: center; gap: var(--hall-space-0-5); }
+.calendar-toolbar[data-layout="wide"] .calendar-legend { margin-left: auto; }
+/* On a phone the period starts the line at the margin of the title, « Aujourd'hui » ends it. */
+@media (max-width: 760px) {
+  .calendar-toolbar { justify-content: space-between; }
+  .calendar-period { min-height: var(--hall-size-touch-control); margin-left: calc(-1 * var(--hall-space-2)); }
+  .calendar-period h2 { font-size: var(--hall-font-size-title); }
+  .calendar-views { gap: 0; }
 }
 .calendar-legend { display: flex; gap: var(--hall-space-4); font-size: var(--hall-font-size-body); color: var(--hall-color-text-muted); }
 .calendar-legend span::before { content: ''; display: inline-block; width: var(--hall-space-2); height: var(--hall-space-2); margin-right: var(--hall-space-1-5); border-radius: var(--hall-radius-circular); background: var(--hall-color-brand); }
@@ -87,6 +119,8 @@
   .app-main .hall-calendar.hall-calendar > :not(.calendar-toolbar) { padding-inline: var(--hall-space-4); }
   /* The title and the toolbar form one block over the grid: a single rule, under the toolbar. */
   .app-main:has(.hall-calendar) .screen-title-block { border-bottom: 0; }
+  /* « Agenda » and its four views share the line of the title. */
+  .app-main:has(.hall-calendar) .screen-header-title { flex-basis: auto; }
 }
 
 /* Resource form uses the same surface and spacing as the modal header. */

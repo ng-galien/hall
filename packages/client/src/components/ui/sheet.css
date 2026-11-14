@@ -1,0 +1,74 @@
+.hall-sheet.hall-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+  background: var(--hall-color-surface);
+  color: var(--hall-color-text);
+  font-size: var(--hall-font-size-body);
+  transition: transform 200ms ease-out;
+}
+.hall-sheet[data-side="bottom"] {
+  max-height: calc(100dvh - var(--hall-space-6));
+  border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0;
+  box-shadow: var(--hall-shadow-large);
+}
+.hall-sheet[data-side="right"] {
+  width: min(100%, var(--hall-size-relative-30rem));
+  max-width: none;
+  border-left: var(--hall-stroke-thin) solid var(--hall-color-border);
+  box-shadow: var(--hall-shadow-large);
+}
+.hall-sheet-head {
+  display: grid;
+  flex: none;
+  justify-items: center;
+  padding: var(--hall-space-2) var(--hall-space-2) var(--hall-space-1) var(--hall-space-4);
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+  touch-action: none;
+}
+.hall-sheet[data-side="right"] .hall-sheet-head { padding-top: var(--hall-space-3); touch-action: auto; }
+.hall-sheet-grabber {
+  width: var(--hall-size-relative-2rem);
+  height: var(--hall-space-1);
+  margin-bottom: var(--hall-space-1);
+  border-radius: var(--hall-radius-small);
+  background: var(--hall-color-border-strong);
+}
+.hall-sheet-title-row { display: flex; width: 100%; min-width: 0; align-items: center; gap: var(--hall-space-2); }
+.hall-sheet-title.hall-sheet-title {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+  font-size: var(--hall-font-size-title);
+  font-weight: var(--hall-font-weight-heavy);
+  line-height: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hall-sheet-commands { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); margin-left: auto; }
+.hall-sheet-body {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  align-content: start;
+  gap: var(--hall-space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--hall-space-4);
+}
+.hall-sheet-foot {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hall-space-2);
+  padding: var(--hall-space-3) var(--hall-space-4) calc(var(--hall-space-3) + env(safe-area-inset-bottom, var(--hall-size-zero)));
+  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
+}
+.hall-sheet-foot > .hall-sheet-foot-start { margin-right: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .hall-sheet.hall-sheet { transition: none; }
+}
