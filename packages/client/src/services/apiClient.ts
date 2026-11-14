@@ -69,6 +69,7 @@ export type ApiErrorCode =
   | "too_many_login_attempts"
   | "bootstrap_unavailable"
   | "last_administrator_required"
+  | "administrator_role_requires_administrator"
   | "councillor_requires_active_member"
   | "personal_workspace_resource_not_associable"
   | "council_business_report_not_deletable"
@@ -207,6 +208,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "too_many_login_attempts",
   "bootstrap_unavailable",
   "last_administrator_required",
+  "administrator_role_requires_administrator",
   "councillor_requires_active_member",
   "personal_workspace_resource_not_associable",
   "council_business_report_not_deletable",

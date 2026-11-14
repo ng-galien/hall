@@ -3,17 +3,22 @@ import { RequestErrorBanner } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useRoleOptions } from "../authorization/useRoleOptions";
 
+// @implements-requirement HALL-FR-USR-110
+/** Presents the roles the Siren action offers; a role it does not offer keeps its current state in the value. */
 export function UserRoles({
   value,
+  offered,
   onChange,
   disabled = false,
 }: {
   value: ApiRole[];
+  offered: readonly string[];
   onChange(value: ApiRole[]): void;
   disabled?: boolean;
 }) {
   const { t } = useI18n();
-  const { roles, loading, error } = useRoleOptions();
+  const { roles: options, loading, error } = useRoleOptions();
+  const roles = options.filter((role) => offered.includes(role.id));
   return (
     <fieldset className="checkbox-group" disabled={disabled}>
       <legend>{t("users.roles")}</legend>

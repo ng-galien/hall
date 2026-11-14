@@ -35,7 +35,8 @@ export function UsersPage() {
   const { roleName, requiresActiveMember } = useRoleOptions();
   const navigate = useNavigate();
   const { submitting, run } = useSubmitting();
-  const { users, listed, loading, load, create, error, canCreate, canGeneratePassphrase, clearError } = useUsersStore();
+  const { users, listed, loading, load, create, error, canCreate, creatableRoles, canGeneratePassphrase, clearError } =
+    useUsersStore();
   const contacts = useContactsStore((state) => state.contacts);
   const [addOpen, setAddOpen] = useState(false);
   const [roles, setRoles] = useState<ApiRole[]>([]);
@@ -254,7 +255,7 @@ export function UsersPage() {
                 disabled={submitting}
               />
             )}
-            <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
+            <UserRoles value={roles} offered={creatableRoles} onChange={setRoles} disabled={submitting} />
             {requiresActiveMember(roles) && (
               <p className="admin-hint" data-testid="user-councillor-contact-hint">
                 {t("authorization.activeMemberRequired")}

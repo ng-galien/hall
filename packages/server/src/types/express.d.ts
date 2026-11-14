@@ -10,6 +10,8 @@ declare global {
       authorization?: AuthorizationClient;
       authorizationTarget?: AuthorizationTarget;
       allowedActions?: ReadonlySet<string>;
+      /** Roles the caller may give or withdraw, offered by the account creation and role change actions. */
+      assignableRoles?: ReadonlyArray<{ value: string; title: string }>;
     }
   }
 }

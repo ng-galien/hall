@@ -81,6 +81,17 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog,
   SELECT hall.app_user_row(account) FROM hall.app_user account WHERE account.email = target_email
 $$;
 
+-- @implements-requirement HALL-FR-USR-110
+-- Only a caller holding the administrator role gives or withdraws the administrator role.
+CREATE FUNCTION hall.require_administrator_role_grantor()
+RETURNS VOID LANGUAGE plpgsql STABLE SET search_path = pg_catalog, hall AS $$
+BEGIN
+  IF NOT coalesce(nullif(current_setting('hall.roles', true), '')::jsonb, '[]'::jsonb) ? 'administrator' THEN
+    RAISE EXCEPTION USING ERRCODE = 'HV619', MESSAGE = 'Only an administrator gives or withdraws the administrator role';
+  END IF;
+END;
+$$;
+
 CREATE FUNCTION hall_api.create_app_user(
   user_email TEXT,
   user_display_name TEXT,
@@ -92,6 +103,7 @@ CREATE FUNCTION hall_api.create_app_user(
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE created hall.app_user;
 BEGIN
+  IF 'administrator' = ANY(user_roles) THEN PERFORM hall.require_administrator_role_grantor(); END IF;
   INSERT INTO hall.app_user (email, display_name, password_hash, contact_id, password_change_required)
   VALUES (user_email, user_display_name, user_password_hash, user_contact, require_password_change)
   RETURNING * INTO created;
@@ -119,6 +131,10 @@ CREATE FUNCTION hall_api.set_app_user_roles(target UUID, user_roles TEXT[])
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE account hall.app_user;
 BEGIN
+  IF ('administrator' = ANY(user_roles))
+    IS DISTINCT FROM EXISTS (SELECT FROM hall.app_user_role WHERE user_id = target AND role = 'administrator') THEN
+    PERFORM hall.require_administrator_role_grantor();
+  END IF;
   DELETE FROM hall.app_user_role WHERE user_id = target;
   INSERT INTO hall.app_user_role (user_id, role) SELECT target, assigned FROM unnest(user_roles) assigned;
   SELECT * INTO account FROM hall.app_user WHERE id = target;

@@ -40,6 +40,7 @@ export function UserPage() {
     loadDetail,
     canUpdate,
     canAssignRoles,
+    assignableRoles,
     canResetPassword,
     canSendPasswordLink,
     canDisable,
@@ -429,7 +430,12 @@ export function UserPage() {
         >
           <form className="modal-form" onSubmit={saveRoles}>
             <RequestErrorBanner error={error} />
-            <UserRoles value={roles} onChange={setRoles} disabled={submitting} />
+            <UserRoles
+              value={roles}
+              offered={assignableRoles[userId] ?? []}
+              onChange={setRoles}
+              disabled={submitting}
+            />
             {requiresActiveMember(roles) && (
               <p className="admin-hint" data-testid="user-councillor-contact-hint">
                 {t("authorization.activeMemberRequired")}

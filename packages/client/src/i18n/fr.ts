@@ -1713,6 +1713,7 @@ export const fr: Messages = {
   "error.invalid_credentials": "L’adresse électronique ou le mot de passe est incorrect.",
   "error.bootstrap_unavailable": "L’administrateur initial a déjà été créé.",
   "error.last_administrator_required": "Le dernier administrateur actif doit être conservé.",
+  "error.administrator_role_requires_administrator": "Seul un administrateur donne ou retire le rôle administrateur.",
   "error.councillor_requires_active_member":
     "Ce rôle nécessite le contact d’un membre du conseil disposant d’un mandat actif.",
   "error.personal_workspace_resource_not_associable":

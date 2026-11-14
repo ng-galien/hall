@@ -229,6 +229,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   invalid_credentials: "error.invalid_credentials",
   bootstrap_unavailable: "error.bootstrap_unavailable",
   last_administrator_required: "error.last_administrator_required",
+  administrator_role_requires_administrator: "error.administrator_role_requires_administrator",
   built_in_administrator_protected: "error.built_in_administrator_protected",
   invalid_authorization_grant: "error.invalid_authorization_grant",
   authorization_role_changed: "error.authorization_role_changed",

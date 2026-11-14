@@ -1680,6 +1680,7 @@ export const en = {
   "error.invalid_credentials": "The email address or password is incorrect.",
   "error.bootstrap_unavailable": "The initial administrator has already been created.",
   "error.last_administrator_required": "The last active administrator must remain enabled.",
+  "error.administrator_role_requires_administrator": "Only an administrator gives or withdraws the administrator role.",
   "error.councillor_requires_active_member":
     "This role requires the contact of a council member with an active mandate.",
   "error.personal_workspace_resource_not_associable":

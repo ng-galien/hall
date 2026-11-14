@@ -271,8 +271,21 @@ export function createAuthRouter({ authService, config, passwordLinkService }: C
 }
 
 // @implements-requirement HALL-FR-USR-080 (an account manager sends a password link to the address of an account)
-export function createUsersRouter({ authService }: Cradle): Router {
+// @implements-requirement HALL-FR-USR-110 (the administrator role is offered to an administrator only)
+export function createUsersRouter({ authService, authorizationAdministrationClient }: Cradle): Router {
   const router = Router();
+  router.use(async (request, _response, next) => {
+    if (!request.principal) return next();
+    try {
+      const administrator = request.principal.roles.includes("administrator");
+      request.assignableRoles = (await authorizationAdministrationClient.roleOptions())
+        .filter((role) => administrator || role.id !== "administrator")
+        .map((role) => ({ value: role.id, title: role.name }));
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
   router.get("/:userId", requireAuthentication, async (request, response) => {
     const userId = routeParameter(request.params.userId);
     if (request.principal?.id !== userId && !(await request.authorization?.allows("user.list"))) {

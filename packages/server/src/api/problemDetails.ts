@@ -43,6 +43,7 @@ const titles: Record<string, string> = {
   council_business_has_dependencies: "Council business still has resources or linked records",
   bootstrap_unavailable: "Bootstrap unavailable",
   last_administrator_required: "The last administrator must remain active",
+  administrator_role_requires_administrator: "Only an administrator gives or withdraws the administrator role",
   user_email_conflict: "Another account already uses this email address",
 };
 

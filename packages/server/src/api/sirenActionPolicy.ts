@@ -43,6 +43,13 @@ function authorizedActions(request: Request, actions: SirenAction[]): SirenActio
   return actions.filter((candidate) => canExecuteAction(request, candidate.name));
 }
 
+/** The roles an account creation or role change may give or withdraw (HALL-FR-USR-110). */
+function withAssignableRoles(request: Request, candidate: SirenAction): SirenAction {
+  return request.assignableRoles
+    ? { ...candidate, fields: [{ name: "roles", type: "checkbox", options: [...request.assignableRoles] }] }
+    : candidate;
+}
+
 function resourceCreationActions(request: Request, councilBusinessId?: string): SirenAction[] {
   if (councilBusinessId && !canExecuteAction(request, "council-business.associate-resource")) return [];
   const contextFields = councilBusinessId
@@ -348,7 +355,7 @@ export function collectionActions(request: Request, entityClass: SirenEntityClas
     "template-reference": () => [],
     user: () =>
       authorizedActions(request, [
-        action("user.create", "POST", "/api/users", "Create a user"),
+        withAssignableRoles(request, action("user.create", "POST", "/api/users", "Create a user")),
         action("user.generate-passphrase", "POST", "/api/users/passphrases", "Generate a passphrase"),
       ]),
   });
@@ -822,7 +829,7 @@ export function objectActions(request: Request, entityClass: SirenEntityClass, v
       const actions = [
         action("user.update", "PUT", `/api/users/${id}`, "Update user"),
         action("user.reset-password", "POST", `/api/users/${id}/reset-password`, "Reset password"),
-        action("user.assign-role", "PUT", `/api/users/${id}/roles`, "Assign roles"),
+        withAssignableRoles(request, action("user.assign-role", "PUT", `/api/users/${id}/roles`, "Assign roles")),
       ];
       if (primary?.status === "active") {
         actions.push(

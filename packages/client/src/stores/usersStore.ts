@@ -1,4 +1,11 @@
-import { type ApiRole, type ApiUser, findSirenAction, type PasswordLinkPurpose } from "@hall/api-contract";
+import {
+  type ApiActionName,
+  type ApiRole,
+  type ApiUser,
+  findSirenAction,
+  type PasswordLinkPurpose,
+  type SirenEntity,
+} from "@hall/api-contract";
 import { create } from "zustand";
 import { type ApiErrorCode, apiErrorCode, type SirenApiResult } from "../services/apiClient";
 import * as api from "../services/usersApi";
@@ -10,8 +17,12 @@ interface UsersState {
   loading: boolean;
   error: ApiErrorCode | null;
   canCreate: boolean;
+  /** Roles offered by the account creation action. */
+  creatableRoles: string[];
   canUpdate: Record<string, boolean>;
   canAssignRoles: Record<string, boolean>;
+  /** Roles the role change of each account offers to give or withdraw. */
+  assignableRoles: Record<string, string[]>;
   canResetPassword: Record<string, boolean>;
   canSendPasswordLink: Record<string, boolean>;
   canDisable: Record<string, boolean>;
@@ -30,6 +41,12 @@ interface UsersState {
   clearError(): void;
 }
 
+/** The roles an action offers to give or withdraw, as listed by its Siren field. */
+function offeredRoles(representation: SirenEntity | null | undefined, name: ApiActionName): string[] {
+  const action = representation && findSirenAction(representation, name);
+  return action?.fields?.find((field) => field.name === "roles")?.options?.map((option) => option.value) ?? [];
+}
+
 export const useUsersStore = create<UsersState>((set, get) => {
   const accept = (result: SirenApiResult<ApiUser>) =>
     set((state) => ({
@@ -41,6 +58,10 @@ export const useUsersStore = create<UsersState>((set, get) => {
       canAssignRoles: {
         ...state.canAssignRoles,
         [result.data.id]: Boolean(result.representation && findSirenAction(result.representation, "user.assign-role")),
+      },
+      assignableRoles: {
+        ...state.assignableRoles,
+        [result.data.id]: offeredRoles(result.representation, "user.assign-role"),
       },
       canResetPassword: {
         ...state.canResetPassword,
@@ -85,8 +106,10 @@ export const useUsersStore = create<UsersState>((set, get) => {
     loading: false,
     error: null,
     canCreate: false,
+    creatableRoles: [],
     canUpdate: {},
     canAssignRoles: {},
+    assignableRoles: {},
     canResetPassword: {},
     canSendPasswordLink: {},
     canDisable: {},
@@ -101,8 +124,10 @@ export const useUsersStore = create<UsersState>((set, get) => {
         users: [],
         listed: false,
         canCreate: false,
+        creatableRoles: [],
         canUpdate: {},
         canAssignRoles: {},
+        assignableRoles: {},
         canResetPassword: {},
         canSendPasswordLink: {},
         canDisable: {},
@@ -116,6 +141,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
           users: result.data,
           listed: true,
           canCreate: Boolean(result.representation && findSirenAction(result.representation, "user.create")),
+          creatableRoles: offeredRoles(result.representation, "user.create"),
           canGeneratePassphrase: Boolean(
             result.representation && findSirenAction(result.representation, "user.generate-passphrase"),
           ),
@@ -134,6 +160,7 @@ export const useUsersStore = create<UsersState>((set, get) => {
         listed: false,
         canUpdate: {},
         canAssignRoles: {},
+        assignableRoles: {},
         canResetPassword: {},
         canSendPasswordLink: {},
         canDisable: {},

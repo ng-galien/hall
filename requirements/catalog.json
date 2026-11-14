@@ -12193,6 +12193,53 @@
         }
       ]
     },
+    "HALL-FR-USR-110": {
+      "name": "ADMINISTRATOR_ROLE_GIVEN_BY_AN_ADMINISTRATOR_ONLY",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "Only an administrator gives or withdraws the administrator role; an account that manages accounts without being administrator gives the other roles only.",
+      "acceptanceCriteria": [
+        "Only an account holding the administrator role gives the administrator role to an account, at its creation or by a change of roles, or withdraws it from an account.",
+        "An account whose role allows it to manage accounts without being administrator creates and changes accounts and gives or withdraws the other roles; its attempt to give or withdraw the administrator role is refused by the server with its own code, administrator_role_requires_administrator, and changes nothing.",
+        "The actions of account creation and role change offered to such an account do not offer the administrator role, and the account pages present only the roles offered; the administrator role already held by an account it changes stays as it is.",
+        "The protection of the built-in administrator role and of the last active administrator is unchanged."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "Only an account holding the administrator role gives the administrator role to an account, at its creation or by a change of roles, or withdraws it from an account.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "An account whose role allows it to manage accounts without being administrator creates and changes accounts and gives or withdraws the other roles; its attempt to give or withdraw the administrator role is refused by the server with its own code, administrator_role_requires_administrator, and changes nothing.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "The actions of account creation and role change offered to such an account do not offer the administrator role, and the account pages present only the roles offered; the administrator role already held by an account it changes stays as it is.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-4",
+          "origin": "product",
+          "statement": "The protection of the built-in administrator role and of the last active administrator is unchanged.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Question put to the user on 14 November 2026: « Aujourd'hui, toute personne dont le rôle permet de gérer les utilisateurs peut donner le rôle administrateur à quelqu'un, y compris à elle-même. Qui peut donner le rôle administrateur ? » Owner decision: « Un administrateur seul ». The decision changes the authorization rule of account creation and role change, in the server and in PostgreSQL, without any table or column change.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-EML-010": {
       "name": "SHARED_OUTBOUND_MAILBOX",
       "nature": "functional",
