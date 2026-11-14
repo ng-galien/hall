@@ -1,6 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
 import { installationGuides, installationIntroduction } from "../src/installation";
 
+/* L'ouverture animée de la carte se termine d'elle-même avec moins de mouvement : les scénarios partent de la carte. */
+test.use({ contextOptions: { reducedMotion: "reduce" } });
+
 const order = [
   "ouverture",
   "veille",
@@ -164,8 +167,9 @@ test.describe("relief en 3D", () => {
     await page.goto("./demonstration/");
     await expect(page.locator("html")).toHaveAttribute("data-view", "terrain");
     await sceneReady(page);
-    const toponyms = await page.locator(".terrain-toponym").allTextContents();
-    expect(toponyms).toContain("Alésia");
+    /* Les noms du récit restent fictifs ; les villages et hameaux réels forment une couche à part (.is-locality). */
+    const toponyms = await page.locator(".terrain-toponym:not(.is-locality)").allTextContents();
+    expect(toponyms).toContain("Bois derrière Alésia");
     expect(toponyms.join(" ")).not.toMatch(/cornu/i);
     const canvas = page.getByTestId("terrain-canvas");
     await expect(canvas).toBeVisible();
