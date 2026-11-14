@@ -90,16 +90,45 @@ jobs:
         run: bash scripts/testing/configure-ubuntu-mirror.sh
       - name: Install the headless PDF engine
         run: npx playwright install --with-deps --only-shell chromium
-      - name: Verify repository, fixtures, backend coverage and PostgreSQL
+      - name: Verify repository, fixtures and backend coverage
         run: |
           node scripts/testing/gate.mjs checks
           node scripts/testing/gate.mjs fixtures
           node scripts/testing/gate.mjs backend
-          node scripts/testing/gate.mjs postgres
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: hall-verification-timings
+          path: dist/verification/
+          retention-days: 7
+
+  postgres:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: hall-gate-build
+      - run: node scripts/testing/build.mjs --verify
+      - name: Configure Ubuntu package mirror
+        run: bash scripts/testing/configure-ubuntu-mirror.sh
+      - name: Install the headless PDF engine
+        run: npx playwright install --with-deps --only-shell chromium
+      - name: Verify SQL invariants and PostgreSQL adapters
+        run: node scripts/testing/gate.mjs postgres
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: hall-postgres-timings
           path: dist/verification/
           retention-days: 7
 
@@ -265,7 +294,7 @@ jobs:
 
   test:
     if: always()
-    needs: [build, verification, browser, distribution-build, distribution-install]
+    needs: [build, verification, postgres, browser, distribution-build, distribution-install]
     runs-on: ubuntu-24.04
     permissions:
       actions: read

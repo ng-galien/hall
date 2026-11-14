@@ -22,6 +22,7 @@ const buildWorkflow = ".github/workflows/release.yml";
 const requiredJobs = [
   "build",
   "verification",
+  "postgres",
   "browser (1)",
   "browser (2)",
   "distribution-build",
