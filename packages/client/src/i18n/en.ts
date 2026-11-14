@@ -717,6 +717,8 @@ export const en = {
   "auth.setupToken": "Setup token",
   "auth.email": "Email address",
   "auth.password": "Password",
+  "auth.showPassword": "Show the password",
+  "auth.hidePassword": "Hide the password",
   "auth.submitting": "Submitting…",
   "auth.bootstrapSubmit": "Initialize",
   "auth.signInSubmit": "Sign in",

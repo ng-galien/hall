@@ -729,6 +729,8 @@ export const fr: Messages = {
   "auth.setupToken": "Jeton d’initialisation",
   "auth.email": "Adresse électronique",
   "auth.password": "Mot de passe",
+  "auth.showPassword": "Afficher le mot de passe",
+  "auth.hidePassword": "Masquer le mot de passe",
   "auth.submitting": "Validation…",
   "auth.bootstrapSubmit": "Initialiser",
   "auth.signInSubmit": "Se connecter",

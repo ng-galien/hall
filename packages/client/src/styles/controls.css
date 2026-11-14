@@ -171,7 +171,8 @@
   /* A control that is not an input, such as a search picker, sits under the label. */
   .hall-field > :not(.hall-field-label, .hall-input, .hall-textarea, .hall-select-trigger) { min-width: 0; }
   /* A control at the end of a field keeps the text of the field clear of it. */
-  .hall-field[data-action="true"] > :is(.hall-input, .hall-field-value) { padding-right: calc(var(--hall-size-touch-control) + var(--hall-space-2)); }
+  .hall-field[data-action="true"] > :is(.hall-input, .hall-field-value),
+  .hall-field > .hall-input[data-password-visibility] { padding-right: calc(var(--hall-size-touch-control) + var(--hall-space-2)); }
   .hall-field > .hall-field-action { position: absolute; top: 50%; right: var(--hall-space-1); z-index: var(--hall-z-content); display: flex; align-items: center; transform: translateY(-50%); }
   /* A command of the label line: the label and the command share a line above the field, which keeps its width. */
   .hall-field-head { display: flex; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-1); }

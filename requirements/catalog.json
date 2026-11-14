@@ -12349,7 +12349,8 @@
         "After any password change, by a link, in « Mon compte », by an account manager or on reactivation, the previous password, the previous sessions and every open link are refused, and the holder receives « Votre mot de passe Hall a été modifié », which carries neither password nor link.",
         "One address receives at most one link per minute and three per hour, whatever their origin. A further request sends nothing and never blocks the account; the sign-in limits stay as they are. An account manager is told that the request is too frequent.",
         "No password and no link appears in a log, the audit journal, a list or a user page. The link is built from the configured public address of Hall; without it, no account email is sent and the failure is recorded. Account emails use the injected outgoing-mail transport and the sender settings of the commune; they are not stored in the shared mailbox.",
-        "Out of scope: MCP, a password sent by email, a multi-state follow-up, a redesign of sign-in limits, a new mail transport and a second factor. The interface names the mailbox of the commune « la messagerie de la commune »."
+        "Out of scope: MCP, a password sent by email, a multi-state follow-up, a redesign of sign-in limits, a new mail transport and a second factor. The interface names the mailbox of the commune « la messagerie de la commune ».",
+        "Every password field of Hall (sign-in, link screen, change of one’s own password, password typed by an account manager) carries a command that shows or hides what is typed; its state is announced, the field is hidden again when its form is sent, and the browser password managers keep filling it."
       ],
       "clauses": [
         {
@@ -12410,6 +12411,12 @@
           "key": "owner-request",
           "origin": "product",
           "statement": "Owner framing of 12 November 2026, version 2, Topic Graph topic hall-accounts-activation-mail, message 7e7c46fb-c96c-4846-a628-388a4fc68164, which replaces version 1 (af38cd7b). Owner words: « Donc mots de passe, les resets de mots de passe, les mots de passe temporaires, le workflow d'envoi d'email. Voilà, il faut au moins ça. » ; « je veux un parcours utilisateur connu classique, pas quelque chose d'exotique. Simple, et fonctionnel. » ; « Faut que les gens soient autonomes. Ils oublient leur mot de passe, ils le refont, et puis voilà. » ; « fais le lien de réinitialisation […] tu reprends le parcours classique » ; « Ok, tu lances ça. » The owner authorized the data-model change limited to single-use links and their tracking.",
+          "sourceIds": []
+        },
+        {
+          "key": "password-visibility",
+          "origin": "product",
+          "statement": "Owner request of 14 November 2026: « on voit pas les mots de passe. On n’a pas de truc pour voir les mots de passe, c’est chiant. Un petit bouton pour quand même voir les mots de passe. »",
           "sourceIds": []
         }
       ]
