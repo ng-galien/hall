@@ -647,11 +647,49 @@ test.describe("niveau de détail du relief", () => {
     await expect.poll(async () => (await levels())[2]).toBeLessThan(far[2]);
     const near = await levels();
     expect(near[0] + near[1]).toBeGreaterThan(far[0] + far[1]);
-    await expect
-      .poll(async () => Number(await page.getByTestId("terrain-stage").getAttribute("data-contour")))
-      .toBeLessThanOrEqual(20);
+    // Closing the scenario leaves the camera in place on a free map: the person then zooms with the wheel.
     await page.getByTestId("scenario-close").click();
-    await expect.poll(async () => (await levels())[2]).toBeGreaterThan(near[2]);
+    await expect(page.getByTestId("scenario-panel")).toBeHidden();
+    const stage = page.getByTestId("terrain-stage");
+    const contour = async () => Number(await stage.getAttribute("data-contour"));
+    const distance = async () => Number(await stage.getAttribute("data-distance"));
+    const wheelAt = async (deltaY: number) => {
+      const point = await page.getByTestId("terrain-canvas").evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        for (const y of [0.5, 0.65, 0.35])
+          for (const x of [0.5, 0.4, 0.6]) {
+            const point = { x: rect.x + rect.width * x, y: rect.y + rect.height * y };
+            if (document.elementFromPoint(point.x, point.y) === node) return point;
+          }
+        throw new Error("Aucune zone libre de la carte pour la molette");
+      });
+      await page.mouse.move(point.x, point.y);
+      await page.mouse.wheel(0, deltaY);
+    };
+    // Closer than the end of « carte »: the contour lines tighten to 20 m at most.
+    await expect
+      .poll(
+        async () => {
+          if ((await contour()) > 20) await wheelAt(-200);
+          return contour();
+        },
+        { timeout: 20_000 },
+      )
+      .toBeLessThanOrEqual(20);
+    const closest = await levels();
+    // Away from the ground, the relief lightens again and the contour lines widen.
+    const closeDistance = await distance();
+    await expect
+      .poll(
+        async () => {
+          if ((await levels())[2] <= closest[2]) await wheelAt(400);
+          return (await levels())[2];
+        },
+        { timeout: 20_000 },
+      )
+      .toBeGreaterThan(closest[2]);
+    expect(await distance()).toBeGreaterThan(closeDistance);
+    await expect.poll(contour).toBeGreaterThan(20);
   });
 });
 
