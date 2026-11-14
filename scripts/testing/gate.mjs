@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { delimiter, dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { sourceKey } from "./build.mjs";
 
@@ -10,6 +11,14 @@ const records = [];
 const started = Date.now();
 const source = sourceKey();
 const children = new Set();
+/* Code Moniker runs from the executable locked by package-lock.json, ahead of any other one on the PATH. */
+const codeMonikerPackage = `@code-moniker/cli-${process.platform}-${process.arch}`;
+const codeMonikerDirectory = resolve(
+  dirname(createRequire(import.meta.url).resolve(`${codeMonikerPackage}/package.json`)),
+  "bin",
+);
+const pathKey = Object.keys(process.env).find((key) => key.toUpperCase() === "PATH") ?? "PATH";
+const lockedPath = `${codeMonikerDirectory}${delimiter}${process.env[pathKey] ?? ""}`;
 async function run(name, command, env = {}) {
   const start = Date.now();
   console.log(`[gate] ${name} started`);
@@ -18,7 +27,7 @@ async function run(name, command, env = {}) {
     cwd: root,
     shell: true,
     stdio: "inherit",
-    env: { ...process.env, ...env },
+    env: { ...process.env, [pathKey]: lockedPath, ...env },
   });
   children.add(child);
   const status = await new Promise((accept, reject) => {

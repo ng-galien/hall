@@ -80,8 +80,6 @@ jobs:
         with:
           name: hall-gate-build
       - run: node scripts/testing/build.mjs --verify
-      - name: Use the locked Code Moniker executable
-        run: echo "$GITHUB_WORKSPACE/node_modules/@code-moniker/cli-linux-x64/bin" >> "$GITHUB_PATH"
       - name: Configure Ubuntu package mirror
         run: bash scripts/testing/configure-ubuntu-mirror.sh
       - name: Install the headless PDF engine
