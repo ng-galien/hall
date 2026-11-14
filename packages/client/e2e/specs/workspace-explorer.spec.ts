@@ -1429,3 +1429,34 @@ for (const viewport of [
     });
   });
 }
+
+// @verifies-requirement HALL-FR-WSP-480
+test.describe("folder colour of an opened business on phone", () => {
+  test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
+
+  test("chooses the colour from the actions menu of the opened business", async ({ appPage: page }) => {
+    const name = `Affaire couleur ${Date.now()}`;
+    const created = await page.request.post("/api/council-business", {
+      data: { path: "seed", name, reportName: "Rapport", reportContent: "Rapport" },
+    });
+    expect(created.ok()).toBeTruthy();
+    const business = (await created.json()).properties;
+    await page.goto(`/app/workspace?${new URLSearchParams({ path: "seed", councilBusiness: business.id })}`);
+    await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+    await page.getByTestId("phone-document-actions").tap();
+    await page.getByTestId("phone-document-action-folder-color").tap();
+    const picker = page.getByTestId("workspace-folder-color-picker");
+    await expect(picker).toBeVisible();
+    const preset = picker.getByTestId("workspace-folder-color-picker-preset").nth(2);
+    const chosen = ((await preset.getAttribute("data-color")) ?? "").toUpperCase();
+    await preset.tap();
+    await page.keyboard.press("Escape");
+    await expect(picker).toBeHidden();
+    await expect
+      .poll(async () => {
+        const folder = await page.request.get(`/api/resources/${business.folderResourceId}`);
+        return (await folder.json()).properties.color ?? null;
+      })
+      .toBe(chosen);
+  });
+});

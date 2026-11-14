@@ -19,7 +19,8 @@ export interface ColorPickerNamedPresets {
 // biome-ignore-start lint/suspicious/noArrayIndexKey: two meanings may share one color.
 /**
  * With `anchor`, the picker has no trigger of its own: the popover opens beside the anchor element and its
- * opening is controlled by `open` and `onOpenChange`. An empty `value` means that no colour is chosen. The popover
+ * opening is controlled by `open` and `onOpenChange`; it stays open while the menu that opened it returns its
+ * focus, and closes on Escape or a pointer outside. An empty `value` means that no colour is chosen. The popover
  * renders in a portal and stops its events, which React would otherwise bubble to the anchor's ancestors.
  */
 export function ColorPicker({
@@ -117,6 +118,7 @@ export function ColorPicker({
         onKeyDown={keepInside}
         onContextMenu={keepInside}
         onDoubleClick={keepInside}
+        onFocusOutside={anchor ? (event) => event.preventDefault() : undefined}
       >
         {namedPresets?.presets.length ? (
           <fieldset className="color-picker-named">
