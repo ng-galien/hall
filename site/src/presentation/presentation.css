@@ -4226,3 +4226,40 @@ html[data-scene="ready"] body .p-watermark.is-empty {
     top: calc(var(--masthead) + 30vh + 2.5rem);
   }
 }
+
+/* Gouttière du parcours, hors téléphone : textes plus lisibles sur la carte, sans fond ajouté */
+@media (min-width: 761px) {
+  .p-gutter .g-item {
+    color: var(--text);
+    text-shadow:
+      0 0 2px var(--bg),
+      0 0 5px var(--bg),
+      0 0 10px var(--bg);
+  }
+
+  .p-gutter .g-item .g-place-name,
+  .p-gutter .g-item .g-sub-title,
+  .p-gutter .g-item .g-icon {
+    color: var(--text);
+  }
+
+  .p-gutter .g-item .g-place-feature {
+    font-variant: normal;
+    letter-spacing: 0;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text-2);
+  }
+
+  .p-gutter .g-item.g-place.is-current .g-place-feature {
+    color: var(--accent-text);
+  }
+
+  .p-gutter .g-item .g-sub-title {
+    font-size: 0.9rem;
+  }
+
+  .p-gutter .g-item.g-sub:not(.is-current) .g-sub-title {
+    font-weight: 600;
+  }
+}

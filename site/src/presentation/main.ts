@@ -473,9 +473,9 @@ export function turnWheel(c: number) {
       continue;
     }
     const d = Math.abs(item.at - c);
-    const scale = Math.max(0.88, 1.16 - d * 0.14);
+    const scale = Math.max(0.96, 1.16 - d * 0.1);
     item.node.style.transform = `translateY(${y}px) scale(${scale.toFixed(3)})`;
-    item.node.style.opacity = Math.max(0.78, 1 - d * 0.1).toFixed(3);
+    item.node.style.opacity = Math.max(0.92, 1 - d * 0.04).toFixed(3);
     item.node.style.visibility = "visible";
     y += SUB_ROW;
   }
