@@ -1,0 +1,20 @@
+-- @verifies-requirement HALL-TR-AUD-020
+BEGIN;
+SET LOCAL search_path=hall,public;
+SET LOCAL hall.request_id='audit-event-immutability';
+SET LOCAL hall.actor_id='test-administrator';
+SET LOCAL hall.action='role.update';
+SELECT plan(9);
+SELECT isnt(hall_api.record_audit_event('authorization-role', 'audited-role', 'succeeded', '{}'::jsonb), NULL, 'an audit event is recorded');
+SELECT throws_ok($$UPDATE hall.audit_event SET outcome='failed' WHERE target_id='audited-role'$$, 'HV002', NULL, 'an audit event cannot be updated');
+SELECT throws_ok($$DELETE FROM hall.audit_event WHERE target_id='audited-role'$$, 'HV002', NULL, 'an audit event cannot be deleted');
+SELECT throws_ok($$TRUNCATE hall.audit_event$$, 'HV002', NULL, 'the audit journal cannot be truncated');
+SELECT throws_ok($$DELETE FROM hall.audit_event WHERE false$$, 'HV002', NULL, 'a delete statement is refused even without matching rows');
+SET LOCAL ROLE hall_owner;
+SELECT throws_ok($$UPDATE hall.audit_event SET details='{"changed":true}' WHERE target_id='audited-role'$$, 'HV002', NULL, 'the table owner cannot update an audit event');
+SELECT throws_ok($$DELETE FROM hall.audit_event$$, 'HV002', NULL, 'the table owner cannot delete audit events');
+RESET ROLE;
+SELECT lives_ok($$SELECT hall_api.record_audit_event('authorization-role', 'audited-role', 'denied', '{}'::jsonb)$$, 'new audit events are still recorded');
+SELECT is((SELECT count(*)::int FROM hall.audit_event WHERE target_id='audited-role' AND details='{}'::jsonb), 2, 'recorded audit events are unchanged');
+SELECT * FROM finish();
+ROLLBACK;

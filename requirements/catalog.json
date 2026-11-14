@@ -6197,6 +6197,28 @@
         }
       ]
     },
+    "HALL-TR-AUD-020": {
+      "name": "AUDIT_EVENTS_ARE_IMMUTABLE",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "Un fait d’audit enregistré n’est jamais modifié ni effacé, quel que soit le rôle PostgreSQL qui le tente.",
+      "acceptanceCriteria": [
+        "UPDATE, DELETE and TRUNCATE statements on hall.audit_event are refused with SQLSTATE HV002 for every role, including the table owner, even when the statement matches no row.",
+        "Recording a new audit event through hall.record_audit_event is unchanged.",
+        "No Hall migration, cleanup, demonstration script or application code updates or deletes audit events; the test-database resets that truncate every table under session_replication_role = replica, a superuser setting, are the only bypass, as for the other immutable tables."
+      ],
+      "clauses": [
+        {
+          "key": "coordinator-decision",
+          "origin": "product",
+          "statement": "Bilan de sécurité du 10 novembre 2026 ; décision du coordinateur, point 1 : un déclencheur refuse UPDATE, DELETE et TRUNCATE sur hall.audit_event, pour tout rôle, avec un code d’erreur propre consigné dans le catalogue des codes d’erreur.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-CON-010": {
       "name": "PROXY_RELATION_SUPPORTS_ATOMIC_INSERTION",
       "nature": "technical",

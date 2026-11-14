@@ -78,3 +78,24 @@ ALTER FUNCTION hall_api.record_audit_event(text, text, hall.audit_outcome, jsonb
 REVOKE ALL ON FUNCTION hall_api.record_audit_event(text, text, hall.audit_outcome, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION hall_api.record_audit_event(text, text, hall.audit_outcome, jsonb)
   TO hall_api_anonymous, hall_api_authenticated, hall_api_worker;
+
+-- @implements-requirement HALL-TR-AUD-020
+-- Audit events are never updated, deleted or truncated, whatever the role.
+CREATE FUNCTION hall.refuse_audit_event_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog
+AS $function$
+BEGIN
+  RAISE EXCEPTION USING
+    ERRCODE = 'HV002',
+    MESSAGE = format('audit events are immutable: %s refused on hall.audit_event', TG_OP);
+END
+$function$;
+
+ALTER FUNCTION hall.refuse_audit_event_change() OWNER TO hall_owner;
+REVOKE ALL ON FUNCTION hall.refuse_audit_event_change() FROM PUBLIC;
+
+CREATE TRIGGER audit_event_immutable
+BEFORE UPDATE OR DELETE OR TRUNCATE ON hall.audit_event
+FOR EACH STATEMENT EXECUTE FUNCTION hall.refuse_audit_event_change();

@@ -7,6 +7,7 @@ import { test } from "vitest";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const councilDirectory = resolve(root, "packages/postgres/sql/council");
 const workspaceDirectory = resolve(root, "packages/postgres/sql/workspace");
+const coreDirectory = resolve(root, "packages/postgres/sql");
 const testDirectory = resolve(councilDirectory, "test");
 
 function sqlFiles(directory) {
@@ -39,6 +40,7 @@ test("PostgreSQL requirements and SQLSTATEs remain traceable", () => {
   const applicationSql = contents([
     ...sqlFiles(councilDirectory).filter((file) => !file.endsWith("002-error-codes.sql")),
     ...sqlFiles(workspaceDirectory),
+    ...sqlFiles(coreDirectory),
   ]);
   const postgresTests = contents(sqlFiles(testDirectory).filter((file) => file.endsWith(".test.sql")));
   const catalogueSql = readFileSync(resolve(councilDirectory, "002-error-codes.sql"), "utf8");

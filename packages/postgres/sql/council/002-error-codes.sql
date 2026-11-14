@@ -16,6 +16,9 @@
 -- protects. Missing-reference diagnostics are deliberately not functional
 -- requirements.
 --
+-- Audit journal
+-- HV002  AUDIT_EVENT_IMMUTABLE                        HALL-TR-AUD-020
+--
 -- Meeting attendance
 -- HV101  MEETING_ATTENDANCE_IMMUTABLE                 HALL-FR-ATT-080
 -- HV102  MEETING_ATTENDANCE_AFTER_MEETING_START       HALL-FR-ATT-090
