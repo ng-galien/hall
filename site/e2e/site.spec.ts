@@ -157,6 +157,15 @@ async function projectedTarget(page: Page): Promise<{ x: number; y: number }> {
   };
 }
 
+/* Depuis la carte de bataille de l'arrivée, le visiteur entre dans le relief par « Découvrir » puis ferme l'ouverture. */
+async function enterRelief(page: Page) {
+  await page.getByTestId("intro-discover").click();
+  await expect(page.getByTestId("scenario-ouverture")).toBeVisible();
+  await page.getByTestId("scenario-close").click();
+  await expect(page.getByTestId("scenario-panel")).toBeHidden();
+  await sceneReady(page);
+}
+
 async function sceneReady(page: Page) {
   await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
   await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-motion", "done");
@@ -245,12 +254,13 @@ test.describe("relief en 3D", () => {
     expect((await page.getByTestId("terrain-mark").allTextContents()).join(" ")).not.toContain("425");
     await page.goto("./demonstration/#ouvrages");
     await sceneReady(page);
+    /* Depuis d3d04f50, les textes des repères d'un scénario restent posés mais masqués sur le relief. */
     await expect(
       page.getByTestId("terrain-mark").filter({ hasText: "Ouvrages romains vus par les veilleurs" }),
-    ).toBeVisible();
+    ).toHaveCount(1);
     await page.goto("./demonstration/#motion");
     await sceneReady(page);
-    await expect(page.getByTestId("terrain-mark").filter({ hasText: "Vers les cités alliées" }).first()).toBeVisible();
+    await expect(page.getByTestId("terrain-mark").filter({ hasText: "Vers les cités alliées" }).first()).toBeAttached();
   });
 
   test("le menu de découverte nomme les scénarios de chaque groupe, sans code", async ({ page }) => {
@@ -296,8 +306,9 @@ test.describe("relief en 3D", () => {
     await opener.click();
     const viewer = page.getByTestId("viewer");
     await expect(viewer).toBeVisible();
-    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 3 sur 5");
-    await expect(page.getByTestId("viewer-title")).toContainText("calendrier");
+    /* Depuis 117089ba, le calendrier est la dernière des cinq captures des actes. */
+    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 5 sur 5");
+    await expect(page.getByTestId("viewer-title")).toContainText("Calendrier");
     await expect
       .poll(() =>
         page.getByTestId("viewer-image").evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth),
@@ -322,13 +333,13 @@ test.describe("relief en 3D", () => {
     await expect(page.getByTestId("viewer-legend-item").nth(1)).toContainText("Pourparlers avec Jules César");
     await pins.nth(1).focus();
     await expect(page.getByTestId("viewer-legend-item").nth(1)).toHaveClass(/is-lit/);
-    await stepViewer(page, "next");
-    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 4 sur 5");
-    await page.keyboard.press("ArrowRight");
-    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 5 sur 5");
     if (phoneViewer(page)) await expect(page.getByTestId("viewer-chevron-next")).toBeHidden();
     else await expect(page.getByTestId("viewer-next")).toBeDisabled();
     await stepViewer(page, "previous");
+    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 4 sur 5");
+    await page.keyboard.press("ArrowLeft");
+    await expect(page.getByTestId("viewer-count")).toHaveText("Capture 3 sur 5");
+    await page.keyboard.press("ArrowRight");
     await expect(page.getByTestId("viewer-count")).toHaveText("Capture 4 sur 5");
     await page.keyboard.press("Escape");
     await expect(viewer).toBeHidden();
@@ -346,7 +357,8 @@ test.describe("relief en 3D", () => {
 
   test("la capture en plein écran s’agrandit, se déplace et se ferme par le retour", async ({ page }) => {
     await page.goto("./demonstration/#actes");
-    const opener = page.getByTestId("capture-open-sieger-calendrier");
+    /* Depuis 117089ba, le procès-verbal est la troisième des cinq captures des actes. */
+    const opener = page.getByTestId("capture-open-sieger-proces-verbal");
     await opener.click();
     const viewer = page.getByTestId("viewer");
     await expect(viewer).toHaveAttribute("data-zoom", "1.00");
@@ -456,6 +468,7 @@ test.describe("relief en 3D", () => {
   test("un clic sur la maison commune dans la scène ouvre la convocation", async ({ page }) => {
     await page.goto("./demonstration/");
     await sceneReady(page);
+    await enterRelief(page);
     const label = page.getByTestId("terrain-label-maison");
     await page
       .getByTestId("terrain-stage")
@@ -472,6 +485,7 @@ test.describe("relief en 3D", () => {
   test("dans la vue d’ensemble les repères des lieux ne se recouvrent pas", async ({ page }) => {
     await page.goto("./demonstration/");
     await sceneReady(page);
+    await enterRelief(page);
     const boxes = [];
     for (const place of places) {
       const box = await page.getByTestId(`terrain-label-${place}`).boundingBox();
@@ -553,7 +567,8 @@ test("le quorum reste expliqué dans la capture, sans entrer dans le récit", as
   await page.goto("./demonstration/?view=plain");
   const steps = page.locator('[data-testid="scenario-appel"] .steps li');
   expect((await steps.allTextContents()).join(" ")).not.toMatch(/quorum|12 présents|8 requis/);
-  await expect(page.locator('[data-testid="scenario-appel"] figcaption')).toContainText("quorum");
+  /* La vue sans 3D range les captures à côté du texte du scénario, dans sa section (69a3e106). */
+  await expect(page.locator("#lieu-appel figcaption")).toContainText("quorum");
   await expect(page.locator(".steps li.tone-blocking")).toHaveCount(0);
 });
 
@@ -603,6 +618,7 @@ test.describe("mise en page de l’arrivée", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("./demonstration/");
     await sceneReady(page);
+    await enterRelief(page);
     const intro = await page.getByTestId("intro").boundingBox();
     if (!intro) throw new Error("Texte absent");
     for (const place of places) {
@@ -675,6 +691,7 @@ test.describe("niveau de détail du relief", () => {
       ((await page.getByTestId("terrain-stage").getAttribute("data-lod")) ?? "").split(",").map(Number);
     await page.goto("./demonstration/");
     await sceneReady(page);
+    await enterRelief(page);
     const far = await levels();
     expect(far).toHaveLength(3);
     expect(far.reduce((a, b) => a + b)).toBeGreaterThan(100);
