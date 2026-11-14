@@ -78,14 +78,21 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
       });
   }, []);
   useEffect(() => {
+    let current = true;
     void loadHallSettings()
       .then(({ settings, canUpdate, councilTerm, canConfigureCouncilTerm }) => {
+        if (!current) return;
         setHallSettings(settings);
         setSettingsUpdateAvailable(canUpdate);
         setCouncilTermUpdateAvailable(canConfigureCouncilTerm);
         setExpectedMemberCount(councilTerm?.expectedMemberCount.toString() ?? "");
       })
-      .catch((error) => setSettingsError(apiErrorCode(error)));
+      .catch((error) => {
+        if (current) setSettingsError(apiErrorCode(error));
+      });
+    return () => {
+      current = false;
+    };
   }, []);
 
   const submitCouncilTerm = async (event: FormEvent<HTMLFormElement>) => {
