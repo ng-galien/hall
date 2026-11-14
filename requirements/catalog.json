@@ -6916,6 +6916,28 @@
         }
       ]
     },
+    "HALL-TR-DOC-090": {
+      "name": "WORKBOOK_IMPORT_IS_BOUNDED",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "Le serveur refuse un classeur XLSX trop volumineux avant de le lire, au lieu d’épuiser sa mémoire ; un classeur ordinaire s’importe comme avant.",
+      "acceptanceCriteria": [
+        "Before parsing an XLSX workbook for import as a spreadsheet or for conversion to a table, the server reads its ZIP entries and refuses it when the decompressed size of the entries exceeds 64 MiB, the worksheets exceed 50 or the cells written in the worksheets exceed 500 000; decompression stops at the remaining size budget whatever size the archive declares.",
+        "The refusal is answered with HTTP 413 and the problem code spreadsheet_too_large, shown in French in the interface; the workbook parser is not started.",
+        "The bounds are declared once, in workbookArchiveBounds of the server; a workbook within the bounds is imported or converted as before, and the existing row and column ceilings of a worksheet are unchanged."
+      ],
+      "clauses": [
+        {
+          "key": "coordinator-decision",
+          "origin": "product",
+          "statement": "Bilan de sécurité du 10 novembre 2026 ; décision du coordinateur, point 3 : l’import refuse, avec un code d’erreur propre et un message lisible par l’utilisateur, un classeur dont la taille décompressée, le nombre de feuilles ou le nombre de cellules dépasse des bornes raisonnables pour un usage de mairie.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-ERR-010": {
       "name": "DECLARATIVE_CONSTRAINTS_KEEP_NATIVE_SQLSTATE",
       "nature": "technical",

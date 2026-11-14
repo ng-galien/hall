@@ -295,6 +295,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   recusal_immutable: "error.recusal_immutable",
   recusal_occurrence_locked: "error.recusal_occurrence_locked",
   request_too_large: "error.request_too_large",
+  spreadsheet_too_large: "error.spreadsheet_too_large",
   request_failed: "error.request_failed",
   database_statement_timeout: "error.database_statement_timeout",
   resource_content_unavailable: "error.resource_content_unavailable",

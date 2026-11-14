@@ -1764,6 +1764,8 @@ export const fr: Messages = {
   "error.contact_has_active_council_membership": "Clôturez le mandat en cours avant d’archiver ce contact.",
   "error.upload_too_large": "Le fichier sélectionné dépasse la taille maximale autorisée par le serveur.",
   "error.request_too_large": "La requête dépasse la taille maximale autorisée par le serveur.",
+  "error.spreadsheet_too_large":
+    "Ce classeur est trop volumineux pour être importé : réduisez le nombre de feuilles ou de cellules, ou répartissez-le en plusieurs fichiers.",
   "error.invalid_meeting_transition": "Cette séance ne peut pas passer à l’étape demandée.",
   "error.meeting_not_found": "Cette séance du conseil n’existe plus.",
   "error.quorum_not_reached": "Le scrutin ne peut pas être enregistré car le quorum n’est pas atteint.",

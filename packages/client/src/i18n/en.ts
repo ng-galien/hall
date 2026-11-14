@@ -1730,6 +1730,8 @@ export const en = {
   "error.contact_has_active_council_membership": "End the current council term before archiving this contact.",
   "error.upload_too_large": "The selected file exceeds the server upload limit.",
   "error.request_too_large": "The request exceeds the server size limit.",
+  "error.spreadsheet_too_large":
+    "This workbook is too large to import: reduce its number of sheets or cells, or split it into several files.",
   "error.invalid_meeting_transition": "This meeting cannot move to the requested stage.",
   "error.meeting_not_found": "The council meeting no longer exists.",
   "error.quorum_not_reached": "The ballot cannot be recorded because quorum has not been reached.",

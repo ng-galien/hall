@@ -34,6 +34,7 @@ const titles: Record<string, string> = {
   invalid_request: "Invalid request",
   unsupported_document_format: "Unsupported document format",
   document_content_mismatch: "Document content does not match its format",
+  spreadsheet_too_large: "The workbook exceeds the decompressed size, worksheet or cell bounds of an import",
   resource_preview_unavailable: "Document preview is unavailable",
   resource_preview_conversion_failed: "Document preview conversion failed",
   csrf_validation_failed: "Cross-origin request rejected",

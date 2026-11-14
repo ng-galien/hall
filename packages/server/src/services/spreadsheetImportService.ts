@@ -4,6 +4,7 @@ import { type JsonObject, type JsonValue, type SpreadsheetDocument, spreadsheetD
 import ExcelJS from "exceljs";
 import { inspectSpreadsheetImport } from "../domain/documentPolicy.js";
 import { DomainError } from "./errors.js";
+import { checkWorkbookArchiveBounds } from "./workbookArchiveBounds.js";
 
 export interface SpreadsheetImportInput {
   title: string;
@@ -239,6 +240,7 @@ async function loadWorksheets(
     ];
   }
   if (inspection.format !== "xlsx") throw new DomainError("unsupported_document_format", 415);
+  checkWorkbookArchiveBounds(input.content);
   await workbook.xlsx.load(Uint8Array.from(input.content).buffer);
   if (!workbook.worksheets.length) throw new DomainError("invalid_request", 422);
   return workbook.worksheets;

@@ -134,6 +134,7 @@ export type ErrorCode =
   | "resource_preview_unavailable"
   | "resource_preview_conversion_failed"
   | "resource_not_found"
+  | "spreadsheet_too_large"
   | "template_invalid"
   | "template_attachments_too_large"
   | "template_generation_busy"
