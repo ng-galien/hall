@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "../captures/fixtures";
+import { expect, signIn, test } from "../captures/fixtures";
 import { prepareMeeting } from "../captures/journeys";
 import { councillors, properties } from "./support";
 
@@ -112,4 +112,107 @@ test("pouvoir enregistré avant la séance avec sa pièce, second pouvoir du mê
     status: "represented",
     proxyHolderAttendanceId: holderAttendance!.id,
   });
+});
+
+/** Chooses `file` through the upload control `control`, as the person does from the file picker. */
+async function uploadThrough(page: Page, control: string, file: ReturnType<typeof signedProxy>) {
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByTestId(control).click();
+  await (await chooser).setFiles(file);
+}
+
+// @verifies-requirement HALL-FR-ATT-190
+test("pouvoir écrit téléversé par le secrétaire de séance avant la séance et à l'appel, téléversement absent sans droit d'enregistrer un pouvoir", async ({
+  docsPage: page,
+}) => {
+  const [grantor, holder, lateGrantor, lateHolder] = await councillors(page);
+  await prepareMeeting(page);
+  const slug = new URL(page.url()).pathname.split("/").at(-2)!;
+  // The secretary of the meeting conducts it and registers its proxies, without the right to create a document.
+  const refusedDocument = signedProxy("pouvoir-refuse.pdf");
+  expect(
+    (
+      await page.request.post("/api/resources/documents", {
+        multipart: {
+          name: refusedDocument.name,
+          path: "",
+          file: refusedDocument,
+        },
+      })
+    ).ok(),
+  ).toBeFalsy();
+
+  await page.goto(`/app/meetings/${slug}`);
+  const section = page.getByTestId("meeting-proxies");
+  await expect(section).toBeVisible();
+  await page.getByTestId("meeting-proxy-register").click();
+  const dialog = page.getByTestId("meeting-proxy-dialog");
+  await expect(dialog).toBeVisible();
+  await chooseMember(page, "meeting-proxy-registration-grantor", grantor!.id);
+  await chooseMember(page, "meeting-proxy-registration-holder", holder!.id);
+  await uploadThrough(page, "meeting-proxy-registration-upload", signedProxy("pouvoir-avant-seance.pdf"));
+  await expect(page.getByTestId("meeting-proxy-registration-document")).toContainText("pouvoir-avant-seance.pdf");
+  await page.getByTestId("meeting-proxy-registration-submit").click();
+  await expect(dialog).toBeHidden();
+  await expect(section.getByTestId(`meeting-proxy-${grantor!.id}`)).toContainText("pouvoir-avant-seance.pdf");
+
+  await page.getByTestId("meeting-enter-live").click();
+  await expect(page.getByTestId("live-rollcall-heading")).toBeVisible();
+  await page.getByTestId("live-attendance-all-present").click();
+  await page.getByTestId(`live-attendance-${lateGrantor!.id}-represented`).click();
+  await expect(page.getByTestId("live-proxy-dialog")).toBeVisible();
+  await page.getByTestId(`live-proxy-holder-${lateHolder!.id}`).click();
+  await uploadThrough(page, "live-proxy-upload", signedProxy("pouvoir-a-l-appel.pdf"));
+  const lateDocument = page.getByTestId(/^live-proxy-document-/).filter({ hasText: "pouvoir-a-l-appel.pdf" });
+  await expect(lateDocument).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("live-proxy-confirm").click();
+  await expect(page.getByTestId("live-proxy-dialog")).toBeHidden();
+  await expect(page.getByTestId(`live-attendance-${lateGrantor!.id}-represented`)).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByTestId(`live-attendance-${grantor!.id}-represented`)).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("live-meeting-start").click();
+  await expect(page.getByTestId("live-agenda-start")).toBeVisible();
+
+  const conduct = await properties<{
+    currentAttendance: Array<{
+      councilMemberId: string;
+      status: string;
+      proxyDocumentId: string | null;
+    }>;
+    proxyRegistrations: Array<{
+      grantorCouncilMemberId: string;
+      proxyDocumentId: string;
+    }>;
+  }>(await page.request.get(`/api/council-meetings/${slug}/conduct`));
+  const registeredDocumentId = conduct.proxyRegistrations.find(
+    (registration) => registration.grantorCouncilMemberId === grantor!.id,
+  )!.proxyDocumentId;
+  const lateAttendance = conduct.currentAttendance.find((entry) => entry.councilMemberId === lateGrantor!.id)!;
+  expect(lateAttendance.status).toBe("represented");
+
+  // The secretariat finds both written proxies filed at the root of the workspace, where the proxies are kept.
+  await signIn(page, "secretariat", `/app/meetings/${slug}`);
+  for (const [id, name] of [
+    [registeredDocumentId, "pouvoir-avant-seance.pdf"],
+    [lateAttendance.proxyDocumentId!, "pouvoir-a-l-appel.pdf"],
+  ] as const) {
+    expect(
+      await properties<{ name: string; path: string }>(await page.request.get(`/api/resources/${id}`)),
+    ).toMatchObject({ name, path: "" });
+  }
+
+  // The secretariat registers no proxy for this meeting: neither the registration nor the upload is offered to it.
+  await expect(page.getByTestId("meeting-proxies")).toBeVisible();
+  await expect(page.getByTestId("meeting-proxy-register")).toHaveCount(0);
+  await expect(page.getByTestId("meeting-proxy-registration-upload")).toHaveCount(0);
+  const refusedUpload = signedProxy("pouvoir-secretariat.pdf");
+  expect(
+    (
+      await page.request.post(`/api/council-meetings/${slug}/proxy-documents`, {
+        multipart: { file: refusedUpload },
+      })
+    ).ok(),
+  ).toBeFalsy();
 });
