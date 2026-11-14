@@ -185,7 +185,7 @@ test("the design table is drawn from « Design de référence » only, cites its
       .filter((entry) => entry.component === "bouton" && entry.property === "height")
       .map((entry) => [entry.when, entry.expected]),
     [
-      ["mouse", "32px"],
+      ["pointer-wide", "32px"],
       ["finger", "44px"],
     ],
   );
