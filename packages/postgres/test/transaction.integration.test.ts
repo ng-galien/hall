@@ -360,6 +360,7 @@ describe("statement budgets", () => {
     "decision.freeze",
     "minutes.generate",
     "resource.createDocument",
+    "resource.createMeetingProxyDocument",
     "resource.replaceDocumentContent",
     "editorAsset.create",
   ];
