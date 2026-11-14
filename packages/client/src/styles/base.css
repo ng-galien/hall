@@ -4,7 +4,6 @@
   body {
     margin: 0;
     min-width: var(--hall-size-application-min);
-    min-height: 100vh;
     overflow: hidden;
     font-family: var(--hall-font-family-sans);
     font-size: var(--hall-font-size-text);

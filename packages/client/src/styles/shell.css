@@ -1,6 +1,7 @@
-/* Frame of every screen: navigation panel or bottom bar, screen header, content. */
+/* Frame of every screen: navigation panel or bottom bar, screen header, content. It takes the height of the page,
+   which follows the visible window, keyboard included: no viewport unit, so the page never scrolls under it. */
 @layer components {
-  .app-shell { display: flex; height: 100svh; overflow: hidden; color: var(--hall-color-text); background: var(--hall-color-surface); }
+  .app-shell { display: flex; height: 100%; overflow: hidden; color: var(--hall-color-text); background: var(--hall-color-surface); }
   .app-column { display: flex; min-width: 0; flex: 1; flex-direction: column; }
   .app-main { position: relative; display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; overflow-y: auto; }
   /* The content below the large title keeps the remaining height, so a full-height screen still fills it. */

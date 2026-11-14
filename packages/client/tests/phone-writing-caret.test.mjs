@@ -72,3 +72,12 @@ test("while a text is written on a phone, the row above the writing tools is not
   assert.ok(rule, "the writing screen sets the margins of the row above its tools");
   assert.match(rule[2], /margin-block:\s*0\s*;/);
 });
+
+// @verifies-requirement HALL-FR-LAY-130
+test("the page and the frame of every screen take the height of the visible window, never a viewport unit", () => {
+  const styles = (name) => readFileSync(join(import.meta.dirname, "..", "src", "styles", name), "utf8");
+  const shell = styles("shell.css").match(/\.app-shell\s*\{([^}]*)\}/)[1];
+  assert.match(shell, /(?:^|;)\s*height:\s*100%\s*;/);
+  const body = styles("base.css").match(/\bbody\s*\{([^}]*)\}/)[1];
+  assert.doesNotMatch(`${shell}${body}`, /\d+(?:s|l|d)?vh\b/);
+});
