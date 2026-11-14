@@ -97,6 +97,8 @@ The table gives what must have run locally before a push, according to the chang
 | `packages/postgres` or any SQL schema, migration, invariant, seed or PostgreSQL test helper | the focused SQL or pgTAP test during iteration, then `node scripts/testing/gate.mjs postgres`, then `node scripts/testing/gate.mjs backend` |
 | Distribution package, installation or upgrade | `node scripts/testing/gate.mjs distribution` |
 
+Work alternates two times. While changes are being made, implementers run quick checks only and commit; browser scenarios are not realigned after each change, each implementer names the scenarios the change touches. At a decided moment, the alignment, nobody modifies the checkout and the verifier runs the complete gate locally with `HALL_E2E_MAX_FAILURES=0`, returns one list of failures sorted into application or script defects and scenarios to realign, and runs it again after the corrections until every group passes. A push happens only after that green local gate.
+
 The complete gate, `npm run test:all`, runs before a push that groups several deliveries and before a version tag, on a checkout that no other agent modifies during the run. A branch push runs the push gate in CI; policy mutation, the Windows installation and the documentation journeys run only in the release gate, started by a version tag push or a manual run of `ci.yml`.
 
 - Vitest is the only runner for JavaScript and TypeScript unit, component, integration, and repository-control tests. These tests live in a `tests/` directory. Do not add `node:test`, another JavaScript test runner, or test files under `scripts/`.

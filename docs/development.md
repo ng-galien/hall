@@ -39,6 +39,8 @@ The table gives what must have run locally before a push, for every row that mat
 | `packages/postgres` or any SQL schema, migration, invariant, seed or PostgreSQL test helper | `node scripts/testing/gate.mjs postgres`, then `node scripts/testing/gate.mjs backend` | 6.5 min, then 5.9 min |
 | Distribution package, installation or upgrade | `node scripts/testing/gate.mjs distribution` | 2.0 min on Ubuntu |
 
+Work alternates two times. While changes are being made, implementers run quick checks only and commit; browser scenarios are not realigned after each change, each implementer names the scenarios the change touches. At a decided moment, the alignment, nobody modifies the checkout and the verifier runs the complete gate locally with `HALL_E2E_MAX_FAILURES=0`, returns one list of failures sorted into application or script defects and scenarios to realign, and runs it again after the corrections until every group passes. A push happens only after that green local gate.
+
 The complete gate, `npm run test:all`, runs before a push that groups several deliveries and before a version tag, on a checkout that no other agent modifies during the run. Every group must pass.
 
 `node scripts/testing/gate.mjs checks` runs all its commands (test inventory, public artifacts, requirements, `test:meta`, Code Moniker, lint, built typecheck) and reports every failed command; the group fails if one of them fails. Every gate group runs Code Moniker from the executable locked in `package-lock.json` (`node_modules/@code-moniker/cli-<platform>-<arch>/bin`), never from another one on the `PATH`.
