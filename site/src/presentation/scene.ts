@@ -198,7 +198,6 @@ export async function start() {
       dais.add(leg);
     }
   }
-  /* Enveloppe du vote : taille au départ, et facteur de réduction à l'arrivée à la fente */
   const ENVELOPE = { w: 0.5, h: 0.34, arrival: 0.5 };
   const urne = new THREE.Group();
   const URNE = 0.6;
@@ -221,7 +220,6 @@ export async function start() {
       for (const z of [-e, e]) bar(URNE + 0.02, 0.02, 0.02, 0, y, z);
       for (const x of [-e, e]) bar(0.02, 0.02, URNE + 0.02, x, y, 0);
     }
-    /* Dessus transparent comme les parois ; la fente n'est marquée que par un fin cadre métallique sombre */
     const slotWidth = ENVELOPE.w * ENVELOPE.arrival + 0.03;
     const slotDepth = 0.04;
     const rim = 0.014;
@@ -249,7 +247,6 @@ export async function start() {
     urne.position.y = 0.55 + URNE / 2;
     dais.add(urne);
   }
-  /* Enveloppe du vote : une seule à la fois, de la place de l'élu à la fente de l'urne */
   const envelope = new THREE.Group();
   {
     const body = new THREE.Mesh(
@@ -1745,7 +1742,6 @@ export async function start() {
       const t = ballotTime(i);
       const fall = span(p, t, t + voteLength * tl.param("councillorsVote", "fall"));
       if (fall > 0 && fall < 1 && dais.visible) {
-        /* Montée en arc depuis l'ordinateur de l'élu jusqu'au-dessus de la fente, puis descente dans l'urne */
         const angle = (i / SEATS) * Math.PI * 2 + Math.PI / 2;
         const above = urne.position.y + URNE / 2 + 0.7;
         const lift = 0.55;
