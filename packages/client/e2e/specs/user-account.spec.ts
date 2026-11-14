@@ -80,6 +80,21 @@ test("edits account identity with autosave and safely changes and resets passwor
   await expect(page.getByTestId("user-email")).toHaveValue("account-admin@example.test");
   await page.getByTestId("user-email").fill("account-reader-updated@example.test");
   await expect(page.getByTestId("user-save-state")).toHaveText("Saved");
+  const refusedSaves: string[] = [];
+  const recordSave = (sent: import("@playwright/test").Request) => {
+    if (sent.method() === "PUT" && sent.url().endsWith(`/users/${user.id}`)) refusedSaves.push(sent.url());
+  };
+  page.on("request", recordSave);
+  await page.getByTestId("user-email").fill("account-reader-updated@");
+  await expect(page.getByTestId("user-email-error")).toBeVisible();
+  await openMenuEntry(page, "users");
+  await expect(page).toHaveURL(new RegExp(`/users/${user.id}$`));
+  await expect(page.getByTestId("user-email-error")).toBeVisible();
+  await page.getByTestId("user-email").fill("account-reader-updated@example.test");
+  await expect(page.getByTestId("user-email-error")).toHaveCount(0);
+  page.off("request", recordSave);
+  expect(refusedSaves).toEqual([]);
+  await expect(page.getByTestId("user-save-state")).toHaveText("Saved");
   await page.getByTestId("user-reset-password").click();
   await page.getByTestId("password-new").fill("Hall-reader-reset!");
   await page.getByTestId("password-confirmation").fill("Hall-reader-mismatch!");
@@ -221,5 +236,18 @@ test("marks a hand-delivered password temporary and requires a different persona
     await expect(member.getByTestId("auth-email")).toBeVisible();
   } finally {
     await recipient.close();
+  }
+});
+
+test("titles an unusable password link « Lien expiré » and offers a new link", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+  for (const token of ["jeton-inutilisable", "A".repeat(43)]) {
+    await page.goto(`/app/password-link#${token}`);
+    const screen = page.getByTestId("password-link");
+    await expect(screen.getByTestId("password-link-unusable")).toHaveText(
+      "Ce lien n’est plus utilisable. Demandez un nouveau lien.",
+    );
+    await expect(screen.getByRole("heading", { level: 1 })).toHaveText("Lien expiré");
+    await expect(screen.getByTestId("password-link-request-new")).toBeVisible();
   }
 });
