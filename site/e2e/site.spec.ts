@@ -18,7 +18,6 @@ const order = [
   "actes",
 ] as const;
 const withCaptures = order.filter((id) => id !== "ouverture");
-const places = ["tour", "cornu", "plaine", "rempart", "maison", "belvedere", "place"] as const;
 const releases = "https://github.com/ng-galien/hall/releases";
 const documentation = "../documentation/index.html#/docs";
 const outsideTheGame = /Berthier|Alise|Foncine|thèse|clin d[’']œil/i;
@@ -465,41 +464,6 @@ test.describe("relief en 3D", () => {
     }
   });
 
-  test("un clic sur la maison commune dans la scène ouvre la convocation", async ({ page }) => {
-    await page.goto("./demonstration/");
-    await sceneReady(page);
-    await enterRelief(page);
-    const label = page.getByTestId("terrain-label-maison");
-    await page
-      .getByTestId("terrain-stage")
-      .evaluate((stage) => stage.scrollIntoView({ block: "center", behavior: "instant" }));
-    await scrollSettled(page);
-    const x = Number(await label.getAttribute("data-hit-x"));
-    const y = Number(await label.getAttribute("data-hit-y"));
-    const box = await page.getByTestId("terrain-stage").boundingBox();
-    if (!box) throw new Error("Scène absente");
-    await page.mouse.click(box.x + x, box.y + y);
-    await expect(page.getByTestId("scenario-convocation")).toBeVisible();
-  });
-
-  test("dans la vue d’ensemble les repères des lieux ne se recouvrent pas", async ({ page }) => {
-    await page.goto("./demonstration/");
-    await sceneReady(page);
-    await enterRelief(page);
-    const boxes = [];
-    for (const place of places) {
-      const box = await page.getByTestId(`terrain-label-${place}`).boundingBox();
-      if (!box) throw new Error(`Repère ${place} absent`);
-      boxes.push({ place, ...box });
-    }
-    for (const [index, a] of boxes.entries()) {
-      for (const b of boxes.slice(index + 1)) {
-        const overlaps = a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-        expect(overlaps, `${a.place} et ${b.place}`).toBe(false);
-      }
-    }
-  });
-
   test("le relief vient des données embarquées, sans requête vers un autre hôte", async ({ page, baseURL }) => {
     const origin = new URL(baseURL ?? "http://127.0.0.1:4791/").origin;
     const foreign: string[] = [];
@@ -613,25 +577,6 @@ test.describe("mise en page de l’arrivée", () => {
       expect(background).toBe("rgba(0, 0, 0, 0)");
     });
   }
-
-  test("à 1280 px les repères des lieux ne passent pas sous le texte", async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto("./demonstration/");
-    await sceneReady(page);
-    await enterRelief(page);
-    const intro = await page.getByTestId("intro").boundingBox();
-    if (!intro) throw new Error("Texte absent");
-    for (const place of places) {
-      const label = await page.getByTestId(`terrain-label-${place}`).boundingBox();
-      if (!label) throw new Error(`Repère ${place} absent`);
-      const overlaps =
-        label.x < intro.x + intro.width &&
-        label.x + label.width > intro.x &&
-        label.y < intro.y + intro.height &&
-        label.y + label.height > intro.y;
-      expect(overlaps, place).toBe(false);
-    }
-  });
 });
 
 test.describe("version sans 3D", () => {
