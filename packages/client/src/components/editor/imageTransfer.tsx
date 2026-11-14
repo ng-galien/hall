@@ -2,7 +2,7 @@ import { matchDiscriminated } from "@hall/domain";
 import { imageWidthRange } from "@hall/templating";
 import type { Editor } from "@tiptap/core";
 import { Fragment, type ResolvedPos, Slice } from "@tiptap/pm/model";
-import { NodeSelection, Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
+import { Selection, TextSelection, type Transaction } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { type DragEvent, type RefObject, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -78,12 +78,17 @@ function insertionTarget(view: EditorView, requestedPosition: number | undefined
     : textSelectionAt(doc.resolve(Math.min(requestedPosition ?? selection.from, doc.content.size)));
 }
 
-/** Inserts an uploaded image, selects it and returns the position right after it, or null when it was not placed. */
+/**
+ * Inserts an uploaded image and returns the position right after it, or null when it was not placed. The writing goes
+ * on after the image, in the paragraph that follows it, created when there is none; a selection the person made while
+ * the image was sent is kept. The image is never left selected, so the next key never replaces it.
+ */
 function placeImage(
   view: EditorView,
   image: { id: string; label: string },
   requestedPosition: number | undefined,
   prepare?: (transaction: Transaction) => void,
+  personSelection?: Selection,
 ) {
   if (view.isDestroyed) return null;
   const node = view.state.schema.nodes.resourceImage!.create(imageAttributes(image));
@@ -97,10 +102,16 @@ function placeImage(
     return true;
   });
   if (insertedPosition === null) return null;
-  transaction.setSelection(NodeSelection.create(transaction.doc, insertedPosition));
+  const after = (insertedPosition as number) + node.nodeSize;
+  if (personSelection) transaction.setSelection(personSelection.map(transaction.doc, transaction.mapping));
+  else {
+    if (!transaction.doc.resolve(after).nodeAfter?.isTextblock)
+      transaction.insert(after, view.state.schema.nodes.paragraph!.create());
+    transaction.setSelection(TextSelection.create(transaction.doc, after + 1));
+  }
   prepare?.(transaction);
   view.dispatch(transaction);
-  return (insertedPosition as number) + node.nodeSize;
+  return after;
 }
 
 /** Inserts the reference of an uploaded document followed by a space and returns the position after that space. */
@@ -146,6 +157,8 @@ async function uploadIntoPlace(
   upload: EditorImageUpload,
 ): Promise<number | null> {
   const placeholder = startImagePlaceholder(view, insertionTarget(view, requestedPosition).from);
+  const startDocument = view.state.doc;
+  const startSelection = view.state.selection;
   let ratio: number | null = null;
   const unwatch = watchPhotoSize(file, ({ width, height }) => {
     if (width <= 0 || height <= 0) return;
@@ -162,6 +175,7 @@ async function uploadIntoPlace(
         image,
         imagePlaceholderAnchor(view.state, placeholder) ?? requestedPosition,
         (transaction) => endImagePlaceholder(transaction, placeholder),
+        view.state.doc.eq(startDocument) && view.state.selection.eq(startSelection) ? undefined : view.state.selection,
       );
     } finally {
       end();
