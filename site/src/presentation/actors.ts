@@ -22,7 +22,7 @@ function limb(material: THREE.Material, radius: number, length: number): { pivot
   return { pivot, mesh };
 }
 
-/** Personnage stylisé : « man » (l'adjoint aux travaux) ou « woman » (la secrétaire de mairie). */
+/** Personnage stylisé : « man » (l'adjoint aux travaux) ou « woman » (la maire). */
 export interface Look {
   skin?: number;
   coat?: number;

@@ -7,7 +7,7 @@ import "../site-header.css";
 import { revealText } from "../arrival";
 import "./presentation.css";
 import { renderFeatures } from "./features";
-import { glyphs, photoThumb, svgIcon } from "./icons";
+import { glyphs, type PieceKind, photoThumb, svgIcon } from "./icons";
 import { at, places, range, storyEnd, storyStart, subStepAt, subSteps, timeline } from "./story";
 
 /* Studio du récit : ?studio ouvre l'outil de réglage, hors du site publié */
@@ -586,26 +586,47 @@ export function showStep(p: number) {
 
 /* Ouverture : le titre glisse vers le bas en s'effaçant pendant que la caméra descend */
 export const hero = document.querySelector(".p-hero-content") as HTMLElement | null;
+/* Scénario de l'animation, à côté du titre, effacé avec lui */
+const scenario = document.querySelector(".p-scenario") as HTMLElement | null;
+for (const node of document.querySelectorAll<HTMLElement>(".p-scenario-icon[data-icon]"))
+  node.innerHTML = svgIcon(node.dataset.icon as PieceKind);
 export function moveHero() {
   if (!hero) return;
   const k = clamp01(window.scrollY / (viewHeight() * 0.3));
-  hero.style.opacity = (1 - k).toFixed(3);
-  hero.style.transform = reducedMotion ? "" : `translateY(${(k * 18).toFixed(2)}vh)`;
-  hero.style.visibility = k >= 1 ? "hidden" : "visible";
+  for (const node of scenario ? [hero, scenario] : [hero]) {
+    node.style.opacity = (1 - k).toFixed(3);
+    node.style.transform = reducedMotion ? "" : `translateY(${(k * 18).toFixed(2)}vh)`;
+    node.style.visibility = k >= 1 ? "hidden" : "visible";
+  }
 }
 window.addEventListener("scroll", moveHero, { passive: true });
 moveHero();
 
-/* The opening button starts the first story step. */
-if (hero) {
+/* Largeur réduite : le scénario commence sous le titre et défile en lui-même s'il dépasse l'écran */
+const scenarioBelow = window.matchMedia("(max-width: 1080px)");
+function placeScenario() {
+  if (!hero || !scenario) return;
+  const below = scenarioBelow.matches;
+  scenario.classList.toggle("is-below-hero", below);
+  scenario.style.setProperty("--scenario-top", below ? `${hero.offsetTop + hero.offsetHeight + 8}px` : "");
+  scenario.style.pointerEvents = below && scenario.scrollHeight > scenario.clientHeight + 1 ? "auto" : "";
+}
+if (hero && scenario) {
+  new ResizeObserver(placeScenario).observe(hero);
+  window.addEventListener("resize", placeScenario);
+  placeScenario();
+}
+
+/* Le bouton d'ouverture, sous la dernière étape du scénario, lance la première étape du récit. */
+if (scenario) {
   const cue = document.createElement("button");
   cue.type = "button";
-  cue.className = "p-hero-cue site-primary-action";
+  cue.className = "p-scenario-cue site-primary-action";
   cue.dataset.testid = "story-start";
   cue.setAttribute("aria-label", "Commencer le parcours");
-  cue.textContent = "Découvrir";
+  cue.textContent = "Commencer le parcours";
   cue.addEventListener("click", () => stepTo(0, controlRatio()));
-  hero.append(cue);
+  scenario.append(cue);
 }
 
 /* Passage vers « En savoir plus » : la scène s'éclaircit et recule, les descriptions glissent en place */

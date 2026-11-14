@@ -391,7 +391,7 @@
       "end": 0.2
     },
     "carToMairie": {
-      "label": "Voiture de la secrétaire : arrivée à la mairie",
+      "label": "Voiture de la maire : arrivée à la mairie",
       "actor": "cars",
       "step": "assistant",
       "start": 0.03,
@@ -405,7 +405,7 @@
       "end": 0.2
     },
     "secretaryGetsOut": {
-      "label": "La secrétaire descend de la voiture",
+      "label": "La maire descend de la voiture",
       "actor": "people",
       "step": "assistant",
       "start": "carToMairie.end",
@@ -413,14 +413,14 @@
       "params": { "leavesCar": 0.3 }
     },
     "secretaryWalksToDoor": {
-      "label": "La secrétaire marche jusqu'à la porte",
+      "label": "La maire marche jusqu'à la porte",
       "actor": "people",
       "step": "assistant",
       "start": "secretaryGetsOut.end",
       "end": 0.28
     },
     "secretaryInMairie": {
-      "label": "La secrétaire est dans la mairie",
+      "label": "La maire est dans la mairie",
       "actor": "people",
       "step": "assistant",
       "start": 0.3,
@@ -538,7 +538,7 @@
       "end": 0.24
     },
     "secretaryCarHidden": {
-      "label": "Voiture de la secrétaire masquée pendant la séance",
+      "label": "Voiture de la maire masquée pendant la séance",
       "actor": "cars",
       "step": "appel",
       "start": 0,
@@ -683,7 +683,7 @@
       "params": { "stagger": 0.45, "walk": 0.5 }
     },
     "secretaryWalksToCar": {
-      "label": "La secrétaire marche jusqu'à sa voiture",
+      "label": "La maire marche jusqu'à sa voiture",
       "actor": "people",
       "step": "gel",
       "start": 0.04,
@@ -705,14 +705,14 @@
       "end": 0.3
     },
     "secretaryGetsInCar": {
-      "label": "La secrétaire monte en voiture",
+      "label": "La maire monte en voiture",
       "actor": "people",
       "step": "liste",
       "start": 0.08,
       "after": "secretaryWalksToCar"
     },
     "carLeavesMairie": {
-      "label": "Voiture de la secrétaire : départ de la mairie",
+      "label": "Voiture de la maire : départ de la mairie",
       "actor": "cars",
       "step": "liste",
       "start": 0.15,
