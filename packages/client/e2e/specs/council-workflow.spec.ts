@@ -205,7 +205,8 @@ async function declareRecusal(
   await page.getByTestId(`recusal-basis-${basis}`).check();
   await page.screenshot({ path: test.info().outputPath(`recusal-${basis}.png`), fullPage: true });
   await page.getByTestId("recusal-submit").click();
-  await expect(page.getByTestId("recusal-form")).toBeHidden();
+  await page.getByTestId("recusal-confirm").click();
+  await expect(page.getByTestId("recusal-confirm-dialog")).toBeHidden();
   await page.getByTestId("live-recusal-info").click();
   await expect(page.getByTestId(`agenda-item-recusal-${memberId}`)).toBeVisible();
   await page.getByTestId("live-recusal-info-content").press("Escape");
@@ -365,8 +366,9 @@ test("mobile French recusals preserve explicit qualification and show a real ref
       response.request().method() === "POST" && response.url().endsWith(`/agenda-items/${item.id}/recusals`),
   );
   await page.getByTestId("recusal-submit").click();
+  await page.getByTestId("recusal-confirm").click();
   expect((await refusal).status()).toBe(409);
-  await expect(page.getByTestId("recusal-form").getByRole("alert")).toContainText("déjà");
+  await expect(page.getByTestId("recusal-confirm-dialog").getByRole("alert")).toContainText("déjà");
   await page.screenshot({ path: testInfo.outputPath("mobile-fr-recusal-refusal.png"), fullPage: true });
   await page.keyboard.press("Escape");
   await page.reload();
@@ -612,6 +614,7 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
         response.request().method() === "POST" && response.url().endsWith(`/agenda-items/${item.id}/complete`),
     );
     await page.getByTestId("live-agenda-complete").click();
+    await page.getByTestId("live-complete-confirm").click();
     expect((await completing).ok()).toBeTruthy();
   }
   await expect(page.getByTestId("live-meeting-close")).toBeEnabled();

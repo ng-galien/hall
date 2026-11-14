@@ -142,6 +142,7 @@ async function twoViewsKeepTypedNotes(
     (response) => response.request().method() === "POST" && response.url().endsWith(`/agenda-items/${itemId}/complete`),
   );
   await writer.getByTestId("live-agenda-complete").click();
+  await writer.getByTestId("live-complete-confirm").click();
   const completedAt = Date.now();
   expect((await completion).ok()).toBeTruthy();
   await writer.waitForTimeout(6_000);
@@ -235,6 +236,7 @@ test("notes typed without a pause are kept when another conduct view completes t
         response.request().method() === "POST" && response.url().endsWith(`/agenda-items/${itemId}/complete`),
     );
     await chair.getByTestId("live-agenda-complete").click();
+    await chair.getByTestId("live-complete-confirm").click();
     expect((await completion).ok()).toBeTruthy();
     await typing;
     await expect(writer.getByTestId("live-agenda-notes")).toBeHidden();
@@ -280,6 +282,7 @@ test("notes whose saves failed are saved when another conduct view completes the
     expect(await storedNotes(writer, slug, itemId)).toBe("");
 
     await chair.getByTestId("live-agenda-complete").click();
+    await chair.getByTestId("live-complete-confirm").click();
     await expect(writer.getByTestId("live-agenda-notes")).toBeHidden();
     await expect.poll(() => storedNotes(writer, slug, itemId), { timeout: 15_000 }).toBe(typedNotes);
   } finally {

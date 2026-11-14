@@ -103,6 +103,7 @@ test("a second conducting session receives conduct events, keeps its selection a
     await sockets[0]!.close();
     await expect.poll(() => sockets.length).toBe(2);
     await conductor.getByTestId("live-agenda-complete").click();
+    await conductor.getByTestId("live-complete-confirm").click();
     await expect(conductor.getByTestId(`live-agenda-item-${second.id}`)).toHaveAttribute("aria-current", "true");
     await expect(follower.getByTestId(`live-agenda-item-${first.id}`)).toContainText("Discussion");
     resumeReconnect?.();

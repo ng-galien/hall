@@ -77,6 +77,7 @@ for (const [label, offset] of [
     await page.getByTestId("live-agenda-start").click();
     await expect(page.getByTestId("live-agenda-complete")).toBeVisible();
     await page.getByTestId("live-agenda-complete").click();
+    await page.getByTestId("live-complete-confirm").click();
     await expect(page.getByTestId("live-agenda-complete")).toBeHidden();
 
     const conduct = await properties<{ meeting: { startedAt: string } }>(
