@@ -58,7 +58,7 @@ The complete gate, `npm run test:all`, runs before a push that groups several de
 | `distribution-install (ubuntu-24.04)` | installed npm artifact, MCP, schema convergence | yes | yes | 2.0 min |
 | `distribution-install (windows-2025)` | the same on Windows | no | yes | 8.7 min |
 
-In CI, the browser group sets `HALL_E2E_MAX_FAILURES=0`: every lane and family runs to its end, and a failed run lists every failed scenario. Locally, the default `1` stops the browser group at the first failure; set `HALL_E2E_MAX_FAILURES=0` to obtain the complete list.
+In CI, the browser group sets `HALL_E2E_MAX_FAILURES=0`: every lane and family runs to its end. Every browser run ends with a summary by family and lane: failed scenarios, the number of scenarios that did not run, and errors outside any scenario. One scenario that did not run, one error outside scenarios or one missing lane report fails the run with a message that says so. Locally, the default `1` stops the browser group at the first failure; set `HALL_E2E_MAX_FAILURES=0` to obtain the complete list.
 
 Differences between CI and a local run:
 

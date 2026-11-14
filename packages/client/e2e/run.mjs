@@ -13,7 +13,7 @@ import {
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { verifyBuild } from "../../../scripts/testing/build.mjs";
 import { testDatabaseLockDirectory } from "./test-database-lock.mjs";
 
@@ -283,19 +283,47 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
   return { child, completion };
 }
 
-/* Lists every failed scenario of the lanes of the run, read from their Playwright JSON reports. */
-function reportFailedScenarios(results) {
-  const failed = [];
-  const collect = (family, suite) => {
-    for (const spec of suite.specs ?? [])
-      if (!spec.ok) failed.push(`${family}: ${spec.file}:${spec.line} ${spec.title}`);
-    for (const child of suite.suites ?? []) collect(family, child);
-  };
-  for (const { family, report } of results)
-    if (report && existsSync(report))
-      for (const suite of JSON.parse(readFileSync(report, "utf8")).suites ?? []) collect(family, suite);
-  if (failed.length)
-    console.log(`Failed scenarios (${failed.length}):\n${failed.map((line) => `  ${line}`).join("\n")}`);
+/*
+ * Summarizes the run lane by lane from the Playwright JSON reports: failed scenarios, scenarios that did not run,
+ * errors outside any scenario, missing reports and lanes never started. Returns the reasons that make the run
+ * incomplete; each one fails the run.
+ */
+function summarizeLanes(results, plannedLanes) {
+  const incomplete = [];
+  const lines = [];
+  for (const { family, report } of results) {
+    const lane = basename(dirname(report));
+    if (!existsSync(report)) {
+      lines.push(`${lane}: no Playwright report`);
+      incomplete.push(`${lane} wrote no report`);
+      continue;
+    }
+    const json = JSON.parse(readFileSync(report, "utf8"));
+    const failed = [];
+    let notRun = 0;
+    const collect = (suite) => {
+      for (const spec of suite.specs ?? []) {
+        if (spec.tests?.some((test) => (test.results ?? []).length === 0)) notRun += 1;
+        else if (!spec.ok) failed.push(`${spec.file}:${spec.line} ${spec.title}`);
+      }
+      for (const child of suite.suites ?? []) collect(child);
+    };
+    for (const suite of json.suites ?? []) collect(suite);
+    const errors = (json.errors ?? []).map((error) => (error.message ?? String(error.value ?? "")).split("\n")[0]);
+    lines.push(
+      `${lane} (${family}): ${failed.length} failed, ${notRun} did not run, ${errors.length} errors outside scenarios`,
+    );
+    for (const scenario of failed) lines.push(`  failed: ${scenario}`);
+    for (const error of errors) lines.push(`  error outside scenarios: ${error}`);
+    if (notRun) incomplete.push(`${notRun} scenarios of ${lane} did not run`);
+    if (errors.length) incomplete.push(`${errors.length} errors outside scenarios in ${lane}`);
+  }
+  if (results.length < plannedLanes) {
+    lines.push(`${plannedLanes - results.length} planned lanes were not started`);
+    incomplete.push(`${plannedLanes - results.length} planned lanes were not started`);
+  }
+  console.log(`Browser run summary:\n${lines.map((line) => `  ${line}`).join("\n")}`);
+  return incomplete;
 }
 
 const lanes = configuredLaneCount();
@@ -446,9 +474,10 @@ try {
   );
   clearTimeout(timeout);
 
-  reportFailedScenarios(results);
+  const incomplete = summarizeLanes(results, jobs.length);
   if (timedOut) throw new Error(`The E2E suite exceeded its ${suiteTimeoutMinutes} minute limit and was stopped`);
   if (interrupted) throw new Error("The E2E suite was interrupted and its processes were stopped");
+  if (incomplete.length) throw new Error(`The browser run did not execute every scenario: ${incomplete.join("; ")}`);
   process.exitCode = results.every(({ status }) => status === 0) ? 0 : 1;
 } finally {
   stopAll("SIGTERM");
