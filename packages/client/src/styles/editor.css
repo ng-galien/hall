@@ -89,6 +89,9 @@
   font-size: var(--hall-font-size-text);
   font-weight: var(--hall-font-weight-bold);
 }
+/* While a text is written on a phone, nothing above its writing tools is pulled up out of the scrolled area: the tools
+   start at the top of that area, so its first line starts under them instead of under the fixed tools. */
+.app-main .workspace:has(.markdown-editor-phone) > .workspace-topzone { margin-block: 0; }
 .markdown-phone-toolbar-anchor { position: absolute; bottom: 0; left: 0; width: var(--hall-size-pixel); height: var(--hall-size-pixel); }
 .markdown-editor.markdown-editor-phone { flex: 1; border: 0; border-radius: 0; }
 .markdown-editor-phone .markdown-editor-canvas,

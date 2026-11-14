@@ -52,6 +52,7 @@ import {
   useSpreadsheetDropChoice,
 } from "./imageTransfer";
 import { usePhoneEditorCommands } from "./phoneEditorCommands";
+import { keepCaretBelowWritingTools } from "./phoneWritingScroll";
 import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
 import { referenceKindPresentations } from "./referenceKindPresentation";
 import type { Mentionable } from "./references";
@@ -870,6 +871,13 @@ export function MarkdownEditor({
     ]);
     return () => setCommands([]);
   }, [phoneWriting, inline, setCommands, t]);
+
+  const phoneTools = Boolean(phoneWriting && inline && state);
+  useEffect(() => {
+    const tools = compactEditor.current?.querySelector<HTMLElement>(".markdown-phone-toolbar");
+    if (!phoneTools || !inline || !tools) return;
+    return keepCaretBelowWritingTools(inline.view, tools);
+  }, [phoneTools, inline]);
 
   if (variant === "enriched" && !readOnly) {
     return (
