@@ -16,6 +16,7 @@ import {
   HomeIcon,
   MailIcon,
   MapIcon,
+  MemberIcon,
   MinutesIcon,
   ReferenceIcon,
   RightsIcon,
@@ -24,6 +25,7 @@ import {
   TextDocumentIcon,
 } from "../components/icons";
 import type { TranslationKey } from "../i18n/en";
+import { isUnderPath } from "../pages/workspace/paths";
 
 /** One place of the menu: a screen, or an entry whose sub-resources are screens. */
 export interface NavigationItem {
@@ -43,6 +45,8 @@ export interface NavigationItem {
   folderTree?: boolean;
   /** Brouillons and Envoyés show under this entry while its screen is open. */
   mailFolders?: boolean;
+  /** The entry opens the personal folder of the person, and shows only for a person who has one. */
+  personalWorkspace?: boolean;
 }
 
 const leaf = (
@@ -86,6 +90,8 @@ export const navigationBlocks: NavigationItem[][] = [
         ),
       ],
     },
+    // @implements-requirement HALL-FR-WSP-380
+    { id: "personal", labelKey: "workspace.personalWorkspace", Icon: MemberIcon, personalWorkspace: true },
     { ...leaf("workspace", "/workspace", "navigation.documents", FolderIcon, "resources"), folderTree: true },
     {
       ...leaf("mail", "/mail", "navigation.mail", MailIcon, "mail"),
@@ -131,16 +137,40 @@ export function navigationItem(to: string): NavigationItem {
   return item;
 }
 
+/** Address of the explorer opened on the personal folder `path`. */
+export function personalWorkspaceHref(path: string) {
+  return `/workspace?${new URLSearchParams({ path }).toString()}`;
+}
+
+/** The screen where one is: its route and whether it is the personal folder of the person or one of its folders. */
+export interface MenuPlace {
+  pathname: string;
+  inPersonal: boolean;
+}
+
+/** The place of the address `pathname` and `search` for a person whose personal folder is `personalPath`. */
+export function menuPlace(pathname: string, search: string, personalPath: string | null): MenuPlace {
+  const workspacePath = new URLSearchParams(search).get("path") ?? "";
+  return {
+    pathname,
+    inPersonal: pathname === "/workspace" && personalPath !== null && isUnderPath(workspacePath, personalPath),
+  };
+}
+
 /** True when `pathname` is the screen `to` or one of its inner screens. */
 export function isUnder(pathname: string, to: string) {
   return to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 }
 
-/** True when the current screen belongs to this entry: itself or one of its sub-resources. */
-export function isCurrentEntry(pathname: string, item: NavigationItem) {
+/**
+ * True when the current screen belongs to this entry: itself or one of its sub-resources. In the personal folder the
+ * current entry is the personal workspace, not Documents.
+ */
+export function isCurrentEntry(place: MenuPlace, item: NavigationItem) {
+  if (item.personalWorkspace || place.inPersonal) return Boolean(item.personalWorkspace) && place.inPersonal;
   return (
-    (item.to !== undefined && isUnder(pathname, item.to)) ||
-    (item.children ?? []).some((child) => child.to !== undefined && isUnder(pathname, child.to))
+    (item.to !== undefined && isUnder(place.pathname, item.to)) ||
+    (item.children ?? []).some((child) => child.to !== undefined && isUnder(place.pathname, child.to))
   );
 }
 

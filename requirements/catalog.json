@@ -11605,8 +11605,9 @@
       "acceptanceCriteria": [
         "Au téléphone, la barre du bas présente cinq entrées avec leur icône et leur libellé : Accueil, Documents, Agenda, Séances et Plus, selon les droits de l’utilisateur.",
         "L’entrée active se distingue des autres.",
-        "Sur ordinateur et tablette, le menu a une seule forme d’entrée, icône et libellé, en trois blocs : Accueil ; Conseil municipal, Documents, Courriels, Agenda ; Contacts, Cartes, Administration. Documentation et Paramètres forment son pied ; aucun titre de groupe n’est écrit.",
+        "Sur ordinateur et tablette, le menu a une seule forme d’entrée, icône et libellé, en trois blocs : Accueil ; Conseil municipal, Mon espace, Documents, Courriels, Agenda ; Contacts, Cartes, Administration. Documentation et Paramètres forment son pied ; aucun titre de groupe n’est écrit.",
         "Sous Conseil municipal : Séances, Procès-verbaux, Délibérations, Membres du conseil, Commissions et Représentations extérieures. Sous Documents : les dossiers et les affaires du conseil, à tous les niveaux, cibles de dépôt, sans fichier, texte, tableur ni carte. Sous Courriels : Brouillons et Envoyés avec leur nombre. Sous Administration : Commune, Utilisateurs, Droits, Modèles de documents, Réglages des documents et Réglages des courriels. Accueil, Agenda, Contacts et Cartes n’ont pas de sous-ressource.",
+        "Sur ordinateur et tablette, menu déplié ou replié, l’entrée « Mon espace » ouvre dans l’explorateur des documents le dossier personnel de la personne connectée, à la même adresse que l’entrée du téléphone ; elle n’apparaît que pour une personne qui a un dossier personnel, et n’a pas de sous-ressource. Dans ce dossier ou dans l’un de ses sous-dossiers, elle est l’entrée courante et Documents ne l’est pas.",
         "Les sous-ressources de l’entrée où l’on se trouve s’affichent en retrait sous elle ; une seule entrée est ouverte à la fois et les autres restent sur leur ligne. Conseil municipal et Administration mènent à leur première sous-ressource permise.",
         "L’entrée ou la sous-ressource courante se distingue des autres ; un dossier ouvert de Documents se lit à son icône de dossier ouvert.",
         "Au-dessus de la largeur du téléphone, le menu est un seul et même panneau ancré à gauche, qui pousse le contenu ; il a deux états, déplié avec les libellés complets ou replié en rail d’une icône par entrée de premier niveau. Tant que la personne n’a rien choisi, il est replié sur un écran étroit et déplié sur un écran large ; dès qu’elle clique son bouton de repli, son choix est retenu et respecté à toute largeur.",
@@ -11632,6 +11633,12 @@
           "key": "menu-sub-resources",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026, sur le document « Hall 1.3 — Design de référence » : « On met juste les sous-ressources. […] on ne dépasse pas des niveaux de granularité trop importants », « On n'invente pas des trucs pour remplir. On réaffecte », « Tout ce qui est du métier du conseil municipal, ça va dedans », « la barre latérale ne prend que les conteneurs », puis « tu as le truc. Vas-y, fais-le ». Libellés « Réglages des documents » et « Réglages des courriels » proposés par le coordinateur, à confirmer.",
+          "sourceIds": []
+        },
+        {
+          "key": "personal-workspace-entry",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 14 novembre 2026 : « il faudrait en desktop qu'on ait visible beaucoup plus tout de suite le dossier personnel de l'utilisateur. » Entrée permanente « Mon espace » (libellé de l’espace personnel déjà employé par l’accueil et le téléphone) juste avant Documents proposée par le coordinateur, à juger à l’écran par le propriétaire.",
           "sourceIds": []
         },
         {

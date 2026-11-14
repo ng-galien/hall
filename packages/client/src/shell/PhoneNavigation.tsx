@@ -5,9 +5,16 @@ import { CalendarIcon, DocsIcon, MemberIcon, MoreIcon, SettingsIcon } from "../c
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
-import { isUnderPath } from "../pages/workspace/paths";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
-import { isUnder, type NavigationItem, navigationBlocks, navigationItem, phoneBarDestinations } from "./navigation";
+import {
+  isUnder,
+  menuPlace,
+  type NavigationItem,
+  navigationBlocks,
+  navigationItem,
+  personalWorkspaceHref,
+  phoneBarDestinations,
+} from "./navigation";
 
 /** The short names written under the icons of the « Plus » grid; the screen and the screen reader keep the full one. */
 const gridLabels: Record<string, TranslationKey> = {
@@ -18,10 +25,6 @@ const gridLabels: Record<string, TranslationKey> = {
 };
 
 import { useApiRoot } from "./usePhoneLayout";
-
-export function personalWorkspaceHref(path: string) {
-  return `/workspace?${new URLSearchParams({ path }).toString()}`;
-}
 
 type MoreRow = { to: string; testId: string; label: string; short: string; Icon: Icon };
 
@@ -64,9 +67,8 @@ export function PhoneNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => setMoreOpen(false), [location.pathname, location.search]);
 
-  const workspacePath = new URLSearchParams(location.search).get("path") ?? "";
   const inWorkspace = location.pathname === "/workspace";
-  const inPersonal = inWorkspace && personalPath !== null && isUnderPath(workspacePath, personalPath);
+  const { inPersonal } = menuPlace(location.pathname, location.search, personalPath);
   const meetings = navigationItem("/meetings");
   const calendar = { ...navigationItem("/calendar"), Icon: CalendarIcon };
   const documents = navigationItem("/workspace");

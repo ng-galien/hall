@@ -12,7 +12,7 @@ import {
 import { photoFile } from "../../features/documents/photoFile";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { ApiErrorCode } from "../../services/apiClient";
-import { personalWorkspaceHref } from "../../shell/PhoneNavigation";
+import { personalWorkspaceHref } from "../../shell/navigation";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { isUnderPath } from "../workspace/paths";
 import { WorkspaceCreateMenu } from "../workspace/WorkspaceCreateMenu";

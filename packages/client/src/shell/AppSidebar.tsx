@@ -12,7 +12,16 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 import { useMailCountsStore } from "../features/mail/mailCounts";
 import { useI18n } from "../i18n/I18nProvider";
-import { isCurrentEntry, isUnder, type NavigationItem, navigationBlocks } from "./navigation";
+import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
+import {
+  isCurrentEntry,
+  isUnder,
+  type MenuPlace,
+  menuPlace,
+  type NavigationItem,
+  navigationBlocks,
+  personalWorkspaceHref,
+} from "./navigation";
 import { useApiRoot } from "./usePhoneLayout";
 import { useFolderTree, WorkspaceTree } from "./WorkspaceTree";
 
@@ -23,8 +32,16 @@ const railPanelLeaveDelay = 200;
 /** Time the pointer rests on a folded icon before its panel opens. */
 const railPanelHoverDelay = 120;
 
-/** The entry as the person may see it: its permitted sub-resources, or nothing when none is permitted. */
-export function permittedEntry(item: NavigationItem, available: Availability): NavigationItem | null {
+/**
+ * The entry as the person may see it: its permitted sub-resources, or nothing when none is permitted; the personal
+ * workspace opens the personal folder `personalPath`, and does not show without one.
+ */
+export function permittedEntry(
+  item: NavigationItem,
+  available: Availability,
+  personalPath: string | null,
+): NavigationItem | null {
+  if (item.personalWorkspace) return personalPath ? { ...item, to: personalWorkspaceHref(personalPath) } : null;
   if (!available(item.requiredRelation)) return null;
   if (!item.children) return item;
   const children = item.children.filter((child) => available(child.requiredRelation));
@@ -125,8 +142,8 @@ function RailFolders() {
  * the pointer may go from the icon into the panel. A click keeps the panel open until a place is chosen, a click lands
  * elsewhere or Échap is pressed.
  */
-function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: string; label: string }) {
-  const current = isCurrentEntry(pathname, item);
+function RailEntry({ item, place, label }: { item: NavigationItem; place: MenuPlace; label: string }) {
+  const current = isCurrentEntry(place, item);
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
   const closing = useRef<number | null>(null);
@@ -222,7 +239,7 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
           {item.folderTree ? (
             <RailFolders />
           ) : (
-            item.children?.map((child) => <RailPlace key={child.id} item={child} pathname={pathname} />)
+            item.children?.map((child) => <RailPlace key={child.id} item={child} pathname={place.pathname} />)
           )}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -249,15 +266,20 @@ function RailEntry({ item, pathname, label }: { item: NavigationItem; pathname: 
 }
 
 /** An entry of the unfolded menu, with its sub-resources indented under it while one of them is current. */
-function MenuEntry({ item, pathname }: { item: NavigationItem; pathname: string }) {
-  const entered = isCurrentEntry(pathname, item);
+function MenuEntry({ item, place }: { item: NavigationItem; place: MenuPlace }) {
+  const entered = isCurrentEntry(place, item);
   let under: ReactNode = null;
   if (entered && item.folderTree) under = <WorkspaceTree />;
   else if (entered && item.children)
     under = (
       <div className="nav-sub-entries">
         {item.children.map((child) => (
-          <EntryRow key={child.id} item={child} current={child.to !== undefined && isUnder(pathname, child.to)} sub />
+          <EntryRow
+            key={child.id}
+            item={child}
+            current={child.to !== undefined && isUnder(place.pathname, child.to)}
+            sub
+          />
         ))}
       </div>
     );
@@ -286,9 +308,11 @@ export function AppSidebar({
 }) {
   const { t } = useI18n();
   const { available } = useApiRoot();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const personalPath = useWorkspaceResourcesStore((state) => state.personalWorkspacePath);
+  const place = menuPlace(pathname, search, personalPath);
   const blocks = navigationBlocks
-    .map((block) => block.flatMap((item) => permittedEntry(item, available) ?? []))
+    .map((block) => block.flatMap((item) => permittedEntry(item, available, personalPath) ?? []))
     .filter((block) => block.length > 0);
   const footer: NavigationItem[] = [
     { id: "documentation", to: "/docs", labelKey: "navigation.documentation", Icon: DocsIcon },
@@ -322,9 +346,9 @@ export function AppSidebar({
           <div className="app-sidebar-block" key={block[0].id}>
             {block.map((item) =>
               compact ? (
-                <RailEntry key={item.id} item={item} pathname={pathname} label={t(item.labelKey)} />
+                <RailEntry key={item.id} item={item} place={place} label={t(item.labelKey)} />
               ) : (
-                <MenuEntry key={item.id} item={item} pathname={pathname} />
+                <MenuEntry key={item.id} item={item} place={place} />
               ),
             )}
           </div>
@@ -333,7 +357,7 @@ export function AppSidebar({
       <div className="app-sidebar-footer">
         {footer.map((item) =>
           compact ? (
-            <RailEntry key={item.id} item={item} pathname={pathname} label={t(item.labelKey)} />
+            <RailEntry key={item.id} item={item} place={place} label={t(item.labelKey)} />
           ) : (
             <EntryRow key={item.id} item={item} current={item.to !== undefined && isUnder(pathname, item.to)} />
           ),
