@@ -105,3 +105,60 @@ test("the unfolded business row lists every file of its folder: report, attachme
     await act(async () => root.unmount());
   }
 });
+
+// @verifies-requirement HALL-FR-WSP-490
+test("the arrow keys unfold and fold a business row as they do a folder row", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  const resources = [file("report", "Présentation"), file("loose", "Désignation des membres de la CCLE")];
+  await act(async () =>
+    root.render(
+      h(PathContents, {
+        path: "Conseil",
+        businesses: [
+          {
+            id: "commissions",
+            title: "Commissions",
+            folderPath: "Conseil",
+            folderResourceId: "folder",
+            reportResourceId: "report",
+            updatedAt: "2026-11-05T00:00:00.000Z",
+            resources: [],
+          },
+        ],
+        resources,
+        selection: null,
+        onSelect: vi.fn(),
+        onCreate: vi.fn(),
+        onImportFolder: vi.fn(),
+        onPreview: vi.fn(),
+        onImportBundle: vi.fn(),
+        onExportBundle: vi.fn(),
+        onDeleteBusiness: vi.fn(),
+      }),
+    ),
+  );
+  const press = async (target, key) =>
+    act(async () => target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true })));
+  const businessNode = () => host.querySelector('[data-testid="workspace-business-title-commissions"]');
+  const expand = () => host.querySelector('[data-testid="workspace-business-expand-commissions"]');
+  try {
+    assert.equal(expand().getAttribute("aria-expanded"), "false");
+    await press(businessNode(), "ArrowRight");
+    assert.equal(expand().getAttribute("aria-expanded"), "true");
+    assert.ok(host.querySelector('[data-testid="workspace-resource-loose"]'));
+    await press(businessNode(), "ArrowRight");
+    const firstChild = host.querySelector(
+      '[data-testid="workspace-business-commissions"] .list-row-children button[data-workspace-tree-node]',
+    );
+    assert.equal(document.activeElement, firstChild);
+    await press(firstChild, "ArrowLeft");
+    assert.equal(expand().getAttribute("aria-expanded"), "false");
+    assert.equal(document.activeElement, businessNode());
+    assert.equal(host.querySelector('[data-testid="workspace-resource-loose"]'), null);
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+  }
+});

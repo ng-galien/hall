@@ -144,6 +144,9 @@ function RenameContextMenu({
   );
 }
 
+/** Rows that unfold like a folder: a folder row and a business row. */
+const unfoldableRowSelector = "li.path-contents-folder, li.path-contents-business";
+
 /** `data-testid` of a tree line, spread into its `lineProps`. */
 const testIdProps = (testId: string) => ({ "data-testid": testId });
 
@@ -906,7 +909,7 @@ export function PathContents({
         toggle(folderPath);
         return;
       }
-      const folder = current.closest("li.path-contents-folder");
+      const folder = current.closest(unfoldableRowSelector);
       focusTreeNode(
         folder?.querySelector<HTMLButtonElement>(
           ":scope > .list-row-children > ul.path-contents-branch button[data-workspace-tree-node]",
@@ -925,7 +928,7 @@ export function PathContents({
       const parentBranch = current.closest("ul.path-contents-branch");
       const parent =
         parentBranch
-          ?.closest("li.path-contents-folder")
+          ?.closest(unfoldableRowSelector)
           ?.querySelector<HTMLButtonElement>(":scope > .list-row-line button[data-workspace-folder-path]") ?? null;
       const parentFolderPath = parent?.dataset.workspaceFolderPath;
       if (parentFolderPath && isFolderExpanded(parentFolderPath)) toggle(parentFolderPath);
@@ -1052,7 +1055,7 @@ export function PathContents({
               }
               onOpen={renaming ? undefined : () => onSelect({ kind: "councilBusiness", id: business.id })}
               openTestId={"workspace-business-title-" + business.id}
-              openProps={treeNodeProps(key)}
+              openProps={treeNodeProps(key, { "data-workspace-folder-path": businessFolder })}
               wide={<time dateTime={business.updatedAt}>{formatDate(business.updatedAt)}</time>}
               lineProps={treeLineProps(key, renaming)}
               wrapLine={(line) => (
