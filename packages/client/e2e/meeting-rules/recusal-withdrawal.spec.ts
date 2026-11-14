@@ -27,7 +27,8 @@ test("déport retiré avant le résultat : le membre revient parmi les votants",
     .click();
   await page.getByTestId("recusal-basis-personalInterest").check();
   await page.getByTestId("recusal-submit").click();
-  await expect(page.getByTestId("recusal-form")).toBeHidden();
+  await page.getByTestId("recusal-confirm").click();
+  await expect(page.getByTestId("recusal-confirm-dialog")).toBeHidden();
   await expect(page.getByTestId(`live-vote-member-${recused!.id}`)).toBeHidden();
 
   await page.getByTestId("live-recusal-info").click();

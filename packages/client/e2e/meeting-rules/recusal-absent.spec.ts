@@ -25,7 +25,10 @@ test("déport refusé à un membre absent, enregistré pour un membre présent",
     .click();
   await page.getByTestId("recusal-basis-personalInterest").check();
   await page.getByTestId("recusal-submit").click();
-  await expect(form.getByRole("alert")).toContainText("Seul un membre présent ou représenté peut se déporter.");
+  const confirmation = page.getByTestId("recusal-confirm-dialog");
+  await page.getByTestId("recusal-confirm").click();
+  await expect(confirmation.getByRole("alert")).toContainText("Seul un membre présent ou représenté peut se déporter.");
+  await page.getByTestId("recusal-confirm-cancel").click();
   await expect(form).toBeVisible();
 
   await page.getByTestId("recusal-member").click();
@@ -34,6 +37,8 @@ test("déport refusé à un membre absent, enregistré pour un membre présent",
     .and(page.locator(`[data-reference-id="${present!.id}"]`))
     .click();
   await page.getByTestId("recusal-submit").click();
+  await page.getByTestId("recusal-confirm").click();
+  await expect(confirmation).toBeHidden();
   await expect(form).toBeHidden();
   await page.getByTestId("live-recusal-info").click();
   await expect(page.getByTestId("live-recusal-info-content")).toBeVisible();
