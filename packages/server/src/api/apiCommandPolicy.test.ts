@@ -439,6 +439,22 @@ const auditCases = [
   ],
   [
     "POST",
+    "/api/council-meetings/meeting-1/proxy-registrations",
+    undefined,
+    "meeting.register-proxy",
+    "council-meeting",
+    "meeting-1",
+  ],
+  [
+    "PATCH",
+    "/api/council-meetings/meeting-1/proxy-registrations",
+    undefined,
+    "meeting.correct-proxy-registration",
+    "council-meeting",
+    "meeting-1",
+  ],
+  [
+    "POST",
     "/api/council-meetings/meeting-1/closed-sessions",
     undefined,
     "meeting.record-closed-session",

@@ -125,6 +125,8 @@ describe("meeting conduct evidence", () => {
       },
       canRecordOfficerChange: true,
       canDeclareAuxiliaryAttendance: true,
+      proxyRegistrations: [],
+      canRegisterProxies: false,
       canRecordClosedSession: true,
       canRecordQuorum: true,
       canRecordReconvocation: false,

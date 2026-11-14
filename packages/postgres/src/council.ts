@@ -30,8 +30,10 @@ import {
   type BallotResultPreview,
   ballotResultPreviewSchema,
   type CorrectMeetingAuxiliaryAttendance,
+  type CorrectMeetingProxyRegistration,
   type CreateBallotResultPreview,
   correctMeetingAuxiliaryAttendanceSchema,
+  correctMeetingProxyRegistrationSchema,
   createBallotResultPreviewSchema,
   type DeclareMeetingAuxiliaryAttendance,
   declareMeetingAuxiliaryAttendanceSchema,
@@ -44,12 +46,14 @@ import {
   type RecordMeetingOfficerChange,
   type RecordMeetingQuorum,
   type RecordMeetingReconvocation,
+  type RegisterMeetingProxy,
   recordAgendaItemRecusalSchema,
   recordMeetingAttendanceEventsSchema,
   recordMeetingClosedSessionSchema,
   recordMeetingOfficerChangeSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
+  registerMeetingProxySchema,
   type WithdrawAgendaItemRecusal,
   withdrawAgendaItemRecusalSchema,
 } from "@hall/domain";
@@ -1079,6 +1083,52 @@ export class PostgresCouncil {
           "meeting.correct-auxiliary-attendance",
           "SELECT hall_api.remove_meeting_auxiliary_attendance($1::uuid,$2::uuid) AS payload",
           [correction.attendanceId],
+        ),
+    });
+  }
+
+  registerMeetingProxy(
+    request: PostgresCouncilRequest,
+    meetingId: string,
+    input: RegisterMeetingProxy,
+  ): Promise<PostgresMeetingConduct> {
+    const value = registerMeetingProxySchema.parse(input);
+    return this.conductMutation(
+      request,
+      meetingId,
+      "meeting.register-proxy",
+      "SELECT hall_api.register_meeting_proxy($1::uuid,$2::uuid,$3::uuid,$4::uuid) AS payload",
+      [value.grantorCouncilMemberId, value.holderCouncilMemberId, value.proxyDocumentId],
+    );
+  }
+
+  correctMeetingProxyRegistration(
+    request: PostgresCouncilRequest,
+    meetingId: string,
+    input: CorrectMeetingProxyRegistration,
+  ): Promise<PostgresMeetingConduct> {
+    const value = correctMeetingProxyRegistrationSchema.parse(input);
+    return matchDiscriminated(value, "kind", {
+      change: (correction) =>
+        this.conductMutation(
+          request,
+          meetingId,
+          "meeting.correct-proxy-registration",
+          "SELECT hall_api.change_meeting_proxy_registration($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid) AS payload",
+          [
+            correction.registrationId,
+            correction.grantorCouncilMemberId,
+            correction.holderCouncilMemberId,
+            correction.proxyDocumentId,
+          ],
+        ),
+      withdrawal: (correction) =>
+        this.conductMutation(
+          request,
+          meetingId,
+          "meeting.correct-proxy-registration",
+          "SELECT hall_api.withdraw_meeting_proxy_registration($1::uuid,$2::uuid) AS payload",
+          [correction.registrationId],
         ),
     });
   }

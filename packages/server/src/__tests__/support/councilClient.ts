@@ -573,6 +573,12 @@ export function createTestCouncilClient(
     async correctMeetingAuxiliaryAttendance() {
       throw new Error("Conduct acceptance requires PostgreSQL");
     },
+    async registerMeetingProxy() {
+      throw new Error("Proxy registration acceptance requires PostgreSQL");
+    },
+    async correctMeetingProxyRegistration() {
+      throw new Error("Proxy registration acceptance requires PostgreSQL");
+    },
     async listAgenda(meetingId) {
       requireMeeting(meetingId);
       return [...agendaItems.values()]

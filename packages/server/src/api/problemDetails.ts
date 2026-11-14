@@ -2,6 +2,11 @@ import { PROBLEM_MEDIA_TYPE, type ProblemDetails } from "@hall/api-contract";
 import type { Request, Response } from "express";
 
 const titles: Record<string, string> = {
+  proxy_registration_closed: "The proxies of a meeting are registered before its opening",
+  proxy_holder_already_registered: "This member already holds a proxy for this meeting",
+  proxy_grantor_already_registered: "This member already gives a proxy for this meeting",
+  proxy_registration_invalid: "A proxy is given by a member in mandate to another member in mandate",
+  proxy_document_already_registered: "This document already supports another proxy of this meeting",
   recusal_already_recorded: "A recusal is already recorded for this member and agenda item",
   recusal_recording_closed: "Recusal recording is closed for this agenda item",
   recusal_withdrawal_closed: "The recusal can no longer be withdrawn for this agenda item",

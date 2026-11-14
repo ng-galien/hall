@@ -500,3 +500,26 @@ describe("meeting opening preparation capabilities", () => {
     }
   });
 });
+
+// @verifies-requirement HALL-FR-ATT-190
+it.each([true, false])(
+  "offers the proxy registration only before the opening and with permission: permitted=%s",
+  (permitted) => {
+    const path = "/api/council-meetings/meeting/conduct";
+    const meeting = { id: "meeting", number: 1, scheduledAt: "2026-01-01T18:00:00Z", startedAt: null, closedAt: null };
+    const entity = toSirenRepresentation(request(path, permitted ? apiActionNames : []), {
+      councilMeetingId: "meeting",
+      meeting,
+      proxyRegistrations: [],
+      canRegisterProxies: true,
+    });
+    expect(entity.properties).toMatchObject({ canRegisterProxies: permitted });
+    for (const name of ["meeting.register-proxy", "meeting.correct-proxy-registration"])
+      expect(entity.actions?.some((action) => action.name === name) ?? false).toBe(permitted);
+    const opened = objectActions(request(path), "council-meeting", {
+      meeting: { ...meeting, startedAt: "2026-01-01T18:05:00Z" },
+      canRegisterProxies: false,
+    });
+    expect(opened.some((action) => action.name === "meeting.register-proxy")).toBe(false);
+  },
+);

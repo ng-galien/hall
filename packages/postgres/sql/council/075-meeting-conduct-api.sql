@@ -26,6 +26,8 @@ RETURNS JSONB LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,ha
      THEN hall.meeting_officer_handover_options(m.id) ELSE '{"chair":[],"secretary":[],"proposedChairMemberId":null}'::jsonb END,
    'canRecordOfficerChange',jsonb_array_length(blockers.value->'recordOfficerChange')=0,
    'canDeclareAuxiliaryAttendance',jsonb_array_length(blockers.value->'declareAuxiliaryAttendance')=0,
+   'proxyRegistrations',hall.meeting_proxy_registrations_json(m.id),
+   'canRegisterProxies',m.started_at IS NULL AND m.closed_at IS NULL,
    'canRecordClosedSession',m.started_at IS NOT NULL AND m.closed_at IS NULL,
    'canRecordQuorum',m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_membership_record WHERE council_meeting=m.id),
    'canRecordReconvocation',m.started_at IS NOT NULL AND m.closed_at IS NULL AND EXISTS(SELECT FROM hall.meeting_quorum_observation o
@@ -177,5 +179,36 @@ RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_cata
 BEGIN
  PERFORM hall.record_meeting_closed_session(target_meeting,requester_ids,approval_count,covers_whole_meeting,item_ids,
    hall.meeting_reception_time(target_meeting));
+ RETURN hall_api.meeting_conduct(target_meeting);
+END $$;
+
+-- @implements-requirement HALL-FR-ATT-190
+-- The registration trigger applies the rules of article L2121-20 and refuses
+-- every change once the meeting is opened.
+CREATE FUNCTION hall_api.register_meeting_proxy(target_meeting UUID,grantor UUID,holder UUID,document UUID)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ INSERT INTO hall.meeting_proxy_registration(council_meeting,grantor_member,holder_member,proxy_document)
+ VALUES(target_meeting,grantor,holder,document);
+ RETURN hall_api.meeting_conduct(target_meeting);
+END $$;
+
+-- @implements-requirement HALL-FR-ATT-190
+CREATE FUNCTION hall_api.change_meeting_proxy_registration(target_meeting UUID,target_registration UUID,
+ grantor UUID,holder UUID,document UUID)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ UPDATE hall.meeting_proxy_registration SET grantor_member=grantor,holder_member=holder,proxy_document=document
+ WHERE id=target_registration AND council_meeting=target_meeting;
+ IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV156',MESSAGE='unknown proxy registration in this meeting'; END IF;
+ RETURN hall_api.meeting_conduct(target_meeting);
+END $$;
+
+-- @implements-requirement HALL-FR-ATT-190
+CREATE FUNCTION hall_api.withdraw_meeting_proxy_registration(target_meeting UUID,target_registration UUID)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+BEGIN
+ DELETE FROM hall.meeting_proxy_registration WHERE id=target_registration AND council_meeting=target_meeting;
+ IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV156',MESSAGE='unknown proxy registration in this meeting'; END IF;
  RETURN hall_api.meeting_conduct(target_meeting);
 END $$;

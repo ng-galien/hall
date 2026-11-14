@@ -105,6 +105,11 @@ const councilErrorCodes: Record<string, ErrorCode | undefined> = {
   HV150: "attendance_outside_membership",
   HV151: "proxy_consecutive_limit",
   HV152: "closed_session_invalid",
+  HV153: "proxy_registration_closed",
+  HV154: "proxy_holder_already_registered",
+  HV155: "proxy_grantor_already_registered",
+  HV156: "proxy_registration_invalid",
+  HV157: "proxy_document_already_registered",
 };
 
 export function createPostgresCouncilClient({
@@ -472,6 +477,16 @@ export function createPostgresCouncilClient({
     async recordMeetingOfficerChange(id, input) {
       return meetingConductWorkspaceSchema.parse(
         await call(() => postgresCouncil.recordMeetingOfficerChange(currentRequest(), id, input)),
+      );
+    },
+    async registerMeetingProxy(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.registerMeetingProxy(currentRequest(), id, input)),
+      );
+    },
+    async correctMeetingProxyRegistration(id, input) {
+      return meetingConductWorkspaceSchema.parse(
+        await call(() => postgresCouncil.correctMeetingProxyRegistration(currentRequest(), id, input)),
       );
     },
     async declareMeetingAuxiliaryAttendance(id, input) {

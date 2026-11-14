@@ -7,6 +7,7 @@ import type {
   BallotResultPreview,
   BallotVote,
   CorrectMeetingAuxiliaryAttendance,
+  CorrectMeetingProxyRegistration,
   CouncilBusiness,
   CouncilBusinessBundleManifest,
   CouncilBusinessCommitteeLink,
@@ -35,6 +36,7 @@ import type {
   RecordMeetingOpening,
   RecordMeetingQuorum,
   RecordMeetingReconvocation,
+  RegisterMeetingProxy,
   ReorderCouncilAgenda,
   ReorderCouncilBusinessResources,
   ReorganizeCouncilBusiness,
@@ -115,6 +117,11 @@ export interface CouncilClient {
   correctMeetingAuxiliaryAttendance(
     meetingId: string,
     input: CorrectMeetingAuxiliaryAttendance,
+  ): Promise<MeetingConductWorkspace>;
+  registerMeetingProxy(meetingId: string, input: RegisterMeetingProxy): Promise<MeetingConductWorkspace>;
+  correctMeetingProxyRegistration(
+    meetingId: string,
+    input: CorrectMeetingProxyRegistration,
   ): Promise<MeetingConductWorkspace>;
 
   listBusinesses(): Promise<CouncilBusiness[]>;

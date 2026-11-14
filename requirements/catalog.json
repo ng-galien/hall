@@ -10391,10 +10391,10 @@
       "statement": "La page d’une séance en préparation ou en cours génère un pouvoir à signer pour le conseiller choisi, d’après un modèle de type « Pouvoir ».",
       "acceptanceCriteria": [
         "Le pouvoir est toujours révocable ; sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.",
-        "Depuis la page d’une séance en préparation, quel que soit l’état de l’ordre du jour, ou en cours, l’action « Générer un pouvoir » ouvre un formulaire où l’utilisateur choisit obligatoirement le conseiller qui donne pouvoir, parmi les membres du conseil en mandat, et obligatoirement le conseiller qui le reçoit, différent du premier. Les deux champs sont nommés « De » et « À ». Tout lecteur de la séance peut le générer. Le serveur refuse avec le code proxy_form_invalid un mandant hors mandat, un mandataire hors mandat ou un mandataire égal au mandant.",
+        "Depuis la page d’une séance en préparation, quel que soit l’état de l’ordre du jour, ou en cours, l’action « Générer un pouvoir » de la section « Pouvoirs » ouvre un formulaire où l’utilisateur choisit obligatoirement le conseiller qui donne pouvoir, parmi les membres du conseil en mandat, et obligatoirement le conseiller qui le reçoit, différent du premier. Les deux champs sont nommés « De » et « À ». Tout lecteur de la séance peut le générer. Le serveur refuse avec le code proxy_form_invalid un mandant hors mandat, un mandataire hors mandat ou un mandataire égal au mandant.",
         "Une fois la séance close, la page ne propose plus de pouvoir : la représentation Siren de la séance ne porte plus le lien proxy-form et le serveur refuse sa production avec le code meeting_attendance_documents_closed (409).",
         "Le PDF porte le nom de la commune, le titre « Pouvoir », la date de la séance, la formule « Je soussigné(e) {mandant}, {qualité} de la commune de {commune}, donne pouvoir à {mandataire}, {qualité}, pour me représenter et prendre part en mon nom à tous les votes lors de la séance du conseil municipal du {date} », le rappel des règles de l’article L2121-20 (un seul pouvoir par porteur, révocable, trois séances consécutives au plus sauf maladie dûment constatée ou congé de maternité), puis « Fait à ……, le …… » à compléter à la main et le bloc de signature « Le mandant » avec son nom. Les noms et qualités du mandant et du mandataire figurent dans le document ; sans date de séance fixée, une ligne à remplir remplace la date.",
-        "Le pouvoir n’enregistre rien : les présences et pouvoirs de la séance restent saisis à l’appel.",
+        "Le formulaire de pouvoir n’enregistre rien : un pouvoir signé s’enregistre dans la section « Pouvoirs » de la séance (HALL-FR-ATT-190) ou se saisit à l’appel.",
         "Le modèle par défaut est un modèle Markdown/Jinja modifiable dans l’éditeur de modèles, avec les données `proxy` (`meeting`, `grantor`, `holder`) affichées dans l’aperçu."
       ],
       "clauses": [
@@ -10431,6 +10431,54 @@
           "origin": "product",
           "statement": "Mots d’Alexandre du 7 novembre 2026 : « Une séance en préparation, on peut gérer ces deux documents supplémentaires pour la séance […] ou même si la séance est en cours, c’est pas grave. Quand la séance est terminée, on peut plus le faire. » ; « C’est juste de la lecture, tout le monde est capable de générer ces documents, les conseillers pour eux-mêmes ou pour d’autres. » ; « Générer un pouvoir, une feuille d’émargement, est en lecture seule. N’altère pas, ne crée pas de document. »",
           "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-ATT-190": {
+      "name": "MEETING_PROXIES_ARE_REGISTERED_BEFORE_OPENING",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "Avant l’ouverture d’une séance, le secrétariat enregistre les pouvoirs écrits reçus pour cette séance — la pièce signée, le conseiller qui donne pouvoir et celui qui le reçoit — et l’appel de l’ouverture les reprend d’eux-mêmes.",
+      "acceptanceCriteria": [
+        "La page d’une séance en préparation ou en cours porte une section « Pouvoirs » qui réunit « Générer un pouvoir » (HALL-FR-ATT-180) et la liste des pouvoirs enregistrés pour la séance, chacun avec le conseiller qui donne pouvoir, celui qui le reçoit et la pièce, qui s’ouvre.",
+        "Enregistrer un pouvoir exige la pièce de pouvoir, une ressource documentaire, le conseiller qui donne pouvoir et celui qui le reçoit ; les trois sont obligatoires.",
+        "Le serveur refuse, chacun avec un code dédié : un second pouvoir pour le même porteur dans la séance (proxy_holder_already_registered), un second pouvoir du même conseiller (proxy_grantor_already_registered), une pièce déjà enregistrée pour un autre pouvoir de la séance (proxy_document_already_registered), et un pouvoir à soi-même, d’un conseiller hors mandat ou à un conseiller hors mandat (proxy_registration_invalid).",
+        "Tant que la séance n’est pas ouverte, un pouvoir enregistré se modifie ou se retire ; une fois la séance ouverte ou close, la liste est en lecture seule et le serveur refuse tout enregistrement, toute modification et tout retrait (proxy_registration_closed).",
+        "À l’appel de l’ouverture, chaque pouvoir enregistré est appliqué d’emblée : le conseiller qui donne pouvoir est représenté par son porteur, avec la pièce enregistrée ; le reste de l’appel se coche comme avant, et « Tous présents » ne retire pas une représentation déjà posée. Si le porteur n’est pas coché présent, l’appel le signale sur la ligne du conseiller représenté et le secrétaire corrige à la main.",
+        "Un pouvoir qui arrive à la porte se saisit à l’appel comme avant, pièce comprise. L’ouverture valide l’appel avec les contrôles existants (HALL-FR-ATT-030 à HALL-FR-ATT-160), dont la limite de trois séances consécutives et ses exceptions, déclarées à l’appel comme avant.",
+        "Le procès-verbal, le quorum et les votes lisent les présences de l’appel comme avant ; un pouvoir enregistré n’est pas une présence."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 7 novembre 2026 : « Le seul besoin qui n’est pas couvert, c’est le pouvoir. Qu’on ait une section sur les pouvoirs où on peut téléverser un pouvoir, le préparer, ça ne me choque pas, mais il faut un vrai flux pour ça. Dans la séance, on a des pouvoirs ; aujourd’hui c’est quand on démarre la séance […]. Il faudrait que les pouvoirs soient enregistrés avant : on a le document, on dit que c’est tel membre du conseil qui donne son pouvoir à tel autre membre. Quand on démarre la séance, ce qui a été enregistré comme pouvoir est fait automatiquement. C’est un cas métier distinct, on ne le mélange pas avec le reste. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-document",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 7 novembre 2026 : « Le pouvoir, c’est toujours avec un document. Il n’y a pas de pouvoir sans document scanné, signé. » « On peut préparer les pouvoirs avant, mais on peut toujours le faire dès le démarrage de la séance. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-flow",
+          "origin": "product",
+          "statement": "Flux arrêté par le propriétaire le 7 novembre 2026 et transmis le 14 novembre 2026 : section « Pouvoirs » sur la page de la séance en préparation et en cours, réunissant « Générer un pouvoir » et la liste des pouvoirs enregistrés ; enregistrement par la pièce signée, le mandant et le mandataire, tous trois obligatoires ; règles de l’article L2121-20 appliquées à la saisie ; modification et retrait libres avant l’ouverture ; application d’elle-même à l’appel, le secrétaire corrigeant à la main un porteur absent ; pouvoir arrivé à la porte saisi à l’appel comme avant ; procès-verbal, quorum et votes inchangés.",
+          "sourceIds": []
+        },
+        {
+          "key": "legal-rules",
+          "origin": "regulatory",
+          "statement": "Un conseiller empêché d’assister à une séance peut donner à un collègue de son choix pouvoir écrit de voter en son nom ; un même conseiller ne peut être porteur que d’un seul pouvoir.",
+          "sourceIds": [
+            "S2"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
         }
       ]
     },
@@ -11824,7 +11872,7 @@
       "statement": "La page d’une séance rassemble ses documents dans une section repliable « Documents de la séance » : une ligne par document, avec son nom, son état et les actions que la représentation Siren offre à l’utilisateur.",
       "acceptanceCriteria": [
         "La section apparaît dans la vue de préparation, la vue d’une séance en cours et le compte rendu d’une séance close ; elle est dépliée à l’ouverture de la page et se replie par son titre.",
-        "Les lignes suivent cet ordre : Convocation, Dossier de séance (en préparation), Feuille d’émargement et Pouvoir (en préparation et en cours), puis, après clôture, Procès-verbal, Liste des délibérations et Délibérations.",
+        "Les lignes suivent cet ordre : Convocation, Dossier de séance (en préparation), Feuille d’émargement (en préparation et en cours), puis, après clôture, Procès-verbal, Liste des délibérations et Délibérations. Le pouvoir à générer est dans la section « Pouvoirs » (HALL-FR-ATT-190).",
         "La ligne Convocation indique la révision ouverte et la convocation à générer, ou la convocation de la révision établie avec la date de son PDF ; sous une révision établie elle porte « Ouvrir », « Régénérer le PDF » et « Préparer le courriel », chacune seulement quand Siren l’offre, et elle liste les convocations des révisions précédentes.",
         "La section ne liste pas de pièces jointes et n’offre pas de dépôt de pièce : les pièces se déposent sur l’affaire.",
         "Après clôture, la ligne Procès-verbal indique brouillon ou document généré et mène à sa page ; la ligne Délibérations liste les points délibérés, chacun avec le lien vers sa délibération.",
@@ -11859,6 +11907,12 @@
           "key": "behaviour-only-catalogue",
           "origin": "product",
           "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
+        },
+        {
+          "key": "proxies-section",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 7 novembre 2026, transmise le 14 novembre 2026 : « Générer un pouvoir » quitte la section « Documents de la séance » pour la section « Pouvoirs » (HALL-FR-ATT-190).",
           "sourceIds": []
         }
       ]

@@ -444,6 +444,18 @@ ledger. Its SQL files are separate from the structural manifest fingerprint.
 Rehearsal must cover the exact source and target versions; structural convergence
 alone does not establish data-migration history or semantic correctness.
 
+### Schema changes prepared for 1.4.0
+
+`hall migrate` from 1.3.0 creates the empty table `hall.meeting_proxy_registration`
+(requirement HALL-FR-ATT-190): the written proxies registered for a meeting before its
+opening, each with its document, the member who gives it and the member who receives
+it. It replaces `hall_api.meeting_conduct` and adds the functions
+`hall_api.register_meeting_proxy`, `hall_api.change_meeting_proxy_registration` and
+`hall_api.withdraw_meeting_proxy_registration`, with the actions
+`meeting.register-proxy` and `meeting.correct-proxy-registration` in the role matrix
+under the access `meeting.conduct`. No data migration applies: existing meetings have
+no registered proxy and their attendance is unchanged.
+
 ### Update procedure from 1.2.0 to 1.3.0 on the municipal computer
 
 This list applies to the Windows installation described in

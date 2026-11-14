@@ -6,6 +6,7 @@ import {
   closeCouncilMeetingSchema,
   completeAgendaItemSchema,
   correctMeetingAuxiliaryAttendanceSchema,
+  correctMeetingProxyRegistrationSchema,
   createAndScheduleCouncilBusinessSchema,
   declareMeetingAuxiliaryAttendanceSchema,
   prepareCouncilMeetingSchema,
@@ -18,6 +19,7 @@ import {
   recordMeetingOpeningSchema,
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
+  registerMeetingProxySchema,
   reorderCouncilAgendaSchema,
   reprogramAgendaItemSchema,
   scheduleAgendaItemSchema,
@@ -346,6 +348,35 @@ export function createCouncilMeetingsRouter({
             ),
           ),
         );
+    },
+  );
+  router.post(
+    "/:meetingReference/proxy-registrations",
+    requireActionPermission("meeting.register-proxy"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response
+        .status(201)
+        .json(
+          await changeMeeting(meeting.id, () =>
+            councilClient.registerMeetingProxy(meeting.id, registerMeetingProxySchema.parse(request.body)),
+          ),
+        );
+    },
+  );
+  router.patch(
+    "/:meetingReference/proxy-registrations",
+    requireActionPermission("meeting.correct-proxy-registration"),
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      response.json(
+        await changeMeeting(meeting.id, () =>
+          councilClient.correctMeetingProxyRegistration(
+            meeting.id,
+            correctMeetingProxyRegistrationSchema.parse(request.body),
+          ),
+        ),
+      );
     },
   );
   router.post(

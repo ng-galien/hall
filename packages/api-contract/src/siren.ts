@@ -95,6 +95,8 @@ export const apiActionNames = [
   "meeting.record-officer-change",
   "meeting.declare-auxiliary-attendance",
   "meeting.correct-auxiliary-attendance",
+  "meeting.register-proxy",
+  "meeting.correct-proxy-registration",
   "meeting.record-closed-session",
 
   "meeting.close",

@@ -132,6 +132,8 @@ SELECT set_eq($$SELECT action, access FROM hall.action_access$$, $$VALUES
  ('meeting.record-officer-change','meeting.conduct'),
  ('meeting.declare-auxiliary-attendance','meeting.conduct'),
  ('meeting.correct-auxiliary-attendance','meeting.conduct'),
+ ('meeting.register-proxy','meeting.conduct'),
+ ('meeting.correct-proxy-registration','meeting.conduct'),
  ('meeting.record-closed-session','meeting.conduct'),
  ('agenda-item.start','agenda-item.conduct'),
  ('agenda-item.complete','agenda-item.conduct'),

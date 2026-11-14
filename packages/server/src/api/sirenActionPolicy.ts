@@ -406,6 +406,8 @@ export function withConductAuthorization(request: Request, value: unknown): unkn
     result.canRecordOfficerChange = blockers.recordOfficerChange.length === 0;
     result.canDeclareAuxiliaryAttendance = blockers.declareAuxiliaryAttendance.length === 0;
   }
+  if (result.canRegisterProxies === true && !canExecuteAction(request, "meeting.register-proxy"))
+    result.canRegisterProxies = false;
   if (result.closureBlockers !== undefined) {
     const blockers = conductBlockerSchema.array().parse(result.closureBlockers);
     result.closureBlockers = canExecuteAction(request, "meeting.close")
@@ -571,6 +573,15 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
         "meeting.correct-auxiliary-attendance",
         "PATCH",
         `/api/council-meetings/${meetingReference}/auxiliary-attendances`,
+      ),
+    );
+  if (conduct.canRegisterProxies === true)
+    actions.push(
+      action("meeting.register-proxy", "POST", `/api/council-meetings/${meetingReference}/proxy-registrations`),
+      action(
+        "meeting.correct-proxy-registration",
+        "PATCH",
+        `/api/council-meetings/${meetingReference}/proxy-registrations`,
       ),
     );
   if (conduct.canRecordClosedSession === true)

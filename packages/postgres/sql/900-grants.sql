@@ -288,6 +288,9 @@ GRANT EXECUTE ON FUNCTION hall_api.meeting_conduct(UUID),
  hall_api.update_meeting_auxiliary_attendance(UUID,UUID,TEXT),
  hall_api.record_meeting_closed_session(UUID,UUID[],INTEGER,BOOLEAN,UUID[]),
  hall_api.remove_meeting_auxiliary_attendance(UUID,UUID),
+ hall_api.register_meeting_proxy(UUID,UUID,UUID,UUID),
+ hall_api.change_meeting_proxy_registration(UUID,UUID,UUID,UUID,UUID),
+ hall_api.withdraw_meeting_proxy_registration(UUID,UUID),
  hall_api.record_meeting_quorum(UUID,UUID),
  hall_api.record_meeting_reconvocation(UUID,UUID,TIMESTAMPTZ,TIMESTAMPTZ,TEXT,TEXT,TEXT,UUID[])
  TO hall_api_authenticated,hall_api_worker;

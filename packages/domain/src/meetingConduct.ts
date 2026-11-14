@@ -151,6 +151,17 @@ export const meetingConductEvidenceSchema = z
   })
   .strict();
 const handoverOption = z.object({ councilMemberId: id, basis: meetingOfficerBasisSchema }).strict();
+// A written proxy registered for a meeting before its opening (HALL-FR-ATT-190).
+export const meetingProxyRegistrationSchema = z
+  .object({
+    id,
+    grantorCouncilMemberId: id,
+    holderCouncilMemberId: id,
+    proxyDocumentId: id,
+    registeredAt: time,
+  })
+  .strict();
+export type MeetingProxyRegistration = z.infer<typeof meetingProxyRegistrationSchema>;
 export const meetingConductStateSchema = meetingConductEvidenceSchema
   .extend({
     councilMeetingId: id,
@@ -166,6 +177,8 @@ export const meetingConductStateSchema = meetingConductEvidenceSchema
       .strict(),
     canRecordOfficerChange: z.boolean(),
     canDeclareAuxiliaryAttendance: z.boolean(),
+    proxyRegistrations: z.array(meetingProxyRegistrationSchema),
+    canRegisterProxies: z.boolean(),
     canRecordClosedSession: z.boolean(),
     canRecordQuorum: z.boolean(),
     canRecordReconvocation: z.boolean(),
@@ -229,6 +242,18 @@ export const correctMeetingAuxiliaryAttendanceSchema = z.discriminatedUnion("kin
   z.object({ kind: z.literal("removal"), attendanceId: id }).strict(),
 ]);
 export type CorrectMeetingAuxiliaryAttendance = z.input<typeof correctMeetingAuxiliaryAttendanceSchema>;
+const proxyRegistrationParties = {
+  grantorCouncilMemberId: id,
+  holderCouncilMemberId: id,
+  proxyDocumentId: id,
+};
+export const registerMeetingProxySchema = z.object(proxyRegistrationParties).strict();
+export type RegisterMeetingProxy = z.infer<typeof registerMeetingProxySchema>;
+export const correctMeetingProxyRegistrationSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("change"), registrationId: id, ...proxyRegistrationParties }).strict(),
+  z.object({ kind: z.literal("withdrawal"), registrationId: id }).strict(),
+]);
+export type CorrectMeetingProxyRegistration = z.infer<typeof correctMeetingProxyRegistrationSchema>;
 export const recordMeetingReconvocationSchema = z
   .object({
     failedObservationId: id,
