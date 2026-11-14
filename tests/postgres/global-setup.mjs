@@ -8,6 +8,8 @@ import {
   startDatabase,
 } from "./environment.mjs";
 
+/* pgTAP is created in schema hall, whatever search_path the database kept from an earlier run, so that dropping the
+ * Hall schemas also removes its views and a test can rebuild a database that holds no application table. */
 export default function setup() {
   acquireTestDatabaseLock();
   try {
@@ -29,7 +31,7 @@ export default function setup() {
       "--dbname",
       "hall_test",
       "--command",
-      "ALTER DATABASE hall_test SET search_path = hall, public, pg_catalog; CREATE EXTENSION IF NOT EXISTS pgtap;",
+      "ALTER DATABASE hall_test SET search_path = hall, public, pg_catalog; CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA hall;",
     ]);
   } catch (error) {
     releaseTestDatabaseLock();
