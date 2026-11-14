@@ -1,6 +1,7 @@
 import { findSirenAction } from "@hall/api-contract";
 import type { DocumentResource, Resource } from "@hall/domain";
 import { create } from "zustand";
+import { reducePhotoOfForm } from "../features/documents/photoReduction";
 import { type ApiErrorCode, apiErrorCode, sirenRepresentation } from "../services/apiClient";
 import {
   downloadResourceDocument,
@@ -55,7 +56,7 @@ export const useResourcesStore = create<ResourcesState>((set, get) => ({
   async uploadEditorAsset(form) {
     set({ error: null });
     try {
-      return await uploadEditorAsset(form);
+      return await uploadEditorAsset(await reducePhotoOfForm(form));
     } catch (error) {
       set({ error: apiErrorCode(error) });
       return null;

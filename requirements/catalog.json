@@ -9714,6 +9714,7 @@
         "Les titres et commandes des éléments préparés et de l’ordre du jour restent accessibles dans les séances et les affaires au téléphone, sur tablette et sur ordinateur ; sur téléphone, le titre d’un élément préparé ou d’un point ouvre sa page.",
         "Un texte modifiable propose le choix d’une photo existante et la capture depuis le téléphone dans l’éditeur compact comme en plein écran.",
         "L’import utilise les permissions, formats et stockage existants ; une image importée reste présente après réouverture et un échec est visible sans perte du texte.",
+        "Une photo ajoutée par n’importe quel chemin du client, dans un texte ou comme fichier importé, au téléphone comme à l’ordinateur, est réduite dans le navigateur avant l’envoi : son plus grand côté est ramené sous la borne fixée par le client et elle est réencodée en JPEG, dans le sens de sa prise de vue et avec ses proportions ; l’original n’est pas conservé. Une image déjà sous cette borne et légère part telle quelle ; un fichier qui n’est pas une photo (PDF, image vectorielle, image à fond transparent) n’est pas touché ; une image que le navigateur ne sait pas lire part telle quelle. Les photos déjà enregistrées ne sont pas modifiées.",
         "L’adaptation mobile conserve les fonctions et les permissions existantes sur ordinateur.",
         "Les commandes « Choisir une photo » et « Prendre une photo » des éditeurs restent réservées à la présentation mobile ; elles ne prennent pas de place dans le texte sur bureau. Le dépôt, le collage et l’import d’image ordinaires sur bureau sont conservés.",
         "Sur un téléphone, chaque contenu s’ouvre sur sa propre page : document, note, élément préparé, point de séance, délibération et procès-verbal ; « Modifier » ou « Terminé » d’un texte est dans le bandeau, les autres actions du contenu ouvert sont dans le menu ⋯ du bandeau. Une référence de contact ou de membre du conseil ouvre de même la page du contact ou du membre.",
@@ -9735,6 +9736,12 @@
           "key": "release-101-inline-regression",
           "origin": "product",
           "statement": "Correction propriétaire du 1 novembre 2026 pour Hall 1.0.1 : commandes photo mobiles uniquement, pas de bandeau photo dans l’éditeur compact sur bureau ; aucun nouveau choix de présentation mobile adopté.",
+          "sourceIds": []
+        },
+        {
+          "key": "photo-reduced-before-upload",
+          "origin": "product",
+          "statement": "Constat du propriétaire du 14 novembre 2026 sur Hall 1.3.0 au téléphone : « La taille des images qu'il y a dans mon espace perso, c'est énorme, et j'ai l'impression que ça fait ramer à mort. » Décision technique du coordinateur : réduction dans le navigateur avant l’envoi, une seule fonction pour tous les chemins d’ajout de photo.",
           "sourceIds": []
         },
         {

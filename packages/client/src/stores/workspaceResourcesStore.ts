@@ -17,6 +17,7 @@ import {
   type UpdateResourceMetadata,
 } from "@hall/api-contract";
 import { create } from "zustand";
+import { reducePhotoOfForm } from "../features/documents/photoReduction";
 import { type ApiErrorCode, apiErrorCode, SirenCapabilityUnavailable } from "../services/apiClient";
 import {
   createDocumentaryEditorAsset,
@@ -443,7 +444,7 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
       try {
         const representation = get().folderRepresentations[formPath(form)] ?? get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
-        const result = await uploadDocumentaryResource(source ?? representation, form);
+        const result = await uploadDocumentaryResource(source ?? representation, await reducePhotoOfForm(form));
         adopt(result.data, result.representation);
         return result.data;
       } catch (error) {
@@ -456,7 +457,7 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
       try {
         const representation = get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
-        return (await createDocumentaryEditorAsset(representation, form)).data;
+        return (await createDocumentaryEditorAsset(representation, await reducePhotoOfForm(form))).data;
       } catch (error) {
         set({ error: apiErrorCode(error) });
         return null;
