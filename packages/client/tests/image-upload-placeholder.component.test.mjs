@@ -34,6 +34,11 @@ const settle = () => act(async () => new Promise((resolve) => setTimeout(resolve
 
 async function mountEditor() {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  vi.stubGlobal("matchMedia", () => ({
+    matches: false,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }));
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);

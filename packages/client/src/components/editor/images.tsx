@@ -18,8 +18,16 @@ import {
   useState,
 } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
-import { AlignCenterIcon, AlignLeftIcon } from "../icons";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
+import { AlignCenterIcon, AlignLeftIcon, BothDirectionsIcon } from "../icons";
 import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import { LoadingIndicator } from "../ui/loading-indicator";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
 import { imageUploadPlaceholders, sentImageRatio } from "./imageUploadPlaceholder";
@@ -189,6 +197,37 @@ export function ResourceImageFigure({
   );
 }
 
+/** Widths, in percent of the text, offered on a phone in place of the resize handle. */
+const phoneImageWidths = [
+  { width: 33, labelKey: "editor.imageWidthSmall", testId: "editor-image-width-small" },
+  { width: 66, labelKey: "editor.imageWidthMedium", testId: "editor-image-width-medium" },
+  { width: 100, labelKey: "editor.imageWidthFull", testId: "editor-image-width-full" },
+] as const;
+
+// @implements-requirement HALL-FR-LAY-010
+/** On a phone, the width of an image of a text is chosen among a few widths in the commands of the image. */
+function PhoneImageWidthMenu({ width, onChange }: { width: number; onChange(width: number): void }) {
+  const { t } = useI18n();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="plain" size="icon" data-testid="editor-image-width-menu" aria-label={t("editor.imageResize")}>
+          <BothDirectionsIcon />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-max">
+        <DropdownMenuRadioGroup value={String(width)} onValueChange={(value) => onChange(Number(value))}>
+          {phoneImageWidths.map((choice) => (
+            <DropdownMenuRadioItem key={choice.width} value={String(choice.width)} data-testid={choice.testId}>
+              {t(choice.labelKey)}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function ResourceImageNodeView({
   node,
   updateAttributes,
@@ -207,6 +246,7 @@ function ResourceImageNodeView({
     selector: ({ editor: current }) => current?.isEditable ?? false,
   });
   const renderResourcePreview = useContext(ResourceImagePreviewContext);
+  const phone = usePhoneLayout();
   const resourceAppearance = useResourceAppearance(attributes.id);
   const updateWidth = (width: number) =>
     updateAttributes({ width: Math.round(Math.min(imageWidthRange.max, Math.max(imageWidthRange.min, width))) });
@@ -275,9 +315,10 @@ function ResourceImageNodeView({
             >
               <AlignCenterIcon />
             </Button>
+            {phone ? <PhoneImageWidthMenu width={attributes.width} onChange={updateWidth} /> : null}
           </EditorMediaOverlay>
         ) : null}
-        {controls && selected && editable ? (
+        {controls && selected && editable && !phone ? (
           <span
             data-testid="editor-image-width"
             className="editor-image-resize"

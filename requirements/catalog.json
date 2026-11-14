@@ -9748,7 +9748,8 @@
         "Sur un téléphone, la page d’une séance montre la barre d’étapes et la pastille de révision à l’utilisateur qui peut préparer la séance.",
         "Sur un téléphone, une carte occupe tout l’écran et une ressource distante présente son adresse avec un bouton qui ouvre le lien.",
         "Sur un téléphone, la page Documents, à la racine comme dans un dossier, porte la recherche dans son bandeau et le bouton flottant « + Nouveau » ; l’icône de recherche ouvre la recherche de l’espace de travail sur tout l’écran, le champ actif, et sa fermeture ramène à la liste, qui commence directement sous le bandeau. L’ordinateur et la tablette gardent la recherche au-dessus de la liste et « + Nouveau » dans le bandeau.",
-        "As soon as a photo is chosen or taken for a text, on a phone as on a computer, a low place of fixed height, the same on a phone and on a computer, appears in the text where it is inserted, with a loading indicator; the person keeps writing meanwhile. When the sending ends, the image replaces that place at its own size and the text under it moves down; when it fails, the place disappears and the failure is said where the editor says it."
+        "As soon as a photo is chosen or taken for a text, on a phone as on a computer, a low place of fixed height, the same on a phone and on a computer, appears in the text where it is inserted, with a loading indicator; the person keeps writing meanwhile. When the sending ends, the image replaces that place at its own size and the text under it moves down; when it fails, the place disappears and the failure is said where the editor says it.",
+        "On a phone, the width of an image of a text being written is chosen among small, medium and full width in the commands of the image; no handle to drag is offered there. On a computer the width is set as before."
       ],
       "clauses": [
         {
@@ -9815,6 +9816,12 @@
           "key": "photo-placeholder-low",
           "origin": "product",
           "statement": "Owner correction of 14 November 2026, after trying it on a phone: « le placeholder pour la photo, c’est pas agréable qu’il soit de la taille de la photo. […] Il est trop haut. Faut plutôt qu’il soit plus petit. »",
+          "sourceIds": []
+        },
+        {
+          "key": "phone-image-width-choices",
+          "origin": "product",
+          "statement": "Owner remark of 14 November 2026: « Le handle de resize, franchement, il est vraiment pas pratique en mobile. »",
           "sourceIds": []
         }
       ]
