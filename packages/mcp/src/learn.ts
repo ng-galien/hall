@@ -33,7 +33,7 @@ const topics = {
       "Prepare only what the user requested. Preserve existing content and provenance. Distinguish an observed source from a draft or inference; a legal-reference search result is not a human legal validation.",
       "Available actions include text/resources, files, document replacement, legal-reference lookup and refresh, affairs/prepared subjects, resource associations, and affair reorganization (subject move, affair merge, with preview). Availability is conditional: the current Siren representation and server remain authoritative.",
       "For a requested change, use its exact schema and current context, retain expectedVersion, execute, then read the result. Do not automatically overwrite a conflict. Ask for a decision if the requested business outcome is unresolved.",
-      "A folder, an affair folder included, may carry a colour shared by every user: its representation exposes color as #RRGGBB when one is set. To set it, run resource.update-metadata on the folder with its current path, name and tags, color \"#RRGGBB\" and editing {\"kind\": \"fixed\"}; color null removes it, and leaving color out keeps it. Only a folder takes a colour; a sub-folder does not inherit it.",
+      'A folder, an affair folder included, may carry a colour shared by every user: its representation exposes color as #RRGGBB when one is set. To set it, run resource.update-metadata on the folder with its current path, name and tags, color "#RRGGBB" and editing {"kind": "fixed"}; color null removes it, and leaving color out keeps it. Only a folder takes a colour; a sub-folder does not inherit it.',
     ],
   },
   reorganization: {
