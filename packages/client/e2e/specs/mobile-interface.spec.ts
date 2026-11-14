@@ -474,3 +474,81 @@ test("phone photo selection and camera input persist images through the shared e
   await expect(page.getByTestId("editor-take-photo")).toHaveCount(0);
   await page.unrouteAll({ behavior: "wait" });
 });
+
+// @verifies-requirement HALL-FR-LAY-010
+// @verifies-requirement HALL-FR-DOC-230
+test("a long phone note keeps its header and its writing tools on screen while photos are added and text is typed", async ({
+  appPage: page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const paragraphs = Array.from(
+    { length: 40 },
+    (_, index) => `Paragraphe ${index + 1} du compte rendu de la visite du chantier de la salle des fêtes.`,
+  );
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "text", name: `Note longue ${crypto.randomUUID()}`, path: "seed", content: paragraphs.join("\n\n") },
+  });
+  expect(created.ok()).toBe(true);
+  const resource = (await created.json()).properties as { id: string; slug: string };
+  await page.goto(`/app/workspace?path=seed&resource=${resource.id}`);
+  await page.getByTestId("text-edit").click();
+  const compact = page.getByTestId("markdown-editor-compact").first();
+  const writingArea = compact.getByTestId("editor-writing-area");
+  await expect(writingArea).toContainText("Paragraphe 40");
+
+  /** The header and the writing tools are inside the window and the page itself has not scrolled. */
+  const expectFrameOnScreen = async (step: string) => {
+    const height = page.viewportSize()!.height;
+    for (const target of [
+      page.getByTestId("phone-header"),
+      compact.getByTestId("editor-photo"),
+      page.getByTestId("editor-phone-toolbar"),
+    ]) {
+      await expect(target, step).toBeVisible();
+      const box = await target.boundingBox();
+      expect(box, step).not.toBeNull();
+      expect(box!.y, `${step}: top`).toBeGreaterThanOrEqual(0);
+      expect(box!.y + box!.height, `${step}: bottom`).toBeLessThanOrEqual(height + 0.5);
+    }
+    expect(await page.evaluate(() => window.scrollY), `${step}: page scroll`).toBe(0);
+  };
+  await expectFrameOnScreen("note opened for writing");
+
+  const storedImages = async () =>
+    (
+      ((await (await page.request.get(`/api/resources/${resource.slug}`)).json()).properties.content as string).match(
+        /::image\[/g,
+      ) ?? []
+    ).length;
+  for (const [index, paragraph] of [10, 25, 40].entries()) {
+    const target = writingArea.locator("p", { hasText: `Paragraphe ${paragraph} du compte rendu` });
+    await target.click();
+    await target.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      range.collapse(false);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+    });
+    await expectFrameOnScreen(`caret at paragraph ${paragraph}`);
+    await compact.getByTestId("editor-photo").click();
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByTestId("editor-photo-sheet").getByTestId("editor-choose-image").click();
+    await (await chooser).setFiles({ name: `chantier-${index + 1}.png`, mimeType: "image/png", buffer: png });
+    await expect(compact.locator(".editor-image-node")).toHaveCount(index + 1);
+    await expect.poll(storedImages).toBe(index + 1);
+    await expectFrameOnScreen(`photo ${index + 1} placed`);
+    await writingArea.focus();
+    await page.keyboard.type(`Légende de la photo ${index + 1}.`);
+    await expect(writingArea).toContainText(`Légende de la photo ${index + 1}.`);
+    await expectFrameOnScreen(`text typed after photo ${index + 1}`);
+  }
+  await expect
+    .poll(
+      async () =>
+        (await (await page.request.get(`/api/resources/${resource.slug}`)).json()).properties.content as string,
+    )
+    .toContain("Légende de la photo 3.");
+  await page.screenshot({ path: testInfo.outputPath("phone-long-note-photos.png"), animations: "disabled" });
+});
