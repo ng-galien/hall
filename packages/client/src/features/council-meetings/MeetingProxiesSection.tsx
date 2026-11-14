@@ -2,7 +2,6 @@ import type { MeetingProxyRegistration } from "@hall/api-contract";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { CreateButton } from "@/components/ui/create-button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { PrintIcon, ProxyIcon, UploadIcon } from "../../components/icons";
 import { EntitySelect } from "../../components/search/EntitySelect";
@@ -90,20 +89,14 @@ export function MeetingProxiesSection({
         className="meeting-documents"
         actions={
           canRegister ? (
-            <CreateButton
-              placement="inline"
-              label={t("proxies.register")}
-              testId="meeting-proxy-register"
-              options={[
-                {
-                  id: "proxy",
-                  label: t("proxies.register"),
-                  Icon: ProxyIcon,
-                  nature: "council",
-                  onSelect: () => setEditing({ kind: "registration" }),
-                },
-              ]}
-            />
+            <Button
+              variant="secondary"
+              data-testid="meeting-proxy-register"
+              onClick={() => setEditing({ kind: "registration" })}
+            >
+              <ProxyIcon aria-hidden="true" />
+              {t("proxies.register")}
+            </Button>
           ) : undefined
         }
       >
