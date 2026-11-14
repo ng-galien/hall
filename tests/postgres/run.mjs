@@ -41,7 +41,7 @@ try {
     "--dbname",
     "hall_test",
     "--command",
-    "ALTER DATABASE hall_test SET search_path = hall, public, pg_catalog; CREATE EXTENSION pgtap;",
+    "ALTER DATABASE hall_test SET search_path = hall, public, pg_catalog; CREATE EXTENSION pgtap SCHEMA hall;",
   ]);
   for (const selectedScope of scope === "all" ? ["council", "document"] : [scope]) {
     compose([
