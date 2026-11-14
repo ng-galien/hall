@@ -567,7 +567,6 @@ export function PathContents({
     }
   };
 
-  /** The row whose colour picker is open: a folder row or a business row, which may show the same folder. */
   const [colorTarget, setColorTarget] = useState<{ folderId: string; row: "folder" | "business" } | null>(null);
   const colorRequested = useRef(false);
   const takeColorRequest = () => {
