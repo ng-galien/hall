@@ -75,10 +75,17 @@ test("edits account identity with autosave and safely changes and resets passwor
   await expect(page.getByTestId("user-display-name-error")).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/users/${user.id}$`));
   await page.getByTestId("user-display-name").fill("Updated reader account");
+  const heldAddress = page.waitForResponse(
+    (response) => response.url().endsWith(`/users/${user.id}`) && response.request().method() === "PUT",
+  );
   await page.getByTestId("user-email").fill("account-admin@example.test");
-  await expect(page.getByTestId("user-save-retry")).toBeVisible();
+  expect((await heldAddress).status()).toBe(409);
+  await expect(page.getByTestId("user-email-error")).toHaveText("Address already used by another account.");
+  await expect(page.locator(".error-banner")).toHaveCount(0);
+  await expect(page.getByTestId("user-save-retry")).toHaveCount(0);
   await expect(page.getByTestId("user-email")).toHaveValue("account-admin@example.test");
   await page.getByTestId("user-email").fill("account-reader-updated@example.test");
+  await expect(page.getByTestId("user-email-error")).toHaveCount(0);
   await expect(page.getByTestId("user-save-state")).toHaveText("Saved");
   const refusedSaves: string[] = [];
   const recordSave = (sent: import("@playwright/test").Request) => {
@@ -247,7 +254,50 @@ test("titles an unusable password link « Lien expiré » and offers a new link"
     await expect(screen.getByTestId("password-link-unusable")).toHaveText(
       "Ce lien n’est plus utilisable. Demandez un nouveau lien.",
     );
-    await expect(screen.getByRole("heading", { level: 1 })).toHaveText("Lien expiré");
+    await expect(screen.getByTestId("password-link-title")).toHaveText("Lien expiré");
     await expect(screen.getByTestId("password-link-request-new")).toBeVisible();
+  }
+});
+
+// @verifies-requirement HALL-FR-USR-090
+test("writes the cause of an account email that was not sent beside its result, on the same line", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+  const bootstrap = await page.request.post("/api/auth/bootstrap", {
+    data: { displayName: "Mail administrator", email: "mail-admin@example.test", password: "Hall-mail-initial!" },
+  });
+  expect(bootstrap.status()).toBe(201);
+  const created = await page.request.post("/api/users", {
+    data: {
+      displayName: "Mail recipient",
+      email: "mail-recipient@example.test",
+      password: "Hall-mail-initial!",
+      roles: ["contributor"],
+      contactId: null,
+    },
+  });
+  expect(created.status()).toBe(201);
+  const user = (await created.json()).properties;
+  await page.goto(`/app/users/${user.id}`);
+  await page.getByTestId("user-send-password-link").click();
+  const line = page.getByTestId("user-account-mail");
+  await expect(line.getByTestId("user-account-mail-outcome")).toHaveAttribute("data-outcome", /^(failed|unknown)$/);
+  const cause = line.getByTestId("user-account-mail-cause");
+  await expect(cause).toBeVisible();
+  await expect(cause).not.toHaveText(/_/);
+  for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 375, height: 812 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.reload();
+    await expect(cause).toBeVisible();
+    const outcome = await line.getByTestId("user-account-mail-outcome").boundingBox();
+    const written = await cause.boundingBox();
+    expect(outcome && written).toBeTruthy();
+    if (!outcome || !written) continue;
+    const middle = written.y + written.height / 2;
+    expect(middle).toBeGreaterThan(outcome.y);
+    expect(middle).toBeLessThan(outcome.y + outcome.height);
+    expect(written.x).toBeGreaterThan(outcome.x);
   }
 });
