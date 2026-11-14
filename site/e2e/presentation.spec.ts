@@ -31,6 +31,28 @@ test("la page se charge et se lit sur téléphone", async ({ page }, testInfo) =
   await expect(page.getByTestId("step-panel-title")).not.toHaveText("", { timeout: 15_000 });
 });
 
+/* Premier écran : le scénario de l'animation, ses cinq étapes et le bouton qui lance le parcours. */
+test("le premier écran présente le scénario et le bouton qui lance le parcours", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
+  const scenario = page.getByTestId("scenario");
+  await expect(scenario).toBeVisible();
+  await expect(scenario.locator("h2")).toHaveText("La réfection du chemin communal");
+  await expect(scenario.locator("ol > li strong")).toHaveText([
+    "Bureau",
+    "Chemin communal",
+    "Mairie",
+    "Séance",
+    "Préfecture",
+  ]);
+  const start = scenario.getByTestId("story-start");
+  await expect(start).toHaveText("Commencer le parcours");
+  await expect(page.getByText("Préparer les dossiers, tenir la séance, produire les délibérations.")).toHaveCount(0);
+  await start.click();
+  await expect(page.getByTestId("step-panel-title")).toHaveText("Création de l'affaire", { timeout: 15_000 });
+  await expect(scenario).toBeHidden();
+});
+
 /* Carte d'étape : la flèche d'ouverture lance le récit, les flèches de la carte passent d'une sous-étape à l'autre. */
 test("la flèche d’ouverture et les flèches de la carte font avancer le récit", async ({ page }) => {
   await page.goto("./");
