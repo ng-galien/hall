@@ -163,6 +163,34 @@ export const glyphs: Record<PieceKind, Glyph> = {
   },
 };
 
+/** Teinte claire de chaque couleur de type pour le thème sombre, lisible sur le fond sombre de la scène et des panneaux. */
+const darkTints: Record<string, string> = {
+  "#1b2a78": "#9cc0f7",
+  "#1f5fbf": "#6ea0f0",
+  "#b42323": "#f4a3a3",
+  "#1f7a4a": "#7fd1a3",
+  "#15803d": "#7fd1a3",
+  "#087e8b": "#74ccd5",
+  "#7b2d3b": "#e7a9b5",
+  "#475569": "#a3b1c2",
+  "#5b6472": "#a3b1c2",
+};
+
+/**
+ * Couleur et fond d'une icône posée dans la page, selon le thème de la page. Les cartes dessinées sur canvas gardent
+ * `glyphs`, car leur fond reste blanc dans les deux thèmes.
+ */
+export function glyphTint(kind: PieceKind): { color: string; surface: string } {
+  const glyph = glyphs[kind];
+  if (document.documentElement.dataset.theme !== "dark") return { color: glyph.color, surface: glyph.surface };
+  const color = darkTints[glyph.color] ?? glyph.color;
+  const surface =
+    glyph.surface === "transparent"
+      ? "transparent"
+      : `rgb(${Number.parseInt(color.slice(1, 3), 16)} ${Number.parseInt(color.slice(3, 5), 16)} ${Number.parseInt(color.slice(5, 7), 16)} / 0.16)`;
+  return { color, surface };
+}
+
 export function svgIcon(kind: PieceKind): string {
   return `<svg viewBox="0 0 256 256" aria-hidden="true"><path d="${glyphs[kind].path}"/></svg>`;
 }

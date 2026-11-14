@@ -94,7 +94,59 @@
   color: var(--on-accent);
 }
 
+/* Bouton de thème, à droite de la navigation : icône seule, lune en clair, soleil en sombre */
+.site-theme-switch {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.site-theme-switch:hover {
+  color: var(--text);
+}
+
+.site-theme-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.site-theme-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.site-theme-sun,
+:root[data-theme="dark"] .site-theme-moon {
+  display: none;
+}
+
+:root[data-theme="dark"] .site-theme-sun {
+  display: block;
+}
+
 @media (max-width: 760px) {
+  .site-theme-switch {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  .site-theme-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
   .site-brand-name,
   .site-brand-qualification {
     display: none;

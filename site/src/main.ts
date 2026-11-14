@@ -9,7 +9,7 @@ import "./site-header.css";
 import "./styles.css";
 import "./scene.css";
 import { renderCardNavigation } from "./cards";
-import { glyphs, type PieceKind, svgIcon } from "./presentation/icons";
+import { glyphTint, type PieceKind, svgIcon } from "./presentation/icons";
 import { type Axis, axes, type Motion, type PlaceId, places, type Scene, type SceneId, scenes } from "./scenes";
 import { renderSections } from "./sections";
 import type { Frame, TerrainView } from "./terrain";
@@ -678,7 +678,7 @@ async function renderTerrain(root: HTMLElement) {
       icons: [...new Set(scenes.filter((scene) => scene.place === id).map((scene) => scene.axis))]
         .map(
           (axis) =>
-            `<span style="--glyph-color:${glyphs[axisIcons[axis]].color};--glyph-surface:${glyphs[axisIcons[axis]].surface}">${svgIcon(axisIcons[axis])}</span>`,
+            `<span style="--glyph-color:${glyphTint(axisIcons[axis]).color};--glyph-surface:${glyphTint(axisIcons[axis]).surface}">${svgIcon(axisIcons[axis])}</span>`,
         )
         .join(""),
     })),

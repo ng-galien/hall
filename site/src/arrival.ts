@@ -3,6 +3,8 @@
  * de chaque page (classe is-arriving). Le texte apparaît une fois les polices prêtes, la scène 3D en fondu
  * après ses premières images rendues avec la caméra et les matériaux définitifs.
  */
+import { wireThemeSwitch } from "./theme-switch";
+
 const root = document.documentElement;
 
 /** Vers une autre page du site : la page s'efface avant de partir, la suivante arrive en fondu. */
@@ -36,6 +38,7 @@ function leaveSmoothly(): void {
 
 export function revealText(): void {
   leaveSmoothly();
+  wireThemeSwitch();
   const fonts = document.fonts
     ? Promise.all(["400", "600", "700", "800"].map((weight) => document.fonts.load(`${weight} 1rem "Public Sans"`)))
     : Promise.resolve();

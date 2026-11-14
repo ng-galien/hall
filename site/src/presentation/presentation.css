@@ -2436,23 +2436,23 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   background: #94a3b8;
 }
 
-@media (prefers-color-scheme: dark) {
-  .g-item,
-  .g-item.g-place .g-place-name,
-  .g-item.g-sub .g-sub-title,
-  .g-item.g-sub.is-current .g-sub-title {
-    color: #eef2f6;
-    text-shadow:
-      0 0 1px rgb(15 23 35 / 0.95),
-      0 0 4px rgb(15 23 35 / 0.95),
-      0 0 10px rgb(15 23 35 / 0.85);
-  }
-  .g-item.g-place .g-place-feature {
-    color: #cbd5e1;
-  }
-  .g-item.g-place.is-current .g-place-feature {
-    color: #9cc0f7;
-  }
+:where([data-theme="dark"]) .g-item,
+:where([data-theme="dark"]) .g-item.g-place .g-place-name,
+:where([data-theme="dark"]) .g-item.g-sub .g-sub-title,
+:where([data-theme="dark"]) .g-item.g-sub.is-current .g-sub-title {
+  color: #eef2f6;
+  text-shadow:
+    0 0 1px rgb(15 23 35 / 0.95),
+    0 0 4px rgb(15 23 35 / 0.95),
+    0 0 10px rgb(15 23 35 / 0.85);
+}
+
+:where([data-theme="dark"]) .g-item.g-place .g-place-feature {
+  color: #cbd5e1;
+}
+
+:where([data-theme="dark"]) .g-item.g-place.is-current .g-place-feature {
+  color: #9cc0f7;
 }
 
 .p-hero-content {
@@ -2484,13 +2484,11 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     0 20px 50px rgb(15 23 35 / 0.16);
 }
 
-@media (prefers-color-scheme: dark) {
-  .p-watermark,
-  .p-watermark.is-a,
-  .p-watermark.is-b {
-    border-color: rgb(255 255 255 / 0.08);
-    background: linear-gradient(160deg, rgb(26 36 51 / 0.78), rgb(15 23 35 / 0.6));
-  }
+:where([data-theme="dark"]) .p-watermark,
+:where([data-theme="dark"]) .p-watermark.is-a,
+:where([data-theme="dark"]) .p-watermark.is-b {
+  border-color: rgb(255 255 255 / 0.08);
+  background: linear-gradient(160deg, rgb(26 36 51 / 0.78), rgb(15 23 35 / 0.6));
 }
 
 .p-watermark .w-head,
@@ -2874,6 +2872,25 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   height: auto;
 }
 
+/* Trait du robot : ardoise en clair, couleur du texte en sombre ; antenne et yeux au bleu d'accent du thème */
+.f-robot-body {
+  stroke: #334155;
+}
+
+.f-robot-antenna,
+.f-robot-eyes {
+  fill: #1f5fbf;
+}
+
+:where([data-theme="dark"]) .f-robot-body {
+  stroke: var(--text);
+}
+
+:where([data-theme="dark"]) .f-robot-antenna,
+:where([data-theme="dark"]) .f-robot-eyes {
+  fill: var(--accent-text);
+}
+
 .f-robot-antenna {
   animation: robot-antenna 3.2s ease-in-out infinite;
 }
@@ -3112,6 +3129,26 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   }
 }
 
+/* Thème sombre : cartouche, robot, antenne, points d'écriture et liseré de lecture aux teintes du thème sombre */
+:where([data-theme="dark"]) .p-assistant {
+  background: var(--glass-strong);
+  border-color: var(--border);
+  box-shadow: var(--glass-shadow);
+}
+
+:where([data-theme="dark"]) .p-assistant-icon {
+  color: var(--text);
+}
+
+:where([data-theme="dark"]) .p-assistant-antenna {
+  fill: var(--accent-text);
+}
+
+:where([data-theme="dark"]) .p-assistant-typing i,
+:where([data-theme="dark"]) .b-group.is-scanned::after {
+  background: var(--accent-text);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .p-assistant-typing i,
   .p-assistant.is-working .p-assistant-antenna {
@@ -3262,14 +3299,12 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     0 0 14px rgb(246 248 250 / 0.85);
 }
 
-@media (prefers-color-scheme: dark) {
-  .p-hero-line,
-  .p-hero-hint {
-    text-shadow:
-      0 0 2px rgb(15 23 35 / 0.95),
-      0 0 6px rgb(15 23 35 / 0.95),
-      0 0 14px rgb(15 23 35 / 0.85);
-  }
+:where([data-theme="dark"]) .p-hero-line,
+:where([data-theme="dark"]) .p-hero-hint {
+  text-shadow:
+    0 0 2px rgb(15 23 35 / 0.95),
+    0 0 6px rgb(15 23 35 / 0.95),
+    0 0 14px rgb(15 23 35 / 0.85);
 }
 
 /* Envoi à la préfecture : coche de l'accusé de réception */
@@ -4229,12 +4264,10 @@ html[data-scene="ready"] body .p-watermark.is-empty {
 
 /* Gouttière du parcours, hors téléphone : textes plus lisibles sur la carte, sans fond ajouté */
 @media (min-width: 761px) {
-  .p-gutter .g-item {
+  .p-gutter .g-item,
+  .p-gutter .g-item .g-place-words {
     color: var(--text);
-    text-shadow:
-      0 0 2px var(--bg),
-      0 0 5px var(--bg),
-      0 0 10px var(--bg);
+    text-shadow: none;
   }
 
   .p-gutter .g-item .g-place-name,

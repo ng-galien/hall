@@ -1,12 +1,12 @@
 import * as THREE from "three";
 import type { Relief } from "./relief";
 
-/** Teintes de la scène 3D, mêmes valeurs que src/theme.css : thème clair par défaut, sombre sur préférence du système. */
+/** Teintes de la scène 3D, mêmes valeurs que src/theme.css ; le thème est l'attribut data-theme de <html>. */
 export const ACCENT = 0x1f5fbf;
 export const ACCENT_ON_DARK = 0x6ea0f0;
 export const ACCENT_STRONG = 0x174a96;
 export const SUCCESS = 0x15803d;
-export const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+export const dark = document.documentElement.dataset.theme === "dark";
 
 export const look = dark
   ? {

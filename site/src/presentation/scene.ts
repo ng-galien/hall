@@ -12,7 +12,7 @@ import {
   updateTileLevels,
   wideLines,
 } from "../relief";
-import { ACCENT, dark, look, themeNetworks, themeRelief, themeSkirt } from "../theme";
+import { ACCENT, ACCENT_ON_DARK, ACCENT_STRONG, dark, look, themeNetworks, themeRelief, themeSkirt } from "../theme";
 import { supportsWebGL } from "../webgl";
 import { buildCar, buildCharacter } from "./actors";
 import { type BoardState, createBoard, type Face, type FolderItem, type Point } from "./board";
@@ -198,8 +198,10 @@ export async function start() {
       dais.add(leg);
     }
   }
+  /* Enveloppe du vote : taille au départ, et facteur de réduction à l'arrivée à la fente */
+  const ENVELOPE = { w: 0.5, h: 0.34, arrival: 0.5 };
   const urne = new THREE.Group();
-  const URNE = 0.36;
+  const URNE = 0.6;
   const ballotsInUrne: THREE.Mesh[] = [];
   {
     const glass = new THREE.Mesh(
@@ -219,23 +221,58 @@ export async function start() {
       for (const z of [-e, e]) bar(URNE + 0.02, 0.02, 0.02, 0, y, z);
       for (const x of [-e, e]) bar(0.02, 0.02, URNE + 0.02, x, y, 0);
     }
-    const lid = new THREE.Mesh(new THREE.BoxGeometry(URNE + 0.03, 0.025, URNE + 0.03), frame);
-    lid.position.y = e + 0.012;
-    const slot = new THREE.Mesh(
-      new THREE.BoxGeometry(0.16, 0.03, 0.025),
-      new THREE.MeshBasicMaterial({ color: 0x0f1723 }),
-    );
-    slot.position.y = e + 0.02;
-    urne.add(glass, lid, slot);
+    /* Dessus transparent comme les parois ; la fente n'est marquée que par un fin cadre métallique sombre */
+    const slotWidth = ENVELOPE.w * ENVELOPE.arrival + 0.03;
+    const slotDepth = 0.04;
+    const rim = 0.014;
+    const metal = new THREE.MeshPhongMaterial({ color: 0x111827, specular: 0x94a3b8, shininess: 60 });
+    const slotFrame = new THREE.Group();
+    for (const z of [-1, 1]) {
+      const side = new THREE.Mesh(new THREE.BoxGeometry(slotWidth + 2 * rim, 0.012, rim), metal);
+      side.position.z = z * (slotDepth / 2 + rim / 2);
+      slotFrame.add(side);
+    }
+    for (const x of [-1, 1]) {
+      const end = new THREE.Mesh(new THREE.BoxGeometry(rim, 0.012, slotDepth), metal);
+      end.position.x = x * (slotWidth / 2 + rim / 2);
+      slotFrame.add(end);
+    }
+    slotFrame.position.y = e + 0.008;
+    urne.add(glass, slotFrame);
     const paper = new THREE.MeshLambertMaterial({ color: 0xf8fafc });
     for (let i = 0; i < 11; i++) {
-      const sheet = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.006, 0.08), paper);
+      const sheet = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.008, 0.24), paper);
       sheet.visible = false;
       urne.add(sheet);
       ballotsInUrne.push(sheet);
     }
-    urne.position.y = 0.73;
+    urne.position.y = 0.55 + URNE / 2;
     dais.add(urne);
+  }
+  /* Enveloppe du vote : une seule à la fois, de la place de l'élu à la fente de l'urne */
+  const envelope = new THREE.Group();
+  {
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(ENVELOPE.w, ENVELOPE.h, 0.014),
+      new THREE.MeshLambertMaterial({ color: 0xf8fafc }),
+    );
+    const flapShape = new THREE.Shape();
+    flapShape.moveTo(-ENVELOPE.w / 2, ENVELOPE.h / 2);
+    flapShape.lineTo(ENVELOPE.w / 2, ENVELOPE.h / 2);
+    flapShape.lineTo(0, -ENVELOPE.h * 0.08);
+    flapShape.closePath();
+    const flapMaterial = new THREE.MeshLambertMaterial({ color: ACCENT, side: THREE.DoubleSide });
+    const flapFront = new THREE.Mesh(new THREE.ShapeGeometry(flapShape), flapMaterial);
+    flapFront.position.z = 0.0075;
+    const flapBack = flapFront.clone();
+    flapBack.position.z = -0.0075;
+    const outline = new THREE.LineSegments(
+      new THREE.EdgesGeometry(body.geometry),
+      new THREE.LineBasicMaterial({ color: ACCENT_STRONG }),
+    );
+    envelope.add(body, flapFront, flapBack, outline);
+    envelope.visible = false;
+    dais.add(envelope);
   }
   const SEATS = 11;
   const discFor = (fill: string) => new THREE.CanvasTexture(discCanvas(fill, "#ffffff"));
@@ -998,10 +1035,16 @@ export async function start() {
   const robotHead = () => screenToWorld(assistantPoint());
   const robotTether = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
-    new THREE.LineDashedMaterial({ color: ACCENT, dashSize: 0.4, gapSize: 0.3, transparent: true, opacity: 0 }),
+    new THREE.LineDashedMaterial({
+      color: dark ? ACCENT_ON_DARK : ACCENT,
+      dashSize: 0.4,
+      gapSize: 0.3,
+      transparent: true,
+      opacity: 0,
+    }),
   );
   scene.add(robotTether);
-  const scanLine = wideLines([0, 0, 0, 0, 0, 1], ACCENT, 1.4) as LineSegments2;
+  const scanLine = wideLines([0, 0, 0, 0, 0, 1], dark ? ACCENT_ON_DARK : ACCENT, 1.4) as LineSegments2;
   scanLine.material.transparent = true;
   scanLine.material.depthTest = false;
   scanLine.renderOrder = 29;
@@ -1697,10 +1740,34 @@ export async function start() {
     let yes = 0;
     let abstain = 0;
     const voteLength = lasting("councillorsVote");
+    envelope.visible = false;
     ballotsInUrne.forEach((sheet, i) => {
       const t = ballotTime(i);
       const fall = span(p, t, t + voteLength * tl.param("councillorsVote", "fall"));
-      sheet.visible = fall > 0 && p < tl.end("laptopsOff");
+      if (fall > 0 && fall < 1 && dais.visible) {
+        /* Montée en arc depuis l'ordinateur de l'élu jusqu'au-dessus de la fente, puis descente dans l'urne */
+        const angle = (i / SEATS) * Math.PI * 2 + Math.PI / 2;
+        const above = urne.position.y + URNE / 2 + 0.7;
+        const lift = 0.55;
+        envelope.visible = true;
+        if (fall < lift) {
+          const k = gentle(fall / lift);
+          envelope.position.set(
+            Math.cos(angle) * 1.05 * (1 - k),
+            0.75 + (above - 0.75) * k + Math.sin(k * Math.PI) * 0.35,
+            Math.sin(angle) * 1.05 * (1 - k),
+          );
+          envelope.rotation.set(0, 0, (1 - k) * 0.35);
+          envelope.scale.setScalar(1 + (ENVELOPE.arrival - 1) * k);
+        } else {
+          const k = easeInOut((fall - lift) / (1 - lift));
+          const inside = urne.position.y - URNE / 2 + (ENVELOPE.h * ENVELOPE.arrival) / 2 + 0.02;
+          envelope.position.set(0, above + (inside - above) * k, 0);
+          envelope.rotation.set(0, 0, 0);
+          envelope.scale.setScalar(ENVELOPE.arrival);
+        }
+      }
+      sheet.visible = fall >= 1 && p < tl.end("laptopsOff");
       if (!sheet.visible) return;
       const rest = -URNE / 2 + 0.01 + i * 0.008;
       sheet.position.set(

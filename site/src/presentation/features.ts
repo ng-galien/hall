@@ -1,6 +1,6 @@
 import { publicFileUrl, siteRoot } from "../site-root";
 import { openViewer, type ViewerShot } from "../viewer";
-import { glyphs, type PieceKind, svgIcon } from "./icons";
+import { glyphTint, type PieceKind, svgIcon } from "./icons";
 
 /**
  * Partie qui suit l'animation : fonctionnalités, règles appliquées, données, publics, démonstration.
@@ -114,21 +114,14 @@ const features: Feature[] = [
   },
 ];
 
-const rules: string[] = [
-  "Quorum compté sur les élus en exercice présents, sans les pouvoirs", // MTG-270, MTG-020
-  "Un seul pouvoir par élu, valable trois séances consécutives au plus", // ATT-050, ATT-160
-  "Majorité calculée sur les suffrages exprimés, abstentions exclues", // BAL-150, BAL-160
-  "En vote public, voix prépondérante du président en cas d’égalité", // BAL-180
-  "Délai de convocation compté en jours francs", // NOT-110
-  "Approbation du procès-verbal en premier point de la séance suivante", // AGI-030
-];
+/* Cadre légal : MTG-270 et MTG-020 (quorum), ATT-050 et ATT-160 (pouvoirs), BAL-150 à BAL-180 (votes), NOT-110 (convocation). */
+const legalFrame =
+  "Hall suit les règles du code général des collectivités territoriales pour le quorum, les pouvoirs, les votes et les délais de convocation.";
 
 const data: string[] = [
-  "Installation sur un serveur ou sur un poste de la mairie", // TR-DST-020, TR-DSK-010
-  "Sauvegardes datées, contrôlées par une restauration d’essai", // TR-DST-020
-  "Accès par compte, selon ce que chacun doit faire", // USR-050, USR-060
-  "Un compte retiré n’a plus accès, immédiatement", // USR-010, USR-020
-  "Export de tout ce que le compte peut lire", // USR-050
+  "Hall s’installe à la mairie, sur un serveur ou sur un poste", // TR-DST-020, TR-DSK-010
+  "Les données restent à la mairie, avec des sauvegardes régulières", // TR-DST-020
+  "Chacun a son compte et ses droits", // USR-050, USR-060
 ];
 
 /* Travail d'équipe : USR-050 (tout compte lit Hall), WSP-400 (chaque conseiller lit l'espace, les affaires et les
@@ -162,7 +155,7 @@ function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: strin
 
 function icon(kind: PieceKind, className = "f-icon"): HTMLElement {
   const node = element("span", className);
-  node.style.color = glyphs[kind].color;
+  node.style.color = glyphTint(kind).color;
   node.innerHTML = svgIcon(kind);
   return node;
 }
@@ -183,7 +176,7 @@ function robot(): HTMLElement {
   box.setAttribute("role", "img");
   box.setAttribute("aria-label", "Un petit robot : votre assistant IA, relié à vos dossiers.");
   box.innerHTML = `<svg viewBox="0 0 160 160" aria-hidden="true">
-    <g fill="none" stroke="#334155" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <g class="f-robot-body" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
       <line x1="80" y1="30" x2="80" y2="46"/>
       <rect x="40" y="46" width="80" height="58" rx="18"/>
       <path d="M40 72h-8M120 72h8"/>
@@ -191,8 +184,8 @@ function robot(): HTMLElement {
       <rect x="52" y="114" width="56" height="26" rx="10"/>
       <path d="M68 90q12 8 24 0"/>
     </g>
-    <circle class="f-robot-antenna" cx="80" cy="24" r="7" fill="#1f5fbf"/>
-    <g class="f-robot-eyes" fill="#1f5fbf">
+    <circle class="f-robot-antenna" cx="80" cy="24" r="7"/>
+    <g class="f-robot-eyes">
       <rect x="58" y="64" width="12" height="14" rx="6"/>
       <rect x="90" y="64" width="12" height="14" rx="6"/>
     </g>
@@ -315,7 +308,7 @@ export function renderFeatures(variant: "a" | "b") {
 
   const blocks = element("div", "f-blocks");
   blocks.append(
-    block("Les règles du conseil, appliquées", "rule", pointList(rules)),
+    block("Le cadre légal", "rule", element("p", "f-team-text", legalFrame)),
     block("Vos données", "folder", pointList(data)),
   );
   const team = element("div", "f-team");

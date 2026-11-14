@@ -1,6 +1,7 @@
 /*
  * Charte commune du site public de Hall, palette « Ardoise et bleu de séance ».
- * Thème clair par défaut ; le thème sombre ne s'applique que sur préférence du système.
+ * Le thème vient de l'attribut data-theme de <html>, posé avant le premier rendu par le script de tête de chaque
+ * page : le choix enregistré par le bouton de thème, sinon le réglage de l'ordinateur.
  * Les teintes de la scène 3D sont dans src/theme.ts.
  */
 :root {
@@ -40,23 +41,21 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1723;
-    --surface: #1a2433;
-    --text: #eef2f6;
-    --text-2: #a3b1c2;
-    --text-3: #8494a8;
-    --border: #334155;
-    --hairline: rgb(255 255 255 / 0.1);
-    --accent-text: #6ea0f0;
-    --accent-wash: rgb(110 160 240 / 0.14);
-    --veil: rgb(26 36 51 / 0.92);
-    --masthead-veil: rgb(15 23 35 / 0.92);
-    --glass: linear-gradient(160deg, rgb(26 36 51 / 0.78), rgb(15 23 35 / 0.6));
-    --glass-strong: linear-gradient(160deg, rgb(26 36 51 / 0.92), rgb(15 23 35 / 0.86));
-    --glass-border: rgb(255 255 255 / 0.08);
-    --glass-shadow: 0 20px 50px rgb(0 0 0 / 0.35);
-    color-scheme: dark;
-  }
+:root[data-theme="dark"] {
+  --bg: #0f1723;
+  --surface: #1a2433;
+  --text: #eef2f6;
+  --text-2: #a3b1c2;
+  --text-3: #8494a8;
+  --border: #334155;
+  --hairline: rgb(255 255 255 / 0.1);
+  --accent-text: #6ea0f0;
+  --accent-wash: rgb(110 160 240 / 0.14);
+  --veil: rgb(26 36 51 / 0.92);
+  --masthead-veil: rgb(15 23 35 / 0.92);
+  --glass: linear-gradient(160deg, rgb(26 36 51 / 0.78), rgb(15 23 35 / 0.6));
+  --glass-strong: linear-gradient(160deg, rgb(26 36 51 / 0.92), rgb(15 23 35 / 0.86));
+  --glass-border: rgb(255 255 255 / 0.08);
+  --glass-shadow: 0 20px 50px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
 }

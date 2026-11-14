@@ -7,7 +7,7 @@ import "../site-header.css";
 import { revealText } from "../arrival";
 import "./presentation.css";
 import { renderFeatures } from "./features";
-import { glyphs, type PieceKind, photoThumb, svgIcon } from "./icons";
+import { glyphTint, type PieceKind, photoThumb, svgIcon } from "./icons";
 import { at, places, range, storyEnd, storyStart, subStepAt, subSteps, timeline } from "./story";
 
 /* Studio du récit : ?studio ouvre l'outil de réglage, hors du site publié */
@@ -432,7 +432,7 @@ places.forEach((place, placeIndex) => {
     (item.lastChild as HTMLElement).textContent = step.title;
     const icon = document.createElement("span");
     icon.className = "g-icon";
-    icon.style.color = glyphs[step.icon].color;
+    icon.style.color = glyphTint(step.icon).color;
     icon.innerHTML = svgIcon(step.icon);
     item.insertBefore(icon, item.lastChild);
     item.addEventListener("click", (event) => {
@@ -505,8 +505,8 @@ export function renderStepText(index: number) {
     }),
   );
   watermarkIcon.innerHTML = index < 0 ? "" : svgIcon(step.icon);
-  watermarkIcon.style.color = glyphs[step.icon].color;
-  watermarkIcon.style.background = glyphs[step.icon].surface;
+  watermarkIcon.style.color = glyphTint(step.icon).color;
+  watermarkIcon.style.background = glyphTint(step.icon).surface;
   watermarkDefinition.textContent = index >= 0 && step.definition ? step.definition : "";
   watermarkRule.replaceChildren();
   if (index >= 0 && step.rule) {

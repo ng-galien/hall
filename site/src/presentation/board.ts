@@ -1,4 +1,4 @@
-import { glyphs, type PieceKind, photoThumb, svgIcon } from "./icons";
+import { glyphTint, type PieceKind, photoThumb, svgIcon } from "./icons";
 
 /**
  * Fiche persistante de l'affaire. Elle reste en haut à droite et prend tour à tour l'apparence des vues de Hall :
@@ -70,8 +70,8 @@ function photoTile(title: string, className: string): HTMLElement {
 export function glyphTile(kind: PieceKind, className = "p-glyph"): HTMLElement {
   const tile = document.createElement("span");
   tile.className = className;
-  tile.style.color = glyphs[kind].color;
-  tile.style.background = glyphs[kind].surface;
+  tile.style.color = glyphTint(kind).color;
+  tile.style.background = glyphTint(kind).surface;
   tile.innerHTML = svgIcon(kind);
   return tile;
 }
