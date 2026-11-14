@@ -6,6 +6,7 @@ import {
 
 // @verifies-requirement HALL-FR-CFG-020
 // @verifies-requirement HALL-FR-CFG-030
+// @verifies-requirement HALL-FR-MIN-290 (the Alésia minutes keep the default model, without a page header)
 it("enriches only empty Alésia presentation fields and is idempotent", async () => {
   let settings = {
     name: "Alésia",
@@ -17,18 +18,27 @@ it("enriches only empty Alésia presentation fields and is idempotent", async ()
     {
       id: "one",
       kind: "pdf",
-      documentType: "minutes",
+      documentType: "meeting-notice",
       headerHtml: "My header",
       footerHtml: "",
       stylesheet: "Custom CSS",
       bodyMarkdown: "Business facts",
+    },
+    {
+      id: "two",
+      kind: "pdf",
+      documentType: "minutes",
+      headerHtml: "",
+      footerHtml: "",
+      stylesheet: "",
+      bodyMarkdown: "PV",
     },
   ];
   const api = {
     get: async (path) => (path === "/settings" ? settings : templates),
     put: async (path, value) => {
       if (path === "/settings") settings = value;
-      else templates[0] = value;
+      else templates[templates.findIndex((template) => template.id === value.id)] = value;
     },
   };
   expect(await enrichAlesiaConfiguration(api)).toEqual({
@@ -46,6 +56,7 @@ it("enriches only empty Alésia presentation fields and is idempotent", async ()
     bodyMarkdown: "Business facts",
   });
   expect(templates[0].footerHtml).toContain("Démonstration");
+  expect(templates[1]).toMatchObject({ headerHtml: "", footerHtml: "", stylesheet: "" });
   expect(await enrichAlesiaConfiguration(api)).toEqual({ settingsFields: [], templatesUpdated: 0 });
   settings.name = "Another municipality";
   await expect(enrichAlesiaConfiguration(api)).rejects.toThrow("Alésia");
