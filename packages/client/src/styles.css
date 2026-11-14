@@ -32,6 +32,29 @@
   gap: var(--hall-space-4);
 }
 
+.authentication-header {
+  display: grid;
+  gap: var(--hall-space-2);
+}
+
+.authentication-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--hall-space-2-5);
+}
+
+.authentication-brand-name {
+  font-size: var(--hall-font-size-title);
+  font-weight: var(--hall-font-weight-heavy);
+  letter-spacing: var(--hall-letter-spacing-heading);
+}
+
+.authentication-commune {
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-body);
+  font-weight: var(--hall-font-weight-semibold);
+}
+
 .authentication-panel h1 {
   font-size: var(--hall-font-size-heading);
   font-weight: var(--hall-font-weight-heavy);

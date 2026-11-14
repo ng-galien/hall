@@ -49,7 +49,7 @@ function clearedCookie(secure: boolean): string {
 
 // @implements-requirement HALL-FR-USR-080 (a password-link request answers the same for a known, unknown or disabled
 // address, and its email leaves after the response)
-export function createAuthRouter({ authService, config, passwordLinkService }: Cradle): Router {
+export function createAuthRouter({ authService, config, passwordLinkService, securityRepository }: Cradle): Router {
   const router = Router();
   type Attempt = { failures: number; expiresAt: number; blockedUntil: number };
   const ipAttempts = new Map<string, Attempt>();
@@ -116,14 +116,18 @@ export function createAuthRouter({ authService, config, passwordLinkService }: C
     return received.length === expected.length && timingSafeEqual(received, expected);
   };
 
+  // @implements-requirement HALL-FR-USR-080 (the sign-in and link screens name the commune before sign-in: the status
+  // gives the name of the commune of the settings, and no other setting)
   router.get("/status", async (request, response) => {
     const developmentAccess = config.devAutoLogin === true;
     const bootstrapRequired = developmentAccess ? false : await authService.bootstrapRequired();
+    const { communeName } = await securityRepository.accountMailSender();
     const representation: SirenEntity<{
       bootstrapRequired: boolean;
       bootstrapAllowed: boolean;
       bootstrapTokenRequired: boolean;
       developmentAccess: boolean;
+      communeName: string;
     }> = {
       class: ["authentication-status"],
       properties: {
@@ -131,6 +135,7 @@ export function createAuthRouter({ authService, config, passwordLinkService }: C
         bootstrapAllowed: bootstrapAllowed(request),
         bootstrapTokenRequired: requiresBootstrapToken(request),
         developmentAccess,
+        communeName,
       },
       actions: developmentAccess
         ? []

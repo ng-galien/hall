@@ -6,6 +6,8 @@ export interface AuthenticationStatus {
   bootstrapAllowed: boolean;
   bootstrapTokenRequired: boolean;
   developmentAccess: boolean;
+  /** Name of the commune of the installation, empty when it is not set. */
+  communeName: string;
 }
 
 export async function getAuthenticationStatus() {

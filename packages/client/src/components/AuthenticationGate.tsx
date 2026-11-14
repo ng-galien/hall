@@ -17,6 +17,7 @@ import {
   logout,
   passwordLinksAvailable,
 } from "../services/authApi";
+import { AuthenticationHeader } from "./AuthenticationHeader";
 import { errorTranslationKeys } from "./Ui";
 
 // @implements-requirement HALL-FR-USR-080 (sign-in offers « Mot de passe oublié ? »; a password-link address opens the
@@ -91,6 +92,7 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
     return (
       <PasswordLinkScreen
         representation={representation}
+        communeName={status.communeName}
         token={linkToken}
         onRecorded={(recordedEmail) => {
           setEmail(recordedEmail);
@@ -105,10 +107,11 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
         }}
       />
     );
-  if (recovery && representation && !principal)
+  if (recovery && status && representation && !principal)
     return (
       <PasswordRecoveryScreen
         representation={representation}
+        communeName={status.communeName}
         initialEmail={email}
         onBack={(typed) => {
           setEmail(typed);
@@ -148,8 +151,9 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
   return (
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit}>
-        <p className="eyebrow">{t("navigation.council")}</p>
-        <h1>{t(status?.bootstrapRequired ? "auth.bootstrapTitle" : "auth.signInTitle")}</h1>
+        <AuthenticationHeader communeName={status.communeName}>
+          <h1>{t(status.bootstrapRequired ? "auth.bootstrapTitle" : "auth.signInTitle")}</h1>
+        </AuthenticationHeader>
         {status?.bootstrapRequired ? (
           <>
             <Field label={t("auth.displayName")}>

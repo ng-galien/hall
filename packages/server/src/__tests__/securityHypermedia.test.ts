@@ -66,6 +66,7 @@ describe("users, permissions, audit and Siren affordances", () => {
       bootstrapAllowed: true,
       bootstrapTokenRequired: false,
       developmentAccess: true,
+      communeName: expect.any(String),
     });
     expect(status.body.actions).toEqual([]);
 
@@ -76,6 +77,27 @@ describe("users, permissions, audit and Siren affordances", () => {
       expect.arrayContaining([expect.objectContaining({ name: "session.logout" })]),
     );
     await rawAgent.get("/api/users").expect(200);
+  });
+
+  // @verifies-requirement HALL-FR-USR-080
+  it("names the commune of the settings to a visitor who is not signed in, and gives no other setting", async () => {
+    const { rawAgent, statelessAgent } = await createTestServer({ devAutoLogin: false });
+    await rawAgent.post("/api/auth/bootstrap").send(administrator).expect(201);
+    const { updatedAt: _updatedAt, ...settings } = properties<Record<string, unknown>>(
+      await rawAgent.get("/api/settings").expect(200),
+    );
+    await rawAgent
+      .put("/api/settings")
+      .send({ ...settings, name: "Foncine-le-Bas", siren: "123456789", addressLine1: "1 place de la Mairie" })
+      .expect(200);
+
+    const status = properties<Record<string, unknown>>(await statelessAgent.get("/api/auth/status").expect(200));
+    expect(status.communeName).toBe("Foncine-le-Bas");
+    expect(Object.keys(status).sort()).toEqual(
+      ["bootstrapAllowed", "bootstrapRequired", "bootstrapTokenRequired", "communeName", "developmentAccess"].sort(),
+    );
+    expect(JSON.stringify(status)).not.toContain("123456789");
+    expect(JSON.stringify(status)).not.toContain("place de la Mairie");
   });
 
   it("treats a malformed session cookie as unauthenticated and audits the denied mutation", async () => {

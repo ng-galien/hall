@@ -9738,7 +9738,7 @@
         "Les titres et commandes des éléments préparés et de l’ordre du jour restent accessibles dans les séances et les affaires au téléphone, sur tablette et sur ordinateur ; sur téléphone, le titre d’un élément préparé ou d’un point ouvre sa page.",
         "Un texte modifiable propose le choix d’une photo existante et la capture depuis le téléphone dans l’éditeur compact comme en plein écran.",
         "L’import utilise les permissions, formats et stockage existants ; une image importée reste présente après réouverture et un échec est visible sans perte du texte.",
-        "Une photo ajoutée par n’importe quel chemin du client, dans un texte ou comme fichier importé, au téléphone comme à l’ordinateur, est réduite dans le navigateur avant l’envoi : son plus grand côté est ramené sous la borne fixée par le client et elle est réencodée en JPEG, dans le sens de sa prise de vue et avec ses proportions ; l’original n’est pas conservé. Une image déjà sous cette borne et légère part telle quelle ; un fichier qui n’est pas une photo (PDF, image vectorielle, image à fond transparent) n’est pas touché ; une image que le navigateur ne sait pas lire part telle quelle. Les photos déjà enregistrées ne sont pas modifiées.",
+        "Une photo ajoutée par n’importe quel chemin du client, dans un texte ou comme fichier importé, au téléphone comme à l’ordinateur, dont le plus grand côté dépasse la limite haute fixée par le client est réduite dans le navigateur avant l’envoi : son plus grand côté est ramené à cette limite et elle est réencodée en JPEG, dans le sens de sa prise de vue et avec ses proportions ; l’original n’est pas conservé. Une image qui ne dépasse pas cette limite part telle quelle, quel que soit son poids ; un fichier qui n’est pas une photo (PDF, image vectorielle, image à fond transparent) n’est pas touché ; une image que le navigateur ne sait pas lire part telle quelle. Les photos déjà enregistrées ne sont pas modifiées.",
         "L’adaptation mobile conserve les fonctions et les permissions existantes sur ordinateur.",
         "Les commandes « Choisir une photo » et « Prendre une photo » des éditeurs restent réservées à la présentation mobile ; elles ne prennent pas de place dans le texte sur bureau. Le dépôt, le collage et l’import d’image ordinaires sur bureau sont conservés.",
         "Sur un téléphone, chaque contenu s’ouvre sur sa propre page : document, note, élément préparé, point de séance, délibération et procès-verbal ; « Modifier » ou « Terminé » d’un texte est dans le bandeau, les autres actions du contenu ouvert sont dans le menu ⋯ du bandeau. Une référence de contact ou de membre du conseil ouvre de même la page du contact ou du membre.",
@@ -12350,7 +12350,8 @@
         "One address receives at most one link per minute and three per hour, whatever their origin. A further request sends nothing and never blocks the account; the sign-in limits stay as they are. An account manager is told that the request is too frequent.",
         "No password and no link appears in a log, the audit journal, a list or a user page. The link is built from the configured public address of Hall; without it, no account email is sent and the failure is recorded. Account emails use the injected outgoing-mail transport and the sender settings of the commune; they are not stored in the shared mailbox.",
         "Out of scope: MCP, a password sent by email, a multi-state follow-up, a redesign of sign-in limits, a new mail transport and a second factor. The interface names the mailbox of the commune « la messagerie de la commune ».",
-        "Every password field of Hall (sign-in, link screen, change of one’s own password, password typed by an account manager) carries a command that shows or hides what is typed; its state is announced, the field is hidden again when its form is sent, and the browser password managers keep filling it."
+        "Every password field of Hall (sign-in, link screen, change of one’s own password, password typed by an account manager) carries a command that shows or hides what is typed; its state is announced, the field is hidden again when its form is sent, and the browser password managers keep filling it.",
+        "The sign-in, forgotten-password, link and unusable-link screens show the logo and the name of Hall, then the name of the commune of the installation, then their title, before any sign-in. The authentication status gives a visitor who is not signed in the name of the commune of the settings and no other setting; without a name, the screens show Hall alone."
       ],
       "clauses": [
         {
@@ -12417,6 +12418,12 @@
           "key": "password-visibility",
           "origin": "product",
           "statement": "Owner request of 14 November 2026: « on voit pas les mots de passe. On n’a pas de truc pour voir les mots de passe, c’est chiant. Un petit bouton pour quand même voir les mots de passe. »",
+          "sourceIds": []
+        },
+        {
+          "key": "sign-in-screens-name-the-commune",
+          "origin": "product",
+          "statement": "Owner requests of 14 November 2026: « L’écran de connexion, il est trop basique. On connaît pas le nom de la commune. Tous les écrans de connexion, de liens, etc. Faudrait quand même qu’il soit un peu mieux fait, et surtout qu’il soit raccord au niveau style. » ; « Avoir au moins, quand on se log, le logo, et puis le nom de la mairie. Un minimum de ça. »",
           "sourceIds": []
         }
       ]

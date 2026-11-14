@@ -1,5 +1,6 @@
 import type { ApiPasswordLink, SirenEntity } from "@hall/api-contract";
 import { type FormEvent, useEffect, useState } from "react";
+import { AuthenticationHeader } from "../../components/AuthenticationHeader";
 import { HelpHint } from "../../components/HelpHint";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -20,10 +21,12 @@ const isUnusable = (failure: unknown) =>
 // @implements-requirement HALL-FR-USR-080
 export function PasswordRecoveryScreen({
   representation,
+  communeName,
   initialEmail,
   onBack,
 }: {
   representation: StatusRepresentation;
+  communeName: string;
   initialEmail: string;
   onBack(email: string): void;
 }) {
@@ -48,11 +51,12 @@ export function PasswordRecoveryScreen({
   return (
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit} data-testid="password-recovery">
-        <p className="eyebrow">{t("navigation.council")}</p>
-        <div className="authentication-title">
-          <h1>{t("auth.recoveryTitle")}</h1>
-          {sent ? null : <HelpHint text={t("auth.recoveryDescription")} />}
-        </div>
+        <AuthenticationHeader communeName={communeName}>
+          <div className="authentication-title">
+            <h1>{t("auth.recoveryTitle")}</h1>
+            {sent ? null : <HelpHint text={t("auth.recoveryDescription")} />}
+          </div>
+        </AuthenticationHeader>
         {sent ? (
           <p role="status" data-testid="password-recovery-sent">
             {t("auth.recoverySent")}
@@ -86,11 +90,13 @@ export function PasswordRecoveryScreen({
 // @implements-requirement HALL-FR-USR-080
 export function PasswordLinkScreen({
   representation,
+  communeName,
   token,
   onRecorded,
   onRequestNew,
 }: {
   representation: StatusRepresentation;
+  communeName: string;
   token: string;
   onRecorded(email: string): void;
   onRequestNew(): void;
@@ -143,16 +149,17 @@ export function PasswordLinkScreen({
   return (
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit} data-testid="password-link">
-        <p className="eyebrow">{t("navigation.council")}</p>
-        <h1 data-testid="password-link-title">
-          {t(
-            unusable
-              ? "auth.passwordLinkExpiredTitle"
-              : link?.purpose === "invitation"
-                ? "auth.invitationTitle"
-                : "auth.passwordLinkTitle",
-          )}
-        </h1>
+        <AuthenticationHeader communeName={communeName}>
+          <h1 data-testid="password-link-title">
+            {t(
+              unusable
+                ? "auth.passwordLinkExpiredTitle"
+                : link?.purpose === "invitation"
+                  ? "auth.invitationTitle"
+                  : "auth.passwordLinkTitle",
+            )}
+          </h1>
+        </AuthenticationHeader>
         {unusable ? (
           <>
             <p role="alert" data-testid="password-link-unusable">
