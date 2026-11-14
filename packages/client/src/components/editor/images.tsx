@@ -168,6 +168,8 @@ export function ResourceImageFigure({
       className={`${imageClass(align)} ${className ?? ""}`}
       src={href}
       alt={alt}
+      loading="lazy"
+      decoding="async"
       style={style}
     />
   );
