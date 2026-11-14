@@ -194,7 +194,7 @@ test.describe("navigation and settings", () => {
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/app\/council-decisions$/);
     await expect(sidebar.locator(".nav-sub")).toHaveCount(0);
-    const mark = await sidebar.locator(".app-brand-mark").boundingBox();
+    const mark = await sidebar.getByTestId("hall-logo").boundingBox();
     const railControl = await toggle.boundingBox();
     expect(railControl!.y).toBeGreaterThanOrEqual(mark!.y + mark!.height - 1);
     await page.reload();
