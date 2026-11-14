@@ -4,6 +4,7 @@ import { expect, it, vi } from "vitest";
 import { createWorkspaceMcp, WorkspaceClient } from "../src/server.js";
 
 // @verifies-requirement HALL-FR-WSP-470
+// @verifies-requirement HALL-FR-WSP-480
 it("teaches the current capabilities without reading instance data and maps unknown topics", async () => {
   const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Guide must not read Hall data"));
   const server = createWorkspaceMcp(new WorkspaceClient("https://hall.example"));
@@ -22,6 +23,9 @@ it("teaches the current capabilities without reading instance data and maps unkn
       expect(learned.isError).not.toBe(true);
       expect(JSON.stringify(learned)).toContain(topic);
     }
+    const documents = JSON.stringify(await client.callTool({ name: "hall_learn", arguments: { topic: "documents" } }));
+    expect(documents).toContain("resource.update-metadata");
+    expect(documents).toContain("#RRGGBB");
     expect(JSON.stringify(await client.callTool({ name: "hall_learn", arguments: { topic: "missing" } }))).toContain(
       "unknownTopic",
     );
