@@ -206,6 +206,7 @@ export const en = {
   "users.conflictHint": "Check that this email address and contact are not already linked to another account.",
   "users.displayNameRequired": "Enter the display name.",
   "users.emailInvalid": "Enter a valid email address.",
+  "users.emailTaken": "Address already used by another account.",
   "users.passwordChangeDescription":
     "Your password will be replaced and all your sessions closed. You will need to sign in again.",
   "users.passwordResetDescription": "Replace this account’s password and close all its sessions.",
@@ -1708,6 +1709,7 @@ export const en = {
   "error.mail_attachments_too_large":
     "Attachments exceed the 50 MiB limit for this message. Remove a file or reduce its size.",
   "error.conflict": "The change conflicts with existing information.",
+  "error.user_email_conflict": "Another account already uses this email address.",
   "error.workspace_title_conflict": "An item of the same type already has this name in this folder.",
   "error.workspace_folder_conflict": "A folder already has this name in this location.",
   "error.workspace_folder_not_found": "This folder no longer exists.",

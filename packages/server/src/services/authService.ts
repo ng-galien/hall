@@ -4,6 +4,7 @@ import type { AuthorizationAdministrationClient } from "../clients/authorization
 import type { DirectoryClient } from "../clients/directoryClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
 import type { UnitOfWork } from "../repositories/contracts.js";
+import { PersistenceError } from "../repositories/errors.js";
 import type { SecurityRepository, StoredUser } from "../repositories/securityRepository.js";
 import { principalForUser } from "../security/authorization.js";
 import { generatePassphrase } from "../security/passphrase.js";
@@ -76,6 +77,7 @@ export interface AuthService {
 // reuses the folder. PostgreSQL refuses a contact without an active mandate.)
 // @implements-requirement HALL-FR-DIR-160 (endCouncillorAccess)
 // @implements-requirement HALL-FR-USR-020 (reactivateUser; the revocation is disableUser, audited as user.revoke-access)
+// @implements-requirement HALL-FR-USR-100 (updateUser refuses an address held by another account as user_email_conflict)
 export function createAuthService({
   securityRepository,
   authorizationAdministrationClient,
@@ -229,11 +231,18 @@ export function createAuthService({
       const current = await securityRepository.findUserById(userId);
       if (!current) throw new DomainError("user_not_found", 404);
       if (current.contactId !== input.contactId) await provisionCouncillor(current.roles, input.contactId);
-      return unitOfWork.execute(async () => {
-        const user = await securityRepository.updateUser(userId, input);
-        if (!user) throw new DomainError("user_not_found", 404);
-        return publicUserWithProtection(user, securityRepository);
-      });
+      try {
+        return await unitOfWork.execute(async () => {
+          const user = await securityRepository.updateUser(userId, input);
+          if (!user) throw new DomainError("user_not_found", 404);
+          return publicUserWithProtection(user, securityRepository);
+        });
+      } catch (error) {
+        if (error instanceof PersistenceError && error.constraint === "app_user_email_key") {
+          throw new DomainError("user_email_conflict", 409);
+        }
+        throw error;
+      }
     },
     changePassword: (userId, currentPassword, newPassword) =>
       replacePassword(userId, newPassword, true, currentPassword),

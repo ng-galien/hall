@@ -12147,6 +12147,39 @@
         }
       ]
     },
+    "HALL-FR-USR-100": {
+      "name": "ACCOUNT_ADDRESS_HELD_BY_ANOTHER_ACCOUNT_IS_NAMED",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "An address belongs to one account: on the page of a user, Hall refuses an address held by another account and says why at the address.",
+      "acceptanceCriteria": [
+        "Recording on the page of a user an address already held by another account is refused: the account keeps its previous address and the page says, at the address, that another account already uses it.",
+        "The server answers this refusal with its own code, user_email_conflict, distinct from the refusal of a contact already linked to another account, which keeps its general conflict answer and message."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "Recording on the page of a user an address already held by another account is refused: the account keeps its previous address and the page says, at the address, that another account already uses it.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "The server answers this refusal with its own code, user_email_conflict, distinct from the refusal of a contact already linked to another account, which keeps its general conflict answer and message.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "On 13 November 2026, on the municipal installation, the user page refused an address already held by another account without giving the reason. Owner decision of 14 November 2026: the server answers this case with its own code and the user page writes the cause at the address field, as it does for a malformed address.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-EML-010": {
       "name": "SHARED_OUTBOUND_MAILBOX",
       "nature": "functional",

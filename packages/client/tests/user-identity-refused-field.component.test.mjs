@@ -71,11 +71,16 @@ const user = {
   updatedAt: "2026-11-13T08:00:00.000Z",
 };
 
-async function mountIdentity() {
+async function mountIdentity(refusedEmail = null) {
   const requests = [];
   useUsersStore.setState({
+    error: null,
     update: async (id, input) => {
       requests.push({ id, input });
+      if (input.email === refusedEmail) {
+        useUsersStore.setState({ error: "user_email_conflict" });
+        return null;
+      }
       return { ...user, ...input };
     },
   });
@@ -109,5 +114,29 @@ test("a malformed email address is refused on its field and no save request leav
   assert.deepEqual(requests, [
     { id: user.id, input: { displayName: user.displayName, email: "accueil@example.test", contactId: null } },
   ]);
+  await unmount();
+});
+
+// @verifies-requirement HALL-FR-USR-100
+test("an address the server refuses because another account holds it is named on the address field", async () => {
+  const { view, requests, unmount } = await mountIdentity("accueil@example.test");
+  await act(async () => view.current.change("email", "accueil@example.test"));
+  let saved;
+  await act(async () => {
+    saved = await view.current.flush();
+  });
+  assert.equal(saved, false);
+  assert.equal(requests.length, 1);
+  assert.equal(view.current.emailTaken, true);
+  assert.deepEqual(view.current.invalidFields, []);
+  assert.equal(view.current.saveState, "error");
+  await act(async () => view.current.change("displayName", "Accueil"));
+  assert.equal(view.current.emailTaken, true);
+  await act(async () => view.current.change("email", "mairie@example.test"));
+  assert.equal(view.current.emailTaken, false);
+  await act(async () => {
+    saved = await view.current.flush();
+  });
+  assert.equal(saved, true);
   await unmount();
 });

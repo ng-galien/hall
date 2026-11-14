@@ -43,6 +43,7 @@ const titles: Record<string, string> = {
   council_business_has_dependencies: "Council business still has resources or linked records",
   bootstrap_unavailable: "Bootstrap unavailable",
   last_administrator_required: "The last administrator must remain active",
+  user_email_conflict: "Another account already uses this email address",
 };
 
 export function sendProblem(

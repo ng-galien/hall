@@ -30,6 +30,7 @@ async function setup() {
   return { ...server, userId, login };
 }
 
+// @verifies-requirement HALL-FR-USR-100
 it("allows administrators to edit identity/contact without changing permissions and rejects invalid or duplicate links", async () => {
   const { rawAgent, statelessAgent, userId, login } = await setup();
   const contact = await rawAgent.post("/api/contacts").send({ firstName: "Contact", lastName: "Identité" }).expect(201);
@@ -45,14 +46,16 @@ it("allows administrators to edit identity/contact without changing permissions 
     .send({ email: "second@example.fr", displayName: "Second", password: oldPassword, roles: ["contributor"] })
     .expect(201);
   const secondId = second.body.properties.id;
-  await rawAgent
+  const linkedContact = await rawAgent
     .put(`/api/users/${secondId}`)
     .send({ ...input, email: "second@example.fr" })
     .expect(409);
-  await rawAgent
+  expect(linkedContact.body.code).toBe("conflict");
+  const heldAddress = await rawAgent
     .put(`/api/users/${secondId}`)
     .send({ ...input, contactId: null })
     .expect(409);
+  expect(heldAddress.body.code).toBe("user_email_conflict");
   await rawAgent
     .put(`/api/users/${userId}`)
     .send({ ...input, contactId: "00000000-0000-4000-8000-000000000001" })

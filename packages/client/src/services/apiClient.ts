@@ -82,6 +82,7 @@ export type ApiErrorCode =
   | "ballot_not_found"
   | "ballot_voters_invalid"
   | "conflict"
+  | "user_email_conflict"
   | "workspace_title_conflict"
   | "workspace_folder_conflict"
   | "workspace_folder_not_found"
@@ -219,6 +220,7 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "ballot_not_found",
   "ballot_voters_invalid",
   "conflict",
+  "user_email_conflict",
   "workspace_title_conflict",
   "workspace_folder_conflict",
   "workspace_folder_not_found",

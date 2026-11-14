@@ -27,6 +27,7 @@ const accountMailTones = { sent: "success", failed: "danger", unknown: "neutral"
 
 // @implements-requirement HALL-FR-USR-080 (an account manager sends a reset link from the user page)
 // @implements-requirement HALL-FR-USR-090 (one line for the latest account email, with « Renvoyer »)
+// @implements-requirement HALL-FR-USR-100 (an address held by another account is refused on the address field)
 export function UserPage() {
   const { userId = "" } = useParams();
   const { t, formatDateTime } = useI18n();
@@ -62,7 +63,10 @@ export function UserPage() {
   const [roles, setRoles] = useState<ApiRole[]>([]);
   const fieldId = useId();
   const user = users.find((entry) => entry.id === userId);
-  const { draft, change, flush, saveState, invalidFields } = useUserIdentity(user, Boolean(canUpdate[userId]));
+  const { draft, change, flush, saveState, invalidFields, emailTaken } = useUserIdentity(
+    user,
+    Boolean(canUpdate[userId]),
+  );
   const saveLabels = {
     idle: "",
     dirty: t("workspace.saveDirty"),
@@ -88,7 +92,9 @@ export function UserPage() {
     <div className="page">
       <PageHeader title={user?.displayName ?? t("users.title")} hint={t("users.detailDescription")} describesItem />
       <div className="page-content admin-detail-page">
-        {!rolesOpen && !disableOpen && !revokeOpen && <RequestErrorBanner error={error} />}
+        {!rolesOpen && !disableOpen && !revokeOpen && (
+          <RequestErrorBanner error={error === "user_email_conflict" ? null : error} />
+        )}
         {loading ? (
           <EmptyState>{t("common.loading")}</EmptyState>
         ) : !user ? (
@@ -140,8 +146,10 @@ export function UserPage() {
                   <Field
                     label={t("users.email")}
                     error={
-                      invalidFields.includes("email") ? (
-                        <span data-testid="user-email-error">{t("users.emailInvalid")}</span>
+                      invalidFields.includes("email") || emailTaken ? (
+                        <span data-testid="user-email-error">
+                          {t(invalidFields.includes("email") ? "users.emailInvalid" : "users.emailTaken")}
+                        </span>
                       ) : undefined
                     }
                   >
@@ -188,7 +196,7 @@ export function UserPage() {
               ) : !canUpdate[userId] ? (
                 <p className="admin-hint">{t(draft.contactId ? "users.contactUnavailable" : "users.noContact")}</p>
               ) : null}
-              {saveState === "error" && invalidFields.length === 0 && (
+              {saveState === "error" && invalidFields.length === 0 && !emailTaken && (
                 <Button variant="secondary" onClick={() => void flush()} data-testid="user-save-retry">
                   {t("common.retry")}
                 </Button>

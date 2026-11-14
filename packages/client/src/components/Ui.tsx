@@ -247,6 +247,7 @@ export const errorTranslationKeys: Record<ApiErrorCode, TranslationKey> = {
   ballot_not_found: "error.ballot_not_found",
   ballot_voters_invalid: "error.ballot_voters_invalid",
   conflict: "error.conflict",
+  user_email_conflict: "error.user_email_conflict",
   workspace_title_conflict: "error.workspace_title_conflict",
   workspace_folder_conflict: "error.workspace_folder_conflict",
   workspace_folder_not_found: "error.workspace_folder_not_found",

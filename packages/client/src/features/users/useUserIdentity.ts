@@ -31,6 +31,8 @@ export function useUserIdentity(user: ApiUser | undefined, canUpdate: boolean) {
   const [revision, setRevision] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [invalidFields, setInvalidFields] = useState<IdentityField[]>([]);
+  /** The server refused the address because another account holds it. */
+  const [emailTaken, setEmailTaken] = useState(false);
   const idRef = useRef<string | null>(null);
   const draftRef = useRef(empty);
   const baselineRef = useRef(empty);
@@ -51,6 +53,7 @@ export function useUserIdentity(user: ApiUser | undefined, canUpdate: boolean) {
     setBaseline(next);
     setRevision(0);
     setInvalidFields([]);
+    setEmailTaken(false);
     setSaveState("idle");
   }, [user]);
   const dirty = !same(draft, baseline);
@@ -70,6 +73,7 @@ export function useUserIdentity(user: ApiUser | undefined, canUpdate: boolean) {
       setSaveState("saving");
       const result = await update(id, candidate);
       if (!result) {
+        setEmailTaken(useUsersStore.getState().error === "user_email_conflict");
         setSaveState("error");
         return false;
       }
@@ -137,7 +141,8 @@ export function useUserIdentity(user: ApiUser | undefined, canUpdate: boolean) {
       const refused = refusedFields(next);
       setInvalidFields(refused.filter((field) => invalidFields.includes(field)));
     }
+    if (key === "email") setEmailTaken(false);
     clearError();
   };
-  return { draft, change, flush, saveState, invalidFields };
+  return { draft, change, flush, saveState, invalidFields, emailTaken };
 }

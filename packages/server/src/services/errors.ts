@@ -135,6 +135,7 @@ export type ErrorCode =
   | "template_not_found"
   | "too_many_login_attempts"
   | "unsupported_document_format"
+  | "user_email_conflict"
   | "user_not_found"
   | "workspace_folder_conflict"
   | "workspace_folder_not_found"

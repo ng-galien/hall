@@ -211,6 +211,7 @@ export const fr: Messages = {
   "users.conflictHint": "Vérifiez que cette adresse e-mail et ce contact ne sont pas déjà associés à un autre compte.",
   "users.displayNameRequired": "Saisir le nom affiché.",
   "users.emailInvalid": "Saisir une adresse e-mail valide.",
+  "users.emailTaken": "Adresse déjà utilisée par un autre compte.",
   "users.passwordChangeDescription":
     "Votre mot de passe sera remplacé et toutes vos sessions seront fermées. Vous devrez vous reconnecter.",
   "users.passwordResetDescription": "Remplacer le mot de passe de ce compte et fermer toutes ses sessions.",
@@ -1742,6 +1743,7 @@ export const fr: Messages = {
   "error.mail_attachments_too_large":
     "Les pièces jointes dépassent la limite de 50 Mio pour ce courriel. Retirez un fichier ou réduisez sa taille.",
   "error.conflict": "La modification est incompatible avec les informations existantes.",
+  "error.user_email_conflict": "Un autre compte utilise déjà cette adresse e-mail.",
   "error.workspace_title_conflict": "Un élément du même type porte déjà ce nom dans ce dossier.",
   "error.workspace_folder_conflict": "Un dossier porte déjà ce nom à cet emplacement.",
   "error.workspace_folder_not_found": "Ce dossier n’existe plus.",
