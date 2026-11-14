@@ -12030,13 +12030,16 @@
         "state": "accepted",
         "since": "2026-11-10"
       },
-      "statement": "Un dossier de l’espace de travail peut recevoir une couleur, partagée par tous les utilisateurs, qui colore son icône dans l’arbre latéral et dans la liste de l’explorateur.",
+      "statement": "Un dossier de l’espace de travail peut recevoir une couleur, partagée par tous les utilisateurs, qui colore son icône partout où ce dossier est montré avec son icône : arbre latéral, liste de l’explorateur, affaire ouverte, arbre des documents d’une affaire, panneau des cartes et résultats de recherche.",
       "acceptanceCriteria": [
         "La couleur se choisit depuis le menu d’un dossier, avec le sélecteur de couleur commun, par qui peut modifier les métadonnées du dossier (action resource.update-metadata) ; aucun droit nouveau n’est créé.",
         "La couleur est enregistrée sur le dossier au format #RRGGBB ; tous les utilisateurs voient la même couleur.",
         "Un dossier d’affaire se colore comme un autre dossier ; un sous-dossier ne prend pas la couleur de son parent.",
         "Retirer la couleur rend au dossier son icône grise d’origine.",
-        "Une couleur mal formée ou demandée pour une ressource qui n’est pas un dossier est refusée."
+        "Une couleur mal formée ou demandée pour une ressource qui n’est pas un dossier est refusée.",
+        "Au téléphone, le menu des actions d’une affaire ouverte propose le choix de la couleur de son dossier, à côté de « Renommer », pour qui peut modifier les métadonnées du dossier.",
+        "Le paquet exporté d’une affaire porte la couleur de son dossier et de ses sous-dossiers ; l’import d’un paquet rend à chaque dossier importé sa couleur.",
+        "Un agent connecté par MCP lit la couleur d’un dossier dans sa représentation et la pose ou la retire par l’action resource.update-metadata ; le guide hall_learn le décrit."
       ],
       "clauses": [
         {
@@ -12055,6 +12058,18 @@
           "key": "coordinator-decision",
           "origin": "product",
           "statement": "Décision du coordinateur, 10 novembre 2026 : choix avec le sélecteur existant ; un dossier d’affaire se colore comme un autre ; pas d’héritage par les sous-dossiers ; même droit que le renommage ; retirer la couleur rend l’icône grise.",
+          "sourceIds": []
+        },
+        {
+          "key": "second-step",
+          "origin": "product",
+          "statement": "Étape annoncée le 10 novembre 2026 : la couleur apparaît aussi dans l’arbre des documents d’une affaire, le panneau des cartes et les résultats de recherche, voyage avec le paquet d’une affaire et est décrite par l’aide MCP.",
+          "sourceIds": []
+        },
+        {
+          "key": "visible-choice",
+          "origin": "product",
+          "statement": "Mots du propriétaire : « j'ai essayé de regarder, je sais pas où est-ce que ça se paramètre. » Puis : « Quand on est sur une vue de dossier, oui, qu'on puisse changer la couleur, c'est pas plus mal. Faut pas que ça soit trop envahissant, parce que c'est pas un truc qu'on va faire tous les jours. » Le choix est une entrée du menu d’actions de la vue ouverte, à côté de « Renommer », jamais un bouton visible en permanence ; le clic droit sur une ligne reste.",
           "sourceIds": []
         },
         {
