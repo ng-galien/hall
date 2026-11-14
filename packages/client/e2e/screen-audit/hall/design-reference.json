@@ -487,10 +487,10 @@
     },
     {
       "component": "barre latérale, marque",
-      "selector": ".app-brand-mark",
-      "property": "background-color",
-      "expected": "#2457D6",
-      "when": "all",
+      "selector": ".app-sidebar .hall-logo",
+      "property": "width",
+      "expected": "28px",
+      "when": "mouse",
       "status": "retenu",
       "source": {
         "doc": "Hall 1.3 — Design de référence",
@@ -500,10 +500,10 @@
     },
     {
       "component": "barre latérale, marque",
-      "selector": ".app-brand-mark",
-      "property": "color",
-      "expected": "#FFFFFF",
-      "when": "all",
+      "selector": ".app-sidebar .hall-logo",
+      "property": "height",
+      "expected": "28px",
+      "when": "mouse",
       "status": "retenu",
       "source": {
         "doc": "Hall 1.3 — Design de référence",
