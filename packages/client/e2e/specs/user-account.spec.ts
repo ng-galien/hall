@@ -72,7 +72,7 @@ test("edits account identity with autosave and safely changes and resets passwor
   await page.screenshot({ path: testInfo.outputPath("identity-edited.png") });
   await page.getByTestId("user-display-name").fill("");
   await openMenuEntry(page, "users");
-  await expect(page.getByTestId("user-identity-error")).toBeVisible();
+  await expect(page.getByTestId("user-display-name-error")).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/users/${user.id}$`));
   await page.getByTestId("user-display-name").fill("Updated reader account");
   await page.getByTestId("user-email").fill("account-admin@example.test");

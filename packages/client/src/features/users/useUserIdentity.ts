@@ -11,6 +11,15 @@ const identity = (user: ApiUser): Draft => ({
   email: user.email,
   contactId: user.contactId,
 });
+type IdentityField = "displayName" | "email";
+/** The fields of a draft the form refuses by itself, before any save request. */
+const refusedFields = (draft: Draft): IdentityField[] => {
+  const result = updateUserSchema.safeParse(draft);
+  if (result.success) return [];
+  return (["displayName", "email"] as const).filter((field) =>
+    result.error.issues.some((issue) => issue.path[0] === field),
+  );
+};
 const same = (a: Draft, b: Draft) =>
   a.displayName === b.displayName && a.email === b.email && a.contactId === b.contactId;
 
@@ -21,7 +30,7 @@ export function useUserIdentity(user: ApiUser | undefined, canUpdate: boolean) {
   const [baseline, setBaseline] = useState<Draft>(empty);
   const [revision, setRevision] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [invalid, setInvalid] = useState(false);
+  const [invalidFields, setInvalidFields] = useState<IdentityField[]>([]);
   const idRef = useRef<string | null>(null);
   const draftRef = useRef(empty);
   const baselineRef = useRef(empty);
@@ -41,7 +50,7 @@ export function useUserIdentity(user: ApiUser | undefined, canUpdate: boolean) {
     setDraft(next);
     setBaseline(next);
     setRevision(0);
-    setInvalid(false);
+    setInvalidFields([]);
     setSaveState("idle");
   }, [user]);
   const dirty = !same(draft, baseline);
@@ -51,8 +60,9 @@ export function useUserIdentity(user: ApiUser | undefined, canUpdate: boolean) {
     if (!id || !canUpdateRef.current) return true;
     while (!same(draftRef.current, baselineRef.current)) {
       const candidate = draftRef.current;
-      if (!updateUserSchema.safeParse(candidate).success) {
-        setInvalid(true);
+      const refused = refusedFields(candidate);
+      if (refused.length > 0) {
+        setInvalidFields(refused);
         setSaveState("error");
         return false;
       }
@@ -123,8 +133,11 @@ export function useUserIdentity(user: ApiUser | undefined, canUpdate: boolean) {
     setRevision(revisionRef.current);
     setDraft(next);
     setSaveState(same(next, baselineRef.current) && !pending.current ? "saved" : "dirty");
-    if (invalid && updateUserSchema.safeParse(next).success) setInvalid(false);
+    if (invalidFields.length > 0) {
+      const refused = refusedFields(next);
+      setInvalidFields(refused.filter((field) => invalidFields.includes(field)));
+    }
     clearError();
   };
-  return { draft, change, flush, saveState, invalid };
+  return { draft, change, flush, saveState, invalidFields };
 }

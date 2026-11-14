@@ -209,7 +209,8 @@ export const fr: Messages = {
   "bundles.alreadyPresent": "Cette affaire est déjà présente. L’import est refusé ; aucune donnée n’a été remplacée.",
 
   "users.conflictHint": "Vérifiez que cette adresse e-mail et ce contact ne sont pas déjà associés à un autre compte.",
-  "users.identityRequired": "Nom affiché et adresse e-mail valide requis.",
+  "users.displayNameRequired": "Saisir le nom affiché.",
+  "users.emailInvalid": "Saisir une adresse e-mail valide.",
   "users.passwordChangeDescription":
     "Votre mot de passe sera remplacé et toutes vos sessions seront fermées. Vous devrez vous reconnecter.",
   "users.passwordResetDescription": "Remplacer le mot de passe de ce compte et fermer toutes ses sessions.",

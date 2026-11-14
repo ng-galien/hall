@@ -62,7 +62,7 @@ export function UserPage() {
   const [roles, setRoles] = useState<ApiRole[]>([]);
   const fieldId = useId();
   const user = users.find((entry) => entry.id === userId);
-  const { draft, change, flush, saveState, invalid } = useUserIdentity(user, Boolean(canUpdate[userId]));
+  const { draft, change, flush, saveState, invalidFields } = useUserIdentity(user, Boolean(canUpdate[userId]));
   const saveLabels = {
     idle: "",
     dirty: t("workspace.saveDirty"),
@@ -117,32 +117,39 @@ export function UserPage() {
                   </>
                 }
               />
-              {invalid && (
-                <p className="form-error" role="alert" data-testid="user-identity-error">
-                  {t("users.identityRequired")}
-                </p>
-              )}
               {error === "conflict" && <p className="admin-hint">{t("users.conflictHint")}</p>}
               <div className="admin-fields">
                 <FieldRow>
-                  <Field label={t("users.displayName")}>
+                  <Field
+                    label={t("users.displayName")}
+                    error={
+                      invalidFields.includes("displayName") ? (
+                        <span data-testid="user-display-name-error">{t("users.displayNameRequired")}</span>
+                      ) : undefined
+                    }
+                  >
                     <Input
                       value={draft.displayName}
                       readOnly={!canUpdate[userId]}
                       required
                       maxLength={160}
-                      aria-invalid={invalid}
                       onChange={(event) => change("displayName", event.currentTarget.value)}
                       data-testid="user-display-name"
                     />
                   </Field>
-                  <Field label={t("users.email")}>
+                  <Field
+                    label={t("users.email")}
+                    error={
+                      invalidFields.includes("email") ? (
+                        <span data-testid="user-email-error">{t("users.emailInvalid")}</span>
+                      ) : undefined
+                    }
+                  >
                     <Input
                       type="email"
                       value={draft.email}
                       readOnly={!canUpdate[userId]}
                       required
-                      aria-invalid={invalid}
                       onChange={(event) => change("email", event.currentTarget.value)}
                       data-testid="user-email"
                     />
@@ -181,7 +188,7 @@ export function UserPage() {
               ) : !canUpdate[userId] ? (
                 <p className="admin-hint">{t(draft.contactId ? "users.contactUnavailable" : "users.noContact")}</p>
               ) : null}
-              {saveState === "error" && !invalid && (
+              {saveState === "error" && invalidFields.length === 0 && (
                 <Button variant="secondary" onClick={() => void flush()} data-testid="user-save-retry">
                   {t("common.retry")}
                 </Button>

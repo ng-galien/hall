@@ -125,7 +125,7 @@ Local implementation includes the shared mailbox, composer, saved groups, attach
 - [ ] `[OPS]` Keep static i18n-parity and token-resolution checks.
 - [ ] `[FRONT]` Clarify document sections, information hierarchy, functional zones, and temporal states.
 - [ ] `[FRONT]` Define the intended colors and visual differentiation with the user before changing them.
-- [ ] `[FRONT]` A form that records while typing checks its fields before sending anything: a value the form can refuse by itself, such as a malformed email address, is refused in the form, shown beside the field, and no save request leaves. Observed on the user page on 2026-11-13.
+- [x] `[FRONT]` A form that records while typing checks its fields before sending anything: a value the form can refuse by itself, such as a malformed email address, is refused in the form, shown beside the field, and no save request leaves. Observed on the user page on 2026-11-13. Done on the user page: `useUserIdentity` names the refused fields and the page writes the refusal under the display name or the email address; `user-identity-refused-field.component.test.mjs`.
 - [ ] `[FRONT]` When the server refuses a recorded field, say why beside that field. On the user page, an address already held by another account answers 409 (`conflict`, constraint `app_user_email_key`) and the page gave no reason; observed on 2026-11-13 on the municipal installation.
 
 ## Performance and local distribution

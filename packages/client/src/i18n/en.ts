@@ -204,7 +204,8 @@ export const en = {
   "bundles.alreadyPresent": "This business already exists. Import was refused; no data was replaced.",
 
   "users.conflictHint": "Check that this email address and contact are not already linked to another account.",
-  "users.identityRequired": "A display name and a valid email address are required.",
+  "users.displayNameRequired": "Enter the display name.",
+  "users.emailInvalid": "Enter a valid email address.",
   "users.passwordChangeDescription":
     "Your password will be replaced and all your sessions closed. You will need to sign in again.",
   "users.passwordResetDescription": "Replace this account’s password and close all its sessions.",
