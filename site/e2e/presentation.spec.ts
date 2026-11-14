@@ -171,3 +171,19 @@ for (const system of ["linux", "windows", "mac"] as const) {
     await expect.poll(async () => (await stepIndex()) - from, { timeout: 30_000 }).toBe(1);
   });
 }
+
+/* Bouton de thème de l'en-tête : un clic recharge la page dans l'autre thème, et son libellé nomme le thème suivant. */
+test("le bouton de thème recharge la page dans l’autre thème", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("./");
+  const html = page.locator("html");
+  const toggle = page.getByTestId("theme-switch");
+  await expect(html).toHaveAttribute("data-theme", "light");
+  await expect(toggle).toHaveAttribute("aria-label", "Passer au thème sombre");
+  await Promise.all([page.waitForEvent("load"), toggle.click()]);
+  await expect(html).toHaveAttribute("data-theme", "dark");
+  await expect(toggle).toHaveAttribute("aria-label", "Passer au thème clair");
+  await Promise.all([page.waitForEvent("load"), toggle.click()]);
+  await expect(html).toHaveAttribute("data-theme", "light");
+  await expect(toggle).toHaveAttribute("aria-label", "Passer au thème sombre");
+});
