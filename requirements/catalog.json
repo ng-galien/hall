@@ -7363,7 +7363,8 @@
       "acceptanceCriteria": [
         "La saisie candidate est calculée par SQL et conservée dans un aperçu immuable versionné sans créer scrutin, votes ni résultat définitif. Une correction exige un nouvel aperçu ; seule la confirmation explicite produit ces faits atomiquement.",
         "Choix produit supplémentaire au constat de discussion : le quorum actuel applicable doit permettre le vote au moment de l’aperçu. Un défaut interdit cet aperçu et laisse possible l’ajournement ; il ne réécrit pas le constat juridique initial.",
-        "La confirmation ne porte aucune heure : l’heure du serveur à sa réception devient la fin du scrutin et du point."
+        "La confirmation ne porte aucune heure : l’heure du serveur à sa réception devient la fin du scrutin et du point.",
+        "Avant « Confirmer », la revue montre tout ce que la confirmation enregistrera et qui ne se corrigera pas : le point et le titre du texte soumis au vote, le mode de scrutin, les votants présents et représentés avec le porteur de chaque pouvoir, les membres qui ne prennent pas part au vote, les déports du point, le décompte des pour, contre, abstentions et, au scrutin secret, des bulletins blancs et nuls, la règle de majorité appliquée aux suffrages exprimés, le quorum constaté, le résultat, et la voix prépondérante du président quand elle a déterminé le résultat ; elle dit qu’un résultat confirmé ne pourra pas être corrigé. Ces faits viennent de l’aperçu calculé par le serveur et de l’état des déports du point ; le navigateur ne les recalcule pas."
       ],
       "clauses": [
         {
@@ -7382,6 +7383,12 @@
           "key": "dated-confirmation",
           "origin": "product",
           "statement": "La confirmation ne porte aucune heure : l’heure du serveur à sa réception devient la fin du scrutin et du point.",
+          "sourceIds": []
+        },
+        {
+          "key": "detailed-review",
+          "origin": "product",
+          "statement": "Décision de l’utilisateur du 7 novembre 2026, confirmée le 14 novembre 2026. Mots de l’utilisateur : « Pour le vote, il y a une boîte de dialogue de confirmation ; elle n’est peut-être pas assez bien faite, pas assez de détails. On ne corrige pas les votes a posteriori. »",
           "sourceIds": []
         }
       ]

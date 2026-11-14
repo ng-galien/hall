@@ -920,6 +920,9 @@ export function ConductView({
                 key={selectedItem.id}
                 aggregate={aggregate}
                 members={members}
+                pointLabel={selectedPointLabel}
+                decisionTitle={selectedDecision?.title ?? null}
+                recusedMemberNames={ballotParticipants.recusals.map((entry) => entry.memberName)}
                 eligibleAttendanceIds={ballotParticipants.eligibleParticipantAttendanceIds}
                 departedAttendanceIds={ballotParticipants.departedParticipantAttendanceIds}
                 ballotChair={ballotParticipants.ballotChair}

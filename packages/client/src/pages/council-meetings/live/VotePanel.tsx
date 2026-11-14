@@ -13,6 +13,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "../../../components/ui/context-menu";
+import { ballotConfirmationFacts } from "../../../features/council-meetings/ballotConfirmationFacts";
 import { ballotVerdictKey } from "../../../features/council-meetings/ballotVerdictPresentation";
 import { useSubmitting } from "../../../hooks/useSubmitting";
 import type { TranslationKey } from "../../../i18n/en";
@@ -174,9 +175,13 @@ function VoteBadge({
   );
 }
 
+// @implements-requirement HALL-FR-BAL-320 (the review shows everything the confirmation records)
 export function VotePanel({
   aggregate,
   members,
+  pointLabel,
+  decisionTitle,
+  recusedMemberNames,
   target,
   isMinutes,
   open,
@@ -191,6 +196,12 @@ export function VotePanel({
 }: {
   aggregate: LiveMeetingPresentation;
   members: CouncilMemberView[];
+  /** The agenda item put to the vote, as the conduct rail names it. */
+  pointLabel: string;
+  /** The title of the draft decision put to the vote; absent for the approval of minutes. */
+  decisionTitle: string | null;
+  /** The members recused on this agenda item, from its recusal state. */
+  recusedMemberNames: readonly string[];
   target: { councilDecisionId: string } | { agendaItemId: string };
   isMinutes: boolean;
   open: boolean;
@@ -306,6 +317,7 @@ export function VotePanel({
     secretTotals.invalid;
   const secretValid = secretTotalCount === secretParticipants.length && secretParticipants.length > 0;
   const publicComplete = unassigned.length === 0 && participants.length > 0;
+  const confirmationFacts = preview ? ballotConfirmationFacts(preview.data, aggregate.attendance) : null;
 
   const record = () =>
     run(async () => {
@@ -537,10 +549,64 @@ export function VotePanel({
             <strong className="ballot-preview-result" data-testid="live-ballot-preview-result">
               {t(ballotVerdictKey(isMinutes, preview.data.calculation.result === "approve"))}
             </strong>
-            <p className="ballot-preview-hint">
-              {t("ballot.previewQuorum")} : {formatNumber(preview.data.quorum.presentCount)} /{" "}
-              {formatNumber(preview.data.quorum.requiredPresent)}
-            </p>
+            <dl className="ballot-preview-facts">
+              <div>
+                <dt>{t("ballot.previewPoint")}</dt>
+                <dd data-testid="live-ballot-preview-point">{pointLabel}</dd>
+              </div>
+              {decisionTitle ? (
+                <div>
+                  <dt>{t("ballot.previewText")}</dt>
+                  <dd data-testid="live-ballot-preview-text">{decisionTitle}</dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>{t("ballot.method")}</dt>
+                <dd data-testid="live-ballot-preview-method">
+                  {t(preview.data.candidate.mode === "public" ? "ballot.method.public" : "ballot.method.secret")}
+                </dd>
+              </div>
+              {confirmationFacts ? (
+                <div>
+                  <dt>{t("ballot.previewVoters")}</dt>
+                  <dd data-testid="live-ballot-preview-voters">
+                    <span>
+                      {t("ballot.previewVoterCount", {
+                        present: formatNumber(confirmationFacts.presentCount),
+                        represented: formatNumber(confirmationFacts.representedCount),
+                      })}
+                    </span>
+                    <span>
+                      {confirmationFacts.voters
+                        .map((voter) =>
+                          voter.represented && voter.proxyHolderMemberId
+                            ? t("ballot.previewRepresentedVoter", {
+                                member: councilMemberName(members, voter.memberId),
+                                holder: councilMemberName(members, voter.proxyHolderMemberId),
+                              })
+                            : councilMemberName(members, voter.memberId),
+                        )
+                        .join(", ")}
+                    </span>
+                    {confirmationFacts.nonVotingMemberIds.length > 0 ? (
+                      <span data-testid="live-ballot-preview-non-voting">
+                        {t("ballot.previewNonVoting", {
+                          names: confirmationFacts.nonVotingMemberIds
+                            .map((memberId) => councilMemberName(members, memberId))
+                            .join(", "),
+                        })}
+                      </span>
+                    ) : null}
+                  </dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>{t("ballot.recusedMembers")}</dt>
+                <dd data-testid="live-ballot-preview-recusals">
+                  {recusedMemberNames.length > 0 ? recusedMemberNames.join(", ") : t("common.none")}
+                </dd>
+              </div>
+            </dl>
             <dl className="ballot-preview-totals">
               {matchLiteral(preview.data.candidate.mode, {
                 public: () => publicCounters,
@@ -570,6 +636,38 @@ export function VotePanel({
                 </dd>
               </div>
             </dl>
+            <dl className="ballot-preview-facts">
+              <div>
+                <dt>{t("ballot.previewMajority")}</dt>
+                <dd data-testid="live-ballot-preview-majority">
+                  {matchLiteral(preview.data.candidate.procedure, {
+                    ordinaryMajority: () =>
+                      t("ballot.previewMajorityRule", {
+                        expressed: formatNumber(preview.data.calculation.expressedCount),
+                      }),
+                  })}
+                </dd>
+              </div>
+              <div>
+                <dt>{t("ballot.previewQuorum")}</dt>
+                <dd>
+                  {formatNumber(preview.data.quorum.presentCount)} / {formatNumber(preview.data.quorum.requiredPresent)}
+                </dd>
+              </div>
+              {preview.data.calculation.tieBreakApplied ? (
+                <div>
+                  <dt>{t("ballot.previewTieBreak")}</dt>
+                  <dd data-testid="live-ballot-preview-tie-break">
+                    {t("ballot.previewTieBreakApplied", {
+                      chair: confirmationFacts?.chairMemberId
+                        ? councilMemberName(members, confirmationFacts.chairMemberId)
+                        : t("ballot.chairUndetermined"),
+                    })}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+            <p data-testid="live-ballot-preview-final">{t("ballot.previewFinal")}</p>
             <RequestErrorBanner error={error} />
             <div className="ballot-preview-actions">
               <Button
