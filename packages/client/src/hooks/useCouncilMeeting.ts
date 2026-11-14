@@ -398,6 +398,10 @@ export function useCouncilMeeting(meetingReference: string) {
     correctAuxiliaryAttendance(input: CorrectMeetingAuxiliaryAttendance) {
       return mutate(() => correctMeetingAuxiliaryAttendance(meetingReference, input));
     },
+    clearActionError() {
+      setActionError(null);
+      setActionErrorDetail(null);
+    },
     registerProxy(input: RegisterMeetingProxy) {
       return mutate(() => registerMeetingProxy(meetingReference, input));
     },

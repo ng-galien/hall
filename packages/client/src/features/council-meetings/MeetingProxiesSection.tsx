@@ -191,7 +191,10 @@ export function MeetingProxiesSection({
           editing={editing}
           documentName={(id) => documentNames.get(id) ?? ""}
           error={meetingActions.actionError}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            meetingActions.clearActionError();
+            setEditing(null);
+          }}
           onSubmit={(parties) =>
             editing.kind === "registration"
               ? meetingActions.registerProxy(parties)
@@ -209,7 +212,9 @@ export function MeetingProxiesSection({
           title={t("proxies.withdrawTitle")}
           testId="meeting-proxy-withdraw-dialog"
           onClose={() => {
-            if (!submitting) setWithdrawing(null);
+            if (submitting) return;
+            meetingActions.clearActionError();
+            setWithdrawing(null);
           }}
         >
           <div className="modal-form">
@@ -220,7 +225,10 @@ export function MeetingProxiesSection({
                 variant="secondary"
                 disabled={submitting}
                 data-testid="meeting-proxy-withdraw-cancel"
-                onClick={() => setWithdrawing(null)}
+                onClick={() => {
+                  meetingActions.clearActionError();
+                  setWithdrawing(null);
+                }}
               >
                 {t("common.cancel")}
               </Button>
