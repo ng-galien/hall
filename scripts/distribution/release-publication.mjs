@@ -95,7 +95,10 @@ export function assertCompleteCI(run, runJobs, expected) {
     run.repository?.full_name === expected.repo && run.head_repository?.full_name === expected.repo,
     "CI belongs to another repository",
   );
-  ensure(run.path?.split("@")[0] === ciWorkflow && run.event === "push", "CI is not the complete configured push gate");
+  ensure(
+    run.path?.split("@")[0] === ciWorkflow && run.event === "push" && run.head_branch === expected.tag,
+    "CI is not the complete release gate of the tag push",
+  );
   if (run.status !== "completed") throw new PublicationBlocked("CI is pending; publication remains blocked", true);
   ensure(run.conclusion === "success", `CI is not green (${run.conclusion ?? "missing conclusion"})`);
   ensure(
@@ -115,7 +118,9 @@ function validatedSource(repo, tag) {
     `repos/${repo}/actions/workflows/ci.yml/runs?head_sha=${expected.sha}&per_page=100`,
     "workflow_runs",
   );
-  const candidates = runs.filter((run) => run.head_sha === expected.sha && run.event === "push");
+  const candidates = runs.filter(
+    (run) => run.head_sha === expected.sha && run.event === "push" && run.head_branch === expected.tag,
+  );
   if (!candidates.length) throw new PublicationBlocked("No complete CI exists for the tag commit", runs.length === 0);
   candidates.sort(
     (a, b) =>

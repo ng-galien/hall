@@ -30,7 +30,7 @@ if (args[0] === 'api') {
   } else if (endpoint.includes('/workflows/ci.yml/runs')) {
     state.ciQueries = (state.ciQueries || 0) + 1;
     const mode = state.flipAt && state.ciQueries >= state.flipAt ? 'red' : state.mode;
-    const run = {id:200,head_sha:mode==='other' ? state.other : state.sha,repository:{full_name:'ng-galien/hall'},head_repository:{full_name:'ng-galien/hall'},path:'.github/workflows/ci.yml',event:'push',created_at:'2026-11-01T10:00:00Z',run_started_at:'2026-11-01T10:00:00Z',status:mode==='pending'?'in_progress':'completed',conclusion:mode==='red'?'failure':mode==='pending'?null:'success'};
+    const run = {id:200,head_sha:mode==='other' ? state.other : state.sha,head_branch:mode==='branch-push' ? 'main' : 'v9.9.9',repository:{full_name:'ng-galien/hall'},head_repository:{full_name:'ng-galien/hall'},path:'.github/workflows/ci.yml',event:'push',created_at:'2026-11-01T10:00:00Z',run_started_at:'2026-11-01T10:00:00Z',status:mode==='pending'?'in_progress':'completed',conclusion:mode==='red'?'failure':mode==='pending'?null:'success'};
     value = {workflow_runs:mode==='absent'?[]:[run]};
     if (mode==='older-green') value.workflow_runs=[{...run,id:199}, {...run,id:201,run_started_at:'2026-11-01T11:00:00Z',conclusion:'failure'}];
   } else if (endpoint.includes('/runs/200/jobs') || endpoint.includes('/runs/201/jobs')) {
@@ -124,16 +124,24 @@ afterEach(() => {
 });
 
 // @verifies-requirement HALL-TR-DST-030
-it.each(["red", "pending", "absent", "other", "skipped", "missing-job", "missing-lane", "truncated", "older-green"])(
-  "blocks draft/publication mutations when complete exact CI is %s",
-  (mode) => {
-    const test = fixture(mode);
-    const result = test.run("prepare");
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("Publication blocked");
-    expect(mutations(test.read())).toEqual([]);
-  },
-);
+it.each([
+  "red",
+  "pending",
+  "absent",
+  "other",
+  "skipped",
+  "missing-job",
+  "missing-lane",
+  "truncated",
+  "older-green",
+  "branch-push",
+])("blocks draft/publication mutations when complete exact CI is %s", (mode) => {
+  const test = fixture(mode);
+  const result = test.run("prepare");
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("Publication blocked");
+  expect(mutations(test.read())).toEqual([]);
+});
 
 it("fails closed on an unavailable authorization API", () => {
   const test = fixture();
@@ -191,7 +199,18 @@ it("does not replace a release already public", () => {
 }, 15_000);
 
 // @verifies-requirement HALL-TR-DST-030
-it.each(["red", "pending", "absent", "other", "skipped", "missing-job", "missing-lane", "truncated", "older-green"])(
+it.each([
+  "red",
+  "pending",
+  "absent",
+  "other",
+  "skipped",
+  "missing-job",
+  "missing-lane",
+  "truncated",
+  "older-green",
+  "branch-push",
+])(
   "never promotes an existing draft when the latest exact gate is %s",
   (mode) => {
     const test = fixture();

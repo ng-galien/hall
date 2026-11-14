@@ -4,7 +4,10 @@ on:
   push:
     branches:
       - "**"
+    tags:
+      - "v*"
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: hall-gate-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.head_ref || github.ref_name }}
@@ -15,6 +18,9 @@ permissions:
 
 env:
   ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+  # The release gate (a version tag push or a manual run) adds policy mutation, the Windows installation and the
+  # documentation journeys to the gate of every other push and pull request.
+  HALL_RELEASE_GATE: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') }}
 
 jobs:
   # Keep the Linux image explicit during the ubuntu-latest migration to 26.04.
@@ -128,11 +134,12 @@ jobs:
           HALL_E2E_SHARDS: "2"
           HALL_E2E_MOBILE_RECUSALS: "1"
           HALL_E2E_DESKTOP: "false"
+          HALL_E2E_DOCUMENTATION_FAMILY: ${{ env.HALL_RELEASE_GATE }}
       - name: Verify ordinary units and HMR after browser cleanup
         if: matrix.shard == 1
         run: node scripts/testing/gate.mjs units
       - name: Verify all policy mutants after browser cleanup
-        if: matrix.shard == 2
+        if: matrix.shard == 2 && env.HALL_RELEASE_GATE == 'true'
         run: node scripts/testing/gate.mjs mutation
       - uses: actions/upload-artifact@v7.0.2
         if: always()
@@ -191,7 +198,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2025]
+        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')) && '["ubuntu-24.04","windows-2025"]' || '["ubuntu-24.04"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     steps:
@@ -281,6 +288,6 @@ jobs:
           const end = Math.max(...jobs.map(job => Date.parse(job.completed_at)));
           const wall = (end - Date.parse(run.run_started_at)) / 60000;
           const minutes = jobs.reduce((total, job) => total + (Date.parse(job.completed_at) - Date.parse(job.started_at)) / 60000, 0);
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Complete gate: ${wall.toFixed(2)} min elapsed; ${minutes.toFixed(2)} runner-minutes across completed jobs. Target: 15 min; ${passed && wall <= 15 ? 'met' : 'not met on this run'}. Queue/install/cache costs are included in elapsed time.\n\nBuild cache: ${process.env.BUILD_CACHE_HIT === 'true' ? 'exact candidate; validated/rebuilt before use' : 'global miss; component validation/rebuild required'}.\n\nAll unique checks, coverage thresholds, mutation operators and browser families are required; Linux and Windows exercise the same built npm artifact.\n`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Complete gate: ${wall.toFixed(2)} min elapsed; ${minutes.toFixed(2)} runner-minutes across completed jobs. Target: 15 min; ${passed && wall <= 15 ? 'met' : 'not met on this run'}. Queue/install/cache costs are included in elapsed time.\n\nBuild cache: ${process.env.BUILD_CACHE_HIT === 'true' ? 'exact candidate; validated/rebuilt before use' : 'global miss; component validation/rebuild required'}.\n\n${process.env.HALL_RELEASE_GATE === 'true' ? 'Release gate: all unique checks, coverage thresholds, mutation operators and browser families are required; Linux and Windows exercise the same built npm artifact.' : 'Push gate: policy mutation, the Windows installation and the documentation journeys run only in the release gate.'}\n`);
           if (!passed) throw new Error('The complete Hall gate has a failed, cancelled or skipped dependency');
           NODE

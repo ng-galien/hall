@@ -274,6 +274,8 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
 }
 
 const lanes = configuredLaneCount();
+/* The complete run includes the documentation journeys unless HALL_E2E_DOCUMENTATION_FAMILY is "false". */
+const completeFamilies = ["auth", ...(process.env.HALL_E2E_DOCUMENTATION_FAMILY === "false" ? [] : ["docs"]), "rules"];
 const templateDatabase = `hall_e2e_${process.pid}_template`;
 const resources = [];
 const running = [];
@@ -380,7 +382,7 @@ try {
   const jobs = allFamilies
     ? [
         ...Array.from({ length: lanes }, (_, index) => ({ lane: index + 1, family: "core", lanes })),
-        ...["auth", "docs", "rules"].map((family, index) => ({ lane: lanes + index + 1, family, lanes: 1 })),
+        ...completeFamilies.map((family, index) => ({ lane: lanes + index + 1, family, lanes: 1 })),
       ]
     : Array.from({ length: lanes }, (_, index) => ({ lane: index + 1, family: "core", lanes }));
   let next = 0;

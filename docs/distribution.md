@@ -26,10 +26,15 @@ and, as data for the public site, in
 
 ## Validating and publishing a release
 
-The tag workflow may build every installer while CI is running. Its draft step
+Pushing a version tag starts two workflows: the release gate of
+[`ci.yml`](../.github/workflows/ci.yml) and the tag workflow. The release gate is
+the push gate plus policy mutation, the Windows installation and the documentation
+journeys; see [CI gate](development.md#ci-gate). The tag workflow may build every
+installer while CI is running. Its draft step
 uses [`release-publication.mjs`](../scripts/distribution/release-publication.mjs)
-and waits for the **complete successful push gate in `ci.yml` at the exact tag
-commit**. An older green commit, a pending or failed run, skipped or missing jobs,
+and waits for the **complete successful release gate in `ci.yml` started by the
+push of the tag, at the exact tag commit**. The gate of a branch push at the same
+commit does not authorize publication. An older green commit, a pending or failed run, skipped or missing jobs,
 and an unavailable API do not authorize publication. A later failed attempt is
 not replaced by an earlier green result. The final `test` job remains the CI
 verdict; the publisher additionally requires every job in that run to succeed.
@@ -1123,8 +1128,8 @@ It does not prove migration of an unidentified historical backup.
 
 `npm run test:distribution:complete` runs the superset installation/restoration/convergence scenario once and the independent MCP scenario once. The non-upgrade installation command remains available for focused diagnosis; running both variants in the complete gate would repeat the same setup and assertions. Isolated installations share only the npm download cache, never configuration, sessions or databases.
 
-CI builds one tarball on Linux and passes that artifact to Linux and Windows
-installation jobs. Windows uses a separate native PostgreSQL cluster, selected
+CI builds one tarball on Linux and passes that artifact to the Linux installation
+job on every push, and also to the Windows installation job in the release gate. Windows uses a separate native PostgreSQL cluster, selected
 through `HALL_PACKAGE_TEST_DATABASE_URL`. This variable is only for an explicitly
 provisioned disposable test cluster: the test creates and drops unique databases
 and bootstrap establishes Hall cluster roles. Never point it at production or a
