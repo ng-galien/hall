@@ -31,7 +31,6 @@ export function useUserIdentity(user: ApiUser | undefined, canUpdate: boolean) {
   const [revision, setRevision] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [invalidFields, setInvalidFields] = useState<IdentityField[]>([]);
-  /** The server refused the address because another account holds it. */
   const [emailTaken, setEmailTaken] = useState(false);
   const idRef = useRef<string | null>(null);
   const draftRef = useRef(empty);
