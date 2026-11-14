@@ -141,6 +141,7 @@ function conductSubjectText(
 }
 
 // @implements-requirement HALL-FR-MTG-320
+// @implements-requirement HALL-FR-AGI-440 (adjourning and closing an agenda item are confirmed first)
 // @implements-requirement HALL-FR-MTG-350 (the agenda items examined in closed session are marked)
 export function ConductView({
   aggregate,
@@ -162,6 +163,7 @@ export function ConductView({
       conducts: meetingActions.conducts,
     });
   const [adjournConfirming, setAdjournConfirming] = useState(false);
+  const [completeConfirming, setCompleteConfirming] = useState(false);
   const [ballotActionContainer, setBallotActionContainer] = useState<HTMLDivElement | null>(null);
   const mentionables = useReferenceMentionables();
   const [voteOpen, setVoteOpen] = useState(false);
@@ -227,6 +229,7 @@ export function ConductView({
   useEffect(() => {
     if (selectedItemRef.current?.id !== selectedItemId2) return;
     setVoteOpen(false);
+    setCompleteConfirming(false);
     setRecusalOpen(false);
     setRecusalDetailsOpen(false);
     setRecusalWithdrawal(undefined);
@@ -264,6 +267,9 @@ export function ConductView({
     ? (aggregate.councilDecisions.find((decision) => decision.id === selectedDecisionId) ?? null)
     : null;
   const subjectText = conductSubjectText(selectedItem.subject, selectedDecision);
+  const selectedTitle = liveBusinessTitle(selectedItem.business, t("agendaSubject.minutesApproval"));
+  const selectedPointLabel =
+    selectedItem.agendaNumber === null ? selectedTitle : `${formatNumber(selectedItem.agendaNumber)}. ${selectedTitle}`;
   const selectedBallot = ballotForItem(selectedItem);
   const itemResources = selectedItem.business.resources;
   const hasVotingStage = Boolean(selectedDecisionId) || selectedItem.business.kind === "minutesApproval";
@@ -1097,7 +1103,7 @@ export function ConductView({
                   variant="primary"
                   disabled={submitting}
                   data-testid="live-agenda-complete"
-                  onClick={() => void completeItem("examined")}
+                  onClick={() => setCompleteConfirming(true)}
                 >
                   <CheckIcon aria-hidden="true" />
                   {t(submitting ? "common.saving" : "meeting.completeAndNext")}
@@ -1117,7 +1123,7 @@ export function ConductView({
           testId="live-adjourn-dialog"
         >
           <div className="modal-form">
-            <p>{t("live.adjournConfirmation")}</p>
+            <p>{t("live.adjournConfirmation", { point: selectedPointLabel })}</p>
             <div className="ballot-preview-actions">
               <Button
                 variant="secondary"
@@ -1140,7 +1146,44 @@ export function ConductView({
                   })
                 }
               >
-                {t(submitting ? "common.saving" : "meeting.adjournSubject")}
+                {t(submitting ? "common.saving" : "common.confirm")}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {completeConfirming ? (
+        <Modal
+          open
+          title={t("live.completeTitle")}
+          onClose={() => {
+            if (!submitting) setCompleteConfirming(false);
+          }}
+          testId="live-complete-dialog"
+        >
+          <div className="modal-form">
+            <p>{t("live.completeConfirmation", { point: selectedPointLabel })}</p>
+            <div className="ballot-preview-actions">
+              <Button
+                variant="secondary"
+                disabled={submitting}
+                data-testid="live-complete-cancel"
+                onClick={() => setCompleteConfirming(false)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                variant="primary"
+                disabled={submitting}
+                data-testid="live-complete-confirm"
+                onClick={() =>
+                  void completeItem("examined").then((completed) => {
+                    if (completed) setCompleteConfirming(false);
+                  })
+                }
+              >
+                {t(submitting ? "common.saving" : "common.confirm")}
               </Button>
             </div>
           </div>
@@ -1186,6 +1229,7 @@ export function ConductView({
           key={selectedItem.id}
           controller={recusals}
           members={members}
+          pointLabel={selectedPointLabel}
           initialMemberId={recusalMemberId}
           onClose={() => {
             setRecusalOpen(false);

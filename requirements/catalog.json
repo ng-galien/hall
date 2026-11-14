@@ -10118,6 +10118,30 @@
         }
       ]
     },
+    "HALL-FR-AGI-440": {
+      "name": "ENGAGING_CONDUCT_GESTURES_ARE_CONFIRMED",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "Pendant la conduite de séance, ajourner un point, clôturer un point et enregistrer un déport ne sont exécutés qu’après une confirmation explicite qui dit ce qui sera enregistré et ce que le geste a de définitif.",
+      "acceptanceCriteria": [
+        "La commande d’ajournement, la commande de clôture d’un point et la déclaration d’un déport ouvrent une confirmation ; rien n’est envoyé au serveur avant « Confirmer », et « Annuler » n’enregistre rien.",
+        "La confirmation de l’ajournement nomme le point et dit qu’il ne sera plus examiné dans cette séance et qu’un ajournement enregistré ne peut pas être annulé.",
+        "La confirmation de la clôture d’un point nomme le point et dit qu’un point clôturé ne peut pas être rouvert.",
+        "La confirmation d’un déport nomme le membre, le point et le fondement choisi, et dit que le déport pourra être retiré tant qu’aucun résultat de scrutin n’est enregistré pour ce point (HALL-FR-AGI-430) ; « Annuler » revient au choix du membre et du fondement.",
+        "Les règles du serveur sur l’ajournement, la clôture d’un point et le déport restent celles des exigences qui les portent."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Décision de l’utilisateur du 7 novembre 2026, après la séance du 6 novembre, confirmée le 14 novembre 2026. Mots de l’utilisateur : « À chaque fois qu’il y a des choses comme ça [ajournement, fin de point, déport], il faut une boîte de dialogue de confirmation. Pour tout ce qui engage, il faut des confirmations. »",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-ATT-140": {
       "name": "NON_MEMBER_ATTENDANCE_IS_DECLARED_AND_EXCLUDED",
       "nature": "functional",

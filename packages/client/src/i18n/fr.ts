@@ -506,6 +506,10 @@ export const fr: Messages = {
   "recusal.record": "Déclarer le déport",
   "recusal.withdraw": "Retirer",
   "recusal.withdrawConfirm": "Retirer le déport de {name} ?",
+  "recusal.confirmTitle": "Confirmer le déport",
+  "recusal.confirmation": "Le déport de {member} sur le point « {point} » sera enregistré, au titre de : {basis}.",
+  "recusal.confirmationWithdrawal":
+    "Il pourra être retiré tant qu’aucun résultat de scrutin n’est enregistré pour ce point ; ensuite, il ne pourra plus l’être.",
   "recusal.recuse": "Déport",
   "recusal.separateFromVotes":
     "Ces déports sont distincts des abstentions et des non-participations. Leur effet sur les déclarations ne constitue pas un constat juridique complet du quorum.",
@@ -596,6 +600,7 @@ export const fr: Messages = {
   "common.notFilled": "Non renseigné",
   "common.attach": "Joindre",
   "common.cancel": "Annuler",
+  "common.confirm": "Confirmer",
   "common.close": "Fermer",
   "common.create": "Créer",
   "common.delete": "Supprimer",
@@ -1966,7 +1971,11 @@ export const fr: Messages = {
   "report.collapseAll": "Tout replier",
   "ballot.recusedMembers": "Déports",
   "live.addItem": "Ajouter une question ouverte",
-  "live.adjournConfirmation": "Confirmer l’ajournement de ce point ?",
+  "live.adjournConfirmation":
+    "Le point « {point} » sera ajourné : il ne sera plus examiné dans cette séance. Un ajournement enregistré ne peut pas être annulé.",
+  "live.completeTitle": "Clôturer le point",
+  "live.completeConfirmation":
+    "Le point « {point} » sera clôturé et la séance passera au sujet suivant. Un point clôturé ne peut pas être rouvert.",
   "live.addItemTitle": "Ajouter une question ouverte",
   "live.chooseBusiness": "Choisir une affaire existante",
   "live.newBusiness": "Nouvelle affaire",

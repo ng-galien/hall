@@ -497,6 +497,10 @@ export const en = {
   "recusal.record": "Record the recusal",
   "recusal.withdraw": "Withdraw",
   "recusal.withdrawConfirm": "Withdraw the recusal of {name}?",
+  "recusal.confirmTitle": "Confirm the recusal",
+  "recusal.confirmation": "The recusal of {member} on the item “{point}” will be recorded, on the basis of: {basis}.",
+  "recusal.confirmationWithdrawal":
+    "It can be withdrawn as long as no ballot result is recorded for this item; after that, it can no longer be withdrawn.",
   "recusal.recuse": "Recusal",
   "recusal.separateFromVotes":
     "These recusals are distinct from abstentions and non-participation. Their impact on declarations is not a complete legal quorum finding.",
@@ -585,6 +589,7 @@ export const en = {
   "common.notFilled": "Not filled in",
   "common.attach": "Attach",
   "common.cancel": "Cancel",
+  "common.confirm": "Confirm",
   "common.close": "Close",
   "common.create": "Create",
   "common.delete": "Delete",
@@ -1929,7 +1934,11 @@ export const en = {
   "report.collapseAll": "Collapse all",
   "ballot.recusedMembers": "Recusals",
   "live.addItem": "Add an open question",
-  "live.adjournConfirmation": "Confirm the adjournment of this item?",
+  "live.adjournConfirmation":
+    "The item “{point}” will be adjourned: it will no longer be examined in this meeting. A recorded adjournment cannot be undone.",
+  "live.completeTitle": "Close the item",
+  "live.completeConfirmation":
+    "The item “{point}” will be closed and the meeting will move to the next subject. A closed item cannot be reopened.",
   "live.addItemTitle": "Add an open question",
   "live.chooseBusiness": "Choose an existing council business",
   "live.newBusiness": "New council business",

@@ -10,14 +10,22 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilMemberView } from "../../models/directory";
 import { recusalBasisHint, recusalBasisLabel } from "./recusalPresentation";
 
+/**
+ * Declares a recusal in two steps: the form chooses the member and the legal basis, then a confirmation names what
+ * will be recorded before anything is sent.
+ * @implements-requirement HALL-FR-AGI-440
+ */
 export function AgendaItemRecusalDialog({
   controller,
   members,
+  pointLabel,
   initialMemberId,
   onClose,
 }: {
-  controller: ReturnType<typeof useAgendaItemRecusals>;
+  controller: Pick<ReturnType<typeof useAgendaItemRecusals>, "state" | "canRecord" | "error" | "submitting" | "record">;
   members: CouncilMemberView[];
+  /** The agenda item concerned, as the conduct rail names it. */
+  pointLabel: string;
   /** The member already chosen when the dialog opens from the menu of a voter. */
   initialMemberId?: string;
   onClose(): void;
@@ -25,14 +33,61 @@ export function AgendaItemRecusalDialog({
   const { t } = useI18n();
   const [memberId, setMemberId] = useState(initialMemberId ?? "");
   const [basis, setBasis] = useState<RecusalLegalBasis>();
+  const [confirming, setConfirming] = useState(false);
   const availableMembers = members.filter(
     (member) => !controller.state?.recusals.some((entry) => entry.councilMemberId === member.id),
   );
-  const submit = async (event: FormEvent) => {
+  const chosenMember = members.find((member) => member.id === memberId);
+  const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (!memberId || !basis) return;
+    setConfirming(true);
+  };
+  const confirm = async () => {
     if (!memberId || !basis) return;
     if (await controller.record({ councilMemberId: memberId, legalBasis: basis })) onClose();
   };
+  if (confirming && chosenMember && basis) {
+    return (
+      <Modal
+        open
+        title={t("recusal.confirmTitle")}
+        testId="recusal-confirm-dialog"
+        onClose={() => {
+          if (!controller.submitting) onClose();
+        }}
+      >
+        <div className="modal-form">
+          <RequestErrorBanner error={controller.error} />
+          <p>
+            {t("recusal.confirmation", {
+              member: `${chosenMember.contact.firstName} ${chosenMember.contact.lastName}`,
+              point: pointLabel,
+              basis: t(recusalBasisLabel(basis)),
+            })}
+          </p>
+          <p>{t("recusal.confirmationWithdrawal")}</p>
+          <div className="dialog-actions">
+            <Button
+              variant="secondary"
+              data-testid="recusal-confirm-cancel"
+              disabled={controller.submitting}
+              onClick={() => setConfirming(false)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              data-testid="recusal-confirm"
+              disabled={!controller.canRecord || controller.submitting}
+              onClick={() => void confirm()}
+            >
+              {t(controller.submitting ? "common.saving" : "common.confirm")}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
   return (
     <Modal
       open
@@ -85,7 +140,7 @@ export function AgendaItemRecusalDialog({
             data-testid="recusal-submit"
             disabled={!memberId || !basis || !controller.canRecord || controller.submitting}
           >
-            {t(controller.submitting ? "common.saving" : "recusal.record")}
+            {t("recusal.record")}
           </Button>
         </div>
       </form>
