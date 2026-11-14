@@ -1502,7 +1502,8 @@ test("uploads a written proxy and selects the created documentary resource", asy
   const chooser = page.waitForEvent("filechooser");
   await page.getByTestId("live-proxy-upload").click();
   const uploaded = page.waitForResponse(
-    (response) => response.url().endsWith("/api/resources/documents") && response.request().method() === "POST",
+    (response) =>
+      /\/api\/council-meetings\/[^/]+\/proxy-documents$/.test(response.url()) && response.request().method() === "POST",
   );
   await (await chooser).setFiles({
     name: "proxy-upload-regression.png",
@@ -1530,7 +1531,7 @@ test("uploads a written proxy and selects the created documentary resource", asy
   await page.getByTestId(`live-attendance-${members[1]!.id}-represented`).click();
   await page.getByTestId(`live-proxy-holder-${members[0]!.id}`).click();
   let duplicateUploads = 0;
-  await page.route("**/api/resources/documents", async (route) => {
+  await page.route("**/api/council-meetings/*/proxy-documents", async (route) => {
     duplicateUploads++;
     await route.abort();
   });
