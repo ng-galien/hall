@@ -94,7 +94,10 @@ test("edits account identity with autosave and safely changes and resets passwor
   page.on("request", recordSave);
   await page.getByTestId("user-email").fill("account-reader-updated@");
   await expect(page.getByTestId("user-email-error")).toBeVisible();
+  await page.getByTestId("user-email").fill("account-reader@");
+  await expect(page.getByTestId("user-save-state")).toHaveAttribute("data-save", "dirty");
   await openMenuEntry(page, "users");
+  await expect(page.getByTestId("user-save-state")).toHaveAttribute("data-save", "error");
   await expect(page).toHaveURL(new RegExp(`/users/${user.id}$`));
   await expect(page.getByTestId("user-email-error")).toBeVisible();
   await page.getByTestId("user-email").fill("account-reader-updated@example.test");
