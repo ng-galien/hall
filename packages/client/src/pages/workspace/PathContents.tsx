@@ -567,22 +567,28 @@ export function PathContents({
     }
   };
 
-  const [colorTarget, setColorTarget] = useState<string | null>(null);
+  /** The row whose colour picker is open: a folder row or a business row, which may show the same folder. */
+  const [colorTarget, setColorTarget] = useState<{ folderId: string; row: "folder" | "business" } | null>(null);
   const colorRequested = useRef(false);
   const takeColorRequest = () => {
     const requested = colorRequested.current;
     colorRequested.current = false;
     return requested;
   };
-  const folderColorAction = (folderId: string | undefined) =>
+  const folderColorAction = (folderId: string | undefined, row: "folder" | "business") =>
     folderId && resourceCapabilities(resourcesStore.representations[folderId] ?? null).updateMetadata
       ? () => {
           colorRequested.current = true;
-          afterContextMenuCloses(() => setColorTarget(folderId));
+          afterContextMenuCloses(() => setColorTarget({ folderId, row }));
         }
       : undefined;
-  const withFolderColorPicker = (folderId: string | undefined, color: string | null, anchor: ReactElement) =>
-    folderId && colorTarget === folderId ? (
+  const withFolderColorPicker = (
+    folderId: string | undefined,
+    row: "folder" | "business",
+    color: string | null,
+    anchor: ReactElement,
+  ) =>
+    folderId && colorTarget?.folderId === folderId && colorTarget.row === row ? (
       <FolderColorPicker
         folderId={folderId}
         color={color}
@@ -1001,6 +1007,7 @@ export function PathContents({
               selected={selectedKeys.has(key)}
               head={withFolderColorPicker(
                 business.folderResourceId,
+                "business",
                 businessFolderColor,
                 <span className="workspace-explorer-color-anchor">
                   <CouncilBusinessGlyph business={business} color={businessFolderColor} />
@@ -1029,7 +1036,7 @@ export function PathContents({
               wrapLine={(line) => (
                 <RenameContextMenu
                   enabled={renamable}
-                  onColor={folderColorAction(business.folderResourceId)}
+                  onColor={folderColorAction(business.folderResourceId, "business")}
                   keepFocusAway={takeColorRequest}
                   onDelete={businessCapabilities?.delete ? () => onDeleteBusiness(business) : undefined}
                   onExportBundle={businessCapabilities?.exportBundle ? () => onExportBundle(business) : undefined}
@@ -1146,6 +1153,7 @@ export function PathContents({
         selected={selectedKeys.has(key)}
         head={withFolderColorPicker(
           folderEntry?.id,
+          "folder",
           folderColor,
           <span className="workspace-explorer-color-anchor">
             <FolderGlyph open={isExpanded && hasContent} color={folderColor} />
@@ -1255,7 +1263,7 @@ export function PathContents({
             folderEntry && resourceCapabilities(resourcesStore.representations[folderEntry.id] ?? null).relocate
               ? () => startRename(target)
               : undefined,
-            folderColorAction(folderEntry?.id),
+            folderColorAction(folderEntry?.id, "folder"),
           )
         }
       >
@@ -1334,7 +1342,14 @@ export function PathContents({
           ) : (
             <ListRow
               className="path-contents-root"
-              head={<FolderGlyph open />}
+              head={
+                <FolderGlyph
+                  open
+                  color={
+                    resourcesStore.catalog.find((entry) => entry.kind === "folder" && entry.fullPath === path)?.color
+                  }
+                />
+              }
               title={rootName}
               lineProps={{
                 ...testIdProps("workspace-tree-root"),
