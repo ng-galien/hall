@@ -28,6 +28,13 @@ const suiteTimeoutMs = suiteTimeoutMinutes * 60 * 1_000;
 const deadline = Date.now() + suiteTimeoutMs;
 const requestedArguments = process.argv.slice(2).filter((argument) => argument !== "--all");
 const authenticationMode = process.env.HALL_E2E_AUTH_MODE === "true";
+/*
+ * HALL_E2E_MAX_FAILURES bounds the failures of a complete run (default 1). "0" runs every scenario of every lane and
+ * family to its end and lists every failed scenario; any other value stops the other lanes at the first failed lane.
+ */
+const maxFailures = process.env.HALL_E2E_MAX_FAILURES ?? "1";
+if (!/^\d+$/.test(maxFailures)) throw new Error("HALL_E2E_MAX_FAILURES must be a non-negative integer");
+const stopAtFirstFailure = maxFailures !== "0";
 // Documentation journeys (with or without writing captures) and the meeting-rule journeys run Hall as delivered: the built client, served by the
 // test server, with real sign-in.
 const documentationCaptures =
@@ -226,6 +233,7 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
       : builtClientDirectory;
   const origin = selectedClient ? `http://127.0.0.1:${serverPort}` : `http://127.0.0.1:${clientPort}`;
   const output = `${process.pid}/${mode}-${shardIndex}`;
+  const report = resolve(clientDirectory, `test-results/e2e/${output}/results.json`);
   const child = spawn(
     process.execPath,
     [
@@ -234,7 +242,7 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
       "--config",
       "e2e/playwright.config.ts",
       ...requestedArguments,
-      ...(allFamilies ? [`--max-failures=${process.env.HALL_E2E_MAX_FAILURES ?? "1"}`] : []),
+      ...(allFamilies ? [`--max-failures=${maxFailures}`] : []),
       ...shard,
     ],
     {
@@ -259,7 +267,7 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
         HALL_E2E_DATABASE_NAME: name,
         HALL_E2E_LANE: String(lane),
         HALL_E2E_OUTPUT_DIR: `../test-results/e2e/${output}`,
-        HALL_E2E_JSON_OUTPUT_FILE: resolve(clientDirectory, `test-results/e2e/${output}/results.json`),
+        HALL_E2E_JSON_OUTPUT_FILE: report,
         HALL_E2E_SERVER_PORT: serverPort,
         PLAYWRIGHT_HTML_OUTPUT_DIR: `playwright-report/e2e/${output}`,
       },
@@ -268,9 +276,24 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
   );
   const completion = new Promise((resolveLane, rejectLane) => {
     child.once("error", rejectLane);
-    child.once("close", (status, signal) => resolveLane({ lane, family: mode, status, signal }));
+    child.once("close", (status, signal) => resolveLane({ lane, family: mode, status, signal, report }));
   });
   return { child, completion };
+}
+
+/* Lists every failed scenario of the lanes of the run, read from their Playwright JSON reports. */
+function reportFailedScenarios(results) {
+  const failed = [];
+  const collect = (family, suite) => {
+    for (const spec of suite.specs ?? [])
+      if (!spec.ok) failed.push(`${family}: ${spec.file}:${spec.line} ${spec.title}`);
+    for (const child of suite.suites ?? []) collect(family, child);
+  };
+  for (const { family, report } of results)
+    if (report && existsSync(report))
+      for (const suite of JSON.parse(readFileSync(report, "utf8")).suites ?? []) collect(family, suite);
+  if (failed.length)
+    console.log(`Failed scenarios (${failed.length}):\n${failed.map((line) => `  ${line}`).join("\n")}`);
 }
 
 const lanes = configuredLaneCount();
@@ -396,7 +419,7 @@ try {
   timeout.unref();
   await Promise.all(
     Array.from({ length: lanes }, async () => {
-      while (next < jobs.length && !timedOut && !interrupted && !failed) {
+      while (next < jobs.length && !timedOut && !interrupted && !(failed && stopAtFirstFailure)) {
         const job = jobs[next++];
         const name = databaseName(job.lane);
         recreateDatabase(name, templateDatabase);
@@ -414,13 +437,14 @@ try {
         results.push(result);
         if (result.status !== 0) {
           failed = true;
-          stopAll("SIGTERM");
+          if (stopAtFirstFailure) stopAll("SIGTERM");
         }
       }
     }),
   );
   clearTimeout(timeout);
 
+  reportFailedScenarios(results);
   if (timedOut) throw new Error(`The E2E suite exceeded its ${suiteTimeoutMinutes} minute limit and was stopped`);
   if (interrupted) throw new Error("The E2E suite was interrupted and its processes were stopped");
   process.exitCode = results.every(({ status }) => status === 0) ? 0 : 1;

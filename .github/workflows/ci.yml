@@ -134,6 +134,7 @@ jobs:
           HALL_E2E_SHARDS: "2"
           HALL_E2E_MOBILE_RECUSALS: "1"
           HALL_E2E_DESKTOP: "false"
+          HALL_E2E_MAX_FAILURES: "0"
           HALL_E2E_DOCUMENTATION_FAMILY: ${{ env.HALL_RELEASE_GATE }}
       - name: Verify ordinary units and HMR after browser cleanup
         if: matrix.shard == 1
