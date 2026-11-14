@@ -44,6 +44,7 @@ import {
   meetingDocumentsRepresentation,
 } from "../meetingDocumentsRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
+import { singleFileUpload } from "../singleFileUpload.js";
 
 async function requireMeeting(councilClient: CouncilClient, reference: string): Promise<CouncilMeeting> {
   const meeting = await councilClient.openMeeting(reference);
@@ -71,6 +72,7 @@ const staleMeetingRoutePath = "/:meetingReference/stale";
 // @implements-requirement HALL-FR-ATT-170
 // @implements-requirement HALL-FR-ATT-180
 // @implements-requirement HALL-FR-MTG-370
+// @implements-requirement HALL-FR-ATT-190
 /**
  * Conduct actions are allowed per meeting: the database checks the officers in office of the meeting of the route.
  * The closure body carries no instant: the server dates the closure at reception.
@@ -78,13 +80,16 @@ const staleMeetingRoutePath = "/:meetingReference/stale";
 export function createCouncilMeetingsRouter({
   councilClient,
   deliberationListService,
+  documentaryResourceService,
   meetingAttendanceDocumentService,
   meetingDossierService,
   meetingNoticeService,
   mailService,
   realtimeEvents,
+  requestContext,
 }: Cradle): Router {
   const router = Router();
+  const uploadFile = singleFileUpload(requestContext);
 
   router.param("meetingReference", async (request, _response, next, reference: string) => {
     const meeting = await councilClient.openMeeting(reference);
@@ -362,6 +367,22 @@ export function createCouncilMeetingsRouter({
             councilClient.registerMeetingProxy(meeting.id, registerMeetingProxySchema.parse(request.body)),
           ),
         );
+    },
+  );
+  router.post(
+    "/:meetingReference/proxy-documents",
+    requireActionPermission("meeting.upload-proxy-document"),
+    uploadFile,
+    async (request, response) => {
+      const meeting = await requireMeeting(councilClient, routeParameter(request.params.meetingReference));
+      if (!request.file) throw new DomainError("invalid_request");
+      response.status(201).json(
+        await documentaryResourceService.createMeetingProxyDocument({
+          meetingId: meeting.id,
+          fileName: request.file.originalname,
+          content: request.file.buffer,
+        }),
+      );
     },
   );
   router.patch(

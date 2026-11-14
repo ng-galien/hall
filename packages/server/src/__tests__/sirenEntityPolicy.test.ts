@@ -314,6 +314,12 @@ describe("Siren entity class authority", () => {
         href: "/api/council-meetings/2026-09-01-001/stale",
       }),
       expect.objectContaining({
+        name: "meeting.upload-proxy-document",
+        method: "POST",
+        href: "/api/council-meetings/2026-09-01-001/proxy-documents",
+        type: "multipart/form-data",
+      }),
+      expect.objectContaining({
         name: "meeting.close",
         method: "POST",
         href: "/api/council-meetings/2026-09-01-001/close",

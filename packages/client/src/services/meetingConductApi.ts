@@ -20,6 +20,7 @@ import {
   recordMeetingQuorumSchema,
   recordMeetingReconvocationSchema,
   registerMeetingProxySchema,
+  resourceDetailSchema,
 } from "@hall/api-contract";
 import { apiSirenRequest, submitSirenActionAt } from "./apiClient";
 
@@ -86,6 +87,10 @@ export async function declareMeetingAuxiliaryAttendance(reference: string, input
 
 export async function registerMeetingProxy(reference: string, input: RegisterMeetingProxy) {
   return submitSirenActionAt(conductPath(reference), "meeting.register-proxy", registerMeetingProxySchema.parse(input));
+}
+export async function uploadMeetingProxyDocument(reference: string, form: FormData) {
+  const result = await submitSirenActionAt<unknown>(conductPath(reference), "meeting.upload-proxy-document", form);
+  return resourceDetailSchema.parse(result.data);
 }
 export async function correctMeetingProxyRegistration(reference: string, input: CorrectMeetingProxyRegistration) {
   return submitSirenActionAt(

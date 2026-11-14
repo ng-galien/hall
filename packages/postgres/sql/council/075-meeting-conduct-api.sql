@@ -212,3 +212,24 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV156',MESSAGE='unknown proxy registration in this meeting'; END IF;
  RETURN hall_api.meeting_conduct(target_meeting);
 END $$;
+
+-- @implements-requirement HALL-FR-ATT-190
+CREATE FUNCTION hall_api.create_meeting_proxy_document(target_meeting UUID,document_name TEXT,
+ document_media_type TEXT,document_content BYTEA)
+RETURNS JSONB LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,hall AS $$
+DECLARE
+ meeting hall.council_meetings;
+ resource_id UUID;
+BEGIN
+ SELECT * INTO meeting FROM hall.council_meetings WHERE id=target_meeting;
+ IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'HV901', MESSAGE = 'unknown council meeting'; END IF;
+ IF meeting.closed_at IS NOT NULL THEN
+  RAISE EXCEPTION USING ERRCODE = 'HV153', MESSAGE = 'a closed meeting receives no written proxy';
+ END IF;
+ IF NOT hall.allows('meeting.upload-proxy-document',jsonb_build_object('meetingId',target_meeting)) THEN
+  RAISE EXCEPTION USING ERRCODE = 'HV614', MESSAGE = 'The caller cannot register a proxy for this meeting';
+ END IF;
+ PERFORM hall.lock_resource_namespace();
+ resource_id := hall.insert_document_resource('',document_name,document_media_type,document_content);
+ RETURN hall.resource_detail(resource_id);
+END $$;

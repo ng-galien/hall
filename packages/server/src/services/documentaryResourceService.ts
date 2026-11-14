@@ -56,6 +56,7 @@ export interface DocumentaryResourceService {
     /** When the name is already taken at the location, numbers it « name (2).ext », « name (3).ext »… instead of refusing. */
     numberTakenName?: boolean;
   }): Promise<SirenEntity>;
+  createMeetingProxyDocument(input: { meetingId: string; fileName: string; content: Buffer }): Promise<SirenEntity>;
   createEditorAsset(input: {
     ownerId: string;
     title: string;
@@ -279,6 +280,16 @@ export function createDocumentaryResourceService({
           if (number >= maximumNameNumber || !isTakenName(error)) throw error;
         }
       }
+    },
+    async createMeetingProxyDocument(input) {
+      const inspection = await inspectDocument(input.fileName, input.content);
+      const created = await resourcesClient.createMeetingProxyDocument({
+        meetingId: input.meetingId,
+        name: input.fileName,
+        mediaType: inspection.mediaType,
+        content: input.content,
+      });
+      return created.representation;
     },
     async createEditorAsset(input) {
       const owner = await resourcesClient.open(input.ownerId);

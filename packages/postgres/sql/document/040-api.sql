@@ -654,6 +654,31 @@ BEGIN
 END
 $function$;
 
+/* Stores a document resource at a location the caller has already been authorized to write. */
+CREATE FUNCTION hall.insert_document_resource(
+  parent_path TEXT,
+  resource_name TEXT,
+  resource_media_type TEXT,
+  resource_content BYTEA
+)
+RETURNS UUID
+LANGUAGE plpgsql
+VOLATILE
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  resource_id UUID := gen_random_uuid();
+  binary_id UUID;
+BEGIN
+  PERFORM hall.ensure_folder_path(parent_path);
+  binary_id := hall.store_binary_object(resource_media_type, resource_content);
+  INSERT INTO hall.document_resource (id, binary_object_id) VALUES (resource_id, binary_id);
+  INSERT INTO hall.resource (id, path, name, slug, document_resource_id)
+  VALUES (resource_id, parent_path, resource_name, hall.claim_resource_slug(resource_name), resource_id);
+  RETURN resource_id;
+END
+$function$;
+
 CREATE FUNCTION hall_api.create_document_resource(
   parent_path TEXT,
   resource_name TEXT,
@@ -667,17 +692,11 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 DECLARE
-  resource_id UUID := gen_random_uuid();
-  binary_id UUID;
+  resource_id UUID;
 BEGIN
   PERFORM hall.lock_resource_namespace();
   PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
-  PERFORM hall.ensure_folder_path(parent_path);
-  binary_id := hall.store_binary_object(resource_media_type, resource_content);
-
-  INSERT INTO hall.document_resource (id, binary_object_id) VALUES (resource_id, binary_id);
-  INSERT INTO hall.resource (id, path, name, slug, document_resource_id)
-  VALUES (resource_id, parent_path, resource_name, hall.claim_resource_slug(resource_name), resource_id);
+  resource_id := hall.insert_document_resource(parent_path, resource_name, resource_media_type, resource_content);
   RETURN hall.resource_detail(resource_id);
 END
 $function$;

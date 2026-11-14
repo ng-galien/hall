@@ -548,6 +548,16 @@ function councilMeetingActions({ request, value, primary }: ObjectActionContext)
   if (meeting.closedAt) return [];
   if (!meeting.stale)
     actions.push(action("meeting.mark-stale", "POST", `/api/council-meetings/${meetingReference}/stale`));
+  actions.push({
+    ...action(
+      "meeting.upload-proxy-document",
+      "POST",
+      `/api/council-meetings/${meetingReference}/proxy-documents`,
+      "Store the signed written proxy of the meeting",
+    ),
+    type: "multipart/form-data",
+    fields: [{ name: "file", type: "file", accept: acceptedDocumentExtensions.join(",") }],
+  });
   const conduct = value as Record<string, unknown>;
   const meetingBlockers = meetingActionBlockersSchema.safeParse(conduct.meetingActionBlockers);
   if (meetingBlockers.success && meetingBlockers.data.addAgendaItem.length === 0)

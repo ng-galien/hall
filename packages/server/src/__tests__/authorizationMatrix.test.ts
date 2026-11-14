@@ -216,4 +216,42 @@ postgres("role matrix decided by PostgreSQL", () => {
     await roles.clerk.post(`/api/council-meetings/${meeting.id}/close`).send({}).expect(403);
     expect(await blockers(admin)).not.toContainEqual({ code: "permissionDenied" });
   });
+
+  // @verifies-requirement HALL-FR-ATT-190
+  it("lets the account that registers the proxies of a meeting store a written proxy, and no other document", async () => {
+    const { admin, alice, bruno, roles } = await matrixScenario();
+    const meeting = domainBody<{ id: string }>(await admin.post("/api/council-meetings").send({}).expect(201));
+    await admin
+      .put(`/api/council-meetings/${meeting.id}/prepare`)
+      .send({
+        scheduledAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
+        location: "Salle du conseil",
+        chairMemberId: alice.memberId,
+        secretaryMemberId: bruno.memberId,
+      })
+      .expect(200);
+    const offered = async (agent: TestAgent) =>
+      ((await agent.get(`/api/council-meetings/${meeting.id}/conduct`).expect(200)).body.actions ?? []).map(
+        (action: { name: string }) => action.name,
+      );
+    const proxy = Buffer.from("%PDF-1.7\nPouvoir signé");
+    const upload = (agent: TestAgent, path: string, filename: string) =>
+      agent.post(path).attach("file", proxy, { filename, contentType: "application/pdf" });
+
+    expect(await offered(roles.councillor)).toEqual(
+      expect.arrayContaining(["meeting.register-proxy", "meeting.upload-proxy-document"]),
+    );
+    const stored = await upload(
+      roles.councillor,
+      `/api/council-meetings/${meeting.id}/proxy-documents`,
+      "Pouvoir Martin.pdf",
+    ).expect(201);
+    expect(stored.body.properties).toMatchObject({ kind: "document", path: "", fullPath: "Pouvoir Martin.pdf" });
+    await upload(roles.councillor, "/api/resources/documents", "Autre pièce.pdf").expect(403);
+
+    expect(await offered(roles.contributor)).not.toContain("meeting.upload-proxy-document");
+    await upload(roles.contributor, `/api/council-meetings/${meeting.id}/proxy-documents`, "Pouvoir refusé.pdf").expect(
+      403,
+    );
+  });
 });

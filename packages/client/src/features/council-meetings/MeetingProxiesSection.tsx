@@ -20,7 +20,7 @@ import { DocumentObjectViewer } from "../documents/DocumentObjectViewer";
 import { ResourcePreview } from "../documents/ResourcePreview";
 import { MeetingProxyFormDialog } from "./MeetingProxyFormDialog";
 import { formatMeetingLabel } from "./meetingPresentation";
-import { uploadProxyDocument } from "./proxyDocumentUpload";
+import { type ProxyDocument, uploadProxyDocument } from "./proxyDocumentUpload";
 
 type ProxyEditing = { kind: "registration" } | { kind: "change"; registration: MeetingProxyRegistration };
 
@@ -43,6 +43,7 @@ export function MeetingProxiesSection({
   const registrations = meetingActions.workspace?.conduct?.proxyRegistrations ?? [];
   const canRegister = meetingActions.can("meeting.register-proxy");
   const canCorrect = meetingActions.can("meeting.correct-proxy-registration");
+  const canUploadDocument = meetingActions.can("meeting.upload-proxy-document");
   const proxyFormHref = meetingActions.link("proxy-form");
   const meetingLabel = formatMeetingLabel(meeting, t("meetings.occurrenceLabel"), formatDate);
   const [open, setOpen] = useState(true);
@@ -190,6 +191,7 @@ export function MeetingProxiesSection({
         <ProxyRegistrationDialog
           editing={editing}
           documentName={(id) => documentNames.get(id) ?? ""}
+          onUploadFile={canUploadDocument ? (file) => uploadProxyDocument(meeting.id, file) : undefined}
           error={meetingActions.actionError}
           onClose={() => {
             meetingActions.clearActionError();
@@ -260,12 +262,14 @@ export function MeetingProxiesSection({
 function ProxyRegistrationDialog({
   editing,
   documentName,
+  onUploadFile,
   error,
   onClose,
   onSubmit,
 }: {
   editing: ProxyEditing;
   documentName(id: string): string;
+  onUploadFile?: (file: File) => Promise<ProxyDocument | null>;
   error: ApiErrorCode | null;
   onClose(): void;
   onSubmit(parties: {
@@ -342,39 +346,43 @@ function ProxyRegistrationDialog({
             onPick={({ id, label }) => setDocument({ id, label })}
           />
         </Field>
-        <Button
-          type="button"
-          variant="secondary"
-          className="justify-self-start"
-          data-testid="meeting-proxy-registration-upload"
-          disabled={submitting}
-          onClick={() => fileInput.current?.click()}
-        >
-          <UploadIcon aria-hidden="true" />
-          {t("live.uploadProxy")}
-        </Button>
-        <input
-          data-testid="meeting-proxy-registration-file"
-          ref={fileInput}
-          type="file"
-          aria-label={t("documents.file")}
-          className="visually-hidden-input"
-          disabled={submitting}
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            event.currentTarget.value = "";
-            if (!file) return;
-            void run(async () => {
-              setUploadError(null);
-              try {
-                const uploaded = await uploadProxyDocument(file);
-                if (uploaded) setDocument({ id: uploaded.id, label: uploaded.name });
-              } catch (failure) {
-                setUploadError(apiErrorCode(failure));
-              }
-            });
-          }}
-        />
+        {onUploadFile ? (
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              className="justify-self-start"
+              data-testid="meeting-proxy-registration-upload"
+              disabled={submitting}
+              onClick={() => fileInput.current?.click()}
+            >
+              <UploadIcon aria-hidden="true" />
+              {t("live.uploadProxy")}
+            </Button>
+            <input
+              data-testid="meeting-proxy-registration-file"
+              ref={fileInput}
+              type="file"
+              aria-label={t("documents.file")}
+              className="visually-hidden-input"
+              disabled={submitting}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (!file) return;
+                void run(async () => {
+                  setUploadError(null);
+                  try {
+                    const uploaded = await onUploadFile(file);
+                    if (uploaded) setDocument({ id: uploaded.id, label: uploaded.name });
+                  } catch (failure) {
+                    setUploadError(apiErrorCode(failure));
+                  }
+                });
+              }}
+            />
+          </>
+        ) : null}
         <div className="dialog-actions">
           <Button
             type="button"

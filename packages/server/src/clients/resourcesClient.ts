@@ -66,6 +66,13 @@ export interface ResourcesClient {
     mediaType: string;
     content: Buffer;
   }): Promise<ResourceRepresentation<ResourceDetail>>;
+  /** Stores the signed written proxy of a meeting where the proxy documents are kept. */
+  createMeetingProxyDocument(input: {
+    meetingId: string;
+    name: string;
+    mediaType: string;
+    content: Buffer;
+  }): Promise<ResourceRepresentation<ResourceDetail>>;
   relocate(reference: string, input: RelocateResource): Promise<ResourceMutationResult>;
   updateMetadata(reference: string, input: UpdateResourceMetadata): Promise<ResourceMutationResult>;
   updateContent(

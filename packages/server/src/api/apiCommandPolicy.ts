@@ -127,6 +127,7 @@ export const apiCommandPolicies = {
   "meeting.declare-auxiliary-attendance": { auditTargetType: "council-meeting" },
   "meeting.correct-auxiliary-attendance": { auditTargetType: "council-meeting" },
   "meeting.register-proxy": { auditTargetType: "council-meeting" },
+  "meeting.upload-proxy-document": { auditTargetType: "council-meeting" },
   "meeting.correct-proxy-registration": { auditTargetType: "council-meeting" },
   "meeting.record-closed-session": { auditTargetType: "council-meeting" },
   "meeting.add-open-question": { auditTargetType: "council-meeting" },

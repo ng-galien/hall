@@ -10544,7 +10544,8 @@
         "Tant que la séance n’est pas ouverte, un pouvoir enregistré se modifie ou se retire ; une fois la séance ouverte ou close, la liste est en lecture seule et le serveur refuse tout enregistrement, toute modification et tout retrait (proxy_registration_closed).",
         "À l’appel de l’ouverture, chaque pouvoir enregistré est appliqué d’emblée : le conseiller qui donne pouvoir est représenté par son porteur, avec la pièce enregistrée ; le reste de l’appel se coche comme avant, et « Tous présents » ne retire pas une représentation déjà posée. Si le porteur n’est pas coché présent, l’appel le signale sur la ligne du conseiller représenté et le secrétaire corrige à la main.",
         "Un pouvoir qui arrive à la porte se saisit à l’appel comme avant, pièce comprise. L’ouverture valide l’appel avec les contrôles existants (HALL-FR-ATT-030 à HALL-FR-ATT-160), dont la limite de trois séances consécutives et ses exceptions, déclarées à l’appel comme avant.",
-        "Le procès-verbal, le quorum et les votes lisent les présences de l’appel comme avant ; un pouvoir enregistré n’est pas une présence."
+        "Le procès-verbal, le quorum et les votes lisent les présences de l’appel comme avant ; un pouvoir enregistré n’est pas une présence.",
+        "Un compte autorisé à enregistrer les pouvoirs d’une séance téléverse la pièce écrite d’un pouvoir de cette séance, à l’enregistrement avant l’ouverture comme à l’appel ; la pièce est classée à la racine de l’espace documentaire, avec les autres pièces de pouvoir. Ce droit ne permet de créer aucun autre document : le serveur refuse au même compte tout autre téléversement (permission_denied) et refuse la pièce de pouvoir à un compte qui n’enregistre pas les pouvoirs de la séance."
       ],
       "clauses": [
         {
@@ -10563,6 +10564,12 @@
           "key": "owner-flow",
           "origin": "product",
           "statement": "Flux arrêté par le propriétaire le 7 novembre 2026 et transmis le 14 novembre 2026 : section « Pouvoirs » sur la page de la séance en préparation et en cours, réunissant « Générer un pouvoir » et la liste des pouvoirs enregistrés ; enregistrement par la pièce signée, le mandant et le mandataire, tous trois obligatoires ; règles de l’article L2121-20 appliquées à la saisie ; modification et retrait libres avant l’ouverture ; application d’elle-même à l’appel, le secrétaire corrigeant à la main un porteur absent ; pouvoir arrivé à la porte saisi à l’appel comme avant ; procès-verbal, quorum et votes inchangés.",
+          "sourceIds": []
+        },
+        {
+          "key": "proxy-document-upload",
+          "origin": "product",
+          "statement": "Décision du coordinateur du 14 novembre 2026 : toute personne autorisée à enregistrer un pouvoir pour une séance peut téléverser la pièce écrite de ce pouvoir, classée là où les pièces de pouvoir le sont déjà ; cette autorisation ne donne aucun autre droit de création de document.",
           "sourceIds": []
         },
         {

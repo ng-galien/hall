@@ -204,6 +204,9 @@ export function createPostgresResourcesClient({
         throw error;
       }
     },
+    async createMeetingProxyDocument(input) {
+      return resourceDetail(await postgresResources.createMeetingProxyDocument(currentRequest(), input));
+    },
     async relocate(reference: string, input: RelocateResource) {
       const id = await resolveId(reference);
       if (!id) return { status: "notFound" };

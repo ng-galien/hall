@@ -201,6 +201,9 @@ export function createTestResourcesClient(): ResourcesClient {
           }),
       });
     },
+    async createMeetingProxyDocument(input) {
+      return this.createDocument({ path: "", name: input.name, mediaType: input.mediaType, content: input.content });
+    },
     async createDocument(input) {
       const base = common("document", input.path, input.name);
       const binary = {

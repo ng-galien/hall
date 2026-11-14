@@ -22,6 +22,7 @@ export const documentStatementActions: ReadonlySet<string> = new Set([
   "decision.freeze",
   "minutes.generate",
   "resource.createDocument",
+  "resource.createMeetingProxyDocument",
   "resource.replaceDocumentContent",
   "editorAsset.create",
 ]);

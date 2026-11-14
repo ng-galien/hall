@@ -467,6 +467,12 @@ it. It replaces `hall_api.meeting_conduct` and adds the functions
 under the access `meeting.conduct`. No data migration applies: existing meetings have
 no registered proxy and their attendance is unchanged.
 
+The same migration adds `hall.insert_document_resource`, now used by
+`hall_api.create_document_resource`, and `hall_api.create_meeting_proxy_document`
+with the action `meeting.upload-proxy-document` under the access `meeting.conduct`:
+an account that registers the proxies of a meeting stores the signed written proxy at
+the root of the workspace without the right to create any other document.
+
 ### Update procedure from 1.2.0 to 1.3.0 on the municipal computer
 
 This list applies to the Windows installation described in

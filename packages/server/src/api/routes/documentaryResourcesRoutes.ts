@@ -16,7 +16,6 @@ import {
   updateResourceMetadataSchema,
 } from "@hall/api-contract";
 import { type NextFunction, type Request, type Response, Router } from "express";
-import multer from "multer";
 import type { Cradle } from "../../core/container.js";
 import { requireAction } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
@@ -24,9 +23,7 @@ import { parseSpreadsheetImport, spreadsheetMarkdownTable } from "../../services
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { mailRepresentation } from "../mailRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
-import { uploadFileName } from "../uploadFileName.js";
-
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+import { singleFileUpload } from "../singleFileUpload.js";
 
 // @implements-requirement HALL-FR-DOC-280
 export function createDocumentaryResourcesRouter({
@@ -66,15 +63,7 @@ export function createDocumentaryResourcesRouter({
     if (belongsToBusiness) return requireBusinessUpdate(request, response, next);
     next();
   };
-  const uploadFile: ReturnType<typeof upload.single> = (request, response, next) => {
-    const context = requestContext.current();
-    upload.single("file")(request, response, (error) => {
-      if (request.file) request.file.originalname = uploadFileName(request.file.originalname);
-      const resume = () => (error ? next(error) : next());
-      if (context) requestContext.run(context, resume);
-      else resume();
-    });
-  };
+  const uploadFile = singleFileUpload(requestContext);
 
   router.get("/catalog", async (_request, response) => {
     response.json(await documentaryResourceService.listAll());

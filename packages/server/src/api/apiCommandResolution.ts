@@ -90,6 +90,8 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
       return auditIntent("meeting.register-proxy", id);
     if (method === "PATCH" && id && child === "proxy-registrations" && !childId)
       return auditIntent("meeting.correct-proxy-registration", id);
+    if (method === "POST" && id && child === "proxy-documents" && !childId)
+      return auditIntent("meeting.upload-proxy-document", id);
     if (method === "POST" && id && child === "council-business" && !childId) {
       return auditIntent(
         "meeting.create-and-schedule-business",

@@ -192,7 +192,7 @@ export function RollCallView({
     run(async () => {
       setUploadError(null);
       try {
-        const document = await uploadProxyDocument(file);
+        const document = await uploadProxyDocument(meeting.id, file);
         if (document)
           setProxyDocuments((current) => [...current.filter((entry) => entry.id !== document.id), document]);
         return document;
@@ -507,7 +507,7 @@ export function RollCallView({
             submitting={submitting}
             uploadError={uploadError}
             onDismissError={() => setUploadError(null)}
-            onUploadFile={uploadRollCallProxyDocument}
+            onUploadFile={meetingActions.can("meeting.upload-proxy-document") ? uploadRollCallProxyDocument : undefined}
             onSubmit={(holderId, documentId, exception) => submitProxy(proxyMember.id, holderId, documentId, exception)}
             onClose={() => setProxyMemberId(null)}
           />
@@ -540,7 +540,7 @@ function ProxyModal({
   uploadError: ApiErrorCode | null;
   onDismissError(): void;
   submitting: boolean;
-  onUploadFile(file: File): Promise<ProxyDocument | null | undefined>;
+  onUploadFile?: (file: File) => Promise<ProxyDocument | null | undefined>;
   onSubmit(holderId: string, documentId: string, exception: ProxyLimitException | null): void;
   onClose(): void;
 }) {
@@ -618,34 +618,38 @@ function ProxyModal({
                 </span>
               </Button>
             ))}
-            <Button
-              variant="plain"
-              data-testid="live-proxy-upload"
-              disabled={submitting}
-              className="picker-card picker-card-upload"
-              onClick={() => fileInput.current?.click()}
-            >
-              <UploadIcon aria-hidden="true" />
-              <span className="picker-card-copy">
-                <strong>{t("live.uploadProxy")}</strong>
-              </span>
-            </Button>
-            <input
-              data-testid="live-proxy-file"
-              disabled={submitting}
-              ref={fileInput}
-              type="file"
-              aria-label={t("documents.file")}
-              className="visually-hidden-input"
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0];
-                if (file)
-                  void onUploadFile(file).then((document) => {
-                    if (document) setDocumentId(document.id);
-                  });
-                event.currentTarget.value = "";
-              }}
-            />
+            {onUploadFile ? (
+              <>
+                <Button
+                  variant="plain"
+                  data-testid="live-proxy-upload"
+                  disabled={submitting}
+                  className="picker-card picker-card-upload"
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <UploadIcon aria-hidden="true" />
+                  <span className="picker-card-copy">
+                    <strong>{t("live.uploadProxy")}</strong>
+                  </span>
+                </Button>
+                <input
+                  data-testid="live-proxy-file"
+                  disabled={submitting}
+                  ref={fileInput}
+                  type="file"
+                  aria-label={t("documents.file")}
+                  className="visually-hidden-input"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file)
+                      void onUploadFile(file).then((document) => {
+                        if (document) setDocumentId(document.id);
+                      });
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </>
+            ) : null}
           </div>
         </section>
 

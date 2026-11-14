@@ -356,6 +356,12 @@ const createDocumentInputSchema = createWorkingResourceInputSchema.extend({
   mediaType: z.string().trim().min(1),
   content: z.instanceof(Buffer),
 });
+const createMeetingProxyDocumentInputSchema = z.object({
+  meetingId: resourceIdSchema,
+  name: resourceNameSchema,
+  mediaType: z.string().trim().min(1),
+  content: z.instanceof(Buffer),
+});
 const updateTextInputSchema = z.object({
   id: resourceIdSchema,
   expectedVersion: versionSchema,
@@ -406,6 +412,7 @@ type CreateTextInput = z.input<typeof createTextInputSchema>;
 type CreateRemoteInput = z.input<typeof createRemoteInputSchema>;
 type CreateStructuredInput = z.input<typeof createStructuredInputSchema>;
 type CreateDocumentInput = z.input<typeof createDocumentInputSchema>;
+type CreateMeetingProxyDocumentInput = z.input<typeof createMeetingProxyDocumentInputSchema>;
 type CreateGeographicLayerInput = z.input<typeof createGeographicLayerInputSchema>;
 type GeographicMapOverlayInput = z.input<typeof geographicMapOverlayInputSchema>;
 type UpdateTextWithAssetsInput = z.input<typeof updateTextWithAssetsInputSchema>;
@@ -930,6 +937,25 @@ export class PostgresResources {
       },
       presentedResourceSchema(documentResourceSchema),
       parsed.councilBusinessId,
+    );
+  }
+
+  // @implements-requirement HALL-FR-ATT-190
+  createMeetingProxyDocument(
+    request: PostgresResourceRequest,
+    input: CreateMeetingProxyDocumentInput,
+  ): Promise<PostgresPresentedResource<PostgresDocumentResource>> {
+    const parsed = createMeetingProxyDocumentInputSchema.parse(input);
+    return this.mutateJson(
+      request,
+      "resource.createMeetingProxyDocument",
+      {
+        text: `SELECT hall_api.present_resource(
+          hall_api.create_meeting_proxy_document($1::uuid, $2::text, $3::text, $4::bytea)
+        ) AS payload`,
+        values: [parsed.meetingId, parsed.name, parsed.mediaType, parsed.content],
+      },
+      presentedResourceSchema(documentResourceSchema),
     );
   }
 

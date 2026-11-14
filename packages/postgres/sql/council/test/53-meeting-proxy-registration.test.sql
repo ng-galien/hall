@@ -54,6 +54,26 @@ SELECT is(jsonb_array_length(hall_api.meeting_conduct(test_uuid('reg:meeting'))-
 SELECT throws_ok($$SELECT hall_api.withdraw_meeting_proxy_registration(test_uuid('reg:meeting'),test_uuid('reg:unknown'))$$,
  'HV156',NULL,'an unknown registration is refused');
 
+-- The written proxy is stored by whoever may register a proxy for the meeting, at the root of the
+-- workspace, without any other document creation right.
+SELECT set_council_meeting_officers(test_uuid('reg:meeting'),test_uuid('reg:member:2'),test_uuid('reg:member:3'));
+CREATE FUNCTION pg_temp.act_as(roles TEXT,contact UUID)
+RETURNS VOID LANGUAGE sql AS $$
+ SELECT set_config('hall.roles',roles,true),set_config('hall.contact_id',coalesce(contact::TEXT,''),true);
+$$;
+SELECT pg_temp.act_as('["councillor"]',test_uuid('reg:member:2'));
+CREATE TEMP TABLE uploaded_proxy AS SELECT hall_api.create_meeting_proxy_document(test_uuid('reg:meeting'),
+ 'Pouvoir signé.pdf','application/pdf','\x255044462d70726f7879'::bytea) payload;
+SELECT is((SELECT payload->>'fullPath' FROM uploaded_proxy),'Pouvoir signé.pdf',
+ 'the chair stores the written proxy at the root of the workspace');
+SELECT throws_ok($$SELECT hall_api.create_document_resource('','Autre pièce.pdf','application/pdf',
+ '\x255044462d6f74686572'::bytea)$$,'HV614',NULL,'the proxy right creates no other document');
+SELECT pg_temp.act_as('["councillor"]',test_uuid('reg:member:4'));
+SELECT throws_ok($$SELECT hall_api.create_meeting_proxy_document(test_uuid('reg:meeting'),'Pouvoir refusé.pdf',
+ 'application/pdf','\x255044462d726566757365'::bytea)$$,'HV614',NULL,
+ 'a councillor who registers no proxy for the meeting stores no written proxy');
+SELECT pg_temp.act_as('',NULL);
+
 -- Once the meeting is opened the registrations are read only.
 INSERT INTO meeting_attendance(id,council_member,council_meeting,status)
 SELECT test_uuid('reg:att:'||k),test_uuid('reg:member:'||k),test_uuid('reg:meeting'),'present' FROM generate_series(1,4) k;

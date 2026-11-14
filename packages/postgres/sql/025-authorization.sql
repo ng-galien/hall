@@ -267,6 +267,7 @@ CREATE VIEW hall.action_access AS
       ('meeting.correct-auxiliary-attendance', 'meeting.conduct'),
       ('meeting.register-proxy', 'meeting.conduct'),
       ('meeting.correct-proxy-registration', 'meeting.conduct'),
+      ('meeting.upload-proxy-document', 'meeting.conduct'),
       ('meeting.record-closed-session', 'meeting.conduct'),
       ('agenda-item.start', 'agenda-item.conduct'),
       ('agenda-item.complete', 'agenda-item.conduct'),
