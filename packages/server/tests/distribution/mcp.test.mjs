@@ -179,7 +179,7 @@ it("uses the installed MCP command and HTTP transport with real Hall sessions, r
         [
           "-c",
           `
-import errno, json, os, pty, select, sys, time
+import errno, json, os, pty, select, sys, termios, time
 credentials = json.load(sys.stdin)
 pid, fd = pty.fork()
 if pid == 0:
@@ -200,6 +200,10 @@ while time.time() < deadline:
         if stage == 0 and b"Email: " in output:
             os.write(fd, (credentials["email"] + "\\n").encode()); stage = 1
         if stage == 1 and b"Password (hidden): " in output:
+            # The password is typed once the login command has switched terminal echo off, at most five seconds later.
+            echo_deadline = time.time() + 5
+            while termios.tcgetattr(fd)[3] & termios.ECHO and time.time() < echo_deadline:
+                time.sleep(0.01)
             os.write(fd, (credentials["password"] + "\\r").encode()); stage = 2
 else:
     os.kill(pid, 9)
