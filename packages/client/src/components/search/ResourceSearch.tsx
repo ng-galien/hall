@@ -5,6 +5,7 @@ import { type ResourceSearchScope, useResourceSearch } from "../../features/sear
 import { useI18n } from "../../i18n/I18nProvider";
 import type { SearchType } from "../../lib/search";
 import { folderColorsByPath } from "../../pages/workspace/paths";
+import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { Mentionable } from "../editor/references";
 import { Button } from "../ui/button";
@@ -85,7 +86,12 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
   const root = useRef<HTMLDivElement>(null);
   const search = useResourceSearch(effective, scope, items, !hideResultsWhenEmpty || isSearchBoxActive(effective));
   const catalog = useWorkspaceResourcesStore((store) => store.catalog);
+  const businesses = useCouncilBusinessStore((store) => store.businesses);
   const folderColors = useMemo(() => folderColorsByPath(catalog), [catalog]);
+  const businessColors = useMemo(() => {
+    const colorsById = new Map(catalog.flatMap((entry) => (entry.color ? [[entry.id, entry.color] as const] : [])));
+    return new Map(businesses.map((business) => [business.id, colorsById.get(business.folderResourceId) ?? null]));
+  }, [businesses, catalog]);
   const presentedItems = presentItem ? search.items.map(presentItem) : search.items;
   const typeLabel = (item: Mentionable) =>
     item.metaLabel ?? (item.kind === "councilBusiness" ? t("editor.kind.councilBusiness") : "");
@@ -141,8 +147,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
   }, [active]);
   const glyph = (item: Mentionable) => {
     if (item.kind === "resource" && item.tone) return <ToneGlyph tone={item.tone} />;
-    if (item.kind === "councilBusiness")
-      return <KindGlyph kind={item.kind} color={item.folderPath ? folderColors.get(item.folderPath) : null} />;
+    if (item.kind === "councilBusiness") return <KindGlyph kind={item.kind} color={businessColors.get(item.id)} />;
     if (item.kind === "resource") return <KindGlyph kind={item.kind} />;
     const Icon = item.icon;
     return Icon ? (

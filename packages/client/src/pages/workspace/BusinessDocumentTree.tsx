@@ -1,5 +1,6 @@
+import type { ResourceCatalogEntry } from "@hall/api-contract";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FullscreenIcon } from "../../components/icons";
@@ -18,6 +19,7 @@ import { useResourceRename } from "../../features/resources/useResourceRename";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { listDocumentaryResourceCatalog } from "../../services/resourcesApi";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { folderColorsByPath } from "./paths";
 
@@ -59,7 +61,22 @@ export function BusinessDocumentTree({
 }) {
   const { t } = useI18n();
   const catalog = useWorkspaceResourcesStore((state) => state.catalog);
-  const folderColors = useMemo(() => folderColorsByPath(catalog), [catalog]);
+  const [readCatalog, setReadCatalog] = useState<ResourceCatalogEntry[]>([]);
+  useEffect(() => {
+    let current = true;
+    listDocumentaryResourceCatalog()
+      .then((result) => {
+        if (current) setReadCatalog(result.data);
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, []);
+  const folderColors = useMemo(() => {
+    const loaded = new Set(catalog.map((entry) => entry.id));
+    return folderColorsByPath([...readCatalog.filter((entry) => !loaded.has(entry.id)), ...catalog]);
+  }, [catalog, readCatalog]);
   const entries = resources.map((resource) => ({ resource, path: relativeDocumentPath(basePath, resource.path) }));
   const renderFolder = (path: string): ReactNode => {
     const prefix = path ? `${path}/` : "";
