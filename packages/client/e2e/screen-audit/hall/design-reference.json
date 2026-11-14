@@ -214,7 +214,7 @@
       "selector": "[data-slot=button][data-size=default]:not(.create-fab):not([data-testid^=workspace-tree] *):not(.app-sidebar *):not(.screen-header-trail *):not([data-testid^=workspace-breadcrumb]):not(.hall-link):not([data-testid=live-meeting-page] *)",
       "property": "height",
       "expected": "32px",
-      "when": "mouse",
+      "when": "pointer-wide",
       "status": "retenu",
       "source": {
         "doc": "Hall 1.3 — Design de référence",
