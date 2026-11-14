@@ -521,7 +521,27 @@ test("a long phone note keeps its header and its writing tools on screen while p
         /::image\[/g,
       ) ?? []
     ).length;
+  /** The writing as a list of paragraphs and photos, in order. */
+  const blocks = () =>
+    writingArea.evaluate((root) =>
+      Array.from(root.children).map((block) =>
+        block.matches(".editor-image-node") || block.querySelector(".editor-image-node")
+          ? "[photo]"
+          : (block.textContent ?? "").trim(),
+      ),
+    );
+  // Each photo is held on its way to the server, so that text is typed while it is sent.
+  const held: { release?: () => void } = {};
+  await page.route("**/api/resources/editor-assets**", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    await new Promise<void>((release) => {
+      held.release = release;
+    });
+    await route.continue();
+  });
+  const placedAfter: number[] = [];
   for (const [index, paragraph] of [10, 25, 40].entries()) {
+    placedAfter.push(paragraph);
     const target = writingArea.locator("p", { hasText: `Paragraphe ${paragraph} du compte rendu` });
     await target.click();
     await target.evaluate((element) => {
@@ -536,19 +556,52 @@ test("a long phone note keeps its header and its writing tools on screen while p
     const chooser = page.waitForEvent("filechooser");
     await page.getByTestId("editor-photo-sheet").getByTestId("editor-choose-image").click();
     await (await chooser).setFiles({ name: `chantier-${index + 1}.png`, mimeType: "image/png", buffer: png });
+    await expect.poll(() => held.release !== undefined, `photo ${index + 1} sent`).toBe(true);
+    await page.keyboard.type(`Écrit pendant l'envoi ${index + 1}.`);
+    await expect(writingArea).toContainText(`Écrit pendant l'envoi ${index + 1}.`);
+    held.release!();
+    held.release = undefined;
     await expect(compact.locator(".editor-image-node")).toHaveCount(index + 1);
     await expect.poll(storedImages).toBe(index + 1);
     await expectFrameOnScreen(`photo ${index + 1} placed`);
-    await writingArea.focus();
-    await page.keyboard.type(`Légende de la photo ${index + 1}.`);
-    await expect(writingArea).toContainText(`Légende de la photo ${index + 1}.`);
+    await page.keyboard.type(` Écrit après la photo ${index + 1}.`);
+    await expect(writingArea).toContainText(`Écrit après la photo ${index + 1}.`);
     await expectFrameOnScreen(`text typed after photo ${index + 1}`);
+    // Under each photo placed so far: the paragraph of the caret above it, then everything typed for it, in order.
+    const current = await blocks();
+    const photos = current.flatMap((block, position) => (block === "[photo]" ? [position] : []));
+    expect(photos, `photo ${index + 1}: photos in the text`).toHaveLength(index + 1);
+    photos.forEach((position, photo) => {
+      expect(current[position - 1], `photo ${photo + 1}: paragraph above`).toMatch(
+        new RegExp(`^Paragraphe ${placedAfter[photo]} du compte rendu`),
+      );
+      expect(current[position + 1], `photo ${photo + 1}: text under`).toBe(
+        `Écrit pendant l'envoi ${photo + 1}. Écrit après la photo ${photo + 1}.`,
+      );
+    });
   }
+  await page.unrouteAll({ behavior: "wait" });
+  // Text, photo, text, photo, text, photo, text: the paragraphs, each photo and the text typed under it.
+  const final = await blocks();
+  const typed = (photo: number) => `Écrit pendant l'envoi ${photo}. Écrit après la photo ${photo}.`;
+  const paragraphRange = (from: number, to: number) => paragraphs.slice(from - 1, to);
+  expect(final.filter((block) => block !== "")).toEqual([
+    ...paragraphRange(1, 10),
+    "[photo]",
+    typed(1),
+    ...paragraphRange(11, 25),
+    "[photo]",
+    typed(2),
+    ...paragraphRange(26, 40),
+    "[photo]",
+    typed(3),
+  ]);
   await expect
-    .poll(
-      async () =>
-        (await (await page.request.get(`/api/resources/${resource.slug}`)).json()).properties.content as string,
-    )
-    .toContain("Légende de la photo 3.");
+    .poll(async () => {
+      const content = (await (await page.request.get(`/api/resources/${resource.slug}`)).json()).properties
+        .content as string;
+      return content.match(/::image\[|Écrit pendant l'envoi \d\. Écrit après la photo \d\./g);
+    })
+    .toEqual(["::image[", typed(1), "::image[", typed(2), "::image[", typed(3)]);
   await page.screenshot({ path: testInfo.outputPath("phone-long-note-photos.png"), animations: "disabled" });
 });
