@@ -318,6 +318,15 @@
   position: relative;
   margin-block: 0;
 }
+/* On a phone the commands of an image keep their full width over the text, whatever the width of the image. */
+@media (max-width: 760px) {
+  .editor-image-frame > .editor-media-overlay {
+    left: 0;
+    right: auto;
+    width: max-content;
+    max-width: calc(100vw - 2 * var(--hall-space-4));
+  }
+}
 .editor-image-node[data-selected="true"] .editor-image-frame {
   outline: var(--hall-stroke-thin) solid var(--hall-color-brand);
   outline-offset: var(--hall-space-1);
