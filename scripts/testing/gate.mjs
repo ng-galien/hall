@@ -57,33 +57,35 @@ for (const signal of ["SIGINT", "SIGTERM"])
     interrupted = true;
     stopChildren(signal);
   });
-async function together(tasks) {
+/* A composite run records the failure of each group and goes on; it stops launching groups once interrupted. */
+const failedGroups = [];
+async function attempt(start) {
+  if (interrupted) {
+    failedGroups.push("interrupted before a group started");
+    return;
+  }
   try {
-    await Promise.all(tasks);
+    await start();
   } catch (error) {
-    stopChildren();
-    await Promise.allSettled(tasks);
-    throw error;
+    failedGroups.push(error.message);
   }
 }
 async function browserWithBackend(backend) {
   const temporary = mkdtempSync(resolve(tmpdir(), "hall-gate-ready-"));
   const signal = resolve(temporary, "schema-ready");
   let finished = false;
-  const browser = run("browser", groups.browser, {
-    HALL_E2E_MOBILE_RECUSALS: "1",
-    HALL_E2E_DESKTOP: "false",
-    HALL_E2E_PREPARED_SIGNAL: signal,
-  }).finally(() => {
+  const browser = attempt(() =>
+    run("browser", groups.browser, {
+      HALL_E2E_MOBILE_RECUSALS: "1",
+      HALL_E2E_DESKTOP: "false",
+      HALL_E2E_PREPARED_SIGNAL: signal,
+    }),
+  ).finally(() => {
     finished = true;
   });
-  browser.catch(() => undefined);
   try {
-    while (!existsSync(signal)) {
-      if (finished) return await browser;
-      await delay(50);
-    }
-    await together([browser, backend()]);
+    while (!existsSync(signal) && !finished) await delay(50);
+    await Promise.all([browser, backend()]);
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }
@@ -130,33 +132,34 @@ async function runGroup(name) {
   if (status !== 0) throw new Error(`${name} failed: ${failures.join("; ")}`);
 }
 async function unitChecks() {
-  await run("units", groups.units);
-  await run("mutation", groups.mutation);
+  await attempt(() => run("units", groups.units));
+  await attempt(() => run("mutation", groups.mutation));
 }
 try {
   if (mode === "all") {
     await run("build", "npm run build:verified");
-    await runGroup("checks");
-    await run("fixtures", groups.fixtures);
+    await attempt(() => runGroup("checks"));
+    await attempt(() => run("fixtures", groups.fixtures));
     await browserWithBackend(async () => {
-      await run("backend", groups.backend);
-      await together([
+      await attempt(() => run("backend", groups.backend));
+      await Promise.all([
         unitChecks(),
         (async () => {
-          await run("postgres", groups.postgres);
-          await run("distribution", groups.distribution);
+          await attempt(() => run("postgres", groups.postgres));
+          await attempt(() => run("distribution", groups.distribution));
         })(),
       ]);
     });
   } else if (mode === "verification") {
-    await runGroup("checks");
-    await run("fixtures", groups.fixtures);
-    await run("backend", groups.backend);
-    await together([unitChecks(), run("postgres", groups.postgres)]);
+    await attempt(() => runGroup("checks"));
+    await attempt(() => run("fixtures", groups.fixtures));
+    await attempt(() => run("backend", groups.backend));
+    await Promise.all([unitChecks(), attempt(() => run("postgres", groups.postgres))]);
   } else {
     if (!Object.hasOwn(groups, mode)) throw new Error(`Unknown gate group: ${mode}`);
     await runGroup(mode);
   }
+  if (failedGroups.length) throw new Error(`${mode} failed: ${failedGroups.join("; ")}`);
 } catch (error) {
   console.error(error);
   process.exitCode = 1;
@@ -174,6 +177,7 @@ try {
         withinFifteenMinutes: Date.now() - started <= 900_000,
         targetMet: process.exitCode !== 1 && Date.now() - started <= 900_000,
         passed: process.exitCode !== 1,
+        failedGroups,
         records,
       },
       null,
