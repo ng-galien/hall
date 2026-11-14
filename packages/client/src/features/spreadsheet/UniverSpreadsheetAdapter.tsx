@@ -12,6 +12,15 @@ type SpreadsheetDocument = Extract<ResourceDetail, { kind: "spreadsheet" }>["doc
 
 const SNAPSHOT_DEBOUNCE_MS = 100;
 
+/** A reader keeps scrolling, the current cell, the formula bar, copying and sheet changes; every modification is refused. */
+async function applyReadOnly(univerAPI: FUniver, workbook: ReturnType<FUniver["createWorkbook"]>, readOnly: boolean) {
+  const permission = workbook.getWorkbookPermission();
+  univerAPI.setPermissionDialogVisible(!readOnly);
+  if (!readOnly) return permission.setMode("owner");
+  await permission.setMode("viewer");
+  await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.CopyContent, true);
+}
+
 // @implements-requirement HALL-FR-LAY-030
 export function UniverSpreadsheetAdapter({
   mountElement,
@@ -32,6 +41,8 @@ export function UniverSpreadsheetAdapter({
   const onEditingChangeRef = useRef(onEditingChange);
   const readOnlyRef = useRef(readOnly);
   const initialDocumentRef = useRef(document);
+  const setReadOnlyRef = useRef<((readOnly: boolean) => Promise<void>) | null>(null);
+  const appliedReadOnlyRef = useRef(false);
   onChangeRef.current = onChange;
   onEditingChangeRef.current = onEditingChange;
   readOnlyRef.current = readOnly;
@@ -49,8 +60,10 @@ export function UniverSpreadsheetAdapter({
   }, [host, mountElement]);
 
   useEffect(() => {
-    host.toggleAttribute("inert", readOnly);
     host.setAttribute("aria-readonly", String(readOnly));
+    if (!setReadOnlyRef.current || appliedReadOnlyRef.current === readOnly) return;
+    appliedReadOnlyRef.current = readOnly;
+    void setReadOnlyRef.current(readOnly);
   }, [host, readOnly]);
 
   useEffect(() => {
@@ -79,6 +92,9 @@ export function UniverSpreadsheetAdapter({
     themeObserver.observe(window.document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     const initialDocument = initialDocumentRef.current;
     const workbook = univerAPI.createWorkbook(workbookFromSpreadsheetDocument(initialDocument));
+    setReadOnlyRef.current = (readOnly) => applyReadOnly(univerAPI, workbook, readOnly);
+    appliedReadOnlyRef.current = readOnlyRef.current;
+    if (readOnlyRef.current) void setReadOnlyRef.current(true);
     let lastSnapshot = JSON.stringify(initialDocument.workbook);
     let snapshotTimer: number | null = null;
     const publishSnapshot = () => {
@@ -107,6 +123,7 @@ export function UniverSpreadsheetAdapter({
       queueSnapshot(0);
     });
     return () => {
+      setReadOnlyRef.current = null;
       themeObserver.disconnect();
       if (snapshotTimer !== null) publishSnapshot();
       onEditingChangeRef.current(false);
