@@ -2,7 +2,7 @@
   "name": "hall-public-site",
   "private": true,
   "license": "EUPL-1.2",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
   "description": "Public demonstration site of Hall: an interactive 3D town that presents the council workflow.",
   "scripts": {
