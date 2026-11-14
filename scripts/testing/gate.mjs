@@ -70,7 +70,11 @@ async function attempt(start) {
     failedGroups.push(error.message);
   }
 }
-async function browserWithBackend(backend) {
+/*
+ * The browser lanes run beside the light groups, which start once the browser schema is prepared; server coverage
+ * starts after the browser lanes have ended, so the two never share the machine.
+ */
+async function browserThenBackend(light, backend) {
   const temporary = mkdtempSync(resolve(tmpdir(), "hall-gate-ready-"));
   const signal = resolve(temporary, "schema-ready");
   let finished = false;
@@ -85,7 +89,8 @@ async function browserWithBackend(backend) {
   });
   try {
     while (!existsSync(signal) && !finished) await delay(50);
-    await Promise.all([browser, backend()]);
+    await Promise.all([browser, light()]);
+    await backend();
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }
@@ -140,16 +145,17 @@ try {
     await run("build", "npm run build:verified");
     await attempt(() => runGroup("checks"));
     await attempt(() => run("fixtures", groups.fixtures));
-    await browserWithBackend(async () => {
-      await attempt(() => run("backend", groups.backend));
-      await Promise.all([
-        unitChecks(),
-        (async () => {
-          await attempt(() => run("postgres", groups.postgres));
-          await attempt(() => run("distribution", groups.distribution));
-        })(),
-      ]);
-    });
+    await browserThenBackend(
+      () =>
+        Promise.all([
+          unitChecks(),
+          (async () => {
+            await attempt(() => run("postgres", groups.postgres));
+            await attempt(() => run("distribution", groups.distribution));
+          })(),
+        ]),
+      () => attempt(() => run("backend", groups.backend)),
+    );
   } else if (mode === "verification") {
     await attempt(() => runGroup("checks"));
     await attempt(() => run("fixtures", groups.fixtures));
