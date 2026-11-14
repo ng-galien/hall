@@ -42,7 +42,12 @@ function stopChildren(signal = "SIGTERM") {
       }
   }
 }
-for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, () => stopChildren(signal));
+let interrupted = false;
+for (const signal of ["SIGINT", "SIGTERM"])
+  process.once(signal, () => {
+    interrupted = true;
+    stopChildren(signal);
+  });
 async function together(tasks) {
   try {
     await Promise.all(tasks);
@@ -77,8 +82,15 @@ async function browserWithBackend(backend) {
 
 const mode = process.argv[2] ?? "all";
 const groups = {
-  checks:
-    "npm run check:test-inventory && npm run check:public-artifacts && npm run check:requirements && npm run test:meta && code-moniker check . && npm run lint && npm run typecheck:built",
+  checks: [
+    "npm run check:test-inventory",
+    "npm run check:public-artifacts",
+    "npm run check:requirements",
+    "npm run test:meta",
+    "code-moniker check .",
+    "npm run lint",
+    "npm run typecheck:built",
+  ],
   fixtures: "npx vitest run tests/postgres/e2e-fixture.test.mjs",
   backend: "npm run test:backend",
   units:
@@ -89,6 +101,25 @@ const groups = {
   browser: "node packages/client/e2e/run.mjs --all",
   distribution: "npm run pack:distribution -- --prebuilt && npm run test:distribution:complete",
 };
+/* Every command of a list group runs; the group fails after the last one if any failed, and names each failure. */
+async function runGroup(name) {
+  const commands = groups[name];
+  if (typeof commands === "string") return run(name, commands);
+  const start = Date.now();
+  const failures = [];
+  for (const command of commands) {
+    if (interrupted) throw new Error(`${name} interrupted`);
+    await run(`${name}: ${command}`, command).catch((error) => {
+      failures.push(command);
+      console.error(`[gate] ${error.message}`);
+    });
+  }
+  const status = failures.length === 0 ? 0 : 1;
+  const record = { name, seconds: (Date.now() - start) / 1000, status, failures };
+  records.push(record);
+  console.log(`[gate] ${JSON.stringify(record)}`);
+  if (status !== 0) throw new Error(`${name} failed: ${failures.join("; ")}`);
+}
 async function unitChecks() {
   await run("units", groups.units);
   await run("mutation", groups.mutation);
@@ -96,7 +127,7 @@ async function unitChecks() {
 try {
   if (mode === "all") {
     await run("build", "npm run build:verified");
-    await run("checks", groups.checks);
+    await runGroup("checks");
     await run("fixtures", groups.fixtures);
     await browserWithBackend(async () => {
       await run("backend", groups.backend);
@@ -109,13 +140,13 @@ try {
       ]);
     });
   } else if (mode === "verification") {
-    await run("checks", groups.checks);
+    await runGroup("checks");
     await run("fixtures", groups.fixtures);
     await run("backend", groups.backend);
     await together([unitChecks(), run("postgres", groups.postgres)]);
   } else {
     if (!Object.hasOwn(groups, mode)) throw new Error(`Unknown gate group: ${mode}`);
-    await run(mode, groups[mode]);
+    await runGroup(mode);
   }
 } catch (error) {
   console.error(error);
