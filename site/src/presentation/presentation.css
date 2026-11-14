@@ -3253,14 +3253,6 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
 }
 
 /* Pictogramme de mairie, au trait des icônes de Hall, au-dessus du titre */
-.p-hero-picto {
-  display: block;
-  width: 2.6rem;
-  height: 2.6rem;
-  margin-bottom: 0.6rem;
-  fill: var(--accent);
-}
-
 /* Ouverture : halo clair autour du sous-titre et de la ligne, lisibles sur les traits du relief */
 .p-hero-line,
 .p-hero-hint {
@@ -3470,11 +3462,26 @@ html[data-scene="ready"] body .p-watermark.is-empty {
   will-change: transform, opacity;
 }
 
+.p-scenario-kicker {
+  margin: 0 0 0.15rem;
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
 .p-scenario-title {
-  margin: 0 0 0.9rem;
+  margin: 0 0 0.3rem;
   font-size: var(--fs-lg);
   font-weight: 700;
   line-height: 1.3;
+}
+
+.p-scenario-lead {
+  margin: 0 0 0.9rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
 }
 
 .p-scenario-steps {

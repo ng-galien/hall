@@ -59,7 +59,7 @@ Run from this directory:
   fragment, version without 3D.
 - `demonstration/index.html`: header and opening text: "Hall" followed by the qualification "Gestion de l'activité
   communale" and three plain sentences on what the software does and for whom; the footer carries the
-  signature "Hall, le conseil municipal en séance". The header navigation is Fonctionnalités, Démonstration,
+  signature "Hall, le logiciel du conseil municipal". The header navigation is Fonctionnalités, Démonstration,
   Télécharger.
 - `src/sections.ts`: the "Télécharger" section, the file to download for each system followed by the
   step-by-step installation per system (tabs), and the header marking of the visible section. The
