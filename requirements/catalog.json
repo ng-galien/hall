@@ -9748,7 +9748,7 @@
         "Sur un téléphone, la page d’une séance montre la barre d’étapes et la pastille de révision à l’utilisateur qui peut préparer la séance.",
         "Sur un téléphone, une carte occupe tout l’écran et une ressource distante présente son adresse avec un bouton qui ouvre le lien.",
         "Sur un téléphone, la page Documents, à la racine comme dans un dossier, porte la recherche dans son bandeau et le bouton flottant « + Nouveau » ; l’icône de recherche ouvre la recherche de l’espace de travail sur tout l’écran, le champ actif, et sa fermeture ramène à la liste, qui commence directement sous le bandeau. L’ordinateur et la tablette gardent la recherche au-dessus de la liste et « + Nouveau » dans le bandeau.",
-        "As soon as a photo is chosen or taken for a text, on a phone as on a computer, the place of the image appears in the text where it is inserted, at its proportions once the photo is decoded, with a loading indicator; the person keeps writing meanwhile. When the sending ends, the image takes that place without the text moving; when it fails, the place disappears and the failure is said where the editor says it."
+        "As soon as a photo is chosen or taken for a text, on a phone as on a computer, a low place of fixed height, the same on a phone and on a computer, appears in the text where it is inserted, with a loading indicator; the person keeps writing meanwhile. When the sending ends, the image replaces that place at its own size and the text under it moves down; when it fails, the place disappears and the failure is said where the editor says it."
       ],
       "clauses": [
         {
@@ -9809,6 +9809,12 @@
           "key": "photo-placeholder-during-upload",
           "origin": "product",
           "statement": "Owner request of 14 November 2026: « Quand on upload une image, on ne sait pas trop ce qui se passe pendant trois plombes. […] Les expériences habituelles sur mobile pour charger une image, c’est au moins une image qui se met, un placeholder, un petit truc de chargement dans le placeholder de l’image, quelque chose de propre. »",
+          "sourceIds": []
+        },
+        {
+          "key": "photo-placeholder-low",
+          "origin": "product",
+          "statement": "Owner correction of 14 November 2026, after trying it on a phone: « le placeholder pour la photo, c’est pas agréable qu’il soit de la taille de la photo. […] Il est trop haut. Faut plutôt qu’il soit plus petit. »",
           "sourceIds": []
         }
       ]

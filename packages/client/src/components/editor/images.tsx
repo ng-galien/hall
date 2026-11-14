@@ -160,7 +160,7 @@ export function ResourceImageFigure({
     return (
       <span
         className={`editor-image-placeholder hall-template-image-${align} ${className ?? ""}`}
-        style={style}
+        style={{ width: `${width}%` }}
         data-testid="editor-image-placeholder"
       >
         <LoadingIndicator aria-hidden="true" />

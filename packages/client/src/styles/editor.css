@@ -300,9 +300,10 @@
   background: var(--hall-color-surface-subtle);
   font-size: var(--hall-font-size-caption);
 }
-/* The place of an image being sent: its width and proportions, with the loading indicator in its middle. */
+/* The place of an image being sent: a low box, the height of three lines of text, with the loading indicator. */
 .editor-image-placeholder {
   display: grid;
+  height: calc(var(--hall-line-height-body-large) * 3);
   max-width: 100%;
   place-items: center;
   border: var(--hall-stroke-thin) dashed var(--hall-color-border-strong);

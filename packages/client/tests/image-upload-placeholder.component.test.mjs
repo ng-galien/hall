@@ -75,7 +75,7 @@ function sendingUpload(request) {
 const photo = () => new File([new Uint8Array(600_000)], "photo.jpg", { type: "image/jpeg" });
 
 // @verifies-requirement HALL-FR-LAY-010
-test("a chosen photo takes its place in the text at its proportions while it is sent, then the image takes that place", async () => {
+test("a chosen photo shows a low place with the loading indicator in the text while it is sent, then the image takes that place", async () => {
   const { host, editor, unmount } = await mountEditor();
   const request = deferred();
   const statuses = [];
@@ -86,8 +86,8 @@ test("a chosen photo takes its place in the text at its proportions while it is 
   await settle();
 
   const placeholder = host.querySelector('.ProseMirror [data-testid="editor-image-placeholder"]');
-  assert.ok(placeholder, "the place of the image shows as soon as the photo is decoded");
-  assert.equal(placeholder.style.aspectRatio, `${4000 / 3000} / 1`);
+  assert.ok(placeholder, "the place of the image shows as soon as the photo is chosen");
+  assert.equal(placeholder.style.aspectRatio, "", "the place does not take the proportions of the photo");
   assert.ok(placeholder.querySelector('[data-testid="loading-indicator"]'), "the place carries the loading indicator");
   assert.equal(editor.getJSON().content.length, 1, "the place is not part of the text");
 
@@ -106,8 +106,8 @@ test("a chosen photo takes its place in the text at its proportions while it is 
     "the image is placed after the paragraph where the photo was chosen",
   );
   const figure = host.querySelector('.editor-image-node [data-testid="editor-image-placeholder"]');
-  assert.ok(figure, "the placed image keeps the place until it is loaded");
-  assert.equal(figure.style.aspectRatio, `${4000 / 3000} / 1`);
+  assert.ok(figure, "the placed image keeps the low place until its address is known");
+  assert.equal(figure.style.aspectRatio, "");
   assert.deepEqual(statuses.at(-1), { kind: "idle" });
   await unmount();
 });

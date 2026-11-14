@@ -16,7 +16,6 @@ import {
   imagePlaceholderAnchor,
   rememberImageRatio,
   removeImagePlaceholder,
-  sizeImagePlaceholder,
   startImagePlaceholder,
 } from "./imageUploadPlaceholder";
 
@@ -136,8 +135,8 @@ function placeMarkdown(view: EditorView, markdown: string, requestedPosition: nu
 
 // @implements-requirement HALL-FR-LAY-010
 /**
- * Sends an image while its place is shown in the text, at its proportions once the photo is decoded, with the loading
- * indicator; the image then takes that place, after what was written meanwhile. Returns the position right after the
+ * Sends an image while its place, a low box with the loading indicator, is shown in the text; the image then takes that
+ * place at its own size, after what was written meanwhile. Returns the position right after the
  * image, or null when it was not placed; the place is removed when the image is not placed.
  */
 async function uploadIntoPlace(
@@ -151,7 +150,6 @@ async function uploadIntoPlace(
   const unwatch = watchPhotoSize(file, ({ width, height }) => {
     if (width <= 0 || height <= 0) return;
     ratio = width / height;
-    sizeImagePlaceholder(view, placeholder, ratio);
   });
   try {
     const end = await beginImageUpload();

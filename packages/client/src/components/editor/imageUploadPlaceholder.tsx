@@ -5,21 +5,17 @@ import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import { createRoot, type Root } from "react-dom/client";
 import { LoadingIndicator } from "../ui/loading-indicator";
 
-/** An image being sent: where it will be placed in the text, and its proportions once the photo is decoded. */
+/** An image being sent: where it will be placed in the text. */
 interface PendingImage {
   id: string;
   anchor: number;
-  ratio: number | null;
 }
 
-type PlaceholderChange =
-  | { kind: "start"; id: string; anchor: number }
-  | { kind: "size"; id: string; ratio: number }
-  | { kind: "end"; id: string };
+type PlaceholderChange = { kind: "start"; id: string; anchor: number } | { kind: "end"; id: string };
 
 const placeholderKey = new PluginKey<PendingImage[]>("imageUploadPlaceholders");
 
-/** Proportions (width over height) of the images sent in this session, so that a placed image keeps its place. */
+/** Proportions (width over height) of the images sent in this session, so that a placed image keeps its height while it loads. */
 const sentImageRatios = new Map<string, number>();
 
 export function rememberImageRatio(resourceId: string, ratio: number) {
@@ -32,14 +28,13 @@ export function sentImageRatio(resourceId: string): number | undefined {
 
 const roots = new WeakMap<HTMLElement, Root>();
 
-/** The place of an image being sent: a box at the width and the proportions of the image, with the loading indicator. */
-function placeholderElement(ratio: number): HTMLElement {
+/** The place of an image being sent: a low box of fixed height with the loading indicator. */
+function placeholderElement(): HTMLElement {
   const element = document.createElement("span");
   element.className = "editor-image-placeholder hall-template-image-left";
   element.contentEditable = "false";
   element.dataset.testid = "editor-image-placeholder";
   element.style.width = `${imageWidthRange.default}%`;
-  element.style.aspectRatio = String(ratio);
   const root = createRoot(element);
   root.render(<LoadingIndicator aria-hidden="true" />);
   roots.set(element, root);
@@ -64,9 +59,7 @@ export function imageUploadPlaceholders() {
           : pending;
         const change = transaction.getMeta(placeholderKey) as PlaceholderChange | undefined;
         if (!change) return mapped;
-        if (change.kind === "start") return [...mapped, { id: change.id, anchor: change.anchor, ratio: null }];
-        if (change.kind === "size")
-          return mapped.map((image) => (image.id === change.id ? { ...image, ratio: change.ratio } : image));
+        if (change.kind === "start") return [...mapped, { id: change.id, anchor: change.anchor }];
         return mapped.filter((image) => image.id !== change.id);
       },
     },
@@ -74,12 +67,12 @@ export function imageUploadPlaceholders() {
       decorations(state) {
         const pending = placeholderKey.getState(state) ?? [];
         const imageType = state.schema.nodes.resourceImage;
-        const widgets = pending.flatMap(({ id, anchor, ratio }) => {
-          if (ratio === null || !imageType) return [];
+        const widgets = pending.flatMap(({ id, anchor }) => {
+          if (!imageType) return [];
           const position = insertPoint(state.doc, anchor, imageType) ?? anchor;
           return [
-            Decoration.widget(position, () => placeholderElement(ratio), {
-              key: `${id}:${ratio}`,
+            Decoration.widget(position, placeholderElement, {
+              key: id,
               side: 1,
               ignoreSelection: true,
               destroy: destroyPlaceholder,
@@ -99,16 +92,12 @@ function dispatchChange(view: EditorView, change: PlaceholderChange) {
   view.dispatch(view.state.tr.setMeta(placeholderKey, change).setMeta("addToHistory", false));
 }
 
-/** Records the position of an image about to be sent; its place shows once its proportions are known. */
+/** Shows the place of an image about to be sent at the given position of the text. */
 export function startImagePlaceholder(view: EditorView, anchor: number): string {
   nextPlaceholder += 1;
   const id = `image-upload-${nextPlaceholder}`;
   dispatchChange(view, { kind: "start", id, anchor });
   return id;
-}
-
-export function sizeImagePlaceholder(view: EditorView, id: string, ratio: number) {
-  dispatchChange(view, { kind: "size", id, ratio });
 }
 
 /** The position of the image in the text as it is now, after what was written meanwhile. */
