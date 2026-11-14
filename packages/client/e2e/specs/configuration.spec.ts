@@ -123,6 +123,20 @@ test("all default templates preview real Alésia data with saved presentation", 
       else expect(template.headerHtml).toBeTruthy();
       expect(template.footerHtml).toBeTruthy();
     } else expect(preview.html).toContain("Démonstration Hall");
+    if (template.documentType === "minutes") {
+      // @verifies-requirement HALL-FR-MIN-290
+      expect(preview.html).not.toContain("Sujet présenté");
+      expect(preview.html).toContain('class="hall-commune"');
+      expect(preview.html).not.toContain('class="hall-document-header"');
+      expect(preview.html).toMatch(
+        /<footer class="hall-document-footer">.*· Procès-verbal du conseil · Séance du .+ · Page /s,
+      );
+      expect(preview.html).toMatch(
+        /Fait à <span class="hall-fill hall-fill-place"><\/span>, le <span class="hall-fill hall-fill-date"><\/span>/,
+      );
+      expect(preview.html).toContain("Présidence de séance");
+      expect(preview.html).toContain("Secrétariat de séance");
+    }
   }
   await page.goto(
     `/app/templates/${templates.find((entry: { documentType: string }) => entry.documentType === "minutes").id}`,

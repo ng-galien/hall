@@ -141,3 +141,71 @@ test("administrator edits a role in Configuration and its existing session gains
   await expect(reader.getByTestId("navigation-contacts")).toHaveCount(0);
   await reader.context().close();
 });
+
+// @verifies-requirement HALL-FR-USR-110
+test("only an administrator gives or withdraws the administrator role", async ({ page: admin, browser, baseURL }) => {
+  test.setTimeout(120_000);
+  await created(
+    await admin.request.post("/api/auth/bootstrap", {
+      data: { displayName: "Administrator", email: "admin@example.test", password },
+    }),
+  );
+  const roleResponse = await admin.request.post("/api/roles", {
+    data: {
+      name: "Gestion des comptes",
+      revision: 0,
+      grants: [
+        { access: "read", condition: "always" },
+        { access: "user.list", condition: "always" },
+        { access: "user.manage", condition: "always" },
+      ],
+    },
+  });
+  expect(roleResponse.status(), await roleResponse.text()).toBe(201);
+  const roleBody = await roleResponse.json();
+  const managerRole = { id: (roleBody.id ?? roleBody.properties.id) as string };
+  const account = (email: string, roles: string[]) =>
+    admin.request
+      .post("/api/users", { data: { email, displayName: email, password, roles, contactId: null } })
+      .then((response) => created<{ id: string }>(response));
+  await account("manager@example.test", [managerRole.id]);
+  const otherAdministrator = await account("second-admin@example.test", ["administrator"]);
+  const contributor = await account("contributor@example.test", ["contributor"]);
+
+  const manager = await sessionPage(browser, baseURL ?? "", "manager@example.test");
+  await manager.goto("/app/users");
+  await manager.getByTestId("users-add").click();
+  await expect(manager.getByTestId("user-role-clerk")).toBeVisible();
+  await expect(manager.getByTestId("user-role-administrator")).toHaveCount(0);
+  await manager.getByTestId("user-create-cancel").click();
+
+  await manager.goto(`/app/users/${otherAdministrator.id}`);
+  await manager.getByTestId("user-edit-roles").click();
+  await expect(manager.getByTestId("user-role-clerk")).toBeVisible();
+  await expect(manager.getByTestId("user-role-administrator")).toHaveCount(0);
+  await manager.getByTestId("user-role-clerk").check();
+  await manager.getByTestId("user-roles-submit").click();
+  await expect(manager.getByTestId("user-roles-submit")).toHaveCount(0);
+  const kept = (await (await admin.request.get(`/api/users/${otherAdministrator.id}`)).json()).properties.roles;
+  expect([...kept].sort()).toEqual(["administrator", "clerk"]);
+
+  const refused = await manager.request.put(`/api/users/${contributor.id}/roles`, {
+    data: { roles: ["contributor", "administrator"] },
+  });
+  expect(refused.status()).toBe(403);
+  expect((await refused.json()).code).toBe("administrator_role_requires_administrator");
+  await manager.context().close();
+
+  await admin.addInitScript(() => localStorage.setItem("mairie.locale", "en"));
+  await admin.goto("/app/users");
+  await admin.getByTestId("users-add").click();
+  await expect(admin.getByTestId("user-role-administrator")).toBeVisible();
+  await admin.getByTestId("user-create-cancel").click();
+  await admin.goto(`/app/users/${contributor.id}`);
+  await admin.getByTestId("user-edit-roles").click();
+  await admin.getByTestId("user-role-administrator").check();
+  await admin.getByTestId("user-roles-submit").click();
+  await expect(admin.getByTestId("user-roles-submit")).toHaveCount(0);
+  const given = (await (await admin.request.get(`/api/users/${contributor.id}`)).json()).properties.roles;
+  expect([...given].sort()).toEqual(["administrator", "contributor"]);
+});
