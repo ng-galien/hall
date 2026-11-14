@@ -49,6 +49,8 @@ function clearedCookie(secure: boolean): string {
 
 // @implements-requirement HALL-FR-USR-080 (a password-link request answers the same for a known, unknown or disabled
 // address, and its email leaves after the response)
+// @implements-requirement HALL-FR-USR-080 (the authentication status gives a visitor who is not signed in the name of
+// the commune of the settings, and no other setting)
 export function createAuthRouter({ authService, config, passwordLinkService, securityRepository }: Cradle): Router {
   const router = Router();
   type Attempt = { failures: number; expiresAt: number; blockedUntil: number };
@@ -116,8 +118,6 @@ export function createAuthRouter({ authService, config, passwordLinkService, sec
     return received.length === expected.length && timingSafeEqual(received, expected);
   };
 
-  // @implements-requirement HALL-FR-USR-080 (the sign-in and link screens name the commune before sign-in: the status
-  // gives the name of the commune of the settings, and no other setting)
   router.get("/status", async (request, response) => {
     const developmentAccess = config.devAutoLogin === true;
     const bootstrapRequired = developmentAccess ? false : await authService.bootstrapRequired();
