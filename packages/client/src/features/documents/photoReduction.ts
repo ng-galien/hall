@@ -1,7 +1,7 @@
 /** Bounds of a photo sent to Hall: the only place where they are written. */
 export const photoReduction = {
   /** Longest side, in pixels, of a reduced photo. */
-  longestSide: 2000,
+  longestSide: 2560,
   /** JPEG quality of a reduced photo. */
   jpegQuality: 0.8,
   /** An image within the longest side and lighter than this many bytes is sent as it is. */

@@ -31,16 +31,16 @@ function decoder({ width, height, opaque = true, fails = false }) {
 
 const file = (name, type, bytes) => new File([new Uint8Array(bytes)], name, { type });
 
-test("the bounds of a photo are written once: 2000 pixels on the longest side, JPEG quality 0.8, 500 kB", () => {
-  assert.deepEqual(photoReduction, { longestSide: 2000, jpegQuality: 0.8, keptBelowBytes: 500_000 });
+test("the bounds of a photo are written once: 2560 pixels on the longest side, JPEG quality 0.8, 500 kB", () => {
+  assert.deepEqual(photoReduction, { longestSide: 2560, jpegQuality: 0.8, keptBelowBytes: 500_000 });
 });
 
 // @verifies-requirement HALL-FR-LAY-010
-test("a 12-megapixel photo is brought down to 2000 pixels on its longest side and encoded as JPEG 0.8", async () => {
+test("a 12-megapixel photo is brought down to 2560 pixels on its longest side and encoded as JPEG 0.8", async () => {
   const { decode, calls } = decoder({ width: 4032, height: 3024 });
   const photo = file("IMG_2041.jpg", "image/jpeg", 4_000_000);
   const reduced = await reducePhoto(photo, decode);
-  assert.deepEqual(calls.drawn, [2000, 1500]);
+  assert.deepEqual(calls.drawn, [2560, 1920]);
   assert.equal(calls.quality, 0.8);
   assert.equal(reduced.type, "image/jpeg");
   assert.equal(reduced.name, "IMG_2041.jpg");
@@ -52,18 +52,18 @@ test("a 12-megapixel photo is brought down to 2000 pixels on its longest side an
 test("a photo taken upright keeps the proportions given by its orientation", async () => {
   const { decode, calls } = decoder({ width: 3024, height: 4032 });
   await reducePhoto(file("upright.jpeg", "image/jpeg", 3_000_000), decode);
-  assert.deepEqual(calls.drawn, [1500, 2000]);
+  assert.deepEqual(calls.drawn, [1920, 2560]);
 });
 
 // @verifies-requirement HALL-FR-LAY-010
-test("an image within 2000 pixels and under 500 kB is sent as it is", async () => {
+test("an image within 2560 pixels and under 500 kB is sent as it is", async () => {
   const { decode, calls } = decoder({ width: 1600, height: 1200 });
   const photo = file("small.jpg", "image/jpeg", 400_000);
   assert.equal(await reducePhoto(photo, decode), photo);
   assert.equal(calls.drawn, null);
 });
 
-test("an image within 2000 pixels but heavier than 500 kB is encoded again at its own size", async () => {
+test("an image within 2560 pixels but heavier than 500 kB is encoded again at its own size", async () => {
   const { decode, calls } = decoder({ width: 1800, height: 1200 });
   const reduced = await reducePhoto(file("heavy.jpg", "image/jpeg", 900_000), decode);
   assert.deepEqual(calls.drawn, [1800, 1200]);
