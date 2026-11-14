@@ -88,6 +88,22 @@ test("an opened item keeps its place in the first line and its commands on the l
         await page.goto(url);
         const commands = page.getByTestId("screen-title-commands");
         await expect(commands.getByTestId("workspace-workbench-pin")).toBeVisible();
+        /* A document, spreadsheet or map that fills the screen opens with the reduced header line, which holds its
+           title and its commands after the place, and passes the title under the place when the line lacks room. */
+        const header = page.getByTestId("screen-header");
+        if (kind === "map" || kind === "pdf" || kind === "spreadsheet") {
+          await expect(header).toHaveAttribute("data-item-line", "true");
+          const line = header.locator(".screen-header-line");
+          await expect(line.getByTestId("screen-header-title")).toBeVisible();
+          await expect(line.getByTestId("screen-title-commands").getByTestId("workspace-workbench-pin")).toBeVisible();
+          await expect(page.getByTestId("workspace-search-panel")).toHaveCount(0);
+          if (colorScheme === "light" || kind === "map")
+            await page.screenshot({
+              path: testInfo.outputPath(`${kind}-${width}-${folded ? "rail" : "menu"}-${colorScheme}.png`),
+            });
+          continue;
+        }
+        await expect(header).not.toHaveAttribute("data-item-line", "true");
         await expectPlaceLine(page, label);
         await expect(page.getByTestId("workspace-search-panel")).toHaveCount(0);
         await expect(page.getByTestId("item-save-state").or(page.locator(".workbench-eyebrow")).first()).toBeVisible();
