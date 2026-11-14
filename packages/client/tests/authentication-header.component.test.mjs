@@ -47,32 +47,43 @@ async function render(path) {
 const header = (host) => {
   const element = host.querySelector('[data-testid="authentication-header"]');
   assert.ok(element, "the screen carries the head of the sign-in screens");
+  const title = host.querySelector(".authentication-screen-title");
   return {
     logo: element.querySelector('[data-testid="hall-logo"]'),
-    text: [...element.children].map((child) => child.textContent.trim()),
+    heading: element.querySelector("h1")?.textContent,
+    text: [...element.children].map((child) => child.textContent.trim()).filter(Boolean),
+    title: title?.textContent ?? null,
+    titleOutsideHeader: !title || !element.contains(title),
   };
 };
 
 // @verifies-requirement HALL-FR-USR-080
-test("the sign-in screen shows the logo and the name of Hall, then the commune, then its title", async () => {
+test("the sign-in screen is headed by the logo of Hall and the commune as its title, Hall under it, and no other title", async () => {
   communeName = "Foncine-le-Bas";
   const { host, unmount } = await render("/");
-  const { logo, text } = header(host);
+  const { logo, heading, text, title } = header(host);
   assert.ok(logo);
-  assert.deepEqual(text, ["app.name", "Foncine-le-Bas", "auth.signInTitle"]);
+  assert.equal(heading, "Foncine-le-Bas");
+  assert.deepEqual(text, ["Foncine-le-Bas", "app.name"]);
+  assert.equal(title, null);
   assert.equal(host.querySelector(".eyebrow"), null);
   await unmount();
 });
 
 // @verifies-requirement HALL-FR-USR-080
-test("an expired link screen names the commune, and a screen of an installation without a name shows Hall alone", async () => {
+test("an expired link screen keeps its own title under the commune, and without a commune name Hall is the title", async () => {
   communeName = "Foncine-le-Bas";
   let screen = await render("/password-link#expired");
-  assert.deepEqual(header(screen.host).text, ["app.name", "Foncine-le-Bas", "auth.passwordLinkExpiredTitle"]);
+  let head = header(screen.host);
+  assert.equal(head.heading, "Foncine-le-Bas");
+  assert.equal(head.title, "auth.passwordLinkExpiredTitle");
+  assert.ok(head.titleOutsideHeader);
   await screen.unmount();
   communeName = "";
   screen = await render("/password-link#expired");
-  assert.deepEqual(header(screen.host).text, ["app.name", "auth.passwordLinkExpiredTitle"]);
+  head = header(screen.host);
+  assert.equal(head.heading, "app.name");
+  assert.deepEqual(head.text, ["app.name"]);
   assert.equal(screen.host.querySelector('[data-testid="authentication-commune"]'), null);
   await screen.unmount();
 });

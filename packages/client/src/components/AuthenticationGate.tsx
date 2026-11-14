@@ -151,9 +151,8 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
   return (
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit}>
-        <AuthenticationHeader communeName={status.communeName}>
-          <h1>{t(status.bootstrapRequired ? "auth.bootstrapTitle" : "auth.signInTitle")}</h1>
-        </AuthenticationHeader>
+        <AuthenticationHeader communeName={status.communeName} />
+        {status.bootstrapRequired ? <h2 className="authentication-screen-title">{t("auth.bootstrapTitle")}</h2> : null}
         {status?.bootstrapRequired ? (
           <>
             <Field label={t("auth.displayName")}>

@@ -51,12 +51,11 @@ export function PasswordRecoveryScreen({
   return (
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit} data-testid="password-recovery">
-        <AuthenticationHeader communeName={communeName}>
-          <div className="authentication-title">
-            <h1>{t("auth.recoveryTitle")}</h1>
-            {sent ? null : <HelpHint text={t("auth.recoveryDescription")} />}
-          </div>
-        </AuthenticationHeader>
+        <AuthenticationHeader communeName={communeName} />
+        <div className="authentication-title">
+          <h2 className="authentication-screen-title">{t("auth.recoveryTitle")}</h2>
+          {sent ? null : <HelpHint text={t("auth.recoveryDescription")} />}
+        </div>
         {sent ? (
           <p role="status" data-testid="password-recovery-sent">
             {t("auth.recoverySent")}
@@ -149,17 +148,16 @@ export function PasswordLinkScreen({
   return (
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit} data-testid="password-link">
-        <AuthenticationHeader communeName={communeName}>
-          <h1 data-testid="password-link-title">
-            {t(
-              unusable
-                ? "auth.passwordLinkExpiredTitle"
-                : link?.purpose === "invitation"
-                  ? "auth.invitationTitle"
-                  : "auth.passwordLinkTitle",
-            )}
-          </h1>
-        </AuthenticationHeader>
+        <AuthenticationHeader communeName={communeName} />
+        <h2 className="authentication-screen-title" data-testid="password-link-title">
+          {t(
+            unusable
+              ? "auth.passwordLinkExpiredTitle"
+              : link?.purpose === "invitation"
+                ? "auth.invitationTitle"
+                : "auth.passwordLinkTitle",
+          )}
+        </h2>
         {unusable ? (
           <>
             <p role="alert" data-testid="password-link-unusable">

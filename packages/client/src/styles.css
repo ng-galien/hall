@@ -19,7 +19,7 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 .authentication-shell {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: var(--hall-space-6) var(--hall-space-4);
@@ -32,34 +32,60 @@
   gap: var(--hall-space-4);
 }
 
-.authentication-header {
-  display: grid;
-  gap: var(--hall-space-2);
-}
-
-.authentication-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--hall-space-2-5);
-}
-
-.authentication-brand-name {
-  font-size: var(--hall-font-size-title);
-  font-weight: var(--hall-font-weight-heavy);
-  letter-spacing: var(--hall-letter-spacing-heading);
-}
-
-.authentication-commune {
-  color: var(--hall-color-text-muted);
-  font-size: var(--hall-font-size-body);
-  font-weight: var(--hall-font-weight-semibold);
-}
-
 .authentication-panel h1 {
   font-size: var(--hall-font-size-heading);
   font-weight: var(--hall-font-weight-heavy);
   letter-spacing: var(--hall-letter-spacing-heading);
   line-height: var(--hall-line-height-heading);
+}
+
+/* The head of an access screen: the logo of Hall, the commune as the title of the screen, Hall under it. */
+.authentication-header {
+  display: grid;
+  justify-items: center;
+  gap: var(--hall-space-2);
+  text-align: center;
+}
+
+.authentication-header > .hall-logo {
+  width: var(--hall-size-auth-logo);
+  height: var(--hall-size-auth-logo);
+  margin-bottom: var(--hall-space-2);
+}
+
+.authentication-header > h1 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  font-size: var(--hall-font-size-display);
+  font-weight: var(--hall-font-weight-heavy);
+  letter-spacing: var(--hall-letter-spacing-heading);
+  line-height: var(--hall-line-height-display);
+}
+
+.authentication-product {
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-body);
+  font-weight: var(--hall-font-weight-semibold);
+}
+
+.authentication-panel .authentication-screen-title {
+  margin: 0;
+  color: var(--hall-color-text);
+  font-size: var(--hall-font-size-title);
+  font-weight: var(--hall-font-weight-bold);
+  letter-spacing: normal;
+  line-height: var(--hall-line-height-body-large);
+}
+
+@media (max-width: 760px) {
+  .authentication-header > h1 {
+    font-size: var(--hall-font-size-display-small);
+    line-height: var(--hall-line-height-display-small);
+  }
 }
 
 @theme inline {
