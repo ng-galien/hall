@@ -128,6 +128,7 @@ export {
   TextAlignRight as AlignRightIcon,
   TextB as BoldIcon,
   Textbox as BoxedTextIcon,
+  TextH as HeadingIcon,
   TextIndent as IndentIcon,
   TextItalic as ItalicIcon,
   TextOutdent as OutdentIcon,

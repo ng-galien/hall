@@ -124,7 +124,7 @@ export function useImageFiles({
 }
 
 /**
- * « Photo » at the right of the writing tools of a phone: it opens the bottom sheet of the application with Take a
+ * The camera icon of « Photo » at the right of the writing tools of a phone: it opens the bottom sheet of the application with Take a
  * photo and Choose a photo, and Upload an image for the note of a map drawing.
  */
 export function PhotoSheetButton({ choices, busy }: { choices: ImageChoice[]; busy: boolean }) {
@@ -135,15 +135,17 @@ export function PhotoSheetButton({ choices, busy }: { choices: ImageChoice[]; bu
     <>
       <Button
         variant="plain"
+        size="icon"
         type="button"
         className="editor-photo-control"
         data-testid="editor-photo"
+        aria-label={t("editor.photo")}
         aria-expanded={open}
         disabled={busy}
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => setOpen(true)}
       >
-        {t("editor.photo")}
+        <CameraIcon />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent

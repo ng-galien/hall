@@ -25,6 +25,7 @@ import {
   ChecklistIcon,
   EditIcon,
   FullscreenIcon,
+  HeadingIcon,
   IndentIcon,
   ItalicIcon,
   LinkIcon,
@@ -624,27 +625,26 @@ function useNarrowLayout(): boolean {
   return narrow;
 }
 
-/** One text tool of the phone writing bar: a short word drawn as the tool does, such as a bold « G ». */
+/** One text tool of the phone writing bar: the icon of the tool, named by its label. */
 function PhoneTool({
   label,
   testId,
   active,
-  className,
   onClick,
   children,
 }: {
   label: string;
   testId: string;
   active: boolean;
-  className: string;
   onClick(): void;
   children: ReactNode;
 }) {
   return (
     <Button
       variant="plain"
+      size="icon"
       type="button"
-      className={cn("markdown-phone-tool", className)}
+      className="markdown-phone-tool"
       data-testid={testId}
       aria-label={label}
       aria-pressed={active}
@@ -658,8 +658,8 @@ function PhoneTool({
 
 // @implements-requirement HALL-FR-DOC-270
 /**
- * The writing tools of a phone (choice 8B), fixed under the screen header while the text scrolls: bold, italic,
- * heading, bulleted list, then « Photo » at the right. The other formatting and the search of references are in the
+ * The writing tools of a phone (choice 8B), fixed under the screen header while the text scrolls: the icons of bold,
+ * italic, heading, bulleted list, then of « Photo » at the right. The other formatting and the search of references are in the
  * « ⋯ » menu of the screen header; the full-screen editor is not offered, the text already fills the screen.
  */
 function PhoneWritingBar({
@@ -686,37 +686,33 @@ function PhoneWritingBar({
         label={t("editor.bold")}
         testId="editor-bold"
         active={state.bold}
-        className="markdown-phone-tool-bold"
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
-        {t("editor.boldShort")}
+        <BoldIcon />
       </PhoneTool>
       <PhoneTool
         label={t("editor.italic")}
         testId="editor-italic"
         active={state.italic}
-        className="markdown-phone-tool-italic"
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
-        {t("editor.italicShort")}
+        <ItalicIcon />
       </PhoneTool>
       <PhoneTool
         label={t("editor.heading2")}
         testId="editor-heading"
         active={state.blockType === "h2"}
-        className="markdown-phone-tool-heading"
         onClick={() => applyBlockType(editor, state.blockType === "h2" ? "p" : "h2")}
       >
-        {t("editor.headingShort")}
+        <HeadingIcon />
       </PhoneTool>
       <PhoneTool
         label={t("editor.bulletList")}
         testId="editor-bullet-list"
         active={state.bulletList}
-        className="markdown-phone-tool-list"
         onClick={() => editor.chain().focus().toggleBulletList().run()}
       >
-        {`• ${t("editor.listShort")}`}
+        <ListBulletedIcon />
       </PhoneTool>
       {photo}
     </div>

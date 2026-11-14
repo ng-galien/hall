@@ -70,25 +70,14 @@
   transform: none;
   transition: none;
 }
-.markdown-phone-tool {
+/* The tools are icons of the family of the application, in the tone and size of the commands of the header. */
+.markdown-phone-tool,
+.markdown-phone-toolbar > .editor-photo-control {
   min-width: var(--hall-size-touch-control);
   min-height: var(--hall-size-touch-control);
-  padding-inline: var(--hall-space-2);
-  color: var(--hall-color-text);
-  font-size: var(--hall-font-size-text);
-  font-weight: var(--hall-font-weight-semibold);
 }
 .markdown-phone-tool[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-surface-selected); }
-.markdown-phone-tool-bold { font-weight: var(--hall-font-weight-heavy); }
-.markdown-phone-tool-italic { font-style: italic; }
-.markdown-phone-toolbar > .editor-photo-control {
-  min-height: var(--hall-size-touch-control);
-  margin-left: auto;
-  padding-inline: var(--hall-space-2);
-  color: var(--hall-color-brand);
-  font-size: var(--hall-font-size-text);
-  font-weight: var(--hall-font-weight-bold);
-}
+.markdown-phone-toolbar > .editor-photo-control { margin-left: auto; }
 /* While a text is written on a phone, nothing above its writing tools is pulled up out of the scrolled area: the tools
    start at the top of that area, so its first line starts under them instead of under the fixed tools. */
 .app-main .workspace:has(.markdown-editor-phone) > .workspace-topzone { margin-block: 0; }

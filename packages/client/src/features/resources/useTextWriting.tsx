@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { imageUploadsPending, imageUploadsSettled } from "../../components/editor/imageUploadGate";
+import { EditIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { ScreenActions } from "../../shell/headerTrail";
@@ -62,12 +63,14 @@ export function useTextWriting(text: WritableText): { editing: boolean; control:
       </Button>
     ) : (
       <Button
-        variant="secondary"
+        variant="plain"
+        size="icon"
         className="screen-header-writing"
         data-testid="text-edit"
+        aria-label={t("common.edit")}
         onClick={() => setEditing(true)}
       >
-        {t("common.edit")}
+        <EditIcon />
       </Button>
     )
   ) : null;
