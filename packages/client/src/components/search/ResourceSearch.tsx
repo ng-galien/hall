@@ -1,9 +1,11 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { referenceKindNatures, ToneGlyph } from "../../features/documents/ResourceGlyph";
 import { type ResourceSearchScope, useResourceSearch } from "../../features/search/useResourceSearch";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { SearchType } from "../../lib/search";
+import { folderColorsByPath } from "../../pages/workspace/paths";
+import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { Mentionable } from "../editor/references";
 import { Button } from "../ui/button";
 import { ListRowIcon, ListRows } from "../ui/list-row";
@@ -49,6 +51,7 @@ export interface ResourceSearchProps {
   placeholder?: string;
 }
 // @implements-requirement HALL-FR-SRC-030
+// @implements-requirement HALL-FR-WSP-480
 export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchProps>(function ResourceSearch(
   {
     scope,
@@ -81,6 +84,8 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
   const [browsing, setBrowsing] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const search = useResourceSearch(effective, scope, items, !hideResultsWhenEmpty || isSearchBoxActive(effective));
+  const catalog = useWorkspaceResourcesStore((store) => store.catalog);
+  const folderColors = useMemo(() => folderColorsByPath(catalog), [catalog]);
   const presentedItems = presentItem ? search.items.map(presentItem) : search.items;
   const typeLabel = (item: Mentionable) =>
     item.metaLabel ?? (item.kind === "councilBusiness" ? t("editor.kind.councilBusiness") : "");
@@ -136,7 +141,9 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
   }, [active]);
   const glyph = (item: Mentionable) => {
     if (item.kind === "resource" && item.tone) return <ToneGlyph tone={item.tone} />;
-    if (item.kind === "resource" || item.kind === "councilBusiness") return <KindGlyph kind={item.kind} />;
+    if (item.kind === "councilBusiness")
+      return <KindGlyph kind={item.kind} color={item.folderPath ? folderColors.get(item.folderPath) : null} />;
+    if (item.kind === "resource") return <KindGlyph kind={item.kind} />;
     const Icon = item.icon;
     return Icon ? (
       <ListRowIcon nature={referenceKindNatures[item.kind]}>
@@ -213,6 +220,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
                 <FolderSectionsList
                   sections={folderNodes}
                   itemKey={(item) => item.folderPath}
+                  folderColor={(path) => folderColors.get(path)}
                   renderItem={() => null}
                   onFolderSelect={(path) => {
                     change({ ...effective, folders: [path] });

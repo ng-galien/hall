@@ -153,3 +153,19 @@ test("the selector tree keeps only the branches holding maps and lists maps unde
     ],
   );
 });
+
+// @verifies-requirement HALL-FR-WSP-480
+test("each branch of the selector tree keeps the shared colour of its own folder", () => {
+  const tree = [
+    {
+      path: "Équipements",
+      name: "Équipements",
+      business: null,
+      color: "#1F7A4A",
+      children: [{ path: "Équipements/Voirie", name: "Voirie", business: null, color: null, children: [] }],
+    },
+  ];
+  const reduced = mapsTree(tree, [summary("m1", "Routes", "Équipements/Voirie")]);
+  assert.equal(reduced[0].color, "#1F7A4A");
+  assert.equal(reduced[0].children[0].color, null);
+});

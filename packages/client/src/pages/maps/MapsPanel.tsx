@@ -79,7 +79,13 @@ function FolderBranch({
       title={node.name}
       testId={`maps-tree-folder-${encodeURIComponent(node.path)}`}
       defaultOpen
-      icon={node.business ? <CouncilBusinessGlyph business={node.business} /> : <FolderGlyph />}
+      icon={
+        node.business ? (
+          <CouncilBusinessGlyph business={node.business} color={node.color} />
+        ) : (
+          <FolderGlyph color={node.color} />
+        )
+      }
       actions={<span className="maps-tree-count">{node.mapCount}</span>}
     >
       {node.children.map((child) => (

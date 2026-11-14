@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FullscreenIcon } from "../../components/icons";
@@ -19,6 +19,7 @@ import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { folderColorsByPath } from "./paths";
 
 /** Lexical relative filing path; resources outside the base retain their parent segments. */
 export function relativeDocumentPath(base: string, path: string): string {
@@ -29,16 +30,22 @@ export function relativeDocumentPath(base: string, path: string): string {
   return [...from.slice(common).map(() => ".."), ...to.slice(common)].join("/");
 }
 
-/** @implements-requirement HALL-FR-WSP-260 */
-function documentFolderLabel(base: string, relativePath: string, rootLabel: string): string {
+/** Full path of a folder given relative to the business folder. */
+export function documentFolderPath(base: string, relativePath: string): string {
   const segments = base.split("/").filter(Boolean);
   for (const segment of relativePath.split("/").filter(Boolean)) {
     if (segment === "..") segments.pop();
     else segments.push(segment);
   }
-  return segments.at(-1) ?? rootLabel;
+  return segments.join("/");
 }
 
+/** @implements-requirement HALL-FR-WSP-260 */
+function documentFolderLabel(base: string, relativePath: string, rootLabel: string): string {
+  return documentFolderPath(base, relativePath).split("/").filter(Boolean).at(-1) ?? rootLabel;
+}
+
+// @implements-requirement HALL-FR-WSP-480
 export function BusinessDocumentTree({
   resources,
   basePath,
@@ -51,6 +58,8 @@ export function BusinessDocumentTree({
   onRenamed(): Promise<void>;
 }) {
   const { t } = useI18n();
+  const catalog = useWorkspaceResourcesStore((state) => state.catalog);
+  const folderColors = useMemo(() => folderColorsByPath(catalog), [catalog]);
   const entries = resources.map((resource) => ({ resource, path: relativeDocumentPath(basePath, resource.path) }));
   const renderFolder = (path: string): ReactNode => {
     const prefix = path ? `${path}/` : "";
@@ -69,7 +78,7 @@ export function BusinessDocumentTree({
             title={documentFolderLabel(basePath, prefix + name, t("navigation.workspace"))}
             testId={`business-document-folder-${encodeURIComponent(prefix + name)}`}
             defaultOpen
-            icon={<FolderGlyph />}
+            icon={<FolderGlyph color={folderColors.get(documentFolderPath(basePath, prefix + name))} />}
           >
             {renderFolder(prefix + name)}
           </ExplorerTreeBranch>

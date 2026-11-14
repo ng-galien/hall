@@ -12,11 +12,14 @@ export function FolderSectionsList<T>({
   renderItem,
   itemKey,
   onFolderSelect,
+  folderColor,
 }: {
   sections: FolderSection<T>[];
   renderItem(item: T, index: number): ReactNode;
   itemKey(item: T): string;
   onFolderSelect?(path: string): void;
+  /** Shared colour of the folder at a path, painted on its icon. */
+  folderColor?(path: string): string | null | undefined;
 }) {
   let index = -1;
   const renderNode = (node: FolderSection<T>): ReactNode => {
@@ -32,7 +35,11 @@ export function FolderSectionsList<T>({
           {node.children.map(renderNode)}
         </ListRows>
       ) : undefined;
-    const row = { head: node.folder ? <FolderGlyph open /> : undefined, title: node.label, children: branch };
+    const row = {
+      head: node.folder ? <FolderGlyph open color={folderColor?.(node.path)} /> : undefined,
+      title: node.label,
+      children: branch,
+    };
     return onFolderSelect && node.folder ? (
       <ListRow
         {...row}

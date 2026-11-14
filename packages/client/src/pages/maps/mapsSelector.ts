@@ -8,6 +8,8 @@ export interface MapsTreeNode {
   path: string;
   name: string;
   business: CouncilBusinessView | null;
+  /** Shared colour of the folder at this path, when one is set. */
+  color: string | null;
   children: MapsTreeNode[];
   maps: MapSummary[];
   mapCount: number;
@@ -28,6 +30,7 @@ function byName(left: MapSummary, right: MapSummary): number {
 /**
  * Workspace path tree reduced to the branches that hold at least one map, each node carrying its own maps.
  * @implements-requirement HALL-FR-WSP-320
+ * @implements-requirement HALL-FR-WSP-480
  */
 export function mapsTree(tree: readonly PathNode[], maps: readonly MapSummary[]): MapsTreeNode[] {
   const mapsByPath = new Map<string, MapSummary[]>();
@@ -38,7 +41,9 @@ export function mapsTree(tree: readonly PathNode[], maps: readonly MapSummary[])
       const own = [...(mapsByPath.get(node.path) ?? [])].sort(byName);
       const mapCount = own.length + children.reduce((total, child) => total + child.mapCount, 0);
       if (mapCount === 0) return [];
-      return [{ path: node.path, name: node.name, business: node.business, children, maps: own, mapCount }];
+      return [
+        { path: node.path, name: node.name, business: node.business, color: node.color, children, maps: own, mapCount },
+      ];
     });
   return reduce(tree);
 }
