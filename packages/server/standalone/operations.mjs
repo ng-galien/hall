@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readdir, rm } from "node:fs/promises";
+import { appendFile, chmod, mkdir, open, readdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 // @implements-requirement HALL-TR-DST-020
@@ -14,6 +14,30 @@ export function backupArchivePattern(database) {
 export async function archivesIn(directory, database) {
   const pattern = backupArchivePattern(database);
   return (await readdir(directory)).filter((name) => pattern.test(name)).sort();
+}
+
+// @implements-requirement HALL-TR-DST-060
+/**
+ * Creates the backup folder readable only by the account that runs Hall (0700) and narrows an existing folder, its
+ * archives of the database and their manifests (0600). On Windows, Node only maps these modes to the read-only
+ * attribute: access stays governed by the folder's inherited access control list.
+ */
+export async function secureBackupDirectory(directory, database) {
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  await chmod(directory, 0o700);
+  for (const name of await archivesIn(directory, database)) {
+    await chmod(join(directory, name), 0o600);
+    await chmod(join(directory, `${name}.json`), 0o600).catch((error) => {
+      if (error?.code !== "ENOENT") throw error;
+    });
+  }
+}
+
+/** Creates an empty file readable only by the account that runs Hall, so that a tool writing into it keeps 0600. */
+export async function createOwnerOnlyFile(file) {
+  const handle = await open(file, "wx", 0o600);
+  await handle.close();
+  await chmod(file, 0o600);
 }
 
 /**

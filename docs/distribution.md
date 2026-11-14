@@ -326,6 +326,17 @@ The final destination and retention are a decision of the municipality and its
 IT provider; the defaults keep two weeks of nightly archives on the same machine,
 which does not protect against the loss of that machine.
 
+Archives are not encrypted. On Linux and macOS, `hall backup` creates the backup
+folder with mode `0700` and each archive, including its `.partial` file during
+`pg_dump`, and each manifest with mode `0600`: only the account that runs Hall can
+read them. An existing folder is narrowed to `0700` at the next backup, together
+with the archives of the database and their manifests already in it; other files of
+the folder keep their mode. On Windows, Node maps these modes only to the read-only
+attribute and does not change access control lists: the folder and its files inherit
+the access control list of the parent folder. Place `HALL_BACKUP_DIRECTORY` in a
+folder whose access control list grants access only to the account that runs Hall
+and the administrators.
+
 `hall backup` and `hall verify-backup` append one JSON line per run to `backup.log`
 in the folder of the Hall log (`logs/` beside the environment file unless
 `HALL_LOG_FILE` is set): `operation`, `outcome` (`succeeded` or `failed`), the archive

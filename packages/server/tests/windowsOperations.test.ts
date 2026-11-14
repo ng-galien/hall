@@ -1,10 +1,16 @@
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { appendJsonLine, pruneArchives, windowsTasksScript } from "../standalone/operations.mjs";
+import {
+  appendJsonLine,
+  createOwnerOnlyFile,
+  pruneArchives,
+  secureBackupDirectory,
+  windowsTasksScript,
+} from "../standalone/operations.mjs";
 
 const temporaryDirectories: string[] = [];
 
@@ -115,6 +121,71 @@ describe("backup commands", () => {
       { operation: "verify-backup", outcome: "failed", error: expect.stringContaining("No backup archive") },
     ]);
     expect(JSON.stringify(lines)).not.toContain("not-a-real-secret");
+  });
+
+  // @verifies-requirement HALL-TR-DST-060
+  it.skipIf(process.platform === "win32")(
+    "writes the backup folder, the archive and its manifest for the account that runs Hall only",
+    async () => {
+      const root = await standaloneCopy();
+      const configuration = join(root, "config");
+      const backups = join(configuration, "backups");
+      const tools = join(root, "postgresql-bin");
+      await mkdir(backups, { recursive: true, mode: 0o755 });
+      await chmod(backups, 0o755);
+      const earlier = join(backups, "hall-hall_mairie-2026-11-01T01-00-00-000Z.dump");
+      await writeFile(earlier, "archive", { mode: 0o644 });
+      await writeFile(`${earlier}.json`, "{}", { mode: 0o644 });
+      await mkdir(tools);
+      await writeFile(
+        join(tools, "pg_dump"),
+        '#!/bin/sh\nwhile [ "$#" -gt 0 ]; do if [ "$1" = "--file" ]; then printf archive > "$2"; fi; shift; done\n',
+        { mode: 0o755 },
+      );
+      await writeFile(join(tools, "pg_restore"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+      const environmentFile = join(configuration, "hall.env");
+      await writeFile(
+        environmentFile,
+        "NODE_ENV=production\nDATABASE_URL=postgresql://hall_admin@127.0.0.1:1/hall_mairie\nHALL_ALLOWED_ORIGINS=http://127.0.0.1:3100\n",
+      );
+      const cli = join(root, "packages/server/standalone/hall.mjs");
+      const result = spawnSync(
+        process.execPath,
+        ["--import", "tsx", cli, "backup", "--env-file", environmentFile, "--postgresql-bin", tools],
+        { cwd: repository, encoding: "utf8", env: { PATH: process.env.PATH, HOME: process.env.HOME } },
+      );
+      expect(result.status, result.stderr).toBe(0);
+      const mode = async (path: string) => (await stat(path)).mode & 0o777;
+      const archives = (await readdir(backups)).filter((name) => name.endsWith(".dump"));
+      expect(archives).toHaveLength(2);
+      expect(await mode(backups)).toBe(0o700);
+      for (const name of archives) {
+        expect(await mode(join(backups, name))).toBe(0o600);
+        expect(await mode(join(backups, `${name}.json`))).toBe(0o600);
+      }
+    },
+  );
+});
+
+// @verifies-requirement HALL-TR-DST-060
+describe.skipIf(process.platform === "win32")("backup file modes", () => {
+  it("creates a missing backup folder for its owner only and leaves other files of the folder unchanged", async () => {
+    const directory = join(await temporaryDirectory(), "nested", "backups");
+    await secureBackupDirectory(directory, "hall_mairie");
+    expect((await stat(directory)).mode & 0o777).toBe(0o700);
+    const manual = join(directory, "avant-installation.dump");
+    await writeFile(manual, "manual", { mode: 0o644 });
+    await chmod(manual, 0o644);
+    await secureBackupDirectory(directory, "hall_mairie");
+    expect((await stat(manual)).mode & 0o777).toBe(0o644);
+  });
+
+  it("creates an owner-only file that keeps its mode when a tool truncates and rewrites it", async () => {
+    const file = join(await temporaryDirectory(), "archive.dump.partial");
+    await createOwnerOnlyFile(file);
+    await writeFile(file, "pg_dump output");
+    expect((await stat(file)).mode & 0o777).toBe(0o600);
+    await expect(createOwnerOnlyFile(file)).rejects.toMatchObject({ code: "EEXIST" });
   });
 });
 

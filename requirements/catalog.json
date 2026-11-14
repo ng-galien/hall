@@ -11884,6 +11884,28 @@
         }
       ]
     },
+    "HALL-TR-DST-060": {
+      "name": "BACKUPS_ARE_OWNER_ONLY_FILES",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "Les sauvegardes du serveur autonome ne sont lisibles que par le compte qui exécute Hall.",
+      "acceptanceCriteria": [
+        "On Linux and macOS, hall backup creates HALL_BACKUP_DIRECTORY with mode 0700, and the archive, its .partial file before pg_dump writes it, and its manifest with mode 0600.",
+        "At the next backup, an existing folder is narrowed to 0700 and the archives of the database already in it and their manifests to 0600; other files of the folder keep their mode, and an existing installation keeps its archives, retention and verification.",
+        "On Windows, Node maps these modes only to the read-only attribute and leaves access control lists unchanged; the distribution documentation states that the backup folder inherits the access control list of its parent and must be placed in a folder restricted to the account that runs Hall and the administrators. Archives are not encrypted."
+      ],
+      "clauses": [
+        {
+          "key": "coordinator-decision",
+          "origin": "product",
+          "statement": "Bilan de sécurité du 10 novembre 2026 ; décision du coordinateur, point 2 : le dossier des sauvegardes et chaque fichier de sauvegarde sont créés avec des droits réservés au compte qui exécute Hall, sans chiffrement ; un dossier existant voit ses droits resserrés à la sauvegarde suivante.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MTG-390": {
       "name": "MEETING_DOCUMENTS_SECTION",
       "nature": "functional",

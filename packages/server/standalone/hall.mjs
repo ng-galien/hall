@@ -2,12 +2,19 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { access, mkdir, readFile, realpath, rename, writeFile } from "node:fs/promises";
+import { access, chmod, readFile, realpath, rename, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { loadEnvFile } from "node:process";
 import { fileURLToPath } from "node:url";
-import { appendJsonLine, archivesIn, pruneArchives, windowsTasksScript } from "./operations.mjs";
+import {
+  appendJsonLine,
+  archivesIn,
+  createOwnerOnlyFile,
+  pruneArchives,
+  secureBackupDirectory,
+  windowsTasksScript,
+} from "./operations.mjs";
 
 // @implements-requirement HALL-TR-DST-010
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -135,13 +142,15 @@ async function loggedOperation(environmentFile, operation, run) {
 
 async function backupDatabase(config, release, settings) {
   const database = decodeURIComponent(new URL(config.database.url).pathname.slice(1));
-  await mkdir(settings.directory, { recursive: true });
+  await secureBackupDirectory(settings.directory, database);
   const archive = join(settings.directory, `hall-${database}-${timestamp()}.dump`);
   const env = postgresEnvironment(config.database.url);
+  await createOwnerOnlyFile(`${archive}.partial`);
   postgresTool(settings.postgresqlBin, "pg_dump", ["--format=custom", "--file", `${archive}.partial`], env);
   postgresTool(settings.postgresqlBin, "pg_restore", ["--list", `${archive}.partial`], env);
   const sha256 = await sha256Of(`${archive}.partial`);
   await rename(`${archive}.partial`, archive);
+  await chmod(archive, 0o600);
   const manifest = {
     sha256,
     createdAt: new Date().toISOString(),
@@ -149,7 +158,8 @@ async function backupDatabase(config, release, settings) {
     hall: { name: release.name, version: release.version, commit: release.source?.commit ?? null },
     schemaFingerprint: release.schemaFingerprint ?? null,
   };
-  await writeFile(`${archive}.json`, `${JSON.stringify(manifest, null, 2)}\n`);
+  await writeFile(`${archive}.json`, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
+  await chmod(`${archive}.json`, 0o600);
   const removed = await pruneArchives(settings.directory, database, settings.retention);
   return { archive, manifest, removed, log: { archive, sha256, removed } };
 }
