@@ -42,3 +42,16 @@
   top: var(--hall-space-2);
   right: var(--hall-space-2);
 }
+
+/* At phone width the bar under the grid keeps the sheet menu and room for the name of the current sheet: the tab
+   scroll arrows and the zoom buttons and slider give way, the zoom level stays in its menu, and a tab keeps its name. */
+@media (max-width: 760px) {
+  .spreadsheet-grid section[data-range-selector] > :first-child > :nth-child(3),
+  .spreadsheet-grid section[data-range-selector] > section button[data-u-comp="button"]:not([aria-haspopup]),
+  .spreadsheet-grid section[data-range-selector] > section div:has(> [role="track"]) {
+    display: none;
+  }
+  .spreadsheet-grid [data-u-comp="slide-tab-item"] {
+    flex-shrink: 0;
+  }
+}
