@@ -3,6 +3,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { expect, test } from "../fixtures/application";
 
+// @verifies-requirement HALL-FR-WSP-480
 test("exports a business archive and imports an incoming archive with duplicate refusal", async ({ appPage: page }) => {
   test.setTimeout(60_000);
   const created = await page.request.post("/api/council-business", {
@@ -18,6 +19,21 @@ test("exports a business archive and imports an incoming archive with duplicate 
     },
   });
   expect(uploaded.ok()).toBeTruthy();
+  const sourceCatalog = (await (await page.request.get("/api/resources/catalog")).json()).entities.map(
+    (entry: { properties: unknown }) => entry.properties,
+  );
+  for (const [fullPath, color] of [
+    ["seed/Affaire échanges", "#1F7A4A"],
+    ["seed/Affaire échanges/Pièces", "#2457D6"],
+  ]) {
+    const folder = sourceCatalog.find(
+      (entry: { kind: string; fullPath: string }) => entry.kind === "folder" && entry.fullPath === fullPath,
+    );
+    const colored = await page.request.patch(`/api/resources/${folder.id}/metadata`, {
+      data: { path: folder.path, name: folder.name, tags: [], color, editing: { kind: "fixed" } },
+    });
+    expect(colored.ok()).toBeTruthy();
+  }
   await page.goto("/app/workspace?path=seed");
   const row = page.getByTestId(`workspace-business-${business.id}`);
   await expect(row).toHaveAttribute("data-folder-import-enabled", "true", { timeout: 15_000 });
@@ -76,6 +92,18 @@ test("exports a business archive and imports an incoming archive with duplicate 
       entry.name === "annexe.txt" && entry.path.startsWith("Imports/martin-alice/"),
   );
   expect(document).toBeTruthy();
+  const importedFolders = catalog.filter(
+    (entry: { kind: string; fullPath: string }) =>
+      entry.kind === "folder" && entry.fullPath.startsWith("Imports/martin-alice/Affaire échanges"),
+  );
+  expect(
+    Object.fromEntries(
+      importedFolders.map((entry: { fullPath: string; color?: string }) => [entry.fullPath, entry.color ?? null]),
+    ),
+  ).toEqual({
+    "Imports/martin-alice/Affaire échanges": "#1F7A4A",
+    "Imports/martin-alice/Affaire échanges/Pièces": "#2457D6",
+  });
   await page.screenshot({ animations: "disabled", path: "/tmp/hall-business-bundles/imported.png" });
   await openImport();
   await page

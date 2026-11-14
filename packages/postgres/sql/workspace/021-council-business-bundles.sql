@@ -87,7 +87,8 @@ BEGIN
       FROM jsonb_array_elements(bundle->'editorAssets') WHERE value#>>'{data,owner,id}'=item->>'id';
       PERFORM hall_api.update_text_resource(local_id,1,rewritten,asset_ids);
     END IF;
-    PERFORM hall_api.update_resource_metadata(local_id,(SELECT path FROM hall.resource WHERE id=local_id),item->>'name',ARRAY(SELECT jsonb_array_elements_text(item->'tags')));
+    -- @implements-requirement HALL-FR-WSP-480
+    PERFORM hall_api.update_resource_metadata(local_id,(SELECT path FROM hall.resource WHERE id=local_id),item->>'name',ARRAY(SELECT jsonb_array_elements_text(item->'tags')),CASE WHEN item->>'kind'='folder' THEN item->'color' END);
   END LOOP;
   -- @implements-requirement HALL-FR-DOC-330
   FOR entry IN SELECT value FROM jsonb_array_elements(bundle->'resources') WHERE value#>>'{data,kind}'='geographic' LOOP
