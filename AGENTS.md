@@ -87,9 +87,9 @@ Before modifying `packages/client`, read the output of `npm run audit:screens --
 
 ## Verification
 
-Before pushing, run locally the groups that match the change, then inspect the final result. CI confirms a result already obtained locally; it is not the place where failures are found. The CI durations and what CI runs are in [`docs/development.md`](docs/development.md#ci-gate).
+The table gives what must have run locally before a push, according to the change. The author of the change runs the groups without a browser (`checks`, `units`, `backend`, `postgres`, `distribution`) and commits. The verifier, distinct from the author, runs on the committed state the browser scenarios the change touches, the browser family concerned and the screen audit, and runs the complete gate before a grouped push or a version. CI confirms a result already obtained locally; it is not the place where failures are found. The CI durations and what CI runs are in [`docs/development.md`](docs/development.md#ci-gate).
 
-| Change | Commands to run before pushing |
+| Change | Commands that must have run locally before pushing |
 | --- | --- |
 | Any change, including documentation only | `node scripts/testing/gate.mjs checks` |
 | `packages/client` | `node scripts/testing/gate.mjs units`; `npm run test:e2e -- <spec>` for each scenario the change touches; `npm run test:e2e:auth`, `npm run test:e2e:docs` or `npm run test:e2e:rules` when the change concerns that family |
@@ -97,7 +97,7 @@ Before pushing, run locally the groups that match the change, then inspect the f
 | `packages/postgres` or any SQL schema, migration, invariant, seed or PostgreSQL test helper | the focused SQL or pgTAP test during iteration, then `node scripts/testing/gate.mjs postgres`, then `node scripts/testing/gate.mjs backend` |
 | Distribution package, installation or upgrade | `node scripts/testing/gate.mjs distribution` |
 
-Run the complete gate, `npm run test:all`, before a push that groups several deliveries and before a version tag, on a checkout that no other agent modifies during the run. A branch push runs the push gate in CI; policy mutation, the Windows installation and the documentation journeys run only in the release gate, started by a version tag push or a manual run of `ci.yml`.
+The complete gate, `npm run test:all`, runs before a push that groups several deliveries and before a version tag, on a checkout that no other agent modifies during the run. A branch push runs the push gate in CI; policy mutation, the Windows installation and the documentation journeys run only in the release gate, started by a version tag push or a manual run of `ci.yml`.
 
 - Vitest is the only runner for JavaScript and TypeScript unit, component, integration, and repository-control tests. These tests live in a `tests/` directory. Do not add `node:test`, another JavaScript test runner, or test files under `scripts/`.
 - Browser and Electron journeys use Playwright. SQL invariants and stored functions use pgTAP through `pg_prove`, with shared fixtures in `packages/postgres/sql/council/test/support/`; PostgreSQL adapters and server contracts still use Vitest. `npm run test:postgres` combines pgTAP with the PostgreSQL adapter and server Vitest suites on a disposable database. Mutation testing uses Stryker with its Vitest runner. These tools cover execution models that Vitest does not provide.

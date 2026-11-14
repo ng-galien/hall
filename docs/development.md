@@ -29,9 +29,9 @@ Imported seed modules are not independent scripts. Playwright infrastructure liv
 
 ### Verification before a push
 
-Run locally, before pushing, the groups of every row that matches the change. CI confirms a result already obtained locally; it is not the place where failures are found. Durations are the CI durations measured for each group.
+The table gives what must have run locally before a push, for every row that matches the change. The author of the change runs the groups without a browser (`checks`, `units`, `backend`, `postgres`, `distribution`) and commits. The verifier, distinct from the author, runs on the committed state the browser scenarios the change touches, the browser family concerned and the screen audit, and runs the complete gate before a grouped push or a version. CI confirms a result already obtained locally; it is not the place where failures are found. Durations are the CI durations measured for each group.
 
-| Change | Commands to run | CI duration |
+| Change | Commands that must have run locally | CI duration |
 | --- | --- | --- |
 | Any change, including documentation only | `node scripts/testing/gate.mjs checks` | 1.9 min |
 | `packages/client` | `node scripts/testing/gate.mjs units`; `npm run test:e2e -- <spec>` for each scenario the change touches; `npm run test:e2e:auth`, `npm run test:e2e:docs` or `npm run test:e2e:rules` when the change concerns that family | units 1.2 min |
@@ -39,7 +39,7 @@ Run locally, before pushing, the groups of every row that matches the change. CI
 | `packages/postgres` or any SQL schema, migration, invariant, seed or PostgreSQL test helper | `node scripts/testing/gate.mjs postgres`, then `node scripts/testing/gate.mjs backend` | 6.5 min, then 5.9 min |
 | Distribution package, installation or upgrade | `node scripts/testing/gate.mjs distribution` | 2.0 min on Ubuntu |
 
-Run the complete gate, `npm run test:all`, before a push that groups several deliveries and before a version tag, on a checkout that no other agent modifies during the run. Every group must pass.
+The complete gate, `npm run test:all`, runs before a push that groups several deliveries and before a version tag, on a checkout that no other agent modifies during the run. Every group must pass.
 
 `node scripts/testing/gate.mjs checks` runs all its commands (test inventory, public artifacts, requirements, `test:meta`, Code Moniker, lint, built typecheck) and reports every failed command; the group fails if one of them fails. Every gate group runs Code Moniker from the executable locked in `package-lock.json` (`node_modules/@code-moniker/cli-<platform>-<arch>/bin`), never from another one on the `PATH`.
 
@@ -80,7 +80,7 @@ Initial database/seed fixture setup has its own 120-second failure bound. Browse
 
 The screen audit in `packages/client/e2e/screen-audit/` is the reference of the interface rules: it holds them, checks them on screen and says them. `npm run audit:screens -- --rules` writes every rule, component by component, with its variants, values, code, exceptions and what is decided but not checked yet (`--rules=bouton` for one component); `npm run audit:screens -- --explain=<file or screen>` writes the rules that apply to what you change. Both run without a browser.
 
-**Who runs it, and when.** The verifier runs the screen audit, one pass at a time, on a committed state of `main`, never while an implementer has uncommitted changes in the files concerned, and returns one list of findings by implementer. Implementers run the commands of [Verification before a push](#verification-before-a-push) for their change, including the Playwright journeys it touches.
+**Who runs it, and when.** The verifier is the only one who runs browser tests: the screen audit and the Playwright journeys. Implementers commit on a passing typecheck and name the journeys their change touches. The verifier runs one pass at a time, on a committed state of `main`, never while an implementer has uncommitted changes in the files concerned, then runs the journeys the implementers named, and returns one list of findings by implementer.
 
 - `npm run audit:screens -- --changed=<commit>` (or `<from>..<to>`, `--files=a,b`, `--screens=a,b`, `--exclude=a,b`, `--intervals=761-1000`): targeted pass on the screens a change concerns, after each delivery.
 - `npm run audit:screens`: complete pass, before a release, on the owner's request.
