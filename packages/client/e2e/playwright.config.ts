@@ -9,13 +9,15 @@ const clientUrl = builtClient ? serverUrl : `http://127.0.0.1:${clientPort}`;
 /** The desktop journey launches the Electron application, which starts its own embedded server. */
 const desktop = process.env.HALL_E2E_DESKTOP === "true";
 const fixtureServer = process.env.HALL_E2E_SEEDED_CLONES === "true";
+/** CI and the complete run of run.mjs (HALL_E2E_GATE_LIMITS) use the long limits; a focused local run keeps the short ones. */
+const longLimits = Boolean(process.env.CI) || process.env.HALL_E2E_GATE_LIMITS === "true";
 
 export default defineConfig({
   testDir: "./specs",
   outputDir: process.env.HALL_E2E_OUTPUT_DIR ?? "../test-results/e2e",
-  globalTimeout: (process.env.CI ? 90 : 10) * 60_000,
-  timeout: process.env.CI ? 60_000 : 30_000,
-  expect: { timeout: process.env.CI ? 10_000 : 5_000 },
+  globalTimeout: (longLimits ? 90 : 10) * 60_000,
+  timeout: longLimits ? 60_000 : 30_000,
+  expect: { timeout: longLimits ? 10_000 : 5_000 },
   fullyParallel: true,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),

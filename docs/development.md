@@ -63,7 +63,7 @@ In CI, the browser group sets `HALL_E2E_MAX_FAILURES=0`: every lane and family r
 Differences between CI and a local run:
 
 - CI runs on Linux; the distribution jobs use Node 22, the other jobs Node 26. The Windows installation runs only in CI.
-- When `CI` is set, Playwright doubles its test and expectation timeouts (60 s and 10 s instead of 30 s and 5 s).
+- CI and the complete browser run (`node packages/client/e2e/run.mjs --all`, used by `gate.mjs browser` and `npm run test:all`) use the same Playwright limits: 90 min global, 60 s per test, 10 s per expectation. A focused local run keeps 10 min, 30 s and 5 s.
 - CI uses two browser runners with two lanes each; a local complete run uses four lanes.
 - Locally, `npm run test:all` also runs the distribution group on macOS.
 - Neither CI nor the local gate runs the Playwright desktop project, the screen audit or the documentation captures.

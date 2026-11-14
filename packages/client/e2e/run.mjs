@@ -250,7 +250,9 @@ function startLane({ lane, lanes, family, name, serverPort, clientPort, temporar
       detached: true,
       env: {
         ...process.env,
-        ...(allFamilies ? { HALL_E2E_DESKTOP: "false", HALL_DOCS_CAPTURES: "false" } : {}),
+        ...(allFamilies
+          ? { HALL_E2E_DESKTOP: "false", HALL_DOCS_CAPTURES: "false", HALL_E2E_GATE_LIMITS: "true" }
+          : {}),
         LOG_LEVEL: process.env.LOG_LEVEL ?? "warn",
         HALL_E2E_AUTH_MODE: String(mode === "auth"),
         HALL_DOCS_JOURNEYS: String(mode === "docs"),
