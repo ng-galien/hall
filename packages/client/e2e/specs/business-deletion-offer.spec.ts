@@ -56,10 +56,7 @@ test("offers business deletion only when Hall accepts it, never for its folder",
   await expect(page.getByTestId("workspace-tree-rename")).toBeVisible();
   await expect(page.getByTestId("workspace-tree-delete-business")).toHaveCount(0);
   await page.keyboard.press("Escape");
-  await page.getByTestId(`workspace-folder-${folder.properties.fullPath}`).first().click({ button: "right" });
-  await expect(page.getByTestId("workspace-tree-create")).toBeVisible();
-  await expect(page.getByRole("menu").getByTestId(/delete/)).toHaveCount(0);
-  await page.keyboard.press("Escape");
+  await expect(page.getByTestId(`workspace-folder-${folder.properties.fullPath}`)).toHaveCount(0);
 
   await page.getByTestId("workspace-create-menu").click();
   await page.getByTestId("workspace-create-councilMatter").click();
