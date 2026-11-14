@@ -298,8 +298,13 @@ test.describe("Markdown editor", () => {
     const openImage = compact.getByTestId("editor-image-open");
     await expect(openImage).toBeVisible();
     await openImage.click();
-    await expect(page.getByTestId("resource-preview")).toBeVisible();
-    await expect(page.getByTestId("resource-preview-object")).toHaveAttribute("type", "image/png");
+    await expect(page.getByTestId("editor-image-viewer")).toBeVisible();
+    await expect(page.getByTestId("editor-image-viewer-image")).toHaveAttribute("alt", imageName!);
+    await expect
+      .poll(() =>
+        page.getByTestId("editor-image-viewer-image").evaluate((element) => (element as HTMLImageElement).naturalWidth),
+      )
+      .toBeGreaterThan(0);
   });
 
   test("opens the authoritative PDF for the current Markdown in the Hall viewer", async ({ appPage: page }) => {
@@ -744,10 +749,18 @@ test.describe("Markdown editor", () => {
     await expect(renderedDocument(page).locator(`img[alt="${imageAlt}"]`).last()).toBeVisible();
 
     await editor.getByTestId("editor-image-open").click();
-    const viewer = page.getByTestId("resource-preview");
+    const viewer = page.getByTestId("editor-image-viewer");
     await expect(viewer).toBeVisible();
-    await expect(viewer.locator("object")).toHaveAttribute("type", "image/png");
-    await viewer.getByTestId("resource-preview-close").click();
+    await expect(viewer.getByTestId("editor-image-viewer-image")).toHaveAttribute("alt", imageAlt!);
+    await expect
+      .poll(() =>
+        viewer
+          .getByTestId("editor-image-viewer-image")
+          .evaluate((element) => (element as HTMLImageElement).naturalWidth),
+      )
+      .toBeGreaterThan(0);
+    await page.getByTestId("editor-image-viewer-close").click();
+    await expect(viewer).toBeHidden();
   });
 
   test("imports, autosaves, reloads and purges an editor asset from a real workbench", async ({ appPage: page }) => {
