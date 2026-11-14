@@ -16,7 +16,7 @@ const app = readFileSync(join(import.meta.dirname, "..", "src", "App.tsx"), "utf
 
 // @verifies-requirement HALL-FR-DOC-480
 test("the name of an image of a text opens the image itself, not the preview of a workspace resource", () => {
-  const renderer = /<ResourceImagePresentationProvider[^]*?renderResourcePreview=\{(.*)\}\n/.exec(app)?.[1] ?? "";
+  const renderer = /<ResourceImagePresentationProvider[\s\S]*?renderResourcePreview=\{(.*)\}\n/.exec(app)?.[1] ?? "";
   assert.match(renderer, /<EditorImageViewer /);
   assert.doesNotMatch(renderer, /ResourcePreview\b|^renderResourcePreview$/);
 });
