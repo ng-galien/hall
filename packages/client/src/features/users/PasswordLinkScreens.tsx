@@ -144,7 +144,7 @@ export function PasswordLinkScreen({
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit} data-testid="password-link">
         <p className="eyebrow">{t("navigation.council")}</p>
-        <h1>
+        <h1 data-testid="password-link-title">
           {t(
             unusable
               ? "auth.passwordLinkExpiredTitle"
