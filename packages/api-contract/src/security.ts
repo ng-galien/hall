@@ -49,10 +49,14 @@ export const accountMailOutcomes = ["sent", "failed", "unknown"] as const;
 export type AccountMailOutcome = (typeof accountMailOutcomes)[number];
 export const accountMailOutcomeSchema = z.enum(accountMailOutcomes);
 
-/** The latest account email Hall submitted for an account; it never carries a link or a password. */
+/**
+ * The latest account email Hall submitted for an account; it never carries a link or a password. `failureCode` is the
+ * cause Hall recorded when the email was not sent, and null when it was.
+ */
 export interface ApiAccountMail {
   kind: AccountMailKind;
   outcome: AccountMailOutcome;
+  failureCode: string | null;
   sentAt: string;
 }
 

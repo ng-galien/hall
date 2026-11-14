@@ -59,8 +59,18 @@ function mapUser(row: DatabaseRow): StoredUser {
 }
 
 const accountMailSchema = z
-  .object({ kind: accountMailKindSchema, outcome: accountMailOutcomeSchema, sent_at: z.string() })
-  .transform(({ kind, outcome, sent_at }) => ({ kind, outcome, sentAt: sent_at }))
+  .object({
+    kind: accountMailKindSchema,
+    outcome: accountMailOutcomeSchema,
+    failure_code: z.string().min(1).nullable(),
+    sent_at: z.string(),
+  })
+  .transform(({ kind, outcome, failure_code, sent_at }) => ({
+    kind,
+    outcome,
+    failureCode: failure_code,
+    sentAt: sent_at,
+  }))
   .nullable();
 
 const issuedPasswordLinkSchema = z.discriminatedUnion("outcome", [

@@ -9,6 +9,7 @@ import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
 import { SectionHeader } from "../components/ui/section-header";
 import { useRoleOptions } from "../features/authorization/useRoleOptions";
+import { accountMailCauseKey } from "../features/users/accountMailCause";
 import { GeneratedPassphrase } from "../features/users/GeneratedPassphrase";
 import { PasswordDialog } from "../features/users/PasswordDialog";
 import { TemporaryPasswordSetting } from "../features/users/TemporaryPasswordSetting";
@@ -26,7 +27,7 @@ const accountMailTones = { sent: "success", failed: "danger", unknown: "neutral"
 >;
 
 // @implements-requirement HALL-FR-USR-080 (an account manager sends a reset link from the user page)
-// @implements-requirement HALL-FR-USR-090 (one line for the latest account email, with « Renvoyer »)
+// @implements-requirement HALL-FR-USR-090 (one line for the latest account email, its failure cause, with « Renvoyer »)
 // @implements-requirement HALL-FR-USR-100 (an address held by another account is refused on the address field)
 export function UserPage() {
   const { userId = "" } = useParams();
@@ -291,6 +292,11 @@ export function UserPage() {
                     >
                       {t(`users.accountMailOutcome.${user.accountMail.outcome}`)}
                     </span>
+                    {user.accountMail.failureCode && (
+                      <span data-testid="user-account-mail-cause">
+                        {t(accountMailCauseKey(user.accountMail.failureCode))}
+                      </span>
+                    )}
                     {canSendPasswordLink[userId] && user.accountMail.kind !== "password-changed" && (
                       <Button
                         variant="secondary"

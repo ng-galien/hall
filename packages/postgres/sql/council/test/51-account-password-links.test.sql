@@ -58,7 +58,9 @@ SELECT is((SELECT status FROM hall.app_user WHERE id = pg_temp.other()), 'disabl
 SELECT is(hall_api.open_app_user(pg_temp.holder(), false)->'account_mail', 'null'::jsonb, 'an account without account email has no record');
 SELECT ok(hall_api.record_account_mail(pg_temp.holder(), 'invitation', 'failed', 'transport_not_configured', '2026-11-12 10:00Z'), 'a failed account email is recorded');
 SELECT ok(hall_api.record_account_mail(pg_temp.holder(), 'recovery', 'unknown', 'transport_submission_uncertain', '2026-11-12 10:31Z'), 'an uncertain account email is recorded');
-SELECT is(hall_api.open_app_user(pg_temp.holder(), false)->'account_mail', '{"kind": "recovery", "outcome": "unknown", "sent_at": "2026-11-12T10:31:00.000Z"}'::jsonb, 'the account shows its latest account email, without link');
+SELECT is(hall_api.open_app_user(pg_temp.holder(), false)->'account_mail', '{"kind": "recovery", "outcome": "unknown", "failure_code": "transport_submission_uncertain", "sent_at": "2026-11-12T10:31:00.000Z"}'::jsonb, 'the account shows its latest account email with its failure cause, without link');
+SELECT ok(hall_api.record_account_mail(pg_temp.holder(), 'recovery', 'sent', NULL, '2026-11-12 10:40Z'), 'a sent account email is recorded');
+SELECT is(hall_api.open_app_user(pg_temp.holder(), false)->'account_mail'->'failure_code', 'null'::jsonb, 'a sent account email carries no failure cause');
 SELECT throws_ok($$INSERT INTO hall.account_mail (user_id, kind, outcome, failure_code, sent_at) VALUES (pg_temp.holder(), 'recovery', 'sent', 'code', now())$$, '23514', NULL, 'a sent account email carries no failure code');
 SELECT ok(NOT hall_api.record_account_mail(gen_random_uuid(), 'recovery', 'sent', NULL, now()), 'an unknown account records no email');
 SELECT is((SELECT count(*)::int FROM information_schema.columns WHERE table_schema = 'hall' AND table_name IN ('account_password_link', 'account_mail') AND column_name ~ '^(token|link|password|url)$'), 0, 'no clear secret, link or password column exists');

@@ -24,7 +24,7 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     'created_at', hall.iso_timestamp(account.created_at),
     'updated_at', hall.iso_timestamp(account.updated_at),
     'account_mail', (SELECT jsonb_build_object('kind', mail.kind, 'outcome', mail.outcome,
-      'sent_at', hall.iso_timestamp(mail.sent_at))
+      'failure_code', mail.failure_code, 'sent_at', hall.iso_timestamp(mail.sent_at))
       FROM hall.account_mail mail WHERE mail.user_id = account.id ORDER BY mail.sent_at DESC, mail.id DESC LIMIT 1))
 $$;
 

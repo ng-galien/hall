@@ -12114,11 +12114,12 @@
         "state": "accepted",
         "since": "2026-11-12"
       },
-      "statement": "The page of a user shows one line for the latest account email: its kind, date and result, with « Renvoyer ».",
+      "statement": "The page of a user shows one line for the latest account email: its kind, date and result, the cause of a failure, with « Renvoyer ».",
       "acceptanceCriteria": [
         "The line names the latest account email of the account (invitation, password link or password-change confirmation), its date and its result: « Envoyé » when the transport accepted it, « Échec » when it refused it, « À vérifier » when the outcome is uncertain. Acceptance by the transport is not proof of receipt.",
         "When the latest email carried a link, « Renvoyer » issues a new link of the same kind within the frequency limit and updates the line. A link can always be requested again within that limit.",
-        "The line never shows a link or a password, and Hall keeps no link or password with it."
+        "The line never shows a link or a password, and Hall keeps no link or password with it.",
+        "When the latest account email was not sent, the line gives the cause recorded by Hall with « Échec », and with « À vérifier » when a cause accompanies it: a short label for each cause Hall knows (public address of Hall not configured, sender address missing, malformed email, uncertain submission, and the causes returned by the mail transport), and one general short label for any other cause. The technical code of a cause is never shown."
       ],
       "clauses": [
         {
@@ -12140,9 +12141,21 @@
           "sourceIds": []
         },
         {
+          "key": "criterion-4",
+          "origin": "product",
+          "statement": "When the latest account email was not sent, the line gives the cause recorded by Hall with « Échec », and with « À vérifier » when a cause accompanies it: a short label for each cause Hall knows (public address of Hall not configured, sender address missing, malformed email, uncertain submission, and the causes returned by the mail transport), and one general short label for any other cause. The technical code of a cause is never shown.",
+          "sourceIds": []
+        },
+        {
           "key": "owner-request",
           "origin": "product",
           "statement": "Owner framing of 12 November 2026, version 2, Topic Graph topic hall-accounts-activation-mail, message 7e7c46fb-c96c-4846-a628-388a4fc68164, which replaces version 1 (af38cd7b). Owner words: « Donc mots de passe, les resets de mots de passe, les mots de passe temporaires, le workflow d'envoi d'email. Voilà, il faut au moins ça. » ; « je veux un parcours utilisateur connu classique, pas quelque chose d'exotique. Simple, et fonctionnel. » ; « Faut que les gens soient autonomes. Ils oublient leur mot de passe, ils le refont, et puis voilà. » ; « fais le lien de réinitialisation […] tu reprends le parcours classique » ; « Ok, tu lances ça. » The owner authorized the data-model change limited to single-use links and their tracking.",
+          "sourceIds": []
+        },
+        {
+          "key": "failure-cause",
+          "origin": "product",
+          "statement": "Owner decision of 14 November 2026: the user page writes the cause of an account email that was not sent beside « Échec ». Hall already recorded this cause with the email.",
           "sourceIds": []
         }
       ]

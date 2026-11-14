@@ -83,7 +83,11 @@ it("A1 keeps the account created when the invitation fails and resends it from t
   const server = await setup();
   server.transport.outcomes.push({ status: "failed", code: "outlook_account_unavailable" });
   const created = await server.create("echec@example.test");
-  expect(created.accountMail).toMatchObject({ kind: "invitation", outcome: "failed" });
+  expect(created.accountMail).toMatchObject({
+    kind: "invitation",
+    outcome: "failed",
+    failureCode: "outlook_account_unavailable",
+  });
   const page = await server.agent.get(`/api/users/${created.id}`).expect(200);
   expect(page.body.actions.map((action: { name: string }) => action.name)).toContain("user.send-password-link");
   server.advance(2);
@@ -94,6 +98,7 @@ it("A1 keeps the account created when the invitation fails and resends it from t
   expect(domainBody<{ accountMail: unknown }>(resent).accountMail).toMatchObject({
     kind: "invitation",
     outcome: "sent",
+    failureCode: null,
   });
   server.transport.outcomes.push(new Error("transport crashed"));
   server.advance(2);
@@ -101,13 +106,20 @@ it("A1 keeps the account created when the invitation fails and resends it from t
     .post(`/api/users/${created.id}/password-links`)
     .send({ purpose: "invitation" })
     .expect(200);
-  expect(domainBody<{ accountMail: unknown }>(uncertain).accountMail).toMatchObject({ outcome: "unknown" });
+  expect(domainBody<{ accountMail: unknown }>(uncertain).accountMail).toMatchObject({
+    outcome: "unknown",
+    failureCode: "transport_submission_uncertain",
+  });
 });
 
 it("A1 records a failure without calling the transport when the public origin is not configured", async () => {
   const server = await setup({ publicOrigin: null });
   const created = await server.create("sans-adresse@example.test");
-  expect(created.accountMail).toMatchObject({ kind: "invitation", outcome: "failed" });
+  expect(created.accountMail).toMatchObject({
+    kind: "invitation",
+    outcome: "failed",
+    failureCode: "public_origin_not_configured",
+  });
   expect(server.transport.calls).toHaveLength(0);
 });
 
