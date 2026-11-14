@@ -11,12 +11,10 @@ import "./ResourceAutosaveToggle.css";
 export function ResourceAutosaveToggle({
   enabled,
   status,
-  disabled = false,
   onChange,
 }: {
   enabled: boolean;
   status: SaveStatus;
-  disabled?: boolean;
   onChange(enabled: boolean): void;
 }) {
   const { t } = useI18n();
@@ -45,7 +43,6 @@ export function ResourceAutosaveToggle({
       aria-checked={enabled}
       aria-label={accessibleLabel}
       title={accessibleLabel}
-      disabled={disabled}
       onClick={() => onChange(!enabled)}
     >
       <span className="resource-autosave-icon" aria-hidden="true">

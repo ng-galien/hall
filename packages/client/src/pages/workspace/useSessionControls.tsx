@@ -22,7 +22,6 @@ export function useSessionControls(session: ResourceSession | null, close?: Reac
             <ResourceAutosaveToggle
               enabled={session.autosaveEnabled}
               status={session.saveStatus}
-              disabled={session.submitting}
               onChange={session.updateAutosave}
             />
           ) : null}

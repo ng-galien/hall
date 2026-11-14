@@ -25,8 +25,9 @@ interface ResourcePersistenceOptions {
   remoteUrl: string;
   autosaveEnabled: boolean;
   dirty: boolean;
-  submitting: boolean;
   run: SubmissionRunner;
+  /** Runs an action once the action on its way, if any, has ended. */
+  runAfter: SubmissionRunner;
   adoptUpdatedResource(resource: DocumentaryLeafDetail): void;
   setAutosaveEnabled(enabled: boolean): void;
   setActionError(error: ApiErrorCode | null): void;
@@ -46,8 +47,8 @@ export function useResourcePersistence({
   remoteUrl,
   autosaveEnabled,
   dirty,
-  submitting,
   run,
+  runAfter,
   adoptUpdatedResource,
   setAutosaveEnabled,
   setActionError,
@@ -159,8 +160,8 @@ export function useResourcePersistence({
 
   const updateAutosave = useCallback(
     (enabled: boolean) => {
-      if (!resource || !capabilities.updateMetadata || submitting || !resourceSupportsAutosave(resource)) return;
-      void run(async () => {
+      if (!resource || !capabilities.updateMetadata || !resourceSupportsAutosave(resource)) return;
+      void runAfter(async () => {
         setActionError(null);
         setSaveStatus("saving");
         try {
@@ -187,11 +188,10 @@ export function useResourcePersistence({
       adoptUpdatedResource,
       capabilities.updateMetadata,
       resource,
-      run,
+      runAfter,
       setActionError,
       setAutosaveEnabled,
       setSaveStatus,
-      submitting,
       tags,
       name,
     ],

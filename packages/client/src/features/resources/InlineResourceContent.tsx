@@ -72,7 +72,6 @@ export function InlineResourceContent({
         <ResourceAutosaveToggle
           enabled={session.autosaveEnabled}
           status={session.saveStatus}
-          disabled={session.submitting}
           onChange={session.updateAutosave}
         />
       ) : null}

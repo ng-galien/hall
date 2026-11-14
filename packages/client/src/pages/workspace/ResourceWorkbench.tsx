@@ -163,14 +163,9 @@ export function ResourceWorkbench({
           ) : null}
           <div className="workbench-actions">
             {session.capabilities.deleteResource ? (
-              <Button
-                data-testid="resource-delete"
-                variant="danger"
-                disabled={session.submitting}
-                onClick={() => setConfirmingDelete(true)}
-              >
+              <Button data-testid="resource-delete" variant="danger" onClick={() => setConfirmingDelete(true)}>
                 <DeleteIcon />
-                {t(session.submitting ? "common.saving" : "workspace.deleteResource")}
+                {t("workspace.deleteResource")}
               </Button>
             ) : null}
           </div>

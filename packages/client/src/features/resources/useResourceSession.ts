@@ -89,7 +89,7 @@ function autosavePreference(resource: ResourceDetail | null): boolean {
 
 /** Shared controller for an opened canonical documentary resource. */
 export function useResourceSession({ resourceId }: { resourceId: string | null }): ResourceSession {
-  const { submitting, run } = useSubmitting();
+  const { submitting, run, runAfter } = useSubmitting();
   const [resource, setResource] = useState<DocumentaryLeafDetail | null>(null);
   const [representation, setRepresentation] = useState<SirenEntity | null>(null);
   const [detailsFailed, setDetailsFailed] = useState(false);
@@ -199,8 +199,8 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
     remoteUrl,
     autosaveEnabled,
     dirty,
-    submitting,
     run,
+    runAfter,
     adoptUpdatedResource,
     setAutosaveEnabled,
     setActionError,
@@ -210,7 +210,7 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
     if (!resource || !capabilities.deleteResource) return false;
     setActionError(null);
     return Boolean(
-      await run(async () => {
+      await runAfter(async () => {
         try {
           return await useWorkspaceResourcesStore.getState().remove(resource.id);
         } catch (error) {
@@ -219,7 +219,7 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
         }
       }),
     );
-  }, [capabilities.deleteResource, resource, run]);
+  }, [capabilities.deleteResource, resource, runAfter]);
 
   const adoptResolvedResource = useCallback(
     (resolved: Extract<ResourceDetail, { kind: "legalReference" }>) => {
