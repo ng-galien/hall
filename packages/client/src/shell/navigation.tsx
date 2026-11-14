@@ -146,6 +146,7 @@ export function personalWorkspaceHref(path: string) {
 export interface MenuPlace {
   pathname: string;
   inPersonal: boolean;
+  personalPath: string | null;
 }
 
 /** The place of the address `pathname` and `search` for a person whose personal folder is `personalPath`. */
@@ -154,6 +155,7 @@ export function menuPlace(pathname: string, search: string, personalPath: string
   return {
     pathname,
     inPersonal: pathname === "/workspace" && personalPath !== null && isUnderPath(workspacePath, personalPath),
+    personalPath,
   };
 }
 

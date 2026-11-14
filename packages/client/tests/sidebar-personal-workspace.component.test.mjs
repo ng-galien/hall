@@ -8,7 +8,7 @@ import { afterEach, beforeEach, test, vi } from "vitest";
 vi.mock("../src/i18n/I18nProvider", () => ({ useI18n: () => ({ t: (key) => key }) }));
 vi.mock("../src/shell/usePhoneLayout", () => ({ useApiRoot: () => ({ available: () => true }) }));
 vi.mock("../src/shell/WorkspaceTree", () => ({
-  WorkspaceTree: () => h("div", { "data-testid": "workspace-tree" }),
+  WorkspaceTree: ({ root }) => h("div", { "data-testid": "workspace-tree", "data-root": root ?? "" }),
   useFolderTree: () => [],
 }));
 
@@ -69,16 +69,24 @@ test("the menu opens the personal folder of the person from an entry placed befo
 });
 
 // @verifies-requirement HALL-FR-LAY-110
-test("in the personal folder or one of its folders, the personal entry is current and Documents is not", async () => {
+test("in the personal folder or one of its folders, the personal entry is current with its folders, and Documents is not", async () => {
   for (const path of [personalPath, `${personalPath}/Notes`]) {
     await renderAt(`/workspace?${new URLSearchParams({ path })}`);
     assert.equal(row("personal").getAttribute("aria-current"), "page", path);
     assert.equal(row("workspace").getAttribute("aria-current"), null, path);
-    assert.equal(host.querySelector('[data-testid="workspace-tree"]'), null, path);
+    const trees = [...host.querySelectorAll('[data-testid="workspace-tree"]')];
+    assert.equal(trees.length, 1, path);
+    assert.equal(
+      trees[0].dataset.root,
+      personalPath,
+      "the tree under the personal entry starts at the personal folder",
+    );
+    assert.equal(trees[0].closest(".app-sidebar-item").querySelector("a"), row("personal"), path);
   }
   await renderAt(`/workspace?${new URLSearchParams({ path: "Conseil" })}`);
   assert.equal(row("personal").getAttribute("aria-current"), null);
   assert.equal(row("workspace").getAttribute("aria-current"), "page");
+  assert.equal(host.querySelector('[data-testid="workspace-tree"]').dataset.root, "", "Documents keeps the whole tree");
 });
 
 // @verifies-requirement HALL-FR-LAY-110

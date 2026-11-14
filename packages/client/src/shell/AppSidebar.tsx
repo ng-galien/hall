@@ -270,6 +270,7 @@ function MenuEntry({ item, place }: { item: NavigationItem; place: MenuPlace }) 
   const entered = isCurrentEntry(place, item);
   let under: ReactNode = null;
   if (entered && item.folderTree) under = <WorkspaceTree />;
+  else if (entered && item.personalWorkspace && place.personalPath) under = <WorkspaceTree root={place.personalPath} />;
   else if (entered && item.children)
     under = (
       <div className="nav-sub-entries">

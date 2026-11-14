@@ -71,3 +71,39 @@ test("sidebar renders all affair links from metadata index without global report
     await act(async () => root.unmount());
   }
 });
+
+// @verifies-requirement HALL-FR-LAY-110
+test("rooted on a folder, the tree shows that folder and its sub-folders, not the rest of the workspace", async () => {
+  listIndex.mockResolvedValue({
+    data: {
+      businesses: [],
+      catalog: [],
+      paths: ["Conseil", "Espaces personnels/Claire Martin/Notes/2026", "Espaces personnels/Paul Durand"],
+    },
+  });
+  const host = document.createElement("div");
+  const root = createRoot(host);
+  await act(async () =>
+    root.render(
+      h(
+        MemoryRouter,
+        { initialEntries: ["/workspace?path=Espaces+personnels%2FClaire+Martin%2FNotes"] },
+        h(WorkspaceTree, { root: "Espaces personnels/Claire Martin" }),
+      ),
+    ),
+  );
+  try {
+    const links = [...host.querySelectorAll('[data-testid="workspace-sidebar-link"]')].map((link) => link.dataset.path);
+    assert.deepEqual(links, [
+      "Espaces personnels/Claire Martin",
+      "Espaces personnels/Claire Martin/Notes",
+      "Espaces personnels/Claire Martin/Notes/2026",
+    ]);
+    assert.equal(
+      host.querySelector('[aria-current="page"]')?.getAttribute("data-path"),
+      "Espaces personnels/Claire Martin/Notes",
+    );
+  } finally {
+    await act(async () => root.unmount());
+  }
+});

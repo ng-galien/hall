@@ -157,9 +157,23 @@ export function useFolderTree() {
   );
 }
 
-/** Filing path tree rendered in the menu under the Documents entry, while the Documents screen is open. */
-export function WorkspaceTree() {
-  const tree = useFolderTree();
+/** The node of `path` in `nodes` or under them. */
+function nodeAt(nodes: PathNode<TreeBusiness>[], path: string): PathNode<TreeBusiness> | null {
+  for (const node of nodes) {
+    if (node.path === path) return node;
+    if (path.startsWith(`${node.path}/`)) return nodeAt(node.children, path);
+  }
+  return null;
+}
+
+/**
+ * Filing path tree rendered in the menu under its current entry: the whole workspace under Documents, or the folder
+ * `root` and its sub-folders, such as the personal folder under its own entry.
+ */
+export function WorkspaceTree({ root }: { root?: string } = {}) {
+  const workspace = useFolderTree();
+  const rootNode = root === undefined ? null : nodeAt(workspace, root);
+  const tree = root === undefined ? workspace : rootNode ? [rootNode] : [];
   const location = useLocation();
   const activePath = activePathFrom(location.search, location.pathname);
   const activeBusinessId = activePath === null ? null : new URLSearchParams(location.search).get("councilBusiness");
