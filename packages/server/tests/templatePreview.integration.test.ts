@@ -63,7 +63,7 @@ it("previews the eleven configured families from real Alésia records as HTML an
   };
   const signatures: Record<string, RegExp> = {
     minutes:
-      /Fait à Alésia, le .+ Présidence de séance \S.*?, (?:maire|adjoint au maire|membre du conseil municipal) Secrétariat de séance \S.*?, (?:maire|adjoint au maire|membre du conseil municipal)/,
+      /Fait à , le Présidence de séance \S.*?, (?:maire|adjoint au maire|membre du conseil municipal) Secrétariat de séance \S.*?, (?:maire|adjoint au maire|membre du conseil municipal)/,
     "council-decision": /Fait à Alésia, le .+ Le maire .*Secrétariat de séance \S/,
     "meeting-notice": /Fait à Alésia, le .+ Le maire \S/,
     "deliberation-list": /Fait à Alésia, le .+ Le maire \S/,
@@ -95,6 +95,13 @@ it("previews the eleven configured families from real Alésia records as HTML an
     // @verifies-requirement HALL-FR-MIN-280
     if (signatures[template.documentType])
       expect(text, template.documentType).toMatch(signatures[template.documentType]!);
+    // @verifies-requirement HALL-FR-MIN-290
+    if (template.documentType === "minutes") {
+      expect(text).toMatch(/^Alésia Procès-verbal du conseil Séance, présences et pouvoirs/);
+      expect(text).toMatch(/Alésia · Procès-verbal du conseil · Séance du .+ · Page 1 \/ \d+/);
+      expect(text).not.toContain("Sujet présenté");
+      expect(text).not.toContain("ALÉSIA · Conseil de l’oppidum");
+    }
   }
 
   const print = templates.find((template) => template.documentType === "document-print")!;

@@ -48,10 +48,27 @@ const signedDocumentTypes: readonly string[] = [
 const attendanceSheetStylesheet =
   " .hall-document-body table { width: 100%; table-layout: fixed; border-collapse: collapse; break-inside: auto; } .hall-document-body th, .hall-document-body td { border: 1px solid #000; padding: 1.5mm 2mm; font-size: 10pt; text-align: left; vertical-align: middle; overflow-wrap: break-word; } .hall-document-body td { height: 12mm; } .hall-document-body tr { break-inside: avoid; } .hall-document-body th:nth-child(1) { width: 45%; } .hall-document-body th:nth-child(2) { width: 55%; }";
 
+/**
+ * Minutes: the name of the municipality heads the first page (`.hall-commune`, written in the body), and
+ * the "Fait à …, le …" line leaves room enough to write the place and the date by hand.
+ */
+const minutesStylesheet =
+  " .hall-commune { font-size: 26pt; font-weight: bold; text-align: center; margin-bottom: 1rem; } .hall-commune p { margin: 0; } .hall-signatures-handwritten > p { line-height: 2.6; } .hall-fill-place { width: 70mm; } .hall-fill-date { width: 60mm; }";
+
 const familyStylesheet = (documentType: string): string =>
   pdfStylesheet +
   (signedDocumentTypes.includes(documentType) ? signatureStylesheet : "") +
-  (documentType === "attendance-sheet" ? attendanceSheetStylesheet : "");
+  (documentType === "attendance-sheet" ? attendanceSheetStylesheet : "") +
+  (documentType === "minutes" ? minutesStylesheet : "");
+
+// @implements-requirement HALL-FR-MIN-290
+/** The minutes carry no page header; their footer names the municipality, the document, the meeting and the page. */
+const familyHeader = (documentType: string): string =>
+  documentType === "proxy-form" || documentType === "minutes" ? "" : "{{ hall.name | text }}";
+const familyFooter = (documentType: string): string =>
+  documentType === "minutes"
+    ? "{{ hall.name | text }} · Procès-verbal du conseil · Séance du {{ minutes.meeting.startedAt | date }} · Page :page-number / :page-count"
+    : "Page :page-number / :page-count";
 
 /** The same readable defaults are used by creation, demonstration seed and the explicit instance replacement. */
 export const defaultDocumentTemplates: ReadonlyArray<DefaultTemplate> = families.map((family) => ({
@@ -64,8 +81,8 @@ export const defaultDocumentTemplates: ReadonlyArray<DefaultTemplate> = families
         ? "{{ generated.subject | text }}"
         : "Convocation au conseil municipal du {{ notice.meeting.scheduledAt | date }}",
   stylesheet: family.kind === "pdf" ? familyStylesheet(family.documentType) : "",
-  headerHtml: family.kind === "pdf" && family.documentType !== "proxy-form" ? "{{ hall.name | text }}" : "",
-  footerHtml: family.kind === "pdf" ? "Page :page-number / :page-count" : "",
+  headerHtml: family.kind === "pdf" ? familyHeader(family.documentType) : "",
+  footerHtml: family.kind === "pdf" ? familyFooter(family.documentType) : "",
 }));
 
 /** The four generated-content families also exist when the application schema is initialized. */

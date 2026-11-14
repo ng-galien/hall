@@ -109,10 +109,10 @@ function signatureBlock(markdown: string): string {
     .trim();
 }
 
-/** The signature block is the only HTML written in the default sources. */
+/** The signature block, and the municipality block of the minutes, are the only HTML written in the default sources. */
 const withoutSignatureMarkup = (value: string) =>
   value.replaceAll(
-    /<div class="hall-(?:signature|signatures|signatories)(?: hall-signatures-handwritten)?">|<\/div>|<span class="hall-fill hall-fill-(?:place|date)"><\/span>/g,
+    /<div class="hall-(?:commune|signature|signatures|signatories)(?: hall-signatures-handwritten)?">|<\/div>|<span class="hall-fill hall-fill-(?:place|date)"><\/span>/g,
     "",
   );
 
@@ -134,8 +134,12 @@ describe("editable Markdown/Jinja default models", () => {
       expect(html).toContain("<td>Sujet précis</td>");
     }
     if (type === "minutes") {
-      expect(output).toContain("Texte du sujet");
-      expect(output).toContain("Rédaction du conseil");
+      expect(output).not.toContain("Texte du sujet");
+      expect(output).not.toContain("Sujet présenté");
+      expect(output).toContain("#### Discussion\n\nRédaction du conseil");
+      expect(output.trimStart()).toMatch(
+        /^<div class="hall-commune">\n\nCommune\n\n<\/div>\n\n# Procès-verbal du conseil/,
+      );
       expect(output).toContain("Pour : 8");
       expect(output).not.toContain("Rapport dossier");
       expect(output.match(/Élue/g)).toHaveLength(3);
@@ -143,10 +147,14 @@ describe("editable Markdown/Jinja default models", () => {
     }
   });
   // @verifies-requirement HALL-FR-MIN-280
+  // @verifies-requirement HALL-FR-MIN-290
   it("closes the default minutes with the chair and secretary side by side, without a table", () => {
     const output = renderJinja(jinjaBody("minutes"), context);
     expect(signatureBlock(output)).toBe(
-      "Fait à Commune, le 9 octobre 2026 Présidence de séance Présidente &#x3C;Une>, adjoint au maire Secrétariat de séance Secrétaire &#x3C;Un>, membre du conseil municipal",
+      "Fait à , le Présidence de séance Présidente &#x3C;Une>, adjoint au maire Secrétariat de séance Secrétaire &#x3C;Un>, membre du conseil municipal",
+    );
+    expect(output).toContain(
+      '<div class="hall-signatures hall-signatures-handwritten">\n\nFait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fill hall-fill-date"></span>',
     );
     const html = renderHtml(parse(output));
     expect(html.indexOf("hall-signatures")).toBeGreaterThan(html.indexOf("Rédaction du conseil"));
@@ -165,7 +173,7 @@ describe("editable Markdown/Jinja default models", () => {
       },
     };
     expect(signatureBlock(renderJinja(jinjaBody("minutes"), unnamed))).toBe(
-      "Fait à Commune, le 9 octobre 2026 Présidence de séance Présidente Secrétariat de séance",
+      "Fait à , le Présidence de séance Présidente Secrétariat de séance",
     );
   });
 

@@ -48,6 +48,7 @@ Huis clos :
 
 {% endif %}`;
 
+// @implements-requirement HALL-FR-MIN-290 (each point gives its discussion, not the text of its subject)
 export const jinjaMinutesProceedings = `{% for point in minutes.points %}
 ### {{ point.number }}. {{ point.title | text }}
 
@@ -64,12 +65,6 @@ Ajourné.
 
 {% elif not point.completedAt %}
 Non examiné.
-
-{% endif %}
-{% if point.subjectText %}
-#### Sujet présenté
-
-{{ point.subjectText | markdown }}
 
 {% endif %}
 {% if point.narrative %}
@@ -141,15 +136,16 @@ const hallPlace = "{{ (hall.name or '……') | text }}";
 const blank = "……";
 
 // @implements-requirement HALL-FR-MIN-280
+// @implements-requirement HALL-FR-MIN-290 (place and date of signature are filled in by hand)
 /**
- * Closing signature block of the minutes: the meeting chair and the meeting secretary.
- * Hall has no gender data: the blocks name the offices ("Présidence de séance",
- * "Secrétariat de séance") and the mandate role, so the wording does not depend on gender.
+ * Closing signature block of the minutes: a "Fait à …, le …" line to fill in by hand, then the meeting
+ * chair and the meeting secretary. Hall has no gender data: the blocks name the offices ("Présidence de
+ * séance", "Secrétariat de séance") and the mandate role, so the wording does not depend on gender.
  */
 export const jinjaMinutesSignatures = `${qualities}
 {% set chair = minutes.signatories.chair %}
 {% set secretary = minutes.signatories.secretary %}
-${jinjaSignatureBlock(hallPlace, "{{ minutes.meeting.startedAt | date }}", [
+${jinjaSignatureBlock(null, null, [
   {
     quality: "Présidence de séance",
     name: "{{ (chair.name if chair else '') | text }}{% if chair and chair.role %}, {{ qualities[chair.role] }}{% endif %}",
@@ -371,7 +367,7 @@ Le maire{% if mayor %}
 
 Le PDF de la convocation est joint à ce message.
 `,
-  minutes: `# Procès-verbal du conseil\n\n## Séance, présences et pouvoirs\n\n${jinjaMinutesFacts}\n\n## Examen des points\n\n${jinjaMinutesProceedings}\n\n${jinjaMinutesSignatures}`,
+  minutes: `<div class="hall-commune">\n\n{{ hall.name | text }}\n\n</div>\n\n# Procès-verbal du conseil\n\n## Séance, présences et pouvoirs\n\n${jinjaMinutesFacts}\n\n## Examen des points\n\n${jinjaMinutesProceedings}\n\n${jinjaMinutesSignatures}`,
   "deliberation-list": jinjaDeliberationList,
   "council-decision": [jinjaDecisionFacts, jinjaDecisionContent, jinjaDecisionResult].join("\n\n"),
   "attendance-sheet": jinjaAttendanceSheet,

@@ -316,16 +316,22 @@ async function renderedPdf(preview: { printHtml: string; headerHtml: string; foo
 
 describe("signature blocks of the default PDF documents", () => {
   // @verifies-requirement HALL-FR-MIN-280
+  // @verifies-requirement HALL-FR-MIN-290
   it("ends the minutes PDF with the chair and secretary side by side, their mandate roles and no table", async () => {
     const { renderer } = service();
     const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
     expect(preview.diagnostics).toEqual([]);
-    expect(preview.printHtml).toContain('<div class="hall-signatures">');
+    expect(preview.printHtml).toContain('<div class="hall-signatures hall-signatures-handwritten">');
     expect(preview.printHtml.slice(preview.printHtml.indexOf("hall-signatures"))).not.toContain("<table");
+    expect(preview.printHtml).toContain('<div class="hall-commune">');
+    expect(preview.headerHtml).toBe("");
     const text = await renderedPdf(preview);
+    expect(text).toMatch(/^Commune test Procès-verbal du conseil/);
     expect(text).toMatch(
-      /Fait à Commune test, le 5 septembre 2026 Présidence de séance Marie Martin, maire Secrétariat de séance Jean Dupont, membre du conseil municipal/,
+      /Fait à\s*,\s*le\s*Présidence de séance Marie Martin, maire Secrétariat de séance Jean Dupont, membre du conseil municipal/,
     );
+    expect(text).toMatch(/Commune test · Procès-verbal du conseil · Séance du 5 septembre 2026 · Page 1 \/ 1/);
+    expect(text).not.toContain("Sujet présenté");
     expect(text).not.toContain("Signature :");
   }, 30_000);
 

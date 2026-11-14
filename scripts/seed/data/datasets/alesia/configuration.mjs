@@ -9,9 +9,9 @@ export const alesiaPdfPresentation = {
   stylesheet:
     "body { font-family: Arial, sans-serif; color: #18263c; font-size: 11pt; line-height: 1.4; } h1, h2 { color: #102a83; break-after: avoid; } table { width: 100%; border-collapse: collapse; } th, td { padding: 4px; border-bottom: 1px solid #bbb; text-align: left; }",
 };
+/** The minutes follow the default model, which has no page header. */
 const pdfTypes = new Set([
   "meeting-notice",
-  "minutes",
   "council-decision",
   "deliberation-list",
   "attendance-sheet",

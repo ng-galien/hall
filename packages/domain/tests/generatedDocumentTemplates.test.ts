@@ -21,6 +21,7 @@ const families = [
 ] as const;
 
 // @verifies-requirement HALL-FR-CFG-020
+// @verifies-requirement HALL-FR-MIN-290
 describe("canonical document template catalogue", () => {
   it("offers exactly the eleven distinct editable document families", () => {
     expect(defaultDocumentTemplates.map((template) => template.documentType)).toEqual(families.map(([type]) => type));
@@ -41,6 +42,8 @@ describe("canonical document template catalogue", () => {
       if (type === "proxy-form") {
         expect(template.headerHtml).toBe("");
         expect(template.bodyMarkdown).toMatch(/^Commune .*\{\{ commune \| text \}\}/m);
+      } else if (type === "minutes") {
+        expect(template.headerHtml).toBe("");
       } else {
         expect(template.headerHtml).toContain("{{ hall.name | text }}");
       }
@@ -53,6 +56,25 @@ describe("canonical document template catalogue", () => {
         type === "event-invitation" ? "generated.subject" : "notice.meeting.scheduledAt",
       );
     }
+  });
+
+  it("gives the minutes the municipality at the head of the first page and a footer without page header", () => {
+    const minutes = defaultDocumentTemplates.find((entry) => entry.documentType === "minutes")!;
+    expect(minutes.bodyMarkdown).toMatch(
+      /^\{# hall:jinja #\}\n<div class="hall-commune">\n\n\{\{ hall\.name \| text \}\}\n\n<\/div>\n\n# Procès-verbal du conseil/,
+    );
+    expect(minutes.bodyMarkdown).not.toContain("Sujet présenté");
+    expect(minutes.bodyMarkdown).toContain("#### Discussion");
+    expect(minutes.headerHtml).toBe("");
+    expect(minutes.footerHtml).toBe(
+      "{{ hall.name | text }} · Procès-verbal du conseil · Séance du {{ minutes.meeting.startedAt | date }} · Page :page-number / :page-count",
+    );
+    expect(minutes.stylesheet).toContain(".hall-commune { font-size: 26pt; font-weight: bold; text-align: center;");
+    expect(minutes.stylesheet).toContain(".hall-signatures-handwritten > p { line-height: 2.6; }");
+    expect(minutes.stylesheet).toContain(".hall-fill-place { width: 70mm; } .hall-fill-date { width: 60mm; }");
+    const proxy = defaultDocumentTemplates.find((entry) => entry.documentType === "proxy-form")!;
+    expect(proxy.stylesheet).not.toContain("hall-commune");
+    expect(proxy.stylesheet).not.toContain("width: 70mm");
   });
 
   it("initializes the four generated families with the same full canonical presentation", () => {

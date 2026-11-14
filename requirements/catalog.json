@@ -10710,7 +10710,7 @@
       "statement": "Le procès-verbal se termine par le bloc des signatures de la présidence et du secrétariat de séance.",
       "acceptanceCriteria": [
         "Le procès-verbal de chaque séance est signé par le maire et le ou les secrétaires.",
-        "Le modèle par défaut du procès-verbal se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : ligne « Fait à {commune}, le {date} » (date de la séance), puis deux signataires côte à côte : « Présidence de séance » à gauche et « Secrétariat de séance » à droite, chacun suivi du nom de l’élu enregistré dans les faits de clôture et de sa qualité (« maire », « adjoint au maire » ou « membre du conseil municipal »), puis d’un espace libre d’au moins 25 mm pour la signature manuscrite ; le bloc ne se coupe pas entre deux pages.",
+        "Le modèle par défaut du procès-verbal se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : ligne « Fait à …, le … » dont le lieu et la date restent à écrire à la main (HALL-FR-MIN-290), puis deux signataires côte à côte : « Présidence de séance » à gauche et « Secrétariat de séance » à droite, chacun suivi du nom de l’élu enregistré dans les faits de clôture et de sa qualité (« maire », « adjoint au maire » ou « membre du conseil municipal »), puis d’un espace libre d’au moins 25 mm pour la signature manuscrite ; le bloc ne se coupe pas entre deux pages.",
         "La qualité est le rôle du mandat de l’élu lu dans l’annuaire au moment du rendu ; elle n’est pas figée dans les faits de clôture. Sans mandat lisible, le nom figure sans qualité ; sans présidence ou secrétariat enregistré, le bloc garde l’intitulé de l’office et l’espace de signature avec un nom vide. Hall ne connaît pas le genre des élus : les intitulés désignent l’office (« Présidence de séance », « Secrétariat de séance ») plutôt que la personne.",
         "Les modèles déjà enregistrés ne sont pas modifiés : le bloc apparaît dans un modèle installé après remplacement explicite de son texte et de sa présentation par ceux du modèle par défaut."
       ],
@@ -10735,6 +10735,73 @@
           "key": "rendering",
           "origin": "product",
           "statement": "Le modèle par défaut termine le procès-verbal par le bloc de signature administratif : « Fait à », date de la séance, présidence à gauche et secrétariat à droite, noms, qualités lues sur le mandat au moment du rendu, espace de signature manuscrite. Mots d’Alexandre du 7 novembre 2026 : « dans les documents classiques, la signature, c’est pas dans un tableau » ; « elles sont pas dans des tableaux comme ça ».",
+          "sourceIds": []
+        },
+        {
+          "key": "handwritten-place-and-date",
+          "origin": "product",
+          "statement": "Décision de l’utilisateur du 14 novembre 2026 (HALL-FR-MIN-290) : le modèle par défaut suit celui de la mairie ; la ligne « Fait à …, le … » du procès-verbal n’est plus remplie avec la commune et la date de la séance, ses deux zones sont à remplir à la main. Mots de l’utilisateur du 11 novembre 2026 : « fait à le doit être wildcard […] la mention avant les signatures […] il faut assez de place ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MIN-290": {
+      "name": "DEFAULT_MINUTES_TEMPLATE_FOLLOWS_THE_MUNICIPAL_MODEL",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-14"
+      },
+      "statement": "The default minutes template follows the minutes model of the municipality: discussions without the text of the subjects, the municipality at the head of the first page, a footer naming the document, and a place and date of signature written by hand.",
+      "acceptanceCriteria": [
+        "The default minutes template prints, for each point, its title, its state, its discussion, its quorum observations, its recusals and its ballot; it does not print the text of the subject presented.",
+        "The name of the municipality heads the first page of the minutes, above the title; the pages carry no header recalling the municipality.",
+        "The footer of each page gives the name of the municipality, the title « Procès-verbal du conseil », the date of the meeting and « Page n / N ».",
+        "The attendance list gives each member with « Présent(e) », « Représenté(e) », « Excusé(e) » or « Absent(e) ».",
+        "Before the signatures of the meeting chair and secretary (HALL-FR-MIN-280), the line « Fait à …, le … » leaves the place and the date to be written by hand, with room enough for the handwriting.",
+        "An installed minutes template whose body is still a previous default receives this default through the explicit replacement of the default templates, with its header and footer while these are still a previous default; a customized template is left unchanged. The Alésia demonstration uses this default."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "The default minutes template prints, for each point, its title, its state, its discussion, its quorum observations, its recusals and its ballot; it does not print the text of the subject presented.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "The name of the municipality heads the first page of the minutes, above the title; the pages carry no header recalling the municipality.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "The footer of each page gives the name of the municipality, the title « Procès-verbal du conseil », the date of the meeting and « Page n / N ».",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-4",
+          "origin": "product",
+          "statement": "The attendance list gives each member with « Présent(e) », « Représenté(e) », « Excusé(e) » or « Absent(e) ».",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-5",
+          "origin": "product",
+          "statement": "Before the signatures of the meeting chair and secretary (HALL-FR-MIN-280), the line « Fait à …, le … » leaves the place and the date to be written by hand, with room enough for the handwriting.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-6",
+          "origin": "product",
+          "statement": "An installed minutes template whose body is still a previous default receives this default through the explicit replacement of the default templates, with its header and footer while these are still a previous default; a customized template is left unchanged. The Alésia demonstration uses this default.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Question put to the user on 14 November 2026: « Le modèle de procès-verbal par défaut du produit imprime encore le texte de chaque sujet (« Sujet présenté »), alors que le modèle de la mairie, refait le 11 novembre, ne l'imprime pas. Le modèle par défaut suit-il celui de la mairie ? » Owner decision: « Comme la mairie ». Owner words of 11 November 2026 on the municipal model: « non je ne veux pas le texte des sujets, je veux juste les discutions » ; « il faut les noms et les signatures à la fin » ; « je veux voir la tête du pv, il faut que le nom de la mairie soit plus gros » ; « foncine le bas sur toutes les pages, en petit, c'est bof » ; « il faut en pied de page le village, le titre du document, date, page » ; « fait à le doit être wildcard […] la mention avant les signatures […] il faut assez de place ».",
           "sourceIds": []
         }
       ]
