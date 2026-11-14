@@ -502,8 +502,7 @@ export const fr: Messages = {
     "Ce conseiller a déjà donné un pouvoir pour cette séance ; modifiez ou retirez le pouvoir enregistré.",
   "error.proxy_registration_invalid":
     "Le pouvoir est donné par un conseiller en mandat à un autre conseiller en mandat.",
-  "error.proxy_document_already_registered":
-    "Cette pièce justifie déjà un autre pouvoir de la séance.",
+  "error.proxy_document_already_registered": "Cette pièce justifie déjà un autre pouvoir de la séance.",
   "error.closed_session_invalid":
     "Le huis clos ne peut pas être enregistré : vérifiez la demande, la majorité absolue et les points désignés.",
   "error.recused_member_cannot_participate":
@@ -2041,7 +2040,8 @@ export const fr: Messages = {
   "proxies.chooseDocument": "Choisir un document",
   "proxies.withdraw": "Retirer",
   "proxies.withdrawTitle": "Retirer le pouvoir",
-  "proxies.withdrawConfirmation": "Le pouvoir de {grantor} à {holder} sera retiré de la séance. La pièce reste dans les documents.",
+  "proxies.withdrawConfirmation":
+    "Le pouvoir de {grantor} à {holder} sera retiré de la séance. La pièce reste dans les documents.",
   "live.proxyHolderNotPresent": "Porteur non coché présent",
   "live.proxyChoice": "Pouvoir",
   "live.unassignedZone": "Votants à pointer",

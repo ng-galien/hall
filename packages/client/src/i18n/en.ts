@@ -494,10 +494,8 @@ export const en = {
     "This member already holds a proxy for this meeting: a member holds one proxy only.",
   "error.proxy_grantor_already_registered":
     "This member already gave a proxy for this meeting; change or withdraw the registered proxy.",
-  "error.proxy_registration_invalid":
-    "A proxy is given by a member in mandate to another member in mandate.",
-  "error.proxy_document_already_registered":
-    "This document already supports another proxy of this meeting.",
+  "error.proxy_registration_invalid": "A proxy is given by a member in mandate to another member in mandate.",
+  "error.proxy_document_already_registered": "This document already supports another proxy of this meeting.",
   "error.closed_session_invalid":
     "The closed session cannot be recorded: check the request, the absolute majority and the designated items.",
   "error.recused_member_cannot_participate": "A recused member cannot participate, personally or as a proxy holder.",
@@ -2004,7 +2002,8 @@ export const en = {
   "proxies.chooseDocument": "Choose a document",
   "proxies.withdraw": "Withdraw",
   "proxies.withdrawTitle": "Withdraw the proxy",
-  "proxies.withdrawConfirmation": "The proxy of {grantor} to {holder} will be withdrawn from the meeting. The document stays in the documents.",
+  "proxies.withdrawConfirmation":
+    "The proxy of {grantor} to {holder} will be withdrawn from the meeting. The document stays in the documents.",
   "live.proxyHolderNotPresent": "Holder not marked present",
   "live.proxyChoice": "Proxy",
   "live.unassignedZone": "Voters to point",
