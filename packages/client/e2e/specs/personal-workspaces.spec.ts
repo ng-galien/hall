@@ -248,6 +248,11 @@ test("gives council members read access and a personal folder that only they and
       alicePage.getByTestId("resource-changes-panel").getByTestId("resource-changes-item").first(),
     ).toContainText("Alice Martin");
     await alicePage.keyboard.press("Escape");
+    await expect(alicePage.getByTestId("resource-changes-panel")).toHaveCount(0);
+    /* The closed panel gives its entry of the history back before the next address is opened. */
+    await expect
+      .poll(() => alicePage.evaluate(() => (history.state as { hallLayer?: string } | null)?.hallLayer ?? null))
+      .toBeNull();
     await alicePage.goto(workspaceAt(aliceFolder));
     await expect(alicePage.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
     await alicePage.getByTestId("workspace-tree-root").click({ button: "right" });
