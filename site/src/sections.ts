@@ -229,7 +229,7 @@ function renderDownload(
   head.append(
     node("p", "section-axis", release ? `Version ${release.version}` : "Dernière version"),
     node("h2", undefined, "Télécharger Hall"),
-    node("p", "section-lead", "Gratuite, sans connexion. Deux jeux : Foncine-le-Bas et Alésia."),
+    node("p", "section-lead", "Deux jeux de démonstration : Foncine-le-Bas et Alésia."),
   );
   const list = node("ul", "download-list");
   const hows: { system: System; how: HTMLAnchorElement }[] = [];
