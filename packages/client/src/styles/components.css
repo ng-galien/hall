@@ -3,6 +3,11 @@
   .app-icon { font-size: var(--hall-font-size-icon); }
   /* The logo of Hall, beside its name. */
   .hall-logo { display: block; flex: none; width: var(--hall-size-control-small); height: var(--hall-size-control-small); }
+  .hall-logo-frame { fill: var(--hall-color-logo-surface); stroke: var(--hall-color-logo-border); }
+  .hall-logo-structure { fill: var(--hall-color-logo-structure); }
+  .hall-logo-left-pillar { fill: var(--hall-color-logo-left-pillar); }
+  .hall-logo-middle-pillar { fill: var(--hall-color-logo-middle-pillar); stroke: var(--hall-color-logo-middle-pillar-line); }
+  .hall-logo-right-pillar { fill: var(--hall-color-logo-right-pillar); }
 
   /* The wait sign: hidden for a short delay, then a slate ring with a blue arc. */
   .loading-indicator {

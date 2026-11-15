@@ -59,3 +59,29 @@
   --glass-shadow: 0 20px 50px rgb(0 0 0 / 0.35);
   color-scheme: dark;
 }
+
+/*
+ * Logo de Hall, mêmes valeurs que LOGO_PALETTES de scripts/development/hall-icons.mjs : version claire, puis version
+ * sombre (carré ardoise, toit gris clair, pilier central sans filet). Un logo posé sur un écran toujours clair, comme
+ * celui du téléphone de la présentation, porte la classe logo-light.
+ */
+:root,
+.logo-light {
+  --logo-surface: #ffffff;
+  --logo-border: #cbd5e1;
+  --logo-structure: #2457d6;
+  --logo-left-pillar: #6f9bf2;
+  --logo-middle-pillar: #ffffff;
+  --logo-middle-pillar-line: #94a3b8;
+  --logo-right-pillar: #dc2626;
+}
+
+:root[data-theme="dark"] {
+  --logo-surface: #1f2a3a;
+  --logo-border: #334155;
+  --logo-structure: #e2e8f0;
+  --logo-left-pillar: #4c7fe8;
+  --logo-middle-pillar: #e2e8f0;
+  --logo-middle-pillar-line: transparent;
+  --logo-right-pillar: #e5484d;
+}

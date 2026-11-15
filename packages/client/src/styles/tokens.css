@@ -43,6 +43,14 @@
   --hall-color-danger-strong: #8b1a1a;
   --hall-color-danger-border: #f0b9b9;
   --hall-color-danger-surface: #fdf0f0;
+  /* The logo of Hall: the town hall with blue, white and red pillars, light version. */
+  --hall-color-logo-surface: #ffffff;
+  --hall-color-logo-border: #cbd5e1;
+  --hall-color-logo-structure: #2457d6;
+  --hall-color-logo-left-pillar: #6f9bf2;
+  --hall-color-logo-middle-pillar: #ffffff;
+  --hall-color-logo-middle-pillar-line: #94a3b8;
+  --hall-color-logo-right-pillar: #dc2626;
   --hall-color-focus: #2457d6;
   /* Filled search and filter field: tinted surface and an underline that turns blue on focus. */
   --hall-color-field: #eef1f5;
@@ -334,6 +342,14 @@
   --hall-color-danger-strong: #eeaba8;
   --hall-color-danger-border: #4c302f;
   --hall-color-danger-surface: #2a1c1c;
+  /* The logo of Hall, dark version: slate square, light grey roof, no line around the middle pillar. */
+  --hall-color-logo-surface: #1f2a3a;
+  --hall-color-logo-border: #334155;
+  --hall-color-logo-structure: #e2e8f0;
+  --hall-color-logo-left-pillar: #4c7fe8;
+  --hall-color-logo-middle-pillar: #e2e8f0;
+  --hall-color-logo-middle-pillar-line: transparent;
+  --hall-color-logo-right-pillar: #e5484d;
   --hall-color-nature-writing: #7f9cf0;
   --hall-color-nature-data: #4fb3df;
   --hall-color-nature-visual: #a68cf0;

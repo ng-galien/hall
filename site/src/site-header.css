@@ -12,7 +12,7 @@
   text-decoration: none;
 }
 
-/* Logo de Hall : la mairie au bleu de Hall sur un carré blanc bordé, dessin de public/icons/favicon.svg */
+/* Logo de Hall : la mairie aux piliers bleu, blanc, rouge sur un carré bordé, dessin de public/icons/favicon.svg, aux couleurs du thème */
 .site-brand-mark {
   display: grid;
   place-items: center;
@@ -24,6 +24,24 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.hall-logo-frame {
+  fill: var(--logo-surface);
+  stroke: var(--logo-border);
+}
+.hall-logo-structure {
+  fill: var(--logo-structure);
+}
+.hall-logo-left-pillar {
+  fill: var(--logo-left-pillar);
+}
+.hall-logo-middle-pillar {
+  fill: var(--logo-middle-pillar);
+  stroke: var(--logo-middle-pillar-line);
+}
+.hall-logo-right-pillar {
+  fill: var(--logo-right-pillar);
 }
 
 .site-brand-name {

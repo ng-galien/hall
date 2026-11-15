@@ -1,6 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="1" y="1" width="62" height="62" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
-  <path d="M32 11 53 23H11Z" fill="#2457d6"/>
-  <path d="M13 25h38v4H13zM11 49h42v5H11z" fill="#2457d6"/>
-  <path d="M16 31h6v16h-6zM29 31h6v16h-6zM42 31h6v16h-6z" fill="#2457d6"/>
+  <style>.hall-logo-frame{fill:#ffffff;stroke:#cbd5e1}.hall-logo-structure{fill:#2457d6}.hall-logo-left-pillar{fill:#6f9bf2}.hall-logo-middle-pillar{fill:#ffffff;stroke:#94a3b8}.hall-logo-right-pillar{fill:#dc2626}@media (prefers-color-scheme: dark){.hall-logo-frame{fill:#1f2a3a;stroke:#334155}.hall-logo-structure{fill:#e2e8f0}.hall-logo-left-pillar{fill:#4c7fe8}.hall-logo-middle-pillar{fill:#e2e8f0;stroke:transparent}.hall-logo-right-pillar{fill:#e5484d}}</style>
+  <rect class="hall-logo-frame" x="1" y="1" width="62" height="62" rx="8" stroke-width="2"/>
+  <path class="hall-logo-structure" d="M32 11 53 23H11Z"/>
+  <path class="hall-logo-structure" d="M13 25h38v4H13zM11 49h42v5H11z"/>
+  <rect class="hall-logo-left-pillar" x="16" y="31" width="6" height="16"/>
+  <rect class="hall-logo-middle-pillar" x="29" y="31" width="6" height="16" stroke-width="1"/>
+  <rect class="hall-logo-right-pillar" x="42" y="31" width="6" height="16"/>
 </svg>
