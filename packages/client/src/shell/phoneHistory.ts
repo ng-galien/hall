@@ -15,6 +15,13 @@ export function isPhoneReadingLocation({ pathname, search }: Pick<Location, "pat
   return (area === "council-decisions" || area === "minutes") && Boolean(id);
 }
 
+/** Events by which the person takes the scroll of the screen back from its restoration. */
+const interruptions = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+/** The restored position holds once the height of the screen has not changed for this number of frames. */
+const restoreStillFrames = 45;
+/** The restoration ends after this number of frames, about five seconds. */
+const restoreMaxFrames = 300;
+
 // @implements-requirement HALL-FR-LAY-010
 /** Records the scroll of each visited screen and starts a new screen at its top. */
 export function usePhoneScrollMemory(active: boolean, scroller: HTMLElement | null) {
@@ -37,14 +44,31 @@ export function usePhoneScrollMemory(active: boolean, scroller: HTMLElement | nu
     const target = positions.current.get(location.key) ?? 0;
     scroller.scrollTop = target;
     if (target === 0) return;
+    // The screen comes back before all its content: a text, an image or a list that appears above the remembered
+    // position would push it, and the browser would keep the element in view instead of the position. Until the height
+    // of the screen stays still, or the person scrolls, the position is written again and the browser does not follow
+    // any element.
+    const anchor = scroller.style.overflowAnchor;
+    scroller.style.overflowAnchor = "none";
     let frames = 0;
+    let stillFrames = 0;
+    let height = scroller.scrollHeight;
     let request = 0;
-    const restore = () => {
-      scroller.scrollTop = target;
-      frames += 1;
-      if (scroller.scrollTop !== target && frames < 60) request = window.requestAnimationFrame(restore);
+    const stop = () => {
+      window.cancelAnimationFrame(request);
+      scroller.style.overflowAnchor = anchor;
+      for (const type of interruptions) scroller.removeEventListener(type, stop);
     };
+    const restore = () => {
+      if (scroller.scrollTop !== target) scroller.scrollTop = target;
+      stillFrames = scroller.scrollHeight === height ? stillFrames + 1 : 0;
+      height = scroller.scrollHeight;
+      frames += 1;
+      if ((stillFrames >= restoreStillFrames && scroller.scrollTop === target) || frames >= restoreMaxFrames) stop();
+      else request = window.requestAnimationFrame(restore);
+    };
+    for (const type of interruptions) scroller.addEventListener(type, stop, { passive: true });
     request = window.requestAnimationFrame(restore);
-    return () => window.cancelAnimationFrame(request);
+    return stop;
   }, [active, scroller, location.key, location.pathname, location.search, location.hash]);
 }
