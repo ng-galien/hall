@@ -60,7 +60,8 @@ function crc32(value) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-function makeStoredZip(entries) {
+/** Builds an uncompressed ZIP archive from [name, content] entries (DOCX and XLSX packages). */
+export function makeStoredZip(entries) {
   const localEntries = [];
   const centralEntries = [];
   let localOffset = 0;

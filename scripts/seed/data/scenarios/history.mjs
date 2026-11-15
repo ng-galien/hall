@@ -23,7 +23,20 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
       position,
     });
   }
-  async function open(meeting, date, proxy, officers = { chair: roster.chair, secretary: roster.secretary }) {
+  /**
+   * Opens a meeting with the roster roles, or with the declarations a dataset gives for that meeting in
+   * `declaredAttendance`: [{ councilMemberId, status, proxyHolderCouncilMemberId?, proxyDocumentId? }].
+   * `noticeMinute` moves the notice that many minutes from the opening (negative: before it) when the seed
+   * can backdate, before any conduct is recorded.
+   */
+  async function open(
+    meeting,
+    date,
+    proxy,
+    officers = { chair: roster.chair, secretary: roster.secretary },
+    declaredAttendance = null,
+    { noticeMinute } = {},
+  ) {
     const chairMemberId = officers.chair.id;
     const secretaryMemberId = officers.secretary.id;
     await put(`/council-meetings/${meeting.id}/prepare`, {
@@ -33,20 +46,27 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
       secretaryMemberId,
     });
     const declarations = {
-      attendance: memberList.map((member) => {
-        if (member.id === roster.proxyGiver.id)
-          return {
-            councilMemberId: member.id,
-            status: "represented",
-            proxyHolderCouncilMemberId: roster.proxyHolder.id,
-            proxyDocumentId: proxy.id,
-          };
-        if (member.id === roster.excused.id) return { councilMemberId: member.id, status: "excused" };
-        if (member.id === roster.absent.id) return { councilMemberId: member.id, status: "absent" };
-        return { councilMemberId: member.id, status: "present" };
-      }),
+      attendance:
+        declaredAttendance ??
+        memberList.map((member) => {
+          if (member.id === roster.proxyGiver.id)
+            return {
+              councilMemberId: member.id,
+              status: "represented",
+              proxyHolderCouncilMemberId: roster.proxyHolder.id,
+              proxyDocumentId: proxy.id,
+            };
+          if (member.id === roster.excused.id) return { councilMemberId: member.id, status: "excused" };
+          if (member.id === roster.absent.id) return { councilMemberId: member.id, status: "absent" };
+          return { councilMemberId: member.id, status: "present" };
+        }),
     };
-    await post(`/council-meetings/${meeting.id}/notices`, {});
+    const notice = await post(`/council-meetings/${meeting.id}/notices`, {});
+    if (noticeMinute !== undefined && api.backdateMeeting) {
+      await api.backdateMeeting(meeting.id, [
+        { since: notice.generatedAt, target: new Date(Date.parse(date) + noticeMinute * 60_000) },
+      ]);
+    }
     const opening = await post(`/council-meetings/${meeting.id}/record-opening`, {
       ...declarations,
       chairMemberId,
@@ -60,12 +80,28 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
     const started = await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, {});
     mark(meeting, started.startedAt, minute);
   }
-  async function vote(meeting, item, attendance, mode, approve, reject, discussionSummary, minute, duration) {
-    await start(meeting, item, minute);
+  /**
+   * Conducts a ballot. `options.started` skips the start of an item already started (for a recusal or an
+   * arrival recorded during the item); `options.blank` counts blank papers of a secret ballot.
+   */
+  async function vote(
+    meeting,
+    item,
+    attendance,
+    mode,
+    approve,
+    reject,
+    discussionSummary,
+    minute,
+    duration,
+    options = {},
+  ) {
+    if (!options.started) await start(meeting, item, minute);
     await patch(`/council-meetings/${meeting.id}/agenda-items/${item.id}/notes`, {
       discussionSummary,
     });
-    const abstain = attendance.length - approve - reject;
+    const blank = options.blank ?? 0;
+    const abstain = attendance.length - approve - reject - blank;
     const base = {
       procedure: "ordinaryMajority",
       mode,
@@ -81,7 +117,7 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
             })),
             nonParticipations: [],
           }
-        : { ...base, totals: { approve, reject, abstain, blank: 0, invalid: 0, nonParticipation: 0 } };
+        : { ...base, totals: { approve, reject, abstain, blank, invalid: 0, nonParticipation: 0 } };
     const preview = await post("/ballot-previews", { agendaItemId: item.id, candidate });
     const ballot = await post(`/ballot-previews/${preview.id}/confirm`, {});
     mark(meeting, ballot.completedAt, minute + duration);
@@ -98,6 +134,40 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
   async function adjourn(meeting, item, minute) {
     const adjourned = await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/adjourn`, {});
     mark(meeting, adjourned.adjournedAt, minute);
+  }
+  /** Present and represented attendance entries of the meeting, the participants of its next ballot. */
+  async function participants(meeting) {
+    const attendance = await get(`/council-meetings/${meeting.id}/attendance`);
+    return attendance.filter((entry) => entry.status === "present" || entry.status === "represented");
+  }
+  /** An arrival or a departure during the meeting: changes = [{ councilMemberId, status }]. */
+  async function recordAttendance(meeting, changes) {
+    return post(`/council-meetings/${meeting.id}/attendance-events`, {
+      changes: changes.map((change) => ({
+        proxyHolderCouncilMemberId: null,
+        proxyDocumentId: null,
+        ...change,
+      })),
+    });
+  }
+  async function changeOfficer(meeting, office, member) {
+    return post(`/council-meetings/${meeting.id}/officer-changes`, { office, councilMemberId: member.id });
+  }
+  async function declareAuxiliary(meeting, contactId, quality) {
+    return post(`/council-meetings/${meeting.id}/auxiliary-attendances`, {
+      person: { kind: "contact", contactId },
+      quality,
+    });
+  }
+  /** Records that a member takes no part in the item; returns the remaining participants. */
+  async function recuse(meeting, item, member) {
+    await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/recusals`, {
+      councilMemberId: member.id,
+      legalBasis: "personalInterest",
+    });
+    const state = await get(`/council-meetings/${meeting.id}/agenda-items/${item.id}/recusals`);
+    const eligible = new Set(state.eligibleParticipantAttendanceIds);
+    return (await participants(meeting)).filter((entry) => eligible.has(entry.id));
   }
   async function backdate(meeting, openedAt) {
     const steps = (timelines.get(meeting.id) ?? []).map(({ since, minute }) => ({
@@ -118,7 +188,24 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
     if (date) await put(`/council-meetings/${meeting.id}/schedule`, { scheduledAt: date, location: meetingLocation });
     for (const [index, key] of subjectKeys.entries()) await schedule(meeting, key, index + 2);
   }
-  return { schedule, open, start, vote, complete, present, adjourn, close, plan, backdate, mark };
+  return {
+    schedule,
+    open,
+    start,
+    vote,
+    complete,
+    present,
+    adjourn,
+    close,
+    plan,
+    backdate,
+    mark,
+    participants,
+    recordAttendance,
+    changeOfficer,
+    declareAuxiliary,
+    recuse,
+  };
 }
 
 /** First closed meeting: three ballots and one information item, minutes generated. */
