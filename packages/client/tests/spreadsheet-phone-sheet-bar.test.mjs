@@ -11,65 +11,37 @@ const stylesheet = postcss.parse(
   readFileSync(resolve(clientRoot, "src/features/spreadsheet/SpreadsheetResourceEditor.css"), "utf8"),
 );
 
-/** The bar under the grid as the spreadsheet engine draws it at phone width, with the elements this test names. */
-const footer = new JSDOM(`<div class="spreadsheet-grid univer-spreadsheet"><section data-range-selector="true">
-  <div>
-    <div>
-      <button data-u-comp="sheet-bar-append-button" data-name="add-sheet"></button>
-      <div data-slot="dropdown-menu-trigger"><button data-u-comp="sheet-bar-append-button" data-name="sheet-menu"></button></div>
-    </div>
-    <div><div data-u-comp="slide-tab-bar" role="tablist">
-      <div data-u-comp="slide-tab-item" role="tab" aria-selected="true" data-name="current-tab"><div>Recettes</div></div>
-      <div data-u-comp="slide-tab-item" role="tab" aria-selected="false"><div>Dépenses</div></div>
-    </div></div>
-    <div data-name="tab-scroll-arrows">
-      <button data-u-comp="sheet-bar-append-button"></button>
-      <button data-u-comp="sheet-bar-append-button"></button>
-    </div>
-  </div>
-  <div><span><span><button data-u-command="sheet.command.toggle-gridlines" data-name="gridlines"></button></span></span></div>
-  <section><div>
-    <button data-u-comp="button" data-name="zoom-out"></button>
-    <div data-name="zoom-track"><div role="track"><a role="button"></a><button role="handle"></button></div></div>
-    <button data-u-comp="button" data-name="zoom-in"></button>
-    <button data-u-comp="button" aria-haspopup="menu" data-name="zoom-menu">100%</button>
-  </div></section>
-</section></div>`).window.document;
+/** The spreadsheet as Hall frames it, with the sheet tabs of the touch interface of the library under the grid. */
+function editor(attributes) {
+  return new JSDOM(`<div class="spreadsheet-editor" ${attributes}><div class="spreadsheet-grid univer-spreadsheet">
+  <div data-u-comp="app-layout"><section><div></div>
+    <footer><div data-name="sheet-tabs"><div><div>Dépenses</div><div>Hypothèses</div></div></div></footer>
+  </section></div></div></div>`).window.document;
+}
 
-function declarations(media) {
-  const result = [];
+function receives(element, property, value) {
+  let found = false;
   stylesheet.walkRules((rule) => {
-    const parent = rule.parent?.type === "atrule" ? rule.parent.params : null;
-    if (
-      parent !== media ||
-      (!rule.selector.includes("data-range-selector") && !rule.selector.includes("slide-tab-item"))
-    )
-      return;
-    for (const declaration of rule.nodes.filter((node) => node.type === "decl"))
-      result.push({ selector: rule.selector, property: declaration.prop, value: declaration.value });
+    if (!element.matches(rule.selector)) return;
+    for (const declaration of rule.nodes)
+      if (declaration.type === "decl" && declaration.prop === property && declaration.value === value) found = true;
   });
-  return result;
+  return found;
 }
 
-function named(name) {
-  return footer.querySelector(`[data-name="${name}"]`);
-}
+const tabs = (document) => document.querySelector('[data-name="sheet-tabs"]');
 
-function receives(element, property, value, rules) {
-  return rules.some(
-    (rule) => rule.property === property && rule.value === value && element.matches(rule.selector.replace(/\s+/g, " ")),
-  );
-}
-
-test("at phone width the sheet bar keeps the sheet menu and the name of the current sheet", () => {
-  const phone = declarations("(max-width: 760px)");
-  for (const name of ["tab-scroll-arrows", "zoom-out", "zoom-in", "zoom-track"])
-    assert.ok(receives(named(name), "display", "none", phone), `${name} gives way at phone width`);
-  for (const name of ["add-sheet", "sheet-menu", "current-tab", "gridlines", "zoom-menu"])
-    assert.ok(!receives(named(name), "display", "none", phone), `${name} stays at phone width`);
-  assert.ok(receives(named("current-tab"), "flex-shrink", "0", phone), "a tab keeps the width of its name");
+// @verifies-requirement HALL-FR-LAY-180
+test("on a phone the sheet tabs are finger-sized and give their place to the grid while a cell is typed", () => {
+  const reading = editor('data-layout="phone"');
+  assert.ok(receives(tabs(reading), "height", "var(--hall-size-touch-control)"));
+  assert.ok(!receives(tabs(reading).parentElement, "display", "none"), "the tabs stay while reading");
+  const typing = editor('data-layout="phone" data-writing="true" data-typing="true"');
+  assert.ok(receives(tabs(typing).parentElement, "display", "none"), "the tabs give way while a cell is typed");
 });
 
-test("on a tablet or a computer the sheet bar keeps every element of the spreadsheet engine", () => {
-  assert.deepEqual(declarations(null), []);
+test("on a tablet or a computer the sheet bar of the library keeps its own drawing", () => {
+  const computer = editor("");
+  assert.ok(!receives(tabs(computer), "height", "var(--hall-size-touch-control)"));
+  assert.ok(!receives(tabs(computer).parentElement, "display", "none"));
 });

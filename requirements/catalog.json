@@ -11947,6 +11947,36 @@
         }
       ]
     },
+    "HALL-FR-LAY-180": {
+      "name": "SPREADSHEET_PHONE_READ_AND_WRITE",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-15"
+      },
+      "statement": "Au téléphone, un tableur s’ouvre en lecture, se parcourt au doigt sans clavier, et passe en écriture par « Modifier » pour qui peut le modifier.",
+      "acceptanceCriteria": [
+        "En lecture, la grille se parcourt au doigt dans les deux sens et se zoome par pincement ; toucher une cellule la désigne et donne son nom et sa valeur entière sous la grille, sans ouvrir le clavier ; les feuilles se choisissent d’un toucher sur leur onglet ; aucune commande de modification n’est présente.",
+        "Un tableur s’ouvre en lecture ; « Modifier », dans le bandeau, est présent pour qui peut modifier le tableur et absent pour les autres. En écriture, « Terminé », dans le bandeau, enregistre le tableur et revient à la lecture.",
+        "En écriture, une barre d’outils propre au téléphone donne l’annulation, le rétablissement, le gras, l’italique, l’insertion d’une ligne sous la cellule et d’une colonne à sa droite ; la suppression de la ligne ou de la colonne de la cellule est dans le menu « ⋯ » du bandeau.",
+        "En écriture, la cellule désignée s’écrit dans un champ qui porte son nom et reste visible au-dessus du clavier, la cellule restant visible dans la grille au-dessus du champ ; une formule commence par « = » et un nombre s’écrit avec la virgule décimale. Entrée et une touche du champ valident et passent à la ligne suivante, une autre touche valide et passe à la colonne suivante, sans fermer le clavier ; fermer le clavier valide la cellule et rend l’écran à la grille.",
+        "Le même tableur ouvert pendant la conduite de la séance en direct suit les mêmes modes. Sur tablette et ordinateur, le tableur reste celui de la bibliothèque, écrit directement."
+      ],
+      "clauses": [
+        {
+          "key": "spreadsheet-phone",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 15 novembre 2026 : « le tableur en mode téléphone, il n'est pas pratique pour plusieurs raisons. En read-only, il faudrait vraiment qu'on n'ait pas le clavier, qu'on puisse se balader. On n'a même pas besoin de tous les contrôles, on a juste besoin de se balader dans le contenu du tableur, peut-être aller sur les onglets aussi. Et sinon, en version mobile, il faudrait presque un switch de modifier pour modifier le truc, il faudrait une toolbar un peu dédiée, faudrait pouvoir naviguer, parce que quand on clique sur une cellule, si on doit l'éditer, c'est très très pénible parce qu'on voit plus rien. Le clavier prend tout. Et voilà, les toolbars simplifiées en mobile. » ; « en mobile, il faut gagner quand même pas mal de place ».",
+          "sourceIds": []
+        },
+        {
+          "key": "behaviour-only-catalogue",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage sont portées par l’outil de vérification des écrans.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-LAY-160": {
       "name": "FOLD_CONTROLS_IN_THEIR_OWN_PANEL",
       "nature": "functional",

@@ -16,8 +16,12 @@ export const calls = [];
 export const CommandType = { MUTATION: 2 };
 export const LocaleType = { FR_FR: "frFR", EN_US: "enUS" };
 export const CalculationMode = { FORCED: 0 };
-export class Univer { registerPlugin() {} dispose() {} }
-export const UniverSheetsCorePreset = () => ({ plugins: [] });
+export class Univer { registerPlugin(plugin) { calls.push(["plugin", plugin.name]); } dispose() {} }
+export class UniverUIPlugin {}
+export class UniverSheetsUIPlugin {}
+export class UniverMobileUIPlugin {}
+export class UniverSheetsMobileUIPlugin {}
+export const UniverSheetsCorePreset = () => ({ plugins: [UniverUIPlugin, [UniverSheetsUIPlugin, {}]] });
 const workbook = {
   save: () => ({}),
   getWorkbookPermission: () => ({
@@ -41,7 +45,7 @@ export const spreadsheetSnapshotFromWorkbook = () => ({ signature: "", document:
 export default {};
 `;
 
-async function renderAdapter(readOnly) {
+async function renderAdapter(readOnly, phone = false) {
   const temporary = mkdtempSync(join(clientRoot, ".tmp-spreadsheet-read-only-"));
   const entry = join(temporary, "entry.tsx");
   const stub = join(temporary, "univer.mjs");
@@ -52,7 +56,10 @@ async function renderAdapter(readOnly) {
     `export { UniverSpreadsheetAdapter } from ${JSON.stringify(join(clientRoot, "src/features/spreadsheet/UniverSpreadsheetAdapter.tsx"))};\n` +
       `export { calls } from ${JSON.stringify(stub)};\n`,
   );
-  const dom = new JSDOM('<!doctype html><div id="root"></div><div id="slot"></div>', { url: "http://localhost/app/" });
+  const dom = new JSDOM('<!doctype html><div id="root"></div><div id="slot"></div>', {
+    url: "http://localhost/app/",
+    pretendToBeVisual: true,
+  });
   const names = [
     "window",
     "document",
@@ -60,6 +67,8 @@ async function renderAdapter(readOnly) {
     "HTMLElement",
     "Node",
     "MutationObserver",
+    "requestAnimationFrame",
+    "cancelAnimationFrame",
     "IS_REACT_ACT_ENVIRONMENT",
   ];
   const originals = Object.fromEntries(names.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
@@ -70,6 +79,8 @@ async function renderAdapter(readOnly) {
     HTMLElement: dom.window.HTMLElement,
     Node: dom.window.Node,
     MutationObserver: dom.window.MutationObserver,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
+    cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
     IS_REACT_ACT_ENVIRONMENT: true,
   })) {
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
@@ -105,13 +116,25 @@ async function renderAdapter(readOnly) {
           document: { schemaVersion: 2, workbook: { id: "w", sheetOrder: [], sheets: {} } },
           readOnly,
           locale: "fr",
+          phone,
           onChange: () => undefined,
           onEditingChange: () => undefined,
         }),
       );
     });
     const grid = slot.querySelector('[data-testid="spreadsheet-grid"]');
-    return { inert: grid.hasAttribute("inert"), ariaReadOnly: grid.getAttribute("aria-readonly"), calls: [...calls] };
+    const editable = dom.window.document.createElement("div");
+    editable.setAttribute("contenteditable", "true");
+    await act(async () => {
+      grid.querySelector(".univer-spreadsheet-instance").append(editable);
+    });
+    return {
+      inert: grid.hasAttribute("inert"),
+      ariaReadOnly: grid.getAttribute("aria-readonly"),
+      calls: calls.filter(([kind]) => kind !== "plugin"),
+      plugins: calls.filter(([kind]) => kind === "plugin").map(([, name]) => name),
+      editableInputMode: editable.getAttribute("inputmode"),
+    };
   } finally {
     await act(async () => root?.unmount());
     for (const [key, descriptor] of Object.entries(originals)) {
@@ -138,4 +161,17 @@ test("a person who may modify the spreadsheet keeps the engine's default permiss
   assert.equal(writer.inert, false);
   assert.equal(writer.ariaReadOnly, "false");
   assert.deepEqual(writer.calls, []);
+});
+
+// @verifies-requirement HALL-FR-LAY-180
+test("on a phone the grid takes the touch interface and no text area of the library opens the keyboard", async () => {
+  const reader = await renderAdapter(true, true);
+  assert.deepEqual(reader.plugins, ["UniverMobileUIPlugin", "UniverSheetsMobileUIPlugin"]);
+  assert.equal(reader.editableInputMode, "none");
+});
+
+test("on a tablet or a computer the grid keeps the interface and the keyboard of the library", async () => {
+  const writer = await renderAdapter(false);
+  assert.deepEqual(writer.plugins, ["UniverUIPlugin", "UniverSheetsUIPlugin"]);
+  assert.equal(writer.editableInputMode, null);
 });

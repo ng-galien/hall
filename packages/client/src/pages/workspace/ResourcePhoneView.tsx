@@ -75,10 +75,12 @@ export function ResourcePhoneView({
     title: resource?.name ?? "",
     testId: "resource-pdf-preview",
   });
+  const writable = resource?.kind === "text" || resource?.kind === "spreadsheet";
   const writing = useTextWriting({
-    id: resource?.kind === "text" ? resource.id : null,
-    editable: resource?.kind === "text" && session.editable,
+    id: writable ? resource.id : null,
+    editable: writable && session.editable,
     content: session.content,
+    opensEmptyForWriting: resource?.kind === "spreadsheet" ? false : undefined,
     dirty: session.dirty,
     flush: session.flush,
     save: () => session.save(),
@@ -253,7 +255,7 @@ export function ResourcePhoneView({
         <ResourcePresentationBody
           resource={resource}
           representation={representation}
-          mode={resource.kind === "text" && !editing ? "read" : session.mode}
+          mode={writable && !editing ? "read" : session.mode}
           layout="workbench"
           capabilities={session.capabilities}
           content={session.content}

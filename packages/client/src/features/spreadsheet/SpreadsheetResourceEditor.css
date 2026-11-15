@@ -43,15 +43,54 @@
   right: var(--hall-space-2);
 }
 
-/* At phone width the bar under the grid keeps the sheet menu and room for the name of the current sheet: the tab
-   scroll arrows and the zoom buttons and slider give way, the zoom level stays in its menu, and a tab keeps its name. */
-@media (max-width: 760px) {
-  .spreadsheet-grid section[data-range-selector] > :first-child > :nth-child(3),
-  .spreadsheet-grid section[data-range-selector] > section button[data-u-comp="button"]:not([aria-haspopup]),
-  .spreadsheet-grid section[data-range-selector] > section div:has(> [role="track"]) {
-    display: none;
-  }
-  .spreadsheet-grid [data-u-comp="slide-tab-item"] {
-    flex-shrink: 0;
-  }
+/* @implements-requirement HALL-FR-LAY-180 */
+/* On a phone the grid fills the screen between the tools of writing, above it, and the line or field of the designated
+   cell, under it, which stays above the keyboard. */
+.spreadsheet-phone-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--hall-space-1);
+  padding: 0 var(--hall-space-2);
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+  background: var(--hall-color-surface-subtle);
 }
+.spreadsheet-phone-tool {
+  min-width: var(--hall-size-touch-control);
+  min-height: var(--hall-size-touch-control);
+}
+.spreadsheet-phone-tool[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-surface-selected); }
+.spreadsheet-cell-line {
+  display: grid;
+  max-height: calc(3 * var(--hall-line-height-body) + 2 * var(--hall-space-2));
+  flex: none;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--hall-space-3);
+  overflow-y: auto;
+  padding: var(--hall-space-2) var(--hall-space-4);
+  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
+  background: var(--hall-color-surface);
+  font-size: var(--hall-font-size-body);
+  line-height: var(--hall-line-height-body);
+}
+.spreadsheet-cell-line-name { color: var(--hall-color-text-muted); font-weight: var(--hall-font-weight-medium); }
+.spreadsheet-cell-line-value { min-width: 0; color: var(--hall-color-text); overflow-wrap: anywhere; white-space: pre-wrap; }
+.spreadsheet-cell-bar {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  gap: var(--hall-space-1);
+  padding: var(--hall-space-1) var(--hall-space-2) var(--hall-space-1) var(--hall-space-4);
+  border-top: var(--hall-stroke-thin) solid var(--hall-color-border);
+  background: var(--hall-color-surface);
+}
+.spreadsheet-cell-field { min-width: 0; flex: 1; }
+/* The sheet tabs of a phone are finger-sized on the surface of the screen; while a cell is typed they give their place
+   to the grid. */
+.spreadsheet-editor[data-layout="phone"] [data-u-comp="app-layout"] footer > div {
+  height: var(--hall-size-touch-control);
+  border-color: var(--hall-color-border);
+  background: var(--hall-color-surface-subtle);
+}
+.spreadsheet-editor[data-typing="true"] [data-u-comp="app-layout"] footer { display: none; }
+.spreadsheet-editor[data-layout="phone"] { border: 0; border-radius: 0; }

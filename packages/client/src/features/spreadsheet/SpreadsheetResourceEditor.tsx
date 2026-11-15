@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { ResourcePresentationMode } from "../resources/ResourcePresentationBody";
+import { SpreadsheetPhoneBars } from "./SpreadsheetPhoneBars";
+import type { SpreadsheetCell, SpreadsheetCells } from "./spreadsheetCells";
 import { UniverSpreadsheetAdapter } from "./UniverSpreadsheetAdapter";
 import "./SpreadsheetResourceEditor.css";
 
@@ -36,6 +39,11 @@ export function SpreadsheetResourceEditor({
   const [saveFailed, setSaveFailed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [inlineMount, setInlineMount] = useState<HTMLDivElement | null>(null);
+  const phone = usePhoneLayout();
+  const [cells, setCells] = useState<SpreadsheetCells | null>(null);
+  const [cell, setCell] = useState<SpreadsheetCell | null>(null);
+  const [editRequest, setEditRequest] = useState(0);
+  const [typing, setTyping] = useState(false);
   const latestDraftRef = useRef(draft);
   const savedDocumentRef = useRef(JSON.stringify(document));
   const versionRef = useRef(resource.version);
@@ -132,14 +140,20 @@ export function SpreadsheetResourceEditor({
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, []);
 
+  const readOnly = mode !== "edit" || !canUpdate;
+  const grid = <div ref={setInlineMount} className="spreadsheet-grid-slot" />;
   return (
     <>
       <UniverSpreadsheetAdapter
-        key={`${resource.id}:${locale}`}
+        key={`${resource.id}:${locale}:${phone ? "phone" : "pointer"}`}
         mountElement={inlineMount}
         document={draft}
-        readOnly={mode !== "edit" || !canUpdate}
+        readOnly={readOnly}
         locale={locale}
+        phone={phone}
+        onCells={setCells}
+        onCellsChange={setCell}
+        onCellEditRequest={() => setEditRequest((request) => request + 1)}
         onEditingChange={(next) => {
           if (mountedRef.current) setEditing(next);
         }}
@@ -153,7 +167,14 @@ export function SpreadsheetResourceEditor({
           }
         }}
       />
-      <div className="spreadsheet-editor" data-testid="spreadsheet-editor" data-save-status={saveStatus}>
+      <div
+        className="spreadsheet-editor"
+        data-testid="spreadsheet-editor"
+        data-save-status={saveStatus}
+        data-layout={phone ? "phone" : undefined}
+        data-writing={phone && !readOnly ? "true" : undefined}
+        data-typing={phone && typing ? "true" : undefined}
+      >
         {dirty && saveFailed ? (
           <div className="spreadsheet-save-error">
             <Button type="button" variant="plain" data-testid="spreadsheet-retry-save" onClick={() => void save()}>
@@ -161,7 +182,18 @@ export function SpreadsheetResourceEditor({
             </Button>
           </div>
         ) : null}
-        <div ref={setInlineMount} className="spreadsheet-grid-slot" />
+        {phone ? (
+          <SpreadsheetPhoneBars
+            cells={cells}
+            cell={cell}
+            writing={!readOnly}
+            editRequest={editRequest}
+            onTypingChange={setTyping}
+            grid={grid}
+          />
+        ) : (
+          grid
+        )}
       </div>
     </>
   );

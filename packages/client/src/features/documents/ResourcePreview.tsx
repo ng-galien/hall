@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { usePhoneEditorCommands } from "../../components/editor/phoneEditorCommands";
 import { BackIcon, DownloadIcon, ShareIcon } from "../../components/icons";
 import type { ItemCommand } from "../../components/ui/item-commands";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
@@ -14,6 +15,7 @@ import { PhonePageOpening } from "../../shell/PhonePageOpening";
 import { usePhoneDocumentPages, usePhoneLayout } from "../../shell/usePhoneLayout";
 import { ResourcePresentationBody } from "../resources/ResourcePresentationBody";
 import { type ResourceSession, useResourceSession } from "../resources/useResourceSession";
+import { useTextWriting } from "../resources/useTextWriting";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "./DocumentaryResourceGlyph";
 import { DocumentViewerDialog } from "./DocumentViewerDialog";
 import { useWorkspaceResourceImageUpload } from "./useWorkspaceResourceImageUpload";
@@ -43,7 +45,8 @@ function ResourcePreviewModal({ resourceId, onClose }: { resourceId: string; onC
   return <ResourcePreviewWithSession session={session} onClose={onClose} />;
 }
 
-/** Resource modal shell for a session already owned by its host workbench. */
+/** Resource modal shell for a session already owned by its host workbench. On a phone, during the live meeting, a
+ * spreadsheet opens for reading, with « Modifier » for whoever may write it. */
 export function ResourcePreviewWithSession({
   session,
   onClose,
@@ -75,13 +78,40 @@ export function ResourcePreviewWithSession({
   }, [closing, onClose, refreshSessionOnClose, session]);
 
   const resource = session.resource;
-  const controls = useSessionControls(session);
+  const sessionControls = useSessionControls(session);
+  const phoneSpreadsheet = phone && resource?.kind === "spreadsheet";
+  const writing = useTextWriting({
+    id: phoneSpreadsheet ? resource.id : null,
+    editable: phoneSpreadsheet && session.editable,
+    content: "",
+    dirty: session.dirty,
+    flush: session.flush,
+    save: () => session.save(),
+    reload: session.reload,
+    opensEmptyForWriting: false,
+  });
+  const controls = writing.button
+    ? {
+        ...sessionControls,
+        visible: (
+          <>
+            {sessionControls.visible}
+            {writing.button}
+          </>
+        ),
+      }
+    : sessionControls;
   const download = () => {
     const representation = session.representation;
     if (resource?.kind === "document" && representation) {
       void downloadDocumentaryResource(resource, representation);
     }
   };
+  const writingCommands = usePhoneEditorCommands((store) => store.commands);
+  const spreadsheetCommands: ItemCommand[] = writingCommands.map((command) => ({
+    ...command,
+    testId: `resource-preview-${command.id}`,
+  }));
   const fileCommands: ItemCommand[] =
     resource?.kind === "document" && session.representation
       ? [
@@ -158,7 +188,7 @@ export function ResourcePreviewWithSession({
                   : undefined
               }
               date={documentaryResourceDate(resource)}
-              menu={fileCommands}
+              menu={phoneSpreadsheet ? spreadsheetCommands : fileCommands}
               actionError={session.actionError}
             />
           ) : (
@@ -176,7 +206,7 @@ export function ResourcePreviewWithSession({
         <ResourcePresentationBody
           resource={resource}
           representation={session.representation}
-          mode={session.mode}
+          mode={phoneSpreadsheet && !writing.editing ? "read" : session.mode}
           layout="extended"
           capabilities={session.capabilities}
           content={session.content}
