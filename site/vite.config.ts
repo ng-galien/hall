@@ -3,6 +3,7 @@ import { copyFile, cp, mkdir, readdir, readFile, writeFile } from "node:fs/promi
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
+import { type Release, releaseFromGitHub } from "./src/downloads";
 import { refreshPublishedPage } from "./src/publication";
 import { studioVersions } from "./studio/server";
 
@@ -79,6 +80,45 @@ function publicationVersion(): Plugin {
   };
 }
 
+const releaseModule = "virtual:hall-release";
+const resolvedReleaseModule = `\0${releaseModule}`;
+
+/**
+ * Reads the latest published GitHub release when the site is built, so that each download button points at a file of
+ * that release. A build without the release fails; the development server shows the page without download files.
+ */
+function hallRelease(command: "build" | "serve"): Plugin {
+  let release: Promise<Release | null> | null = null;
+  async function read(): Promise<Release | null> {
+    try {
+      const token = process.env.GITHUB_TOKEN;
+      const response = await fetch("https://api.github.com/repos/ng-galien/hall/releases/latest", {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": "hall-public-site-build",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!response.ok) throw new Error(`GitHub answered ${response.status} for the latest release`);
+      return releaseFromGitHub(await response.json());
+    } catch (error) {
+      if (command === "build") throw error;
+      console.warn(`[hall-release] ${(error as Error).message}`);
+      return null;
+    }
+  }
+  return {
+    name: "hall-release",
+    resolveId: (id) => (id === releaseModule ? resolvedReleaseModule : undefined),
+    async load(id) {
+      if (id !== resolvedReleaseModule) return undefined;
+      release ??= read();
+      return `export default ${JSON.stringify(await release)};`;
+    },
+  };
+}
+
 /** Appends the content version to the capture URLs written in the documentation page. */
 async function versionDocumentationCaptures(page: string, capturesDirectory: string) {
   const versions = await directoryVersions(capturesDirectory);
@@ -97,6 +137,7 @@ export default defineConfig(({ command, mode }) => ({
   },
   plugins: [
     publicFileVersions(),
+    hallRelease(command),
     ...(mode === "studio" ? [] : [publicationVersion()]),
     ...(command === "serve" || mode === "studio"
       ? [studioVersions(fileURLToPath(new URL("./src/presentation/story-settings.json", import.meta.url)))]

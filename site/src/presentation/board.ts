@@ -185,7 +185,7 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   const agenda = head("agenda", "Séance du conseil municipal", "Séance n° 4 · jeudi 12 novembre");
   const points: [PieceKind, string, string, boolean][] = [
     ["draft", "Arrêt du procès-verbal", "Séance précédente", true],
-    ["matter", "Budget annexe de l’eau", "Projet de délibération", true],
+    ["matter", "Éclairage public", "Projet de délibération", true],
     ["matter", "Réfection du chemin communal", "Projet de délibération", true],
     ["question", "Calendrier des travaux", "Question ouverte", false],
   ];

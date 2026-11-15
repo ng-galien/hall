@@ -59,6 +59,15 @@ and the latest complete CI result again immediately before making the draft
 public. It never replaces an already public release. A new source commit needs
 its own complete validation; similar runtime files are not a substitute.
 
+The download buttons of the public site point at the files of the latest published
+release. The site build reads that release from the GitHub API and fails if a desktop
+installer or the npm tarball is missing. After `publish`, rebuild the site from `main`
+so that it offers the new files:
+
+```sh
+gh workflow run pages.yml --ref main
+```
+
 The workflow token needs only `actions: read` and `contents: write`. Authorization
 errors fail closed; this tool does not create credentials or increase their scope.
 The workflow prepares drafts, and does not automatically promote them. Do not use

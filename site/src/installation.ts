@@ -23,7 +23,7 @@ export interface InstallationGuide {
 /** Ce que tout le monde doit savoir avant d'installer la démonstration. */
 export const installationIntroduction: readonly string[] = [
   "À la première ouverture, votre ordinateur affiche un avertissement, parce que Hall n'est pas signé auprès d'Apple ni de Microsoft. C'est normal, et cela n'arrive qu'une fois : les étapes ci-dessous montrent quoi faire.",
-  "Téléchargez Hall uniquement depuis sa page officielle des versions, sur GitHub.",
+  "Téléchargez Hall uniquement depuis ce site ou depuis sa page officielle des versions, sur GitHub.",
 ];
 
 /** Le guide d'installation de la démonstration, système par système. */
@@ -38,8 +38,8 @@ export const installationGuides: readonly InstallationGuide[] = [
         title: "Installer et ouvrir Hall",
         steps: [
           {
-            sees: "La page de téléchargement de Hall.",
-            does: "Cliquez sur le fichier qui se termine par « Setup.exe ». Le téléchargement commence.",
+            sees: "La partie « Télécharger » du site de Hall.",
+            does: "Cliquez sur « Télécharger », à la ligne « Windows ». Le téléchargement commence.",
           },
           {
             sees: "Le navigateur peut dire que ce fichier est rarement téléchargé.",
@@ -62,7 +62,7 @@ export const installationGuides: readonly InstallationGuide[] = [
             does: "Attendez. Un raccourci « Hall » est ajouté sur le Bureau et dans le menu Démarrer, puis Hall s'ouvre.",
           },
           {
-            sees: "Une carte de France s'anime, puis la commune d'Alésia et le bouton « Ouvrir Hall ».",
+            sees: "Une carte de France s'anime, puis la commune de démonstration et le bouton « Ouvrir Hall ».",
             does: "Attendez que le bouton « Ouvrir Hall » soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.",
           },
         ],
@@ -85,8 +85,8 @@ export const installationGuides: readonly InstallationGuide[] = [
         title: "Installer Hall",
         steps: [
           {
-            sees: "La page de téléchargement de Hall.",
-            does: "Cliquez sur le fichier qui se termine par « .dmg » et qui correspond à votre Mac.",
+            sees: "La partie « Télécharger » du site de Hall.",
+            does: "Cliquez sur « Télécharger », à la ligne de votre Mac : puce Apple ou processeur Intel.",
           },
           {
             sees: "Le fichier est dans le dossier « Téléchargements ».",
@@ -148,7 +148,7 @@ export const installationGuides: readonly InstallationGuide[] = [
         title: "Ensuite, sur toutes les versions",
         steps: [
           {
-            sees: "Une carte de France s'anime, puis la commune d'Alésia et le bouton « Ouvrir Hall ».",
+            sees: "Une carte de France s'anime, puis la commune de démonstration et le bouton « Ouvrir Hall ».",
             does: "Attendez que le bouton « Ouvrir Hall » soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.",
           },
         ],
@@ -208,7 +208,7 @@ export const installationGuides: readonly InstallationGuide[] = [
             does: "Cherchez « Hall » et cliquez dessus.",
           },
           {
-            sees: "Une carte de France s'anime, puis la commune d'Alésia et le bouton « Ouvrir Hall ».",
+            sees: "Une carte de France s'anime, puis la commune de démonstration et le bouton « Ouvrir Hall ».",
             does: "Attendez que le bouton « Ouvrir Hall » soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.",
           },
         ],

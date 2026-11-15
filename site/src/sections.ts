@@ -1,7 +1,17 @@
+import release from "virtual:hall-release";
+import {
+  type DownloadKey,
+  detectedDownload,
+  downloadLabels,
+  megabytes,
+  type ReleaseFile,
+  releasesUrl,
+  serverGuideUrl,
+} from "./downloads";
 import { type InstallationGuide, installationGuides, installationIntroduction } from "./installation";
+import { siteRoot } from "./site-root";
 
-export const releasesUrl = "https://github.com/ng-galien/hall/releases";
-export const documentationUrl = "./documentation/index.html#/docs";
+export const documentationUrl = `${siteRoot}documentation/index.html#/docs`;
 
 type System = InstallationGuide["system"];
 
@@ -156,52 +166,168 @@ function renderInstall(inner: HTMLElement): InstallTabs {
   return { select };
 }
 
-function renderDownload(inner: HTMLElement): (install: InstallTabs) => void {
+const guideSystem: Record<DownloadKey, System | null> = {
+  windows: "windows",
+  "macos-arm64": "macos",
+  "macos-x64": "macos",
+  "linux-deb": "linux",
+  "linux-rpm": "linux",
+  server: null,
+};
+
+const order: readonly DownloadKey[] = ["windows", "macos-arm64", "macos-x64", "linux-deb", "linux-rpm", "server"];
+
+/** Fichiers à proposer : le système détecté d'abord, le serveur en dernier. */
+function orderedFiles(detected: DownloadKey | null): DownloadKey[] {
+  return detected ? [detected, ...order.filter((key) => key !== detected)] : [...order];
+}
+
+function fileOf(key: DownloadKey): ReleaseFile | null {
+  return release?.files.find((file) => file.key === key) ?? null;
+}
+
+function fileLink(key: DownloadKey, className: string, text: string, testId: string): HTMLAnchorElement {
+  const file = fileOf(key);
+  const link = node("a", className, text, testId);
+  link.href = file?.url ?? releasesUrl;
+  if (file) link.setAttribute("download", file.name);
+  return link;
+}
+
+function metaText(key: DownloadKey): string {
+  const file = fileOf(key);
+  return file && release ? `Version ${release.version} · ${megabytes(file.size)}` : "Page des versions sur GitHub";
+}
+
+/** Liens discrets sous la liste : toutes les versions, empreintes, guide d'utilisation. */
+function otherLinks(className: string, withDocumentation: boolean): HTMLElement {
+  const line = node("p", className, undefined, "download-other-links");
+  const all = node("a", "link-plain", "Toutes les versions", "download-all-versions");
+  all.href = releasesUrl;
+  line.append(all);
+  if (release?.checksums) {
+    const sums = node("a", "link-plain", "Empreintes SHA-256", "download-checksums");
+    sums.href = release.checksums;
+    line.append(sums);
+  }
+  if (withDocumentation) {
+    const guide = node("a", "link-plain", "Guide d’utilisation", "download-documentation");
+    guide.href = documentationUrl;
+    line.append(guide);
+  }
+  return line;
+}
+
+/** Liste des fichiers de la dernière version, chacun avec son bouton de téléchargement direct. */
+function renderDownload(
+  inner: HTMLElement,
+  detected: DownloadKey | null,
+  guideHref: string,
+  withDocumentation: boolean,
+): (install: InstallTabs) => void {
   const head = node("header", "section-head");
   head.append(
-    node("p", "section-axis", "Installation, trois systèmes"),
-    node("h2", undefined, "Télécharger la démonstration"),
+    node("p", "section-axis", release ? `Version ${release.version}` : "Dernière version"),
+    node("h2", undefined, "Télécharger Hall"),
     node(
       "p",
       "section-lead",
-      "Hall s’installe sur votre ordinateur avec la commune d’Alésia, son conseil et ses affaires. La démonstration est gratuite et fonctionne sans connexion : rien n’est envoyé sur Internet.",
+      "La démonstration s’installe sur votre ordinateur, avec deux jeux au choix : Foncine-le-Bas et Alésia. Elle est gratuite et fonctionne sans connexion : rien n’est envoyé sur Internet.",
     ),
   );
   const list = node("ul", "download-list");
   const hows: { system: System; how: HTMLAnchorElement }[] = [];
-  for (const guide of installationGuides) {
-    const row = node("li", "download-row", undefined, `download-${guide.system}`);
+  for (const key of orderedFiles(detected)) {
+    const label = downloadLabels[key];
+    const row = node("li", "download-row", undefined, `download-${key}`);
+    if (key === detected) row.classList.add("is-detected");
     const system = node("div", "download-system");
-    system.append(node("h3", undefined, guide.title), node("p", undefined, guide.versions));
-    const file = node("p", "download-file", guide.download);
+    system.append(node("h3", undefined, label.system), node("p", undefined, label.detail));
+    const file = node("p", "download-file");
+    file.append(
+      node("span", "download-file-name", fileOf(key)?.name ?? label.format),
+      node("span", "download-file-meta", metaText(key)),
+    );
     const actions = node("div", "download-actions");
-    const link = node("a", "button-primary", `Télécharger pour ${guide.title}`, `download-link-${guide.system}`);
-    link.href = releasesUrl;
-    const how = node("a", "link-plain", `Marche à suivre pour ${guide.title}`, `download-how-${guide.system}`);
-    how.href = "#marche-a-suivre";
-    hows.push({ system: guide.system, how });
-    actions.append(link, how);
+    actions.append(fileLink(key, "button-primary", "Télécharger", `download-link-${key}`));
+    const guided = guideSystem[key];
+    if (guided) {
+      const how = node("a", "link-plain", "Marche à suivre", `download-how-${key}`);
+      how.href = guideHref;
+      hows.push({ system: guided, how });
+      actions.append(how);
+    } else {
+      const how = node("a", "link-plain", "Installer le serveur", "download-how-server");
+      how.href = serverGuideUrl;
+      actions.append(how);
+    }
     row.append(system, file, actions);
     list.append(row);
   }
-  inner.append(head, list);
+  inner.append(head, list, otherLinks("download-more", withDocumentation));
   return (install) => {
     for (const { system, how } of hows) how.addEventListener("click", () => install.select(system));
   };
 }
 
-/** Construit la section Télécharger, fichiers puis marche à suivre, et marque la section visible dans l'en-tête. */
-export function renderSections() {
+/** Téléchargement de l'ouverture : le système détecté en premier, les autres à côté, la marche à suivre. */
+function renderHeroDownload(root: HTMLElement, detected: DownloadKey | null, install: InstallTabs) {
+  const main = detected
+    ? fileLink(detected, "site-primary-action p-get-main", "Télécharger la démonstration", "hero-download-main")
+    : node("a", "site-primary-action p-get-main", "Télécharger pour un ordinateur", "hero-download-main");
+  if (!detected) main.setAttribute("href", "#telecharger");
+  const meta = node(
+    "p",
+    "p-get-meta",
+    detected
+      ? `${downloadLabels[detected].system} · ${metaText(detected).replace("Version", "version")}`
+      : `Windows, Mac et Linux${release ? ` · version ${release.version}` : ""}`,
+    "hero-download-meta",
+  );
+  root.append(main, meta);
+  if (detected) {
+    const others = node("p", "p-get-others", undefined, "hero-download-others");
+    others.append(node("span", undefined, "Autres systèmes :"));
+    for (const key of order) {
+      if (key === detected || key === "server") continue;
+      others.append(fileLink(key, "link-plain", downloadLabels[key].short, `hero-download-${key}`));
+    }
+    root.append(others);
+  }
+  const links = node("p", "p-get-links");
+  const how = node("a", "link-plain", "Marche à suivre, application non signée", "hero-download-how");
+  how.href = "#marche-a-suivre";
+  const system = detected ? guideSystem[detected] : null;
+  if (system) how.addEventListener("click", () => install.select(system));
+  const all = node("a", "link-plain", "Serveur et toutes les versions", "hero-download-all");
+  all.href = "#telecharger";
+  links.append(how, all);
+  root.append(links);
+}
+
+/** Page d'accueil : téléchargement à l'ouverture, section Télécharger avec la marche à suivre. */
+export async function renderHomeDownloads() {
+  const section = document.querySelector<HTMLElement>('[data-testid="section-telecharger"]');
+  const hero = document.querySelector<HTMLElement>('[data-testid="hero-download"]');
+  if (!section) return;
+  const detected = await detectedDownload();
+  const inner = node("div", "section-inner");
+  section.append(inner);
+  const connect = renderDownload(inner, detected, "#marche-a-suivre", true);
+  const install = node("div", "section-inner section-card-install");
+  section.append(install);
+  const tabs = renderInstall(install);
+  connect(tabs);
+  if (hero) renderHeroDownload(hero, detected, tabs);
+}
+
+/** Page Alésia : les mêmes fichiers, la marche à suivre sur la page d'accueil ; marque la section visible. */
+export async function renderSections() {
   const download = document.querySelector<HTMLElement>('[data-testid="section-telecharger"]');
   if (!download) return;
   const inner = node("div", "section-inner");
   download.append(inner);
-  const connect = renderDownload(inner);
-  const install = node("div", "section-inner section-card-install");
-  download.append(install);
-  connect(renderInstall(install));
-
-  document.querySelector(`[data-testid="download-${detectedSystem()}"]`)?.classList.add("is-detected");
+  renderDownload(inner, await detectedDownload(), "../#marche-a-suivre", false);
 
   const links = new Map<string, HTMLElement>();
   for (const link of document.querySelectorAll<HTMLAnchorElement>(
@@ -209,7 +335,6 @@ export function renderSections() {
   )) {
     links.set(link.hash.slice(1), link);
   }
-  const lists = [...document.querySelectorAll<HTMLElement>(".install-steps")];
   let queued = false;
   function update() {
     queued = false;
@@ -223,6 +348,23 @@ export function renderSections() {
       if (id === best) link.setAttribute("aria-current", "true");
       else link.removeAttribute("aria-current");
     }
+  }
+  const request = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(update);
+  };
+  window.addEventListener("scroll", request, { passive: true });
+  window.addEventListener("resize", request);
+  update();
+}
+
+/** Remplissage des étapes de la marche à suivre au fil du défilement. */
+export function followInstallSteps() {
+  const lists = [...document.querySelectorAll<HTMLElement>(".install-steps")];
+  let queued = false;
+  function update() {
+    queued = false;
     const reach = window.innerHeight * 0.62;
     for (const list of lists) {
       if (list.offsetParent === null) continue;

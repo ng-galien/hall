@@ -12,16 +12,18 @@
   text-decoration: none;
 }
 
+/* Logo de Hall : la mairie au bleu de Hall sur un carré blanc bordé, dessin de public/icons/favicon.svg */
 .site-brand-mark {
   display: grid;
   place-items: center;
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 0.4rem;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 1.15rem;
-  font-weight: 800;
+}
+
+.site-brand-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .site-brand-name {

@@ -1,0 +1,372 @@
+/*
+ * Sections Télécharger, Marche à suivre et Documentation, communes aux deux pages du site public.
+ */
+.page-section {
+  border-top: 1px solid var(--border);
+  color: var(--text);
+}
+
+.section-inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: clamp(3rem, 2rem + 4vw, 5.5rem) var(--gutter, clamp(1rem, 3vw, 2.5rem));
+}
+
+.section-head {
+  max-width: 42rem;
+  margin-bottom: 2rem;
+}
+
+.section-head h2 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.25rem);
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.section-lead {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+}
+
+.download-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.download-row {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr) auto;
+  gap: 1rem 2rem;
+  align-items: center;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.download-system h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.download-system p,
+.download-file {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.download-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 1.1rem;
+  border-radius: 0.5rem;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  font-size: var(--fs-md);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.button-primary:hover {
+  background: var(--accent-strong);
+}
+
+.link-plain {
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-underline-offset: 0.2em;
+}
+
+.install-part {
+  margin-top: clamp(3rem, 2rem + 3vw, 4.5rem);
+  padding-top: clamp(2rem, 1.5rem + 2vw, 3rem);
+  border-top: 1px solid var(--border);
+}
+
+.install-head {
+  max-width: 42rem;
+  margin-bottom: 1.5rem;
+}
+
+.install-head h3 {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1.3rem, 1.1rem + 0.8vw, 1.7rem);
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.install-before {
+  max-width: 46rem;
+  margin: 0 0 2rem;
+  padding: 0;
+  list-style: none;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+}
+
+.install-before li {
+  position: relative;
+  padding: 0 0 0.4rem 1.1rem;
+}
+
+.install-before li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.75em;
+  width: 0.45rem;
+  height: 1px;
+  background: var(--text-3);
+}
+
+.install-tabs {
+  display: inline-flex;
+  margin-bottom: 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.install-tab {
+  min-height: 2.75rem;
+  padding: 0 1.4rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.install-tab + .install-tab {
+  border-left: 1px solid var(--border);
+}
+
+.install-tab:hover {
+  color: var(--text);
+}
+
+.install-tab[aria-selected="true"] {
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.install-path {
+  margin-bottom: 2.25rem;
+}
+
+.install-path h4,
+.install-notes h4 {
+  margin: 0 0 0.9rem;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.install-steps {
+  counter-reset: install;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.install-step {
+  counter-increment: install;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem 2rem;
+  padding: 1rem 0 1rem 3rem;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-md);
+}
+
+.install-step::before {
+  content: counter(install);
+  position: absolute;
+  left: 0;
+  top: 1rem;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.install-label {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.guide-text {
+  margin: 0;
+}
+
+.install-sees .guide-text {
+  color: var(--text-2);
+}
+
+.install-notes ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 56rem;
+}
+
+.install-notes li {
+  padding: 0.6rem 0 0.6rem 0.9rem;
+  border-left: 3px solid var(--border);
+  margin-bottom: 0.5rem;
+  color: var(--text);
+  font-size: var(--fs-md);
+}
+
+.command {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.4rem 0.25rem 0.4rem 0;
+  vertical-align: middle;
+}
+
+.command code {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  background: var(--surface);
+  color: var(--text);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+
+.copy-button {
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  border-color: var(--text-3);
+}
+
+.doc-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doc-links a {
+  display: grid;
+  gap: 0.3rem;
+  height: 100%;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.doc-links a:hover {
+  border-color: var(--accent);
+}
+
+.doc-link-title {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.doc-link-text {
+  color: var(--text-2);
+  font-size: var(--fs-md);
+}
+
+@media (max-width: 760px) {
+  .download-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .download-actions {
+    align-items: flex-start;
+  }
+
+  .install-tabs {
+    display: flex;
+  }
+
+  .install-tab {
+    flex: 1;
+    padding: 0 0.5rem;
+  }
+
+  .install-step {
+    grid-template-columns: minmax(0, 1fr);
+    padding-left: 2.6rem;
+  }
+
+  .doc-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.section-axis {
+  margin: 0 0 0.3rem;
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.download-file-name,
+.download-file-meta {
+  display: block;
+}
+
+.download-file-name {
+  color: var(--text);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+
+.download-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 1.25rem 0 0;
+}

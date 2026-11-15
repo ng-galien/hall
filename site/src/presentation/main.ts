@@ -6,6 +6,8 @@ import "../theme.css";
 import "../site-header.css";
 import { revealText } from "../arrival";
 import "./presentation.css";
+import "../downloads.css";
+import { followInstallSteps, renderHomeDownloads } from "../sections";
 import { renderFeatures } from "./features";
 import { glyphTint, type PieceKind, photoThumb, svgIcon } from "./icons";
 import { at, places, range, storyEnd, storyStart, subStepAt, subSteps, timeline } from "./story";
@@ -626,7 +628,9 @@ if (scenario) {
   cue.setAttribute("aria-label", "Commencer le parcours");
   cue.textContent = "Commencer le parcours";
   cue.addEventListener("click", () => stepTo(0, controlRatio()));
-  scenario.append(cue);
+  const notice = scenario.querySelector(".p-scenario-notice");
+  if (notice) scenario.insertBefore(cue, notice);
+  else scenario.append(cue);
 }
 
 /* Passage vers « En savoir plus » : la scène s'éclaircit et recule, les descriptions glissent en place */
@@ -657,8 +661,15 @@ window.requestAnimationFrame(() =>
 export const veil = document.createElement("div");
 veil.className = "p-veil";
 document.body.append(veil);
+/** Cible d'une ancre de la page : la partie « En savoir plus » ou une section qu'elle contient ; null pour le haut. */
+function sectionTarget(hash: string): HTMLElement | null | undefined {
+  if (hash === "#haut" || hash === "") return null;
+  if (hash === "#en-savoir-plus") return more;
+  const element = document.getElementById(hash.slice(1));
+  return element && more.contains(element) ? element : undefined;
+}
 function showSection(hash: string) {
-  const target = hash === "#en-savoir-plus" ? more : hash === "#haut" || hash === "" ? null : undefined;
+  const target = sectionTarget(hash);
   if (target === undefined) return;
   const header = document.querySelector(".p-masthead") as HTMLElement;
   const top = target ? target.getBoundingClientRect().top + window.scrollY - header.offsetHeight : 0;
@@ -675,13 +686,18 @@ window.addEventListener("popstate", restoreSection);
 window.addEventListener("hashchange", restoreSection);
 window.addEventListener("pageshow", restoreSection);
 
-for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[href^="#"]')) {
-  link.dataset.testid = link.dataset.nav === "story" ? "nav-parcours" : "nav-fonctionnalites";
+const navTestIds: Record<string, string> = {
+  story: "nav-parcours",
+  features: "nav-fonctionnalites",
+  download: "nav-telecharger",
+};
+for (const link of document.querySelectorAll<HTMLAnchorElement>(".p-masthead a[data-nav]"))
+  link.dataset.testid = navTestIds[link.dataset.nav ?? ""];
+/** Liens vers une section de la page : passage direct, avec un fondu. */
+function jumpOnClick(link: HTMLAnchorElement) {
   link.addEventListener("click", (event) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const id = link.getAttribute("href")?.slice(1) ?? "";
-    const target = id === "haut" ? null : document.getElementById(id);
-    if (id !== "haut" && !target) return;
+    if (sectionTarget(link.hash) === undefined) return;
     event.preventDefault();
     const go = () => {
       if (window.location.hash !== link.hash) window.history.pushState(null, "", link.hash);
@@ -694,13 +710,28 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[h
     }
   });
 }
+for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[href^="#"]')) jumpOnClick(link);
+
+/* Téléchargement : à l'ouverture et dans sa section, avec la marche à suivre */
+void renderHomeDownloads().then(() => {
+  for (const link of document.querySelectorAll<HTMLAnchorElement>(
+    '.p-get a[href^="#"], #telecharger a[href^="#"], .f-demo a[href^="#"]',
+  ))
+    jumpOnClick(link);
+  followInstallSteps();
+  placeScenario();
+});
 
 export function markPast() {
   const past = window.scrollY > storyScroll() + viewHeight() * 0.4;
+  const downloads = document.getElementById("telecharger");
+  const inFeatures = past && (!downloads || downloads.getBoundingClientRect().top > viewHeight() * 0.4);
   for (const node of [gutter, credit, boardNode, phone, watermark]) node.classList.toggle("is-past", past);
   (document.querySelector(".p-masthead") as HTMLElement).classList.toggle("is-solid", past);
-  for (const link of document.querySelectorAll<HTMLAnchorElement>(".p-masthead a[data-nav]")) {
-    const current = link.dataset.nav === (past ? "features" : "story");
+  for (const link of document.querySelectorAll<HTMLAnchorElement>(
+    '.p-masthead a[data-nav="story"], .p-masthead a[data-nav="features"]',
+  )) {
+    const current = link.dataset.nav === "story" ? !past : inFeatures;
     if (current) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
