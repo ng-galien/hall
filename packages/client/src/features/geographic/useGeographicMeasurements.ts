@@ -52,6 +52,9 @@ function translucent(color: string, alpha: number) {
 
 type FormatNumber = (value: number, options?: Intl.NumberFormatOptions) => string;
 
+/** Offset of the two lines of a saved length under the middle of its line, in screen pixels. */
+const savedLengthLabelOffset = 26;
+
 function labelText(text: string, offsetY = 0): Text {
   return new Text({
     text,
@@ -201,7 +204,9 @@ function savedMeasurementStyle(format: FormatNumber) {
       new Style({ stroke }),
       new Style({
         geometry: new Point((geometry as LineString).getCoordinateAt(0.5)),
-        text: labelText(`${label}\n${formatGeographicLength(Number(feature.get("length")), format)}`, -10),
+        // Under the line, as the measures being drawn: the name of a drawn element is written above its line, and a
+        // measurement laid along that element would otherwise be written over it.
+        text: labelText(`${label}\n${formatGeographicLength(Number(feature.get("length")), format)}`, savedLengthLabelOffset),
       }),
     ];
   };
