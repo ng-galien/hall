@@ -123,16 +123,17 @@ test.describe("écran de lancement de l'application de bureau", () => {
     await launch.waitForTimeout(3_000);
     await expect(launch.locator("#cities")).toBeHidden();
     await expect(launch.getByTestId("launch-map-caption")).not.toContainText("Gaule");
-    const reached = await finalAt(launch, 15_000);
+    /* The movement ends on the relief of the sector, reached about fifteen seconds after the start. */
+    const reached = await finalAt(launch, 25_000);
     const startedAt = Number(await launch.locator("html").getAttribute("data-started-at"));
-    expect(reached - startedAt).toBeGreaterThan(9_000);
-    expect(reached - startedAt).toBeLessThan(11_000);
+    expect(reached - startedAt).toBeGreaterThan(14_000);
+    expect(reached - startedAt).toBeLessThan(17_000);
     await expect(launch.getByTestId("launch-place")).toHaveText(alesiaPlace);
     await expect(launch.getByTestId("launch-note")).toHaveText(alesiaNote);
     expect(await onlyLocalResources(launch)).toEqual([]);
     const open = launch.getByTestId("launch-open");
     await expect(open).toBeEnabled();
-    await expect(open).toContainText("Démarrer Hall");
+    await expect(open).toContainText("Ouvrir Hall");
     await expect(open).toContainText("Entrée");
     await launch.waitForTimeout(2_000);
     expect(await launchViewOpen(application)).toBe(true);
@@ -144,10 +145,10 @@ test.describe("écran de lancement de l'application de bureau", () => {
   });
 
   test("application lente : bouton désactivé pendant la préparation, puis ouverture par Entrée", async () => {
-    stub = await startHallStub(null, 14_000);
+    stub = await startHallStub(null, 22_000);
     application = await launchHall(userDataPath, stub.url);
     const launch = await launchPage(application);
-    await finalAt(launch, 15_000);
+    await finalAt(launch, 25_000);
     const open = launch.getByTestId("launch-open");
     await expect(open).toBeDisabled();
     await launch.keyboard.press("Enter");
@@ -160,7 +161,7 @@ test.describe("écran de lancement de l'application de bureau", () => {
     const later = Number(await loader.getAttribute("data-progress"));
     expect(later).toBeGreaterThan(early);
     expect(later).toBeLessThan(1);
-    await expect(open).toBeEnabled({ timeout: 20_000 });
+    await expect(open).toBeEnabled({ timeout: 30_000 });
     await expect(launch.getByTestId("launch-step")).toHaveText("Espace de travail prêt");
     await expect(launch.getByTestId("launch-step-count")).toHaveText("1 sur 1");
     await expect(loader).toHaveAttribute("aria-valuenow", "100");
