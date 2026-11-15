@@ -1,3 +1,4 @@
+import { chooseAppointmentBound } from "../fixtures/appointmentFields";
 import { capture, expect, localDateTimeInput, test } from "./fixtures";
 
 test.setTimeout(3 * 60_000);
@@ -21,8 +22,8 @@ test("réunion de commission : membres, rendez-vous, invitation", async ({ docsP
   if (await allDay.isChecked()) await allDay.uncheck();
   const start = new Date(Date.now() + 7 * 24 * 60 * 60_000);
   start.setHours(18, 0, 0, 0);
-  await page.getByTestId("event-start").fill(localDateTimeInput(start));
-  await page.getByTestId("event-end").fill(localDateTimeInput(new Date(start.getTime() + 90 * 60_000)));
+  await chooseAppointmentBound(page, "start", localDateTimeInput(start));
+  await chooseAppointmentBound(page, "end", localDateTimeInput(new Date(start.getTime() + 90 * 60_000)));
   await page.getByTestId("event-location").fill("Maison commune de l’oppidum");
   await page.getByTestId("event-add-council-members").click();
   await capture(page, `${journey}/02-nouveau-rendez-vous`);

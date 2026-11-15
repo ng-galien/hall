@@ -1,4 +1,5 @@
 import { expect, runItemCommand, test } from "../fixtures/application";
+import { chooseAppointmentBound, expectAppointmentBound } from "../fixtures/appointmentFields";
 
 // @verifies-requirement HALL-FR-CAL-010
 // @verifies-requirement HALL-FR-CAL-030
@@ -131,11 +132,11 @@ test("calendar preserves timed appointments after creation and editing", async (
   await page.getByTestId("calendar-new").click();
   await page.getByTestId("calendar-name").fill(`Timed appointment ${Date.now()}`);
   await page.getByTestId("event-all-day").uncheck();
-  const day = (await page.getByTestId("event-start").inputValue()).slice(0, 10);
-  await page.getByTestId("event-start").fill(`${day}T19:30`);
-  await expect(page.getByTestId("event-end")).toHaveValue(`${day}T20:30`);
+  const day = (await page.getByTestId("event-start-date").getAttribute("data-value"))!;
+  await chooseAppointmentBound(page, "start", `${day}T19:30`);
+  await expectAppointmentBound(page, "end", `${day}T20:30`);
   await expect(page.getByTestId("calendar-create")).toBeEnabled();
-  await page.getByTestId("event-end").fill(`${day}T20:30`);
+  await chooseAppointmentBound(page, "end", `${day}T20:30`);
   await expect(page.getByTestId("calendar-create")).toBeEnabled();
   const response = page.waitForResponse((r) => r.url().endsWith("/api/resources") && r.request().method() === "POST");
   await page.getByTestId("calendar-create").click();
@@ -145,22 +146,22 @@ test("calendar preserves timed appointments after creation and editing", async (
   await expect(page.getByTestId(`calendar-event-${id}`)).toBeVisible();
   await page.reload();
   await page.getByTestId(`calendar-event-${id}`).click();
-  await expect(page.getByTestId("event-start")).toHaveValue(`${day}T19:30`);
-  await page.getByTestId("event-end").fill(`${day}T21:30`);
+  await expectAppointmentBound(page, "start", `${day}T19:30`);
+  await chooseAppointmentBound(page, "end", `${day}T21:30`);
   await expect
     .poll(async () => (await (await page.request.get(`/api/resources/${id}`)).json()).properties.document.schedule.end)
     .toBe(new Date(`${day}T21:30`).toISOString());
   await page.getByTestId("resource-preview-close").click();
   await page.reload();
   await page.getByTestId(`calendar-event-${id}`).click();
-  await expect(page.getByTestId("event-end")).toHaveValue(`${day}T21:30`);
-  await page.getByTestId("event-end").fill(`${day}T22:30`);
+  await expectAppointmentBound(page, "end", `${day}T21:30`);
+  await chooseAppointmentBound(page, "end", `${day}T22:30`);
   await page.getByTestId("resource-preview-close").click();
   await expect(page.getByTestId("resource-preview")).not.toBeVisible();
   await expect(page).toHaveURL(/\/app\/calendar$/);
   await page.reload();
   await page.getByTestId(`calendar-event-${id}`).click();
-  await expect(page.getByTestId("event-end")).toHaveValue(`${day}T22:30`);
+  await expectAppointmentBound(page, "end", `${day}T22:30`);
   await page.getByTestId("resource-preview-close").click();
   await page.request.delete(`/api/resources/${id}`);
 });
@@ -179,8 +180,8 @@ test("calendar completes every appointment field and changes schedule modes", as
   await expect(page.getByTestId("calendar-create")).toBeDisabled();
   const name = `Complete appointment ${Date.now()}`;
   await page.getByTestId("calendar-name").fill(name);
-  await page.getByTestId("event-start").fill("2026-09-17");
-  await page.getByTestId("event-end").fill("2026-09-18");
+  await chooseAppointmentBound(page, "start", "2026-09-17");
+  await chooseAppointmentBound(page, "end", "2026-09-18");
   await page.getByTestId("event-location").fill("Salle du conseil");
   const contact = (await (await page.request.get("/api/contacts")).json()).entities[0].properties;
   await page.getByTestId("event-contact").click();
@@ -216,18 +217,18 @@ test("calendar completes every appointment field and changes schedule modes", as
   await page.reload();
   await page.getByTestId(`calendar-event-${id}`).click();
   await expect(page).toHaveURL(/\/app\/calendar$/);
-  await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-18");
+  await expectAppointmentBound(page, "start", "2026-09-17");
+  await expectAppointmentBound(page, "end", "2026-09-18");
   await expect(page.getByTestId("event-location")).toHaveValue("Salle du conseil");
   await expect(page.getByTestId("event-participant-0")).toContainText(contact.lastName);
   await expect(page.getByTestId("event-participant-1")).toContainText("Intervenant invité");
   await expect(page.getByTestId("editor-writing-area")).toContainText("Contexte complet du rendez-vous.");
   await page.getByTestId("event-all-day").uncheck();
-  await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17T09:00");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17T10:00");
-  await page.getByTestId("event-start").fill("2026-09-17T19:30");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17T20:30");
-  await page.getByTestId("event-end").fill("2026-09-17T20:30");
+  await expectAppointmentBound(page, "start", "2026-09-17T09:00");
+  await expectAppointmentBound(page, "end", "2026-09-17T10:00");
+  await chooseAppointmentBound(page, "start", "2026-09-17T19:30");
+  await expectAppointmentBound(page, "end", "2026-09-17T20:30");
+  await chooseAppointmentBound(page, "end", "2026-09-17T20:30");
   await page.getByTestId("event-remove-participant-1").click();
   await page.getByTestId("event-remove-participant-0").click();
   await page.getByTestId("event-guest").fill("Autre invité");
@@ -245,8 +246,8 @@ test("calendar completes every appointment field and changes schedule modes", as
   });
   await page.reload();
   await page.getByTestId(`calendar-event-${id}`).click();
-  await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17T19:30");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17T20:30");
+  await expectAppointmentBound(page, "start", "2026-09-17T19:30");
+  await expectAppointmentBound(page, "end", "2026-09-17T20:30");
   await runItemCommand(page, "resource-autosave-toggle");
   await expect(page.getByTestId("resource-autosave-toggle")).toHaveAttribute("aria-checked", "false");
   await page.getByTestId("event-location").fill("Sauvegarde manuelle");
@@ -267,8 +268,8 @@ test("calendar completes every appointment field and changes schedule modes", as
   await runItemCommand(page, "resource-autosave-toggle");
   await expect(page.getByTestId("resource-autosave-toggle")).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("event-all-day").check();
-  await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17");
+  await expectAppointmentBound(page, "start", "2026-09-17");
+  await expectAppointmentBound(page, "end", "2026-09-17");
   await page.getByTestId("resource-preview-close").click();
   await expect
     .poll(async () => (await read()).document.schedule)
@@ -308,8 +309,8 @@ test("calendar recalculates invalid timed ends up to local midnight", async ({ a
     await page.getByTestId("calendar-new").click();
     await page.getByTestId("calendar-name").fill(`Late appointment ${start}`);
     await page.getByTestId("event-all-day").uncheck();
-    await page.getByTestId("event-start").fill(start);
-    await expect(page.getByTestId("event-end")).toHaveValue(end);
+    await chooseAppointmentBound(page, "start", start);
+    await expectAppointmentBound(page, "end", end);
     await expect(page.getByTestId("calendar-create")).toBeEnabled();
     const response = page.waitForResponse((r) => r.url().endsWith("/api/resources") && r.request().method() === "POST");
     await page.getByTestId("calendar-create").click();
@@ -318,20 +319,20 @@ test("calendar recalculates invalid timed ends up to local midnight", async ({ a
     const id = (await creation.json()).properties.id;
     await page.reload();
     await page.getByTestId(`calendar-event-${id}`).click();
-    await expect(page.getByTestId("event-start")).toHaveValue(start);
-    await expect(page.getByTestId("event-end")).toHaveValue(end);
-    await page.getByTestId("event-start").fill("2026-09-17T19:00");
-    await expect(page.getByTestId("event-end")).toHaveValue(end);
-    await page.getByTestId("event-end").fill("2026-09-17T20:00");
-    await page.getByTestId("event-start").fill(start);
-    await expect(page.getByTestId("event-end")).toHaveValue(end);
+    await expectAppointmentBound(page, "start", start);
+    await expectAppointmentBound(page, "end", end);
+    await chooseAppointmentBound(page, "start", "2026-09-17T19:00");
+    await expectAppointmentBound(page, "end", end);
+    await chooseAppointmentBound(page, "end", "2026-09-17T20:00");
+    await chooseAppointmentBound(page, "start", start);
+    await expectAppointmentBound(page, "end", end);
     await page.getByTestId("resource-preview-close").click();
     await expect(page.getByTestId("resource-preview")).not.toBeVisible();
     await expect(page).toHaveURL(/\/app\/calendar$/);
     await page.reload();
     await page.getByTestId(`calendar-event-${id}`).click();
-    await expect(page.getByTestId("event-start")).toHaveValue(start);
-    await expect(page.getByTestId("event-end")).toHaveValue(end);
+    await expectAppointmentBound(page, "start", start);
+    await expectAppointmentBound(page, "end", end);
     await page.getByTestId("resource-preview-close").click();
     await page.request.delete(`/api/resources/${id}`);
   }
@@ -354,7 +355,7 @@ test("calendar selects ranges and moves and resizes timed appointments", async (
   expect(date).toBeTruthy();
   await emptyDay.click();
   await expect(page.getByTestId("event-all-day")).toBeChecked();
-  await expect(page.getByTestId("event-start")).toHaveValue(date!);
+  await expectAppointmentBound(page, "start", date!);
   await page.getByTestId("calendar-cancel").click();
   await page.getByTestId("calendar-view-timeGridDay").click();
   const slot = page.getByTestId("calendar-slot-10:00:00");
@@ -369,8 +370,8 @@ test("calendar selects ranges and moves and resizes timed appointments", async (
   await page.mouse.move(endBox!.x + endBox!.width / 2, endBox!.y + endBox!.height / 2, { steps: 10 });
   await page.mouse.up();
   await expect(page.getByTestId("event-all-day")).not.toBeChecked();
-  await expect(page.getByTestId("event-start")).toHaveValue("2026-09-12T10:00");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-12T11:00");
+  await expectAppointmentBound(page, "start", "2026-09-12T10:00");
+  await expectAppointmentBound(page, "end", "2026-09-12T11:00");
   await page.getByTestId("calendar-name").fill(`Selected time range ${Date.now()}`);
   const response = page.waitForResponse((r) => r.url().endsWith("/api/resources") && r.request().method() === "POST");
   await page.getByTestId("calendar-create").click();
@@ -409,32 +410,37 @@ test("calendar selects ranges and moves and resizes timed appointments", async (
     .toBe(new Date("2026-09-12T12:30").toISOString());
   await page.reload();
   await page.getByTestId(`calendar-event-${id}`).click();
-  await expect(page.getByTestId("event-start")).toHaveValue("2026-09-12T11:00");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-12T12:30");
+  await expectAppointmentBound(page, "start", "2026-09-12T11:00");
+  await expectAppointmentBound(page, "end", "2026-09-12T12:30");
   await page.getByTestId("resource-preview-close").click();
   await expect(page).toHaveURL(/\/app\/calendar$/);
   await page.request.delete(`/api/resources/${id}`);
 });
 
 // @verifies-requirement HALL-FR-CAL-140
-test("calendar adjusts the end after native segmented hour editing", async ({ appPage: page }) => {
+test("calendar adjusts the end after the hour is chosen with the keyboard", async ({ appPage: page }) => {
   await page.clock.setFixedTime(new Date("2026-09-12T12:00:00Z"));
   await page.getByTestId("navigation-calendar").click();
   await page.getByTestId("calendar-new").click();
-  await page.getByTestId("calendar-name").fill(`Native hour entry ${Date.now()}`);
-  await page.getByTestId("event-start").fill("2026-09-17");
+  await page.getByTestId("calendar-name").fill(`Keyboard hour entry ${Date.now()}`);
+  await chooseAppointmentBound(page, "start", "2026-09-17");
   await page.getByTestId("event-all-day").uncheck();
-  const start = page.getByTestId("event-start");
-  await start.click({ position: { x: 12, y: 16 } });
-  await start.press("ArrowRight");
-  await start.press("ArrowRight");
-  await start.press("ArrowRight");
-  await start.press("ArrowUp");
-  await start.press("ArrowUp");
-  await start.press("ArrowUp");
-  await page.getByTestId("event-location").click();
-  await expect(start).toHaveValue("2026-09-17T12:00");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17T13:00");
+  await expectAppointmentBound(page, "start", "2026-09-17T09:00");
+  const start = page.getByTestId("event-start-time");
+  await start.focus();
+  await start.press("Enter");
+  await expect(page.getByTestId("event-start-time-options")).toBeVisible();
+  await expect(page.getByTestId("event-start-time-option-09-00")).toBeFocused();
+  for (let quarter = 1; quarter <= 12; quarter += 1) {
+    await page.keyboard.press("ArrowDown");
+    const minutes = 9 * 60 + quarter * 15;
+    const option = `${String(Math.floor(minutes / 60)).padStart(2, "0")}-${String(minutes % 60).padStart(2, "0")}`;
+    await expect(page.getByTestId(`event-start-time-option-${option}`)).toBeFocused();
+  }
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("event-start-time-options")).not.toBeVisible();
+  await expectAppointmentBound(page, "start", "2026-09-17T12:00");
+  await expectAppointmentBound(page, "end", "2026-09-17T13:00");
   const response = page.waitForResponse((r) => r.url().endsWith("/api/resources") && r.request().method() === "POST");
   await page.getByTestId("calendar-create").click();
   const creation = await response;
@@ -442,8 +448,8 @@ test("calendar adjusts the end after native segmented hour editing", async ({ ap
   const id = (await creation.json()).properties.id;
   await page.reload();
   await page.getByTestId(`calendar-event-${id}`).click();
-  await expect(page.getByTestId("event-start")).toHaveValue("2026-09-17T12:00");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17T13:00");
+  await expectAppointmentBound(page, "start", "2026-09-17T12:00");
+  await expectAppointmentBound(page, "end", "2026-09-17T13:00");
   await page.getByTestId("resource-preview-close").click();
   await page.request.delete(`/api/resources/${id}`);
 });
@@ -581,11 +587,12 @@ test("calendar uses one complete form for business, quarter hours and participan
     .and(page.locator(`[data-reference-id="${business.id}"]`))
     .click();
   await page.getByTestId("event-all-day").uncheck();
-  await expect(page.getByTestId("event-start")).toHaveAttribute("step", "900");
-  await page.getByTestId("event-start").fill("2026-09-17T10:10");
-  await expect(page.getByTestId("calendar-create")).toBeDisabled();
-  await page.getByTestId("event-start").fill("2026-09-17T10:15");
-  await expect(page.getByTestId("event-end")).toHaveValue("2026-09-17T11:15");
+  await chooseAppointmentBound(page, "start", "2026-09-17");
+  await page.getByTestId("event-start-time").click();
+  await expect(page.getByTestId(/^event-start-time-option-/)).toHaveCount(96);
+  await expect(page.getByTestId("event-start-time-option-10-10")).toHaveCount(0);
+  await page.getByTestId("event-start-time-option-10-15").click();
+  await expectAppointmentBound(page, "end", "2026-09-17T11:15");
   await page.getByTestId("event-contact").click();
   await page.getByTestId("event-contact-search-input").fill(missingContact.lastName);
   await page
@@ -605,7 +612,10 @@ test("calendar uses one complete form for business, quarter hours and participan
   expect(created.path).toBe(business.folderPath);
   await page.getByTestId(`calendar-event-${created.id}`).click();
   await expect(page.getByTestId("event-council-business")).toContainText(business.title);
-  await expect(page.getByTestId("event-start")).toHaveAttribute("step", "900");
+  await page.getByTestId("event-start-time").click();
+  await expect(page.getByTestId(/^event-start-time-option-/)).toHaveCount(96);
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("event-start-time-options")).not.toBeVisible();
   await expect(page.getByTestId("event-add-council-members")).toBeVisible();
   await expect(page.getByTestId("event-missing-email-warning")).toContainText(missingContact.lastName);
   const eventUrl = page.url();
@@ -649,4 +659,143 @@ test("calendar uses one complete form for business, quarter hours and participan
   await expect(page.getByTestId("event-council-business")).toContainText(otherBusiness.title);
   await page.getByTestId("resource-preview-close").click();
   await page.request.delete(`/api/resources/${created.id}`);
+});
+
+// @verifies-requirement HALL-FR-CAL-220
+// @verifies-requirement HALL-FR-CAL-230
+test("calendar lists the coming appointments by day and reaches a period through its picker", async ({
+  appPage: page,
+}) => {
+  await page.clock.setFixedTime(new Date("2026-09-12T12:00:00Z"));
+  const response = await page.request.post("/api/resources", {
+    data: {
+      kind: "event",
+      path: "",
+      name: `Listed appointment ${Date.now()}`,
+      document: {
+        content: "",
+        location: "Salle du conseil",
+        schedule: { kind: "timed", start: "2026-09-15T08:00:00.000Z", end: "2026-09-15T09:00:00.000Z" },
+        participants: [],
+      },
+    },
+  });
+  expect(response.status(), await response.text()).toBe(201);
+  const id = (await response.json()).properties.id as string;
+  await page.getByTestId("navigation-calendar").click();
+  await page.getByTestId("calendar-new").click();
+  await expect(page.getByTestId("calendar-create-sheet")).toBeVisible();
+  await expect(
+    page
+      .getByTestId("calendar-create-sheet")
+      .locator('input[type="date"], input[type="datetime-local"], input[type="time"]'),
+  ).toHaveCount(0);
+  await page.getByTestId("calendar-cancel").click();
+
+  await page.getByTestId("calendar-view-list").click();
+  await expect(page.getByTestId("calendar-page")).toHaveAttribute("data-view", "list");
+  const day = page.getByTestId("calendar-list-day-2026-09-15");
+  await expect(day).toBeVisible();
+  await expect(day.getByTestId(`calendar-list-item-${id}`)).toContainText("Listed appointment");
+  await expect(day.getByTestId(`calendar-list-item-${id}`)).toContainText("Salle du conseil");
+  await day.getByTestId(`calendar-list-item-${id}`).click();
+  await expect(page.getByTestId("event-resource-editor")).toBeVisible();
+  await page.getByTestId("resource-preview-close").click();
+
+  await page.getByTestId("calendar-view-timeGridWeek").click();
+  await page.getByTestId("calendar-title").click();
+  const picker = page.getByTestId("calendar-period-picker");
+  await expect(picker).toBeVisible();
+  await expect(picker.getByTestId("calendar-picker-day-2026-09-15")).toHaveAttribute("data-marked", "true");
+  await expect(picker.getByTestId("calendar-picker-day-2026-09-16")).not.toHaveAttribute("data-marked", "true");
+  await picker.getByTestId("calendar-picker-day-2026-09-15").click();
+  await expect(picker).not.toBeVisible();
+  await expect(page.getByTestId(`calendar-event-${id}`)).toBeVisible();
+  await page.getByTestId("calendar-view-dayGridMonth").click();
+  await page.getByTestId("calendar-title").click();
+  await expect(picker.getByTestId("calendar-picker")).toHaveAttribute("data-level", "month");
+  await picker.getByTestId("calendar-picker-month-2026-11").click();
+  await expect(picker).not.toBeVisible();
+  await expect(page.getByTestId("calendar-day-2026-11-17")).toBeVisible();
+  await expect(page.getByTestId("calendar-day-2026-09-15")).toHaveCount(0);
+  await page.getByTestId("calendar-today").click();
+  await expect(page.getByTestId("calendar-day-2026-09-15")).toBeVisible();
+  await page.request.delete(`/api/resources/${id}`);
+});
+
+test.describe("calendar on a touch phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  /** A one-finger gesture on the screen, through the touch events of the browser. */
+  async function touch(
+    page: import("@playwright/test").Page,
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    holdMs = 0,
+  ) {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
+    if (holdMs) await page.waitForTimeout(holdMs);
+    const steps = 8;
+    for (let step = 1; step <= steps; step += 1) {
+      const point = { x: from.x + ((to.x - from.x) * step) / steps, y: from.y + ((to.y - from.y) * step) / steps };
+      if (point.x !== from.x || point.y !== from.y)
+        await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [point] });
+    }
+    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await session.detach();
+  }
+
+  // @verifies-requirement HALL-FR-CAL-050
+  // @verifies-requirement HALL-FR-CAL-230
+  test("only a brief and still touch creates an appointment, in a sheet from the bottom; a swipe changes the day", async ({
+    appPage: page,
+  }) => {
+    await page.clock.setFixedTime(new Date(2026, 8, 14, 9, 20));
+    await page.goto("/app/calendar");
+    await expect(page.getByTestId("calendar-page")).toHaveAttribute("data-view", "timeGridDay");
+    await expect(page.getByTestId("calendar-previous")).toHaveCount(0);
+    await expect(page.getByTestId("calendar-next")).toHaveCount(0);
+    const slot = page.getByTestId("calendar-slot-11:00:00");
+    await slot.scrollIntoViewIfNeeded();
+    const box = (await slot.boundingBox())!;
+    const point = { x: box.x + box.width * 0.6, y: box.y + box.height / 2 };
+    const sheet = page.getByTestId("calendar-create-sheet");
+
+    await touch(page, point, { x: point.x, y: point.y + 120 });
+    await page.waitForTimeout(400);
+    await expect(sheet, "a vertical scroll of the hours creates nothing").toHaveCount(0);
+    await slot.scrollIntoViewIfNeeded();
+    const still = (await slot.boundingBox())!;
+    const target = { x: still.x + still.width * 0.6, y: still.y + still.height / 2 };
+    await touch(page, target, target, 800);
+    await page.waitForTimeout(400);
+    await expect(sheet, "a long touch creates nothing").toHaveCount(0);
+
+    await page.touchscreen.tap(target.x, target.y);
+    await expect(sheet).toBeVisible();
+    await expect(page.getByTestId("event-all-day")).not.toBeChecked();
+    await expect(page.getByTestId("event-start-date")).toHaveAttribute("data-value", "2026-09-14");
+    await expect(page.getByTestId("event-start-time")).toHaveAttribute("data-value", "11:00");
+    await expect(page.getByTestId("event-end-time")).toHaveAttribute("data-value", "12:00");
+    await expect
+      .poll(async () => {
+        const box = await sheet.boundingBox();
+        return box ? Math.round(box.y + box.height) : 0;
+      }, "the sheet stands on the bottom of the screen once it has slid up")
+      .toBe(844);
+    expect(Math.round((await sheet.boundingBox())!.width), "the sheet takes the width of the screen").toBe(390);
+    await page.getByTestId("calendar-cancel").click();
+    await expect(sheet).toHaveCount(0);
+
+    const title = await page.getByTestId("calendar-title").textContent();
+    const grid = (await page.locator(".hall-calendar-grid").boundingBox())!;
+    const middle = { x: grid.x + grid.width * 0.8, y: grid.y + grid.height / 2 };
+    await touch(page, middle, { x: grid.x + grid.width * 0.1, y: middle.y });
+    await expect(page.getByTestId("calendar-title")).not.toHaveText(title ?? "");
+    await expect(
+      page.getByTestId("calendar-day-2026-09-15").or(page.locator('[data-date="2026-09-15"]')).first(),
+    ).toBeAttached();
+    await expect(sheet, "a horizontal swipe creates nothing").toHaveCount(0);
+  });
 });
