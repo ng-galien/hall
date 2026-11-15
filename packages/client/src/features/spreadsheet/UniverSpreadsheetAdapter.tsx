@@ -37,11 +37,16 @@ function phonePlugin(plugin: unknown): unknown {
   return plugin;
 }
 
-/** A mutation of the workbook itself; the cell editor of the library and the formula engine change only their own state. */
-function changesWorkbook(event: { type: CommandType; id: string; params?: unknown }, unitId: string): boolean {
-  if (event.type !== CommandType.MUTATION || event.id.startsWith("formula.mutation.")) return false;
+type MutationEvent = { type: CommandType; id: string; params?: unknown; options?: unknown };
+
+/** How a mutation touches the workbook: not at all (the cell editor of the library, the formula engine), by a result
+ * the library computes itself (formula results, applied locally), or by a change of the person. */
+function workbookChange(event: MutationEvent, unitId: string): "none" | "computed" | "person" {
+  if (event.type !== CommandType.MUTATION || event.id.startsWith("formula.mutation.")) return "none";
   const params = event.params as { unitId?: unknown } | undefined;
-  return params?.unitId === unitId;
+  if (params?.unitId !== unitId) return "none";
+  const options = event.options as { onlyLocal?: unknown; fromFormula?: unknown } | undefined;
+  return options?.onlyLocal === true || options?.fromFormula === true ? "computed" : "person";
 }
 
 const DOUBLE_TOUCH_MS = 400;
@@ -197,6 +202,7 @@ export function UniverSpreadsheetAdapter({
     appliedReadOnlyRef.current = readOnlyRef.current;
     if (readOnlyRef.current) void setReadOnlyRef.current(true);
     let lastSnapshot = spreadsheetSnapshotFromWorkbook(workbook.save()).signature;
+    let changedByPerson = false;
     let snapshotTimer: number | null = null;
     let cellsFrame: number | null = null;
     const cells = spreadsheetCells(univerAPI, workbook, locale);
@@ -221,11 +227,19 @@ export function UniverSpreadsheetAdapter({
       });
     };
     const commandExecuted = univerAPI.addEvent(univerAPI.Event.CommandExecuted, (event) => {
-      if (changesWorkbook(event, unitId)) queueSnapshot();
       announceCells();
+      const change = workbookChange(event, unitId);
+      if (change === "person") changedByPerson = true;
+      if (change === "none") return;
+      if (changedByPerson) queueSnapshot();
+      else lastSnapshot = spreadsheetSnapshotFromWorkbook(workbook.save()).signature;
     });
-    const undo = univerAPI.addEvent(univerAPI.Event.Undo, () => queueSnapshot());
-    const redo = univerAPI.addEvent(univerAPI.Event.Redo, () => queueSnapshot());
+    const changeByPerson = () => {
+      changedByPerson = true;
+      queueSnapshot();
+    };
+    const undo = univerAPI.addEvent(univerAPI.Event.Undo, changeByPerson);
+    const redo = univerAPI.addEvent(univerAPI.Event.Redo, changeByPerson);
     const editStarted = univerAPI.addEvent(univerAPI.Event.BeforeSheetEditStart, (event) => {
       if (phone) {
         event.cancel = true;

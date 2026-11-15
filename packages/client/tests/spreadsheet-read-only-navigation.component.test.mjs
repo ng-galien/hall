@@ -227,3 +227,30 @@ test("a real change of the workbook is published, even when the grid is recreate
   });
   assert.deepEqual(written, ["Changé"]);
 });
+
+const formulaResult = {
+  type: 2,
+  id: "sheet.mutation.set-range-values",
+  params: { unitId: "w" },
+  options: { onlyLocal: true, fromFormula: true, applyFormulaCalculationResult: true },
+};
+
+// @verifies-requirement HALL-FR-LAY-180
+test("the formula results the library computes at opening write nothing; a change of the person carries them", async () => {
+  let written = null;
+  let afterChange = null;
+  await renderAdapter(false, false, async ({ changes, content, fire, settle }) => {
+    content.cells.E2 = 40;
+    await fire(formulaResult);
+    await settle();
+    written = changes.length;
+    content.cells.C2 = 21;
+    await fire(workbookMutation);
+    content.cells.E2 = 42;
+    await fire(formulaResult);
+    await settle();
+    afterChange = changes.map((document) => [document.workbook.cells.C2, document.workbook.cells.E2]);
+  });
+  assert.equal(written, 0);
+  assert.deepEqual(afterChange, [[21, 42]]);
+});

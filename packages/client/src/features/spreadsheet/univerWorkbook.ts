@@ -63,9 +63,11 @@ export function spreadsheetSnapshotFromWorkbook(workbook: IWorkbookData): {
   };
 }
 
+/** A copy of the workbook of a document for the library, which completes and changes the workbook it receives: the
+ * document itself stays the loaded content. */
 export function workbookFromSpreadsheetDocument(document: SpreadsheetDocument): IWorkbookData {
   if (!isUniverWorkbookData(document.workbook)) throw new Error("invalid_spreadsheet_workbook");
-  return document.workbook;
+  return structuredClone(document.workbook);
 }
 
 export function createEmptySpreadsheetDocument(name: string, locale: "fr" | "en"): SpreadsheetDocument {
