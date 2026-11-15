@@ -49,11 +49,14 @@ export interface ReliefView {
   /** Direction du point visé vers la caméra, dans le repère du relief. */
   direction: [number, number, number];
   distance: number;
+  /** Décale l'image vers la droite pour laisser la gauche au texte, comme la vue d'ensemble du site. */
+  shift: boolean;
   story: boolean;
 }
 
 /** Vue d'ensemble d'Alésia sur le relief, dans l'axe Cornu–Syam. */
 export const alesiaReliefView: ReliefView = {
+  shift: true,
   look: [-40, 40, 80],
   direction: [0.28, 0.6, 1],
   distance: 2600,
@@ -97,8 +100,8 @@ export interface LaunchScene {
   render(t: number): void;
   /** Dessine l'état final immobile, tous les lieux du récit affichés. */
   renderStill(): void;
-  /** Fixe la commune choisie pendant l'assemblage ; met à jour `duration`. */
-  setCommune(commune: SceneCommune): void;
+  /** Fixe la commune choisie pendant l'assemblage, avec le relief où elle est mise en évidence ; met à jour `duration`. */
+  setCommune(commune: SceneCommune, relief: ReliefStage | null): void;
 }
 
 interface Piece {
@@ -391,6 +394,7 @@ export function createLaunchScene(
   let relief: ReliefStage | null = null;
   let finalPose: CameraPose | null = null;
   let story = false;
+  let shifted = false;
 
   const buildCommune = (commune: SceneCommune) => {
     const others = data.communes.filter((area) => area.code !== commune.communeCode);
@@ -434,6 +438,7 @@ export function createLaunchScene(
     relief = commune.relief ? reliefStage : null;
     finalPose = relief && commune.relief ? reliefFinalPose(relief, commune.relief) : null;
     story = finalPose !== null && commune.relief?.story === true;
+    shifted = commune.relief?.shift === true;
     captions.splice(0, captions.length, ...commune.captions);
   };
   const cityMarks = createCityMarks(data.ancientCities, citiesLayer);
@@ -527,7 +532,8 @@ export function createLaunchScene(
       highlightMaterial.color.copy(accent);
       highlightMaterial.emissiveIntensity = 0.2;
     }
-    const shift = bascule > 0 && stage.clientWidth >= 1280 ? -0.16 * stage.clientWidth * easeInOutCubic(bascule) : 0;
+    const shift =
+      shifted && bascule > 0 && stage.clientWidth >= 1280 ? -0.16 * stage.clientWidth * easeInOutCubic(bascule) : 0;
     shiftView(camera, shift);
     if (reliefStage) shiftView(reliefStage.camera, shift);
     camera.position.copy(eye);
@@ -602,8 +608,10 @@ export function createLaunchScene(
     prepare,
     render,
     renderStill,
-    setCommune(commune) {
+    setCommune(commune, nextRelief) {
       if (communeLayer) return;
+      reliefStage = nextRelief;
+      reliefStage?.resize(stage.clientWidth, stage.clientHeight);
       buildCommune(commune);
       launchScene.duration = finalPose ? arrival : launchDuration;
       launchScene.settled = finalPose ? arrival + (story ? storyDuration : 0) : launchDuration;

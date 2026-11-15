@@ -277,9 +277,11 @@ html[data-leaving] body {
   position: fixed;
   left: var(--gutter);
   bottom: var(--gutter);
+  isolation: isolate;
   display: grid;
   gap: clamp(8px, 1.6vmin, 16px);
-  max-width: min(560px, calc(100vw - 2 * var(--gutter)));
+  width: max-content;
+  max-width: min(800px, calc(100vw - 2 * var(--gutter)));
   pointer-events: none;
 }
 
@@ -376,6 +378,7 @@ html[data-leaving] body {
 }
 
 .launch-note {
+  max-width: 640px;
   margin: 0;
   font-size: clamp(13.5px, 2vmin, 17px);
   line-height: 1.45;
@@ -560,9 +563,7 @@ html[data-motion="reduced"] .launch-progress { transition: none; animation: none
   display: none;
 }
 
-html[data-choice="open"] .launch-brand {
-  max-width: min(600px, calc(100vw - 2 * var(--gutter)));
-}
+
 
 .launch-choice {
   --choice-surface: color-mix(in srgb, var(--slate-50) 94%, transparent);
@@ -729,4 +730,17 @@ html[data-application="failed"] .launch-actions {
   .launch-choice-button {
     justify-self: start;
   }
+}
+
+/* Light panel behind the brand block, shown with the scrim, so the text stays readable over the relief. */
+.launch-brand::before {
+  content: "";
+  position: absolute;
+  inset: -18px -22px;
+  z-index: -1;
+  border: 1px solid color-mix(in srgb, var(--slate-300) 70%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--slate-50) 86%, transparent);
+  box-shadow: 0 12px 28px -20px color-mix(in srgb, var(--slate-950) 45%, transparent);
+  opacity: var(--brand-opacity);
 }

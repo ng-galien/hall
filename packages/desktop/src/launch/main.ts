@@ -378,14 +378,15 @@ function writePlace(): void {
 }
 
 /**
- * Vue de Foncine-le-Bas sur le relief partagé, qui couvre déjà son territoire : le village, le viaduc des Douanets
- * et la voie du Mont Noir, au sud.
+ * Vue de Foncine-le-Bas sur le relief partagé, qui couvre déjà son territoire : le village au centre de l'image, vu
+ * du nord-ouest, son territoire mis en évidence jusqu'au Mont Noir, au sud.
  */
 const foncineReliefView: SceneCommune["relief"] = {
-  look: { east: 3900, north: -5300 },
+  look: { east: 3926, north: -4384 },
   direction: [-0.55, 0.6, -0.8],
   distance: 600,
   story: false,
+  shift: false,
 };
 
 /** Commune où la scène se pose pour le jeu, avec ses légendes. */
@@ -411,6 +412,8 @@ function sceneCommune(chosen: Dataset, alesiaFocus: [number, number], relief: bo
 
 /** Appelé quand le jeu est choisi, avec le jeu choisi. */
 let onChosen: (chosen: Dataset) => void = () => undefined;
+/** La scène connaît sa commune ; jusque-là, l'horloge s'arrête sur la France assemblée. */
+let communePlaced = !choosing;
 /** Relance l'horloge de l'animation arrêtée sur la France assemblée. */
 let resumeClock: () => void = () => undefined;
 
@@ -528,7 +531,7 @@ function runTimeline(scene: LaunchScene): void {
   const frame = (now: number) => {
     if (root.dataset.leaving) return;
     let elapsed = (now - start - pausedMs) / 1000;
-    if (!dataset && elapsed >= communeWait) {
+    if (!communePlaced && elapsed >= communeWait) {
       waitingSince ??= now;
       elapsed = communeWait;
     }
@@ -559,10 +562,11 @@ async function loadRelief(
   projection: Parameters<typeof createReliefStage>[0],
   names: HTMLElement,
   list: HTMLElement,
+  communeCode: string,
 ): Promise<ReliefStage | null> {
   const startedAt = performance.now();
   try {
-    const relief = await createReliefStage(projection, names, 0xa9b4c2, list);
+    const relief = await createReliefStage(projection, names, 0xa9b4c2, list, communeCode);
     root.dataset.reliefBuildMs = String(Math.round(performance.now() - startedAt));
     return relief;
   } catch (error) {
@@ -627,7 +631,7 @@ async function start(): Promise<void> {
     mark("geodataEnd");
     writePlace();
     mark("reliefStart");
-    const relief = await loadRelief(data.projection, names, list);
+    const relief = dataset ? await loadRelief(data.projection, names, list, places[dataset].communeCode) : null;
     mark("reliefEnd");
     mark("sceneBuildStart");
     const scene = createLaunchScene(
@@ -643,11 +647,13 @@ async function start(): Promise<void> {
       withoutScene();
       return;
     }
-    const placeCommune = (chosen: Dataset) => {
+    const placeCommune = async (chosen: Dataset) => {
       root.dataset.commune = places[chosen].communeCode;
-      if (relief) root.dataset.relief = "true";
-      if (chosen === "alesia" && relief) list.hidden = false;
-      scene.setCommune(sceneCommune(chosen, data.alesiaFocus, relief !== null));
+      const chosenRelief = await loadRelief(data.projection, names, list, places[chosen].communeCode);
+      if (chosenRelief) root.dataset.relief = "true";
+      if (chosen === "alesia" && chosenRelief) list.hidden = false;
+      scene.setCommune(sceneCommune(chosen, data.alesiaFocus, chosenRelief !== null), chosenRelief);
+      communePlaced = true;
     };
     if (dataset && relief) root.dataset.relief = "true";
     if (reducedMotion) {
@@ -659,15 +665,15 @@ async function start(): Promise<void> {
       withoutScene();
       const chosenWithoutMotion = onChosen;
       onChosen = (chosen) => {
-        placeCommune(chosen);
-        chosenWithoutMotion(chosen);
-        scene.renderStill();
+        void placeCommune(chosen).then(() => {
+          chosenWithoutMotion(chosen);
+          scene.renderStill();
+        });
       };
       return;
     }
     onChosen = (chosen) => {
-      placeCommune(chosen);
-      resumeClock();
+      void placeCommune(chosen).then(resumeClock);
     };
     play(scene);
   } catch (error) {
