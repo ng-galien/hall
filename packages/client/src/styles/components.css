@@ -253,7 +253,7 @@
   @media (max-width: 760px) {
     .authorization-grants { overflow-x: visible; }
     .authorization-grants :is(table, tbody, tr, td) { display: block; }
-    .authorization-grants thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .authorization-grants thead { display: none; }
     .authorization-grants tr { display: grid; gap: var(--hall-space-1); padding: var(--hall-space-3) 0; border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
     .authorization-grants td { padding: 0; border-top: 0; }
     .authorization-grants td:last-child { min-width: 0; padding-top: var(--hall-space-1); }
