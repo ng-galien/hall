@@ -99,7 +99,7 @@ Alésia is the only maintained dataset. It is fictional and contains municipal s
 | --- | --- |
 | `fresh` | One meeting in preparation, without a date, with an empty agenda and no ballot; the default state of the regular browser suite |
 | `preparation` | One closed meeting with three ballots, then the next meeting in preparation, without a date, with five agenda items: minutes approval, two decision proposals, one information item and one open question |
-| `default` | Two closed meetings with three ballots each, plus one meeting in progress |
+| `default` | Two closed meetings with three ballots each, plus one meeting in progress: the minutes approval is voted, the plateau-defence decision proposal is under discussion with its ballot still to conduct, and the two open questions are to come |
 | `minutes` | The same history with the current meeting closed, its minutes still editable, and the next meeting dated two weeks ahead |
 
 The legal references to articles L2121-10, L2121-17, L2121-20 and L2131-2 of the CGCT, in `Guide/Références juridiques`, are chosen through the public API with their official text stored, only when the server has Légifrance credentials; otherwise the loader prints a warning for each article and continues.

@@ -149,11 +149,11 @@ postgresTest.each(["preparation", "default", "minutes"])(
       expect(
         (await pool.query("SELECT mode, count(*)::int count FROM hall.ballots GROUP BY mode ORDER BY mode")).rows,
       ).toEqual([
-        { mode: "public", count: 7 },
+        { mode: "public", count: scenario === "minutes" ? 7 : 6 },
         { mode: "secret", count: 1 },
       ]);
       const decisions = await get("/council-decisions");
-      expect(decisions).toHaveLength(6);
+      expect(decisions).toHaveLength(scenario === "minutes" ? 6 : 5);
       const priceDecision = decisions.find(
         (decision: { title: string }) => decision.title === "Répartition des réserves de céréales",
       );
@@ -161,11 +161,15 @@ postgresTest.each(["preparation", "default", "minutes"])(
       const lighting = decisions.find(
         (decision: { title: string }) => decision.title === "Défense du plateau - renforcement de la seconde ligne",
       );
-      const lightingBallot = (await get(`/council-decisions/${lighting.id}`)).facts.ballot;
-      expect(lightingBallot.mode).toBe("public");
-      expect(lightingBallot.votes.filter((vote: { choice: string }) => vote.choice === "approve")).toHaveLength(9);
-      expect(lightingBallot.votes.filter((vote: { choice: string }) => vote.choice === "reject")).toHaveLength(3);
-      expect(lightingBallot.votes.filter((vote: { choice: string }) => vote.choice === "abstain")).toHaveLength(1);
+      if (scenario === "minutes") {
+        const lightingBallot = (await get(`/council-decisions/${lighting.id}`)).facts.ballot;
+        expect(lightingBallot.mode).toBe("public");
+        expect(lightingBallot.votes.filter((vote: { choice: string }) => vote.choice === "approve")).toHaveLength(9);
+        expect(lightingBallot.votes.filter((vote: { choice: string }) => vote.choice === "reject")).toHaveLength(3);
+        expect(lightingBallot.votes.filter((vote: { choice: string }) => vote.choice === "abstain")).toHaveLength(1);
+      } else {
+        expect(lighting).toBeUndefined();
+      }
       const third = meetings.find((meeting: { number: number }) => meeting.number === 3);
       const thirdAgenda = await get(`/council-meetings/${third.id}/agenda-items`);
       expect(thirdAgenda.map((item: { title: string }) => item.title)).toEqual(
@@ -188,11 +192,16 @@ postgresTest.each(["preparation", "default", "minutes"])(
         expect(meetings.filter((meeting: { closedAt: string | null }) => meeting.closedAt)).toHaveLength(2);
         expect(third.startedAt).not.toBeNull();
         expect(third.closedAt).toBeNull();
+        const plateau = thirdAgenda.find(
+          (item: { title: string }) => item.title === "Défense du plateau - renforcement de la seconde ligne",
+        );
+        expect(plateau.startedAt).not.toBeNull();
+        expect(plateau.completedAt ?? null).toBeNull();
         expect(
           thirdAgenda.find(
             (item: { title: string }) => item.title === "Aménagement des abris d’Alésia - étude préalable",
           ).startedAt,
-        ).not.toBeNull();
+        ).toBeNull();
       }
     } finally {
       await server.close();

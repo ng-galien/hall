@@ -171,12 +171,12 @@ export async function seedHistory(api, fixture, { editableMinutes = false } = {}
   await put(`/council-meetings/${current.id}/agenda-order`, {
     agendaItemIds: [currentAgenda[0].id, lighting.id, currentAgenda[1].id, parking.id],
   });
-  const currentDate = new Date(Date.now() - (editableMinutes ? 160 : 75) * 60_000).toISOString();
+  const currentDate = new Date(Date.now() - (editableMinutes ? 160 : 20) * 60_000).toISOString();
   const currentAttendance = await open(current, currentDate);
   await vote(current, currentAgenda[0], currentAttendance, "public", 12, 0, discussions.approval, 2, 8);
-  await vote(current, lighting, currentAttendance, "public", 9, 3, discussions.currentDecision, 15, 15);
-  await start(current, currentAgenda[1], 35);
   if (editableMinutes) {
+    await vote(current, lighting, currentAttendance, "public", 9, 3, discussions.currentDecision, 15, 15);
+    await start(current, currentAgenda[1], 35);
     await patch(`/council-meetings/${current.id}/agenda-items/${currentAgenda[1].id}/notes`, {
       discussionSummary: discussions.editableMinutes,
     });
@@ -208,8 +208,9 @@ export async function seedHistory(api, fixture, { editableMinutes = false } = {}
     );
     return;
   }
+  await start(current, lighting, 15);
   await backdate(current, currentDate);
   console.log(
-    `  Deux séances clôturées, huit scrutins terminés, une séance en cours : /app/meetings/${current.id}/live`,
+    `  Deux séances clôturées, sept scrutins terminés, une séance en cours dont le vote de la défense du plateau reste à mener : /app/meetings/${current.id}/live`,
   );
 }
