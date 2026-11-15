@@ -32,6 +32,7 @@ function deferred() {
 
 const settle = () => act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
 
+/** Mounts an editor; `unmount` destroys it first, so that a focus it scheduled for the next frame does nothing after the test. */
 async function mountEditor() {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("matchMedia", () => ({
@@ -61,6 +62,7 @@ async function mountEditor() {
     host,
     editor,
     unmount: async () => {
+      editor.destroy();
       await act(async () => root.unmount());
       host.remove();
     },

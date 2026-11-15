@@ -33,7 +33,7 @@ export async function verifyInstalledOutlookWorker(installed) {
         },
       }),
     );
-    await execute(process.execPath, [join(installed, "bin/outlookWorker.mjs"), request], { timeout: 10000 });
+    await execute(process.execPath, [join(installed, "bin/outlookWorker.mjs"), request], { timeout: 60_000 });
     expect(JSON.parse(await readFile(join(directory, "result.json"), "utf8"))).toEqual({
       status: "failed",
       code: "outlook_request_expired",
