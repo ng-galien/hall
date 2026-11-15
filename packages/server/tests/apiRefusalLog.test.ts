@@ -117,7 +117,9 @@ it("answers a statement timeout with a named 503 problem and logs the failed rea
 // @verifies-requirement HALL-TR-DST-050
 it("logs an unhandled error with its type, message, code, stack and request, without query text or parameter values", async () => {
   const error = vi.spyOn(logger, "error");
-  const response = await request(application()).post("/api/contacts/import").send({ email: "jeanne.martin@example.test" });
+  const response = await request(application())
+    .post("/api/contacts/import")
+    .send({ email: "jeanne.martin@example.test" });
 
   expect(response.status).toBe(500);
   const [line] = loggedLines(error).filter(({ message }) => message === "Unhandled HTTP request error");

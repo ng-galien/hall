@@ -5,10 +5,7 @@ import { executeSchemaDataMigrations } from "../src/schemaDataMigrations.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
 
 const migration = readFile(new URL("../sql/migrations/007-server-tables-into-hall.sql", import.meta.url), "utf8");
-const dropMigration = readFile(
-  new URL("../sql/migrations/010-drop-former-server-tables.sql", import.meta.url),
-  "utf8",
-);
+const dropMigration = readFile(new URL("../sql/migrations/010-drop-former-server-tables.sql", import.meta.url), "utf8");
 const formerTables = [
   "users",
   "user_roles",

@@ -61,10 +61,10 @@ postgresDescribe("purge of expired sessions and finished password links", () => 
 
     expect(
       (
-        await pool.query("SELECT hall_api.issue_account_password_link($1, 'recovery', 'new-link', $2) ->> 'outcome' AS outcome", [
-          first,
-          issued,
-        ])
+        await pool.query(
+          "SELECT hall_api.issue_account_password_link($1, 'recovery', 'new-link', $2) ->> 'outcome' AS outcome",
+          [first, issued],
+        )
       ).rows[0].outcome,
     ).toBe("issued");
 
