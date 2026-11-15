@@ -8658,13 +8658,20 @@
         "La fermeture restitue le focus ; le menu près du curseur s’adapte à l’espace disponible.",
         "Chaque nouvelle saisie de @ ouvre la recherche sans validation préalable, y compris après fermeture ou insertion dans le même éditeur. Les ouvertures successives restent utilisables au clavier comme à la souris.",
         "Dans l’éditeur, # ouvre un overlay de catégories et de valeurs, sans champ de recherche supplémentaire ni panneau empilé. Le choix actif reste à la hauteur du # ; les autres choix défilent au-dessus et au-dessous, au clavier et à la souris. Les types sont proposés directement, sans en-tête « Type » ni icône de filtre. Les autres catégories se déploient dans ce même overlay. Le focus reste dans le texte ; Tab n’est pas nécessaire. Le placement respecte les limites de la fenêtre.",
-        "Les résultats, dossiers et pastilles affichent des noms métier lisibles ; un identifiant technique, notamment UUID, ne sert jamais de libellé de remplacement. Les captures de recette utilisent elles aussi des noms métier lisibles."
+        "Les résultats, dossiers et pastilles affichent des noms métier lisibles ; un identifiant technique, notamment UUID, ne sert jamais de libellé de remplacement. Les captures de recette utilisent elles aussi des noms métier lisibles.",
+        "Sur un téléphone, la recherche des documents s’ouvre avec son champ actif, prêt à la saisie. Sous le champ, chaque critère disponible (type, dossier, étiquette, état, média) s’ouvre d’un toucher sur la liste de ses valeurs, où un toucher ajoute ou retire une valeur et referme la liste. Chaque filtre actif reste visible sous le champ et se retire d’un toucher. Les résultats, avec leur nombre et leur tri, occupent le reste de l’écran. Les recherches des sélecteurs de ressources offrent au téléphone les mêmes critères de la même manière."
       ],
       "clauses": [
         {
           "key": "shared-search",
           "origin": "product",
           "statement": "Les recherches globales, sélecteurs de ressources et insertions de l’éditeur partagent un contrôleur et une présentation communs.",
+          "sourceIds": []
+        },
+        {
+          "key": "phone-search-filters",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 15 novembre 2026, après essai de la recherche des documents au téléphone : « l'affichage des filtres, etc. en mobile, tu vois bien que c'est pas terrible. On peut franchement faire mieux. »",
           "sourceIds": []
         },
         {

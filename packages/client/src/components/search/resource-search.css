@@ -19,7 +19,7 @@
 
 .shared-search-category-title { display:flex; justify-content:space-between; align-items:center; width:100%; gap:var(--hall-space-3); }
 .shared-search-category-title>span { color:var(--hall-color-text-muted); font-size:var(--hall-font-size-caption); font-weight:normal; }
-.shared-search-filters summary>span { flex:1; }
+.shared-search-filters summary>.hall-disclosure-title { flex:1; }
 .shared-search-filters summary[data-active] { background:var(--hall-color-surface-selected); }
 .shared-search-filters [role="listbox"] { display:flex; flex-direction:column; gap:var(--hall-space-1); }
 .shared-search-filters .searchbox-suggestion { width:100%; padding:var(--hall-space-2); border-radius:var(--hall-radius-small); cursor:pointer; }
@@ -38,3 +38,30 @@
 .shared-search-wheel-row[data-active="true"] { background:var(--hall-color-surface-selected); color:var(--hall-color-brand); font-weight:var(--hall-font-weight-medium); }
 .shared-search-wheel-row:hover { color:var(--hall-color-brand); background:var(--hall-color-surface-selected); }
 .shared-search-wheel-value { padding-left:var(--hall-space-2); }
+
+/* The filters of a search on a phone: a flow of marks under the field, values in a sheet from the bottom. */
+.searchbox-filter-bar { display:flex; flex-wrap:wrap; gap:var(--hall-space-2); margin-top:var(--hall-space-2); }
+.searchbox-filter-mark { display:inline-flex; flex:none; align-items:center; gap:var(--hall-space-1-5); max-width:100%; min-height:var(--hall-size-control); padding:0 var(--hall-space-3); border:var(--hall-stroke-thin) solid var(--hall-color-border-strong); border-radius:var(--hall-radius-small); background:transparent; color:var(--hall-color-text); font:inherit; font-size:var(--hall-font-size-body); line-height:var(--hall-line-height-body-small); white-space:nowrap; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; }
+.searchbox-filter-mark > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.searchbox-filter-mark > svg { flex:none; width:var(--hall-font-size-icon); height:var(--hall-font-size-icon); }
+.searchbox-filter-mark:active { background:var(--hall-color-surface-selected); }
+.searchbox-filter-mark[data-active="true"] { border-color:transparent; background:var(--hall-color-brand-subtle); color:var(--hall-color-on-brand-subtle); font-weight:var(--hall-font-weight-semibold); }
+.searchbox-filter-mark[data-active="true"]:active { background:var(--hall-color-brand-subtle-pressed); }
+@media (pointer: coarse) { .searchbox-filter-mark { min-height:var(--hall-size-touch-control); } }
+.searchbox-filter-sheet .hall-sheet-body { gap:0; padding:var(--hall-space-1) 0 calc(var(--hall-space-2) + env(safe-area-inset-bottom, var(--hall-size-zero))); }
+.searchbox-filter-sheet [role="listbox"] { display:grid; }
+.searchbox-filter-value { display:flex; width:100%; min-height:var(--hall-size-touch-control); align-items:center; gap:var(--hall-space-3); padding:0 var(--hall-space-4); border:0; background:transparent; color:var(--hall-color-text); font:inherit; font-size:var(--hall-font-size-body); text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.searchbox-filter-value:active { background:var(--hall-color-surface-selected); }
+.searchbox-filter-value[aria-selected="true"] { color:var(--hall-color-brand); font-weight:var(--hall-font-weight-semibold); }
+.searchbox-filter-value-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.searchbox-filter-value-count { flex:none; color:var(--hall-color-text-muted); font-size:var(--hall-font-size-caption); font-variant-numeric:tabular-nums; }
+.searchbox-filter-value-check { display:inline-flex; flex:none; width:var(--hall-font-size-icon-large); justify-content:center; color:var(--hall-color-brand); }
+.searchbox-filter-value-check > svg { width:var(--hall-font-size-icon-large); height:var(--hall-font-size-icon-large); }
+@media (max-width: 760px) {
+  .workspace-phone-search.workspace-phone-search { gap:var(--hall-space-2); padding-top:var(--hall-space-2); }
+  .workspace-phone-search .searchbox-field { margin-inline-end:calc(var(--hall-size-touch-control) - var(--hall-space-1)); }
+  /* The folder filter of a phone is the « Dossier » mark: the results line keeps the count and the order. */
+  .workspace-phone-search .search-results-bar { flex-wrap:nowrap; padding:0 0 var(--hall-space-1); }
+  .workspace-phone-search .search-results-bar > .hall-button { display:none; }
+  .workspace-phone-search .search-results-bar .hall-button > svg:last-child { display:none; }
+}

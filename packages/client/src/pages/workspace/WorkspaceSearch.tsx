@@ -56,7 +56,10 @@ export function WorkspaceSearch({
   );
 }
 
-/** On a phone the workspace search opens from an icon of the header, over the whole screen, with its field active. */
+/**
+ * On a phone the workspace search opens from an icon of the header, over the whole screen: the field, active, beside
+ * the close button, the filter marks under it, then the results.
+ */
 export function PhoneWorkspaceSearch({
   onSelect,
   context,
@@ -91,7 +94,7 @@ export function PhoneWorkspaceSearch({
           aria-describedby={undefined}
           data-testid="workspace-phone-search"
         >
-          <DialogTitle>{t("common.search")}</DialogTitle>
+          <DialogTitle className="sr-only">{t("common.search")}</DialogTitle>
           <WorkspaceSearch
             search={search}
             onSearch={setSearch}

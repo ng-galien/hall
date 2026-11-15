@@ -2,6 +2,7 @@ import { matchDiscriminated } from "@hall/domain";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import { normalizeForSearch, type SearchableMedia, type SearchableState } from "../../lib/search";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { CloseIcon, FilterIcon, SearchIcon } from "../icons";
 import { ActiveOption } from "../ui/active-option";
 import { Button } from "../ui/button";
@@ -9,6 +10,7 @@ import { Disclosure } from "../ui/disclosure";
 import { DisclosureBadge } from "../ui/disclosure-badge";
 import { Input } from "../ui/input";
 import { type FacetSuggestion, facetHashPattern, facetSuggestionsFor } from "./facetSuggestions";
+import { PhoneSearchFilters } from "./PhoneSearchFilters";
 
 export interface SearchKeyEvent {
   key: string;
@@ -104,6 +106,8 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
   testId?: string;
 }) {
   const { t } = useI18n();
+  const phoneLayout = usePhoneLayout();
+  const phone = phoneLayout && !inline;
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (autoFocus) input.current?.focus();
@@ -260,7 +264,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
     <div className="searchbox" data-testid={testId}>
       <div className="wsearch-field searchbox-field" hidden={inline && showing}>
         <SearchIcon className="app-icon wsearch-icon" />
-        {facets.map((f) => (
+        {(phone ? [] : facets).map((f) => (
           <span className="wsearch-chip" key={`${f.facet}:${f.value}`}>
             <Button
               variant="secondary"
@@ -305,21 +309,23 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
           }}
           onKeyDown={onKeyDown}
         />
-        <Button
-          variant="plain"
-          data-testid={`${testId}-add-filter`}
-          aria-expanded={showing}
-          onClick={() => {
-            setBrowse(!showing);
-            setEditing(null);
-            setExpanded(null);
-            setActive(0);
-            if (hash) close();
-          }}
-        >
-          <FilterIcon />
-          <span className="shared-search-filter-label">{t("search.addFilter")}</span>
-        </Button>
+        {phone ? null : (
+          <Button
+            variant="plain"
+            data-testid={`${testId}-add-filter`}
+            aria-expanded={showing}
+            onClick={() => {
+              setBrowse(!showing);
+              setEditing(null);
+              setExpanded(null);
+              setActive(0);
+              if (hash) close();
+            }}
+          >
+            <FilterIcon />
+            <span className="shared-search-filter-label">{t("search.addFilter")}</span>
+          </Button>
+        )}
         {isSearchBoxActive(state) ? (
           <Button
             variant="plain"
@@ -337,6 +343,20 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
         ) : null}
         {trailing}
       </div>
+      {phone && !showing ? (
+        <PhoneSearchFilters
+          testId={testId}
+          labels={labels}
+          groups={categoryKinds
+            .map((category) => ({
+              category,
+              values: facetSuggestionsFor("", options).filter((f) => f.facet === category),
+            }))
+            .filter((group) => group.values.length)}
+          active={facets}
+          onToggle={(facet, remove) => onState(applySearchFacet(state, facet, remove))}
+        />
+      ) : null}
       {showing && inline ? (
         <div className="shared-search-filter-overlay" data-testid={`${testId}-filters`}>
           <div className="shared-search-filter-wheel" ref={overlay} role="tree" aria-label={t("search.addFilter")}>
