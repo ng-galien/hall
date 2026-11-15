@@ -6,15 +6,18 @@ import type { WorkbenchControls } from "./WorkspaceWorkbenchHeader";
 
 /**
  * The controls an opened item owes to its session, the same on the workspace screen and in a document dialog: the
- * switch of the automatic saving and « Voir les modifications », visible on the line of the title, and the save state
- * under the title.
+ * switch of the automatic saving and « Voir les modifications », visible on the line of the title, and, for an item the
+ * person may modify, the save state under the title.
  */
 export function useSessionControls(session: ResourceSession | null, close?: ReactNode): WorkbenchControls {
   const resource = session?.resource ?? null;
   return {
     menu: [],
     close,
-    save: session && resource ? { status: session.saveStatus, enabled: session.autosaveEnabled } : undefined,
+    save:
+      session && resource && session.editable
+        ? { status: session.saveStatus, enabled: session.autosaveEnabled }
+        : undefined,
     visible:
       session && resource ? (
         <>
