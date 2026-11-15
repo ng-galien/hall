@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "../../i18n/I18nProvider";
 import { AlignCenterIcon, AlignLeftIcon, CheckIcon, CopyIcon } from "../icons";
+import { LoadingIndicator } from "../ui/loading-indicator";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
 import { insertResourceImage } from "./images";
 import { writingChain } from "./phoneKeyboard";
@@ -541,7 +542,7 @@ export function EditorResourceEmbedSearch({
         <DialogHeader>
           <DialogTitle>{t("editor.embedTableOptions")}</DialogTitle>
         </DialogHeader>
-        {!sheets && !failed ? <p role="status">{t("common.loading")}</p> : null}
+        {!sheets && !failed ? <LoadingIndicator size="zone" label={t("common.loading")} /> : null}
         {failed ? <p role="alert">{t("common.requestFailed")}</p> : null}
         {sheets ? (
           <form className="resource-embed-options" onSubmit={submit}>

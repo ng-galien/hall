@@ -32,7 +32,7 @@ export function EditorImageViewer({ id, label, onClose }: { id: string; label: s
       {href ? (
         <img className="editor-image-viewer-image" data-testid="editor-image-viewer-image" src={href} alt={name} />
       ) : (
-        <LoadingIndicator aria-label={t("common.loading")} />
+        <LoadingIndicator size="zone" label={t("common.loading")} />
       )}
     </DocumentViewerDialog>
   );

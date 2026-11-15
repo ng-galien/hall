@@ -86,7 +86,7 @@ export function EventSheet({
           <SaveFact save={controls.save} />
         </div>
       ) : null}
-      {!resource && !session.detailsFailed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
+      {!resource && !session.detailsFailed ? <LoadingIndicator size="zone" label={t("common.loading")} /> : null}
       {session.detailsFailed ? <p role="alert">{t("common.requestFailed")}</p> : null}
       {session.actionError ? <p role="alert">{t("common.requestFailed")}</p> : null}
       {resource ? (

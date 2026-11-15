@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { watchPhotoSize } from "../../features/documents/photoReduction";
 import { useI18n } from "../../i18n/I18nProvider";
 import { Modal } from "../Ui";
+import { LoadingIndicator } from "../ui/loading-indicator";
 import type { ResourceImageAttributes } from "./images";
 import { beginImageUpload } from "./imageUploadGate";
 import {
@@ -459,7 +460,11 @@ export function ImageUploadStatusLine({ status }: { status: ImageUploadStatus })
       data-testid="editor-image-status"
       data-status={status.kind}
     >
-      {message}
+      {status.kind === "uploading" || status.kind === "documentUploading" || status.kind === "tableConverting" ? (
+        <LoadingIndicator label={message} />
+      ) : (
+        message
+      )}
     </p>
   );
 }

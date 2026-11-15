@@ -6,6 +6,7 @@ import themePlugin from "@fullcalendar/react/themes/monarch";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import { type EventDocument, eventDocumentSchema, findSirenAction } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CalendarIcon } from "../../components/icons";
 import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -254,7 +255,7 @@ export function CalendarPage() {
         onPrevious={() => shift(-1)}
         onNext={() => shift(1)}
       />
-      {loading && <p role="status">{t("calendar.loading")}</p>}
+      {loading && <LoadingIndicator size="zone" label={t("calendar.loading")} />}
       {error && <p role="alert">{t("calendar.error")}</p>}
       {view === "list" ? <CalendarList occurrences={occurrences} from={anchor} onOpen={open} /> : null}
       <div className="hall-calendar-grid" ref={grid} hidden={view === "list"}>
@@ -471,6 +472,8 @@ export function CalendarPage() {
               data-testid="calendar-delete-confirm"
               variant="danger"
               disabled={saving}
+              pending={saving}
+              pendingLabel={t("common.delete")}
               onClick={async () => {
                 if (!deleteId || saving || deleting.current) return;
                 if (deleteStep === 1) {
