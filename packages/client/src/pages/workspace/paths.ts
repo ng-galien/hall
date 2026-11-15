@@ -39,6 +39,28 @@ export function isUnderPath(folderPath: string, path: string): boolean {
   return folderPath === path || folderPath.startsWith(`${path}/`);
 }
 
+export interface FolderTrailStep {
+  path: string;
+  name: string;
+  /** True for the personal folder of the connected person, named « Mon espace » in the trail. */
+  personal: boolean;
+}
+
+/**
+ * Folders of the trail that leads from Documents to `path`. Inside the personal folder of the connected person, that
+ * folder is the first step under Documents and the folders above it are not steps.
+ * @implements-requirement HALL-FR-WSP-380
+ */
+export function folderTrail(path: string, personalPath: string | null): FolderTrailStep[] {
+  const segments = path.split("/").filter(Boolean);
+  const steps = segments.map((name, index) => {
+    const stepPath = segments.slice(0, index + 1).join("/");
+    return { path: stepPath, name, personal: stepPath === personalPath };
+  });
+  if (!personalPath || !isUnderPath(path, personalPath)) return steps;
+  return steps.filter((step) => isUnderPath(step.path, personalPath));
+}
+
 /** Documentary filing paths advertised by the lightweight canonical catalogue. */
 export function listCatalogPaths(catalog: ResourceCatalogEntry[]): string[] {
   const known = new Set<string>();

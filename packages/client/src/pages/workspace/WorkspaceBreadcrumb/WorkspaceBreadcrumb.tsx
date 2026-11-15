@@ -20,7 +20,7 @@ import { compareNames, comparePaths, sortByName } from "../../../lib/names";
 import type { CouncilBusinessView } from "../../../models/councilBusiness";
 import { useCouncilBusinessStore } from "../../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../../stores/workspaceResourcesStore";
-import { listCatalogPaths } from "../paths";
+import { type FolderTrailStep, folderTrail, listCatalogPaths } from "../paths";
 import { sameWorkspaceItem, type WorkspaceSelection } from "../workspaceItemReference";
 import "./WorkspaceBreadcrumb.css";
 
@@ -190,7 +190,9 @@ function BreadcrumbActions({
 /**
  * Workspace breadcrumb; selecting a crumb opens that folder and closes the open item, and the chevron after a crumb
  * opens the menu of its folders, affaires and documents. In the screen header the open item and the current folder
- * are the title of the screen and are not repeated in the trail.
+ * are the title of the screen and are not repeated in the trail. Inside the personal folder of the connected person,
+ * « Mon espace » is the step under Documents.
+ * @implements-requirement HALL-FR-WSP-380
  */
 export function WorkspaceBreadcrumb({
   path,
@@ -237,8 +239,9 @@ export function WorkspaceBreadcrumb({
     }
     return [...known].sort(comparePaths);
   })();
-  const segments = path.split("/").filter(Boolean);
   const personalPath = useWorkspaceResourcesStore((state) => state.personalWorkspacePath);
+  const steps = folderTrail(path, personalPath);
+  const stepLabel = (step: FolderTrailStep) => (step.personal ? t("workspace.personalWorkspace") : step.name);
   const personalMark = (target: string) =>
     target === personalPath ? (
       <PersonalFolderIcon
@@ -261,14 +264,14 @@ export function WorkspaceBreadcrumb({
         <span className="workspace-crumb workspace-crumb-root" title={t("workspace.allPaths")}>
           {t("navigation.workspace")}
         </span>
-        {segments.map((segment, index) => (
-          <span className="workspace-crumb-group" key={segments.slice(0, index + 1).join("/")}>
+        {steps.map((step) => (
+          <span className="workspace-crumb-group" key={step.path}>
             <span className="workspace-crumb-sep" aria-hidden="true">
               <ChevronRightIcon />
             </span>
             <span className="workspace-crumb">
-              {personalMark(segments.slice(0, index + 1).join("/"))}
-              {segment}
+              {personalMark(step.path)}
+              {stepLabel(step)}
             </span>
           </span>
         ))}
@@ -298,7 +301,7 @@ export function WorkspaceBreadcrumb({
     <nav className="workspace-breadcrumb" aria-label={t("workspace.pathBreadcrumb")}>
       <Button
         variant="plain"
-        className={`workspace-crumb workspace-crumb-root${originPath === "" ? " workspace-crumb-origin" : ""}${segments.length === 0 && !currentLabel ? " workspace-crumb-here" : ""}`}
+        className={`workspace-crumb workspace-crumb-root${originPath === "" ? " workspace-crumb-origin" : ""}${steps.length === 0 && !currentLabel ? " workspace-crumb-here" : ""}`}
         data-testid="workspace-breadcrumb-root"
         title={t("workspace.allPaths")}
         onClick={() => onSelect?.(null, "")}
@@ -311,37 +314,35 @@ export function WorkspaceBreadcrumb({
         businesses={businesses}
         resources={resources}
         currentSelection={currentSelection}
-        trailing={path.split("/").filter(Boolean).length === 0 && !currentLabel}
+        trailing={steps.length === 0 && !currentLabel}
         onSelect={onSelect!}
       />
-      {path
-        .split("/")
-        .filter(Boolean)
-        .map((segment, index, segments) => {
-          const target = segments.slice(0, index + 1).join("/");
-          return (
-            <span className="workspace-crumb-group" key={target}>
-              <Button
-                variant="plain"
-                className={`workspace-crumb${originPath === target ? " workspace-crumb-origin" : ""}${index === segments.length - 1 && !currentLabel ? " workspace-crumb-here" : ""}`}
-                aria-current={index === segments.length - 1 && !currentLabel ? "page" : undefined}
-                onClick={() => onSelect?.(null, target)}
-              >
-                {personalMark(target)}
-                {segment}
-              </Button>
-              <CrumbMenu
-                parent={target}
-                allPaths={allPaths}
-                businesses={businesses}
-                resources={resources}
-                currentSelection={currentSelection}
-                trailing={index === segments.length - 1 && !currentLabel}
-                onSelect={onSelect!}
-              />
-            </span>
-          );
-        })}
+      {steps.map((step, index) => {
+        const target = step.path;
+        const last = index === steps.length - 1;
+        return (
+          <span className="workspace-crumb-group" key={target}>
+            <Button
+              variant="plain"
+              className={`workspace-crumb${originPath === target ? " workspace-crumb-origin" : ""}${last && !currentLabel ? " workspace-crumb-here" : ""}`}
+              aria-current={last && !currentLabel ? "page" : undefined}
+              onClick={() => onSelect?.(null, target)}
+            >
+              {personalMark(target)}
+              {stepLabel(step)}
+            </Button>
+            <CrumbMenu
+              parent={target}
+              allPaths={allPaths}
+              businesses={businesses}
+              resources={resources}
+              currentSelection={currentSelection}
+              trailing={last && !currentLabel}
+              onSelect={onSelect!}
+            />
+          </span>
+        );
+      })}
       <BreadcrumbActions
         statusControl={statusControl}
         onClose={onClose}

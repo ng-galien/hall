@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon } from "../components/icons";
 import { useApplicationStatus } from "../hooks/useApplicationData";
 import { useI18n } from "../i18n/I18nProvider";
-import { isUnderPath } from "../pages/workspace/paths";
+import { folderTrail } from "../pages/workspace/paths";
 import { apiSirenRequest } from "../services/apiClient";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
@@ -19,7 +19,11 @@ function workspaceHref(path: string) {
   return path ? `/workspace?${new URLSearchParams({ path }).toString()}` : "/workspace";
 }
 
-/** Title of the workspace screen and the screen it comes from. */
+/**
+ * Title of the workspace screen and the screen it comes from: the folder above in the trail, up to « Mon espace » in
+ * the personal folder of the person, then Documents.
+ * @implements-requirement HALL-FR-WSP-380
+ */
 function useWorkspaceHeading(): { title: string; back: Back | null } {
   const { t } = useI18n();
   const location = useLocation();
@@ -57,11 +61,13 @@ function useWorkspaceHeading(): { title: string; back: Back | null } {
   if (businessId) {
     return { title: businesses.find((business) => business.id === businessId)?.title ?? "", back: folder(path) };
   }
-  if (personalPath && path === personalPath) return { title: t("workspace.personalWorkspace"), back: null };
-  if (!path) return { title: t("navigation.documents"), back: null };
-  const parent = path.split("/").slice(0, -1).join("/");
-  const leavesPersonal = personalPath !== null && isUnderPath(path, personalPath) && !isUnderPath(parent, personalPath);
-  return { title: path.split("/").at(-1) ?? "", back: folder(leavesPersonal ? personalPath : parent) };
+  const steps = folderTrail(path, personalPath);
+  const current = steps.at(-1);
+  if (!current) return { title: t("navigation.documents"), back: null };
+  return {
+    title: current.personal ? t("workspace.personalWorkspace") : current.name,
+    back: folder(steps.at(-2)?.path ?? ""),
+  };
 }
 
 /** The kind of the resource opened on the workspace screen, when one is open and known. */
