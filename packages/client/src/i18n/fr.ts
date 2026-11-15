@@ -1854,7 +1854,9 @@ export const fr: Messages = {
   "meeting.enterLiveMode": "Passer en mode séance",
   "meeting.resumeLiveMode": "Reprendre la séance",
   "meeting.inProgressTitle": "La séance est en cours",
-  "meeting.inProgressProgress": "{completed} points examinés sur {total}",
+  "meeting.inProgressProgress": "{completed} {examined} sur {total}",
+  "meeting.inProgressExamined.one": "point examiné",
+  "meeting.inProgressExamined.other": "points examinés",
   "meeting.composerDescription":
     "Ordre métier : procès-verbal, points soumis au vote, informations, puis questions diverses.",
   "meeting.composerLocked": "Ordre du jour de la révision établie.",

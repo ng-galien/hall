@@ -18,7 +18,7 @@ export function MeetingInProgressHero({
   aggregate: LiveMeetingPresentation;
   meetingActions: ReturnType<typeof useCouncilMeeting>;
 }) {
-  const { t, formatDate, formatDateTime, formatNumber, formatTime } = useI18n();
+  const { t, plural, formatDate, formatDateTime, formatNumber, formatTime } = useI18n();
   const { meeting } = aggregate;
   const completedCount = aggregate.agendaItems.filter((item) => item.completedAt).length;
   return (
@@ -38,6 +38,7 @@ export function MeetingInProgressHero({
             <span>
               {t("meeting.inProgressProgress", {
                 completed: formatNumber(completedCount),
+                examined: plural(completedCount, "meeting.inProgressExamined.one", "meeting.inProgressExamined.other"),
                 total: formatNumber(aggregate.agendaItems.length),
               })}
             </span>
