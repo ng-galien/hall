@@ -539,14 +539,6 @@
   /* Dialog footer: « Annuler » on pale blue, then the action. */
   .dialog-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--hall-space-2); }
   /* In a window whose content scrolls, its actions stay whole at its bottom edge. */
-  .modal-content .dialog-actions {
-    position: sticky;
-    bottom: calc(-1 * var(--hall-space-5));
-    z-index: var(--hall-z-content);
-    margin-bottom: calc(-1 * var(--hall-space-5));
-    padding-block: var(--hall-space-3) var(--hall-space-5);
-    background: var(--hall-color-surface);
-  }
   .checkbox-group { display: grid; gap: var(--hall-space-1); min-width: 0; margin: 0; padding: 0; border: 0; }
   .checkbox-group > legend { margin-bottom: var(--hall-space-2); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-bold); }
   .checkbox-field { display: flex; min-height: var(--hall-size-control); align-items: center; gap: var(--hall-space-2); font-size: var(--hall-font-size-body); cursor: pointer; }

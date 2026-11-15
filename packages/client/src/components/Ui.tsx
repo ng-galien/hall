@@ -1,11 +1,12 @@
 import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Sheet } from "@/components/ui/sheet";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
 import { normalizeForSearch } from "../lib/search";
 import type { ApiErrorCode } from "../services/apiClient";
 import { ScreenTitle, ScreenTitleCommands, ScreenTitleFacts, ScreenTitleHint } from "../shell/headerTrail";
+import { usePhoneLayout } from "../shell/usePhoneLayout";
 import { HelpHint } from "./HelpHint";
 import { CloseIcon } from "./icons";
 import { focusFirstCommand } from "./ui/initial-focus";
@@ -140,55 +141,37 @@ export function Modal({
   returnFocusRef?: { current: HTMLElement | null };
   size?: "default" | "wide";
 }) {
-  const { t } = useI18n();
+  const phone = usePhoneLayout();
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent
-        className={`modal-surface gap-0 p-0 ${
-          size === "wide"
-            ? "modal-surface-wide max-w-[min(calc(100%-2rem),var(--hall-size-modal-wide))]"
-            : "max-w-[min(calc(100%-2rem),var(--hall-size-modal))]"
-        }`}
-        showCloseButton={false}
-        aria-describedby={undefined}
-        data-testid={testId}
-        onCloseAutoFocus={
-          returnFocusRef
-            ? (event) => {
-                event.preventDefault();
-                returnFocusRef.current?.focus();
-              }
-            : undefined
+    <Sheet
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+      side={phone ? "bottom" : "center"}
+      size={size}
+      title={title}
+      titleAddon={hint ? <HelpHint text={hint} /> : null}
+      testId={testId}
+      closeTestId={testId ? `${testId}-close` : undefined}
+      bodyTestId={testId ? `${testId}-content` : undefined}
+      onCloseAutoFocus={
+        returnFocusRef
+          ? (event) => {
+              event.preventDefault();
+              returnFocusRef.current?.focus();
+            }
+          : undefined
+      }
+      onOpenAutoFocus={(event) => {
+        if (!initialFocusRef) {
+          focusFirstCommand(event);
+          return;
         }
-        onOpenAutoFocus={(event) => {
-          if (!initialFocusRef) {
-            focusFirstCommand(event);
-            return;
-          }
-          event.preventDefault();
-          initialFocusRef.current?.focus();
-        }}
-      >
-        <header className="modal-header">
-          <div className="modal-title">
-            <DialogTitle>{title}</DialogTitle>
-            {hint ? <HelpHint text={hint} /> : null}
-          </div>
-          <Button
-            size="icon"
-            variant="plain"
-            aria-label={t("common.close")}
-            data-testid={testId ? `${testId}-close` : undefined}
-            onClick={onClose}
-          >
-            <CloseIcon />
-          </Button>
-        </header>
-        <div className="modal-content" data-testid={testId ? `${testId}-content` : undefined}>
-          {children}
-        </div>
-      </DialogContent>
-    </Dialog>
+        event.preventDefault();
+        initialFocusRef.current?.focus();
+      }}
+    >
+      {children}
+    </Sheet>
   );
 }
 

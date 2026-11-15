@@ -20,6 +20,14 @@
   border-left: var(--hall-stroke-thin) solid var(--hall-color-border);
   box-shadow: var(--hall-shadow-large);
 }
+.hall-sheet[data-side="center"] {
+  width: min(var(--hall-size-modal), var(--hall-size-overlay-width));
+  max-width: none;
+  max-height: var(--hall-size-overlay-height);
+  border-radius: var(--hall-radius-medium);
+  box-shadow: var(--hall-shadow-large);
+}
+.hall-sheet[data-side="center"][data-size="wide"] { width: min(var(--hall-size-modal-wide), var(--hall-size-overlay-width)); }
 .hall-sheet-head {
   display: grid;
   flex: none;
@@ -28,7 +36,15 @@
   border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   touch-action: none;
 }
-.hall-sheet[data-side="right"] .hall-sheet-head { padding-top: var(--hall-space-3); touch-action: auto; }
+.hall-sheet[data-side="right"] .hall-sheet[data-side="center"] {
+  width: min(var(--hall-size-modal), var(--hall-size-overlay-width));
+  max-width: none;
+  max-height: var(--hall-size-overlay-height);
+  border-radius: var(--hall-radius-medium);
+  box-shadow: var(--hall-shadow-large);
+}
+.hall-sheet[data-side="center"][data-size="wide"] { width: min(var(--hall-size-modal-wide), var(--hall-size-overlay-width)); }
+.hall-sheet-head { padding-top: var(--hall-space-3); touch-action: auto; }
 .hall-sheet-grabber {
   width: var(--hall-size-relative-2rem);
   height: var(--hall-space-1);
@@ -40,7 +56,7 @@
 .hall-sheet-title.hall-sheet-title {
   overflow: hidden;
   min-width: 0;
-  flex: 1;
+  flex: 0 1 auto;
   font-size: var(--hall-font-size-title);
   font-weight: var(--hall-font-weight-heavy);
   line-height: normal;
@@ -49,6 +65,7 @@
 }
 .hall-sheet-commands { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); margin-left: auto; }
 .hall-sheet-body {
+  --hall-sheet-body-padding: var(--hall-space-4);
   display: grid;
   min-height: 0;
   flex: 1;
@@ -56,7 +73,17 @@
   gap: var(--hall-space-4);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--hall-space-4);
+  padding: var(--hall-sheet-body-padding);
+}
+.hall-sheet[data-side="center"] .hall-sheet-body { --hall-sheet-body-padding: var(--hall-space-5); }
+/* The actions written at the end of a form stay visible at the bottom of the body while it scrolls. */
+.hall-sheet-body .dialog-actions {
+  position: sticky;
+  bottom: calc(-1 * var(--hall-sheet-body-padding));
+  z-index: var(--hall-z-content);
+  margin-bottom: calc(-1 * var(--hall-sheet-body-padding));
+  padding-block: var(--hall-space-3) var(--hall-sheet-body-padding);
+  background: var(--hall-color-surface);
 }
 .hall-sheet-foot {
   display: flex;

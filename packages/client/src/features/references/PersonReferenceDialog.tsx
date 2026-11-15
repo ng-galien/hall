@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { HelpHint } from "../../components/HelpHint";
 import { ContactIcon } from "../../components/icons";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { useI18n } from "../../i18n/I18nProvider";
+import { Sheet } from "../../components/ui/sheet";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
-/** Shared read-only person frame used by native contact and council-member references. */
+/** Shared read-only person card of the contact and council-member references: from the bottom of a phone, in the middle
+ * of a large screen. */
 export function PersonReferenceDialog({
   name,
   description,
@@ -20,37 +21,28 @@ export function PersonReferenceDialog({
   onClose(): void;
   children: ReactNode;
 }) {
-  const { t } = useI18n();
+  const phone = usePhoneLayout();
   return (
-    <Dialog
+    <Sheet
       open
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
+      side={phone ? "bottom" : "center"}
+      title={
+        <span className="inline-flex min-w-0 max-w-full items-center gap-3 align-middle">
+          <span className="member-avatar member-avatar-large" aria-hidden="true">
+            {initials ?? <ContactIcon />}
+          </span>
+          <span className="min-w-0 truncate">{name}</span>
+        </span>
+      }
+      titleAddon={<HelpHint text={description} />}
+      testId={testId}
+      onCloseAutoFocus={(event) => event.preventDefault()}
     >
-      <DialogContent
-        className="max-h-[85vh] gap-0 overflow-y-auto p-0 max-w-[min(calc(100%-2rem),36rem)]"
-        closeLabel={t("common.close")}
-        data-testid={testId}
-        onCloseAutoFocus={(event) => event.preventDefault()}
-      >
-        <DialogHeader className="border-b px-6 py-5 pr-12">
-          <div className="flex min-w-0 items-center gap-4">
-            <span className="member-avatar member-avatar-large" aria-hidden="true">
-              {initials ?? <ContactIcon />}
-            </span>
-            <div className="min-w-0">
-              <div className="flex min-w-0 items-center gap-1">
-                <DialogTitle className="break-words text-lg leading-snug font-semibold">{name}</DialogTitle>
-                <HelpHint text={description} />
-              </div>
-              <DialogDescription className="sr-only">{description}</DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
+      {children}
+    </Sheet>
   );
 }
 

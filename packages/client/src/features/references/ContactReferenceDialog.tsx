@@ -55,12 +55,12 @@ function ContactReferenceModal({ contactId, onClose }: { contactId: string; onCl
       onClose={onClose}
     >
       {detail.status === "loading" ? (
-        <div className="p-6">
+        <div>
           <LoadingIndicator size="zone" label={t("common.loading")} />
         </div>
       ) : null}
       {detail.status === "error" ? (
-        <div className="p-6">
+        <div>
           {detail.error === "contact_not_found" ? (
             <EmptyState>{t("contacts.notFound")}</EmptyState>
           ) : (
@@ -70,7 +70,7 @@ function ContactReferenceModal({ contactId, onClose }: { contactId: string; onCl
       ) : null}
       {detail.status === "ready" ? (
         <div data-testid="contact-reference-details">
-          <dl className="grid gap-x-6 gap-y-5 px-6 py-5 grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
+          <dl className="grid gap-x-6 gap-y-5 grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))]">
             {(["jobTitle", "organizationName"] as const).map((key) => (
               <PersonDetailField
                 key={key}
@@ -80,7 +80,7 @@ function ContactReferenceModal({ contactId, onClose }: { contactId: string; onCl
               />
             ))}
           </dl>
-          <section className="border-t px-6 py-5" aria-labelledby="contact-reference-coordinates">
+          <section className="mt-5 border-t pt-5" aria-labelledby="contact-reference-coordinates">
             <h3 id="contact-reference-coordinates" className="text-sm font-semibold">
               {t("contacts.identity")}
             </h3>
@@ -105,7 +105,7 @@ function ContactReferenceModal({ contactId, onClose }: { contactId: string; onCl
               })}
             </dl>
           </section>
-          <section className="border-t px-6 py-5" aria-labelledby="contact-reference-notes-title">
+          <section className="mt-5 border-t pt-5" aria-labelledby="contact-reference-notes-title">
             <h3 id="contact-reference-notes-title" className="text-sm font-semibold">
               {t("contacts.notes")}
             </h3>

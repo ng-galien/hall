@@ -59,12 +59,12 @@ function MemberReferenceModal({ memberId, onClose }: { memberId: string; onClose
       onClose={onClose}
     >
       {detail.status === "loading" ? (
-        <div className="p-6">
+        <div>
           <LoadingIndicator size="zone" label={t("common.loading")} />
         </div>
       ) : null}
       {detail.status === "error" ? (
-        <div className="p-6">
+        <div>
           {detail.error === "council_member_not_found" ? (
             <EmptyState>{t("members.notFound")}</EmptyState>
           ) : (
@@ -74,7 +74,7 @@ function MemberReferenceModal({ memberId, onClose }: { memberId: string; onClose
       ) : null}
       {detail.status === "ready" ? (
         <div data-testid="member-reference-details">
-          <section className="px-6 py-5" aria-labelledby="member-reference-term-title">
+          <section aria-labelledby="member-reference-term-title">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 id="member-reference-term-title" className="text-sm font-semibold">
                 {t("members.term")}
@@ -104,7 +104,7 @@ function MemberReferenceModal({ memberId, onClose }: { memberId: string; onClose
               />
             </dl>
           </section>
-          <section className="border-t px-6 py-5" aria-labelledby="member-reference-contact-title">
+          <section className="mt-5 border-t pt-5" aria-labelledby="member-reference-contact-title">
             <h3 id="member-reference-contact-title" className="text-sm font-semibold">
               {t("members.contact")}
             </h3>

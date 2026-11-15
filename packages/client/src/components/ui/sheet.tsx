@@ -1,4 +1,4 @@
-import { type ReactNode, type PointerEvent as ReactPointerEvent, useRef } from "react";
+import { type ComponentProps, type ReactNode, type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { CloseIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -9,10 +9,13 @@ import "./sheet.css";
 const dismissDistanceRatio = 0.25;
 const dismissVelocity = 0.6;
 
+type ContentProps = ComponentProps<typeof DialogContent>;
+
 /**
- * A form panel over the screen: on a phone it rises from the bottom and is closed by pulling its head down or by its
- * close button; on a large screen it stands at the right edge, the screen still visible beside it. Its head (title,
- * commands, close) and its foot (actions) stay in place while its body scrolls.
+ * A panel over the screen, shared by the forms, the windows and the cards of Hall: from the bottom of a phone, where it is
+ * closed by pulling its head down or by its close button; at the right edge of a large screen, the screen still
+ * visible beside it; or in the middle of a large screen. Its head (title, commands, close) and its foot (actions) stay
+ * in place while its body scrolls.
  */
 export function Sheet({
   open,
@@ -20,23 +23,37 @@ export function Sheet({
   side,
   title,
   titleHidden = false,
+  size = "default",
+  titleAddon,
   commands,
   footer,
   testId,
   closeTestId,
+  bodyTestId,
+  bodyClassName,
   className,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   children,
 }: {
   open: boolean;
   onOpenChange(open: boolean): void;
-  side: "bottom" | "right";
+  side: "bottom" | "right" | "center";
+  /** In the middle of a large screen: the width of a form or of a wider window. */
+  size?: "default" | "wide";
   title: ReactNode;
   titleHidden?: boolean;
+  /** Written right after the title, such as the information icon of the explanation of the panel. */
+  titleAddon?: ReactNode;
   commands?: ReactNode;
   footer?: ReactNode;
   testId?: string;
   closeTestId?: string;
+  bodyTestId?: string;
+  bodyClassName?: string;
   className?: string;
+  onOpenAutoFocus?: ContentProps["onOpenAutoFocus"];
+  onCloseAutoFocus?: ContentProps["onCloseAutoFocus"];
   children: ReactNode;
 }) {
   const { t } = useI18n();
@@ -82,7 +99,10 @@ export function Sheet({
         aria-describedby={undefined}
         className={cn("hall-sheet", className)}
         data-side={side}
+        data-size={size}
         data-testid={testId}
+        onOpenAutoFocus={onOpenAutoFocus}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
         <div
           className="hall-sheet-head"
@@ -95,6 +115,7 @@ export function Sheet({
           {side === "bottom" ? <span className="hall-sheet-grabber" aria-hidden="true" /> : null}
           <div className="hall-sheet-title-row">
             <DialogTitle className={cn("hall-sheet-title", titleHidden && "sr-only")}>{title}</DialogTitle>
+            {titleAddon}
             <div className="hall-sheet-commands">
               {commands}
               <Button
@@ -109,7 +130,9 @@ export function Sheet({
             </div>
           </div>
         </div>
-        <div className="hall-sheet-body">{children}</div>
+        <div className={cn("hall-sheet-body", bodyClassName)} data-testid={bodyTestId}>
+          {children}
+        </div>
         {footer ? <div className="hall-sheet-foot">{footer}</div> : null}
       </DialogContent>
     </Dialog>
