@@ -649,3 +649,62 @@ test("the back command of a phone closes what is open over the screen before it 
   await page.goBack();
   await expect(page).toHaveURL(/\/app\/workspace\?path=seed$/);
 });
+
+// @verifies-requirement HALL-FR-LAY-180
+test("a phone opens a spreadsheet for reading and writes a cell through « Modifier »", async ({ appPage: page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const resources = (await (await page.request.get("/api/resources?path=")).json()) as {
+    entities: Array<{ properties: { id: string; kind: string; name: string } }>;
+  };
+  const seeded = resources.entities.find(
+    ({ properties }) => properties.kind === "spreadsheet" && properties.name === "Chiffrage de la seconde ligne",
+  )?.properties;
+  expect(seeded).toBeTruthy();
+  const source = (await (await page.request.get(`/api/resources/${seeded!.id}`)).json()).properties;
+  const created = await page.request.post("/api/resources", {
+    data: {
+      kind: "spreadsheet",
+      path: "",
+      name: `Tableur ${crypto.randomUUID().slice(0, 8)}`,
+      document: source.document,
+    },
+  });
+  expect(created.status()).toBe(201);
+  const id = (await created.json()).properties.id as string;
+
+  await page.goto(`/app/workspace?resource=${id}`);
+  const grid = page.getByTestId("spreadsheet-grid");
+  await expect(grid).toBeVisible({ timeout: 15_000 });
+  await expect(grid).toHaveAttribute("aria-readonly", "true");
+  await expect(page.getByTestId("text-edit")).toBeVisible();
+  await expect(page.getByTestId("spreadsheet-phone-toolbar")).toHaveCount(0);
+  await expect(page.getByTestId("spreadsheet-cell-bar")).toHaveCount(0);
+  const line = page.getByTestId("spreadsheet-cell-line");
+  await expect(line).toBeVisible();
+  const box = (await grid.boundingBox())!;
+  await page.touchscreen.tap(box.x + box.width / 2, box.y + 80);
+  await expect(line.locator(".spreadsheet-cell-line-name")).toHaveText(/^[A-Z]+\d+$/);
+  await expect(page.locator("input:focus, textarea:focus, [contenteditable=true]:focus")).toHaveCount(0);
+
+  await page.getByTestId("text-edit").click();
+  await expect(page.getByTestId("text-finish-editing")).toBeVisible();
+  await expect(grid).toHaveAttribute("aria-readonly", "false");
+  await expect(page.getByTestId("spreadsheet-phone-toolbar")).toBeVisible();
+  for (const tool of ["undo", "redo", "bold", "italic", "insert-row", "insert-column"])
+    await expect(page.getByTestId(`spreadsheet-${tool}`)).toBeVisible();
+  const input = page.getByTestId("spreadsheet-cell-input");
+  await expect(input).toBeEnabled();
+  const cellName = (await page.getByTestId("spreadsheet-cell-field").textContent())?.trim();
+  await input.fill("4242");
+  await page.getByTestId("spreadsheet-cell-next-row").click();
+  await page.getByTestId("text-finish-editing").click();
+  await expect(page.getByTestId("text-edit")).toBeVisible();
+  await expect(grid).toHaveAttribute("aria-readonly", "true");
+  await expect
+    .poll(async () =>
+      JSON.stringify((await (await page.request.get(`/api/resources/${id}`)).json()).properties.document),
+    )
+    .toContain("4242");
+  expect(cellName, "the field carries the name of the cell").toMatch(/[A-Z]+\d+/);
+});
