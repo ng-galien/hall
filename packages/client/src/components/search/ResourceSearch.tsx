@@ -14,7 +14,7 @@ import { ListRowIcon, ListRows } from "../ui/list-row";
 import { FolderSectionsList } from "./FolderSectionsList";
 import { facetHashPattern } from "./facetSuggestions";
 import { folderSections } from "./folderSections";
-import { KindGlyph } from "./kindPresentation";
+import { KindGlyph, SearchTypeGlyph } from "./kindPresentation";
 import {
   emptySearchBoxState,
   isSearchBoxActive,
@@ -174,7 +174,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
         folderOptions={search.options.folders}
         tagOptions={search.options.tags}
         stateOptions={search.options.states}
-        mediaOptions={search.options.media}
+        typeGlyph={(type) => <SearchTypeGlyph type={type} />}
         placeholder={placeholder ?? t("common.searchPlaceholder")}
         onResultsKey={handleKey}
         autoFocus={autoFocus}

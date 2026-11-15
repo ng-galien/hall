@@ -312,7 +312,6 @@ export interface Mentionable extends Searchable {
   updatedAt?: string;
   metaLabel?: string;
   stateLabel?: string;
-  mediaLabel?: string;
   /** Recommended block representation when this resource can be included. */
   resourcePresentation?: ResourcePresentationKind;
 }
@@ -326,7 +325,6 @@ export function mentionableIcon(item: Mentionable) {
 export function mentionableFacetValueLabels(items: readonly Mentionable[]): FacetValueLabels {
   return {
     state: (value) => items.find((item) => item.state === value)?.stateLabel ?? value,
-    media: (value) => items.find((item) => item.media === value)?.mediaLabel ?? value,
   };
 }
 
@@ -423,7 +421,7 @@ export const ReferenceMention = Extension.create<ReferenceMentionOptions>({
         meeting: "Meetings",
         decision: "Decisions",
       },
-      facetLabels: { type: "Type", folder: "Folder", tag: "Tag", state: "State", media: "Media" },
+      facetLabels: { type: "Type", folder: "Folder", tag: "Tag", state: "State" },
       searchAllLabel: "Browse all",
     };
   },

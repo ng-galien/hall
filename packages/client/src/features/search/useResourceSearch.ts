@@ -6,7 +6,7 @@ import { facetOptionsFrom } from "../../components/search/facetSuggestions";
 import type { SearchBoxState } from "../../components/search/SearchBox";
 import { resourceMentionable, useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
-import { type SearchType, searchEntities } from "../../lib/search";
+import { imageSearchType, type SearchType, searchEntities } from "../../lib/search";
 import { searchDocumentaryResources } from "../../services/resourcesApi";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { toneLabelKeys } from "../documents/ResourceGlyph";
@@ -22,7 +22,10 @@ export interface ResourceSearchScope {
 export const allSearchTypes: readonly SearchType[] = [
   ...referenceEntityKinds.filter((kind) => kind !== "resource"),
   ...resourceKinds.filter((kind) => kind !== "folder"),
+  imageSearchType,
 ];
+/** A documentary type: a resource kind, or the image, which is a document whose content is a picture. */
+const isDocumentaryType = (type: SearchType) => type === imageSearchType || resourceKinds.some((kind) => kind === type);
 const emptyItems: Mentionable[] = [];
 const emptyScope: ResourceSearchScope = {};
 const pageSize = 30;
@@ -45,16 +48,20 @@ export function useResourceSearch(
   );
   const allowed = scope.types ?? allSearchTypes;
   const eligibleTypes = allSearchTypes.filter(
-    (type) => allowed.includes(type) || (allowed.includes("resource") && resourceKinds.some((kind) => kind === type)),
+    (type) =>
+      allowed.includes(type) ||
+      (allowed.includes("resource") && isDocumentaryType(type)) ||
+      (type === imageSearchType && allowed.includes("document")),
   );
   const types = state.types.length
     ? eligibleTypes.filter(
-        (type) =>
-          state.types.includes(type) ||
-          (state.types.includes("resource") && resourceKinds.some((kind) => kind === type)),
+        (type) => state.types.includes(type) || (state.types.includes("resource") && isDocumentaryType(type)),
       )
     : eligibleTypes;
-  const kinds = resourceKinds.filter((kind) => kind !== "folder" && types.includes(kind));
+  const imagesOnly = types.includes(imageSearchType) && !types.includes("document");
+  const kinds = resourceKinds.filter(
+    (kind) => kind !== "folder" && (types.includes(kind) || (kind === "document" && imagesOnly)),
+  );
   const excluded = new Set(scope.excludedIds ?? []);
   const preferred = base.filter((item) => item.preferred).map((item) => item.id);
   const criteria = {
@@ -65,7 +72,7 @@ export function useResourceSearch(
     readiness: state.states.filter((value): value is "ready" | "incomplete" | "empty" =>
       ["ready", "incomplete", "empty"].includes(value),
     ),
-    media: state.media,
+    media: imagesOnly ? [imageSearchType] : [],
     context: scope.context ?? "",
     preferredIds: preferred,
     excludedIds: [...excluded],
@@ -156,7 +163,6 @@ export function useResourceSearch(
       folders: state.folders,
       tags: state.tags,
       states: state.states,
-      media: state.media,
       context: scope.context,
     },
   );
@@ -179,7 +185,6 @@ export function useResourceSearch(
     undefined,
     {
       state: (value) => base.find((item) => item.state === value)?.stateLabel ?? value,
-      media: () => t("workspace.type.image"),
     },
   );
   const paths = new Set([...(current?.facets.paths ?? []), ...facets.folders.map((x) => x.value)]);
@@ -226,7 +231,6 @@ export function useResourceSearch(
             }))
           : []),
       ],
-      media: facets.media,
     },
   };
 }

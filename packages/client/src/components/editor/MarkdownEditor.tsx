@@ -738,7 +738,6 @@ function useMentionFacetLabels() {
     folder: t("workspace.facetFolder"),
     tag: t("search.facetTag"),
     state: t("workspace.facetState"),
-    media: t("search.facetMedia"),
   };
 }
 

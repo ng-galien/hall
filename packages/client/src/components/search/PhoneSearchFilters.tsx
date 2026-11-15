@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CheckIcon, CloseIcon } from "../icons";
 import { Sheet } from "../ui/sheet";
@@ -8,26 +8,29 @@ type Facet = FacetSuggestion["facet"];
 
 /**
  * The filters of a search on a phone: under the field, a flow of marks. Each active filter is a mark that a
- * touch removes; each criterion (type, folder, tag, state, media) is a mark that opens its values in a sheet from the
+ * touch removes; each criterion (type, folder, tag, state) is a mark that opens its values in a sheet from the
  * bottom, where a touch adds or removes a value and closes the sheet.
  */
 // @implements-requirement HALL-FR-SRC-030
-export function PhoneSearchFilters<K extends string, S extends string, M extends string>({
+export function PhoneSearchFilters<K extends string, S extends string>({
   testId,
   labels,
   groups,
   active,
   onToggle,
+  glyph,
 }: {
   testId: string;
   labels: Record<Facet, string>;
-  groups: { category: Facet; values: FacetSuggestion<K, S, M>[] }[];
-  active: FacetSuggestion<K, S, M>[];
-  onToggle(facet: FacetSuggestion<K, S, M>, remove: boolean): void;
+  groups: { category: Facet; values: FacetSuggestion<K, S>[] }[];
+  active: FacetSuggestion<K, S>[];
+  onToggle(facet: FacetSuggestion<K, S>, remove: boolean): void;
+  /** Icon of a value, the type icon of the document lists for a type. */
+  glyph(facet: FacetSuggestion<K, S>): ReactNode;
 }) {
   const { t } = useI18n();
   const [opened, setOpened] = useState<Facet | null>(null);
-  const isActive = (f: FacetSuggestion<K, S, M>) => active.some((x) => x.facet === f.facet && x.value === f.value);
+  const isActive = (f: FacetSuggestion<K, S>) => active.some((x) => x.facet === f.facet && x.value === f.value);
   const group = groups.find((entry) => entry.category === opened);
   const values =
     group?.category === "folder"
@@ -54,6 +57,7 @@ export function PhoneSearchFilters<K extends string, S extends string, M extends
             title={`${labels[f.facet]} : ${f.label}`}
             onClick={() => onToggle(f, true)}
           >
+            {glyph(f)}
             <span>{f.label}</span>
             <CloseIcon aria-hidden="true" />
           </button>
@@ -106,6 +110,7 @@ export function PhoneSearchFilters<K extends string, S extends string, M extends
                   setOpened(null);
                 }}
               >
+                {glyph(f)}
                 <span className="searchbox-filter-value-label">
                   {f.facet === "folder" ? f.value.split("/").at(-1) : f.label}
                 </span>

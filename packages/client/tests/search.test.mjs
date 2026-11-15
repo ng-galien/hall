@@ -48,9 +48,9 @@ test("colon aliases are plain text rather than a second facet language", () => {
   assert.equal(searchEntities(corpus, "doc:subventions").total, 0);
 });
 
-test("the structured image facet targets images only", () => {
+test("the image search type targets images only", () => {
   assert.deepEqual(
-    searchEntities(corpus, "", { media: ["image"] }).results.map((entry) => entry.id),
+    searchEntities(corpus, "", { kinds: ["image"] }).results.map((entry) => entry.id),
     ["r3"],
   );
 });

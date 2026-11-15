@@ -2,7 +2,9 @@ import type { ResourceKind } from "@hall/api-contract";
 import type { CouncilDecisionStatus, MeetingStatus, ReferenceEntityKind } from "@hall/domain";
 
 export type SearchableKind = ReferenceEntityKind;
-export type SearchType = ReferenceEntityKind | Exclude<ResourceKind, "folder">;
+/** The image is a type of its own among the search types: a document whose content is a picture. */
+export const imageSearchType = "image";
+export type SearchType = ReferenceEntityKind | Exclude<ResourceKind, "folder"> | typeof imageSearchType;
 export type SearchableState =
   | "incomplete"
   | "empty"
@@ -26,7 +28,7 @@ export interface Searchable<TKind extends SearchableKind = SearchableKind> {
   tags?: readonly string[];
   /** Persisted lifecycle state, matched by the state facet. */
   state?: SearchableState;
-  /** Document subtype, matched by the image facet. */
+  /** Document subtype, matched by the image search type. */
   media?: SearchableMedia;
 }
 
@@ -68,7 +70,7 @@ export interface SearchOptions {
   /** Folder used to rank nearby entries first. */
   context?: string;
   limit?: number;
-  /** Type facets selected through the structured search state. */
+  /** Type facets selected through the structured search state; the image type selects the image documents. */
   kinds?: readonly SearchType[];
   /** Folder facets; an entry matches when it lives at or under one of them. */
   folders?: readonly string[];
@@ -76,8 +78,6 @@ export interface SearchOptions {
   tags?: readonly string[];
   /** Lifecycle-state facets selected through the structured search state. */
   states?: readonly SearchableState[];
-  /** Media facets selected through the structured search state. */
-  media?: readonly SearchableMedia[];
 }
 
 export interface SearchOutcome<T extends Searchable> {
@@ -96,18 +96,17 @@ export function searchEntities<T extends Searchable>(
   const folders = (options.folders ?? []).map(normalizeForSearch);
   const tags = (options.tags ?? []).map(normalizeForSearch);
   const states = options.states ?? [];
-  const media = options.media ?? [];
   const scored: { item: T; quality: number; nearness: number; label: string }[] = [];
 
   for (const candidate of candidates) {
     if (
       kinds.length > 0 &&
       !kinds.includes(candidate.kind) &&
-      !(candidate.resourceKind && kinds.includes(candidate.resourceKind))
+      !(candidate.resourceKind && kinds.includes(candidate.resourceKind)) &&
+      !(candidate.media === "image" && kinds.includes(imageSearchType))
     )
       continue;
     if (states.length > 0 && (!candidate.state || !states.includes(candidate.state))) continue;
-    if (media.length > 0 && (!candidate.media || !media.includes(candidate.media))) continue;
     const folder = candidate.folderPath ? normalizeForSearch(candidate.folderPath) : "";
     if (folders.length > 0 && !folders.some((f) => folder === f || folder.startsWith(`${f}/`))) continue;
     if (tags.length > 0) {

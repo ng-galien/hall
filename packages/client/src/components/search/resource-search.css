@@ -42,7 +42,8 @@
 /* The filters of a search on a phone: a flow of marks under the field, values in a sheet from the bottom. */
 .searchbox-filter-bar { display:flex; flex-wrap:wrap; gap:var(--hall-space-2); margin-top:var(--hall-space-2); }
 .searchbox-filter-mark { display:inline-flex; flex:none; align-items:center; gap:var(--hall-space-1-5); max-width:100%; min-height:var(--hall-size-control); padding:0 var(--hall-space-3); border:var(--hall-stroke-thin) solid var(--hall-color-border-strong); border-radius:var(--hall-radius-small); background:transparent; color:var(--hall-color-text); font:inherit; font-size:var(--hall-font-size-body); line-height:var(--hall-line-height-body-small); white-space:nowrap; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; }
-.searchbox-filter-mark > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.searchbox-filter-mark > span:not(.type-icon) { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.searchbox-filter-mark > .type-icon, .searchbox-filter-value > .type-icon, .shared-search-filters .searchbox-suggestion > .type-icon, .wsearch-chip .type-icon { width:var(--hall-size-glyph-compact); height:var(--hall-size-glyph-compact); font-size:var(--hall-font-size-icon-large); }
 .searchbox-filter-mark > svg { flex:none; width:var(--hall-font-size-icon); height:var(--hall-font-size-icon); }
 .searchbox-filter-mark:active { background:var(--hall-color-surface-selected); }
 .searchbox-filter-mark[data-active="true"] { border-color:transparent; background:var(--hall-color-brand-subtle); color:var(--hall-color-on-brand-subtle); font-weight:var(--hall-font-weight-semibold); }

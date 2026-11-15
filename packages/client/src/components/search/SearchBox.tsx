@@ -1,7 +1,7 @@
 import { matchDiscriminated } from "@hall/domain";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
-import { normalizeForSearch, type SearchableMedia, type SearchableState } from "../../lib/search";
+import { normalizeForSearch, type SearchableState } from "../../lib/search";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { CloseIcon, FilterIcon, SearchIcon } from "../icons";
 import { ActiveOption } from "../ui/active-option";
@@ -17,32 +17,23 @@ export interface SearchKeyEvent {
   preventDefault(): void;
   stopPropagation(): void;
 }
-export interface SearchBoxState<
-  K extends string = string,
-  S extends string = SearchableState,
-  M extends string = SearchableMedia,
-> {
+export interface SearchBoxState<K extends string = string, S extends string = SearchableState> {
   query: string;
   types: K[];
   folders: string[];
   tags: string[];
   states: S[];
-  media: M[];
 }
-export const emptySearchBoxState: SearchBoxState<never, never, never> = {
+export const emptySearchBoxState: SearchBoxState<never, never> = {
   query: "",
   types: [],
   folders: [],
   tags: [],
   states: [],
-  media: [],
 };
-export function isSearchBoxActive<K extends string, S extends string, M extends string>(
-  state: SearchBoxState<K, S, M>,
-): boolean {
+export function isSearchBoxActive<K extends string, S extends string>(state: SearchBoxState<K, S>): boolean {
   return (
-    !!state.query.trim() ||
-    [state.types, state.folders, state.tags, state.states, state.media].some((values) => values.length > 0)
+    !!state.query.trim() || [state.types, state.folders, state.tags, state.states].some((values) => values.length > 0)
   );
 }
 export interface SearchTypeOption<K extends string = string> {
@@ -54,11 +45,11 @@ export interface SearchFolderOption {
   value: string;
   count?: number;
 }
-export function applySearchFacet<K extends string, S extends string, M extends string>(
-  state: SearchBoxState<K, S, M>,
-  facet: FacetSuggestion<K, S, M>,
+export function applySearchFacet<K extends string, S extends string>(
+  state: SearchBoxState<K, S>,
+  facet: FacetSuggestion<K, S>,
   remove = false,
-): SearchBoxState<K, S, M> {
+): SearchBoxState<K, S> {
   const next = { ...state, query: remove ? state.query : state.query.replace(facetHashPattern, "").trimEnd() };
   const update = <V extends string>(values: V[], value: V) =>
     remove ? values.filter((entry) => entry !== value) : [...new Set([...values, value])];
@@ -67,19 +58,18 @@ export function applySearchFacet<K extends string, S extends string, M extends s
     folder: (f) => ({ ...next, folders: update(state.folders, f.value) }),
     tag: (f) => ({ ...next, tags: update(state.tags, f.value) }),
     state: (f) => ({ ...next, states: update(state.states, f.value) }),
-    media: (f) => ({ ...next, media: update(state.media, f.value) }),
   });
 }
 
 // @implements-requirement HALL-FR-SRC-030
-export function SearchBox<K extends string, S extends string = SearchableState, M extends string = SearchableMedia>({
+export function SearchBox<K extends string, S extends string = SearchableState>({
   state,
   onState,
   typeOptions,
   folderOptions,
   tagOptions = [],
   stateOptions = [],
-  mediaOptions = [],
+  typeGlyph,
   placeholder,
   onResultsKey,
   trailing,
@@ -90,15 +80,16 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
   inline = false,
 }: {
   inline?: boolean;
-  state: SearchBoxState<K, S, M>;
-  onState(next: SearchBoxState<K, S, M>): void;
+  state: SearchBoxState<K, S>;
+  onState(next: SearchBoxState<K, S>): void;
   typeOptions: SearchTypeOption<K>[];
   folderOptions: SearchFolderOption[];
   tagOptions?: SearchFolderOption[];
   stateOptions?: SearchTypeOption<S>[];
-  mediaOptions?: SearchTypeOption<M>[];
+  /** Icon of each type value, the one the type carries in the document lists. */
+  typeGlyph?(value: K): ReactNode;
   placeholder: string;
-  onPreview?(preview: SearchBoxState<K, S, M> | null): void;
+  onPreview?(preview: SearchBoxState<K, S> | null): void;
   onResultsKey?(event: SearchKeyEvent): boolean | undefined;
   keyHandler?: { current: ((event: SearchKeyEvent) => boolean) | null };
   trailing?: ReactNode;
@@ -115,7 +106,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
   const [browse, setBrowse] = useState(false);
   const [active, setActive] = useState(0);
   const [expanded, setExpanded] = useState<FacetSuggestion["facet"] | "" | null>(null);
-  const [editing, setEditing] = useState<FacetSuggestion<K, S, M> | null>(null);
+  const [editing, setEditing] = useState<FacetSuggestion<K, S> | null>(null);
   const hash = facetHashPattern.exec(state.query);
   const showing = browse || !!hash;
   const labels = {
@@ -123,16 +114,14 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
     folder: t("workspace.facetFolder"),
     tag: t("search.facetTag"),
     state: t("workspace.facetState"),
-    media: t("search.facetMedia"),
   };
   const options = {
     types: typeOptions,
     folders: folderOptions.map((x) => ({ ...x, label: x.value })),
     tags: tagOptions.map((x) => ({ ...x, label: x.value })),
     states: stateOptions,
-    media: mediaOptions,
   };
-  const facets: FacetSuggestion<K, S, M>[] = [
+  const facets: FacetSuggestion<K, S>[] = [
     ...state.types.map((value) => ({
       facet: "type" as const,
       value,
@@ -145,13 +134,9 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
       value,
       label: stateOptions.find((x) => x.value === value)?.label ?? value,
     })),
-    ...state.media.map((value) => ({
-      facet: "media" as const,
-      value,
-      label: mediaOptions.find((x) => x.value === value)?.label ?? value,
-    })),
   ];
-  const categoryKinds = ["type", "folder", "tag", "state", "media"] as const;
+  const categoryKinds = ["type", "folder", "tag", "state"] as const;
+  const glyph = (f: FacetSuggestion<K, S>) => (f.facet === "type" ? typeGlyph?.(f.value) : null);
   const fragment = hash?.[1] ?? "";
   const admissible = facetSuggestionsFor("", options).filter(
     (f) => !facets.some((x) => x.facet === f.facet && x.value === f.value) && (!editing || f.facet === editing.facet),
@@ -172,7 +157,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
   const opened = editing?.facet ?? expanded ?? (fragment && categories.length === 1 ? categories[0].category : null);
   type Entry =
     | { kind: "category"; category: FacetSuggestion["facet"] }
-    | { kind: "value"; value: FacetSuggestion<K, S, M> };
+    | { kind: "value"; value: FacetSuggestion<K, S> };
   const visible: Entry[] = categories.flatMap((group) => [
     ...(inline && group.category === "type" ? [] : [{ kind: "category" as const, category: group.category }]),
     ...(opened === group.category || (inline && group.category === "type")
@@ -202,7 +187,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
     list.addEventListener("wheel", wheel, { passive: false });
     return () => list.removeEventListener("wheel", wheel);
   }, [showing, visible.length]);
-  const choose = (facet: FacetSuggestion<K, S, M>) => {
+  const choose = (facet: FacetSuggestion<K, S>) => {
     onState(applySearchFacet(editing ? applySearchFacet(state, editing, true) : state, facet));
     setBrowse(false);
     setEditing(null);
@@ -276,6 +261,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
                 setActive(0);
               }}
             >
+              {glyph(f)}
               {labels[f.facet]} : {f.label}
             </Button>
             <Button
@@ -354,6 +340,7 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
             }))
             .filter((group) => group.values.length)}
           active={facets}
+          glyph={glyph}
           onToggle={(facet, remove) => onState(applySearchFacet(state, facet, remove))}
         />
       ) : null}
@@ -447,7 +434,8 @@ export function SearchBox<K extends string, S extends string = SearchableState, 
                     }
                     onClick={() => choose(f)}
                   >
-                    {f.label}
+                    {glyph(f)}
+                    <span className="searchbox-suggestion-label">{f.label}</span>
                   </ActiveOption>
                 ))}
               </div>
