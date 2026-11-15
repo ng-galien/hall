@@ -152,7 +152,7 @@ export function ResourcePreviewWithSession({
       testId="resource-preview"
       titleId="resource-preview-title"
       className="resource-preview"
-      contentClassName={`resource-preview-content${session.fillsExtendedView ? " resource-preview-content-fill" : ""}`}
+      contentClassName={`resource-preview-content${resource ? ` resource-preview-content-${resource.kind}` : ""}${session.fillsExtendedView ? " resource-preview-content-fill" : ""}`}
       resourceMode={session.mode}
       closeButtonRef={closeButtonRef}
       restoreFocus={false}

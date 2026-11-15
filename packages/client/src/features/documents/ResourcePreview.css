@@ -26,12 +26,14 @@
   font-size: var(--hall-font-size-title);
 }
 
+/* The opened resource lays out by the width of the window, as on its own screen by the width of the workbench. */
 .resource-preview-content {
   display: block;
   min-height: 0;
   padding: var(--hall-space-5);
   overflow: auto;
   place-items: initial;
+  container-type: inline-size;
 }
 
 .resource-preview-content-fill > * {
