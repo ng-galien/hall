@@ -10,6 +10,7 @@ import type { ResourcePresentationMode } from "../resources/ResourcePresentation
 import { SpreadsheetPhoneBars } from "./SpreadsheetPhoneBars";
 import type { SpreadsheetCell, SpreadsheetCells } from "./spreadsheetCells";
 import { UniverSpreadsheetAdapter } from "./UniverSpreadsheetAdapter";
+import { spreadsheetSignature } from "./univerWorkbook";
 import "./SpreadsheetResourceEditor.css";
 
 type SpreadsheetResource = Extract<ResourceDetail, { kind: "spreadsheet" }>;
@@ -45,7 +46,7 @@ export function SpreadsheetResourceEditor({
   const [editRequest, setEditRequest] = useState(0);
   const [typing, setTyping] = useState(false);
   const latestDraftRef = useRef(draft);
-  const savedDocumentRef = useRef(JSON.stringify(document));
+  const savedDocumentRef = useRef(spreadsheetSignature(document));
   const versionRef = useRef(resource.version);
   const canUpdateRef = useRef(false);
   const autosaveEnabledRef = useRef(autosaveEnabled);
@@ -57,13 +58,13 @@ export function SpreadsheetResourceEditor({
   canUpdateRef.current = mode === "edit" && canUpdate;
   autosaveEnabledRef.current = autosaveEnabled;
 
-  const dirty = JSON.stringify(draft) !== savedDocumentRef.current;
+  const dirty = spreadsheetSignature(draft) !== savedDocumentRef.current;
   const save = useCallback(() => {
     if (savePromiseRef.current) return savePromiseRef.current;
     const run = async () => {
       while (canUpdateRef.current) {
         const toSave = latestDraftRef.current;
-        const signature = JSON.stringify(toSave);
+        const signature = spreadsheetSignature(toSave);
         if (signature === savedDocumentRef.current) break;
         if (mountedRef.current) {
           setSaveStatus("saving");
@@ -124,7 +125,7 @@ export function SpreadsheetResourceEditor({
     return () => {
       mountedRef.current = false;
       setSaveStatus("idle");
-      if (autosaveEnabledRef.current && JSON.stringify(latestDraftRef.current) !== savedDocumentRef.current)
+      if (autosaveEnabledRef.current && spreadsheetSignature(latestDraftRef.current) !== savedDocumentRef.current)
         void requestSaveRef.current?.();
     };
   }, [setSaveStatus]);
@@ -132,7 +133,7 @@ export function SpreadsheetResourceEditor({
   useEffect(() => {
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!autosaveEnabledRef.current) return;
-      if (!savePromiseRef.current && JSON.stringify(latestDraftRef.current) === savedDocumentRef.current) return;
+      if (!savePromiseRef.current && spreadsheetSignature(latestDraftRef.current) === savedDocumentRef.current) return;
       event.preventDefault();
       event.returnValue = "";
     };
@@ -141,13 +142,14 @@ export function SpreadsheetResourceEditor({
   }, []);
 
   const readOnly = mode !== "edit" || !canUpdate;
+  const readLatestDraft = () => latestDraftRef.current;
   const grid = <div ref={setInlineMount} className="spreadsheet-grid-slot" />;
   return (
     <>
       <UniverSpreadsheetAdapter
         key={`${resource.id}:${locale}:${phone ? "phone" : "pointer"}`}
         mountElement={inlineMount}
-        document={draft}
+        readDocument={readLatestDraft}
         readOnly={readOnly}
         locale={locale}
         phone={phone}

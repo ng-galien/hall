@@ -22,8 +22,11 @@ export class UniverSheetsUIPlugin {}
 export class UniverMobileUIPlugin {}
 export class UniverSheetsMobileUIPlugin {}
 export const UniverSheetsCorePreset = () => ({ plugins: [UniverUIPlugin, [UniverSheetsUIPlugin, {}]] });
+export const handlers = {};
+export const content = { cells: { A1: "Date" } };
 const workbook = {
-  save: () => ({}),
+  getId: () => "w",
+  save: () => JSON.parse(JSON.stringify(content)),
   getWorkbookPermission: () => ({
     setMode: async (mode) => { calls.push(["mode", mode]); },
     setPoint: async (point, value) => { calls.push(["point", point, value]); },
@@ -31,21 +34,27 @@ const workbook = {
 };
 export const FUniver = {
   newAPI: () => ({
-    Event: {},
+    Event: { CommandExecuted: "CommandExecuted", Undo: "Undo", Redo: "Redo" },
     Enum: { WorkbookPermissionPoint: { CopyContent: "WorkbookCopy" } },
     createWorkbook: () => workbook,
-    addEvent: () => ({ dispose() {} }),
+    addEvent: (name, handler) => {
+      if (name) handlers[name] = handler;
+      return { dispose() {} };
+    },
     setPermissionDialogVisible: (visible) => { calls.push(["dialog", visible]); },
     toggleDarkMode() {},
     dispose() {},
   }),
 };
 export const workbookFromSpreadsheetDocument = () => ({});
-export const spreadsheetSnapshotFromWorkbook = () => ({ signature: "", document: {} });
+export const spreadsheetSnapshotFromWorkbook = (saved) => ({
+  signature: JSON.stringify(saved),
+  document: { schemaVersion: 2, workbook: saved },
+});
 export default {};
 `;
 
-async function renderAdapter(readOnly, phone = false) {
+async function renderAdapter(readOnly, phone = false, scenario = async () => undefined) {
   const temporary = mkdtempSync(join(clientRoot, ".tmp-spreadsheet-read-only-"));
   const entry = join(temporary, "entry.tsx");
   const stub = join(temporary, "univer.mjs");
@@ -54,7 +63,7 @@ async function renderAdapter(readOnly, phone = false) {
   writeFileSync(
     entry,
     `export { UniverSpreadsheetAdapter } from ${JSON.stringify(join(clientRoot, "src/features/spreadsheet/UniverSpreadsheetAdapter.tsx"))};\n` +
-      `export { calls } from ${JSON.stringify(stub)};\n`,
+      `export { calls, content, handlers } from ${JSON.stringify(stub)};\n`,
   );
   const dom = new JSDOM('<!doctype html><div id="root"></div><div id="slot"></div>', {
     url: "http://localhost/app/",
@@ -106,21 +115,32 @@ async function renderAdapter(readOnly, phone = false) {
         },
       ],
     });
-    const { UniverSpreadsheetAdapter, calls } = await import(pathToFileURL(output).href);
+    const { UniverSpreadsheetAdapter, calls, content, handlers } = await import(pathToFileURL(output).href);
     const slot = dom.window.document.getElementById("slot");
     root = createRoot(dom.window.document.getElementById("root"));
-    await act(async () => {
-      root.render(
-        createElement(UniverSpreadsheetAdapter, {
-          mountElement: slot,
-          document: { schemaVersion: 2, workbook: { id: "w", sheetOrder: [], sheets: {} } },
-          readOnly,
-          locale: "fr",
-          phone,
-          onChange: () => undefined,
-          onEditingChange: () => undefined,
-        }),
-      );
+    const changes = [];
+    const render = (layout) =>
+      act(async () => {
+        root.render(
+          createElement(UniverSpreadsheetAdapter, {
+            key: layout ? "phone" : "pointer",
+            mountElement: slot,
+            readDocument: () => ({ schemaVersion: 2, workbook: { id: "w", sheetOrder: [], sheets: {} } }),
+            readOnly,
+            locale: "fr",
+            phone: layout,
+            onChange: (document) => changes.push(document),
+            onEditingChange: () => undefined,
+          }),
+        );
+      });
+    await render(phone);
+    await scenario({
+      changes,
+      content,
+      setPhone: render,
+      fire: (event) => act(async () => handlers.CommandExecuted(event)),
+      settle: () => act(() => new Promise((resolve) => setTimeout(resolve, 150))),
     });
     const grid = slot.querySelector('[data-testid="spreadsheet-grid"]');
     const editable = dom.window.document.createElement("div");
@@ -174,4 +194,36 @@ test("on a tablet or a computer the grid keeps the interface and the keyboard of
   const writer = await renderAdapter(false);
   assert.deepEqual(writer.plugins, ["UniverUIPlugin", "UniverSheetsUIPlugin"]);
   assert.equal(writer.editableInputMode, null);
+});
+
+const cellEditorMutation = { type: 2, id: "doc.mutation.rich-text-editing", params: { unitId: "__INTERNAL_EDITOR__" } };
+const workbookMutation = { type: 2, id: "sheet.mutation.set-range-values", params: { unitId: "w" } };
+
+// @verifies-requirement HALL-FR-LAY-180
+test("opening a spreadsheet and recreating its grid at another width writes nothing", async () => {
+  let written = null;
+  await renderAdapter(false, false, async ({ changes, fire, setPhone, settle }) => {
+    await fire(cellEditorMutation);
+    await settle();
+    await setPhone(true);
+    await fire(cellEditorMutation);
+    await settle();
+    await setPhone(false);
+    await settle();
+    written = changes.length;
+  });
+  assert.equal(written, 0);
+});
+
+// @verifies-requirement HALL-FR-LAY-180
+test("a real change of the workbook is published, even when the grid is recreated before its delay", async () => {
+  let written = null;
+  await renderAdapter(false, false, async ({ changes, content, fire, setPhone, settle }) => {
+    content.cells.A2 = "Changé";
+    await fire(workbookMutation);
+    await setPhone(true);
+    await settle();
+    written = changes.map((document) => document.workbook.cells.A2);
+  });
+  assert.deepEqual(written, ["Changé"]);
 });

@@ -37,6 +37,13 @@ function phonePlugin(plugin: unknown): unknown {
   return plugin;
 }
 
+/** A mutation of the workbook itself; the cell editor of the library and the formula engine change only their own state. */
+function changesWorkbook(event: { type: CommandType; id: string; params?: unknown }, unitId: string): boolean {
+  if (event.type !== CommandType.MUTATION || event.id.startsWith("formula.mutation.")) return false;
+  const params = event.params as { unitId?: unknown } | undefined;
+  return params?.unitId === unitId;
+}
+
 const DOUBLE_TOUCH_MS = 400;
 const TOUCH_SLOP_PX = 12;
 
@@ -90,7 +97,7 @@ function withoutPhoneKeyboard(root: HTMLElement): () => void {
 // @implements-requirement HALL-FR-LAY-030
 export function UniverSpreadsheetAdapter({
   mountElement,
-  document,
+  readDocument,
   readOnly,
   locale,
   phone,
@@ -101,7 +108,9 @@ export function UniverSpreadsheetAdapter({
   onCellEditRequest,
 }: {
   mountElement: HTMLDivElement | null;
-  document: SpreadsheetDocument;
+  /** The latest content of the spreadsheet, read when the grid is created: a grid recreated at another width starts
+   * from the changes of the grid it replaces. */
+  readDocument(): SpreadsheetDocument;
   readOnly: boolean;
   locale: "fr" | "en";
   /** The touch interface of a phone, without the toolbar and formula bar of the library: Hall draws its own bars. */
@@ -120,7 +129,7 @@ export function UniverSpreadsheetAdapter({
   const onCellsChangeRef = useRef(onCellsChange);
   const onCellEditRequestRef = useRef(onCellEditRequest);
   const readOnlyRef = useRef(readOnly);
-  const initialDocumentRef = useRef(document);
+  const readDocumentRef = useRef(readDocument);
   const setReadOnlyRef = useRef<((readOnly: boolean) => Promise<void>) | null>(null);
   const appliedReadOnlyRef = useRef(false);
   onChangeRef.current = onChange;
@@ -129,6 +138,7 @@ export function UniverSpreadsheetAdapter({
   onCellsChangeRef.current = onCellsChange;
   onCellEditRequestRef.current = onCellEditRequest;
   readOnlyRef.current = readOnly;
+  readDocumentRef.current = readDocument;
   const [host] = useState(() => {
     const element = window.document.createElement("div");
     element.className = "spreadsheet-grid univer-spreadsheet";
@@ -181,12 +191,12 @@ export function UniverSpreadsheetAdapter({
     const univerAPI = FUniver.newAPI(univer);
     const themeObserver = new MutationObserver(() => univerAPI.toggleDarkMode(isDarkMode()));
     themeObserver.observe(window.document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    const initialDocument = initialDocumentRef.current;
-    const workbook = univerAPI.createWorkbook(workbookFromSpreadsheetDocument(initialDocument));
+    const workbook = univerAPI.createWorkbook(workbookFromSpreadsheetDocument(readDocumentRef.current()));
+    const unitId = workbook.getId();
     setReadOnlyRef.current = (readOnly) => applyReadOnly(univerAPI, workbook, readOnly);
     appliedReadOnlyRef.current = readOnlyRef.current;
     if (readOnlyRef.current) void setReadOnlyRef.current(true);
-    let lastSnapshot = JSON.stringify(initialDocument.workbook);
+    let lastSnapshot = spreadsheetSnapshotFromWorkbook(workbook.save()).signature;
     let snapshotTimer: number | null = null;
     let cellsFrame: number | null = null;
     const cells = spreadsheetCells(univerAPI, workbook, locale);
@@ -211,7 +221,7 @@ export function UniverSpreadsheetAdapter({
       });
     };
     const commandExecuted = univerAPI.addEvent(univerAPI.Event.CommandExecuted, (event) => {
-      if (event.type === CommandType.MUTATION && !event.id.startsWith("formula.mutation.")) queueSnapshot();
+      if (changesWorkbook(event, unitId)) queueSnapshot();
       announceCells();
     });
     const undo = univerAPI.addEvent(univerAPI.Event.Undo, () => queueSnapshot());

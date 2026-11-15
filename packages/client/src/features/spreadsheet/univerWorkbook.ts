@@ -32,12 +32,35 @@ export function spreadsheetDocumentFromWorkbook(workbook: IWorkbookData): Spread
   return { schemaVersion: 2, workbook: jsonObject(workbook) };
 }
 
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (!isRecord(value)) return value;
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .filter((key) => value[key] !== undefined)
+      .map((key) => [key, canonical(value[key])]),
+  );
+}
+
+/** The content of a workbook, independent of the order in which the library writes its keys: two saves of the same
+ * content have the same signature. */
+export function workbookSignature(workbook: unknown): string {
+  return JSON.stringify(canonical(workbook));
+}
+
+export function spreadsheetSignature(document: SpreadsheetDocument): string {
+  return workbookSignature(document.workbook);
+}
+
 export function spreadsheetSnapshotFromWorkbook(workbook: IWorkbookData): {
   document: SpreadsheetDocument;
   signature: string;
 } {
-  const signature = JSON.stringify(workbook);
-  return { document: { schemaVersion: 2, workbook: resourceJsonObjectSchema.parse(JSON.parse(signature)) }, signature };
+  return {
+    document: { schemaVersion: 2, workbook: resourceJsonObjectSchema.parse(JSON.parse(JSON.stringify(workbook))) },
+    signature: workbookSignature(workbook),
+  };
 }
 
 export function workbookFromSpreadsheetDocument(document: SpreadsheetDocument): IWorkbookData {

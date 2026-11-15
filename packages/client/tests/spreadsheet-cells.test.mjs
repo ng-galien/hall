@@ -20,3 +20,12 @@ test("a content typed in the cell field becomes a formula, a number, an empty ce
   assert.deepEqual(typedCellValue("Semaine 1"), { kind: "text", value: "Semaine 1" });
   assert.deepEqual(typedCellValue("="), { kind: "text", value: "=" });
 });
+
+test("two saves of the same workbook content have one signature, whatever the order of their keys", async () => {
+  const { workbookSignature } = await import("../src/features/spreadsheet/univerWorkbook.ts");
+  assert.equal(
+    workbookSignature({ id: "w", sheets: { s: { cellData: { 0: { 0: { v: 1, s: null } } }, name: "A" } } }),
+    workbookSignature({ sheets: { s: { name: "A", cellData: { 0: { 0: { s: null, v: 1 } } } } }, id: "w" }),
+  );
+  assert.notEqual(workbookSignature({ cells: { A1: 1 } }), workbookSignature({ cells: { A1: 2 } }));
+});
