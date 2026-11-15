@@ -144,7 +144,11 @@ test("the date picker reaches a day of another month and year in a few touches, 
   );
   const days = view.queryAll('[data-testid^="picker-day-"]');
   assert.equal(days.length, 42);
-  assert.equal(days[0].dataset.testid, "picker-day-2026-10-26", "the grid of November 2026 starts on Monday 26 October");
+  assert.equal(
+    days[0].dataset.testid,
+    "picker-day-2026-10-26",
+    "the grid of November 2026 starts on Monday 26 October",
+  );
   assert.equal(view.query('[data-testid="picker-day-2026-11-17"]').getAttribute("aria-pressed"), "true");
   await click(view.query('[data-testid="picker-heading"]'));
   assert.equal(view.queryAll('[data-testid^="picker-month-"]').length, 12, "the heading opens the twelve months");

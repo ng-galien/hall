@@ -152,9 +152,7 @@ test("an open calendar shows the appointments another session creates, moves, re
   }
   dom.window.localStorage.setItem("mairie.locale", "en");
 
-  const appointments = new Map([
-    [firstId, appointment(firstId, "Weekly review", todayAt(9), todayAt(10), 1)],
-  ]);
+  const appointments = new Map([[firstId, appointment(firstId, "Weekly review", todayAt(9), todayAt(10), 1)]]);
   const siren = (body) => new Response(JSON.stringify(body), { headers: { "content-type": sirenType } });
   globalThis.fetch = async (input) => {
     const url = new URL(String(input), "http://localhost");
@@ -305,17 +303,11 @@ test("an open calendar shows the appointments another session creates, moves, re
     });
     assert.equal(draftName.value, "Typed by the reader");
 
-    appointments.set(
-      secondId,
-      appointment(secondId, "Site visit", todayAt(11), todayAt(12), 1),
-    );
+    appointments.set(secondId, appointment(secondId, "Site visit", todayAt(11), todayAt(12), 1));
     await announceChange();
     assert.ok(shown()[secondId]?.includes("Site visit"), "an appointment created elsewhere appears");
 
-    appointments.set(
-      firstId,
-      appointment(firstId, "Weekly review moved", todayAt(14), todayAt(15), 2),
-    );
+    appointments.set(firstId, appointment(firstId, "Weekly review moved", todayAt(14), todayAt(15), 2));
     await announceChange();
     assert.match(shown()[firstId] ?? "", /Weekly review moved/, "an appointment renamed elsewhere changes");
     assert.notEqual(
