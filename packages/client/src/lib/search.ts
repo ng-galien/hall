@@ -1,5 +1,6 @@
 import type { ResourceKind } from "@hall/api-contract";
 import type { CouncilDecisionStatus, MeetingStatus, ReferenceEntityKind } from "@hall/domain";
+import { compareNames } from "./names";
 
 export type SearchableKind = ReferenceEntityKind;
 /** The image is a type of its own among the search types: a document whose content is a picture. */
@@ -134,7 +135,7 @@ export function searchEntities<T extends Searchable>(
       right.quality - left.quality ||
       Number(Boolean(right.item.preferred)) - Number(Boolean(left.item.preferred)) ||
       right.nearness - left.nearness ||
-      left.label.localeCompare(right.label, "fr") ||
+      compareNames(left.label, right.label) ||
       left.item.id.localeCompare(right.item.id),
   );
 

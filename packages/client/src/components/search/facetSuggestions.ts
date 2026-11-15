@@ -1,3 +1,4 @@
+import { compareNames } from "../../lib/names";
 import type { Searchable, SearchableState } from "../../lib/search";
 import { normalizeForSearch } from "../../lib/search";
 
@@ -56,7 +57,7 @@ export function facetOptionsFrom<TKind extends Searchable["kind"]>(
   }
   const descending = (counts: Map<string, number>) =>
     [...counts.entries()]
-      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "fr"))
+      .sort((left, right) => right[1] - left[1] || compareNames(left[0], right[0]))
       .map(([value, count]) => ({ value, label: value, count }));
   const orderedTypes = typeOrder ?? [...typeCounts.keys()];
   return {
@@ -64,7 +65,7 @@ export function facetOptionsFrom<TKind extends Searchable["kind"]>(
     folders: descending(folderCounts),
     tags: descending(tagCounts),
     states: [...stateCounts.entries()]
-      .sort((left, right) => valueLabels.state(left[0]).localeCompare(valueLabels.state(right[0]), "fr"))
+      .sort((left, right) => compareNames(valueLabels.state(left[0]), valueLabels.state(right[0])))
       .map(([value, count]) => ({ value, label: valueLabels.state(value), count })),
   };
 }

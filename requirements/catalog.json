@@ -12523,6 +12523,36 @@
         }
       ]
     },
+    "HALL-FR-WSP-500": {
+      "name": "FOLDER_CONTENTS_HAVE_ONE_NAME_ORDER",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-15"
+      },
+      "statement": "Dans l’écran Documents, le contenu d’un dossier se présente toujours dans le même ordre : ses sous-dossiers, puis ses affaires, puis ses documents, chacun rangé par nom ; partout où Hall range par nom, il compare les noms de la même façon.",
+      "acceptanceCriteria": [
+        "Dans l’explorateur à l’ordinateur et au téléphone, dans l’arborescence du menu, dans le menu du fil d’Ariane et dans une affaire dépliée de l’explorateur, un dossier montre ses sous-dossiers, puis ses affaires, puis ses documents, chaque groupe rangé par nom ; l’entrée « Mon espace » et les éléments épinglés gardent leur place en tête de l’écran.",
+        "Les noms se comparent en français, sans tenir compte des accents ni des majuscules, et les nombres d’un nom se suivent dans leur ordre naturel (« Point 2 » avant « Point 10 ») ; deux noms égaux selon cette comparaison gardent toujours entre eux le même ordre.",
+        "La même comparaison des noms range les dossiers proposés par les filtres de la recherche, les résultats de la recherche triés par nom et les résultats à égalité dans les autres tris.",
+        "Un document garde sa place quand on l’ouvre, qu’on l’enregistre, qu’on revient à la liste ou qu’on passe par un autre écran ; un document créé ou renommé prend aussitôt la place que lui donne son nom.",
+        "Les ordres choisis par une personne ou fixés par une autre exigence restent les leurs : pièces d’une affaire, points d’un ordre du jour, éléments épinglés, derniers documents par date, pertinence de la recherche, élus par rang, courriels envoyés et agenda."
+      ],
+      "clauses": [
+        {
+          "key": "owner-report",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 15 novembre 2026, rapportant un retour des utilisateurs : « on ouvre un document, on revient sur la liste, c'est pas dans le même ordre, c'est quand même pas terrible. »",
+          "sourceIds": []
+        },
+        {
+          "key": "order-rule",
+          "origin": "product",
+          "statement": "Règle acceptée par le propriétaire le 15 novembre 2026 pour la version 1.4.0 : sous-dossiers, puis affaires, puis documents, chacun par nom, le même ordre sur tous les écrans qui montrent un dossier ; comparaison française des noms, accents et majuscules ignorés, nombres dans l’ordre naturel ; un document garde sa place à l’ouverture et à l’enregistrement, un document créé ou renommé prend la place de son nom.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-SCH-060": {
       "name": "STABLE_ENTITY_OPTIONS",
       "nature": "technical",

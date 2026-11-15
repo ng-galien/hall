@@ -1,3 +1,5 @@
+import { comparePaths } from "../../lib/names";
+
 /* Groups ranked search hits along the folder tree, mirroring the workspace explorer: nested
    folder nodes in depth-first order, then one flat node per kind for entries that live outside
    the tree (members, meetings, decisions). */
@@ -16,17 +18,6 @@ export interface FolderSection<T> {
 interface TreeHit {
   kind: string;
   folderPath?: string;
-}
-
-function comparePaths(left: string, right: string): number {
-  const a = left.split("/");
-  const b = right.split("/");
-  const length = Math.min(a.length, b.length);
-  for (let index = 0; index < length; index += 1) {
-    const step = a[index].localeCompare(b[index], "fr");
-    if (step !== 0) return step;
-  }
-  return a.length - b.length;
 }
 
 export function folderSections<T extends TreeHit>(

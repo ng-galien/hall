@@ -1,4 +1,5 @@
 import type { ResourceSummary } from "@hall/api-contract";
+import { compareNames } from "../../lib/names";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { PathNode } from "../workspace/paths";
 
@@ -24,7 +25,7 @@ const RECENT_MAPS_KEY = "hall.maps.recent";
 export const RECENT_MAPS_LIMIT = 5;
 
 function byName(left: MapSummary, right: MapSummary): number {
-  return left.name.localeCompare(right.name, "fr-FR");
+  return compareNames(left.name, right.name);
 }
 
 /**
@@ -67,7 +68,7 @@ export function mapsByBusiness(
         .filter((map): map is MapSummary => map !== undefined),
     }))
     .filter((group) => group.maps.length > 0)
-    .sort((left, right) => left.business.title.localeCompare(right.business.title, "fr-FR"));
+    .sort((left, right) => compareNames(left.business.title, right.business.title));
 }
 
 /** Folder path segments with the workspace path each segment opens. */

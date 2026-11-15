@@ -16,6 +16,7 @@ import {
   DocumentaryResourceGlyph,
 } from "../../../features/documents/DocumentaryResourceGlyph";
 import { useI18n } from "../../../i18n/I18nProvider";
+import { compareNames, comparePaths, sortByName } from "../../../lib/names";
 import type { CouncilBusinessView } from "../../../models/councilBusiness";
 import { useCouncilBusinessStore } from "../../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../../stores/workspaceResourcesStore";
@@ -49,21 +50,25 @@ function CrumbMenu({
     .filter((candidate) => candidate.startsWith(prefix) && candidate !== parent)
     .map((candidate) => candidate.slice(prefix.length).split("/")[0])
     .filter((name, index, names) => names.indexOf(name) === index)
-    .sort((left, right) => left.localeCompare(right, "fr"));
-  const directBusinesses = businesses
-    .filter(
+    .sort(compareNames);
+  const directBusinesses = sortByName(
+    businesses.filter(
       (business) =>
         business.folderPath === parent &&
         (!currentSelection || !sameWorkspaceItem(currentSelection, { kind: "councilBusiness", id: business.id })),
-    )
-    .sort((left, right) => left.title.localeCompare(right.title, "fr"));
-  const directResources = resources
-    .filter(
+    ),
+    (business) => business.title,
+    (business) => business.id,
+  );
+  const directResources = sortByName(
+    resources.filter(
       (resource) =>
         resource.path === parent &&
         (!currentSelection || !sameWorkspaceItem(currentSelection, { kind: "resource", id: resource.id })),
-    )
-    .sort((left, right) => left.name.localeCompare(right.name, "fr"));
+    ),
+    (resource) => resource.name,
+    (resource) => resource.id,
+  );
   const hasContents = children.length > 0 || directBusinesses.length > 0 || directResources.length > 0;
   if (!hasContents) {
     return (
@@ -230,7 +235,7 @@ export function WorkspaceBreadcrumb({
         known.add(parts.slice(0, index + 1).join("/"));
       });
     }
-    return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
+    return [...known].sort(comparePaths);
   })();
   const segments = path.split("/").filter(Boolean);
   const personalPath = useWorkspaceResourcesStore((state) => state.personalWorkspacePath);

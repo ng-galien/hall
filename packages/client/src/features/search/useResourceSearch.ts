@@ -6,6 +6,7 @@ import { facetOptionsFrom } from "../../components/search/facetSuggestions";
 import type { SearchBoxState } from "../../components/search/SearchBox";
 import { resourceMentionable, useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
+import { comparePaths } from "../../lib/names";
 import { imageSearchType, type SearchType, searchEntities } from "../../lib/search";
 import { searchDocumentaryResources } from "../../services/resourcesApi";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -211,7 +212,7 @@ export function useResourceSearch(
     },
     options: {
       types: eligibleTypes.map((value) => ({ value, label: typeLabel(value) })),
-      folders: [...new Set(folders)].sort().map((value) => ({ value, label: value })),
+      folders: [...new Set(folders)].sort(comparePaths).map((value) => ({ value, label: value })),
       tags: [...new Set([...(current?.facets.tags ?? []), ...facets.tags.map((x) => x.value)])].map((value) => ({
         value,
         label: value,

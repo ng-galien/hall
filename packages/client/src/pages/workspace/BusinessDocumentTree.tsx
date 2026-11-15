@@ -18,6 +18,7 @@ import { resourceCapabilities } from "../../features/resources/resourceCapabilit
 import { useResourceRename } from "../../features/resources/useResourceRename";
 import { useSubmitting } from "../../hooks/useSubmitting";
 import { useI18n } from "../../i18n/I18nProvider";
+import { compareNames } from "../../lib/names";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { listDocumentaryResourceCatalog } from "../../services/resourcesApi";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -86,7 +87,7 @@ export function BusinessDocumentTree({
           .filter((entry) => entry.path.startsWith(prefix) && entry.path !== path)
           .map((entry) => entry.path.slice(prefix.length).split("/")[0]!),
       ),
-    ].sort((a, b) => a.localeCompare(b));
+    ].sort(compareNames);
     return (
       <>
         {folders.map((name) => (

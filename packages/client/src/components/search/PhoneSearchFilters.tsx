@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
+import { comparePaths } from "../../lib/names";
 import { CheckIcon, CloseIcon } from "../icons";
 import { Button } from "../ui/button";
 import { Sheet } from "../ui/sheet";
@@ -35,7 +36,7 @@ export function PhoneSearchFilters<K extends string, S extends string>({
   const group = groups.find((entry) => entry.category === opened);
   const values =
     group?.category === "folder"
-      ? [...group.values].sort((left, right) => left.value.localeCompare(right.value, "fr"))
+      ? [...group.values].sort((left, right) => comparePaths(left.value, right.value))
       : (group?.values ?? []);
   if (!groups.length && !active.length) return null;
   return (

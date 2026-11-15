@@ -47,6 +47,7 @@ import { FolderGlyph } from "../../features/documents/FolderGlyph";
 import { ToneGlyph } from "../../features/documents/ResourceGlyph";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
 import { useI18n } from "../../i18n/I18nProvider";
+import { sortByName } from "../../lib/names";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
@@ -237,10 +238,11 @@ function ContentRow({
 
 // @implements-requirement HALL-FR-WSP-480
 // @implements-requirement HALL-FR-WSP-490
+// @implements-requirement HALL-FR-WSP-500
 export function PathContents({
   path,
-  businesses,
-  resources,
+  businesses: arrivedBusinesses,
+  resources: arrivedResources,
   selection,
   onSelect,
   onCreate,
@@ -272,6 +274,24 @@ export function PathContents({
   toolbarControls?: ReactNode;
 }) {
   const { t, formatDate } = useI18n();
+  const businesses = useMemo(
+    () =>
+      sortByName(
+        arrivedBusinesses,
+        (business) => business.title,
+        (business) => business.id,
+      ),
+    [arrivedBusinesses],
+  );
+  const resources = useMemo(
+    () =>
+      sortByName(
+        arrivedResources,
+        (resource) => resource.name,
+        (resource) => resource.id,
+      ),
+    [arrivedResources],
+  );
   const councilBusinessStore = useCouncilBusinessStore();
   const { load: loadCouncilActivity } = useWorkspaceCouncilActivityStore();
   const resourcesStore = useWorkspaceResourcesStore();
@@ -1085,8 +1105,8 @@ export function PathContents({
             >
               {businessExpanded ? (
                 <ListRows className="path-contents-branch">
-                  {renderItems(businessFolder)}
                   {businessChildren.map(renderFolder)}
+                  {renderItems(businessFolder)}
                 </ListRows>
               ) : null}
             </ContentRow>
@@ -1307,8 +1327,8 @@ export function PathContents({
           <ListRows className="path-contents-branch">
             {renderFolderCreation(folderPath)}
             {renderInlineCreation(folderPath)}
-            {renderItems(folderPath)}
             {children.map(renderFolder)}
+            {renderItems(folderPath)}
             {!resourcesStore.loadedPaths.includes(folderPath) &&
             children.length === 0 &&
             !visibleResources.some((resource) => resource.path === folderPath) &&
@@ -1333,9 +1353,8 @@ export function PathContents({
     <>
       {renderFolderCreation(path)}
       {renderInlineCreation(path)}
-      {phone ? rootChildren.map(renderFolder) : null}
+      {rootChildren.map(renderFolder)}
       {renderItems(path)}
-      {phone ? null : rootChildren.map(renderFolder)}
       {!rootHasDirectItems &&
       rootChildren.length === 0 &&
       creatingFolderParent !== path &&

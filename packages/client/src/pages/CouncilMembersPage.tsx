@@ -22,6 +22,7 @@ import { contactPhoneFields, preferredPhone } from "../features/contacts/contact
 import { useDomainRowStatus } from "../features/status/DomainStatusBadge";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
+import { compareNames } from "../lib/names";
 import { useContactsStore } from "../stores/contactsStore";
 import { useCouncilCommitteesStore } from "../stores/councilCommitteesStore";
 import { useCouncilMembersStore } from "../stores/councilMembersStore";
@@ -62,7 +63,7 @@ export function CouncilMembersPage() {
         detail.memberships.some((membership) => membership.contactId === contactId && !membership.endedOn),
       )
       .map((detail) => detail.body)
-      .sort((left, right) => left.name.localeCompare(right.name));
+      .sort((left, right) => compareNames(left.name, right.name));
   };
   const committeeSummary = (memberId: string) => {
     const currentCommittees = memberCommittees(memberId);

@@ -1,5 +1,6 @@
 import type { ResourceCatalogEntry } from "@hall/api-contract";
 import type { Resource } from "@hall/domain";
+import { comparePaths, sortByName } from "../../lib/names";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 
 export type PathBusiness = Pick<CouncilBusinessView, "id" | "folderResourceId" | "folderPath" | "title">;
@@ -30,7 +31,7 @@ export function listAllPaths(
       known.add(segments.slice(0, index + 1).join("/"));
     });
   }
-  return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
+  return [...known].sort(comparePaths);
 }
 
 export function isUnderPath(folderPath: string, path: string): boolean {
@@ -48,7 +49,7 @@ export function listCatalogPaths(catalog: ResourceCatalogEntry[]): string[] {
       known.add(segments.slice(0, index + 1).join("/"));
     });
   }
-  return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
+  return [...known].sort(comparePaths);
 }
 
 /** Full path of the folder of a council business. */
@@ -74,9 +75,7 @@ export function explorerFolderPaths(
     });
   }
   for (const business of businesses) known.delete(businessFolderPath(business));
-  return [...known]
-    .sort((left, right) => left.localeCompare(right, "fr-FR"))
-    .filter((candidate) => isUnderPath(candidate, path));
+  return [...known].sort(comparePaths).filter((candidate) => isUnderPath(candidate, path));
 }
 
 /** Folder colours of the catalogue, keyed by folder full path. */
@@ -88,8 +87,10 @@ export function folderColorsByPath(catalog: ResourceCatalogEntry[]): Map<string,
   );
 }
 
-/** Path tree preserving the business identity and the colour of its documentary folders.
+/** Path tree preserving the business identity and the colour of its documentary folders; under each folder its
+ * sub-folders come first, then its affaires, each by name.
  * @implements-requirement HALL-FR-WSP-240
+ * @implements-requirement HALL-FR-WSP-500
  * @implements-requirement HALL-FR-WSP-480
  */
 export function buildPathTree<TBusiness extends PathBusiness>(
@@ -111,8 +112,8 @@ export function buildPathTree<TBusiness extends PathBusiness>(
       knownPaths.add(segments.slice(0, index + 1).join("/"));
     });
   }
-  const childrenOf = (parent: string): PathNode<TBusiness>[] =>
-    [...knownPaths]
+  const childrenOf = (parent: string): PathNode<TBusiness>[] => {
+    const nodes = [...knownPaths]
       .filter((path) => {
         if (!path || path === parent) return false;
         if (parent === "") return !path.includes("/");
@@ -124,7 +125,14 @@ export function buildPathTree<TBusiness extends PathBusiness>(
         business: businessesByPath.get(path) ?? null,
         color: colorsByPath.get(path) ?? null,
         children: childrenOf(path),
-      }))
-      .sort((left, right) => left.name.localeCompare(right.name, "fr-FR"));
+      }));
+    const byName = (group: PathNode<TBusiness>[]) =>
+      sortByName(
+        group,
+        (node) => node.name,
+        (node) => node.path,
+      );
+    return [...byName(nodes.filter((node) => !node.business)), ...byName(nodes.filter((node) => node.business))];
+  };
   return childrenOf("");
 }

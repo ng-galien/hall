@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import type { Locale } from "../i18n/I18nProvider";
+import { compareNames } from "../lib/names";
 
 /* Documentation pages: one MDX file per page under `content/<locale>/…`.
    The path below the locale is the URL below `/docs`; `index.mdx` is the folder page.
@@ -80,7 +81,7 @@ export function pageTree(locale: Locale): DocsNode[] {
     (parent && parent !== node ? parent.children : roots).push(node);
   }
   const sort = (list: DocsNode[]) => {
-    list.sort((a, b) => a.page.order - b.page.order || a.page.title.localeCompare(b.page.title));
+    list.sort((a, b) => a.page.order - b.page.order || compareNames(a.page.title, b.page.title));
     for (const node of list) sort(node.children);
   };
   const root = nodes.get("");

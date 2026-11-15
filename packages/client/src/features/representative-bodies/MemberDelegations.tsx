@@ -3,6 +3,7 @@ import { DelegationIcon } from "../../components/icons";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { SectionHeader } from "../../components/ui/section-header";
 import { useI18n } from "../../i18n/I18nProvider";
+import { compareNames } from "../../lib/names";
 import { useCouncilDelegationsStore } from "../../stores/councilDelegationsStore";
 import { delegationKind } from "./representativeBodyKinds";
 
@@ -22,7 +23,7 @@ export function MemberDelegations({ contactId }: { contactId: string }) {
         .filter((membership) => membership.contactId === contactId && !membership.endedOn)
         .map((membership) => ({ delegation: detail.body, membership })),
     )
-    .sort((left, right) => left.delegation.name.localeCompare(right.delegation.name));
+    .sort((left, right) => compareNames(left.delegation.name, right.delegation.name));
   return (
     <section
       id="delegations"
