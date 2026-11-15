@@ -72,6 +72,8 @@ export function WorkspaceWorkbenchHeader({
   titleId,
   controls: ownControls,
   reference,
+  leading,
+  place,
 }: {
   icon?: ReactNode;
   title: string;
@@ -95,6 +97,10 @@ export function WorkspaceWorkbenchHeader({
   /** In a dialog: the controls of its session; on a screen they come from the workspace. */
   controls?: WorkbenchControls;
   reference?: ObjectReference;
+  /** In a dialog on a phone: the arrow that closes it, before the title. */
+  leading?: ReactNode;
+  /** In a dialog on a phone: the folder of the item, first on the line of facts. */
+  place?: ReactNode;
 }) {
   const { t, formatDate } = useI18n();
   const screenControls = useContext(WorkbenchControlsContext);
@@ -142,6 +148,11 @@ export function WorkspaceWorkbenchHeader({
   );
   const facts = (
     <>
+      {place ? (
+        <span className="workbench-eyebrow workbench-place" data-testid="workspace-workbench-place">
+          {place}
+        </span>
+      ) : null}
       <span className="workbench-eyebrow">
         {t(date.kind === "created" ? "workspace.createdOn" : "workspace.updatedOn", { date: formatDate(date.value) })}
       </span>
@@ -171,6 +182,7 @@ export function WorkspaceWorkbenchHeader({
       {titleId ? (
         <div className="screen-title-block workbench-dialog-title-block">
           <div className="screen-title-row">
+            {leading}
             {icon ? <span className="screen-title-icon">{icon}</span> : null}
             {rename(
               <h2 id={titleId} className="workbench-dialog-title" data-testid="workspace-workbench-title">

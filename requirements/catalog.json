@@ -4146,7 +4146,7 @@
       },
       "statement": "Un document s’ouvre dans une seule visionneuse en plein écran, partagée par tous les endroits qui ouvrent un document.",
       "acceptanceCriteria": [
-        "La visionneuse est une fenêtre de dialogue qui occupe presque tout l’écran, avec le titre du document et un bouton de fermeture ; ce bouton la ferme, et Échap la ferme lorsque le focus n’est pas dans un éditeur de texte, où Échap reste à l’éditeur. Sur un téléphone, hors conduite de la séance en direct, elle occupe tout l’écran avec une flèche de retour à la place du bouton de fermeture ; la flèche et le retour du téléphone la ferment et ramènent à l’écran d’où le document a été ouvert.",
+        "La visionneuse est une fenêtre de dialogue qui occupe presque tout l’écran, avec le titre du document et un bouton de fermeture ; ce bouton la ferme, et Échap la ferme lorsque le focus n’est pas dans un éditeur de texte, où Échap reste à l’éditeur. Sur un téléphone, y compris pendant la conduite de la séance en direct, elle occupe tout l’écran avec une flèche de retour à la place du bouton de fermeture ; la flèche et le retour du téléphone la ferment et ramènent à l’écran d’où le document a été ouvert.",
         "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur, et un PDF s’affiche page après page, dessiné par Hall, dans un navigateur sans lecteur PDF intégré ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
         "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré. Sur un téléphone, hors conduite de la séance en direct, un document de l’espace de travail ouvert depuis une référence, la recherche ou la composition de l’ordre du jour s’ouvre sur sa propre page ; un rendez-vous ouvert depuis l’agenda s’ouvre dans la feuille du bas de l’agenda (HALL-FR-CAL-060).",
         "La visionneuse présente le document avec les droits de l’utilisateur, quel que soit l’endroit d’où il est ouvert : une carte, un texte ou un tableur que l’utilisateur peut modifier y est modifiable avec son propre éditeur, exactement comme dans la ligne dépliée (pour une carte : mode Dessin, mesures, notes et « Enregistrer ce cadrage »), et il y est présenté en lecture sinon.",
@@ -4155,6 +4155,12 @@
         "Sur un téléphone, les pages d’un PDF défilent l’une sous l’autre, s’agrandissent par pincement ou double appui, et l’indication « Page N / total » s’affiche pendant le défilement."
       ],
       "clauses": [
+        {
+          "key": "phone-document-sheet",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 15 novembre 2026, sur un document ouvert en mode séance au téléphone : « Tu vois bien qu’on perd beaucoup de place » ; « en mobile, il faut gagner quand même pas mal de place ».",
+          "sourceIds": []
+        },
         {
           "key": "shared-document-viewer",
           "origin": "product",
@@ -11707,11 +11713,17 @@
         "Un élément ouvert dont le contenu occupe toute la hauteur de l’écran (document PDF ou image, tableur, carte, couche cartographique) s’ouvre avec le bandeau déjà réduit et le contenu prend la hauteur libérée. Au téléphone, son titre est écrit dans la première ligne. Sur ordinateur et tablette, la première ligne porte, après le fil d’Ariane, l’icône de son type, son titre et sa ligne de faits, puis ses commandes avant les initiales ; rien n’est retiré : quand la largeur manque, le titre et les faits passent sous le fil d’Ariane, ou les commandes sur une ligne à droite, plutôt que d’être coupés.",
         "Sur ordinateur et tablette, la ligne du titre d’un élément ouvert (document, carte, tableur, texte, affaire), sur l’écran comme dans la fenêtre d’un document, porte à gauche l’icône de son type et son titre, qui peut passer sur deux lignes, et à droite, sur sa première ligne, dans cet ordre : la commande principale en bouton avec son libellé (« Modifier » ou « Terminé » pour un texte, « Ouvrir dans Cartes » pour une carte), au plus deux icônes pour les commandes les plus fréquentes (« Épingler », « Plein écran »), le menu « … » qui range les autres commandes avec leur libellé en clair (renommer, copier la référence, aperçu PDF, préparer un courriel, partager, télécharger, voir les modifications, couper ou activer la sauvegarde automatique), puis la croix qui ferme l’élément. Quand la largeur manque, les icônes rejoignent le menu « … » avant que le titre soit coupé.",
         "Sous le titre d’un élément ouvert, une ligne de faits écrit sa date, « Modifié le … » ou « Créé le … », et son état d’enregistrement : « Enregistré », « Enregistrement… » ou « Modifications en cours ».",
-        "La fenêtre d’un document suit la même règle : sa première ligne porte le chemin du document et la croix seulement, sa ligne de titre porte le titre et les commandes du document, une seule fois chacune.",
+        "La fenêtre d’un document suit la même règle : sa première ligne porte le chemin du document et la croix seulement, sa ligne de titre porte le titre et les commandes du document, une seule fois chacune. Au téléphone, la fenêtre d’un document porte sur une seule ligne la flèche de retour, le titre et les commandes du document ; sa ligne de faits écrit le dossier du document avant sa date et son état d’enregistrement, et le contenu suit directement.",
         "La recherche dans Documents, « Rechercher dans Documents… » avec ses filtres, et le champ « Filtrer ce dossier… » apparaissent sur l’écran d’un dossier et jamais sur un élément ouvert.",
-        "Le titre n’est pas répété dans le contenu de l’écran."
+        "Le titre n’est pas répété dans le contenu de l’écran : un texte lu sous son titre ne montre pas une première rubrique identique à ce titre."
       ],
       "clauses": [
+        {
+          "key": "phone-document-sheet",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 15 novembre 2026, sur un document ouvert en mode séance au téléphone : « Tu vois bien qu’on perd beaucoup de place » ; « en mobile, il faut gagner quand même pas mal de place ».",
+          "sourceIds": []
+        },
         {
           "key": "screen-header-2b",
           "origin": "product",

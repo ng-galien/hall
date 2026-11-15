@@ -169,6 +169,35 @@ function rehypeConvertedDocument() {
   };
 }
 
+/** Comparable form of a heading or a title: case, spacing and closing punctuation do not count. */
+function comparableTitle(value: string): string {
+  return value
+    .normalize("NFC")
+    .toLocaleLowerCase("fr-FR")
+    .replace(/\s+/g, " ")
+    .replace(/[\s.:;]+$/, "")
+    .trim();
+}
+
+function headingText(node: Root["children"][number]): string {
+  let text = "";
+  visit(node, (child) => {
+    if (child.type === "text" || child.type === "inlineCode") text += child.value;
+  });
+  return text;
+}
+
+/** The text read under its own title does not repeat that title as its first heading. */
+// @implements-requirement HALL-FR-LAY-100
+function remarkWithoutLeadingTitle(title: string) {
+  return () => (tree: Root) => {
+    const first = tree.children[0];
+    if (first?.type === "heading" && comparableTitle(headingText(first)) === comparableTitle(title)) {
+      tree.children.shift();
+    }
+  };
+}
+
 const embeddedImage = /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 function embeddedImageUrl(url: string) {
   return url.length <= 8 * 1024 * 1024 && embeddedImage.test(url) ? url : "";
@@ -178,18 +207,22 @@ export function MarkdownView({
   markdown,
   className,
   allowEmbeddedImages = false,
+  title,
 }: {
   markdown: string;
   className?: string;
   allowEmbeddedImages?: boolean;
+  /** The title shown above the text; a first heading identical to it is not shown again. */
+  title?: string;
 }) {
+  const titlePlugins = title ? [remarkWithoutLeadingTitle(title)] : [];
   return (
     <div className={className ? `markdown-content ${className}` : "markdown-content"}>
       <ReactMarkdown
         remarkPlugins={
           allowEmbeddedImages
-            ? [remarkGfm, remarkUnderline]
-            : [remarkGfm, remarkDirective, remarkReferences, remarkUnderline]
+            ? [remarkGfm, remarkUnderline, ...titlePlugins]
+            : [remarkGfm, remarkDirective, remarkReferences, remarkUnderline, ...titlePlugins]
         }
         rehypePlugins={[rehypeRaw, rehypeConvertedDocument]}
         allowedElements={allowEmbeddedImages ? [...allowedElements, "h1", "h4", "h5", "h6"] : allowedElements}

@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { DownloadIcon, ShareIcon } from "../../components/icons";
+import { Button } from "@/components/ui/button";
+import { BackIcon, DownloadIcon, ShareIcon } from "../../components/icons";
 import type { ItemCommand } from "../../components/ui/item-commands";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -10,7 +11,7 @@ import { WorkspaceWorkbenchHeader } from "../../pages/workspace/WorkspaceWorkben
 import { shareOrDownload } from "../../services/fileSharing";
 import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
 import { PhonePageOpening } from "../../shell/PhonePageOpening";
-import { usePhoneDocumentPages } from "../../shell/usePhoneLayout";
+import { usePhoneDocumentPages, usePhoneLayout } from "../../shell/usePhoneLayout";
 import { ResourcePresentationBody } from "../resources/ResourcePresentationBody";
 import { type ResourceSession, useResourceSession } from "../resources/useResourceSession";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "./DocumentaryResourceGlyph";
@@ -26,6 +27,14 @@ export function ResourcePreview({ resourceId, onClose }: { resourceId: string; o
   ) : (
     <ResourcePreviewModal resourceId={resourceId} onClose={onClose} />
   );
+}
+
+/** The control that closes the document dialog: the cross of its trail, or on a phone the arrow of its title line. */
+const closeTestId = "resource-preview-close";
+
+/** Name of the folder that holds an item, from its folder path. */
+function folderName(path: string): string {
+  return path.split("/").filter(Boolean).at(-1) ?? "";
 }
 
 /** Common resource modal. It hosts the same resource session and body as the Workspace, with the user's own rights, and never changes route. */
@@ -49,6 +58,7 @@ export function ResourcePreviewWithSession({
   const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
   const [closing, setClosing] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const phone = usePhoneLayout();
 
   const requestClose = useCallback(async () => {
     if (closing) return;
@@ -94,6 +104,19 @@ export function ResourcePreviewWithSession({
           },
         ]
       : [];
+  const back = (
+    <Button
+      ref={closeButtonRef}
+      data-testid={closeTestId}
+      className="document-viewer-back"
+      size="icon"
+      variant="plain"
+      aria-label={t("common.back")}
+      onClick={() => void requestClose()}
+    >
+      <BackIcon />
+    </Button>
+  );
   return (
     <DocumentViewerDialog
       testId="resource-preview"
@@ -106,17 +129,21 @@ export function ResourcePreviewWithSession({
       onClose={() => void requestClose()}
       header={
         <div className="resource-preview-shell-header">
-          <WorkspaceBreadcrumb
-            path={resource?.path ?? ""}
-            currentSelection={resource ? { kind: "resource", id: resource.id } : null}
-            interactive={false}
-            closeButtonRef={closeButtonRef}
-            closeTestId="resource-preview-close"
-            onClose={() => void requestClose()}
-          />
+          {phone ? null : (
+            <WorkspaceBreadcrumb
+              path={resource?.path ?? ""}
+              currentSelection={resource ? { kind: "resource", id: resource.id } : null}
+              interactive={false}
+              closeButtonRef={closeButtonRef}
+              closeTestId={closeTestId}
+              onClose={() => void requestClose()}
+            />
+          )}
           {resource ? (
             <WorkspaceWorkbenchHeader
-              icon={<DocumentaryResourceGlyph resource={resource} large />}
+              leading={phone ? back : undefined}
+              icon={phone ? undefined : <DocumentaryResourceGlyph resource={resource} large />}
+              place={phone ? folderName(resource.path) || t("navigation.workspace") : undefined}
               title={resource.name}
               titleId="resource-preview-title"
               controls={controls}
@@ -136,6 +163,7 @@ export function ResourcePreviewWithSession({
             />
           ) : (
             <header className="resource-preview-loading-header">
+              {phone ? back : null}
               <h2 id="resource-preview-title">{t("editor.kind.resource")}</h2>
             </header>
           )}

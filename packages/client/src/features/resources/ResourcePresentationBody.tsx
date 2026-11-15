@@ -113,7 +113,7 @@ export function ResourcePresentationBody({
         </div>
       ) : (
         <div className="resource-preview-text" data-testid="resource-presentation-text-read">
-          <MarkdownView markdown={entry.content} />
+          <MarkdownView markdown={entry.content} title={entry.name} />
         </div>
       ),
     remote: (entry) => {

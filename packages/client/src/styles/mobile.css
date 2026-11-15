@@ -181,6 +181,19 @@
   .document-viewer-phone-page .document-viewer-header h2 { overflow: hidden; font-size: var(--hall-font-size-title); text-overflow: ellipsis; white-space: nowrap; }
   .document-viewer-phone-page .document-viewer-header p { display: none; }
   .document-viewer-phone-page .document-viewer-back { flex: none; font-size: var(--hall-font-size-icon-large); }
+  /* A document opened over a screen on a phone: one line with the arrow, the title and the commands, a discreet line
+     with the folder, the date and the save state, then the content, which alone scrolls. */
+  .document-viewer-phone-page .resource-preview-shell-header > .workspace-workbench-header { gap: 0; padding: 0 var(--hall-space-2) var(--hall-space-2); }
+  .document-viewer-phone-page .workbench-dialog-title-block { gap: 0; padding: 0; border: 0; }
+  .document-viewer-phone-page .workbench-dialog-title-block > .screen-title-row { min-height: var(--hall-size-header); flex-wrap: nowrap; align-items: center; gap: var(--hall-space-1); }
+  .document-viewer-phone-page .workbench-dialog-title { display: block; min-width: 0; flex: 1; overflow: hidden; font-size: var(--hall-font-size-title); text-overflow: ellipsis; white-space: nowrap; }
+  .document-viewer-phone-page .workbench-dialog-title-block .screen-title-commands { min-height: 0; }
+  .document-viewer-phone-page .workbench-dialog-title-block > .screen-title-facts { gap: var(--hall-space-1) var(--hall-space-3); padding-left: calc(var(--hall-size-touch-control) + var(--hall-space-1)); font-size: var(--hall-font-size-caption); white-space: nowrap; }
+  .document-viewer-phone-page .workbench-dialog-title-block > .screen-title-facts > .workbench-eyebrow { font-size: inherit; }
+  .document-viewer-phone-page .workbench-place { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .document-viewer-phone-page .resource-preview-loading-header { display: flex; align-items: center; gap: var(--hall-space-1); min-height: var(--hall-size-header); padding: 0 var(--hall-space-2); }
+  .document-viewer-phone-page .resource-preview-content:not(.resource-preview-content-fill) { padding: 0; }
+  .document-viewer-phone-page .resource-preview-content .resource-preview-text { max-width: none; padding: var(--hall-space-4); overflow: visible; }
   .app-main .path-contents-explorer .workspace-explorer-toolbar { display: none; }
 
   .workspace-bar-search .wsearch-field > .hall-input { min-width: 0; }

@@ -5,11 +5,12 @@ import { cn } from "@/lib/utils";
 import { BackIcon, CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { usePhoneViewerHistory } from "../../shell/phoneHistory";
-import { usePhoneDocumentPages } from "../../shell/usePhoneLayout";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import "./DocumentViewer.css";
 
 // @implements-requirement HALL-FR-DOC-480
-/** Full-screen document viewer shared by every place that opens a document; Escape and the close button close it. */
+/** Document viewer shared by every place that opens a document; it covers the whole screen of a phone, where its arrow
+ * and the back gesture close it. Escape and the close button close it. */
 export function DocumentViewerDialog({
   testId,
   titleId,
@@ -52,7 +53,7 @@ export function DocumentViewerDialog({
   const { t } = useI18n();
   const ownCloseButton = useRef<HTMLButtonElement | null>(null);
   const closeButton = closeButtonRef ?? ownCloseButton;
-  const phonePage = usePhoneDocumentPages();
+  const phonePage = usePhoneLayout();
   const close = usePhoneViewerHistory(phonePage, onClose);
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
