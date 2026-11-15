@@ -10,6 +10,7 @@ import "../downloads.css";
 import { followInstallSteps, renderHomeDownloads } from "../sections";
 import { renderFeatures } from "./features";
 import { glyphTint, type PieceKind, photoThumb, svgIcon } from "./icons";
+import { chemin, type Spot } from "./place";
 import { at, places, range, storyEnd, storyStart, subStepAt, subSteps, timeline } from "./story";
 
 /* Studio du récit : ?studio ouvre l'outil de réglage, hors du site publié */
@@ -17,28 +18,9 @@ if (__HALL_STUDIO__ && new URLSearchParams(window.location.search).has("studio")
 
 /* ------------------------------------------------------------------ Lieux */
 
-export type Spot = { x: number; y: number };
+export { chemin, type Spot, spots } from "./place";
 
-/** Positions en mètres autour du centre de l'emprise, x vers l'est, y vers le nord. */
 revealText();
-
-export const spots = {
-  home: { x: -608, y: -2110 },
-  homeDoor: { x: -600, y: -2132 },
-  mairie: { x: -958, y: -2236 },
-  mairieDoor: { x: -958, y: -2262 },
-  prefecture: { x: -3650, y: 350 },
-};
-
-export const chemin: Spot[] = [
-  { x: -467, y: -2597 },
-  { x: -539, y: -2603 },
-  { x: -573, y: -2556 },
-  { x: -626, y: -2520 },
-  { x: -719, y: -2510 },
-  { x: -831, y: -2521 },
-  { x: -981, y: -2455 },
-];
 
 /* ------------------------------------------------------------------ Outils */
 

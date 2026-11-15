@@ -134,7 +134,7 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   for (const face of Object.values(faces)) root.append(face);
   const targets = new Map<string, HTMLElement>();
 
-  const business = head("business", "Affaire", "Réfection du chemin communal");
+  const business = head("business", "Affaire", "Réfection du chemin communal du Mont Noir");
   const committee = element("span", "b-tag");
   committee.append(glyphTile("committee", "b-tag-glyph"), element("span", "", "Commission Voirie"));
   business.node.after(committee);
@@ -172,7 +172,7 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
     return { item, entry, mini, folder };
   });
   const subjects = element("div", "b-subjects");
-  const project = row("matter", "Réfection du chemin communal", "Projet de délibération");
+  const project = row("matter", "Réfection du chemin communal du Mont Noir", "Projet de délibération");
   const question = row("question", "Calendrier des travaux", "Question ouverte");
   subjects.append(project.node, question.node);
   faces.business.append(business.node, committee, report.node, meeting.node, docsTitle, folderList, subjects);
@@ -186,7 +186,7 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   const points: [PieceKind, string, string, boolean][] = [
     ["draft", "Arrêt du procès-verbal", "Séance précédente", true],
     ["matter", "Éclairage public", "Projet de délibération", true],
-    ["matter", "Réfection du chemin communal", "Projet de délibération", true],
+    ["matter", "Réfection du chemin communal du Mont Noir", "Projet de délibération", true],
     ["question", "Calendrier des travaux", "Question ouverte", false],
   ];
   const agendaList = element("ol", "b-agenda");
@@ -237,7 +237,7 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   });
   const current = element("div", "b-current");
   const currentKicker = element("p", "b-current-kicker", "Point 3 · Projet de délibération");
-  const currentTitle = element("p", "b-current-title", "Réfection du chemin communal");
+  const currentTitle = element("p", "b-current-title", "Réfection du chemin communal du Mont Noir");
   const stepper = element("ol", "b-stepper");
   const phases = ["À venir", "Débat", "Vote", "Terminé"].map((label) => {
     const step = element("li", "", label);
@@ -271,7 +271,11 @@ export function createBoard(root: HTMLElement, items: FolderItem[]) {
   targets.set("pv", minutes.node);
   targets.set("current", currentTitle);
 
-  const acts = head("adopted", "Délibération n° 2026-031 · version définitive", "Réfection du chemin communal");
+  const acts = head(
+    "adopted",
+    "Délibération n° 2026-031 · version définitive",
+    "Réfection du chemin communal du Mont Noir",
+  );
   const decision = row("adopted", "Délibération", "Figée, numérotée et datée");
   const list = row("pdf", "Liste des délibérations", "Pour le panneau d’affichage et le site");
   const nextMinutes = row("minutes", "Procès-verbal", "À approuver en début de prochaine séance");

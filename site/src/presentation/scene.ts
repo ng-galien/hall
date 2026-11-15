@@ -8,6 +8,7 @@ import {
   buildSkirt,
   drape,
   loadGround,
+  markCommune,
   SCALE,
   updateTileLevels,
   wideLines,
@@ -50,6 +51,17 @@ import {
   viewpoint,
   watermark,
 } from "./main";
+import {
+  cheminCentre,
+  communeCode,
+  mairieParking,
+  riversideParcels,
+  roadBeyondChemin,
+  roadFromBureau,
+  roadFromMairie,
+  roadToMairie,
+  village,
+} from "./place";
 import { range, subStepAt, subSteps, timeline as tl } from "./story";
 
 /* ------------------------------------------------------------------ Qualité du rendu */
@@ -89,6 +101,7 @@ export async function start() {
     return;
   }
   const ground = await loadGround();
+  markCommune(ground, communeCode);
   const light = softwareRenderer();
   document.body.dataset.render = light ? "light" : "full";
   const renderer = new THREE.WebGLRenderer({ antialias: !light });
@@ -124,7 +137,7 @@ export async function start() {
     lightBuildings(ground, [
       { ...spots.home, r: 26 },
       { ...spots.mairie, r: 34 },
-      { x: -948, y: -2284, r: 18 },
+      { ...mairieParking, r: 18 },
     ]),
   );
 
@@ -718,23 +731,25 @@ export async function start() {
   const parcelLabels: { at: Spot; text: string }[] = [];
   const fills: { mesh: THREE.Mesh; strength: number; delay: number }[] = [];
   const parcelTints = [0xb7d3c4, 0xc4d4e6, 0xd2d8de, 0xa9c7b6, 0xb3c6dd, 0xc9d6cf];
-  function fillQuad(a: Spot, b: Spot, c: Spot, d: Spot, hex: number, strength: number) {
-    const n = 6;
+  function fillRing(ring: Spot[], hex: number, strength: number) {
+    const contour = ring.slice(0, -1).map((spot) => new THREE.Vector2(spot.x, spot.y));
     const fillPositions: number[] = [];
-    const at = (u: number, v: number) => {
-      const x = a.x * (1 - u) * (1 - v) + b.x * u * (1 - v) + c.x * u * v + d.x * (1 - u) * v;
-      const y = a.y * (1 - u) * (1 - v) + b.y * u * (1 - v) + c.y * u * v + d.y * (1 - u) * v;
-      return [x * SCALE, ground.height(x, y) + 0.35, -y * SCALE];
-    };
-    for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n; j++) {
-        const p00 = at(i / n, j / n);
-        const p10 = at((i + 1) / n, j / n);
-        const p11 = at((i + 1) / n, (j + 1) / n);
-        const p01 = at(i / n, (j + 1) / n);
-        fillPositions.push(...p00, ...p10, ...p11, ...p00, ...p11, ...p01);
+    const lift = (v: THREE.Vector2) => [v.x * SCALE, ground.height(v.x, v.y) + 0.35, -v.y * SCALE];
+    const split = (a: THREE.Vector2, b: THREE.Vector2, c: THREE.Vector2): void => {
+      const longest = Math.max(a.distanceTo(b), b.distanceTo(c), c.distanceTo(a));
+      if (longest <= 12) {
+        fillPositions.push(...lift(a), ...lift(b), ...lift(c));
+        return;
       }
-    }
+      const ab = a.clone().lerp(b, 0.5);
+      const bc = b.clone().lerp(c, 0.5);
+      const ca = c.clone().lerp(a, 0.5);
+      split(a, ab, ca);
+      split(ab, b, bc);
+      split(ca, bc, c);
+      split(ab, bc, ca);
+    };
+    for (const [i, j, k] of THREE.ShapeUtils.triangulateShape(contour, [])) split(contour[i], contour[j], contour[k]);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(fillPositions, 3));
     const mesh = new THREE.Mesh(
@@ -752,77 +767,22 @@ export async function start() {
     scene.add(mesh);
     fills.push({ mesh, strength, delay: fills.length });
   }
-  {
-    const STATIONS = 10;
-    const VERGE = 7;
-    const stationAt = (i: number) => along(i / STATIONS);
-    const tangentAt = (i: number) => {
-      const a = stationAt(Math.max(0, i - 0.5));
-      const b = stationAt(Math.min(STATIONS, i + 0.5));
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const len = Math.hypot(dx, dy) || 1;
-      return { x: dx / len, y: dy / len };
-    };
-    for (const side of [-1, 1]) {
-      const depthOf = (i: number) => 62 + ((i * 29 + (side > 0 ? 11 : 0)) % 34);
-      const inner: Spot[] = [];
-      const outer: Spot[] = [];
-      for (let i = 0; i <= STATIONS; i++) {
-        const c = stationAt(i);
-        const t = tangentAt(i);
-        const n = { x: -t.y * side, y: t.x * side };
-        inner.push({ x: c.x + n.x * VERGE, y: c.y + n.y * VERGE });
-        outer.push({ x: c.x + n.x * depthOf(i), y: c.y + n.y * depthOf(i) });
-      }
-      for (let i = 0; i < STATIONS; i++) {
-        const a = [inner[i], outer[i]];
-        const b = [inner[i + 1], outer[i + 1]];
-        const d1 = { x: a[1].x - a[0].x, y: a[1].y - a[0].y };
-        const d2 = { x: b[1].x - b[0].x, y: b[1].y - b[0].y };
-        const den = d1.x * d2.y - d1.y * d2.x;
-        if (Math.abs(den) < 1e-6) continue;
-        const ex = b[0].x - a[0].x;
-        const ey = b[0].y - a[0].y;
-        const t1 = (ex * d2.y - ey * d2.x) / den;
-        const t2 = (ex * d1.y - ey * d1.x) / den;
-        if (t1 > 0 && t1 < 1.15 && t2 > 0 && t2 < 1.15) {
-          const k = Math.min(t1, t2) * 0.8;
-          outer[i] = { x: a[0].x + d1.x * k, y: a[0].y + d1.y * k };
-          outer[i + 1] = { x: b[0].x + d2.x * k, y: b[0].y + d2.y * k };
-        }
-      }
-      const line = (from: Spot, to: Spot, into: number[]) =>
-        into.push(...drape(ground, [from.x, from.y, to.x, to.y], 0.5, 8));
-      for (let i = 0; i < STATIONS; i++) {
-        const communalParcel = side > 0 && (i === 3 || i === 4);
-        const target = communalParcel ? communalSegments : parcelSegments;
-        line(inner[i], inner[i + 1], target);
-        line(outer[i], outer[i + 1], target);
-        line(inner[i], outer[i], parcelSegments);
-        if (i === STATIONS - 1) line(inner[i + 1], outer[i + 1], parcelSegments);
-        if (communalParcel) {
-          line(inner[i], outer[i], communalSegments);
-          line(inner[i + 1], outer[i + 1], communalSegments);
-        }
-        if (communalParcel) fillQuad(inner[i], inner[i + 1], outer[i + 1], outer[i], ACCENT, 0.3);
-        else if ((i + (side > 0 ? 1 : 0)) % 3 === 1)
-          fillQuad(
-            inner[i],
-            inner[i + 1],
-            outer[i + 1],
-            outer[i],
-            parcelTints[(i * 3 + (side > 0 ? 1 : 0)) % parcelTints.length],
-            0.2,
-          );
-        if (i % 2 === 0 || communalParcel) {
-          const cx = (inner[i].x + inner[i + 1].x + outer[i].x + outer[i + 1].x) / 4;
-          const cy = (inner[i].y + inner[i + 1].y + outer[i].y + outer[i + 1].y) / 4;
-          parcelLabels.push({ at: { x: cx, y: cy }, text: `ZB ${(side > 0 ? 140 : 108) + i}` });
-        }
-      }
-    }
-  }
+  riversideParcels.forEach((parcel, i) => {
+    const ring = parcel.ring;
+    const target = parcel.communal ? communalSegments : parcelSegments;
+    target.push(
+      ...drape(
+        ground,
+        ring.flatMap((spot) => [spot.x, spot.y]),
+        0.5,
+        8,
+      ),
+    );
+    if (parcel.communal) fillRing(ring, ACCENT, 0.3);
+    else if (i % 3 === 1) fillRing(ring, parcelTints[i % parcelTints.length], 0.2);
+    const centre = ring.slice(0, -1).reduce((sum, spot) => ({ x: sum.x + spot.x, y: sum.y + spot.y }), { x: 0, y: 0 });
+    parcelLabels.push({ at: { x: centre.x / (ring.length - 1), y: centre.y / (ring.length - 1) }, text: parcel.label });
+  });
   const parcels = wideLines(parcelSegments, dark ? 0xcbd5e1 : 0x475569, 1.4) as LineSegments2;
   const communal = wideLines(communalSegments, ACCENT, 3) as LineSegments2;
   parcels.visible = false;
@@ -1234,35 +1194,14 @@ export async function start() {
   const roadToChemin: Spot[] = [
     garageInside,
     garageOutside,
-    { x: -688, y: -2167 },
-    { x: -754, y: -2264 },
-    { x: -841, y: -2283 },
-    { x: -957, y: -2387 },
-    { x: -973, y: -2428 },
-    { x: -975, y: -2440 },
-    { x: -967, y: -2446 },
-    { x: -831, y: -2521 },
+    ...roadFromBureau,
+    ...[0.9, 0.8, 0.7, 0.6].map((f) => along(f)),
     { x: viewpoint.x - 14, y: viewpoint.y - 6 },
   ];
   const roadAway: Spot[] = [
     roadToChemin[roadToChemin.length - 1],
-    ...chemin
-      .slice(0, 4)
-      .reverse()
-      .filter((spot) => spot.x > viewpoint.x),
-    { x: -424, y: -2599 },
-    { x: -326, y: -2538 },
-    { x: -268, y: -2462 },
-    { x: -88, y: -2416 },
-  ];
-  const roadToMairie: Spot[] = [
-    { x: -1036, y: -2431 },
-    { x: -1012, y: -2420 },
-    { x: -988, y: -2412 },
-    { x: -960, y: -2399 },
-    { x: -957, y: -2387 },
-    { x: -958, y: -2300 },
-    { x: -948, y: -2284 },
+    ...[0.4, 0.3, 0.2, 0.1, 0].map((f) => along(f)),
+    ...roadBeyondChemin,
   ];
   const driveToChemin = polyline(roadToChemin);
   const driveToMairie = polyline(roadToMairie);
@@ -1283,20 +1222,7 @@ export async function start() {
     const f = easeInOut(span(p, awayWindow[0], awayWindow[1]));
     return { spot: driveAway(f), heading: heading(driveAway, f), visible: f < 1 };
   }
-  const driveAwayFromMairie = polyline([
-    roadToMairie[roadToMairie.length - 1],
-    { x: -940, y: -2268 },
-    { x: -926, y: -2272 },
-    { x: -922, y: -2292 },
-    { x: -935, y: -2320 },
-    { x: -950, y: -2360 },
-    { x: -957, y: -2387 },
-    { x: -960, y: -2399 },
-    { x: -988, y: -2412 },
-    { x: -1012, y: -2420 },
-    { x: -1036, y: -2431 },
-    { x: -1143, y: -2494 },
-  ]);
+  const driveAwayFromMairie = polyline(roadFromMairie);
   function car2At(p: number): { spot: Spot; heading: number; visible: boolean } {
     const leaveMairie = tl.moment("carLeavesMairie");
     const toMairie = tl.moment("carToMairie");
@@ -1373,8 +1299,6 @@ export async function start() {
       : walk(out, spots.mairieDoor, k);
   }
 
-  const village = { x: -760, y: -2380 };
-  const cheminCentre = { x: -735, y: -2545 };
   const mid = (a: Spot, b: Spot, f = 0.5) => ({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f });
   type Aim = Spot | "dais" | "car";
   interface Key {

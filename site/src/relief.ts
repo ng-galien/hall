@@ -119,6 +119,34 @@ export async function loadGround(): Promise<Ground> {
   return { data, heights, cover, height: sample };
 }
 
+/**
+ * Fait de `communeCode` la commune mise en évidence du relief : son contour principal et son territoire, marqué dans
+ * la couverture du sol ; les autres communes gardent un contour discret.
+ */
+export function markCommune(ground: Ground, communeCode: string): void {
+  if (ground.data.communes.some((commune) => commune.main && commune.code === communeCode)) return;
+  const { cols, rows, width, height, x: cx = 0, y: cy = 0 } = ground.data.grid;
+  for (const commune of ground.data.communes) commune.main = commune.code === communeCode;
+  const ring = ground.data.communes.find((commune) => commune.code === communeCode)?.p ?? [];
+  const points = ring.length / 2;
+  for (let j = 0; j < rows; j++) {
+    const north = cy + height / 2 - ((j + 0.5) * height) / rows;
+    const crossings: number[] = [];
+    for (let a = 0; a < points; a++) {
+      const b = (a + 1) % points;
+      const [ax, ay, bx, by] = [ring[2 * a], ring[2 * a + 1], ring[2 * b], ring[2 * b + 1]];
+      if (ay > north !== by > north) crossings.push(ax + ((north - ay) / (by - ay)) * (bx - ax));
+    }
+    crossings.sort((p, q) => p - q);
+    for (let i = 0; i < cols; i++) {
+      const east = cx - width / 2 + ((i + 0.5) * width) / cols;
+      const inside = crossings.filter((x) => x < east).length % 2 === 1;
+      const k = j * cols + i;
+      ground.cover[k] = inside ? ground.cover[k] | 4 : ground.cover[k] & ~4;
+    }
+  }
+}
+
 const terrainVertex = /* glsl */ `
   attribute vec3 cover;
   attribute vec2 coarse;
