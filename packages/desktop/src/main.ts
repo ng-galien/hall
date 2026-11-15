@@ -12,10 +12,16 @@ import {
   shell,
   utilityProcess,
 } from "electron";
-import { type DesktopEdition, eraseDemonstration, resolveDesktopEdition } from "./demonstration.js";
+import {
+  type DesktopEdition,
+  eraseDemonstration,
+  recordedDemonstrationDataset,
+  resolveDesktopEdition,
+} from "./demonstration.js";
+import type { DemonstrationDataset } from "./demonstrationDatasets.js";
 import { isSafeExternalUrl } from "./externalUrl.js";
-import { installLaunchProtocol, type LaunchScreen, registerLaunchScheme, showLaunchScreen } from "./launchScreen.js";
-import { alesiaTarget } from "./launchTerritory.js";
+import { installLaunchProtocol, registerLaunchScheme, showLaunchScreen } from "./launchScreen.js";
+import { alesiaTarget, launchTargets } from "./launchTerritory.js";
 import { demonstrationSessionApplies, mainWindowNavigation, permissionGranted } from "./mainWindowPolicy.js";
 import type { ServerCommand, ServerEvent, SessionCookie } from "./startupProtocol.js";
 import {
@@ -40,7 +46,11 @@ let mainWindow: BrowserWindow | null = null;
 let embeddedServer: Promise<EmbeddedServer> | null = null;
 let quitting = false;
 let resetting = false;
+/** Choix du jeu, démarrage ou écran de lancement en cours ; la remise à zéro attend leur fin. */
+let opening = false;
 let edition: DesktopEdition = "local";
+/** Jeu de la démonstration ouverte ; null dans l'édition locale. */
+let demonstrationDataset: DemonstrationDataset | null = null;
 let apiBaseUrl: string | null = null;
 
 if (process.env.HALL_USER_DATA_PATH) app.setPath("userData", resolve(process.env.HALL_USER_DATA_PATH));
@@ -154,6 +164,7 @@ function startEmbeddedServer(tracker: StartupTracker | null): Promise<EmbeddedSe
   const command: ServerCommand = {
     type: "start",
     edition,
+    dataset: demonstrationDataset,
     userDataPath: app.getPath("userData"),
     applicationVersion: app.getVersion(),
     clientDirectory: clientDirectory(),
@@ -242,31 +253,35 @@ async function resolveRendererUrl(tracker: StartupTracker | null): Promise<strin
 const preparationPage = `data:text/html;charset=utf-8,${encodeURIComponent(
   '<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Hall</title></head>' +
     '<body style="font-family:system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0;color:#334155">' +
-    "<p>Préparation de la démonstration Alésia…</p></body></html>",
+    "<p>Préparation de la démonstration…</p></body></html>",
 )}`;
 
 async function resetDemonstration(): Promise<void> {
-  if (resetting || !mainWindow) return;
+  if (resetting || opening || !mainWindow) return;
   const { response } = await dialog.showMessageBox(mainWindow, {
     type: "warning",
     buttons: ["Remettre à zéro", "Annuler"],
     defaultId: 1,
     cancelId: 1,
     message: "Remettre la démonstration à zéro ?",
-    detail: "Les modifications faites dans la démonstration sont effacées et le jeu Alésia est rechargé.",
+    detail:
+      "Les données de la démonstration et les modifications que vous y avez faites sont effacées. Vous choisissez ensuite le jeu de démonstration à charger : Foncine-le-Bas ou Alésia.",
   });
   if (response !== 0 || !mainWindow) return;
   resetting = true;
   try {
-    await mainWindow.loadURL(preparationPage);
+    await mainWindow
+      .loadURL(preparationPage)
+      .catch((error: unknown) => process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`));
     const server = embeddedServer;
     embeddedServer = null;
     if (server) await (await server).close();
     await session.defaultSession.clearStorageData({ storages: ["cookies"] });
     await eraseDemonstration(app.getPath("userData"));
-    await mainWindow.loadURL(await resolveRendererUrl(null));
+    await openApplication(mainWindow, null);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
+    if (!mainWindow) return;
     dialog.showErrorBox(
       "Impossible de remettre la démonstration à zéro",
       error instanceof Error ? error.message : String(error),
@@ -288,7 +303,7 @@ function installDemonstrationMenu(): void {
       submenu: [
         {
           id: "demonstration-reset",
-          label: "Remettre la démonstration à zéro…",
+          label: "Remettre à zéro et choisir le jeu de démonstration…",
           click: () => void resetDemonstration(),
         },
       ],
@@ -299,6 +314,7 @@ function installDemonstrationMenu(): void {
 
 /** @implements-requirement HALL-TR-DSK-020 */
 async function createMainWindow(): Promise<void> {
+  const recorded = await recordedDataset();
   mainWindow = new BrowserWindow({
     title: "Hall",
     backgroundColor: "#eef2f6",
@@ -318,6 +334,7 @@ async function createMainWindow(): Promise<void> {
     return { action: "deny" };
   });
   const window = mainWindow;
+  void window.loadURL("about:blank");
   window.webContents.on("will-navigate", (event) => {
     const navigation = mainWindowNavigation(window.webContents.getURL(), event.url);
     if (navigation === "allow") return;
@@ -327,20 +344,54 @@ async function createMainWindow(): Promise<void> {
   window.on("closed", () => {
     if (mainWindow === window) mainWindow = null;
   });
-  const launchScreen = showLaunchScreen(window, alesiaTarget);
-  void openApplication(window, launchScreen).catch(reportStartupFailure);
+  void openApplication(window, recorded).catch((error: unknown) => {
+    if (!window.isDestroyed()) reportStartupFailure(error);
+  });
+}
+
+/** Jeu enregistré dans le profil de démonstration ; null dans l'édition locale ou sans démonstration. */
+function recordedDataset(): Promise<DemonstrationDataset | null> {
+  return edition === "demonstration" ? recordedDemonstrationDataset(app.getPath("userData")) : Promise.resolve(null);
 }
 
 /**
- * Montre l'écran de lancement, attend sa première image, puis démarre le serveur et charge l'application
- * dessous ; la montre quand l'utilisateur l'ouvre.
+ * Montre l'écran de lancement et attend sa première image. Dans la démonstration, reprend le jeu déjà chargé ou
+ * attend le jeu choisi sur cet écran. Démarre ensuite le serveur et charge l'application dessous ; un échec
+ * s'affiche sur l'écran avec la commande pour réessayer. Montre l'application quand l'utilisateur l'ouvre.
+ * @implements-requirement HALL-TR-DSK-040
  */
-async function openApplication(window: BrowserWindow, launchScreen: LaunchScreen): Promise<void> {
+async function openApplication(window: BrowserWindow, recorded: DemonstrationDataset | null): Promise<void> {
+  opening = true;
+  try {
+    await showApplication(window, recorded);
+  } finally {
+    opening = false;
+  }
+}
+
+async function showApplication(window: BrowserWindow, recorded: DemonstrationDataset | null): Promise<void> {
+  const launchScreen = showLaunchScreen(
+    window,
+    edition === "local" ? alesiaTarget : recorded ? launchTargets[recorded] : null,
+  );
   try {
     await launchScreen.started;
+    if (edition === "demonstration") demonstrationDataset = recorded ?? (await launchScreen.chosen);
     const userDataPath = app.getPath("userData");
     const tracker = createStartupTracker(launchScreen, await readStartupTimings(userDataPath));
-    const rendererUrl = await resolveRendererUrl(tracker);
+    let rendererUrl: string;
+    for (;;) {
+      try {
+        rendererUrl = await resolveRendererUrl(tracker);
+        break;
+      } catch (error) {
+        embeddedServer = null;
+        process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
+        launchScreen.fail(error instanceof Error ? error.message : String(error));
+        await launchScreen.retried();
+        if (window.isDestroyed()) throw error;
+      }
+    }
     tracker.phase("interface", "start");
     await window.loadURL(rendererUrl);
     tracker.phase("interface", "end");

@@ -10,6 +10,7 @@ import {
   systemPreferences,
   WebContentsView,
 } from "electron";
+import { type DemonstrationDataset, isDemonstrationDataset } from "./demonstrationDatasets.js";
 import type { LaunchTarget } from "./launchTerritory.js";
 import type { StartupPhase } from "./startupProtocol.js";
 
@@ -28,7 +29,8 @@ export interface PlannedPhase {
 type ProgressMessage =
   | { type: "plan"; phases: PlannedPhase[] }
   | { type: "phase"; phase: StartupPhase; status: "start" | "end" }
-  | { type: "ready" };
+  | { type: "ready" }
+  | { type: "failed"; message: string };
 
 export interface LaunchScreen {
   /** Resolves only after the first useful frame; a timeout or lost renderer rejects startup. */
@@ -39,6 +41,12 @@ export interface LaunchScreen {
   phase(phase: StartupPhase, status: "start" | "end"): void;
   /** Signale l'application chargée ; active le bouton d'ouverture. */
   ready(): void;
+  /** Jeu choisi sur l'écran de lancement ouvert sans jeu ; ne se résout jamais pour un écran ouvert sur un jeu. */
+  chosen: Promise<DemonstrationDataset>;
+  /** Affiche l'échec de la préparation avec la commande pour réessayer. */
+  fail(message: string): void;
+  /** Résolue quand l'utilisateur demande de réessayer après un échec. */
+  retried(): Promise<void>;
   /** Résolue quand l'utilisateur ouvre l'application, ou quand la page de lancement s'arrête. */
   opened: Promise<void>;
   /** Efface l'écran en fondu puis retire la vue. */
@@ -118,18 +126,20 @@ function waitFor(
   });
 }
 
-function launchUrl(target: LaunchTarget): string {
+function launchUrl(target: LaunchTarget | null): string {
   const url = new URL("/index.html", launchOrigin);
-  url.searchParams.set("departement", target.departementCode);
-  url.searchParams.set("commune", target.communeCode);
-  url.searchParams.set("presentation", target.presentation);
+  if (target) {
+    url.searchParams.set("departement", target.departementCode);
+    url.searchParams.set("commune", target.communeCode);
+  }
+  url.searchParams.set("presentation", target?.presentation ?? "choice");
   url.searchParams.set("invokedAt", String(performance.timeOrigin));
   if (systemPreferences.getAnimationSettings().prefersReducedMotion) url.searchParams.set("reduced", "1");
   return url.href;
 }
 
-/** Pose l'écran de lancement au-dessus du contenu de la fenêtre, qui charge l'application dessous. */
-export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): LaunchScreen {
+/** Vue de la page de lancement posée sur toute la fenêtre, au-dessus de son contenu. */
+function addLaunchView(window: BrowserWindow): { view: WebContentsView; detach: () => void } {
   const view = new WebContentsView({
     webPreferences: {
       preload: join(import.meta.dirname, "launch-preload.cjs"),
@@ -146,11 +156,41 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
   };
   fit();
   window.on("resize", fit);
-  const opened = waitFor(view.webContents, "hall-launch:open");
-  const started = waitFor(view.webContents, "hall-launch:started", startTimeoutMilliseconds, true);
+  const contents = view.webContents;
+  return {
+    view,
+    detach: () => {
+      if (!window.isDestroyed()) {
+        window.off("resize", fit);
+        window.contentView.removeChildView(view);
+      }
+      if (!contents.isDestroyed()) contents.close();
+    },
+  };
+}
+
+/**
+ * Pose l'écran de lancement au-dessus du contenu de la fenêtre, qui charge l'application dessous. Sans cible,
+ * l'écran fait choisir le jeu de démonstration pendant l'animation de la France.
+ * @implements-requirement HALL-TR-DSK-040
+ */
+export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget | null): LaunchScreen {
+  const { view, detach } = addLaunchView(window);
+  const contents = view.webContents;
+  const chosen = new Promise<DemonstrationDataset>((resolve) => {
+    const choose = (event: IpcMainEvent, value: unknown) => {
+      if (event.sender !== contents || !isDemonstrationDataset(value)) return;
+      ipcMain.off("hall-launch:choose", choose);
+      resolve(value);
+    };
+    if (!target) ipcMain.on("hall-launch:choose", choose);
+    contents.once("destroyed", () => ipcMain.off("hall-launch:choose", choose));
+  });
+  const opened = waitFor(contents, "hall-launch:open");
+  const started = waitFor(contents, "hall-launch:started", startTimeoutMilliseconds, true);
   let measurements: string | null = null;
   const receiveMeasurements = (event: IpcMainEvent, value: unknown) => {
-    if (event.sender !== view.webContents || typeof value !== "string" || value.length > 5_000_000) return;
+    if (event.sender !== contents || typeof value !== "string" || value.length > 5_000_000) return;
     try {
       const parsed: unknown = JSON.parse(value);
       if (
@@ -170,30 +210,29 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
   let pageLoaded = false;
   const messages: ProgressMessage[] = [];
   const deliver = (message: ProgressMessage) => {
-    if (!pageLoaded || view.webContents.isDestroyed()) return;
-    view.webContents.send("hall-launch:progress", message);
-    if (message.type === "ready") view.webContents.focus();
+    if (!pageLoaded || contents.isDestroyed()) return;
+    contents.send("hall-launch:progress", message);
+    if (message.type === "ready") contents.focus();
   };
   const signal = (message: ProgressMessage) => {
     messages.push(message);
     deliver(message);
   };
-  view.webContents.on("did-finish-load", () => {
+  contents.on("did-finish-load", () => {
     pageLoaded = true;
     for (const message of messages) deliver(message);
   });
-  void view.webContents.loadURL(launchUrl(target)).catch(() => view.webContents.close());
+  void contents.loadURL(launchUrl(target)).catch((error: unknown) => {
+    process.stderr.write(`Écran de lancement non chargé : ${error instanceof Error ? error.message : String(error)}\n`);
+    if (!contents.isDestroyed()) contents.close();
+  });
   let removed = false;
   const remove = () => {
     if (removed) return;
     removed = true;
     ipcMain.off("hall-launch:measurements", receiveMeasurements);
-    if (!window.isDestroyed()) {
-      window.off("resize", fit);
-      window.off("closed", remove);
-      window.contentView.removeChildView(view);
-    }
-    if (!view.webContents.isDestroyed()) view.webContents.close();
+    if (!window.isDestroyed()) window.off("closed", remove);
+    detach();
   };
   window.once("closed", remove);
   return {
@@ -203,10 +242,13 @@ export function showLaunchScreen(window: BrowserWindow, target: LaunchTarget): L
     plan: (phases) => signal({ type: "plan", phases }),
     phase: (phase, status) => signal({ type: "phase", phase, status }),
     ready: () => signal({ type: "ready" }),
+    chosen,
+    fail: (message) => signal({ type: "failed", message }),
+    retried: () => waitFor(contents, "hall-launch:retry"),
     async leave() {
-      if (removed || view.webContents.isDestroyed()) return remove();
-      const left = waitFor(view.webContents, "hall-launch:left", leaveTimeoutMilliseconds);
-      view.webContents.send("hall-launch:leave");
+      if (removed || contents.isDestroyed()) return remove();
+      const left = waitFor(contents, "hall-launch:left", leaveTimeoutMilliseconds);
+      contents.send("hall-launch:leave");
       await left;
       remove();
     },

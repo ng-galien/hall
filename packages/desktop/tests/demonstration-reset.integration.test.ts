@@ -14,6 +14,7 @@ it("recreates an incompatible same-version demonstration and then reuses its com
   const profile = {
     userDataPath: root,
     applicationVersion: "1.0.0",
+    dataset: "alesia" as const,
     startServer: () => startLocalHttpServer({ dataDirectory }),
   };
   let opened: Awaited<ReturnType<typeof openDemonstration>> | undefined;

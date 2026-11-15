@@ -1,3 +1,5 @@
+import type { DemonstrationDataset } from "./demonstrationDatasets.js";
+
 /** Phases du démarrage de Hall, dans leur ordre d'exécution. */
 export const startupPhases = ["database", "server", "dataset", "interface"] as const;
 export type StartupPhase = (typeof startupPhases)[number];
@@ -9,6 +11,8 @@ export type ServerCommand =
   | {
       type: "start";
       edition: "local" | "demonstration";
+      /** Dataset of the demonstration edition; null in the local edition. */
+      dataset: DemonstrationDataset | null;
       userDataPath: string;
       applicationVersion: string;
       clientDirectory: string;

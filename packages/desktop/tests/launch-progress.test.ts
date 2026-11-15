@@ -31,6 +31,8 @@ beforeEach(async () => {
     reportMeasurements: vi.fn(),
     reportLeft: vi.fn(),
     open,
+    choose: vi.fn(),
+    retry: vi.fn(),
     onProgress: (listener) => {
       receive = listener;
     },

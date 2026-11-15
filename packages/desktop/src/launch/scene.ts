@@ -32,21 +32,73 @@ const timelineLength = 8.3;
 const plateThickness = 0.025;
 const cameraReferenceHeight = 6;
 
-export interface SceneTarget {
-  departementCode: string;
+/** Légende de la carte, de `from` à `to` sur la chronologie de la scène. */
+export interface MapCaption {
+  from: number;
+  to: number;
+  text: string;
+  key: string;
+}
+
+/**
+ * Vue finale sur le relief partagé : point visé, soit fixe dans le repère du relief, soit au sol à des mètres de
+ * son origine ; distance de la caméra ; récit des lieux d'Alésia.
+ */
+export interface ReliefView {
+  look: [number, number, number] | { east: number; north: number };
+  /** Direction du point visé vers la caméra, dans le repère du relief. */
+  direction: [number, number, number];
+  distance: number;
+  story: boolean;
+}
+
+/** Vue d'ensemble d'Alésia sur le relief, dans l'axe Cornu–Syam. */
+export const alesiaReliefView: ReliefView = {
+  look: [-40, 40, 80],
+  direction: [0.28, 0.6, 1],
+  distance: 2600,
+  story: true,
+};
+
+/** Commune où la caméra se pose, avec les légendes de la carte et la vue finale sur le relief, s'il y en a une. */
+export interface SceneCommune {
   communeCode: string;
   focus: [number, number] | null;
+  captions: MapCaption[];
+  relief: ReliefView | null;
 }
+
+export interface SceneTarget {
+  departementCode: string;
+  /** Commune connue dès le départ ; null quand elle sera choisie pendant l'assemblage de la France. */
+  commune: SceneCommune | null;
+}
+
+/** Moment de la chronologie où la France est assemblée, avant la plongée vers le département. */
+export const franceAssembled = 4.5;
+
+/** Durée écoulée, en secondes, à laquelle la scène attend la commune quand elle n'est pas encore choisie. */
+export const communeWait = (franceAssembled * 11.5) / 8.3;
+
+/** Légendes de la suite de l'animation vers Alésia ; l'assemblage de la France, commun aux jeux, n'en a pas. */
+export const alesiaCaptions = (): MapCaption[] => [
+  { from: 4.9, to: 6.8, text: "Le territoire des Mandubiens", key: "region" },
+  { from: 6.8, to: (reliefStart * timelineLength) / launchDuration, text: "Alésia", key: "alesia" },
+];
 
 export interface LaunchScene {
   /** Durée de l'animation jusqu'à l'état final, en secondes. */
   duration: number;
+  /** Durée jusqu'à la fin du récit du relief, ou jusqu'à l'état final sans relief, en secondes. */
+  settled: number;
   /** Envoie au processeur graphique ce qui sera dessiné pendant l'animation. */
   prepare(): void;
   /** Dessine l'image à `t` secondes ; après `duration`, les lieux du récit puis la rotation lente continuent. */
   render(t: number): void;
   /** Dessine l'état final immobile, tous les lieux du récit affichés. */
   renderStill(): void;
+  /** Fixe la commune choisie pendant l'assemblage ; met à jour `duration`. */
+  setCommune(commune: SceneCommune): void;
 }
 
 interface Piece {
@@ -187,12 +239,7 @@ function placeCityMarks(marks: CityMark[], layer: HTMLElement, camera: THREE.Cam
   }
 }
 
-function createMapCaption(element: HTMLElement | null): (t: number) => void {
-  const captions = [
-    { from: 0.55, to: 4.15, text: "La Gaule de Vercingétorix", key: "france" },
-    { from: 4.9, to: 6.8, text: "Le territoire des Mandubiens", key: "region" },
-    { from: 6.8, to: (reliefStart * timelineLength) / launchDuration, text: "Alésia", key: "alesia" },
-  ];
+function createMapCaption(element: HTMLElement | null, captions: MapCaption[]): (t: number) => void {
   let current = -1;
   let visible = false;
   let words: { element: HTMLSpanElement; written: string }[] = [];
@@ -255,12 +302,14 @@ export function createLaunchScene(
   citiesLayer: HTMLElement,
   data: LaunchGeodata,
   target: SceneTarget,
-  relief: ReliefStage | null,
+  reliefStage: ReliefStage | null,
   captionElement: HTMLElement | null = null,
+  waitingCaptions: MapCaption[] = [],
 ): LaunchScene | null {
   const renderer = createRenderer(stage);
   if (!renderer) return null;
-  const renderCaption = createMapCaption(captionElement);
+  const captions: MapCaption[] = [...(target.commune?.captions ?? waitingCaptions)];
+  const renderCaption = createMapCaption(captionElement, captions);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(palette.slate100);
@@ -315,7 +364,6 @@ export function createLaunchScene(
     };
   });
 
-  const others = data.communes.filter((area) => area.code !== target.communeCode);
   const communeMaterial = new THREE.MeshStandardMaterial({
     color: palette.slate300,
     roughness: 0.85,
@@ -325,34 +373,6 @@ export function createLaunchScene(
     transparent: true,
     opacity: 0,
   });
-  const communeLayer = new THREE.Mesh(
-    mergeGeometries(
-      others.map(
-        (area) =>
-          new THREE.ExtrudeGeometry(area.polygons.map(shapeFromRings), { depth: plateThickness, bevelEnabled: false }),
-      ),
-    ),
-    communeMaterial,
-  );
-  const communeEdges = new THREE.LineSegments(
-    outlineGeometry(
-      others.flatMap((area) => area.polygons),
-      plateThickness + 0.005,
-    ),
-    new THREE.LineBasicMaterial({
-      color: palette.white,
-      transparent: true,
-      opacity: 0,
-      depthTest: false,
-      fog: false,
-    }),
-  );
-  communeEdges.renderOrder = 1;
-  communeLayer.add(communeEdges);
-  scene.add(communeLayer);
-
-  const commune = data.communes.find((area) => area.code === target.communeCode);
-  const highlightPolygons = commune?.polygons ?? [];
   const highlightMaterial = new THREE.MeshStandardMaterial({
     color: palette.blue,
     emissive: palette.blue,
@@ -364,12 +384,58 @@ export function createLaunchScene(
     transparent: true,
     opacity: 0,
   });
-  const highlight = new THREE.Mesh(
-    new THREE.ExtrudeGeometry(highlightPolygons.map(shapeFromRings), { depth: plateThickness, bevelEnabled: false }),
-    highlightMaterial,
-  );
-  scene.add(highlight);
-  const focus = target.focus ?? planarCentroid(highlightPolygons);
+  let communeLayer: THREE.Mesh | null = null;
+  let communeEdges: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial> | null = null;
+  let highlight: THREE.Mesh | null = null;
+  let focus: [number, number] = targetCenter;
+  let relief: ReliefStage | null = null;
+  let finalPose: CameraPose | null = null;
+  let story = false;
+
+  const buildCommune = (commune: SceneCommune) => {
+    const others = data.communes.filter((area) => area.code !== commune.communeCode);
+    communeLayer = new THREE.Mesh(
+      mergeGeometries(
+        others.map(
+          (area) =>
+            new THREE.ExtrudeGeometry(area.polygons.map(shapeFromRings), {
+              depth: plateThickness,
+              bevelEnabled: false,
+            }),
+        ),
+      ),
+      communeMaterial,
+    );
+    communeEdges = new THREE.LineSegments(
+      outlineGeometry(
+        others.flatMap((area) => area.polygons),
+        plateThickness + 0.005,
+      ),
+      new THREE.LineBasicMaterial({
+        color: palette.white,
+        transparent: true,
+        opacity: 0,
+        depthTest: false,
+        fog: false,
+      }),
+    );
+    communeEdges.renderOrder = 1;
+    communeLayer.add(communeEdges);
+    scene.add(communeLayer);
+    const highlightPolygons = data.communes.find((area) => area.code === commune.communeCode)?.polygons ?? [];
+    highlight = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(highlightPolygons.map(shapeFromRings), { depth: plateThickness, bevelEnabled: false }),
+      highlightMaterial,
+    );
+    scene.add(highlight);
+    focus = commune.focus ?? planarCentroid(highlightPolygons);
+    siteTarget.set(focus[0] - 2.2, focus[1] + 1.2, cameraReferenceHeight + 4);
+    siteFrom.set(focus[0] - 6, focus[1] - 16, 30);
+    relief = commune.relief ? reliefStage : null;
+    finalPose = relief && commune.relief ? reliefFinalPose(relief, commune.relief) : null;
+    story = finalPose !== null && commune.relief?.story === true;
+    captions.splice(0, captions.length, ...commune.captions);
+  };
   const cityMarks = createCityMarks(data.ancientCities, citiesLayer);
 
   const wideTarget = new THREE.Vector3(0, 30, 0);
@@ -377,19 +443,19 @@ export function createLaunchScene(
   const wideTo = new THREE.Vector3(0, -1150, 1180);
   const regionTarget = new THREE.Vector3(targetCenter[0] - 12, targetCenter[1] + 8, cameraReferenceHeight);
   const regionFrom = new THREE.Vector3(targetCenter[0] - 60, targetCenter[1] - 190, 185);
-  const siteTarget = new THREE.Vector3(focus[0] - 2.2, focus[1] + 1.2, cameraReferenceHeight + 4);
-  const siteFrom = new THREE.Vector3(focus[0] - 6, focus[1] - 16, 30);
+  const siteTarget = new THREE.Vector3();
+  const siteFrom = new THREE.Vector3();
   const look = new THREE.Vector3();
   const eye = new THREE.Vector3();
+  if (target.commune) buildCommune(target.commune);
 
-  const finalPose = relief ? reliefFinalPose() : null;
   const reliefPose: CameraPose = { look: new THREE.Vector3(), eye: new THREE.Vector3() };
 
   const resize = () => {
     renderer.setSize(stage.clientWidth, stage.clientHeight, false);
     camera.aspect = stage.clientWidth / Math.max(1, stage.clientHeight);
     camera.updateProjectionMatrix();
-    relief?.resize(stage.clientWidth, stage.clientHeight);
+    reliefStage?.resize(stage.clientWidth, stage.clientHeight);
   };
   resize();
 
@@ -426,13 +492,15 @@ export function createLaunchScene(
         piece.edges.material.opacity = 0.85 - lift * 0.45;
       }
     }
-    communeLayer.position.z = mapGroundHeight - plateThickness;
-    communeMaterial.opacity = 1;
-    communeEdges.material.opacity = 1;
-    communeLayer.visible = handover >= 1;
-    highlight.position.z = communeLayer.position.z;
-    highlightMaterial.opacity = phase(t, 6.6, 7.1);
-    highlight.visible = highlightMaterial.opacity > 0 && handover >= 1;
+    if (communeLayer && communeEdges && highlight) {
+      communeLayer.position.z = mapGroundHeight - plateThickness;
+      communeMaterial.opacity = 1;
+      communeEdges.material.opacity = 1;
+      communeLayer.visible = handover >= 1;
+      highlight.position.z = communeLayer.position.z;
+      highlightMaterial.opacity = phase(t, 6.6, 7.1);
+      highlight.visible = highlightMaterial.opacity > 0 && handover >= 1;
+    }
     const dive = easeInOutCubic(phase(t, 4.9, 6.7));
     const settle = easeInOutCubic(phase(t, 6.5, 8.1));
     eye
@@ -447,7 +515,7 @@ export function createLaunchScene(
       } else {
         reliefPose.look.copy(look).applyMatrix4(relief.fromMap);
         reliefPose.eye.copy(eye).applyMatrix4(relief.fromMap);
-        orbit(finalPose, still ? 0 : elapsed - arrival - storyDuration, orbitPose);
+        orbit(finalPose, still ? 0 : elapsed - arrival - (story ? storyDuration : 0), orbitPose);
         blendPose(reliefPose, orbitPose, easeInOutCubic(bascule), relief.camera);
       }
       look.copy(reliefPose.look).applyMatrix4(relief.toMap);
@@ -461,7 +529,7 @@ export function createLaunchScene(
     }
     const shift = bascule > 0 && stage.clientWidth >= 1280 ? -0.16 * stage.clientWidth * easeInOutCubic(bascule) : 0;
     shiftView(camera, shift);
-    if (relief) shiftView(relief.camera, shift);
+    if (reliefStage) shiftView(reliefStage.camera, shift);
     camera.position.copy(eye);
     camera.lookAt(look);
     if (t < 6.0 || !citiesHidden) {
@@ -508,7 +576,7 @@ export function createLaunchScene(
         rise: easeInOutCubic(phase(bascule, 0.1, 0.75)),
         reveal: 1.2 * easeInOutCubic(phase(bascule, 0, 0.6)),
         names: easeOutCubic(phase(bascule, 0.75, 1)),
-        story: still ? Number.POSITIVE_INFINITY : bascule >= 1 ? elapsed - arrival : null,
+        story: !story ? null : still ? Number.POSITIVE_INFINITY : bascule >= 1 ? elapsed - arrival : null,
       });
     }
   };
@@ -528,13 +596,29 @@ export function createLaunchScene(
     still = true;
     render(finalPose ? arrival : launchDuration);
   };
-  return { duration: finalPose ? arrival : launchDuration, prepare, render, renderStill };
+  const launchScene: LaunchScene = {
+    duration: finalPose ? arrival : launchDuration,
+    settled: finalPose ? arrival + (story ? storyDuration : 0) : launchDuration,
+    prepare,
+    render,
+    renderStill,
+    setCommune(commune) {
+      if (communeLayer) return;
+      buildCommune(commune);
+      launchScene.duration = finalPose ? arrival : launchDuration;
+      launchScene.settled = finalPose ? arrival + (story ? storyDuration : 0) : launchDuration;
+      prepare();
+    },
+  };
+  return launchScene;
 }
 
-/** Pose finale sur le relief : la vue d'ensemble du site public, dans l'axe Cornu–Syam, à la même échelle. */
-function reliefFinalPose(): CameraPose {
-  const look = new THREE.Vector3(-40, 40, 80);
-  const eye = look.clone().addScaledVector(new THREE.Vector3(0.28, 0.6, 1).normalize(), 2600);
+/** Pose finale sur le relief, dans la direction de la vue d'ensemble du site public. */
+function reliefFinalPose(relief: ReliefStage, view: ReliefView): CameraPose {
+  const look = Array.isArray(view.look)
+    ? new THREE.Vector3(...view.look)
+    : relief.groundAt(view.look.east, view.look.north);
+  const eye = look.clone().addScaledVector(new THREE.Vector3(...view.direction).normalize(), view.distance);
   return { look, eye };
 }
 

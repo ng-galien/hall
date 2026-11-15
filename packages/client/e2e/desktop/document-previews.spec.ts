@@ -134,6 +134,7 @@ test("document previews share a contextual frame in both themes without changing
       .poll(() => app.windows().some((window) => window.url().startsWith("hall-launch:")), { timeout: 30_000 })
       .toBe(true);
     const launch = app.windows().find((window) => window.url().startsWith("hall-launch:"))!;
+    await launch.getByTestId("launch-choose-alesia").click({ timeout: 60_000 });
     await expect(launch.getByTestId("launch-open")).toBeEnabled({ timeout: 480_000 });
     await launch.getByTestId("launch-open").click();
     await expect

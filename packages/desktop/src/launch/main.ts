@@ -2,7 +2,14 @@ import "./launch.css";
 import { createFrameProbe } from "./frames.js";
 import { loadGeodata } from "./geodata.js";
 import { createReliefStage, type ReliefStage } from "./reliefStage.js";
-import { createLaunchScene, type LaunchScene } from "./scene.js";
+import {
+  alesiaCaptions,
+  alesiaReliefView,
+  communeWait,
+  createLaunchScene,
+  type LaunchScene,
+  type SceneCommune,
+} from "./scene.js";
 import { easeOutCubic, phase } from "./timeline.js";
 
 type Phase = "database" | "server" | "dataset" | "interface";
@@ -15,13 +22,16 @@ interface PlannedPhase {
 type ProgressMessage =
   | { type: "plan"; phases: PlannedPhase[] }
   | { type: "phase"; phase: Phase; status: "start" | "end" }
-  | { type: "ready" };
+  | { type: "ready" }
+  | { type: "failed"; message: string };
 
 interface LaunchBridge {
   reportStarted(): void;
   reportMeasurements(value: string): void;
   reportLeft(): void;
   open(): void;
+  choose(dataset: string): void;
+  retry(): void;
   onProgress(listener: (message: ProgressMessage) => void): void;
   onLeave(listener: () => void): void;
 }
@@ -33,24 +43,42 @@ declare global {
   }
 }
 
-const alesiaLabel = "Alésia";
-const alesiaTerritory = "territoire des Mandubiens";
-const phaseLabels: Record<Phase, string> = {
-  database: "Préparation de la base",
-  server: "Démarrage du serveur",
-  dataset: "Chargement des données Alésia",
-  interface: "Chargement de l’interface",
+/** Jeu de démonstration présenté par l'écran de lancement. */
+type Dataset = "alesia" | "foncine-le-bas";
+
+/** Commune présentée par l'écran de lancement de chaque jeu. */
+const places: Record<Dataset, { communeCode: string; name: string; territory: string; note: string }> = {
+  alesia: {
+    communeCode: "39129",
+    name: "Alésia",
+    territory: "territoire des Mandubiens",
+    note: "Oppidum du plateau d’Alésia, entre la Lemme et la Saine. Le maire est Vercingétorix.",
+  },
+  "foncine-le-bas": {
+    communeCode: "39227",
+    name: "Foncine-le-Bas",
+    territory: "Jura",
+    note: "Démonstration dans une vraie commune de France. Données de démonstration : réalistes, mais fictives.",
+  },
+};
+
+const root = document.documentElement;
+const parameters = new URLSearchParams(location.search);
+const requestedPresentation = parameters.get("presentation");
+/** Jeu présenté ; null tant que le choix n'est pas fait. */
+let dataset: Dataset | null =
+  requestedPresentation === "choice" ? null : requestedPresentation === "foncine-le-bas" ? "foncine-le-bas" : "alesia";
+const choosing = dataset === null;
+const departementCode = "39";
+const phaseLabels: Record<Phase, () => string> = {
+  database: () => "Préparation de la base",
+  server: () => "Démarrage du serveur",
+  dataset: () => `Chargement des données ${dataset ? places[dataset].name : ""}`.trim(),
+  interface: () => "Chargement de l’interface",
 };
 const readyLabel = "Espace de travail prêt";
 /** Constante de temps du rattrapage de la barre vers sa position cible, en millisecondes. */
 const catchUpMilliseconds = 140;
-const alesiaNote = "Oppidum du plateau d’Alésia, entre la Lemme et la Saine. Le maire est Vercingétorix.";
-
-const root = document.documentElement;
-const parameters = new URLSearchParams(location.search);
-const departementCode = "39";
-const communeCode = "39129";
-const presentation = "alesia";
 const marks: Record<string, number> = { module: performance.now() };
 const mark = (name: string) => {
   marks[name] = performance.now();
@@ -174,7 +202,7 @@ function renderProgress(): void {
   const total = progress.phases.length;
   const index = currentPhaseIndex();
   const planned = progress.phases[index];
-  const label = progress.ready ? readyLabel : planned ? phaseLabels[planned.phase] : "Préparation en cours";
+  const label = progress.ready ? readyLabel : planned ? phaseLabels[planned.phase]() : "Préparation en cours";
   if (name.textContent !== label) name.textContent = label;
   const counted = total ? `${progress.ready ? total : index + 1} sur ${total}` : "";
   loader.dataset.active = String(!progress.ready);
@@ -232,8 +260,18 @@ function recordPhase(phase: Phase, status: "start" | "end", now: number): void {
 
 function receiveProgress(message: ProgressMessage): void {
   const now = performance.now();
+  if (message.type === "failed") {
+    showFailure(message.message);
+    return;
+  }
   if (message.type === "plan") {
+    clearFailure();
     progress.phases = message.phases;
+    progress.starts.clear();
+    progress.ends.clear();
+    progress.ready = false;
+    progress.shown = 0;
+    progress.lastFrame = null;
     buildScale();
   } else if (message.type === "phase") {
     if (message.status === "start") progress.starts.set(message.phase, now);
@@ -327,14 +365,97 @@ function openApplication(): void {
 }
 
 function writePlace(): void {
-  const place = document.querySelector<HTMLElement>("[data-testid='launch-place']");
+  const element = document.querySelector<HTMLElement>("[data-testid='launch-place']");
   const note = document.querySelector<HTMLElement>("[data-testid='launch-note']");
-  if (!place || !note) return;
+  if (!element || !note || !dataset) return;
+  const place = places[dataset];
   const name = document.createElement("strong");
-  name.textContent = alesiaLabel;
-  place.replaceChildren(name, document.createTextNode(`, ${alesiaTerritory}`));
-  note.textContent = alesiaNote;
+  name.textContent = place.name;
+  element.replaceChildren(name, document.createTextNode(`, ${place.territory}`));
+  element.hidden = false;
+  note.textContent = place.note;
   note.hidden = false;
+}
+
+/**
+ * Vue de Foncine-le-Bas sur le relief partagé, qui couvre déjà son territoire : le village, le viaduc des Douanets
+ * et la voie du Mont Noir, au sud.
+ */
+const foncineReliefView: SceneCommune["relief"] = {
+  look: { east: 3900, north: -5300 },
+  direction: [-0.55, 0.6, -0.8],
+  distance: 600,
+  story: false,
+};
+
+/** Commune où la scène se pose pour le jeu, avec ses légendes. */
+function sceneCommune(chosen: Dataset, alesiaFocus: [number, number], relief: boolean): SceneCommune {
+  if (chosen === "alesia") {
+    return {
+      communeCode: places.alesia.communeCode,
+      focus: alesiaFocus,
+      captions: alesiaCaptions(),
+      relief: relief ? alesiaReliefView : null,
+    };
+  }
+  return {
+    communeCode: places[chosen].communeCode,
+    focus: null,
+    captions: [
+      { from: 4.9, to: 6.8, text: "Jura", key: "region" },
+      { from: 6.8, to: 8.3, text: places[chosen].name, key: "commune" },
+    ],
+    relief: relief ? foncineReliefView : null,
+  };
+}
+
+/** Appelé quand le jeu est choisi, avec le jeu choisi. */
+let onChosen: (chosen: Dataset) => void = () => undefined;
+/** Relance l'horloge de l'animation arrêtée sur la France assemblée. */
+let resumeClock: () => void = () => undefined;
+
+/** Montre le choix du jeu de démonstration ; un bouton envoie le jeu choisi au processus principal. */
+function showChoice(): void {
+  const choice = document.querySelector<HTMLElement>("[data-testid='launch-choice']");
+  if (!choice || !choosing || dataset || root.dataset.choice) return;
+  root.dataset.choice = "open";
+  root.style.setProperty("--brand-opacity", "1");
+  choice.hidden = false;
+  const buttons = [...choice.querySelectorAll<HTMLButtonElement>("button[data-dataset]")];
+  for (const button of buttons) {
+    button.addEventListener("click", () => {
+      const chosen = button.dataset.dataset;
+      if (dataset || (chosen !== "alesia" && chosen !== "foncine-le-bas")) return;
+      dataset = chosen;
+      root.dataset.chosen = chosen;
+      root.dataset.choice = "made";
+      mark("chosen");
+      for (const other of buttons) other.disabled = true;
+      choice.hidden = true;
+      document.querySelector("[data-testid='launch-footer']")?.removeAttribute("hidden");
+      writePlace();
+      window.hallLaunch?.choose(chosen);
+      onChosen(chosen);
+    });
+  }
+  buttons[0]?.focus();
+}
+
+/** Affiche l'échec du chargement à la place de la progression, avec la commande pour réessayer. */
+function showFailure(message: string): void {
+  const failure = document.querySelector<HTMLElement>("[data-testid='launch-failure']");
+  const text = document.querySelector<HTMLElement>("[data-testid='launch-failure-message']");
+  if (!failure || !text) return;
+  text.textContent = message;
+  root.dataset.application = "failed";
+  failure.hidden = false;
+  document.querySelector<HTMLButtonElement>("[data-testid='launch-retry']")?.focus();
+}
+
+function clearFailure(): void {
+  const failure = document.querySelector<HTMLElement>("[data-testid='launch-failure']");
+  if (failure) failure.hidden = true;
+  if (root.dataset.application === "failed") delete root.dataset.application;
 }
 
 function showFinal(scene: LaunchScene | null, still = true): void {
@@ -381,24 +502,50 @@ function writeBrand(elapsed: number, duration: number): void {
   root.style.setProperty("--reveal-tagline", reveal(2.3, 3.6));
   root.style.setProperty("--reveal-place", reveal(duration * 0.52, duration * 0.68));
   root.style.setProperty("--reveal-note", reveal(duration * 0.7, duration * 0.88));
-  if (elapsed >= 3.6) revealPreparation();
+  if (elapsed >= 3.6) {
+    if (choosing) showChoice();
+    else revealPreparation();
+  }
 }
 
+/**
+ * Joue la chronologie. Tant que le jeu n'est pas choisi, l'horloge s'arrête sur la France assemblée ; le choix fait,
+ * elle reprend vers la commune du jeu. Le récit terminé, la scène s'immobilise sur son état final : l'attente du
+ * chargement passe à l'indicateur de la progression.
+ */
 function runTimeline(scene: LaunchScene): void {
   mark("animationStart");
-  const launchDuration = scene.duration;
-  const brandIn = launchDuration - 0.9;
   const start = performance.now();
+  let pausedMs = 0;
+  let waitingSince: number | null = null;
+  resumeClock = () => {
+    if (waitingSince !== null) pausedMs += performance.now() - waitingSince;
+    waitingSince = null;
+  };
   root.dataset.startedAt = String(Math.round(start));
-  writeBrand(0, launchDuration);
+  writeBrand(0, scene.duration);
   setState("playing");
   const frame = (now: number) => {
-    const elapsed = (now - start) / 1000;
-    if (elapsed >= launchDuration && root.dataset.state !== "final") showFinal(scene, false);
     if (root.dataset.leaving) return;
+    let elapsed = (now - start - pausedMs) / 1000;
+    if (!dataset && elapsed >= communeWait) {
+      waitingSince ??= now;
+      elapsed = communeWait;
+    }
+    const launchDuration = scene.duration;
+    if (elapsed >= launchDuration && root.dataset.state !== "final") showFinal(scene, false);
     if (elapsed < launchDuration) {
-      root.style.setProperty("--brand-opacity", String(easeOutCubic(phase(elapsed, brandIn, launchDuration))));
+      if (!choosing || dataset)
+        root.style.setProperty(
+          "--brand-opacity",
+          String(easeOutCubic(phase(elapsed, launchDuration - 0.9, launchDuration))),
+        );
       writeBrand(elapsed, launchDuration);
+    }
+    if (elapsed >= scene.settled) {
+      scene.renderStill();
+      root.dataset.scene = "still";
+      return;
     }
     scene.render(elapsed);
     requestAnimationFrame(frame);
@@ -426,14 +573,18 @@ async function loadRelief(
 
 async function start(): Promise<void> {
   startFrameLoop();
-  root.dataset.commune = communeCode;
   root.dataset.departement = departementCode;
-  root.dataset.presentation = presentation;
+  root.dataset.presentation = dataset ?? "choice";
+  if (dataset) root.dataset.commune = places[dataset].communeCode;
   if (reducedMotion) root.dataset.motion = "reduced";
   window.hallLaunch?.onProgress(receiveProgress);
   openButton()?.addEventListener("click", openApplication);
+  document.querySelector("[data-testid='launch-retry']")?.addEventListener("click", () => {
+    clearFailure();
+    window.hallLaunch?.retry();
+  });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") openApplication();
+    if (event.key === "Enter" && !(event.target instanceof HTMLButtonElement)) openApplication();
   });
   window.hallLaunch?.onLeave(() => {
     root.dataset.leaving = "true";
@@ -452,6 +603,24 @@ async function start(): Promise<void> {
   const names = document.getElementById("relief-names");
   const list = document.getElementById("story-list");
   if (!stage || !cities || !names || !list) return;
+  if (choosing) {
+    document.querySelector("[data-testid='launch-footer']")?.setAttribute("hidden", "");
+    document.querySelector("[data-testid='launch-place']")?.setAttribute("hidden", "");
+  }
+  cities.hidden = true;
+  if (dataset !== "alesia") list.hidden = true;
+  const withoutScene = () => {
+    if (choosing) {
+      onChosen = (chosen) => {
+        root.dataset.commune = places[chosen].communeCode;
+        showFinal(null);
+      };
+      showChoice();
+      root.style.setProperty("--brand-opacity", "1");
+      for (const name of ["--reveal-name", "--reveal-dash", "--reveal-tagline"]) root.style.setProperty(name, "1");
+      requestAnimationFrame(reportStarted);
+    } else showFinal(null);
+  };
   try {
     mark("geodataStart");
     const data = await loadGeodata(departementCode);
@@ -465,17 +634,45 @@ async function start(): Promise<void> {
       stage,
       cities,
       data,
-      { departementCode, communeCode, focus: data.alesiaFocus },
+      { departementCode, commune: dataset ? sceneCommune(dataset, data.alesiaFocus, relief !== null) : null },
       relief,
       document.getElementById("map-caption"),
     );
     mark("sceneBuildEnd");
-    if (relief) root.dataset.relief = "true";
-    if (!scene || reducedMotion) showFinal(scene);
-    else play(scene);
+    if (!scene) {
+      withoutScene();
+      return;
+    }
+    const placeCommune = (chosen: Dataset) => {
+      root.dataset.commune = places[chosen].communeCode;
+      if (relief) root.dataset.relief = "true";
+      if (chosen === "alesia" && relief) list.hidden = false;
+      scene.setCommune(sceneCommune(chosen, data.alesiaFocus, relief !== null));
+    };
+    if (dataset && relief) root.dataset.relief = "true";
+    if (reducedMotion) {
+      if (!choosing) {
+        showFinal(scene);
+        return;
+      }
+      scene.render(communeWait);
+      withoutScene();
+      const chosenWithoutMotion = onChosen;
+      onChosen = (chosen) => {
+        placeCommune(chosen);
+        chosenWithoutMotion(chosen);
+        scene.renderStill();
+      };
+      return;
+    }
+    onChosen = (chosen) => {
+      placeCommune(chosen);
+      resumeClock();
+    };
+    play(scene);
   } catch (error) {
     console.error(error);
-    showFinal(null);
+    withoutScene();
   }
 }
 

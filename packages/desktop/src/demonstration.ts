@@ -5,17 +5,22 @@ import type { HttpServerHandle } from "@hall/server";
 import { selectSeed } from "../../../scripts/seed/data/catalog.mjs";
 import { createSeedApi } from "../../../scripts/seed/data/common/api.mjs";
 import { assertEmptyDatabase } from "../../../scripts/seed/data/common/empty-database.mjs";
+import { type DemonstrationDataset, isDemonstrationDataset } from "./demonstrationDatasets.js";
 import type { SessionCookie } from "./startupProtocol.js";
 
 export const desktopEditions = ["local", "demonstration"] as const;
 export type DesktopEdition = (typeof desktopEditions)[number];
 
-const demonstrationDataset = "alesia";
-const demonstrationScenario = "default";
+/** Scenario loaded with each demonstration dataset. */
+const demonstrationScenarios: Record<DemonstrationDataset, string> = {
+  "foncine-le-bas": "foncine-le-bas-session",
+  alesia: "default",
+};
 
 type DemonstrationState = {
   status: "seeding" | "ready";
   version: string;
+  dataset: DemonstrationDataset;
   email: string;
   password: string;
 };
@@ -23,6 +28,8 @@ type DemonstrationState = {
 export type DemonstrationProfile = {
   userDataPath: string;
   applicationVersion: string;
+  /** Dataset loaded when the profile holds no compatible demonstration of this dataset. */
+  dataset: DemonstrationDataset;
   startServer: () => Promise<HttpServerHandle>;
   /** Annonce, avant le démarrage du serveur, si le jeu de démonstration sera chargé. */
   onPlan?: (seeding: boolean) => void;
@@ -87,11 +94,23 @@ async function readState(userDataPath: string): Promise<DemonstrationState | nul
     !("email" in content) ||
     typeof content.email !== "string" ||
     !("password" in content) ||
-    typeof content.password !== "string"
+    typeof content.password !== "string" ||
+    ("dataset" in content && !isDemonstrationDataset(content.dataset))
   ) {
     throw new Error(`L’état de la démonstration est invalide : ${statePath(userDataPath)}`);
   }
-  return { status: content.status, version: content.version, email: content.email, password: content.password };
+  return {
+    status: content.status,
+    version: content.version,
+    dataset: "dataset" in content && isDemonstrationDataset(content.dataset) ? content.dataset : "alesia",
+    email: content.email,
+    password: content.password,
+  };
+}
+
+/** Dataset recorded in the demonstration profile, or null when the profile holds no demonstration. */
+export async function recordedDemonstrationDataset(userDataPath: string): Promise<DemonstrationDataset | null> {
+  return (await readState(userDataPath))?.dataset ?? null;
 }
 
 async function writeState(userDataPath: string, state: DemonstrationState): Promise<void> {
@@ -115,7 +134,7 @@ export async function eraseDemonstration(userDataPath: string): Promise<void> {
 
 /** Loads the dataset through the public API, as the seed command line does, as the first administrator. */
 async function seed(server: HttpServerHandle, state: DemonstrationState): Promise<void> {
-  const { dataset, scenario } = selectSeed(demonstrationDataset, demonstrationScenario);
+  const { dataset, scenario } = selectSeed(state.dataset, demonstrationScenarios[state.dataset]);
   const api = createSeedApi(new URL("/api", server.url).href);
   if (!(await api.signInAsFirstAdministrator(dataset.administrator, state.password))) {
     throw new Error("Le serveur embarqué de la démonstration n’attend pas de premier administrateur.");
@@ -125,8 +144,8 @@ async function seed(server: HttpServerHandle, state: DemonstrationState): Promis
 }
 
 /**
- * Starts the embedded server on a demonstration profile. An empty profile, an interrupted load or a
- * profile from another application version is erased and loaded again with the Alésia dataset.
+ * Starts the embedded server on a demonstration profile. An empty profile, an interrupted load, a profile
+ * from another application version or a profile of another dataset is erased and loaded with `profile.dataset`.
  * A recognized same-version profile is also recreated after a verified schema fingerprint mismatch.
  */
 export async function openDemonstration(profile: DemonstrationProfile): Promise<{
@@ -135,7 +154,7 @@ export async function openDemonstration(profile: DemonstrationProfile): Promise<
 }> {
   const { userDataPath, applicationVersion } = profile;
   const current = await readState(userDataPath);
-  if (current?.status === "ready" && current.version === applicationVersion) {
+  if (current?.status === "ready" && current.version === applicationVersion && current.dataset === profile.dataset) {
     profile.onPlan?.(false);
     try {
       return { server: await profile.startServer(), state: current };
@@ -149,7 +168,8 @@ export async function openDemonstration(profile: DemonstrationProfile): Promise<
   const state: DemonstrationState = {
     status: "seeding",
     version: applicationVersion,
-    email: selectSeed(demonstrationDataset, demonstrationScenario).dataset.administrator.email,
+    dataset: profile.dataset,
+    email: selectSeed(profile.dataset, demonstrationScenarios[profile.dataset]).dataset.administrator.email,
     password: randomBytes(24).toString("base64url"),
   };
   await writeState(userDataPath, state);

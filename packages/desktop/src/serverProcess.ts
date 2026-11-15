@@ -40,9 +40,11 @@ async function start(command: StartCommand): Promise<void> {
     send({ type: "ready", url: server.url, cookie: null });
     return;
   }
+  if (!command.dataset) throw new Error("La démonstration démarre sans jeu de démonstration choisi.");
   const { server: opened, state } = await openDemonstration({
     userDataPath: command.userDataPath,
     applicationVersion: command.applicationVersion,
+    dataset: command.dataset,
     startServer: () => startEmbeddedServer(command),
     onPlan: (seeding) =>
       send({ type: "plan", phases: seeding ? ["database", "server", "dataset"] : ["database", "server"] }),

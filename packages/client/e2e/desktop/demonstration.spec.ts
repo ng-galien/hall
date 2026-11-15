@@ -63,7 +63,7 @@ async function expireDemonstrationSessions(userDataPath: string, application: El
 }
 
 /** @verifies-requirement HALL-TR-DSK-020 */
-test("opens Alésia signed in, retains changes on relaunch and resets them from the Démonstration menu", async () => {
+test("opens Alésia chosen at first launch signed in, retains changes on relaunch and resets them from the Démonstration menu", async () => {
   const userDataPath = await mkdtemp(join(tmpdir(), "hall-demonstration-"));
   let application = await launchDemonstration(userDataPath);
   try {
@@ -71,6 +71,9 @@ test("opens Alésia signed in, retains changes on relaunch and resets them from 
       .poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:")), { timeout: 15_000 })
       .toBe(true);
     const launch = application.windows().find((page) => page.url().startsWith("hall-launch:"))!;
+    await expect(launch.getByTestId("launch-choice")).toBeVisible({ timeout: 15_000 });
+    await expect(launch.getByTestId("launch-choose-foncine-le-bas")).toBeFocused();
+    await launch.getByTestId("launch-choose-alesia").click();
     await expect(launch.locator("html")).toHaveAttribute("data-commune", "39129");
     await expect(launch.locator("html")).toHaveAttribute("data-state", "final", { timeout: 15_000 });
     await expect(launch.getByTestId("launch-place")).toHaveText("Alésia, territoire des Mandubiens");
@@ -180,6 +183,7 @@ test("opens Alésia signed in, retains changes on relaunch and resets them from 
       reset.click();
     });
     await expect.poll(() => window.url(), { timeout: 30_000 }).toMatch(/^data:/);
+    await openWorkspace(application, "alesia");
     await expect(window.getByTestId("home-meeting")).toBeVisible({ timeout: 8 * 60_000 });
     expect(await resourcesContainMarker(window)).toBe(false);
   } finally {
@@ -188,12 +192,14 @@ test("opens Alésia signed in, retains changes on relaunch and resets them from 
   }
 });
 
-async function openWorkspace(application: ElectronApplication): Promise<Page> {
+/** Opens the workspace from the launch view; chooses `dataset` when the launch view offers the choice. */
+async function openWorkspace(application: ElectronApplication, dataset?: "alesia" | "foncine-le-bas"): Promise<Page> {
   await expect
     .poll(() => application.windows().some((page) => page.url().startsWith("hall-launch:")), { timeout: 15_000 })
     .toBe(true);
   const launch = application.windows().find((page) => page.url().startsWith("hall-launch:"))!;
-  await expect(launch.getByTestId("launch-open")).toBeEnabled({ timeout: 120_000 });
+  if (dataset) await launch.getByTestId(`launch-choose-${dataset}`).click({ timeout: 15_000 });
+  await expect(launch.getByTestId("launch-open")).toBeEnabled({ timeout: 8 * 60_000 });
   await launch.getByTestId("launch-open").click();
   const window = application.windows().find((page) => page.url().includes("/app/"))!;
   await expect(window.getByTestId("home-meeting")).toBeVisible();
@@ -215,7 +221,7 @@ test("renews the Alésia window session after expiry and opens the embedded work
   let application: ElectronApplication | undefined;
   try {
     application = await launchDemonstration(userDataPath);
-    let window = await openWorkspace(application);
+    let window = await openWorkspace(application, "alesia");
     await expireDemonstrationSessions(userDataPath, application);
     await window.addInitScript(() => {
       new MutationObserver(() => {
@@ -269,6 +275,7 @@ test("renews the Alésia window session after expiry and opens the embedded work
       reset.click();
     });
     await expect.poll(() => window.url(), { timeout: 30_000 }).toMatch(/^data:/);
+    await openWorkspace(application, "alesia");
     await expect(window.getByTestId("home-meeting")).toBeVisible({ timeout: 120_000 });
     expect(window.url()).not.toBe(sharedUrl);
     expect(sharedRequests).toBe(0);
@@ -288,6 +295,7 @@ test("refuses to erase a profile whose database is not a demonstration", async (
       openDemonstration({
         userDataPath,
         applicationVersion: "0.1.0",
+        dataset: "alesia",
         startServer: () => Promise.reject(new Error("The server must not start")),
       }),
     ).rejects.toThrow("n’est pas une démonstration");

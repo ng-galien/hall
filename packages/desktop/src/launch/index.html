@@ -24,6 +24,25 @@
       </div>
       <p class="launch-place" data-testid="launch-place"></p>
       <p class="launch-note" data-testid="launch-note" hidden></p>
+      <section class="launch-choice" data-testid="launch-choice" aria-label="Jeu de démonstration" hidden>
+        <ul class="launch-choice-list">
+          <li class="launch-choice-item" data-testid="launch-choice-foncine-le-bas">
+            <div class="launch-choice-text">
+              <h2 class="launch-choice-name">Foncine-le-Bas, Jura</h2>
+              <p class="launch-choice-summary">Démonstration dans une vraie commune de France.</p>
+              <p class="launch-choice-notice" data-testid="launch-choice-notice">Données de démonstration : réalistes, mais fictives.</p>
+            </div>
+            <button class="launch-choice-button" type="button" data-dataset="foncine-le-bas" data-variant="primary" data-testid="launch-choose-foncine-le-bas">Charger Foncine-le-Bas</button>
+          </li>
+          <li class="launch-choice-item" data-testid="launch-choice-alesia">
+            <div class="launch-choice-text">
+              <h2 class="launch-choice-name">Alésia, territoire des Mandubiens</h2>
+              <p class="launch-choice-summary">Oppidum du plateau d’Alésia, entre la Lemme et la Saine. Le maire est Vercingétorix.</p>
+            </div>
+            <button class="launch-choice-button" type="button" data-dataset="alesia" data-variant="secondary" data-testid="launch-choose-alesia">Charger Alésia</button>
+          </li>
+        </ul>
+      </section>
       <div class="launch-footer-slot" data-testid="launch-footer" aria-hidden="true">
         <div class="launch-actions">
         <button class="launch-open" type="button" data-testid="launch-open" disabled hidden aria-hidden="true" tabindex="-1">
@@ -40,7 +59,7 @@
           aria-valuenow="0"
         >
           <div class="launch-progress-head">
-            <span class="launch-progress-caption">Préparation de Hall</span>
+            <span class="launch-progress-caption"><span class="launch-wait" data-testid="launch-wait" aria-hidden="true"></span>Préparation de Hall</span>
             <span class="launch-progress-count" data-testid="launch-step-count"></span>
           </div>
           <strong class="launch-progress-step" data-testid="launch-step">Préparation de l’espace de travail</strong>
@@ -48,6 +67,11 @@
             <span class="launch-scale-segment" data-state="pending"></span>
           </div>
         </div>
+        </div>
+        <div class="launch-failure" data-testid="launch-failure" role="alert" hidden>
+          <strong class="launch-failure-title">Hall n’a pas pu se préparer</strong>
+          <p class="launch-failure-message" data-testid="launch-failure-message"></p>
+          <button class="launch-choice-button" type="button" data-variant="primary" data-testid="launch-retry">Réessayer</button>
         </div>
       </div>
     </section>

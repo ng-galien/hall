@@ -104,7 +104,7 @@ Fichier à télécharger : celui dont le nom commence par `windows-x64` et se te
 4. Une fenêtre bleue s’affiche : « Windows a protégé votre ordinateur ». Il n’y a qu’un bouton **Ne pas exécuter**. Ne cliquez pas dessus. Cliquez sur le lien **Informations complémentaires**, sous le texte.
 5. Le nom du fichier s’affiche, avec « Éditeur inconnu ». Un nouveau bouton apparaît en bas. Cliquez sur **Exécuter quand même**.
 6. Hall s’installe tout seul, sans question. Cela prend quelques secondes. Un raccourci **Hall** est ajouté sur le Bureau et dans le menu Démarrer, puis Hall s’ouvre.
-7. Une carte de France s’anime, puis la commune d’Alésia et le bouton **Ouvrir Hall**. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.
+7. Une carte de France s’anime. La première fois, choisissez le jeu de démonstration : Foncine-le-Bas, Jura, ou Alésia. La carte continue vers la commune choisie et le bouton **Ouvrir Hall** apparaît. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes. Pour changer de jeu ensuite : menu **Démonstration › Remettre à zéro et choisir le jeu de démonstration…** ; les données de la démonstration sont alors effacées.
 
 Pour rouvrir Hall plus tard : double-cliquez sur le raccourci **Hall** du Bureau, ou ouvrez le menu Démarrer et tapez « Hall ».
 
@@ -139,7 +139,7 @@ Fichier à télécharger : celui qui se termine par `.dmg`. Mac avec puce Apple 
 
 **Ensuite, sur toutes les versions**
 
-Une carte de France s’anime, puis la commune d’Alésia et le bouton **Ouvrir Hall**. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes. Les fois suivantes, Hall s’ouvre directement depuis le dossier **Applications** ou le Launchpad.
+Une carte de France s’anime. La première fois, choisissez le jeu de démonstration : Foncine-le-Bas, Jura, ou Alésia. La carte continue vers la commune choisie et le bouton **Ouvrir Hall** apparaît. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes. Pour changer de jeu ensuite : menu **Démonstration › Remettre à zéro et choisir le jeu de démonstration…** ; les données de la démonstration sont alors effacées. Les fois suivantes, Hall s’ouvre directement depuis le dossier **Applications** ou le Launchpad.
 
 Si le Mac dit que « Hall » est endommagé : ouvrez l’application **Terminal** (dans **Applications**, puis **Utilitaires**). Copiez cette ligne, collez-la, puis appuyez sur la touche Entrée :
 
@@ -175,7 +175,7 @@ sudo dnf install "$(xdg-user-dir DOWNLOAD)"/linux-x64-*.rpm
 
 **Ouvrir Hall**
 
-Cherchez « Hall » dans la liste des applications et cliquez dessus. Une carte de France s’anime, puis la commune d’Alésia et le bouton **Ouvrir Hall**. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.
+Cherchez « Hall » dans la liste des applications et cliquez dessus. Une carte de France s’anime. La première fois, choisissez le jeu de démonstration : Foncine-le-Bas, Jura, ou Alésia. La carte continue vers la commune choisie et le bouton **Ouvrir Hall** apparaît. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes. Pour changer de jeu ensuite : menu **Démonstration › Remettre à zéro et choisir le jeu de démonstration…** ; les données de la démonstration sont alors effacées.
 
 For the complete municipal restore, account setup and operating procedure, use
 [Municipal installation and recovery](municipal-bootstrap.md).

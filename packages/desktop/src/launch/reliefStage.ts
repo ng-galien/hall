@@ -48,6 +48,8 @@ export interface ReliefStage {
   camera: THREE.PerspectiveCamera;
   /** Point du relief, sur le sol, d'un point de la carte. */
   groundOf(point: PlanarPoint): THREE.Vector3;
+  /** Point du relief, sur le sol, à `east` et `north` mètres de l'origine du relief. */
+  groundAt(east: number, north: number): THREE.Vector3;
   /** Envoie au processeur graphique les trois niveaux de détail et compile les shaders. */
   prepare(renderer: THREE.WebGLRenderer): void;
   resize(width: number, height: number): void;
@@ -220,6 +222,9 @@ export async function createReliefStage(
       const metresEast = point.x / SCALE;
       const metresNorth = -point.z / SCALE;
       return point.setY(ground.height(metresEast, metresNorth));
+    },
+    groundAt(east, north) {
+      return new THREE.Vector3(east * SCALE, ground.height(east, north), -north * SCALE);
     },
     prepare(renderer) {
       const target = new THREE.WebGLRenderTarget(16, 16);

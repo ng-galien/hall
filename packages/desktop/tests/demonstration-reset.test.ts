@@ -10,19 +10,23 @@ const seed = vi.hoisted(() => ({
   empty: vi.fn().mockResolvedValue(undefined),
   dataset: vi.fn().mockResolvedValue({}),
   scenario: vi.fn().mockResolvedValue(undefined),
+  selections: [] as string[][],
 }));
 vi.mock("../../../scripts/seed/data/catalog.mjs", () => ({
-  selectSeed: () => ({
-    dataset: { administrator: { email: "demo@example.invalid" }, run: seed.dataset },
-    scenario: { run: seed.scenario },
-  }),
+  selectSeed: (dataset: string, scenario: string) => {
+    seed.selections.push([dataset, scenario]);
+    return {
+      dataset: { administrator: { email: "demo@example.invalid" }, run: seed.dataset },
+      scenario: { run: seed.scenario },
+    };
+  },
 }));
 vi.mock("../../../scripts/seed/data/common/api.mjs", () => ({
   createSeedApi: () => ({ signInAsFirstAdministrator: seed.signIn }),
 }));
 vi.mock("../../../scripts/seed/data/common/empty-database.mjs", () => ({ assertEmptyDatabase: seed.empty }));
 
-import { openDemonstration } from "../src/demonstration.js";
+import { openDemonstration, recordedDemonstrationDataset } from "../src/demonstration.js";
 
 const roots: string[] = [];
 const oldState = { status: "ready", version: "1.0.0", email: "demo@example.invalid", password: "fixture-only" };
@@ -36,7 +40,10 @@ async function profile(marked = true) {
   if (marked) await writeFile(join(root, "demonstration.json"), JSON.stringify(oldState));
   return root;
 }
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  seed.selections.length = 0;
+});
 afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
@@ -52,6 +59,7 @@ it("recreates a recognized same-version demonstration after an exact fingerprint
   const opened = await openDemonstration({
     userDataPath: root,
     applicationVersion: "1.0.0",
+    dataset: "alesia",
     startServer: start,
     onPlan,
   });
@@ -71,7 +79,7 @@ it("recreates a recognized same-version demonstration after an exact fingerprint
 it("reuses a compatible demonstration without loading its data again", async () => {
   const root = await profile();
   const start = vi.fn().mockResolvedValue(server());
-  await openDemonstration({ userDataPath: root, applicationVersion: "1.0.0", startServer: start });
+  await openDemonstration({ userDataPath: root, applicationVersion: "1.0.0", dataset: "alesia", startServer: start });
   expect(start).toHaveBeenCalledTimes(1);
   expect(seed.scenario).not.toHaveBeenCalled();
   expect(await readFile(join(root, "postgres", "old-data"), "utf8")).toBe("fictional previous dataset");
@@ -88,9 +96,9 @@ it.each([
   const root = await profile();
   expect(isLocalSchemaFingerprintMismatch(error)).toBe(false);
   const start = vi.fn().mockRejectedValue(error);
-  await expect(openDemonstration({ userDataPath: root, applicationVersion: "1.0.0", startServer: start })).rejects.toBe(
-    error,
-  );
+  await expect(
+    openDemonstration({ userDataPath: root, applicationVersion: "1.0.0", dataset: "alesia", startServer: start }),
+  ).rejects.toBe(error);
   expect(start).toHaveBeenCalledTimes(1);
   expect(seed.scenario).not.toHaveBeenCalled();
   expect(await readFile(join(root, "postgres", "old-data"), "utf8")).toBe("fictional previous dataset");
@@ -102,8 +110,54 @@ it("refuses to erase an unmarked local or municipal database", async () => {
   const root = await profile(false);
   const start = vi.fn().mockResolvedValue(server());
   await expect(
-    openDemonstration({ userDataPath: root, applicationVersion: "1.0.0", startServer: start }),
+    openDemonstration({ userDataPath: root, applicationVersion: "1.0.0", dataset: "alesia", startServer: start }),
   ).rejects.toThrow("n’est pas une démonstration");
   expect(start).not.toHaveBeenCalled();
   expect(await readFile(join(root, "postgres", "old-data"), "utf8")).toBe("fictional previous dataset");
+});
+
+// @verifies-requirement HALL-TR-DSK-040
+it("reads a profile written before the dataset choice as Alésia and reuses it", async () => {
+  const root = await profile();
+  expect(await recordedDemonstrationDataset(root)).toBe("alesia");
+  const start = vi.fn().mockResolvedValue(server());
+  await openDemonstration({ userDataPath: root, applicationVersion: "1.0.0", dataset: "alesia", startServer: start });
+  expect(seed.scenario).not.toHaveBeenCalled();
+  expect(await readFile(join(root, "postgres", "old-data"), "utf8")).toBe("fictional previous dataset");
+});
+
+// @verifies-requirement HALL-TR-DSK-040
+it("has no recorded dataset on an empty profile", async () => {
+  const root = await mkdtemp(join(tmpdir(), "hall-demo-empty-test-"));
+  roots.push(root);
+  expect(await recordedDemonstrationDataset(root)).toBeNull();
+});
+
+// @verifies-requirement HALL-TR-DSK-040
+it("loads Foncine-le-Bas with its session scenario in place of another dataset and records it", async () => {
+  const root = await profile();
+  const start = vi.fn().mockResolvedValue(server());
+  const opened = await openDemonstration({
+    userDataPath: root,
+    applicationVersion: "1.0.0",
+    dataset: "foncine-le-bas",
+    startServer: start,
+  });
+  expect(seed.scenario).toHaveBeenCalledTimes(1);
+  expect(seed.selections).toContainEqual(["foncine-le-bas", "foncine-le-bas-session"]);
+  await expect(access(join(root, "postgres", "old-data"))).rejects.toThrow();
+  expect(opened.state.dataset).toBe("foncine-le-bas");
+  const state = JSON.parse(await readFile(join(root, "demonstration.json"), "utf8"));
+  expect(state).toMatchObject({ status: "ready", dataset: "foncine-le-bas" });
+  expect(await recordedDemonstrationDataset(root)).toBe("foncine-le-bas");
+  start.mockClear();
+  seed.scenario.mockClear();
+  await openDemonstration({
+    userDataPath: root,
+    applicationVersion: "1.0.0",
+    dataset: "foncine-le-bas",
+    startServer: start,
+  });
+  expect(start).toHaveBeenCalledTimes(1);
+  expect(seed.scenario).not.toHaveBeenCalled();
 });

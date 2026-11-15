@@ -93,7 +93,7 @@ The runs use the disposable instance and database of the browser journeys and ne
 
 ## Demonstration dataset
 
-Two datasets are maintained: Alésia and Foncine-le-Bas. Alésia is the default dataset of the loader, `demo:restart`, the desktop demonstration and the browser journeys. It is fictional and contains municipal settings, contacts, accounts, two committees of four members, eight businesses with their reports, documents and prepared subjects, two drawn maps, three spreadsheets of at least fifteen rows, calendar events, and document templates. Resources are classified in French folders: `Accès`, `Accueil`, `Conseil`, `Défense`, `Guide/Références juridiques`, `Ravitaillement`, `Relations`, `Réserves`, `Soutien`, and `Veille`; the root keeps one resource of each kind used by the screen captures.
+Two datasets are maintained: Alésia and Foncine-le-Bas. Alésia is the default dataset of the loader, `demo:restart` and the browser journeys. The desktop demonstration offers both at its first opening, Foncine-le-Bas first with its `foncine-le-bas-session` scenario, then Alésia with its `default` scenario (requirement HALL-TR-DSK-040). It is fictional and contains municipal settings, contacts, accounts, two committees of four members, eight businesses with their reports, documents and prepared subjects, two drawn maps, three spreadsheets of at least fifteen rows, calendar events, and document templates. Resources are classified in French folders: `Accès`, `Accueil`, `Conseil`, `Défense`, `Guide/Références juridiques`, `Ravitaillement`, `Relations`, `Réserves`, `Soutien`, and `Veille`; the root keeps one resource of each kind used by the screen captures.
 
 | Scenario | Result |
 | --- | --- |

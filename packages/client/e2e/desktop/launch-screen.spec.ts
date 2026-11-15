@@ -88,27 +88,6 @@ async function launchViewOpen(application: ElectronApplication): Promise<boolean
   return application.windows().some((page) => page.url().startsWith("hall-launch:"));
 }
 
-/** Rectangles des étiquettes de cités affichées qui se chevauchent deux à deux. */
-async function overlappingCityLabels(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
-    const shown = [...document.querySelectorAll<HTMLElement>("[data-testid='launch-city']")]
-      .filter((element) => Number(element.style.opacity) > 0.01)
-      .map((element) => ({ name: element.textContent ?? "", box: element.getBoundingClientRect() }));
-    const pairs: string[] = [];
-    for (const [index, a] of shown.entries()) {
-      for (const b of shown.slice(index + 1)) {
-        const apart =
-          a.box.right <= b.box.left ||
-          b.box.right <= a.box.left ||
-          a.box.bottom <= b.box.top ||
-          b.box.bottom <= a.box.top;
-        if (!apart) pairs.push(`${a.name} / ${b.name}`);
-      }
-    }
-    return pairs;
-  });
-}
-
 async function storedInseeCode(userDataPath: string): Promise<unknown> {
   try {
     return JSON.parse(await readFile(join(userDataPath, "launch-territory.json"), "utf8")).inseeCode;
@@ -134,21 +113,16 @@ test.describe("écran de lancement de l'application de bureau", () => {
     await rm(userDataPath, { recursive: true, force: true });
   });
 
-  test("sans code enregistré : cités antiques, plongée sur Alésia, puis ouverture par le bouton", async () => {
+  test("sans code enregistré : France commune sans cités antiques, plongée sur Alésia, puis ouverture par le bouton", async () => {
     stub = await startHallStub(null);
     application = await launchHall(userDataPath, stub.url);
     const launch = await launchPage(application);
     await expect(launch.locator("html")).toHaveAttribute("data-commune", "39129");
     await expect(launch.locator("html")).toHaveAttribute("data-presentation", "alesia");
-    const lugdunum = launch.getByTestId("launch-city").filter({ hasText: "Lugdunum" });
-    await expect(lugdunum).toHaveCSS("opacity", "1", { timeout: 10_000 });
     await expect(launch.locator("html")).toHaveAttribute("data-state", "playing");
-    await expect(launch.getByTestId("launch-city").filter({ hasText: "Genava" })).toBeVisible();
-    await expect
-      .poll(() => launch.evaluate(() => document.querySelectorAll("[data-testid='launch-city']").length))
-      .toBe(18);
-    await launch.waitForTimeout(800);
-    expect(await overlappingCityLabels(launch)).toEqual([]);
+    await launch.waitForTimeout(3_000);
+    await expect(launch.locator("#cities")).toBeHidden();
+    await expect(launch.getByTestId("launch-map-caption")).not.toContainText("Gaule");
     const reached = await finalAt(launch, 15_000);
     const startedAt = Number(await launch.locator("html").getAttribute("data-started-at"));
     expect(reached - startedAt).toBeGreaterThan(9_000);

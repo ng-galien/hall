@@ -9694,7 +9694,7 @@
         "Le serveur Hall local utilise les mêmes contrats SQL et les mêmes services HTTP que le serveur partagé.",
         "Une erreur SQL n’interrompt pas les requêtes suivantes.",
         "La fermeture de l’application arrête le serveur PostgreSQL embarqué.",
-        "A recognized demonstration profile with a verified non-null schema fingerprint mismatch is erased and seeded again with fictional Alésia data, even when its application version is unchanged; it does not run schema migrations.",
+        "A recognized demonstration profile with a verified non-null schema fingerprint mismatch is erased and seeded again with the demonstration dataset it records, even when its application version is unchanged; it does not run schema migrations.",
         "A compatible demonstration is reused. Network failures, unidentified schema failures and databases without a valid demonstration state are not erased automatically."
       ],
       "clauses": [
@@ -9712,6 +9712,34 @@
         }
       ]
     },
+    "HALL-TR-DSK-040": {
+      "name": "DESKTOP_DEMONSTRATION_DATASET_CHOICE",
+      "nature": "technical",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-15"
+      },
+      "statement": "The desktop demonstration lets the person choose the demonstration dataset it loads, Foncine-le-Bas or Alésia, on its launch screen, and reopens the chosen dataset afterwards.",
+      "acceptanceCriteria": [
+        "At its first opening, when the profile holds no demonstration, the launch screen plays the assembly of France, common to both datasets, and presents the two datasets in that scene before loading anything: Foncine-le-Bas first, offered as the main choice, then Alésia, each with one loading command.",
+        "The Foncine-le-Bas entry reads « Foncine-le-Bas, Jura », « Démonstration dans une vraie commune de France. » and « Données de démonstration : réalistes, mais fictives. »; the Alésia entry keeps the Alésia launch text. The common part of the launch screen carries no text or element specific to Alésia.",
+        "Once a dataset is chosen, the animation continues towards its commune while the dataset loads, then onto the shared 3D relief of the sector: a view of Foncine-le-Bas and its surroundings for Foncine-le-Bas, the Alésia introduction and its story for Alésia. The load does not wait for the animation; when the animation ends before the load, the scene stays still and the progress shows the Hall waiting sign.",
+        "Choosing Foncine-le-Bas loads the Foncine-le-Bas dataset with its current-meeting scenario: meetings 1 to 3 closed, meeting 4 in progress with the vote on the Mont Noir road still to conduct. Choosing Alésia loads Alésia with the scenario it loaded before the choice existed. Hall then opens on the loaded workspace.",
+        "A failed preparation shows its message on the launch screen with a command that retries it.",
+        "Later openings reopen the recorded dataset without asking again, the animation going directly to its commune, including after an application update, which reloads that same dataset. A profile written before the choice existed is an Alésia demonstration.",
+        "The Démonstration menu command erases the demonstration data after confirmation, then presents the same choice; the dialog states that the demonstration data and the changes made in it are erased.",
+        "The packaged demonstration contains every file a dataset load reads, and a load makes no network connection. Without Légifrance credentials, the official legal references of the dataset are not created and the load continues.",
+        "The demonstration offers no creation of the person's own municipality."
+      ],
+      "clauses": [
+        {
+          "key": "owner-dataset-choice",
+          "origin": "product",
+          "statement": "Mots du propriétaire, 15 novembre 2026 : « C'est possible de le rajouter dans la démo, la 3D de Foncine-le-Bas ? » ; « le jeu par défaut, oui, il faudra qu'on choisisse le jeu… » ; « On garde sur les jeux de démo et on fera ça plus tard, la prochaine version. » (création de sa propre commune) ; « Alésia, on laisse tel quel… c'est une espèce de goodies, pas l'enlever » ; « Ce qui serait pas mal, c'est qu'on ait l'animation de la France, et quand on choisit le jeu de démo, on continue l'animation. » ; « Faut dire démonstration dans une vraie commune de France, Foncine-le-Bas, Jura. » ; « Vu que ce démarrage est plus ou moins commun, faut pas le mettre. » (textes propres à Alésia). Foncine-le-Bas is the first demonstration presented.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-TR-DSK-030": {
       "name": "DESKTOP_DEMONSTRATION_OPENS_WITHOUT_SIGN_IN",
       "nature": "technical",
@@ -9719,9 +9747,9 @@
         "state": "accepted",
         "since": "2026-11-07"
       },
-      "statement": "The desktop demonstration opens and keeps the Alésia workspace available without requiring the user to sign in.",
+      "statement": "The desktop demonstration opens and keeps the workspace of its loaded dataset available without requiring the user to sign in.",
       "acceptanceCriteria": [
-        "The demonstration opens its embedded Alésia workspace with a session even if another Hall server is configured or running.",
+        "The demonstration opens its embedded workspace with a session even if another Hall server is configured or running.",
         "The first request after session expiration, including after sleep, uses a renewed session without showing the sign-in form.",
         "Resetting the demonstration opens the newly seeded workspace signed in.",
         "The ordinary Hall authentication and session lifetime apply outside the desktop demonstration."
@@ -11468,16 +11496,16 @@
         "state": "accepted",
         "since": "2026-10-31"
       },
-      "statement": "The distributed desktop demonstration presents the validated Alésia introduction and prioritizes its rendering from opening until the user enters the ready workspace.",
+      "statement": "When it opens the Alésia dataset, the distributed desktop demonstration presents the validated Alésia introduction and prioritizes its rendering from opening until the user enters the ready workspace.",
       "acceptanceCriteria": [
-        "The introduction always follows France, ancient cities, Jura, Alésia and the existing shared relief, irrespective of any historical stored INSEE code. Startup neither reads municipality settings nor writes a remembered territory.",
+        "The introduction follows France, Jura, Alésia and the existing shared relief, irrespective of any historical stored INSEE code. Startup neither reads municipality settings nor writes a remembered territory.",
         "Embedded preparation starts only after a real useful frame signal; timeout or renderer failure never masquerades as this signal and produces a visible startup error.",
         "Frame observations include initial preparation, geometry and shader warm-up, animation, transition, final orbit, application loading and departure; raw timed intervals and p95/p99/max are retained, with an explicit reference frame budget rather than the measured median.",
         "The opening button and Enter require actual workspace readiness. The exact demonstration candidate is checked on its available target hardware for first launch, persisted relaunch, reset, reduced motion, local resources, errors and shutdown. Unexecuted target platforms remain explicit validation dependencies.",
         "The visual scenario, relief geometry and data remain unchanged. Candidate installation warnings distinguish technical macOS ad-hoc signing from developer signing or notarization; no signed-publisher distribution is promised.",
         "The sculpted progress footer reports real startup phases. Its progress indicator appears after the complete Hall tagline. It updates real startup phases immediately and shows activity while preparation continues. Its opening button stays hidden, disabled and outside keyboard navigation until actual workspace readiness, then becomes visible and usable immediately, even before the introduction or tagline finishes; preview-only simulations never enter the product.",
-        "Map captions successively show “La Gaule de Vercingétorix”, “Le territoire des Mandubiens” and “Alésia” with the existing map phases, progressively appear with the tiles and zoom, stay centered on the viewed area and disappear before the detailed relief. Hall identity and scene geometry remain unchanged.",
-        "After the introduction, mouse input provides real map-plane pan, zoom and tilt without required keyboard modifiers or instructional overlays. Once the user starts navigation, automatic camera motion does not override it."
+        "The assembly of France carries no caption and no ancient city, as it is common to both datasets; towards Alésia, map captions successively show “Le territoire des Mandubiens” and “Alésia” with the existing map phases, progressively appear with the zoom, stay centered on the viewed area and disappear before the detailed relief. Hall identity and scene geometry remain unchanged.",
+        "After the introduction and the story of the relief, the camera stays still; mouse input provides real map-plane pan, zoom and tilt without required keyboard modifiers or instructional overlays."
       ],
       "clauses": [
         {
