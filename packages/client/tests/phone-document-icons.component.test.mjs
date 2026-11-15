@@ -36,11 +36,14 @@ test("on a phone « Modifier » is the pencil of the icons of the application, n
 // @verifies-requirement HALL-FR-LAY-130
 test("the writing tools of a phone are icons of the application in the tone of the other commands", () => {
   const editor = source("components/editor/MarkdownEditor.tsx");
-  const bar = editor.slice(
-    editor.indexOf("function PhoneTool("),
-    editor.indexOf("function useMentionGroupLabels"),
-  );
-  for (const icon of ["<BoldIcon />", "<ItalicIcon />", "<HeadingIcon />", "<ListBulletedIcon />", "<FormattingIcon />"])
+  const bar = editor.slice(editor.indexOf("function PhoneTool("), editor.indexOf("function useMentionGroupLabels"));
+  for (const icon of [
+    "<BoldIcon />",
+    "<ItalicIcon />",
+    "<HeadingIcon />",
+    "<ListBulletedIcon />",
+    "<FormattingIcon />",
+  ])
     assert.ok(bar.includes(icon), icon);
   assert.doesNotMatch(bar, /Short"\)/);
   const photo = source("components/editor/ImageFileControls.tsx");
