@@ -178,6 +178,7 @@ test("only an administrator gives or withdraws the administrator role", async ({
   await expect(manager.getByTestId("user-role-clerk")).toBeVisible();
   await expect(manager.getByTestId("user-role-administrator")).toHaveCount(0);
   await manager.getByTestId("user-create-cancel").click();
+  await expect(manager.getByTestId("user-create-cancel")).toHaveCount(0);
 
   await manager.goto(`/app/users/${otherAdministrator.id}`);
   await manager.getByTestId("user-edit-roles").click();
