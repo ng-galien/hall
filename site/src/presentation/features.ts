@@ -24,7 +24,7 @@ const features: Feature[] = [
     icon: "business",
     title: "Affaires",
     lead: "Une affaire est un sujet que la commune suit dans la durée, souvent pendant des mois : la réfection d’un chemin, la rénovation d’un bâtiment, un marché. On y rattache au fil du temps ses documents, ses projets de délibération et les questions à examiner en séance.",
-    capture: "affaires.png",
+    capture: "affaires",
     alt: "Fiche d’une affaire : rapport, commission, projets et documents.",
     points: [
       "Dossier et rapport créés avec l’affaire", // WSP-010
@@ -39,7 +39,7 @@ const features: Feature[] = [
     icon: "folder",
     title: "Espace de travail",
     lead: "Les documents de la mairie, rangés en dossiers et partagés entre le secrétariat et les élus.",
-    capture: "espace-de-travail.png",
+    capture: "espace-de-travail",
     alt: "Espace de travail : dossiers, affaires, textes et fichiers.",
     points: [
       "Textes, tableurs, PDF et liens vers des pages web", // DOC-550, DOC-190
@@ -53,7 +53,7 @@ const features: Feature[] = [
     icon: "geographic",
     title: "Cartes",
     lead: "Vous dessinez les travaux sur la carte de la commune et vous les mesurez.",
-    capture: "cartes.png",
+    capture: "cartes",
     alt: "Carte avec points, tracés, zones et légende.",
     points: [
       "Points, tracés et zones sur le fond de carte IGN", // WSP-360, DOC-450 ; fond IGN vérifié dans le client
@@ -67,7 +67,7 @@ const features: Feature[] = [
     icon: "agenda",
     title: "Préparation de séance",
     lead: "Ordre du jour, convocation et dossier des élus partent des affaires, sans ressaisie.",
-    capture: "preparation.png",
+    capture: "preparation",
     alt: "Ordre du jour d’une séance, avec les sujets préparés.",
     points: [
       "Points classés : procès-verbal, projets, puis questions", // AGI-030, AGI-380
@@ -81,7 +81,7 @@ const features: Feature[] = [
     icon: "matter",
     title: "Séance et vote",
     lead: "Vous conduisez la séance point par point, sur ordinateur ou sur téléphone. Les élus la suivent en direct.",
-    capture: "seance.png",
+    capture: "seance",
     alt: "Mode séance : ordre du jour, point en discussion et pièces.",
     points: [
       "Appel, pouvoirs et quorum sur un seul écran", // MTG-300
@@ -95,7 +95,7 @@ const features: Feature[] = [
     icon: "adopted",
     title: "Procès-verbal et délibérations",
     lead: "Le procès-verbal et les délibérations reprennent les notes et les votes de la séance.",
-    capture: "deliberation.png",
+    capture: "deliberation",
     alt: "Rédaction d’une délibération adoptée, avant son gel.",
     points: [
       "Brouillon de délibération ouvert après le vote", // DEC-020
@@ -136,12 +136,34 @@ const teamwork = {
   ],
 };
 
-/** Les captures de la section, dans l'ordre des fonctionnalités, pour passer de l'une à l'autre en plein écran. */
-const shots: ViewerShot[] = features.flatMap((feature) =>
-  feature.capture
-    ? [{ file: feature.capture, caption: feature.title, alt: feature.alt, width: 1200, height: 750, pins: [] }]
-    : [],
-);
+/** Fichier de la capture dans le thème de la page : `<nom>-clair.png` ou `<nom>-sombre.png`. */
+function themedFile(name: string): string {
+  return `${name}-${document.documentElement.dataset.theme === "dark" ? "sombre" : "clair"}.png`;
+}
+
+/** Les captures de la section, dans l'ordre des fonctionnalités et dans le thème de la page, pour le plein écran. */
+function shots(): ViewerShot[] {
+  return features.flatMap((feature) =>
+    feature.capture
+      ? [
+          {
+            file: themedFile(feature.capture),
+            caption: feature.title,
+            alt: feature.alt,
+            width: 1200,
+            height: 750,
+            pins: [],
+          },
+        ]
+      : [],
+  );
+}
+
+/** Images des captures, remises au thème de la page quand il change. */
+const themedImages: { image: HTMLImageElement; name: string }[] = [];
+new MutationObserver(() => {
+  for (const { image, name } of themedImages) image.src = publicFileUrl(`captures/${themedFile(name)}`);
+}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
 const zoomGlyph =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M10.5 8v5M8 10.5h5"/></svg>';
@@ -201,7 +223,8 @@ function capture(feature: Feature): HTMLElement {
     return box;
   }
   const image = element("img", "f-capture");
-  image.src = publicFileUrl(`captures/${feature.capture}`);
+  image.src = publicFileUrl(`captures/${themedFile(feature.capture)}`);
+  themedImages.push({ image, name: feature.capture });
   image.alt = feature.alt ?? "";
   image.loading = "lazy";
   image.width = 1200;
@@ -214,8 +237,15 @@ function capture(feature: Feature): HTMLElement {
   hint.setAttribute("aria-hidden", "true");
   hint.innerHTML = zoomGlyph;
   open.append(image, hint);
-  const index = shots.findIndex((shot) => shot.file === feature.capture);
-  open.addEventListener("click", () => openViewer(shots, index, open));
+  const name = feature.capture;
+  open.addEventListener("click", () => {
+    const list = shots();
+    openViewer(
+      list,
+      list.findIndex((shot) => shot.file === themedFile(name)),
+      open,
+    );
+  });
   const figure = element("figure", "f-figure");
   figure.append(open, element("figcaption", "f-caption", "Application de démonstration, données fictives"));
   return figure;
@@ -300,8 +330,7 @@ export function renderFeatures(variant: "a" | "b") {
   const kicker = element("p", "f-kicker", "En savoir plus");
   const heading2 = element("h2", "f-heading", "Fonctionnalités");
   heading2.id = "en-savoir-plus-titre";
-  const source = element("p", "f-source", "Écrans du jeu Alésia.");
-  root.append(kicker, heading2, source);
+  root.append(kicker, heading2);
   const list = element("div", "f-list");
   if (variant === "b") tabbed(list);
   else editorial(list);

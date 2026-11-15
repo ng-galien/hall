@@ -4377,9 +4377,3 @@ html[data-scene="ready"] body .p-watermark.is-empty {
   color: var(--text-3);
   font-size: var(--fs-xs);
 }
-
-.f-source {
-  margin: -1.75rem 0 2.5rem;
-  color: var(--text-3);
-  font-size: var(--fs-sm);
-}
