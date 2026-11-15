@@ -43,3 +43,27 @@ test("a deliberation row shows its number, and a record names its list above its
   await expect(trail.locator('a[href$="/minutes"]')).toBeVisible();
   await expect(trail.locator(".screen-header-commune")).toHaveCount(0);
 });
+
+test("in the meeting in progress of the demonstration the plateau defence point waits for its ballot", async ({
+  appPage: page,
+}) => {
+  const plateau = "Défense du plateau - renforcement de la seconde ligne";
+  const decisions = await items<{ title: string }>(page, "/api/council-decisions");
+  expect(decisions).toHaveLength(5);
+  expect(decisions.map((decision) => decision.title)).not.toContain(plateau);
+  const meetings = await items<{ id: string; slug: string | null; startedAt: string | null; closedAt: string | null }>(
+    page,
+    "/api/council-meetings",
+  );
+  const running = meetings.find((meeting) => meeting.startedAt && !meeting.closedAt)!;
+  expect(running).toBeTruthy();
+  const agenda = (await (await page.request.get(`/api/council-meetings/${running.id}/agenda-items`)).json()) as {
+    entities?: Array<{ properties: { title: string; startedAt: string | null; completedAt?: string | null } }>;
+  };
+  const point = (agenda.entities ?? []).map((entity) => entity.properties).find((item) => item.title === plateau)!;
+  expect(point.startedAt).not.toBeNull();
+  expect(point.completedAt ?? null).toBeNull();
+  await page.goto(`/app/meetings/${running.slug ?? running.id}/live`);
+  await expect(page.getByTestId("live-meeting-page")).toContainText(plateau);
+  await expect(page.getByTestId("live-ballot-open")).toBeVisible();
+});

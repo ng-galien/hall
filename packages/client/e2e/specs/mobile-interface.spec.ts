@@ -214,9 +214,8 @@ test("phone calendar keeps a two-row toolbar, a floating « + Nouveau » and a s
       const box = (testId: string) => document.querySelector(`[data-testid="${testId}"]`)!.getBoundingClientRect();
       const heading = document.querySelector<HTMLElement>('[data-testid="calendar-title"]')!;
       const controls = [
-        "calendar-previous",
-        "calendar-next",
         "calendar-today",
+        "calendar-view-list",
         "calendar-view-dayGridMonth",
         "calendar-view-timeGridWeek",
         "calendar-view-timeGridDay",
@@ -236,6 +235,8 @@ test("phone calendar keeps a two-row toolbar, a floating « + Nouveau » and a s
         overlaps,
         rightGap: document.documentElement.clientWidth - Math.max(...all.map((rect) => rect.right)),
         legend: document.querySelectorAll(".calendar-legend").length,
+        periodArrows: document.querySelectorAll('[data-testid="calendar-previous"], [data-testid="calendar-next"]')
+          .length,
       };
     });
     expect(toolbar.rows, "toolbar rows").toBeLessThanOrEqual(2);
@@ -244,6 +245,7 @@ test("phone calendar keeps a two-row toolbar, a floating « + Nouveau » and a s
     expect(toolbar.overlaps, "toolbar controls apart").toBe(0);
     expect(toolbar.rightGap, "space before the right edge").toBeGreaterThanOrEqual(4);
     expect(toolbar.legend, "colour legend without action").toBe(0);
+    expect(toolbar.periodArrows, "the period changes by a swipe or the period picker").toBe(0);
     // A single area scrolls: the grid of the day; the page itself does not.
     const scrolling = await page.evaluate(
       () =>

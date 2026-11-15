@@ -283,6 +283,44 @@ test.describe("Hall pages on a phone", () => {
       await expect(page.getByTestId("resource-phone-view")).toBeVisible();
     });
 
+    // @verifies-requirement HALL-FR-SRC-030
+    test("the search criteria of a phone open their values in a sheet from the bottom and an active filter goes in one touch", async ({
+      appPage: page,
+    }) => {
+      await page.goto("/app/workspace");
+      await page.getByTestId("workspace-search-open").tap();
+      const surface = page.getByTestId("workspace-phone-search");
+      await expect(surface).toBeVisible();
+      await surface.getByTestId("workspace-search-input").fill("a");
+      const bar = surface.getByTestId("workspace-search-filter-bar");
+      await expect(bar).toBeVisible();
+      await expect(surface.getByTestId("workspace-search-add-filter")).toHaveCount(0);
+      await expect(page.locator('[data-testid^="workspace-search-filter-media-"]')).toHaveCount(0);
+      await bar.getByTestId("workspace-search-filter-category-type").tap();
+      const sheet = page.getByTestId("workspace-search-filters");
+      await expect(sheet).toBeVisible();
+      await expect
+        .poll(async () => {
+          const box = await sheet.boundingBox();
+          return box ? Math.round(box.y + box.height) : 0;
+        }, "the values open in a sheet standing on the bottom of the screen")
+        .toBe(844);
+      await expect(sheet.getByTestId("workspace-search-filter-type-image")).toBeVisible();
+      await sheet.getByTestId("workspace-search-filter-type-text").tap();
+      await expect(sheet).toBeHidden();
+      const mark = bar.getByTestId("workspace-search-remove-type-text");
+      await expect(mark).toBeVisible();
+      const results = surface.getByTestId("workspace-search-result");
+      await expect(results.first()).toBeVisible();
+      expect(
+        new Set(await results.evaluateAll((rows) => rows.map((row) => row.getAttribute("data-resource-kind")))),
+        "the type filter keeps the texts only",
+      ).toEqual(new Set(["text"]));
+      await mark.tap();
+      await expect(mark).toHaveCount(0);
+      await expect(bar.getByTestId("workspace-search-filter-category-type")).toBeVisible();
+    });
+
     // @verifies-requirement HALL-FR-LAY-010
     test("phone list rows are compact: minutes and meetings keep their texts beside the icon and the state", async ({
       appPage: page,

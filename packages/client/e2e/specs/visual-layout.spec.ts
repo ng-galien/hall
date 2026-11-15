@@ -19,8 +19,7 @@ async function items<T>(page: Page, path: string): Promise<T[]> {
 
 async function expectLoaded(page: Page) {
   await page.waitForLoadState("networkidle");
-  const label = await page.evaluate(() => (document.documentElement.lang === "fr" ? "Chargement…" : "Loading…"));
-  await expect(page.getByText(label, { exact: true })).toHaveCount(0);
+  await expect(page.locator(".loading-indicator")).toHaveCount(0);
 }
 
 async function expectIconsBesideLabel(button: Locator) {
