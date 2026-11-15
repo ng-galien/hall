@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { HelpHint } from "../../components/HelpHint";
 import { CalendarIcon, ChevronRightIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
@@ -138,9 +139,7 @@ export function WorkspaceHome({ onSelect }: { onSelect(selection: WorkspaceSelec
           </Button>
         </div>
       ) : loading ? (
-        <p className="workspace-list-empty" role="status" data-testid="workspace-home-loading">
-          {t("common.loading")}
-        </p>
+        <LoadingIndicator size="zone" label={t("common.loading")} data-testid="workspace-home-loading" />
       ) : groups.length === 0 && unscheduled.length === 0 ? (
         <p className="workspace-list-empty" data-testid="workspace-home-empty">
           {t("workspace.home.empty")}

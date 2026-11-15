@@ -1,6 +1,7 @@
 import { findSirenLink, type MinutesDetail } from "@hall/api-contract";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -41,7 +42,7 @@ export function AgendaMinutesApproval({ minutesId, itemId }: { minutesId: string
   return (
     <div className="composer-item-editor composer-minutes-approval" data-testid={`agenda-minutes-details-${itemId}`}>
       <RequestErrorBanner error={error} />
-      {!minutes && !error ? <p role="status">{t("common.loading")}</p> : null}
+      {!minutes && !error ? <LoadingIndicator size="zone" label={t("common.loading")} /> : null}
       {minutes ? (
         <p className="composer-minutes-line">
           <Link data-testid={`agenda-minutes-source-${itemId}`} to={`/minutes/${minutesId}`}>

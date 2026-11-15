@@ -28,7 +28,7 @@ test("file sizes are localized through Intl rather than visible unit literals", 
   assert.doesNotMatch(provider, /["']\s*(?:Ko|KB|ko|kB)["']/);
 });
 
-test("every visible mutation prevents duplicate submissions and reports progress", () => {
+test("every visible mutation prevents duplicate submissions and shows its wait", () => {
   const mutationSurfaces = [
     "src/pages/CouncilMembersPage.tsx",
     "src/pages/workspace/CouncilBusinessWorkbench.tsx",
@@ -44,7 +44,11 @@ test("every visible mutation prevents duplicate submissions and reports progress
     const source = read(path);
     assert.match(source, /useSubmitting\(\)/, `${path} must guard its visible mutation`);
     assert.match(source, /disabled=\{submitting[\s)|}]/, `${path} must disable its action while submitting`);
-    assert.match(source, /"common\.saving"/, `${path} must show translated progress`);
+    assert.match(
+      source,
+      /pending=\{submitting[\s)|&}]|"common\.saving"/,
+      `${path} must show the wait sign while submitting`,
+    );
   }
 });
 

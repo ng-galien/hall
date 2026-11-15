@@ -40,8 +40,9 @@ export function ResourceDeleteDialog({
                 onClose();
               })
             }
+            pending={submitting}
           >
-            {t(submitting ? "common.saving" : "workspace.deleteResource")}
+            {t("workspace.deleteResource")}
           </Button>
         </div>
       </div>

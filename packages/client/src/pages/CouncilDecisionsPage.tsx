@@ -2,6 +2,7 @@
 import type { CouncilDecisionSummary } from "@hall/api-contract";
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { HelpHint } from "../components/HelpHint";
 import { GavelIcon } from "../components/icons";
 import {
@@ -51,7 +52,7 @@ export function CouncilDecisionsPage() {
         <RequestErrorBanner error={error} />
         <CollectionToolbar query={query} onQueryChange={setQuery} />
         {loading && councilDecisions.length === 0 ? (
-          <p data-testid="decisions-loading">{t("common.loading")}</p>
+          <LoadingIndicator size="zone" label={t("common.loading")} data-testid="decisions-loading" />
         ) : groups.length === 0 && !error ? (
           <div data-testid="decisions-empty">
             <EmptyState>{t(councilDecisions.length ? "common.noSearchResults" : "decisions.empty")}</EmptyState>

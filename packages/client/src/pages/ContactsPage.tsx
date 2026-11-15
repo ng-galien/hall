@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { ContactIcon } from "../components/icons";
 import {
   CollectionToolbar,
@@ -23,7 +24,7 @@ import { useContactsStore } from "../stores/contactsStore";
 export function ContactsPage() {
   const { t } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { contacts, create, error, canCreate } = useContactsStore();
+  const { contacts, loading, create, error, canCreate } = useContactsStore();
   const [addOpen, setAddOpen] = useState(false);
   const [phonesInvalid, setPhonesInvalid] = useState<ContactPhoneField[]>([]);
   const { query, setQuery } = useCollectionView();
@@ -129,13 +130,21 @@ export function ContactsPage() {
               >
                 {t("common.cancel")}
               </Button>
-              <Button variant="primary" type="submit" disabled={submitting} data-testid="contact-create-submit">
-                {t(submitting ? "common.saving" : "common.create")}
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={submitting}
+                data-testid="contact-create-submit"
+                pending={submitting}
+              >
+                {t("common.create")}
               </Button>
             </div>
           </form>
         </Modal>
-        {visibleContacts.length === 0 ? (
+        {loading && contacts.length === 0 ? (
+          <LoadingIndicator size="zone" label={t("common.loading")} />
+        ) : visibleContacts.length === 0 ? (
           <EmptyState>{t(contacts.length === 0 ? "contacts.empty" : "common.noSearchResults")}</EmptyState>
         ) : (
           <ListRows>

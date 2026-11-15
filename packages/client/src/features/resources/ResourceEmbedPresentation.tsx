@@ -361,7 +361,7 @@ export function ResourceEmbedPresentation({ attributes }: { attributes: Resource
         data-testid="resource-embed-presentation"
       >
         <div className="editor-resource-embed-body">
-          {!details && !failed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
+          {!details && !failed ? <LoadingIndicator size="zone" label={t("common.loading")} /> : null}
           {failed ? <p className="editor-resource-embed-unavailable">{t("editor.embedUnavailable")}</p> : null}
           {details ? (
             <ResourceEmbedBody resource={details} representation={representation} attributes={attributes} />

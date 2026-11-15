@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CalendarIcon, PlayIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -55,7 +56,12 @@ export function HomeMeeting() {
     }
   };
 
-  if (meetings.length === 0 && (loading || initializing)) return <section className="home-meeting" aria-busy="true" />;
+  if (meetings.length === 0 && (loading || initializing))
+    return (
+      <section className="home-meeting" aria-busy="true">
+        <LoadingIndicator size="zone" label={t("common.loading")} />
+      </section>
+    );
 
   const head = (target: CouncilMeetingView) => {
     if (!target.scheduledAt) {
@@ -111,6 +117,8 @@ export function HomeMeeting() {
                   variant="secondary"
                   data-testid="home-meeting-notice"
                   disabled={!meeting.agendaRevision.noticeId || opening}
+                  pending={opening}
+                  pendingLabel={t("meeting.notice.title")}
                   onClick={() => {
                     if (meeting.agendaRevision.noticeId) void openNotice(meeting, meeting.agendaRevision.noticeId);
                   }}

@@ -24,7 +24,12 @@ vi.mock("../src/components/ui/dropdown-menu", () => ({
     h("button", { type: "button", role: "menuitem", ...props, onClick: onSelect }, children),
 }));
 vi.mock("../src/components/ui/button", () => ({
-  Button: ({ children, ...props }) => h("button", { type: "button", ...props }, children),
+  Button: ({ children, pending, pendingLabel, ...props }) =>
+    h(
+      "button",
+      { type: "button", ...props, ...(pending ? { "aria-busy": "true", "aria-label": pendingLabel } : {}) },
+      children,
+    ),
 }));
 vi.mock("../src/components/ui/dialog", () => ({
   Dialog: ({ children, open, onOpenChange }) =>
@@ -91,7 +96,8 @@ test("PDF preview uses current unsaved Markdown, then closes without changing it
   await act(async () => button.click());
   assert.deepEqual(vi.mocked(previewTemplatePdf).mock.calls, [["Rapport corrigé mais non enregistré", false]]);
   assert.equal(button.disabled, true);
-  assert.match(button.textContent, /Loading/);
+  assert.match(button.getAttribute("aria-label"), /Loading/);
+  assert.equal(button.getAttribute("aria-busy"), "true");
   assert.equal(host.querySelector("iframe"), null);
   await act(async () => complete("/api/templates/preview-pdf/current"));
   assert.equal(host.querySelector("iframe")?.getAttribute("src"), "/api/templates/preview-pdf/current");

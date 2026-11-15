@@ -1,5 +1,6 @@
 import type { CouncilCommitteeBusinessLink } from "@hall/api-contract";
 import { useEffect, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CouncilBusinessIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
@@ -41,7 +42,7 @@ export function CouncilCommitteeBusinesses({ committeeId }: { committeeId: strin
         title={t("committees.businesses")}
         description={t("committees.businessesDescription")}
       />
-      {loading ? <p role="status">{t("common.loading")}</p> : null}
+      {loading ? <LoadingIndicator size="zone" label={t("common.loading")} /> : null}
       {!loading && businesses.length === 0 && !error ? <p>{t("committees.noBusinesses")}</p> : null}
       {businesses.length > 0 ? (
         <ListRows className="committee-business-list">

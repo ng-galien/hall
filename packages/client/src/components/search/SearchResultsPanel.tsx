@@ -1,4 +1,5 @@
 import { type KeyboardEvent, type ReactNode, type RefObject, useEffect, useRef } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Mentionable } from "../editor/references";
 import { ChevronDownIcon, FolderIcon, SortIcon } from "../icons";
@@ -168,9 +169,7 @@ export function SearchResultsPanel({
         </ListRows>
         {hasMore ? <div ref={sentinel} className="search-results-sentinel" aria-hidden="true" /> : null}
         {loading ? (
-          <p className="search-results-message" role="status" data-testid={`${testId}-loading`}>
-            {t("common.loading")}
-          </p>
+          <LoadingIndicator size="zone" label={t("common.loading")} data-testid={`${testId}-loading`} />
         ) : null}
       </div>
     </div>

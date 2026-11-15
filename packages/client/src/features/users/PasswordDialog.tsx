@@ -152,8 +152,9 @@ export function PasswordDialog({
           type="submit"
           disabled={submitting || (passphrase !== null && !handedOver)}
           data-testid="password-submit"
+          pending={submitting}
         >
-          {t(submitting ? "common.saving" : "users.confirmPasswordChange")}
+          {t("users.confirmPasswordChange")}
         </Button>
       </div>
     </form>

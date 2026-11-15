@@ -137,8 +137,14 @@ export function GeographicLayerUploadDialog({
           <Button variant="secondary" type="button" disabled={submitting} onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button type="submit" disabled={submitting || !file} data-testid="geographic-layer-upload-submit">
-            {t(submitting ? "geographicLayer.upload.submitting" : "geographicLayer.upload.submit")}
+          <Button
+            type="submit"
+            disabled={submitting || !file}
+            data-testid="geographic-layer-upload-submit"
+            pending={submitting}
+            pendingLabel={t("geographicLayer.upload.submitting")}
+          >
+            {t("geographicLayer.upload.submit")}
           </Button>
         </div>
       </form>

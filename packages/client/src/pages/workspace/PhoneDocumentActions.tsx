@@ -129,8 +129,9 @@ export function PhoneRenameDialog({
           type="submit"
           data-testid="phone-rename-submit"
           disabled={busy || !draft.trim()}
+          pending={busy}
         >
-          {t(busy ? "common.saving" : "common.rename")}
+          {t("common.rename")}
         </Button>
       </form>
     </Modal>

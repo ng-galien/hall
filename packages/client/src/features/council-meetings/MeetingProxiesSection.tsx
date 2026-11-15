@@ -3,6 +3,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Field, FieldRow } from "@/components/ui/field";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { PrintIcon, ProxyIcon, UploadIcon } from "../../components/icons";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { ResourceSearchField } from "../../components/search/ResourceSearchField";
@@ -131,7 +132,9 @@ export function MeetingProxiesSection({
                 </ListRowIcon>
               }
               title={t("proxies.row", rowLabels(registration))}
-              detail={documentNames.get(registration.proxyDocumentId) ?? t("common.loading")}
+              detail={
+                documentNames.get(registration.proxyDocumentId) ?? <LoadingIndicator label={t("common.loading")} />
+              }
               onOpen={() => setPreviewedDocumentId(registration.proxyDocumentId)}
               openTestId={`meeting-proxy-document-${registration.grantorCouncilMemberId}`}
               action={
@@ -240,8 +243,9 @@ export function MeetingProxiesSection({
                     if (withdrawn) setWithdrawing(null);
                   })
                 }
+                pending={submitting}
               >
-                {t(submitting ? "common.saving" : "proxies.withdraw")}
+                {t("proxies.withdraw")}
               </Button>
             </div>
           </div>
@@ -386,8 +390,13 @@ function ProxyRegistrationDialog({
           >
             {t("common.cancel")}
           </Button>
-          <Button type="submit" data-testid="meeting-proxy-registration-submit" disabled={submitting || !complete}>
-            {t(submitting ? "common.saving" : "common.save")}
+          <Button
+            type="submit"
+            data-testid="meeting-proxy-registration-submit"
+            disabled={submitting || !complete}
+            pending={submitting}
+          >
+            {t("common.save")}
           </Button>
         </div>
       </form>

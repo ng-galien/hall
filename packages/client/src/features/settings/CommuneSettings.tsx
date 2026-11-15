@@ -163,8 +163,13 @@ export function CommuneSettings({
             {t("workspace.saved")}
           </span>
         ) : null}
-        <Button type="submit" disabled={submitting || !draft.name.trim()} data-testid="settings-commune-save">
-          {t(submitting ? "common.saving" : "common.save")}
+        <Button
+          type="submit"
+          disabled={submitting || !draft.name.trim()}
+          data-testid="settings-commune-save"
+          pending={submitting}
+        >
+          {t("common.save")}
         </Button>
       </div>
     </form>

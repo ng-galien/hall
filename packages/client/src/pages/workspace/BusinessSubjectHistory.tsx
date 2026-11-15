@@ -2,6 +2,7 @@
 import type { AgendaItem, CouncilDecisionDetail } from "@hall/api-contract";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CalendarIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRowDate, ListRowIcon, ListRows } from "../../components/ui/list-row";
@@ -56,7 +57,7 @@ export function BusinessSubjectHistory({
   }, [businessId, subjectId, revision, decisionIds]);
 
   if (error) return <RequestErrorBanner error={error} />;
-  if (!items) return <p className="business-subject-history-empty">{t("common.loading")}</p>;
+  if (!items) return <LoadingIndicator size="zone" label={t("common.loading")} />;
   if (items.length === 0)
     return <p className="business-subject-history-empty">{t("workspace.noPreviousOccurrences")}</p>;
 

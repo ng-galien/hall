@@ -142,7 +142,7 @@ export function ResourcePreviewWithSession({
         </div>
       }
     >
-      {!resource && !session.detailsFailed ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
+      {!resource && !session.detailsFailed ? <LoadingIndicator size="zone" label={t("common.loading")} /> : null}
       {session.detailsFailed ? <p role="alert">{t("common.requestFailed")}</p> : null}
       {resource ? (
         <ResourcePresentationBody

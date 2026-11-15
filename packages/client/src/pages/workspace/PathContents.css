@@ -10,3 +10,4 @@
 .path-contents-tree .list-row-title .workspace-explorer-rename-input { font-size: inherit; }
 
 .path-contents-tree .workspace-explorer-empty { list-style: none; }
+.path-contents-loading { display: flex; justify-content: center; padding: var(--hall-space-2) 0; list-style: none; }

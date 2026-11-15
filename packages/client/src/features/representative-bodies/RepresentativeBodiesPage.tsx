@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Textarea } from "@/components/ui/textarea";
 import { CommitteeIcon } from "../../components/icons";
 import {
@@ -32,7 +33,7 @@ export function RepresentativeBodiesPage({
   const { t } = useI18n();
   const navigate = useNavigate();
   const { submitting, run } = useSubmitting();
-  const { bodies, details, error, canCreate, load, loadAllDetails, create } = useStore();
+  const { bodies, loading, details, error, canCreate, load, loadAllDetails, create } = useStore();
   const text = bodyKind.text;
   const [addOpen, setAddOpen] = useState(false);
   const { query, setQuery } = useCollectionView();
@@ -100,14 +101,21 @@ export function RepresentativeBodiesPage({
               <Button variant="secondary" type="button" onClick={() => setAddOpen(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button type="submit" disabled={submitting} data-testid={`${bodyKind.kind}-create-submit`}>
-                {t(submitting ? "common.saving" : "common.create")}
+              <Button
+                type="submit"
+                disabled={submitting}
+                data-testid={`${bodyKind.kind}-create-submit`}
+                pending={submitting}
+              >
+                {t("common.create")}
               </Button>
             </div>
           </form>
         </Modal>
 
-        {visibleBodies.length === 0 ? (
+        {loading && bodies.length === 0 ? (
+          <LoadingIndicator size="zone" label={t("common.loading")} />
+        ) : visibleBodies.length === 0 ? (
           <EmptyState>{t(bodies.length === 0 ? text.empty : "common.noSearchResults")}</EmptyState>
         ) : (
           <ListRows className="list-full-titles">

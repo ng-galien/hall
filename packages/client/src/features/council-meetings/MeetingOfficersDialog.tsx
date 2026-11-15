@@ -159,8 +159,9 @@ export function MeetingOfficersDialog({
             type="submit"
             data-testid="live-officers-handover-submit"
             disabled={!successor || submitting || !canRecordOfficerChange}
+            pending={submitting}
           >
-            {t(submitting ? "common.saving" : "officers.handoverAction")}
+            {t("officers.handoverAction")}
           </Button>
         </form>
       </div>

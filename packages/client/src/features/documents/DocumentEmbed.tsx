@@ -27,7 +27,7 @@ export function DocumentEmbed({
       {unavailable ? (
         <DocumentPreviewUnavailable testId={objectTestId ? `${objectTestId}-unavailable` : undefined} />
       ) : null}
-      {!objectUrl && !failed && !unavailable ? <LoadingIndicator>{t("common.loading")}</LoadingIndicator> : null}
+      {!objectUrl && !failed && !unavailable ? <LoadingIndicator size="zone" label={t("common.loading")} /> : null}
       {failed ? <DocumentPreviewFailure onRetry={retry} /> : null}
       {objectUrl && mediaType ? (
         <NativeDocumentFrame url={objectUrl} mediaType={mediaType} title={resource.name} testId={objectTestId} />

@@ -57,9 +57,10 @@ export function useTextWriting(text: WritableText): { editing: boolean; control:
         className="screen-header-writing"
         data-testid="text-finish-editing"
         disabled={finishing}
+        pending={finishing}
         onClick={() => void finish()}
       >
-        {finishing ? t("common.saving") : t("workspace.finishEditing")}
+        {t("workspace.finishEditing")}
       </Button>
     ) : (
       <Button

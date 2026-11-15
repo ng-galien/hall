@@ -697,8 +697,9 @@ export function VotePanel({
                     }
                   })
                 }
+                pending={submitting}
               >
-                {t(submitting ? "common.saving" : "ballot.confirm")}
+                {t("ballot.confirm")}
               </Button>
             </div>
           </div>
@@ -747,8 +748,9 @@ export function VotePanel({
                   disabled={submitting || !chairPresent || (method === "public" ? !publicComplete : !secretValid)}
                   data-testid="live-ballot-preview-open"
                   onClick={() => void record()}
+                  pending={submitting}
                 >
-                  {t(submitting ? "common.saving" : "ballot.previewAction")}
+                  {t("ballot.previewAction")}
                 </Button>,
                 actionContainer,
               )

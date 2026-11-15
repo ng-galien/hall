@@ -48,7 +48,14 @@ export function PrepareMailButton({ input, testId }: { input: z.infer<typeof pre
   if (!available) return null;
   return (
     <>
-      <Button variant="secondary" data-testid={testId} disabled={busy} onClick={prepare}>
+      <Button
+        variant="secondary"
+        data-testid={testId}
+        disabled={busy}
+        pending={busy}
+        pendingLabel={t("mail.prepare")}
+        onClick={prepare}
+      >
         <MailIcon />
         {t("mail.prepare")}
       </Button>

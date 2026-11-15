@@ -88,6 +88,8 @@ export function MailReview({
             <Button
               data-testid="mail-send-confirm"
               disabled={busy}
+              pending={busy}
+              pendingLabel={t("mail.send")}
               onClick={() => {
                 setBusy(true);
                 setError(null);

@@ -80,8 +80,9 @@ export function AgendaItemRecusalDialog({
               data-testid="recusal-confirm"
               disabled={!controller.canRecord || controller.submitting}
               onClick={() => void confirm()}
+              pending={controller.submitting}
             >
-              {t(controller.submitting ? "common.saving" : "common.confirm")}
+              {t("common.confirm")}
             </Button>
           </div>
         </div>

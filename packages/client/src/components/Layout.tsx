@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { resourceFillsScreen } from "../features/resources/resourceEditorPolicy";
 import { GlobalSearchPalette } from "../features/search/GlobalSearchPalette";
 import { useI18n } from "../i18n/I18nProvider";
@@ -126,7 +127,7 @@ export function Layout() {
                         />
                       )}
                       <div className="app-content">
-                        <Suspense fallback={<div className="page-content">{t("common.loading")}</div>}>
+                        <Suspense fallback={<LoadingIndicator size="page" label={t("common.loading")} />}>
                           <Outlet />
                         </Suspense>
                       </div>

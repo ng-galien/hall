@@ -75,8 +75,10 @@ export function BusinessBundleExportDialog({ businessId, onClose }: { businessId
           type="submit"
           disabled={submitting || !firstName.trim() || !lastName.trim()}
           data-testid="bundle-export-submit"
+          pending={submitting}
+          pendingLabel={t("common.loading")}
         >
-          {t(submitting ? "common.loading" : "bundles.export")}
+          {t("bundles.export")}
         </Button>
         <Button
           type="button"
@@ -149,8 +151,14 @@ export function BusinessBundleImportDialog({
             }}
           />
         </Field>
-        <Button type="submit" disabled={submitting || !file} data-testid="bundle-import-submit">
-          {t(submitting ? "common.loading" : "bundles.import")}
+        <Button
+          type="submit"
+          disabled={submitting || !file}
+          data-testid="bundle-import-submit"
+          pending={submitting}
+          pendingLabel={t("common.loading")}
+        >
+          {t("bundles.import")}
         </Button>
       </form>
     </Modal>

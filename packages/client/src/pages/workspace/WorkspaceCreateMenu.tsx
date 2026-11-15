@@ -162,8 +162,9 @@ export function useWorkspaceCreation({
           type="submit"
           data-testid="workspace-create-submit"
           disabled={busy || !title.trim()}
+          pending={busy}
         >
-          {t(busy ? "common.saving" : "common.create")}
+          {t("common.create")}
         </Button>
       </form>
     </Modal>

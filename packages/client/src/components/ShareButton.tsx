@@ -26,6 +26,8 @@ export function ShareButton({
       size={size}
       data-testid={testId}
       disabled={pending}
+      pending={pending}
+      pendingLabel={t("common.share")}
       onClick={() => {
         setPending(true);
         void file()

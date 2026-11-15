@@ -1,10 +1,11 @@
 import { useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CopyReferenceButton, copyObjectReference } from "../../components/CopyReferenceButton";
 import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon, VisibleIcon } from "../../components/icons";
 import { ShareButton } from "../../components/ShareButton";
-import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { SectionHeader } from "../../components/ui/section-header";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
@@ -156,21 +157,25 @@ function MinutesDetail({ id }: { id: string }) {
                     variant="secondary"
                     disabled={draft.previewing || draft.generating}
                     data-testid="minutes-preview"
+                    pending={draft.previewing}
+                    pendingLabel={t("minutes.previewing")}
                     ref={documentTrigger}
                     onClick={() => void draft.preview()}
                   >
                     <VisibleIcon aria-hidden="true" />
-                    {t(draft.previewing ? "minutes.previewing" : "minutes.preview")}
+                    {t("minutes.preview")}
                   </Button>
                 ) : null}
                 {draft.canGenerate ? (
                   <Button
                     disabled={draft.generating || draft.previewing}
                     data-testid="minutes-generate"
+                    pending={draft.generating}
+                    pendingLabel={t("minutes.generating")}
                     onClick={() => void draft.generate()}
                   >
                     <PdfIcon aria-hidden="true" />
-                    {t(draft.generating ? "minutes.generating" : "minutes.generate")}
+                    {t("minutes.generate")}
                   </Button>
                 ) : null}
                 {minutes.documentId ? (
@@ -268,21 +273,25 @@ function MinutesDetail({ id }: { id: string }) {
                         variant="secondary"
                         disabled={draft.previewing || draft.generating}
                         data-testid="minutes-preview"
+                        pending={draft.previewing}
+                        pendingLabel={t("minutes.previewing")}
                         ref={documentTrigger}
                         onClick={() => void draft.preview()}
                       >
                         <VisibleIcon aria-hidden="true" />
-                        {t(draft.previewing ? "minutes.previewing" : "minutes.preview")}
+                        {t("minutes.preview")}
                       </Button>
                     ) : null}
                     {draft.canGenerate ? (
                       <Button
                         disabled={draft.generating || draft.previewing}
                         data-testid="minutes-generate"
+                        pending={draft.generating}
+                        pendingLabel={t("minutes.generating")}
                         onClick={() => void draft.generate()}
                       >
                         <PdfIcon aria-hidden="true" />
-                        {t(draft.generating ? "minutes.generating" : "minutes.generate")}
+                        {t("minutes.generate")}
                       </Button>
                     ) : null}
                     {minutes.documentId ? (
@@ -318,7 +327,7 @@ function MinutesDetail({ id }: { id: string }) {
       <div className="page-content admin-detail-page minutes-editorial-page">
         <RequestErrorBanner error={draft.error} />
         {draft.loading ? (
-          <EmptyState>{t("common.loading")}</EmptyState>
+          <LoadingIndicator size="zone" label={t("common.loading")} />
         ) : !minutes ? (
           <Button variant="secondary" data-testid="minutes-open-retry" onClick={() => void draft.load()}>
             {t("common.retry")}

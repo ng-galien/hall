@@ -2,6 +2,7 @@ import { findSirenLink } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { copyObjectReference } from "../../components/CopyReferenceButton";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { ColorIcon, EditIcon, PinIcon, PinnedIcon } from "../../components/icons";
@@ -324,15 +325,12 @@ export function CouncilBusinessWorkbench({
                 </Button>
               </div>
             ) : (
-              <div className="business-report-loading" role="status" data-testid="business-report-loading">
-                <p>{t("common.loading")}</p>
-                <div className="business-report-loading-placeholder" aria-hidden="true">
-                  <span className="business-report-loading-toolbar" />
-                  <span className="business-report-loading-line" />
-                  <span className="business-report-loading-line business-report-loading-line-short" />
-                  <span className="business-report-loading-line" />
-                </div>
-              </div>
+              <LoadingIndicator
+                size="zone"
+                className="business-report-loading"
+                label={t("common.loading")}
+                data-testid="business-report-loading"
+              />
             )}
           </div>
           {showReportEditor && (!reportSession.autosaveEnabled || reportSession.actionError) ? (
@@ -343,8 +341,9 @@ export function CouncilBusinessWorkbench({
                 variant="primary"
                 disabled={submitting || reportSession.submitting || !reportSession.dirty || !reportSession.editable}
                 onClick={() => void run(saveReport)}
+                pending={submitting || reportSession.submitting}
               >
-                {t(submitting || reportSession.submitting ? "common.saving" : "common.save")}
+                {t("common.save")}
               </Button>
             </div>
           ) : null}
@@ -378,9 +377,7 @@ export function CouncilBusinessWorkbench({
               </Button>
             </div>
           ) : !documentsLoaded ? (
-            <p className="workspace-list-empty" role="status">
-              {t("common.loading")}
-            </p>
+            <LoadingIndicator size="zone" label={t("common.loading")} />
           ) : phone && attachedResources.length ? (
             <ListRows className="business-phone-list" data-testid="business-phone-documents">
               {attachedResources.map((resource) => (

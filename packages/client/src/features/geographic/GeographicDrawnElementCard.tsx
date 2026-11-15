@@ -1,5 +1,6 @@
 import type { GeographicFeatureNote, SirenEntity } from "@hall/api-contract";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import type { EditorImageUpload } from "../../components/editor/imageTransfer";
 import { HelpHint } from "../../components/HelpHint";
 import { CenterOnFeatureIcon, CloseIcon } from "../../components/icons";
@@ -182,7 +183,7 @@ export function GeographicDrawnElementCard({
         )}
         <div className="geographic-feature-card-note" data-testid="geographic-drawn-element-card-note">
           {loading || creatingNote ? (
-            <p className="geographic-feature-card-muted">{t("common.loading")}</p>
+            <LoadingIndicator size="zone" label={t("common.loading")} />
           ) : note ? (
             <InlineResourceContent
               key={note.noteId}

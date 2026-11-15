@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import type { EditorImageUpload } from "../../components/editor/imageTransfer";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -37,7 +38,7 @@ export function InlineResourceContent({
       {session.detailsFailed ? (
         <p role="alert">{t("common.requestFailed")}</p>
       ) : !session.resource ? (
-        <p role="status">{t("common.loading")}</p>
+        <LoadingIndicator size="zone" label={t("common.loading")} />
       ) : (
         <ResourcePresentationBody
           resource={session.resource}

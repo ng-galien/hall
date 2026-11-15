@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CollapseIcon, ExpandIcon } from "../../components/icons";
 import { matchesQuery } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -180,7 +181,7 @@ export function MapsPanel({
       />
       <div className="maps-panel-body">
         {maps === null ? (
-          <p className="maps-panel-empty">{t("common.loading")}</p>
+          <LoadingIndicator size="zone" label={t("common.loading")} />
         ) : found ? (
           <section data-testid="maps-search-results">
             {found.length === 0 ? (

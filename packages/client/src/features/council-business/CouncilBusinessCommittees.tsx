@@ -1,6 +1,7 @@
 import { type CouncilBusinessCommitteeLink, findSirenAction, type SirenEntity } from "@hall/api-contract";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { ChevronDownIcon, CloseIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ActiveOption } from "../../components/ui/active-option";
@@ -224,8 +225,8 @@ export function CouncilBusinessCommittees({ businessId }: { businessId: string }
             ) : null}
           </div>
         ) : null}
-        {loading ? <span role="status">{t("common.loading")}</span> : null}
-        {pendingId ? <span role="status">{t("common.saving")}</span> : null}
+        {loading ? <LoadingIndicator label={t("common.loading")} /> : null}
+        {pendingId ? <LoadingIndicator label={t("common.saving")} /> : null}
       </div>
       <RequestErrorBanner error={error} onDismiss={() => setError(null)} compact />
     </div>

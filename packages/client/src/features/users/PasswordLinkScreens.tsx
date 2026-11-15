@@ -1,5 +1,6 @@
 import type { ApiPasswordLink, SirenEntity } from "@hall/api-contract";
 import { type FormEvent, useEffect, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { AuthenticationHeader } from "../../components/AuthenticationHeader";
 import { HelpHint } from "../../components/HelpHint";
 import { RequestErrorBanner } from "../../components/Ui";
@@ -73,8 +74,14 @@ export function PasswordRecoveryScreen({
                 onChange={(event) => setEmail(event.currentTarget.value)}
               />
             </Field>
-            <Button data-testid="password-recovery-submit" type="submit" disabled={submitting}>
-              {t(submitting ? "auth.submitting" : "auth.recoverySubmit")}
+            <Button
+              data-testid="password-recovery-submit"
+              type="submit"
+              disabled={submitting}
+              pending={submitting}
+              pendingLabel={t("auth.submitting")}
+            >
+              {t("auth.recoverySubmit")}
             </Button>
           </>
         )}
@@ -170,7 +177,7 @@ export function PasswordLinkScreen({
         ) : loadError ? (
           <RequestErrorBanner error={loadError} />
         ) : !link ? (
-          <p>{t("common.loading")}</p>
+          <LoadingIndicator size="zone" label={t("common.loading")} />
         ) : (
           <>
             <p data-testid="password-link-account">{t("auth.passwordLinkAccount", { email: link.email })}</p>
@@ -205,8 +212,8 @@ export function PasswordLinkScreen({
                 />
               </Field>
             </fieldset>
-            <Button type="submit" disabled={submitting} data-testid="password-link-submit">
-              {t(submitting ? "common.saving" : "common.save")}
+            <Button type="submit" disabled={submitting} data-testid="password-link-submit" pending={submitting}>
+              {t("common.save")}
             </Button>
           </>
         )}

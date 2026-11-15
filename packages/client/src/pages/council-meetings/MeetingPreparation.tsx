@@ -7,6 +7,7 @@ import { Link, useLocation } from "react-router-dom";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { EntitySelect } from "../../components/search/EntitySelect";
 import { PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { AgendaRevisionControl } from "../../features/council-meetings/AgendaRevisionControl";
@@ -240,9 +241,11 @@ export function MeetingPreparation({ meetingActions }: { meetingActions: ReturnT
             className="meeting-general"
           >
             {detailsStatus ? (
-              <p role="status" className="meeting-evidence" data-testid="meeting-details-status">
-                {t(detailsStatus)}
-              </p>
+              <LoadingIndicator
+                size={detailsReady ? "inline" : "zone"}
+                label={t(detailsStatus)}
+                data-testid="meeting-details-status"
+              />
             ) : null}
             {detailsReady ? (
               <form

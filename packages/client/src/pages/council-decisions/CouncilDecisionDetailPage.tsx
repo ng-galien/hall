@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CopyReferenceButton, copyObjectReference } from "../../components/CopyReferenceButton";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon } from "../../components/icons";
@@ -105,7 +106,7 @@ function CouncilDecisionDetail({ id }: { id: string }) {
       <div className="page-content admin-detail-page">
         <RequestErrorBanner error={draft.error} />
         {draft.loading ? (
-          <p>{t("common.loading")}</p>
+          <LoadingIndicator size="zone" label={t("common.loading")} />
         ) : !decision ? (
           <Button data-testid="decision-load-retry" variant="secondary" onClick={() => void draft.load()}>
             {t("common.retry")}
@@ -243,6 +244,8 @@ function CouncilDecisionDetail({ id }: { id: string }) {
                 <Button
                   data-testid="decision-freeze-confirm"
                   disabled={draft.freezing}
+                  pending={draft.freezing}
+                  pendingLabel={t("decisionDocument.freeze")}
                   onClick={() =>
                     void draft.freeze().then((ok) => {
                       if (ok) setConfirming(false);

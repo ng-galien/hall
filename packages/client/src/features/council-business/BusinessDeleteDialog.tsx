@@ -50,8 +50,9 @@ export function BusinessDeleteDialog({
               }
             })
           }
+          pending={submitting}
         >
-          {t(submitting ? "common.saving" : "business.delete")}
+          {t("business.delete")}
         </Button>
       </div>
     </Modal>

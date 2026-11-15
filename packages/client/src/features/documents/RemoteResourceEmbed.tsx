@@ -75,7 +75,7 @@ export function RemoteResourceEmbed({
         />
         {loading ? (
           <div className="absolute inset-0 grid place-items-center bg-[var(--hall-color-surface)]">
-            <LoadingIndicator>{t("common.loading")}</LoadingIndicator>
+            <LoadingIndicator size="zone" label={t("common.loading")} />
           </div>
         ) : null}
       </div>

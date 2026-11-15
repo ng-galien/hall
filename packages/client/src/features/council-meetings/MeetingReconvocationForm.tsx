@@ -128,8 +128,8 @@ export function MeetingReconvocationForm({
             >
               {t("common.cancel")}
             </Button>
-            <Button type="submit" disabled={submitting} data-testid="live-reconvocation-submit">
-              {t(submitting ? "common.saving" : "common.save")}
+            <Button type="submit" disabled={submitting} data-testid="live-reconvocation-submit" pending={submitting}>
+              {t("common.save")}
             </Button>
           </div>
         </form>

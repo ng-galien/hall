@@ -118,8 +118,10 @@ export function MunicipalPropertyImportDialog({
               type="submit"
               disabled={submitting || !label.trim() || (!file && !list.trim())}
               data-testid="municipal-property-import-submit"
+              pending={submitting}
+              pendingLabel={t("common.loading")}
             >
-              {t(submitting ? "common.loading" : "municipalProperty.import.submit")}
+              {t("municipalProperty.import.submit")}
             </Button>
           </div>
         </form>

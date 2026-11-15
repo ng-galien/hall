@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { Disclosure } from "../components/ui/disclosure";
@@ -75,7 +76,11 @@ export function TemplatePage() {
         <PageHeader title={t("templates.title")} hint={t("templates.detailDescription")} />
         <div className="page-content">
           <RequestErrorBanner error={error} />
-          {missing ? <EmptyState>{t("templates.notFound")}</EmptyState> : null}
+          {missing ? (
+            <EmptyState>{t("templates.notFound")}</EmptyState>
+          ) : error ? null : (
+            <LoadingIndicator size="zone" label={t("common.loading")} />
+          )}
         </div>
       </div>
     );
@@ -121,8 +126,13 @@ export function TemplatePage() {
           {t("templates.preview")}
         </Button>
         {readOnly ? null : (
-          <Button disabled={submitting || !dirty || !draft.name.trim()} data-testid="template-save" onClick={save}>
-            {t(submitting ? "common.saving" : "common.save")}
+          <Button
+            disabled={submitting || !dirty || !draft.name.trim()}
+            data-testid="template-save"
+            onClick={save}
+            pending={submitting}
+          >
+            {t("common.save")}
           </Button>
         )}
       </PageHeader>

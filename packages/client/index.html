@@ -7,9 +7,18 @@
     <link rel="icon" href="/icons/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <style>
+      .boot-loading { display: grid; min-height: 100dvh; place-items: center; opacity: 0; animation: boot-loading-appear 200ms 300ms forwards; }
+      .boot-loading-ring { width: 32px; height: 32px; box-sizing: border-box; border: 2px solid #c3c9d2; border-top-color: #2457d6; border-radius: 50%; animation: boot-loading-turn 800ms linear infinite; }
+      @media (prefers-color-scheme: dark) {
+        .boot-loading-ring { border-color: #454c5a; border-top-color: #7f9cf0; }
+      }
+      @keyframes boot-loading-turn { to { transform: rotate(1turn); } }
+      @keyframes boot-loading-appear { to { opacity: 1; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot-loading"><span class="boot-loading-ring"></span></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

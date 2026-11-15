@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TemplateIcon } from "../components/icons";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
@@ -137,14 +138,19 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
                   type="submit"
                   disabled={submitting || !newType || !newName.trim()}
                   data-testid="templates-add-submit"
+                  pending={submitting}
                 >
-                  {t(submitting ? "common.saving" : "common.create")}
+                  {t("common.create")}
                 </Button>
               </div>
             </form>
           )}
         </Modal>
-        {templates === null ? null : templates.length === 0 ? (
+        {templates === null ? (
+          error ? null : (
+            <LoadingIndicator size="zone" label={t("common.loading")} />
+          )
+        ) : templates.length === 0 ? (
           <EmptyState>{t("templates.empty")}</EmptyState>
         ) : (
           <ListRows className="list-full-titles" data-testid="templates-list">

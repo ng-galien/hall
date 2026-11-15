@@ -2,6 +2,7 @@ import type { MailMessage, MailRecipientGroup } from "@hall/api-contract";
 import { findSirenAction } from "@hall/api-contract";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { DraftIcon, MailIcon, MoreIcon, SentIcon, SidebarCollapseIcon } from "../../components/icons";
 import { EmptyState, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -183,7 +184,9 @@ export function MailPage() {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
-      {shown.length === 0 ? (
+      {collection === null && !error ? (
+        <LoadingIndicator size="zone" label={t("common.loading")} />
+      ) : shown.length === 0 ? (
         <EmptyState>{t(query.trim() ? "mail.noMatch" : `mail.empty.${folder}`)}</EmptyState>
       ) : (
         <ListRows>
@@ -251,7 +254,11 @@ export function MailPage() {
           }}
         />
       )
-    ) : mailId ? null : (
+    ) : mailId ? (
+      error ? null : (
+        <LoadingIndicator size="zone" label={t("common.loading")} />
+      )
+    ) : (
       <div className="mail-view-empty">
         <MailIcon aria-hidden="true" />
         {t("mail.selectMessage")}

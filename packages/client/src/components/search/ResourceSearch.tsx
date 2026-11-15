@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { referenceKindNatures, ToneGlyph } from "../../features/documents/ResourceGlyph";
 import { type ResourceSearchScope, useResourceSearch } from "../../features/search/useResourceSearch";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -235,9 +236,7 @@ export const ResourceSearch = forwardRef<ResourceSearchHandle, ResourceSearchPro
               </div>
             ) : null}
             {search.loading ? (
-              <p role="status" data-testid={`${testId}-loading`}>
-                {t("common.loading")}
-              </p>
+              <LoadingIndicator size="zone" label={t("common.loading")} data-testid={`${testId}-loading`} />
             ) : null}
             {search.error ? (
               <div role="alert" data-testid={`${testId}-error`}>

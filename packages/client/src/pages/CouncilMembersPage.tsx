@@ -3,6 +3,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MemberIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
@@ -28,7 +29,7 @@ import { useCouncilMembersStore } from "../stores/councilMembersStore";
 export function CouncilMembersPage() {
   const { t, plural, formatDate } = useI18n();
   const { submitting, run } = useSubmitting();
-  const { members, create: createMember, error, canCreate } = useCouncilMembersStore();
+  const { members, loading, create: createMember, error, canCreate } = useCouncilMembersStore();
   const contacts = useContactsStore((state) => state.contacts);
   const { bodies: committees, details, load: loadCommittees, loadAllDetails } = useCouncilCommitteesStore();
   const [addOpen, setAddOpen] = useState(false);
@@ -164,13 +165,21 @@ export function CouncilMembersPage() {
               >
                 {t("common.cancel")}
               </Button>
-              <Button variant="primary" type="submit" disabled={submitting} data-testid="member-create-submit">
-                {t(submitting ? "common.saving" : "common.create")}
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={submitting}
+                data-testid="member-create-submit"
+                pending={submitting}
+              >
+                {t("common.create")}
               </Button>
             </div>
           </form>
         </Modal>
-        {visibleMembers.length === 0 ? (
+        {loading && members.length === 0 ? (
+          <LoadingIndicator size="zone" label={t("common.loading")} />
+        ) : visibleMembers.length === 0 ? (
           <EmptyState>{t(members.length === 0 ? "members.empty" : "common.noSearchResults")}</EmptyState>
         ) : (
           <ListRows className="list-full-titles">

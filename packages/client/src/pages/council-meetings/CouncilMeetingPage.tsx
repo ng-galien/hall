@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { EmptyState, RequestErrorBanner } from "../../components/Ui";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { RequestErrorBanner } from "../../components/Ui";
 import { useCouncilMeeting } from "../../hooks/useCouncilMeeting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { MeetingInProgressHero } from "./MeetingInProgressHero";
@@ -21,7 +22,7 @@ export function CouncilMeetingPage({ meetingReference }: { meetingReference?: st
   }, [currentSlug, meetingId, meetingReference, navigate]);
 
   if (error) return <RequestErrorBanner error={error} />;
-  if (!aggregate) return <EmptyState>{t("meeting.loading")}</EmptyState>;
+  if (!aggregate) return <LoadingIndicator size="page" label={t("meeting.loading")} />;
 
   if (aggregate.meeting.status === "inProgress") {
     return <MeetingInProgressHero aggregate={aggregate} meetingActions={meetingActions} />;

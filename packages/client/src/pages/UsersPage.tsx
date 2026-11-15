@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CreateButton } from "@/components/ui/create-button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { HelpHint } from "../components/HelpHint";
 import { MembersIcon } from "../components/icons";
 import { EntitySelect } from "../components/search/EntitySelect";
@@ -274,14 +275,15 @@ export function UsersPage() {
                   (handDelivered && passphrase !== null && !handedOver)
                 }
                 data-testid="user-create-submit"
+                pending={submitting}
               >
-                {t(submitting ? "common.saving" : "common.create")}
+                {t("common.create")}
               </Button>
             </div>
           </form>
         </Modal>
         {loading ? (
-          <EmptyState>{t("common.loading")}</EmptyState>
+          <LoadingIndicator size="zone" label={t("common.loading")} />
         ) : visible.length === 0 ? (
           <EmptyState testId="users-empty">
             {t(users.length === 0 ? "users.empty" : "common.noSearchResults")}

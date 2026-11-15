@@ -4,6 +4,7 @@ import { Children, type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { SectionHeader } from "@/components/ui/section-header";
 import { HelpHint } from "../../components/HelpHint";
 import {
@@ -217,7 +218,7 @@ export function MeetingDocumentsSection({
     const link = opened.representation ? findSirenLink(opened.representation, "content") : undefined;
     if (link) setViewer({ title, href: link.href });
   };
-  const noticeState = (): { text: string; tone: DocumentTone } => {
+  const noticeState = (): { text: ReactNode; tone: DocumentTone } => {
     if (currentNotice)
       return {
         text: t("meeting.documents.noticeEstablished", {
@@ -226,7 +227,7 @@ export function MeetingDocumentsSection({
         }),
         tone: "done",
       };
-    if (hasNotice) return { text: t("common.loading"), tone: "neutral" };
+    if (hasNotice) return { text: <LoadingIndicator label={t("common.loading")} />, tone: "neutral" };
     if (revisionEstablished)
       return {
         text: t("meeting.documents.noticeMissing", { number: formatNumber(agendaRevision.number) }),
@@ -320,6 +321,7 @@ export function MeetingDocumentsSection({
                     variant={hasNotice ? "secondary" : "primary"}
                     data-testid={hasNotice ? "meeting-notice-regenerate" : "meeting-generate-notice"}
                     disabled={submitting}
+                    pending={submitting}
                     onClick={() =>
                       perform(async () => {
                         const generated = await generateMeetingNotice(meeting.reference);
@@ -329,13 +331,7 @@ export function MeetingDocumentsSection({
                     }
                   >
                     <GenerateIcon aria-hidden="true" />
-                    {t(
-                      submitting
-                        ? "common.saving"
-                        : hasNotice
-                          ? "meeting.notice.regenerate"
-                          : "meeting.notice.generate",
-                    )}
+                    {t(hasNotice ? "meeting.notice.regenerate" : "meeting.notice.generate")}
                   </Button>
                 ) : null}
                 {canExportNotice && message && preparing && currentNotice ? (
@@ -433,11 +429,13 @@ export function MeetingDocumentsSection({
             icon={<MinutesIcon />}
             name={t("meeting.minutes")}
             state={
-              minutesState === null
-                ? t("common.loading")
-                : minutesState.generatedAt
-                  ? t("meeting.documents.minutesGenerated", { date: formatDate(minutesState.generatedAt) })
-                  : t("minutes.draft")
+              minutesState === null ? (
+                <LoadingIndicator label={t("common.loading")} />
+              ) : minutesState.generatedAt ? (
+                t("meeting.documents.minutesGenerated", { date: formatDate(minutesState.generatedAt) })
+              ) : (
+                t("minutes.draft")
+              )
             }
             status={
               minutesState

@@ -171,8 +171,13 @@ export function MeetingClosedSessionDialog({
             </div>
           ) : null}
         </fieldset>
-        <Button type="submit" data-testid="live-closed-session-submit" disabled={!ready || submitting}>
-          {t(submitting ? "common.saving" : "closedSession.record")}
+        <Button
+          type="submit"
+          data-testid="live-closed-session-submit"
+          disabled={!ready || submitting}
+          pending={submitting}
+        >
+          {t("closedSession.record")}
         </Button>
       </form>
     </Modal>

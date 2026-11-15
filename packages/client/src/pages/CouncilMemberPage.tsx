@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CommitteeIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
@@ -25,6 +26,7 @@ export function CouncilMemberPage() {
   const { members, error: memberError, canUpdate, clearError, loadDetail, update } = useCouncilMembersStore();
   const { bodies: committees, details, error, load, loadAllDetails } = useCouncilCommitteesStore();
   const member = members.find((candidate) => candidate.id === memberId);
+  const [settledMemberId, setSettledMemberId] = useState<string | null>(null);
   const [role, setRole] = useState<CouncilMember["role"]>("councillor");
   const [rank, setRank] = useState("");
   const [termStartedOn, setTermStartedOn] = useState("");
@@ -34,7 +36,7 @@ export function CouncilMemberPage() {
   const dirtyRef = useRef(false);
 
   useEffect(() => {
-    if (memberId) void loadDetail(memberId);
+    if (memberId) void loadDetail(memberId).finally(() => setSettledMemberId(memberId));
   }, [loadDetail, memberId]);
 
   useEffect(() => {
@@ -109,7 +111,11 @@ export function CouncilMemberPage() {
       <div className="page">
         <PageHeader title={t("members.title")} hint={t("members.description")} />
         <div className="page-content">
-          <EmptyState>{t("members.notFound")}</EmptyState>
+          {settledMemberId === memberId ? (
+            <EmptyState>{t("members.notFound")}</EmptyState>
+          ) : (
+            <LoadingIndicator size="zone" label={t("common.loading")} />
+          )}
         </div>
       </div>
     );

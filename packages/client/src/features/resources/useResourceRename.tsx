@@ -122,8 +122,9 @@ export function useResourceRename({
             className="justify-self-end"
             data-testid={`${testId}-submit`}
             disabled={busy || !name.trim()}
+            pending={busy}
           >
-            {t(busy ? "common.saving" : "common.rename")}
+            {t("common.rename")}
           </Button>
         </form>
       </Modal>

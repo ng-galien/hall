@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { HelpHint } from "../../components/HelpHint";
 import {
   AddIcon,
@@ -416,7 +417,7 @@ export function AgendaComposer({
             ) : null}
             <RequestErrorBanner error={preparedSubjectsError} />
             {preparedSubjectsLoading ? (
-              <p role="status">{t("common.loading")}</p>
+              <LoadingIndicator size="zone" label={t("common.loading")} />
             ) : candidateSubjects.length === 0 && !preparedSubjectsError ? (
               <p className="composer-add-hint">{t("meeting.addCouncilBusinessEmpty")}</p>
             ) : (
@@ -524,8 +525,9 @@ export function AgendaComposer({
             data-testid="agenda-question-submit"
             type="submit"
             disabled={submitting || !onQuickCreate}
+            pending={submitting}
           >
-            {t(submitting ? "common.saving" : "common.add")}
+            {t("common.add")}
           </Button>
         </form>
       </Modal>

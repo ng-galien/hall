@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { PasswordDialog } from "../features/users/PasswordDialog";
 import { PASSWORD_LINK_ROUTE, PasswordLinkScreen, PasswordRecoveryScreen } from "../features/users/PasswordLinkScreens";
 import { useI18n } from "../i18n/I18nProvider";
@@ -147,7 +148,12 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
       </main>
     );
   }
-  if (!status) return <main className="authentication-shell">{t("common.loading")}</main>;
+  if (!status)
+    return (
+      <main className="authentication-shell">
+        <LoadingIndicator size="page" label={t("common.loading")} />
+      </main>
+    );
   return (
     <main className="authentication-shell">
       <form className="authentication-panel" onSubmit={submit}>
@@ -196,8 +202,14 @@ export function AuthenticationGate({ children }: { children: ReactNode }) {
             {t(errorTranslationKeys[error])}
           </p>
         ) : null}
-        <Button data-testid="auth-submit" type="submit" disabled={submitting || !representation}>
-          {t(submitting ? "auth.submitting" : status?.bootstrapRequired ? "auth.bootstrapSubmit" : "auth.signInSubmit")}
+        <Button
+          data-testid="auth-submit"
+          type="submit"
+          disabled={submitting || !representation}
+          pending={submitting}
+          pendingLabel={t("auth.submitting")}
+        >
+          {t(status?.bootstrapRequired ? "auth.bootstrapSubmit" : "auth.signInSubmit")}
         </Button>
         {representation && passwordLinksAvailable(representation) ? (
           <Button

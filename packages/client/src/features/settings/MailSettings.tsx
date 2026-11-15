@@ -96,8 +96,8 @@ export function MailSettings({
               {t("workspace.saved")}
             </span>
           ) : null}
-          <Button type="submit" disabled={submitting} data-testid="settings-mail-save">
-            {t(submitting ? "common.saving" : "common.save")}
+          <Button type="submit" disabled={submitting} data-testid="settings-mail-save" pending={submitting}>
+            {t("common.save")}
           </Button>
         </div>
       ) : (

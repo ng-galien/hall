@@ -4,23 +4,56 @@
   /* The logo of Hall, beside its name. */
   .hall-logo { display: block; flex: none; width: var(--hall-size-control-small); height: var(--hall-size-control-small); }
 
-  .spinner {
+  /* The wait sign: hidden for a short delay, then a slate ring with a blue arc. */
+  .loading-indicator {
+    --loading-indicator-ring: var(--hall-font-size-icon);
+    --loading-indicator-track: var(--hall-color-border-strong);
     display: inline-flex;
+    flex: none;
     align-items: center;
-    gap: var(--hall-space-2);
-    color: var(--hall-color-text-muted);
-    font-size: var(--hall-font-size-caption);
+    justify-content: center;
+    color: var(--hall-color-brand);
+    vertical-align: middle;
+    opacity: 0;
+    animation: loading-indicator-appear var(--hall-motion-normal) var(--hall-motion-curve-standard)
+      var(--hall-motion-loading-delay) forwards;
   }
-  .spinner::before {
-    content: "";
-    width: var(--hall-font-size-icon);
-    height: var(--hall-font-size-icon);
-    border: var(--hall-stroke-thick) solid var(--hall-color-border-strong);
-    border-top-color: var(--hall-color-brand);
+  .loading-indicator[data-size="zone"],
+  .loading-indicator[data-size="page"] {
+    display: flex;
+    flex: 1 1 auto;
+    align-self: stretch;
+    width: 100%;
+  }
+  .loading-indicator[data-size="zone"] { --loading-indicator-ring: var(--hall-size-loading-ring-zone); min-height: var(--hall-size-loading-zone); }
+  .loading-indicator[data-size="page"] { --loading-indicator-ring: var(--hall-size-loading-ring-page); min-height: var(--hall-size-loading-page); }
+  .loading-indicator-ring {
+    width: var(--loading-indicator-ring);
+    height: var(--loading-indicator-ring);
+    flex: none;
+    border: var(--hall-stroke-thick) solid var(--loading-indicator-track);
+    border-top-color: currentColor;
     border-radius: var(--hall-radius-circular);
-    animation: spinner-turn var(--hall-motion-spinner) linear infinite;
+    animation: loading-indicator-turn var(--hall-motion-spinner) linear infinite;
   }
-  @keyframes spinner-turn { to { transform: rotate(1turn); } }
+  @keyframes loading-indicator-turn { to { transform: rotate(1turn); } }
+  @keyframes loading-indicator-appear { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .loading-indicator-ring { animation-duration: calc(3 * var(--hall-motion-spinner)); }
+  }
+
+  /* A button waiting for its request keeps its size: its label fades out and the ring takes its place. */
+  .hall-button[data-pending="true"] {
+    position: relative;
+    animation: hall-button-pending var(--hall-motion-normal) var(--hall-motion-curve-standard)
+      var(--hall-motion-loading-delay) forwards;
+  }
+  .hall-button[data-pending="true"] > .loading-indicator { position: absolute; inset: 0; margin: auto; }
+  .hall-button[data-pending="true"]:is([data-variant="primary"], [data-variant="danger"]) > .loading-indicator {
+    --loading-indicator-track: color-mix(in srgb, var(--hall-color-on-brand) 35%, transparent);
+    color: var(--hall-color-on-brand);
+  }
+  @keyframes hall-button-pending { to { color: transparent; } }
 
   .inline-rename-input {
     min-width: 0;

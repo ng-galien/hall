@@ -56,7 +56,7 @@ function ContactReferenceModal({ contactId, onClose }: { contactId: string; onCl
     >
       {detail.status === "loading" ? (
         <div className="p-6">
-          <LoadingIndicator aria-label={t("common.loading")} />
+          <LoadingIndicator size="zone" label={t("common.loading")} />
         </div>
       ) : null}
       {detail.status === "error" ? (

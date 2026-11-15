@@ -217,8 +217,13 @@ export function MeetingAttendingPersons({
             >
               {t("common.cancel")}
             </Button>
-            <Button type="submit" data-testid="live-auxiliaries-submit" disabled={!ready || submitting || !canDeclare}>
-              {t(submitting ? "common.saving" : "common.add")}
+            <Button
+              type="submit"
+              data-testid="live-auxiliaries-submit"
+              disabled={!ready || submitting || !canDeclare}
+              pending={submitting}
+            >
+              {t("common.add")}
             </Button>
           </div>
         </form>

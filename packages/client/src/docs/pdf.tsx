@@ -45,8 +45,9 @@ export function DocsPdfExport({ className }: { className: string }) {
         className={className}
         aria-label={label}
         title={label}
-        aria-busy={state === "pending" || undefined}
         disabled={state === "pending"}
+        pending={state === "pending"}
+        pendingLabel={label}
         onClick={() => void exportPdf()}
         data-testid="docs-export-pdf"
       >

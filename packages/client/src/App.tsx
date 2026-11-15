@@ -1,6 +1,7 @@
 import { matchDiscriminated, matchLiteral, type ReferenceEntityKind } from "@hall/domain";
 import { lazy, type ReactNode, Suspense, useCallback } from "react";
 import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApplicationErrorPage } from "./components/ApplicationErrorPage";
 import { AuthenticationGate } from "./components/AuthenticationGate";
@@ -104,7 +105,11 @@ const PersonalSettingsPage = lazy(() =>
 
 function LiveFallback() {
   const { t } = useI18n();
-  return <div className="live-shell live-shell-empty">{t("common.loading")}</div>;
+  return (
+    <div className="live-shell live-shell-empty">
+      <LoadingIndicator size="page" label={t("common.loading")} />
+    </div>
+  );
 }
 
 function AuthenticatedApplication() {
@@ -278,7 +283,7 @@ const applicationRouter = createBrowserRouter(
     {
       path: "/docs-print",
       element: (
-        <Suspense fallback={null}>
+        <Suspense fallback={<LoadingIndicator size="page" />}>
           <DocsPrint />
         </Suspense>
       ),

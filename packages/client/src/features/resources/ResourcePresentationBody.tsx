@@ -5,6 +5,7 @@ import { HelpHint } from "@/components/HelpHint";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import type { Mentionable } from "../../components/editor/references";
 import { MarkdownView } from "../../components/MarkdownView";
@@ -155,8 +156,13 @@ export function ResourcePresentationBody({
                 required
               />
             </Field>
-            <Button data-testid="remote-resource-save" type="submit" disabled={submitting || !remoteUrl.trim()}>
-              {t(submitting ? "common.saving" : "common.save")}
+            <Button
+              data-testid="remote-resource-save"
+              type="submit"
+              disabled={submitting || !remoteUrl.trim()}
+              pending={submitting}
+            >
+              {t("common.save")}
             </Button>
           </div>
         </form>
@@ -191,7 +197,7 @@ export function ResourcePresentationBody({
       />
     ),
     spreadsheet: (entry) => (
-      <Suspense fallback={<p>{t("spreadsheet.loading")}</p>}>
+      <Suspense fallback={<LoadingIndicator size="zone" label={t("spreadsheet.loading")} />}>
         <SpreadsheetResourceEditor
           resource={entry}
           document={entry.document}
@@ -209,7 +215,7 @@ export function ResourcePresentationBody({
         return capabilities.resolveLegalReference ? (
           <LegalReferenceResolver resource={entry} onResolved={onResolvedLegalReference} />
         ) : (
-          <p>{t("legalReference.loading")}</p>
+          <LoadingIndicator size="zone" label={t("legalReference.loading")} />
         );
       }
       return (

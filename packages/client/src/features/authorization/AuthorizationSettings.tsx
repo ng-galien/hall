@@ -7,6 +7,7 @@ import {
   type SirenEntity,
 } from "@hall/api-contract";
 import { useCallback, useEffect, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { Field } from "../../components/ui/field";
@@ -96,7 +97,7 @@ export function AuthorizationSettings() {
     return (
       <>
         <RequestErrorBanner error={error} />
-        {!error && <p>{t("common.loading")}</p>}
+        {!error && <LoadingIndicator size="zone" label={t("common.loading")} />}
       </>
     );
   return (
@@ -243,8 +244,9 @@ export function AuthorizationSettings() {
             data-testid="authorization-save-role"
             disabled={busy || !draft.name.trim()}
             onClick={() => void save()}
+            pending={busy}
           >
-            {t(busy ? "common.saving" : "common.save")}
+            {t("common.save")}
           </Button>
         )}
       </div>

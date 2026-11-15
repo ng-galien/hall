@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CouncilBusinessIcon, DecisionsIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
-import { EmptyState, RequestErrorBanner } from "../../components/Ui";
+import { RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRowIcon, ListRows } from "../../components/ui/list-row";
 import { liveBusinessTitle } from "../../features/council-business/presentation";
 import { AgendaMinutesApproval } from "../../features/council-meetings/AgendaMinutesApproval";
@@ -46,7 +47,7 @@ function MeetingPoint({ meetingId, pointId }: { meetingId: string; pointId: stri
     void useCouncilDecisionsStore.getState().load();
   }, []);
   if (error) return <RequestErrorBanner error={error} />;
-  if (!aggregate) return <EmptyState>{t("meeting.loading")}</EmptyState>;
+  if (!aggregate) return <LoadingIndicator size="page" label={t("meeting.loading")} />;
   const item = aggregate.agendaItems.find((candidate) => candidate.id === pointId);
   if (!item) return <Navigate to={`/meetings/${meetingId}`} replace />;
   const business = item.business;

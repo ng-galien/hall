@@ -1,6 +1,7 @@
 import { findSirenLink, type ResourceChange, type SirenEntity } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { HelpHint } from "../../components/HelpHint";
 import { RedoIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
@@ -176,13 +177,15 @@ export function ResourceChangesControl({
         </Button>
       </TooltipTrigger>
       <TooltipContent data-testid="resource-changes-preview" side="bottom" className="resource-changes-preview">
-        {loading && !latest
-          ? t("resourceChanges.loading")
-          : failed
-            ? t("resourceChanges.error")
-            : latest
-              ? `${latest.actor?.displayName ?? t("resourceChanges.unknownAuthor")} · ${detail(latest)} · ${formatDateTime(latest.occurredAt)}`
-              : t("resourceChanges.empty")}
+        {loading && !latest ? (
+          <LoadingIndicator label={t("resourceChanges.loading")} />
+        ) : failed ? (
+          t("resourceChanges.error")
+        ) : latest ? (
+          `${latest.actor?.displayName ?? t("resourceChanges.unknownAuthor")} · ${detail(latest)} · ${formatDateTime(latest.occurredAt)}`
+        ) : (
+          t("resourceChanges.empty")
+        )}
       </TooltipContent>
     </Tooltip>
   );
@@ -206,7 +209,7 @@ export function ResourceChangesControl({
             <HelpHint text={t("resourceChanges.description")} />
             <DialogDescription className="sr-only">{t("resourceChanges.description")}</DialogDescription>
           </header>
-          {loading && !changes ? <p role="status">{t("resourceChanges.loading")}</p> : null}
+          {loading && !changes ? <LoadingIndicator size="zone" label={t("resourceChanges.loading")} /> : null}
           {failed ? <p role="alert">{t("resourceChanges.error")}</p> : null}
           {!loading && !failed && changes?.length === 0 ? <p>{t("resourceChanges.empty")}</p> : null}
           {changes && changes.length > 0 ? (

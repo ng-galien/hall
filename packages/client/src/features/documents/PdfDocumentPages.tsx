@@ -218,7 +218,7 @@ export function PdfDocumentPages({ url, title, testId }: { url: string; title: s
       />
     ))
   ) : (
-    <LoadingIndicator>{t("common.loading")}</LoadingIndicator>
+    <LoadingIndicator size="zone" label={t("common.loading")} />
   );
 
   if (!phone) {

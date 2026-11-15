@@ -1,5 +1,6 @@
 // TODO REMOVE_STALE: incomplete sessions remain accessible in history with the review badge.
 
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { HelpHint } from "../../components/HelpHint";
 import { CalendarIcon } from "../../components/icons";
 import {
@@ -26,7 +27,7 @@ import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 export function CouncilMeetingsPage() {
   const { t, formatDate, formatTime } = useI18n();
   const formatMeetingTime = (value: string) => formatTime(value);
-  const { meetings, error } = useCouncilMeetingsStore();
+  const { meetings, loading, error } = useCouncilMeetingsStore();
   const { query, setQuery } = useCollectionView();
   const meetingStatus = useMeetingRowStatus();
   const meetingLabel = (meeting: CouncilMeetingView) =>
@@ -75,7 +76,9 @@ export function CouncilMeetingsPage() {
 
         <CollectionToolbar query={query} onQueryChange={setQuery} />
 
-        {meetings.length === 0 ? (
+        {meetings.length === 0 && loading ? (
+          <LoadingIndicator size="zone" label={t("common.loading")} />
+        ) : meetings.length === 0 ? (
           <EmptyState>{t("meetings.empty")}</EmptyState>
         ) : (
           <>

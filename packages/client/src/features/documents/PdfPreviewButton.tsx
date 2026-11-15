@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { ChevronDownIcon, MailIcon, PdfIcon } from "../../components/icons";
 import type { ItemCommand } from "../../components/ui/item-commands";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -110,11 +111,13 @@ export function PdfPreviewButton({
     "data-testid": testId,
     variant: "secondary",
     disabled: disabled || status === "loading",
+    pending: status === "loading",
+    pendingLabel: t("editor.pdfPreviewLoading"),
   } as const;
   const buttonContent = (
     <>
       <PdfIcon />
-      {t(status === "loading" ? "editor.pdfPreviewLoading" : "editor.pdfPreview")}
+      {t("editor.pdfPreview")}
     </>
   );
 
@@ -164,13 +167,14 @@ export function usePdfCommands({
   const { referencesDocuments, status, openPreview, view } = usePdfPreview({ markdown, title, testId });
   const mail = usePrepareMail({ kind: "pdf", title, bodyMarkdown: markdown });
   const unavailable = disabled || status === "loading";
-  const label = t(status === "loading" ? "editor.pdfPreviewLoading" : "editor.pdfPreview");
+  const label = t("editor.pdfPreview");
+  const icon = status === "loading" ? <LoadingIndicator label={t("editor.pdfPreviewLoading")} /> : <PdfIcon />;
   const commands: ItemCommand[] = referencesDocuments
     ? [
         {
           id: "pdf-without-documents",
           label: `${label} · ${t("editor.pdfWithoutDocuments")}`,
-          icon: <PdfIcon />,
+          icon,
           testId: `${testId}-without-documents`,
           group: testId,
           disabled: unavailable,
@@ -179,7 +183,7 @@ export function usePdfCommands({
         {
           id: "pdf-with-documents",
           label: `${label} · ${t("editor.pdfWithDocuments")}`,
-          icon: <PdfIcon />,
+          icon,
           testId: `${testId}-with-documents`,
           group: testId,
           disabled: unavailable,
@@ -190,7 +194,7 @@ export function usePdfCommands({
         {
           id: "pdf",
           label,
-          icon: <PdfIcon />,
+          icon,
           testId,
           disabled: unavailable,
           onSelect: () => void openPreview(false),

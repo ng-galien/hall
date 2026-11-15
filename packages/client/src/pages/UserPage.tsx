@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { EntitySelect } from "../components/search/EntitySelect";
 import { EmptyState, Modal, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
@@ -98,7 +99,7 @@ export function UserPage() {
           <RequestErrorBanner error={error === "user_email_conflict" ? null : error} />
         )}
         {loading ? (
-          <EmptyState>{t("common.loading")}</EmptyState>
+          <LoadingIndicator size="zone" label={t("common.loading")} />
         ) : !user ? (
           <EmptyState>{t("users.notFound")}</EmptyState>
         ) : (
@@ -445,8 +446,13 @@ export function UserPage() {
               <Button variant="secondary" type="button" disabled={submitting} onClick={() => setRolesOpen(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button type="submit" disabled={submitting || roles.length === 0} data-testid="user-roles-submit">
-                {t(submitting ? "common.saving" : "users.applyRoles")}
+              <Button
+                type="submit"
+                disabled={submitting || roles.length === 0}
+                data-testid="user-roles-submit"
+                pending={submitting}
+              >
+                {t("users.applyRoles")}
               </Button>
             </div>
           </form>
@@ -477,8 +483,9 @@ export function UserPage() {
                     return saved;
                   })
                 }
+                pending={submitting}
               >
-                {t(submitting ? "common.saving" : "users.disable")}
+                {t("users.disable")}
               </Button>
             </div>
           </div>
@@ -509,8 +516,9 @@ export function UserPage() {
                     return saved;
                   })
                 }
+                pending={submitting}
               >
-                {t(submitting ? "common.saving" : "users.revokeAccess")}
+                {t("users.revokeAccess")}
               </Button>
             </div>
           </div>

@@ -2,6 +2,7 @@ import type { GeographicMapOverlay } from "@hall/api-contract";
 import type { GeographicLayer, GeographicLayerId } from "@hall/domain";
 import { geographicLayerOptions } from "@hall/domain";
 import { useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import {
   AddIcon,
   DragHandleIcon,
@@ -265,9 +266,13 @@ export function GeographicLayerControls({
                         className="geographic-overlay-meta"
                         data-testid={`geographic-overlay-meta-${overlay.layerId}`}
                       >
-                        {status === "ready"
-                          ? t("geographic.overlayFeatureCount", { count: formatNumber(overlay.featureCount) })
-                          : t(status === "loading" ? "geographic.overlayLoading" : "geographic.overlayUnavailable")}
+                        {status === "ready" ? (
+                          t("geographic.overlayFeatureCount", { count: formatNumber(overlay.featureCount) })
+                        ) : status === "loading" ? (
+                          <LoadingIndicator label={t("geographic.overlayLoading")} />
+                        ) : (
+                          t("geographic.overlayUnavailable")
+                        )}
                       </span>
                     </li>
                   );

@@ -5,6 +5,7 @@ import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader, RequestErrorBanner } from "../components/Ui";
 import { AuthorizationSettings } from "../features/authorization/AuthorizationSettings";
@@ -127,7 +128,9 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
           <>
             {hallSettings ? (
               <CommuneSettings settings={hallSettings} canUpdate={settingsUpdateAvailable} onSaved={setHallSettings} />
-            ) : null}
+            ) : settingsError ? null : (
+              <LoadingIndicator size="zone" label={t("common.loading")} />
+            )}
 
             {hallSettings && councilTermUpdateAvailable ? (
               <form className="creation-form" onSubmit={(event) => void submitCouncilTerm(event)}>
@@ -162,8 +165,9 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
                     type="submit"
                     disabled={submitting}
                     data-testid="settings-council-term-save"
+                    pending={submitting}
                   >
-                    {t(submitting ? "common.saving" : "common.save")}
+                    {t("common.save")}
                   </Button>
                 </div>
               </form>
@@ -174,8 +178,12 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
           </>
         ) : null}
         {category === "documents" ? <TemplatesPage embedded /> : null}
-        {category === "mail" && hallSettings ? (
-          <MailSettings settings={hallSettings} canUpdate={settingsUpdateAvailable} onSaved={setHallSettings} />
+        {category === "mail" ? (
+          hallSettings ? (
+            <MailSettings settings={hallSettings} canUpdate={settingsUpdateAvailable} onSaved={setHallSettings} />
+          ) : settingsError ? null : (
+            <LoadingIndicator size="zone" label={t("common.loading")} />
+          )
         ) : null}
         {category === "rights" && rolesAvailable ? <AuthorizationSettings /> : null}
         {category === "preferences" ? (

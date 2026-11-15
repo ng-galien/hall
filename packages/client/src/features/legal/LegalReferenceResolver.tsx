@@ -1,6 +1,7 @@
 import type { LegalReferenceSearchResult, ResourceDetail } from "@hall/api-contract";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { SearchInput } from "@/components/ui/search-input";
 import { HelpHint } from "../../components/HelpHint";
 import { LegalReferenceIcon, OpenIcon } from "../../components/icons";
@@ -114,7 +115,7 @@ export function LegalReferenceResolver({
         data-testid="legal-reference-search-input"
         role="combobox"
         value={query}
-        status={searching ? t("legalReference.searching") : undefined}
+        status={searching ? <LoadingIndicator label={t("legalReference.searching")} /> : undefined}
         aria-autocomplete="list"
         aria-controls={resultsId}
         aria-expanded={results.length > 0}
@@ -182,8 +183,9 @@ export function LegalReferenceResolver({
           type="button"
           disabled={!selected || resolving}
           onClick={() => void resolve()}
+          pending={resolving}
         >
-          {t(resolving ? "common.saving" : "legalReference.useReference")}
+          {t("legalReference.useReference")}
         </Button>
       </div>
     </div>

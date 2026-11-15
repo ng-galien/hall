@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { HelpHint } from "../../../components/HelpHint";
 import { BackIcon } from "../../../components/icons";
 import { RequestErrorBanner } from "../../../components/Ui";
@@ -42,7 +43,11 @@ export function LiveMeetingPage() {
     );
   }
   if (!aggregate) {
-    return <div className="live-shell live-shell-empty">{t("meeting.loading")}</div>;
+    return (
+      <div className="live-shell live-shell-empty">
+        <LoadingIndicator size="page" label={t("meeting.loading")} />
+      </div>
+    );
   }
 
   const { meeting, quorum, quorumObservation } = aggregate;

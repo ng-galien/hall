@@ -252,8 +252,9 @@ export function RollCallView({
               disabled={submitting}
               onClick={markAllPresent}
               data-testid="live-attendance-all-present"
+              pending={submitting}
             >
-              {t(submitting ? "common.saving" : "meeting.markAllPresent")}
+              {t("meeting.markAllPresent")}
             </Button>
           ) : null}
           {mode === "adjust" ? (
@@ -476,8 +477,9 @@ export function RollCallView({
               }
               onClick={() => void openMeeting()}
               data-testid="live-meeting-start"
+              pending={submitting}
             >
-              {t(submitting ? "common.saving" : "meeting.action.open")}
+              {t("meeting.action.open")}
             </Button>
           </div>
         </footer>
@@ -681,8 +683,9 @@ function ProxyModal({
             data-testid="live-proxy-confirm"
             disabled={submitting || !holderId || !documentId}
             onClick={() => holderId && documentId && onSubmit(holderId, documentId, exception)}
+            pending={submitting}
           >
-            {t(submitting ? "common.saving" : "meeting.confirmProxy")}
+            {t("meeting.confirmProxy")}
           </Button>
         </div>
       </div>

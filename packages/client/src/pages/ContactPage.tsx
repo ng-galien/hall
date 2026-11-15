@@ -4,6 +4,7 @@ import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow, FieldValue } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Textarea } from "@/components/ui/textarea";
 import { DeleteIcon, PhoneIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
@@ -75,6 +76,7 @@ export function ContactPage() {
   const { submitting, run } = useSubmitting();
   const { contacts, error, canUpdate, canArchive, clearError, loadDetail, update, archive } = useContactsStore();
   const contact = contacts.find((candidate) => candidate.id === contactId);
+  const [settledContactId, setSettledContactId] = useState<string | null>(null);
   const [draft, setDraftState] = useState<Draft>(emptyDraft);
   const [baseline, setBaseline] = useState<Draft>(emptyDraft);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export function ContactPage() {
   const canUpdateRef = useRef(false);
 
   useEffect(() => {
-    if (contactId) void loadDetail(contactId);
+    if (contactId) void loadDetail(contactId).finally(() => setSettledContactId(contactId));
   }, [contactId, loadDetail]);
 
   useEffect(() => {
@@ -201,7 +203,11 @@ export function ContactPage() {
       <div className="page">
         <PageHeader title={t("contacts.title")} hint={t("contacts.description")} />
         <div className="page-content">
-          <EmptyState>{t("contacts.notFound")}</EmptyState>
+          {settledContactId === contactId ? (
+            <EmptyState>{t("contacts.notFound")}</EmptyState>
+          ) : (
+            <LoadingIndicator size="zone" label={t("common.loading")} />
+          )}
         </div>
       </div>
     );
@@ -389,9 +395,10 @@ export function ContactPage() {
                       disabled={submitting}
                       onClick={() => void archiveContact()}
                       data-testid="contact-archive"
+                      pending={submitting}
                     >
                       <DeleteIcon />
-                      {t(submitting ? "common.saving" : "contacts.archive")}
+                      {t("contacts.archive")}
                     </Button>
                   </>
                 }

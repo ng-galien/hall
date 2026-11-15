@@ -1,6 +1,7 @@
 import type { MinutesSummary } from "@hall/api-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { HelpHint } from "../../components/HelpHint";
 import { MinutesIcon } from "../../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../../components/Ui";
@@ -53,7 +54,7 @@ export function MinutesPage() {
           </Button>
         ) : null}
         {loading ? (
-          <EmptyState>{t("common.loading")}</EmptyState>
+          <LoadingIndicator size="zone" label={t("common.loading")} />
         ) : !error && minutes.length === 0 ? (
           <EmptyState>{t("minutes.empty")}</EmptyState>
         ) : null}

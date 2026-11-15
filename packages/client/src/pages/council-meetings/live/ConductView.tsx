@@ -586,7 +586,7 @@ export function ConductView({
             variant="danger"
             className="conduct-rail-tool"
             disabled={submitting || !meetingActions.can("meeting.close")}
-            aria-busy={submitting && closeConfirming}
+            pending={submitting && closeConfirming}
             data-testid="live-meeting-close"
             title={railCollapsed ? t("meeting.action.close") : undefined}
             onClick={closeMeeting}
@@ -595,13 +595,11 @@ export function ConductView({
             <WarningIcon aria-hidden="true" />
             {railCollapsed
               ? null
-              : submitting && closeConfirming
-                ? t("common.saving")
-                : closeConfirming
-                  ? remainingCount > 0
-                    ? t("live.confirmCloseRemaining", { count: formatNumber(remainingCount) })
-                    : t("live.confirmClose")
-                  : t("meeting.action.close")}
+              : closeConfirming
+                ? remainingCount > 0
+                  ? t("live.confirmCloseRemaining", { count: formatNumber(remainingCount) })
+                  : t("live.confirmClose")
+                : t("meeting.action.close")}
           </Button>
           <ConductActionBlockers
             action="close"
@@ -1085,9 +1083,10 @@ export function ConductView({
                   disabled={submitting}
                   data-testid="live-agenda-start"
                   onClick={() => void run(() => meetingActions.startAgendaItem(selectedItem.id))}
+                  pending={submitting}
                 >
                   <PlayIcon aria-hidden="true" />
-                  {t(submitting ? "common.saving" : "meeting.startSubject")}
+                  {t("meeting.startSubject")}
                 </Button>
               ),
               vote: () =>
@@ -1107,9 +1106,10 @@ export function ConductView({
                   disabled={submitting}
                   data-testid="live-agenda-complete"
                   onClick={() => setCompleteConfirming(true)}
+                  pending={submitting}
                 >
                   <CheckIcon aria-hidden="true" />
-                  {t(submitting ? "common.saving" : "meeting.completeAndNext")}
+                  {t("meeting.completeAndNext")}
                 </Button>
               ),
               none: () => null,
@@ -1148,8 +1148,9 @@ export function ConductView({
                     return adjourned;
                   })
                 }
+                pending={submitting}
               >
-                {t(submitting ? "common.saving" : "common.confirm")}
+                {t("common.confirm")}
               </Button>
             </div>
           </div>
@@ -1185,8 +1186,9 @@ export function ConductView({
                     if (completed) setCompleteConfirming(false);
                   })
                 }
+                pending={submitting}
               >
-                {t(submitting ? "common.saving" : "common.confirm")}
+                {t("common.confirm")}
               </Button>
             </div>
           </div>
@@ -1324,9 +1326,10 @@ export function ConductView({
                   type="submit"
                   disabled={submitting || !questionBusiness}
                   data-testid="live-add-question-submit"
+                  pending={submitting}
                 >
                   <AddIcon />
-                  {t(submitting ? "common.saving" : "common.add")}
+                  {t("common.add")}
                 </Button>
               </div>
             </form>

@@ -54,7 +54,7 @@ function TextDocumentFrame({
       {failed ? (
         <DocumentPreviewFailure onRetry={() => setAttempt((value) => value + 1)} />
       ) : text === null ? (
-        <LoadingIndicator>{t("common.loading")}</LoadingIndicator>
+        <LoadingIndicator size="zone" label={t("common.loading")} />
       ) : mediaType === "text/markdown" ? (
         <MarkdownView markdown={text} allowEmbeddedImages />
       ) : (
@@ -66,7 +66,7 @@ function TextDocumentFrame({
 
 function PdfLoading() {
   const { t } = useI18n();
-  return <LoadingIndicator>{t("common.loading")}</LoadingIndicator>;
+  return <LoadingIndicator size="zone" label={t("common.loading")} />;
 }
 
 /** Media types the browser displays itself; any other file is offered for download. */

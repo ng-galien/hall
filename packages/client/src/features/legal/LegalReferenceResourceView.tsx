@@ -1,6 +1,5 @@
 import type { ResourceDetail } from "@hall/api-contract";
 import { Button } from "@/components/ui/button";
-import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CheckCircleIcon, OpenIcon, RedoIcon, WarningIcon } from "../../components/icons";
 import { ListRow, ListRows } from "../../components/ui/list-row";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -56,11 +55,12 @@ export function LegalReferenceResourceView({
               data-testid="legal-reference-refresh"
               variant="secondary"
               disabled={refreshing}
-              aria-busy={refreshing}
+              pending={refreshing}
+              pendingLabel={t("legalReference.refreshing")}
               onClick={onRefresh}
             >
-              {refreshing ? <LoadingIndicator aria-hidden="true" /> : <RedoIcon aria-hidden="true" />}
-              {t(refreshing ? "legalReference.refreshing" : "legalReference.refresh")}
+              <RedoIcon aria-hidden="true" />
+              {t("legalReference.refresh")}
             </Button>
           ) : null}
           <Button asChild variant="secondary">

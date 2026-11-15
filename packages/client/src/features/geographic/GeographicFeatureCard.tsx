@@ -2,6 +2,7 @@ import type { GeographicFeatureNote } from "@hall/api-contract";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CenterOnFeatureIcon, CloseIcon, FilterIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { InlineResourceContent } from "../resources/InlineResourceContent";
@@ -149,7 +150,7 @@ export function GeographicFeatureCard({
           {feature.featureKey.kind === "none" || !feature.key ? (
             <p className="geographic-feature-card-muted">{t("geographicFeature.noStableKey")}</p>
           ) : notesLoading || creatingNote ? (
-            <p className="geographic-feature-card-muted">{t("common.loading")}</p>
+            <LoadingIndicator size="zone" label={t("common.loading")} />
           ) : note ? (
             <InlineResourceContent key={note.noteId} resourceId={note.noteId} heading={t("geographicFeature.note")} />
           ) : (

@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Textarea } from "@/components/ui/textarea";
 import { DeleteIcon } from "../../components/icons";
 import { ResourceSearch } from "../../components/search/ResourceSearch";
@@ -55,6 +56,7 @@ export function RepresentativeBodyPage({
   }, [loadContacts]);
   const {
     bodies,
+    loading,
     details,
     capabilities,
     membershipRepresentations,
@@ -151,7 +153,11 @@ export function RepresentativeBodyPage({
       <div className="page">
         <PageHeader title={t(text.title)} hint={t(text.description)} />
         <div className="page-content">
-          <EmptyState>{t(text.notFound)}</EmptyState>
+          {loading ? (
+            <LoadingIndicator size="zone" label={t("common.loading")} />
+          ) : (
+            <EmptyState>{t(text.notFound)}</EmptyState>
+          )}
         </div>
       </div>
     );
@@ -553,9 +559,10 @@ export function RepresentativeBodyPage({
                       disabled={submitting}
                       data-testid={testId("archive")}
                       onClick={() => void archiveBody()}
+                      pending={submitting}
                     >
                       <DeleteIcon />
-                      {t(submitting ? "common.saving" : text.archiveAction)}
+                      {t(text.archiveAction)}
                     </Button>
                   </>
                 }
@@ -590,8 +597,8 @@ export function RepresentativeBodyPage({
               <Button variant="secondary" type="button" onClick={() => setEditedMembership(null)}>
                 {t("common.cancel")}
               </Button>
-              <Button type="submit" disabled={submitting}>
-                {t(submitting ? "common.saving" : "common.save")}
+              <Button type="submit" disabled={submitting} pending={submitting}>
+                {t("common.save")}
               </Button>
             </div>
           </form>
@@ -623,8 +630,9 @@ export function RepresentativeBodyPage({
                 variant="danger"
                 disabled={submitting}
                 data-testid={testId("end-membership-confirm")}
+                pending={submitting}
               >
-                {t(submitting ? "common.saving" : text.confirmEndMembership)}
+                {t(text.confirmEndMembership)}
               </Button>
             </div>
           </form>

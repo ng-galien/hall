@@ -1,5 +1,6 @@
 import { findSirenAction, type ResourceDetail } from "@hall/api-contract";
 import { useEffect, useRef, useState } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { imageUploadsSettled, trackTextSave } from "../../components/editor/imageUploadGate";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { MarkdownView } from "../../components/MarkdownView";
@@ -53,7 +54,7 @@ export function AgendaSubjectEditor({
   }, [resourceId]);
 
   if (error && !resource) return <RequestErrorBanner error={error} />;
-  if (!resource) return <p role="status">{t("common.loading")}</p>;
+  if (!resource) return <LoadingIndicator size="zone" label={t("common.loading")} />;
   if (!canEdit)
     return (
       <div className="composer-item-editor">
@@ -112,8 +113,8 @@ export function AgendaSubjectEditor({
           >
             {t("common.cancel")}
           </Button>
-          <Button type="submit" data-testid="agenda-item-save" disabled={submitting}>
-            {t(submitting ? "common.saving" : "common.save")}
+          <Button type="submit" data-testid="agenda-item-save" disabled={submitting} pending={submitting}>
+            {t("common.save")}
           </Button>
         </div>
       ) : null}
