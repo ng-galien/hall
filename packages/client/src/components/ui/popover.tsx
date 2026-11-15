@@ -1,10 +1,12 @@
 import { Popover as PopoverPrimitive } from "radix-ui";
 import type * as React from "react";
+import { useBackClosable } from "@/lib/backLayers";
 import { cn } from "@/lib/utils";
 import { focusFirstCommand } from "./initial-focus";
 
 function Popover({ ...props }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-  return <PopoverPrimitive.Root data-slot="popover" {...props} />;
+  const open = useBackClosable(props);
+  return <PopoverPrimitive.Root data-slot="popover" {...props} {...open} />;
 }
 
 function PopoverTrigger({ ...props }: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {

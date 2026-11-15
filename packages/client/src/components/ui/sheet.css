@@ -44,7 +44,9 @@
   box-shadow: var(--hall-shadow-large);
 }
 .hall-sheet[data-side="center"][data-size="wide"] { width: min(var(--hall-size-modal-wide), var(--hall-size-overlay-width)); }
-.hall-sheet-head { padding-top: var(--hall-space-3); touch-action: auto; }
+.hall-sheet-head { padding-top: var(--hall-space-3); }
+/* Only the head of a panel from the bottom is pulled down by the finger; elsewhere the head keeps the gestures of the page. */
+.hall-sheet:not([data-side="bottom"]) .hall-sheet-head { touch-action: auto; }
 .hall-sheet-grabber {
   width: var(--hall-size-relative-2rem);
   height: var(--hall-space-1);

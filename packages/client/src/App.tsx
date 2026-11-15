@@ -26,6 +26,7 @@ import { openSessionResource } from "./features/resources/useResourceSession";
 import { useApplicationData } from "./hooks/useApplicationData";
 import { useWorkspaceLiveUpdates } from "./hooks/useWorkspaceLiveUpdates";
 import { useI18n } from "./i18n/I18nProvider";
+import { startBackLayers } from "./lib/backLayers";
 import { documentaryBinaryReferenceContentHref } from "./services/resourcesApi";
 import { useContactsStore } from "./stores/contactsStore";
 import { useCouncilBusinessStore } from "./stores/councilBusinessStore";
@@ -277,6 +278,8 @@ function RoutedApplication() {
     </AuthenticationGate>
   );
 }
+
+startBackLayers();
 
 const applicationRouter = createBrowserRouter(
   [

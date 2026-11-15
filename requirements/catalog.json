@@ -9864,6 +9864,8 @@
         "Les commandes « Choisir une photo » et « Prendre une photo » des éditeurs restent réservées à la présentation mobile ; elles ne prennent pas de place dans le texte sur bureau. Le dépôt, le collage et l’import d’image ordinaires sur bureau sont conservés.",
         "Sur un téléphone, chaque contenu s’ouvre sur sa propre page : document, note, élément préparé, point de séance, délibération et procès-verbal ; « Modifier » ou « Terminé » d’un texte est dans le bandeau, les autres actions du contenu ouvert sont dans le menu ⋯ du bandeau. Une référence de contact ou de membre du conseil ouvre de même la page du contact ou du membre.",
         "Sur un téléphone, la flèche de l’en-tête et le retour du téléphone ramènent à l’écran précédent, y compris dans les séances ; sans écran précédent, la flèche ouvre la page parente. Chaque page a un seul défilement et retrouve sa position au retour.",
+        "Le retour du téléphone, son geste de retour et le bouton retour du navigateur, au téléphone comme à l’ordinateur, referment d’abord ce qui est ouvert par-dessus l’écran, un élément à la fois : feuille du bas, fenêtre, visionneuse d’un document ou d’une image, menu, choix d’une date ou d’une heure, recherche des documents, « Plus », appel pendant la séance ; puis, au téléphone, ils terminent l’écriture d’un texte ou d’un tableur comme « Terminé » ; puis ils ramènent à l’écran précédent ; sur le premier écran, le téléphone reprend la main. Le retour referme un élément comme son bouton de fermeture, et quitter un écran par le retour enregistre ses saisies comme la flèche de l’en-tête. Avancer dans l’historique ne rouvre jamais un élément refermé ; après une destination choisie dans un élément ouvert, le retour ramène à l’écran d’où l’élément avait été ouvert.",
+        "Pendant l’écriture d’un texte ou d’un tableur au téléphone, et pendant qu’une feuille du bas est tirée vers le bas, tirer la page ne la recharge pas.",
         "Sur un téléphone, la barre du bas est masquée sur la page d’un document, d’une note, d’un élément préparé, d’un point de séance, d’une délibération et d’un procès-verbal.",
         "Sur un téléphone, la page d’une séance présente ses informations et la liste de ses points ; chaque point s’ouvre sur sa page, à l’adresse /meetings/:id/points/:pointId. Le procès-verbal et la délibération d’une séance s’ouvrent sur leur page, leurs actions dans le menu ⋯.",
         "Sur un téléphone, la page d’une séance montre la barre d’étapes et la pastille de révision à l’utilisateur qui peut préparer la séance.",
@@ -9957,6 +9959,12 @@
           "key": "readable-photo-name",
           "origin": "product",
           "statement": "Owner remark of 15 November 2026: « quand j'ai uploadé une photo, il y a un ID d'upload. […] trouver un autre nom au lieu de mettre l'ID. » Coordinator decision: a technical name is replaced by the day of the photo, with its hour only to tell apart two photos of the same day in the same text.",
+          "sourceIds": []
+        },
+        {
+          "key": "android-back-closes-top-layer",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 15 novembre 2026, qui emploie Hall sur un téléphone Android pliant avec la barre de navigation à trois boutons : « Tu lances un agent sur la gestion des trois boutons en bas de l'écran sur les Android pour voir si on est bien, on n'a pas de souci avec ça et qu'on le gère correctement. » Décision du coordinateur : le retour ferme l’élément du dessus, un seul à la fois, par un mécanisme commun à la feuille et à la fenêtre partagées, branché sur l’historique du navigateur.",
           "sourceIds": []
         }
       ]

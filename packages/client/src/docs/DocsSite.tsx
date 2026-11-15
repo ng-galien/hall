@@ -4,12 +4,15 @@ import { Button } from "../components/ui/button";
 import { HallLogo } from "../components/ui/hall-logo";
 import type { Locale } from "../i18n/I18nProvider";
 import { useI18n } from "../i18n/I18nProvider";
+import { startBackLayers } from "../lib/backLayers";
 import { resolveTone, useThemePrefsStore } from "../theme/themePrefs";
 import { DocsArea } from "./DocsArea";
 
 /* The documentation as a site of its own: no server, no application; the same pages, a hash router
    (works from a file:// URL), a minimal header with the language and the theme. Built by
    `npm run build:docs` into one self-contained HTML file. */
+
+startBackLayers();
 
 export function DocsSite() {
   const { t, locale, setLocale } = useI18n();

@@ -9,6 +9,7 @@ import { MeetingEntryBlockers } from "../../../features/council-meetings/Meeting
 import { formatMeetingLabel } from "../../../features/council-meetings/meetingPresentation";
 import { useCouncilMeeting } from "../../../hooks/useCouncilMeeting";
 import { useI18n } from "../../../i18n/I18nProvider";
+import { useBackLayer } from "../../../lib/backLayers";
 import { useCouncilMembersStore } from "../../../stores/councilMembersStore";
 import { ConductView } from "./ConductView";
 import { RollCallView } from "./RollCallView";
@@ -30,6 +31,7 @@ export function LiveMeetingPage() {
   const { meeting: aggregate, error, actionError } = meetingActions;
   const { members } = useCouncilMembersStore();
   const [rollCallVisible, setRollCallVisible] = useState(false);
+  useBackLayer(aggregate?.meeting.status === "inProgress" && rollCallVisible, () => setRollCallVisible(false));
 
   if (error) {
     return (

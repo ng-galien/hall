@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { cn } from "@/lib/utils";
 import { BackIcon, CloseIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
-import { usePhoneViewerHistory } from "../../shell/phoneHistory";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import "./DocumentViewer.css";
 
@@ -54,9 +53,8 @@ export function DocumentViewerDialog({
   const ownCloseButton = useRef<HTMLButtonElement | null>(null);
   const closeButton = closeButtonRef ?? ownCloseButton;
   const phonePage = usePhoneLayout();
-  const close = usePhoneViewerHistory(phonePage, onClose);
   return (
-    <Dialog open onOpenChange={(open) => !open && close()}>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className={cn(
           "document-viewer gap-0 p-0 max-w-[min(calc(100%-2rem),var(--hall-size-viewer-width))]",
@@ -90,7 +88,7 @@ export function DocumentViewerDialog({
                 size="icon"
                 variant="plain"
                 aria-label={t("common.back")}
-                onClick={close}
+                onClick={onClose}
               >
                 <BackIcon />
               </Button>
@@ -109,7 +107,7 @@ export function DocumentViewerDialog({
                   size="icon"
                   variant="plain"
                   aria-label={t("common.close")}
-                  onClick={close}
+                  onClick={onClose}
                 >
                   <CloseIcon />
                 </Button>

@@ -8,7 +8,6 @@ import { test, vi } from "vitest";
 
 vi.mock("../src/i18n/I18nProvider", () => ({ useI18n: () => ({ t: (key) => key }) }));
 vi.mock("../src/shell/usePhoneLayout", () => ({ usePhoneDocumentPages: () => true, usePhoneLayout: () => true }));
-vi.mock("../src/shell/phoneHistory", () => ({ usePhoneViewerHistory: (_phone, close) => close }));
 
 import { EditorImageViewer } from "../src/features/documents/EditorImageViewer.tsx";
 

@@ -1,11 +1,13 @@
 import { Select as SelectPrimitive } from "radix-ui";
 import type * as React from "react";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "@/components/icons";
+import { useBackClosable } from "@/lib/backLayers";
 import { cn } from "@/lib/utils";
 import { useFieldControl, useFieldEmptyText } from "./field";
 
 function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />;
+  const open = useBackClosable(props);
+  return <SelectPrimitive.Root data-slot="select" {...props} {...open} />;
 }
 
 function SelectGroup({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Group>) {

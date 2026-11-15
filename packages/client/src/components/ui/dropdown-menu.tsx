@@ -1,10 +1,12 @@
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 import type * as React from "react";
 import { CheckIcon, ChevronRightIcon } from "@/components/icons";
+import { useBackClosable } from "@/lib/backLayers";
 import { cn } from "@/lib/utils";
 
 function DropdownMenu({ ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
+  const open = useBackClosable(props);
+  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} {...open} />;
 }
 
 function DropdownMenuPortal({ ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Portal>) {

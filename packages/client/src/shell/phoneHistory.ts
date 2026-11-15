@@ -1,5 +1,5 @@
-import { useEffect, useId, useLayoutEffect, useRef } from "react";
-import { type Location, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useLayoutEffect, useRef } from "react";
+import { type Location, useLocation } from "react-router-dom";
 
 /** The router numbers its history entries; above zero, the previous entry is a screen of the application. */
 export function hasPreviousApplicationScreen(): boolean {
@@ -48,38 +48,3 @@ export function usePhoneScrollMemory(active: boolean, scroller: HTMLElement | nu
     return () => window.cancelAnimationFrame(request);
   }, [active, scroller, location.key, location.pathname, location.search, location.hash]);
 }
-
-/** A viewer over a phone screen is one step of the history: the back gesture closes it. */
-// biome-ignore-start lint/correctness/useExhaustiveDependencies: the history entry is added once, when the viewer opens.
-export function usePhoneViewerHistory(active: boolean, onClose: () => void): () => void {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const viewerId = useId();
-  const pushed = useRef(false);
-  const shown = useRef(false);
-  const close = useRef(onClose);
-  close.current = onClose;
-  const state = location.state as { phoneViewer?: string } | null;
-  const current = state?.phoneViewer === viewerId;
-
-  useEffect(() => {
-    if (!active || pushed.current) return;
-    pushed.current = true;
-    navigate(
-      { pathname: location.pathname, search: location.search, hash: location.hash },
-      { state: { ...state, phoneViewer: viewerId } },
-    );
-  }, [active]);
-
-  useEffect(() => {
-    if (!active) return;
-    if (current) shown.current = true;
-    else if (shown.current) {
-      shown.current = false;
-      close.current();
-    }
-  }, [active, current]);
-
-  return active ? () => navigate(-1) : onClose;
-}
-// biome-ignore-end lint/correctness/useExhaustiveDependencies: the history entry is added once, when the viewer opens.

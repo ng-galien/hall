@@ -1,10 +1,23 @@
 import { ContextMenu as ContextMenuPrimitive } from "radix-ui";
-import type * as React from "react";
+import * as React from "react";
 import { ChevronRightIcon } from "@/components/icons";
+import { useBackLayer } from "@/lib/backLayers";
 import { cn } from "@/lib/utils";
 
-function ContextMenu({ ...props }: React.ComponentProps<typeof ContextMenuPrimitive.Root>) {
-  return <ContextMenuPrimitive.Root data-slot="context-menu" {...props} />;
+/** The context menu has no open state of its own to set: the back command closes it as Escape does. */
+function ContextMenu({ onOpenChange, ...props }: React.ComponentProps<typeof ContextMenuPrimitive.Root>) {
+  const [open, setOpen] = React.useState(false);
+  useBackLayer(open, () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+  return (
+    <ContextMenuPrimitive.Root
+      data-slot="context-menu"
+      onOpenChange={(next) => {
+        setOpen(next);
+        onOpenChange?.(next);
+      }}
+      {...props}
+    />
+  );
 }
 
 function ContextMenuTrigger({ ...props }: React.ComponentProps<typeof ContextMenuPrimitive.Trigger>) {

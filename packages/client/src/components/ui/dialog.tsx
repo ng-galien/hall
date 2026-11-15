@@ -2,10 +2,14 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import type * as React from "react";
 import { CloseIcon as XIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { useBackClosable } from "@/lib/backLayers";
 import { cn } from "@/lib/utils";
 
+// @implements-requirement HALL-FR-LAY-010
+/** A window over the screen: the back command of the phone and of the browser closes it before leaving the screen. */
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+  const open = useBackClosable(props);
+  return <DialogPrimitive.Root data-slot="dialog" {...props} {...open} />;
 }
 
 function DialogTrigger({ ...props }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {

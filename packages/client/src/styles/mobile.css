@@ -3,6 +3,8 @@
     --hall-size-application-min: 0;
   }
   .app-main { overflow-x: hidden; }
+  /* While a text or a spreadsheet is being written, pulling the page down does not reload it. */
+  .app-main:has([data-editing="true"]) { overscroll-behavior-y: contain; }
   .page-content, .workbench { padding: var(--hall-space-4); }
   .form-grid { grid-template-columns: minmax(0, 1fr); }
   .page-actions, .workbench-header, .workbench-header-side { flex-wrap: wrap; }
