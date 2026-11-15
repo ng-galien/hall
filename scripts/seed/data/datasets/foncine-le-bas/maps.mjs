@@ -59,8 +59,8 @@ const parcelLabel = (id) => `${id.slice(8, 10).replace(/^0/, "")} ${Number(id.sl
 /** The drawn maps of the dataset; `notes` names the drawings that receive a note with a photo. */
 export function mapDefinitions() {
   const { montNoir, douanets, lighting, ruralPaths, bridge, forest, champDeMars } = territory;
-  const half = Math.floor(montNoir.line.length / 2);
-  const road = line("Voie communale du Mont Noir", montNoir.line, colors.blue, 6);
+  const road = line("Voie communale du Mont Noir", montNoir.upper, colors.blue, 6);
+  const slope = line("Partie en pente, enrobé neuf", montNoir.slope, colors.red, 7);
   const photos = {
     rut: marker("Ornière, côté est", montNoir.photos.rut, colors.red),
     ditch: marker("Fossé bouché", montNoir.photos.ditch, colors.red),
@@ -82,17 +82,17 @@ export function mapDefinitions() {
     ],
     features: [
       road,
-      line("Partie en pente, enrobé neuf", montNoir.slope, colors.red, 7),
-      measure("564 m", montNoir.line, montNoir.length),
+      slope,
+      measure("Longueur de la voie", montNoir.line, montNoir.length),
       ...Object.values(photos),
-      line("Tronçon 1 : circulation alternée", montNoir.line.slice(0, half + 1), colors.navy, 2, "forward"),
-      line("Tronçon 2 : circulation alternée", montNoir.line.slice(half), colors.navy, 2, "backward"),
+      line("Tronçon 1 : circulation alternée", montNoir.firstLeg, colors.navy, 3, "forward"),
+      line("Tronçon 2 : circulation alternée", montNoir.secondLeg, colors.navy, 3, "backward"),
     ],
     notes: [
       {
-        feature: road,
+        feature: slope,
         image: null,
-        text: `## Voie communale du Mont Noir\n\nVoie communale qui dessert le lieu-dit le Mont Noir, 564 mètres mesurés sur la carte. Programme : reprofilage, ornières, curage du fossé, reprise d’un accotement, remplacement d’une buse, enrobé sur 160 mètres en pente.\n\n*${mapNotice}.*`,
+        text: `## Partie en pente de la voie du Mont Noir\n\n160 mètres en pente, enrobé à chaud 0/10 sur 480 m². La voie communale mesure 564 mètres ; le programme comprend aussi le reprofilage, les ornières, le curage du fossé, la reprise d’un accotement et le remplacement d’une buse.\n\n*${mapNotice}.*`,
       },
       { feature: photos.rut, image: 1, text: "Ornière longue, côté est, remplie d’eau après la pluie." },
       { feature: photos.ditch, image: 2, text: "Fossé comblé de terre et de feuilles ; l’eau passe sur la chaussée." },

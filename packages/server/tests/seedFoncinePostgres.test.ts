@@ -89,6 +89,7 @@ postgresTest.each(["foncine-le-bas-session", "foncine-le-bas-minutes"])(
       const report = await get("/resources/rapport");
       expect(report.content).toMatch(/::image\[Ornière, côté est\]/);
       expect(report.content).toMatch(/::resource-embed\[Carte du chemin communal\]/);
+      expect(report.content).toMatch(/:resource\[Code de la voirie routière\]\{#[^}]+\}, article L141-8/);
 
       const meetings = await get("/council-meetings");
       const decisions = await get("/council-decisions");

@@ -28,7 +28,7 @@ Un habitant a écrit à la mairie pour signaler l’usure de la voie (${ref.lett
 
 ## Cadre
 
-L’entretien des voies communales est une dépense obligatoire (code de la voirie routière, ${ref.l1418 ?? "article L141-8"} ; CGCT, L2321-2). Le montant, 19 350 € HT, permet de consulter directement des entreprises (code de la commande publique, R2122-8). La commune a demandé la dotation d’équipement des territoires ruraux (CGCT, L2334-32 et suivants) et l’aide départementale à la voirie communale ; le maître d’ouvrage finance au moins 20 % du projet (CGCT, L1111-10). La préfecture a accusé réception du dossier complet ; la décision d’attribution n’est pas encore notifiée.
+L’entretien des voies communales est une dépense obligatoire (${ref.roadCode ?? "code de la voirie routière"}, article L141-8 ; CGCT, L2321-2). Le montant, 19 350 € HT, permet de consulter directement des entreprises (code de la commande publique, R2122-8). La commune a demandé la dotation d’équipement des territoires ruraux (CGCT, L2334-32 et suivants) et l’aide départementale à la voirie communale ; le maître d’ouvrage finance au moins 20 % du projet (CGCT, L1111-10). La préfecture a accusé réception du dossier complet ; la décision d’attribution n’est pas encore notifiée.
 
 ## Travaux et devis
 

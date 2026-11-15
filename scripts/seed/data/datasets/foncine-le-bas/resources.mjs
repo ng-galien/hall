@@ -23,23 +23,24 @@ const folderColors = {
   [folders.forest]: "#14532D",
   [folders.walk]: "#15803D",
 };
+/**
+ * Articles of the general code of local authorities chosen by the official search of Hall, which searches that
+ * code only. The articles of the other codes cited by the dataset (road code L141-8, rural code L161-1, forest
+ * code L243-1, environment code L361-1) are named in the texts; the road code is reached by its web link.
+ */
 const legalArticles = [
-  ["L2121-2", "Code général des collectivités territoriales"],
-  ["L2121-10", "Code général des collectivités territoriales"],
-  ["L2121-11", "Code général des collectivités territoriales"],
-  ["L2121-14", "Code général des collectivités territoriales"],
-  ["L2121-15", "Code général des collectivités territoriales"],
-  ["L2121-17", "Code général des collectivités territoriales"],
-  ["L2121-20", "Code général des collectivités territoriales"],
-  ["L2121-21", "Code général des collectivités territoriales"],
-  ["L2131-1", "Code général des collectivités territoriales"],
-  ["L2131-11", "Code général des collectivités territoriales"],
-  ["L1111-10", "Code général des collectivités territoriales"],
-  ["L2212-2", "Code général des collectivités territoriales"],
-  ["L141-8", "Code de la voirie routière"],
-  ["L161-1", "Code rural et de la pêche maritime"],
-  ["L243-1", "Code forestier"],
-  ["L361-1", "Code de l’environnement"],
+  "L2121-2",
+  "L2121-10",
+  "L2121-11",
+  "L2121-14",
+  "L2121-15",
+  "L2121-17",
+  "L2121-20",
+  "L2121-21",
+  "L2131-1",
+  "L2131-11",
+  "L1111-10",
+  "L2212-2",
 ];
 
 /**
@@ -431,19 +432,20 @@ La maire de Foncine-le-Bas, vu le code général des collectivités territoriale
     ["Itinéraires du parc naturel régional du Haut-Jura", folders.walk, "https://www.parc-haut-jura.fr/", "walk"],
     ["Documentation de Hall", folders.digital, `${new URL(api.baseUrl).origin}/app/docs`, "digital"],
   ]) {
-    await attach(
-      business,
-      await createWorkspaceResource({ kind: "remote", name, path, target: { kind: "url", url: target } }, ["droit"]),
+    resources[name] = await createWorkspaceResource(
+      { kind: "remote", name, path, target: { kind: "url", url: target } },
+      ["droit"],
     );
+    await attach(business, resources[name]);
   }
   const legal = {};
-  for (const [article, code] of legalArticles) {
+  const expectedTitle = (article) => `Code général des collectivités territoriales, article ${article}`;
+  for (const article of legalArticles) {
     try {
-      const [match] = await post("/resources/legal-references/search", {
-        query: `${code} ${article}`,
-        effectiveAt: null,
-      });
-      if (!match) throw new Error(`aucun résultat Légifrance pour ${article}`);
+      const match = (await post("/resources/legal-references/search", { query: article, effectiveAt: null })).find(
+        (candidate) => candidate.citationLabel === article && candidate.title === expectedTitle(article),
+      );
+      if (!match) throw new Error(`aucun résultat Légifrance pour l’article ${article}`);
       const draft = await createWorkspaceResource({ kind: "legalReference", name: match.title, path: folders.legal }, [
         "droit",
       ]);
@@ -458,11 +460,10 @@ La maire de Foncine-le-Bas, vu le code général des collectivités territoriale
       legal[article] = draft;
     } catch (error) {
       console.warn(
-        `  Référence juridique ${code} ${article} non créée : ${error instanceof Error ? error.message.slice(0, 80) : String(error)}`,
+        `  Référence juridique ${article} non créée : ${error instanceof Error ? error.message.slice(0, 80) : String(error)}`,
       );
     }
   }
-  await attach("montNoir", legal["L141-8"]);
   await attach("montNoir", legal["L1111-10"]);
   await attach("digital", legal["L2121-10"]);
 
@@ -483,7 +484,7 @@ La maire de Foncine-le-Bas, vu le code général des collectivités territoriale
       letter: link("Courrier des riverains"),
       garnier: member("garnier"),
       bertrand: contact("bertrand"),
-      l1418: legal["L141-8"] ? `:resource[article L141-8]{#${legal["L141-8"].id}}` : "article L141-8",
+      roadCode: link("Code de la voirie routière"),
       quotes: [link("Devis · Terrassement"), link("Devis · Busage"), link("Devis · Enrobé")].join(", "),
       plan: link("Plan de situation"),
       map: `::resource-embed[Carte du chemin communal]{#${maps.montNoir.id} presentation="map"}`,
