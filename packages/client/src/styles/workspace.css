@@ -128,6 +128,8 @@
   .workspace-personal .list-row-main:hover { background: var(--hall-color-brand-subtle-hover); }
   .workspace-personal .type-icon { --type-icon-color: var(--hall-color-brand); }
   .workspace-personal .list-row-title { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
+  /* A pinned row is an ordinary row; a small pin before its second line marks it. */
+  .workspace-pin-mark { display: inline-flex; flex: none; margin-inline-end: var(--hall-space-1-5); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-icon); vertical-align: text-bottom; }
   .wsearch { position: relative; display: flex; flex-direction: column; gap: var(--hall-space-2); }
   /* The search field is one filled, underlined field (12D): its chosen filters, the text, then its commands. */
   .wsearch-field {

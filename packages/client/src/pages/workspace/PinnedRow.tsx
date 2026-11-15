@@ -1,7 +1,13 @@
 import { matchDiscriminated } from "@hall/domain";
 import { useEffect } from "react";
-import { PinIcon } from "../../components/icons";
+import { MoreIcon, PinIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 import { ListRow, ListRows } from "../../components/ui/list-row";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import {
@@ -17,7 +23,7 @@ import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore, type WorkspacePin } from "./workspacePrefs";
 
 // @implements-requirement HALL-FR-LAY-060
-/** Pinned matters and documents, each shown as the prominent row of the screen (choice 4D). */
+/** Pinned matters and documents, each an ordinary row of the list marked by a pin; « Désépingler » is in its « … » menu. */
 export function PinnedRow({
   selection,
   onSelect,
@@ -58,7 +64,7 @@ export function PinnedRow({
   if (entries.length === 0) return null;
 
   return (
-    <ListRows className="workspace-pins" aria-label={t("workspace.pinned")}>
+    <ListRows className="workspace-pins" aria-label={t("workspace.pinned")} data-wrap="true">
       {entries.map(({ pin, business, resource }) => {
         const title = business?.title ?? resource?.name ?? "";
         const isActive = selection !== null && selection.kind === pin.kind && selection.id === pin.id;
@@ -66,29 +72,48 @@ export function PinnedRow({
         return (
           <ListRow
             key={`${pin.kind}:${pin.id}`}
-            prominent
             selected={isActive}
-            overline={t("workspace.pinnedItem")}
             head={
               business ? (
-                <CouncilBusinessGlyph business={business} large />
+                <CouncilBusinessGlyph business={business} />
               ) : resource ? (
-                <DocumentaryResourceGlyph resource={resource} large />
+                <DocumentaryResourceGlyph resource={resource} />
               ) : null
             }
             title={title}
-            detail={date ? formatDate(date.value) : undefined}
+            detail={
+              <>
+                <span className="workspace-pin-mark" role="img" aria-label={t("workspace.pinnedItem")}>
+                  <PinIcon />
+                </span>
+                {date ? formatDate(date.value) : null}
+              </>
+            }
             onOpen={() => onSelect(pin, business?.folderPath ?? resource?.path)}
             openTestId={`workspace-pin-open-${pin.id}`}
             action={
-              <Button
-                variant="secondary"
-                aria-label={t("workspace.unpin", { name: title })}
-                onClick={() => togglePin(pin)}
-              >
-                <PinIcon />
-                {t("workspace.unpinShort")}
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="plain"
+                    size="icon"
+                    data-testid={`workspace-pin-commands-${pin.id}`}
+                    aria-label={t("item.more")}
+                  >
+                    <MoreIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    data-testid={`workspace-pin-unpin-${pin.id}`}
+                    aria-label={t("workspace.unpin", { name: title })}
+                    onSelect={() => togglePin(pin)}
+                  >
+                    <PinIcon />
+                    <span>{t("workspace.unpinShort")}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             }
           />
         );
