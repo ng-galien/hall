@@ -46,6 +46,7 @@ export function SpreadsheetResourceEditor({
   const [editRequest, setEditRequest] = useState(0);
   const [typing, setTyping] = useState(false);
   const latestDraftRef = useRef(draft);
+  const publishPendingRef = useRef<(() => void) | null>(null);
   const savedDocumentRef = useRef(spreadsheetSignature(document));
   const versionRef = useRef(resource.version);
   const canUpdateRef = useRef(false);
@@ -105,7 +106,10 @@ export function SpreadsheetResourceEditor({
   requestSaveRef.current = save;
 
   useEffect(() => {
-    onRegisterFlush?.(() => (autosaveEnabledRef.current ? save() : Promise.resolve(true)));
+    onRegisterFlush?.(() => {
+      publishPendingRef.current?.();
+      return autosaveEnabledRef.current ? save() : Promise.resolve(true);
+    });
     return () => onRegisterFlush?.(null);
   }, [onRegisterFlush, save]);
 
@@ -156,6 +160,9 @@ export function SpreadsheetResourceEditor({
         onCells={setCells}
         onCellsChange={setCell}
         onCellEditRequest={() => setEditRequest((request) => request + 1)}
+        onRegisterFlush={(flush) => {
+          publishPendingRef.current = flush;
+        }}
         onEditingChange={(next) => {
           if (mountedRef.current) setEditing(next);
         }}

@@ -24,8 +24,20 @@ export class UniverSheetsMobileUIPlugin {}
 export const UniverSheetsCorePreset = () => ({ plugins: [UniverUIPlugin, [UniverSheetsUIPlugin, {}]] });
 export const handlers = {};
 export const content = { cells: { A1: "Date" } };
+const range = { setValue() {}, setFormula() {}, clearContent() {}, setFontWeight() {}, setFontStyle() {} };
+const sheet = {
+  getActiveRange: () => range,
+  getRange: () => range,
+  insertRowAfter() {},
+  insertColumnAfter() {},
+  deleteRow() {},
+  deleteColumn() {},
+};
 const workbook = {
   getId: () => "w",
+  getActiveCell: () => null,
+  getActiveSheet: () => sheet,
+  getSheetBySheetId: () => sheet,
   save: () => JSON.parse(JSON.stringify(content)),
   getWorkbookPermission: () => ({
     setMode: async (mode) => { calls.push(["mode", mode]); },
@@ -35,6 +47,8 @@ const workbook = {
 export const FUniver = {
   newAPI: () => ({
     Event: { CommandExecuted: "CommandExecuted", Undo: "Undo", Redo: "Redo" },
+    undo: async () => true,
+    redo: async () => true,
     Enum: { WorkbookPermissionPoint: { CopyContent: "WorkbookCopy" } },
     createWorkbook: () => workbook,
     addEvent: (name, handler) => {
@@ -119,16 +133,27 @@ async function renderAdapter(readOnly, phone = false, scenario = async () => und
     const slot = dom.window.document.getElementById("slot");
     root = createRoot(dom.window.document.getElementById("root"));
     const changes = [];
-    const render = (layout) =>
+    const engine = { cells: null, flush: null };
+    let currentLayout = phone;
+    let currentReadOnly = readOnly;
+    const render = (layout = currentLayout, nextReadOnly = currentReadOnly) =>
       act(async () => {
+        currentLayout = layout;
+        currentReadOnly = nextReadOnly;
         root.render(
           createElement(UniverSpreadsheetAdapter, {
             key: layout ? "phone" : "pointer",
             mountElement: slot,
             readDocument: () => ({ schemaVersion: 2, workbook: { id: "w", sheetOrder: [], sheets: {} } }),
-            readOnly,
+            readOnly: nextReadOnly,
             locale: "fr",
             phone: layout,
+            onCells: (cells) => {
+              engine.cells = cells;
+            },
+            onRegisterFlush: (flush) => {
+              engine.flush = flush;
+            },
             onChange: (document) => changes.push(document),
             onEditingChange: () => undefined,
           }),
@@ -138,8 +163,17 @@ async function renderAdapter(readOnly, phone = false, scenario = async () => und
     await scenario({
       changes,
       content,
-      setPhone: render,
+      engine,
+      setPhone: (layout) => render(layout),
+      setReadOnly: (nextReadOnly) => render(currentLayout, nextReadOnly),
+      gesture: (type) =>
+        act(async () => {
+          slot
+            .querySelector(".univer-spreadsheet-instance")
+            .dispatchEvent(new dom.window.Event(type, { bubbles: true }));
+        }),
       fire: (event) => act(async () => handlers.CommandExecuted(event)),
+      undo: () => act(async () => handlers.Undo({})),
       settle: () => act(() => new Promise((resolve) => setTimeout(resolve, 150))),
     });
     const grid = slot.querySelector('[data-testid="spreadsheet-grid"]');
@@ -253,4 +287,55 @@ test("the formula results the library computes at opening write nothing; a chang
   });
   assert.equal(written, 0);
   assert.deepEqual(afterChange, [[21, 42]]);
+});
+
+const cell = { sheetId: "s", row: 0, column: 0, name: "A1", display: "", input: "", bold: false, italic: false };
+
+/** Publishes the content saved after a person's action followed by a result the library computes and applies locally. */
+async function savedAfter(action) {
+  let written = null;
+  await renderAdapter(false, false, async (context) => {
+    context.content.cells.E2 = 40;
+    await context.fire(formulaResult);
+    await context.settle();
+    await action(context);
+    context.content.cells.E3 = 4242;
+    await context.fire(formulaResult);
+    await context.settle();
+    written = context.changes.map((document) => document.workbook.cells.E3);
+  });
+  return written;
+}
+
+// @verifies-requirement HALL-FR-LAY-180
+test("every way a person changes the spreadsheet is saved, whatever the library marks on its mutations", async () => {
+  const paths = {
+    "cell field of the phone": ({ engine }) => engine.cells.write(cell, "4242"),
+    "tools of the phone": ({ engine }) => engine.cells.run("bold"),
+    "row and column commands": ({ engine }) => engine.cells.run("deleteRow"),
+    "touch or click in the grid": ({ gesture }) => gesture("pointerdown"),
+    "keyboard in the grid": ({ gesture }) => gesture("keydown"),
+    paste: ({ gesture }) => gesture("paste"),
+    undo: ({ undo }) => undo(),
+  };
+  for (const [path, action] of Object.entries(paths))
+    assert.deepEqual(await savedAfter(action), [4242], `${path} is saved`);
+});
+
+// @verifies-requirement HALL-FR-LAY-180
+test("a change still waiting for its delay is published at once before a save and when writing ends", async () => {
+  let flushed = null;
+  let ended = null;
+  await renderAdapter(false, false, async ({ changes, content, engine, fire, setReadOnly }) => {
+    content.cells.C2 = 4242;
+    await fire(workbookMutation);
+    engine.flush();
+    flushed = changes.length;
+    content.cells.C3 = 21;
+    await fire(workbookMutation);
+    await setReadOnly(true);
+    ended = changes.length;
+  });
+  assert.equal(flushed, 1, "the save that follows « Terminé » carries the change");
+  assert.equal(ended, 2, "returning to reading publishes the change before the grid is locked");
 });

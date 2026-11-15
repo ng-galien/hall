@@ -40,7 +40,9 @@ function phonePlugin(plugin: unknown): unknown {
 type MutationEvent = { type: CommandType; id: string; params?: unknown; options?: unknown };
 
 /** How a mutation touches the workbook: not at all (the cell editor of the library, the formula engine), by a result
- * the library computes itself (formula results, applied locally), or by a change of the person. */
+ * the library computes itself (formula results, applied locally), or by a change of the person. A computed result is
+ * kept out of the saved content only until the first gesture of the person in the grid or in the commands of Hall;
+ * from then on every change of the workbook is saved. */
 function workbookChange(event: MutationEvent, unitId: string): "none" | "computed" | "person" {
   if (event.type !== CommandType.MUTATION || event.id.startsWith("formula.mutation.")) return "none";
   const params = event.params as { unitId?: unknown } | undefined;
@@ -111,6 +113,7 @@ export function UniverSpreadsheetAdapter({
   onCells,
   onCellsChange,
   onCellEditRequest,
+  onRegisterFlush,
 }: {
   mountElement: HTMLDivElement | null;
   /** The latest content of the spreadsheet, read when the grid is created: a grid recreated at another width starts
@@ -127,12 +130,16 @@ export function UniverSpreadsheetAdapter({
   onCellsChange?(cell: SpreadsheetCell | null): void;
   /** On a phone a double touch on the grid asks to write the designated cell: the cell field of Hall takes it. */
   onCellEditRequest?(): void;
+  /** Receives the command that publishes at once a change still waiting for its delay, before a save. */
+  onRegisterFlush?(flush: (() => void) | null): void;
 }) {
   const onChangeRef = useRef(onChange);
   const onEditingChangeRef = useRef(onEditingChange);
   const onCellsRef = useRef(onCells);
   const onCellsChangeRef = useRef(onCellsChange);
   const onCellEditRequestRef = useRef(onCellEditRequest);
+  const onRegisterFlushRef = useRef(onRegisterFlush);
+  const publishPendingRef = useRef<(() => void) | null>(null);
   const readOnlyRef = useRef(readOnly);
   const readDocumentRef = useRef(readDocument);
   const setReadOnlyRef = useRef<((readOnly: boolean) => Promise<void>) | null>(null);
@@ -142,6 +149,7 @@ export function UniverSpreadsheetAdapter({
   onCellsRef.current = onCells;
   onCellsChangeRef.current = onCellsChange;
   onCellEditRequestRef.current = onCellEditRequest;
+  onRegisterFlushRef.current = onRegisterFlush;
   readOnlyRef.current = readOnly;
   readDocumentRef.current = readDocument;
   const [host] = useState(() => {
@@ -160,6 +168,7 @@ export function UniverSpreadsheetAdapter({
   useEffect(() => {
     host.setAttribute("aria-readonly", String(readOnly));
     if (!setReadOnlyRef.current || appliedReadOnlyRef.current === readOnly) return;
+    if (readOnly) publishPendingRef.current?.();
     appliedReadOnlyRef.current = readOnly;
     void setReadOnlyRef.current(readOnly);
   }, [host, readOnly]);
@@ -202,10 +211,26 @@ export function UniverSpreadsheetAdapter({
     appliedReadOnlyRef.current = readOnlyRef.current;
     if (readOnlyRef.current) void setReadOnlyRef.current(true);
     let lastSnapshot = spreadsheetSnapshotFromWorkbook(workbook.save()).signature;
-    let changedByPerson = false;
+    let personActed = false;
     let snapshotTimer: number | null = null;
     let cellsFrame: number | null = null;
-    const cells = spreadsheetCells(univerAPI, workbook, locale);
+    const engineCells = spreadsheetCells(univerAPI, workbook, locale);
+    const cells: SpreadsheetCells = {
+      ...engineCells,
+      write: (target, input) => {
+        personActed = true;
+        engineCells.write(target, input);
+      },
+      run: (command) => {
+        personActed = true;
+        engineCells.run(command);
+      },
+    };
+    const markGesture = () => {
+      if (!readOnlyRef.current) personActed = true;
+    };
+    for (const type of ["pointerdown", "keydown", "paste", "cut", "drop"])
+      instanceHost.addEventListener(type, markGesture, true);
     const publishSnapshot = () => {
       if (snapshotTimer !== null) window.clearTimeout(snapshotTimer);
       snapshotTimer = null;
@@ -229,13 +254,13 @@ export function UniverSpreadsheetAdapter({
     const commandExecuted = univerAPI.addEvent(univerAPI.Event.CommandExecuted, (event) => {
       announceCells();
       const change = workbookChange(event, unitId);
-      if (change === "person") changedByPerson = true;
       if (change === "none") return;
-      if (changedByPerson) queueSnapshot();
+      if (change === "person") personActed = true;
+      if (personActed) queueSnapshot();
       else lastSnapshot = spreadsheetSnapshotFromWorkbook(workbook.save()).signature;
     });
     const changeByPerson = () => {
-      changedByPerson = true;
+      personActed = true;
       queueSnapshot();
     };
     const undo = univerAPI.addEvent(univerAPI.Event.Undo, changeByPerson);
@@ -251,11 +276,20 @@ export function UniverSpreadsheetAdapter({
       onEditingChangeRef.current(false);
       queueSnapshot(0);
     });
+    const publishPending = () => {
+      if (snapshotTimer !== null) publishSnapshot();
+    };
+    publishPendingRef.current = publishPending;
+    onRegisterFlushRef.current?.(publishPending);
     onCellsRef.current?.(cells);
     announceCells();
     return () => {
       setReadOnlyRef.current = null;
+      publishPendingRef.current = null;
+      onRegisterFlushRef.current?.(null);
       onCellsRef.current?.(null);
+      for (const type of ["pointerdown", "keydown", "paste", "cut", "drop"])
+        instanceHost.removeEventListener(type, markGesture, true);
       if (cellsFrame !== null) window.cancelAnimationFrame(cellsFrame);
       releaseKeyboard();
       releaseDoubleTouch();
