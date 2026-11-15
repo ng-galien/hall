@@ -38,6 +38,33 @@ function navigate(path) {
   window.history.pushState({ key: `screen-${screens}`, idx: screens }, "", path);
 }
 
+/** A replacement of the current entry by the router, as a change of the search parameters on a computer. */
+function replace(path) {
+  screens += 1;
+  window.history.replaceState({ key: `screen-${screens}`, idx: window.history.state.idx }, "", path);
+}
+
+/** The layer closes by its own control, as a form closes after its validation or its cancellation. */
+async function closeByControl(name) {
+  await act(async () => document.querySelector(`[data-testid="${name}-close"]`).click());
+}
+
+/** After the destination: it is shown, back leaves it for the screen before it, forward returns to it alone. */
+async function destinationWins(path, before) {
+  await settle();
+  assert.equal(window.location.pathname + window.location.search, path, "the destination is shown");
+  assert.equal(window.history.state.hallLayer, undefined, "the destination is not a layer entry");
+  const destination = window.history.state.key;
+  assert.deepEqual(routerPops, [], "the closing of the layer never reaches the router");
+  window.history.back();
+  await settle();
+  assert.equal(routerPops.at(-1)?.key, before, "back leaves the destination for the screen it was opened from");
+  window.history.forward();
+  await settle();
+  assert.equal(window.history.state.key, destination, "forward returns to the destination");
+  assert.equal(window.history.state.hallLayer, undefined, "forward opens no layer");
+}
+
 function Layer({ name, refuse = false, children }) {
   const [open, setOpen] = useState(true);
   useBackLayer(open, () => {
@@ -143,4 +170,59 @@ test("a layer that stays open after the back command, such as writing that canno
   await settle();
   assert.notEqual(window.history.state.hallLayer, undefined, "the open layer has an entry again");
   assert.deepEqual(routerPops, []);
+});
+
+// @verifies-requirement HALL-FR-LAY-010
+test("a navigation right after a layer closes, as after the validation of a creation form, wins", async () => {
+  navigate("/app/workspace?path=Conseil");
+  const before = window.history.state.key;
+  const length = window.history.length;
+  await render(h(Layer, { name: "creation" }));
+  await closeByControl("creation");
+  navigate("/app/workspace?path=Conseil&resource=created");
+  await destinationWins("/app/workspace?path=Conseil&resource=created", before);
+  assert.equal(window.history.length, length + 1, "no entry is left behind");
+});
+
+// @verifies-requirement HALL-FR-LAY-010
+test("a navigation while the closed layer gives its entry back waits for it and wins", async () => {
+  navigate("/app/workspace?path=Accueil");
+  const before = window.history.state.key;
+  await render(h(Layer, { name: "creation" }));
+  await closeByControl("creation");
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  navigate("/app/workspace?path=Accueil&resource=created");
+  await destinationWins("/app/workspace?path=Accueil&resource=created", before);
+});
+
+// @verifies-requirement HALL-FR-LAY-010
+test("a navigation written before the layer closes wins, by a new entry or by a replaced one", async () => {
+  navigate("/app/workspace?path=Veille");
+  const before = window.history.state.key;
+  await render(h(Layer, { name: "creation" }));
+  navigate("/app/workspace?path=Veille&councilBusiness=created");
+  await closeByControl("creation");
+  await destinationWins("/app/workspace?path=Veille&councilBusiness=created", before);
+
+  await act(async () => root.unmount());
+  const beforeSoutien = `screen-${screens}`;
+  navigate("/app/workspace?path=Soutien");
+  routerPops.length = 0;
+  await render(h(Layer, { name: "creation" }));
+  replace("/app/workspace?path=Soutien&councilBusiness=created");
+  await closeByControl("creation");
+  await destinationWins("/app/workspace?path=Soutien&councilBusiness=created", beforeSoutien);
+});
+
+// @verifies-requirement HALL-FR-LAY-010
+test("a navigation after a cancellation is written on the screen and wins", async () => {
+  navigate("/app/contacts");
+  await render(h(Layer, { name: "contact-form" }));
+  await closeByControl("contact-form");
+  replace("/app/contacts?sort=name");
+  await settle();
+  assert.equal(window.location.search, "?sort=name");
+  assert.equal(window.history.state.hallLayer, undefined);
+  navigate("/app/contacts/created");
+  await destinationWins("/app/contacts/created", `screen-${screens - 1}`);
 });

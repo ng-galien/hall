@@ -44,8 +44,10 @@ function sameEntry(left: EntryState | null, right: EntryState | null): boolean {
 /**
  * Wraps the history of the window. `entries` are the layers with an entry above the screen entry, in history order;
  * `base` is the screen entry under them; `routerWrite` is the last entry the router wrote while a layer covered the
- * screen, taken back by the screen entry. `history.go` is the return of the router, which leaves the screen and its
- * layers; `history.back` stays the back command of the browser and of the phone.
+ * screen, taken back by the screen entry. A layer closed by the application gives its entry back by a quiet move of the
+ * history that the router never sees; a navigation written by the router meanwhile waits for that move and is then
+ * written on the screen entry, so the destination always wins. `history.go` is the return of the router, which leaves
+ * the screen and its layers; `history.back` stays the back command of the browser and of the phone.
  */
 function createBackLayers(): BackLayers {
   const history = window.history;
@@ -97,18 +99,40 @@ function createBackLayers(): BackLayers {
     for (const run of ended.after) run();
   }
 
+  function settleBase() {
+    if (routerWrite && !sameEntry(state(), routerWrite.state))
+      write(native.replace, routerWrite.state, routerWrite.url);
+    base = null;
+    routerWrite = null;
+  }
+
+  function settleClosed(then: () => void): boolean {
+    let closed = 0;
+    while (closed < entries.length && !entries[entries.length - 1 - closed].open) closed += 1;
+    if (!closed) return false;
+    window.clearTimeout(releaseTimer);
+    releaseTimer = 0;
+    const onTop = onTopLayerEntry();
+    entries.splice(entries.length - closed);
+    const emptied = entries.length === 0;
+    if (!onTop) {
+      if (emptied) forget();
+      return false;
+    }
+    traverse(-closed, true, () => {
+      if (emptied) settleBase();
+      then();
+    });
+    return true;
+  }
+
   function release() {
     releaseTimer = 0;
     if (traversal) {
       traversal.after.push(release);
       return;
     }
-    let closed = 0;
-    while (closed < entries.length && !entries[entries.length - 1 - closed].open) closed += 1;
-    if (!closed) return;
-    const onTop = onTopLayerEntry();
-    entries.splice(entries.length - closed);
-    if (onTop) traverse(-closed, false);
+    settleClosed(() => undefined);
   }
 
   function open(layer: Layer) {
@@ -145,6 +169,11 @@ function createBackLayers(): BackLayers {
       window.clearTimeout(arrived.timer);
       traversal = null;
     }
+    if (arrived?.quiet) {
+      event.stopImmediatePropagation();
+      for (const run of arrived.after) run();
+      return;
+    }
     const leavesOrReachesLayer = target?.hallLayer !== undefined || previous?.hallLayer !== undefined;
     const sameScreen =
       leavesOrReachesLayer && (sameEntry(target, previous) || (entries.length > 0 && sameEntry(target, base)));
@@ -152,7 +181,7 @@ function createBackLayers(): BackLayers {
       forget();
     } else {
       event.stopImmediatePropagation();
-      if (!arrived?.quiet) arrive(target);
+      arrive(target);
     }
     for (const run of arrived?.after ?? []) run();
   }
@@ -161,7 +190,7 @@ function createBackLayers(): BackLayers {
     const id = target?.hallLayer;
     const index = id === undefined ? -1 : entries.findIndex((layer) => layer.id === id);
     if (id !== undefined && index === -1) {
-      traverse(-1, false);
+      traverse(-1, true);
       return;
     }
     const above = entries.splice(index + 1).reverse();
@@ -174,9 +203,7 @@ function createBackLayers(): BackLayers {
       if (!entries[index].open) traverse(-1, false);
       return;
     }
-    if (routerWrite && !sameEntry(target, routerWrite.state)) write(native.replace, routerWrite.state, routerWrite.url);
-    base = null;
-    routerWrite = null;
+    settleBase();
   }
 
   history.pushState = (next: unknown, unused: string, url?: string | URL | null) => {
@@ -184,6 +211,7 @@ function createBackLayers(): BackLayers {
       traversal.after.push(() => history.pushState(next, unused, url));
       return;
     }
+    if (settleClosed(() => history.pushState(next, unused, url))) return;
     if (!onTopLayerEntry()) {
       if (entries.length) forget();
       write(native.push, next as EntryState, url);
@@ -201,6 +229,7 @@ function createBackLayers(): BackLayers {
       traversal.after.push(() => history.replaceState(next, unused, url));
       return;
     }
+    if (settleClosed(() => history.replaceState(next, unused, url))) return;
     const shown = state();
     if (shown?.hallLayer !== undefined && entries.some((layer) => layer.id === shown.hallLayer)) {
       routerWrite = { state: next as EntryState, url };
