@@ -61,6 +61,5 @@ export const mailbox = (key) =>
     .replace(/[^a-z.]/g, "")
     .concat("@foncine-le-bas.example");
 
-export const demonstrationNotice =
-  "Démonstration de Hall. Le territoire de Foncine-le-Bas est réel ; les élus, les personnes, les associations, les décisions, les votes, les montants, les travaux et les documents sont fictifs.";
-export const mapNotice = "Dessins et états fictifs, démonstration de Hall";
+export const demonstrationIntroduction = "Démonstration dans une vraie commune de France : Foncine-le-Bas, Jura.";
+export const demonstrationNotice = "Données de démonstration : réalistes, mais fictives.";

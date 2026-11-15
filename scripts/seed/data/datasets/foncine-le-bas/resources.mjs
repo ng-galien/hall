@@ -5,7 +5,7 @@ import { mediaTypeOf } from "../../common/api.mjs";
 import { accountsTracker, guide, presentationNote } from "./digital.mjs";
 import { communalParcelLayer, communalParcels, mapDefinitions, riversideParcels, territory } from "./maps.mjs";
 import { documents, folders, illustrations, imageFile, proxies } from "./media.mjs";
-import { associations, companies, demonstrationNotice, fullName, mapNotice } from "./names.mjs";
+import { associations, companies, demonstrationIntroduction, demonstrationNotice, fullName } from "./names.mjs";
 import {
   associationGrants,
   budgetExecutionXlsx,
@@ -204,7 +204,7 @@ export async function seedResources(api, { daysFromNow, members, contacts, group
         });
         image = `\n\n::image[${illustrations[note.image - 1].title}]{#${asset.id} align="center" width="100"}`;
       }
-      await api.updateText(noteId, `${note.text}${image}\n\n*${mapNotice}.*\n`);
+      await api.updateText(noteId, `${note.text}${image}\n`);
     }
   }
   const layer = await api.importGeographicLayer({
@@ -241,11 +241,7 @@ export async function seedResources(api, { daysFromNow, members, contacts, group
       ["conseil"],
       `## Foncine-le-Bas
 
-Commune du Jura (code INSEE 39227, code postal 39520), 203 habitants (population légale), 9,19 km² entre 730 et 1 181 mètres d’altitude. La Saine traverse le village ; les ruisseaux de la Sainette, du Galavo, de la Senge et du Lac la rejoignent. Environ la moitié du territoire est boisée et plus d’un tiers en pâturages.
-
-La commune est membre de la communauté de communes Champagnole Nozeroy Jura, du SIDEC du Jura, du syndicat mixte du parc naturel régional du Haut-Jura et du syndicat horticole et d’embellissement de la région de Champagnole. Le conseil municipal compte onze membres.
-
-> ${demonstrationNotice}`,
+${demonstrationIntroduction} ${demonstrationNotice}`,
     ],
     [
       folders.montNoir,

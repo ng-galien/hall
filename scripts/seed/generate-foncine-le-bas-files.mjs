@@ -64,9 +64,9 @@ const footer = `<div style="font-family: Arial; font-size: 7.5pt; color: #64748b
 const html = (body, extraStyle = "") =>
   `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>${style}${extraStyle}</style></head><body>${body}</body></html>`;
 const companyHead = (company, lines) =>
-  `<div class="head"><div class="sender"><strong>${company}</strong><br>${lines.join("<br>")}</div><div class="muted" style="text-align:right">Entreprise fictive<br>Démonstration de Hall</div></div>`;
+  `<div class="head"><div class="sender"><strong>${company}</strong><br>${lines.join("<br>")}</div></div>`;
 const bodyHead = (organisation, lines) =>
-  `<div class="head"><div class="sender"><strong>${organisation}</strong><br>${lines.join("<br>")}</div><div class="muted" style="text-align:right">En-tête de démonstration<br>sans logo</div></div>`;
+  `<div class="head"><div class="sender"><strong>${organisation}</strong><br>${lines.join("<br>")}</div></div>`;
 const mairie = `Mairie de Foncine-le-Bas<br>39520 Foncine-le-Bas`;
 const mayor = fullName("marchand");
 const quoteTable = (rows, vatRate = 0.2) => {
@@ -154,13 +154,12 @@ ${quoteConditions("deux journées")}`),
 <p>J’accuse réception du dossier de demande de subvention au titre de la dotation d’équipement des territoires ruraux déposé par la commune de Foncine-le-Bas. Ce dossier est complet à la date du présent courrier.</p>
 <p>Vous pouvez commencer l’opération à compter de cette date. Ce commencement ne préjuge pas de l’attribution de la subvention, qui fera l’objet d’un arrêté après l’avis de la commission d’élus.</p>
 <p>Je vous prie d’agréer, Madame la maire, l’expression de ma considération distinguée.</p>
-<div class="sign">Pour le préfet et par délégation,<br>la cheffe du bureau des dotations de l’État</div>
-<div class="notice">Pièce fictive au nom d’un organisme réel, produite pour la démonstration de Hall. Elle ne reproduit aucun courrier de la préfecture du Jura.</div>`),
+<div class="sign">Pour le préfet et par délégation,<br>la cheffe du bureau des dotations de l’État</div>`),
   "chiffrage-eclairage-sidec.pdf": () =>
     html(`${bodyHead("SIDEC DU JURA", ["Syndicat mixte d’énergies, d’équipements et de communication", "Service éclairage public", `Chargé d’opérations : ${fullName("faure")}`])}
 <div class="recipient">Madame la maire<br>${mairie}</div>
 <h1>Rénovation de l’éclairage public de Foncine-le-Bas · Chiffrage</h1>
-<p class="muted">Remis le ${longDate(documentDays.lightingCosting)} · Montants fictifs</p>
+<p class="muted">Remis le ${longDate(documentDays.lightingCosting)}</p>
 <h2>1. Programme</h2><p>Remplacement des lanternes des 48 points lumineux par des lanternes à LED, pose d’horloges astronomiques dans les trois armoires de commande et mise en place d’un abaissement ou d’une extinction en milieu de nuit selon l’arrêté de la maire.</p>
 <h2>2. Estimation</h2>
 ${quoteTable([
@@ -175,13 +174,11 @@ ${quoteTable([
 <table><tr><th>Financeur</th><th class="n">Montant</th><th class="n">Part</th></tr><tr><td>SIDEC du Jura</td><td class="n">${euro(12480)}</td><td class="n">40 %</td></tr><tr><td>Commune de Foncine-le-Bas</td><td class="n">${euro(18720)}</td><td class="n">60 %</td></tr><tr class="total"><td>Total HT</td><td class="n">${euro(31200)}</td><td class="n">100 %</td></tr></table>
 <h2>4. Économies attendues</h2><p>La puissance installée passe de 4,6 kW à 1,4 kW. Avec une extinction de 23 h 00 à 5 h 00 hors traversée principale, la consommation annuelle estimée baisse d’environ 75 %.</p>
 <div class="page"></div>
-<h2>5. Calendrier indicatif</h2><table><tr><th>Étape</th><th>Délai</th></tr><tr><td>Délibération de la commune</td><td>À la prochaine séance</td></tr><tr><td>Commande des lanternes</td><td>Quatre semaines</td></tr><tr><td>Travaux</td><td>Deux semaines</td></tr><tr><td>Réglage des horloges</td><td>À la mise en service</td></tr></table>
-<div class="notice">Pièce fictive au nom d’un organisme réel, produite pour la démonstration de Hall. Les montants, les taux et le mode d’intervention sont fictifs.</div>`),
+<h2>5. Calendrier indicatif</h2><table><tr><th>Étape</th><th>Délai</th></tr><tr><td>Délibération de la commune</td><td>À la prochaine séance</td></tr><tr><td>Commande des lanternes</td><td>Quatre semaines</td></tr><tr><td>Travaux</td><td>Deux semaines</td></tr><tr><td>Réglage des horloges</td><td>À la mise en service</td></tr></table>`),
   "etat-assiette-onf.pdf": () =>
     html(`${bodyHead("OFFICE NATIONAL DES FORÊTS", ["Agence territoriale du Jura", `Technicien forestier territorial : ${fullName("girard")}`])}
 <div class="recipient">Madame la maire<br>${mairie}</div>
 <h1>Forêt communale de Foncine-le-Bas · Proposition d’état d’assiette ${year + 1}</h1>
-<p class="muted">Volumes fictifs, établis pour la démonstration</p>
 <table><tr><th>Parcelle forestière</th><th>Nature de la coupe</th><th class="n">Surface (ha)</th><th class="n">Volume estimé (m³)</th><th>Destination proposée</th></tr>
 <tr><td>Roche Blanche, 1</td><td>Amélioration feuillus</td><td class="n">4,2</td><td class="n">120</td><td>Affouage</td></tr>
 <tr><td>Roche Blanche, 2</td><td>Amélioration résineux</td><td class="n">3,9</td><td class="n">210</td><td>Vente en bloc et sur pied</td></tr>
@@ -189,8 +186,7 @@ ${quoteTable([
 <tr class="total"><td colspan="2">Total</td><td class="n">9,3</td><td class="n">375</td><td></td></tr></table>
 <div class="page"></div>
 <h2>Affouage</h2><p>Les coupes destinées à l’affouage sont délivrées aux habitants inscrits selon le règlement fixé par le conseil municipal, qui désigne trois garants. Le martelage est proposé avec un élu de la commune.</p>
-<h2>Délibération attendue</h2><ul><li>Approbation de l’état d’assiette des coupes.</li><li>Destination des coupes et mode de vente.</li><li>Règlement de l’affouage et désignation des garants.</li></ul>
-<div class="notice">Pièce fictive au nom d’un organisme réel, produite pour la démonstration de Hall. Elle ne reproduit aucun document de l’Office national des forêts.</div>`),
+<h2>Délibération attendue</h2><ul><li>Approbation de l’état d’assiette des coupes.</li><li>Destination des coupes et mode de vente.</li><li>Règlement de l’affouage et désignation des garants.</li></ul>`),
   "devis-mobilier-promenade.pdf": () =>
     html(`${companyHead(companies.mobilier, ["Mobilier urbain en bois du Jura", "39150 Saint-Laurent-en-Grandvaux"])}
 <div class="recipient">${mairie}</div>
@@ -223,12 +219,9 @@ ${quoteConditions("six semaines après validation des cotes")}`),
       ],
       [
         "Les finances",
-        "Le budget principal et les budgets annexes sont présentés en fonctionnement et en investissement. Les montants de ce document sont fictifs.",
+        "Le budget principal et les budgets annexes sont présentés en fonctionnement et en investissement.",
       ],
-      [
-        "Les déchets",
-        "Organisation de la collecte, déchèteries, prévention et tri. Les tonnages de ce document sont fictifs.",
-      ],
+      ["Les déchets", "Organisation de la collecte, déchèteries, prévention et tri."],
       [
         "Le tourisme et les sentiers",
         "Entretien et balisage des itinéraires de promenade, en lien avec le parc naturel régional du Haut-Jura et les communes.",
@@ -240,12 +233,11 @@ ${quoteConditions("six semaines après validation des cotes")}`),
       ],
     ];
     return html(`${bodyHead("COMMUNAUTÉ DE COMMUNES CHAMPAGNOLE NOZEROY JURA", [`Rapport d’activité ${year - 1}`, `Contact : ${fullName("michel")}`])}
-<h1>Rapport d’activité ${year - 1}</h1><p>Document de présentation fictif, sans logo, produit pour la démonstration de Hall.</p>
-<div class="notice">Pièce fictive au nom d’un organisme réel. Les chiffres, les projets et les actions décrits sont fictifs.</div>
+<h1>Rapport d’activité ${year - 1}</h1>
 ${chapters
   .map(
     ([title, text], index) =>
-      `<div class="page"></div><h1>${index + 1}. ${title}</h1><p>${text}</p><table><tr><th>Indicateur</th><th class="n">Valeur fictive</th></tr><tr><td>Actions conduites</td><td class="n">${12 + index * 3}</td></tr><tr><td>Communes concernées</td><td class="n">${20 + index}</td></tr><tr><td>Budget consacré</td><td class="n">${euro(85000 + index * 21000)}</td></tr></table>`,
+      `<div class="page"></div><h1>${index + 1}. ${title}</h1><p>${text}</p><table><tr><th>Indicateur</th><th class="n">Valeur</th></tr><tr><td>Actions conduites</td><td class="n">${12 + index * 3}</td></tr><tr><td>Communes concernées</td><td class="n">${20 + index}</td></tr><tr><td>Budget consacré</td><td class="n">${euro(85000 + index * 21000)}</td></tr></table>`,
   )
   .join("")}`);
   },
@@ -256,8 +248,7 @@ ${chapters
 <h2>Installation des conseillers</h2><p>${Object.keys(people).slice(0, 11).map(fullName).join(", ")}.</p>
 <h2>Élection de la maire</h2><p>${mayor} est élue maire au premier tour à la majorité absolue.</p>
 <h2>Nombre et élection des adjoints</h2><p>Le conseil fixe à deux le nombre des adjoints. ${fullName("garnier")} est élu premier adjoint et ${fullName("renaud")} deuxième adjointe.</p>
-<h2>Lecture de la charte de l’élu local</h2><p>La maire donne lecture de la charte de l’élu local et en remet une copie à chaque conseiller.</p>
-<div class="notice">Procès-verbal fictif. Les élus nommés sont des personnages de la démonstration de Hall.</div>`),
+<h2>Lecture de la charte de l’élu local</h2><p>La maire donne lecture de la charte de l’élu local et en remet une copie à chaque conseiller.</p>`),
   "courrier-riverains-mont-noir.pdf": () =>
     html(
       `<div class="letter"><p style="text-align:right">Foncine-le-Bas, le ${longDate(documentDays.residentLetter)}</p>
@@ -267,8 +258,7 @@ ${chapters
 <p>J’emprunte souvent la petite route du Mont Noir et je constate que la chaussée s’use : des ornières se creusent du côté est, le fossé se remplit et l’eau passe sur la route quand il pleut. Le bord s’est aussi un peu affaissé dans le virage.</p>
 <p>Je me permets de vous demander si des travaux sont prévus sur cette route, et à quel moment.</p>
 <p>Je vous remercie de l’attention que vous porterez à ce courrier et vous prie d’agréer, Madame la maire, mes salutations respectueuses.</p>
-<p style="margin-left:55%">${fullName("simon")}</p></div>
-<div class="notice">Lettre fictive, écrite pour la démonstration de Hall.</div>`,
+<p style="margin-left:55%">${fullName("simon")}</p></div>`,
       `body { background: #f7f5ef; } .letter { font-family: "Bradley Hand", "Segoe Script", cursive; font-size: 15pt; line-height: 1.7; color: #1f2f5c; transform: rotate(-0.4deg); }`,
     ),
 };
@@ -292,8 +282,7 @@ for (const { meeting, giver, holder, file } of proxies) {
 <h1>Pouvoir</h1>
 <p>Je soussigné(e) ${fullName(giver)}, conseiller(ère) municipal(e) de Foncine-le-Bas, empêché(e) d’assister à la séance n° ${meeting} du conseil municipal, donne pouvoir à ${fullName(holder)}, conseiller(ère) municipal(e), de voter en mon nom (CGCT, L2121-20).</p>
 <p>Ce pouvoir vaut pour cette seule séance.</p>
-<div class="sign">Fait à Foncine-le-Bas<br><br><span style="font-family: 'Bradley Hand', cursive; font-size: 16pt; color: #1f2f5c">${fullName(giver)}</span></div>
-<div class="notice">Pouvoir fictif, démonstration de Hall.</div>`);
+<div class="sign">Fait à Foncine-le-Bas<br><br><span style="font-family: 'Bradley Hand', cursive; font-size: 16pt; color: #1f2f5c">${fullName(giver)}</span></div>`);
 }
 
 /** The A3 plan of situation: IGN Plan tiles and the drawn road, in Web Mercator pixels at one zoom. */
@@ -325,7 +314,7 @@ function situationPlan() {
     `<div style="display:flex;justify-content:space-between;align-items:flex-end"><div><strong style="font-size:15pt">COMMUNE DE FONCINE-LE-BAS · PLAN DE SITUATION</strong><br>Réfection de la voie communale du Mont Noir · 564 m · échelle indicative 1/5 000</div><div class="muted">Fond : Plan IGN v2, IGN, Licence Ouverte 2.0</div></div>
 <div style="position:relative;width:${width}px;height:${height}px;overflow:hidden;border:1px solid #334155;margin-top:8px">${tiles.join("")}
 <svg width="${width}" height="${height}" style="position:absolute;left:0;top:0"><polyline points="${points(road)}" fill="none" stroke="#1d4ed8" stroke-width="9" stroke-linecap="round" opacity=".85"/><polyline points="${points(slope)}" fill="none" stroke="#b91c1c" stroke-width="9" stroke-linecap="round"/><circle cx="${culvert[0] - left}" cy="${culvert[1] - top}" r="12" fill="#ffffff" stroke="#0f172a" stroke-width="4"/></svg>
-<div style="position:absolute;right:16px;bottom:16px;background:#ffffffee;border:1px solid #334155;padding:10px 14px;font-size:10pt;line-height:1.6"><strong>Légende</strong><br><span style="color:#1d4ed8">━━</span> Voie communale du Mont Noir, 564 m : reprofilage, ornières, fossé, accotement<br><span style="color:#b91c1c">━━</span> Partie en pente, 160 m : enrobé 0/10, 480 m²<br>◯ Buse Ø 400 mm à remplacer<br><span class="muted">Dessins et états fictifs, démonstration de Hall</span></div></div>`,
+<div style="position:absolute;right:16px;bottom:16px;background:#ffffffee;border:1px solid #334155;padding:10px 14px;font-size:10pt;line-height:1.6"><strong>Légende</strong><br><span style="color:#1d4ed8">━━</span> Voie communale du Mont Noir, 564 m : reprofilage, ornières, fossé, accotement<br><span style="color:#b91c1c">━━</span> Partie en pente, 160 m : enrobé 0/10, 480 m²<br>◯ Buse Ø 400 mm à remplacer<br><span class="muted">${demonstrationNotice}</span></div></div>`,
     "@page { size: A3 landscape; margin: 12mm; }",
   );
 }

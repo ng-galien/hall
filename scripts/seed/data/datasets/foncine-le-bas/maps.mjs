@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { mapNotice } from "./names.mjs";
+import { demonstrationNotice } from "./names.mjs";
 
 const territoryFiles = new URL("./files/territory/", import.meta.url);
 export const territory = JSON.parse(readFileSync(new URL("territory.json", territoryFiles), "utf8"));
@@ -78,7 +78,7 @@ export function mapDefinitions() {
       { color: colors.blue, label: "Voie communale du Mont Noir, 564 m : reprofilage, ornières, fossé, accotement" },
       { color: colors.red, label: "Partie en pente, 160 m : enrobé 0/10, 480 m² ; points des photos" },
       { color: colors.navy, label: "Buse Ø 400 mm à remplacer ; circulation par tronçons pendant les travaux" },
-      { color: colors.slate, label: mapNotice },
+      { color: colors.slate, label: demonstrationNotice },
     ],
     features: [
       road,
@@ -92,7 +92,7 @@ export function mapDefinitions() {
       {
         feature: slope,
         image: null,
-        text: `## Partie en pente de la voie du Mont Noir\n\n160 mètres en pente, enrobé à chaud 0/10 sur 480 m². La voie communale mesure 564 mètres ; le programme comprend aussi le reprofilage, les ornières, le curage du fossé, la reprise d’un accotement et le remplacement d’une buse.\n\n*${mapNotice}.*`,
+        text: `## Partie en pente de la voie du Mont Noir\n\n160 mètres en pente, enrobé à chaud 0/10 sur 480 m². La voie communale mesure 564 mètres ; le programme comprend aussi le reprofilage, les ornières, le curage du fossé, la reprise d’un accotement et le remplacement d’une buse.\n\n*${demonstrationNotice}*`,
       },
       { feature: photos.rut, image: 1, text: "Ornière longue, côté est, remplie d’eau après la pluie." },
       { feature: photos.ditch, image: 2, text: "Fossé comblé de terre et de feuilles ; l’eau passe sur la chaussée." },
@@ -117,7 +117,7 @@ export function mapDefinitions() {
     legend: [
       { color: colors.navy, label: "Traversée principale : éclairée toute la nuit" },
       { color: colors.lightBlue, label: "Rues éteintes de 23 h 00 à 5 h 00 selon le projet d’arrêté" },
-      { color: colors.slate, label: `48 points lumineux, LED après rénovation ; ${mapNotice}` },
+      { color: colors.slate, label: `48 points lumineux, LED après rénovation ; ${demonstrationNotice}` },
     ],
     features: [
       ...mainLines.flatMap((street) =>
@@ -146,7 +146,7 @@ export function mapDefinitions() {
     legend: [
       { color: colors.darkGreen, label: "Forêt communale entre la Senge et le Parcours nature, au sud de la D127" },
       { color: colors.green, label: "Coupes de l’exercice proposées par l’ONF" },
-      { color: colors.slate, label: mapNotice },
+      { color: colors.slate, label: demonstrationNotice },
     ],
     features: forest.map((parcel) =>
       area(
@@ -163,7 +163,7 @@ export function mapDefinitions() {
     {
       feature: forestMap.features[1],
       image: 9,
-      text: `## Coupe de l’exercice\n\nAmélioration feuillus ; destination proposée : affouage. Martelage avec l’ONF.\n\n*${mapNotice}.*`,
+      text: `## Coupe de l’exercice\n\nAmélioration feuillus ; destination proposée : affouage. Martelage avec l’ONF.\n\n*${demonstrationNotice}*`,
     },
   ];
 
@@ -193,7 +193,7 @@ export function mapDefinitions() {
     legend: [
       { color: colors.green, label: "Chemins des pâturages au programme d’entretien" },
       { color: colors.slate, label: "Passages ravinés à empierrer" },
-      { color: colors.navy, label: `Pont communal, garde-corps à repeindre ; ${mapNotice}` },
+      { color: colors.navy, label: `Pont communal, garde-corps à repeindre ; ${demonstrationNotice}` },
     ],
     features: [...ruralFeatures, ...gravel, bridgeMarker],
     notes: [
@@ -220,7 +220,7 @@ export function mapDefinitions() {
       { color: colors.slate, label: "Parking de la Tram’Jurassienne : table, banc et panneau d’information" },
       { color: colors.navy, label: "Chemin des Douanets et viaduc des Douanets sur la Saine" },
       { color: colors.green, label: "Ancienne voie du tram, départ de la promenade" },
-      { color: colors.grey, label: mapNotice },
+      { color: colors.grey, label: demonstrationNotice },
     ],
     features: [
       parking,
@@ -235,7 +235,7 @@ export function mapDefinitions() {
       {
         feature: parking,
         image: 12,
-        text: `## Départ de la promenade\n\nParking communal au bout du chemin des Douanets. La promenade franchit la Saine par le viaduc des Douanets puis entre en forêt.\n\n*${mapNotice}.*`,
+        text: `## Départ de la promenade\n\nParking communal au bout du chemin des Douanets. La promenade franchit la Saine par le viaduc des Douanets puis entre en forêt.\n\n*${demonstrationNotice}*`,
       },
       { feature: viaduct, image: 13, text: "Ouvrage de l’ancien tram ; repère et passage de la promenade." },
     ],
@@ -254,7 +254,7 @@ export function mapDefinitions() {
       { color: colors.blue, label: "Emplacements des exposants et marché aux fleurs" },
       { color: colors.navy, label: "Buvette et entrée" },
       { color: colors.red, label: "Barrières de prêt communal" },
-      { color: colors.slate, label: `Stationnement : Parking de la Tram’Jurassienne ; ${mapNotice}` },
+      { color: colors.slate, label: `Stationnement : Parking de la Tram’Jurassienne ; ${demonstrationNotice}` },
     ],
     features: [
       area("Champ de Mars : exposants et marché aux fleurs", field, colors.blue, colors.navy, 0.25),

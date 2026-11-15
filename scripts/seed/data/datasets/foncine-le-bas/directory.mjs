@@ -48,25 +48,19 @@ const phones = {
 const externalContacts = [
   [
     "dubois",
-    "Leclerc-Varenne Terrassement (entreprise fictive)",
+    "Leclerc-Varenne Terrassement",
     "Conducteur de travaux",
     "Devis de terrassement et de busage du chemin du Mont Noir.",
     { mobilePhone: "06 39 98 20 01" },
   ],
   [
     "bertrand",
-    "Revêtements Bertrand (entreprise fictive)",
+    "Revêtements Bertrand",
     "Gérante",
     "Devis d’enrobé retenu ; rendez-vous sur place au chemin du Mont Noir.",
     { mobilePhone: "06 39 98 20 02" },
   ],
-  [
-    "moreau",
-    "Enrobés Moreau (entreprise fictive)",
-    "Chargé d’affaires",
-    "Second devis d’enrobé.",
-    { professionalPhone: "03 53 01 20 03" },
-  ],
+  ["moreau", "Enrobés Moreau", "Chargé d’affaires", "Second devis d’enrobé.", { professionalPhone: "03 53 01 20 03" }],
   ["aubry", "Préfecture du Jura", "Bureau des dotations de l’État", "Accusé de réception du dossier de DETR.", {}],
   ["roche", "Département du Jura", "Service d’aide aux communes", "Aide départementale à la voirie communale.", {}],
   [
@@ -203,7 +197,7 @@ export async function seedDirectory({ post, put, signedInEmail }, { password }) 
         personalPhone: null,
         professionalPhone: null,
         organizationName: associations[key],
-        jobTitle: "Association du village (fictive)",
+        jobTitle: "Association du village",
         notes: "Adresse générique de l’association ; aucun dirigeant n’est nommé.",
       })
     ).id;
