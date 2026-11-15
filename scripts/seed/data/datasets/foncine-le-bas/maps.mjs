@@ -214,7 +214,7 @@ export function mapDefinitions() {
     name: "Carte de la promenade",
     folder: "Promenade",
     tags: ["promenade", "carte"],
-    view: { kind: "center", center: [6.0298, 46.6408], zoom: 17 },
+    view: { kind: "center", center: [6.0297, 46.6398], zoom: 17 },
     layers: plan,
     legend: [
       { color: colors.slate, label: "Parking de la Tram’Jurassienne : table, banc et panneau d’information" },
