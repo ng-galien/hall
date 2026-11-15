@@ -6,7 +6,8 @@
  *
  *   node scripts/development/site-feature-captures.mjs
  *
- * Requires the test PostgreSQL cluster and the built server and client (npm run build:verified).
+ * Requires the test PostgreSQL cluster and the built server and client (npm run build:verified);
+ * HALL_SITE_CAPTURES_CLIENT names another directory of the built client.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
@@ -67,7 +68,7 @@ async function serve(scenario, database) {
     host: "127.0.0.1",
     port,
     database: { kind: "postgres", url },
-    clientDirectory: join(project, "packages/client/dist"),
+    clientDirectory: process.env.HALL_SITE_CAPTURES_CLIENT ?? join(project, "packages/client/dist"),
     devAutoLogin: false,
     environment: "test",
     allowedOrigins: [origin],
