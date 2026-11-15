@@ -280,7 +280,9 @@ BEGIN
           WHERE selected_path = '' OR read_model.path = selected_path OR starts_with(read_model.path, selected_path || '/')))
         AND (cardinality(search_tags) = 0 OR read_model.tags ?& search_tags)
         AND (cardinality(search_readiness) = 0 OR read_model.readiness = ANY(search_readiness))
-        AND (cardinality(search_media) = 0 OR ('image' = ANY(search_media) AND read_model.binary ->> 'mediaType' LIKE 'image/%'))
+        AND (cardinality(search_media) = 0
+          OR (read_model.kind <> 'document' AND cardinality(search_kinds) > 0)
+          OR ('image' = ANY(search_media) AND read_model.binary ->> 'mediaType' LIKE 'image/%'))
         AND NOT EXISTS (SELECT FROM unnest(regexp_split_to_array(normalized_query, ' +')) term
           WHERE term <> '' AND strpos(hall.normalize_resource_search(read_model.name), term) = 0)
     ), page AS (

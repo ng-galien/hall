@@ -697,5 +697,15 @@ SELECT is(hall_api.search_resources('ecole',search_kinds=>ARRAY['text'],search_l
 SELECT is((hall_api.search_resources('',search_paths=>ARRAY['seed/search'],search_kinds=>ARRAY['text'])->>'total')::integer,2,'HALL-FR-SRC-020 an empty query with facets searches all admissible resources');
 SELECT is((hall_api.search_resources('ecole',search_kinds=>ARRAY['text'],included_ids=>ARRAY[]::uuid[])->>'total')::integer,0,'HALL-FR-SRC-020 empty caller admissibility never broadens the search');
 
+-- @verifies-requirement HALL-FR-SRC-030
+SELECT hall_api.create_text_resource('seed/media','Plan note','');
+SELECT hall_api.create_document_resource('seed/media','Plan photo.png','image/png',convert_to('search-media-image','UTF8'));
+SELECT hall_api.create_document_resource('seed/media','Plan dossier.pdf','application/pdf',convert_to('search-media-pdf','UTF8'));
+SELECT is((hall_api.search_resources('',search_paths=>ARRAY['seed/media'],search_kinds=>ARRAY['text','document'],search_media=>ARRAY['image'])->>'total')::integer,2,'HALL-FR-SRC-030 text and image types return the texts and the images');
+SELECT is((hall_api.search_resources('',search_paths=>ARRAY['seed/media'],search_kinds=>ARRAY['document'],search_media=>ARRAY['image'])#>>'{items,0,name}'),'Plan photo.png','HALL-FR-SRC-030 the image type alone keeps the image documents');
+SELECT is((hall_api.search_resources('',search_paths=>ARRAY['seed/media'],search_kinds=>ARRAY['document'],search_media=>ARRAY['image'])->>'total')::integer,1,'HALL-FR-SRC-030 the image type alone excludes the other documents');
+SELECT is((hall_api.search_resources('',search_paths=>ARRAY['seed/media'],search_media=>ARRAY['image'])->>'total')::integer,1,'HALL-FR-SRC-030 the image criterion without types keeps only the image documents');
+SELECT is((hall_api.search_resources('',search_paths=>ARRAY['seed/media'],search_kinds=>ARRAY['text','document'])->>'total')::integer,3,'HALL-FR-SRC-030 a search without the image type is unchanged');
+
 SELECT * FROM finish();
 ROLLBACK;
