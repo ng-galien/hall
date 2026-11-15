@@ -190,7 +190,7 @@ test("the common resource modal reuses Workbench bodies without nested viewers",
   assert.match(workbench, /if \(!\(await session\.flush\(\)\)\) return;[\s\S]*await session\.reload\(\)/);
   assert.match(workbench, /!viewerOpen \? \([\s\S]*<ResourcePresentationBody/);
   assert.match(preview, /refreshSessionOnClose && !\(await session\.reload\(\)\)/);
-  assert.match(preview, /closeTestId="resource-preview-close"/);
+  assert.match(preview, /const closeTestId = "resource-preview-close"/);
   assert.match(workbench, /session: ResourceSession/);
   assert.match(
     workspace,

@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Button } from "@/components/ui/button";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { BackIcon, DownloadIcon, ShareIcon } from "../../components/icons";
 import type { ItemCommand } from "../../components/ui/item-commands";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
