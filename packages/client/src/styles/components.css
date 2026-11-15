@@ -249,6 +249,15 @@
   .authorization-grants td:first-child { font-weight: var(--hall-font-weight-semibold); }
   .authorization-grants td:nth-child(2) { color: var(--hall-color-text-muted); }
   .authorization-grants td:last-child { min-width: var(--hall-size-relative-12rem); }
+  /* On a phone each access is a block: the resource, the operation under it, then its choice over the whole width. */
+  @media (max-width: 760px) {
+    .authorization-grants { overflow-x: visible; }
+    .authorization-grants :is(table, tbody, tr, td) { display: block; }
+    .authorization-grants thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .authorization-grants tr { display: grid; gap: var(--hall-space-1); padding: var(--hall-space-3) 0; border-top: var(--hall-stroke-thin) solid var(--hall-color-border); }
+    .authorization-grants td { padding: 0; border-top: 0; }
+    .authorization-grants td:last-child { min-width: 0; padding-top: var(--hall-space-1); }
+  }
 
   .template-editor { display: grid; gap: var(--hall-space-4); }
   .template-editor > .creation-form { padding-top: 0; }
