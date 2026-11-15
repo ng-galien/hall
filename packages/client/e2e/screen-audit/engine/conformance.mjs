@@ -1384,10 +1384,10 @@ export async function measureFormFields(options) {
 
 /**
  * Lines of the open menus of the page: each item of a menu (`[role=menuitem]` and its checkbox and radio kinds)
- * holds its label on one line. Returns findings `{ rule, selector, detail }` and the number of items read.
+ * holds its label on one line; an item inside `ignoreSelectors` is not read. Returns findings `{ rule, selector, detail }` and the number of items read.
  */
 export function measureMenuLines(options) {
-  const { keyAttribute } = options;
+  const { keyAttribute, ignoreSelectors = [] } = options;
   const findings = [];
   let items = 0;
   const keyOf = (element) => {
@@ -1397,7 +1397,7 @@ export function measureMenuLines(options) {
   for (const item of document.querySelectorAll(
     "[role=menu] :is([role=menuitem], [role=menuitemcheckbox], [role=menuitemradio])",
   )) {
-    if (item.getClientRects().length === 0) continue;
+    if (item.getClientRects().length === 0 || ignoreSelectors.some((selector) => item.closest(selector))) continue;
     items += 1;
     const tops = new Set();
     const labelTops = new Set();

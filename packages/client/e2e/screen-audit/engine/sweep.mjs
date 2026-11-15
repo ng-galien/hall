@@ -113,11 +113,12 @@ export async function settleLayout(page) {
 }
 
 /**
- * Measures the current page by the sweep rules and returns its findings `{ rule, selector, detail }`.
+ * Measures the current page by the sweep rules and returns its findings `{ rule, selector, detail }`; an element inside
+ * a selector of `exceptions["lone-wrap"]` is not reported alone on its line.
  * Runs in the browser: it must not use anything outside its own body.
  */
 export function measureLayout(options) {
-  const { ignoreSelectors, touch, keyAttribute } = options;
+  const { ignoreSelectors, touch, keyAttribute, exceptions = {} } = options;
   const findings = [];
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -343,6 +344,7 @@ export function measureLayout(options) {
         ? item
         : item.querySelector(":scope > :is(.list-row-status, .record-state, [data-tone])");
       if (width <= 760 && pill && line === lines.at(-1)) continue;
+      if ((exceptions["lone-wrap"] ?? []).some((entry) => item.closest(entry.selector))) continue;
       findings.push({
         rule: "lone-wrap",
         selector: `${selectorOf(container)} › ${selectorOf(item).split(" › ").at(-1)}`,

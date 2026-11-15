@@ -106,14 +106,32 @@ const itemScreens = new Set([
   "utilisateur",
 ]);
 
-/** The map canvas and the spreadsheet grid draw their own content; the sync status is a transient indicator. */
-const ignoreSelectors = [".ol-viewport", ".univer-spreadsheet", "[data-testid=application-sync-status]"];
+/**
+ * The map canvas and the spreadsheet library draw their own content: its grid and the menus and pop-ups it opens over
+ * the page; the sync status is a transient indicator.
+ */
+const ignoreSelectors = [
+  ".ol-viewport",
+  ".univer-spreadsheet",
+  '[class*="univer-"]',
+  "[data-testid=application-sync-status]",
+];
 
 /** Exceptions to the decision rules, each with the reason that makes it conform to the decision. */
 /* Meeting mode brought back as it was laid out after the mock-up (owner's decision of 12 November 2026, c97b4f3f). */
 const liveMeeting = {
   selector: "[data-testid=live-meeting-page]",
   reason: "Mode séance rétabli tel qu'il était après la maquette, décision du propriétaire du 12 novembre.",
+};
+/*
+ * A document, spreadsheet or map that fills the screen opens with the reduced header line: the trail, the title, the
+ * facts and the commands of the item on the first line, the title passing under the place when the line lacks room
+ * (be212dd3, scenario item-title-line).
+ */
+const reducedItemLine = {
+  selector: "[data-testid=screen-header][data-item-line=true]",
+  reason:
+    "Élément qui remplit l'écran (document, tableur, carte) : ligne réduite du bandeau avec titre, faits et commandes, le titre passant sous le chemin faute de place (be212dd3).",
 };
 /* Page 10, choice C: the exceptions decided to the square « + / − ». */
 const notDisclosures = [
@@ -144,6 +162,16 @@ const exceptions = {
       selector:
         "[data-testid=template-body-editor], [data-testid=template-header-source], [data-testid=template-footer-source], [data-testid=template-stylesheet]",
       reason: "Sources d'un modèle de document en chasse fixe, à la demande du propriétaire.",
+    },
+  ],
+  "header-first-line": [reducedItemLine],
+  "header-line-height": [reducedItemLine],
+  "lone-wrap": [
+    reducedItemLine,
+    {
+      selector: "[data-testid=live-item-progress] li",
+      reason:
+        "Étapes du point en cours en mode séance : chaque étape passe entière à la ligne suivante au lieu d'être coupée dans un mot (7b683e6b).",
     },
   ],
   "button-form": [liveMeeting],

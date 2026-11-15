@@ -153,7 +153,10 @@ if (sweeping) {
                   await trigger.click({ timeout: 3_000 });
                   await page.locator("[role=menu]").first().waitFor({ state: "visible", timeout: 2_000 });
                   await settleLayout(page);
-                  const read = await page.evaluate(measureMenuLines, { keyAttribute: "data-testid" });
+                  const read = await page.evaluate(measureMenuLines, {
+                    keyAttribute: "data-testid",
+                    ignoreSelectors: sweepPlan.ignoreSelectors,
+                  });
                   menusOpened.add(`${screen.id} ${name}`);
                   for (const finding of read.findings)
                     findings.push({
@@ -193,6 +196,7 @@ if (sweeping) {
               const evaluate = async () => {
                 const geometry: Finding[] = await page.evaluate(measureLayout, {
                   ignoreSelectors: sweepPlan.ignoreSelectors,
+                  exceptions: sweepPlan.exceptions,
                   touch: input === "touch" && phone,
                   keyAttribute: "data-testid",
                 });
