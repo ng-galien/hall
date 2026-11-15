@@ -103,7 +103,9 @@
   /* A document that fills the screen starts under the header, whatever its height, and ends at the bottom of the
      screen: its commands are not pulled under the header. */
   .app-main .workspace-page:has(.phone-document[data-fills-screen="true"]) { height: 100%; }
-  .app-main .workspace:has(.phone-document[data-fills-screen="true"]) > .workspace-topzone { margin-block: 0; }
+  /* Every opened document other than a text (a link, an official reference, an appointment, a file) starts under the
+     header: the empty search row does not pull it up. */
+  .app-main .workspace:has(.phone-document:not(.phone-document-text)) > .workspace-topzone { margin-block: 0; }
   .app-main .workspace-bench:has(> .phone-document[data-fills-screen="true"]) { display: flex; flex-direction: column; }
   .app-main .phone-document[data-fills-screen="true"] { height: auto; flex: 1 1 0; }
   .phone-document .document-embed { height: 100%; min-height: 0; border: 0; border-radius: 0; }
@@ -120,7 +122,11 @@
   /* While a text is written, the header keeps its title, the menu and « Terminé »: the initials step aside. */
   .app-column:has(:is(.phone-document, .phone-business)[data-editing="true"]) .screen-header-initials { display: none; }
   .phone-document-event .phone-document-content { padding: var(--hall-space-3); }
+  .phone-document-legalReference .phone-document-content { padding: var(--hall-space-3); }
+  .phone-document .legal-reference-setup-actions { flex-wrap: wrap; }
+  .phone-document .legal-reference-setup-actions > * { flex: 1 1 auto; }
   .remote-resource-phone { display: grid; gap: var(--hall-space-3); padding: var(--hall-space-3); }
+  .phone-document .remote-resource-setup { padding: var(--hall-space-3); }
   .remote-resource-phone .remote-resource-url { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); overflow-wrap: anywhere; }
   .phone-document-information { margin: var(--hall-space-3); }
   .phone-document-information-body { display: grid; gap: var(--hall-space-2); justify-items: start; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
