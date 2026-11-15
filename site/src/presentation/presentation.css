@@ -4430,6 +4430,14 @@ html[data-scene="ready"] body .p-watermark.is-empty {
   }
 }
 
+.f-demo .f-demo-notice {
+  margin-top: -0.5rem;
+  padding-top: 0;
+  border-top: 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
 .f-source {
   margin: -1.75rem 0 2.5rem;
   color: var(--text-3);

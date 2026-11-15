@@ -300,7 +300,7 @@ export function renderFeatures(variant: "a" | "b") {
   const kicker = element("p", "f-kicker", "En savoir plus");
   const heading2 = element("h2", "f-heading", "Fonctionnalités");
   heading2.id = "en-savoir-plus-titre";
-  const source = element("p", "f-source", "Captures d’écran du jeu de démonstration Alésia.");
+  const source = element("p", "f-source", "Écrans du jeu Alésia.");
   root.append(kicker, heading2, source);
   const list = element("div", "f-list");
   if (variant === "b") tabbed(list);
@@ -316,14 +316,11 @@ export function renderFeatures(variant: "a" | "b") {
   team.append(element("p", "f-team-text", teamwork.text), pointList(teamwork.points));
   blocks.append(block("Un travail d’équipe", "committee", team));
   const demo = element("div", "f-demo");
-  const demoText = element(
-    "p",
-    "",
-    "Démonstration de Hall. Le territoire de Foncine-le-Bas est réel ; les élus, les personnes, les associations, les décisions, les votes, les montants, les travaux et les documents sont fictifs.",
-  );
+  const demoText = element("p", "", "Démonstration dans une vraie commune de France : Foncine-le-Bas, Jura.");
+  const demoNotice = element("p", "f-demo-notice", "Données de démonstration : réalistes, mais fictives.");
   const demoLink = element("a", "p-button is-quiet", "Télécharger la démonstration");
   demoLink.href = "#telecharger";
-  demo.append(demoText, demoLink);
+  demo.append(demoText, demoNotice, demoLink);
   blocks.append(block("La démonstration", "business", demo));
   root.append(blocks);
 }

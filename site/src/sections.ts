@@ -229,11 +229,7 @@ function renderDownload(
   head.append(
     node("p", "section-axis", release ? `Version ${release.version}` : "Dernière version"),
     node("h2", undefined, "Télécharger Hall"),
-    node(
-      "p",
-      "section-lead",
-      "La démonstration s’installe sur votre ordinateur, avec deux jeux au choix : Foncine-le-Bas et Alésia. Elle est gratuite et fonctionne sans connexion : rien n’est envoyé sur Internet.",
-    ),
+    node("p", "section-lead", "Gratuite, sans connexion. Deux jeux : Foncine-le-Bas et Alésia."),
   );
   const list = node("ul", "download-list");
   const hows: { system: System; how: HTMLAnchorElement }[] = [];
@@ -295,11 +291,11 @@ function renderHeroDownload(root: HTMLElement, detected: DownloadKey | null, ins
     root.append(others);
   }
   const links = node("p", "p-get-links");
-  const how = node("a", "link-plain", "Marche à suivre, application non signée", "hero-download-how");
+  const how = node("a", "link-plain", "Marche à suivre", "hero-download-how");
   how.href = "#marche-a-suivre";
   const system = detected ? guideSystem[detected] : null;
   if (system) how.addEventListener("click", () => install.select(system));
-  const all = node("a", "link-plain", "Serveur et toutes les versions", "hero-download-all");
+  const all = node("a", "link-plain", "Autres fichiers", "hero-download-all");
   all.href = "#telecharger";
   links.append(how, all);
   root.append(links);
