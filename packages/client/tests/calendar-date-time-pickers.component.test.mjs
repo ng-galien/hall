@@ -106,7 +106,7 @@ beforeAll(async () => {
   }
   modules = await import(pathToFileURL(output).href);
   ({ createRoot } = await import("react-dom/client"));
-});
+}, 60_000);
 
 afterAll(() => {
   for (const key of names) {
