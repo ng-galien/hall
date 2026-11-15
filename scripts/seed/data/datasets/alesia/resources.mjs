@@ -321,24 +321,34 @@ export async function seedResources(api, { daysFromNow, memberContactIds, caesar
     },
     ["droit", "conseil municipal"],
   );
-  try {
-    const legalMatches = await post("/resources/legal-references/search", { query: "L2121-10", effectiveAt: null });
-    const legalMatch = legalMatches[0];
-    if (!legalMatch) throw new Error("Aucun résultat Légifrance pour L2121-10");
-    const legalDraft = await createWorkspaceResource(
-      { kind: "legalReference", name: legalMatch.title, path: folders.legal },
-      ["droit", "convocation"],
-    );
-    await post(`/resources/${legalDraft.id}/legal-reference/resolve`, {
-      title: legalMatch.title,
-      provider: legalMatch.provider,
-      referenceKind: legalMatch.referenceKind,
-      fund: legalMatch.fund,
-      versionId: legalMatch.versionId,
-      effectiveAt: legalMatch.effectiveAt,
-    });
-  } catch (error) {
-    console.warn(`  Référence juridique non créée : ${error instanceof Error ? error.message : String(error)}`);
+  const legalArticles = [
+    { article: "L2121-10", tags: ["droit", "convocation"] },
+    { article: "L2121-17", tags: ["droit", "quorum"] },
+    { article: "L2121-20", tags: ["droit", "pouvoirs"] },
+    { article: "L2131-2", tags: ["droit", "contrôle de légalité"] },
+  ];
+  for (const { article, tags } of legalArticles) {
+    try {
+      const legalMatches = await post("/resources/legal-references/search", { query: article, effectiveAt: null });
+      const legalMatch = legalMatches[0];
+      if (!legalMatch) throw new Error(`Aucun résultat Légifrance pour ${article}`);
+      const legalDraft = await createWorkspaceResource(
+        { kind: "legalReference", name: legalMatch.title, path: folders.legal },
+        tags,
+      );
+      await post(`/resources/${legalDraft.id}/legal-reference/resolve`, {
+        title: legalMatch.title,
+        provider: legalMatch.provider,
+        referenceKind: legalMatch.referenceKind,
+        fund: legalMatch.fund,
+        versionId: legalMatch.versionId,
+        effectiveAt: legalMatch.effectiveAt,
+      });
+    } catch (error) {
+      console.warn(
+        `  Référence juridique ${article} non créée : ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   console.log("- Cartes");
