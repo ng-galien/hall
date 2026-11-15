@@ -49,7 +49,6 @@ export {
   Copy as CopyIcon,
   Crosshair as CenterOnFeatureIcon,
   CursorClick as PointerIcon,
-  DoorOpen as MeetingOpeningIcon,
   DotsSixVertical as DragHandleIcon,
   DotsThree as MoreIcon,
   DotsThreeVertical as MoreVerticalIcon,
@@ -155,6 +154,30 @@ export {
 
 export function PinnedIcon(props: { className?: string }) {
   return <PushPin {...props} className={`pinned-icon ${props.className ?? ""}`} />;
+}
+
+/** The president's hand bell, drawn on the Phosphor grid with its regular stroke. */
+export function MeetingOpeningIcon(props: { className?: string }) {
+  return (
+    <svg
+      className={`app-icon ${props.className ?? ""}`}
+      width="1em"
+      height="1em"
+      viewBox="0 0 256 256"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="16"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="112" y="8" width="32" height="56" rx="8" />
+      <path d="M56 192c8-16 16-48 16-72a56 56 0 0 1 112 0c0 24 8 56 16 72Z" />
+      <path d="M32 192h192" />
+      <circle cx="128" cy="220" r="14" />
+    </svg>
+  );
 }
 
 /** Icon rendering defaults; size is `1em` so CSS `font-size` drives each glyph. */
