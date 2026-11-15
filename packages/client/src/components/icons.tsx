@@ -38,6 +38,7 @@ export {
   ChatsCircle as CommissionsIcon,
   Check as CheckIcon,
   CheckCircle as CheckCircleIcon,
+  Clock as ClockIcon,
   CloudArrowUp as AutosaveSavingIcon,
   CloudCheck as AutosaveOnIcon,
   CloudSlash as AutosaveOffIcon,

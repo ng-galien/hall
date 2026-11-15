@@ -8,7 +8,8 @@
 .event-schedule-row.event-schedule-row { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
 .event-schedule-row > .event-day-field:only-child { grid-column: 1 / -1; }
 .event-date-popover.event-date-popover { width: min(calc(100vw - var(--hall-space-6)), var(--hall-size-relative-22rem)); }
-.event-time-options { max-height: min(var(--hall-size-relative-22rem), var(--radix-select-content-available-height)); }
+.event-time-options { max-height: min(var(--hall-size-relative-16rem), var(--radix-select-content-available-height)); }
+.event-time-options[data-side] > [data-slot^="select-scroll"] { display: none; }
 .event-time-option { font-variant-numeric: tabular-nums; }
 .event-time-duration { margin-left: var(--hall-space-2); color: var(--hall-color-text-muted); }
 .event-sheet-facts:empty { display: none; }

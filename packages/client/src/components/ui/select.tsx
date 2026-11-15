@@ -18,7 +18,13 @@ function SelectValue({ placeholder, ...props }: React.ComponentProps<typeof Sele
   return <SelectPrimitive.Value data-slot="select-value" placeholder={placeholder ?? empty} {...props} />;
 }
 
-function SelectTrigger({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
+/** The control of a select; `icon` replaces the chevron by the sign of the chosen object, such as a clock. */
+function SelectTrigger({
+  className,
+  children,
+  icon,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & { icon?: React.ReactNode }) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
@@ -26,9 +32,7 @@ function SelectTrigger({ className, children, ...props }: React.ComponentProps<t
       {...useFieldControl(props)}
     >
       {children}
-      <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="hall-select-chevron" />
-      </SelectPrimitive.Icon>
+      <SelectPrimitive.Icon asChild>{icon ?? <ChevronDownIcon className="hall-select-chevron" />}</SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
 }

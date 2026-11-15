@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { CalendarIcon, ClockIcon } from "../../components/icons";
 import { type CalendarDay, DatePicker, dayDate } from "../../components/ui/date-picker";
 import { Field, FieldPicker } from "../../components/ui/field";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { useI18n } from "../../i18n/I18nProvider";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
 const quarterHours = Array.from(
   { length: 96 },
@@ -56,7 +58,12 @@ export function DayField({
     <Field label={label} className="event-day-field">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild disabled={readOnly}>
-          <FieldPicker data-testid={testId} data-value={value} disabled={readOnly}>
+          <FieldPicker
+            data-testid={testId}
+            data-value={value}
+            disabled={readOnly}
+            icon={<CalendarIcon className="hall-select-chevron" aria-hidden="true" />}
+          >
             {written(value)}
           </FieldPicker>
         </PopoverTrigger>
@@ -92,6 +99,16 @@ export function TimeField({
   durationFrom?: string;
 }) {
   const { t } = useI18n();
+  const phone = usePhoneLayout();
+  const list = useRef<HTMLDivElement>(null);
+  const centerChosen = (open: boolean) => {
+    if (!open || phone) return;
+    requestAnimationFrame(() => {
+      const viewport = list.current?.querySelector<HTMLElement>("[data-radix-select-viewport]");
+      const chosen = list.current?.querySelector<HTMLElement>('[role="option"][data-state="checked"]');
+      if (viewport && chosen) viewport.scrollTop = chosen.offsetTop - (viewport.clientHeight - chosen.offsetHeight) / 2;
+    });
+  };
   const options = quarterHours.includes(value) ? quarterHours : [...quarterHours, value].sort();
   const duration = (time: string) => {
     if (durationFrom === undefined) return null;
@@ -107,11 +124,22 @@ export function TimeField({
   };
   return (
     <Field label={label} className="event-time-field">
-      <Select value={value} onValueChange={onChange} disabled={readOnly}>
-        <SelectTrigger data-testid={testId} data-value={value}>
+      <Select value={value} onValueChange={onChange} onOpenChange={centerChosen} disabled={readOnly}>
+        <SelectTrigger
+          data-testid={testId}
+          data-value={value}
+          icon={<ClockIcon className="hall-select-chevron" aria-hidden="true" />}
+        >
           <SelectValue>{writtenTime(value)}</SelectValue>
         </SelectTrigger>
-        <SelectContent className="event-time-options" data-testid={`${testId}-options`}>
+        <SelectContent
+          ref={list}
+          className="event-time-options"
+          data-testid={`${testId}-options`}
+          position={phone ? "item-aligned" : "popper"}
+          side="bottom"
+          align="start"
+        >
           {options.map((time) => {
             const length = duration(time);
             return (

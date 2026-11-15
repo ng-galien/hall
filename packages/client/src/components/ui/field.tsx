@@ -135,7 +135,7 @@ export function FieldValue({ className, children, ...props }: ComponentProps<"sp
 }
 
 /** A control of a Field that opens a picker, drawn like the text of the field with a chevron at its end. */
-export function FieldPicker({ className, children, ...props }: ComponentProps<"button">) {
+export function FieldPicker({ className, children, icon, ...props }: ComponentProps<"button"> & { icon?: ReactNode }) {
   return (
     <button
       type="button"
@@ -144,7 +144,7 @@ export function FieldPicker({ className, children, ...props }: ComponentProps<"b
       {...useFieldControl(props)}
     >
       <span className="hall-field-picker-value">{isEmpty(children) ? <EmptyValue /> : children}</span>
-      <ChevronDownIcon className="hall-select-chevron" aria-hidden="true" />
+      {icon ?? <ChevronDownIcon className="hall-select-chevron" aria-hidden="true" />}
     </button>
   );
 }
