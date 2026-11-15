@@ -71,11 +71,37 @@ async function expectNoHorizontalScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
-async function expectLinks(page: Page) {
-  for (const system of ["windows", "macos", "linux"]) {
-    await expect(page.getByTestId(`download-link-${system}`)).toHaveAttribute("href", releases);
+/** Fichiers de la dernière version publiée, un par ligne de la section Télécharger, le serveur en dernier. */
+const downloadFiles = {
+  windows: /^windows-x64-.*-Setup\.exe$/,
+  "macos-arm64": /^macos-arm64-.*\.dmg$/,
+  "macos-x64": /^macos-x64-.*\.dmg$/,
+  "linux-deb": /^linux-x64-.*\.deb$/,
+  "linux-rpm": /^linux-x64-.*\.rpm$/,
+  server: /^ng-galien-hall-.*\.tgz$/,
+} as const;
+const directDownload = /^https:\/\/github\.com\/ng-galien\/hall\/releases\/download\/v(\d+\.\d+\.\d+)\/([^/]+)$/;
+
+/** Chaque bouton « Télécharger » mène directement au fichier de son système dans la dernière version publiée. */
+async function expectLinks(page: Page, place: "accueil" | "alesia" = "alesia") {
+  for (const [key, file] of Object.entries(downloadFiles)) {
+    const link = page.getByTestId(`download-link-${key}`);
+    await expect(link).toHaveText("Télécharger");
+    const match = (await link.getAttribute("href"))?.match(directDownload);
+    expect(match, `${key} : adresse directe d’un fichier de la dernière version`).toBeTruthy();
+    const [, version, name] = match as RegExpMatchArray;
+    expect(name, `${key} : fichier de ce système`).toMatch(file);
+    await expect(link).toHaveAttribute("download", name);
+    await expect(page.getByTestId(`download-${key}`)).toContainText(name);
+    await expect(page.getByTestId(`download-${key}`)).toContainText(`Version ${version}`);
   }
-  await expect(page.getByTestId("documentation-link")).toHaveAttribute("href", documentation);
+  await expect(page.getByTestId("download-all-versions")).toHaveAttribute("href", releases);
+  if (place === "accueil")
+    await expect(page.getByTestId("download-documentation")).toHaveAttribute(
+      "href",
+      /\/documentation\/index\.html#\/docs$/,
+    );
+  else await expect(page.getByTestId("documentation-link")).toHaveAttribute("href", documentation);
   await expect(page.getByTestId("releases-link")).toHaveCount(0);
 }
 
@@ -538,7 +564,7 @@ test("le quorum reste expliqué dans la capture, sans entrer dans le récit", as
 
 test("l’arrivée dit qu’on visite la démonstration de Hall et comment choisir un scénario", async ({ page }) => {
   await page.goto("./demonstration/?view=plain");
-  await expect(page).toHaveTitle("Hall, gestion de l’activité communale");
+  await expect(page).toHaveTitle("Alésia, jeu de démonstration de Hall");
   await expect(page.getByTestId("site-header")).toContainText("Hall");
   const intro = page.getByTestId("intro");
   await expect(intro.locator("h1")).toHaveText("Le siège d’Alésia");
@@ -694,14 +720,12 @@ test.describe("niveau de détail du relief", () => {
 });
 
 test.describe("sections de la page", () => {
-  test("l’en-tête porte les entrées de la présentation, Démonstration soulignée, puis Télécharger", async ({
-    page,
-  }) => {
+  test("l’en-tête porte les entrées de la présentation, Alésia soulignée, puis Télécharger", async ({ page }) => {
     await page.goto("./demonstration/");
     await expect(page.getByTestId("section-nav").locator("a")).toHaveText([
       "Parcours",
       "Fonctionnalités",
-      "Démonstration",
+      "Alésia",
       "Télécharger",
     ]);
     await expect(page.getByTestId("section-installer")).toHaveCount(0);
@@ -711,10 +735,7 @@ test.describe("sections de la page", () => {
     await expect(page.getByTestId("nav-contact")).toHaveCount(0);
     await expect(page.getByTestId("nav-demonstration")).toHaveAttribute("aria-current", "page");
     await expect(page.getByTestId("nav-telecharger")).toHaveAttribute("href", "#telecharger");
-    await expect(page.getByTestId("site-header")).toContainText("Démonstration");
-    expect(
-      await page.getByTestId("site-header").evaluate((header) => header.textContent?.match(/Démonstration/g)?.length),
-    ).toBe(1);
+    await expect(page.getByTestId("section-nav").locator("a", { hasText: "Alésia" })).toHaveCount(1);
     const tops: number[] = [];
     for (const id of ["decouvrir", "telecharger", "documentation"]) {
       const box = await page.getByTestId(`section-${id}`).boundingBox();
@@ -734,31 +755,54 @@ test.describe("sections de la page", () => {
     expect(nav.x + nav.width).toBeLessThanOrEqual(viewport.width);
   });
 
-  test("la section Télécharger propose un bouton par système puis la marche à suivre", async ({ page }) => {
-    await page.goto("./demonstration/#telecharger");
-    await expectLinks(page);
-    for (const guide of installationGuides) {
-      const row = page.getByTestId(`download-${guide.system}`);
-      await expect(row).toContainText(guide.title);
-      expect(plain(await row.innerText())).toContain(plain(guide.versions));
-      await expect(page.getByTestId(`download-link-${guide.system}`)).toHaveText(`Télécharger pour ${guide.title}`);
-      await expect(page.getByTestId(`download-how-${guide.system}`)).toHaveText(`Marche à suivre pour ${guide.title}`);
-    }
+  test("l’accueil propose un bouton « Télécharger » par fichier de la dernière version, puis la marche à suivre", async ({
+    page,
+  }) => {
+    await page.goto("./#telecharger");
+    await expectLinks(page, "accueil");
     const section = page.getByTestId("section-telecharger");
+    await expect(section.locator("h2")).toHaveText("Télécharger Hall");
+    expect(plain(await section.locator(".section-head").innerText())).toContain(
+      "Deux jeux de démonstration : Foncine-le-Bas et Alésia.",
+    );
+    for (const guide of installationGuides) {
+      const keys = Object.keys(downloadFiles).filter((key) => key.split("-")[0] === guide.system);
+      for (const key of keys) {
+        await expect(page.getByTestId(`download-how-${key}`)).toHaveText("Marche à suivre");
+        await expect(page.getByTestId(`download-how-${key}`)).toHaveAttribute("href", "#marche-a-suivre");
+      }
+    }
+    await expect(page.getByTestId("download-how-server")).toHaveText("Installer le serveur");
+    await expect(page.getByTestId("download-how-server")).toHaveAttribute(
+      "href",
+      "https://github.com/ng-galien/hall/blob/main/docs/distribution.md",
+    );
     await scrollSettled(page);
     const list = await section.locator(".download-list").boundingBox();
     const part = await section.getByTestId("install-part").boundingBox();
     if (!list || !part) throw new Error("Téléchargements ou marche à suivre absents");
     expect(part.y).toBeGreaterThan(list.y + list.height);
-    await page.getByTestId("download-how-linux").click();
+    await page.getByTestId("download-how-linux-rpm").click();
     await expect(page.getByTestId("install-tab-linux")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("install-panel-linux")).toBeInViewport();
+
+    await expectNoHorizontalScroll(page);
+  });
+
+  test("la section Télécharger d’Alésia propose les mêmes fichiers et renvoie à la marche à suivre de l’accueil", async ({
+    page,
+  }) => {
+    await page.goto("./demonstration/#telecharger");
+    await expectLinks(page);
+    for (const key of ["windows", "macos-arm64", "macos-x64", "linux-deb", "linux-rpm"])
+      await expect(page.getByTestId(`download-how-${key}`)).toHaveAttribute("href", "../#marche-a-suivre");
+    await expect(page.getByTestId("install-part")).toHaveCount(0);
     await expect(page.locator(".site-footer")).not.toContainText("Télécharger");
     await expectNoHorizontalScroll(page);
   });
 
   test("la marche à suivre montre chaque étape et chaque remarque du guide, par système", async ({ page }) => {
-    await page.goto("./demonstration/#marche-a-suivre");
+    await page.goto("./#marche-a-suivre");
     const intro = plain(await page.getByTestId("install-introduction").innerText());
     for (const line of installationIntroduction) expect(intro).toContain(plain(line));
     for (const guide of installationGuides) {
@@ -829,7 +873,7 @@ test.describe("la scène continue sous les sections", () => {
     await expect(discover.getByTestId("section-telecharger")).toHaveCount(1);
     await expect(discover.getByTestId("section-documentation")).toHaveCount(1);
     await expect(discover.locator(".site-footer")).toHaveCount(1);
-    await page.getByTestId("card-dot-3").click();
+    await page.getByTestId("card-dot-2").click();
     await expect(page.getByTestId("terrain-stage")).toBeInViewport();
     await expect(page.locator("body")).toHaveClass(/is-beyond/);
     /* La ligne de crédit vient après la carte Documentation, en bas de page */
@@ -852,7 +896,7 @@ test.describe("la scène continue sous les sections", () => {
     await sceneReady(page);
     await page.getByTestId("nav-telecharger").click();
     await expectCardUnderHeader(page, "#telecharger .section-inner");
-    await page.getByTestId("card-dot-3").click();
+    await page.getByTestId("card-dot-2").click();
     await expectCardUnderHeader(page, "#documentation .section-inner");
     await page.getByTestId("nav-demonstration").click();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
@@ -943,28 +987,29 @@ test.describe("la scène continue sous les sections", () => {
     await sceneReady(page);
     const rail = page.getByTestId("card-rail");
     await expect(rail).toBeVisible();
-    await expect(rail.getByRole("button")).toHaveText(["Découvrir", "Télécharger", "Marche à suivre", "Documentation"]);
+    await expect(rail.getByRole("button")).toHaveText(["Découvrir", "Télécharger", "Documentation"]);
     await expect(page.getByTestId("card-dot-0")).toHaveAttribute("aria-current", "true");
 
     await page.getByTestId("card-dot-1").click();
     await expectCardUnderHeader(page, "#telecharger .section-inner");
     await expect(page.getByTestId("card-dot-1")).toHaveAttribute("aria-current", "true");
     await expect(page.getByTestId("card-up-1")).toHaveAttribute("aria-label", "Carte précédente : Découvrir");
+    await expect(page.getByTestId("card-down-1")).toHaveAttribute("aria-label", "Carte suivante : Documentation");
+
+    await page.getByTestId("card-next-1").click();
+    await expectCardUnderHeader(page, "#documentation .section-inner");
+    await expect(page.getByTestId("card-dot-2")).toHaveAttribute("aria-current", "true");
+    await expect(page.locator("#documentation h2")).toBeFocused();
+    await expect(page.getByTestId("card-down-2")).toBeDisabled();
+
+    await page.getByTestId("card-dot-2").focus();
+    await page.keyboard.press("ArrowUp");
+    await expectCardUnderHeader(page, "#telecharger .section-inner");
+    await expect(page.getByTestId("card-dot-1")).toBeFocused();
+    await expect(page.getByTestId("card-dot-1")).toHaveAttribute("aria-current", "true");
 
     await page.getByTestId("card-down-1").click();
-    await expectCardUnderHeader(page, ".section-card-install");
-    await expect(page.getByTestId("card-dot-2")).toHaveAttribute("aria-current", "true");
-    await expect(page.getByTestId("card-down-3")).toBeDisabled();
-
-    await page.getByTestId("card-next-2").click();
     await expectCardUnderHeader(page, "#documentation .section-inner");
-    await expect(page.getByTestId("card-dot-3")).toHaveAttribute("aria-current", "true");
-    await expect(page.locator("#documentation h2")).toBeFocused();
-
-    await page.getByTestId("card-dot-3").focus();
-    await page.keyboard.press("ArrowUp");
-    await expectCardUnderHeader(page, ".section-card-install");
-    await expect(page.getByTestId("card-dot-2")).toBeFocused();
     await expect(page.getByTestId("card-dot-2")).toHaveAttribute("aria-current", "true");
 
     await page.getByTestId("card-dot-0").click();
