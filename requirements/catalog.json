@@ -3517,9 +3517,17 @@
         "Le souligné est disponible dans les deux modes et conserve le même rendu dans l’éditeur, l’aperçu HTML et le document produit.",
         "La sortie de l’édition en plein écran déclenche le même signal de fin d’édition que le mode compact.",
         "Chaque bouton d’outil à icône présente une infobulle dans les modes compact et enrichi.",
-        "Dans une fenêtre de dialogue, la touche Échap pressée dans l’éditeur reste à l’éditeur, qui peut l’employer pour fermer ses propres menus, et ne ferme pas la fenêtre ; la fenêtre se ferme par son contrôle de fermeture."
+        "Dans une fenêtre de dialogue, la touche Échap pressée dans l’éditeur reste à l’éditeur, qui peut l’employer pour fermer ses propres menus, et ne ferme pas la fenêtre ; la fenêtre se ferme par son contrôle de fermeture.",
+        "Au téléphone, partout où un texte s’écrit (texte ouvert pendant la séance, texte sur son propre écran, éditeur d’une fiche ou d’une feuille, éditeur en plein écran), une seule barre d’écriture propre au téléphone tient sur une ligne : elle donne directement le gras, l’italique, les niveaux de titre, la liste à puces et la photo quand le texte en accepte, et « Mise en forme » ouvre toutes les autres commandes de l’éditeur.",
+        "Au téléphone, la barre d’écriture reste visible pendant que le texte défile et quand le clavier est ouvert ; un texte qui remplit l’écran commence juste sous elle, sans cadre autour de l’éditeur."
       ],
       "clauses": [
+        {
+          "key": "phone-writing-bar-one-line",
+          "origin": "product",
+          "statement": "Demande du propriétaire du 15 novembre 2026, sur un texte ouvert en plein écran pendant une séance ; mots du propriétaire : « C'est l'éditeur de texte en mode plein écran. Il y a la barre de menu. Il faudrait qu'elle s'adapte. On n'ait pas le menu sur plusieurs lignes, qu'on ait qu'une seule ligne et qu'on ait un bouton d'accès au truc complémentaire. », et « je pense que c'est général ».",
+          "sourceIds": []
+        },
         {
           "key": "adaptive-editor-controls",
           "origin": "product",

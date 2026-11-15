@@ -46,19 +46,22 @@
 /* The paragraph style keeps its whole name; the tools wrap onto a second line before it shrinks. */
 .markdown-editor [role="toolbar"] .hall-select-trigger[data-testid="editor-block-style"] { width: max-content; flex: none; }
 /* @implements-requirement HALL-FR-DOC-270 */
-/* The writing tools of a phone (choice 8B): one row fixed under the screen header, never over the text. */
-.markdown-editor.markdown-editor-compact > .markdown-phone-toolbar {
+/* The writing bar of a phone (choice 8B), wherever a text is written: one row that never wraps nor scrolls, fixed at
+   the top of the scrolled area above the text, never over the text. */
+.markdown-editor > [role="toolbar"].markdown-phone-toolbar:not([hidden]) {
   position: sticky;
   top: 0;
-  left: auto;
   z-index: var(--hall-z-sticky);
   display: flex;
   width: auto;
+  min-width: 0;
   flex: none;
   flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   gap: var(--hall-space-1);
   padding: 0 var(--hall-space-2);
+  overflow: hidden;
   border: 0;
   border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
   border-radius: 0;
@@ -72,17 +75,22 @@
 }
 /* The tools are icons of the family of the application, in the tone and size of the commands of the header. */
 .markdown-phone-tool,
-.markdown-phone-toolbar > .editor-photo-control {
+.markdown-phone-toolbar .editor-photo-control {
+  flex: none;
   min-width: var(--hall-size-touch-control);
   min-height: var(--hall-size-touch-control);
 }
 .markdown-phone-tool[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-surface-selected); }
-.markdown-phone-toolbar > .editor-photo-control { margin-left: auto; }
+.markdown-phone-toolbar-end { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); margin-left: auto; }
+/* The levels of a block, under the heading icon: one level per line, the current one in the tone of a pressed tool. */
+.markdown-phone-levels { display: grid; width: max-content; padding: var(--hall-space-1); }
+.markdown-phone-levels > .markdown-phone-level { justify-content: flex-start; }
+.markdown-phone-levels > .markdown-phone-level[aria-pressed="true"] { color: var(--hall-color-brand); background: var(--hall-color-surface-selected); }
 /* While a text is written on a phone, nothing above its writing tools is pulled up out of the scrolled area: the tools
    start at the top of that area, so its first line starts under them instead of under the fixed tools. */
 .app-main .workspace:has(.markdown-editor-phone) > .workspace-topzone { margin-block: 0; }
-.markdown-phone-toolbar-anchor { position: absolute; bottom: 0; left: 0; width: var(--hall-size-pixel); height: var(--hall-size-pixel); }
-.markdown-editor.markdown-editor-phone { flex: 1; border: 0; border-radius: 0; }
+/* A text that fills a phone screen has no frame: it starts right under its writing bar. */
+.markdown-editor.markdown-editor-phone { flex: 1; overflow: visible; border: 0; border-radius: 0; }
 .markdown-editor-phone .markdown-editor-canvas,
 .markdown-editor-phone .markdown-editor-content { flex: 1; }
 .markdown-editor-phone .markdown-editor-content > [contenteditable] { min-height: 100%; padding: var(--hall-space-4); }

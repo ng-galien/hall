@@ -12,11 +12,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ListRow, ListRows } from "@/components/ui/list-row";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
+import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import {
@@ -24,14 +27,19 @@ import {
   BoxedTextIcon,
   ChecklistIcon,
   EditIcon,
+  FormattingIcon,
   FullscreenIcon,
   HeadingIcon,
+  HeadingThreeIcon,
+  HeadingTwoIcon,
   IndentIcon,
   ItalicIcon,
   LinkIcon,
   ListBulletedIcon,
   ListNumberedIcon,
   OutdentIcon,
+  ParagraphIcon,
+  QuoteIcon,
   RedoIcon,
   ReferenceIcon,
   TableIcon,
@@ -52,7 +60,6 @@ import {
   useImageDropZone,
   useSpreadsheetDropChoice,
 } from "./imageTransfer";
-import { usePhoneEditorCommands } from "./phoneEditorCommands";
 import { focusesText, usePhoneKeyboard, writingChain } from "./phoneKeyboard";
 import { keepCaretBelowWritingTools } from "./phoneWritingScroll";
 import { useReadablePhotoUpload } from "./photoName";
@@ -86,8 +93,8 @@ export interface MarkdownEditorProps {
   /** The enriched body takes the focus when it opens, unless the surface leads elsewhere first. */
   autoFocus?: boolean;
   /**
-   * The text written on its own phone screen (a text of Documents, the report of an affaire): its tools stay fixed
-   * under the header and its other commands join the « … » menu of the screen. Every other editor keeps its own tools.
+   * The text written on its own phone screen (a text of Documents, the report of an affaire): it fills the screen under
+   * the header, without frame, and does not offer the full-screen editor. Every editor on a phone has the same writing bar.
    */
   phoneWriting?: boolean;
 }
@@ -344,20 +351,49 @@ function MarksButtons({ editor, state }: { editor: Editor; state: NonNullable<Re
   );
 }
 
+/** The window that writes the address of a link, opened from a menu or a sheet of the editor. */
+function LinkDialog({
+  editor,
+  active,
+  open,
+  onOpenChange,
+}: {
+  editor: Editor;
+  active: boolean;
+  open: boolean;
+  onOpenChange(open: boolean): void;
+}) {
+  const { t } = useI18n();
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        data-testid="editor-formatting-link-dialog"
+        closeLabel={t("common.close")}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          requestAnimationFrame(() => {
+            if (focusesText(editor.view)) editor.commands.focus();
+          });
+        }}
+      >
+        <DialogHeader>
+          <DialogTitle>{t("editor.link")}</DialogTitle>
+        </DialogHeader>
+        {open ? <LinkEditorForm editor={editor} active={active} onDone={() => onOpenChange(false)} /> : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CompactFormattingMenu({
   editor,
   state,
-  control,
 }: {
   editor: Editor;
   state: NonNullable<ReturnType<typeof useToolbarState>>;
-  /** On a phone the menu is opened from the « ⋯ » menu of the screen header and shows under the writing tools. */
-  control?: { open: boolean; setOpen(open: boolean): void };
 }) {
   const { t } = useI18n();
-  const [ownOpen, setOwnOpen] = useState(false);
-  const menuOpen = control ? control.open : ownOpen;
-  const setMenuOpen = control ? control.setOpen : setOwnOpen;
+  const [menuOpen, setMenuOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const controlHoldTimer = useRef<number | null>(null);
 
@@ -397,7 +433,7 @@ function CompactFormattingMenu({
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleWindowBlur);
     };
-  }, [editor, setMenuOpen]);
+  }, [editor]);
 
   const restoreEditorFocus = () => {
     requestAnimationFrame(() => {
@@ -408,30 +444,24 @@ function CompactFormattingMenu({
   return (
     <>
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        {control ? (
-          <DropdownMenuTrigger asChild>
-            <span className="markdown-phone-toolbar-anchor" aria-hidden="true" tabIndex={-1} />
-          </DropdownMenuTrigger>
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="plain"
-                  size="icon"
-                  data-testid="editor-formatting-menu"
-                  aria-label={t("editor.formatting")}
-                  onMouseDown={(event) => event.preventDefault()}
-                >
-                  <EditIcon />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="top" sideOffset={4}>
-              {t("editor.formatting")}
-            </TooltipContent>
-          </Tooltip>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="plain"
+                size="icon"
+                data-testid="editor-formatting-menu"
+                aria-label={t("editor.formatting")}
+                onMouseDown={(event) => event.preventDefault()}
+              >
+                <EditIcon />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={4}>
+            {t("editor.formatting")}
+          </TooltipContent>
+        </Tooltip>
         <DropdownMenuContent
           side="bottom"
           align="start"
@@ -591,21 +621,7 @@ function CompactFormattingMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
-        <DialogContent
-          data-testid="editor-formatting-link-dialog"
-          closeLabel={t("common.close")}
-          onCloseAutoFocus={(event) => {
-            event.preventDefault();
-            restoreEditorFocus();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>{t("editor.link")}</DialogTitle>
-          </DialogHeader>
-          {linkOpen ? <LinkEditorForm editor={editor} active={state.link} onDone={() => setLinkOpen(false)} /> : null}
-        </DialogContent>
-      </Dialog>
+      <LinkDialog editor={editor} active={state.link} open={linkOpen} onOpenChange={setLinkOpen} />
     </>
   );
 }
@@ -656,24 +672,264 @@ function PhoneTool({
   );
 }
 
+type BlockType = "p" | "h2" | "h3" | "quote";
+
+const blockLevels: { type: BlockType; label: TranslationKey; icon: ReactNode }[] = [
+  { type: "p", label: "editor.paragraph", icon: <ParagraphIcon /> },
+  { type: "h2", label: "editor.heading2", icon: <HeadingTwoIcon /> },
+  { type: "h3", label: "editor.heading3", icon: <HeadingThreeIcon /> },
+  { type: "quote", label: "editor.quote", icon: <QuoteIcon /> },
+];
+
+/**
+ * The heading icon of the phone writing bar: it opens the levels of the block (paragraph, heading 2, heading 3,
+ * quotation) under the bar. The text keeps the focus, so an open keyboard stays open while a level is chosen.
+ */
+function PhoneBlockLevels({ editor, value }: { editor: Editor; value: string }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="plain"
+          size="icon"
+          type="button"
+          className="markdown-phone-tool"
+          data-testid="editor-heading"
+          aria-label={t("editor.blockType")}
+          aria-pressed={value !== "p"}
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          <HeadingIcon />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="markdown-phone-levels"
+        data-testid="editor-block-levels"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
+        {blockLevels.map((level) => (
+          <Button
+            key={level.type}
+            variant="plain"
+            type="button"
+            className="markdown-phone-level"
+            data-testid={`editor-block-${level.type}`}
+            aria-pressed={value === level.type}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              setOpen(false);
+              applyBlockType(editor, level.type);
+            }}
+          >
+            {level.icon}
+            {t(level.label)}
+          </Button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** One command of the other writing commands of a phone, listed in their sheet. */
+interface PhoneMoreCommand {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  testId: string;
+  active?: boolean;
+  disabled?: boolean;
+  run(): void;
+}
+
+/**
+ * « Mise en forme » at the right of the phone writing bar: a bottom sheet with every other command of the editor. The chosen command runs
+ * once the sheet is closed, so the text takes the focus back and the keyboard reopens where the person was writing.
+ */
+function PhoneMoreCommands({ editor, commands }: { editor: Editor; commands: PhoneMoreCommand[] }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const chosen = useRef<PhoneMoreCommand | null>(null);
+  return (
+    <>
+      <Button
+        variant="plain"
+        size="icon"
+        type="button"
+        className="markdown-phone-tool"
+        data-testid="editor-formatting-menu"
+        aria-label={t("editor.formatting")}
+        aria-expanded={open}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => setOpen(true)}
+      >
+        <FormattingIcon />
+      </Button>
+      <Sheet
+        open={open}
+        onOpenChange={setOpen}
+        side="bottom"
+        title={t("editor.formatting")}
+        testId="editor-formatting-menu-content"
+        list
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          const command = chosen.current;
+          chosen.current = null;
+          if (command) command.run();
+          else if (focusesText(editor.view)) editor.commands.focus();
+        }}
+      >
+        <ListRows>
+          {commands.map((command) => (
+            <ListRow
+              key={command.id}
+              onOpen={() => {
+                chosen.current = command;
+                setOpen(false);
+              }}
+              openTestId={command.testId}
+              openProps={{ disabled: command.disabled, "aria-pressed": command.active }}
+              selected={command.active}
+              head={
+                <span className="type-icon" aria-hidden="true">
+                  {command.icon}
+                </span>
+              }
+              title={command.label}
+            />
+          ))}
+        </ListRows>
+      </Sheet>
+    </>
+  );
+}
+
 // @implements-requirement HALL-FR-DOC-270
 /**
- * The writing tools of a phone (choice 8B), fixed under the screen header while the text scrolls: the icons of bold,
- * italic, heading, bulleted list, then of « Photo » at the right. The other formatting and the search of references are in the
- * « ⋯ » menu of the screen header; the full-screen editor is not offered, the text already fills the screen.
+ * The single writing bar of a phone (choice 8B), wherever a text is written: one row fixed above the text while it
+ * scrolls, with the icons of bold, italic, the levels of heading and the bulleted list, then « Photo » and « Mise en forme »,
+ * which gives every other command of the editor in a bottom sheet.
  */
 function PhoneWritingBar({
   editor,
   state,
   photo,
-  formatting,
+  onReference,
+  onEnrich,
 }: {
   editor: Editor;
   state: NonNullable<ReturnType<typeof useToolbarState>>;
   photo: ReactNode;
-  formatting: ReactNode;
+  onReference(): void;
+  /** The full-screen editor, offered only where the text does not already fill the screen. */
+  onEnrich?(): void;
 }) {
   const { t } = useI18n();
+  const [linkOpen, setLinkOpen] = useState(false);
+  const itemType = editor.isActive("taskItem") ? "taskItem" : "listItem";
+  const commands: PhoneMoreCommand[] = [
+    {
+      id: "undo",
+      label: t("editor.undo"),
+      icon: <UndoIcon />,
+      testId: "editor-formatting-undo",
+      disabled: !state.canUndo,
+      run: () => writingChain(editor).undo().run(),
+    },
+    {
+      id: "redo",
+      label: t("editor.redo"),
+      icon: <RedoIcon />,
+      testId: "editor-formatting-redo",
+      disabled: !state.canRedo,
+      run: () => writingChain(editor).redo().run(),
+    },
+    {
+      id: "underline",
+      label: t("editor.underline"),
+      icon: <UnderlineIcon />,
+      testId: "editor-formatting-underline",
+      active: state.underline,
+      run: () => writingChain(editor).toggleUnderline().run(),
+    },
+    {
+      id: "code",
+      label: t("editor.code"),
+      icon: <BoxedTextIcon />,
+      testId: "editor-formatting-code",
+      active: state.code,
+      run: () => writingChain(editor).toggleCode().run(),
+    },
+    {
+      id: "numbered-list",
+      label: t("editor.numberedList"),
+      icon: <ListNumberedIcon />,
+      testId: "editor-formatting-numbered-list",
+      active: state.orderedList,
+      run: () => writingChain(editor).toggleOrderedList().run(),
+    },
+    {
+      id: "checklist",
+      label: t("editor.checklist"),
+      icon: <ChecklistIcon />,
+      testId: "editor-formatting-checklist",
+      active: state.taskList,
+      run: () => writingChain(editor).toggleTaskList().run(),
+    },
+    {
+      id: "indent",
+      label: t("editor.indent"),
+      icon: <IndentIcon />,
+      testId: "editor-formatting-indent",
+      disabled: !state.canIndent,
+      run: () => writingChain(editor).sinkListItem(itemType).run(),
+    },
+    {
+      id: "outdent",
+      label: t("editor.outdent"),
+      icon: <OutdentIcon />,
+      testId: "editor-formatting-outdent",
+      disabled: !state.canOutdent,
+      run: () => writingChain(editor).liftListItem(itemType).run(),
+    },
+    {
+      id: "link",
+      label: t("editor.link"),
+      icon: <LinkIcon />,
+      testId: "editor-formatting-link",
+      active: state.link,
+      run: () => setLinkOpen(true),
+    },
+    {
+      id: "table",
+      label: t("editor.insertTable"),
+      icon: <TableIcon />,
+      testId: "editor-formatting-insert-table",
+      run: () => writingChain(editor).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+    },
+    {
+      id: "reference",
+      label: t("editor.searchReferences"),
+      icon: <ReferenceIcon />,
+      testId: "editor-insert-reference",
+      run: onReference,
+    },
+    ...(onEnrich
+      ? [
+          {
+            id: "enrich",
+            label: t("editor.enrich"),
+            icon: <FullscreenIcon />,
+            testId: "editor-open-enriched",
+            run: onEnrich,
+          },
+        ]
+      : []),
+  ];
   return (
     <div
       role="toolbar"
@@ -681,7 +937,6 @@ function PhoneWritingBar({
       className="markdown-phone-toolbar"
       data-testid="editor-phone-toolbar"
     >
-      {formatting}
       <PhoneTool
         label={t("editor.bold")}
         testId="editor-bold"
@@ -698,14 +953,7 @@ function PhoneWritingBar({
       >
         <ItalicIcon />
       </PhoneTool>
-      <PhoneTool
-        label={t("editor.heading2")}
-        testId="editor-heading"
-        active={state.blockType === "h2"}
-        onClick={() => applyBlockType(editor, state.blockType === "h2" ? "p" : "h2")}
-      >
-        <HeadingIcon />
-      </PhoneTool>
+      <PhoneBlockLevels editor={editor} value={state.blockType} />
       <PhoneTool
         label={t("editor.bulletList")}
         testId="editor-bullet-list"
@@ -714,7 +962,11 @@ function PhoneWritingBar({
       >
         <ListBulletedIcon />
       </PhoneTool>
-      {photo}
+      <span className="markdown-phone-toolbar-end">
+        {photo}
+        <PhoneMoreCommands editor={editor} commands={commands} />
+      </span>
+      <LinkDialog editor={editor} active={state.link} open={linkOpen} onOpenChange={setLinkOpen} />
     </div>
   );
 }
@@ -789,7 +1041,6 @@ export function MarkdownEditor({
   const phone = usePhoneLayout();
   const narrow = useNarrowLayout();
   const phoneWriting = phoneWritingScreen && phone && !readOnly && variant === "compact";
-  const [formattingOpen, setFormattingOpen] = useState(false);
 
   const inline = useEditor({
     extensions: editorExtensions({
@@ -850,28 +1101,7 @@ export function MarkdownEditor({
     onStatus: setImageStatus,
   });
   const imageBusy = imageStatus.kind === "uploading";
-  const setCommands = usePhoneEditorCommands((store) => store.set);
-
-  useEffect(() => {
-    if (!phoneWriting || !inline) return;
-    setCommands([
-      {
-        id: "editor-formatting",
-        label: t("editor.formatting"),
-        icon: <EditIcon />,
-        onSelect: () => window.setTimeout(() => setFormattingOpen(true), 0),
-      },
-      {
-        id: "editor-reference",
-        label: t("editor.searchReferences"),
-        icon: <ReferenceIcon />,
-        onSelect: () => setFullSearch({ query: "" }),
-      },
-    ]);
-    return () => setCommands([]);
-  }, [phoneWriting, inline, setCommands, t]);
-
-  const phoneTools = Boolean(phoneWriting && inline && state);
+  const phoneTools = Boolean(phone && !readOnly && inline && state);
   useEffect(() => {
     const tools = compactEditor.current?.querySelector<HTMLElement>(".markdown-phone-toolbar");
     if (!phoneTools || !inline || !tools) return;
@@ -909,48 +1139,40 @@ export function MarkdownEditor({
         data-testid={testId ?? "markdown-editor-compact"}
       >
         {images.inputs}
-        {phoneWriting && inline && state ? (
+        {phoneTools && inline && state ? (
           <PhoneWritingBar
             editor={inline}
             state={state}
             photo={<PhotoSheetButton choices={[...images.photos, ...images.uploads]} busy={imageBusy} />}
-            formatting={
-              <CompactFormattingMenu
-                editor={inline}
-                state={state}
-                control={{ open: formattingOpen, setOpen: setFormattingOpen }}
-              />
-            }
+            onReference={() => setFullSearch({ query: "" })}
+            onEnrich={phoneWriting ? undefined : () => setEnriched(true)}
           />
         ) : null}
-        <div
-          hidden={phoneWriting}
-          role="toolbar"
-          aria-label={t("editor.writeArea")}
-          className="markdown-editor-compact-toolbar"
-        >
-          {inline && state && !readOnly ? <CompactFormattingMenu editor={inline} state={state} /> : null}
-          {inline && !readOnly ? (
-            <ToolbarButton
-              label={t("editor.searchReferences")}
-              testId="editor-insert-reference"
-              onClick={() => setFullSearch({ query: "" })}
-            >
-              <ReferenceIcon />
-            </ToolbarButton>
-          ) : null}
-          {readOnly ? null : (
-            <ToolbarButton label={t("editor.enrich")} testId="editor-open-enriched" onClick={() => setEnriched(true)}>
-              <FullscreenIcon />
-            </ToolbarButton>
-          )}
-          {readOnly ? null : (
-            <ImageMenuButton
-              choices={narrow ? [...images.photos, ...images.uploads] : images.uploads}
-              busy={imageBusy}
-            />
-          )}
-        </div>
+        {phoneTools ? null : (
+          <div role="toolbar" aria-label={t("editor.writeArea")} className="markdown-editor-compact-toolbar">
+            {inline && state && !readOnly ? <CompactFormattingMenu editor={inline} state={state} /> : null}
+            {inline && !readOnly ? (
+              <ToolbarButton
+                label={t("editor.searchReferences")}
+                testId="editor-insert-reference"
+                onClick={() => setFullSearch({ query: "" })}
+              >
+                <ReferenceIcon />
+              </ToolbarButton>
+            ) : null}
+            {readOnly ? null : (
+              <ToolbarButton label={t("editor.enrich")} testId="editor-open-enriched" onClick={() => setEnriched(true)}>
+                <FullscreenIcon />
+              </ToolbarButton>
+            )}
+            {readOnly ? null : (
+              <ImageMenuButton
+                choices={narrow ? [...images.photos, ...images.uploads] : images.uploads}
+                busy={imageBusy}
+              />
+            )}
+          </div>
+        )}
         <div className="markdown-editor-canvas" ref={inlineCanvas} {...inlineDropZone.handlers}>
           <EditorContent editor={inline} className="markdown-editor-content" />
           {inline ? <TableControls editor={inline} canvasRef={inlineCanvas} /> : null}
@@ -1085,15 +1307,37 @@ function EnrichedEditor({
 
   const state = useToolbarState(editor);
   const narrow = useNarrowLayout();
+  const phone = usePhoneLayout();
   enrichedEditor.current = editor;
-  usePhoneKeyboard(editor, usePhoneLayout());
+  usePhoneKeyboard(editor, phone);
   const images = useImageFiles({ editor, upload: uploadImage, uploadPhoto: onUploadPhoto, onStatus: onImageStatus });
+  const frame = useRef<HTMLDivElement>(null);
+  const phoneTools = Boolean(phone && editor && state);
+  useEffect(() => {
+    const tools = frame.current?.querySelector<HTMLElement>(".markdown-phone-toolbar");
+    if (!phoneTools || !editor || !tools) return;
+    return keepCaretBelowWritingTools(editor.view, tools);
+  }, [phoneTools, editor]);
 
   return (
-    <div className="markdown-editor markdown-editor-large" data-testid={testId ?? "markdown-editor-enriched"}>
+    <div
+      ref={frame}
+      className={cn("markdown-editor markdown-editor-large", phone && "markdown-editor-phone")}
+      data-testid={testId ?? "markdown-editor-enriched"}
+    >
       {images.inputs}
-      <div role="toolbar" aria-label={t("editor.enrich")} data-layout-flow>
-        {editor && state ? (
+      {phone && editor && state ? (
+        <PhoneWritingBar
+          editor={editor}
+          state={state}
+          photo={
+            <PhotoSheetButton choices={[...images.photos, ...images.uploads]} busy={imageStatus.kind === "uploading"} />
+          }
+          onReference={() => setFullSearch({ query: "" })}
+        />
+      ) : null}
+      <div role="toolbar" aria-label={t("editor.enrich")} data-layout-flow hidden={phone}>
+        {editor && state && !phone ? (
           <>
             <ToolbarButton
               label={t("editor.undo")}

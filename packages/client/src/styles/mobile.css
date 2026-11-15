@@ -194,6 +194,10 @@
   .document-viewer-phone-page .resource-preview-loading-header { display: flex; align-items: center; gap: var(--hall-space-1); min-height: var(--hall-size-header); padding: 0 var(--hall-space-2); }
   .document-viewer-phone-page .resource-preview-content:not(.resource-preview-content-fill) { padding: 0; }
   .document-viewer-phone-page .resource-preview-content .resource-preview-text { max-width: none; padding: var(--hall-space-4); overflow: visible; }
+  /* A text written in the document window fills it under the header: its writing bar stays at the top while the text
+     scrolls under it. */
+  .document-viewer-phone-page .resource-preview-content:has(> * > .markdown-editor-phone) { display: flex; flex-direction: column; overflow: hidden; }
+  .document-viewer-phone-page .resource-preview-content > :has(> .markdown-editor-phone) { display: flex; min-height: 0; flex: 1; flex-direction: column; }
   .app-main .path-contents-explorer .workspace-explorer-toolbar { display: none; }
 
   .workspace-bar-search .wsearch-field > .hall-input { min-width: 0; }
