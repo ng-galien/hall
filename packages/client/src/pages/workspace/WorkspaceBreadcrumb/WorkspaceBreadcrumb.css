@@ -49,7 +49,7 @@
     flex: none;
     margin-inline-end: var(--hall-space-1);
     font-size: var(--hall-font-size-icon);
-    vertical-align: -0.125em;
+    vertical-align: var(--hall-icon-text-offset);
   }
 
   .workspace-crumb-origin,

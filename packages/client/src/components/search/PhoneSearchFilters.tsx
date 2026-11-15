@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CheckIcon, CloseIcon } from "../icons";
+import { Button } from "../ui/button";
 import { Sheet } from "../ui/sheet";
 import type { FacetSuggestion } from "./facetSuggestions";
 
@@ -47,8 +48,8 @@ export function PhoneSearchFilters<K extends string, S extends string>({
         data-layout-flow="true"
       >
         {active.map((f) => (
-          <button
-            type="button"
+          <Button
+            variant="plain"
             key={`${f.facet}:${f.value}`}
             className="searchbox-filter-mark"
             data-active="true"
@@ -60,11 +61,11 @@ export function PhoneSearchFilters<K extends string, S extends string>({
             {glyph(f)}
             <span>{f.label}</span>
             <CloseIcon aria-hidden="true" />
-          </button>
+          </Button>
         ))}
         {groups.map((entry) => (
-          <button
-            type="button"
+          <Button
+            variant="plain"
             key={entry.category}
             className="searchbox-filter-mark"
             data-testid={`${testId}-filter-category-${entry.category}`}
@@ -73,7 +74,7 @@ export function PhoneSearchFilters<K extends string, S extends string>({
             onClick={() => setOpened(entry.category)}
           >
             <span>{labels[entry.category]}</span>
-          </button>
+          </Button>
         ))}
       </div>
       <Sheet
@@ -92,8 +93,8 @@ export function PhoneSearchFilters<K extends string, S extends string>({
             const selected = isActive(f);
             const depth = f.facet === "folder" ? f.value.split("/").length - 1 : 0;
             return (
-              <button
-                type="button"
+              <Button
+                variant="plain"
                 role="option"
                 key={`${f.facet}:${f.value}`}
                 aria-selected={selected}
@@ -118,7 +119,7 @@ export function PhoneSearchFilters<K extends string, S extends string>({
                 <span className="searchbox-filter-value-check" aria-hidden="true">
                   {selected ? <CheckIcon /> : null}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>

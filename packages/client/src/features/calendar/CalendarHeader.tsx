@@ -59,15 +59,15 @@ export function CalendarHeader({
   const period = (
     <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <Button
+          variant="plain"
           className="calendar-period"
           data-testid="calendar-title"
           aria-label={t("calendar.choosePeriod")}
         >
           <h2>{title}</h2>
           <CalendarIcon className="calendar-period-icon" aria-hidden="true" />
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="calendar-period-popover" data-testid="calendar-period-picker">
         <DatePicker
@@ -137,10 +137,12 @@ export function CalendarHeader({
           >
             <ChevronRightIcon />
           </Button>
-          {period}
-          <div className="calendar-legend">
-            <span className="calendar-legend-event">{t("workspace.type.event")}</span>
-            <span className="calendar-legend-council">{t("navigation.meetings")}</span>
+          <div className="calendar-period-group">
+            {period}
+            <div className="calendar-legend">
+              <span className="calendar-legend-event">{t("workspace.type.event")}</span>
+              <span className="calendar-legend-council">{t("navigation.meetings")}</span>
+            </div>
           </div>
         </>
       )}

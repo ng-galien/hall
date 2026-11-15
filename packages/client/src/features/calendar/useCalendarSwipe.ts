@@ -77,7 +77,7 @@ export function useCalendarSwipe(
     const moving = () => element.querySelector<HTMLElement>(".fc-view-harness") ?? element;
     const reset = (animate: boolean) => {
       const view = moving();
-      view.style.transition = animate ? "transform 180ms ease-out" : "";
+      view.style.transition = animate ? "transform var(--hall-motion-normal) var(--hall-motion-curve-decelerate)" : "";
       view.style.transform = "";
     };
     const onTouchStart = (event: TouchEvent) => {

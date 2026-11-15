@@ -20,7 +20,6 @@
   font-size: var(--hall-font-size-caption);
   font-weight: var(--hall-font-weight-semibold);
   text-decoration: none;
-  text-transform: uppercase;
 }
 .hall-date-picker-cell {
   position: relative;
@@ -52,7 +51,8 @@
 }
 .hall-date-picker-months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hall-space-1); }
 .hall-date-picker-months > .hall-date-picker-cell { min-height: var(--hall-size-touch-control); text-transform: lowercase; }
-@media (max-width: 760px) {
+/* Under a finger, every day, month and weekday offers a 44-pixel target, as a Button does. */
+@media (pointer: coarse) {
   .hall-date-picker-heading,
   .hall-date-picker-weekday { min-height: var(--hall-size-touch-control); }
   .hall-date-picker-cell { min-height: var(--hall-size-touch-control); font-size: var(--hall-font-size-text); }

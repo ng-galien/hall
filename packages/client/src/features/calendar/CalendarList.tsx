@@ -30,6 +30,11 @@ function occurrenceDays(occurrence: CalendarOccurrence): CalendarDay[] {
   return days.length > 0 ? days : [first];
 }
 
+/** A day title starts with a capital letter, written in the text itself. */
+function initialCapital(text: string): string {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
+}
+
 // @implements-requirement HALL-FR-CAL-220
 /**
  * The coming appointments and council meetings, from a day onward, grouped by day in the order of time; an
@@ -77,7 +82,7 @@ export function CalendarList({
         return (
           <section key={day} className="calendar-list-day" data-testid={`calendar-list-day-${day}`}>
             <h3 className="calendar-list-day-title" data-today={day === today ? "true" : undefined}>
-              {day === today ? `${t("calendar.today")}, ${dayTitle(day)}` : dayTitle(day)}
+              {day === today ? `${t("calendar.today")}, ${dayTitle(day)}` : initialCapital(dayTitle(day))}
             </h3>
             <ListRows>
               {entries.map((occurrence) => {

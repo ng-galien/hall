@@ -2,13 +2,13 @@
 .calendar-list { display: grid; align-content: start; gap: var(--hall-space-3); overflow-y: auto; min-height: 0; flex: 1; padding-bottom: var(--hall-space-10); }
 .calendar-list-day { display: grid; gap: var(--hall-space-1); }
 .calendar-list-day-title { position: sticky; top: 0; z-index: var(--hall-z-content); padding-block: var(--hall-space-1); background: var(--hall-color-surface); color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); font-weight: var(--hall-font-weight-bold); }
-.calendar-list-day-title::first-letter { text-transform: uppercase; }
 .calendar-list-day-title[data-today="true"] { color: var(--hall-color-brand); }
 .calendar-list-empty { color: var(--hall-color-text-muted); }
 .event-schedule-row.event-schedule-row { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
 .event-schedule-row > .event-day-field:only-child { grid-column: 1 / -1; }
 .event-date-popover.event-date-popover { width: min(calc(100vw - var(--hall-space-6)), var(--hall-size-relative-22rem)); }
-.event-time-options { max-height: min(var(--hall-size-relative-16rem), var(--radix-select-content-available-height)); }
+/* Below its field, the list of hours shows at most sixteen rem; the list itself stops at the height left by the window. */
+.event-time-options[data-side] > [data-radix-select-viewport] { max-height: var(--hall-size-relative-16rem); }
 .event-time-options[data-side] > [data-slot^="select-scroll"] { display: none; }
 .event-time-option { font-variant-numeric: tabular-nums; }
 .event-time-duration { margin-left: var(--hall-space-2); color: var(--hall-color-text-muted); }
@@ -21,15 +21,23 @@
 .hall-calendar-grid[hidden] { display: none; }
 .hall-calendar-grid > .fc { flex: 1; min-height: 0; }
 .calendar-toolbar { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); }
+/* The period is a plain Button drawn as the title of the calendar: the type, the cursor and the wrapping of a title. */
 .calendar-period {
   display: inline-flex;
   min-width: 0;
+  flex: 0 1 auto;
   min-height: var(--hall-size-control);
   align-items: center;
+  justify-content: normal;
   gap: var(--hall-space-2);
   padding: 0 var(--hall-space-2);
   border-radius: var(--hall-radius-small);
   color: var(--hall-color-text);
+  font: inherit;
+  white-space: normal;
+  cursor: default;
+  user-select: auto;
+  transition: none;
 }
 .calendar-period:hover,
 .calendar-period[data-state="open"] { background: var(--hall-color-surface-subtle); }
@@ -38,7 +46,11 @@
 .calendar-period-icon { flex: none; color: var(--hall-color-text-muted); font-size: var(--hall-font-size-icon-small); }
 .calendar-period-popover.calendar-period-popover { width: min(calc(100vw - var(--hall-space-6)), var(--hall-size-relative-22rem)); }
 .calendar-views { display: flex; align-items: center; gap: var(--hall-space-0-5); }
-.calendar-toolbar[data-layout="wide"] .calendar-legend { margin-left: auto; }
+/* On a large screen the period and the legend form one group: when the line is too narrow, the group passes whole
+   to a second line, the legend kept on one line. */
+.calendar-toolbar[data-layout="wide"] { flex-wrap: wrap; }
+.calendar-period-group { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; gap: var(--hall-space-2); }
+.calendar-toolbar[data-layout="wide"] .calendar-legend { flex: none; flex-wrap: nowrap; margin-left: auto; white-space: nowrap; }
 /* On a phone the period starts the line at the margin of the title, « Aujourd'hui » ends it. */
 @media (max-width: 760px) {
   .calendar-toolbar { justify-content: space-between; }
