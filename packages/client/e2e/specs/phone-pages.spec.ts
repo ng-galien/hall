@@ -402,6 +402,165 @@ test.describe("Hall pages on a phone", () => {
         await expect(page).toHaveURL(notePage);
       }
     });
+
+    // @verifies-requirement HALL-FR-LAY-060
+    test("a pinned document is an ordinary row of the list, marked by a pin, with « Désépingler » in its « … » menu", async ({
+      appPage: page,
+    }) => {
+      const name = `Épinglé ${crypto.randomUUID().slice(0, 8)}`;
+      const created = await page.request.post("/api/resources", {
+        data: { kind: "text", path: "Conseil", name, content: "Note à garder sous la main." },
+      });
+      expect(created.status()).toBe(201);
+      const note = (await created.json()).properties as { id: string };
+
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await page.goto(`/app/workspace?path=Conseil&resource=${note.id}`);
+      const pin = page.getByTestId("screen-title-commands").getByTestId("workspace-workbench-pin");
+      await pin.click();
+      await expect(pin).toHaveAttribute("aria-pressed", "true");
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto("/app/workspace");
+      const open = page.getByTestId(`workspace-pin-open-${note.id}`);
+      const row = page.locator('[data-slot="list-row"]', { has: open });
+      await expect(row).toBeVisible();
+      await expect(row).toContainText(name);
+      await expect(row).not.toHaveAttribute("data-prominent", "true");
+      await expect(row.locator(".list-row-overline")).toHaveCount(0);
+      await expect(row.locator(".type-icon-large")).toHaveCount(0);
+      await expect(row.locator(".workspace-pin-mark")).toHaveAttribute("aria-label", "Pinned");
+      const fits = await row.evaluate((element) => element.getBoundingClientRect().right <= window.innerWidth);
+      expect(fits, "the pinned row stays within the width").toBe(true);
+
+      await page.getByTestId(`workspace-pin-commands-${note.id}`).tap();
+      const unpin = page.getByTestId(`workspace-pin-unpin-${note.id}`);
+      await expect(unpin).toBeVisible();
+      await expect(unpin).toHaveText("Unpin");
+      await unpin.tap();
+      await expect(open).toHaveCount(0);
+
+      await page.reload();
+      await expect(page.getByTestId("phone-navigation")).toBeVisible();
+      await expect(open).toHaveCount(0);
+    });
+
+    // @verifies-requirement HALL-FR-LAY-010
+    test("coming back from a document opened from a business puts the business screen back where it was", async ({
+      appPage: page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 640 });
+      const businesses = await items<{ id: string }>(page, "/api/council-business");
+      let chosen: { id: string; resource: string } | null = null;
+      for (const business of businesses) {
+        const resources = await items<{ id: string }>(
+          page,
+          `/api/council-business/resource-items?councilBusinessId=${business.id}`,
+        );
+        const last = resources.at(-1);
+        if (resources.length >= 2 && last) {
+          chosen = { id: business.id, resource: last.id };
+          break;
+        }
+      }
+      expect(chosen, "a business of the demonstration with several documents").toBeTruthy();
+      const { id, resource } = chosen!;
+
+      await page.goto(`/app/workspace?councilBusiness=${id}`);
+      await expect(page.getByTestId("business-report")).toBeVisible();
+      const view = page.getByTestId("application-main").locator(`a[href*="resource=${resource}"]`);
+      await view.scrollIntoViewIfNeeded();
+      const main = page.getByTestId("application-main");
+      const scrollTop = () => main.evaluate((element) => Math.round(element.scrollTop));
+      await expect.poll(scrollTop, { message: "the documents are below the first screen" }).toBeGreaterThan(0);
+      let remembered = -1;
+      await expect
+        .poll(async () => {
+          const before = await scrollTop();
+          await page.waitForTimeout(200);
+          remembered = await scrollTop();
+          return before === remembered;
+        })
+        .toBe(true);
+
+      await view.tap();
+      await expect(page).toHaveURL(new RegExp(`resource=${resource}`));
+      await expect(page.getByTestId("resource-phone-view")).toBeVisible();
+      await page.getByTestId("phone-header-back").tap();
+      await expect(page).toHaveURL(new RegExp(`councilBusiness=${id}`));
+      await expect(page.getByTestId("business-report")).toBeVisible();
+      await expect.poll(scrollTop).toBe(remembered);
+      await page.waitForTimeout(1_500);
+      expect(await scrollTop(), "the position holds once the business content has arrived").toBe(remembered);
+      await expect(view).toBeInViewport();
+    });
+
+    // @verifies-requirement HALL-FR-LAY-010
+    test("an official reference opened from the meeting in progress fills the document window with its own margin", async ({
+      appPage: page,
+    }) => {
+      const meetings = await items<{ id: string; startedAt: string | null; closedAt: string | null }>(
+        page,
+        "/api/council-meetings",
+      );
+      const running = meetings.find((meeting) => meeting.startedAt && !meeting.closedAt)!;
+      expect(running).toBeTruthy();
+      const response = await page.request.get(`/api/council-meetings/${running.id}/agenda-items`);
+      expect(response.ok()).toBeTruthy();
+      const body = await response.json();
+      const agenda = (
+        Array.isArray(body) ? body : (body.entities ?? []).map((entry: { properties: unknown }) => entry.properties)
+      ) as Array<{ councilBusinessId: string | null }>;
+      const references: string[] = [];
+      for (const councilBusinessId of new Set(agenda.flatMap((item) => item.councilBusinessId ?? []))) {
+        const created = await page.request.post("/api/resources", {
+          data: {
+            kind: "legalReference",
+            path: "Conseil",
+            name: `CGCT, article L2121-20 (${crypto.randomUUID().slice(0, 8)})`,
+            councilBusinessId,
+          },
+        });
+        expect(created.status()).toBe(201);
+        references.push(((await created.json()).properties as { id: string }).id);
+      }
+      expect(references.length).toBeGreaterThan(0);
+
+      await page.goto(`/app/meetings/${running.id}/live`);
+      const chip = page.locator(references.map((id) => `[data-testid="live-document-${id}"]`).join(", ")).first();
+      await expect(chip).toBeVisible();
+      await chip.tap();
+      const preview = page.getByTestId("resource-preview");
+      await expect(preview).toBeVisible();
+      const content = preview.locator(".resource-preview-content-legalReference");
+      await expect(content).toBeVisible();
+      const layout = await content.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const box = element.getBoundingClientRect();
+        const outside = [...element.querySelectorAll<HTMLElement>("*")].filter((child) => {
+          const rect = child.getBoundingClientRect();
+          return rect.width > 0 && (rect.left < box.left - 1 || rect.right > box.right + 1);
+        });
+        return {
+          left: Number.parseFloat(style.paddingLeft),
+          right: Number.parseFloat(style.paddingRight),
+          container: style.containerType,
+          overflow: element.scrollWidth > element.clientWidth + 1,
+          outside: outside.map((child) => child.dataset.testid ?? child.className).slice(0, 5),
+          width: box.width,
+          viewport: document.documentElement.clientWidth,
+        };
+      });
+      expect(layout.left, "left margin of the official reference").toBeGreaterThanOrEqual(12);
+      expect(layout.right, "right margin of the official reference").toBeGreaterThanOrEqual(12);
+      expect(layout.container, "the window content lays out by its own width").toBe("inline-size");
+      expect(layout.overflow, "no horizontal scrolling in the window").toBe(false);
+      expect(layout.outside, "nothing passes the sides of the window").toEqual([]);
+      expect(layout.width).toBeLessThanOrEqual(layout.viewport);
+      await page.goBack();
+      await expect(preview).toHaveCount(0);
+      await expect(page.getByTestId("live-meeting-page")).toBeVisible();
+    });
   });
 
   test.describe("in a narrow window without a touch screen", () => {

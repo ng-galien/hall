@@ -247,18 +247,19 @@ test("phone calendar keeps a two-row toolbar, a floating « + Nouveau » and a s
     expect(toolbar.legend, "colour legend without action").toBe(0);
     expect(toolbar.periodArrows, "the period changes by a swipe or the period picker").toBe(0);
     // A single area scrolls: the grid of the day; the page itself does not.
-    const scrolling = await page.evaluate(
-      () =>
-        [...document.querySelectorAll("body *")].filter((element) => {
+    const scrolling = await page.evaluate(() =>
+      [...document.querySelectorAll("body *")]
+        .filter((element) => {
           const style = getComputedStyle(element);
           return (
             ["auto", "scroll"].includes(style.overflowY) &&
             element.scrollHeight > element.clientHeight + 1 &&
             element.getBoundingClientRect().height > 0
           );
-        }).length,
+        })
+        .map((element) => `${element.tagName.toLowerCase()}.${[...element.classList].join(".")}`),
     );
-    expect(scrolling, "vertical scrolling areas").toBe(1);
+    expect(scrolling, "vertical scrolling areas").toHaveLength(1);
     // No hour label of the day view is half hidden under the header of the grid.
     const cutLabels = await page.getByTestId("calendar-slot-label").evaluateAll((labels) =>
       labels.flatMap((label) => {
@@ -685,7 +686,16 @@ test("a phone opens a spreadsheet for reading and writes a cell through « Modif
   const box = (await grid.boundingBox())!;
   await page.touchscreen.tap(box.x + box.width / 2, box.y + 80);
   await expect(line.locator(".spreadsheet-cell-line-name")).toHaveText(/^[A-Z]+\d+$/);
-  await expect(page.locator("input:focus, textarea:focus, [contenteditable=true]:focus")).toHaveCount(0);
+  /* A text area of the spreadsheet library may take the focus, but none opens the keyboard of the phone. */
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        [...document.querySelectorAll<HTMLElement>("input:focus, textarea:focus, [contenteditable=true]:focus")]
+          .filter((element) => element.getAttribute("inputmode") !== "none")
+          .map((element) => element.dataset.testid ?? element.tagName),
+      ),
+    )
+    .toEqual([]);
 
   await page.getByTestId("text-edit").click();
   await expect(page.getByTestId("text-finish-editing")).toBeVisible();
