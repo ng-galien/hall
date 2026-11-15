@@ -60,7 +60,7 @@ const parcelLabel = (id) => `${id.slice(8, 10).replace(/^0/, "")} ${Number(id.sl
 export function mapDefinitions() {
   const { montNoir, douanets, lighting, ruralPaths, bridge, forest, champDeMars } = territory;
   const half = Math.floor(montNoir.line.length / 2);
-  const road = line("Voie communale du Mont Noir, 564 m", montNoir.line, colors.blue, 6);
+  const road = line("Voie communale du Mont Noir", montNoir.line, colors.blue, 6);
   const photos = {
     rut: marker("Ornière, côté est", montNoir.photos.rut, colors.red),
     ditch: marker("Fossé bouché", montNoir.photos.ditch, colors.red),
