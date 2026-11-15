@@ -607,3 +607,45 @@ test("a long phone note keeps its header and its writing tools on screen while p
     .toEqual(["::image[", typed(1), "::image[", typed(2), "::image[", typed(3)]);
   await page.screenshot({ path: testInfo.outputPath("phone-long-note-photos.png"), animations: "disabled" });
 });
+
+// @verifies-requirement HALL-FR-LAY-010
+test("the back command of a phone closes what is open over the screen before it leaves the screen", async ({
+  appPage: page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "text", name: `Retour ${crypto.randomUUID().slice(0, 8)}`, path: "seed", content: "Début." },
+  });
+  expect(created.ok()).toBe(true);
+  const resource = (await created.json()).properties as { id: string; slug: string };
+
+  await page.goto("/app/workspace?path=seed");
+  const address = page.url();
+  await page.getByTestId("workspace-create-menu").click();
+  const sheet = page.getByTestId("workspace-create-options");
+  await expect(sheet).toBeVisible();
+  await page.goBack();
+  await expect(sheet, "the back command closes the open sheet").toBeHidden();
+  expect(page.url(), "the screen stays").toBe(address);
+  await expect(page.getByTestId("workspace-create-menu")).toBeVisible();
+  await page.goForward();
+  await expect(sheet, "going forward does not open the sheet again").toBeHidden();
+
+  const text = `/app/workspace?path=seed&resource=${resource.id}`;
+  await page.goto(text);
+  await page.getByTestId("text-edit").click();
+  await expect(page.getByTestId("text-finish-editing")).toBeVisible();
+  const area = page.getByTestId("markdown-editor-compact").first().getByTestId("editor-writing-area");
+  await area.click();
+  await page.keyboard.press("End");
+  await page.keyboard.type(" Ajout au retour.");
+  await page.goBack();
+  await expect(page.getByTestId("text-finish-editing"), "the text comes back to reading").toHaveCount(0);
+  await expect(page.getByTestId("text-edit")).toBeVisible();
+  expect(page.url(), "the text stays open").toContain(`resource=${resource.id}`);
+  await expect
+    .poll(async () => (await (await page.request.get(`/api/resources/${resource.slug}`)).json()).properties.content)
+    .toContain("Ajout au retour.");
+  await page.goBack();
+  await expect(page).toHaveURL(/\/app\/workspace\?path=seed$/);
+});

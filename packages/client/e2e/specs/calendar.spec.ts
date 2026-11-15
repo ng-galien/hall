@@ -40,7 +40,7 @@ test("calendar creates a workspace appointment and opens council sessions", asyn
   await page.getByTestId("event-guest").fill("Test participant");
   await page.getByTestId("event-add-guest").click();
   const createdResponse = page.waitForResponse(
-    (response) => response.url().endsWith("/api/resources") && response.request().method() === "POST",
+    (response) => response.url().endsWith("/api/resources/events") && response.request().method() === "POST",
   );
   await page.getByTestId("calendar-create").click();
   const created = await (await createdResponse).json();
@@ -138,7 +138,9 @@ test("calendar preserves timed appointments after creation and editing", async (
   await expect(page.getByTestId("calendar-create")).toBeEnabled();
   await chooseAppointmentBound(page, "end", `${day}T20:30`);
   await expect(page.getByTestId("calendar-create")).toBeEnabled();
-  const response = page.waitForResponse((r) => r.url().endsWith("/api/resources") && r.request().method() === "POST");
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith("/api/resources/events") && r.request().method() === "POST",
+  );
   await page.getByTestId("calendar-create").click();
   const createdResponse = await response;
   expect(createdResponse.status(), await createdResponse.text()).toBe(201);
@@ -194,7 +196,9 @@ test("calendar completes every appointment field and changes schedule modes", as
   await page.getByTestId("event-add-guest").click();
   await expect(page.getByTestId("event-participant-1")).toContainText("Intervenant invité");
   await page.getByTestId("editor-writing-area").fill("Contexte complet du rendez-vous.");
-  const response = page.waitForResponse((r) => r.url().endsWith("/api/resources") && r.request().method() === "POST");
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith("/api/resources/events") && r.request().method() === "POST",
+  );
   await page.getByTestId("calendar-create").click();
   const creation = await response;
   expect(creation.status(), await creation.text()).toBe(201);
@@ -282,7 +286,8 @@ test("calendar cancels appointment creation without saving", async ({ appPage: p
   await page.getByTestId("navigation-calendar").click();
   const posts: string[] = [];
   page.on("request", (request) => {
-    if (request.method() === "POST" && request.url().endsWith("/api/resources")) posts.push(request.url());
+    if (request.method() === "POST" && new URL(request.url()).pathname.startsWith("/api/resources"))
+      posts.push(request.url());
   });
   for (const close of ["calendar-cancel", "dialog-close", "escape"]) {
     await page.getByTestId("calendar-new").click();
@@ -312,11 +317,15 @@ test("calendar recalculates invalid timed ends up to local midnight", async ({ a
     await chooseAppointmentBound(page, "start", start);
     await expectAppointmentBound(page, "end", end);
     await expect(page.getByTestId("calendar-create")).toBeEnabled();
-    const response = page.waitForResponse((r) => r.url().endsWith("/api/resources") && r.request().method() === "POST");
+    const response = page.waitForResponse(
+      (r) => r.url().endsWith("/api/resources/events") && r.request().method() === "POST",
+    );
     await page.getByTestId("calendar-create").click();
     const creation = await response;
     expect(creation.status(), await creation.text()).toBe(201);
     const id = (await creation.json()).properties.id;
+    await expect(page.getByTestId("calendar-create-sheet")).toHaveCount(0);
+    await expect(page.getByTestId(`calendar-event-${id}`)).toBeVisible();
     await page.reload();
     await page.getByTestId(`calendar-event-${id}`).click();
     await expectAppointmentBound(page, "start", start);
@@ -373,7 +382,9 @@ test("calendar selects ranges and moves and resizes timed appointments", async (
   await expectAppointmentBound(page, "start", "2026-09-12T10:00");
   await expectAppointmentBound(page, "end", "2026-09-12T11:00");
   await page.getByTestId("calendar-name").fill(`Selected time range ${Date.now()}`);
-  const response = page.waitForResponse((r) => r.url().endsWith("/api/resources") && r.request().method() === "POST");
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith("/api/resources/events") && r.request().method() === "POST",
+  );
   await page.getByTestId("calendar-create").click();
   const creation = await response;
   expect(creation.status(), await creation.text()).toBe(201);
@@ -441,11 +452,15 @@ test("calendar adjusts the end after the hour is chosen with the keyboard", asyn
   await expect(page.getByTestId("event-start-time-options")).not.toBeVisible();
   await expectAppointmentBound(page, "start", "2026-09-17T12:00");
   await expectAppointmentBound(page, "end", "2026-09-17T13:00");
-  const response = page.waitForResponse((r) => r.url().endsWith("/api/resources") && r.request().method() === "POST");
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith("/api/resources/events") && r.request().method() === "POST",
+  );
   await page.getByTestId("calendar-create").click();
   const creation = await response;
   expect(creation.status(), await creation.text()).toBe(201);
   const id = (await creation.json()).properties.id;
+  await expect(page.getByTestId("calendar-create-sheet")).toHaveCount(0);
+  await expect(page.getByTestId(`calendar-event-${id}`)).toBeVisible();
   await page.reload();
   await page.getByTestId(`calendar-event-${id}`).click();
   await expectAppointmentBound(page, "start", "2026-09-17T12:00");
@@ -603,7 +618,7 @@ test("calendar uses one complete form for business, quarter hours and participan
   await page.getByTestId("event-add-council-members").click();
   await expect(page.getByTestId(/^event-participant-/)).toHaveCount(activeMembers.length + 1);
   const creationResponse = page.waitForResponse(
-    (candidate) => candidate.url().endsWith("/api/resources") && candidate.request().method() === "POST",
+    (candidate) => candidate.url().endsWith("/api/resources/events") && candidate.request().method() === "POST",
   );
   await page.getByTestId("calendar-create").click();
   const creation = await creationResponse;

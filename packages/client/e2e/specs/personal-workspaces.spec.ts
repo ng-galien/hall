@@ -772,7 +772,7 @@ test("the calendar of another account shows an appointment created, moved, renam
     await admin.getByTestId("calendar-new").click();
     await admin.getByTestId("calendar-name").fill("Réunion de chantier");
     const creation = admin.waitForResponse(
-      (response) => response.url().endsWith("/api/resources") && response.request().method() === "POST",
+      (response) => response.url().endsWith("/api/resources/events") && response.request().method() === "POST",
     );
     await admin.getByTestId("calendar-create").click();
     const id = ((await (await creation).json()) as { properties: { id: string } }).properties.id;
@@ -816,5 +816,141 @@ test("the calendar of another account shows an appointment created, moved, renam
     ).toBe(true);
   } finally {
     await clerk.context().close();
+  }
+});
+
+// @verifies-requirement HALL-FR-CAL-240
+test("a councillor creates, changes and deletes their own appointment and only opens the appointment of another author", async ({
+  page: admin,
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+  admin.setDefaultTimeout(20_000);
+  expect(
+    (
+      await admin.request.post("/api/auth/bootstrap", {
+        data: { displayName: "Administrator", email: "admin@example.test", password },
+      })
+    ).status(),
+  ).toBe(201);
+  expect((await admin.request.put("/api/council-terms", { data: { expectedMemberCount: 5 } })).ok()).toBeTruthy();
+  const contact = await created<{ id: string }>(
+    await admin.request.post("/api/contacts", {
+      data: {
+        firstName: "Alice",
+        lastName: "Martin",
+        organizationName: null,
+        jobTitle: null,
+        email: null,
+        mobilePhone: null,
+        personalPhone: null,
+        professionalPhone: null,
+        notes: "",
+      },
+    }),
+  );
+  await created(
+    await admin.request.post("/api/council-members", {
+      data: { contactId: contact.id, role: "councillor", termStartedOn: "2026-03-22" },
+    }),
+  );
+  await created(
+    await admin.request.post("/api/users", {
+      data: {
+        email: "alice@example.test",
+        displayName: "Alice Martin",
+        password,
+        roles: ["councillor"],
+        contactId: contact.id,
+      },
+    }),
+  );
+  const day = (offset: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+  const others = await created<{ id: string; version: number }>(
+    await admin.request.post("/api/resources", {
+      data: {
+        kind: "event",
+        path: "",
+        name: "Rendez-vous du secrétariat",
+        document: {
+          content: "",
+          location: "Mairie",
+          schedule: { kind: "allDay", start: day(0), end: day(1) },
+          participants: [],
+        },
+      },
+    }),
+  );
+
+  const alice = await sessionPage(browser, baseURL ?? "", "alice@example.test");
+  try {
+    await alice.goto("/app/calendar");
+    await expect(alice.getByTestId(`calendar-event-${others.id}`)).toBeVisible();
+    await alice.getByTestId("calendar-new").click();
+    await alice.getByTestId("calendar-name").fill("Permanence de quartier");
+    await expect(alice.getByTestId("event-council-business")).toHaveCount(0);
+    const creation = alice.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" && new URL(response.url()).pathname.startsWith("/api/resources"),
+    );
+    await alice.getByTestId("calendar-create").click();
+    const response = await creation;
+    expect(response.status(), await response.text()).toBe(201);
+    const own = ((await response.json()) as { properties: { id: string; path: string } }).properties;
+    expect(own.path, "the appointment is stored at the root of the common workspace").toBe("");
+    const shown = alice.getByTestId(`calendar-event-${own.id}`);
+    await expect(shown).toBeVisible();
+    await admin.goto("/app/calendar");
+    await expect(admin.getByTestId(`calendar-event-${own.id}`), "every account sees it").toBeVisible();
+
+    await shown.click();
+    await expect(alice.getByTestId("event-location")).toBeEditable();
+    await alice.getByTestId("event-location").fill("Salle des associations");
+    await expect
+      .poll(
+        async () =>
+          (await (await alice.request.get(`/api/resources/${own.id}`)).json()).properties.document.location as string,
+      )
+      .toBe("Salle des associations");
+    await alice.getByTestId("resource-preview-close").click();
+
+    await alice.getByTestId(`calendar-event-${others.id}`).click();
+    await expect(alice.getByTestId("event-resource-editor")).toBeVisible();
+    await expect(alice.getByTestId("event-location")).toHaveValue("Mairie");
+    await expect(alice.getByTestId("event-location")).not.toBeEditable();
+    await alice.getByTestId("resource-preview-close").click();
+    await alice.getByTestId(`calendar-event-${others.id}`).click({ button: "right" });
+    await expect(alice.getByTestId("calendar-event-open")).toBeVisible();
+    await expect(alice.getByTestId("calendar-event-delete")).toHaveCount(0);
+    await alice.keyboard.press("Escape");
+    const othersDocument = (await (await admin.request.get(`/api/resources/${others.id}`)).json()).properties;
+    const refusedChange = await alice.request.put(`/api/resources/${others.id}/content`, {
+      data: {
+        kind: "event",
+        expectedVersion: othersDocument.version,
+        document: { ...othersDocument.document, location: "Ailleurs" },
+      },
+    });
+    expect(refusedChange.status()).toBe(403);
+    expect((await alice.request.delete(`/api/resources/${others.id}`)).status()).toBe(403);
+
+    await shown.click({ button: "right" });
+    await alice.getByTestId("calendar-event-delete").click();
+    await alice.getByTestId("calendar-delete-confirm").click();
+    const deleted = alice.waitForResponse(
+      (candidate) =>
+        candidate.request().method() === "DELETE" && new URL(candidate.url()).pathname.startsWith("/api/resources/"),
+    );
+    await alice.getByTestId("calendar-delete-confirm").click();
+    expect((await deleted).status()).toBe(204);
+    await expect(shown).toHaveCount(0);
+    await expect(alice.getByTestId(`calendar-event-${others.id}`)).toBeVisible();
+  } finally {
+    await alice.context().close();
   }
 });
