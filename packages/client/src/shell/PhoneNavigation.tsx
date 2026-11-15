@@ -1,7 +1,8 @@
 import type { Icon } from "@phosphor-icons/react";
 import { Fragment, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CalendarIcon, DocsIcon, MemberIcon, MoreIcon, SettingsIcon } from "../components/icons";
+import { CalendarIcon, DocsIcon, MoreIcon, SettingsIcon } from "../components/icons";
+import { PersonalFolderIcon } from "../components/PersonalFolderIcon";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog";
 import type { TranslationKey } from "../i18n/en";
 import { useI18n } from "../i18n/I18nProvider";
@@ -134,7 +135,7 @@ export function PhoneNavigation() {
           testId: "personal",
           label: t("workspace.personalWorkspace"),
           short: t("workspace.personalWorkspace"),
-          Icon: MemberIcon,
+          Icon: PersonalFolderIcon,
         },
       ]
     : [];

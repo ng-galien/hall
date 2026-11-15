@@ -44,6 +44,14 @@
     font-size: var(--hall-font-size-icon-small);
   }
 
+  /* The personal folder of the connected person carries its own folder icon before its name. */
+  .workspace-crumb-personal-icon {
+    flex: none;
+    margin-inline-end: var(--hall-space-1);
+    font-size: var(--hall-font-size-icon);
+    vertical-align: -0.125em;
+  }
+
   .workspace-crumb-origin,
   .workspace-crumb-origin:hover,
   .workspace-crumb-origin:focus-visible {

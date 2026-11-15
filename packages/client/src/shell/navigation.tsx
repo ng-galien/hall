@@ -16,7 +16,6 @@ import {
   HomeIcon,
   MailIcon,
   MapIcon,
-  MemberIcon,
   MinutesIcon,
   ReferenceIcon,
   RightsIcon,
@@ -24,6 +23,7 @@ import {
   TemplateIcon,
   TextDocumentIcon,
 } from "../components/icons";
+import { PersonalFolderIcon } from "../components/PersonalFolderIcon";
 import type { TranslationKey } from "../i18n/en";
 import { isUnderPath } from "../pages/workspace/paths";
 
@@ -91,7 +91,7 @@ export const navigationBlocks: NavigationItem[][] = [
       ],
     },
     // @implements-requirement HALL-FR-WSP-380
-    { id: "personal", labelKey: "workspace.personalWorkspace", Icon: MemberIcon, personalWorkspace: true },
+    { id: "personal", labelKey: "workspace.personalWorkspace", Icon: PersonalFolderIcon, personalWorkspace: true },
     { ...leaf("workspace", "/workspace", "navigation.documents", FolderIcon, "resources"), folderTree: true },
     {
       ...leaf("mail", "/mail", "navigation.mail", MailIcon, "mail"),

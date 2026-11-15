@@ -1,7 +1,9 @@
 import type { ResourceSummary } from "@hall/api-contract";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { ChevronRightIcon } from "../../components/icons";
+import { PersonalFolderIcon } from "../../components/PersonalFolderIcon";
 import { RequestErrorBanner } from "../../components/Ui";
 import { ListRow, ListRows } from "../../components/ui/list-row";
 import { SectionHeader } from "../../components/ui/section-header";
@@ -132,7 +134,12 @@ export function HomePersonalSpace({ documents, loaded }: ReadableDocuments) {
   return (
     <section className="home-block" data-testid="home-personal">
       <SectionHeader
-        title={t("workspace.personalWorkspace")}
+        title={
+          <span className="home-personal-title">
+            <PersonalFolderIcon aria-hidden="true" data-testid="home-personal-icon" />
+            {t("workspace.personalWorkspace")}
+          </span>
+        }
         commands={
           <WorkspaceCreateMenu
             placement="inline"
@@ -191,7 +198,9 @@ export function HomePersonalSpace({ documents, loaded }: ReadableDocuments) {
         </>
       ) : loaded ? (
         <p className="home-block-empty">{t("home.personalEmpty")}</p>
-      ) : null}
+      ) : (
+        <LoadingIndicator size="zone" label={t("common.loading")} />
+      )}
     </section>
   );
 }
@@ -213,9 +222,11 @@ export function HomeRecentDocuments({ documents, loaded, error }: ReadableDocume
             <ChevronRightIcon aria-hidden="true" />
           </Link>
         </>
-      ) : loaded && !error ? (
+      ) : error ? null : loaded ? (
         <p className="home-block-empty">{t("home.recentEmpty")}</p>
-      ) : null}
+      ) : (
+        <LoadingIndicator size="zone" label={t("common.loading")} />
+      )}
     </section>
   );
 }

@@ -122,6 +122,12 @@
   .workspace-topzone { display: flex; flex-direction: column; gap: var(--hall-space-2); }
   .workspace-bar-row { display: flex; align-items: flex-start; gap: var(--hall-space-2); }
   .workspace-bar-search { flex: 1; min-width: 0; }
+  /* The personal folder of the connected person, set apart above the contents: one tinted tile, its own icon in blue. */
+  .list-row-list.workspace-personal { border: var(--hall-stroke-thin) solid var(--hall-color-brand-border); margin: 0; border-radius: var(--hall-radius-medium); background: var(--hall-color-brand-subtle); overflow: hidden; }
+  .workspace-personal > .list-row { border: 0; background: transparent; }
+  .workspace-personal .list-row-main:hover { background: var(--hall-color-brand-subtle-hover); }
+  .workspace-personal .type-icon { --type-icon-color: var(--hall-color-brand); }
+  .workspace-personal .list-row-title { color: var(--hall-color-text); font-weight: var(--hall-font-weight-semibold); }
   .wsearch { position: relative; display: flex; flex-direction: column; gap: var(--hall-space-2); }
   /* The search field is one filled, underlined field (12D): its chosen filters, the text, then its commands. */
   .wsearch-field {

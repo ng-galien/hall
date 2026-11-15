@@ -36,6 +36,7 @@ import {
   selectedFolder,
 } from "./localFolderImport";
 import { PathContents } from "./PathContents";
+import { PersonalFolderEntry } from "./PersonalFolderEntry";
 import { PinnedRow } from "./PinnedRow";
 import { isUnderPath } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
@@ -496,9 +497,7 @@ export function WorkspacePage() {
             {t("workspace.duplicateCheckFailed")}
           </p>
         ) : null}
-        {submitting ? (
-          <LoadingIndicator data-testid="workspace-import-progress">{t("common.saving")}</LoadingIndicator>
-        ) : null}
+        {submitting ? <LoadingIndicator label={t("common.saving")} data-testid="workspace-import-progress" /> : null}
         <HeaderTrail>
           <WorkspaceBreadcrumb
             path={selectedBusiness?.folderPath ?? presentedResource?.path ?? path}
@@ -520,16 +519,6 @@ export function WorkspacePage() {
                   resultsTarget={searchResultsTarget}
                 />
               </div>
-              {resourcesStore.personalWorkspacePath ? (
-                <Button
-                  className="workspace-personal-open"
-                  variant="secondary"
-                  data-testid="workspace-personal-open"
-                  onClick={() => select(null, resourcesStore.personalWorkspacePath ?? "")}
-                >
-                  {t("workspace.personalWorkspace")}
-                </Button>
-              ) : null}
             </div>
           )}
           {phone && !selection ? (
@@ -595,6 +584,7 @@ export function WorkspacePage() {
               event.currentTarget.value = "";
             }}
           />
+          {!searchActive && !selection ? <PersonalFolderEntry path={path} onSelect={select} /> : null}
           {!searchActive ? <PinnedRow selection={selection} onSelect={select} /> : null}
         </div>
 
@@ -651,9 +641,11 @@ export function WorkspacePage() {
                         {t("common.retry")}
                       </Button>
                     ) : (
-                      <LoadingIndicator data-testid="business-selection-loading">
-                        {t("common.loading")}
-                      </LoadingIndicator>
+                      <LoadingIndicator
+                        size="zone"
+                        label={t("common.loading")}
+                        data-testid="business-selection-loading"
+                      />
                     )}
                   </section>
                 </WorkbenchControlsContext.Provider>

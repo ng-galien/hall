@@ -9193,13 +9193,20 @@
       "acceptanceCriteria": [
         "Le dossier personnel d’un élu est « Espaces personnels/Prénom Nom », directement sous la racine « Espaces personnels » ; Hall connaît l’élu propriétaire par une relation enregistrée, qui suit le dossier renommé.",
         "Sur son dossier, le conseiller crée, importe et range à l’intérieur ; le renommage, le déplacement et la suppression du dossier lui-même sont proposés au secrétariat et à l’administrateur, qui créent aussi un dossier manquant.",
-        "L’entrée « Mon espace » de l’espace de travail ouvre le dossier personnel du conseiller connecté."
+        "L’entrée « Mon espace » de l’espace de travail ouvre le dossier personnel du conseiller connecté.",
+        "Dans l’écran des documents, au téléphone comme sur ordinateur, la personne qui a un dossier personnel trouve hors de ce dossier une entrée « Mon espace », placée à part au-dessus des autres dossiers, qui l’ouvre d’un seul geste ; ouvert, ce dossier offre les mêmes gestes que tout dossier. Partout où il apparaît pour son titulaire, dans les listes, l’arborescence du menu, le fil d’Ariane et le bloc de l’accueil, ce dossier se distingue des autres dossiers. L’entrée paraît seulement pour une personne qui a un dossier personnel ; pour elle, les dossiers personnels des autres élus gardent l’aspect d’un dossier ordinaire."
       ],
       "clauses": [
         {
           "key": "personal-folder",
           "origin": "product",
           "statement": "Décisions du propriétaire du 25 octobre 2026 (0a8f2682) : un dossier à son nom par conseiller, propriété connue de Hall ; dossiers rangés sous « Espaces personnels », administrés seulement par un administrateur.",
+          "sourceIds": []
+        },
+        {
+          "key": "documents-entry",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 15 novembre 2026, après essai au téléphone avec un compte élu : « aujourd'hui, on est obligé d'aller naviguer vers l'espace personnel. C'est un peu chiant. » « Faudrait qu'il soit mis en avant plus ou moins dans les documents. Là, il est mélangé avec les autres trucs. » « Enfin, ça reste un dossier, mais qui soit peut-être une icône un peu différente, qui soit placée comme un lien différemment. Quelque chose qui permette de le distinguer. »",
           "sourceIds": []
         },
         {

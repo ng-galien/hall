@@ -1,5 +1,6 @@
 import { type ReactNode, type RefObject, useEffect } from "react";
 import { ChevronRightIcon, CloseIcon, FolderIcon } from "@/components/icons";
+import { PersonalFolderIcon } from "@/components/PersonalFolderIcon";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -41,6 +42,7 @@ function CrumbMenu({
   onSelect(selection: WorkspaceSelection, path?: string): void;
 }) {
   const { t } = useI18n();
+  const personalPath = useWorkspaceResourcesStore((state) => state.personalWorkspacePath);
   if (trailing) return null;
   const prefix = parent ? `${parent}/` : "";
   const children = allPaths
@@ -95,7 +97,11 @@ function CrumbMenu({
               data-path={childPath}
               onSelect={() => onSelect(null, childPath)}
             >
-              <FolderIcon />
+              {childPath === personalPath ? (
+                <PersonalFolderIcon data-testid="workspace-breadcrumb-personal-icon" />
+              ) : (
+                <FolderIcon />
+              )}
               <span className="workspace-crumb-menu-label" title={name}>
                 {name}
               </span>
@@ -227,6 +233,15 @@ export function WorkspaceBreadcrumb({
     return [...known].sort((left, right) => left.localeCompare(right, "fr-FR"));
   })();
   const segments = path.split("/").filter(Boolean);
+  const personalPath = useWorkspaceResourcesStore((state) => state.personalWorkspacePath);
+  const personalMark = (target: string) =>
+    target === personalPath ? (
+      <PersonalFolderIcon
+        className="workspace-crumb-personal-icon"
+        aria-hidden="true"
+        data-testid="workspace-breadcrumb-personal"
+      />
+    ) : null;
 
   useEffect(() => {
     if (!interactive) return;
@@ -246,7 +261,10 @@ export function WorkspaceBreadcrumb({
             <span className="workspace-crumb-sep" aria-hidden="true">
               <ChevronRightIcon />
             </span>
-            <span className="workspace-crumb">{segment}</span>
+            <span className="workspace-crumb">
+              {personalMark(segments.slice(0, index + 1).join("/"))}
+              {segment}
+            </span>
           </span>
         ))}
         {currentLabel ? (
@@ -304,6 +322,7 @@ export function WorkspaceBreadcrumb({
                 aria-current={index === segments.length - 1 && !currentLabel ? "page" : undefined}
                 onClick={() => onSelect?.(null, target)}
               >
+                {personalMark(target)}
                 {segment}
               </Button>
               <CrumbMenu

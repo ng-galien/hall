@@ -50,7 +50,6 @@
   .composer-list .list-row-main { flex: 1 1 100%; }
   .composer-list :is(.list-row-title, .list-row-detail, .list-row-detail *) { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: break-word; }
   .composer-list .list-row-action { width: 100%; justify-content: flex-end; }
-  .workspace-personal-open { display: none; }
   .workspace-topzone[data-item-open="true"] > :not(input) { display: none; }
   /* Every drop-down menu of a phone spans the screen width less its margins, with finger-sized rows. */
   [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"] { width: calc(100vw - 2 * var(--hall-space-4)); max-width: none; padding: var(--hall-space-1); border-radius: var(--hall-radius-medium); }

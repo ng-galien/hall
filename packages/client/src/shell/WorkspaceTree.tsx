@@ -2,7 +2,9 @@ import type { CouncilBusinessNavigationIndex } from "@hall/api-contract";
 import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CouncilBusinessIcon, FolderIcon, FolderOpenIcon } from "../components/icons";
+import { PersonalFolderIcon, PersonalFolderOpenIcon } from "../components/PersonalFolderIcon";
 import { Button } from "../components/ui/button";
+import { useIsPersonalFolder } from "../features/documents/FolderGlyph";
 import { councilBusinessHref } from "../features/references/referenceNavigation";
 import { useI18n } from "../i18n/I18nProvider";
 import { folderColorIconProps } from "../pages/workspace/folderColor";
@@ -37,11 +39,17 @@ function TreeNode({
 }) {
   const [dropping, setDropping] = useState(false);
   const isExpanded = expanded.has(node.path);
+  const personal = useIsPersonalFolder(node.business ? undefined : node.path);
+  const open = isExpanded && node.children.length > 0;
   const Glyph = node.business
     ? CouncilBusinessIcon
-    : isExpanded && node.children.length > 0
-      ? FolderOpenIcon
-      : FolderIcon;
+    : personal
+      ? open
+        ? PersonalFolderOpenIcon
+        : PersonalFolderIcon
+      : open
+        ? FolderOpenIcon
+        : FolderIcon;
   const glyph = <Glyph {...folderColorIconProps(node.color)} />;
   const isActive = node.business
     ? activeBusinessId === node.business.id

@@ -1,4 +1,5 @@
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { AttachmentPicker } from "./AttachmentPicker";
 import "./PathContents.css";
 import {
@@ -1191,7 +1192,7 @@ export function PathContents({
           "folder",
           folderColor,
           <span className="workspace-explorer-color-anchor">
-            <FolderGlyph open={isExpanded && hasContent} color={folderColor} />
+            <FolderGlyph open={isExpanded && hasContent} color={folderColor} path={folderPath} />
           </span>,
         )}
         headButton={
@@ -1308,6 +1309,14 @@ export function PathContents({
             {renderInlineCreation(folderPath)}
             {renderItems(folderPath)}
             {children.map(renderFolder)}
+            {!resourcesStore.loadedPaths.includes(folderPath) &&
+            children.length === 0 &&
+            !visibleResources.some((resource) => resource.path === folderPath) &&
+            !visibleBusinesses.some((business) => business.folderPath === folderPath) ? (
+              <li className="path-contents-loading">
+                <LoadingIndicator label={t("common.loading")} />
+              </li>
+            ) : null}
           </ListRows>
         ) : null}
       </ListRow>
@@ -1331,9 +1340,16 @@ export function PathContents({
       rootChildren.length === 0 &&
       creatingFolderParent !== path &&
       createTarget?.folderPath !== path ? (
-        <li className="workspace-explorer-empty" data-testid="workspace-explorer-empty">
-          {t(mode === "all" && !normalizedQuery ? "workspace.emptyFolder" : "workspace.noVisibleItems")}
-        </li>
+        resourcesStore.loadingPaths.includes(path) ||
+        (!resourcesStore.loadedPaths.includes(path) && !resourcesStore.error) ? (
+          <li className="path-contents-loading">
+            <LoadingIndicator size="zone" label={t("common.loading")} />
+          </li>
+        ) : (
+          <li className="workspace-explorer-empty" data-testid="workspace-explorer-empty">
+            {t(mode === "all" && !normalizedQuery ? "workspace.emptyFolder" : "workspace.noVisibleItems")}
+          </li>
+        )
       ) : null}
     </>
   );
@@ -1380,6 +1396,7 @@ export function PathContents({
               head={
                 <FolderGlyph
                   open
+                  path={path}
                   color={
                     resourcesStore.catalog.find((entry) => entry.kind === "folder" && entry.fullPath === path)?.color
                   }

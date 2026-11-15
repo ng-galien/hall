@@ -5,3 +5,5 @@
 .home-block { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-2); min-width: 0; }
 .home-block-empty { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); }
 .home-see-all { display: inline-flex; min-height: var(--hall-size-touch-control); align-items: center; gap: var(--hall-space-1); justify-self: end; color: var(--hall-color-brand); font-size: var(--hall-font-size-body); }
+.home-personal-title { display: inline-flex; align-items: center; gap: var(--hall-space-2); }
+.home-personal-title svg { flex: none; color: var(--hall-color-text-muted); }
