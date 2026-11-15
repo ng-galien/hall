@@ -23,7 +23,11 @@ const restoreStillFrames = 45;
 const restoreMaxFrames = 300;
 
 // @implements-requirement HALL-FR-LAY-010
-/** Records the scroll of each visited screen and starts a new screen at its top. */
+/**
+ * Records the scroll of each visited screen and starts a new screen at its top. A screen restored to a remembered
+ * position has scroll anchoring disabled, and the position is written again until its height stays still or the
+ * person scrolls.
+ */
 export function usePhoneScrollMemory(active: boolean, scroller: HTMLElement | null) {
   const location = useLocation();
   const positions = useRef(new Map<string, number>());
@@ -44,10 +48,6 @@ export function usePhoneScrollMemory(active: boolean, scroller: HTMLElement | nu
     const target = positions.current.get(location.key) ?? 0;
     scroller.scrollTop = target;
     if (target === 0) return;
-    // The screen comes back before all its content: a text, an image or a list that appears above the remembered
-    // position would push it, and the browser would keep the element in view instead of the position. Until the height
-    // of the screen stays still, or the person scrolls, the position is written again and the browser does not follow
-    // any element.
     const anchor = scroller.style.overflowAnchor;
     scroller.style.overflowAnchor = "none";
     let frames = 0;

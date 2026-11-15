@@ -27,6 +27,8 @@ import { routeParameter } from "../routeParameter.js";
 import { singleFileUpload } from "../singleFileUpload.js";
 
 // @implements-requirement HALL-FR-DOC-280
+// @implements-requirement HALL-FR-CAL-240
+/** Routes of the documentary resources; a created event is read again after its creation commits. */
 export function createDocumentaryResourcesRouter({
   documentaryResourceService,
   councilBusinessWorkspaceService,
@@ -119,9 +121,6 @@ export function createDocumentaryResourcesRouter({
     },
   );
 
-  // @implements-requirement HALL-FR-CAL-240
-  // The answer is read again once the creation is committed, so that its actions
-  // follow the author recorded by the creation.
   router.post(
     "/events",
     requireActionPermission("resource.create-event"),

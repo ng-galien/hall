@@ -41,6 +41,12 @@ function sameEntry(left: EntryState | null, right: EntryState | null): boolean {
   return left?.key === right?.key && left?.idx === right?.idx;
 }
 
+/**
+ * Wraps the history of the window. `entries` are the layers with an entry above the screen entry, in history order;
+ * `base` is the screen entry under them; `routerWrite` is the last entry the router wrote while a layer covered the
+ * screen, taken back by the screen entry. `history.go` is the return of the router, which leaves the screen and its
+ * layers; `history.back` stays the back command of the browser and of the phone.
+ */
 function createBackLayers(): BackLayers {
   const history = window.history;
   const native = {
@@ -50,11 +56,8 @@ function createBackLayers(): BackLayers {
   };
   const prefix = Math.random().toString(36).slice(2, 8);
   let counter = 0;
-  /** The layers that have an entry above the entry of the screen, in the order of the history. */
   let entries: Layer[] = [];
-  /** The entry of the screen under the layers. */
   let base: EntryState | null = null;
-  /** The last entry the router wrote while a layer covered the screen; the screen entry takes it back. */
   let routerWrite: { state: EntryState; url?: string | URL | null } | null = null;
   let current = history.state as EntryState | null;
   let releaseTimer = 0;
@@ -207,8 +210,6 @@ function createBackLayers(): BackLayers {
     write(native.replace, next as EntryState, url);
   };
 
-  /* The router goes back by history.go, for the arrow of the header: that return leaves the screen, its layers with it.
-     history.back stays the back command of the browser and of the phone. */
   history.go = (delta = 0) => {
     if (traversal) {
       traversal.after.push(() => history.go(delta));
