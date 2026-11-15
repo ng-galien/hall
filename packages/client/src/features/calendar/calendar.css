@@ -112,11 +112,9 @@
 /* In the grid of a month, an event holds on one line, shortened, its whole label shown on hover. */
 .hall-calendar .hall-calendar-event-label[data-line="one"] { overflow-wrap: normal; white-space: nowrap; }
 
-/* On a phone the toolbar and the grid keep the 16-pixel margins of the title, « Toute la journée » holds on one line. */
+/* On a phone the toolbar and the grid keep the 16-pixel margins of the title. */
 @media (max-width: 760px) {
   .app-main .hall-calendar .calendar-toolbar.calendar-toolbar { padding-inline: var(--hall-space-4); }
-  .app-main .hall-calendar .hall-calendar-all-day.hall-calendar-all-day,
-  .app-main .hall-calendar .hall-calendar-all-day.hall-calendar-all-day * { white-space: nowrap; }
   .app-main .hall-calendar.hall-calendar > :not(.calendar-toolbar) { padding-inline: var(--hall-space-4); }
   /* The title and the toolbar form one block over the grid: a single rule, under the toolbar. */
   .app-main:has(.hall-calendar) .screen-title-block { border-bottom: 0; }

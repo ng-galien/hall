@@ -191,7 +191,6 @@
   .app-main .hall-calendar { height: 100%; padding: 0; gap: 0; }
   .app-main .hall-calendar .calendar-toolbar { flex: none; padding: var(--hall-space-1) var(--hall-space-4); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
   .app-main .hall-calendar .calendar-undated { flex: none; flex-wrap: nowrap; overflow-x: auto; padding-inline: var(--hall-space-2); white-space: nowrap; }
-  .app-main .hall-calendar .hall-calendar-all-day { white-space: normal; font-size: var(--hall-font-size-caption); line-height: var(--hall-line-height-compact); }
   .docs-toolbar { flex-wrap: wrap; height: auto; padding-block: var(--hall-space-2); }
   /* The contents tree, when opened, takes the place of the page under the toolbar. */
   .docs-area { flex-direction: column; }

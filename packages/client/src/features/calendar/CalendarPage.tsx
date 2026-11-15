@@ -186,6 +186,14 @@ export function CalendarPage() {
       occurrence.allDay ? occurrence.start.slice(0, 10) : calendarDay(new Date(occurrence.start)),
     ),
   );
+  const allDayShown =
+    range !== null &&
+    occurrences.some((occurrence) => {
+      if (!occurrence.allDay) return false;
+      const first = occurrence.start.slice(0, 10);
+      const end = occurrence.end ? occurrence.end.slice(0, 10) : nextDate(first);
+      return first < calendarDay(range.end) && end > calendarDay(range.start);
+    });
   const contextResource = contextTarget?.resourceId ? resources.details[contextTarget.resourceId] : null;
   const contextEvent = contextResource?.kind === "event" ? contextResource : null;
   const canCreate = resources.collectionCapabilities.create;
@@ -263,9 +271,10 @@ export function CalendarPage() {
             ? {
                 borderless: true,
                 scrollTime: phoneScrollTime,
-                allDayHeaderClass: "hall-calendar-all-day",
               }
             : {})}
+          allDaySlot={allDayShown}
+          allDayHeaderContent={() => ""}
           events={events}
           firstDay={1}
           nowIndicator
