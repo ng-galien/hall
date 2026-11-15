@@ -64,6 +64,10 @@ line holds `requestId`, `actorUserId`, `method`, `path` and `statusCode`; a refu
 adds `problemCode` (the API problem code, for example `ballot_preview_stale` or
 `conduct_chronology_invalid`) and, for a database error, `sqlState` (for example `HV422`,
 `23505` or `57014`). Request bodies, query strings and personal data are not logged.
+An unhandled request error adds a line `"msg":"Unhandled HTTP request error"` with
+`requestId` and `error`: the `type`, `message`, `code` and `stack` of the error and, under
+`cause`, of each of its causes. The detail, context, query text and parameter values of a
+database error are not logged.
 
 ## Desktop
 

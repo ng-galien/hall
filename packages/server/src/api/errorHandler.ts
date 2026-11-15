@@ -34,6 +34,29 @@ const postgresProblems: ReadonlyMap<string, { readonly status: number; readonly 
   ["HV715", { status: 409, code: "meeting_cited_document_not_deletable" }],
 ]);
 
+type LoggedError = {
+  readonly type: string;
+  readonly message: string;
+  readonly code?: string;
+  readonly stack?: string;
+  readonly cause?: LoggedError;
+};
+
+// @implements-requirement HALL-TR-DST-050
+/** The type, message, code and stack of an error and of its causes, without the detail, query or parameters of a database error. */
+export function loggedError(error: unknown, depth = 0): LoggedError {
+  if (!(error instanceof Error)) return { type: typeof error, message: String(error) };
+  const code = "code" in error && typeof error.code === "string" ? error.code : undefined;
+  const cause = depth < 8 && error.cause !== undefined ? loggedError(error.cause, depth + 1) : undefined;
+  return {
+    type: error.constructor.name || error.name,
+    message: error.message,
+    ...(code === undefined ? {} : { code }),
+    ...(error.stack === undefined ? {} : { stack: error.stack }),
+    ...(cause === undefined ? {} : { cause }),
+  };
+}
+
 // @implements-requirement HALL-TR-DST-040
 // @implements-requirement HALL-TR-DST-050
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
@@ -89,6 +112,6 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     sendProblem(request, response, status, error.code === "LIMIT_FILE_SIZE" ? "upload_too_large" : "invalid_request");
     return;
   }
-  logger.error({ requestId: request.requestId, error }, "Unhandled HTTP request error");
+  logger.error({ requestId: request.requestId, error: loggedError(error) }, "Unhandled HTTP request error");
   sendProblem(request, response, 500, "request_failed");
 };

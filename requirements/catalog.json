@@ -12064,7 +12064,8 @@
       "statement": "The server log line of a refused API request carries its problem code and, for a database error, its SQLSTATE, never the request body.",
       "acceptanceCriteria": [
         "The API change line (every method other than GET and HEAD) and the API read failed line (GET or HEAD answered with 500 or more) hold requestId, actorUserId, method, path and statusCode, plus problemCode for a problem response and sqlState for a database error.",
-        "Neither line contains the request body, the query string or personal data."
+        "Neither line contains the request body, the query string or personal data.",
+        "The line of an unhandled request error holds requestId and the type, message, code and stack of the error and of each of its causes; it holds no other field of the error, in particular neither the detail, the context, the query text nor the parameter values of a database error."
       ],
       "clauses": [
         {

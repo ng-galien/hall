@@ -7,7 +7,8 @@ if (file) mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
 
 export const loggerOptions: pino.LoggerOptions = {
   level: process.env.NODE_ENV === "test" ? "silent" : (process.env.LOG_LEVEL ?? "info"),
-  serializers: { error: pino.stdSerializers.err },
+  // An error is serialized with its own fields; an object already reduced for the log is written as it is.
+  serializers: { error: (value: unknown) => (value instanceof Error ? pino.stdSerializers.err(value) : value) },
 };
 
 export const logger = pino(
