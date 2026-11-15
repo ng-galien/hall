@@ -1,9 +1,32 @@
 import { readFile } from "node:fs/promises";
 import type { PoolClient } from "pg";
 import { expect, it } from "vitest";
+import { executeSchemaDataMigrations } from "../src/schemaDataMigrations.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
 
 const migration = readFile(new URL("../sql/migrations/007-server-tables-into-hall.sql", import.meta.url), "utf8");
+const dropMigration = readFile(
+  new URL("../sql/migrations/010-drop-former-server-tables.sql", import.meta.url),
+  "utf8",
+);
+const formerTables = [
+  "users",
+  "user_roles",
+  "sessions",
+  "hall_settings",
+  "hall_meeting_locations",
+  "templates",
+  "audit_events",
+];
+
+async function remainingFormerTables(client: PoolClient) {
+  return (
+    await client.query<{ name: string }>(
+      "SELECT tablename AS name FROM pg_tables WHERE schemaname = 'public' AND tablename = ANY($1) ORDER BY 1",
+      [formerTables],
+    )
+  ).rows.map(({ name }) => name);
+}
 
 const administratorId = "6f0c1c55-1f53-4a1c-9d38-5f3e7a2b9c01";
 const readerId = "6f0c1c55-1f53-4a1c-9d38-5f3e7a2b9c02";
@@ -202,6 +225,75 @@ postgresDescribe("migration 007 of the server tables into schema hall", () => {
         await expect(client.query(await migration)).rejects.toThrow("the copy of user_roles differs from its source");
         await client.query("ROLLBACK TO SAVEPOINT before_migration");
         expect((await client.query("SELECT count(*)::int AS count FROM hall.app_user")).rows).toEqual([{ count: 0 }]);
+      });
+    } finally {
+      client.release();
+    }
+  });
+});
+
+// @verifies-requirement HALL-TR-SCH-030
+postgresDescribe("migration 010 dropping the former server tables of schema public", () => {
+  const pool = createTestPool();
+  useFreshHallDatabase(pool);
+
+  it("upgrades a database holding the former tables: accounts and sessions stay valid, the tables are gone", async () => {
+    const client = await pool.connect();
+    try {
+      await inTransaction(client, async () => {
+        await createReleaseServerTables(client, "contact_id");
+        await executeSchemaDataMigrations(client);
+
+        expect(await remainingFormerTables(client)).toEqual([]);
+        expect(
+          (await client.query("SELECT id::text, email, password_hash, status FROM hall.app_user ORDER BY email")).rows,
+        ).toEqual([
+          { id: administratorId, email: "admin@example.test", password_hash: "scrypt$hash-a", status: "active" },
+          { id: readerId, email: "lecture@example.test", password_hash: "scrypt$hash-b", status: "disabled" },
+        ]);
+        expect(
+          (await client.query("SELECT hall_api.find_app_session('token-hash') ->> 'user_id' AS user_id")).rows,
+        ).toEqual([{ user_id: administratorId }]);
+        expect(
+          (await client.query("SELECT count(*)::int AS count FROM hall.audit_event WHERE id = $1", [auditId])).rows,
+        ).toEqual([{ count: 1 }]);
+
+        await executeSchemaDataMigrations(client);
+        await client.query(await dropMigration);
+        expect(await remainingFormerTables(client)).toEqual([]);
+        expect((await client.query("SELECT count(*)::int AS count FROM hall.app_user")).rows).toEqual([{ count: 2 }]);
+      });
+    } finally {
+      client.release();
+    }
+  });
+
+  it("runs without error on a database that never had the former tables", async () => {
+    const client = await pool.connect();
+    try {
+      await inTransaction(client, async () => {
+        expect(await remainingFormerTables(client)).toEqual([]);
+        await client.query(await dropMigration);
+        await client.query(await dropMigration);
+        expect(await remainingFormerTables(client)).toEqual([]);
+      });
+    } finally {
+      client.release();
+    }
+  });
+
+  it("fails and drops nothing when schema hall lacks the accounts of public.users", async () => {
+    const client = await pool.connect();
+    try {
+      await inTransaction(client, async () => {
+        await createReleaseServerTables(client, "contact_id");
+        await client.query("SAVEPOINT before_migration");
+        await expect(client.query(await dropMigration)).rejects.toThrow(
+          "Cannot drop the former server tables: schema hall lacks rows of users, audit_events",
+        );
+        await client.query("ROLLBACK TO SAVEPOINT before_migration");
+        expect(await remainingFormerTables(client)).toEqual([...formerTables].sort());
+        expect((await client.query("SELECT count(*)::int AS count FROM public.users")).rows).toEqual([{ count: 2 }]);
       });
     } finally {
       client.release();

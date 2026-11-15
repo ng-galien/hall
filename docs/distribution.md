@@ -473,6 +473,18 @@ with the action `meeting.upload-proxy-document` under the access `meeting.conduc
 an account that registers the proxies of a meeting stores the signed written proxy at
 the root of the workspace without the right to create any other document.
 
+`hall migrate` from 1.3.0 also runs
+`packages/postgres/sql/migrations/010-drop-former-server-tables.sql` (requirement
+HALL-TR-SCH-030): it drops the seven former server tables of schema `public` (`users`,
+`user_roles`, `sessions`, `hall_settings`, `hall_meeting_locations`, `templates`,
+`audit_events`), copied into schema `hall` by migration 007 and no longer read or
+written since 1.1.0. Before the drop it checks that `hall.app_user` holds every account
+of `public.users`, `hall.audit_event` every event of `public.audit_events` and
+`hall.settings` the settings row of `public.hall_settings`; if one is missing,
+`hall migrate` fails and rolls the whole upgrade back. Accounts keep their password and
+open sessions stay valid. A database without these tables, such as a new installation
+or a database already updated, is left unchanged.
+
 ### Update procedure from 1.2.0 to 1.3.0 on the municipal computer
 
 This list applies to the Windows installation described in
@@ -935,8 +947,9 @@ HALL-TR-SCH-030): it copies the seven server tables of schema `public` (`users`,
 customized templates and dates. Accounts keep their password and open sessions stay
 valid. For each table the migration checks the row count and the copied identifiers;
 any difference fails `hall migrate` and rolls the whole upgrade back. The `public`
-tables stay in place, unchanged, and are no longer read or written. Their removal
-requires a separate migration after the municipal update has been verified. Run again, the migration
+tables stay in place, unchanged, and are no longer read or written, until the
+update to 1.4.0 drops them (migration 010, described in
+[Schema changes prepared for 1.4.0](#schema-changes-prepared-for-140)). Run again, the migration
 copies nothing as soon as `hall.app_user` holds an account.
 
 Session variables, used by every step. The PostgreSQL connection uses the `PG*`

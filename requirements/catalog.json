@@ -12256,13 +12256,20 @@
         "Une installation neuve crée hall.app_user, hall.app_user_role, hall.app_session, hall.settings, hall.meeting_location et hall.document_template par le manifeste du schéma, avec le réglage unique et les modèles par défaut des documents générés ; elle ne crée aucune table dans public.",
         "Les événements d’audit du serveur et ceux des commandes métier forment un seul journal, hall.audit_event, lu par l’API des événements d’audit.",
         "La montée d’une base 1.0.3 copie les sept tables du serveur de public dans hall avec leurs identifiants, empreintes de mot de passe, sessions actives, rôles, réglages, lieux, modèles personnalisés et dates ; elle vérifie pour chaque table le nombre de lignes et les identifiants copiés et échoue sans rien changer si une ligne manque.",
-        "Les tables public copiées restent en place, inchangées, et plus aucun code ne les lit ni ne les écrit ; une base où hall détient déjà un compte n’est pas recopiée."
+        "Plus aucun code ne lit ni n’écrit les tables public copiées ; une base où hall détient déjà un compte n’est pas recopiée.",
+        "La montée vers la 1.4.0 supprime les sept tables public copiées après avoir vérifié que hall détient chaque compte et chaque événement d’audit qu’elles portent, ainsi que le réglage de la commune ; si l’un manque, elle échoue sans rien changer. Les comptes et les sessions ouvertes restent valides. Une base qui n’a jamais eu ces tables est laissée inchangée, et une seconde exécution ne change rien."
       ],
       "clauses": [
         {
           "key": "owner-decision",
           "origin": "product",
           "statement": "Constat et décision du coordinateur, point 1 : le serveur avait deux accès à la base, un pool propre sur search_path=public pour six tables (comptes, rôles, sessions, réglages, gabarits, audit) et le gestionnaire de transactions du schéma hall ; un seul accès doit rester. Décision du propriétaire du 7 novembre 2026 : les tables public restent en place après la copie, leur suppression est reportée à une version ultérieure, une fois la montée en mairie constatée saine.",
+          "sourceIds": []
+        },
+        {
+          "key": "former-tables-dropped-in-1-4-0",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 15 novembre 2026, sur l’état des données personnelles : « on fait partir dans la prochaine version de le supprimer. De supprimer ces anciennes tables. » La version 1.4.0 supprime les sept tables public ; l’ancienne colonne hall.contact.phone n’est pas concernée.",
           "sourceIds": []
         }
       ]
