@@ -5,6 +5,10 @@ import { daysFromNow } from "../common/dates.mjs";
  * Each step records its server reception instant with the minute of the historical meeting it maps to;
  * `backdate` moves each recorded step of a meeting to its minute in the historical meeting opened at
  * `openedAt`, when the seed has database access; otherwise the meeting keeps the load time.
+ * `open` takes the roster roles, or the declarations a dataset gives for one meeting in `declaredAttendance`;
+ * its `noticeMinute` moves the notice that many minutes from the opening before any conduct is recorded.
+ * `vote` takes `options.started` for an item already started (recusal, arrival) and `options.blank` for the
+ * blank papers of a secret ballot. `recuse` returns the participants left after a member takes no part.
  */
 export function createMeetingConduct(api, { roster, subjects, meetingLocation }) {
   const { get, post, put, patch } = api;
@@ -23,12 +27,6 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
       position,
     });
   }
-  /**
-   * Opens a meeting with the roster roles, or with the declarations a dataset gives for that meeting in
-   * `declaredAttendance`: [{ councilMemberId, status, proxyHolderCouncilMemberId?, proxyDocumentId? }].
-   * `noticeMinute` moves the notice that many minutes from the opening (negative: before it) when the seed
-   * can backdate, before any conduct is recorded.
-   */
   async function open(
     meeting,
     date,
@@ -80,10 +78,6 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
     const started = await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/start`, {});
     mark(meeting, started.startedAt, minute);
   }
-  /**
-   * Conducts a ballot. `options.started` skips the start of an item already started (for a recusal or an
-   * arrival recorded during the item); `options.blank` counts blank papers of a secret ballot.
-   */
   async function vote(
     meeting,
     item,
@@ -135,12 +129,10 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
     const adjourned = await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/adjourn`, {});
     mark(meeting, adjourned.adjournedAt, minute);
   }
-  /** Present and represented attendance entries of the meeting, the participants of its next ballot. */
   async function participants(meeting) {
     const attendance = await get(`/council-meetings/${meeting.id}/attendance`);
     return attendance.filter((entry) => entry.status === "present" || entry.status === "represented");
   }
-  /** An arrival or a departure during the meeting: changes = [{ councilMemberId, status }]. */
   async function recordAttendance(meeting, changes) {
     return post(`/council-meetings/${meeting.id}/attendance-events`, {
       changes: changes.map((change) => ({
@@ -159,7 +151,6 @@ export function createMeetingConduct(api, { roster, subjects, meetingLocation })
       quality,
     });
   }
-  /** Records that a member takes no part in the item; returns the remaining participants. */
   async function recuse(meeting, item, member) {
     await post(`/council-meetings/${meeting.id}/agenda-items/${item.id}/recusals`, {
       councilMemberId: member.id,

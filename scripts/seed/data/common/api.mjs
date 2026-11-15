@@ -111,7 +111,6 @@ export function createSeedApi(baseUrl, session = {}) {
     });
   }
 
-  /** Uploads a file read from the repository; the media type follows the file extension. */
   async function uploadFile({ title, file, folderPath = "", tags = [] }) {
     return uploadDocument({
       title,
@@ -123,7 +122,6 @@ export function createSeedApi(baseUrl, session = {}) {
     });
   }
 
-  /** Imports an image of a text (editor asset); the text inserts it with `::image[...]{#id ...}`. */
   async function uploadEditorAsset({ ownerId, title, fileName, content, mediaType }) {
     const form = new FormData();
     form.set("ownerKind", "textResourceContent");
@@ -133,7 +131,6 @@ export function createSeedApi(baseUrl, session = {}) {
     return request("POST", "/resources/editor-assets", form);
   }
 
-  /** Replaces the content of a text resource with the text built from its current version. */
   async function updateText(resourceId, build) {
     const current = await get(`/resources/${resourceId}`);
     return put(`/resources/${resourceId}/content`, {
@@ -143,7 +140,6 @@ export function createSeedApi(baseUrl, session = {}) {
     });
   }
 
-  /** Changes the colour and tags of a folder, keeping its place and name. */
   async function updateFolder(fullPath, { color, tags = [] }) {
     const folder = (await get("/resources/catalog")).find(
       (resource) => resource.kind === "folder" && resource.fullPath === fullPath,
@@ -174,12 +170,10 @@ export function createSeedApi(baseUrl, session = {}) {
     return request("POST", "/resources/geographic-layers/municipal-property/import", form);
   }
 
-  /** Creates the note of a drawing of a map; the note is an ordinary text of the map folder. */
   async function createDrawingNote(mapId, elementId) {
     return post(`/resources/${mapId}/feature-notes`, { elementId });
   }
 
-  /** Opens a session for another account of the dataset, with its own cookie. */
   async function signIn(email, password) {
     const response = await fetch(`${baseUrl}/auth/login`, {
       method: "POST",

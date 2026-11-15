@@ -58,5 +58,6 @@ test("no contract, adapter, server, interface or seed carries a single contact t
     "packages/domain/src/schemas.ts": 1,
     "packages/server/src/repositories/hallSettingsRepository.ts": 1,
     "scripts/seed/data/datasets/alesia/directory.mjs": 1,
+    "scripts/seed/data/datasets/foncine-le-bas/directory.mjs": 1,
   });
 });

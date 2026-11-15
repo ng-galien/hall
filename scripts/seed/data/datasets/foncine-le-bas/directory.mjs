@@ -176,7 +176,7 @@ export async function seedDirectory({ post, put, signedInEmail }, { password }) 
       })
     ).id;
   }
-  for (const [key, organizationName, jobTitle, notes, phone] of externalContacts) {
+  for (const [key, organizationName, jobTitle, notes, numbers] of externalContacts) {
     contacts[key] = (
       await post("/contacts", {
         ...people[key],
@@ -184,7 +184,7 @@ export async function seedDirectory({ post, put, signedInEmail }, { password }) 
         mobilePhone: null,
         personalPhone: null,
         professionalPhone: null,
-        ...phone,
+        ...numbers,
         organizationName,
         jobTitle,
         notes,

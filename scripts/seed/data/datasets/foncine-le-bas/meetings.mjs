@@ -27,7 +27,6 @@ function meetingTools(api, fixture) {
       if (absent.includes(key)) return { councilMemberId: member.id, status: "absent" };
       return { councilMemberId: member.id, status: "present" };
     });
-  /** The notice leaves seven days before the meeting, more than three clear days (CGCT, L2121-11). */
   const openMeeting = async (meeting, date, { secretary, ...declarations }) => {
     const participants = await conduct.open(
       meeting,
@@ -40,7 +39,6 @@ function meetingTools(api, fixture) {
     await conduct.declareAuxiliary(meeting, fixture.contacts.colin, "Secrétaire générale de mairie");
     return participants;
   };
-  /** Freezes the decisions of a closed meeting: each one receives its number and date. */
   const freezeDecisions = async (meeting) => {
     for (const summary of await api.get("/council-decisions")) {
       if (summary.councilMeetingId !== meeting.id || summary.state !== "draft") continue;

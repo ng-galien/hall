@@ -89,7 +89,6 @@ export async function seedResources(api, { daysFromNow, members, contacts, group
     const folder = number === 1 ? folders.root : (businesses[business]?.folderPath ?? folders.council);
     const uploader = [1, 2, 3, 5].includes(number) ? technician : api;
     if (number === 4) {
-      // Image taken by the first deputy in his personal folder, then taken over by the secretariat.
       const personal = `Espaces personnels/${fullName("garnier")}`;
       images[number] = await councillor.uploadFile({ title, file, folderPath: personal, tags: ["photo"] });
       images[number] = await api.patch(`/resources/${images[number].id}/location`, {
@@ -256,9 +255,9 @@ La commune est membre de la communauté de communes Champagnole Nozeroy Jura, du
 
 | Poste | ${companies.terrassement} | ${companies.revetements} | ${companies.enrobes} | Délai |
 | --- | ---: | ---: | ---: | --- |
-| Terrassement | 4 800 € HT | — | — | 5 jours |
-| Busage | 2 650 € HT | — | — | 2 jours |
-| Enrobé 0/10, 480 m² | — | 11 900 € HT | 13 400 € HT | 1 à 2 jours |
+| Terrassement | 4 800 € HT | | | 5 jours |
+| Busage | 2 650 € HT | | | 2 jours |
+| Enrobé 0/10, 480 m² | | 11 900 € HT | 13 400 € HT | 1 à 2 jours |
 
 L’offre la moins chère est retenue pour chaque poste : ${link("Devis · Terrassement")}, ${link("Devis · Busage")}, ${link("Devis · Enrobé")}. Total retenu : 19 350 € HT, soit 23 220 € TTC.`,
     ],
@@ -409,7 +408,6 @@ La maire de Foncine-le-Bas, vu le code général des collectivités territoriale
     [folders.digital, "Note de présentation au conseil", "digital", ["conseil"], presentationNote],
     [folders.digital, "Guide de prise en main remis aux élus", "digital", ["conseil"], guide],
   ];
-  // The texts of the Mont Noir road come last, so that they lead the recent documents of the home page.
   const textOrder = (entry) => (entry[2] === "montNoir" ? 1 : 0);
   for (const [path, name, business, tags, content] of [...texts].sort((a, b) => textOrder(a) - textOrder(b))) {
     resources[name] = await createWorkspaceResource({ kind: "text", name, path, content }, tags);
@@ -609,7 +607,7 @@ La maire de Foncine-le-Bas, vu le code général des collectivités territoriale
       "Salle du conseil, mairie",
       { kind: "timed", start: at(18, 18, 30), end: at(18, 20, 0) },
       people(...councilMembers),
-      "Hall sur le téléphone : installer l’application, recevoir la convocation, ouvrir le dossier de séance.",
+      "Installer l’application sur le téléphone, recevoir la convocation, ouvrir le dossier de séance.",
     ],
     [
       "Préparation de la prochaine cérémonie commémorative",
@@ -658,13 +656,11 @@ La maire de Foncine-le-Bas, vu le code général des collectivités territoriale
       const created = await post("/mail", { subject, bodyMarkdown, recipients });
       await post(`/mail/${created.id}/attachments`, { expectedRevision: created.revision, resourceId: resource.id });
     } else {
-      // A text travels as the PDF that Hall prints from it.
       const text = await api.get(`/resources/${resource.id}`);
       const prepared = await post("/mail/prepare", { kind: "pdf", title: attachment, bodyMarkdown: text.content });
       await api.put(`/mail/${prepared.id}`, { subject, bodyMarkdown, recipients, expectedRevision: prepared.revision });
     }
   }
-  // The invitation of the on-site appointment, with its calendar file, prepared from the calendar.
   await post(`/resources/${calendar["Rendez-vous sur place, chemin du Mont Noir"].id}/event-invitation`, {
     method: "request",
   });
@@ -684,7 +680,6 @@ La maire de Foncine-le-Bas, vu le code général des collectivités territoriale
       `## Questions pour la séance n° 4\n\n1. Quel passage reste ouvert pendant les travaux du chemin ?\n2. Quelle date pour la réunion d’information des habitants ?`,
     ],
   ];
-  // Hall provisions a personal folder for a member who has an account: the two councillor accounts here.
   const personal = [];
   for (const [key, client, name, content] of personalNotes) {
     personal.push(

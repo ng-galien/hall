@@ -93,7 +93,7 @@ The runs use the disposable instance and database of the browser journeys and ne
 
 ## Demonstration dataset
 
-Alésia is the only maintained dataset. It is fictional and contains municipal settings, contacts, accounts, two committees of four members, eight businesses with their reports, documents and prepared subjects, two drawn maps, three spreadsheets of at least fifteen rows, calendar events, and document templates. Resources are classified in French folders: `Accès`, `Accueil`, `Conseil`, `Défense`, `Guide/Références juridiques`, `Ravitaillement`, `Relations`, `Réserves`, `Soutien`, and `Veille`; the root keeps one resource of each kind used by the screen captures.
+Two datasets are maintained: Alésia and Foncine-le-Bas. Alésia is the default dataset of the loader, `demo:restart`, the desktop demonstration and the browser journeys. It is fictional and contains municipal settings, contacts, accounts, two committees of four members, eight businesses with their reports, documents and prepared subjects, two drawn maps, three spreadsheets of at least fifteen rows, calendar events, and document templates. Resources are classified in French folders: `Accès`, `Accueil`, `Conseil`, `Défense`, `Guide/Références juridiques`, `Ravitaillement`, `Relations`, `Réserves`, `Soutien`, and `Veille`; the root keeps one resource of each kind used by the screen captures.
 
 | Scenario | Result |
 | --- | --- |
@@ -104,11 +104,27 @@ Alésia is the only maintained dataset. It is fictional and contains municipal s
 
 The legal references to articles L2121-10, L2121-17, L2121-20 and L2131-2 of the CGCT, in `Guide/Références juridiques`, are chosen through the public API with their official text stored, only when the server has Légifrance credentials; otherwise the loader prints a warning for each article and continues.
 
+### Foncine-le-Bas
+
+The `foncine-le-bas` dataset uses the real territory of the commune of Foncine-le-Bas (Jura, INSEE 39227): name, geography, streams, places, public buildings, intercommunality and syndicates. Its elected members, staff, contacts, associations, businesses, meetings, votes, amounts, works and documents are fictional and do not represent the activity of the municipal council of Foncine-le-Bas nor the state of its roads and equipment. Every generated document, the email signature and footer, the PDF footer and the legend of every map carry the demonstration notice.
+
+It contains 11 members with their rank, 2 staff members, 12 external contacts and 3 association contacts, 3 committees, 4 external representations, 5 accounts, 3 recipient groups, 11 businesses with 20 prepared subjects, 18 PDF documents (four of them written proxies) and one Word document, 21 drawn scene images, 7 spreadsheets (two imported), 6 maps with legends and drawing notes with photos, a layer of the cadastre parcels along the Mont Noir road, a layer and the list of the 199 parcels of the commune, 13 calendar events (one all-day, one with a guest without a contact record), 4 mail drafts and notes in two personal folders. Folders follow the businesses: `Voirie`, `Éclairage public`, `Finances`, `Forêt`, `Promenade`, `Associations et fêtes`, `Bâtiments`, `Personnel`, `Intercommunalité`, `Numérique`, plus `Conseil`, `Courrier` and `Guide`.
+
+| Scenario | Result |
+| --- | --- |
+| `foncine-le-bas-empty` | One meeting without a date and with an empty agenda |
+| `foncine-le-bas-preparation` | Meeting 1 closed 35 days before the load, its decisions frozen; meeting 2 in preparation 10 days after the load with seven agenda items |
+| `foncine-le-bas-session` | Meetings 1 to 3 closed (91, 56 and 28 days before the load) with their facts: proxies, a member who takes no part in a vote, two secret ballots with a blank paper, an item adjourned twice, an arrival, the chair taken by the first deputy, attendees who are not members; decisions of meetings 1 and 2 frozen; meeting 4 in progress, the Mont Noir award under discussion with its ballot still to conduct |
+| `foncine-le-bas-minutes` | The same history with meeting 4 closed, its minutes still editable, and meeting 5 dated 14 days after the load with four subjects |
+
+The dataset files live in `scripts/seed/data/datasets/foncine-le-bas/files/`. `names.mjs` holds every name of a person, company and association. `node scripts/seed/generate-foncine-le-bas-files.mjs [--reference-date YYYY-MM-DD]` rewrites the PDF and Word documents, dated from the reference load day. A scene image is `files/images/NN-title.png`, where NN is its number in `media.mjs`; a new drawing replaces the file of the same number. `node scripts/seed/extract-foncine-le-bas-territory.mjs <PM_25_NB_390.csv>` rewrites the territory from IGN BD TOPO, the Etalab cadastre and the DGFiP file of the parcels of legal persons. Frozen decisions carry the date of the load.
+
 List or load a scenario through the public API:
 
 ```sh
 npm run seed:dev -w @hall/server -- --list
 SEED_API=http://127.0.0.1:3100/api npm run seed:dev -w @hall/server -- --dataset alesia --scenario preparation
+SEED_API=http://127.0.0.1:3100/api npm run seed:dev -w @hall/server -- --dataset foncine-le-bas --scenario foncine-le-bas-session
 ```
 
 The loader requires an empty dedicated database. It does not delete data or start a server. An interrupted load may leave partial data; discard that database instead of loading over it. `npm run demo:restart` resets the shared demonstration runtime and must run only from the checkout that owns it.
