@@ -6,9 +6,8 @@ import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { ShareButton } from "../../components/ShareButton";
-import { PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { Modal, PageHeader, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
 import { SectionHeader } from "../../components/ui/section-header";
 import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
@@ -232,30 +231,29 @@ function CouncilDecisionDetail({ id }: { id: string }) {
               {decision.frozenAt ? <span>{formatDateTime(decision.frozenAt)}</span> : null}
             </div>
             <p className="text-sm text-muted">{t("decisionDocument.formalities")}</p>
-            <Dialog
+            <Modal
               open={confirming}
-              onOpenChange={(open) => {
-                if (!draft.freezing) setConfirming(open);
+              title={t("decisionDocument.freeze")}
+              testId="decision-freeze-dialog"
+              onClose={() => {
+                if (!draft.freezing) setConfirming(false);
               }}
             >
-              <DialogContent data-testid="decision-freeze-dialog">
-                <DialogTitle>{t("decisionDocument.freeze")}</DialogTitle>
-                <DialogDescription>{t("decisionDocument.freezeConfirmation")}</DialogDescription>
-                <Button
-                  data-testid="decision-freeze-confirm"
-                  disabled={draft.freezing}
-                  pending={draft.freezing}
-                  pendingLabel={t("decisionDocument.freeze")}
-                  onClick={() =>
-                    void draft.freeze().then((ok) => {
-                      if (ok) setConfirming(false);
-                    })
-                  }
-                >
-                  {t("decisionDocument.freeze")}
-                </Button>
-              </DialogContent>
-            </Dialog>
+              <p>{t("decisionDocument.freezeConfirmation")}</p>
+              <Button
+                data-testid="decision-freeze-confirm"
+                disabled={draft.freezing}
+                pending={draft.freezing}
+                pendingLabel={t("decisionDocument.freeze")}
+                onClick={() =>
+                  void draft.freeze().then((ok) => {
+                    if (ok) setConfirming(false);
+                  })
+                }
+              >
+                {t("decisionDocument.freeze")}
+              </Button>
+            </Modal>
             {draft.documentUrl ? (
               <DocumentViewerDialog
                 testId="decision-document-dialog"

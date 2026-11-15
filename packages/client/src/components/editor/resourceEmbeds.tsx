@@ -24,12 +24,12 @@ import {
 } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "../../i18n/I18nProvider";
 import { AlignCenterIcon, AlignLeftIcon, CheckIcon, CopyIcon } from "../icons";
+import { Modal } from "../Ui";
 import { LoadingIndicator } from "../ui/loading-indicator";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
 import { insertResourceImage } from "./images";
@@ -537,52 +537,47 @@ export function EditorResourceEmbedSearch({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent data-testid="resource-embed-table-options" closeLabel={t("common.close")}>
-        <DialogHeader>
-          <DialogTitle>{t("editor.embedTableOptions")}</DialogTitle>
-        </DialogHeader>
-        {!sheets && !failed ? <LoadingIndicator size="zone" label={t("common.loading")} /> : null}
-        {failed ? <p role="alert">{t("common.requestFailed")}</p> : null}
-        {sheets ? (
-          <form className="resource-embed-options" onSubmit={submit}>
-            <Field label={t("editor.embedTableSheet")}>
-              <Select
-                value={sheetId}
-                onValueChange={(next) => {
-                  setSheetId(next);
-                  setRange(sheets.find((sheet) => sheet.id === next)?.defaultRange ?? "A1:A1");
-                }}
-              >
-                <SelectTrigger data-testid="resource-embed-table-sheet">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sheets.map((sheet) => (
-                    <SelectItem key={sheet.id} value={sheet.id}>
-                      {sheet.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field
-              label={t("editor.embedTableRange")}
-              error={!valid && range ? t("editor.embedTableRangeInvalid") : undefined}
+    <Modal open title={t("editor.embedTableOptions")} testId="resource-embed-table-options" onClose={onClose}>
+      {!sheets && !failed ? <LoadingIndicator size="zone" label={t("common.loading")} /> : null}
+      {failed ? <p role="alert">{t("common.requestFailed")}</p> : null}
+      {sheets ? (
+        <form className="resource-embed-options" onSubmit={submit}>
+          <Field label={t("editor.embedTableSheet")}>
+            <Select
+              value={sheetId}
+              onValueChange={(next) => {
+                setSheetId(next);
+                setRange(sheets.find((sheet) => sheet.id === next)?.defaultRange ?? "A1:A1");
+              }}
             >
-              <Input
-                data-testid="resource-embed-table-range"
-                value={range}
-                onChange={(event) => setRange(event.currentTarget.value)}
-                placeholder="A1:F20"
-              />
-            </Field>
-            <Button type="submit" data-testid="resource-embed-table-submit" disabled={!valid}>
-              {t("editor.embedResource")}
-            </Button>
-          </form>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+              <SelectTrigger data-testid="resource-embed-table-sheet">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {sheets.map((sheet) => (
+                  <SelectItem key={sheet.id} value={sheet.id}>
+                    {sheet.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field
+            label={t("editor.embedTableRange")}
+            error={!valid && range ? t("editor.embedTableRangeInvalid") : undefined}
+          >
+            <Input
+              data-testid="resource-embed-table-range"
+              value={range}
+              onChange={(event) => setRange(event.currentTarget.value)}
+              placeholder="A1:F20"
+            />
+          </Field>
+          <Button type="submit" data-testid="resource-embed-table-submit" disabled={!valid}>
+            {t("editor.embedResource")}
+          </Button>
+        </form>
+      ) : null}
+    </Modal>
   );
 }

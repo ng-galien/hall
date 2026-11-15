@@ -2,13 +2,13 @@ import type { MinutesFacts as Facts } from "@hall/api-contract";
 import { matchLiteral } from "@hall/domain";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { SaveStatusIndicator } from "@/components/ui/save-status-indicator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { UndoIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
+import { Modal } from "../../components/Ui";
 import { useI18n } from "../../i18n/I18nProvider";
 import { MinutesAgendaFacts } from "./MinutesFacts";
 import type { MinutesSaveStatus } from "./useMinutesDraft";
@@ -114,31 +114,30 @@ export function MinutesPoint({
                 onBlur={onBlur}
                 readOnly={generating}
               />
-              <Dialog
+              <Modal
                 open={confirmingRestore}
-                onOpenChange={(open) => {
-                  if (!generating) setConfirmingRestore(open);
+                title={t("minutes.restoreSourceTitle")}
+                testId={`minutes-restore-source-dialog-${item.id}`}
+                onClose={() => {
+                  if (!generating) setConfirmingRestore(false);
                 }}
               >
-                <DialogContent closeLabel={t("common.close")} data-testid={`minutes-restore-source-dialog-${item.id}`}>
-                  <DialogTitle>{t("minutes.restoreSourceTitle")}</DialogTitle>
-                  <DialogDescription>{t("minutes.restoreSourceConfirmation")}</DialogDescription>
-                  <div className="minutes-restore-dialog-actions">
-                    <Button variant="secondary" onClick={() => setConfirmingRestore(false)}>
-                      {t("common.cancel")}
-                    </Button>
-                    <Button
-                      data-testid={`minutes-restore-source-confirm-${item.id}`}
-                      onClick={() => {
-                        onEdit(item.discussionSummary);
-                        setConfirmingRestore(false);
-                      }}
-                    >
-                      {t("minutes.restoreSourceNotes")}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                <p>{t("minutes.restoreSourceConfirmation")}</p>
+                <div className="minutes-restore-dialog-actions">
+                  <Button variant="secondary" onClick={() => setConfirmingRestore(false)}>
+                    {t("common.cancel")}
+                  </Button>
+                  <Button
+                    data-testid={`minutes-restore-source-confirm-${item.id}`}
+                    onClick={() => {
+                      onEdit(item.discussionSummary);
+                      setConfirmingRestore(false);
+                    }}
+                  >
+                    {t("minutes.restoreSourceNotes")}
+                  </Button>
+                </div>
+              </Modal>
             </>
           ) : (
             <MarkdownView markdown={editorialText} />

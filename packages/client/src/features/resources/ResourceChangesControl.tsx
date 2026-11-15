@@ -5,12 +5,13 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { HelpHint } from "../../components/HelpHint";
 import { RedoIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../../components/ui/dialog";
 import { ListRow, ListRowAvatar, ListRows } from "../../components/ui/list-row";
+import { Sheet } from "../../components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
 import { subscribeLiveUpdates } from "../../services/liveUpdates";
 import { openResourceChanges } from "../../services/resourceChangesApi";
+import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import "./ResourceChangesControl.css";
 
 /** First letters of the first and last words of a display name. */
@@ -33,6 +34,7 @@ export function ResourceChangesControl({
   openRef?: RefObject<(() => void) | null>;
 }) {
   const { t, formatDateTime } = useI18n();
+  const phone = usePhoneLayout();
   const [changes, setChanges] = useState<ResourceChange[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [hinted, setHinted] = useState(false);
@@ -193,44 +195,40 @@ export function ResourceChangesControl({
   return (
     <>
       {trigger}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          placement="right"
-          className="resource-changes-panel"
-          data-testid="resource-changes-panel"
-          closeLabel={t("common.close")}
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-            (event.currentTarget as HTMLElement).focus();
-          }}
-        >
-          <header className="resource-changes-panel-heading">
-            <DialogTitle>{t("resourceChanges.title")}</DialogTitle>
-            <HelpHint text={t("resourceChanges.description")} />
-            <DialogDescription className="sr-only">{t("resourceChanges.description")}</DialogDescription>
-          </header>
-          {loading && !changes ? <LoadingIndicator size="zone" label={t("resourceChanges.loading")} /> : null}
-          {failed ? <p role="alert">{t("resourceChanges.error")}</p> : null}
-          {!loading && !failed && changes?.length === 0 ? <p>{t("resourceChanges.empty")}</p> : null}
-          {changes && changes.length > 0 ? (
-            <ListRows data-testid="resource-changes-list">
-              {changes.map((change) => (
-                <ListRow
-                  key={change.id}
-                  data-testid="resource-changes-item"
-                  head={change.actor ? <ListRowAvatar initials={nameInitials(change.actor.displayName)} /> : undefined}
-                  title={change.actor?.displayName ?? t("resourceChanges.unknownAuthor")}
-                  detail={
-                    <>
-                      {detail(change)} · <time dateTime={change.occurredAt}>{formatDateTime(change.occurredAt)}</time>
-                    </>
-                  }
-                />
-              ))}
-            </ListRows>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <Sheet
+        open={open}
+        onOpenChange={setOpen}
+        side={phone ? "bottom" : "right"}
+        title={t("resourceChanges.title")}
+        titleAddon={<HelpHint text={t("resourceChanges.description")} />}
+        className="resource-changes-panel"
+        testId="resource-changes-panel"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement).focus();
+        }}
+      >
+        {loading && !changes ? <LoadingIndicator size="zone" label={t("resourceChanges.loading")} /> : null}
+        {failed ? <p role="alert">{t("resourceChanges.error")}</p> : null}
+        {!loading && !failed && changes?.length === 0 ? <p>{t("resourceChanges.empty")}</p> : null}
+        {changes && changes.length > 0 ? (
+          <ListRows data-testid="resource-changes-list">
+            {changes.map((change) => (
+              <ListRow
+                key={change.id}
+                data-testid="resource-changes-item"
+                head={change.actor ? <ListRowAvatar initials={nameInitials(change.actor.displayName)} /> : undefined}
+                title={change.actor?.displayName ?? t("resourceChanges.unknownAuthor")}
+                detail={
+                  <>
+                    {detail(change)} · <time dateTime={change.occurredAt}>{formatDateTime(change.occurredAt)}</time>
+                  </>
+                }
+              />
+            ))}
+          </ListRows>
+        ) : null}
+      </Sheet>
     </>
   );
 }

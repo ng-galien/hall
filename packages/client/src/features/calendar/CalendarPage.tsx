@@ -12,7 +12,6 @@ import { Modal } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { CreateButton } from "../../components/ui/create-button";
 import { type CalendarDay, calendarDay, dayDate } from "../../components/ui/date-picker";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -442,65 +441,62 @@ export function CalendarPage() {
             ))}
         </div>
       )}
-      <Dialog
+      <Modal
         open={deleteId !== null}
-        onOpenChange={(isOpen) => {
-          if (!isOpen && !saving) {
+        title={t(deleteStep === 1 ? "calendar.deleteConfirm" : "calendar.deleteConfirmFinal")}
+        testId="calendar-delete-dialog"
+        onClose={() => {
+          if (!saving) {
             setDeleteId(null);
             setDeleteStep(1);
           }
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t(deleteStep === 1 ? "calendar.deleteConfirm" : "calendar.deleteConfirmFinal")}</DialogTitle>
-          </DialogHeader>
-          <p>{deleteId ? resources.details[deleteId]?.name : ""}</p>
-          <div className="dialog-actions">
-            <Button
-              data-testid="calendar-delete-cancel"
-              variant="secondary"
-              disabled={saving}
-              onClick={() => {
-                setDeleteId(null);
-                setDeleteStep(1);
-              }}
-            >
-              {t("calendar.cancel")}
-            </Button>
-            <Button
-              data-testid="calendar-delete-confirm"
-              variant="danger"
-              disabled={saving}
-              pending={saving}
-              pendingLabel={t("common.delete")}
-              onClick={async () => {
-                if (!deleteId || saving || deleting.current) return;
-                if (deleteStep === 1) {
-                  setDeleteStep(2);
-                  return;
+        <p>{deleteId ? resources.details[deleteId]?.name : ""}</p>
+        <div className="dialog-actions">
+          <Button
+            data-testid="calendar-delete-cancel"
+            variant="secondary"
+            disabled={saving}
+            onClick={() => {
+              setDeleteId(null);
+              setDeleteStep(1);
+            }}
+          >
+            {t("calendar.cancel")}
+          </Button>
+          <Button
+            data-testid="calendar-delete-confirm"
+            variant="danger"
+            disabled={saving}
+            pending={saving}
+            pendingLabel={t("common.delete")}
+            onClick={async () => {
+              if (!deleteId || saving || deleting.current) return;
+              if (deleteStep === 1) {
+                setDeleteStep(2);
+                return;
+              }
+              deleting.current = true;
+              setSaving(true);
+              try {
+                if (await resources.remove(deleteId)) {
+                  setDeleteId(null);
+                  setDeleteStep(1);
+                  setSelectedResourceId(null);
                 }
-                deleting.current = true;
-                setSaving(true);
-                try {
-                  if (await resources.remove(deleteId)) {
-                    setDeleteId(null);
-                    setDeleteStep(1);
-                    setSelectedResourceId(null);
-                  }
-                } catch {
-                  setError(true);
-                } finally {
-                  deleting.current = false;
-                  setSaving(false);
-                }
-              }}
-            >
-              {t("common.delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+              } catch {
+                setError(true);
+              } finally {
+                deleting.current = false;
+                setSaving(false);
+              }
+            }}
+          >
+            {t("common.delete")}
+          </Button>
+        </div>
+      </Modal>
       {selectedResourceId ? (
         phone ? (
           <EventSheet

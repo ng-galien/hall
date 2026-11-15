@@ -16,16 +16,4 @@
   line-height: 1.4;
 }
 
-.resource-changes-panel {
-  width: min(var(--hall-size-relative-25rem), 100vw);
-  max-width: min(var(--hall-size-relative-25rem), 100vw);
-  gap: var(--hall-space-5);
-  box-shadow: var(--hall-shadow-large);
-}
-
-.resource-changes-panel-heading {
-  display: flex;
-  align-items: center;
-  gap: var(--hall-space-1);
-  padding-right: var(--hall-space-7);
-}
+.resource-changes-panel.hall-sheet[data-side="right"] { width: min(var(--hall-size-relative-25rem), 100vw); }
