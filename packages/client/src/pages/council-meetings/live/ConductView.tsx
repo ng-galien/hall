@@ -19,6 +19,7 @@ import {
   FileIcon,
   GavelIcon,
   LockIcon,
+  MeetingOpeningIcon,
   MembersIcon,
   PlayIcon,
   RecusalIcon,
@@ -380,7 +381,7 @@ export function ConductView({
         </div>
         <ol className="conduct-timeline">
           {aggregate.meeting.openedAt ? (
-            <li className="conduct-step conduct-step-done">
+            <li className="conduct-step conduct-step-opening">
               <Button
                 variant="plain"
                 className={`conduct-step-button${openingSelected ? " conduct-step-selected" : ""}`}
@@ -390,7 +391,7 @@ export function ConductView({
                 onClick={() => setOpeningSelected(true)}
               >
                 <span className="conduct-step-marker" aria-hidden="true">
-                  <CheckIcon />
+                  <MeetingOpeningIcon />
                 </span>
                 {!railCollapsed ? (
                   <span className="conduct-step-copy">

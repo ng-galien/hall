@@ -52,6 +52,7 @@ export {
   DotsSixVertical as DragHandleIcon,
   DotsThree as MoreIcon,
   DotsThreeVertical as MoreVerticalIcon,
+  DoorOpen as MeetingOpeningIcon,
   DownloadSimple as DownloadIcon,
   Envelope as MailIcon,
   Eye as VisibleIcon,

@@ -320,6 +320,13 @@
     font-size: var(--hall-font-size-caption);
     font-variant-numeric: tabular-nums;
   }
+  .conduct-step-opening {
+    margin-bottom: var(--hall-space-2);
+    padding-bottom: var(--hall-space-2);
+    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+  }
+  .conduct-step-opening::after { display: none; }
+  .conduct-step-opening .conduct-step-marker { border-radius: var(--hall-radius-small); color: var(--hall-color-text); }
   .conduct-step-done .conduct-step-marker { border-color: var(--hall-color-success-on-ink); color: var(--hall-color-success-on-ink); }
   .conduct-step-active .conduct-step-marker { border-color: var(--hall-color-brand); color: var(--hall-color-on-brand); background: var(--hall-color-brand); }
   .conduct-step-copy { display: grid; min-width: 0; gap: var(--hall-space-0-5); }
