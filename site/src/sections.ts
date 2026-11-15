@@ -266,45 +266,9 @@ function renderDownload(
   };
 }
 
-/** Téléchargement de l'ouverture : le système détecté en premier, les autres à côté, la marche à suivre. */
-function renderHeroDownload(root: HTMLElement, detected: DownloadKey | null, install: InstallTabs) {
-  const main = detected
-    ? fileLink(detected, "site-primary-action p-get-main", "Télécharger la démonstration", "hero-download-main")
-    : node("a", "site-primary-action p-get-main", "Télécharger pour un ordinateur", "hero-download-main");
-  if (!detected) main.setAttribute("href", "#telecharger");
-  const meta = node(
-    "p",
-    "p-get-meta",
-    detected
-      ? `${downloadLabels[detected].system} · ${metaText(detected).replace("Version", "version")}`
-      : `Windows, Mac et Linux${release ? ` · version ${release.version}` : ""}`,
-    "hero-download-meta",
-  );
-  root.append(main, meta);
-  if (detected) {
-    const others = node("p", "p-get-others", undefined, "hero-download-others");
-    others.append(node("span", undefined, "Autres systèmes :"));
-    for (const key of order) {
-      if (key === detected || key === "server") continue;
-      others.append(fileLink(key, "link-plain", downloadLabels[key].short, `hero-download-${key}`));
-    }
-    root.append(others);
-  }
-  const links = node("p", "p-get-links");
-  const how = node("a", "link-plain", "Marche à suivre", "hero-download-how");
-  how.href = "#marche-a-suivre";
-  const system = detected ? guideSystem[detected] : null;
-  if (system) how.addEventListener("click", () => install.select(system));
-  const all = node("a", "link-plain", "Autres fichiers", "hero-download-all");
-  all.href = "#telecharger";
-  links.append(how, all);
-  root.append(links);
-}
-
-/** Page d'accueil : téléchargement à l'ouverture, section Télécharger avec la marche à suivre. */
+/** Page d'accueil : section Télécharger avec la marche à suivre. */
 export async function renderHomeDownloads() {
   const section = document.querySelector<HTMLElement>('[data-testid="section-telecharger"]');
-  const hero = document.querySelector<HTMLElement>('[data-testid="hero-download"]');
   if (!section) return;
   const detected = await detectedDownload();
   const inner = node("div", "section-inner");
@@ -312,9 +276,7 @@ export async function renderHomeDownloads() {
   const connect = renderDownload(inner, detected, "#marche-a-suivre", true);
   const install = node("div", "section-inner section-card-install");
   section.append(install);
-  const tabs = renderInstall(install);
-  connect(tabs);
-  if (hero) renderHeroDownload(hero, detected, tabs);
+  connect(renderInstall(install));
 }
 
 /** Page Alésia : les mêmes fichiers, la marche à suivre sur la page d'accueil ; marque la section visible. */

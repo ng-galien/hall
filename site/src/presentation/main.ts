@@ -714,9 +714,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('.p-masthead a[h
 
 /* Téléchargement : à l'ouverture et dans sa section, avec la marche à suivre */
 void renderHomeDownloads().then(() => {
-  for (const link of document.querySelectorAll<HTMLAnchorElement>(
-    '.p-get a[href^="#"], #telecharger a[href^="#"], .f-demo a[href^="#"]',
-  ))
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('#telecharger a[href^="#"], .f-demo a[href^="#"]'))
     jumpOnClick(link);
   followInstallSteps();
   placeScenario();

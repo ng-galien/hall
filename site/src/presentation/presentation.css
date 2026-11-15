@@ -4297,46 +4297,6 @@ html[data-scene="ready"] body .p-watermark.is-empty {
   }
 }
 
-/* Ouverture : téléchargement de la démonstration, sous le titre */
-.p-get {
-  margin-top: 1.75rem;
-  pointer-events: auto;
-}
-
-.p-get-meta {
-  margin: 0.5rem 0 0;
-  color: var(--text-2);
-  font-size: var(--fs-sm);
-}
-
-.p-get-others,
-.p-get-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 0.9rem;
-  margin: 0.6rem 0 0;
-  color: var(--text-2);
-  font-size: var(--fs-sm);
-}
-
-.p-get-links {
-  margin-top: 0.35rem;
-}
-
-.p-get-meta,
-.p-get-others,
-.p-get-links {
-  text-shadow:
-    0 0 2px var(--bg),
-    0 0 6px var(--bg),
-    0 0 12px var(--bg);
-}
-
-.p-get .link-plain {
-  font-size: var(--fs-sm);
-}
-
 /* Mention de démonstration, au pied du scénario */
 .p-scenario-notice {
   margin: 0.9rem 0 0;
@@ -4400,27 +4360,7 @@ html[data-scene="ready"] body .p-watermark.is-empty {
   height: auto;
 }
 
-@media (max-width: 1080px) {
-  .p-get {
-    margin-top: 1rem;
-  }
-}
-
 @media (max-width: 760px) {
-  .p-get-others,
-  .p-get-links {
-    display: none;
-  }
-
-  .p-get .site-primary-action {
-    min-height: 44px;
-    padding: 0.55rem 1rem;
-  }
-
-  .p-get-meta {
-    margin-top: 0.35rem;
-  }
-
   .p-alesia-inner {
     grid-template-columns: minmax(0, 1fr);
   }
