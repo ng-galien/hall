@@ -102,7 +102,7 @@ Alésia is the only maintained dataset. It is fictional and contains municipal s
 | `default` | Two closed meetings with three ballots each, plus one meeting in progress |
 | `minutes` | The same history with the current meeting closed, its minutes still editable, and the next meeting dated two weeks ahead |
 
-The legal reference to article L2121-10 is created only when the server has Légifrance credentials; otherwise the loader prints a warning and continues.
+The legal references to articles L2121-10, L2121-17, L2121-20 and L2131-2 of the CGCT, in `Guide/Références juridiques`, are chosen through the public API with their official text stored, only when the server has Légifrance credentials; otherwise the loader prints a warning for each article and continues.
 
 List or load a scenario through the public API:
 
