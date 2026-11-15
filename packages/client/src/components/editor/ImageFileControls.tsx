@@ -3,9 +3,9 @@ import { type ReactNode, useRef, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import { CameraIcon, ImageIcon, UploadIcon } from "../icons";
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { ListRow, ListRows } from "../ui/list-row";
+import { Sheet } from "../ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { type EditorImageUpload, type ImageUploadStatus, insertImage } from "./imageTransfer";
 
@@ -147,35 +147,33 @@ export function PhotoSheetButton({ choices, busy }: { choices: ImageChoice[]; bu
       >
         <CameraIcon />
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          className="app-sheet"
-          placement="bottom"
-          closeLabel={t("common.close")}
-          aria-describedby={undefined}
-          data-testid="editor-photo-sheet"
-        >
-          <DialogTitle>{t("editor.addPhoto")}</DialogTitle>
-          <ListRows>
-            {choices.map((choice) => (
-              <ListRow
-                key={choice.id}
-                onOpen={() => {
-                  setOpen(false);
-                  choice.select();
-                }}
-                openTestId={choice.testId}
-                head={
-                  <span className="type-icon" aria-hidden="true">
-                    {choice.icon}
-                  </span>
-                }
-                title={choice.label}
-              />
-            ))}
-          </ListRows>
-        </DialogContent>
-      </Dialog>
+      <Sheet
+        open={open}
+        onOpenChange={setOpen}
+        side="bottom"
+        title={t("editor.addPhoto")}
+        testId="editor-photo-sheet"
+        list
+      >
+        <ListRows>
+          {choices.map((choice) => (
+            <ListRow
+              key={choice.id}
+              onOpen={() => {
+                setOpen(false);
+                choice.select();
+              }}
+              openTestId={choice.testId}
+              head={
+                <span className="type-icon" aria-hidden="true">
+                  {choice.icon}
+                </span>
+              }
+              title={choice.label}
+            />
+          ))}
+        </ListRows>
+      </Sheet>
     </>
   );
 }

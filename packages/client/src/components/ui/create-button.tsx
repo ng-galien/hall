@@ -6,9 +6,9 @@ import { ScreenActions, useScreenScrolled } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { AddIcon, MoreIcon } from "../icons";
 import { Button } from "./button";
-import { Dialog, DialogContent, DialogTitle } from "./dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu";
 import { ListRow, ListRowIcon, ListRows, type ResourceNature } from "./list-row";
+import { Sheet } from "./sheet";
 
 const menuGap = 4;
 
@@ -117,33 +117,31 @@ export function CreateButton({
     control = (
       <>
         {trigger({ onClick: () => setSheetOpen(true), "aria-expanded": sheetOpen })}
-        <Dialog open={sheetOpen} onOpenChange={(open) => (open ? setSheetOpen(true) : close())}>
-          <DialogContent
-            className="app-sheet"
-            placement="bottom"
-            closeLabel={t("common.close")}
-            aria-describedby={undefined}
-            data-testid={optionsTestId}
-          >
-            <DialogTitle>{title ?? text}</DialogTitle>
-            <ListRows>
-              {visible.map((option) => row(option, close))}
-              {visible === common ? (
-                <ListRow
-                  onOpen={() => setShowOthers(true)}
-                  openTestId={`${testId}-other`}
-                  head={
-                    <ListRowIcon nature="folder">
-                      <MoreIcon />
-                    </ListRowIcon>
-                  }
-                  title={t("create.other")}
-                  detail={others.map((option) => option.label).join(", ")}
-                />
-              ) : null}
-            </ListRows>
-          </DialogContent>
-        </Dialog>
+        <Sheet
+          open={sheetOpen}
+          onOpenChange={(open) => (open ? setSheetOpen(true) : close())}
+          side="bottom"
+          title={title ?? text}
+          testId={optionsTestId}
+          list
+        >
+          <ListRows>
+            {visible.map((option) => row(option, close))}
+            {visible === common ? (
+              <ListRow
+                onOpen={() => setShowOthers(true)}
+                openTestId={`${testId}-other`}
+                head={
+                  <ListRowIcon nature="folder">
+                    <MoreIcon />
+                  </ListRowIcon>
+                }
+                title={t("create.other")}
+                detail={others.map((option) => option.label).join(", ")}
+              />
+            ) : null}
+          </ListRows>
+        </Sheet>
       </>
     );
   } else {

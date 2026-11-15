@@ -252,9 +252,8 @@
   .app-phone-bar-label { letter-spacing: var(--hall-letter-spacing-tight); white-space: nowrap; }
   .app-phone-bar-item[data-active="true"] { color: var(--hall-color-brand); font-weight: var(--hall-font-weight-medium); }
 
-  /* The bottom sheet: rises from the bottom edge, its rows are list rows. */
+  /* « Plus »: rises from the bottom edge. */
   .app-sheet { padding: var(--hall-space-4) 0 calc(var(--hall-space-6) + env(safe-area-inset-bottom, var(--hall-size-zero))); border-radius: var(--hall-radius-medium) var(--hall-radius-medium) 0 0; }
-  .app-sheet > [data-slot="dialog-title"] { padding: 0 var(--hall-size-touch-control) var(--hall-space-2) var(--hall-space-4); font-size: var(--hall-font-size-title); font-weight: var(--hall-font-weight-heavy); }
   /* « Plus »: the other destinations as a grid of icons in the form of the bottom bar, by categories. */
   .app-sheet:has(.app-sheet-grid) { max-height: calc(100dvh - var(--hall-space-6)); overflow-y: auto; }
   .app-sheet-grid { display: grid; gap: var(--hall-space-6); padding-inline: var(--hall-space-2); }

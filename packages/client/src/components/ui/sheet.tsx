@@ -31,6 +31,7 @@ export function Sheet({
   closeTestId,
   bodyTestId,
   bodyClassName,
+  list = false,
   className,
   onOpenAutoFocus,
   onCloseAutoFocus,
@@ -51,6 +52,8 @@ export function Sheet({
   closeTestId?: string;
   bodyTestId?: string;
   bodyClassName?: string;
+  /** The body is a list of rows, without space between them. */
+  list?: boolean;
   className?: string;
   onOpenAutoFocus?: ContentProps["onOpenAutoFocus"];
   onCloseAutoFocus?: ContentProps["onCloseAutoFocus"];
@@ -130,7 +133,7 @@ export function Sheet({
             </div>
           </div>
         </div>
-        <div className={cn("hall-sheet-body", bodyClassName)} data-testid={bodyTestId}>
+        <div className={cn("hall-sheet-body", list && "hall-sheet-body-list", bodyClassName)} data-testid={bodyTestId}>
           {children}
         </div>
         {footer ? <div className="hall-sheet-foot">{footer}</div> : null}
