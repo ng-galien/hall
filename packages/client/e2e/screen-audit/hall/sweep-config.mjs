@@ -93,6 +93,7 @@ const itemScreens = new Set([
   "deliberation",
   "document-texte",
   "document-titre-long",
+  "tableur",
   "fenetre-document",
   "affaire",
   "affaire-sujets",

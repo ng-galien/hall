@@ -250,6 +250,16 @@ export const screens = [
     ),
   },
   {
+    id: "tableur",
+    title: "Tableur",
+    scenario: "minutes",
+    open: detail(
+      "/api/resources",
+      (resource) => `/workspace?resource=${resource.id}`,
+      (resource) => resource.kind === "spreadsheet",
+    ),
+  },
+  {
     id: "document-titre-long",
     title: "Document au titre long",
     scenario: "minutes",

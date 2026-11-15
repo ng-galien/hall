@@ -68,6 +68,7 @@ export const screenFiles = [
     /pages\/workspace\/|features\/resources\/|features\/documents\/|styles\/workspace\.css$/,
     ["documents", "dossier", "document-texte", "menu-nouveau"],
   ],
+  [/features\/spreadsheet\//, ["tableur"]],
   [/pages\/maps\/|features\/geographic\//, ["cartes", "carte"]],
   [/features\/calendar\//, ["calendrier"]],
   [/features\/mail\//, ["courriels", "brouillon"]],
