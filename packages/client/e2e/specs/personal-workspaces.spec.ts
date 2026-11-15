@@ -212,10 +212,20 @@ test("gives council members read access and a personal folder that only they and
 
   let draftId = "";
   await test.step("a council member creates, imports, edits, renames, moves and deletes in their personal folder", async () => {
+    await alicePage.goto("/app/workspace");
+    const personalEntry = alicePage.getByTestId("workspace-personal-entry");
+    await expect(personalEntry).toBeVisible();
+    const firstFolder = alicePage.locator('[data-testid^="workspace-folder-open-"]').first();
+    await expect(firstFolder).toBeVisible();
+    expect(
+      (await personalEntry.boundingBox())!.y,
+      "« Mon espace » stands apart above the folders of Documents",
+    ).toBeLessThan((await firstFolder.boundingBox())!.y);
     await alicePage.getByTestId("workspace-personal-open").click();
     await expect(alicePage).toHaveURL(
       new RegExp(`path=${encodeURIComponent(aliceFolder).replace(/%20/g, "(%20|\\+)")}`),
     );
+    await expect(personalEntry, "the entry shows outside the personal folder only").toHaveCount(0);
     await alicePage.getByTestId("workspace-create-menu").click();
     await expect(alicePage.getByTestId("workspace-create-text")).toBeVisible();
     await expect(alicePage.getByTestId("workspace-create-councilMatter")).toHaveCount(0);
@@ -686,6 +696,19 @@ test("on a phone the personal folder opens from Plus, which alone is active, and
     expect(await activeDestinations()).toEqual(["documents"]);
     await phone.getByTestId(`workspace-folder-name-${aliceFolder}`).tap();
     await expect(phone.getByTestId("workspace-explorer-empty")).toBeVisible();
+    await expect.poll(activeDestinations).toEqual(["phone-navigation-more"]);
+  });
+
+  await test.step("Documents opens the personal folder from « Mon espace », above its folders, in one touch", async () => {
+    await destination("documents").tap();
+    const entry = phone.getByTestId("workspace-personal-entry");
+    await expect(entry).toBeVisible();
+    const firstFolder = phone.getByTestId("workspace-folder-name-Espaces personnels");
+    await expect(firstFolder).toBeVisible();
+    expect((await entry.boundingBox())!.y).toBeLessThan((await firstFolder.boundingBox())!.y);
+    await phone.getByTestId("workspace-personal-open").tap();
+    await expect(phone.getByTestId("workspace-explorer-empty")).toHaveText("Ce dossier est vide.");
+    await expect(entry).toHaveCount(0);
     await expect.poll(activeDestinations).toEqual(["phone-navigation-more"]);
   });
 
