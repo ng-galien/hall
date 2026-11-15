@@ -14,6 +14,7 @@ import { eventDocumentUsesQuarterHours } from "./eventDates";
 type EventResource = Extract<ResourceDetail, { kind: "event" }>;
 // @implements-requirement HALL-FR-CAL-100
 // @implements-requirement HALL-FR-CAL-110
+// @implements-requirement HALL-FR-CAL-240
 // @implements-requirement HALL-FR-CAL-170
 // @implements-requirement HALL-FR-CAL-180
 // @implements-requirement HALL-FR-CAL-190
@@ -38,6 +39,13 @@ export function EventResourceEditor({
   const { t } = useI18n();
   const navigate = useNavigate();
   const businesses = useCouncilBusinessStore((state) => state.businesses);
+  const linksCouncilBusiness = useWorkspaceResourcesStore(
+    (state) => state.collectionCapabilities.createEventInCouncilBusiness,
+  );
+  const catalogLoaded = useWorkspaceResourcesStore((state) => state.collectionRepresentation !== null);
+  useEffect(() => {
+    if (!catalogLoaded) void useWorkspaceResourcesStore.getState().loadCatalog();
+  }, [catalogLoaded]);
   const associatedBusiness = businesses.find((business) =>
     business.resources.some((entry) => entry.id === resource.id),
   );
@@ -118,33 +126,37 @@ export function EventResourceEditor({
         value={draft}
         councilBusinessId={councilBusinessId}
         councilBusinessPending={councilBusinessSaving}
-        onCouncilBusinessChange={async (nextId) => {
-          if (councilBusinessPending.current) return;
-          const previousId = councilBusinessId;
-          if (nextId === previousId) return;
-          councilBusinessChosen.current = true;
-          setCouncilBusinessId(nextId);
-          setCouncilBusinessSaving(true);
-          const run = async () => {
-            const store = useCouncilBusinessStore.getState();
-            const associated = nextId ? await store.associateResource(nextId, resource.id) : true;
-            const dissociated =
-              associated && previousId ? await store.dissociateResource(previousId, resource.id) : associated;
-            if (associated && dissociated) {
-              onError(null);
-              return true;
-            }
-            if (associated && !dissociated && nextId) await store.dissociateResource(nextId, resource.id);
-            setCouncilBusinessId(previousId);
-            onError(store.error);
-            return false;
-          };
-          councilBusinessPending.current = run().finally(() => {
-            councilBusinessPending.current = null;
-            setCouncilBusinessSaving(false);
-          });
-          await councilBusinessPending.current;
-        }}
+        onCouncilBusinessChange={
+          linksCouncilBusiness
+            ? async (nextId) => {
+                if (councilBusinessPending.current) return;
+                const previousId = councilBusinessId;
+                if (nextId === previousId) return;
+                councilBusinessChosen.current = true;
+                setCouncilBusinessId(nextId);
+                setCouncilBusinessSaving(true);
+                const run = async () => {
+                  const store = useCouncilBusinessStore.getState();
+                  const associated = nextId ? await store.associateResource(nextId, resource.id) : true;
+                  const dissociated =
+                    associated && previousId ? await store.dissociateResource(previousId, resource.id) : associated;
+                  if (associated && dissociated) {
+                    onError(null);
+                    return true;
+                  }
+                  if (associated && !dissociated && nextId) await store.dissociateResource(nextId, resource.id);
+                  setCouncilBusinessId(previousId);
+                  onError(store.error);
+                  return false;
+                };
+                councilBusinessPending.current = run().finally(() => {
+                  councilBusinessPending.current = null;
+                  setCouncilBusinessSaving(false);
+                });
+                await councilBusinessPending.current;
+              }
+            : undefined
+        }
         readOnly={!canUpdate}
         onChange={(next) => {
           latest.current = next;

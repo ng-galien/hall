@@ -121,7 +121,7 @@ export function EventFields({
           </FieldRow>
         );
       })}
-      {onCouncilBusinessChange ? (
+      {onCouncilBusinessChange || councilBusinessId ? (
         <Field label={t("calendar.councilBusiness")}>
           <ResourceSearchField
             testId="event-council-business"
@@ -129,9 +129,9 @@ export function EventFields({
               businesses.find((business) => business.id === councilBusinessId)?.title ?? t("calendar.noCouncilBusiness")
             }
             scope={{ types: ["councilBusiness"] }}
-            disabled={readOnly || councilBusinessPending}
-            onPick={(item) => void onCouncilBusinessChange(item.id)}
-            onClear={() => void onCouncilBusinessChange(null)}
+            disabled={readOnly || councilBusinessPending || !onCouncilBusinessChange}
+            onPick={(item) => void onCouncilBusinessChange?.(item.id)}
+            onClear={() => void onCouncilBusinessChange?.(null)}
             clearLabel={t("calendar.noCouncilBusiness")}
           />
         </Field>

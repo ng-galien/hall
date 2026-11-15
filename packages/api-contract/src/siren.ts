@@ -45,6 +45,7 @@ export const apiActionNames = [
   "decision.update-draft",
   "decision.freeze",
   "resource.create",
+  "resource.create-event",
   "resource.relocate",
   "resource.update-metadata",
   "resource.update-content",

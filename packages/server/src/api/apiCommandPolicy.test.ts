@@ -527,6 +527,7 @@ const auditCases = [
     "resource",
     "resource-1",
   ],
+  ["POST", "/api/resources/events", undefined, "resource.create-event", "resource", undefined],
   ["POST", "/api/resources/documents", undefined, "resource.create-document", "resource", undefined],
   ["POST", "/api/resources/editor-assets", undefined, "resource.create-editor-asset", "resource", undefined],
   ["DELETE", "/api/resources/resource-1", undefined, "resource.delete", "resource", "resource-1"],

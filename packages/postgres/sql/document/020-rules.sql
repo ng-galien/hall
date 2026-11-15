@@ -182,6 +182,60 @@ AS $$
   SELECT hall.allows('resource.delete', jsonb_build_object('location', target_full_path))
 $$;
 
+-- @implements-requirement HALL-FR-CAL-240
+-- The write and delete predicates of an appointment: the location predicates,
+-- or the appointment accesses at the root of the common workspace. A null
+-- appointment is the appointment being created or placed at that location.
+CREATE FUNCTION hall.can_write_appointment(target_full_path TEXT, appointment UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $$
+  SELECT hall.allows('resource.update-content', jsonb_build_object('location', target_full_path, 'appointment', appointment))
+$$;
+
+CREATE FUNCTION hall.can_delete_appointment(target_full_path TEXT, appointment UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $$
+  SELECT hall.allows('resource.delete', jsonb_build_object('location', target_full_path, 'appointment', appointment))
+$$;
+
+CREATE FUNCTION hall.require_appointment_write(target_full_path TEXT, appointment UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+STABLE
+SET search_path = pg_catalog, hall
+AS $$
+BEGIN
+  IF NOT hall.can_write_appointment(target_full_path, appointment) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV614',
+      MESSAGE = 'The caller cannot write this appointment at this workspace location';
+  END IF;
+END;
+$$;
+
+CREATE FUNCTION hall.require_appointment_delete(target_full_path TEXT, appointment UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+STABLE
+SET search_path = pg_catalog, hall
+AS $$
+BEGIN
+  IF NOT hall.can_delete_appointment(target_full_path, appointment) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'HV614',
+      MESSAGE = 'The caller cannot delete this appointment at this workspace location';
+  END IF;
+END;
+$$;
+
 CREATE FUNCTION hall.require_location_delete(target_full_path TEXT)
 RETURNS VOID
 LANGUAGE plpgsql

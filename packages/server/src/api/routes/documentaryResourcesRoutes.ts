@@ -1,5 +1,6 @@
 import { basename, extname } from "node:path";
 import {
+  createEventResourceSchema,
   createResourceSchema,
   documentContentHashesSchema,
   editorAssetTitleSchema,
@@ -115,6 +116,20 @@ export function createDocumentaryResourcesRouter({
     requireBusinessUpdateForContext,
     async (request, response) => {
       response.status(201).json(await documentaryResourceService.create(createResourceSchema.parse(request.body)));
+    },
+  );
+
+  // @implements-requirement HALL-FR-CAL-240
+  // The answer is read again once the creation is committed, so that its actions
+  // follow the author recorded by the creation.
+  router.post(
+    "/events",
+    requireActionPermission("resource.create-event"),
+    requireBusinessUpdateForContext,
+    async (request, response) => {
+      const created = await documentaryResourceService.create(createEventResourceSchema.parse(request.body));
+      const reference = resourceReferenceSchema.parse(created.properties?.id);
+      response.status(201).json(await documentaryResourceService.open(reference));
     },
   );
 

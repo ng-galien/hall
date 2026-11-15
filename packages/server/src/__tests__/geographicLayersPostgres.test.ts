@@ -495,6 +495,7 @@ postgres("geographic layers", () => {
     await contributorAgent.post("/api/auth/login").send(contributor).expect(200);
     const collection = await contributorAgent.get("/api/resources").expect(200);
     expect((collection.body.actions as SirenAction[]).map(({ name }) => name)).toEqual([
+      "resource.create-event",
       "resource.create",
       "resource.create-document",
       "resource.import-spreadsheet",

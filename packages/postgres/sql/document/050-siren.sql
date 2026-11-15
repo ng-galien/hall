@@ -192,16 +192,22 @@ DECLARE
   reference TEXT := hall.resource_public_reference(resource);
   actions JSONB := '[]'::jsonb;
   resource_kind TEXT := resource ->> 'kind';
+  resource_location TEXT := coalesce(
+    resource ->> 'fullPath',
+    hall.child_full_path(resource ->> 'path', resource ->> 'name')
+  );
+  location_write BOOLEAN := hall.can_write_location(resource_location);
   proposal_text BOOLEAN;
 BEGIN
   -- @implements-requirement HALL-FR-DOC-350
   -- @implements-requirement HALL-FR-DOC-550
   -- @implements-requirement HALL-FR-WSP-390
-  -- The same location predicate decides the affordances and the accepted writes.
-  IF NOT hall.can_write_location(coalesce(
-    resource ->> 'fullPath',
-    hall.child_full_path(resource ->> 'path', resource ->> 'name')
-  )) THEN
+  -- @implements-requirement HALL-FR-CAL-240
+  -- The same location predicate decides the affordances and the accepted writes;
+  -- an appointment also follows the appointment predicate.
+  IF NOT location_write AND NOT (
+    resource_kind = 'event' AND hall.can_write_appointment(resource_location, (resource ->> 'id')::UUID)
+  ) THEN
     RETURN actions;
   END IF;
 
@@ -311,6 +317,13 @@ BEGIN
     FROM jsonb_array_elements(actions) action WHERE action ->> 'name' <> 'resource.relocate';
     RETURN actions;
   END IF;
+  -- @implements-requirement HALL-FR-CAL-240
+  -- An appointment written only under the appointment accesses stays at the
+  -- root of the common workspace: it is renamed, never moved.
+  IF NOT location_write THEN
+    SELECT coalesce(jsonb_agg(action), '[]'::jsonb) INTO actions
+    FROM jsonb_array_elements(actions) action WHERE action ->> 'name' <> 'resource.relocate';
+  END IF;
   -- Availability mirrors existing restrictive references. DELETE still rechecks
   -- all constraints atomically, including links created after this projection.
   IF NOT hall.resource_business_allows_deletion((resource_siren_actions.resource ->> 'id')::UUID)
@@ -333,10 +346,9 @@ BEGIN
   THEN
     RETURN actions;
   END IF;
-  IF NOT hall.can_delete_location(coalesce(
-    resource ->> 'fullPath',
-    hall.child_full_path(resource ->> 'path', resource ->> 'name')
-  )) THEN
+  IF NOT hall.can_delete_location(resource_location) AND NOT (
+    resource_kind = 'event' AND hall.can_delete_appointment(resource_location, (resource ->> 'id')::UUID)
+  ) THEN
     RETURN actions;
   END IF;
   RETURN actions || jsonb_build_array(
@@ -408,6 +420,38 @@ $function$;
 -- @implements-requirement HALL-FR-WSP-390
 -- Creation affordances belong to the listed folder: they follow the same
 -- location predicate as the accepted creations in that folder.
+-- @implements-requirement HALL-FR-CAL-240
+-- The creation of an appointment from the calendar, offered by the root of the
+-- workspace to whoever may place an appointment there; the affair field is
+-- offered only to whoever may attach a resource to an affair.
+CREATE FUNCTION hall.appointment_creation_siren_actions(collection_path TEXT)
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT CASE
+    WHEN collection_path = '' AND hall.can_write_appointment('', NULL) THEN jsonb_build_array(
+      hall.siren_action(
+        'resource.create-event',
+        'POST',
+        '/api/resources/events',
+        jsonb_build_array(
+          jsonb_build_object('name', 'kind', 'type', 'text', 'value', 'event'),
+          jsonb_build_object('name', 'path', 'type', 'text', 'value', ''),
+          jsonb_build_object('name', 'name', 'type', 'text')
+        ) || CASE
+          WHEN hall.allows('council-business.associate-resource')
+            THEN jsonb_build_array(jsonb_build_object('name', 'councilBusinessId', 'type', 'text'))
+          ELSE '[]'::jsonb
+        END
+      )
+    )
+    ELSE '[]'::jsonb
+  END
+$function$;
+
 CREATE FUNCTION hall.resource_collection_siren_actions(collection_path TEXT DEFAULT '')
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -421,11 +465,12 @@ BEGIN
     -- Images may be uploaded by anyone who may edit a text; the server checks
     -- that the owner text offers resource.update-content to the caller.
     IF hall.holds_access('common-resource.write') OR hall.holds_access('personal-resource.write') THEN
-      RETURN jsonb_build_array(hall.editor_asset_siren_action());
+      RETURN jsonb_build_array(hall.editor_asset_siren_action())
+        || hall.appointment_creation_siren_actions(collection_path);
     END IF;
-    RETURN '[]'::jsonb;
+    RETURN hall.appointment_creation_siren_actions(collection_path);
   END IF;
-  RETURN jsonb_build_array(
+  RETURN hall.appointment_creation_siren_actions(collection_path) || jsonb_build_array(
     hall.siren_action(
       'resource.create',
       'POST',

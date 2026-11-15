@@ -86,6 +86,7 @@ function usePeriodTitle() {
 // @implements-requirement HALL-FR-CAL-210
 // @implements-requirement HALL-FR-CAL-220
 // @implements-requirement HALL-FR-CAL-230
+// @implements-requirement HALL-FR-CAL-240
 /**
  * Council calendar. On a phone the day view opens half an hour before the current hour, a swipe changes the period,
  * a touch on a day or an hour opens the creation sheet and an appointment opens in a sheet from the bottom. The list
@@ -196,7 +197,7 @@ export function CalendarPage() {
     });
   const contextResource = contextTarget?.resourceId ? resources.details[contextTarget.resourceId] : null;
   const contextEvent = contextResource?.kind === "event" ? contextResource : null;
-  const canCreate = resources.collectionCapabilities.create;
+  const canCreate = resources.collectionCapabilities.createEvent;
   const open = (target: { resourceId?: string; meetingReference?: string }) => {
     if (target.meetingReference) setSelectedMeetingReference(target.meetingReference);
     else if (target.resourceId && resources.details[target.resourceId]) setSelectedResourceId(target.resourceId);

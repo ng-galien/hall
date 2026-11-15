@@ -22,6 +22,19 @@ describe("configurable authorization through HTTP", () => {
       "contributor",
       "councillor",
     ]);
+    // @verifies-requirement HALL-FR-CAL-240
+    expect(configuration.accesses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ access: "appointment.create", conditions: ["always"] }),
+        expect.objectContaining({ access: "appointment.manage", conditions: ["always", "appointmentAuthor"] }),
+      ]),
+    );
+    expect(configuration.roles.find((role) => role.id === "councillor")?.grants).toEqual(
+      expect.arrayContaining([
+        { access: "appointment.create", condition: "always" },
+        { access: "appointment.manage", condition: "appointmentAuthor" },
+      ]),
+    );
     const custom = domainBody<AuthorizationRole>(
       await admin
         .post("/api/roles")

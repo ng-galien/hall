@@ -183,7 +183,7 @@ SELECT lives_ok(
 SELECT set_config('hall.roles', '["contributor"]', true);
 SELECT is(
   ARRAY(SELECT action ->> 'name' FROM jsonb_array_elements(hall.resource_collection_siren_actions()) AS action),
-  ARRAY['resource.create', 'resource.create-document', 'resource.import-spreadsheet',
+  ARRAY['resource.create-event', 'resource.create', 'resource.create-document', 'resource.import-spreadsheet',
     'resource.convert-spreadsheet-table', 'resource.create-editor-asset', 'resource.search-legal-references',
     'council-business.create', 'council-business.import-bundle'],
   'a contributor is offered creation, imports, the image upload and affairs in a common folder');

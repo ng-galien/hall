@@ -56,6 +56,14 @@ export const authorizationLabels: Record<string, { resource: TranslationKey; ope
     resource: "authorization.catalog.personal-workspace.manage.resource",
     operation: "authorization.catalog.personal-workspace.manage.operation",
   },
+  "appointment.create": {
+    resource: "authorization.catalog.appointment.create.resource",
+    operation: "authorization.catalog.appointment.create.operation",
+  },
+  "appointment.manage": {
+    resource: "authorization.catalog.appointment.manage.resource",
+    operation: "authorization.catalog.appointment.manage.operation",
+  },
   "template.write": {
     resource: "authorization.catalog.template.write.resource",
     operation: "authorization.catalog.template.write.operation",

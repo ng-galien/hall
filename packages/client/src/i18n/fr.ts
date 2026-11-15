@@ -121,6 +121,10 @@ export const fr: Messages = {
   "authorization.catalog.personal-resource.delete.operation": "supprimer",
   "authorization.catalog.personal-workspace.manage.resource": "Dossier personnel (le dossier lui-même)",
   "authorization.catalog.personal-workspace.manage.operation": "créer, renommer, déplacer, supprimer",
+  "authorization.catalog.appointment.create.resource": "Rendez-vous de l’agenda",
+  "authorization.catalog.appointment.create.operation": "créer",
+  "authorization.catalog.appointment.manage.resource": "Rendez-vous de l’agenda",
+  "authorization.catalog.appointment.manage.operation": "modifier et supprimer",
   "authorization.catalog.template.write.resource": "Modèle de document",
   "authorization.catalog.template.write.operation": "créer et modifier",
   "authorization.catalog.template.delete.resource": "Modèle de document",
@@ -164,7 +168,7 @@ export const fr: Messages = {
   "authorization.administratorProtection":
     "Administrateur intégré : tous les droits, en permanence. Ce rôle ne peut pas être modifié ni supprimé. Le dernier compte administrateur actif est protégé. Les règles métier restent applicables.",
   "authorization.conditionsHelp":
-    "Chaque accès peut être refusé ou accordé. Les conditions proposées vérifient le titulaire du dossier ou les officiers en fonction de la séance. Les droits des autres rôles du compte restent cumulés.",
+    "Chaque accès peut être refusé ou accordé. Les conditions proposées vérifient le titulaire du dossier, l’auteur du rendez-vous ou les officiers en fonction de la séance. Les droits des autres rôles du compte restent cumulés.",
   "authorization.resource": "Ressource",
   "authorization.operation": "Opération",
   "authorization.access": "Accès",
@@ -172,6 +176,7 @@ export const fr: Messages = {
   "authorization.condition.always": "Accordé",
   "authorization.condition.meetingOfficer": "Président ou secrétaire en fonction",
   "authorization.condition.ownPersonalWorkspace": "Son dossier personnel, mandat actif",
+  "authorization.condition.appointmentAuthor": "Ses propres rendez-vous",
   "authorization.deleteRole": "Supprimer le rôle",
   "authorization.deleteConfirm":
     "Supprimer le rôle « {name} » ? Il faut d’abord le retirer des comptes auxquels il est affecté.",

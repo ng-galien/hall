@@ -30,6 +30,8 @@ CREATE VIEW hall.access AS
       ('personal-resource.write', 'Dossier personnel (contenu)', 'créer et modifier'),
       ('personal-resource.delete', 'Dossier personnel (contenu)', 'supprimer'),
       ('personal-workspace.manage', 'Dossier personnel (le dossier lui-même)', 'créer, renommer, déplacer, supprimer'),
+      ('appointment.create', 'Rendez-vous de l’agenda', 'créer'),
+      ('appointment.manage', 'Rendez-vous de l’agenda', 'modifier et supprimer'),
       ('template.write', 'Modèle de document', 'créer et modifier'),
       ('template.delete', 'Modèle de document', 'supprimer'),
       ('meeting.prepare', 'Séance', 'préparer (créer, convoquer, arrêter et rouvrir l’ordre du jour, désigner les officiers)'),
@@ -132,6 +134,8 @@ CREATE VIEW hall.authorization_default_grant AS
       ('councillor', 'export', 'always'),
       ('councillor', 'personal-resource.write', 'ownPersonalWorkspace'),
       ('councillor', 'personal-resource.delete', 'ownPersonalWorkspace'),
+      ('councillor', 'appointment.create', 'always'),
+      ('councillor', 'appointment.manage', 'appointmentAuthor'),
       ('councillor', 'agenda-item.conduct', 'meetingOfficer'),
       ('councillor', 'ballot.record', 'meetingOfficer'),
       ('councillor', 'meeting.conduct', 'meetingOfficer')
@@ -146,7 +150,7 @@ CREATE TABLE hall.authorization_role (
 CREATE TABLE hall.authorization_grant (
   role TEXT NOT NULL REFERENCES hall.authorization_role(id) ON DELETE CASCADE,
   access TEXT NOT NULL,
-  condition TEXT NOT NULL CONSTRAINT authorization_grant_condition CHECK (condition = ANY (ARRAY['always'::text, 'meetingOfficer'::text, 'ownPersonalWorkspace'::text])),
+  condition TEXT NOT NULL CONSTRAINT authorization_grant_condition CHECK (condition = ANY (ARRAY['always'::text, 'meetingOfficer'::text, 'ownPersonalWorkspace'::text, 'appointmentAuthor'::text])),
   PRIMARY KEY (role, access)
 );
 CREATE VIEW hall.role_access AS
@@ -214,6 +218,7 @@ CREATE VIEW hall.action_access AS
       ('council-business.merge', 'council-business.delete'),
       ('council-business.delete', 'council-business.delete'),
       ('resource.create', 'common-resource.write'),
+      ('resource.create-event', 'common-resource.write'),
       ('resource.create-document', 'common-resource.write'),
       ('resource.import-spreadsheet', 'common-resource.write'),
       ('resource.import-geographic-layer', 'common-resource.write'),
@@ -323,9 +328,10 @@ BEGIN
 END
 $function$;
 
--- @implements-requirement HALL-FR-USR-030
--- @implements-requirement HALL-FR-WSP-390
-CREATE FUNCTION hall.allows(target_action TEXT, target JSONB DEFAULT NULL)
+-- Whether a role of the caller holds the access under a condition met by the
+-- target. An appointment target names the existing appointment, or JSON null
+-- for an appointment being created.
+CREATE FUNCTION hall.role_grants(granted_access TEXT, scope JSONB)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 STABLE
@@ -333,25 +339,10 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 DECLARE
-  granted_access TEXT;
   caller_roles JSONB := coalesce(nullif(current_setting('hall.roles', true), '')::jsonb, '[]'::jsonb);
   caller_contact TEXT := nullif(current_setting('hall.contact_id', true), '');
-  scope JSONB := coalesce(target, '{}'::jsonb);
+  caller_actor TEXT := nullif(current_setting('hall.actor_id', true), '');
 BEGIN
-  SELECT hall.location_access(mapping.access, scope) INTO granted_access
-  FROM hall.action_access AS mapping WHERE mapping.action = target_action;
-  IF granted_access IS NULL THEN
-    RETURN FALSE;
-  END IF;
-  IF caller_roles ? 'administrator' THEN RETURN TRUE; END IF;
-  IF granted_access = 'authorization.manage' THEN RETURN FALSE; END IF;
-  IF granted_access = 'session' THEN RETURN jsonb_array_length(caller_roles) > 0; END IF;
-  -- Without a location, a resource action is admitted where the caller may
-  -- write or delete somewhere; the operation then checks its own location.
-  IF NOT scope ? 'location' AND granted_access IN ('common-resource.write', 'common-resource.delete') THEN
-    RETURN hall.holds_access(granted_access)
-      OR hall.holds_access(replace(granted_access, 'common-', 'personal-'));
-  END IF;
   RETURN EXISTS (
     SELECT FROM hall.role_access AS grant_row
     WHERE caller_roles ? grant_row.role
@@ -366,9 +357,76 @@ BEGIN
             SELECT FROM hall.council_member AS member
             WHERE member.contact::TEXT = caller_contact AND member.term_ended_on IS NULL
           )
+        -- @implements-requirement HALL-FR-CAL-240
+        -- The author of an appointment is the account of its recorded creation.
+        WHEN 'appointmentAuthor' THEN jsonb_typeof(scope -> 'appointment') = 'string' AND caller_actor IS NOT NULL
+          AND EXISTS (
+            SELECT FROM hall.resource AS appointment
+            WHERE appointment.id::TEXT = scope ->> 'appointment' AND appointment.event_resource_id IS NOT NULL
+          )
+          AND EXISTS (
+            SELECT FROM hall.audit_event AS creation
+            WHERE creation.target_type = 'resource'
+              AND creation.target_id = scope ->> 'appointment'
+              AND creation.action = 'resource.createEvent'
+              AND creation.outcome = 'succeeded'
+              AND creation.actor_id = caller_actor
+          )
         ELSE FALSE
       END
   );
+END
+$function$;
+
+ALTER FUNCTION hall.role_grants(TEXT, JSONB) OWNER TO hall_owner;
+REVOKE ALL ON FUNCTION hall.role_grants(TEXT, JSONB) FROM PUBLIC;
+
+-- @implements-requirement HALL-FR-USR-030
+-- @implements-requirement HALL-FR-WSP-390
+-- @implements-requirement HALL-FR-CAL-240
+CREATE FUNCTION hall.allows(target_action TEXT, target JSONB DEFAULT NULL)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  granted_access TEXT;
+  appointment_access TEXT;
+  caller_roles JSONB := coalesce(nullif(current_setting('hall.roles', true), '')::jsonb, '[]'::jsonb);
+  scope JSONB := coalesce(target, '{}'::jsonb);
+BEGIN
+  SELECT hall.location_access(mapping.access, scope) INTO granted_access
+  FROM hall.action_access AS mapping WHERE mapping.action = target_action;
+  IF granted_access IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  IF caller_roles ? 'administrator' THEN RETURN TRUE; END IF;
+  IF granted_access = 'authorization.manage' THEN RETURN FALSE; END IF;
+  IF granted_access = 'session' THEN RETURN jsonb_array_length(caller_roles) > 0; END IF;
+  -- Without a location, a resource action is admitted where the caller may
+  -- write or delete somewhere; the operation then checks its own location.
+  IF NOT scope ? 'location' AND granted_access IN ('common-resource.write', 'common-resource.delete') THEN
+    RETURN hall.holds_access(granted_access)
+      OR hall.holds_access(replace(granted_access, 'common-', 'personal-'))
+      OR hall.holds_access('appointment.manage')
+      OR (granted_access = 'common-resource.write' AND hall.holds_access('appointment.create'));
+  END IF;
+  IF hall.role_grants(granted_access, scope) THEN
+    RETURN TRUE;
+  END IF;
+  -- An appointment at the root of the common workspace is also created under
+  -- appointment.create, and modified or deleted under appointment.manage.
+  IF granted_access IN ('common-resource.write', 'common-resource.delete')
+    AND scope ? 'appointment' AND strpos(coalesce(scope ->> 'location', '/'), '/') = 0 THEN
+    appointment_access := CASE
+      WHEN jsonb_typeof(scope -> 'appointment') = 'string' THEN 'appointment.manage'
+      WHEN granted_access = 'common-resource.write' THEN 'appointment.create'
+    END;
+    RETURN appointment_access IS NOT NULL AND hall.role_grants(appointment_access, scope);
+  END IF;
+  RETURN FALSE;
 END
 $function$;
 
@@ -435,6 +493,7 @@ BEGIN
   INSERT INTO hall.authorization_grant(role, access, condition)
     SELECT role, access, condition FROM hall.authorization_default_grant;
   INSERT INTO hall_meta.data_migration(name) VALUES ('mail-authorization-defaults') ON CONFLICT DO NOTHING;
+  INSERT INTO hall_meta.data_migration(name) VALUES ('appointment-authorization-defaults') ON CONFLICT DO NOTHING;
 END;
 $$;
 ALTER FUNCTION hall.initialize_authorization_defaults() OWNER TO hall_owner;

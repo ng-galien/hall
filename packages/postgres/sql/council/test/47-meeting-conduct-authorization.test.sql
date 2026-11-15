@@ -81,6 +81,7 @@ SELECT set_eq($$SELECT action, access FROM hall.action_access$$, $$VALUES
  ('council-business.merge','council-business.delete'),
  ('council-business.delete','council-business.delete'),
  ('resource.create','common-resource.write'),
+ ('resource.create-event','common-resource.write'),
  ('resource.create-document','common-resource.write'),
  ('resource.import-spreadsheet','common-resource.write'),
  ('resource.import-geographic-layer','common-resource.write'),

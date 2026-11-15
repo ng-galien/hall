@@ -1,4 +1,5 @@
 import {
+  type CreateEventResource,
   type CreateResource,
   type EditorAsset,
   findSirenAction,
@@ -21,6 +22,7 @@ import { reducePhotoOfForm } from "../features/documents/photoReduction";
 import { type ApiErrorCode, apiErrorCode, SirenCapabilityUnavailable } from "../services/apiClient";
 import {
   createDocumentaryEditorAsset,
+  createDocumentaryEvent,
   createDocumentaryResource,
   deleteDocumentaryResource,
   importDocumentarySpreadsheet,
@@ -40,6 +42,9 @@ import {
 
 interface WorkspaceResourceCollectionCapabilities {
   create: boolean;
+  /** The calendar creation of an appointment, and whether it accepts an affair. */
+  createEvent: boolean;
+  createEventInCouncilBusiness: boolean;
   importSpreadsheet: boolean;
   createEditorAsset: boolean;
   uploadDocument: boolean;
@@ -75,6 +80,7 @@ interface WorkspaceResourcesState {
   search(criteria: ResourceSearchCriteria): Promise<ResourceSearchResult | null>;
   clearSearch(): void;
   create(input: CreateResource, source?: SirenEntity): Promise<ResourceDetail | null>;
+  createEvent(input: CreateEventResource): Promise<ResourceDetail | null>;
   importSpreadsheet(form: FormData, source?: SirenEntity): Promise<ResourceDetail | null>;
   uploadDocument(form: FormData, source?: SirenEntity): Promise<ResourceDetail | null>;
   createEditorAsset(form: FormData): Promise<EditorAsset | null>;
@@ -95,6 +101,12 @@ interface WorkspaceResourcesState {
 function collectionCapabilities(representation: SirenEntity): WorkspaceResourceCollectionCapabilities {
   return {
     create: Boolean(findSirenAction(representation, "resource.create")),
+    createEvent: Boolean(findSirenAction(representation, "resource.create-event")),
+    createEventInCouncilBusiness: Boolean(
+      findSirenAction(representation, "resource.create-event")?.fields?.some(
+        (field) => field.name === "councilBusinessId",
+      ),
+    ),
     importSpreadsheet: Boolean(findSirenAction(representation, "resource.import-spreadsheet")),
     createEditorAsset: Boolean(findSirenAction(representation, "resource.create-editor-asset")),
     uploadDocument: Boolean(findSirenAction(representation, "resource.create-document")),
@@ -251,6 +263,8 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
     collectionRepresentation: null,
     collectionCapabilities: {
       create: false,
+      createEvent: false,
+      createEventInCouncilBusiness: false,
       importSpreadsheet: false,
       createEditorAsset: false,
       uploadDocument: false,
@@ -419,6 +433,19 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
         const representation = get().folderRepresentations[input.path] ?? get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
         const result = await createDocumentaryResource(source ?? representation, input);
+        adopt(result.data, result.representation);
+        return result.data;
+      } catch (error) {
+        set({ error: apiErrorCode(error) });
+        return null;
+      }
+    },
+    async createEvent(input) {
+      set({ error: null });
+      try {
+        const representation = get().collectionRepresentation;
+        if (!representation) throw new SirenCapabilityUnavailable("resources");
+        const result = await createDocumentaryEvent(representation, input);
         adopt(result.data, result.representation);
         return result.data;
       } catch (error) {

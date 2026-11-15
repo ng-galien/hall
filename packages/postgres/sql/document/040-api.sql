@@ -593,7 +593,8 @@ DECLARE
   resource_id UUID := gen_random_uuid();
 BEGIN
   PERFORM hall.lock_resource_namespace();
-  PERFORM hall.require_location_write(hall.child_full_path(parent_path, coalesce(resource_name, '')));
+  -- @implements-requirement HALL-FR-CAL-240
+  PERFORM hall.require_appointment_write(hall.child_full_path(parent_path, coalesce(resource_name, '')), NULL);
   PERFORM hall.ensure_folder_path(parent_path);
   INSERT INTO hall.event_resource (id, document) VALUES (resource_id, resource_document);
   INSERT INTO hall.resource (id, path, name, slug, event_resource_id)
@@ -875,10 +876,21 @@ DECLARE
   target hall.resource;
 BEGIN
   SELECT * INTO target FROM hall.require_resource(resource_id);
-  PERFORM hall.require_location_write(target.full_path);
+  -- @implements-requirement HALL-FR-CAL-240
+  -- An appointment keeps the appointment predicate at its location and at its destination.
+  IF target.event_resource_id IS NOT NULL THEN
+    PERFORM hall.require_appointment_write(target.full_path, target.id);
+  ELSE
+    PERFORM hall.require_location_write(target.full_path);
+  END IF;
   IF target.path IS DISTINCT FROM destination_path OR target.name IS DISTINCT FROM destination_name THEN
     PERFORM hall.require_personal_workspace_structure_change(target);
-    PERFORM hall.require_location_write(hall.child_full_path(coalesce(destination_path, ''), coalesce(destination_name, '')));
+    IF target.event_resource_id IS NOT NULL THEN
+      PERFORM hall.require_appointment_write(
+        hall.child_full_path(coalesce(destination_path, ''), coalesce(destination_name, '')), target.id);
+    ELSE
+      PERFORM hall.require_location_write(hall.child_full_path(coalesce(destination_path, ''), coalesce(destination_name, '')));
+    END IF;
   END IF;
 END
 $function$;
@@ -1244,7 +1256,8 @@ SECURITY DEFINER
 SET search_path = pg_catalog, hall
 AS $function$
 BEGIN
-  PERFORM hall.require_location_write((SELECT full_path FROM hall.require_resource(resource_id, 'event')));
+  -- @implements-requirement HALL-FR-CAL-240
+  PERFORM hall.require_appointment_write((SELECT full_path FROM hall.require_resource(resource_id, 'event')), resource_id);
   UPDATE hall.event_resource
   SET document = resource_document,
       version = version + 1
@@ -1401,7 +1414,12 @@ DECLARE
 BEGIN
   PERFORM hall.lock_resource_namespace();
   SELECT * INTO target FROM hall.require_resource(resource_id);
-  PERFORM hall.require_location_delete(target.full_path);
+  -- @implements-requirement HALL-FR-CAL-240
+  IF target.event_resource_id IS NOT NULL THEN
+    PERFORM hall.require_appointment_delete(target.full_path, target.id);
+  ELSE
+    PERFORM hall.require_location_delete(target.full_path);
+  END IF;
   PERFORM hall.require_personal_workspace_structure_change(target);
   deleted_summary := hall.resource_summary(target);
   PERFORM 1 FROM hall.resource WHERE id = resource_id FOR UPDATE;

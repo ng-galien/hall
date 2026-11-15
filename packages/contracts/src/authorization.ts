@@ -5,7 +5,12 @@ export const authorizationRoleIdSchema = z
   .min(1)
   .max(80)
   .regex(/^[a-z][a-z0-9-]*$/);
-export const authorizationConditions = ["always", "meetingOfficer", "ownPersonalWorkspace"] as const;
+export const authorizationConditions = [
+  "always",
+  "meetingOfficer",
+  "ownPersonalWorkspace",
+  "appointmentAuthor",
+] as const;
 export const authorizationConditionSchema = z.enum(authorizationConditions);
 export const authorizationGrantSchema = z
   .object({

@@ -149,6 +149,107 @@ postgres("role matrix decided by PostgreSQL", () => {
     expect(admin).toBe(roles.administrator);
   });
 
+  // @verifies-requirement HALL-FR-CAL-240
+  it("lets a councillor create common appointments from the calendar and change only their own", async () => {
+    const { admin, roles, brunoAgent } = await matrixScenario();
+    const actions = (body: { actions?: Array<{ name: string; fields?: Array<{ name: string }> }> }) =>
+      body.actions ?? [];
+    const names = (body: { actions?: Array<{ name: string }> }) => actions(body).map(({ name }) => name);
+    const start = new Date(Date.now() + 48 * 60 * 60_000);
+    start.setUTCMinutes(0, 0, 0);
+    const appointment = (name: string) => ({
+      kind: "event",
+      path: "",
+      name,
+      document: {
+        schedule: {
+          kind: "timed",
+          start: start.toISOString(),
+          end: new Date(start.getTime() + 60 * 60_000).toISOString(),
+        },
+        location: "Mairie",
+        participants: [],
+        content: "",
+      },
+    });
+
+    const root = await roles.councillor.get("/api/resources").expect(200);
+    expect(names(root.body)).toContain("resource.create-event");
+    expect(names(root.body)).not.toContain("resource.create");
+    const creation = actions(root.body).find(({ name }) => name === "resource.create-event");
+    expect(creation?.fields?.map(({ name }) => name)).not.toContain("councilBusinessId");
+    const clerkRoot = await roles.clerk.get("/api/resources").expect(200);
+    expect(
+      actions(clerkRoot.body)
+        .find(({ name }) => name === "resource.create-event")
+        ?.fields?.map(({ name }) => name),
+    ).toContain("councilBusinessId");
+
+    const created = await roles.councillor.post("/api/resources/events").send(appointment("Permanence")).expect(201);
+    expect(created.body.properties).toMatchObject({ kind: "event", path: "", fullPath: "Permanence" });
+    expect(names(created.body)).toEqual(
+      expect.arrayContaining(["resource.update-content", "resource.update-metadata", "resource.delete"]),
+    );
+    expect(names(created.body)).not.toContain("resource.relocate");
+    const own = domainBody<{ id: string; version: number; document: object }>(created);
+
+    const seenByColleague = await brunoAgent.get(`/api/resources/${own.id}`).expect(200);
+    expect(names(seenByColleague.body)).toEqual([]);
+    const seenByContributor = await roles.contributor.get(`/api/resources/${own.id}`).expect(200);
+    expect(names(seenByContributor.body)).toContain("resource.update-content");
+
+    const updated = domainBody<{ version: number }>(
+      await roles.councillor
+        .put(`/api/resources/${own.id}/content`)
+        .send({ kind: "event", expectedVersion: own.version, document: { ...own.document, location: "Salle 2" } })
+        .expect(200),
+    );
+    await roles.councillor
+      .patch(`/api/resources/${own.id}/metadata`)
+      .send({ path: "", name: "Permanence du samedi", tags: [], editing: { kind: "autosave", enabled: true } })
+      .expect(200);
+    await roles.councillor
+      .patch(`/api/resources/${own.id}/location`)
+      .send({ path: "Commun", name: "Permanence du samedi" })
+      .expect(403);
+    await brunoAgent
+      .put(`/api/resources/${own.id}/content`)
+      .send({ kind: "event", expectedVersion: updated.version, document: own.document })
+      .expect(403);
+    await brunoAgent.delete(`/api/resources/${own.id}`).expect(403);
+
+    const clerkAppointment = domainBody<{ id: string; version: number; document: object }>(
+      await roles.clerk.post("/api/resources/events").send(appointment("Réunion de chantier")).expect(201),
+    );
+    const otherAuthor = await roles.councillor.get(`/api/resources/${clerkAppointment.id}`).expect(200);
+    expect(names(otherAuthor.body)).toEqual([]);
+    await roles.councillor
+      .put(`/api/resources/${clerkAppointment.id}/content`)
+      .send({ kind: "event", expectedVersion: clerkAppointment.version, document: clerkAppointment.document })
+      .expect(403);
+    await roles.councillor.delete(`/api/resources/${clerkAppointment.id}`).expect(403);
+
+    const business = domainBody<{ id: string }>(await createBusiness(admin, "Affaire du rendez-vous").expect(201));
+    await roles.councillor
+      .post("/api/resources/events")
+      .send({ ...appointment("Rattaché"), councilBusinessId: business.id })
+      .expect(403);
+    await roles.councillor
+      .post("/api/resources/events")
+      .send({ ...appointment("Dans un dossier"), path: "Commun" })
+      .expect(403);
+    await createText(roles.councillor, "", "Note commune").expect(403);
+    await roles.councillor.post("/api/resources").send({ kind: "folder", path: "", name: "Dossier" }).expect(403);
+    await roles.councillor
+      .post("/api/resources/documents")
+      .field("path", "")
+      .attach("file", Buffer.from("Pièce"), { filename: "piece.txt", contentType: "text/plain" })
+      .expect(403);
+
+    await roles.councillor.delete(`/api/resources/${own.id}`).expect(204);
+    await roles.clerk.delete(`/api/resources/${clerkAppointment.id}`).expect(204);
+  });
+
   it("rules every API action in the role matrix of the database", async () => {
     const { pool } = await matrixScenario();
     const mapped = (await pool.query<{ action: string }>("SELECT action FROM hall.action_access")).rows.map(

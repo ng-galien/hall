@@ -259,6 +259,7 @@ export function resolveAuditIntent(request: AuditRequest): AuditIntent | null {
       return auditIntent("resource.link-geographic-layer", id);
     if (method === "POST" && id && child === "overlays" && childId === "unlink" && !operation)
       return auditIntent("resource.unlink-geographic-layer", id);
+    if (method === "POST" && id === "events" && !child) return auditIntent("resource.create-event");
     if (method === "POST" && id === "documents" && !child) return auditIntent("resource.create-document");
     if (method === "POST" && id === "editor-assets" && !child) return auditIntent("resource.create-editor-asset");
     if (method === "POST" && id && child === "legal-reference" && childId === "resolve" && !operation)

@@ -2623,6 +2623,42 @@
         }
       ]
     },
+    "HALL-FR-CAL-240": {
+      "name": "COUNCILLOR_CREATES_COMMON_APPOINTMENTS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-15"
+      },
+      "statement": "Un conseiller crée depuis l’agenda un rendez-vous commun, visible de tous comme les autres rendez-vous, puis modifie et supprime les rendez-vous dont il est l’auteur.",
+      "acceptanceCriteria": [
+        "Le compte « Conseiller municipal » trouve dans l’agenda la création d’un rendez-vous : toucher bref d’un jour ou d’un créneau et feuille qui monte du bas au téléphone, panneau au bord droit à l’ordinateur ; le rendez-vous créé est rangé à la racine de l’espace de travail commun, avec les autres rendez-vous, et paraît dans l’agenda de tous.",
+        "Sur un rendez-vous dont il est l’auteur, le conseiller dispose de la modification, du renommage et, pour un rendez-vous futur, de la suppression ; il ne le déplace pas dans un dossier.",
+        "Sur un rendez-vous d’un autre auteur, le conseiller dispose seulement de l’ouverture et de la lecture ; une modification ou une suppression envoyée directement à l’API reçoit un refus d’autorisation.",
+        "Le conseiller ne rattache pas un rendez-vous à une affaire et n’obtient aucune autre écriture dans l’espace commun : ni document, ni dossier, ni rendez-vous d’autrui.",
+        "L’écran des autorisations présente les accès « Rendez-vous de l’agenda — créer » et « Rendez-vous de l’agenda — modifier et supprimer », ce dernier avec la condition « Ses propres rendez-vous » ; le rôle Conseiller les reçoit en préréglage, y compris sur une installation existante mise à niveau."
+      ],
+      "clauses": [
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots du propriétaire : « au niveau de l’agenda, c’est une ressource qui manque de pouvoir… créer, on est un utilisateur normal, parce que c’est une ressource partagée, il faudrait pouvoir créer [dans] un agenda. »",
+          "sourceIds": []
+        },
+        {
+          "key": "common-visibility",
+          "origin": "product",
+          "statement": "Réponse du propriétaire à la question « les rendez-vous d’un élu sont-ils visibles par lui seul ou par tous ? » : « Les rendez-vous d’un élu dans l’agenda, c’est visible par tout le monde. C’est pas un espace personnel. »",
+          "sourceIds": []
+        },
+        {
+          "key": "author-rule",
+          "origin": "product",
+          "statement": "Décision du coordinateur pour réaliser cette demande : le conseiller modifie et supprime les rendez-vous dont il est l’auteur, l’auteur étant le compte qui a créé le rendez-vous ; aucun autre droit d’écriture ne lui est ouvert dans l’espace commun. Les attributions décrites ici sont des préréglages configurables selon HALL-FR-USR-060.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-DIR-010": {
       "name": "CONTACT_EXISTS_INDEPENDENTLY",
       "nature": "functional",
@@ -2894,7 +2930,7 @@
       "acceptanceCriteria": [
         "Un administrateur attribue le rôle « Conseiller municipal » à la création ou à la modification d’un compte lié au contact d’un élu dont le mandat est en cours ; le dossier « Espaces personnels/Prénom Nom » de l’élu existe aussitôt.",
         "Pour un compte sans contact ou lié à un contact sans mandat en cours, Hall affiche un message qui demande de choisir le contact d’un élu en exercice et n’enregistre pas le rôle.",
-        "Le compte conseiller lit les contacts, l’espace de travail et les séances, et écrit seulement dans son dossier personnel."
+        "Le compte conseiller lit les contacts, l’espace de travail et les séances ; il écrit dans son dossier personnel et, dans l’agenda, les rendez-vous dont il est l’auteur (HALL-FR-CAL-240), et nulle part ailleurs."
       ],
       "clauses": [
         {
@@ -11225,7 +11261,7 @@
       "acceptanceCriteria": [
         "Un contributeur crée et modifie les affaires et les documents communs mais ne les supprime pas ; la suppression ne lui est ni proposée ni acceptée.",
         "Le secrétariat et l’administrateur suppriment une affaire, un document commun et un modèle, dans les limites des verrous existants.",
-        "Dans son dossier personnel et tant que son mandat est actif, un conseiller crée, modifie et supprime ses documents ; il ne supprime rien ailleurs."
+        "Dans son dossier personnel et tant que son mandat est actif, un conseiller crée, modifie et supprime ses documents ; ailleurs, il supprime seulement les rendez-vous de l’agenda dont il est l’auteur (HALL-FR-CAL-240)."
       ],
       "clauses": [
         {
@@ -11243,7 +11279,7 @@
         {
           "key": "criterion-3",
           "origin": "product",
-          "statement": "Dans son dossier personnel et tant que son mandat est actif, un conseiller crée, modifie et supprime ses documents ; il ne supprime rien ailleurs.",
+          "statement": "Dans son dossier personnel et tant que son mandat est actif, un conseiller crée, modifie et supprime ses documents ; ailleurs, il supprime seulement les rendez-vous de l’agenda dont il est l’auteur (HALL-FR-CAL-240).",
           "sourceIds": []
         },
         {

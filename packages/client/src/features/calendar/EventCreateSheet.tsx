@@ -14,6 +14,7 @@ import { eventDocumentUsesQuarterHours } from "./eventDates";
 // @implements-requirement HALL-FR-CAL-050
 // @implements-requirement HALL-FR-CAL-070
 // @implements-requirement HALL-FR-CAL-100
+// @implements-requirement HALL-FR-CAL-240
 /**
  * The creation of an appointment: a sheet from the bottom on a phone, a panel at the right edge on a large screen,
  * the calendar visible behind it. Closing it, by its button, by pulling it down or by Escape, creates nothing.
@@ -46,7 +47,7 @@ export function EventCreateSheet({
     if (saving || !draft) return;
     setSaving(true);
     const business = businesses.find((entry) => entry.id === councilBusinessId);
-    const created = await resources.create({
+    const created = await resources.createEvent({
       kind: "event",
       path: business?.folderPath ?? "",
       name,
@@ -112,7 +113,9 @@ export function EventCreateSheet({
             value={draft}
             onChange={setDraft}
             councilBusinessId={councilBusinessId}
-            onCouncilBusinessChange={setCouncilBusinessId}
+            onCouncilBusinessChange={
+              resources.collectionCapabilities.createEventInCouncilBusiness ? setCouncilBusinessId : undefined
+            }
             readOnly={saving}
           />
         </form>

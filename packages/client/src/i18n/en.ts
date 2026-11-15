@@ -117,6 +117,10 @@ export const en = {
   "authorization.catalog.personal-resource.delete.operation": "Delete",
   "authorization.catalog.personal-workspace.manage.resource": "Personal workspace folder",
   "authorization.catalog.personal-workspace.manage.operation": "Create, rename, move, delete",
+  "authorization.catalog.appointment.create.resource": "Calendar appointment",
+  "authorization.catalog.appointment.create.operation": "Create",
+  "authorization.catalog.appointment.manage.resource": "Calendar appointment",
+  "authorization.catalog.appointment.manage.operation": "Edit and delete",
   "authorization.catalog.template.write.resource": "Document template",
   "authorization.catalog.template.write.operation": "Create and edit",
   "authorization.catalog.template.delete.resource": "Document template",
@@ -160,7 +164,7 @@ export const en = {
   "authorization.administratorProtection":
     "Built-in administrator: all access, permanently. This role cannot be changed or deleted. The last active administrator account is protected. Business rules still apply.",
   "authorization.conditionsHelp":
-    "Each access can be withheld or granted. Available conditions check workspace ownership or the current meeting officers. Other roles assigned to an account still contribute their grants.",
+    "Each access can be withheld or granted. Available conditions check workspace ownership, the author of an appointment or the current meeting officers. Other roles assigned to an account still contribute their grants.",
   "authorization.resource": "Resource",
   "authorization.operation": "Operation",
   "authorization.access": "Access",
@@ -168,6 +172,7 @@ export const en = {
   "authorization.condition.always": "Granted",
   "authorization.condition.meetingOfficer": "Current chair or secretary",
   "authorization.condition.ownPersonalWorkspace": "Own workspace, active mandate",
+  "authorization.condition.appointmentAuthor": "Own appointments",
   "authorization.deleteRole": "Delete role",
   "authorization.deleteConfirm": "Delete role “{name}”? Remove it from assigned accounts first.",
   "authorization.saved": "Access settings saved.",

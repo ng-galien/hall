@@ -161,7 +161,7 @@ test("an open calendar shows the appointments another session creates, moves, re
         class: ["resource-collection"],
         properties: {},
         entities: [],
-        actions: [{ name: "resource.create", href: "/api/resources", method: "POST" }],
+        actions: [{ name: "resource.create-event", href: "/api/resources/events", method: "POST" }],
         links: [
           { rel: ["self"], href: "/api/resources?path=" },
           { rel: ["catalog"], href: "/api/resources/catalog" },

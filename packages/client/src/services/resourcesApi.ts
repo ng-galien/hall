@@ -1,4 +1,5 @@
 import {
+  type CreateEventResource as DocumentaryEventCreate,
   type UpdateResourceContent as DocumentaryResourceContentUpdate,
   type CreateResource as DocumentaryResourceCreate,
   type UpdateResourceMetadata as DocumentaryResourceMetadataUpdate,
@@ -103,6 +104,15 @@ export async function createDocumentaryResource(
   input: DocumentaryResourceCreate,
 ) {
   const result = await submitSirenAction<unknown>(collectionRepresentation, "resource.create", input);
+  return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
+}
+
+/** Creates an appointment through the calendar creation the workspace root offers. */
+export async function createDocumentaryEvent(
+  collectionRepresentation: Parameters<typeof findSirenLink>[0],
+  input: DocumentaryEventCreate,
+) {
+  const result = await submitSirenAction<unknown>(collectionRepresentation, "resource.create-event", input);
   return { ...result, data: documentaryResourceDetailSchema.parse(result.data) };
 }
 

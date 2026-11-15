@@ -634,13 +634,20 @@ const createWorkingResourceBaseSchema = createResourceBaseSchema.extend({
   councilBusinessId: resourceIdSchema.optional(),
 });
 
+/** The creation of an appointment from the calendar. */
+export const createEventResourceSchema = createWorkingResourceBaseSchema.extend({
+  kind: z.literal("event"),
+  document: eventDocumentSchema,
+});
+export type CreateEventResource = z.infer<typeof createEventResourceSchema>;
+
 export const createResourceSchema = z.discriminatedUnion("kind", [
   createResourceBaseSchema.extend({ kind: z.literal("folder") }),
   createWorkingResourceBaseSchema.extend({ kind: z.literal("text"), content: z.string() }),
   createWorkingResourceBaseSchema.extend({ kind: z.literal("remote"), target: remoteResourceTargetSchema }),
   createWorkingResourceBaseSchema.extend({ kind: z.literal("spreadsheet"), document: spreadsheetDocumentSchema }),
   createWorkingResourceBaseSchema.extend({ kind: z.literal("geographic") }),
-  createWorkingResourceBaseSchema.extend({ kind: z.literal("event"), document: eventDocumentSchema }),
+  createEventResourceSchema,
   createWorkingResourceBaseSchema.extend({ kind: z.literal("legalReference") }),
 ]);
 

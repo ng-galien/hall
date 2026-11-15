@@ -76,6 +76,7 @@ export const apiCommandPolicies = {
   "decision.update-draft": { auditTargetType: "council-decision" },
   "decision.freeze": { auditTargetType: "council-decision" },
   "resource.create": { auditTargetType: "resource" },
+  "resource.create-event": { auditTargetType: "resource" },
   "resource.relocate": { auditTargetType: "resource" },
   "resource.update-metadata": { auditTargetType: "resource" },
   "resource.update-content": { auditTargetType: "resource" },
