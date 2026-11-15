@@ -141,7 +141,7 @@ export const subSteps: SubStep[] = [
     points: [
       "Import des parcelles en couche sur la carte",
       "Numéros de parcelles visibles au zoom",
-      "Parcelles de la commune mises en évidence",
+      "Parcelles riveraines repérées sur le cadastre",
     ],
   },
   {

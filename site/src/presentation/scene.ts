@@ -727,7 +727,6 @@ export async function start() {
   }
 
   const parcelSegments: number[] = [];
-  const communalSegments: number[] = [];
   const parcelLabels: { at: Spot; text: string }[] = [];
   const fills: { mesh: THREE.Mesh; strength: number; delay: number }[] = [];
   const parcelTints = [0xb7d3c4, 0xc4d4e6, 0xd2d8de, 0xa9c7b6, 0xb3c6dd, 0xc9d6cf];
@@ -769,8 +768,7 @@ export async function start() {
   }
   riversideParcels.forEach((parcel, i) => {
     const ring = parcel.ring;
-    const target = parcel.communal ? communalSegments : parcelSegments;
-    target.push(
+    parcelSegments.push(
       ...drape(
         ground,
         ring.flatMap((spot) => [spot.x, spot.y]),
@@ -778,18 +776,18 @@ export async function start() {
         8,
       ),
     );
-    if (parcel.communal) fillRing(ring, ACCENT, 0.3);
-    else if (i % 3 === 1) fillRing(ring, parcelTints[i % parcelTints.length], 0.2);
+    if (i % 3 === 1) fillRing(ring, parcelTints[i % parcelTints.length], 0.2);
     const centre = ring.slice(0, -1).reduce((sum, spot) => ({ x: sum.x + spot.x, y: sum.y + spot.y }), { x: 0, y: 0 });
-    parcelLabels.push({ at: { x: centre.x / (ring.length - 1), y: centre.y / (ring.length - 1) }, text: parcel.label });
+    const shift = parcel.labelShift ?? { x: 0, y: 0 };
+    parcelLabels.push({
+      at: { x: centre.x / (ring.length - 1) + shift.x, y: centre.y / (ring.length - 1) + shift.y },
+      text: parcel.label,
+    });
   });
   const parcels = wideLines(parcelSegments, dark ? 0xcbd5e1 : 0x475569, 1.4) as LineSegments2;
-  const communal = wideLines(communalSegments, ACCENT, 3) as LineSegments2;
   parcels.visible = false;
-  communal.visible = false;
-  scene.add(parcels, communal);
+  scene.add(parcels);
   const parcelCount = parcelSegments.length / 6;
-  const communalCount = communalSegments.length / 6;
 
   const traceSegments = drape(
     ground,
@@ -1314,6 +1312,9 @@ export async function start() {
     car: "car",
     viewpoint,
     cheminCentre,
+    cadastreView: window.matchMedia("(min-width: 761px)").matches
+      ? { x: cheminCentre.x + 130, y: cheminCentre.y - 280 }
+      : cheminCentre,
     mairieDoor: spots.mairieDoor,
     mairieDoorClose: { x: spots.mairieDoor.x - 2, y: spots.mairieDoor.y - 4 },
     councilDevices: { x: spots.mairie.x - 40, y: spots.mairie.y - 70 },
@@ -1452,7 +1453,7 @@ export async function start() {
     camera.aspect = width / height;
     narrow = width < 760;
     frameView(shown);
-    for (const line of [trace, parcels, communal, link, scanLine, ...devices.map((device) => device.link)])
+    for (const line of [trace, parcels, link, scanLine, ...devices.map((device) => device.link)])
       (line.material as { resolution: THREE.Vector2 }).resolution.set(width, height);
     dirty = true;
   }
@@ -1619,7 +1620,6 @@ export async function start() {
       pin.visible = p >= tl.start(pinMoments[i]);
     });
     const cadastre = during(p, "cadastreDrawn");
-    const communalFrom = tl.param("cadastreDrawn", "communalFrom");
     parcels.visible = cadastre > 0;
     const fillOut = 1 - smooth(during(p, "parcelsFade"));
     const tintLength = lasting("parcelsTinted") * tl.param("parcelsTinted", "each");
@@ -1629,9 +1629,7 @@ export async function start() {
       (fill.mesh.material as THREE.MeshBasicMaterial).opacity = fill.strength * show;
       fill.mesh.visible = show > 0.01;
     });
-    communal.visible = cadastre > communalFrom;
     parcels.geometry.instanceCount = Math.floor(parcelCount * cadastre);
-    communal.geometry.instanceCount = Math.floor(communalCount * span(cadastre, communalFrom, 1));
     for (const entry of parcelNodes) place(entry.node, entry.at, cadastre >= 1 && p < tl.end("parcelNumbersShown"));
 
     const daisShow = smooth(during(p, "daisAppears")) * (1 - smooth(during(p, "daisDisappears")));

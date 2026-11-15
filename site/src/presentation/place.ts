@@ -134,11 +134,10 @@ export const roadFromMairie: Spot[] = [
   { x: 3814, y: -4175 },
 ];
 
-/** Parcelles riveraines du chemin : contour, numéro cadastral, propriété de la commune. */
-export const riversideParcels: { label: string; communal: boolean; ring: Spot[] }[] = [
+/** Parcelles riveraines du chemin : contour et numéro cadastral, déplacé quand il toucherait celui d'une parcelle voisine. */
+export const riversideParcels: { label: string; labelShift?: Spot; ring: Spot[] }[] = [
   {
     label: "A 194",
-    communal: false,
     ring: [
       { x: 5772, y: -6961 },
       { x: 5923, y: -6818 },
@@ -152,7 +151,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 1322",
-    communal: false,
     ring: [
       { x: 5651, y: -6840 },
       { x: 5802, y: -6700 },
@@ -177,7 +175,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 1324",
-    communal: false,
     ring: [
       { x: 5985, y: -7175 },
       { x: 5987, y: -7175 },
@@ -231,7 +228,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 188",
-    communal: false,
     ring: [
       { x: 5562, y: -6752 },
       { x: 5731, y: -6631 },
@@ -247,7 +243,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 189",
-    communal: false,
     ring: [
       { x: 5569, y: -6758 },
       { x: 5640, y: -6708 },
@@ -259,7 +254,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 114",
-    communal: false,
     ring: [
       { x: 6133, y: -7023 },
       { x: 6131, y: -6996 },
@@ -298,7 +292,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 117",
-    communal: false,
     ring: [
       { x: 5897, y: -6792 },
       { x: 5923, y: -6818 },
@@ -315,7 +308,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 122",
-    communal: false,
     ring: [
       { x: 5921, y: -6473 },
       { x: 5906, y: -6461 },
@@ -328,7 +320,7 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 123",
-    communal: false,
+    labelShift: { x: 0, y: 60 },
     ring: [
       { x: 5738, y: -6638 },
       { x: 5753, y: -6653 },
@@ -339,7 +331,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 124",
-    communal: false,
     ring: [
       { x: 5726, y: -6626 },
       { x: 5731, y: -6631 },
@@ -351,7 +342,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 196",
-    communal: false,
     ring: [
       { x: 5804, y: -6992 },
       { x: 5922, y: -6880 },
@@ -364,7 +354,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 197",
-    communal: false,
     ring: [
       { x: 5812, y: -7000 },
       { x: 5888, y: -6929 },
@@ -377,7 +366,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 200",
-    communal: false,
     ring: [
       { x: 5897, y: -7085 },
       { x: 6050, y: -6942 },
@@ -389,7 +377,7 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 201",
-    communal: false,
+    labelShift: { x: -45, y: -45 },
     ring: [
       { x: 5909, y: -7098 },
       { x: 6063, y: -6955 },
@@ -400,7 +388,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 202",
-    communal: false,
     ring: [
       { x: 5916, y: -7104 },
       { x: 6070, y: -6962 },
@@ -411,7 +398,7 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 203",
-    communal: false,
+    labelShift: { x: 45, y: -10 },
     ring: [
       { x: 5942, y: -7130 },
       { x: 6096, y: -6987 },
@@ -422,7 +409,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 190",
-    communal: false,
     ring: [
       { x: 5760, y: -6659 },
       { x: 5753, y: -6653 },
@@ -434,7 +420,6 @@ export const riversideParcels: { label: string; communal: boolean; ring: Spot[] 
   },
   {
     label: "A 922",
-    communal: false,
     ring: [
       { x: 5989, y: -6883 },
       { x: 5914, y: -6954 },
