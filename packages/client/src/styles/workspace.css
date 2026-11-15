@@ -577,7 +577,8 @@
   .geographic-resource .ol-control button { color: var(--hall-color-text); background: var(--hall-color-surface); }
   .geographic-resource .ol-control button:hover { background: var(--hall-color-surface-subtle); }
   @container (max-width: 760px) {
-    .geographic-layers-panel { width: var(--hall-size-geographic-layers); }
+    /* In a narrow map the layers take the whole width of the map, so that their names are read. */
+    .geographic-layers-panel { width: calc(100cqw - 2 * var(--hall-space-3)); }
     .geographic-conflict { left: var(--hall-space-3); flex-direction: column; align-items: stretch; }
   }
 
