@@ -126,7 +126,7 @@
   .phone-document-legalReference .phone-document-content { padding: var(--hall-space-3); }
   .phone-document .legal-reference-setup-actions { flex-wrap: wrap; }
   .phone-document .legal-reference-setup-actions > * { flex: 1 1 auto; }
-  .remote-resource-phone { display: grid; gap: var(--hall-space-3); padding: var(--hall-space-3); }
+  .remote-resource-phone { display: grid; align-content: start; gap: var(--hall-space-3); padding: var(--hall-space-3); }
   .phone-document .remote-resource-setup { padding: var(--hall-space-3); }
   .remote-resource-phone .remote-resource-url { color: var(--hall-color-text-muted); font-size: var(--hall-font-size-body); overflow-wrap: anywhere; }
   .phone-document-information { margin: var(--hall-space-3); }
