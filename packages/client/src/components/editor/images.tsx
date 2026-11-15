@@ -31,6 +31,8 @@ import {
 import { LoadingIndicator } from "../ui/loading-indicator";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
 import { imageUploadPlaceholders, sentImageRatio } from "./imageUploadPlaceholder";
+import { writingChain } from "./phoneKeyboard";
+import { useImageDisplayName } from "./photoName";
 import { useResourceAppearance } from "./references";
 
 export interface ResourceImageAttributes {
@@ -42,7 +44,7 @@ export interface ResourceImageAttributes {
 
 /** Inserts the image as an atomic block and selects it. */
 export function insertResourceImage(editor: Editor, attributes: ResourceImageAttributes) {
-  editor.chain().focus().insertContent({ type: "resourceImage", attrs: attributes }).run();
+  writingChain(editor).insertContent({ type: "resourceImage", attrs: attributes }).run();
   const cursor = editor.state.selection.from;
   let position: number | null = null;
   editor.state.doc.nodesBetween(0, cursor, (node, nodePosition) => {
@@ -249,6 +251,7 @@ function ResourceImageNodeView({
   const renderResourcePreview = useContext(ResourceImagePreviewContext);
   const phone = usePhoneLayout();
   const resourceAppearance = useResourceAppearance(attributes.id);
+  const displayName = useImageDisplayName()(attributes.alt);
   const updateWidth = (width: number) =>
     updateAttributes({ width: Math.round(Math.min(imageWidthRange.max, Math.max(imageWidthRange.min, width))) });
   const startResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -275,11 +278,11 @@ function ResourceImageNodeView({
         className={`editor-image-frame editor-media-overlay-host hall-template-image-${attributes.align}`}
         style={{ width: `${attributes.width}%` }}
       >
-        <ResourceImageFigure {...attributes} width={100} testId={`editor-image-${attributes.id}`} />
+        <ResourceImageFigure {...attributes} alt={displayName} width={100} testId={`editor-image-${attributes.id}`} />
         {controls && editable ? (
           <EditorMediaOverlay
             icon={resourceAppearance?.glyph ?? null}
-            title={attributes.alt}
+            title={displayName}
             testId="editor-image-controls"
             titleTestId={renderResourcePreview ? "editor-image-open" : undefined}
             titleAriaLabel={t("editor.imageOpen")}
@@ -340,7 +343,7 @@ function ResourceImageNodeView({
         ) : null}
       </figure>
       {controls && previewing
-        ? renderResourcePreview?.(attributes.id, attributes.alt, () => {
+        ? renderResourcePreview?.(attributes.id, displayName, () => {
             setPreviewing(false);
             window.requestAnimationFrame(() => {
               previewTriggerRef.current?.focus({ preventScroll: true });

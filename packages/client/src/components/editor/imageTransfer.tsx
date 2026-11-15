@@ -19,6 +19,7 @@ import {
   removeImagePlaceholder,
   startImagePlaceholder,
 } from "./imageUploadPlaceholder";
+import { focusesText } from "./phoneKeyboard";
 
 /** State of the image or document transfer shown under the writing area. */
 export type ImageUploadStatus =
@@ -223,7 +224,7 @@ async function uploadIntoPlace(
 ): Promise<number | null> {
   const place = openImagePlace(view, insertionTarget(view, requestedPosition));
   const placeholder = startImagePlaceholder(view, place.anchor);
-  view.focus();
+  if (focusesText(view)) view.focus();
   const startDocument = view.state.doc;
   const startSelection = view.state.selection;
   let placed = false;

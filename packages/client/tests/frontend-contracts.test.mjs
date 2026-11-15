@@ -242,7 +242,8 @@ test("editor images keep immutable resource references and follow document capab
   const imageTransfer = read("src/components/editor/imageTransfer.tsx");
   assert.match(imageTransfer, /handleDrop:/);
   assert.match(imageTransfer, /handlePaste:/);
-  assert.match(editor, /imageUpload\.current = onUploadImage/);
+  assert.match(editor, /useReadablePhotoUpload\(onUploadImage, /);
+  assert.match(editor, /imageUpload\.current = uploadImage/);
   assert.doesNotMatch(editor, /type="file"[\s\S]{0,80}accept="image\/png,image\/jpeg"/);
   assert.doesNotMatch(`${editor}\n${images}\n${imageTransfer}`, /FileReader|readAsDataURL|blob:/);
   assert.doesNotMatch(mentions, /id:\s*(?:resource|business|meeting|decision)\.slug/);

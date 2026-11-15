@@ -32,6 +32,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import { AlignCenterIcon, AlignLeftIcon, CheckIcon, CopyIcon } from "../icons";
 import { EditorMediaOverlay } from "./EditorMediaOverlay";
 import { insertResourceImage } from "./images";
+import { writingChain } from "./phoneKeyboard";
 import { type FullSearchRequest, ReferenceSearchDialog } from "./ReferenceSearchDialog";
 import type { Mentionable } from "./references";
 import { useResourceAppearance, useResourcePreviewRenderer } from "./references";
@@ -383,7 +384,7 @@ export const ResourceEmbed = Node.create({
 });
 
 export function insertResourceEmbed(editor: Editor, attributes: ResourceEmbedAttributes) {
-  editor.chain().focus().insertContent({ type: "resourceEmbed", attrs: attributes }).run();
+  writingChain(editor).insertContent({ type: "resourceEmbed", attrs: attributes }).run();
   const cursor = editor.state.selection.from;
   let position: number | null = null;
   editor.state.doc.nodesBetween(0, cursor, (node, nodePosition) => {
@@ -399,10 +400,10 @@ export function insertResourceEmbed(editor: Editor, attributes: ResourceEmbedAtt
 export function insertPickedResource(editor: Editor, item: Mentionable, range?: FullSearchRequest["range"]): boolean {
   const presentation = item.resourcePresentation;
   if (presentation === "table") {
-    if (range) editor.chain().focus().deleteRange(range).run();
+    if (range) writingChain(editor).deleteRange(range).run();
     return false;
   }
-  const chain = editor.chain().focus();
+  const chain = writingChain(editor);
   if (range) chain.deleteRange(range);
   if (!presentation) {
     chain

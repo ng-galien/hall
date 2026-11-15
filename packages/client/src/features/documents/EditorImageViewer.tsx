@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { useImageDisplayName } from "../../components/editor/photoName";
 import { useI18n } from "../../i18n/I18nProvider";
 import { documentaryBinaryReferenceContentHref } from "../../services/resourcesApi";
 import { DocumentViewerDialog } from "./DocumentViewerDialog";
@@ -11,6 +12,7 @@ import { DocumentViewerDialog } from "./DocumentViewerDialog";
  */
 export function EditorImageViewer({ id, label, onClose }: { id: string; label: string; onClose(): void }) {
   const { t } = useI18n();
+  const name = useImageDisplayName()(label);
   const [href, setHref] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
@@ -23,12 +25,12 @@ export function EditorImageViewer({ id, label, onClose }: { id: string; label: s
     <DocumentViewerDialog
       testId="editor-image-viewer"
       titleId="editor-image-viewer-title"
-      title={label}
+      title={name}
       closeTestId="editor-image-viewer-close"
       onClose={onClose}
     >
       {href ? (
-        <img className="editor-image-viewer-image" data-testid="editor-image-viewer-image" src={href} alt={label} />
+        <img className="editor-image-viewer-image" data-testid="editor-image-viewer-image" src={href} alt={name} />
       ) : (
         <LoadingIndicator aria-label={t("common.loading")} />
       )}

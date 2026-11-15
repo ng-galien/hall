@@ -53,7 +53,9 @@ import {
   useSpreadsheetDropChoice,
 } from "./imageTransfer";
 import { usePhoneEditorCommands } from "./phoneEditorCommands";
+import { focusesText, usePhoneKeyboard, writingChain } from "./phoneKeyboard";
 import { keepCaretBelowWritingTools } from "./phoneWritingScroll";
+import { useReadablePhotoUpload } from "./photoName";
 import { EditorReferenceSearch, type FullSearchRequest } from "./ReferenceSearchDialog";
 import { referenceKindPresentations } from "./referenceKindPresentation";
 import type { Mentionable } from "./references";
@@ -140,7 +142,7 @@ function ListStructureButtons({ editor }: { editor: Editor }) {
         label={t("editor.checklist")}
         testId="editor-checklist"
         active={state?.taskList}
-        onClick={() => editor.chain().focus().toggleTaskList().run()}
+        onClick={() => writingChain(editor).toggleTaskList().run()}
       >
         <ChecklistIcon />
       </ToolbarButton>
@@ -148,7 +150,7 @@ function ListStructureButtons({ editor }: { editor: Editor }) {
         label={t("editor.indent")}
         testId="editor-indent"
         disabled={!state?.canIndent}
-        onClick={() => editor.chain().focus().sinkListItem(itemType).run()}
+        onClick={() => writingChain(editor).sinkListItem(itemType).run()}
       >
         <IndentIcon />
       </ToolbarButton>
@@ -156,7 +158,7 @@ function ListStructureButtons({ editor }: { editor: Editor }) {
         label={t("editor.outdent")}
         testId="editor-outdent"
         disabled={!state?.canOutdent}
-        onClick={() => editor.chain().focus().liftListItem(itemType).run()}
+        onClick={() => writingChain(editor).liftListItem(itemType).run()}
       >
         <OutdentIcon />
       </ToolbarButton>
@@ -196,7 +198,7 @@ function useToolbarState(editor: Editor | null) {
 }
 
 function applyBlockType(editor: Editor, next: string) {
-  const chain = editor.chain().focus();
+  const chain = writingChain(editor);
   if (editor.isActive("blockquote") && next !== "quote") chain.unsetBlockquote();
   if (next === "p") chain.setParagraph();
   if (next === "h2") chain.setHeading({ level: 2 });
@@ -237,14 +239,14 @@ function LinkEditorForm({ editor, active, onDone }: { editor: Editor; active: bo
     event.preventDefault();
     const trimmed = url.trim();
     if (trimmed) {
-      editor.chain().focus().extendMarkRange("link").setLink({ href: trimmed }).run();
+      writingChain(editor).extendMarkRange("link").setLink({ href: trimmed }).run();
     } else {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      writingChain(editor).extendMarkRange("link").unsetLink().run();
     }
     onDone();
   };
   const remove = () => {
-    editor.chain().focus().extendMarkRange("link").unsetLink().run();
+    writingChain(editor).extendMarkRange("link").unsetLink().run();
     onDone();
   };
 
@@ -310,7 +312,7 @@ function MarksButtons({ editor, state }: { editor: Editor; state: NonNullable<Re
         label={t("editor.bold")}
         testId="editor-bold"
         active={state.bold}
-        onClick={() => editor.chain().focus().toggleBold().run()}
+        onClick={() => writingChain(editor).toggleBold().run()}
       >
         <BoldIcon />
       </ToolbarButton>
@@ -318,7 +320,7 @@ function MarksButtons({ editor, state }: { editor: Editor; state: NonNullable<Re
         label={t("editor.italic")}
         testId="editor-italic"
         active={state.italic}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
+        onClick={() => writingChain(editor).toggleItalic().run()}
       >
         <ItalicIcon />
       </ToolbarButton>
@@ -326,7 +328,7 @@ function MarksButtons({ editor, state }: { editor: Editor; state: NonNullable<Re
         label={t("editor.underline")}
         testId="editor-underline"
         active={state.underline}
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        onClick={() => writingChain(editor).toggleUnderline().run()}
       >
         <UnderlineIcon />
       </ToolbarButton>
@@ -334,7 +336,7 @@ function MarksButtons({ editor, state }: { editor: Editor; state: NonNullable<Re
         label={t("editor.code")}
         testId="editor-code"
         active={state.code}
-        onClick={() => editor.chain().focus().toggleCode().run()}
+        onClick={() => writingChain(editor).toggleCode().run()}
       >
         <BoxedTextIcon />
       </ToolbarButton>
@@ -398,7 +400,9 @@ function CompactFormattingMenu({
   }, [editor, setMenuOpen]);
 
   const restoreEditorFocus = () => {
-    requestAnimationFrame(() => editor.commands.focus());
+    requestAnimationFrame(() => {
+      if (focusesText(editor.view)) editor.commands.focus();
+    });
   };
 
   return (
@@ -442,7 +446,7 @@ function CompactFormattingMenu({
             className="whitespace-nowrap"
             disabled={!state.canUndo}
             data-testid="editor-formatting-undo"
-            onSelect={() => editor.chain().focus().undo().run()}
+            onSelect={() => writingChain(editor).undo().run()}
           >
             <UndoIcon />
             {t("editor.undo")}
@@ -451,7 +455,7 @@ function CompactFormattingMenu({
             className="whitespace-nowrap"
             disabled={!state.canRedo}
             data-testid="editor-formatting-redo"
-            onSelect={() => editor.chain().focus().redo().run()}
+            onSelect={() => writingChain(editor).redo().run()}
           >
             <RedoIcon />
             {t("editor.redo")}
@@ -481,7 +485,7 @@ function CompactFormattingMenu({
             className="whitespace-nowrap"
             checked={state.bold}
             data-testid="editor-formatting-bold"
-            onSelect={() => editor.chain().focus().toggleBold().run()}
+            onSelect={() => writingChain(editor).toggleBold().run()}
           >
             <BoldIcon />
             {t("editor.bold")}
@@ -490,7 +494,7 @@ function CompactFormattingMenu({
             className="whitespace-nowrap"
             checked={state.italic}
             data-testid="editor-formatting-italic"
-            onSelect={() => editor.chain().focus().toggleItalic().run()}
+            onSelect={() => writingChain(editor).toggleItalic().run()}
           >
             <ItalicIcon />
             {t("editor.italic")}
@@ -499,7 +503,7 @@ function CompactFormattingMenu({
             className="whitespace-nowrap"
             checked={state.underline}
             data-testid="editor-formatting-underline"
-            onSelect={() => editor.chain().focus().toggleUnderline().run()}
+            onSelect={() => writingChain(editor).toggleUnderline().run()}
           >
             <UnderlineIcon />
             {t("editor.underline")}
@@ -508,7 +512,7 @@ function CompactFormattingMenu({
             className="whitespace-nowrap"
             checked={state.code}
             data-testid="editor-formatting-code"
-            onSelect={() => editor.chain().focus().toggleCode().run()}
+            onSelect={() => writingChain(editor).toggleCode().run()}
           >
             <BoxedTextIcon />
             {t("editor.code")}
@@ -518,7 +522,7 @@ function CompactFormattingMenu({
             className="whitespace-nowrap"
             checked={state.bulletList}
             data-testid="editor-formatting-bullet-list"
-            onSelect={() => editor.chain().focus().toggleBulletList().run()}
+            onSelect={() => writingChain(editor).toggleBulletList().run()}
           >
             <ListBulletedIcon />
             {t("editor.bulletList")}
@@ -527,7 +531,7 @@ function CompactFormattingMenu({
             className="whitespace-nowrap"
             checked={state.orderedList}
             data-testid="editor-formatting-numbered-list"
-            onSelect={() => editor.chain().focus().toggleOrderedList().run()}
+            onSelect={() => writingChain(editor).toggleOrderedList().run()}
           >
             <ListNumberedIcon />
             {t("editor.numberedList")}
@@ -536,7 +540,7 @@ function CompactFormattingMenu({
             className="whitespace-nowrap"
             checked={state.taskList}
             data-testid="editor-formatting-checklist"
-            onSelect={() => editor.chain().focus().toggleTaskList().run()}
+            onSelect={() => writingChain(editor).toggleTaskList().run()}
           >
             <ChecklistIcon />
             {t("editor.checklist")}
@@ -547,9 +551,7 @@ function CompactFormattingMenu({
             disabled={!state.canIndent}
             data-testid="editor-formatting-indent"
             onSelect={() =>
-              editor
-                .chain()
-                .focus()
+              writingChain(editor)
                 .sinkListItem(editor.isActive("taskItem") ? "taskItem" : "listItem")
                 .run()
             }
@@ -562,9 +564,7 @@ function CompactFormattingMenu({
             disabled={!state.canOutdent}
             data-testid="editor-formatting-outdent"
             onSelect={() =>
-              editor
-                .chain()
-                .focus()
+              writingChain(editor)
                 .liftListItem(editor.isActive("taskItem") ? "taskItem" : "listItem")
                 .run()
             }
@@ -584,7 +584,7 @@ function CompactFormattingMenu({
           <DropdownMenuItem
             className="whitespace-nowrap"
             data-testid="editor-formatting-insert-table"
-            onSelect={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+            onSelect={() => writingChain(editor).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
           >
             <TableIcon />
             {t("editor.insertTable")}
@@ -686,7 +686,7 @@ function PhoneWritingBar({
         label={t("editor.bold")}
         testId="editor-bold"
         active={state.bold}
-        onClick={() => editor.chain().focus().toggleBold().run()}
+        onClick={() => writingChain(editor).toggleBold().run()}
       >
         <BoldIcon />
       </PhoneTool>
@@ -694,7 +694,7 @@ function PhoneWritingBar({
         label={t("editor.italic")}
         testId="editor-italic"
         active={state.italic}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
+        onClick={() => writingChain(editor).toggleItalic().run()}
       >
         <ItalicIcon />
       </PhoneTool>
@@ -710,7 +710,7 @@ function PhoneWritingBar({
         label={t("editor.bulletList")}
         testId="editor-bullet-list"
         active={state.bulletList}
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        onClick={() => writingChain(editor).toggleBulletList().run()}
       >
         <ListBulletedIcon />
       </PhoneTool>
@@ -765,7 +765,9 @@ export function MarkdownEditor({
   const [enriched, setEnriched] = useState(false);
   const [imageStatus, setImageStatus] = useState<ImageUploadStatus>(idleUploadStatus);
   const imageUpload = useRef<EditorImageUpload | undefined>(onUploadImage);
-  imageUpload.current = onUploadImage;
+  const inlineEditor = useRef<Editor | null>(null);
+  const uploadImage = useReadablePhotoUpload(onUploadImage, () => inlineEditor.current?.state.doc);
+  imageUpload.current = uploadImage;
   const documentUpload = useRef<EditorDocumentUpload | undefined>(onUploadDocument);
   documentUpload.current = onUploadDocument;
   const spreadsheetDrop = useSpreadsheetDropChoice();
@@ -839,10 +841,12 @@ export function MarkdownEditor({
     inline?.setEditable(!readOnly);
   }, [inline, readOnly]);
 
+  inlineEditor.current = inline;
   const state = useToolbarState(inline);
+  usePhoneKeyboard(inline, phone && !readOnly);
   const images = useImageFiles({
     editor: inline && !readOnly ? inline : null,
-    upload: onUploadImage,
+    upload: uploadImage,
     uploadPhoto: onUploadPhoto,
     onStatus: setImageStatus,
   });
@@ -1042,7 +1046,9 @@ function EnrichedEditor({
   const facetLabels = useMentionFacetLabels();
   const [fullSearch, setFullSearch] = useState<FullSearchRequest | null>(null);
   const imageUpload = useRef<EditorImageUpload | undefined>(onUploadImage);
-  imageUpload.current = onUploadImage;
+  const enrichedEditor = useRef<Editor | null>(null);
+  const uploadImage = useReadablePhotoUpload(onUploadImage, () => enrichedEditor.current?.state.doc);
+  imageUpload.current = uploadImage;
   const documentUpload = useRef<EditorDocumentUpload | undefined>(onUploadDocument);
   documentUpload.current = onUploadDocument;
   const spreadsheetDrop = useSpreadsheetDropChoice();
@@ -1080,7 +1086,9 @@ function EnrichedEditor({
 
   const state = useToolbarState(editor);
   const narrow = useNarrowLayout();
-  const images = useImageFiles({ editor, upload: onUploadImage, uploadPhoto: onUploadPhoto, onStatus: onImageStatus });
+  enrichedEditor.current = editor;
+  usePhoneKeyboard(editor, usePhoneLayout());
+  const images = useImageFiles({ editor, upload: uploadImage, uploadPhoto: onUploadPhoto, onStatus: onImageStatus });
 
   return (
     <div className="markdown-editor markdown-editor-large" data-testid={testId ?? "markdown-editor-enriched"}>
@@ -1092,7 +1100,7 @@ function EnrichedEditor({
               label={t("editor.undo")}
               testId="editor-undo"
               disabled={!state.canUndo}
-              onClick={() => editor.chain().focus().undo().run()}
+              onClick={() => writingChain(editor).undo().run()}
             >
               <UndoIcon />
             </ToolbarButton>
@@ -1100,7 +1108,7 @@ function EnrichedEditor({
               label={t("editor.redo")}
               testId="editor-redo"
               disabled={!state.canRedo}
-              onClick={() => editor.chain().focus().redo().run()}
+              onClick={() => writingChain(editor).redo().run()}
             >
               <RedoIcon />
             </ToolbarButton>
@@ -1113,7 +1121,7 @@ function EnrichedEditor({
               label={t("editor.bulletList")}
               testId="editor-bullet-list"
               active={state.bulletList}
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              onClick={() => writingChain(editor).toggleBulletList().run()}
             >
               <ListBulletedIcon />
             </ToolbarButton>
@@ -1121,7 +1129,7 @@ function EnrichedEditor({
               label={t("editor.numberedList")}
               testId="editor-numbered-list"
               active={state.orderedList}
-              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              onClick={() => writingChain(editor).toggleOrderedList().run()}
             >
               <ListNumberedIcon />
             </ToolbarButton>
@@ -1131,7 +1139,7 @@ function EnrichedEditor({
             <ToolbarButton
               label={t("editor.insertTable")}
               testId="editor-insert-table"
-              onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              onClick={() => writingChain(editor).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
             >
               <TableIcon />
             </ToolbarButton>

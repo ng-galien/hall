@@ -9799,7 +9799,9 @@
         "Sur un téléphone, une carte occupe tout l’écran et une ressource distante présente son adresse avec un bouton qui ouvre le lien.",
         "Sur un téléphone, la page Documents, à la racine comme dans un dossier, porte la recherche dans son bandeau et le bouton flottant « + Nouveau » ; l’icône de recherche ouvre la recherche de l’espace de travail sur tout l’écran, le champ actif, et sa fermeture ramène à la liste, qui commence directement sous le bandeau. L’ordinateur et la tablette gardent la recherche au-dessus de la liste et « + Nouveau » dans le bandeau.",
         "As soon as a photo is chosen or taken for a text, on a phone as on a computer, a low place of fixed height, the same on a phone and on a computer, appears in the text where it is inserted, with a loading indicator; the person keeps writing meanwhile. When the sending ends, the image replaces that place at its own size and the text under it moves down; when it fails, the place disappears and the failure is said where the editor says it.",
-        "On a phone, the width of an image of a text being written is chosen among small, medium and full width in the commands of the image; no handle to drag is offered there. On a computer the width is set as before."
+        "On a phone, the width of an image of a text being written is chosen among small, medium and full width in the commands of the image; no handle to drag is offered there. On a computer the width is set as before.",
+        "On a phone, while a text is being written, the keyboard opens only when the person touches the text or an empty line to write. Touching an image, a map or a document inserted in the text selects it and shows its commands without opening the keyboard, and closes the keyboard when it was open; the commands of that element do not open it either. A formatting command of the writing tools or of the formatting menu keeps the keyboard as it is: open while the person writes, closed otherwise.",
+        "The name of a photo added to a text is readable: a photo whose file name was given by a device or a program (identifier, number, generic name such as image.jpg or IMG_1234) is named after its day, as « Photo du 15 novembre 2026 », with its hour only when another photo of the text already has the name of that day; a file named by a person keeps its name without its extension. An image already saved under such a technical name is shown as « Photo », or with its day when its name carries it, and its saved name is not changed."
       ],
       "clauses": [
         {
@@ -9872,6 +9874,18 @@
           "key": "phone-image-width-choices",
           "origin": "product",
           "statement": "Owner remark of 14 November 2026: « Le handle de resize, franchement, il est vraiment pas pratique en mobile. »",
+          "sourceIds": []
+        },
+        {
+          "key": "phone-keyboard-only-for-text",
+          "origin": "product",
+          "statement": "Owner remarks of 15 November 2026 on an Android phone: « quand je sélectionne une photo, ça ouvre le clavier. Et je pense que à pas mal d'endroits, c'est ça. », then « Faudrait que le clavier ne s'ouvre pas, ou disparaisse quand on est en édition. »",
+          "sourceIds": []
+        },
+        {
+          "key": "readable-photo-name",
+          "origin": "product",
+          "statement": "Owner remark of 15 November 2026: « quand j'ai uploadé une photo, il y a un ID d'upload. […] trouver un autre nom au lieu de mettre l'ID. » Coordinator decision: a technical name is replaced by the day of the photo, with its hour only to tell apart two photos of the same day in the same text.",
           "sourceIds": []
         }
       ]

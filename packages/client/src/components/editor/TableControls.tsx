@@ -29,6 +29,7 @@ import {
   SumIcon,
 } from "../icons";
 import { Button } from "../ui/button";
+import { writingChain } from "./phoneKeyboard";
 
 /** Handle geometry for the current cell, in canvas coordinates. */
 interface TableTarget {
@@ -157,16 +158,14 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
   };
   const alignColumn = (align: "left" | "center" | "right") => {
     selectColumn();
-    editor
-      .chain()
-      .focus()
+    writingChain(editor)
       .setCellAttribute("align", align === "left" ? null : align)
       .run();
   };
   const resizeColumn = (delta: number) => {
     selectColumn();
     const width = Math.min(600, Math.max(60, target.columnWidth + delta));
-    editor.chain().focus().setCellAttribute("colwidth", [width]).run();
+    writingChain(editor).setCellAttribute("colwidth", [width]).run();
   };
 
   const extend = (direction: "column" | "row") => {
@@ -181,8 +180,8 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
         ? map.positionAt(rect.top, map.width - 1, table)
         : map.positionAt(map.height - 1, rect.left, table);
     view.dispatch(state.tr.setSelection(CellSelection.create(state.doc, tableStart + lastPos)));
-    if (direction === "column") editor.chain().focus().addColumnAfter().run();
-    else editor.chain().focus().addRowAfter().run();
+    if (direction === "column") writingChain(editor).addColumnAfter().run();
+    else writingChain(editor).addRowAfter().run();
   };
 
   const run = (command: () => void) => () => command();
@@ -273,10 +272,10 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
           className="table-controls-menu"
           onCloseAutoFocus={(event) => event.preventDefault()}
         >
-          <DropdownMenuItem onSelect={run(() => editor.chain().focus().addColumnBefore().run())}>
+          <DropdownMenuItem onSelect={run(() => writingChain(editor).addColumnBefore().run())}>
             <ColumnBeforeIcon /> {t("editor.table.insertColumnLeft")}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={run(() => editor.chain().focus().addColumnAfter().run())}>
+          <DropdownMenuItem onSelect={run(() => writingChain(editor).addColumnAfter().run())}>
             <ColumnAfterIcon /> {t("editor.table.insertColumnRight")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -301,7 +300,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
             <SumIcon /> {t("editor.table.totalRow")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onSelect={run(() => editor.chain().focus().deleteColumn().run())}>
+          <DropdownMenuItem variant="destructive" onSelect={run(() => writingChain(editor).deleteColumn().run())}>
             <DeleteIcon /> {t("editor.table.deleteColumn")}
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -327,17 +326,17 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
           className="table-controls-menu"
           onCloseAutoFocus={(event) => event.preventDefault()}
         >
-          <DropdownMenuItem onSelect={run(() => editor.chain().focus().addRowBefore().run())}>
+          <DropdownMenuItem onSelect={run(() => writingChain(editor).addRowBefore().run())}>
             <RowBeforeIcon /> {t("editor.table.insertRowAbove")}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={run(() => editor.chain().focus().addRowAfter().run())}>
+          <DropdownMenuItem onSelect={run(() => writingChain(editor).addRowAfter().run())}>
             <RowAfterIcon /> {t("editor.table.insertRowBelow")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onSelect={run(() => editor.chain().focus().deleteRow().run())}>
+          <DropdownMenuItem variant="destructive" onSelect={run(() => writingChain(editor).deleteRow().run())}>
             <DeleteIcon /> {t("editor.table.deleteRow")}
           </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" onSelect={run(() => editor.chain().focus().deleteTable().run())}>
+          <DropdownMenuItem variant="destructive" onSelect={run(() => writingChain(editor).deleteTable().run())}>
             <DeleteIcon /> {t("editor.table.deleteTable")}
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -352,7 +351,7 @@ export function TableControls({ editor, canvasRef }: { editor: Editor; canvasRef
           style={{ left: target.selectionCenterX, top: target.selectionBottom }}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() =>
-            target.canMerge ? editor.chain().focus().mergeCells().run() : editor.chain().focus().splitCell().run()
+            target.canMerge ? writingChain(editor).mergeCells().run() : writingChain(editor).splitCell().run()
           }
         >
           {target.canMerge ? (
