@@ -1,5 +1,5 @@
 import { mkdir, readFile } from "node:fs/promises";
-import { expect, runItemCommand, test } from "../fixtures/application";
+import { expect, historySettled, runItemCommand, test } from "../fixtures/application";
 
 async function createSeedFolder(page: import("@playwright/test").Page) {
   const created = await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: "seed" } });
@@ -459,6 +459,8 @@ test("creates a documentary resource from a business and preserves its explicit 
   const resource = (await resourceResponse.json()).properties as { id: string };
   await expect(page.getByTestId("resource-preview-close")).toBeVisible();
   await page.getByTestId("resource-preview-close").click();
+  await expect(page.getByTestId("resource-preview-close")).toHaveCount(0);
+  await historySettled(page);
   await page.reload();
   await page.getByTestId("business-category-documents-toggle").click();
   const attached = page.getByTestId(`business-attached-resource-${resource.id}`);
@@ -568,8 +570,9 @@ test("persists the complete multi-sheet Univer workbook without concurrent saves
         .evaluateAll((canvases) => Math.max(...canvases.map((canvas) => canvas.getBoundingClientRect().height))),
     )
     .toBeGreaterThan(200);
-  // Opening the workbook publishes Univer's normalized snapshot, which the editor autosaves before any edit.
-  await expect(page.getByTestId("spreadsheet-editor")).toHaveAttribute("data-save-status", "saved");
+  // Opening the workbook writes nothing: only a change made by the person is saved.
+  await page.waitForTimeout(1_200);
+  await expect(page.getByTestId("spreadsheet-editor")).toHaveAttribute("data-save-status", "idle");
   await page.route("**/api/resources/*/content", async (route) => {
     if (route.request().method() !== "PUT" || route.request().postDataJSON().kind !== "spreadsheet") {
       await route.continue();

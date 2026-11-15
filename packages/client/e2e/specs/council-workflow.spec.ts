@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import type { APIResponse, Page } from "@playwright/test";
-import { expect, openMenuEntry, test } from "../fixtures/application";
+import { expect, historySettled, openMenuEntry, test } from "../fixtures/application";
 import { backdateMeetingConduct } from "../fixtures/meetingHistory";
 import { establishRevision, generateCurrentNotice, saveMeetingField } from "../fixtures/meetingPreparation";
 import { writtenDate } from "../fixtures/writtenDate";
@@ -936,6 +936,7 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
   );
   await generateCurrentNotice(page);
   expect((await noticeResponse).ok()).toBeTruthy();
+  await historySettled(page);
   await page.goto(`/app/meetings/${meeting!.slug}/live`);
   await expect(page.getByTestId("live-meeting-page")).toBeVisible();
   await inspectInitialRollCall(page, meeting!.id);

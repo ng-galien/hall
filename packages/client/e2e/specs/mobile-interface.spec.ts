@@ -246,20 +246,21 @@ test("phone calendar keeps a two-row toolbar, a floating « + Nouveau » and a s
     expect(toolbar.rightGap, "space before the right edge").toBeGreaterThanOrEqual(4);
     expect(toolbar.legend, "colour legend without action").toBe(0);
     expect(toolbar.periodArrows, "the period changes by a swipe or the period picker").toBe(0);
-    // A single area scrolls: the grid of the day; the page itself does not.
-    const scrolling = await page.evaluate(() =>
-      [...document.querySelectorAll("body *")]
-        .filter((element) => {
-          const style = getComputedStyle(element);
-          return (
-            ["auto", "scroll"].includes(style.overflowY) &&
-            element.scrollHeight > element.clientHeight + 1 &&
-            element.getBoundingClientRect().height > 0
-          );
-        })
-        .map((element) => `${element.tagName.toLowerCase()}.${[...element.classList].join(".")}`),
-    );
-    expect(scrolling, "vertical scrolling areas").toHaveLength(1);
+    // A single area scrolls: the grid of the day; the page itself does not, once the grid has taken its height.
+    const scrollingAreas = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll("body *")]
+          .filter((element) => {
+            const style = getComputedStyle(element);
+            return (
+              ["auto", "scroll"].includes(style.overflowY) &&
+              element.scrollHeight > element.clientHeight + 1 &&
+              element.getBoundingClientRect().height > 0
+            );
+          })
+          .map((element) => `${element.tagName.toLowerCase()}.${[...element.classList].join(".")}`),
+      );
+    await expect.poll(scrollingAreas, { message: "vertical scrolling areas" }).toHaveLength(1);
     // No hour label of the day view is half hidden under the header of the grid.
     const cutLabels = await page.getByTestId("calendar-slot-label").evaluateAll((labels) =>
       labels.flatMap((label) => {

@@ -200,6 +200,16 @@ export async function openMenuEntry(page: import("@playwright/test").Page, desti
  * Runs a command of the opened item: directly when it is drawn on the line of the title, otherwise from its « … »
  * menu. `scope` is the screen or the document dialog that holds the item.
  */
+/**
+ * Waits until no closed window, sheet or panel still holds its entry of the browser history: closing one gives its entry
+ * back by a return of the history, which would interrupt a navigation by address started at the same moment.
+ */
+export async function historySettled(page: import("@playwright/test").Page) {
+  await expect
+    .poll(() => page.evaluate(() => (history.state as { hallLayer?: string } | null)?.hallLayer ?? null))
+    .toBeNull();
+}
+
 export async function runItemCommand(
   page: import("@playwright/test").Page,
   testId: string,

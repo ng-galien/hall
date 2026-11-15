@@ -1,6 +1,6 @@
 import { defaultDocumentTemplates } from "@hall/domain";
 import { type APIRequestContext, type Browser, expect, type Locator, type Page, test } from "@playwright/test";
-import { clearTestDatabase, runItemCommand } from "../fixtures/application";
+import { clearTestDatabase, historySettled, runItemCommand } from "../fixtures/application";
 import { establishRevision, generateCurrentNotice } from "../fixtures/meetingPreparation";
 
 const password = "Hall-personal-2026!";
@@ -249,10 +249,7 @@ test("gives council members read access and a personal folder that only they and
     ).toContainText("Alice Martin");
     await alicePage.keyboard.press("Escape");
     await expect(alicePage.getByTestId("resource-changes-panel")).toHaveCount(0);
-    /* The closed panel gives its entry of the history back before the next address is opened. */
-    await expect
-      .poll(() => alicePage.evaluate(() => (history.state as { hallLayer?: string } | null)?.hallLayer ?? null))
-      .toBeNull();
+    await historySettled(alicePage);
     await alicePage.goto(workspaceAt(aliceFolder));
     await expect(alicePage.getByTestId("workspace-tree-root")).toHaveAttribute("data-state", "closed");
     await alicePage.getByTestId("workspace-tree-root").click({ button: "right" });

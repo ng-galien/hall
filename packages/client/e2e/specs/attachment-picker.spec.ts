@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "../fixtures/application";
+import { expect, historySettled, test } from "../fixtures/application";
 
 async function businessResourceIds(page: Page, businessId: string) {
   const response = await page.request.get(`/api/council-business/resource-items?councilBusinessId=${businessId}`);
@@ -62,6 +62,7 @@ test("one attachment picker attaches and creates documents from the business vie
   const remote = (await remoteResponse.json()).properties as { id: string };
   await page.getByTestId("resource-preview-close").click();
   await expect(page.getByTestId(`business-attached-resource-${remote.id}`)).toBeVisible();
+  await historySettled(page);
 
   // The tree offers business actions once the business capabilities are loaded.
   const capabilitiesLoaded = page.waitForResponse(
