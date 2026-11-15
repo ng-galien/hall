@@ -140,7 +140,7 @@ export function CalendarPage() {
   }, []);
   useWorkspaceReread(openCatalogAppointments);
   const api = () => calendar.current?.getApi();
-  useCalendarSwipe(
+  const acceptTap = useCalendarSwipe(
     grid,
     phone && view !== "list",
     () => api()?.prev(),
@@ -291,7 +291,7 @@ export function CalendarPage() {
             api()?.unselect();
           }}
           dateClick={(info) => {
-            if (!phone || !canCreate) return;
+            if (!phone || !canCreate || !acceptTap()) return;
             const day = localDate(info.date);
             setCreation({
               ...emptyEventDocument(day),
@@ -300,7 +300,9 @@ export function CalendarPage() {
                 : { kind: "timed", start: info.date.toISOString(), end: oneHourLater(info.date).toISOString() },
             });
           }}
-          eventClick={(info) => open(info.event.extendedProps)}
+          eventClick={(info) => {
+            if (acceptTap()) open(info.event.extendedProps);
+          }}
           eventChange={async (info) => {
             const resource = resources.details[info.event.extendedProps.resourceId];
             if (resource?.kind !== "event" || saving) {
