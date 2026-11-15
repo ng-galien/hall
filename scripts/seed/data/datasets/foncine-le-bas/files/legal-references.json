@@ -1,0 +1,463 @@
+{
+ "source": "Légifrance, API PISTE, Code général des collectivités territoriales",
+ "license": "Licence Ouverte 2.0",
+ "retrievedAt": "2026-11-15T15:52:34.510Z",
+ "references": [
+  {
+   "article": "L2121-2",
+   "title": "Code général des collectivités territoriales, article L2121-2",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006389856",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:34.510Z",
+    "snapshots": [
+     {
+      "id": "b5f922f8-ca64-4293-98f4-63b9c39dc5d4",
+      "validTo": null,
+      "commonId": "LEGIARTI000006389856",
+      "fetchedAt": "2026-11-15T15:52:34.510Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000027433884",
+      "contentHash": "8c1aa2d06927b670d4eae285a48c7c4e5d91de1a450cc9bf4da789e465284344",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "8bd0dfea3975d1c98f456b4b4d38bf352d67d319f5de1825711e40a493a58b95",
+      "normalizedContent": "Le nombre des membres du conseil municipal des communes est fixé conformément au tableau ci-après : COMMUNES NOMBRE DES MEMBRES du conseil municipal De moins de 100 habitants 7 De 100 à 499 habitants 11 De 500 à 1 499 habitants 15 De 1 500 à 2 499 habitants 19 De 2 500 à 3 499 habitants 23 De 3 500 à 4 999 habitants 27 De 5 000 à 9 999 habitants 29 De 10 000 à 19 999 habitants 33 De 20 000 à 29 999 habitants 35 De 30 000 à 39 999 habitants 39 De 40 000 à 49 999 habitants 43 De 50 000 à 59 999 habitants 45 De 60 000 à 79 999 habitants 49 De 80 000 à 99 999 habitants 53 De 100 000 à 149 999 habitants 55 De 150 000 à 199 999 habitants 59 De 200 000 à 249 999 habitants 61 De 250 000 à 299 999 habitants 65 Et de 300 000 et au-dessus 69"
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027433884",
+    "versionId": "LEGIARTI000027433884",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "8bd0dfea3975d1c98f456b4b4d38bf352d67d319f5de1825711e40a493a58b95",
+    "citationLabel": "L2121-2",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:34.510Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2121-10",
+   "title": "Code général des collectivités territoriales, article L2121-10",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006389865",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:35.826Z",
+    "snapshots": [
+     {
+      "id": "18b055f8-6eeb-40a3-9534-1841f296fa9e",
+      "validTo": null,
+      "commonId": "LEGIARTI000006389865",
+      "fetchedAt": "2026-11-15T15:52:35.826Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000041410274",
+      "contentHash": "a62e673cfe82d09ade094421925a0d2c07bc8e2beb4a25b15121607587009a24",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "1f1eb3bd411ee8e213800fcee4ccd1d06ecf08ae2cc5127895d6009933d3d619",
+      "normalizedContent": "Toute convocation est faite par le maire. Elle indique les questions portées à l'ordre du jour. Elle est mentionnée au registre des délibérations, affichée ou publiée. Elle est transmise de manière dématérialisée ou, si les conseillers municipaux en font la demande, adressée par écrit à leur domicile ou à une autre adresse."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041410274",
+    "versionId": "LEGIARTI000041410274",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "1f1eb3bd411ee8e213800fcee4ccd1d06ecf08ae2cc5127895d6009933d3d619",
+    "citationLabel": "L2121-10",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:35.826Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2121-11",
+   "title": "Code général des collectivités territoriales, article L2121-11",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006389867",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:37.183Z",
+    "snapshots": [
+     {
+      "id": "6f47fe50-5f60-4a26-ad41-2edb303bb6bd",
+      "validTo": null,
+      "commonId": "LEGIARTI000006389867",
+      "fetchedAt": "2026-11-15T15:52:37.183Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000006389867",
+      "contentHash": "fff0ec630fa2e5c09783db2beb7b98827b4572d2afcdfeccc28eb32ebb7a3aec",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "be4acfd41bdfd37d728c5f0600fe3d104adcfac922bbd87562cbafa8ed098cab",
+      "normalizedContent": "Dans les communes de moins de 3 500 habitants, la convocation est adressée trois jours francs au moins avant celui de la réunion. En cas d'urgence, le délai peut être abrégé par le maire, sans pouvoir être toutefois inférieur à un jour franc. Le maire en rend compte dès l'ouverture de la séance au conseil municipal qui se prononce sur l'urgence et peut décider le renvoi de la discussion, pour tout ou partie, à l'ordre du jour d'une séance ultérieure."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389867",
+    "versionId": "LEGIARTI000006389867",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "be4acfd41bdfd37d728c5f0600fe3d104adcfac922bbd87562cbafa8ed098cab",
+    "citationLabel": "L2121-11",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:37.183Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2121-14",
+   "title": "Code général des collectivités territoriales, article L2121-14",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006389872",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:38.351Z",
+    "snapshots": [
+     {
+      "id": "d00f44f7-49a5-421e-a5e6-13ab85f9042e",
+      "validTo": null,
+      "commonId": "LEGIARTI000006389872",
+      "fetchedAt": "2026-11-15T15:52:38.351Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000051731835",
+      "contentHash": "30428b9222060177b7951d2a4d4881cc79fccd24c6ad687237eee43ca1597c7f",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "f5b7e6c9bde75fe835e58d02066a69be0f235a1f13ef8fb044ae406ea8f06ee9",
+      "normalizedContent": "Le conseil municipal est présidé par le maire et, à défaut, par celui qui le remplace. Dans les séances où le compte financier unique du maire est débattu, le conseil municipal élit son président. Dans ce cas, le maire peut, même s'il n'est plus en fonction, assister à la discussion ; mais il doit se retirer au moment du vote."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051731835",
+    "versionId": "LEGIARTI000051731835",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "f5b7e6c9bde75fe835e58d02066a69be0f235a1f13ef8fb044ae406ea8f06ee9",
+    "citationLabel": "L2121-14",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:38.351Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2121-15",
+   "title": "Code général des collectivités territoriales, article L2121-15",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006389873",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:39.474Z",
+    "snapshots": [
+     {
+      "id": "485103e1-e151-435d-906d-11fcec77f786",
+      "validTo": null,
+      "commonId": "LEGIARTI000006389873",
+      "fetchedAt": "2026-11-15T15:52:39.474Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000044190488",
+      "contentHash": "1476d58f23253823a29fc219297b7aac5ccbc0614d46a00b2247489088f87af0",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "e3c35b8bc06aa6b3cd1682ac264a33d82e7c91215633d094f686459cd73648ce",
+      "normalizedContent": "Au début de chacune de ses séances, le conseil municipal nomme un ou plusieurs de ses membres pour remplir les fonctions de secrétaire. Il peut adjoindre à ce ou ces secrétaires des auxiliaires, pris en dehors de ses membres, qui assistent aux séances mais sans participer aux délibérations. Le procès-verbal de chaque séance, rédigé par le ou les secrétaires, est arrêté au commencement de la séance suivante, et signé par le maire et le ou les secrétaires. Il contient la date et l'heure de la séance, les noms du président, des membres du conseil municipal présents ou représentés et du ou des secrétaires de séance, le quorum, l'ordre du jour de la séance, les délibérations adoptées et les rapports au vu desquels elles ont été adoptées, les demandes de scrutin particulier, le résultat des scrutins précisant, s'agissant des scrutins publics, le nom des votants et le sens de leur vote, et la teneur des discussions au cours de la séance. Dans la semaine qui suit la séance au cours de laquelle il a été arrêté, le procès-verbal est publié sous forme électronique de manière permanente et gratuite sur le site internet de la commune, lorsqu'il existe, et un exemplaire sur papier est mis à la disposition du public. L'exemplaire original du procès-verbal, qu'il soit établi sur papier ou sur support numérique, est conservé dans des conditions propres à en assurer la pérennité."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190488",
+    "versionId": "LEGIARTI000044190488",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "e3c35b8bc06aa6b3cd1682ac264a33d82e7c91215633d094f686459cd73648ce",
+    "citationLabel": "L2121-15",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:39.474Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2121-17",
+   "title": "Code général des collectivités territoriales, article L2121-17",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006389875",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:40.649Z",
+    "snapshots": [
+     {
+      "id": "517edf56-cdef-4389-a8a8-f0cd8cf693b2",
+      "validTo": null,
+      "commonId": "LEGIARTI000006389875",
+      "fetchedAt": "2026-11-15T15:52:40.649Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000006389875",
+      "contentHash": "ab33a2626731e487f003c07289903a4fd8dba42cabfd20842c6a43900e8406ea",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "3bce27eb01ace41fc328754ed49998fa9c1d3953dd8a7b358b6f6dfb5d4093d4",
+      "normalizedContent": "Le conseil municipal ne délibère valablement que lorsque la majorité de ses membres en exercice est présente. Si, après une première convocation régulièrement faite selon les dispositions des articles L. 2121-10 à L. 2121-12 , ce quorum n'est pas atteint, le conseil municipal est à nouveau convoqué à trois jours au moins d'intervalle. Il délibère alors valablement sans condition de quorum."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006389875",
+    "versionId": "LEGIARTI000006389875",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "3bce27eb01ace41fc328754ed49998fa9c1d3953dd8a7b358b6f6dfb5d4093d4",
+    "citationLabel": "L2121-17",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:40.649Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2121-20",
+   "title": "Code général des collectivités territoriales, article L2121-20",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006389878",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:41.970Z",
+    "snapshots": [
+     {
+      "id": "3cc1e36d-eb94-42a7-b13e-c1bed20e1557",
+      "validTo": null,
+      "commonId": "LEGIARTI000006389878",
+      "fetchedAt": "2026-11-15T15:52:41.970Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000053152931",
+      "contentHash": "e035f336ef0227160b56f0bc10e19bebd4eb4cd55b34290b21e7c55fd051a3b9",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "507160531266295e35a871bd1f3dd016531420d0c69b36abda9cea5e0bfeae3f",
+      "normalizedContent": "Un conseiller municipal empêché d'assister à une séance peut donner à un collègue de son choix pouvoir écrit de voter en son nom. Un même conseiller municipal ne peut être porteur que d'un seul pouvoir. Le pouvoir est toujours révocable. Sauf cas de maladie dûment constatée ou de congé de maternité dans les conditions prévues à l' article L. 331-3 du code de la sécurité sociale , il ne peut être valable pour plus de trois séances consécutives. Les délibérations sont prises à la majorité absolue des suffrages exprimés. Lorsqu'il y a partage égal des voix et sauf cas de scrutin secret, la voix du président est prépondérante."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053152931",
+    "versionId": "LEGIARTI000053152931",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "507160531266295e35a871bd1f3dd016531420d0c69b36abda9cea5e0bfeae3f",
+    "citationLabel": "L2121-20",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:41.970Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2121-21",
+   "title": "Code général des collectivités territoriales, article L2121-21",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006389879",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:43.030Z",
+    "snapshots": [
+     {
+      "id": "e99b46d8-7984-4833-9868-62c1baaf51f7",
+      "validTo": null,
+      "commonId": "LEGIARTI000006389879",
+      "fetchedAt": "2026-11-15T15:52:43.030Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000044190497",
+      "contentHash": "5898436ca279a1ec0ece77e049358724122bc85772e5092438fa20107f7f2444",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "96f790c9a19a6efa5587f56f664a29e92192fd6dc0952d39811689bda6553245",
+      "normalizedContent": "Le vote a lieu au scrutin public à la demande du quart des membres présents. Il est voté au scrutin secret : 1° Soit lorsqu'un tiers des membres présents le réclame ; 2° Soit lorsqu'il y a lieu de procéder à une nomination ou à une présentation. Dans ces derniers cas, si aucun des candidats n'a obtenu la majorité absolue après deux tours de scrutin secret, il est procédé à un troisième tour de scrutin et l'élection a lieu à la majorité relative ; à égalité de voix, l'élection est acquise au plus âgé. Le conseil municipal peut décider, à l'unanimité, de ne pas procéder au scrutin secret aux nominations ou aux présentations, sauf disposition législative ou réglementaire prévoyant expressément ce mode de scrutin. Si une seule candidature a été déposée pour chaque poste à pourvoir au sein des commissions municipales ou dans les organismes extérieurs, ou si une seule liste a été présentée après appel de candidatures, les nominations prennent effet immédiatement, dans l'ordre de la liste le cas échéant, et il en est donné lecture par le maire. Tout conseiller municipal atteint d'infirmité certaine et le mettant dans l'impossibilité d'introduire son bulletin dans l'enveloppe est autorisé à se faire assister par une personne de son choix."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190497",
+    "versionId": "LEGIARTI000044190497",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "96f790c9a19a6efa5587f56f664a29e92192fd6dc0952d39811689bda6553245",
+    "citationLabel": "L2121-21",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:43.030Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2131-1",
+   "title": "Code général des collectivités territoriales, article L2131-1",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006390075",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:44.524Z",
+    "snapshots": [
+     {
+      "id": "23272790-5e73-4e2a-8ef5-06d04aac575f",
+      "validTo": null,
+      "commonId": "LEGIARTI000006390075",
+      "fetchedAt": "2026-11-15T15:52:44.524Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000044190563",
+      "contentHash": "fb95a77d10354c335ccb60518ca1120580bbc79aadf6556842e0e3d391730a4d",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "81d563ccb006380626a76b4acf2aad436a7a006f9daaba90824e8a47896f0388",
+      "normalizedContent": "I.-Les actes pris par les autorités communales sont exécutoires de plein droit dès qu'ils ont été portés à la connaissance des intéressés dans les conditions prévues au présent article et, pour les actes mentionnés à l'article L. 2131-2, qu'il a été procédé à la transmission au représentant de l'Etat dans le département ou à son délégué dans l'arrondissement prévue par cet article. Le maire peut, sous sa responsabilité, certifier le caractère exécutoire d'un acte. II.-Les décisions individuelles prises par les autorités communales sont notifiées aux personnes qui en font l'objet. III.-Les actes réglementaires et les décisions ne présentant ni un caractère réglementaire, ni un caractère individuel font l'objet d'une publication sous forme électronique, dans des conditions fixées par décret en Conseil d'Etat, de nature à garantir leur authenticité et à assurer leur mise à disposition du public de manière permanente et gratuite. IV.-Par dérogation aux dispositions du III, dans les communes de moins de 3 500 habitants, les actes réglementaires et les décisions ni réglementaires, ni individuelles sont rendus publics : 1° Soit par affichage ; 2° Soit par publication sur papier, dans des conditions fixées par décret en Conseil d'Etat ; 3° Soit par publication sous forme électronique, dans les conditions prévues au III. Le conseil municipal choisit le mode de publicité applicable dans la commune. Il peut modifier ce choix à tout moment. A défaut de délibération sur ce point, les dispositions du III sont applicables. En cas de création d'une commune de 3 500 habitants ou plus par fusion de communes dont aucune ne dépassait ce seuil, le conseil municipal de la commune nouvelle dispose de la faculté de choix prévue au présent IV pendant une période de six mois à compter de la publication de l'arrêté préfectoral portant création de la commune nouvelle. Au terme de ce délai, les dispositions du III s'appliquent. V.-En cas d'urgence, un acte devant, en vertu des dispositions du III ou du IV, faire l'objet d'une publication par voie électronique ou sur papier entre en vigueur dès qu'il a été procédé à son affichage et, s'il est soumis aux dispositions de l'article L. 2131-2, à sa transmission au représentant de l'Etat dans le département ou à son délégué dans l'arrondissement. Il est néanmoins procédé dans les meilleurs délais à la publication normalement requise, qui peut seule faire courir le délai de recours contentieux. VI.-Lorsqu'une personne demande à obtenir sur papier un acte publié sous forme électronique, le maire le lui communique. Il n'est pas tenu de donner suite aux demandes abusives, en particulier par leur nombre ou par leur caractère répétitif ou systématique."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044190563",
+    "versionId": "LEGIARTI000044190563",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "81d563ccb006380626a76b4acf2aad436a7a006f9daaba90824e8a47896f0388",
+    "citationLabel": "L2131-1",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:44.524Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2131-11",
+   "title": "Code général des collectivités territoriales, article L2131-11",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006390096",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:45.706Z",
+    "snapshots": [
+     {
+      "id": "d01885f7-cec0-473e-9f4c-76170ec0f67d",
+      "validTo": null,
+      "commonId": "LEGIARTI000006390096",
+      "fetchedAt": "2026-11-15T15:52:45.706Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000053153029",
+      "contentHash": "fa6dc0803466aaf633b03406825b92025fcdf73f4ad841593d1217b4c2b22075",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "5fe605c9d6b4a0fd0a4e27e77a670004c26c48bf64e6eed4ce377a5178132d2d",
+      "normalizedContent": "Sont illégales les délibérations auxquelles a pris part un membre du conseil intéressé à l'affaire qui en fait l'objet, soit en son nom personnel, soit comme mandataire. Un membre du conseil ne peut être considéré comme ayant pris part à la délibération du seul fait de sa présence à la réunion de l'organe délibérant. Lorsqu'il est fait application du II de l'article L. 1111-6 , les représentants des collectivités territoriales ou des groupements de collectivités territoriales mentionnés au I du même article L. 1111-6 ne sont pas considérés, pour le calcul du quorum, comme des membres en exercice du conseil municipal."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053153029",
+    "versionId": "LEGIARTI000053153029",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "5fe605c9d6b4a0fd0a4e27e77a670004c26c48bf64e6eed4ce377a5178132d2d",
+    "citationLabel": "L2131-11",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:45.706Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L1111-10",
+   "title": "Code général des collectivités territoriales, article L1111-10",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000023245202",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:46.997Z",
+    "snapshots": [
+     {
+      "id": "852c1bfc-a092-46be-92d3-566fb3aeea9e",
+      "validTo": null,
+      "commonId": "LEGIARTI000023245202",
+      "fetchedAt": "2026-11-15T15:52:46.997Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000049357374",
+      "contentHash": "c52016718f844717b88557d85588dca5cbd2d7859d62dcc518bfacf38bb2fbac",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "291609950fb045fe853af850e3cf1936f65ca7f4068d140f0d7c17bb453df184",
+      "normalizedContent": "I.-Le département peut, à leur demande, contribuer au financement des projets dont la maîtrise d'ouvrage est assurée par les communes, leurs groupements, les établissements publics qui leur sont rattachés ou les sociétés dont ils détiennent une part du capital. Il peut, pour des raisons de solidarité territoriale et lorsque l'initiative privée est défaillante ou absente, contribuer au financement des opérations d'investissement en faveur des entreprises de services marchands nécessaires aux besoins de la population en milieu rural, dont la maîtrise d'ouvrage est assurée par des communes ou des établissements publics de coopération intercommunale à fiscalité propre. Il peut aussi contribuer au financement des opérations d'investissement en faveur de l'entretien et de l'aménagement de l'espace rural réalisées par les associations syndicales autorisées ou constituées d'office ou par leurs unions. II.-La région peut contribuer au financement des projets mentionnés aux 1°, 2°, 5° et 8° du I de l'article L. 211-7 du code de l'environnement, présentant un intérêt régional, dont la maîtrise d'ouvrage est assurée par une commune mentionnée au V de l'article L. 5210-1-1 du présent code, un établissement public de coopération intercommunale ou un syndicat mixte constitué en application de l'article L. 5711-1 . III.-A l'exception des collectivités territoriales et groupements de collectivités territoriales de Guadeloupe, Guyane, La Réunion, Martinique, Mayotte, Saint-Barthélemy, Saint-Martin et Saint-Pierre-et-Miquelon, toute collectivité territoriale ou tout groupement de collectivités territoriales, maître d'ouvrage d'une opération d'investissement, assure une participation minimale au financement de ce projet. Sans préjudice de l'application de l' article 9 de la loi n° 2003-710 du 1er août 2003 d'orientation et de programmation pour la ville et la rénovation urbaine, cette participation minimale du maître d'ouvrage est de 20 % du montant total des financements apportés par des personnes publiques à ce projet. Pour les projets d'investissement en matière de rénovation des monuments protégés au titre du code du patrimoine, cette participation minimale du maître d'ouvrage est de 20 % du montant total des financements apportés par des personnes publiques, sauf dérogation accordée par le représentant de l'Etat dans le département. Le représentant de l'Etat dans le département peut également accorder cette dérogation pour les opérations concernant le patrimoine non protégé, lorsqu'il l'estime justifié par l'urgence ou par la nécessité publique, ou lorsqu'il estime que la participation minimale est disproportionnée au vu de la capacité financière du maître d'ouvrage. Pour les projets d'investissement concernant les ponts et ouvrages d'art ainsi que ceux concernant les équipements pastoraux, pour ceux en matière de défense extérieure contre l'incendie et pour ceux concourant à la construction, à la reconstruction, à l'extension et aux réparations des centres de santé mentionnés à l'article L. 6323-1 du code de la santé publique, cette participation minimale du maître d'ouvrage peut faire l'objet de dérogations accordées par le représentant de l'Etat dans le département si son importance est disproportionnée par rapport à la capacité financière du maître d'ouvrage. Pour les projets d'investissement destinés à réparer les dégâts causés par des calamités publiques, cette participation minimale du maître d'ouvrage peut faire l'objet de dérogations accordées par le représentant de l'Etat dans le département, au vu de l'importance des dégâts et de la capacité financière des collectivités territoriales ou groupements de collectivités territoriales intéressés. Pour les projets d'investissement en matière d'eau potable et d'assainissement, d'élimination des déchets, de protection contre les incendies de forêts et de voirie communale qui sont réalisés par les établissements publics de coopération intercommunale à fiscalité propre de Corse ou par les communes membres d'un tel établissement lorsque les projets n'entrent pas dans le champ de compétence communautaire, cette participation minimale du maître de l'ouvrage est de 10 % du montant total des financements apportés par des personnes publiques. Pour les projets d'investissement destinés à restaurer la biodiversité au sein d'un site Natura 2000 exclusivement terrestre, cette participation minimale du maître d'ouvrage peut faire l'objet de dérogations accordées par le représentant de l'Etat dans le département, au vu de l'importance de la dégradation des habitats et des espèces et des orientations fixées dans le document d'objectifs mentionné à l'article L. 414-2 du code de l'environnement, lorsque le représentant de l'Etat estime que la participation minimale est disproportionnée au vu de la capacité financière du maître d'ouvrage. Cette dérogation est applicable aux projets d'investissement qui sont entièrement compris sur le territoire d'une commune de moins de 3 500 habitants ou d'un groupement de collectivités territoriales de moins de 40 000 habitants qui en assure la maîtrise d'ouvrage. Pour les opérations d'investissement financées par le fonds européen de développement régional dans le cadre d'un programme de coopération territoriale européenne, la participation minimale du maître d'ouvrage est de 15 % du montant total des financements apportés par des personnes publiques. Pour les projets d'investissement dont la maîtrise d'ouvrage est assurée par un syndicat mixte mentionné aux articles L. 5711-1 ou L. 5721-8 du présent code, par un pôle métropolitain ou par un pôle d'équilibre territorial et rural, les concours financiers au budget du groupement versés par ses membres, y compris les contributions exceptionnelles, sont considérés, pour l'application du présent III, comme des participations du maître d'ouvrage au financement de ces projets. Pour les projets d'investissement ayant pour objet la rénovation énergétique des bâtiments scolaires, la participation minimale du maître d'ouvrage peut être fixée par le représentant de l'Etat dans le département à 10 % du montant total des financements apportés par des personnes publiques, lorsque ce dernier estime que la participation minimale prévue au deuxième alinéa du présent III est disproportionnée au vu de la capacité financière du maître d'ouvrage. IV.-Par dérogation aux dispositions du présent article, les collectivités territoriales peuvent financer toute opération figurant dans les contrats de projet Etat-région ou dans les contrats de convergence et toute opération dont la maîtrise d'ouvrage relève de l'Etat, de ses établissements publics, de la société SNCF Réseau mentionnée à l'article L. 2111-9 du code des transports ou de sa filiale mentionnée au 5° du même article L. 2111-9. V.-Un décret en Conseil d'Etat fixe les modalités d'application du présent article."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000049357374",
+    "versionId": "LEGIARTI000049357374",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "291609950fb045fe853af850e3cf1936f65ca7f4068d140f0d7c17bb453df184",
+    "citationLabel": "L1111-10",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:46.997Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  },
+  {
+   "article": "L2212-2",
+   "title": "Code général des collectivités territoriales, article L2212-2",
+   "document": {
+    "fund": "CODE_ETAT",
+    "commonId": "LEGIARTI000006390150",
+    "provider": "legifrance",
+    "fetchedAt": "2026-11-15T15:52:48.329Z",
+    "snapshots": [
+     {
+      "id": "a35a735b-a8ee-42e4-a2ed-32b92d54c41d",
+      "validTo": null,
+      "commonId": "LEGIARTI000006390150",
+      "fetchedAt": "2026-11-15T15:52:48.329Z",
+      "validFrom": null,
+      "versionId": "LEGIARTI000029946370",
+      "contentHash": "91342fd5b9bc2b4bcf2f32a8528847b93b056b6d70773c2388e5536f8b3bbe84",
+      "effectiveAt": null,
+      "legalStatus": "VIGUEUR",
+      "snapshotHash": "3828ece308ab46b17f99fb1925a66a9c4ae3437703fac3e95086e127270b7a2c",
+      "normalizedContent": "La police municipale a pour objet d'assurer le bon ordre, la sûreté, la sécurité et la salubrité publiques. Elle comprend notamment : 1° Tout ce qui intéresse la sûreté et la commodité du passage dans les rues, quais, places et voies publiques, ce qui comprend le nettoiement, l'éclairage, l'enlèvement des encombrements, la démolition ou la réparation des édifices et monuments funéraires menaçant ruine, l'interdiction de rien exposer aux fenêtres ou autres parties des édifices qui puisse nuire par sa chute ou celle de rien jeter qui puisse endommager les passants ou causer des exhalaisons nuisibles ainsi que le soin de réprimer les dépôts, déversements, déjections, projections de toute matière ou objet de nature à nuire, en quelque manière que ce soit, à la sûreté ou à la commodité du passage ou à la propreté des voies susmentionnées ; 2° Le soin de réprimer les atteintes à la tranquillité publique telles que les rixes et disputes accompagnées d'ameutement dans les rues, le tumulte excité dans les lieux d'assemblée publique, les attroupements, les bruits, les troubles de voisinage, les rassemblements nocturnes qui troublent le repos des habitants et tous actes de nature à compromettre la tranquillité publique ; 3° Le maintien du bon ordre dans les endroits où il se fait de grands rassemblements d'hommes, tels que les foires, marchés, réjouissances et cérémonies publiques, spectacles, jeux, cafés, églises et autres lieux publics ; 4° L'inspection sur la fidélité du débit des denrées qui se vendent au poids ou à la mesure et sur la salubrité des comestibles exposés en vue de la vente ; 5° Le soin de prévenir, par des précautions convenables, et de faire cesser, par la distribution des secours nécessaires, les accidents et les fléaux calamiteux ainsi que les pollutions de toute nature, tels que les incendies, les inondations, les ruptures de digues, les éboulements de terre ou de rochers, les avalanches ou autres accidents naturels, les maladies épidémiques ou contagieuses, les épizooties, de pourvoir d'urgence à toutes les mesures d'assistance et de secours et, s'il y a lieu, de provoquer l'intervention de l'administration supérieure ; 6° Le soin de prendre provisoirement les mesures nécessaires contre les personnes atteintes de troubles mentaux dont l'état pourrait compromettre la morale publique, la sécurité des personnes ou la conservation des propriétés ; 7° Le soin d'obvier ou de remédier aux événements fâcheux qui pourraient être occasionnés par la divagation des animaux malfaisants ou féroces."
+     }
+    ],
+    "sourceUrl": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000029946370",
+    "versionId": "LEGIARTI000029946370",
+    "attribution": "Source : DILA - Légifrance. Données réutilisées sous Licence Ouverte 2.0. Vérifier la source officielle.",
+    "effectiveAt": null,
+    "legalStatus": "VIGUEUR",
+    "snapshotHash": "3828ece308ab46b17f99fb1925a66a9c4ae3437703fac3e95086e127270b7a2c",
+    "citationLabel": "L2212-2",
+    "referenceKind": "article",
+    "resolutionStatus": "resolved",
+    "providerUpdatedAt": null,
+    "verificationDueAt": "2026-11-16T15:52:48.329Z",
+    "verificationStatus": "current",
+    "verificationFailedAt": null
+   }
+  }
+ ]
+}

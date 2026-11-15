@@ -71,6 +71,21 @@ postgresTest.each(["foncine-le-bas-session", "foncine-le-bas-minutes"])(
       expect(count("geographicLayer")).toBe(2);
       expect(count("event")).toBe(13);
       expect(count("spreadsheet")).toBe(7);
+      const references = catalog.filter((resource: { kind: string }) => resource.kind === "legalReference");
+      expect(references).toHaveLength(12);
+      for (const reference of references) {
+        const detail = await get(`/resources/${reference.id}`);
+        expect(detail.path).toBe("Guide/Références juridiques");
+        expect(detail.document).toMatchObject({
+          resolutionStatus: "resolved",
+          provider: "legifrance",
+          fund: "CODE_ETAT",
+        });
+        expect(detail.name).toBe(
+          `Code général des collectivités territoriales, article ${detail.document.citationLabel}`,
+        );
+        expect(detail.document.snapshots.at(-1).normalizedContent.length).toBeGreaterThan(100);
+      }
       expect(catalog.map((resource: { fullPath: string }) => resource.fullPath)).toEqual(
         expect.arrayContaining([
           "Voirie/Réfection du chemin communal du Mont Noir/Devis · Enrobé",

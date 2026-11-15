@@ -3,6 +3,7 @@ import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mediaTypeOf } from "../../common/api.mjs";
 import { accountsTracker, guide, presentationNote } from "./digital.mjs";
+import { seedLegalReferences } from "./legal-references.mjs";
 import { communalParcelLayer, communalParcels, mapDefinitions, riversideParcels, territory } from "./maps.mjs";
 import { documents, folders, illustrations, imageFile, proxies } from "./media.mjs";
 import { associations, companies, demonstrationIntroduction, demonstrationNotice, fullName } from "./names.mjs";
@@ -23,25 +24,6 @@ const folderColors = {
   [folders.forest]: "#14532D",
   [folders.walk]: "#15803D",
 };
-/**
- * Articles of the general code of local authorities chosen by the official search of Hall, which searches that
- * code only. The articles of the other codes cited by the dataset (road code L141-8, rural code L161-1, forest
- * code L243-1, environment code L361-1) are named in the texts; the road code is reached by its web link.
- */
-const legalArticles = [
-  "L2121-2",
-  "L2121-10",
-  "L2121-11",
-  "L2121-14",
-  "L2121-15",
-  "L2121-17",
-  "L2121-20",
-  "L2121-21",
-  "L2131-1",
-  "L2131-11",
-  "L1111-10",
-  "L2212-2",
-];
 
 /**
  * Seeds the documents, media, spreadsheets, maps, layers, calendar, mail drafts and personal notes of the
@@ -434,32 +416,7 @@ La maire de Foncine-le-Bas, vu le code général des collectivités territoriale
     );
     await attach(business, resources[name]);
   }
-  const legal = {};
-  const expectedTitle = (article) => `Code général des collectivités territoriales, article ${article}`;
-  for (const article of legalArticles) {
-    try {
-      const match = (await post("/resources/legal-references/search", { query: article, effectiveAt: null })).find(
-        (candidate) => candidate.citationLabel === article && candidate.title === expectedTitle(article),
-      );
-      if (!match) throw new Error(`aucun résultat Légifrance pour l’article ${article}`);
-      const draft = await createWorkspaceResource({ kind: "legalReference", name: match.title, path: folders.legal }, [
-        "droit",
-      ]);
-      await post(`/resources/${draft.id}/legal-reference/resolve`, {
-        title: match.title,
-        provider: match.provider,
-        referenceKind: match.referenceKind,
-        fund: match.fund,
-        versionId: match.versionId,
-        effectiveAt: match.effectiveAt,
-      });
-      legal[article] = draft;
-    } catch (error) {
-      console.warn(
-        `  Référence juridique ${article} non créée : ${error instanceof Error ? error.message.slice(0, 80) : String(error)}`,
-      );
-    }
-  }
+  const legal = await seedLegalReferences(api, folders.legal);
   await attach("montNoir", legal["L1111-10"]);
   await attach("digital", legal["L2121-10"]);
 

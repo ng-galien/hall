@@ -53,6 +53,7 @@ export function createSeedApi(baseUrl, session = {}) {
   const post = (path, body) => request("POST", path, body);
   const put = (path, body) => request("PUT", path, body);
   const patch = (path, body) => request("PATCH", path, body);
+  const remove = (path) => request("DELETE", path);
 
   async function setResourceTags(resource, tags) {
     if (tags.length === 0) return resource;
@@ -196,6 +197,7 @@ export function createSeedApi(baseUrl, session = {}) {
     post,
     put,
     patch,
+    remove,
     createWorkspaceResource,
     createGeographicResource,
     uploadDocument,
