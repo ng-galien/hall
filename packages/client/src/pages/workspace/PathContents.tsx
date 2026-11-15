@@ -1387,7 +1387,7 @@ export function PathContents({
         {feedback}
       </p>
       <div className="path-contents-tree" ref={treeRef}>
-        <ListRows aria-label={t("workspace.contents")} onKeyDown={handleTreeKeyDown}>
+        <ListRows aria-label={t("workspace.contents")} data-wrap="true" onKeyDown={handleTreeKeyDown}>
           {phone ? (
             rootEntries
           ) : (

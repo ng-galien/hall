@@ -148,7 +148,13 @@ export function SearchResultsPanel({
             {t("workspace.noResults")}
           </p>
         ) : null}
-        <ListRows role="listbox" className="search-results-list" data-testid={`${testId}-results`} aria-busy={loading}>
+        <ListRows
+          role="listbox"
+          className="search-results-list"
+          data-testid={`${testId}-results`}
+          data-wrap="true"
+          aria-busy={loading}
+        >
           {items.map((item, index) => (
             <SearchHit
               key={`${item.kind}:${item.id}`}

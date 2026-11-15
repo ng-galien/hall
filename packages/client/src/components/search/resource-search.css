@@ -11,6 +11,10 @@
 .search-hit[data-active] > .list-row-line { background:var(--hall-color-surface-selected); }
 .search-hit .list-row-main:focus-visible { outline:var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset:calc(-1 * var(--hall-stroke-thick)); }
 .search-hit-title { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* In a narrow list of results (a phone), the title is written in full, as the titles of the other rows of that list. */
+@container (max-width: 760px) {
+  .list-row-list[data-wrap="true"] .search-hit-title { overflow:visible; overflow-wrap:anywhere; white-space:normal; }
+}
 .shared-search-inline { width:min(var(--hall-size-relative-36rem),calc(100vw - var(--hall-size-relative-2rem))); padding:var(--hall-space-3); border:var(--hall-stroke-thin) solid var(--hall-color-border); border-radius:var(--hall-radius-medium); background:var(--hall-color-surface); box-shadow:var(--hall-shadow-large); }
 .shared-search-inline .shared-resource-search { max-height:min(var(--hall-size-relative-24rem),55vh); }
 .attachment-picker-panel .shared-resource-search { flex:1; min-height:0; max-height:var(--hall-size-resource-picker-max-height); }
