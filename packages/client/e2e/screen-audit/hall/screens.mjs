@@ -86,14 +86,9 @@ export async function ready(page) {
   await page
     .waitForFunction(
       () => {
-        const loading = [...document.querySelectorAll("body *")].some(
-          (element) =>
-            /^Chargement/.test((element.firstChild?.textContent ?? "").trim()) && element.getClientRects().length > 0,
-        );
-        if (loading) return false;
         const main = document.querySelector("[data-testid=application-main]");
         if (main && !(main.textContent ?? "").trim()) return false;
-        return !document.querySelector("[data-testid=loading-indicator], [data-testid$=-loading], [aria-busy=true]");
+        return !document.querySelector(".loading-indicator, [data-testid$=-loading], [aria-busy=true]");
       },
       undefined,
       { timeout: 15_000 },
