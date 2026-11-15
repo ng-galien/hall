@@ -135,7 +135,7 @@ export function RepresentativeBodiesPage({
                   <>
                     <span className="body-row-object">{body.description || t(text.noDescription)}</span>
                     <span className="body-row-count">
-                      {` · ${t("members.count", { count: String(activeMembershipCount(body.id)) })}`}
+                      {t("members.count", { count: String(activeMembershipCount(body.id)) })}
                     </span>
                   </>
                 }
