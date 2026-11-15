@@ -134,11 +134,19 @@ export const test = base.extend<
     },
     { auto: true, timeout: 120_000 },
   ],
+  /*
+   * A navigation by address or a reload that the return of the history of a closed window interrupts (net::ERR_ABORTED)
+   * is made again once that return has arrived; a navigation by the router of the application needs no such care.
+   */
   page: async ({ page, builtInPdfViewer }, use) => {
     if (builtInPdfViewer !== undefined)
       await page.addInitScript((enabled) => {
         Object.defineProperty(Navigator.prototype, "pdfViewerEnabled", { configurable: true, get: () => enabled });
       }, builtInPdfViewer);
+    const goto = page.goto.bind(page);
+    const reload = page.reload.bind(page);
+    page.goto = (...parameters) => afterHistoryReturn(page, () => goto(...parameters));
+    page.reload = (...parameters) => afterHistoryReturn(page, () => reload(...parameters));
     await use(page);
   },
   appPage: async ({ page, isolatedDatabase: _isolatedDatabase }, use) => {
@@ -200,6 +208,17 @@ export async function openMenuEntry(page: import("@playwright/test").Page, desti
  * Runs a command of the opened item: directly when it is drawn on the line of the title, otherwise from its « … »
  * menu. `scope` is the screen or the document dialog that holds the item.
  */
+/** Runs a document navigation; one interrupted by the return of the history of a closed window is made again. */
+async function afterHistoryReturn<T>(page: Page, navigate: () => Promise<T>, attempts = 3): Promise<T> {
+  try {
+    return await navigate();
+  } catch (error) {
+    if (attempts <= 1 || !/net::ERR_ABORTED/.test(String(error))) throw error;
+    await page.waitForTimeout(300);
+    return afterHistoryReturn(page, navigate, attempts - 1);
+  }
+}
+
 /**
  * Waits until no closed window, sheet or panel still holds its entry of the browser history: closing one gives its entry
  * back by a return of the history, which would interrupt a navigation by address started at the same moment.

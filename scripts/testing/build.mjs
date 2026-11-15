@@ -26,11 +26,16 @@ function digest(entries) {
       .update("\0");
   return hash.digest("hex");
 }
-function trackedFiles() {
-  const result = spawnSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
-    cwd: root,
-    encoding: "utf8",
-  });
+/** Files read for a key: the tracked files, and with `untracked` also the files neither tracked nor ignored. */
+function trackedFiles({ untracked = false } = {}) {
+  const result = spawnSync(
+    "git",
+    ["ls-files", "--cached", ...(untracked ? ["--others", "--exclude-standard"] : []), "-z"],
+    {
+      cwd: root,
+      encoding: "utf8",
+    },
+  );
   if (result.status !== 0) throw new Error(result.stderr);
   const files = [...new Set(result.stdout.split("\0").filter(Boolean))].filter((path) => existsSync(join(root, path)));
   for (const name of [".env", ".env.local", ".env.production", ".env.production.local"]) {
@@ -64,7 +69,7 @@ export function sourceKey() {
 }
 function workspaceKey(name, outputs) {
   const directory = `packages/${name}/`;
-  const inputs = trackedFiles().filter(
+  const inputs = trackedFiles({ untracked: true }).filter(
     (path) =>
       (path.startsWith(directory) &&
         !path.startsWith(`${directory}tests/`) &&
