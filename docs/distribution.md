@@ -473,6 +473,14 @@ with the action `meeting.upload-proxy-document` under the access `meeting.conduc
 an account that registers the proxies of a meeting stores the signed written proxy at
 the root of the workspace without the right to create any other document.
 
+It replaces `hall_api.create_app_session`: each sign-in deletes the expired sessions of
+every account (requirement HALL-TR-SCH-030). It replaces
+`hall_api.issue_account_password_link`: each issued link first deletes the password links
+of every account that were used, superseded or expired, once issued more than an hour
+before (requirement HALL-FR-USR-080). A valid session and a usable link are never
+deleted. The first sign-in and the first issued link after the update remove the expired
+sessions and finished links kept before it.
+
 `hall migrate` from 1.3.0 also runs
 `packages/postgres/sql/migrations/010-drop-former-server-tables.sql` (requirement
 HALL-TR-SCH-030): it drops the seven former server tables of schema `public` (`users`,

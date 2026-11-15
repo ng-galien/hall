@@ -12257,7 +12257,8 @@
         "Les événements d’audit du serveur et ceux des commandes métier forment un seul journal, hall.audit_event, lu par l’API des événements d’audit.",
         "La montée d’une base 1.0.3 copie les sept tables du serveur de public dans hall avec leurs identifiants, empreintes de mot de passe, sessions actives, rôles, réglages, lieux, modèles personnalisés et dates ; elle vérifie pour chaque table le nombre de lignes et les identifiants copiés et échoue sans rien changer si une ligne manque.",
         "Plus aucun code ne lit ni n’écrit les tables public copiées ; une base où hall détient déjà un compte n’est pas recopiée.",
-        "La montée vers la 1.4.0 supprime les sept tables public copiées après avoir vérifié que hall détient chaque compte et chaque événement d’audit qu’elles portent, ainsi que le réglage de la commune ; si l’un manque, elle échoue sans rien changer. Les comptes et les sessions ouvertes restent valides. Une base qui n’a jamais eu ces tables est laissée inchangée, et une seconde exécution ne change rien."
+        "La montée vers la 1.4.0 supprime les sept tables public copiées après avoir vérifié que hall détient chaque compte et chaque événement d’audit qu’elles portent, ainsi que le réglage de la commune ; si l’un manque, elle échoue sans rien changer. Les comptes et les sessions ouvertes restent valides. Une base qui n’a jamais eu ces tables est laissée inchangée, et une seconde exécution ne change rien.",
+        "Chaque ouverture de session supprime les sessions expirées de tous les comptes ; une session encore valide n’est jamais supprimée."
       ],
       "clauses": [
         {
@@ -12270,6 +12271,12 @@
           "key": "former-tables-dropped-in-1-4-0",
           "origin": "product",
           "statement": "Décision du propriétaire du 15 novembre 2026, sur l’état des données personnelles : « on fait partir dans la prochaine version de le supprimer. De supprimer ces anciennes tables. » La version 1.4.0 supprime les sept tables public ; l’ancienne colonne hall.contact.phone n’est pas concernée.",
+          "sourceIds": []
+        },
+        {
+          "key": "expired-sessions-purged",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 15 novembre 2026, sur les corrections techniques de l’état des données personnelles : « le reste que tu as dit, ok ». Une session expirée ne sert plus et est supprimée ; le journal d’audit garde la trace des connexions.",
           "sourceIds": []
         }
       ]
@@ -12479,6 +12486,7 @@
         "An expired, used or superseded link, or the link of a disabled account, shows « Ce lien n’est plus utilisable. Demandez un nouveau lien. » with the access to the forgotten-password request, and opens no access. A link changes no role and does not reactivate a disabled account.",
         "After any password change, by a link, in « Mon compte », by an account manager or on reactivation, the previous password, the previous sessions and every open link are refused, and the holder receives « Votre mot de passe Hall a été modifié », which carries neither password nor link.",
         "One address receives at most one link per minute and three per hour, whatever their origin. A further request sends nothing and never blocks the account; the sign-in limits stay as they are. An account manager is told that the request is too frequent.",
+        "Issuing a link deletes the links of every account that were used, superseded or expired, once issued more than an hour before; a link still usable is never deleted.",
         "No password and no link appears in a log, the audit journal, a list or a user page. The link is built from the configured public address of Hall; without it, no account email is sent and the failure is recorded. Account emails use the injected outgoing-mail transport and the sender settings of the commune; they are not stored in the shared mailbox.",
         "Out of scope: MCP, a password sent by email, a multi-state follow-up, a redesign of sign-in limits, a new mail transport and a second factor. The interface names the mailbox of the commune « la messagerie de la commune ».",
         "Every password field of Hall (sign-in, link screen, change of one’s own password, password typed by an account manager) carries a command that shows or hides what is typed; its state is announced, the field is hidden again when its form is sent, and the browser password managers keep filling it.",
@@ -12555,6 +12563,12 @@
           "key": "sign-in-screens-name-the-commune",
           "origin": "product",
           "statement": "Owner requests of 14 November 2026: « L’écran de connexion, il est trop basique. On connaît pas le nom de la commune. Tous les écrans de connexion, de liens, etc. Faudrait quand même qu’il soit un peu mieux fait, et surtout qu’il soit raccord au niveau style. » ; « Avoir au moins, quand on se log, le logo, et puis le nom de la mairie. Un minimum de ça. »",
+          "sourceIds": []
+        },
+        {
+          "key": "finished-links-purged",
+          "origin": "product",
+          "statement": "Owner decision of 15 November 2026 on the technical corrections of the personal data review: « le reste que tu as dit, ok ». A used, superseded or expired link no longer serves and is deleted.",
           "sourceIds": []
         }
       ]

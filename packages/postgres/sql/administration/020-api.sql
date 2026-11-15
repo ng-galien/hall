@@ -201,10 +201,13 @@ BEGIN
 END;
 $$;
 
+-- @implements-requirement HALL-TR-SCH-030
+-- Opening a session deletes the expired sessions of every account.
 CREATE FUNCTION hall_api.create_app_session(target_user UUID, session_token_hash TEXT, session_expires_at TIMESTAMPTZ)
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE created hall.app_session;
 BEGIN
+  DELETE FROM hall.app_session WHERE expires_at <= statement_timestamp();
   INSERT INTO hall.app_session (user_id, token_hash, expires_at)
   VALUES (target_user, session_token_hash, session_expires_at)
   RETURNING * INTO created;
@@ -233,12 +236,16 @@ $$;
 -- Issues a link for an active account. The account receives at most one link per minute and three per hour,
 -- whatever their purpose; a refused issue leaves the account unchanged. A new link ends the previous open ones.
 -- The lifetime is one hour to recover a password and seven days for the invitation of a new account.
+-- Issuing a link first deletes the links of every account that were used, superseded or expired, once issued more than
+-- an hour before: the hourly limit still counts the recent ones.
 CREATE FUNCTION hall_api.issue_account_password_link(target UUID, link_purpose TEXT, link_token_hash TEXT, issued TIMESTAMPTZ)
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
 DECLARE
   account hall.app_user;
   created hall.account_password_link;
 BEGIN
+  DELETE FROM hall.account_password_link
+  WHERE issued_at <= issued - interval '1 hour' AND (ended_at IS NOT NULL OR expires_at <= issued);
   SELECT * INTO account FROM hall.app_user WHERE id = target FOR UPDATE;
   IF NOT FOUND THEN RETURN jsonb_build_object('outcome', 'not_found'); END IF;
   IF account.status <> 'active' THEN RETURN jsonb_build_object('outcome', 'inactive'); END IF;
