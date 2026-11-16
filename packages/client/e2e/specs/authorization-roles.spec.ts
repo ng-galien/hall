@@ -1,5 +1,5 @@
 import { type APIResponse, type Browser, expect, type Page, test } from "@playwright/test";
-import { clearTestDatabase, historySettled } from "../fixtures/application";
+import { clearTestDatabase, historySettled, resetAndSeedTestDatabase } from "../fixtures/application";
 
 const password = "Hall-roles-2026!";
 
@@ -212,4 +212,133 @@ test("only an administrator gives or withdraws the administrator role", async ({
   await expect(admin.getByTestId("user-roles-submit")).toHaveCount(0);
   const given = (await (await admin.request.get(`/api/users/${contributor.id}`)).json()).properties.roles;
   expect([...given].sort()).toEqual(["administrator", "contributor"]);
+});
+
+const demoPassword = process.env.SEED_DEMO_PASSWORD ?? "Hall-demo-2026!";
+
+async function entityProperties<T>(response: APIResponse): Promise<T[]> {
+  expect(response.ok(), await response.text()).toBeTruthy();
+  return (
+    ((await response.json()) as { entities?: { properties: T }[] }).entities?.map((entity) => entity.properties) ?? []
+  );
+}
+
+// @verifies-requirement HALL-FR-MIN-300
+test("the secretary in office at the closure drafts the minutes and another councillor only reads them", async ({
+  page: admin,
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(300_000);
+  resetAndSeedTestDatabase("minutes");
+  const origin = baseURL ?? "";
+  expect(
+    (
+      await admin.request.post("/api/auth/login", {
+        data: { email: "vercingetorix@alesia.example", password: demoPassword },
+      })
+    ).status(),
+  ).toBe(200);
+  const summaries = await entityProperties<{ id: string; generatedAt: string | null }>(
+    await admin.request.get("/api/minutes"),
+  );
+  const draft = summaries.find((entry) => !entry.generatedAt);
+  expect(draft, "The minutes scenario keeps a minutes draft").toBeTruthy();
+  const minutes = (
+    (await (await admin.request.get(`/api/minutes/${draft!.id}`)).json()) as {
+      properties: {
+        version: number;
+        facts: {
+          meeting: { chair: { id: string } | null; secretary: { id: string } | null };
+          agenda: { id: string }[];
+        };
+      };
+    }
+  ).properties;
+  const secretaryMemberId = minutes.facts.meeting.secretary?.id;
+  expect(secretaryMemberId).toBeTruthy();
+  const members = await entityProperties<{ id: string; contactId: string; active?: boolean }>(
+    await admin.request.get("/api/council-members"),
+  );
+  const secretaryContact = members.find((member) => member.id === secretaryMemberId)!.contactId;
+  const otherContact = members.find(
+    (member) => member.id !== secretaryMemberId && member.id !== minutes.facts.meeting.chair?.id,
+  )!.contactId;
+  const users = await entityProperties<{ email: string; contactId: string | null; roles: string[] }>(
+    await admin.request.get("/api/users"),
+  );
+  async function councillorAccount(contactId: string, email: string) {
+    const existing = users.find((user) => user.contactId === contactId);
+    if (existing) {
+      expect(existing.roles).toEqual(["councillor"]);
+      return existing.email;
+    }
+    await created(
+      await admin.request.post("/api/users", {
+        data: { email, displayName: email, password: demoPassword, roles: ["councillor"], contactId },
+      }),
+    );
+    return email;
+  }
+  const secretaryEmail = await councillorAccount(secretaryContact, "secretaire@alesia.example");
+  const otherEmail = await councillorAccount(otherContact, "conseiller@alesia.example");
+  const point = minutes.facts.agenda[0]!;
+
+  const sessionWith = async (email: string) => {
+    const context = await browser.newContext({ baseURL: origin });
+    await context.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+    expect((await context.request.post("/api/auth/login", { data: { email, password: demoPassword } })).status()).toBe(
+      200,
+    );
+    const page = await context.newPage();
+    page.setDefaultTimeout(20_000);
+    return page;
+  };
+
+  const secretary = await sessionWith(secretaryEmail);
+  await secretary.goto(`/app/minutes/${draft!.id}`);
+  const writingArea = secretary.getByTestId(`minutes-section-${point.id}`).getByTestId("editor-writing-area");
+  await expect(writingArea).toBeEditable();
+  const written = "Rédaction du secrétaire de séance après la clôture.";
+  await writingArea.fill(written);
+  await expect
+    .poll(
+      async () =>
+        (
+          (await (await admin.request.get(`/api/minutes/${draft!.id}`)).json()) as {
+            properties: { sections: { agendaItemId: string; content: string }[] };
+          }
+        ).properties.sections.find((section) => section.agendaItemId === point.id)?.content,
+    )
+    .toContain(written);
+  await expect(secretary.getByTestId("minutes-generate")).toBeVisible();
+  await secretary.screenshot({ path: test.info().outputPath("minutes-secretary.png") });
+  await secretary.context().close();
+
+  const other = await sessionWith(otherEmail);
+  await other.goto(`/app/minutes/${draft!.id}`);
+  await expect(other.getByTestId(`minutes-editorial-text-${point.id}`)).toContainText(written);
+  await expect(other.getByTestId(`minutes-section-${point.id}`)).toHaveCount(0);
+  await expect(other.getByTestId("minutes-generate")).toHaveCount(0);
+  const current = (
+    (await (await other.request.get(`/api/minutes/${draft!.id}`)).json()) as { properties: { version: number } }
+  ).properties;
+  const refused = await other.request.patch(`/api/minutes/${draft!.id}/draft`, {
+    data: { expectedVersion: current.version, agendaItemId: point.id, content: "Refusé" },
+  });
+  expect(refused.status()).toBe(403);
+  await other.screenshot({ path: test.info().outputPath("minutes-other-councillor.png") });
+  await other.context().close();
+
+  await admin.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+  await admin.goto("/app/settings?category=rights");
+  await admin.getByTestId("authorization-role-select").click();
+  await admin.getByTestId("authorization-role-councillor").click();
+  await admin.getByTestId("authorization-access-minutes.draft").click();
+  await expect(admin.getByTestId("authorization-condition-minutes.draft-minutesSecretary")).toHaveText(
+    "Procès-verbal de la séance dont il est secrétaire",
+  );
+  await expect(admin.getByTestId("authorization-access-minutes.draft")).toContainText(
+    "Procès-verbal de la séance dont il est secrétaire",
+  );
 });

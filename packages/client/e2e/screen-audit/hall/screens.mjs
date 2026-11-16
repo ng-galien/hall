@@ -230,6 +230,61 @@ export const screens = [
       (minutes) => !minutes.generatedAt,
     ),
   },
+  {
+    id: "proces-verbal-notes",
+    title: "Procès-verbal en brouillon, notes de séance affichées",
+    scenario: "minutes",
+    formats: ["tablette", "ordinateur"],
+    /** The command of « Déroulé de la séance » shows the meeting notes of every point beside or above its text. */
+    async open(page) {
+      const minutes = await first(page, "/api/minutes", (entry) => !entry.generatedAt);
+      await page.goto(`/app/minutes/${minutes.id}`);
+      const toggle = page.getByTestId("minutes-source-notes-toggle");
+      await toggle.waitFor({ state: "visible", timeout: 10_000 });
+      if ((await toggle.getAttribute("aria-pressed")) !== "true") await toggle.click();
+      await page
+        .getByTestId(/^minutes-source-notes-[0-9a-f]{8}-/)
+        .first()
+        .waitFor({ state: "visible", timeout: 10_000 });
+    },
+  },
+  {
+    id: "proces-verbal-ecriture-point",
+    title: "Écran d'écriture d'un point du procès-verbal",
+    scenario: "minutes",
+    formats: phone,
+    reopenAtEveryWidth: true,
+    /** « Modifier » of the first point of a draft opens its writing screen. */
+    async open(page) {
+      const minutes = await first(page, "/api/minutes", (entry) => !entry.generatedAt);
+      await page.goto(`/app/minutes/${minutes.id}`);
+      await page
+        .getByTestId(/^minutes-point-edit-/)
+        .first()
+        .click();
+      await visible(page, "minutes-point-writing");
+    },
+  },
+  {
+    id: "proces-verbal-ecriture-point-notes",
+    title: "Écran d'écriture d'un point, notes de séance affichées",
+    scenario: "minutes",
+    formats: phone,
+    reopenAtEveryWidth: true,
+    async open(page) {
+      const minutes = await first(page, "/api/minutes", (entry) => !entry.generatedAt);
+      await page.goto(`/app/minutes/${minutes.id}`);
+      await page
+        .getByTestId(/^minutes-point-edit-/)
+        .first()
+        .click();
+      await page.getByTestId("minutes-point-writing-notes").click();
+      await page
+        .getByTestId(/^minutes-source-notes-/)
+        .first()
+        .waitFor({ state: "visible", timeout: 10_000 });
+    },
+  },
   { id: "deliberations", title: "Délibérations", scenario: "minutes", open: route("/council-decisions") },
   {
     id: "deliberation",

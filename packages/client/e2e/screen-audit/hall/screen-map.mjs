@@ -57,7 +57,17 @@ export const screenFiles = [
     /pages\/council-meetings\/|features\/council-meetings\/|styles\/meeting-workspace\.css$/,
     ["seances", "seance-preparation", "seance-close", "point-vote"],
   ],
-  [/pages\/minutes\/|features\/minutes\//, ["proces-verbaux", "proces-verbal"]],
+  [
+    /pages\/minutes\/|features\/minutes\//,
+    [
+      "proces-verbaux",
+      "proces-verbal",
+      "proces-verbal-brouillon",
+      "proces-verbal-notes",
+      "proces-verbal-ecriture-point",
+      "proces-verbal-ecriture-point-notes",
+    ],
+  ],
   [/pages\/council-decisions\/|features\/council-decisions\//, ["deliberations", "deliberation"]],
   [
     /pages\/workspace\/WorkspaceBreadcrumb|pages\/workspace\/(WorkspaceWorkbenchHeader|ResourceWorkbench|useSessionControls)|features\/documents\/ResourcePreview/,

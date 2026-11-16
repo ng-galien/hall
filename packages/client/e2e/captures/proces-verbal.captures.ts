@@ -21,10 +21,13 @@ test("procès-verbal après la séance : des faits au PDF arrêté à la séance
   await page.getByTestId("minutes-facts").scrollIntoViewIfNeeded();
   await capture(page, `${journey}/03-faits-de-la-seance`);
 
-  const editorialTab = page.getByTestId(/^minutes-editorial-tab-/).first();
-  await editorialTab.scrollIntoViewIfNeeded();
-  await editorialTab.click();
-  await expect(page.getByTestId(/^minutes-editorial-panel-/).first()).toBeVisible();
+  const notesToggle = page.getByTestId("minutes-source-notes-toggle");
+  await notesToggle.scrollIntoViewIfNeeded();
+  await notesToggle.click();
+  await expect(notesToggle).toHaveAttribute("aria-pressed", "true");
+  const firstPoint = page.getByTestId(/^minutes-point-[0-9a-f]{8}-[0-9a-f-]+$/).first();
+  await expect(firstPoint.getByTestId(/^minutes-source-notes-/)).toBeVisible();
+  await firstPoint.scrollIntoViewIfNeeded();
   await capture(page, `${journey}/04-redaction-d-un-point`);
 
   await page.getByTestId("minutes-preview").click();

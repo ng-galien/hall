@@ -3,6 +3,7 @@ import type { APIResponse, Page } from "@playwright/test";
 import { expect, historySettled, openMenuEntry, test } from "../fixtures/application";
 import { backdateMeetingConduct } from "../fixtures/meetingHistory";
 import { establishRevision, generateCurrentNotice, saveMeetingField } from "../fixtures/meetingPreparation";
+import { pdfTextRuns } from "../fixtures/pdfText";
 import { writtenDate } from "../fixtures/writtenDate";
 
 test.use({ builtInPdfViewer: true });
@@ -748,7 +749,9 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
   });
   expect(await sirenItems(await page.request.get(`/api/ballots?meetingId=${meeting.id}`))).toHaveLength(0);
   const minutes = await sirenProperties<{
-    facts: { agenda: Array<{ id: string; agendaNumber: number; introducedAt: string; kind: string }> };
+    facts: {
+      agenda: Array<{ id: string; agendaNumber: number; introducedAt: string | null; kind: string; title: string }>;
+    };
     sections: Array<{ agendaItemId: string; content: string }>;
   }>(await page.request.get(`/api/minutes/${closed.minutesId}`));
   expect(minutes.facts.agenda.at(-1)).toMatchObject({
@@ -772,6 +775,36 @@ test("conducts a meeting without quorum, adjourns voting items and closes withou
     ).toContainText(paragraph);
   await page.getByTestId(`minutes-section-${addedQuestion.id}`).scrollIntoViewIfNeeded();
   await page.screenshot({ path: test.info().outputPath("added-open-question-minutes.png"), animations: "disabled" });
+  // @verifies-requirement HALL-FR-AGI-410
+  await expect(page.getByTestId(`minutes-point-added-${addedQuestion.id}`)).toHaveText(
+    /^Added during the meeting on .+/,
+  );
+  const convened = minutes.facts.agenda.filter((item) => !item.introducedAt);
+  expect(convened.length).toBeGreaterThan(0);
+  for (const item of convened) await expect(page.getByTestId(`minutes-point-added-${item.id}`)).toHaveCount(0);
+  await page
+    .getByTestId(`minutes-point-${addedQuestion.id}`)
+    .evaluate((point) => point.scrollIntoView({ block: "start" }));
+  await page.screenshot({ path: test.info().outputPath("added-open-question-point.png"), animations: "disabled" });
+  // The minutes print the questions added during the meeting in their own section after the convened points.
+  const preview = await page.request.get(`/api/minutes/${closed.minutesId}/preview`, { timeout: 60_000 });
+  expect(preview.ok()).toBeTruthy();
+  const minutesPdf = await preview.body();
+  await writeFile(test.info().outputPath("added-open-question-minutes.pdf"), minutesPdf);
+  const runs = (await pdfTextRuns(minutesPdf)).flatMap((page, index) =>
+    [...page].sort((a, b) => b.y - a.y).map((run) => ({ ...run, page: index })),
+  );
+  const order = (text: string) => runs.findIndex((run) => run.text.includes(text));
+  const section = order("Questions ajoutées en séance");
+  expect(section).toBeGreaterThan(-1);
+  for (const item of convened) {
+    const title = order(item.title.slice(0, 20));
+    expect(title, item.title).toBeGreaterThan(-1);
+    expect(title, item.title).toBeLessThan(section);
+  }
+  expect(
+    runs.findIndex((run, index) => index > section && run.text.includes("Question added during the meeting")),
+  ).toBeGreaterThan(section);
 });
 
 test("shows canonical meeting entry requirements and blocks entry again when the agenda is revised", async ({

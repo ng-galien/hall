@@ -134,8 +134,14 @@ test("all default templates preview real Alésia data with saved presentation", 
       expect(preview.html).toMatch(
         /Fait à <span class="hall-fill hall-fill-place"><\/span>, le <span class="hall-fill hall-fill-date"><\/span>/,
       );
-      expect(preview.html).toContain("Présidence de séance");
-      expect(preview.html).toContain("Secrétariat de séance");
+      expect(preview.html).toContain("Président de séance :");
+      expect(preview.html).toContain("Secrétaire de séance :");
+      expect(preview.html).not.toContain("Présidence de séance");
+      expect(preview.html).not.toContain("Secrétariat de séance");
+      // The meeting secretary signs on the left, the meeting chair on the right.
+      const secretarySignature = preview.html.indexOf("Le secrétaire de séance");
+      expect(secretarySignature).toBeGreaterThan(-1);
+      expect(preview.html.indexOf("Le président de séance")).toBeGreaterThan(secretarySignature);
     }
   }
   await page.goto(

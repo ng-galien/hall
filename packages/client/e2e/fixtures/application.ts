@@ -67,7 +67,8 @@ COMMIT;
   }
 }
 
-function resetAndSeedTestDatabase(seedScenario: "fresh" | "preparation" | "default" | "minutes") {
+/** Empties the dedicated browser test database, then seeds it through the API of the test server. */
+export function resetAndSeedTestDatabase(seedScenario: "fresh" | "preparation" | "default" | "minutes") {
   const serverPort = process.env.HALL_E2E_SERVER_PORT;
   if (!serverPort) throw new Error("The dedicated browser test server port is required");
   clearTestDatabase();
