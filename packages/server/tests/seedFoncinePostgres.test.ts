@@ -108,7 +108,25 @@ postgresTest.each(["foncine-le-bas-session", "foncine-le-bas-minutes"])(
 
       const meetings = await get("/council-meetings");
       const decisions = await get("/council-decisions");
-      expect(decisions.filter((decision: { state: string }) => decision.state === "frozen")).toHaveLength(8);
+      type DecisionSummary = { state: string; councilMeetingId: string; proposalId: string; number: string };
+      const meetingNumber = new Map(
+        meetings.map((meeting: { id: string; number: number }) => [meeting.id, meeting.number]),
+      );
+      const frozen = (decisions as DecisionSummary[]).filter((decision) => decision.state === "frozen");
+      expect(frozen.map((decision) => meetingNumber.get(decision.councilMeetingId)).sort()).toEqual([
+        1, 1, 1, 1, 2, 2, 2, 2, 3, 3,
+      ]);
+      for (const closed of meetings.filter((meeting: { number: number }) => meeting.number <= 3)) {
+        const items = await get(`/council-meetings/${closed.id}/agenda-items`);
+        const numbersInAgendaOrder = items
+          .sort((left: { position: number }, right: { position: number }) => left.position - right.position)
+          .map(
+            (item: { subject?: { id: string } }) =>
+              frozen.find((decision) => decision.proposalId === item.subject?.id)?.number,
+          )
+          .filter(Boolean);
+        expect(numbersInAgendaOrder).toEqual([...numbersInAgendaOrder].sort());
+      }
       expect(
         (await pool.query("SELECT mode, count(*)::int count FROM hall.ballots GROUP BY mode ORDER BY mode")).rows,
       ).toEqual([
