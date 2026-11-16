@@ -32,10 +32,6 @@
   }
   .markdown-editor-large > [role="toolbar"] { flex-wrap: wrap; }
   .resource-preview-text { padding: var(--hall-space-3); }
-  .app-main .maps-page { flex-direction: column; padding: var(--hall-space-3); }
-  .app-main .maps-panel { width: 100%; max-height: 35dvh; padding: 0 0 var(--hall-space-3); border-right: 0; border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
-  .app-main .maps-panel-collapsed { max-height: none; }
-  .app-main .maps-surface { min-height: 45dvh; }
   .app-main .hall-calendar { padding: var(--hall-space-3); }
   .hall-calendar .fc-header-toolbar { flex-wrap: wrap; gap: var(--hall-space-2); }
   .calendar-legend { flex-wrap: wrap; }
@@ -208,9 +204,6 @@
   .workspace-bar-search .shared-search-filter-label { display: none; }
   /* On a narrow map, the card of the selected element covers the Elements panel instead of sliding under it. */
   .geographic-feature-card { z-index: calc(var(--hall-z-content) + 1); }
-  /* Until a map is chosen, the list of maps keeps its whole height and the page scrolls down to the map. */
-  .app-main .maps-page[data-map-open="false"] { height: auto; min-height: 100%; }
-  .app-main .maps-page[data-map-open="false"] .maps-panel { flex: none; max-height: none; }
   /* The settings categories stay on one row that scrolls sideways. */
   /* Calendar on a phone: the screen fills the space between the header and the bar, the line of the period stays in
      place and only the grid or the list scrolls, from edge to edge. */

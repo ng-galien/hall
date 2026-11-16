@@ -3,7 +3,7 @@ import { type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ColorPicker, type ColorPickerPreset } from "@/components/ui/color-picker";
 import { Input } from "@/components/ui/input";
-import { DeleteIcon } from "../../components/icons";
+import { DeleteIcon, ListBulletedIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
@@ -14,13 +14,14 @@ export function GeographicLegend({
   actions,
 }: {
   entries: readonly GeographicLegendEntry[];
+  /** « Enregistrer ce cadrage », beside the button of the legend. */
   actions?: ReactNode;
 }) {
   const { t } = useI18n();
   const phone = usePhoneLayout();
   const [open, setOpen] = useState(!phone);
   const contentId = useId();
-  if (!entries.length) return actions ?? null;
+  if (!entries.length) return actions ? <div className="geographic-legend-controls">{actions}</div> : null;
   return (
     <aside className="geographic-legend" data-testid="geographic-legend">
       <div className="geographic-legend-controls">
@@ -32,7 +33,8 @@ export function GeographicLegend({
           aria-controls={contentId}
           onClick={() => setOpen((current) => !current)}
         >
-          {t("geographic.legend")}
+          <ListBulletedIcon />
+          <span>{t("geographic.legend")}</span>
         </Button>
         {actions}
       </div>

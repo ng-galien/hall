@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { CollapseIcon, ExpandIcon } from "../../components/icons";
+import { CollapseIcon, CouncilBusinessIcon, ExpandIcon, FolderIcon } from "../../components/icons";
 import { matchesQuery } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import { ExplorerTree, ExplorerTreeBranch } from "../../components/ui/explorer-tree";
@@ -133,12 +133,12 @@ export function MapsPanel({
   const found = query.trim() ? allMaps.filter((map) => matchesQuery(query, map.name, map.path)) : null;
 
   const phone = usePhoneLayout();
-  if (collapsed) {
+  if (collapsed && !phone) {
     return (
       <aside className="maps-panel maps-panel-collapsed" data-testid="maps-panel" aria-label={t("maps.panel")}>
         <Button
-          variant={phone ? "secondary" : "plain"}
-          size={phone ? "default" : "icon"}
+          variant="plain"
+          size="icon"
           type="button"
           data-testid="maps-panel-toggle"
           aria-expanded={false}
@@ -147,7 +147,6 @@ export function MapsPanel({
           onClick={() => onCollapsedChange(false)}
         >
           <ExpandIcon />
-          {phone ? t("maps.expandPanel") : null}
         </Button>
       </aside>
     );
@@ -156,8 +155,14 @@ export function MapsPanel({
   return (
     <aside className="maps-panel" data-testid="maps-panel" aria-label={t("maps.panel")}>
       <div className="maps-panel-header">
-        <h2 className="maps-panel-title">{t("navigation.maps")}</h2>
-        {phone && !activeId ? null : (
+        <SearchInput
+          data-testid="maps-search"
+          value={query}
+          placeholder={t("maps.search")}
+          aria-label={t("maps.search")}
+          onChange={(event) => setQuery(event.currentTarget.value)}
+        />
+        {phone ? null : (
           <Button
             variant="plain"
             size="icon"
@@ -172,13 +177,6 @@ export function MapsPanel({
           </Button>
         )}
       </div>
-      <SearchInput
-        data-testid="maps-search"
-        value={query}
-        placeholder={t("maps.search")}
-        aria-label={t("maps.search")}
-        onChange={(event) => setQuery(event.currentTarget.value)}
-      />
       <div className="maps-panel-body">
         {maps === null ? (
           <LoadingIndicator size="zone" label={t("common.loading")} />
@@ -196,40 +194,43 @@ export function MapsPanel({
           </section>
         ) : (
           <>
-            <section className="maps-panel-section" data-testid="maps-recent">
-              <h3 className="maps-panel-section-title">{t("maps.recent")}</h3>
-              {recent.length === 0 ? (
-                <p className="maps-panel-empty">{t("maps.recentEmpty")}</p>
-              ) : (
+            {recent.length ? (
+              <section className="maps-panel-section" data-testid="maps-recent">
+                <h3 className="maps-panel-section-title">{t("maps.recent")}</h3>
                 <ListRows>
                   {recent.map((map) => (
                     <MapRow key={map.id} map={map} active={map.id === activeId} onOpen={onOpen} />
                   ))}
                 </ListRows>
-              )}
-            </section>
+              </section>
+            ) : null}
             <section className="maps-panel-section">
-              <fieldset className="maps-mode-switch">
-                <legend className="sr-only">{t("maps.listMode")}</legend>
-                <Button
-                  variant="secondary"
-                  type="button"
-                  data-testid="maps-mode-tree"
-                  aria-pressed={mode === "tree"}
-                  onClick={() => setMode("tree")}
-                >
-                  {t("maps.byFolder")}
-                </Button>
-                <Button
-                  variant="secondary"
-                  type="button"
-                  data-testid="maps-mode-business"
-                  aria-pressed={mode === "business"}
-                  onClick={() => setMode("business")}
-                >
-                  {t("maps.byBusiness")}
-                </Button>
-              </fieldset>
+              <div className="maps-panel-section-header">
+                <h3 className="maps-panel-section-title">{t("maps.all")}</h3>
+                <fieldset className="maps-mode-switch">
+                  <legend className="sr-only">{t("maps.listMode")}</legend>
+                  <Button
+                    variant="plain"
+                    type="button"
+                    data-testid="maps-mode-tree"
+                    aria-pressed={mode === "tree"}
+                    onClick={() => setMode("tree")}
+                  >
+                    <FolderIcon />
+                    {t("maps.byFolder")}
+                  </Button>
+                  <Button
+                    variant="plain"
+                    type="button"
+                    data-testid="maps-mode-business"
+                    aria-pressed={mode === "business"}
+                    onClick={() => setMode("business")}
+                  >
+                    <CouncilBusinessIcon />
+                    {t("maps.byBusiness")}
+                  </Button>
+                </fieldset>
+              </div>
               {allMaps.length === 0 ? (
                 <p className="maps-panel-empty">{t("maps.empty")}</p>
               ) : mode === "tree" ? (

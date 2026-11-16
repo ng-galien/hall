@@ -2,10 +2,12 @@ import type { ResourceDetail } from "@hall/api-contract";
 import type { GeographicResourceData, GeographicView } from "@hall/domain";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { CopyReferenceButton } from "../../components/CopyReferenceButton";
-import { OpenIcon } from "../../components/icons";
+import { copyObjectReference } from "../../components/CopyReferenceButton";
+import { CopyIcon, OpenIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
+import { type ItemCommand, ItemCommands } from "../../components/ui/item-commands";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
+import { FolderGlyph } from "../../features/documents/FolderGlyph";
 import { GeographicResourceMap } from "../../features/geographic/GeographicResourceMap";
 import { councilBusinessHref } from "../../features/references/referenceNavigation";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
@@ -27,6 +29,7 @@ import {
   parseMapsViewParameter,
 } from "./mapsView";
 import "./MapsPage.css";
+import { ScreenTitleCommands, ScreenTitleFacts } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
 type GeographicResource = Extract<ResourceDetail, { kind: "geographic" }>;
@@ -43,6 +46,8 @@ interface MapsSurface {
 
 const SEARCH_PAGE_SIZE = 100;
 const DEFAULT_SURFACE_SIZE: PixelSize = { width: 1024, height: 768 };
+/** Below this width an opened map takes the place of the list of maps, which stays one command away. */
+const NARROW_SCREEN = "(max-width: 1280px)";
 const COMMUNE_SURFACE_ID = "00000000-0000-4000-8000-000000000000";
 
 /** Lists every geographic resource through the workspace search relation. */
@@ -125,8 +130,9 @@ function workspaceResourceHref(resource: GeographicResource): string {
 }
 
 /**
- * Cartes entry: one map at a time, read-only, with a view that lives in the address and is never saved. On a phone an
- * opened map comes first and the list of maps is folded.
+ * Cartes entry: one map at a time, with a view that lives in the address and is never saved. The opened map is named by
+ * the title of the screen, its folder and businesses under it, its commands on the line of the title. Up to 1280 pixels
+ * an opened map folds the list of maps; on a phone the list and the map take the screen in turn.
  * @implements-requirement HALL-FR-WSP-310
  * @implements-requirement HALL-FR-WSP-330
  * @implements-requirement HALL-FR-WSP-340 (also: the businesses of the opened map are found among the documents of
@@ -246,10 +252,10 @@ export function MapsPage() {
   const openMapRoute = useCallback((id: string) => navigate(`/maps/${encodeURIComponent(id)}`), [navigate]);
 
   const opened = surface?.routeId ? surface.resource : null;
-  useEffect(() => {
-    if (phone && opened?.id) setPanelCollapsed(true);
-  }, [phone, opened?.id]);
   const openedId = opened?.id ?? null;
+  useEffect(() => {
+    if (openedId && window.matchMedia(NARROW_SCREEN).matches) setPanelCollapsed(true);
+  }, [openedId]);
   const businessIds = useMemo(() => businesses.map((business) => business.id).join(","), [businesses]);
   useEffect(() => {
     if (openedId && businessIds) void useCouncilBusinessStore.getState().loadResourceItems(businessIds.split(","));
@@ -260,20 +266,84 @@ export function MapsPage() {
     [businesses, opened],
   );
 
-  const copyReference = opened ? (
-    <CopyReferenceButton
-      size="icon"
-      reference={{
-        name: opened.name,
-        path: opened.path || undefined,
-        page: `/app/maps/${opened.id}`,
-        href: `/api/resources/${opened.slug}`,
-      }}
-    />
-  ) : null;
+  const commands: ItemCommand[] = opened
+    ? [
+        {
+          id: "copy-reference",
+          label: t("reference.copy"),
+          icon: <CopyIcon />,
+          testId: "copy-object-reference",
+          onSelect: () =>
+            void copyObjectReference({
+              name: opened.name,
+              path: opened.path || undefined,
+              page: `/app/maps/${opened.id}`,
+              href: `/api/resources/${opened.slug}`,
+            }).catch(() => undefined),
+        },
+        {
+          id: "open-in-workspace",
+          label: t("maps.openInWorkspace"),
+          icon: <OpenIcon />,
+          testId: "maps-open-workspace",
+          onSelect: () => navigate(workspaceResourceHref(opened)),
+        },
+      ]
+    : [];
 
   return (
     <div className="maps-page" data-testid="maps-page" data-map-open={opened ? "true" : "false"}>
+      {opened ? (
+        <>
+          <ScreenTitleCommands>
+            <ItemCommands expanded={!phone} frequent={phone ? [] : commands} menu={phone ? commands : []} />
+          </ScreenTitleCommands>
+          <ScreenTitleFacts>
+            <nav className="maps-context" data-testid="maps-context" aria-label={t("maps.folder")}>
+              <span className="maps-context-path">
+                <FolderGlyph />
+                <Link data-testid="maps-context-folder" data-path="" to="/workspace">
+                  {t("navigation.workspace")}
+                </Link>
+                {mapPathSegments(opened.path).map((segment) => (
+                  <span key={segment.path} className="maps-context-segment">
+                    <span aria-hidden="true">›</span>
+                    <Link
+                      data-testid="maps-context-folder"
+                      data-path={segment.path}
+                      to={`/workspace?path=${encodeURIComponent(segment.path)}`}
+                    >
+                      {segment.name}
+                    </Link>
+                  </span>
+                ))}
+              </span>
+              {relatedBusinesses.length ? (
+                <span className="maps-context-businesses">
+                  {relatedBusinesses.map((business) => (
+                    <Link
+                      key={business.id}
+                      className="workbench-business-chip"
+                      data-testid="maps-context-business"
+                      data-business-id={business.id}
+                      to={councilBusinessHref(business)}
+                    >
+                      <CouncilBusinessGlyph business={business} />
+                      {business.title}
+                    </Link>
+                  ))}
+                </span>
+              ) : null}
+            </nav>
+          </ScreenTitleFacts>
+        </>
+      ) : phone ? null : (
+        <ScreenTitleFacts>
+          <span className="maps-context-empty" data-testid="maps-context-empty">
+            {t("maps.noSelection")}
+          </span>
+        </ScreenTitleFacts>
+      )}
       <MapsPanel
         maps={maps}
         recentIds={recentIds}
@@ -283,59 +353,6 @@ export function MapsPage() {
         onOpen={openMapRoute}
       />
       <section className="maps-main" aria-label={t("navigation.maps")}>
-        {opened ? (
-          <header className="maps-context" data-testid="maps-context">
-            <div className="maps-context-title-row">
-              {phone ? null : copyReference}
-              <Link className="maps-context-open" data-testid="maps-open-workspace" to={workspaceResourceHref(opened)}>
-                <OpenIcon />
-                <span className="maps-context-open-label">{t("maps.openInWorkspace")}</span>
-              </Link>
-            </div>
-            <nav className="maps-context-path" aria-label={t("maps.folder")}>
-              <span className="maps-context-label">{t("maps.folder")}</span>
-              <Link data-testid="maps-context-folder" data-path="" to="/workspace">
-                {t("navigation.workspace")}
-              </Link>
-              {mapPathSegments(opened.path).map((segment) => (
-                <span key={segment.path} className="maps-context-segment">
-                  <span aria-hidden="true">›</span>
-                  <Link
-                    data-testid="maps-context-folder"
-                    data-path={segment.path}
-                    to={`/workspace?path=${encodeURIComponent(segment.path)}`}
-                  >
-                    {segment.name}
-                  </Link>
-                </span>
-              ))}
-              {phone ? <span className="maps-context-path-end">{copyReference}</span> : null}
-            </nav>
-            <div className="maps-context-businesses">
-              <span className="maps-context-label">{t("maps.businesses")}</span>
-              {relatedBusinesses.length === 0 ? (
-                <span className="maps-context-empty">{t("workspace.noRelatedCouncilBusiness")}</span>
-              ) : (
-                relatedBusinesses.map((business) => (
-                  <Link
-                    key={business.id}
-                    className="workbench-business-chip"
-                    data-testid="maps-context-business"
-                    data-business-id={business.id}
-                    to={councilBusinessHref(business)}
-                  >
-                    <CouncilBusinessGlyph business={business} />
-                    {business.title}
-                  </Link>
-                ))
-              )}
-            </div>
-          </header>
-        ) : (
-          <header className="maps-context" data-testid="maps-context-empty">
-            <p className="maps-context-empty">{t("maps.noSelection")}</p>
-          </header>
-        )}
         <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
         <div className="maps-surface" data-testid="maps-surface" ref={surfaceRef}>
           {surface ? (

@@ -10,8 +10,9 @@ import {
   FilterIcon,
   FitBoundsIcon,
   HiddenIcon,
-  ListViewIcon,
+  LayersIcon,
   RulerIcon,
+  UploadIcon,
   VisibleIcon,
 } from "../../components/icons";
 import { Button } from "../../components/ui/button";
@@ -92,7 +93,7 @@ export function GeographicLayerControls({
             aria-pressed={workspaceMode === "draw"}
             onClick={() => onToggleMode("draw")}
           >
-            <ListViewIcon />
+            <EditIcon />
             <span>{t("geographic.modeDraw")}</span>
           </Button>
           <Button
@@ -115,190 +116,209 @@ export function GeographicLayerControls({
             aria-label={t("geographic.layersOpen")}
             onClick={() => setLayersOpen((open) => !open)}
           >
-            {t("geographic.layers")}
+            <LayersIcon />
+            <span>{t("geographic.layers")}</span>
           </Button>
           {layersOpen ? (
-            <ul className="geographic-layers-panel" aria-label={t("geographic.layers")}>
-              <li
-                className={`geographic-layer-row geographic-layer-fixed${hallLayerVisible ? " geographic-layer-enabled" : ""}`}
-                data-testid="geographic-layer-drawing"
-              >
-                <Button
-                  variant="plain"
-                  size="icon"
-                  type="button"
-                  aria-pressed={workspaceMode === "draw"}
-                  aria-label={t("geographic.drawingLayerEdit")}
-                  title={t("geographic.drawingLayerEdit")}
-                  disabled={!canUpdate}
-                  onClick={() => onToggleMode("draw")}
+            <section className="geographic-layers-panel" aria-label={t("geographic.layers")}>
+              <ul className="geographic-layers-group" aria-label={t("geographic.drawingLayer")}>
+                <li
+                  className={`geographic-layer-row geographic-layer-fixed${hallLayerVisible ? " geographic-layer-enabled" : ""}`}
+                  data-testid="geographic-layer-drawing"
                 >
-                  <EditIcon />
-                </Button>
-                <Button
-                  variant="plain"
-                  size="icon"
-                  type="button"
-                  aria-pressed={hallLayerVisible}
-                  aria-label={t("geographic.layerVisible", { name: t("geographic.drawingLayer") })}
-                  title={t("geographic.layerVisible", { name: t("geographic.drawingLayer") })}
-                  onClick={() => onHallLayerVisible(!hallLayerVisible)}
-                >
-                  {hallLayerVisible ? <VisibleIcon /> : <HiddenIcon />}
-                </Button>
-                <span className="geographic-layer-name">{t("geographic.drawingLayer")}</span>
-                <span />
-              </li>
-              {[...layers].reverse().map((layer) => {
-                const name = geographicLayerOptions.find(({ id }) => id === layer.id)?.title ?? layer.id;
-                return (
-                  <li
-                    className={`geographic-layer-row${layer.visible ? " geographic-layer-enabled" : ""}${draggedLayerId === layer.id ? " geographic-layer-dragging" : ""}${dropTargetLayerId === layer.id ? " geographic-layer-drop-target" : ""}`}
-                    key={layer.id}
-                    data-testid={`geographic-layer-${layer.id}`}
-                    onDragOver={(event) => {
-                      if (!canUpdate || !draggedLayerId) return;
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "move";
-                      setDropTargetLayerId(layer.id);
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      if (draggedLayerId) onMoveLayer(draggedLayerId, layer.id);
-                      setDraggedLayerId(null);
-                      setDropTargetLayerId(null);
-                    }}
+                  <Button
+                    variant="plain"
+                    size="icon"
+                    type="button"
+                    aria-pressed={workspaceMode === "draw"}
+                    aria-label={t("geographic.drawingLayerEdit")}
+                    title={t("geographic.drawingLayerEdit")}
+                    disabled={!canUpdate}
+                    onClick={() => onToggleMode("draw")}
                   >
-                    <Button
-                      variant="plain"
-                      size="icon"
-                      type="button"
-                      className="geographic-layer-drag-handle"
-                      draggable={canUpdate}
-                      disabled={!canUpdate}
-                      data-testid={`geographic-layer-drag-${layer.id}`}
-                      aria-label={t("geographic.layerDrag", { name: name })}
-                      title={t("geographic.layerDrag", { name: name })}
-                      onDragStart={(event) => {
-                        event.dataTransfer.effectAllowed = "move";
-                        event.dataTransfer.setData("text/plain", layer.id);
-                        setDraggedLayerId(layer.id);
-                      }}
-                      onDragEnd={() => {
-                        setDraggedLayerId(null);
-                        setDropTargetLayerId(null);
-                      }}
-                    >
-                      <DragHandleIcon />
-                    </Button>
-                    <Button
-                      variant="plain"
-                      size="icon"
-                      type="button"
-                      disabled={!canUpdate}
-                      aria-pressed={layer.visible}
-                      aria-label={t("geographic.layerVisible", { name: name })}
-                      title={t("geographic.layerVisible", { name: name })}
-                      onClick={() => onLayerVisibility(layer.id, !layer.visible)}
-                    >
-                      {layer.visible ? <VisibleIcon /> : <HiddenIcon />}
-                    </Button>
-                    <span className="geographic-layer-name">{name}</span>
-                    <input
-                      className="geographic-layer-opacity"
-                      type="range"
-                      min="0.1"
-                      max="1"
-                      step="0.05"
-                      value={layer.opacity}
-                      disabled={!canUpdate || !layer.visible}
-                      aria-label={t("geographic.layerOpacity", { name: name })}
-                      onChange={(event) => onLayerOpacity(layer.id, Number(event.currentTarget.value))}
-                    />
-                  </li>
-                );
-              })}
-              {[...overlays]
-                .sort((left, right) => right.position - left.position)
-                .map((overlay) => {
-                  const status = overlayStatuses[overlay.layerId] ?? "loading";
-                  const label = t("geographic.layerVisible", { name: overlay.name });
-                  return (
-                    <li
-                      className={`geographic-layer-row geographic-overlay-row${overlay.visible ? " geographic-layer-enabled" : ""}`}
-                      key={overlay.layerId}
-                      data-testid={`geographic-overlay-${overlay.layerId}`}
-                      data-overlay-status={status}
-                    >
-                      {municipalFilterLayerIds.has(overlay.layerId) ? (
+                    <EditIcon />
+                  </Button>
+                  <Button
+                    variant="plain"
+                    size="icon"
+                    type="button"
+                    aria-pressed={hallLayerVisible}
+                    aria-label={t("geographic.layerVisible", { name: t("geographic.drawingLayer") })}
+                    title={t("geographic.layerVisible", { name: t("geographic.drawingLayer") })}
+                    onClick={() => onHallLayerVisible(!hallLayerVisible)}
+                  >
+                    {hallLayerVisible ? <VisibleIcon /> : <HiddenIcon />}
+                  </Button>
+                  <span className="geographic-layer-name">{t("geographic.drawingLayer")}</span>
+                  <span />
+                </li>
+              </ul>
+              <section className="geographic-layers-section">
+                <h3 className="geographic-layers-section-title">{t("geographic.baseLayers")}</h3>
+                <ul className="geographic-layers-group">
+                  {[...layers].reverse().map((layer) => {
+                    const name = geographicLayerOptions.find(({ id }) => id === layer.id)?.title ?? layer.id;
+                    return (
+                      <li
+                        className={`geographic-layer-row${layer.visible ? " geographic-layer-enabled" : ""}${draggedLayerId === layer.id ? " geographic-layer-dragging" : ""}${dropTargetLayerId === layer.id ? " geographic-layer-drop-target" : ""}`}
+                        key={layer.id}
+                        data-testid={`geographic-layer-${layer.id}`}
+                        onDragOver={(event) => {
+                          if (!canUpdate || !draggedLayerId) return;
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "move";
+                          setDropTargetLayerId(layer.id);
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (draggedLayerId) onMoveLayer(draggedLayerId, layer.id);
+                          setDraggedLayerId(null);
+                          setDropTargetLayerId(null);
+                        }}
+                      >
                         <Button
                           variant="plain"
                           size="icon"
                           type="button"
-                          aria-pressed={municipalOnlyLayerIds.has(overlay.layerId)}
-                          aria-label={t("geographic.municipalOnlyOf", { name: overlay.name })}
-                          title={t("geographic.municipalOnlyOf", { name: overlay.name })}
-                          data-testid={`geographic-overlay-municipal-only-${overlay.layerId}`}
-                          onClick={() => onMunicipalOnly(overlay.layerId, !municipalOnlyLayerIds.has(overlay.layerId))}
+                          className="geographic-layer-drag-handle"
+                          draggable={canUpdate}
+                          disabled={!canUpdate}
+                          data-testid={`geographic-layer-drag-${layer.id}`}
+                          aria-label={t("geographic.layerDrag", { name: name })}
+                          title={t("geographic.layerDrag", { name: name })}
+                          onDragStart={(event) => {
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData("text/plain", layer.id);
+                            setDraggedLayerId(layer.id);
+                          }}
+                          onDragEnd={() => {
+                            setDraggedLayerId(null);
+                            setDropTargetLayerId(null);
+                          }}
                         >
-                          <FilterIcon />
+                          <DragHandleIcon />
                         </Button>
-                      ) : (
-                        <span className="geographic-layer-placeholder" />
-                      )}
+                        <Button
+                          variant="plain"
+                          size="icon"
+                          type="button"
+                          disabled={!canUpdate}
+                          aria-pressed={layer.visible}
+                          aria-label={t("geographic.layerVisible", { name: name })}
+                          title={t("geographic.layerVisible", { name: name })}
+                          onClick={() => onLayerVisibility(layer.id, !layer.visible)}
+                        >
+                          {layer.visible ? <VisibleIcon /> : <HiddenIcon />}
+                        </Button>
+                        <span className="geographic-layer-name">{name}</span>
+                        <input
+                          className="geographic-layer-opacity"
+                          type="range"
+                          min="0.1"
+                          max="1"
+                          step="0.05"
+                          value={layer.opacity}
+                          disabled={!canUpdate || !layer.visible}
+                          aria-label={t("geographic.layerOpacity", { name: name })}
+                          onChange={(event) => onLayerOpacity(layer.id, Number(event.currentTarget.value))}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+              {overlays.length || onAddLayer || onImportMunicipalProperty ? (
+                <section className="geographic-layers-section">
+                  <h3 className="geographic-layers-section-title">{t("geographic.dataLayers")}</h3>
+                  {overlays.length ? (
+                    <ul className="geographic-layers-group">
+                      {[...overlays]
+                        .sort((left, right) => right.position - left.position)
+                        .map((overlay) => {
+                          const status = overlayStatuses[overlay.layerId] ?? "loading";
+                          const label = t("geographic.layerVisible", { name: overlay.name });
+                          return (
+                            <li
+                              className={`geographic-layer-row geographic-overlay-row${overlay.visible ? " geographic-layer-enabled" : ""}`}
+                              key={overlay.layerId}
+                              data-testid={`geographic-overlay-${overlay.layerId}`}
+                              data-overlay-status={status}
+                            >
+                              {municipalFilterLayerIds.has(overlay.layerId) ? (
+                                <Button
+                                  variant="plain"
+                                  size="icon"
+                                  type="button"
+                                  aria-pressed={municipalOnlyLayerIds.has(overlay.layerId)}
+                                  aria-label={t("geographic.municipalOnlyOf", { name: overlay.name })}
+                                  title={t("geographic.municipalOnlyOf", { name: overlay.name })}
+                                  data-testid={`geographic-overlay-municipal-only-${overlay.layerId}`}
+                                  onClick={() =>
+                                    onMunicipalOnly(overlay.layerId, !municipalOnlyLayerIds.has(overlay.layerId))
+                                  }
+                                >
+                                  <FilterIcon />
+                                </Button>
+                              ) : (
+                                <span className="geographic-layer-placeholder" />
+                              )}
+                              <Button
+                                variant="plain"
+                                size="icon"
+                                type="button"
+                                disabled={!canChangeOverlays}
+                                aria-pressed={overlay.visible}
+                                aria-label={label}
+                                title={label}
+                                data-testid={`geographic-overlay-visible-${overlay.layerId}`}
+                                onClick={() => onOverlayVisibility(overlay.layerId, !overlay.visible)}
+                              >
+                                {overlay.visible ? <VisibleIcon /> : <HiddenIcon />}
+                              </Button>
+                              <span className="geographic-layer-name" title={overlay.name}>
+                                {overlay.name}
+                              </span>
+                              <span
+                                className="geographic-overlay-meta"
+                                data-testid={`geographic-overlay-meta-${overlay.layerId}`}
+                              >
+                                {status === "ready" ? (
+                                  t("geographic.overlayFeatureCount", { count: formatNumber(overlay.featureCount) })
+                                ) : status === "loading" ? (
+                                  <LoadingIndicator label={t("geographic.overlayLoading")} />
+                                ) : (
+                                  t("geographic.overlayUnavailable")
+                                )}
+                              </span>
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  ) : null}
+                  {onAddLayer ? (
+                    <div className="geographic-layer-add">
+                      <Button variant="plain" type="button" data-testid="geographic-add-layer" onClick={onAddLayer}>
+                        <AddIcon />
+                        {t("geographic.addLayer")}
+                      </Button>
+                    </div>
+                  ) : null}
+                  {onImportMunicipalProperty ? (
+                    <div className="geographic-layer-add">
                       <Button
                         variant="plain"
-                        size="icon"
                         type="button"
-                        disabled={!canChangeOverlays}
-                        aria-pressed={overlay.visible}
-                        aria-label={label}
-                        title={label}
-                        data-testid={`geographic-overlay-visible-${overlay.layerId}`}
-                        onClick={() => onOverlayVisibility(overlay.layerId, !overlay.visible)}
+                        data-testid="geographic-import-municipal-property"
+                        onClick={onImportMunicipalProperty}
                       >
-                        {overlay.visible ? <VisibleIcon /> : <HiddenIcon />}
+                        <UploadIcon />
+                        {t("geographic.importMunicipalProperty")}
                       </Button>
-                      <span className="geographic-layer-name" title={overlay.name}>
-                        {overlay.name}
-                      </span>
-                      <span
-                        className="geographic-overlay-meta"
-                        data-testid={`geographic-overlay-meta-${overlay.layerId}`}
-                      >
-                        {status === "ready" ? (
-                          t("geographic.overlayFeatureCount", { count: formatNumber(overlay.featureCount) })
-                        ) : status === "loading" ? (
-                          <LoadingIndicator label={t("geographic.overlayLoading")} />
-                        ) : (
-                          t("geographic.overlayUnavailable")
-                        )}
-                      </span>
-                    </li>
-                  );
-                })}
-              {onAddLayer ? (
-                <li className="geographic-layer-add">
-                  <Button variant="secondary" type="button" data-testid="geographic-add-layer" onClick={onAddLayer}>
-                    <AddIcon />
-                    {t("geographic.addLayer")}
-                  </Button>
-                </li>
+                    </div>
+                  ) : null}
+                </section>
               ) : null}
-              {onImportMunicipalProperty ? (
-                <li className="geographic-layer-add">
-                  <Button
-                    variant="secondary"
-                    type="button"
-                    data-testid="geographic-import-municipal-property"
-                    onClick={onImportMunicipalProperty}
-                  >
-                    <AddIcon />
-                    {t("geographic.importMunicipalProperty")}
-                  </Button>
-                </li>
-              ) : null}
-            </ul>
+            </section>
           ) : null}
         </div>
       </div>

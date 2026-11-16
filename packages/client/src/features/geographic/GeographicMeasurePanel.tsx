@@ -365,6 +365,8 @@ export function GeographicMeasurePanel({
             ))}
             {tool !== "none" && !current ? (
               <HelpHint text={t(tool === "length" ? "geographic.measure.hintLength" : "geographic.measure.hintArea")} />
+            ) : tool === "none" ? (
+              <HelpHint text={t("geographic.measure.hintDrawing")} />
             ) : null}
           </div>
           <div className="geographic-measures-body">
@@ -401,9 +403,7 @@ export function GeographicMeasurePanel({
                 <p className="geographic-measures-title">{drawingMeasure.label ?? t("geographic.measure.drawing")}</p>
                 <MeasureReadout measure={drawingMeasure.measure} testId="geographic-measure-drawing-values" />
               </div>
-            ) : (
-              <p className="geographic-measures-hint">{t("geographic.measure.hintDrawing")}</p>
-            )}
+            ) : null}
             <p className="geographic-measures-title">{t("geographic.measure.saved")}</p>
             <SavedMeasurementList
               measurements={measurements}

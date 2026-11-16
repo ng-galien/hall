@@ -105,9 +105,6 @@
 .geographic-composition-tab-count { margin-inline-start: var(--hall-space-1); color: var(--hall-color-text-subtle); font-variant-numeric: tabular-nums; }
 .geographic-legend { display: flex; flex: 0 1 auto; flex-direction: column; min-height: 0; gap: var(--hall-space-1); }
 .geographic-legend-controls { display: flex; flex: none; align-self: flex-start; align-items: center; gap: 0; }
-/* With the legend open beside the zoom of a narrow map, « Enregistrer ce cadrage » passes under « Légende ». */
-.geographic-legend:has(> .geographic-legend-content:not([hidden])) > .geographic-legend-controls { flex-wrap: wrap; }
-.geographic-legend:has(> .geographic-legend-content:not([hidden])) > .geographic-legend-controls > * { flex: 1 1 auto; }
 .geographic-legend-content { min-height: 0; overflow: auto; padding: var(--hall-space-1) var(--hall-space-2); border: var(--hall-stroke-thin) solid var(--hall-color-border); border-radius: var(--hall-radius-medium); background: var(--hall-color-surface); box-shadow: var(--hall-shadow-medium); }
 .geographic-legend ul { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hall-space-1) var(--hall-space-3); list-style: none; padding: 0; margin: 0; }
 .geographic-legend li { display: flex; min-width: 0; align-items: center; gap: var(--hall-space-2); margin: 0; font-size: var(--hall-font-size-caption); }
@@ -167,20 +164,53 @@
   right: var(--hall-space-3);
   bottom: calc(var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control-small)) * 3 + var(--hall-space-2));
 }
-/* The commands laid over the map stand on the white surface of the map tools: a grey rule and a light shadow around
-   ordinary buttons. */
-.geographic-top-tools > .geographic-layers,
-.geographic-legend-controls {
+/* The commands laid over the map stand on the surface of the map tools: a grey rule and a light shadow around each
+   button; « Légende » and « Enregistrer ce cadrage » are two such buttons side by side, the colours of the legend in a
+   card above them. */
+.geographic-top-tools > .geographic-layers > .hall-button,
+.geographic-legend-controls > .hall-button {
   border-radius: var(--hall-radius-medium);
   background: var(--hall-color-surface);
   box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
 }
-/* On a phone the zoom stands above the line of « Légende » and « Enregistrer ce cadrage », which keeps the width of the
-   map on one line; an opened legend keeps clear of the zoom. */
-@media (max-width: 760px) {
-  .geographic-zoom-tools { bottom: calc(var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control-small)) + var(--hall-space-2)); }
-  .geographic-resource .ol-attribution.ol-control {
-    bottom: calc(var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control-small)) * 4 + var(--hall-space-2) * 2);
-  }
-  .geographic-map-overlay:not(:has(.geographic-legend-content:not([hidden]))) { max-width: calc(100% - var(--hall-space-6)); }
+.geographic-legend { flex-direction: column-reverse; gap: var(--hall-space-2); }
+.geographic-legend-controls { flex-wrap: wrap; gap: var(--hall-space-2); background: transparent; box-shadow: none; }
+.geographic-map-overlay > .geographic-legend-controls { align-self: flex-start; }
+/* A mode, the layers or the legend in use: blue on a pale ground, like the chosen entry of a switch. */
+.geographic-mode-switch > .hall-button[aria-pressed="true"],
+.geographic-layers > .hall-button[aria-expanded="true"],
+.geographic-legend-controls > .hall-button[aria-expanded="true"] {
+  color: var(--hall-color-brand);
+  background: var(--hall-color-brand-subtle);
 }
+.geographic-layers > .hall-button svg,
+.geographic-legend-controls > .hall-button svg,
+.geographic-save-view svg { flex: none; font-size: var(--hall-font-size-icon-small); }
+/* The layers: what is drawn on the map first, then the data layers, then the base maps, each group under its name. */
+.geographic-layers-panel.geographic-layers-panel {
+  z-index: calc(var(--hall-z-content) + 1);
+  width: min(calc(var(--hall-size-entity-card) * 1.25), calc(100cqw - 2 * var(--hall-space-3)));
+  max-height: calc(100cqh - var(--hall-size-control) - var(--hall-space-6) - var(--hall-space-1));
+  overflow-y: auto;
+  gap: var(--hall-space-2);
+  padding: var(--hall-space-2);
+}
+.geographic-map-stage { container-type: size; }
+/* The opened layers stand above the legend and the cards of the map. */
+.geographic-top-tools:has(.geographic-layers-panel) { z-index: calc(var(--hall-z-content) + 2); }
+.geographic-layers-group { display: grid; margin: 0; padding: 0; list-style: none; }
+.geographic-layers-section { display: grid; gap: var(--hall-space-0-5); }
+.geographic-layers-section-title {
+  margin: 0;
+  padding: 0 var(--hall-space-1);
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-caption);
+  font-weight: var(--hall-font-weight-semibold);
+}
+/* A data layer reads its whole name, its number of features under it. */
+.geographic-overlay-row.geographic-layer-row { grid-template-columns: auto auto minmax(0, 1fr); row-gap: 0; }
+.geographic-overlay-row > :nth-child(-n + 2) { grid-row: span 2; }
+.geographic-overlay-row > .geographic-layer-name { white-space: normal; overflow-wrap: anywhere; }
+.geographic-overlay-row > .geographic-overlay-meta { grid-column: 3; text-align: left; }
+.geographic-layer-add { padding-top: 0; }
+.geographic-layer-add > .hall-button { width: 100%; color: var(--hall-color-brand); }

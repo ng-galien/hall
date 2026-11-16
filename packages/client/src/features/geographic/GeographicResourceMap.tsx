@@ -13,6 +13,7 @@ import "ol/ol.css";
 import { Button } from "@/components/ui/button";
 import type { ColorPickerPreset } from "@/components/ui/color-picker";
 import { standardColorPresets } from "@/components/ui/color-presets";
+import { PinIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -757,7 +758,8 @@ export function GeographicResourceMap({
                   disabled={conflict || sameGeographicView(displayedView, draft.view)}
                   onClick={saveDisplayedView}
                 >
-                  {t("geographic.saveView")}
+                  <PinIcon />
+                  <span>{t("geographic.saveView")}</span>
                 </Button>
               ) : null
             }
