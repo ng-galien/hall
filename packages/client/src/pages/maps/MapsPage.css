@@ -130,6 +130,10 @@
   color: var(--hall-color-text-muted);
 }
 
+/* Under a finger a short folder name keeps its 44-pixel target with its name centred in it, like a crumb of the
+   workspace trail, so that the segments follow each other with the gap of the trail. */
+.maps-context-path a { justify-content: center; }
+
 .maps-context-path a:hover,
 .maps-context-businesses a:hover {
   color: var(--hall-color-brand);

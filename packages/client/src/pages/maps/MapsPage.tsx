@@ -29,7 +29,7 @@ import {
   parseMapsViewParameter,
 } from "./mapsView";
 import "./MapsPage.css";
-import { ScreenTitleCommands, ScreenTitleFacts } from "../../shell/headerTrail";
+import { ScreenActions, ScreenTitleCommands, ScreenTitleFacts } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 
 type GeographicResource = Extract<ResourceDetail, { kind: "geographic" }>;
@@ -295,9 +295,15 @@ export function MapsPage() {
     <div className="maps-page" data-testid="maps-page" data-map-open={opened ? "true" : "false"}>
       {opened ? (
         <>
-          <ScreenTitleCommands>
-            <ItemCommands expanded={!phone} frequent={phone ? [] : commands} menu={phone ? commands : []} />
-          </ScreenTitleCommands>
+          {phone ? (
+            <ScreenActions>
+              <ItemCommands expanded={false} frequent={[]} menu={commands} />
+            </ScreenActions>
+          ) : (
+            <ScreenTitleCommands>
+              <ItemCommands expanded frequent={commands} menu={[]} />
+            </ScreenTitleCommands>
+          )}
           <ScreenTitleFacts>
             <nav className="maps-context" data-testid="maps-context" aria-label={t("maps.folder")}>
               <span className="maps-context-path">
