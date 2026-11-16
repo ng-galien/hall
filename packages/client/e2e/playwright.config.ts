@@ -30,7 +30,9 @@ export default defineConfig({
   ],
   use: {
     baseURL: `${clientUrl}/app/`,
-    trace: "retain-on-failure",
+    // Keep action, DOM and network evidence without writing a continuous film for every passing test.
+    // The failure screenshot below remains independent of trace screencast frames.
+    trace: { mode: "retain-on-failure", screenshots: false, snapshots: true, sources: true },
     screenshot: "only-on-failure",
     video: "off",
   },

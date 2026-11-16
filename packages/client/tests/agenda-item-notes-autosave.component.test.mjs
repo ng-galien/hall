@@ -6,7 +6,7 @@ import { build } from "esbuild";
 import { JSDOM } from "jsdom";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { afterAll, beforeAll, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, test, vi } from "vitest";
 
 // @verifies-requirement HALL-FR-MTG-380
 const clientRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -53,6 +53,9 @@ beforeAll(async () => {
   }
 });
 
+beforeEach(() => vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] }));
+afterEach(() => vi.useRealTimers());
+
 afterAll(() => {
   for (const [key, descriptor] of Object.entries(originals ?? {})) {
     if (descriptor) Object.defineProperty(globalThis, key, descriptor);
@@ -84,7 +87,7 @@ function mountNotes(initial) {
 
 async function wait(milliseconds) {
   await act(async () => {
-    await new Promise((resolveWait) => window.setTimeout(resolveWait, milliseconds));
+    await vi.advanceTimersByTimeAsync(milliseconds);
   });
 }
 
@@ -108,7 +111,9 @@ test("typed text is saved once after the delay, then the view follows the server
   await act(async () => notes.view.current.edit("Début et suite"));
   await notes.render({ serverText: "Texte d'une autre vue" });
   assert.equal(notes.view.current.text, "Début et suite", "unsaved typing is kept");
-  await wait(delay + 200);
+  await wait(delay - 1);
+  assert.deepEqual(notes.saves, [], "the debounce delay has not elapsed");
+  await wait(1);
   assert.deepEqual(notes.saves, [{ itemId: "item-1", notes: "Début et suite", clearConfirmed: false }]);
   await notes.render({ serverText: "Début et suite" });
   await notes.render({ serverText: "Texte suivant d'une autre vue" });

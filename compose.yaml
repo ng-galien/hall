@@ -22,6 +22,15 @@ services:
       context: packages/postgres/sql/council/test
       dockerfile: Dockerfile
     image: hall-sql-pgtap:pg17
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/disposable.conf
+      - -c
+      - listen_addresses=*
+      - -c
+      - unix_socket_directories=/var/run/postgresql
+    shm_size: 256mb
     profiles: ["test"]
     environment:
       POSTGRES_DB: hall_test
@@ -30,7 +39,7 @@ services:
     ports:
       - "127.0.0.1:54330:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hall_test -d hall_test"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U hall_test -d hall_test"]
       interval: 2s
       timeout: 3s
       retries: 20
@@ -38,6 +47,7 @@ services:
       - /var/lib/postgresql/data
     volumes:
       - ./packages/postgres:/work/postgres:ro
+      - ./tests/postgres/disposable.conf:/etc/postgresql/disposable.conf:ro
 
 volumes:
   hall-postgres-data:

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
-import { mkdir } from "node:fs/promises";
+import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import EmbeddedPostgres from "embedded-postgres";
@@ -41,6 +41,10 @@ export async function createDistributionDatabase(directory) {
         postgresFlags: ["-c", "listen_addresses=127.0.0.1", "-c", "unix_socket_directories="],
       });
       await cluster.initialise();
+      await appendFile(
+        join(directory, "cluster", "postgresql.conf"),
+        `\n${await readFile(new URL("../postgres/disposable.conf", import.meta.url), "utf8")}`,
+      );
       await cluster.start();
       url = new URL(`postgresql://${user}:${encodeURIComponent(password)}@127.0.0.1:${port}/postgres`);
     }

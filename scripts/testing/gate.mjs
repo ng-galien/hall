@@ -70,11 +70,8 @@ async function attempt(start) {
     failedGroups.push(error.message);
   }
 }
-/*
- * The browser lanes run beside the light groups, which start once the browser schema is prepared; server coverage
- * starts after the browser lanes have ended, so the two never share the machine.
- */
-async function browserThenBackend(light, backend) {
+// Cluster roles must exist before the backend installs its schema in hall_test.
+async function withPreparedBrowser(other) {
   const temporary = mkdtempSync(resolve(tmpdir(), "hall-gate-ready-"));
   const signal = resolve(temporary, "schema-ready");
   let finished = false;
@@ -82,6 +79,7 @@ async function browserThenBackend(light, backend) {
     run("browser", groups.browser, {
       HALL_E2E_MOBILE_RECUSALS: "1",
       HALL_E2E_DESKTOP: "false",
+      HALL_E2E_LANES: process.env.HALL_E2E_LANES ?? "3",
       HALL_E2E_PREPARED_SIGNAL: signal,
     }),
   ).finally(() => {
@@ -89,13 +87,11 @@ async function browserThenBackend(light, backend) {
   });
   try {
     while (!existsSync(signal) && !finished) await delay(50);
-    await Promise.all([browser, light()]);
-    await backend();
+    await Promise.all([browser, other()]);
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }
 }
-
 const mode = process.argv[2] ?? "all";
 const groups = {
   checks: [
@@ -145,17 +141,14 @@ try {
     await run("build", "npm run build:verified");
     await attempt(() => runGroup("checks"));
     await attempt(() => run("fixtures", groups.fixtures));
-    await browserThenBackend(
-      () =>
-        Promise.all([
-          unitChecks(),
-          (async () => {
-            await attempt(() => run("postgres", groups.postgres));
-            await attempt(() => run("distribution", groups.distribution));
-          })(),
-        ]),
-      () => attempt(() => run("backend", groups.backend)),
-    );
+    // Imports and mutation workers compete with browsers for memory; finish them first.
+    await Promise.all([
+      unitChecks(),
+      attempt(() => run("postgres", groups.postgres)),
+      attempt(() => run("distribution", groups.distribution)),
+    ]);
+    // Three browser lanes leave room for one backend worker. PostgreSQL has released hall_test.
+    await withPreparedBrowser(() => attempt(() => run("backend", groups.backend)));
   } else if (mode === "verification") {
     await attempt(() => runGroup("checks"));
     await attempt(() => run("fixtures", groups.fixtures));
