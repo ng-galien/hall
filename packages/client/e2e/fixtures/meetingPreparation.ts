@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { historySettled } from "./application";
 
 /** Confirming the revision and producing its notice are two separate user actions. */
 export async function establishRevision(page: Page) {
@@ -19,6 +20,7 @@ export async function generateCurrentNotice(page: Page) {
   await expect(page.getByTestId("document-object-viewer")).toBeVisible();
   await page.getByTestId("document-object-viewer-close").click();
   await expect(page.getByTestId("document-object-viewer")).toBeHidden();
+  await historySettled(page);
   await expect(document.getByTestId("meeting-document-notice-open")).toBeVisible();
 }
 
