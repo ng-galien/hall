@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { DeleteIcon, ListBulletedIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
+import { useCrowdedLabels } from "./useCrowdedLabels";
 
 // @implements-requirement HALL-FR-DOC-530
 // biome-ignore-start lint/suspicious/noArrayIndexKey: ordered value pairs have no identity; label changes intentionally remount the input.
@@ -14,29 +15,40 @@ export function GeographicLegend({
   actions,
 }: {
   entries: readonly GeographicLegendEntry[];
-  /** « Enregistrer ce cadrage », beside the button of the legend. */
-  actions?: ReactNode;
+  /** « Enregistrer ce cadrage », beside the button of the legend, by its icon only when `iconOnly`. */
+  actions?: (iconOnly: boolean) => ReactNode;
 }) {
   const { t } = useI18n();
   const phone = usePhoneLayout();
   const [open, setOpen] = useState(!phone);
   const contentId = useId();
-  if (!entries.length) return actions ? <div className="geographic-legend-controls">{actions}</div> : null;
+  const [controls, setControls] = useState<HTMLDivElement | null>(null);
+  const legendLabel = t("geographic.legend");
+  const iconOnly = useCrowdedLabels(controls, actions ? `${legendLabel}\nactions` : legendLabel);
+  const iconOnlyAttribute = iconOnly ? "true" : undefined;
+  if (!entries.length)
+    return actions ? (
+      <div ref={setControls} className="geographic-legend-controls" data-icon-only={iconOnlyAttribute}>
+        {actions(iconOnly)}
+      </div>
+    ) : null;
   return (
     <aside className="geographic-legend" data-testid="geographic-legend">
-      <div className="geographic-legend-controls">
+      <div ref={setControls} className="geographic-legend-controls" data-icon-only={iconOnlyAttribute}>
         <Button
           type="button"
           variant="plain"
           data-testid="geographic-legend-toggle"
           aria-expanded={open}
           aria-controls={contentId}
+          aria-label={iconOnly ? legendLabel : undefined}
+          title={iconOnly ? legendLabel : undefined}
           onClick={() => setOpen((current) => !current)}
         >
           <ListBulletedIcon />
-          <span>{t("geographic.legend")}</span>
+          <span>{legendLabel}</span>
         </Button>
-        {actions}
+        {actions?.(iconOnly)}
       </div>
       <div id={contentId} className="geographic-legend-content" data-testid="geographic-legend-content" hidden={!open}>
         <ul data-layout-flow>

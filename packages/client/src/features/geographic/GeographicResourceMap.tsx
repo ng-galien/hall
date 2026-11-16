@@ -749,19 +749,23 @@ export function GeographicResourceMap({
           <GeographicLegend
             entries={hallLayerVisible ? (draft.hallLayer.legend ?? []) : []}
             actions={
-              canUpdate ? (
-                <Button
-                  type="button"
-                  variant="plain"
-                  className="geographic-save-view"
-                  data-testid="geographic-save-view"
-                  disabled={conflict || sameGeographicView(displayedView, draft.view)}
-                  onClick={saveDisplayedView}
-                >
-                  <PinIcon />
-                  <span>{t("geographic.saveView")}</span>
-                </Button>
-              ) : null
+              canUpdate
+                ? (iconOnly) => (
+                    <Button
+                      type="button"
+                      variant="plain"
+                      className="geographic-save-view"
+                      data-testid="geographic-save-view"
+                      disabled={conflict || sameGeographicView(displayedView, draft.view)}
+                      aria-label={iconOnly ? t("geographic.saveView") : undefined}
+                      title={iconOnly ? t("geographic.saveView") : undefined}
+                      onClick={saveDisplayedView}
+                    >
+                      <PinIcon />
+                      <span>{t("geographic.saveView")}</span>
+                    </Button>
+                  )
+                : undefined
             }
           />
         </div>

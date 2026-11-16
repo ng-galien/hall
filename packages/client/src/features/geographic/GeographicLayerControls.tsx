@@ -18,6 +18,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
 import "./geographicLayers.css";
+import { useCrowdedLabels } from "./useCrowdedLabels";
 import type { GeographicPanelMode, GeographicWorkspaceMode } from "./useGeographicMapRuntime";
 import type { GeographicOverlayStatus } from "./useGeographicOverlays";
 
@@ -80,10 +81,20 @@ export function GeographicLayerControls({
   const [layersOpen, setLayersOpen] = useState(false);
   const [draggedLayerId, setDraggedLayerId] = useState<GeographicLayerId | null>(null);
   const [dropTargetLayerId, setDropTargetLayerId] = useState<GeographicLayerId | null>(null);
+  const [topTools, setTopTools] = useState<HTMLDivElement | null>(null);
+  const drawLabel = t("geographic.modeDraw");
+  const measureLabel = t("geographic.modeMap");
+  const layersLabel = t("geographic.layers");
+  const iconOnly = useCrowdedLabels(topTools, [drawLabel, measureLabel, layersLabel].join("\n"));
 
   return (
     <>
-      <div className="geographic-top-tools" data-layout-flow>
+      <div
+        ref={setTopTools}
+        className="geographic-top-tools"
+        data-layout-flow
+        data-icon-only={iconOnly ? "true" : undefined}
+      >
         <fieldset className="geographic-mode-switch">
           <legend className="sr-only">{t("geographic.mode")}</legend>
           <Button
@@ -91,20 +102,24 @@ export function GeographicLayerControls({
             type="button"
             data-testid="geographic-mode-draw"
             aria-pressed={workspaceMode === "draw"}
+            aria-label={iconOnly ? drawLabel : undefined}
+            title={iconOnly ? drawLabel : undefined}
             onClick={() => onToggleMode("draw")}
           >
             <EditIcon />
-            <span>{t("geographic.modeDraw")}</span>
+            <span>{drawLabel}</span>
           </Button>
           <Button
             variant="plain"
             type="button"
             data-testid="geographic-mode-map"
             aria-pressed={workspaceMode === "measure"}
+            aria-label={iconOnly ? measureLabel : undefined}
+            title={iconOnly ? measureLabel : undefined}
             onClick={() => onToggleMode("measure")}
           >
             <RulerIcon />
-            <span>{t("geographic.modeMap")}</span>
+            <span>{measureLabel}</span>
           </Button>
         </fieldset>
         <div className="geographic-layers">
@@ -114,10 +129,11 @@ export function GeographicLayerControls({
             data-testid="geographic-layers-trigger"
             aria-expanded={layersOpen}
             aria-label={t("geographic.layersOpen")}
+            title={iconOnly ? layersLabel : undefined}
             onClick={() => setLayersOpen((open) => !open)}
           >
             <LayersIcon />
-            <span>{t("geographic.layers")}</span>
+            <span>{layersLabel}</span>
           </Button>
           {layersOpen ? (
             <section className="geographic-layers-panel" aria-label={t("geographic.layers")}>
