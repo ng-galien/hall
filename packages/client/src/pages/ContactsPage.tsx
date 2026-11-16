@@ -16,7 +16,13 @@ import {
 } from "../components/Ui";
 import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
-import { type ContactPhoneField, contactPhoneFields, preferredPhone } from "../features/contacts/contactPhones";
+import { CoordinateLink, mailHref } from "../features/contacts/CoordinateLink";
+import {
+  type ContactPhoneField,
+  contactPhoneFields,
+  phoneHref,
+  preferredPhone,
+} from "../features/contacts/contactPhones";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
 import { useContactsStore } from "../stores/contactsStore";
@@ -165,12 +171,22 @@ export function ContactsPage() {
                   wide={
                     contact.email || phone ? (
                       <>
-                        <span className="contact-row-email">{contact.email}</span>
+                        <span className="contact-row-email">
+                          {contact.email ? (
+                            <CoordinateLink href={mailHref(contact.email)} data-testid={`contact-email-${contact.id}`}>
+                              {contact.email}
+                            </CoordinateLink>
+                          ) : null}
+                        </span>
                         <span
                           className="contact-row-phone"
                           data-testid={phone ? `contact-phone-${contact.id}` : undefined}
                         >
-                          {phone ? formatPhoneNumber(phone) : null}
+                          {phone ? (
+                            <CoordinateLink href={phoneHref(phone)} data-testid={`contact-call-${contact.id}`}>
+                              {formatPhoneNumber(phone)}
+                            </CoordinateLink>
+                          ) : null}
                         </span>
                       </>
                     ) : undefined

@@ -18,7 +18,8 @@ import {
 } from "../components/Ui";
 import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
-import { contactPhoneFields, preferredPhone } from "../features/contacts/contactPhones";
+import { CoordinateLink, mailHref, separatedFacts } from "../features/contacts/CoordinateLink";
+import { contactPhoneFields, phoneHref, preferredPhone } from "../features/contacts/contactPhones";
 import { useDomainRowStatus } from "../features/status/DomainStatusBadge";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
@@ -187,9 +188,25 @@ export function CouncilMembersPage() {
             {visibleMembers.map((member) => {
               const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
               const phone = preferredPhone(member.contact);
-              const coordinates = [member.contact.email, phone && formatPhoneNumber(phone).replaceAll(" ", "\u00a0")]
-                .filter(Boolean)
-                .join(" · ");
+              const coordinates =
+                member.contact.email || phone
+                  ? separatedFacts([
+                      member.contact.email ? (
+                        <CoordinateLink
+                          key="email"
+                          href={mailHref(member.contact.email)}
+                          data-testid={`member-email-${member.id}`}
+                        >
+                          {member.contact.email}
+                        </CoordinateLink>
+                      ) : null,
+                      phone ? (
+                        <CoordinateLink key="phone" href={phoneHref(phone)} data-testid={`member-call-${member.id}`}>
+                          {formatPhoneNumber(phone).replaceAll(" ", "\u00a0")}
+                        </CoordinateLink>
+                      ) : null,
+                    ])
+                  : null;
               return (
                 <ListRow
                   key={member.id}

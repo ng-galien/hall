@@ -45,30 +45,10 @@ function useContactMessage({ contactId, name, email }: ContactAddress) {
 }
 
 /**
- * The address of a contact as read on its sheet: it opens a new message in Hall to this contact when the shared
- * mailbox offers the creation of a message, and stays text otherwise.
+ * A new message of Hall to the contact, from the end of the address field of a person who edits the contact, when the
+ * shared mailbox offers the creation of a message.
  * @implements-requirement HALL-FR-DIR-180
  */
-export function ContactEmailLink(props: ContactAddress) {
-  const message = useContactMessage(props);
-  if (!message.available) return <span>{props.email}</span>;
-  return (
-    <>
-      <Button
-        variant="plain"
-        className="hall-link"
-        data-testid={props.testId}
-        disabled={message.busy}
-        onClick={message.write}
-      >
-        {props.email}
-      </Button>
-      {message.errorBanner}
-    </>
-  );
-}
-
-/** The same new message, from the end of the address field of a person who edits the contact. */
 export function ContactEmailAction(props: ContactAddress) {
   const { t } = useI18n();
   const message = useContactMessage(props);

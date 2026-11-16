@@ -11,6 +11,7 @@ import { CommitteeIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { ListRow, ListRowAvatar, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { SectionHeader } from "../components/ui/section-header";
+import { CoordinateLink, mailHref, separatedFacts } from "../features/contacts/CoordinateLink";
 import { phoneHref, preferredPhone } from "../features/contacts/contactPhones";
 import { MemberDelegations } from "../features/representative-bodies/MemberDelegations";
 import { committeeKind } from "../features/representative-bodies/representativeBodyKinds";
@@ -176,13 +177,21 @@ export function CouncilMemberPage() {
                   />
                 }
                 title={`${member.contact.firstName} ${member.contact.lastName}`}
-                detail={[
+                detail={separatedFacts([
                   t("members.contact"),
-                  phone ? formatPhoneNumber(phone) : t("members.noPhone"),
-                  member.contact.email,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
+                  phone ? (
+                    <CoordinateLink key="phone" href={phoneHref(phone)} data-testid="member-phone">
+                      {formatPhoneNumber(phone)}
+                    </CoordinateLink>
+                  ) : (
+                    t("members.noPhone")
+                  ),
+                  member.contact.email ? (
+                    <CoordinateLink key="email" href={mailHref(member.contact.email)} data-testid="member-email">
+                      {member.contact.email}
+                    </CoordinateLink>
+                  ) : null,
+                ])}
                 action={
                   phone ? (
                     <Button asChild variant="secondary">

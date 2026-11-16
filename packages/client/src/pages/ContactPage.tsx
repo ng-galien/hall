@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { DeleteIcon, PhoneIcon } from "../components/icons";
 import { EmptyState, PageHeader, RequestErrorBanner } from "../components/Ui";
 import { SectionHeader } from "../components/ui/section-header";
-import { ContactEmailAction, ContactEmailLink } from "../features/contacts/ContactEmailLink";
+import { ContactEmailAction } from "../features/contacts/ContactEmailLink";
+import { CoordinateLink, mailHref } from "../features/contacts/CoordinateLink";
 import {
   type ContactPhoneField,
   contactPhoneFields,
@@ -348,12 +349,9 @@ export function ContactPage() {
               {coordinateField(
                 "email",
                 contact.email ? (
-                  <ContactEmailLink
-                    contactId={contact.id}
-                    name={name}
-                    email={contact.email}
-                    testId="contact-email-write"
-                  />
+                  <CoordinateLink href={mailHref(contact.email)} data-testid="contact-email-link">
+                    {contact.email}
+                  </CoordinateLink>
                 ) : null,
                 contact.email ? (
                   <ContactEmailAction

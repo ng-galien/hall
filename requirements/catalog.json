@@ -2997,15 +2997,23 @@
       "statement": "La fiche d’un contact présente son identité, ses coordonnées et ses notes ; les listes de personnes montrent un seul numéro et n’affichent pas une information absente.",
       "acceptanceCriteria": [
         "La fiche d’un contact présente trois parties dans cet ordre : « Identité » (prénom, nom, fonction, organisme), « Coordonnées » (courriel, mobile, personnel, professionnel) et « Notes ».",
-        "Quand le courriel partagé offre la création d’un message, le courriel du contact ouvre un nouveau courriel de Hall adressé à ce contact : la valeur elle-même en lecture, l’enveloppe au bout du champ en écriture ; sinon le courriel reste du texte.",
+        "Le courriel du contact affiché sur sa fiche ouvre l’application de courrier avec un message adressé à ce contact.",
+        "Quand le courriel partagé offre la création d’un message, l’enveloppe au bout du champ du courriel, pour une personne qui modifie le contact, ouvre un nouveau courriel de Hall adressé à ce contact.",
         "Sur un écran tactile, chaque numéro de la fiche est un lien d’appel.",
-        "La liste des contacts et la liste des membres du conseil montrent un seul numéro, le mobile, à défaut le professionnel, à défaut le personnel ; un courriel ou un numéro absent n’est pas affiché."
+        "La liste des contacts et la liste des membres du conseil montrent un seul numéro, le mobile, à défaut le professionnel, à défaut le personnel ; un courriel ou un numéro absent n’est pas affiché.",
+        "Dans la liste des contacts, la liste des membres du conseil et la fiche d’un élu, le numéro affiché lance l’appel et le courriel affiché ouvre l’application de courrier ; toucher le numéro ou le courriel d’une ligne n’ouvre pas sa fiche, le reste de la ligne l’ouvre."
       ],
       "clauses": [
         {
           "key": "contact-sheet",
           "origin": "product",
           "statement": "Mots du propriétaire du 12 novembre 2026 : « Est-ce qu'on doit un peu mieux hiérarchiser? Le mail, est-ce qu'il faut que ça soit un lien cliquable vers un nouvel email? […] ces fiches sont quand même assez fouillis. »",
+          "sourceIds": []
+        },
+        {
+          "key": "call-and-mail-links",
+          "origin": "product",
+          "statement": "Mots du propriétaire : « on peut voir si on a un lien mail to et téléphone, par exemple. C'est surtout pour le mobile. »",
           "sourceIds": []
         }
       ]
