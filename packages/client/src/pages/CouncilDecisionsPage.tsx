@@ -17,10 +17,22 @@ import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
-import { sortByName } from "../lib/names";
+import { compareNames } from "../lib/names";
 import { ScreenTitleCommands } from "../shell/headerTrail";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
+
+/**
+ * Order of the decisions of one meeting: by number, in the natural order of its figures; a decision without a number
+ * follows, the most recently created first, as the server lists them.
+ */
+function sessionOrder(left: CouncilDecisionSummary, right: CouncilDecisionSummary): number {
+  if (left.number && right.number) {
+    const byNumber = compareNames(left.number, right.number);
+    if (byNumber !== 0) return byNumber;
+  } else if (left.number || right.number) return left.number ? -1 : 1;
+  return right.createdAt.localeCompare(left.createdAt) || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+}
 
 export function CouncilDecisionsPage() {
   const { t, formatDate } = useI18n();
@@ -39,11 +51,7 @@ export function CouncilDecisionsPage() {
       .map(([meetingId, decisions]) => ({
         meetingId,
         meeting: meetings.find((entry) => entry.id === meetingId),
-        decisions: sortByName(
-          decisions,
-          (decision) => decision.title,
-          (decision) => decision.id,
-        ),
+        decisions: [...decisions].sort(sessionOrder),
       }))
       .sort(
         (a, b) =>
