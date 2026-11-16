@@ -10,6 +10,12 @@ fi
 # existing APT sources, suites and Ubuntu signing key configuration intact.
 mirror='https://mirrors.edge.kernel.org/ubuntu'
 test -f /etc/apt/apt-mirrors.txt
-curl --fail --silent --show-error --location --connect-timeout 10 --max-time 30 \
-  --output /dev/null "${mirror}/dists/noble-security/InRelease"
-printf '%s\n' "$mirror" | sudo tee /etc/apt/apt-mirrors.txt
+# When the mirror does not answer after three attempts, the runner keeps its
+# own APT sources: an unreachable mirror must not fail the job before any test.
+if curl --fail --silent --show-error --location --connect-timeout 10 --max-time 30 \
+  --retry 2 --retry-delay 5 --retry-all-errors \
+  --output /dev/null "${mirror}/dists/noble-security/InRelease"; then
+  printf '%s\n' "$mirror" | sudo tee /etc/apt/apt-mirrors.txt
+else
+  echo "::warning::Ubuntu mirror ${mirror} is unreachable; keeping the runner's APT sources."
+fi
