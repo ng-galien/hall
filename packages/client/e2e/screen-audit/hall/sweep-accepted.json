@@ -1,4 +1,17 @@
 {
   "description": "Écarts du balayage des largeurs acceptés : écran | règle | sélecteur, chacun avec la raison vérifiable de son acceptation.",
-  "accepted": []
+  "accepted": [
+    {
+      "key": "cartes | lone-wrap | [maps-panel] › div.maps-panel-body › section.maps-panel-section › div.maps-panel-section-header › h3.maps-panel-section-title",
+      "reason": "Disposition voulue de l'écran Cartes : la bascule « Par dossier » / « Par affaire » forme une rangée sous le titre « Toutes les cartes », qui reste seul sur sa ligne (requirement HALL-FR-WSP-320, écran Cartes de la version 1.4.1)."
+    },
+    {
+      "key": "carte | lone-wrap | [maps-panel] › div.maps-panel-body › section.maps-panel-section › div.maps-panel-section-header › h3.maps-panel-section-title",
+      "reason": "Même liste des cartes que l'écran Cartes, à côté de la carte ouverte : le titre « Toutes les cartes » est seul au-dessus de la bascule « Par dossier » / « Par affaire » par disposition voulue."
+    },
+    {
+      "key": "carte | search-on-item | [maps-search]",
+      "reason": "Au-dessus de 1280 px, la liste des cartes, avec sa recherche, reste ouverte à côté de la carte ouverte par disposition voulue ; jusqu'à 1280 px, l'ouverture d'une carte replie la liste, ce que le balayage ne rejoue pas quand il réduit la fenêtre après l'ouverture (vérifié à 1024 et 1280 px sur une ouverture directe : liste repliée, recherche absente)."
+    }
+  ]
 }
