@@ -1,4 +1,4 @@
-import { type ComponentPropsWithoutRef, Fragment, type ReactNode } from "react";
+import { Children, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { MailIcon, PhoneIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -65,13 +65,9 @@ export function CoordinateIcons({
 
 /** Facts of a line separated by « · ». */
 export function separatedFacts(facts: ReactNode[]): ReactNode {
-  return facts
-    .filter((fact) => fact !== null && fact !== undefined && fact !== false && fact !== "")
-    .map((fact, index) => (
-      // biome-ignore lint/suspicious/noArrayIndexKey: the facts of a line keep their order.
-      <Fragment key={index}>
-        {index > 0 ? " · " : null}
-        {fact}
-      </Fragment>
-    ));
+  return Children.toArray(
+    facts
+      .filter((fact) => fact !== null && fact !== undefined && fact !== false && fact !== "")
+      .flatMap((fact, index) => (index > 0 ? [" · ", fact] : [fact])),
+  );
 }
