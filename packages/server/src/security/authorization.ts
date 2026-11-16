@@ -11,7 +11,7 @@ export type AuthorizedAction =
   | "application.read"
   | "application.export";
 /** The object an action applies to, when a condition of the role matrix depends on it. */
-export type AuthorizationTarget = Readonly<{ meetingId?: string; location?: string }>;
+export type AuthorizationTarget = Readonly<{ meetingId?: string; minutesId?: string; location?: string }>;
 
 export type AuthorizeReading = (principal: ApiPrincipal) => Promise<boolean>;
 

@@ -12,6 +12,7 @@ Conditions are selected from the existing predicates applicable to the permissio
 
 - `always`: the grant applies without an additional authorization condition.
 - `meetingOfficer`: meeting conduct is allowed for the current chair or secretary, including a recorded chair handover.
+- `minutesSecretary`: drafting and generating minutes is allowed on the minutes of the meeting whose secretary in office at closure, handovers during the meeting included, is the linked contact. The councillor preset receives `minutes.draft` with this condition.
 - `ownPersonalWorkspace`: personal-resource writing or deletion is limited to the linked contact's own personal workspace and requires an active council mandate. Assigning a role with this condition provisions that workspace through the existing workflow.
 
 Reading is global within the application: the conditions above apply to their documented write/conduct permissions, not row filtering. There is no arbitrary expression or SQL editor. Session access, initial installation and administration of the role policy remain system responsibilities. Authorization grants do not bypass domain invariants such as a closed meeting or locked adopted content.

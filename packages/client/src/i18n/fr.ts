@@ -177,6 +177,7 @@ export const fr: Messages = {
   "authorization.condition.meetingOfficer": "Président ou secrétaire en fonction",
   "authorization.condition.ownPersonalWorkspace": "Son dossier personnel, mandat actif",
   "authorization.condition.appointmentAuthor": "Ses propres rendez-vous",
+  "authorization.condition.minutesSecretary": "Procès-verbal de la séance dont il est secrétaire",
   "authorization.deleteRole": "Supprimer le rôle",
   "authorization.deleteConfirm":
     "Supprimer le rôle « {name} » ? Il faut d’abord le retirer des comptes auxquels il est affecté.",

@@ -17,8 +17,10 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
       'id', meeting.id, 'number', meeting.number, 'scheduledAt', meeting.scheduled_at,
       'startedAt', meeting.started_at, 'closedAt', snapshot.captured_at,
       'location', meeting.location, 'quorum', (SELECT (facts->>'requiredPresent')::integer FROM hall.meeting_quorum_observation WHERE council_meeting=meeting.id AND agenda_item IS NULL ORDER BY observed_at LIMIT 1),
-      'chair', hall.minutes_member_identity(meeting.chair_member),
-      'secretary', hall.minutes_member_identity(meeting.secretary_member),
+      -- @implements-requirement HALL-FR-MIN-300
+      -- The officers in office at closure, handovers during the meeting included.
+      'chair', hall.minutes_member_identity(hall.current_meeting_officer(meeting.id, 'chair')),
+      'secretary', hall.minutes_member_identity(hall.current_meeting_officer(meeting.id, 'secretary')),
       -- @implements-requirement HALL-FR-MTG-290
       'reconvenedFrom', (SELECT jsonb_build_object('id', previous.id, 'number', previous.number,
           'scheduledAt', previous.scheduled_at, 'startedAt', previous.started_at)
@@ -74,6 +76,19 @@ RETURNS JSONB LANGUAGE sql STABLE SET search_path = pg_catalog, hall AS $$
     ) ORDER BY ballot->>'id') FROM jsonb_array_elements(snapshot.payload->'ballots') ballot), '[]'::JSONB)
   ) FROM hall.council_meeting_snapshot snapshot JOIN hall.council_meetings meeting ON meeting.id = snapshot.council_meeting
   WHERE snapshot.council_meeting = target_meeting AND snapshot.phase = 'closing';
+$$;
+
+-- @implements-requirement HALL-FR-MIN-300
+-- The account drafts these minutes when its linked contact is the secretary in
+-- office at the closure of their meeting, handovers during the meeting included.
+CREATE FUNCTION hall.is_minutes_secretary(target_minutes TEXT)
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, hall AS $$
+  SELECT EXISTS (
+    SELECT FROM hall.minutes minutes
+    JOIN hall.council_meetings meeting ON meeting.id = minutes.council_meeting AND meeting.closed_at IS NOT NULL
+    JOIN hall.council_member member ON member.id = hall.current_meeting_officer(meeting.id, 'secretary')
+    WHERE minutes.id::TEXT = target_minutes
+      AND member.contact::TEXT = nullif(current_setting('hall.contact_id', true), ''));
 $$;
 
 CREATE FUNCTION hall.enforce_minutes_lifecycle()

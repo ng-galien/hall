@@ -464,6 +464,23 @@ ledger. Its SQL files are separate from the structural manifest fingerprint.
 Rehearsal must cover the exact source and target versions; structural convergence
 alone does not establish data-migration history or semantic correctness.
 
+### Schema changes in 1.4.1
+
+`hall migrate` from 1.4.0 adds the condition `minutesSecretary` to the constraint
+`authorization_grant_condition` of `hall.authorization_grant` and to the conditions
+offered for the access `minutes.draft` (requirement HALL-FR-MIN-300): the account whose
+contact is the secretary in office at the closure of a meeting drafts and generates the
+minutes of that meeting. It adds `hall.is_minutes_secretary` and replaces
+`hall.role_grants` and `hall.capture_minutes_facts`: minutes created from then on name
+the chair and the secretary in office at closure, handovers included. The facts of
+existing minutes are unchanged.
+
+The migration runs `012-minutes-secretary-authorization-defaults.sql` once to add the
+grant `minutes.draft` with the condition `minutesSecretary` to the existing councillor
+role when that role has no grant for this access. No other grant is added, changed or
+removed. The migration is recorded so that a later administrator change survives
+subsequent upgrades.
+
 ### Schema changes in 1.4.0
 
 `hall migrate` from 1.3.0 creates the empty table `hall.meeting_proxy_registration`

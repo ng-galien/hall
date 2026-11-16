@@ -2930,7 +2930,7 @@
       "acceptanceCriteria": [
         "Un administrateur attribue le rôle « Conseiller municipal » à la création ou à la modification d’un compte lié au contact d’un élu dont le mandat est en cours ; le dossier « Espaces personnels/Prénom Nom » de l’élu existe aussitôt.",
         "Pour un compte sans contact ou lié à un contact sans mandat en cours, Hall affiche un message qui demande de choisir le contact d’un élu en exercice et n’enregistre pas le rôle.",
-        "Le compte conseiller lit les contacts, l’espace de travail et les séances ; il écrit dans son dossier personnel et, dans l’agenda, les rendez-vous dont il est l’auteur (HALL-FR-CAL-240), et nulle part ailleurs."
+        "Le compte conseiller lit les contacts, l’espace de travail et les séances ; il écrit dans son dossier personnel, dans l’agenda les rendez-vous dont il est l’auteur (HALL-FR-CAL-240) et le procès-verbal de la séance dont il est secrétaire à la clôture (HALL-FR-MIN-300), et nulle part ailleurs."
       ],
       "clauses": [
         {
@@ -5034,6 +5034,10 @@
         "Affichées, les notes de séance d’un point sont nommées « Notes de séance », en lecture seule, à côté de sa rédaction ou au-dessus quand la place manque ; un point sans note l’indique.",
         "L’état d’enregistrement de chaque rédaction est visible sur son point.",
         "Lorsque la rédaction diffère de la note originale, une action permet de reprendre intégralement la note originale après confirmation explicite.",
+        "Un point ajouté à l’ordre du jour pendant la séance porte l’état « Ajoutée en séance » avec la date de son ajout.",
+        "Au téléphone, le procès-verbal se lit : chaque point présente son numéro, son titre, ses faits et sa rédaction, sans éditeur ouvert.",
+        "Au téléphone, la personne autorisée à modifier le brouillon ouvre depuis un point un écran d’écriture propre à ce point : son numéro et son titre, sa rédaction avec l’écriture commune du téléphone et l’enregistrement automatique, l’affichage à la demande de ses notes de séance, la reprise de la note originale et le passage au point précédent ou suivant ; le retour, y compris celui du navigateur ou du système, ramène au procès-verbal sur le dernier point écrit.",
+        "Pendant la génération du document, la rédaction reste en lecture seule.",
         "In the minutes template, each point renders its historical title, its own subject text (decision proposal or open question), the final council narrative and aggregate ballot result as separate blocks, without automatically repeating the general business report, ordinary per-point quorum attained or examined status, or individual voter and non-participant lists. This presentation does not change the stored voting system, identities, choices, counts, editorial text, opening facts or special-event evidence."
       ],
       "clauses": [
@@ -5041,10 +5045,12 @@
           "key": "minutes-point-editorial-cycle",
           "origin": "product",
           "statement": "Le point de procès-verbal expose séparément les notes du point à l’ordre du jour clos, son vote et sa rédaction finale, sans dupliquer ces notes dans les faits du procès-verbal.",
-        "Un point ajouté à l’ordre du jour pendant la séance porte l’état « Ajoutée en séance » avec la date de son ajout.",
-        "Au téléphone, le procès-verbal se lit : chaque point présente son numéro, son titre, ses faits et sa rédaction, sans éditeur ouvert.",
-        "Au téléphone, la personne autorisée à modifier le brouillon ouvre depuis un point un écran d’écriture propre à ce point : son numéro et son titre, sa rédaction avec l’écriture commune du téléphone et l’enregistrement automatique, l’affichage à la demande de ses notes de séance, la reprise de la note originale et le passage au point précédent ou suivant ; le retour, y compris celui du navigateur ou du système, ramène au procès-verbal sur le dernier point écrit.",
-        "Pendant la génération du document, la rédaction reste en lecture seule.",
+          "sourceIds": []
+        },
+        {
+          "key": "minutes-point-single-notes-command",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 16 novembre 2026 : le choix répété, sur chaque point, entre les notes prises pendant le conseil et la rédaction d’après le conseil est remplacé par la rédaction présentée directement et une commande unique qui affiche les notes de tous les points ; au téléphone, chaque point s’écrit dans un écran qui lui est dédié. Mots du propriétaire : « plutôt que d'avoir la répétition de ce toggle, ce choix, il faut peut-être faire en mieux » ; « si c'est un écran dédié ou pas. Par point en fait. »",
           "sourceIds": []
         },
         {
@@ -5054,12 +5060,6 @@
           "sourceIds": []
         },
         {
-        {
-          "key": "minutes-point-single-notes-command",
-          "origin": "product",
-          "statement": "Décision du propriétaire du 16 novembre 2026 : le choix répété, sur chaque point, entre les notes prises pendant le conseil et la rédaction d’après le conseil est remplacé par la rédaction présentée directement et une commande unique qui affiche les notes de tous les points ; au téléphone, chaque point s’écrit dans un écran qui lui est dédié. Mots du propriétaire : « plutôt que d'avoir la répétition de ce toggle, ce choix, il faut peut-être faire en mieux » ; « si c'est un écran dédié ou pas. Par point en fait. »",
-          "sourceIds": []
-        },
           "key": "behaviour-only-catalogue",
           "origin": "product",
           "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
@@ -11182,6 +11182,46 @@
           "key": "owner-request",
           "origin": "product",
           "statement": "Question put to the user on 14 November 2026: « Le modèle de procès-verbal par défaut du produit imprime encore le texte de chaque sujet (« Sujet présenté »), alors que le modèle de la mairie, refait le 11 novembre, ne l'imprime pas. Le modèle par défaut suit-il celui de la mairie ? » Owner decision: « Comme la mairie ». Owner words of 11 November 2026 on the municipal model: « non je ne veux pas le texte des sujets, je veux juste les discutions » ; « il faut les noms et les signatures à la fin » ; « je veux voir la tête du pv, il faut que le nom de la mairie soit plus gros » ; « foncine le bas sur toutes les pages, en petit, c'est bof » ; « il faut en pied de page le village, le titre du document, date, page » ; « fait à le doit être wildcard […] la mention avant les signatures […] il faut assez de place ».",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-MIN-300": {
+      "name": "MEETING_SECRETARY_DRAFTS_THE_MINUTES_OF_THE_MEETING",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-16"
+      },
+      "statement": "Le secrétaire de séance en fonction à la clôture, passations comprises, rédige et génère le procès-verbal de cette séance, même quand son compte est celui d’un conseiller.",
+      "acceptanceCriteria": [
+        "Le procès-verbal de chaque séance est rédigé par le ou les secrétaires de séance.",
+        "Le compte « Conseiller municipal » dont le contact est le secrétaire en fonction à la clôture de la séance, y compris un secrétaire nommé par passation pendant la séance, dispose sur le procès-verbal de cette séance de la modification du brouillon et de la génération du document ; le serveur accepte ces deux commandes pour ce procès-verbal.",
+        "Sur ce procès-verbal, un autre conseiller, dont le secrétaire désigné avant l’ouverture puis remplacé en séance, dispose seulement de la lecture ; sur le procès-verbal d’une autre séance, le même conseiller dispose seulement de la lecture ; une modification ou une génération envoyée directement à l’API reçoit un refus d’autorisation.",
+        "L’écran des autorisations présente pour l’accès « Procès-verbal — rédiger et générer » la condition « Procès-verbal de la séance dont il est secrétaire » ; le rôle Conseiller la reçoit en préréglage, y compris sur une installation existante mise à niveau, qui conserve tous les droits déjà enregistrés ; les rôles Administrateur et Secrétariat gardent l’accès accordé sans condition.",
+        "Les faits d’un procès-verbal créé à la clôture nomment la présidence et le secrétariat de séance en fonction à la clôture, passations comprises ; les faits des procès-verbaux déjà créés restent ceux enregistrés à leur clôture."
+      ],
+      "clauses": [
+        {
+          "key": "legal-proposition",
+          "origin": "regulatory",
+          "statement": "Le procès-verbal de chaque séance est rédigé par le ou les secrétaires de séance (S3).",
+          "sourceIds": [
+            "S3"
+          ],
+          "assessment": "verified",
+          "interpretation": "direct"
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 16 novembre 2026 : « normalement le secrétaire de séance doit pouvoir éditer, même si c'est un élu. En fait, il doit pouvoir éditer le PV dont il a été secrétaire. »",
+          "sourceIds": []
+        },
+        {
+          "key": "accepted-framing",
+          "origin": "product",
+          "statement": "Cadrage accepté par le propriétaire le 16 novembre 2026 : le droit « Procès-verbal — rédiger et générer » admet la condition du secrétaire de la séance du procès-verbal, celui en fonction à la clôture ; le rôle Conseiller la reçoit en préréglage, aussi par une migration qui ajoute ce seul droit ; les faits du procès-verbal retiennent les officiers en fonction à la clôture pour les procès-verbaux créés désormais. Les attributions décrites ici sont des préréglages configurables selon HALL-FR-USR-060.",
           "sourceIds": []
         }
       ]

@@ -35,6 +35,15 @@ describe("configurable authorization through HTTP", () => {
         { access: "appointment.manage", condition: "appointmentAuthor" },
       ]),
     );
+    // @verifies-requirement HALL-FR-MIN-300
+    expect(configuration.accesses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ access: "minutes.draft", conditions: ["always", "minutesSecretary"] }),
+      ]),
+    );
+    expect(configuration.roles.find((role) => role.id === "councillor")?.grants).toEqual(
+      expect.arrayContaining([{ access: "minutes.draft", condition: "minutesSecretary" }]),
+    );
     const custom = domainBody<AuthorizationRole>(
       await admin
         .post("/api/roles")

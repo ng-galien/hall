@@ -11,7 +11,7 @@ import { callJson } from "./jsonCall.js";
 import { PostgresTransactionManager } from "./transaction.js";
 
 /** The object an action applies to, when a condition of the role matrix depends on it. */
-export type PostgresAuthorizationTarget = Readonly<{ meetingId?: string; location?: string }>;
+export type PostgresAuthorizationTarget = Readonly<{ meetingId?: string; minutesId?: string; location?: string }>;
 
 // @implements-requirement HALL-FR-DOC-350
 /** Asks the role matrix and its conditions, delivered with the schema, whether the caller may act. */

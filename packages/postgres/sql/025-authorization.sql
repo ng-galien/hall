@@ -136,7 +136,8 @@ CREATE VIEW hall.authorization_default_grant AS
       ('councillor', 'appointment.manage', 'appointmentAuthor'),
       ('councillor', 'agenda-item.conduct', 'meetingOfficer'),
       ('councillor', 'ballot.record', 'meetingOfficer'),
-      ('councillor', 'meeting.conduct', 'meetingOfficer')
+      ('councillor', 'meeting.conduct', 'meetingOfficer'),
+      ('councillor', 'minutes.draft', 'minutesSecretary')
   ) AS entry(role, access, condition);
 
 -- @implements-requirement HALL-FR-USR-060
@@ -148,7 +149,7 @@ CREATE TABLE hall.authorization_role (
 CREATE TABLE hall.authorization_grant (
   role TEXT NOT NULL REFERENCES hall.authorization_role(id) ON DELETE CASCADE,
   access TEXT NOT NULL,
-  condition TEXT NOT NULL CONSTRAINT authorization_grant_condition CHECK (condition = ANY (ARRAY['always'::text, 'meetingOfficer'::text, 'ownPersonalWorkspace'::text, 'appointmentAuthor'::text])),
+  condition TEXT NOT NULL CONSTRAINT authorization_grant_condition CHECK (condition = ANY (ARRAY['always'::text, 'meetingOfficer'::text, 'ownPersonalWorkspace'::text, 'appointmentAuthor'::text, 'minutesSecretary'::text])),
   PRIMARY KEY (role, access)
 );
 CREATE VIEW hall.role_access AS
@@ -328,7 +329,7 @@ $function$;
 
 -- Whether a role of the caller holds the access under a condition met by the
 -- target. An appointment target names the existing appointment, or JSON null
--- for an appointment being created.
+-- for an appointment being created. A minutes target names the minutes.
 CREATE FUNCTION hall.role_grants(granted_access TEXT, scope JSONB)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -370,6 +371,9 @@ BEGIN
               AND creation.outcome = 'succeeded'
               AND creation.actor_id = caller_actor
           )
+        -- @implements-requirement HALL-FR-MIN-300
+        WHEN 'minutesSecretary' THEN jsonb_typeof(scope -> 'minutesId') = 'string'
+          AND hall.is_minutes_secretary(scope ->> 'minutesId')
         ELSE FALSE
       END
   );
@@ -492,6 +496,7 @@ BEGIN
     SELECT role, access, condition FROM hall.authorization_default_grant;
   INSERT INTO hall_meta.data_migration(name) VALUES ('mail-authorization-defaults') ON CONFLICT DO NOTHING;
   INSERT INTO hall_meta.data_migration(name) VALUES ('appointment-authorization-defaults') ON CONFLICT DO NOTHING;
+  INSERT INTO hall_meta.data_migration(name) VALUES ('minutes-secretary-authorization-defaults') ON CONFLICT DO NOTHING;
 END;
 $$;
 ALTER FUNCTION hall.initialize_authorization_defaults() OWNER TO hall_owner;

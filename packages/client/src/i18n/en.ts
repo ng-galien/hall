@@ -173,6 +173,7 @@ export const en = {
   "authorization.condition.meetingOfficer": "Current chair or secretary",
   "authorization.condition.ownPersonalWorkspace": "Own workspace, active mandate",
   "authorization.condition.appointmentAuthor": "Own appointments",
+  "authorization.condition.minutesSecretary": "Minutes of the meeting they were secretary of",
   "authorization.deleteRole": "Delete role",
   "authorization.deleteConfirm": "Delete role “{name}”? Remove it from assigned accounts first.",
   "authorization.saved": "Access settings saved.",

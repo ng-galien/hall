@@ -15,6 +15,7 @@ const dataMigrationPaths = [
   "sql/migrations/009-contact-phone-numbers.sql",
   "sql/migrations/010-drop-former-server-tables.sql",
   "sql/migrations/011-appointment-authorization-defaults.sql",
+  "sql/migrations/012-minutes-secretary-authorization-defaults.sql",
 ] as const;
 
 export async function executeSchemaDataMigrations(client: PoolClient): Promise<void> {

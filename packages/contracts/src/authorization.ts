@@ -10,6 +10,7 @@ export const authorizationConditions = [
   "meetingOfficer",
   "ownPersonalWorkspace",
   "appointmentAuthor",
+  "minutesSecretary",
 ] as const;
 export const authorizationConditionSchema = z.enum(authorizationConditions);
 export const authorizationGrantSchema = z

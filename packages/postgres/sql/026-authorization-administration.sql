@@ -9,6 +9,9 @@ RETURNS JSONB LANGUAGE sql IMMUTABLE SET search_path = pg_catalog AS $$
     -- @implements-requirement HALL-FR-CAL-240
     WHEN target_access = 'appointment.manage'
       THEN '["always", "appointmentAuthor"]'::jsonb
+    -- @implements-requirement HALL-FR-MIN-300
+    WHEN target_access = 'minutes.draft'
+      THEN '["always", "minutesSecretary"]'::jsonb
     ELSE '["always"]'::jsonb END;
 $$;
 

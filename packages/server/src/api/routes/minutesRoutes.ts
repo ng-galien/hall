@@ -1,12 +1,18 @@
 import { generateMinutesSchema, updateMinutesDraftSchema } from "@hall/api-contract";
 import { Router } from "express";
 import type { Cradle } from "../../core/container.js";
+import { loadRequestAuthorization } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { routeParameter } from "../routeParameter.js";
 
+// @implements-requirement HALL-FR-MIN-300
 export function createMinutesRouter({ minutesService }: Cradle): Router {
   const router = Router();
+  router.param("id", async (request, _response, next, id: string) => {
+    await loadRequestAuthorization(request, { minutesId: id });
+    next();
+  });
   router.get("/", async (_request, response) => {
     response.json(await minutesService.list());
   });
