@@ -1,8 +1,23 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { expect, test } from "vitest";
 
-import { cacheName, frenchText, renderManifest, renderOfflinePage, renderServiceWorker } from "../web-app.mjs";
+import {
+  cacheName,
+  frenchText,
+  renderIconLinks,
+  renderManifest,
+  renderOfflinePage,
+  renderServiceWorker,
+} from "../web-app.mjs";
+
+const fingerprint = (file) =>
+  createHash("sha256")
+    .update(readFileSync(new URL(`../public/icons/${file}`, import.meta.url)))
+    .digest("hex")
+    .slice(0, 10);
 
 const identity = { version: "0.1.0", commit: "abc123" };
 const scope = "https://hall.example.test/app/";
@@ -89,6 +104,24 @@ test("the manifest takes its names from the translation keys and installs Hall u
   );
 });
 
+test("each icon address of the manifest and of the page carries a fingerprint of its image, under /app/", () => {
+  assert.deepEqual(
+    renderManifest("/app/").icons.map((icon) => icon.src),
+    ["icon-192.png", "icon-512.png", "icon-maskable-512.png"].map(
+      (file) => `/app/icons/${file}?v=${fingerprint(file)}`,
+    ),
+  );
+  assert.deepEqual(
+    renderIconLinks("/app/").map((link) => [link.rel, link.href]),
+    [
+      ["icon", `/app/icons/favicon.ico?v=${fingerprint("favicon.ico")}`],
+      ["icon", `/app/icons/favicon.svg?v=${fingerprint("favicon.svg")}`],
+      ["apple-touch-icon", `/app/icons/apple-touch-icon.png?v=${fingerprint("apple-touch-icon.png")}`],
+    ],
+  );
+  assert.notEqual(fingerprint("icon-512.png"), fingerprint("icon-maskable-512.png"));
+});
+
 test("the offline page is titled by the application name and carries its icon inline", () => {
   const page = renderOfflinePage();
   assert.match(page, new RegExp(`<title>${frenchText("app.windowTitle")}</title>`));
@@ -112,6 +145,7 @@ test("the service worker answers only screen openings under /app/", async () => 
     ["/mcp", { method: "POST" }],
     ["assets/index.js", { mode: "no-cors" }],
     ["icons/icon-192.png", {}],
+    [`icons/icon-192.png?v=${fingerprint("icon-192.png")}`, {}],
   ]) {
     assert.equal(worker.request(path, init), undefined, `${path} must not be intercepted`);
   }

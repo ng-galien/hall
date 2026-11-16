@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -26,6 +27,24 @@ export function buildIdentity() {
   return { version, commit: commit || "uncommitted" };
 }
 
+/** Address of an icon of public/icons under the base; its `v` parameter is a fingerprint of the image, so a new logo
+   gets a new address. */
+export function iconHref(base, file) {
+  const fingerprint = createHash("sha256")
+    .update(readFileSync(join(clientRoot, "public/icons", file)))
+    .digest("hex")
+    .slice(0, 10);
+  return `${base}icons/${file}?v=${fingerprint}`;
+}
+
+export function renderIconLinks(base) {
+  return [
+    { rel: "icon", href: iconHref(base, "favicon.ico"), sizes: "32x32" },
+    { rel: "icon", href: iconHref(base, "favicon.svg"), type: "image/svg+xml" },
+    { rel: "apple-touch-icon", href: iconHref(base, "apple-touch-icon.png") },
+  ];
+}
+
 export function renderManifest(base) {
   return {
     id: base,
@@ -39,9 +58,9 @@ export function renderManifest(base) {
     background_color: BACKGROUND_COLOR,
     theme_color: THEME_COLOR,
     icons: [
-      { src: `${base}icons/icon-192.png`, sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: `${base}icons/icon-512.png`, sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: `${base}icons/icon-maskable-512.png`, sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: iconHref(base, "icon-192.png"), sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: iconHref(base, "icon-512.png"), sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: iconHref(base, "icon-maskable-512.png"), sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }
@@ -82,6 +101,7 @@ export function hallWebApp() {
     },
     transformIndexHtml() {
       return [
+        ...renderIconLinks(base).map((attrs) => ({ tag: "link", attrs, injectTo: "head" })),
         { tag: "link", attrs: { rel: "manifest", href: `${base}manifest.webmanifest` }, injectTo: "head" },
         { tag: "meta", attrs: { name: "theme-color", content: THEME_COLOR }, injectTo: "head" },
       ];
