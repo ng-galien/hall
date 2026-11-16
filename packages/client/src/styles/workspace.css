@@ -240,7 +240,11 @@
     background: var(--hall-color-surface-subtle);
   }
   .geographic-map { width: 100%; height: 100%; }
+  /* A map control has the size the Button takes: the touch size at phone width, with or without a touch screen. */
   .geographic-map-stage { --geographic-map-control: var(--hall-size-control); }
+  @media (max-width: 760px) {
+    .geographic-map-stage { --geographic-map-control: var(--hall-size-touch-control); }
+  }
   .geographic-mode-switch svg { flex: none; font-size: var(--hall-font-size-icon-small); }
   .geographic-mode-switch,
   .geographic-zoom-tools,
