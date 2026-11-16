@@ -1,5 +1,5 @@
 import { type APIResponse, type Browser, expect, type Page, test } from "@playwright/test";
-import { clearTestDatabase } from "../fixtures/application";
+import { clearTestDatabase, historySettled } from "../fixtures/application";
 
 const password = "Hall-roles-2026!";
 
@@ -179,6 +179,7 @@ test("only an administrator gives or withdraws the administrator role", async ({
   await expect(manager.getByTestId("user-role-administrator")).toHaveCount(0);
   await manager.getByTestId("user-create-cancel").click();
   await expect(manager.getByTestId("user-create-cancel")).toHaveCount(0);
+  await historySettled(manager);
 
   await manager.goto(`/app/users/${otherAdministrator.id}`);
   await manager.getByTestId("user-edit-roles").click();
@@ -202,6 +203,8 @@ test("only an administrator gives or withdraws the administrator role", async ({
   await admin.getByTestId("users-add").click();
   await expect(admin.getByTestId("user-role-administrator")).toBeVisible();
   await admin.getByTestId("user-create-cancel").click();
+  await expect(admin.getByTestId("user-create-cancel")).toHaveCount(0);
+  await historySettled(admin);
   await admin.goto(`/app/users/${contributor.id}`);
   await admin.getByTestId("user-edit-roles").click();
   await admin.getByTestId("user-role-administrator").check();
