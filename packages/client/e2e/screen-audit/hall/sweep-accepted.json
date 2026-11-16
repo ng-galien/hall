@@ -12,6 +12,22 @@
     {
       "key": "carte | search-on-item | [maps-search]",
       "reason": "Au-dessus de 1280 px, la liste des cartes, avec sa recherche, reste ouverte à côté de la carte ouverte par disposition voulue ; jusqu'à 1280 px, l'ouverture d'une carte replie la liste, ce que le balayage ne rejoue pas quand il réduit la fenêtre après l'ouverture (vérifié à 1024 et 1280 px sur une ouverture directe : liste repliée, recherche absente)."
+    },
+    {
+      "key": "* | component-unity | ligne de liste (action) | ordinateur, souris",
+      "reason": "Les icônes d'appel et de courriel d'une liste de contacts ou d'élus sont dans la zone d'action partagée des lignes de liste (.list-row-action, retrait droit de 12 px, list-row.css), comme toute commande de fin de ligne ; l'écart ne vient que de la comparaison avec les lignes sans commande des autres écrans mesurés (liste des cartes, lignes sans coordonnée). Mesuré le 16 novembre : dernière icône à 12 px du bord du contenu de la ligne à 320, 800 px, contacts comme élus."
+    },
+    {
+      "key": "* | component-unity | ligne de liste (action) | ordinateur, souris, data-size=large",
+      "reason": "Les icônes d'appel et de courriel d'une liste de contacts ou d'élus sont dans la zone d'action partagée des lignes de liste (.list-row-action, retrait droit de 12 px, list-row.css), comme toute commande de fin de ligne ; l'écart ne vient que de la comparaison avec les lignes sans commande des autres écrans mesurés (liste des cartes, lignes sans coordonnée). Mesuré le 16 novembre : dernière icône à 12 px du bord du contenu de la ligne à 320, 800 px, contacts comme élus."
+    },
+    {
+      "key": "* | component-unity | ligne de liste (action) | ordinateur, doigt, data-size=large",
+      "reason": "Les icônes d'appel et de courriel d'une liste de contacts ou d'élus sont dans la zone d'action partagée des lignes de liste (.list-row-action, retrait droit de 12 px, list-row.css), comme toute commande de fin de ligne ; l'écart ne vient que de la comparaison avec les lignes sans commande des autres écrans mesurés (liste des cartes, lignes sans coordonnée). Mesuré le 16 novembre : dernière icône à 12 px du bord du contenu de la ligne à 320, 800 px, contacts comme élus."
+    },
+    {
+      "key": "* | component-unity | ligne de liste (action) | téléphone, souris",
+      "reason": "Les icônes d'appel et de courriel d'une liste de contacts ou d'élus sont dans la zone d'action partagée des lignes de liste (.list-row-action, retrait droit de 12 px, list-row.css), comme toute commande de fin de ligne ; l'écart ne vient que de la comparaison avec les lignes sans commande des autres écrans mesurés (liste des cartes, lignes sans coordonnée). Mesuré le 16 novembre : dernière icône à 12 px du bord du contenu de la ligne à 320, 800 px, contacts comme élus."
     }
   ]
 }
