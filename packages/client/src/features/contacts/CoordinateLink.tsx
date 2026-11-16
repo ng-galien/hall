@@ -1,5 +1,9 @@
 import { type ComponentPropsWithoutRef, Fragment, type ReactNode } from "react";
+import { MailIcon, PhoneIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useI18n } from "../../i18n/I18nProvider";
+import { phoneHref } from "./contactPhones";
 
 /** The `mailto:` address of an email address. */
 export function mailHref(address: string): string {
@@ -7,29 +11,55 @@ export function mailHref(address: string): string {
 }
 
 /**
- * A telephone number that opens the call, or an email address that opens the mail application. Inside a list row, a
- * click opens the call or the mail application and leaves the row closed.
+ * A telephone number that opens the call, or an email address that opens the mail application.
  * @implements-requirement HALL-FR-DIR-180
  */
 export function CoordinateLink({
   href,
   className,
-  onClick,
   children,
   ...props
 }: ComponentPropsWithoutRef<"a"> & { href: string }) {
   return (
-    <a
-      {...props}
-      href={href}
-      className={cn("hall-link", className)}
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick?.(event);
-      }}
-    >
+    <a {...props} href={href} className={cn("hall-link", className)}>
       {children}
     </a>
+  );
+}
+
+/**
+ * The call and the mail application of a person, as two icons at the end of a list row of a narrow list, each one
+ * present when the person has the coordinate.
+ * @implements-requirement HALL-FR-DIR-180
+ */
+export function CoordinateIcons({
+  email,
+  phone,
+  testId,
+}: {
+  email: string | null;
+  phone: string | null;
+  testId: string;
+}) {
+  const { t } = useI18n();
+  if (!email && !phone) return null;
+  return (
+    <span className="coordinate-icons">
+      {phone ? (
+        <Button asChild variant="plain" size="icon">
+          <a href={phoneHref(phone)} aria-label={t("contacts.call")} data-testid={`${testId}-call-icon`}>
+            <PhoneIcon />
+          </a>
+        </Button>
+      ) : null}
+      {email ? (
+        <Button asChild variant="plain" size="icon">
+          <a href={mailHref(email)} aria-label={t("contacts.writeEmail")} data-testid={`${testId}-email-icon`}>
+            <MailIcon />
+          </a>
+        </Button>
+      ) : null}
+    </span>
   );
 }
 

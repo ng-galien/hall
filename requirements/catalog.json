@@ -3001,7 +3001,8 @@
         "Quand le courriel partagé offre la création d’un message, l’enveloppe au bout du champ du courriel, pour une personne qui modifie le contact, ouvre un nouveau courriel de Hall adressé à ce contact.",
         "Sur un écran tactile, chaque numéro de la fiche est un lien d’appel.",
         "La liste des contacts et la liste des membres du conseil montrent un seul numéro, le mobile, à défaut le professionnel, à défaut le personnel ; un courriel ou un numéro absent n’est pas affiché.",
-        "Dans la liste des contacts, la liste des membres du conseil et la fiche d’un élu, le numéro affiché lance l’appel et le courriel affiché ouvre l’application de courrier ; toucher le numéro ou le courriel d’une ligne n’ouvre pas sa fiche, le reste de la ligne l’ouvre."
+        "Dans la liste des contacts, la liste des membres du conseil et la fiche d’un élu, le numéro affiché lance l’appel et le courriel affiché ouvre l’application de courrier ; toucher le numéro ou le courriel d’une ligne n’ouvre pas sa fiche, le reste de la ligne l’ouvre.",
+        "Au téléphone, chaque ligne de la liste des contacts et de la liste des membres du conseil offre l’appel et le courriel par deux icônes en fin de ligne, « Appeler » et « Écrire un courriel à cette adresse », chacune présente quand la personne a ce numéro ou ce courriel ; le nom de la personne se lit en entier."
       ],
       "clauses": [
         {

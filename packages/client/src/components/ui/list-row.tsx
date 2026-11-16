@@ -51,6 +51,9 @@ export type ListRowProps = Omit<ComponentPropsWithoutRef<"li">, "title" | "child
     selected?: boolean;
     /** Test identifier of the zone that opens the object. */
     openTestId?: string;
+    /** With `to`, the title is the link that opens the object and covers the whole line, so that links of the line,
+     * such as a telephone number or an email address, stand beside it instead of inside it. */
+    openFromTitle?: boolean;
     openLabel?: string;
     openProps?: Omit<ComponentPropsWithoutRef<"button">, "onClick" | "children">;
     /** A row that unfolds its content, such as an agenda item: the square « + / − » precedes its line. A folder never
@@ -84,6 +87,7 @@ export function ListRow({
   state,
   onOpen,
   openTestId,
+  openFromTitle,
   openLabel,
   openProps,
   expanded,
@@ -93,6 +97,7 @@ export function ListRow({
   ...rest
 }: ListRowProps) {
   const phone = usePhoneLayout();
+  const titleLink = Boolean(to && openFromTitle);
   const statusTag = status ? (
     <span className="list-row-status" data-tone={status.tone} data-testid={status.testId}>
       <span className="list-row-status-text">{status.label}</span>
@@ -104,7 +109,15 @@ export function ListRow({
       {head && !headButton ? <span className="list-row-head">{head}</span> : null}
       <span className="list-row-text">
         {overline ? <span className="list-row-overline">{overline}</span> : null}
-        <span className="list-row-title">{title}</span>
+        <span className="list-row-title">
+          {to && titleLink ? (
+            <Link className="list-row-open" to={to} state={state} data-testid={openTestId} aria-label={openLabel}>
+              {title}
+            </Link>
+          ) : (
+            title
+          )}
+        </span>
         {detail || (status && phone) ? (
           <span className="list-row-detail">
             {detail ? <span className="list-row-detail-text">{detail}</span> : null}
@@ -117,7 +130,9 @@ export function ListRow({
       {wide ? <span className="list-row-wide">{wide}</span> : null}
     </>
   );
-  const main = to ? (
+  const main = titleLink ? (
+    <div className="list-row-main">{content}</div>
+  ) : to ? (
     <Link className="list-row-main" to={to} state={state} data-testid={openTestId} aria-label={openLabel}>
       {content}
     </Link>
@@ -146,6 +161,7 @@ export function ListRow({
       data-size={size}
       data-selected={selected ? "true" : undefined}
       data-openable={to || onOpen || lineProps?.onClick ? "true" : undefined}
+      data-open={titleLink ? "title" : undefined}
     >
       {(wrapLine ?? ((element: ReactElement) => element))(
         <div {...lineProps} className={cn("list-row-line", lineProps?.className)}>

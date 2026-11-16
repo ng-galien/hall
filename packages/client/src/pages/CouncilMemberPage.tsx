@@ -170,6 +170,7 @@ export function CouncilMemberPage() {
               <ListRow
                 className="member-contact-row"
                 to={`/contacts/${member.contact.id}`}
+                openFromTitle
                 openTestId="member-contact-link"
                 head={
                   <ListRowAvatar

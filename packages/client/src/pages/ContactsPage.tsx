@@ -16,7 +16,7 @@ import {
 } from "../components/Ui";
 import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
-import { CoordinateLink, mailHref } from "../features/contacts/CoordinateLink";
+import { CoordinateIcons, CoordinateLink, mailHref } from "../features/contacts/CoordinateLink";
 import {
   type ContactPhoneField,
   contactPhoneFields,
@@ -153,7 +153,7 @@ export function ContactsPage() {
         ) : visibleContacts.length === 0 ? (
           <EmptyState>{t(contacts.length === 0 ? "contacts.empty" : "common.noSearchResults")}</EmptyState>
         ) : (
-          <ListRows>
+          <ListRows className="list-full-titles coordinate-list">
             {visibleContacts.map((contact) => {
               const name = `${contact.firstName} ${contact.lastName}`;
               const phone = preferredPhone(contact);
@@ -161,6 +161,7 @@ export function ContactsPage() {
                 <ListRow
                   key={contact.id}
                   to={`/contacts/${contact.id}`}
+                  openFromTitle
                   openTestId={`contact-open-${contact.id}`}
                   openLabel={t("contacts.editNamed", { name })}
                   head={<ListRowAvatar initials={`${contact.firstName.slice(0, 1)}${contact.lastName.slice(0, 1)}`} />}
@@ -189,6 +190,11 @@ export function ContactsPage() {
                           ) : null}
                         </span>
                       </>
+                    ) : undefined
+                  }
+                  action={
+                    contact.email || phone ? (
+                      <CoordinateIcons email={contact.email} phone={phone} testId={`contact-${contact.id}`} />
                     ) : undefined
                   }
                 />

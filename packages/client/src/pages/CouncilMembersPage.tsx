@@ -18,7 +18,7 @@ import {
 } from "../components/Ui";
 import { CreateButton } from "../components/ui/create-button";
 import { ListRow, ListRowAvatar, ListRows } from "../components/ui/list-row";
-import { CoordinateLink, mailHref, separatedFacts } from "../features/contacts/CoordinateLink";
+import { CoordinateIcons, CoordinateLink, mailHref, separatedFacts } from "../features/contacts/CoordinateLink";
 import { contactPhoneFields, phoneHref, preferredPhone } from "../features/contacts/contactPhones";
 import { useDomainRowStatus } from "../features/status/DomainStatusBadge";
 import { useSubmitting } from "../hooks/useSubmitting";
@@ -184,7 +184,7 @@ export function CouncilMembersPage() {
         ) : visibleMembers.length === 0 ? (
           <EmptyState>{t(members.length === 0 ? "members.empty" : "common.noSearchResults")}</EmptyState>
         ) : (
-          <ListRows className="list-full-titles">
+          <ListRows className="list-full-titles coordinate-list">
             {visibleMembers.map((member) => {
               const fullName = `${member.contact.firstName} ${member.contact.lastName}`;
               const phone = preferredPhone(member.contact);
@@ -212,6 +212,7 @@ export function CouncilMembersPage() {
                   key={member.id}
                   data-testid={`member-record-${member.id}`}
                   to={`/council-members/${member.id}`}
+                  openFromTitle
                   openTestId={`member-open-${member.id}`}
                   openLabel={t("members.editNamed", { name: fullName })}
                   head={
@@ -222,6 +223,11 @@ export function CouncilMembersPage() {
                   title={fullName}
                   detail={`${t(`role.${member.role}`)}${member.rank == null ? "" : ` · ${t("members.rank")} ${member.rank}`}`}
                   status={rowStatus(member.active ? "active" : "inactive")}
+                  action={
+                    member.contact.email || phone ? (
+                      <CoordinateIcons email={member.contact.email} phone={phone} testId={`member-${member.id}`} />
+                    ) : undefined
+                  }
                   size="large"
                   lines={[
                     ...(coordinates ? [coordinates] : []),
