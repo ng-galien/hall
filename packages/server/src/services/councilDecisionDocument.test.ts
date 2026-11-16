@@ -187,7 +187,7 @@ async function pdfText(bytes: Uint8Array): Promise<string> {
 }
 
 // @verifies-requirement HALL-FR-DEC-080
-it("signs the default decision PDF by the mayor who chaired and the meeting secretary", async () => {
+it("signs the default decision PDF by the meeting secretary and the mayor who chaired", async () => {
   const renderer = createTemplateRenderingService({
     hallSettingsRepository: { get: async () => ({ name: "Alésia", timeZone: "Europe/Paris" }) },
     directoryClient: noDirectory,
@@ -213,7 +213,7 @@ it("signs the default decision PDF by the mayor who chaired and the meeting secr
     headerHtml: signed.headerHtml,
     footerHtml: signed.footerHtml,
   });
-  expect(await pdfText(new Uint8Array(bytes))).toContain("Le maire Marie <Martin> Secrétariat de séance Jean Dupont");
+  expect(await pdfText(new Uint8Array(bytes))).toContain("Le secrétaire de séance Jean Dupont Le maire Marie <Martin>");
   const deputy = await renderer.preview(template, {}, undefined, decision({ chairRole: "deputyMayor" }));
   expect(deputy.resolvedMarkdown).toContain("Le maire\n\n\n\n</div>");
   expect(deputy.resolvedMarkdown).not.toContain("Signature :");

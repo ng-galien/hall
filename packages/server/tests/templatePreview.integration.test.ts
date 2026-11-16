@@ -63,8 +63,8 @@ it("previews the eleven configured families from real Alésia records as HTML an
   };
   const signatures: Record<string, RegExp> = {
     minutes:
-      /Fait à , le Présidence de séance \S.*?, (?:maire|adjoint au maire|membre du conseil municipal) Secrétariat de séance \S.*?, (?:maire|adjoint au maire|membre du conseil municipal)/,
-    "council-decision": /Fait à Alésia, le .+ Le maire .*Secrétariat de séance \S/,
+      /Fait à , le Le secrétaire de séance \S.*? (?:maire|adjoint au maire|membre du conseil municipal) Le président de séance \S.*? (?:maire|adjoint au maire|membre du conseil municipal)/,
+    "council-decision": /Fait à Alésia, le .+ Le secrétaire de séance \S.*? Le maire/,
     "meeting-notice": /Fait à Alésia, le .+ Le maire \S/,
     "deliberation-list": /Fait à Alésia, le .+ Le maire \S/,
     "attendance-sheet": /Nom et prénom Signature/,

@@ -16,12 +16,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const migrationsDirectory = join(root, "packages/postgres/sql/migrations");
-/** Releases whose defaults an installed template may still carry: 1.0.3, and 1.1.0 to 1.3.0 (one set of defaults). */
-export const previousReleases = ["v1.0.3", "v1.3.0"];
+/** Releases whose defaults an installed template may still carry: 1.0.3, 1.1.0 to 1.3.0 (one set of defaults), and 1.4.0. */
+export const previousReleases = ["v1.0.3", "v1.3.0", "v1.4.0"];
 export const insertedTypes = ["attendance-sheet", "proxy-form"];
 export const replacedTypes = ["minutes", "meeting-notice", "council-decision", "deliberation-list", ...insertedTypes];
 export const migrationPath = join(migrationsDirectory, "005-attendance-sheet-and-proxy-form-templates.sql");
-export const replacementPath = join(migrationsDirectory, "replace-default-templates-1.0.4.sql");
+export const replacementPath = join(migrationsDirectory, "replace-default-templates-1.4.1.sql");
 export const installationPath = join(root, "packages/postgres/sql/administration/030-default-document-templates.sql");
 
 const literal = (value) => (value === null ? "NULL" : `'${value.replaceAll("'", "''")}'`);

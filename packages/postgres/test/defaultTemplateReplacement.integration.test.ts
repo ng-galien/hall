@@ -3,7 +3,7 @@ import { defaultDocumentTemplates } from "@hall/domain";
 import { expect, it } from "vitest";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
 
-const replacement = readFile(new URL("../sql/migrations/replace-default-templates-1.0.4.sql", import.meta.url), "utf8");
+const replacement = readFile(new URL("../sql/migrations/replace-default-templates-1.4.1.sql", import.meta.url), "utf8");
 const generator = new URL("../../../scripts/distribution/document-template-sql.mjs", import.meta.url).href;
 
 type Template = {
@@ -79,5 +79,28 @@ postgresDescribe("explicit replacement of the default document templates", () =>
       header: former.headerHtml,
       footer: former.footerHtml,
     });
+  }, 120_000);
+
+  // @verifies-requirement HALL-FR-MIN-280
+  // @verifies-requirement HALL-FR-DEC-080
+  it("gives the current minutes and decision defaults to templates left at the 1.4.0 defaults", async () => {
+    const { previousDefaults } = (await import(generator)) as {
+      previousDefaults(release: string): Promise<Template[]>;
+    };
+    const formers = (await previousDefaults("v1.4.0")).filter(
+      (entry) => entry.kind === "pdf" && ["minutes", "council-decision"].includes(entry.documentType),
+    );
+    await pool.query("DELETE FROM hall.document_template");
+    for (const former of formers) await install(former);
+    expect(await outcomes()).toEqual({ "council-decision": "replaced", minutes: "replaced" });
+    const bodies = await pool.query<{ document_type: string; body_markdown: string }>(
+      "SELECT document_type, body_markdown FROM hall.document_template WHERE kind = 'pdf'",
+    );
+    for (const row of bodies.rows)
+      expect(row.body_markdown).toBe(
+        defaultDocumentTemplates.find((entry) => entry.kind === "pdf" && entry.documentType === row.document_type)!
+          .bodyMarkdown,
+      );
+    expect(await outcomes()).toEqual({ "council-decision": "current", minutes: "current" });
   }, 120_000);
 });

@@ -317,7 +317,7 @@ async function renderedPdf(preview: { printHtml: string; headerHtml: string; foo
 describe("signature blocks of the default PDF documents", () => {
   // @verifies-requirement HALL-FR-MIN-280
   // @verifies-requirement HALL-FR-MIN-290
-  it("ends the minutes PDF with the chair and secretary side by side, their mandate roles and no table", async () => {
+  it("ends the minutes PDF with the secretary on the left and the chair on the right, their qualities and no table", async () => {
     const { renderer } = service();
     const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
     expect(preview.diagnostics).toEqual([]);
@@ -328,7 +328,7 @@ describe("signature blocks of the default PDF documents", () => {
     const text = await renderedPdf(preview);
     expect(text).toMatch(/^Commune test Procès-verbal du conseil/);
     expect(text).toMatch(
-      /Fait à\s*,\s*le\s*Présidence de séance Marie Martin, maire Secrétariat de séance Jean Dupont, membre du conseil municipal/,
+      /Fait à\s*,\s*le\s*Le secrétaire de séance Jean Dupont membre du conseil municipal Le président de séance Marie Martin maire/,
     );
     expect(text).toMatch(/Commune test · Procès-verbal du conseil · Séance du 5 septembre 2026 · Page 1 \/ 1/);
     expect(text).not.toContain("Sujet présenté");
@@ -340,8 +340,8 @@ describe("signature blocks of the default PDF documents", () => {
     const { renderer } = service(fixture, []);
     const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
     expect(preview.diagnostics).toEqual([]);
-    expect(preview.resolvedMarkdown).toContain("Présidence de séance\n\nMarie Martin\n\n</div>");
-    expect(preview.resolvedMarkdown).toContain("Secrétariat de séance\n\nJean Dupont\n\n</div>");
+    expect(preview.resolvedMarkdown).toContain("Le président de séance\n\nMarie Martin\n\n\n\n</div>");
+    expect(preview.resolvedMarkdown).toContain("Le secrétaire de séance\n\nJean Dupont\n\n\n\n</div>");
   });
 
   // @verifies-requirement HALL-FR-MIN-280
@@ -360,7 +360,7 @@ describe("signature blocks of the default PDF documents", () => {
     const preview = await renderer.preview(defaultTemplate("minutes"), { minutesId: fixture.id });
     expect(preview.diagnostics).toEqual([]);
     expect(listCouncilMembers).not.toHaveBeenCalled();
-    expect(preview.resolvedMarkdown).toContain("Présidence de séance\n\nMarie Martin\n\n</div>");
+    expect(preview.resolvedMarkdown).toContain("Le président de séance\n\nMarie Martin\n\n\n\n</div>");
   });
 
   // @verifies-requirement HALL-FR-ATT-170

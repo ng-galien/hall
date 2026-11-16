@@ -109,6 +109,13 @@ function signatureBlock(markdown: string): string {
     .trim();
 }
 
+/** Text of a rendered Markdown output, without markup, in reading order. */
+const plainText = (markdown: string) =>
+  renderHtml(parse(markdown))
+    .replaceAll(/<[^>]+>/g, " ")
+    .replaceAll(/\s+/g, " ")
+    .trim();
+
 /** The signature block, and the municipality block of the minutes, are the only HTML written in the default sources. */
 const withoutSignatureMarkup = (value: string) =>
   value.replaceAll(
@@ -148,10 +155,13 @@ describe("editable Markdown/Jinja default models", () => {
   });
   // @verifies-requirement HALL-FR-MIN-280
   // @verifies-requirement HALL-FR-MIN-290
-  it("closes the default minutes with the chair and secretary side by side, without a table", () => {
+  it("closes the default minutes with the secretary on the left and the chair on the right, without a table", () => {
     const output = renderJinja(jinjaBody("minutes"), context);
     expect(signatureBlock(output)).toBe(
-      "Fait à , le Présidence de séance Présidente &#x3C;Une>, adjoint au maire Secrétariat de séance Secrétaire &#x3C;Un>, membre du conseil municipal",
+      "Fait à , le Le secrétaire de séance Secrétaire &#x3C;Un> membre du conseil municipal Le président de séance Présidente &#x3C;Une> adjoint au maire",
+    );
+    expect(output).toContain(
+      '<div class="hall-signature">\n\nLe président de séance\n\nPrésidente \\<Une\\>\n\nadjoint au maire\n\n</div>',
     );
     expect(output).toContain(
       '<div class="hall-signatures hall-signatures-handwritten">\n\nFait à <span class="hall-fill hall-fill-place"></span>, le <span class="hall-fill hall-fill-date"></span>',
@@ -173,8 +183,123 @@ describe("editable Markdown/Jinja default models", () => {
       },
     };
     expect(signatureBlock(renderJinja(jinjaBody("minutes"), unnamed))).toBe(
-      "Fait à , le Présidence de séance Présidente Secrétariat de séance",
+      "Fait à , le Le secrétaire de séance Le président de séance Présidente",
     );
+    const mayor = {
+      ...context,
+      minutes: {
+        ...context.minutes,
+        signatories: { ...context.minutes.signatories, chair: { name: "Maire", role: "mayor" } },
+      },
+    };
+    expect(signatureBlock(renderJinja(jinjaBody("minutes"), mayor))).toBe(
+      "Fait à , le Le secrétaire de séance Secrétaire &#x3C;Un> membre du conseil municipal Le président de séance Maire maire",
+    );
+  });
+
+  // @verifies-requirement HALL-FR-MIN-240
+  it("names the meeting chair and secretary at the opening of the minutes", () => {
+    const output = renderJinja(jinjaBody("minutes"), context);
+    expect(plainText(output)).toContain(
+      "Lieu : Mairie Président de séance : Élue &#x3C;Une> Secrétaire de séance : Élue &#x3C;Une>",
+    );
+    expect(output).toMatch(/\nPrésident de séance : .+ {2}\nSecrétaire de séance : .+\n/);
+    const unrecorded = {
+      ...context,
+      minutes: { ...context.minutes, meeting: { ...meeting, chair: null, secretary: null } },
+    };
+    expect(plainText(renderJinja(jinjaBody("minutes"), unrecorded))).toContain(
+      "Président de séance : Non renseigné Secrétaire de séance : Non renseigné",
+    );
+  });
+
+  // @verifies-requirement HALL-FR-AGI-410
+  it("prints the questions added during the meeting in their own section after the convened points", () => {
+    const added = {
+      ...point,
+      id: "added",
+      number: 3,
+      title: "Question du public",
+      kind: "openQuestion",
+      introducedAt: "2026-10-09T19:30:00Z",
+      narrative: "Réponse du maire",
+      ballot: null,
+    };
+    const second = { ...point, id: "second", number: 2, title: "Second point", narrative: "Deuxième rédaction" };
+    const output = renderJinja(jinjaBody("minutes"), {
+      ...context,
+      minutes: { ...context.minutes, points: [point, added, second] },
+    });
+    const html = renderHtml(parse(output));
+    const positions = [
+      "<h2>Examen des points</h2>",
+      "<h3>1. Sujet précis</h3>",
+      "<h3>2. Second point</h3>",
+      "<h2>Questions ajoutées en séance</h2>",
+      "<h3>3. Question du public</h3>",
+      "<p>Question ajoutée en séance le 9 octobre 2026 à 21:30.</p>",
+      "Réponse du maire",
+      'class="hall-signatures',
+    ].map((fragment) => html.indexOf(fragment));
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual(positions.toSorted((left, right) => left - right));
+    expect(html.match(/Question du public/g)).toHaveLength(1);
+
+    const convened = renderHtml(parse(renderJinja(jinjaBody("minutes"), context)));
+    expect(convened).not.toContain("Questions ajoutées en séance");
+    expect(convened).not.toContain("Question ajoutée en séance");
+  });
+
+  // @verifies-requirement HALL-FR-MIN-260
+  // @verifies-requirement HALL-FR-ATT-140
+  // @verifies-requirement HALL-FR-MTG-350
+  it("mentions the persons attending, the officer handovers and the closed sessions", () => {
+    const output = renderJinja(jinjaBody("minutes"), {
+      ...context,
+      minutes: {
+        ...context.minutes,
+        conduct: {
+          ...context.minutes.conduct,
+          auxiliaryAttendances: [
+            { name: "Claire <Martin>", quality: "secrétaire de mairie" },
+            { name: "Jean Libre", quality: null },
+          ],
+          officerChanges: [
+            {
+              observedAt: "2026-10-09T18:30:00Z",
+              office: "chair",
+              memberName: "Paul Adjoint",
+              basis: "deputyInNominationOrder",
+            },
+            {
+              observedAt: "2026-10-09T18:31:00Z",
+              office: "secretary",
+              memberName: "Lise Conseillère",
+              basis: "councilNomination",
+            },
+          ],
+          closedSessions: [
+            {
+              observedAt: "2026-10-09T18:40:00Z",
+              requesters: [{ name: "Maire" }],
+              approvals: 5,
+              presentOrRepresented: 9,
+              wholeMeeting: false,
+              agendaItemIds: ["point"],
+            },
+          ],
+        },
+        points: [{ ...point, closedSession: true }],
+      },
+    });
+    const text = plainText(output);
+    expect(text).toContain("Assistaient également : Claire &#x3C;Martin> (secrétaire de mairie) Jean Libre");
+    expect(text).toContain("présidence confiée à Paul Adjoint (adjoint dans l’ordre des nominations)");
+    expect(text).toContain("secrétariat confié à Lise Conseillère (nomination par le conseil)");
+    expect(text).toContain(
+      "huis clos décidé sans débat sur demande de Maire, par 5 voix sur 9 membres présents ou représentés, pour les points 1.",
+    );
+    expect(text).toContain("1. Sujet précis Point examiné à huis clos.");
   });
 
   // @verifies-requirement HALL-FR-NOT-080
@@ -196,9 +321,9 @@ describe("editable Markdown/Jinja default models", () => {
   });
 
   // @verifies-requirement HALL-FR-DEC-080
-  it("signs the decision by the mayor and the meeting secretary without naming a chair who is not the mayor", () => {
+  it("signs the decision by the meeting secretary and the mayor without naming a chair who is not the mayor", () => {
     expect(signatureBlock(renderJinja(jinjaBody("council-decision"), context))).toBe(
-      "Fait à Commune, le 9 octobre 2026 Le maire Élue &#x3C;Une> Secrétariat de séance Élue &#x3C;Une>",
+      "Fait à Commune, le 9 octobre 2026 Le secrétaire de séance Élue &#x3C;Une> Le maire Élue &#x3C;Une>",
     );
     const deputy = {
       ...context,
@@ -208,7 +333,7 @@ describe("editable Markdown/Jinja default models", () => {
       },
     };
     expect(signatureBlock(renderJinja(jinjaBody("council-decision"), deputy))).toBe(
-      "Fait à Commune, le 9 octobre 2026 Le maire Secrétariat de séance Élue &#x3C;Une>",
+      "Fait à Commune, le 9 octobre 2026 Le secrétaire de séance Élue &#x3C;Une> Le maire",
     );
   });
 

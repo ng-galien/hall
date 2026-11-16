@@ -481,6 +481,28 @@ role when that role has no grant for this access. No other grant is added, chang
 removed. The migration is recorded so that a later administrator change survives
 subsequent upgrades.
 
+### Document templates in 1.4.1
+
+The 1.4.1 defaults of « Procès-verbal du conseil » and « Délibération du conseil
+municipal » sign with « Le secrétaire de séance » on the left; the minutes are signed on the
+right by « Le président de séance » with the quality of the mandate under each name, open with
+« Président de séance » and « Secrétaire de séance », and print the questions added during the
+meeting in a separate section « Questions ajoutées en séance ». `hall migrate` does not change
+installed templates. After the backup and `hall migrate`, run the replacement script of the
+1.4.1 package:
+
+```sh
+psql --dbname="$DATABASE" --set=ON_ERROR_STOP=1 \
+  --file=/srv/hall/releases/1.4.1/node_modules/@ng-galien/hall/sql/migrations/replace-default-templates-1.4.1.sql
+```
+
+The script gives the current default body and stylesheet to a PDF template whose body is still
+a default of 1.0.3, of 1.1.0 to 1.3.0 or of 1.4.0, and the current header and footer while these
+are still such a default; it keeps the identifier and the name. It prints one row per template
+with its outcome: `replaced`, `current` or `customized`. A `customized` template is left
+unchanged; bring the changes of the current default to it by hand in **Paramètres → Documents**.
+Running the script again changes nothing.
+
 ### Schema changes in 1.4.0
 
 `hall migrate` from 1.3.0 creates the empty table `hall.meeting_proxy_registration`

@@ -1,11 +1,15 @@
 /** Editable Jinja sources produce Markdown; Hall owns the subsequent Markdown/PDF rendering. */
+// @implements-requirement HALL-FR-MIN-240 (the meeting chair and secretary at the opening of the minutes)
+// @implements-requirement HALL-FR-MIN-260 (the officer handovers)
+// @implements-requirement HALL-FR-MTG-290 (the quorum observed at the opening)
+// @implements-requirement HALL-FR-MTG-350 (the closed sessions decided)
 export const jinjaMinutesFacts = `Séance n° {{ minutes.meeting.number }}  
 Ouverture : {{ minutes.meeting.startedAt | datetime }}  
 Clôture : {{ minutes.meeting.closedAt | datetime }}  
 Lieu : {{ (minutes.meeting.location or 'Non renseigné') | text }}
 
-Présidence : {{ (minutes.meeting.chair.name if minutes.meeting.chair else 'Non renseignée') | text }}  
-Secrétariat : {{ (minutes.meeting.secretary.name if minutes.meeting.secretary else 'Non renseigné') | text }}
+Président de séance : {{ (minutes.meeting.chair.name if minutes.meeting.chair else 'Non renseigné') | text }}  
+Secrétaire de séance : {{ (minutes.meeting.secretary.name if minutes.meeting.secretary else 'Non renseigné') | text }}
 
 {% for observation in minutes.conduct.quorumObservations if observation.agendaItemId == none %}
 Quorum à l’ouverture : {{ {'met': 'atteint', 'notMet': 'non atteint', 'exempt': 'seconde convocation, sans condition de quorum'}[observation.facts.verdict] }}, {{ observation.facts.presentCount }} présents sur {{ observation.facts.requiredPresent }} requis.
@@ -48,8 +52,15 @@ Huis clos :
 
 {% endif %}`;
 
+// @implements-requirement HALL-FR-MIN-250 (council narrative and aggregate votes)
 // @implements-requirement HALL-FR-MIN-290 (each point gives its discussion, not the text of its subject)
-export const jinjaMinutesProceedings = `{% for point in minutes.points %}
+// @implements-requirement HALL-FR-AGI-410 (the questions added during the meeting form their own section)
+/**
+ * The points of the convened agenda in agenda order, then, under « Questions ajoutées en séance », the
+ * questions added during the meeting (`introducedAt`), each with its number; the section is absent
+ * when no question was added.
+ */
+export const jinjaMinutesProceedings = `{% macro minutes_point(point) %}
 ### {{ point.number }}. {{ point.title | text }}
 
 {% if point.introducedAt %}
@@ -101,21 +112,34 @@ Quorum constaté le {{ observation.observedAt | datetime }} : {{ observation.fac
 Non arrêté.
 
 {% endif %}
-{% endfor %}`;
+{% endmacro %}
+{% for point in minutes.points if not point.introducedAt %}
+{{ minutes_point(point) }}
+{% endfor %}
+{% set added = minutes.points | selectattr('introducedAt') | list %}
+{% if added %}
+## Questions ajoutées en séance
+
+{% for point in added %}
+{{ minutes_point(point) }}
+{% endfor %}
+{% endif %}`;
 
 interface SignatoryLines {
-  /** Office or quality of the signatory, written as is. */
-  quality: string;
+  /** Office of the signatory, written as is. */
+  office: string;
   /** Jinja expression rendering the name line; an empty value leaves the line blank. */
   name: string;
+  /** Jinja expression rendering the quality line under the name; an empty value leaves it out. */
+  quality?: string;
 }
 
 /**
  * Administrative signature block written in HTML within the Markdown body: the "Fait à" line,
- * then one or two signatories, each with a quality, a name and a blank space for the handwritten
- * signature. Layout belongs to the stylesheet (`.hall-signatures`): a single signatory occupies the
- * right half of the page, two signatories stand side by side. Without place and date, the line offers
- * two blank zones to fill in by hand (`.hall-fill`).
+ * then one or two signatories, each with an office, a name, an optional quality and a blank space for
+ * the handwritten signature. Layout belongs to the stylesheet (`.hall-signatures`): a single signatory
+ * occupies the right half of the page, two signatories stand side by side, the first on the left.
+ * Without place and date, the line offers two blank zones to fill in by hand (`.hall-fill`).
  */
 export function jinjaSignatureBlock(
   place: string | null,
@@ -123,7 +147,10 @@ export function jinjaSignatureBlock(
   signatories: readonly SignatoryLines[],
 ): string {
   const blocks = signatories
-    .map((signatory) => `<div class="hall-signature">\n\n${signatory.quality}\n\n${signatory.name}\n\n</div>`)
+    .map(
+      (signatory) =>
+        `<div class="hall-signature">\n\n${signatory.office}\n\n${signatory.name}\n\n${signatory.quality === undefined ? "" : `${signatory.quality}\n\n`}</div>`,
+    )
     .join("\n");
   const handwritten = place === null || date === null;
   const line = `Fait à ${place ?? '<span class="hall-fill hall-fill-place"></span>'}, le ${date ?? '<span class="hall-fill hall-fill-date"></span>'}`;
@@ -139,20 +166,22 @@ const blank = "……";
 // @implements-requirement HALL-FR-MIN-290 (place and date of signature are filled in by hand)
 /**
  * Closing signature block of the minutes: a "Fait à …, le …" line to fill in by hand, then the meeting
- * chair and the meeting secretary. Hall has no gender data: the blocks name the offices ("Présidence de
- * séance", "Secrétariat de séance") and the mandate role, so the wording does not depend on gender.
+ * secretary on the left and the meeting chair on the right, each with the name and, under it, the
+ * quality of the mandate. The chair is « Le président de séance » even when the mayor chairs.
  */
 export const jinjaMinutesSignatures = `${qualities}
 {% set chair = minutes.signatories.chair %}
 {% set secretary = minutes.signatories.secretary %}
 ${jinjaSignatureBlock(null, null, [
   {
-    quality: "Présidence de séance",
-    name: "{{ (chair.name if chair else '') | text }}{% if chair and chair.role %}, {{ qualities[chair.role] }}{% endif %}",
+    office: "Le secrétaire de séance",
+    name: "{{ (secretary.name if secretary else '') | text }}",
+    quality: "{{ qualities[secretary.role] if secretary and secretary.role else '' }}",
   },
   {
-    quality: "Secrétariat de séance",
-    name: "{{ (secretary.name if secretary else '') | text }}{% if secretary and secretary.role %}, {{ qualities[secretary.role] }}{% endif %}",
+    office: "Le président de séance",
+    name: "{{ (chair.name if chair else '') | text }}",
+    quality: "{{ qualities[chair.role] if chair and chair.role else '' }}",
   },
 ])}`;
 
@@ -160,7 +189,7 @@ ${jinjaSignatureBlock(null, null, [
 // @implements-requirement HALL-FR-MIN-270
 /** Signature block of the mayor in office when the document is rendered, dated by the given Jinja expression. */
 export const jinjaMayorSignature = (date: string): string =>
-  jinjaSignatureBlock(hallPlace, date, [{ quality: "Le maire", name: "{{ (mayor.name if mayor else '') | text }}" }]);
+  jinjaSignatureBlock(hallPlace, date, [{ office: "Le maire", name: "{{ (mayor.name if mayor else '') | text }}" }]);
 
 export const jinjaMeetingNoticeBody = `{{ notice.hall.name | text }}
 
@@ -252,12 +281,12 @@ ${jinjaSignatureBlock(
   "{{ decision.facts.meeting.startedAt | date }}",
   [
     {
-      quality: "Le maire",
-      name: "{{ (decision.facts.meeting.chair.name if decision.facts.meeting.chairRole == 'mayor' and decision.facts.meeting.chair else '') | text }}",
+      office: "Le secrétaire de séance",
+      name: "{{ (decision.facts.meeting.secretary.name if decision.facts.meeting.secretary else '') | text }}",
     },
     {
-      quality: "Secrétariat de séance",
-      name: "{{ (decision.facts.meeting.secretary.name if decision.facts.meeting.secretary else '') | text }}",
+      office: "Le maire",
+      name: "{{ (decision.facts.meeting.chair.name if decision.facts.meeting.chairRole == 'mayor' and decision.facts.meeting.chair else '') | text }}",
     },
   ],
 )}`;
@@ -302,7 +331,7 @@ Rappel (article L2121-20 du code général des collectivités territoriales) :
 - le pouvoir est toujours révocable ;
 - sauf cas de maladie dûment constatée ou de congé de maternité, il ne peut être valable pour plus de trois séances consécutives.
 
-${jinjaSignatureBlock(null, null, [{ quality: "Le mandant", name: "{{ grantor.name | text }}" }])}`;
+${jinjaSignatureBlock(null, null, [{ office: "Le mandant", name: "{{ grantor.name | text }}" }])}`;
 
 export const jinjaDocumentBodies: Readonly<Record<string, string>> = {
   "document-print": "{{ generated.bodyMarkdown | markdown }}",

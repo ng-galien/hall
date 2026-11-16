@@ -1,8 +1,15 @@
-import { minutesDetailSchema as httpMinutesSchema } from "@hall/api-contract";
+import { minutesDetailSchema as httpMinutesSchema, type MinutesDetail } from "@hall/api-contract";
+import { jinjaBody } from "@hall/domain";
 import { PostgresMinutes, ProjectionValidationError } from "@hall/postgres";
+import { renderJinja } from "@hall/templating/jinja";
 import type { Pool } from "pg";
 import { describe, expect, it, vi } from "vitest";
-import { renderMinutesSections } from "../src/services/minutesDocument.js";
+import { minutesTemplateData } from "../src/services/templateData.js";
+
+/** Markdown of the default minutes template rendered from the minutes. */
+const printedMinutes = (minutes: MinutesDetail) =>
+  renderJinja(jinjaBody("minutes"), { hall: { name: "Commune" }, minutes: minutesTemplateData(minutes, new Map()) });
+const reconvened = "Seconde convocation après la séance n° 1";
 
 const recordedAt = "2026-09-05T20:00:00+02:00";
 const minutesId = "00000000-0000-4000-8000-000000000001";
@@ -93,7 +100,7 @@ describe("historical minutes projections", () => {
     expect(minutes).toStrictEqual(snapshot);
     expect(minutes.facts.meeting).not.toHaveProperty("reconvenedFrom");
     expect(historicalMinutes).toStrictEqual(snapshot);
-    expect(renderMinutesSections(minutes).facts).not.toContain("Séance tenue sur seconde convocation");
+    expect(printedMinutes(minutes)).not.toContain("Seconde convocation après");
   });
 
   // @verifies-requirement HALL-FR-MTG-290
@@ -101,7 +108,7 @@ describe("historical minutes projections", () => {
     const payload = withReconvocation(value);
     const minutes = httpMinutesSchema.parse(await readStoredProjection(payload));
     expect(minutes).toStrictEqual(payload);
-    expect(renderMinutesSections(minutes).facts.includes("Séance tenue sur seconde convocation")).toBe(value !== null);
+    expect(printedMinutes(minutes).includes(reconvened)).toBe(value !== null);
   });
 
   it.each([

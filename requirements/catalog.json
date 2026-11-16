@@ -5000,7 +5000,8 @@
       "acceptanceCriteria": [
         "La présidence, le secrétariat de séance, le quorum et les heures d’ouverture et de clôture sont présentés ligne à ligne, sans cartes de métriques.",
         "Les membres présents, excusés et absents sont regroupés dans des listes textuelles sans badges de statut.",
-        "Chaque pouvoir associe textuellement le membre représenté au porteur du pouvoir."
+        "Chaque pouvoir associe textuellement le membre représenté au porteur du pouvoir.",
+        "Le modèle par défaut du procès-verbal nomme à l’ouverture le « Président de séance » et le « Secrétaire de séance »."
       ],
       "clauses": [
         {
@@ -5013,6 +5014,12 @@
           "key": "behaviour-only-catalogue",
           "origin": "product",
           "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",
+          "sourceIds": []
+        },
+        {
+          "key": "officer-titles",
+          "origin": "product",
+          "statement": "L’ouverture du procès-verbal imprimé nomme le « Président de séance » et le « Secrétaire de séance ». Mots de l’utilisateur du 16 novembre 2026 : « normalement la signature du maire a priori devrait être à droite, et il faudrait pas mettre le secrétariat, faudrait mettre […] secrétaire » ; « tu mets le président de séance. Hein, tu mets pas le maire, tu mets le président de séance. Avec sa qualité et le secrétaire de séance avec sa qualité. Conseil municipal ou adjoint, quand c'est un adjoint. »",
           "sourceIds": []
         }
       ]
@@ -8525,7 +8532,7 @@
       "acceptanceCriteria": [
         "Les délibérations sont signées par le maire et le ou les secrétaires de séance.",
         "Le gabarit commun distingue ouverture et scrutin, reprend les observations historiques disponibles, laisse absentes les qualités non observées et ne déduit aucune attestation de convocation, signature, conformité ou publication. Les choix typographiques du modèle communal ne constituent pas des obligations légales ; aucune métadonnée manquante ne crée à elle seule un blocage de gel.",
-        "Le modèle par défaut de la délibération se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : ligne « Fait à {commune}, le {date} » (date de la séance), puis deux signataires côte à côte, « Le maire » à gauche et « Secrétariat de séance » à droite : le nom du maire figure seulement quand les faits confirmés établissent que la présidence était le maire, le nom du secrétaire de séance quand il est enregistré ; un espace libre est laissé sous chaque nom pour la signature manuscrite."
+        "Le modèle par défaut de la délibération se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : ligne « Fait à {commune}, le {date} » (date de la séance), puis deux signataires côte à côte, « Le secrétaire de séance » à gauche et « Le maire » à droite : le nom du secrétaire de séance figure quand il est enregistré, le nom du maire seulement quand les faits confirmés établissent que la présidence était le maire ; un espace libre est laissé sous chaque nom pour la signature manuscrite."
       ],
       "clauses": [
         {
@@ -8554,6 +8561,12 @@
           "key": "signature-layout",
           "origin": "product",
           "statement": "Mots d’Alexandre du 7 novembre 2026 : « dans les documents classiques, la signature, c’est pas dans un tableau » ; « elles sont pas dans des tableaux comme ça ».",
+          "sourceIds": []
+        },
+        {
+          "key": "signature-sides",
+          "origin": "product",
+          "statement": "Le secrétaire de séance signe à gauche sous l’intitulé « Le secrétaire de séance », le maire à droite. Mots de l’utilisateur du 16 novembre 2026 : « normalement la signature du maire a priori devrait être à droite, et il faudrait pas mettre le secrétariat, faudrait mettre […] secrétaire » ; « tu mets le président de séance. Hein, tu mets pas le maire, tu mets le président de séance. Avec sa qualité et le secrétaire de séance avec sa qualité. Conseil municipal ou adjoint, quand c'est un adjoint. »",
           "sourceIds": []
         }
       ]
@@ -8608,13 +8621,20 @@
       "statement": "Une question ouverte peut être ajoutée à la fin d’une séance en cours sans créer de délibération ni de scrutin.",
       "acceptanceCriteria": [
         "Une question ouverte peut être ajoutée en fin d’ordre du jour tant que la séance est ouverte, y compris sans quorum ou après examen de tous les points. L’ajout est horodaté, immuable, identifié dans le PV et distinct de la convocation de la révision établie. Il n’introduit aucune délibération ni scrutin.",
-        "Cette question est créée depuis la conduite de la séance. Elle ne réutilise pas un projet de délibération ou une question préparée dans l’espace de travail et est rattachée à une affaire existante sélectionnée ou à une nouvelle affaire créée explicitement lors de l’ajout."
+        "Cette question est créée depuis la conduite de la séance. Elle ne réutilise pas un projet de délibération ou une question préparée dans l’espace de travail et est rattachée à une affaire existante sélectionnée ou à une nouvelle affaire créée explicitement lors de l’ajout.",
+        "Le procès-verbal imprimé par le modèle par défaut présente d’abord les points de l’ordre du jour convoqué, puis, dans une section « Questions ajoutées en séance », les questions ajoutées pendant la séance, chacune avec son numéro, son titre, la date de son ajout et sa rédaction ; la section n’apparaît que si une question a été ajoutée."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
           "statement": "Une question ouverte créée depuis la conduite de la séance peut être ajoutée en fin d’ordre du jour tant que la séance est ouverte, y compris sans quorum ou après examen de tous les points. Elle ne réutilise aucun sujet préparé. Son rattachement à une affaire existante préserve le rapport, les ressources et l’historique de celle-ci. La création d’une nouvelle affaire et de la question est atomique. L’ajout est horodaté, immuable, identifié dans le PV et distinct de la convocation gelée. Il n’introduit aucune délibération ni scrutin.",
+          "sourceIds": []
+        },
+        {
+          "key": "printed-section",
+          "origin": "product",
+          "statement": "Les questions ajoutées en séance forment dans le procès-verbal imprimé une section distincte, après les points de l’ordre du jour convoqué. Mots de l’utilisateur du 16 novembre 2026 : « Si on peut mettre une section particulière discriminée au niveau de l'impression, le fait que ça soit des éléments, des points rajoutés lors du conseil ».",
           "sourceIds": []
         }
       ]
@@ -11087,12 +11107,13 @@
         "state": "accepted",
         "since": "2026-11-07"
       },
-      "statement": "Le procès-verbal se termine par le bloc des signatures de la présidence et du secrétariat de séance.",
+      "statement": "Le procès-verbal se termine par les signatures du secrétaire de séance et du président de séance, chacun avec son nom et sa qualité.",
       "acceptanceCriteria": [
         "Le procès-verbal de chaque séance est signé par le maire et le ou les secrétaires.",
-        "Le modèle par défaut du procès-verbal se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : ligne « Fait à …, le … » dont le lieu et la date restent à écrire à la main (HALL-FR-MIN-290), puis deux signataires côte à côte : « Présidence de séance » à gauche et « Secrétariat de séance » à droite, chacun suivi du nom de l’élu enregistré dans les faits de clôture et de sa qualité (« maire », « adjoint au maire » ou « membre du conseil municipal »), puis d’un espace libre d’au moins 25 mm pour la signature manuscrite ; le bloc ne se coupe pas entre deux pages.",
-        "La qualité est le rôle du mandat de l’élu lu dans l’annuaire au moment du rendu ; elle n’est pas figée dans les faits de clôture. Sans mandat lisible, le nom figure sans qualité ; sans présidence ou secrétariat enregistré, le bloc garde l’intitulé de l’office et l’espace de signature avec un nom vide. Hall ne connaît pas le genre des élus : les intitulés désignent l’office (« Présidence de séance », « Secrétariat de séance ») plutôt que la personne.",
-        "Les modèles déjà enregistrés ne sont pas modifiés : le bloc apparaît dans un modèle installé après remplacement explicite de son texte et de sa présentation par ceux du modèle par défaut."
+        "Le modèle par défaut du procès-verbal se termine par un bloc de signature en mise en page administrative, sans tableau ni bordure : la ligne « Fait à …, le … » dont le lieu et la date restent à écrire à la main (HALL-FR-MIN-290), puis deux signataires côte à côte, à gauche « Le secrétaire de séance », à droite « Le président de séance », chacun suivi du nom de l’élu enregistré dans les faits de clôture, de sa qualité (« maire », « adjoint au maire » ou « membre du conseil municipal ») et d’un espace libre pour la signature manuscrite ; le bloc ne se coupe pas entre deux pages.",
+        "L’intitulé de droite est « Le président de séance » quel que soit l’élu qui préside : quand le maire préside, sa qualité « maire » figure sous son nom.",
+        "La qualité est le rôle du mandat de l’élu lu dans l’annuaire au moment du rendu ; elle n’est pas figée dans les faits de clôture. Sans mandat lisible, le nom figure sans qualité ; sans président ou secrétaire de séance enregistré, le bloc garde l’intitulé et l’espace de signature avec un nom vide.",
+        "Un modèle installé dont le texte est encore un modèle par défaut précédent reçoit ce bloc par le remplacement explicite des modèles par défaut ; un modèle personnalisé reste inchangé."
       ],
       "clauses": [
         {
@@ -11108,19 +11129,25 @@
         {
           "key": "owner-request",
           "origin": "product",
-          "statement": "Demande de l’utilisateur du 7 novembre 2026 : « Il faut changer les templates des documents de Hall avec les noms et signatures, par exemple pour le PV, avec le nom du président et du secrétaire de séance. » Le bloc nomme la présidence de séance et le secrétariat de séance enregistrés à la clôture ; lorsque la présidence n’est pas le maire, le modèle de la commune reste à adapter.",
+          "statement": "Demande de l’utilisateur du 7 novembre 2026 : « Il faut changer les templates des documents de Hall avec les noms et signatures, par exemple pour le PV, avec le nom du président et du secrétaire de séance. » Le bloc nomme le président de séance et le secrétaire de séance enregistrés à la clôture.",
           "sourceIds": []
         },
         {
           "key": "rendering",
           "origin": "product",
-          "statement": "Le modèle par défaut termine le procès-verbal par le bloc de signature administratif : « Fait à », date de la séance, présidence à gauche et secrétariat à droite, noms, qualités lues sur le mandat au moment du rendu, espace de signature manuscrite. Mots d’Alexandre du 7 novembre 2026 : « dans les documents classiques, la signature, c’est pas dans un tableau » ; « elles sont pas dans des tableaux comme ça ».",
+          "statement": "Le modèle par défaut termine le procès-verbal par le bloc de signature administratif : « Fait à », date de la séance, secrétaire de séance à gauche et président de séance à droite, noms, qualités lues sur le mandat au moment du rendu, espace de signature manuscrite. Mots d’Alexandre du 7 novembre 2026 : « dans les documents classiques, la signature, c’est pas dans un tableau » ; « elles sont pas dans des tableaux comme ça ».",
           "sourceIds": []
         },
         {
           "key": "handwritten-place-and-date",
           "origin": "product",
           "statement": "Décision de l’utilisateur du 14 novembre 2026 (HALL-FR-MIN-290) : le modèle par défaut suit celui de la mairie ; la ligne « Fait à …, le … » du procès-verbal n’est plus remplie avec la commune et la date de la séance, ses deux zones sont à remplir à la main. Mots de l’utilisateur du 11 novembre 2026 : « fait à le doit être wildcard […] la mention avant les signatures […] il faut assez de place ».",
+          "sourceIds": []
+        },
+        {
+          "key": "officer-titles",
+          "origin": "product",
+          "statement": "Le bloc porte « Le secrétaire de séance » à gauche et « Le président de séance » à droite, chacun avec sa qualité de mandat. Mots de l’utilisateur du 16 novembre 2026 : « normalement la signature du maire a priori devrait être à droite, et il faudrait pas mettre le secrétariat, faudrait mettre […] secrétaire » ; « tu mets le président de séance. Hein, tu mets pas le maire, tu mets le président de séance. Avec sa qualité et le secrétaire de séance avec sa qualité. Conseil municipal ou adjoint, quand c'est un adjoint. »",
           "sourceIds": []
         }
       ]
