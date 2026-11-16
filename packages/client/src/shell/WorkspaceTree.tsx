@@ -40,6 +40,8 @@ function TreeNode({
   const [dropping, setDropping] = useState(false);
   const isExpanded = expanded.has(node.path);
   const personal = useIsPersonalFolder(node.business ? undefined : node.path);
+  const { t } = useI18n();
+  const name = personal ? t("workspace.personalWorkspace") : node.name;
   const open = isExpanded && node.children.length > 0;
   const Glyph = node.business
     ? CouncilBusinessIcon
@@ -68,7 +70,7 @@ function TreeNode({
             data-testid="workspace-sidebar-toggle"
             data-path={node.path}
             aria-expanded={isExpanded}
-            aria-label={node.name}
+            aria-label={name}
             onClick={() => onToggle(node.path)}
           >
             {glyph}
@@ -98,7 +100,7 @@ function TreeNode({
             if (payload) void Promise.all(payload.map((entry) => moveToPath(entry, node.path)));
           }}
         >
-          <span className="workspace-tree-name">{node.name}</span>
+          <span className="workspace-tree-name">{name}</span>
         </Link>
       </div>
       {isExpanded && node.children.length > 0 ? (

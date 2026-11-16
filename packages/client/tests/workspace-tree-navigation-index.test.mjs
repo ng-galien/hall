@@ -6,12 +6,14 @@ import { MemoryRouter } from "react-router-dom";
 import { test, vi } from "vitest";
 
 const listIndex = vi.hoisted(() => vi.fn());
+const resources = vi.hoisted(() => ({ personalWorkspacePath: null }));
 vi.mock("../src/services/councilBusinessApi", () => ({ listCouncilBusinessNavigationIndex: listIndex }));
 vi.mock("../src/stores/councilBusinessStore", () => ({
   useCouncilBusinessStore: (select) => select({ businesses: [] }),
 }));
 vi.mock("../src/stores/workspaceResourcesStore", () => ({
-  useWorkspaceResourcesStore: (select) => select({ catalog: [], collectionRepresentation: null }),
+  useWorkspaceResourcesStore: (select) =>
+    select({ catalog: [], collectionRepresentation: null, personalWorkspacePath: resources.personalWorkspacePath }),
 }));
 vi.mock("../src/i18n/I18nProvider", () => ({ useI18n: () => ({ t: (key) => key }) }));
 vi.mock("../src/components/icons", () => ({
@@ -104,6 +106,40 @@ test("rooted on a folder, the tree shows that folder and its sub-folders, not th
       "Espaces personnels/Claire Martin/Notes",
     );
   } finally {
+    await act(async () => root.unmount());
+  }
+});
+
+// @verifies-requirement HALL-FR-WSP-380
+test("the tree names the personal folder of the connected person « Mon espace », and other personal folders by their name", async () => {
+  listIndex.mockResolvedValue({
+    data: {
+      businesses: [],
+      catalog: [],
+      paths: ["Conseil", "Espaces personnels/Claire Martin/Notes", "Espaces personnels/Paul Durand"],
+    },
+  });
+  resources.personalWorkspacePath = "Espaces personnels/Claire Martin";
+  const host = document.createElement("div");
+  const root = createRoot(host);
+  await act(async () =>
+    root.render(
+      h(MemoryRouter, { initialEntries: ["/workspace?path=Espaces+personnels%2FPaul+Durand"] }, h(WorkspaceTree)),
+    ),
+  );
+  try {
+    const nameOf = (path) =>
+      host.querySelector(`[data-testid="workspace-sidebar-link"][data-path="${path}"]`)?.textContent;
+    assert.equal(nameOf("Espaces personnels/Claire Martin"), "workspace.personalWorkspace");
+    assert.equal(nameOf("Espaces personnels/Paul Durand"), "Paul Durand");
+    assert.equal(
+      host
+        .querySelector('[data-testid="workspace-sidebar-toggle"][data-path="Espaces personnels/Claire Martin"]')
+        ?.getAttribute("aria-label"),
+      "workspace.personalWorkspace",
+    );
+  } finally {
+    resources.personalWorkspacePath = null;
     await act(async () => root.unmount());
   }
 });
