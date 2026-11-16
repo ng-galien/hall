@@ -25,7 +25,8 @@ export function useCrowdedLabels(group: HTMLElement | null, labels: string): boo
     const observer = new ResizeObserver(measure);
     observer.observe(group);
     observer.observe(bound);
-    for (const command of group.querySelectorAll(":scope > .hall-button, :scope > * > .hall-button")) observer.observe(command);
+    for (const command of group.querySelectorAll(":scope > .hall-button, :scope > * > .hall-button"))
+      observer.observe(command);
     return () => observer.disconnect();
   }, [group, labels]);
   return crowded;
