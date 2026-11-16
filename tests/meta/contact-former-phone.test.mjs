@@ -53,6 +53,10 @@ test("no contract, adapter, server, interface or seed carries a single contact t
   expect(occurrences(sources, /(^|[^A-Za-z0-9_$])phone\??\s*:|\.phone\b|["']phone["']/, layout)).toEqual({
     // The telephone of the commune in its settings.
     "packages/client/src/features/settings/CommuneSettings.tsx": 2,
+    // The preferred number of a person given to the call icon, and the React key of the number on a member line.
+    "packages/client/src/features/contacts/CoordinateLink.tsx": 1,
+    "packages/client/src/pages/CouncilMemberPage.tsx": 1,
+    "packages/client/src/pages/CouncilMembersPage.tsx": 1,
     "packages/client/src/services/hallSettingsApi.ts": 1,
     "packages/domain/src/model.ts": 1,
     "packages/domain/src/schemas.ts": 1,
