@@ -40,10 +40,17 @@ function meetingTools(api, fixture) {
     return participants;
   };
   const freezeDecisions = async (meeting) => {
-    for (const summary of await api.get("/council-decisions")) {
-      if (summary.councilMeetingId !== meeting.id || summary.state !== "draft") continue;
+    const items = await api.get(`/council-meetings/${meeting.id}/agenda-items`);
+    const position = (summary) => {
+      const item = items.find((entry) => entry.subject?.id === summary.proposalId);
+      if (!item) throw new Error(`Délibération sans point de l’ordre du jour : ${summary.title}`);
+      return item.position;
+    };
+    const drafts = (await api.get("/council-decisions"))
+      .filter((summary) => summary.councilMeetingId === meeting.id && summary.state === "draft")
+      .sort((left, right) => position(left) - position(right));
+    for (const summary of drafts)
       await api.post(`/council-decisions/${summary.id}/freeze`, { expectedVersion: summary.version });
-    }
   };
   return { conduct, openMeeting, freezeDecisions };
 }
