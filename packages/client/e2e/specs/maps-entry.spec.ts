@@ -116,6 +116,12 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
   await expect(page.getByTestId("geographic-mode-draw")).toBeEnabled();
   await expect(page.getByTestId("geographic-save-view")).toBeVisible();
   await expect(page.getByTestId("maps-context-business")).toHaveAttribute("data-business-id", business.id);
+  // Up to 1280 pixels, an opened map folds the list of maps; its command unfolds it.
+  const unfoldList = async () => {
+    await expect(page.getByTestId("maps-panel-toggle")).toHaveAttribute("aria-expanded", "false");
+    await page.getByTestId("maps-panel-toggle").click();
+  };
+  await unfoldList();
   await expect(page.getByTestId("maps-recent").getByTestId("maps-entry")).toHaveCount(1);
 
   await page.getByTestId(`maps-tree-map-${bridges.id}-open`).click();
@@ -132,6 +138,7 @@ test("Cartes lists the maps, opens a deep link, switches maps and links back to 
   expect(await mapVersion(page.request, bridges.id)).toBe(bridges.version);
   expect(await mapVersion(page.request, roads.id)).toBe(roads.version);
 
+  await unfoldList();
   await page.getByTestId(`maps-tree-map-${distant.id}-open`).click();
   await expect(page.getByTestId("screen-header-title")).toHaveText("Lointaine");
   await expect(page).toHaveURL(new RegExp(`/maps/${distant.id}\\?view=2\\.30`));
