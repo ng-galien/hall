@@ -245,7 +245,6 @@
   @media (max-width: 760px) {
     .geographic-map-stage { --geographic-map-control: var(--hall-size-touch-control); }
   }
-  .geographic-mode-switch svg { flex: none; font-size: var(--hall-font-size-icon-small); }
   .geographic-mode-switch,
   .geographic-zoom-tools,
   .geographic-layers,
@@ -269,9 +268,7 @@
     min-inline-size: 0;
     box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
   }
-  /* The tools laid over the map keep the compact size of map controls, a finger-sized one under a touch pointer. */
-  /* The two modes are buttons like « Couches » beside them: same height, same margins, same text. */
-  .geographic-mode-switch .hall-button { min-height: var(--geographic-map-control); }
+  /* The tools laid over the map take the size of a Button, its icons the icon size of a Button. */
   :is(.geographic-zoom-tools, .geographic-composition-tools) .hall-button[data-size="icon"] { width: var(--geographic-map-control); min-height: var(--geographic-map-control); }
   .geographic-layer-drag-handle {
     display: inline-grid;

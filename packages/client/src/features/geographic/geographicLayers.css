@@ -192,9 +192,6 @@
   color: var(--hall-color-brand);
   background: var(--hall-color-brand-subtle);
 }
-.geographic-layers > .hall-button svg,
-.geographic-legend-controls > .hall-button svg,
-.geographic-save-view svg { flex: none; font-size: var(--hall-font-size-icon-small); }
 /* The layers: what is drawn on the map first, then the data layers, then the base maps, each group under its name. */
 .geographic-layers-panel.geographic-layers-panel {
   z-index: calc(var(--hall-z-content) + 1);
