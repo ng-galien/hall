@@ -65,7 +65,7 @@ test("an editor changes a template's name, text and header with a logo, then fin
   const saved = (await templates(page)).find((entry) => entry.id === minutes.id)!;
   expect(saved.bodyMarkdown).toContain("Texte ajouté au modèle.");
   expect(saved.bodyMarkdown).toBe(edited);
-  expect(saved.bodyMarkdown).toContain("{% for point in minutes.points %}");
+  expect(saved.bodyMarkdown).toContain("{% for point in minutes.points if not point.introducedAt %}");
   expect(saved.bodyMarkdown).not.toContain("::minutes");
 
   await page.getByTestId("template-preview").click();
