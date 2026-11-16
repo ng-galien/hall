@@ -30,7 +30,13 @@ export interface WritableText {
  * @implements-requirement HALL-FR-LAY-130
  * @implements-requirement HALL-FR-LAY-010
  */
-export function useTextWriting(text: WritableText): { editing: boolean; control: ReactNode; button: ReactNode } {
+export function useTextWriting(text: WritableText): {
+  editing: boolean;
+  control: ReactNode;
+  button: ReactNode;
+  /** Starts the writing from a command of the screen other than « Modifier » of the header (a part of the text). */
+  start(): void;
+} {
   const { t } = useI18n();
   const phone = usePhoneLayout();
   const [editing, setEditing] = useState(false);
@@ -83,7 +89,10 @@ export function useTextWriting(text: WritableText): { editing: boolean; control:
       </Button>
     )
   ) : null;
-  if (!phone) return { editing: text.editable, control: null, button: null };
+  const start = () => {
+    if (latest.current.editable) setEditing(true);
+  };
+  if (!phone) return { editing: text.editable, control: null, button: null, start };
   const control = button ? <ScreenActions>{button}</ScreenActions> : null;
-  return { editing: editing && text.editable, control, button };
+  return { editing: editing && text.editable, control, button, start };
 }

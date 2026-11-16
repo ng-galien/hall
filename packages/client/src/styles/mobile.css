@@ -111,13 +111,13 @@
   .phone-document .geographic-resource { height: 100%; border: 0; border-radius: 0; }
   .phone-document-information-body > .tag-input { justify-self: stretch; }
   /* While a text is written, the text fills the screen under its writing tools and the details wait. */
-  :is(.phone-document, .phone-business)[data-editing="true"] :is(div, section):has(.markdown-editor-phone) { display: flex; min-height: 0; flex: 1; flex-direction: column; }
-  :is(.phone-document, .phone-business)[data-editing="true"] { min-height: 100%; }
+  :is(.phone-document, .phone-business, .phone-minutes-writing)[data-editing="true"] :is(div, section):has(.markdown-editor-phone) { display: flex; min-height: 0; flex: 1; flex-direction: column; }
+  :is(.phone-document, .phone-business, .phone-minutes-writing)[data-editing="true"] { min-height: 100%; }
   .phone-document[data-editing="true"] .phone-document-information,
   .phone-business[data-editing="true"] > :not(.workbench-section, .error-banner) { display: none; }
   .phone-business[data-editing="true"] { padding: 0; }
   /* While a text is written, the header keeps its title, the menu and « Terminé »: the initials step aside. */
-  .app-column:has(:is(.phone-document, .phone-business)[data-editing="true"]) .screen-header-initials { display: none; }
+  .app-column:has(:is(.phone-document, .phone-business, .phone-minutes-writing)[data-editing="true"]) .screen-header-initials { display: none; }
   .phone-document-event .phone-document-content { padding: var(--hall-space-3); }
   .phone-document-legalReference .phone-document-content { padding: var(--hall-space-3); }
   .phone-document .legal-reference-setup-actions { flex-wrap: wrap; }

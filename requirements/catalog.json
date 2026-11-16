@@ -5029,8 +5029,10 @@
         "Le numéro et l’intitulé du point forment un titre visuellement affirmé.",
         "La ligne « Vote » présente le résultat et les totaux principaux sous forme de résumé ; son développement présente le détail disponible du scrutin.",
         "Après la clôture, les notes de séance sont lues depuis le point à l’ordre du jour devenu immuable, sans être recopiées dans les faits du procès-verbal.",
-        "Deux onglets distinguent les notes de séance en lecture seule de la rédaction du procès-verbal modifiable.",
-        "L’état d’enregistrement de chaque rédaction est visible dans la barre de ses onglets.",
+        "Sous ses faits, chaque point présente directement sa rédaction, seul texte modifiable et seul texte imprimé : modifiable par la personne que le serveur autorise à modifier le brouillon, en lecture sinon.",
+        "Une seule commande de la section « Déroulé de la séance » affiche ou masque à la fois les notes de séance de tous les points ; elles sont masquées par défaut, et ce choix reste une préférence de l’écran, sans être une donnée du procès-verbal.",
+        "Affichées, les notes de séance d’un point sont nommées « Notes de séance », en lecture seule, à côté de sa rédaction ou au-dessus quand la place manque ; un point sans note l’indique.",
+        "L’état d’enregistrement de chaque rédaction est visible sur son point.",
         "Lorsque la rédaction diffère de la note originale, une action permet de reprendre intégralement la note originale après confirmation explicite.",
         "In the minutes template, each point renders its historical title, its own subject text (decision proposal or open question), the final council narrative and aggregate ballot result as separate blocks, without automatically repeating the general business report, ordinary per-point quorum attained or examined status, or individual voter and non-participant lists. This presentation does not change the stored voting system, identities, choices, counts, editorial text, opening facts or special-event evidence."
       ],
@@ -5039,6 +5041,10 @@
           "key": "minutes-point-editorial-cycle",
           "origin": "product",
           "statement": "Le point de procès-verbal expose séparément les notes du point à l’ordre du jour clos, son vote et sa rédaction finale, sans dupliquer ces notes dans les faits du procès-verbal.",
+        "Un point ajouté à l’ordre du jour pendant la séance porte l’état « Ajoutée en séance » avec la date de son ajout.",
+        "Au téléphone, le procès-verbal se lit : chaque point présente son numéro, son titre, ses faits et sa rédaction, sans éditeur ouvert.",
+        "Au téléphone, la personne autorisée à modifier le brouillon ouvre depuis un point un écran d’écriture propre à ce point : son numéro et son titre, sa rédaction avec l’écriture commune du téléphone et l’enregistrement automatique, l’affichage à la demande de ses notes de séance, la reprise de la note originale et le passage au point précédent ou suivant ; le retour, y compris celui du navigateur ou du système, ramène au procès-verbal sur le dernier point écrit.",
+        "Pendant la génération du document, la rédaction reste en lecture seule.",
           "sourceIds": []
         },
         {
@@ -5048,6 +5054,12 @@
           "sourceIds": []
         },
         {
+        {
+          "key": "minutes-point-single-notes-command",
+          "origin": "product",
+          "statement": "Décision du propriétaire du 16 novembre 2026 : le choix répété, sur chaque point, entre les notes prises pendant le conseil et la rédaction d’après le conseil est remplacé par la rédaction présentée directement et une commande unique qui affiche les notes de tous les points ; au téléphone, chaque point s’écrit dans un écran qui lui est dédié. Mots du propriétaire : « plutôt que d'avoir la répétition de ce toggle, ce choix, il faut peut-être faire en mieux » ; « si c'est un écran dédié ou pas. Par point en fait. »",
+          "sourceIds": []
+        },
           "key": "behaviour-only-catalogue",
           "origin": "product",
           "statement": "Décision du propriétaire du 12 novembre 2026 : le catalogue porte le comportement ; les valeurs et formes d’affichage (dimensions, couleurs, graisses, espacements, seuils de largeur, forme d’un composant, choix d’une icône) sont portées par l’outil de vérification des écrans. Mots du propriétaire : « on ne dit pas dans les exigences, oui, c'est tant de pixels de long ».",

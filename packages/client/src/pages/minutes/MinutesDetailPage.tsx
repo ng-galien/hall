@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
@@ -6,10 +6,12 @@ import { CopyReferenceButton, copyObjectReference } from "../../components/CopyR
 import { ArrowDownIcon, CalendarIcon, PdfIcon, ShareIcon, VisibleIcon } from "../../components/icons";
 import { ShareButton } from "../../components/ShareButton";
 import { PageHeader, RequestErrorBanner } from "../../components/Ui";
+import { useRememberedFold } from "../../components/ui/remembered-fold";
 import { SectionHeader } from "../../components/ui/section-header";
 import { formatMeetingLabel } from "../../features/council-meetings/meetingPresentation";
 import { DocumentViewerDialog } from "../../features/documents/DocumentViewerDialog";
 import { NativeDocumentFrame } from "../../features/documents/NativeDocumentFrame";
+import { useTextWriting } from "../../features/resources/useTextWriting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiFile, downloadFile, shareOrDownload } from "../../services/fileSharing";
 import { minutesContentHref } from "../../services/minutesApi";
@@ -18,7 +20,7 @@ import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { type PhoneDocumentAction, PhoneDocumentActions, phoneActionIcons } from "../workspace/PhoneDocumentActions";
 import { MinutesFacts } from "./MinutesFacts";
-import { MinutesPoint } from "./MinutesPoint";
+import { MinutesPhonePoint, MinutesPoint, MinutesPointWriting, SourceNotesToggle } from "./MinutesPoint";
 import { MinutesSectionHint } from "./MinutesSectionHint";
 import { useMinutesDraft } from "./useMinutesDraft";
 import "../../features/documents/DocumentViewer.css";
@@ -64,6 +66,35 @@ function MinutesDetail({ id }: { id: string }) {
     href: `/api/minutes/${id}`,
   };
   const minutesFile = () => apiFile(minutesContentHref(id), "proces-verbal.pdf");
+  const [showSourceNotes, setShowSourceNotes] = useRememberedFold("minutes.sourceNotes", false);
+  const [writingPointId, setWritingPointId] = useState<string | null>(null);
+  const [returnPointId, setReturnPointId] = useState<string | null>(null);
+  const editCommands = useRef(new Map<string, HTMLButtonElement>());
+  const writing = useTextWriting({
+    id: minutes ? id : null,
+    editable: draft.canEdit,
+    content: "",
+    dirty: false,
+    flush: draft.flush,
+    save: draft.flush,
+    reload: async () => true,
+    opensEmptyForWriting: false,
+  });
+  const agenda = minutes?.facts.agenda ?? [];
+  const writingIndex = phone && writing.editing ? agenda.findIndex((item) => item.id === writingPointId) : -1;
+  const writingPoint = writingIndex >= 0 ? agenda[writingIndex] : null;
+  useEffect(() => {
+    if (writing.editing || !writingPointId) return;
+    setReturnPointId(writingPointId);
+    setWritingPointId(null);
+  }, [writing.editing, writingPointId]);
+  useEffect(() => {
+    if (!returnPointId) return;
+    const command = editCommands.current.get(returnPointId);
+    document.querySelector(`[data-testid="minutes-point-${returnPointId}"]`)?.scrollIntoView({ block: "start" });
+    command?.focus({ preventScroll: true });
+    setReturnPointId(null);
+  }, [returnPointId]);
   const phoneActions: PhoneDocumentAction[] = minutes
     ? [
         ...(draft.canPreview
@@ -146,6 +177,11 @@ function MinutesDetail({ id }: { id: string }) {
         <>
           <ScreenTitle>{councilLabel}</ScreenTitle>
           <PhoneDocumentActions actions={phoneActions} />
+          {writingPoint ? writing.control : null}
+        </>
+      ) : null}
+      {phone && minutes && !writingPoint ? (
+        <>
           <div className="phone-record-heading">
             <p>{dateAndPlace}</p>
             {minutesState}
@@ -324,7 +360,10 @@ function MinutesDetail({ id }: { id: string }) {
           </PageHeader>
         </div>
       )}
-      <div className="page-content admin-detail-page minutes-editorial-page">
+      <div
+        className="page-content admin-detail-page minutes-editorial-page"
+        data-writing={writingPoint ? "true" : undefined}
+      >
         <RequestErrorBanner error={draft.error} />
         {draft.loading ? (
           <LoadingIndicator size="zone" label={t("common.loading")} />
@@ -333,7 +372,22 @@ function MinutesDetail({ id }: { id: string }) {
             {t("common.retry")}
           </Button>
         ) : null}
-        {minutes ? (
+        {minutes && writingPoint ? (
+          <MinutesPointWriting
+            item={writingPoint}
+            editorialText={draft.sections[writingPoint.id] ?? ""}
+            saveStatus={draft.sectionSaveStatus(writingPoint.id)}
+            generating={draft.generating}
+            previous={agenda[writingIndex - 1] ?? null}
+            next={agenda[writingIndex + 1] ?? null}
+            onEdit={(content) => draft.edit(writingPoint.id, content)}
+            onBlur={() => void draft.flush()}
+            onMove={(point) => {
+              void draft.flush();
+              setWritingPointId(point.id);
+            }}
+          />
+        ) : minutes ? (
           <div className="admin-detail-surface minutes-editorial-surface">
             <MinutesFacts facts={minutes.facts} />
             <section className="admin-record" aria-labelledby="minutes-sections-title">
@@ -343,20 +397,50 @@ function MinutesDetail({ id }: { id: string }) {
                 hint={
                   <MinutesSectionHint text={t(minutes.generatedAt ? "minutes.frozenHint" : "minutes.sectionsHint")} />
                 }
+                commands={
+                  !phone && agenda.length > 0 ? (
+                    <SourceNotesToggle
+                      shown={showSourceNotes}
+                      testId="minutes-source-notes-toggle"
+                      onChange={setShowSourceNotes}
+                    />
+                  ) : null
+                }
               />
-              {minutes.facts.agenda.map((item) => (
-                <MinutesPoint
-                  key={item.id}
-                  item={item}
-                  ballots={minutes.facts.ballots.filter((ballot) => ballot.agendaItemId === item.id)}
-                  editorialText={draft.sections[item.id] ?? ""}
-                  saveStatus={draft.sectionSaveStatus(item.id)}
-                  canEdit={draft.canEdit}
-                  generating={draft.generating}
-                  onEdit={(content) => draft.edit(item.id, content)}
-                  onBlur={() => void draft.flush()}
-                />
-              ))}
+              {agenda.map((item) => {
+                const ballots = minutes.facts.ballots.filter((ballot) => ballot.agendaItemId === item.id);
+                const editorialText = draft.sections[item.id] ?? "";
+                return phone ? (
+                  <MinutesPhonePoint
+                    key={item.id}
+                    item={item}
+                    ballots={ballots}
+                    editorialText={editorialText}
+                    canEdit={draft.canEdit}
+                    editRef={(command) => {
+                      if (command) editCommands.current.set(item.id, command);
+                      else editCommands.current.delete(item.id);
+                    }}
+                    onStartWriting={() => {
+                      setWritingPointId(item.id);
+                      writing.start();
+                    }}
+                  />
+                ) : (
+                  <MinutesPoint
+                    key={item.id}
+                    item={item}
+                    ballots={ballots}
+                    editorialText={editorialText}
+                    saveStatus={draft.sectionSaveStatus(item.id)}
+                    canEdit={draft.canEdit}
+                    generating={draft.generating}
+                    showSourceNotes={showSourceNotes}
+                    onEdit={(content) => draft.edit(item.id, content)}
+                    onBlur={() => void draft.flush()}
+                  />
+                );
+              })}
               {draft.saveStatus === "error" ? (
                 <Button variant="secondary" data-testid="minutes-save-retry" onClick={() => void draft.flush()}>
                   {t("common.retry")}

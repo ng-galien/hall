@@ -669,16 +669,32 @@
   .minutes-vote-totals dt { color: var(--hall-color-text-muted); }
   .minutes-vote-totals dd { margin: 0; font-weight: var(--hall-font-weight-bold); }
   .minutes-vote-members { margin: 0; }
-  .minutes-point-editor { margin-top: var(--hall-space-1); }
-  .minutes-point-tabbar {
+  /* The title of a point at the left, its save state and its commands at the right end of the same line. */
+  .minutes-point { container-type: inline-size; }
+  .minutes-point-heading {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: var(--hall-space-4);
-    border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+    gap: var(--hall-space-2) var(--hall-space-4);
   }
-  .minutes-point-tabbar [data-slot="tabs-list"] { border-bottom: 0; }
-  .minutes-editorial-controls { display: flex; align-items: center; gap: var(--hall-space-2); }
+  .minutes-point-heading-text { display: grid; min-width: 0; flex: 1 1 0; gap: var(--hall-space-1); }
+  .minutes-point-marks { display: flex; flex-wrap: wrap; gap: var(--hall-space-2); margin: 0; padding-left: calc(var(--hall-minutes-point-marker-width) + var(--hall-space-2)); }
+  .minutes-editorial-controls { display: flex; flex: none; align-items: center; gap: var(--hall-space-2); }
+  /* The meeting notes stand beside the text when the point is wide enough, above it otherwise. */
+  .minutes-point-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hall-space-4); }
+  .minutes-point-body[data-notes="shown"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .minutes-point-draft { min-width: 0; }
+  .minutes-source { display: grid; min-width: 0; align-content: start; gap: var(--hall-space-1); }
+  .minutes-source > h4 {
+    margin: 0;
+    color: var(--hall-color-text-muted);
+    font-size: var(--hall-font-size-body);
+    font-weight: var(--hall-font-weight-semibold);
+  }
+  @container (max-width: 760px) {
+    .minutes-point-body[data-notes="shown"] { grid-template-columns: minmax(0, 1fr); }
+  }
   .minutes-restore-trigger { display: inline-flex; }
   .minutes-restore-dialog-actions {
     display: flex;
@@ -830,20 +846,29 @@
   }
 
   /* Minutes: one spacing between the opening and the proceedings; the vote square on the first line of the vote;
-     one rule between the tabs and the editor; tab titles on one line; the document commands of a phone at one width. */
+     the document commands of a phone at one width. */
   .minutes-editorial-surface > .minutes-opening-record { padding-bottom: 0; }
   .minutes-point .hall-disclosure-line { align-items: flex-start; }
-  .minutes-point-tabbar [data-slot="tabs-trigger"] { flex: none; white-space: nowrap; }
   @media (max-width: 760px) {
-    .minutes-point-tabbar [data-slot="tabs-list"] { gap: var(--hall-space-3); }
     .phone-minutes-document .minutes-header-document-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+    /* A point brought back after its writing screen starts under the header. */
+    .minutes-phone-point { scroll-margin-top: var(--hall-size-header); }
+    /* The writing screen of a point fills the screen under the header: its title and commands, the notes when shown,
+       then the text with the writing bar of the phone. */
+    .minutes-editorial-page[data-writing="true"] { display: flex; min-height: 100%; flex-direction: column; padding: 0; }
+    .phone-minutes-writing { display: flex; flex: 1; flex-direction: column; }
+    .phone-minutes-writing-heading {
+      display: grid;
+      gap: var(--hall-space-2);
+      padding: var(--hall-space-3) var(--hall-space-4);
+      border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+    }
+    .phone-minutes-writing-heading > .minutes-point-title { overflow-wrap: anywhere; }
+    .phone-minutes-writing-commands { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--hall-space-1) var(--hall-space-2); }
+    .phone-minutes-writing-tools { display: flex; align-items: center; gap: var(--hall-space-1); margin-left: auto; }
+    .phone-minutes-writing > .minutes-source { padding: var(--hall-space-3) var(--hall-space-4); border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border); }
   }
 }
-
-/* Outside the layers, like the utilities of the tabs: under the tabs of a minutes item there is one rule, the rule of
-   the tab bar; the editor frame hangs from it without a top border of its own. */
-.minutes-point-tabbar [data-slot="tabs-list"] { border-bottom: 0; }
-.minutes-point-editor .markdown-editor { margin-top: calc(-1 * var(--hall-space-3)); border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
 
 @layer components {
   /* On a phone the facts of a meeting in progress are written one under the other. */
