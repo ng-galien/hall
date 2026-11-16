@@ -64,8 +64,6 @@ CREATE VIEW hall.authorization_default_grant AS
       ('clerk', 'mail-group.manage', 'always'),
       ('contributor', 'mail.create', 'always'),
       ('contributor', 'mail.write', 'always'),
-      ('councillor', 'mail.create', 'always'),
-      ('councillor', 'mail.write', 'always'),
       ('administrator', 'read', 'always'),
       ('clerk', 'read', 'always'),
       ('administrator', 'export', 'always'),

@@ -12961,7 +12961,7 @@
         "The HTTP server checks authorization on every command. The frontend and MCP consume the same actions and do not introduce another role matrix.",
         "The identity of the user triggering a send is retained. A rejected command makes no transport call.",
         "The built-in administrator and existing authorization configuration retain HALL-FR-USR-060 behavior.",
-        "Initial grants allow the four built-in roles to create and edit shared drafts. Clerk and administrator can send, delete drafts and manage recipient groups. These accesses remain configurable through the existing authorization system."
+        "Initial grants allow the administrator, clerk and contributor to create and edit shared drafts. Clerk and administrator can send, delete drafts and manage recipient groups. These accesses remain configurable through the existing authorization system; an upgrade keeps the grants already recorded for each role."
       ],
       "clauses": [
         {
@@ -12974,6 +12974,12 @@
           "key": "initial-grants",
           "origin": "product",
           "statement": "On 11 November 2026 the user explicitly accepted these initial permissions. In the same response the user delegated ordinary technical choices and asked to be consulted only on genuine product arbitrations, declining a blanket review of tables and implementation details.",
+          "sourceIds": []
+        },
+        {
+          "key": "councillor-defaults",
+          "origin": "product",
+          "statement": "Owner's words, 16 November 2026, on removing draft creation and editing from the councillor's initial grants: « on met les trucs par défaut, mais on fait pas de migration pour ces droits. »",
           "sourceIds": []
         }
       ]

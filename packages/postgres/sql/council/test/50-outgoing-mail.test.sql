@@ -47,5 +47,13 @@ SELECT ok(NOT hall.allows('mail.send'),'later upgrades preserve a revoked send g
 DELETE FROM hall_meta.data_migration WHERE name='mail-authorization-defaults';
 \ir ../../migrations/008-mail-authorization-defaults.sql
 SELECT ok(hall.allows('mail.send'),'upgrade of an older installation adds the new defaults once');
+SELECT set_config('hall.roles','["councillor"]',true);
+SELECT ok(NOT hall.allows('mail.create'),'councillor cannot create shared drafts initially');
+SELECT ok(NOT hall.allows('mail.update'),'councillor cannot edit shared drafts initially');
+SELECT ok(NOT hall.allows('mail.send'),'councillor cannot send initially');
+INSERT INTO hall.authorization_grant(role,access,condition) VALUES ('councillor','mail.create','always'),('councillor','mail.write','always');
+\ir ../../migrations/002-authorization-defaults.sql
+\ir ../../migrations/008-mail-authorization-defaults.sql
+SELECT ok(hall.allows('mail.create') AND hall.allows('mail.update'),'upgrade keeps the mail grants recorded for the councillor');
 SELECT * FROM finish();
 ROLLBACK;

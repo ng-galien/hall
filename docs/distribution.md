@@ -540,7 +540,8 @@ configuration variable for account emails. `hall migrate` runs in one transactio
   described in the 1.1.0 to 1.2.0 procedure, then the two new ones, each recorded in
   `hall_meta.data_migration` and skipped on a later run:
   - `packages/postgres/sql/migrations/008-mail-authorization-defaults.sql` grants the
-    mail accesses to the four built-in roles: create and modify a draft for all four;
+    mail accesses to the built-in roles: create and modify a draft for the administrator,
+    the clerk and the contributor;
     delete a draft, send and verify, and manage recipient groups for the clerk and the
     administrator (requirement HALL-FR-EML-050). Custom roles receive nothing.
   - `packages/postgres/sql/migrations/009-contact-phone-numbers.sql` copies each

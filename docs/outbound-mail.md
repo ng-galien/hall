@@ -48,7 +48,7 @@ Selecting a document through the composer, or inserting a new document reference
 
 ## Permissions and recipients
 
-All four built-in roles initially create and edit common drafts. Clerk and administrator additionally send, verify uncertain outcomes, delete unsent drafts and manage groups. Existing custom roles are unchanged. The initial grants are recorded once so later authorization edits survive upgrades. Read access follows the existing common-read access. Siren advertises available actions; HTTP and PostgreSQL enforce them.
+Administrator, clerk and contributor initially create and edit common drafts. Clerk and administrator additionally send, verify uncertain outcomes, delete unsent drafts and manage groups. Existing custom roles are unchanged. The initial grants are recorded once so later authorization edits survive upgrades. Read access follows the existing common-read access. Siren advertises available actions; HTTP and PostgreSQL enforce them.
 
 Predefined selections use council and committee membership. Applying a selection copies visible recipients into To, Cc or Bcc. Saved groups are flat and do not rewrite existing messages when changed or deleted. Duplicate addresses across fields block submission until corrected.
 
