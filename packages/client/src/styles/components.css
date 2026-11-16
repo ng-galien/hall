@@ -381,13 +381,15 @@
   .contact-row-email { flex: none; width: var(--hall-size-relative-16rem); }
   .contact-row-phone { flex: none; width: var(--hall-size-relative-8rem); }
   /* A list of persons offers the call and the mail application by two icons at the end of each row when it is narrow,
-     where the row hides its address and its number; each icon is a finger-sized target. */
+     where the row hides its address and its number; each icon is a finger-sized target. The name stays at the left of
+     the icons, broken inside a word when the word is longer than its line. */
   .coordinate-list { container: coordinate-list / inline-size; }
   .coordinate-icons { display: contents; }
   .list-row-action:has(> .coordinate-icons) { display: none; }
   @container coordinate-list (max-width: 760px) {
     .list-row-action:has(> .coordinate-icons) { display: flex; }
     .list-row-fact:has(> .coordinate-facts) { display: none; }
+    .list-row-title { overflow-wrap: anywhere; }
     .coordinate-icons > .hall-button[data-size="icon"] { width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); }
   }
   .admin-fields { display: grid; min-width: 0; gap: var(--hall-space-3); margin: 0; padding: 0; border: 0; }
