@@ -164,17 +164,17 @@
   right: var(--hall-space-3);
   bottom: calc(var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control-small)) * 3 + var(--hall-space-2));
 }
-/* The commands laid over the map stand on the surface of the map tools: a grey rule and a light shadow around each
-   button; « Légende » and « Enregistrer ce cadrage » are two such buttons side by side, the colours of the legend in a
-   card above them. */
-.geographic-top-tools > .geographic-layers > .hall-button,
-.geographic-legend-controls > .hall-button {
+/* The commands laid over the map stand on the surface of the map tools, like « Éléments » and « Mesures »: a grey rule
+   and a light shadow around the group, its buttons drawn plain; « Légende » and « Enregistrer ce cadrage » are one such
+   group, the colours of the legend in a card above it. */
+.geographic-top-tools > .geographic-layers,
+.geographic-legend-controls {
   border-radius: var(--hall-radius-medium);
   background: var(--hall-color-surface);
   box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
 }
 .geographic-legend { flex-direction: column-reverse; gap: var(--hall-space-2); }
-.geographic-legend-controls { flex-wrap: wrap; gap: var(--hall-space-2); background: transparent; box-shadow: none; }
+.geographic-legend-controls { flex-wrap: nowrap; gap: 0; }
 .geographic-map-overlay > .geographic-legend-controls { align-self: flex-start; }
 /* A mode, the layers or the legend in use: blue on a pale ground, like the chosen entry of a switch. */
 .geographic-mode-switch > .hall-button[aria-pressed="true"],
