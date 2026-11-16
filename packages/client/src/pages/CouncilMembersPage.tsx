@@ -223,11 +223,7 @@ export function CouncilMembersPage() {
                   title={fullName}
                   detail={`${t(`role.${member.role}`)}${member.rank == null ? "" : ` · ${t("members.rank")} ${member.rank}`}`}
                   status={rowStatus(member.active ? "active" : "inactive")}
-                  action={
-                    member.contact.email || phone ? (
-                      <CoordinateIcons email={member.contact.email} phone={phone} testId={`member-${member.id}`} />
-                    ) : undefined
-                  }
+                  action={<CoordinateIcons email={member.contact.email} phone={phone} testId={`member-${member.id}`} />}
                   size="large"
                   lines={[
                     ...(coordinates

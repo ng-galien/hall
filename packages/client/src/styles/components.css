@@ -385,6 +385,7 @@
      the icons, broken inside a word when the word is longer than its line. */
   .coordinate-list { container: coordinate-list / inline-size; }
   .coordinate-icons { display: contents; }
+  .coordinate-icon-absent { visibility: hidden; cursor: default; }
   .list-row-action:has(> .coordinate-icons) { display: none; }
   @container coordinate-list (max-width: 760px) {
     .list-row-action:has(> .coordinate-icons) { display: flex; }

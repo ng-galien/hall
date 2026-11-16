@@ -192,11 +192,7 @@ export function ContactsPage() {
                       </>
                     ) : undefined
                   }
-                  action={
-                    contact.email || phone ? (
-                      <CoordinateIcons email={contact.email} phone={phone} testId={`contact-${contact.id}`} />
-                    ) : undefined
-                  }
+                  action={<CoordinateIcons email={contact.email} phone={phone} testId={`contact-${contact.id}`} />}
                 />
               );
             })}

@@ -27,9 +27,14 @@ export function CoordinateLink({
   );
 }
 
+/** The room of an icon Button, kept for a coordinate the person does not have. */
+function AbsentCoordinateIcon() {
+  return <span className="hall-button coordinate-icon-absent" data-size="icon" aria-hidden="true" />;
+}
+
 /**
  * The call and the mail application of a person, as two icons at the end of a list row of a narrow list, each one
- * present when the person has the coordinate.
+ * present when the person has the coordinate; an absent one keeps its room, so that the rows stay aligned.
  * @implements-requirement HALL-FR-DIR-180
  */
 export function CoordinateIcons({
@@ -42,7 +47,6 @@ export function CoordinateIcons({
   testId: string;
 }) {
   const { t } = useI18n();
-  if (!email && !phone) return null;
   return (
     <span className="coordinate-icons">
       {phone ? (
@@ -51,14 +55,18 @@ export function CoordinateIcons({
             <PhoneIcon />
           </a>
         </Button>
-      ) : null}
+      ) : (
+        <AbsentCoordinateIcon />
+      )}
       {email ? (
         <Button asChild variant="plain" size="icon">
           <a href={mailHref(email)} aria-label={t("contacts.writeEmail")} data-testid={`${testId}-email-icon`}>
             <MailIcon />
           </a>
         </Button>
-      ) : null}
+      ) : (
+        <AbsentCoordinateIcon />
+      )}
     </span>
   );
 }
