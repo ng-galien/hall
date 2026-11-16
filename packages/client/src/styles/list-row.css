@@ -117,7 +117,7 @@
   .list-row-open::after { position: absolute; inset: 0; content: ""; }
   .list-row-open:focus-visible { outline: none; }
   .list-row-open:focus-visible::after { outline: var(--hall-stroke-thick) solid var(--hall-color-focus); outline-offset: calc(-1 * var(--hall-stroke-thick)); }
-  .list-row[data-open="title"] > .list-row-line :is(a, button):not(.list-row-open) { position: relative; z-index: 1; }
+  .list-row[data-open="title"] > .list-row-line :is(a, button):not(.list-row-open) { position: relative; z-index: var(--hall-z-content); }
   .list-row-action { display: flex; flex: none; align-items: center; gap: var(--hall-space-1); padding-right: var(--hall-space-3); }
   .list-row-children { padding: 0 var(--hall-space-3) var(--hall-space-3) calc(var(--hall-space-3) + var(--hall-size-glyph-large) + var(--hall-space-3)); }
   /* A nested list is a tree branch: one indentation step per level, rules continued. */

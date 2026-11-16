@@ -383,11 +383,11 @@
   /* A list of persons offers the call and the mail application by two icons at the end of each row when it is narrow,
      where the row hides its address and its number; each icon is an icon Button. The name stays at the left of
      the icons, broken inside a word when the word is longer than its line. */
-  .coordinate-list { container: coordinate-list / inline-size; }
+  .coordinate-list { container-type: inline-size; }
   .coordinate-icons { display: contents; }
   .coordinate-icon-absent { visibility: hidden; cursor: default; }
   .list-row-action:has(> .coordinate-icons) { display: none; }
-  @container coordinate-list (max-width: 760px) {
+  @container (max-width: 760px) {
     .list-row-action:has(> .coordinate-icons) { display: flex; }
     .list-row-fact:has(> .coordinate-facts) { display: none; }
     .list-full-titles.coordinate-list .list-row-title { min-width: 0; overflow-wrap: anywhere; }
