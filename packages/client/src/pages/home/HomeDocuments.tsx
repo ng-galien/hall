@@ -13,6 +13,7 @@ import {
 } from "../../features/documents/DocumentaryResourceGlyph";
 import { photoFile } from "../../features/documents/photoFile";
 import { useI18n } from "../../i18n/I18nProvider";
+import { compareNames } from "../../lib/names";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { personalWorkspaceHref } from "../../shell/navigation";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -67,7 +68,12 @@ export function useReadableDocuments() {
           (resource): resource is DocumentaryLeafSummary =>
             resource.kind !== "folder" && documentKinds.some((kind) => kind === resource.kind),
         )
-        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+        .sort(
+          (left, right) =>
+            right.updatedAt.localeCompare(left.updatedAt) ||
+            compareNames(left.name, right.name) ||
+            (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
+        ),
     [summaries],
   );
   return { documents, loaded, error };

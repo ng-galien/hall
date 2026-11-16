@@ -3,6 +3,7 @@ import type { CouncilMember, ReferenceEntityKind } from "@hall/domain";
 import { useMemo } from "react";
 import type { TranslationKey } from "../../i18n/en";
 import { useI18n } from "../../i18n/I18nProvider";
+import { personSortNames } from "../../lib/names";
 import type { Searchable } from "../../lib/search";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { CouncilMeetingView } from "../../models/councilMeeting";
@@ -113,6 +114,7 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
         kind: "member" as const,
         id: member.id,
         label: `${member.contact.firstName} ${member.contact.lastName}`,
+        sortNames: personSortNames(member.contact),
         extra: [member.contact.email, member.role],
         entity: { entityKind: "member" as const, member },
       })),
@@ -120,6 +122,7 @@ export function useSearchCorpus(scope: SearchScope): SearchHit[] {
         kind: "contact" as const,
         id: contact.id,
         label: `${contact.firstName} ${contact.lastName}`,
+        sortNames: personSortNames(contact),
         extra: [
           contact.organizationName,
           contact.jobTitle,

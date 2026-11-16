@@ -1,4 +1,4 @@
-import { compareNames } from "../../lib/names";
+import { compareNameParts, compareNames } from "../../lib/names";
 import type { Mentionable } from "../editor/references";
 
 export const searchSorts = ["relevance", "name", "recent", "type"] as const;
@@ -11,7 +11,8 @@ export function sortSearchItems(
   typeLabel: (item: Mentionable) => string,
 ): Mentionable[] {
   const byName = (left: Mentionable, right: Mentionable) =>
-    compareNames(left.label, right.label) || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+    compareNameParts(left.sortNames ?? [left.label], right.sortNames ?? [right.label]) ||
+    (left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
   if (sort === "name") return [...items].sort(byName);
   if (sort === "recent")
     return [...items].sort(

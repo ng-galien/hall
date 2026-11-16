@@ -12551,6 +12551,7 @@
         "Les noms se comparent en français, sans tenir compte des accents ni des majuscules, et les nombres d’un nom se suivent dans leur ordre naturel (« Point 2 » avant « Point 10 ») ; deux noms égaux selon cette comparaison gardent toujours entre eux le même ordre.",
         "La même comparaison des noms range les dossiers proposés par les filtres de la recherche, les résultats de la recherche triés par nom et les résultats à égalité dans les autres tris.",
         "Un document garde sa place quand on l’ouvre, qu’on l’enregistre, qu’on revient à la liste ou qu’on passe par un autre écran ; un document créé ou renommé prend aussitôt la place que lui donne son nom.",
+        "La même comparaison des noms range la liste des modèles, les délibérations de chaque séance dans la liste des délibérations, les documents de même pertinence dans le sélecteur « Joindre un document » et les personnes des sélecteurs de personnes ; une personne se range par son nom de famille, puis par son prénom. Les derniers documents se suivent par date de modification, et par nom à date égale.",
         "Les ordres choisis par une personne ou fixés par une autre exigence restent les leurs : pièces d’une affaire, points d’un ordre du jour, éléments épinglés, derniers documents par date, pertinence de la recherche, élus par rang, courriels envoyés et agenda."
       ],
       "clauses": [

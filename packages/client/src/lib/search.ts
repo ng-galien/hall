@@ -1,6 +1,6 @@
 import type { ResourceKind } from "@hall/api-contract";
 import type { CouncilDecisionStatus, MeetingStatus, ReferenceEntityKind } from "@hall/domain";
-import { compareNames } from "./names";
+import { compareNameParts } from "./names";
 
 export type SearchableKind = ReferenceEntityKind;
 /** The image is a type of its own among the search types: a document whose content is a picture. */
@@ -21,6 +21,8 @@ export interface Searchable<TKind extends SearchableKind = SearchableKind> {
   resourceKind?: Exclude<ResourceKind, "folder">;
   id: string;
   label: string;
+  /** Names compared in turn when entries are ranked by name, in place of the label: a person by family name, then given name. */
+  sortNames?: readonly string[];
   /** Presentation metadata; deliberately excluded from title search. */
   extra?: readonly (string | null | undefined)[];
   folderPath?: string;
@@ -135,7 +137,7 @@ export function searchEntities<T extends Searchable>(
       right.quality - left.quality ||
       Number(Boolean(right.item.preferred)) - Number(Boolean(left.item.preferred)) ||
       right.nearness - left.nearness ||
-      compareNames(left.label, right.label) ||
+      compareNameParts(left.item.sortNames ?? [left.label], right.item.sortNames ?? [right.label]) ||
       left.item.id.localeCompare(right.item.id),
   );
 

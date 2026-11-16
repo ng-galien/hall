@@ -14,6 +14,7 @@ import { SectionHeader } from "../components/ui/section-header";
 import { knownTemplateTypes, templateTypeLabel } from "../features/templates/templateTypes";
 import { useSubmitting } from "../hooks/useSubmitting";
 import { useI18n } from "../i18n/I18nProvider";
+import { sortByName } from "../lib/names";
 import { type ApiErrorCode, apiErrorCode } from "../services/apiClient";
 import { createTemplate, listTemplates } from "../services/templatesApi";
 
@@ -154,7 +155,11 @@ export function TemplatesPage({ embedded = false }: { embedded?: boolean }) {
           <EmptyState>{t("templates.empty")}</EmptyState>
         ) : (
           <ListRows className="list-full-titles" data-testid="templates-list">
-            {templates.map((template) => {
+            {sortByName(
+              templates,
+              (template) => template.name,
+              (template) => template.id,
+            ).map((template) => {
               const label = templateTypeLabel(template.documentType, template.kind);
               return (
                 <ListRow

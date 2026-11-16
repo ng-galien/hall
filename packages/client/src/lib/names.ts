@@ -21,6 +21,21 @@ export function comparePaths(left: string, right: string): number {
   return a.length - b.length;
 }
 
+/** Order of two lists of names compared in turn, such as a family name then a given name. */
+export function compareNameParts(left: readonly string[], right: readonly string[]): number {
+  const length = Math.min(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const step = compareNames(left[index] ?? "", right[index] ?? "");
+    if (step !== 0) return step;
+  }
+  return left.length - right.length;
+}
+
+/** The names a person is ranked by: the family name, then the given name. */
+export function personSortNames(person: { firstName: string; lastName: string }): readonly string[] {
+  return [person.lastName, person.firstName];
+}
+
 /** Items ordered by name; items whose names compare equal are ordered by identifier. */
 export function sortByName<T>(items: Iterable<T>, name: (item: T) => string, id: (item: T) => string): T[] {
   return [...items].sort((left, right) => {

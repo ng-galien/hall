@@ -17,6 +17,7 @@ import { ListRow, ListRowIcon, ListRows } from "../components/ui/list-row";
 import { formatMeetingLabel } from "../features/council-meetings/meetingPresentation";
 import { MeetingStatusBadge } from "../features/status/DomainStatusBadge";
 import { useI18n } from "../i18n/I18nProvider";
+import { sortByName } from "../lib/names";
 import { ScreenTitleCommands } from "../shell/headerTrail";
 import { useCouncilDecisionsStore } from "../stores/councilDecisionsStore";
 import { useCouncilMeetingsStore } from "../stores/councilMeetingsStore";
@@ -38,9 +39,17 @@ export function CouncilDecisionsPage() {
       .map(([meetingId, decisions]) => ({
         meetingId,
         meeting: meetings.find((entry) => entry.id === meetingId),
-        decisions,
+        decisions: sortByName(
+          decisions,
+          (decision) => decision.title,
+          (decision) => decision.id,
+        ),
       }))
-      .sort((a, b) => (b.meeting?.scheduledAt ?? "").localeCompare(a.meeting?.scheduledAt ?? ""));
+      .sort(
+        (a, b) =>
+          (b.meeting?.scheduledAt ?? "").localeCompare(a.meeting?.scheduledAt ?? "") ||
+          (a.meetingId < b.meetingId ? -1 : a.meetingId > b.meetingId ? 1 : 0),
+      );
   }, [councilDecisions, meetings, query]);
   return (
     <div className="page" data-testid="decisions-page">

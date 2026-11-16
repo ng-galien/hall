@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { compareNames, comparePaths, sortByName } from "../src/lib/names.ts";
+import { compareNameParts, compareNames, comparePaths, personSortNames, sortByName } from "../src/lib/names.ts";
+import { searchEntities } from "../src/lib/search.ts";
 
 const ordered = (names) => [...names].sort(compareNames);
 
@@ -56,6 +57,32 @@ test("items with names that compare equal are ordered by identifier, whatever th
         (item) => item.id,
       ).map((item) => item.id),
       expected,
+    );
+  }
+});
+
+// @verifies-requirement HALL-FR-WSP-500
+test("people are ranked by family name, then given name, in the pickers as in every name order", () => {
+  const people = [
+    { id: "1", firstName: "Anne", lastName: "Vidal" },
+    { id: "2", firstName: "Zoé", lastName: "Ébrard" },
+    { id: "3", firstName: "Bruno", lastName: "Martin" },
+    { id: "4", firstName: "Alice", lastName: "martin" },
+  ];
+  assert.deepEqual(
+    [...people].sort((left, right) => compareNameParts(personSortNames(left), personSortNames(right))).map((p) => p.id),
+    ["2", "4", "3", "1"],
+  );
+  const candidates = people.map((person) => ({
+    kind: "member",
+    id: person.id,
+    label: `${person.firstName} ${person.lastName}`,
+    sortNames: personSortNames(person),
+  }));
+  for (const arrival of [candidates, [...candidates].reverse()]) {
+    assert.deepEqual(
+      searchEntities(arrival, "").results.map((item) => item.id),
+      ["2", "4", "3", "1"],
     );
   }
 });
