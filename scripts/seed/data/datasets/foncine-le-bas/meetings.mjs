@@ -250,6 +250,7 @@ async function history(api, fixture) {
   const second = await secondMeeting(api, fixture, first.nextMeeting, -56);
   await freezeDecisions(first.nextMeeting);
   const third = await thirdMeeting(api, fixture, second.nextMeeting, -28);
+  await freezeDecisions(second.nextMeeting);
   return third.nextMeeting;
 }
 
