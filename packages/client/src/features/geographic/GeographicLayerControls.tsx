@@ -101,25 +101,27 @@ export function GeographicLayerControls({
             variant="plain"
             type="button"
             data-testid="geographic-mode-draw"
+            size={iconOnly ? "icon" : "default"}
             aria-pressed={workspaceMode === "draw"}
             aria-label={iconOnly ? drawLabel : undefined}
             title={iconOnly ? drawLabel : undefined}
             onClick={() => onToggleMode("draw")}
           >
             <EditIcon />
-            <span>{drawLabel}</span>
+            {iconOnly ? null : <span>{drawLabel}</span>}
           </Button>
           <Button
             variant="plain"
             type="button"
             data-testid="geographic-mode-map"
+            size={iconOnly ? "icon" : "default"}
             aria-pressed={workspaceMode === "measure"}
             aria-label={iconOnly ? measureLabel : undefined}
             title={iconOnly ? measureLabel : undefined}
             onClick={() => onToggleMode("measure")}
           >
             <RulerIcon />
-            <span>{measureLabel}</span>
+            {iconOnly ? null : <span>{measureLabel}</span>}
           </Button>
         </fieldset>
         <div className="geographic-layers">
@@ -127,13 +129,14 @@ export function GeographicLayerControls({
             variant="plain"
             type="button"
             data-testid="geographic-layers-trigger"
+            size={iconOnly ? "icon" : "default"}
             aria-expanded={layersOpen}
             aria-label={t("geographic.layersOpen")}
             title={iconOnly ? layersLabel : undefined}
             onClick={() => setLayersOpen((open) => !open)}
           >
             <LayersIcon />
-            <span>{layersLabel}</span>
+            {iconOnly ? null : <span>{layersLabel}</span>}
           </Button>
           {layersOpen ? (
             <section className="geographic-layers-panel" aria-label={t("geographic.layers")}>

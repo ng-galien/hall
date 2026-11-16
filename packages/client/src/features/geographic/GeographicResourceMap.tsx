@@ -756,13 +756,14 @@ export function GeographicResourceMap({
                       variant="plain"
                       className="geographic-save-view"
                       data-testid="geographic-save-view"
+                      size={iconOnly ? "icon" : "default"}
                       disabled={conflict || sameGeographicView(displayedView, draft.view)}
                       aria-label={iconOnly ? t("geographic.saveView") : undefined}
                       title={iconOnly ? t("geographic.saveView") : undefined}
                       onClick={saveDisplayedView}
                     >
                       <PinIcon />
-                      <span>{t("geographic.saveView")}</span>
+                      {iconOnly ? null : <span>{t("geographic.saveView")}</span>}
                     </Button>
                   )
                 : undefined

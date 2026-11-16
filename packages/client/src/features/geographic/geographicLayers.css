@@ -176,14 +176,6 @@
 .geographic-legend { flex-direction: column-reverse; gap: var(--hall-space-2); }
 /* The group never goes past the room left of the zoom column: its buttons overflow it, and it passes to icons. */
 .geographic-legend-controls { min-width: 0; max-width: 100%; flex-wrap: nowrap; gap: 0; }
-/* When their labels do not hold on the map, the commands laid over it show their icon only, named by their tooltip. */
-.geographic-top-tools[data-icon-only="true"] > :is(.geographic-mode-switch, .geographic-layers) > .hall-button,
-.geographic-legend-controls[data-icon-only="true"] > .hall-button {
-  width: var(--geographic-map-control, var(--hall-size-control));
-  padding: 0;
-}
-.geographic-top-tools[data-icon-only="true"] > :is(.geographic-mode-switch, .geographic-layers) > .hall-button > span,
-.geographic-legend-controls[data-icon-only="true"] > .hall-button > span { display: none; }
 .geographic-map-overlay > .geographic-legend-controls { align-self: flex-start; }
 /* A mode, the layers or the legend in use: blue on a pale ground, like the chosen entry of a switch. */
 .geographic-mode-switch > .hall-button[aria-pressed="true"],

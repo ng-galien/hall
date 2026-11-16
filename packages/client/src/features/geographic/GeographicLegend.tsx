@@ -39,6 +39,7 @@ export function GeographicLegend({
           type="button"
           variant="plain"
           data-testid="geographic-legend-toggle"
+          size={iconOnly ? "icon" : "default"}
           aria-expanded={open}
           aria-controls={contentId}
           aria-label={iconOnly ? legendLabel : undefined}
@@ -46,7 +47,7 @@ export function GeographicLegend({
           onClick={() => setOpen((current) => !current)}
         >
           <ListBulletedIcon />
-          <span>{legendLabel}</span>
+          {iconOnly ? null : <span>{legendLabel}</span>}
         </Button>
         {actions?.(iconOnly)}
       </div>
