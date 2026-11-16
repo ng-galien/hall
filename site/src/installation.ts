@@ -62,8 +62,8 @@ export const installationGuides: readonly InstallationGuide[] = [
             does: "Attendez. Un raccourci « Hall » est ajouté sur le Bureau et dans le menu Démarrer, puis Hall s'ouvre.",
           },
           {
-            sees: "Une carte de France s'anime, puis la commune de démonstration et le bouton « Ouvrir Hall ».",
-            does: "Attendez que le bouton « Ouvrir Hall » soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.",
+            sees: "Une carte de France s'anime. À la première ouverture, Hall propose Foncine-le-Bas, Jura, ou Alésia.",
+            does: "Choisissez le jeu de démonstration. La carte continue vers cette commune. Attendez que le bouton « Ouvrir Hall » soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.",
           },
         ],
       },
@@ -148,8 +148,8 @@ export const installationGuides: readonly InstallationGuide[] = [
         title: "Ensuite, sur toutes les versions",
         steps: [
           {
-            sees: "Une carte de France s'anime, puis la commune de démonstration et le bouton « Ouvrir Hall ».",
-            does: "Attendez que le bouton « Ouvrir Hall » soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.",
+            sees: "Une carte de France s'anime. À la première ouverture, Hall propose Foncine-le-Bas, Jura, ou Alésia.",
+            does: "Choisissez le jeu de démonstration. La carte continue vers cette commune. Attendez que le bouton « Ouvrir Hall » soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.",
           },
         ],
       },
@@ -208,8 +208,8 @@ export const installationGuides: readonly InstallationGuide[] = [
             does: "Cherchez « Hall » et cliquez dessus.",
           },
           {
-            sees: "Une carte de France s'anime, puis la commune de démonstration et le bouton « Ouvrir Hall ».",
-            does: "Attendez que le bouton « Ouvrir Hall » soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.",
+            sees: "Une carte de France s'anime. À la première ouverture, Hall propose Foncine-le-Bas, Jura, ou Alésia.",
+            does: "Choisissez le jeu de démonstration. La carte continue vers cette commune. Attendez que le bouton « Ouvrir Hall » soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.",
           },
         ],
       },

@@ -124,33 +124,30 @@ jobs:
           cat > "$RUNNER_TEMP/notes.md" <<'NOTICE'
           Hall accompagne le travail d’un conseil municipal : préparation des affaires, conduite des séances, procès-verbaux et actes.
 
-          Cette version est une démonstration. Au premier lancement, l’application charge la commune fictive d’Alésia et s’ouvre connectée en tant que son administrateur, sans compte à créer ni mot de passe à saisir. Tout fonctionne sur l’ordinateur, avec une base de données embarquée ; rien n’est envoyé à un serveur. Le menu **Démonstration** remet le jeu de données à zéro.
+          Les applications de bureau sont des démonstrations. Au premier lancement, choisissez Foncine-le-Bas, commune réelle du Jura avec des données fictives, ou Alésia. L’application charge le jeu choisi et s’ouvre connectée en tant que son administrateur, sans compte à créer ni mot de passe à saisir. Tout fonctionne sur l’ordinateur, avec une base de données embarquée ; rien n’est envoyé à un serveur. Le menu **Démonstration** remet le jeu de données à zéro.
           NOTICE
-          if [ "$TAG" = "v1.3.0" ]; then
+          if [ "$TAG" = "v1.4.0" ]; then
             cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
 
-          ## Nouveautés de la version 1.3.0
+          ## Nouveautés de la version 1.4.0
 
-          - Interface refaite sur ordinateur et sur téléphone : écrans blancs, un en-tête par écran avec un grand titre, des boutons et des champs de saisie de même forme partout.
-          - Menu en trois blocs : Accueil ; Conseil municipal, Documents, Courriels, Agenda ; Contacts, Cartes, Administration. Sur téléphone, « Plus » présente les autres écrans en grille d’icônes, par catégorie.
-          - Un seul bouton « + Nouveau » pour créer une note, une photo, une image, un fichier ou un autre élément.
-          - États écrits dans des pastilles de couleur : vert pour ce qui est réglé, orange pour ce qui attend une action, rouge pour ce qui bloque, gris pour le reste.
-          - Un contenu se déplie et se replie par un carré « + / − » placé devant sa ligne.
-          - Les explications d’un écran sont derrière l’icône d’information placée après son titre.
-          - Les dates de l’année en cours s’écrivent sans l’année, par exemple « 17 octobre ».
-          - Un texte ou le rapport d’une affaire s’ouvre en lecture ; « Modifier » permet de l’écrire, « Terminé » l’enregistre.
-          - Le mandat et les lieux de séance sont dans l’écran Commune.
-          - L’état de la connexion ne s’affiche plus que lorsque le serveur ne répond pas : « Serveur injoignable ».
-          - Courriels : brouillons communs, groupes de destinataires, pièces jointes, relecture avant envoi et historique des envois, par la messagerie de la mairie.
-          - Page d’une séance close : début, fin, durée, quorum, président et secrétaire, nombres de présents, représentés, excusés et absents ; documents de la séance avec « Ouvrir le PDF » ; liste des délibérations ; déroulé de chaque point, avec le vote de chaque conseiller à déplier.
-          - Mot de passe par lien à usage unique, envoyé par courriel : invitation à la création d’un compte, valable sept jours ; « Envoyer un lien de réinitialisation » depuis la page d’un utilisateur ; « Mot de passe oublié ? » sur l’écran de connexion, lien valable une heure. Chaque changement de mot de passe est confirmé par courriel.
-          - Un mot de passe remis en main propre peut être marqué temporaire : la personne en choisit un autre avant d’utiliser Hall.
-          - Contacts : trois numéros de téléphone, mobile, personnel et professionnel. Un numéro français s’écrit par paires de chiffres ; un texte qui n’est pas un numéro est refusé. L’ancien numéro est repris automatiquement, ou recopié dans les notes s’il n’est pas lisible. Sur un écran tactile, un numéro appelle le contact.
-          - Séance : un déport enregistré peut être retiré tant que le résultat du vote du point n’est pas enregistré ; le conseiller vote de nouveau.
-          - Séance : un clic droit sur un votant l’envoie à « Pour », « Contre » ou « Abstention », ou ouvre la déclaration de déport.
-          - Corrections : le nouveau nom d’un élément est conservé quand un enregistrement était en cours ; une image insérée pendant un enregistrement est conservée ; un texte comme « 19:30 » s’affiche tel quel dans les aperçus PDF et les courriels.
+          - Démonstration : choisissez Foncine-le-Bas, Jura, ou Alésia à la première ouverture. Le menu Démonstration permet de remettre les données à zéro et de changer de jeu.
+          - Site public : un parcours suit une affaire de Foncine-le-Bas, de sa préparation à la délibération ; les captures présentent Hall, et chaque système dispose de son téléchargement et de ses étapes d’installation.
+          - Procurations : enregistrez les pouvoirs écrits et leur document avant la séance ; ils sont repris lors de l’appel à l’ouverture.
+          - Documents : accès direct à « Mon espace », affaires dépliables dans l’explorateur, couleurs de dossiers conservées dans les différentes vues et dans les imports d’affaires.
+          - Téléphone : formulaires et choix s’ouvrent depuis le bas de l’écran ; le retour ferme d’abord l’élément ouvert ; recherche, calendrier, cartes et documents s’adaptent à la largeur disponible.
+          - Tableur : lecture sans clavier à l’ouverture sur téléphone, modification par « Modifier » et « Terminé », enregistrement des changements sans écriture à la simple ouverture.
+          - Agenda : un conseiller peut créer des rendez-vous et modifier ou supprimer ceux dont il est l’auteur ; un agenda ouvert se met à jour après un changement dans une autre session.
+          - Séance : confirmation des déports, de la suspension et de la clôture d’un point ; récapitulatif des informations avant confirmation d’un vote.
+          - Photos : réduction avant envoi, emplacement visible pendant le chargement et conservation de l’image lors de l’enregistrement du texte.
+          - Comptes : affichage du mot de passe à la demande, erreurs de saisie et d’envoi de courriel précisées ; seul un administrateur peut attribuer ou retirer le rôle administrateur.
+          - Maintenance : historique protégé contre les modifications, nettoyage des sessions et liens de mot de passe périmés, dépendances d’empaquetage actualisées et tests accélérés.
 
-          La version 1.3.0 modifie le schéma de la base de données. Pour un serveur existant en 1.2.0, suivre la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.3.0/docs/distribution.md#update-procedure-from-120-to-130-on-the-municipal-computer). La mise à jour demande un arrêt du serveur et une sauvegarde vérifiée ; revenir en 1.2.0 nécessite de restaurer cette sauvegarde. Au premier lancement de la nouvelle version, la démonstration recharge la commune d’Alésia ; les modifications faites dans la démonstration précédente ne sont pas conservées.
+          ## Serveur existant
+
+          Le paquet serveur `ng-galien-hall-1.4.0.tgz` est fourni séparément des démonstrations. La version 1.4.0 modifie le schéma : procurations, droits sur les rendez-vous et suppression des anciennes tables après contrôles. La [description des migrations](https://github.com/ng-galien/hall/blob/v1.4.0/docs/distribution.md#schema-changes-in-140) et la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.4.0/docs/distribution.md#update-interruption-and-code-rollback) précisent les vérifications. Répétez la migration sur une copie restaurée, puis arrêtez le serveur et conservez une sauvegarde vérifiée avant `hall migrate`. Un retour à la version précédente nécessite la restauration de cette sauvegarde. Les modèles PDF existants ne sont pas remplacés automatiquement.
+
+          Au premier lancement de cette version, la démonstration recharge son jeu de données ; les modifications faites dans la démonstration précédente ne sont pas conservées.
           NOTICE
           fi
           cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
@@ -182,7 +179,7 @@ jobs:
           4. Une fenêtre bleue s’affiche : « Windows a protégé votre ordinateur ». Il n’y a qu’un bouton **Ne pas exécuter**. Ne cliquez pas dessus. Cliquez sur le lien **Informations complémentaires**, sous le texte.
           5. Le nom du fichier s’affiche, avec « Éditeur inconnu ». Un nouveau bouton apparaît en bas. Cliquez sur **Exécuter quand même**.
           6. Hall s’installe tout seul, sans question. Cela prend quelques secondes. Un raccourci **Hall** est ajouté sur le Bureau et dans le menu Démarrer, puis Hall s’ouvre.
-          7. Une carte de France s’anime, puis la commune d’Alésia et le bouton **Ouvrir Hall**. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.
+          7. Une carte de France s’anime. La première fois, choisissez le jeu de démonstration : Foncine-le-Bas, Jura, ou Alésia. La carte continue vers la commune choisie et le bouton **Ouvrir Hall** apparaît. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes. Pour changer de jeu ensuite : menu **Démonstration › Remettre à zéro et choisir le jeu de démonstration…** ; les données de la démonstration sont alors effacées.
 
           Pour rouvrir Hall plus tard : double-cliquez sur le raccourci **Hall** du Bureau, ou ouvrez le menu Démarrer et tapez « Hall ».
 
@@ -217,7 +214,7 @@ jobs:
 
           **Ensuite, sur toutes les versions**
 
-          Une carte de France s’anime, puis la commune d’Alésia et le bouton **Ouvrir Hall**. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes. Les fois suivantes, Hall s’ouvre directement depuis le dossier **Applications** ou le Launchpad.
+          Une carte de France s’anime. La première fois, choisissez le jeu de démonstration : Foncine-le-Bas, Jura, ou Alésia. La carte continue vers la commune choisie et le bouton **Ouvrir Hall** apparaît. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes. Pour changer de jeu ensuite : menu **Démonstration › Remettre à zéro et choisir le jeu de démonstration…** ; les données de la démonstration sont alors effacées. Les fois suivantes, Hall s’ouvre directement depuis le dossier **Applications** ou le Launchpad.
 
           Si le Mac dit que « Hall » est endommagé : ouvrez l’application **Terminal** (dans **Applications**, puis **Utilitaires**). Copiez cette ligne, collez-la, puis appuyez sur la touche Entrée :
 
@@ -253,13 +250,13 @@ jobs:
 
           **Ouvrir Hall**
 
-          Cherchez « Hall » dans la liste des applications et cliquez dessus. Une carte de France s’anime, puis la commune d’Alésia et le bouton **Ouvrir Hall**. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes.
+          Cherchez « Hall » dans la liste des applications et cliquez dessus. Une carte de France s’anime. La première fois, choisissez le jeu de démonstration : Foncine-le-Bas, Jura, ou Alésia. La carte continue vers la commune choisie et le bouton **Ouvrir Hall** apparaît. Attendez que le bouton soit actif, puis cliquez dessus. La première fois, la préparation prend quelques minutes. Pour changer de jeu ensuite : menu **Démonstration › Remettre à zéro et choisir le jeu de démonstration…** ; les données de la démonstration sont alors effacées.
 
           ## Licence
 
           Hall est distribué sous la licence publique de l’Union européenne, version 1.2 (EUPL-1.2). Titulaire des droits : Alexandre Boyer. Le texte de la licence est dans le fichier [LICENSE](https://github.com/ng-galien/hall/blob/main/LICENSE) du dépôt.
 
-          *Hall, le conseil municipal en séance.*
+          *Hall, le logiciel du conseil municipal.*
           NOTICE
       - name: Prepare a draft only after complete exact-source validation
         run: |
