@@ -97,6 +97,7 @@ test("ready immediately shows and enables opening before the title and intro fin
   expect(button.disabled).toBe(false);
   expect(button.getAttribute("aria-hidden")).toBe("false");
   expect(button.tabIndex).toBe(0);
+  expect(document.activeElement).toBe(button);
   expect(document.querySelector("[data-testid='launch-footer']")!.hasAttribute("aria-hidden")).toBe(false);
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
   expect(open).toHaveBeenCalledOnce();

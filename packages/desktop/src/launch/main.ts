@@ -99,15 +99,17 @@ function openButton(): HTMLButtonElement | null {
   return document.querySelector<HTMLButtonElement>("[data-testid='launch-open']");
 }
 
-/** Active le bouton d'ouverture quand l'application est chargée sous l'écran. */
+/** Active le bouton d'ouverture quand l'application est chargée sous l'écran ; il prend le focus quand il apparaît. */
 function syncOpening(): void {
   const button = openButton();
   if (!button) return;
   const available = root.dataset.application === "ready" && !root.dataset.leaving;
+  const appears = available && button.hidden;
   button.hidden = !available;
   button.disabled = !available;
   button.setAttribute("aria-hidden", String(!available));
   button.tabIndex = available ? 0 : -1;
+  if (appears) button.focus();
 }
 
 function enableOpening(): void {
