@@ -515,12 +515,12 @@ test("drawing edit retains rendered base tiles and exterior dimension overlays",
   const unchanged = (await (await page.request.get(`/api/resources/${map.id}`)).json()).properties.document.hallLayer
     .features[0];
   expect(unchanged.geometry).toEqual(original.geometry);
+  // The point 10 pixels inside the corner of the map, read on the base canvas through its transform: a rotated map
+  // draws on a larger canvas whose own corners stay empty.
   const tilePixel = () =>
     mapElement.evaluate((el) => {
       const canvas = el.querySelector(".ol-layer canvas") as HTMLCanvasElement | null;
       if (!canvas) return [];
-      // The point 10 pixels inside the corner of the map, read on the base canvas through its transform: a rotated map
-      // draws on a larger canvas whose own corners stay empty.
       const point = new DOMMatrix(canvas.style.transform || "none").inverse().transformPoint(new DOMPoint(10, 10));
       return Array.from(canvas.getContext("2d")!.getImageData(Math.round(point.x), Math.round(point.y), 1, 1).data);
     });
