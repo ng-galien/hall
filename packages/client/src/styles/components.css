@@ -387,6 +387,7 @@
   .list-row-action:has(> .coordinate-icons) { display: none; }
   @container coordinate-list (max-width: 760px) {
     .list-row-action:has(> .coordinate-icons) { display: flex; }
+    .list-row-fact:has(> .coordinate-facts) { display: none; }
     .coordinate-icons > .hall-button[data-size="icon"] { width: var(--hall-size-touch-control); min-height: var(--hall-size-touch-control); }
   }
   .admin-fields { display: grid; min-width: 0; gap: var(--hall-space-3); margin: 0; padding: 0; border: 0; }

@@ -230,7 +230,13 @@ export function CouncilMembersPage() {
                   }
                   size="large"
                   lines={[
-                    ...(coordinates ? [coordinates] : []),
+                    ...(coordinates
+                      ? [
+                          <span key="coordinates" className="coordinate-facts">
+                            {coordinates}
+                          </span>,
+                        ]
+                      : []),
                     `${t("members.termSince", { date: formatDate(member.termStartedOn) })} · ${committeeSummary(member.id)}`,
                   ]}
                 />
