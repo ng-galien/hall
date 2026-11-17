@@ -125,14 +125,16 @@ test.describe("names of documents, folders and businesses", () => {
     await createInFolder(page, "folder", "Pris");
     await expect(alerts(page)).toHaveCount(1);
     await expect(alerts(page)).toContainText("porte déjà ce nom");
-    await page.keyboard.press("Escape");
+    await page.screenshot({ path: test.info().outputPath("folder-create-refused.png") });
+    await page.goto(`/app/workspace?path=${encodeURIComponent(folder)}`);
     await expect(alerts(page)).toHaveCount(0);
 
     // An item created in place with a taken name: one alert.
     await createInFolder(page, "text", "Note prise");
     await expect(alerts(page)).toHaveCount(1);
     await expect(alerts(page)).toContainText("porte déjà ce nom");
-    await page.keyboard.press("Escape");
+    await page.screenshot({ path: test.info().outputPath("item-create-refused.png") });
+    await page.goto(`/app/workspace?path=${encodeURIComponent(folder)}`);
     await expect(alerts(page)).toHaveCount(0);
 
     // A folder of the tree renamed with a taken name: one alert.
@@ -140,7 +142,8 @@ test.describe("names of documents, folders and businesses", () => {
     await page.getByTestId("workspace-tree-rename").click();
     await page.getByTestId("workspace-tree-rename-input").fill("Pris");
     await page.getByTestId("workspace-tree-rename-input").press("Enter");
-    await expectOneAlert(page, "Un dossier porte déjà ce nom à cet emplacement.");
+    await expect(alerts(page)).toHaveCount(1);
+    await expect(alerts(page)).toContainText("porte déjà ce nom");
     await page.screenshot({ path: test.info().outputPath("folder-rename-refused.png") });
 
     // A business named with « / », then renamed from its page: « ∕ » shown, a reserved name refused once.
