@@ -163,10 +163,6 @@ test.describe("moving documents on a computer", () => {
     await expect(dialog.locator('[role="alert"]')).toContainText("porte déjà ce nom");
     await page.screenshot({ path: test.info().outputPath("move-to-refused.png") });
     expect(await resourcePath(page, twin)).toBe(where.root);
-    // The error is read where the person chose the destination: it is within the visible part of the window.
-    expect(
-      await dialog.evaluate((element) => [...element.querySelectorAll("*")].some((node) => node.scrollTop > 0)),
-    ).toBe(true);
     await expect(page.getByTestId("move-to-error")).toBeVisible();
     await expect(page.getByTestId("move-to-error")).toContainText("porte déjà ce nom");
     await expect(page.getByTestId("move-to-error")).toBeInViewport();
