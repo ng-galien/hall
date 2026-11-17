@@ -16,6 +16,7 @@ vi.mock("../src/components/ui/dialog", () => ({
 }));
 
 import { Layout } from "../src/components/Layout.tsx";
+import { TooltipProvider } from "../src/components/ui/tooltip.tsx";
 
 // @verifies-requirement HALL-FR-LAY-010
 test("a viewport change before the media subscription still removes the anchored menu below the phone threshold", async () => {
@@ -42,7 +43,7 @@ test("a viewport change before the media subscription still removes the anchored
     value: vi.fn((media) => (media === "(max-width: 760px)" ? readPhone() : narrowQuery)),
   });
   try {
-    await act(async () => root.render(h(MemoryRouter, null, h(Layout))));
+    await act(async () => root.render(h(TooltipProvider, null, h(MemoryRouter, null, h(Layout)))));
     assert.equal(host.querySelector('[data-testid="sidebar"]'), null, "no anchored menu on a phone");
     const listener = phoneQuery.addEventListener.mock.calls[0][1];
     await act(async () => {
