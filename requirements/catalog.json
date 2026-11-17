@@ -9077,7 +9077,7 @@
       "acceptanceCriteria": [
         "L’entrée « Cartes » figure dans le groupe « Outils de travail » du menu principal, après « Contacts », pour tout utilisateur qui consulte les documents.",
         "L’adresse /maps/<identifiant de la carte> ouvre la carte désignée ; le paramètre view=<longitude>,<latitude>,<zoom> fixe le centre et le zoom de la vue à l’ouverture ; un paramètre view mal formé est ignoré.",
-        "Un déplacement ou un zoom remplace le paramètre view de l’adresse sans ajouter d’entrée à l’historique du navigateur ; l’ouverture d’une autre carte ajoute une entrée à l’historique.",
+        "Un déplacement ou un zoom remplace le paramètre view de l’adresse sans ajouter d’entrée à l’historique du navigateur ; la carte choisie dans « Cartes » remplace aussi l’adresse (HALL-FR-WSP-320) ; une carte ouverte depuis un autre écran ajoute une entrée à l’historique, et le retour ramène à cet écran.",
         "L’adresse /maps sans carte affiche la vue cadrée sur la position de la commune enregistrée dans les réglages ; sans position enregistrée, la vue est cadrée sur l’emprise des dessins de toutes les cartes."
       ],
       "clauses": [
@@ -9102,6 +9102,7 @@
         "Chaque ligne donne le nom de la carte et, dessous, l’affaire ou les affaires auxquelles la carte est associée ou, à défaut, le chemin de son dossier ; la carte ouverte est signalée dans la liste.",
         "La frappe dans le champ réduit la liste aux cartes dont le nom, le chemin du dossier ou le titre d’une affaire associée contient le texte saisi, sans tenir compte des accents ni des majuscules ; sans carte correspondante, la liste l’indique.",
         "Les flèches du clavier parcourent la liste et Entrée ouvre la carte désignée ; un clic ou un toucher sur une ligne ouvre la carte. Le choix referme la liste et vide le champ.",
+        "La carte choisie dans la liste remplace l’adresse de « Cartes » sans ajouter d’entrée à l’historique : après un ou plusieurs choix, un seul retour du navigateur, du téléphone ou de la flèche du bandeau ramène à l’écran d’où l’on est venu à « Cartes », ou à l’accueil quand « Cartes » a été ouvert directement ; au téléphone, la flèche du bandeau porte le nom « Accueil ».",
         "Échap, un clic hors de la liste et la commande retour referment la liste sans changer la carte affichée.",
         "À l’arrivée sur « Cartes », la liste est fermée ; le même champ et la même liste servent sur téléphone, tablette et ordinateur."
       ],

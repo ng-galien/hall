@@ -248,7 +248,7 @@ export function MapsPage() {
   const openMapRoute = useCallback(
     (id: string, byKeyboard: boolean) => {
       refocusFinderRef.current = byKeyboard;
-      navigate(`/maps/${encodeURIComponent(id)}`);
+      navigate(`/maps/${encodeURIComponent(id)}`, { replace: true });
     },
     [navigate],
   );
