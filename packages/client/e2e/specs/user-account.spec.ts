@@ -331,7 +331,10 @@ async function measureTexts(page: import("@playwright/test").Page, testIds: stri
     };
     return ids.map((id) => {
       const element = document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
-      if (!element) return { id, box: null, overflows: false, contrast: 0 };
+      if (!element) return { id, box: null, overflows: false, contrast: 0, opacity: 0 };
+      let opacity = 1;
+      for (let node: Element | null = element; node; node = node.parentElement)
+        opacity *= Number.parseFloat(getComputedStyle(node).opacity);
       const rect = element.getBoundingClientRect();
       const [high, low] = [luminance(rgba(getComputedStyle(element).color)), luminance(rgba(background(element)))].sort(
         (a, b) => b - a,
@@ -341,6 +344,7 @@ async function measureTexts(page: import("@playwright/test").Page, testIds: stri
         box: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
         overflows: element.scrollWidth > element.clientWidth + 1,
         contrast: (high! + 0.05) / (low! + 0.05),
+        opacity,
       };
     });
   }, testIds);
@@ -379,6 +383,9 @@ test("the initials name the signed-in person on hover and focus, and Settings sh
       await account.hover();
       await expect(page.getByTestId("screen-header-account-name")).toHaveText("Camille Martin-Lefebvre");
       await expect(page.getByTestId("screen-header-account-email")).toHaveText("camille.martin@example.test");
+      await page.evaluate(() =>
+        Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
+      );
       await page.screenshot({ path: test.info().outputPath(`account-tooltip-${viewport.width}-${colorScheme}.png`) });
       for (const text of await measureTexts(page, ["screen-header-account-name", "screen-header-account-email"])) {
         expect(text.box, `${label}: ${text.id}`).not.toBeNull();
@@ -386,6 +393,7 @@ test("the initials name the signed-in person on hover and focus, and Settings sh
         expect(text.box!.right, `${label}: ${text.id} inside the screen`).toBeLessThanOrEqual(viewport.width + 0.5);
         expect(text.overflows, `${label}: ${text.id} cut`).toBe(false);
         expect(text.contrast, `${label}: contrast of ${text.id}`).toBeGreaterThanOrEqual(4.5);
+        expect(text.opacity, `${label}: opacity of ${text.id}`).toBeGreaterThan(0.99);
       }
 
       await page.goto("/app/settings");
