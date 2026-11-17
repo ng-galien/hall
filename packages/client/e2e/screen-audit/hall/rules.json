@@ -232,10 +232,6 @@
           {
             "key": "[markdown-editor-compact]",
             "reason": "Barre d'outils de l'éditeur, pas une liste d'objets."
-          },
-          {
-            "key": "[maps-panel]",
-            "reason": "Blocs du panneau des cartes (recherche, récentes, arbre), chacun déjà rendu en lignes."
           }
         ]
       },

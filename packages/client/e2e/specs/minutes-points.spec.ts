@@ -166,6 +166,46 @@ test.describe("minutes on a phone", () => {
     await expect(writing).toHaveCount(0);
     await expect(page.getByTestId(`minutes-point-${first.id}`)).toBeInViewport();
   });
+
+  // @verifies-requirement HALL-FR-MIN-250
+  test("the back arrow of the header ends the writing of a point on the minutes, a second press returns to the list", async ({
+    appPage: page,
+  }) => {
+    test.setTimeout(120_000);
+    const minutes = await draftMinutes(page);
+    const [first, second] = [minutes.facts.agenda[0]!, minutes.facts.agenda[1]!];
+    const listed = (await (await page.request.get("/api/minutes")).json()) as {
+      entities: { properties: { id: string; councilMeetingId: string } }[];
+    };
+    const meetingId = listed.entities.find((entity) => entity.properties.id === minutes.id)!.properties
+      .councilMeetingId;
+
+    await page.goto("/app/minutes");
+    await page.getByTestId(`minutes-open-${meetingId}`).click();
+    await expect(page).toHaveURL(new RegExp(`/minutes/${minutes.id}$`));
+    await expect(page.getByTestId("minutes-detail")).toBeVisible();
+    const back = page.getByTestId("phone-header-back");
+
+    await page.getByTestId(`minutes-point-edit-${first.id}`).click();
+    const writing = page.getByTestId("minutes-point-writing");
+    await expect(writing).toBeVisible();
+    await page.getByTestId("minutes-point-writing-next").click();
+    const secondText = "Rédaction terminée par la flèche du bandeau.";
+    await page.getByTestId(`minutes-section-${second.id}`).getByTestId("editor-writing-area").fill(secondText);
+
+    await back.click();
+    await expect(writing).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`/minutes/${minutes.id}$`));
+    await expect(page.getByTestId("minutes-detail")).toBeVisible();
+    await expect(page.getByTestId(`minutes-point-${second.id}`)).toBeInViewport();
+    await expect.poll(() => savedSection(page, minutes.id, second.id)).toContain(secondText);
+    await expect(page.getByTestId(`minutes-editorial-text-${second.id}`)).toContainText(secondText);
+    await page.screenshot({ path: test.info().outputPath("phone-point-header-back.png") });
+
+    await back.click();
+    await expect(page).toHaveURL(/\/minutes$/);
+    await expect(page.getByTestId("minutes-page")).toBeVisible();
+  });
 });
 
 const qualities = ["maire", "adjoint au maire", "membre du conseil municipal"];

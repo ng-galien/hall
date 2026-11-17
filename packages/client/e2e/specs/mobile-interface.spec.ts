@@ -279,30 +279,55 @@ test("phone calendar keeps a two-row toolbar, a floating « + Nouveau » and a s
 });
 
 // @verifies-requirement HALL-FR-LAY-010
-test("phone maps show several rows of the map tree until a map is chosen", async ({ appPage: page }) => {
+// @verifies-requirement HALL-FR-WSP-320
+test("phone maps open the list of maps over the map from the field, the back arrow closes it", async ({
+  appPage: page,
+}) => {
+  const root = `Cartes téléphone ${Date.now()}`;
+  for (const name of ["Cimetière", "Réservoirs", "Sentiers", "Voirie"]) {
+    const created = await page.request.post("/api/resources", {
+      data: { kind: "geographic", name, path: `${root}/${name}` },
+    });
+    expect(created.ok()).toBeTruthy();
+  }
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/app/maps");
-  const tree = page.getByTestId("maps-tree");
-  await expect(tree).toBeVisible();
-  // With no map chosen, the list of maps is the whole screen: the empty map area is not shown.
-  await expect(page.getByTestId("maps-surface")).toBeHidden();
+  await expect(page).toHaveURL(/\/app\/maps\?view=/);
+  // The map takes the screen and the field stands on it; the list is closed on arrival.
+  await expect(page.getByTestId("maps-surface")).toBeVisible();
   await expect(page.getByTestId("maps-context-empty")).toBeHidden();
-  const visibleRows = await tree.evaluate((element) => {
+  const search = page.getByTestId("maps-search");
+  await expect(search).toBeVisible();
+  await expect(page.getByTestId("maps-list")).toHaveCount(0);
+
+  await search.tap();
+  const list = page.getByTestId("maps-list");
+  await expect(list).toBeVisible();
+  const visibleRows = await list.evaluate((element) => {
     const bar = document.querySelector('[data-testid="phone-navigation"]')?.getBoundingClientRect().top ?? innerHeight;
-    let top = 0;
-    let bottom = bar;
-    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
-      if (getComputedStyle(parent).overflowY === "visible") continue;
-      const bounds = parent.getBoundingClientRect();
-      top = Math.max(top, bounds.top);
-      bottom = Math.min(bottom, bounds.bottom);
-    }
-    return [...element.querySelectorAll("[data-testid]")].filter((row) => {
+    const bounds = element.getBoundingClientRect();
+    const bottom = Math.min(bar, bounds.bottom);
+    return [...element.querySelectorAll("li[data-resource-id]")].filter((row) => {
       const rect = row.getBoundingClientRect();
-      return rect.height > 0 && rect.top >= top - 0.5 && rect.bottom <= bottom + 0.5;
+      return rect.height > 0 && rect.top >= bounds.top - 0.5 && rect.bottom <= bottom + 0.5;
     }).length;
   });
-  expect(visibleRows, "map tree rows visible without scrolling").toBeGreaterThanOrEqual(3);
+  expect(visibleRows, "lines of the list of maps visible without scrolling").toBeGreaterThanOrEqual(3);
+  await expectFitsWidth(page);
+  await page.screenshot({ path: test.info().outputPath("phone-maps-list.png"), animations: "disabled" });
+
+  const first = list.locator("li[data-resource-id]").first();
+  const id = await first.getAttribute("data-resource-id");
+  await first.getByTestId("maps-entry").tap();
+  await expect(page).toHaveURL(new RegExp(`/maps/${id}\\?view=`));
+  await expect(page.getByTestId("maps-list")).toHaveCount(0);
+  await expect(search).toHaveValue("");
+
+  await search.tap();
+  await expect(page.getByTestId("maps-list")).toBeVisible();
+  await page.getByTestId("phone-header-back").tap();
+  await expect(page.getByTestId("maps-list")).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/maps/${id}\\?view=`));
   await expectFitsWidth(page);
 });
 
