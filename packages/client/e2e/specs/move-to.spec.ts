@@ -161,10 +161,10 @@ test.describe("moving documents on a computer", () => {
     await expect(dialog).toBeVisible();
     await expect(alerts(page)).toHaveCount(1);
     await expect(dialog.locator('[role="alert"]')).toContainText("porte déjà ce nom");
-    // The error is read where the person chose the destination: it is within the visible part of the window.
-    await expect(dialog.locator('[role="alert"]')).toBeInViewport();
     await page.screenshot({ path: test.info().outputPath("move-to-refused.png") });
     expect(await resourcePath(page, twin)).toBe(where.root);
+    // The error is read where the person chose the destination: it is within the visible part of the window.
+    await expect(dialog.locator('[role="alert"]')).toBeInViewport();
   });
 
   // @verifies-requirement HALL-FR-WSP-090
