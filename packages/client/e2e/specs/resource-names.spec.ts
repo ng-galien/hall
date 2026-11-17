@@ -220,6 +220,7 @@ test("the refusal of a name is read next to the name field from 320 pixels to a 
       await page.emulateMedia({ colorScheme });
       const label = `${viewport.width} px, ${colorScheme}`;
       await page.goto(`/app/workspace?path=${encodeURIComponent(folder)}&resource=${photo.id}`);
+      await page.keyboard.press("Escape");
       let field: Locator;
       if (phone) {
         await page.getByTestId("phone-document-actions").click();
@@ -232,29 +233,33 @@ test("the refusal of a name is read next to the name field from 320 pixels to a 
         field = page.getByTestId("workspace-workbench-title-input");
       }
       await expectOneAlert(page, "Les noms « . » et « .. » sont réservés.");
-      await expect(alerts(page)).toBeInViewport();
+      await expect.soft(alerts(page)).toBeInViewport();
       await page.evaluate(() =>
         Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
       );
       await page.screenshot({ path: test.info().outputPath(`name-alert-${viewport.width}-${colorScheme}.png`) });
       const alertBox = (await alerts(page).boundingBox())!;
-      expect(alertBox.x, `${label}: alert inside the screen`).toBeGreaterThanOrEqual(-0.5);
-      expect(alertBox.x + alertBox.width, `${label}: alert inside the screen`).toBeLessThanOrEqual(
-        viewport.width + 0.5,
-      );
+      expect.soft(alertBox.x, `${label}: alert inside the screen`).toBeGreaterThanOrEqual(-0.5);
+      expect
+        .soft(alertBox.x + alertBox.width, `${label}: alert inside the screen`)
+        .toBeLessThanOrEqual(viewport.width + 0.5);
       if (await field.isVisible()) {
         const fieldBox = (await field.boundingBox())!;
-        expect(
-          alertBox.y + alertBox.height <= fieldBox.y + 0.5 || alertBox.y >= fieldBox.y + fieldBox.height - 0.5,
-          `${label}: alert over the name field`,
-        ).toBe(true);
-        expect(
-          Math.min(
-            Math.abs(alertBox.y - (fieldBox.y + fieldBox.height)),
-            Math.abs(fieldBox.y - (alertBox.y + alertBox.height)),
-          ),
-          `${label}: alert next to the name field`,
-        ).toBeLessThan(80);
+        expect
+          .soft(
+            alertBox.y + alertBox.height <= fieldBox.y + 0.5 || alertBox.y >= fieldBox.y + fieldBox.height - 0.5,
+            `${label}: alert over the name field`,
+          )
+          .toBe(true);
+        expect
+          .soft(
+            Math.min(
+              Math.abs(alertBox.y - (fieldBox.y + fieldBox.height)),
+              Math.abs(fieldBox.y - (alertBox.y + alertBox.height)),
+            ),
+            `${label}: alert next to the name field`,
+          )
+          .toBeLessThan(80);
       }
       const contrast = await alerts(page).evaluate((element) => {
         const paint = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
@@ -280,7 +285,7 @@ test("the refusal of a name is read next to the name field from 320 pixels to a 
         );
         return (high! + 0.05) / (low! + 0.05);
       });
-      expect(contrast, `${label}: contrast of the alert`).toBeGreaterThanOrEqual(4.5);
+      expect.soft(contrast, `${label}: contrast of the alert`).toBeGreaterThanOrEqual(4.5);
       expect(await resourceName(page, photo.id)).toBe("Rapoutier dessous.jpg");
     }
   }
