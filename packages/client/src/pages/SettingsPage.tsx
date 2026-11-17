@@ -13,6 +13,7 @@ import { MeetingLocationsSettings } from "../features/council-meetings/MeetingLo
 import { CommuneSettings } from "../features/settings/CommuneSettings";
 import { MailSettings } from "../features/settings/MailSettings";
 import { PasswordDialog } from "../features/users/PasswordDialog";
+import { roleLabels, useSignedInAccount } from "../features/users/useSignedInAccount";
 import { useSubmitting } from "../hooks/useSubmitting";
 import type { TranslationKey } from "../i18n/en";
 import { type Locale, useI18n } from "../i18n/I18nProvider";
@@ -60,6 +61,7 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
   const [settingsError, setSettingsError] = useState<ApiErrorCode | null>(null);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [settingsUpdateAvailable, setSettingsUpdateAvailable] = useState(false);
+  const account = useSignedInAccount();
   useEffect(() => {
     void apiSirenRequest("")
       .then(({ representation }) =>
@@ -224,9 +226,27 @@ export function SettingsPage({ category }: { category: SettingsCategory }) {
                 </Select>
               </Field>
             </section>
-            {logoutAvailable || passwordChangeAvailable ? (
+            {account || logoutAvailable || passwordChangeAvailable ? (
               <section className="creation-form">
                 <h3>{t("settings.session")}</h3>
+                {account ? (
+                  <dl className="settings-commune-facts" data-testid="settings-account">
+                    <div>
+                      <dt>{t("settings.accountName")}</dt>
+                      <dd data-testid="settings-account-name">{account.displayName}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("settings.accountEmail")}</dt>
+                      <dd data-testid="settings-account-email">{account.email ?? ""}</dd>
+                    </div>
+                    <div>
+                      <dt>{t(account.roles.length > 1 ? "users.roles" : "settings.accountRole")}</dt>
+                      <dd data-testid="settings-account-roles">
+                        {account.roles.map((role) => t(roleLabels[role])).join(", ")}
+                      </dd>
+                    </div>
+                  </dl>
+                ) : null}
                 <div className="settings-actions settings-actions-start">
                   {passwordChangeAvailable && (
                     <Button

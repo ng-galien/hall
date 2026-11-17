@@ -677,6 +677,7 @@ export const fr: Messages = {
   "navigation.more": "Plus",
   "navigation.help": "Aide",
   "navigation.account": "Mon compte",
+  "navigation.accountOf": "Mon compte : {name}",
   "common.back": "Retour",
   "home.inProgress": "Séance en cours",
   "home.followMeeting": "Suivre la séance",
@@ -1739,6 +1740,9 @@ export const fr: Messages = {
   "settings.french": "Français",
   "settings.english": "Anglais",
   "settings.session": "Session",
+  "settings.accountName": "Nom",
+  "settings.accountEmail": "Adresse de connexion",
+  "settings.accountRole": "Rôle",
   "settings.logout": "Se déconnecter",
   "error.network_unavailable": "Le serveur est inaccessible.",
   "error.official_source_access_denied":

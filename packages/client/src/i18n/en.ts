@@ -665,6 +665,7 @@ export const en = {
   "navigation.more": "More",
   "navigation.help": "Help",
   "navigation.account": "My account",
+  "navigation.accountOf": "My account: {name}",
   "common.back": "Back",
   "home.inProgress": "Meeting in progress",
   "home.followMeeting": "Follow the meeting",
@@ -1705,6 +1706,9 @@ export const en = {
   "settings.french": "French",
   "settings.english": "English",
   "settings.session": "Session",
+  "settings.accountName": "Name",
+  "settings.accountEmail": "Sign-in address",
+  "settings.accountRole": "Role",
   "settings.logout": "Sign out",
   "error.network_unavailable": "The server cannot be reached.",
   "error.official_source_access_denied":

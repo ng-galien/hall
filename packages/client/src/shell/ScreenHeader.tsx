@@ -1,8 +1,10 @@
-import type { ApiPrincipal, ResourceKind } from "@hall/api-contract";
+import type { ResourceKind } from "@hall/api-contract";
 import type { HallSettings } from "@hall/domain";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon } from "../components/icons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
+import { useSignedInAccount } from "../features/users/useSignedInAccount";
 import { useApplicationStatus } from "../hooks/useApplicationData";
 import { useI18n } from "../i18n/I18nProvider";
 import { folderTrail } from "../pages/workspace/paths";
@@ -105,34 +107,32 @@ export function useScreenHeading(): { title: string; back: Back | null } {
   return { title, back: { to, label } };
 }
 
-/** Name of the commune and initials of the signed-in user, shown in every screen header. */
-function useScreenIdentity() {
-  const [identity, setIdentity] = useState<{ commune: string; initials: string }>({ commune: "", initials: "" });
+/** Name of the commune, shown in every screen header. */
+function useCommuneName() {
+  const [commune, setCommune] = useState("");
   useEffect(() => {
     let active = true;
-    void Promise.all([
-      apiSirenRequest<HallSettings>("/settings").then(
-        (result) => result.data.name,
-        () => "",
-      ),
-      apiSirenRequest<ApiPrincipal>("/auth/session").then(
-        (result) => result.data.displayName,
-        () => "",
-      ),
-    ]).then(([commune, displayName]) => {
-      const initials = displayName
-        .split(/[\s-]+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((word) => word[0]?.toLocaleUpperCase("fr"))
-        .join("");
-      if (active) setIdentity({ commune, initials });
-    });
+    void apiSirenRequest<HallSettings>("/settings").then(
+      (result) => {
+        if (active) setCommune(result.data.name);
+      },
+      () => undefined,
+    );
     return () => {
       active = false;
     };
   }, []);
-  return identity;
+  return commune;
+}
+
+/** The first letters of the first two words of a name. */
+function initialsOf(displayName: string): string {
+  return displayName
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toLocaleUpperCase("fr"))
+    .join("");
 }
 
 // @implements-requirement HALL-FR-LAY-100
@@ -202,7 +202,8 @@ export function ScreenHeader({
 }) {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { commune, initials } = useScreenIdentity();
+  const commune = useCommuneName();
+  const account = useSignedInAccount();
   return (
     <header
       className="screen-header"
@@ -270,14 +271,26 @@ export function ScreenHeader({
           ) : null}
           <div ref={actionsSlot} className="screen-header-actions" />
           <ApplicationConnectionStatus />
-          <Link
-            className="screen-header-initials"
-            to="/settings"
-            data-testid="screen-header-account"
-            aria-label={t("navigation.account")}
-          >
-            {initials}
-          </Link>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                className="screen-header-initials"
+                to="/settings"
+                data-testid="screen-header-account"
+                aria-label={
+                  account ? t("navigation.accountOf", { name: account.displayName }) : t("navigation.account")
+                }
+              >
+                {account ? initialsOf(account.displayName) : null}
+              </Link>
+            </TooltipTrigger>
+            {account ? (
+              <TooltipContent side="bottom" align="end" tone="light" className="flex-col items-start gap-0.5">
+                <span data-testid="screen-header-account-name">{account.displayName}</span>
+                {account.email ? <span data-testid="screen-header-account-email">{account.email}</span> : null}
+              </TooltipContent>
+            ) : null}
+          </Tooltip>
         </div>
       </div>
       {phone ? <div ref={trailSlot} hidden /> : null}
