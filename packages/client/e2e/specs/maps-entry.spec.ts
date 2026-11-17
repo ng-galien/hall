@@ -390,7 +390,6 @@ async function finderLayout(page: Page) {
       box: box(element)!,
       clipped: element.scrollWidth > element.clientWidth + 1,
     }));
-    /** A colour as red, green, blue, painted on a canvas so that every CSS colour notation is read. */
     const rgb = (color: string) => {
       const paint = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
       paint.fillStyle = color;
