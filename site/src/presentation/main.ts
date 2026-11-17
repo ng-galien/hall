@@ -90,8 +90,8 @@ export function landing(index: number): number {
 /** Saut vers une sous-étape : la scène prend son état, la caméra fait un seul mouvement. */
 export const hooks: {
   jump: ((p: number) => void) | null;
-  /** Joue le récit jusqu'à p en `ms` ; une cible trop éloignée devient un saut. */
-  play: ((p: number, ms: number) => void) | null;
+  /** Joue le récit jusqu'à p sur l'horloge commune au studio, au facteur de vitesse donné. */
+  play: ((p: number, speed: number) => void) | null;
   /** Vrai tant que la scène joue une transition demandée (lecture d'une sous-étape ou saut). */
   moving: (() => boolean) | null;
   /** Montre l'instant p sans transition (studio). */
@@ -113,17 +113,15 @@ const controlRatio = () => timeline.settings.playback.controlRatio;
 /** Multiplicateur de la durée de base pour un geste de molette à crans. */
 const wheelRatio = () => timeline.settings.playback.wheelRatio * (mac ? 1.6 : 1);
 
-function play(p: number, ms: number) {
-  if (hooks.play) hooks.play(p, ms);
+function play(p: number, ratio: number) {
+  if (hooks.play) hooks.play(p, controlRatio() / ratio);
   else window.scrollTo({ top: p * storyScroll(), behavior: "auto" });
 }
 
 /** Passe à la sous-étape voisine `index` et la montre dans son état final ; en arrière, le récit se rembobine. */
 function stepTo(index: number, ratio: number) {
-  const current = currentStep();
-  const through = subSteps[Math.max(0, index > current ? index : Math.min(subSteps.length - 1, index + 1))];
+  play(index < 0 ? 0 : at(subSteps[index].id, timeline.rest(subSteps[index].id)), ratio);
   hooks.keyIndex = index;
-  play(index < 0 ? 0 : at(subSteps[index].id, timeline.rest(subSteps[index].id)), ratio * timeline.stepMs(through.id));
 }
 
 /* Défilement de la page hors du récit (vers la section du bas et retour) : une seule glissade */
@@ -148,7 +146,7 @@ function glideTo(top: number) {
 const moving = () => gliding || (hooks.moving?.() ?? false);
 /** Sous-étape courante ; pendant une transition, celle qu'elle vise. */
 function currentStep(): number {
-  return moving() && hooks.keyIndex !== null ? hooks.keyIndex : subStepAt(scrollProgress());
+  return moving() && hooks.keyIndex !== null ? hooks.keyIndex : subStepAt(hooks.shown?.() ?? scrollProgress());
 }
 const storyLimit = () => storyScroll() + viewHeight() * 0.4;
 

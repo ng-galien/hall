@@ -6,12 +6,14 @@
     "msPerWeight": 500,
     "controlRatio": 3,
     "wheelRatio": 1.5,
-    "continuousScrollFactor": { "mac": 0.65, "other": 0.35 },
+    "continuousScrollFactor": {
+      "mac": 0.65,
+      "other": 0.35
+    },
     "landing": 0.008,
     "rest": 0.97,
     "jumpMs": 1200,
     "boardSwapMs": 320,
-    "jumpBeyond": 0.12,
     "glideMs": 900
   },
   "actors": {
@@ -24,30 +26,88 @@
     "card": "Carte d'étape"
   },
   "steps": {
-    "creer": { "weight": 1.3, "landing": 0.62 },
-    "devis": { "weight": 2.3 },
-    "rapport": { "weight": 1.3 },
-    "commission": { "weight": 0.7 },
-    "rendezvous": { "weight": 0.8, "pace": 1.546078 },
-    "photo": { "weight": 1.35, "landing": 0.4 },
-    "trace": { "weight": 1.8 },
-    "cadastre": { "weight": 0.9 },
-    "assistant": { "weight": 2.4, "pace": 1.5, "landing": 0.2 },
-    "projet": { "weight": 1.3 },
-    "partage": { "weight": 1.0 },
-    "question": { "weight": 0.6 },
-    "inscription": { "weight": 0.8 },
-    "convocation": { "weight": 0.8 },
-    "dossier": { "weight": 0.7 },
-    "appel": { "weight": 1.3, "landing": 0.26 },
-    "debat": { "weight": 0.9 },
-    "scrutin": { "weight": 1.0 },
-    "deliberation": { "weight": 0.8 },
-    "cloture": { "weight": 0.6 },
-    "gel": { "weight": 0.8, "landing": 0.2 },
-    "liste": { "weight": 0.6 },
-    "pv": { "weight": 0.6 },
-    "transmission": { "weight": 1.7 }
+    "creer": {
+      "weight": 1.3,
+      "landing": 0.62
+    },
+    "devis": {
+      "weight": 2.3
+    },
+    "rapport": {
+      "weight": 1.3
+    },
+    "commission": {
+      "weight": 0.7
+    },
+    "rendezvous": {
+      "weight": 0.8,
+      "pace": 3.75,
+      "landing": 0.00563
+    },
+    "photo": {
+      "weight": 1.35,
+      "landing": 0.305454
+    },
+    "trace": {
+      "weight": 1.8
+    },
+    "cadastre": {
+      "weight": 0.9
+    },
+    "assistant": {
+      "weight": 2.4,
+      "pace": 3.229167,
+      "landing": 0.017208
+    },
+    "projet": {
+      "weight": 1.3
+    },
+    "partage": {
+      "weight": 1.0
+    },
+    "question": {
+      "weight": 0.6
+    },
+    "inscription": {
+      "weight": 0.8
+    },
+    "convocation": {
+      "weight": 0.8
+    },
+    "dossier": {
+      "weight": 0.7
+    },
+    "appel": {
+      "weight": 1.3,
+      "landing": 0.26
+    },
+    "debat": {
+      "weight": 0.9
+    },
+    "scrutin": {
+      "weight": 1.0
+    },
+    "deliberation": {
+      "weight": 0.8
+    },
+    "cloture": {
+      "weight": 0.6
+    },
+    "gel": {
+      "weight": 0.8,
+      "landing": 0.2
+    },
+    "liste": {
+      "weight": 0.6
+    },
+    "pv": {
+      "weight": 0.6
+    },
+    "transmission": {
+      "weight": 1.7,
+      "pace": 2.933333,
+      "landing": 0.009625
+    }
   },
   "moments": {
     "deputyWalksToDoor": {
@@ -64,7 +124,12 @@
       "start": 0,
       "end": 0.35
     },
-    "reportCreated": { "label": "Le rapport entre dans la fiche", "actor": "pieces", "step": "creer", "start": 0.5 },
+    "reportCreated": {
+      "label": "Le rapport entre dans la fiche",
+      "actor": "pieces",
+      "step": "creer",
+      "start": 0.5
+    },
     "deputyWaitsAtDoor": {
       "label": "L'adjoint attend devant la porte",
       "actor": "people",
@@ -196,58 +261,90 @@
     "appointmentArrives": {
       "label": "Rendez-vous sur place : arrivée",
       "actor": "pieces",
-      "step": "commission",
-      "start": 0.97118,
-      "end": 0.77386,
-      "endStep": "rendezvous"
+      "step": "rendezvous",
+      "start": -0.026245,
+      "end": -0.024375
     },
     "appointmentFiled": {
       "label": "Rendez-vous sur place : posé sur la fiche",
       "actor": "pieces",
       "step": "rendezvous",
-      "start": 0.83326,
-      "end": 0.96948,
+      "start": "appointmentArrives.end",
+      "end": -0.007801,
       "after": "appointmentArrives"
     },
     "carToChemin": {
-      "label": "Voiture de l'adjoint : du bureau au chemin",
+      "label": "Trajet de l'adjoint : départ et arrivée avec ellipse",
       "actor": "cars",
       "step": "rendezvous",
-      "start": 0.04553,
-      "end": 0.97007
+      "start": 0.00563,
+      "end": 0.911794
+    },
+    "carDepartsBureau": {
+      "label": "Voiture de l'adjoint : départ du bureau",
+      "actor": "cars",
+      "step": "rendezvous",
+      "start": "carToChemin.start",
+      "end": 0.408366,
+      "params": {
+        "routeEnd": 0.014
+      }
+    },
+    "carArrivesAtChemin": {
+      "label": "Après la coupe : arrivée au chemin",
+      "actor": "cars",
+      "step": "rendezvous",
+      "start": "carDepartsBureau.end",
+      "end": "carToChemin.end",
+      "params": {
+        "routeStart": 0.992
+      }
+    },
+    "carParkedAtChemin": {
+      "label": "Voiture arrêtée au chemin",
+      "actor": "cars",
+      "step": "rendezvous",
+      "start": "carToChemin.end",
+      "end": 0.951551
+    },
+    "carParkedAtMairie": {
+      "label": "Voiture arrêtée sur le parking",
+      "actor": "cars",
+      "step": "assistant",
+      "start": "carToMairie.end",
+      "end": 0.382157
     },
     "garageOpens": {
       "label": "La porte du garage s'ouvre",
       "actor": "cars",
       "step": "rendezvous",
-      "within": "carToChemin",
-      "start": -0.09367,
-      "end": 0.0228
+      "start": -0.025567,
+      "end": 0.00563
     },
     "deputyGetsOut": {
       "label": "L'adjoint descend de la voiture",
       "actor": "people",
-      "step": "photo",
-      "start": "carToChemin.end",
-      "end": 0.9761,
+      "step": "rendezvous",
+      "start": "carParkedAtChemin.end",
+      "end": 0.969852,
       "params": {
         "leavesCar": 0.3
-      },
-      "endStep": "rendezvous"
+      }
     },
     "deputyWalksToViewpoint": {
       "label": "L'adjoint marche jusqu'au point de vue",
       "actor": "people",
-      "step": "photo",
+      "step": "rendezvous",
       "start": "deputyGetsOut.end",
-      "end": 0.02063
+      "end": 0.100018,
+      "endStep": "photo"
     },
     "deputyRaisesPhone": {
       "label": "L'adjoint lève le téléphone",
       "actor": "people",
       "step": "photo",
-      "start": 0.02063,
-      "end": 0.08751,
+      "start": 0.100018,
+      "end": 0.305454,
       "after": "deputyWalksToViewpoint"
     },
     "phoneRises": {
@@ -349,7 +446,9 @@
       "step": "cadastre",
       "start": 0.42,
       "end": 0.82,
-      "params": { "each": 0.35 }
+      "params": {
+        "each": 0.35
+      }
     },
     "parcelNumbersShown": {
       "label": "Numéros des parcelles affichés",
@@ -379,50 +478,55 @@
       "actor": "cars",
       "step": "cadastre",
       "start": 0.97,
-      "end": 0.12,
+      "end": 0.270714,
       "endStep": "assistant"
     },
     "parcelsFade": {
       "label": "Les couleurs des parcelles s'effacent",
       "actor": "scene",
       "step": "assistant",
-      "start": 0,
-      "end": 0.2
+      "start": 0.012918,
+      "end": 0.442578
     },
     "carToMairie": {
       "label": "Voiture de la maire : arrivée à la mairie",
       "actor": "cars",
       "step": "assistant",
-      "start": 0.03,
-      "end": 0.15
+      "start": 0.017209,
+      "end": 0.216416,
+      "params": {
+        "routeStart": 0.84
+      }
     },
     "assistantAppears": {
       "label": "L'assistant apparaît",
       "actor": "assistant",
       "step": "assistant",
-      "start": 0.12,
-      "end": 0.2
+      "start": "secretaryWalksToDoor.start",
+      "end": 0.76435
     },
     "secretaryGetsOut": {
       "label": "La maire descend de la voiture",
       "actor": "people",
       "step": "assistant",
-      "start": "carToMairie.end",
-      "end": 0.19,
-      "params": { "leavesCar": 0.3 }
+      "start": "carParkedAtMairie.end",
+      "end": 0.680543,
+      "params": {
+        "leavesCar": 0.3
+      }
     },
     "secretaryWalksToDoor": {
       "label": "La maire marche jusqu'à la porte",
       "actor": "people",
       "step": "assistant",
       "start": "secretaryGetsOut.end",
-      "end": 0.28
+      "end": 0.966443
     },
     "secretaryInMairie": {
       "label": "La maire est dans la mairie",
       "actor": "people",
       "step": "assistant",
-      "start": 0.3,
+      "start": 0.967684,
       "end": 0,
       "endStep": "gel",
       "after": "secretaryWalksToDoor"
@@ -431,31 +535,30 @@
       "label": "L'assistant lit les dossiers un à un",
       "actor": "assistant",
       "step": "assistant",
-      "start": 0.22,
-      "end": 0.74,
+      "start": "assistantAppears.end",
+      "end": 0.9386,
       "after": "assistantAppears"
     },
     "assistantWrites": {
       "label": "L'assistant rédige",
       "actor": "assistant",
       "step": "assistant",
-      "start": 0.72,
-      "end": 0.84
+      "start": "assistantReadsFolders.end",
+      "end": 0.967684
     },
     "comparisonFiled": {
       "label": "Comparatif des devis : entre dans son dossier de la fiche",
       "actor": "pieces",
       "step": "assistant",
-      "start": 0.82,
+      "start": 0.968179,
       "after": "assistantReadsFolders"
     },
     "assistantLeaves": {
       "label": "L'assistant disparaît",
       "actor": "assistant",
-      "step": "assistant",
-      "start": 0.92,
-      "end": 0,
-      "endStep": "projet"
+      "step": "projet",
+      "start": 0.35,
+      "end": 0.6
     },
     "draftResolutionFiled": {
       "label": "Projet de délibération : posé sur la fiche",
@@ -464,7 +567,13 @@
       "start": 0.12,
       "end": 0.85
     },
-    "serverAppears": { "label": "Le serveur apparaît", "actor": "scene", "step": "partage", "start": 0, "end": 0.06 },
+    "serverAppears": {
+      "label": "Le serveur apparaît",
+      "actor": "scene",
+      "step": "partage",
+      "start": 0,
+      "end": 0.06
+    },
     "devicesAppear": {
       "label": "Les appareils des élus apparaissent",
       "actor": "scene",
@@ -472,14 +581,24 @@
       "start": 0,
       "end": 0.05
     },
-    "serverPulse": { "label": "Onde du serveur", "actor": "scene", "step": "partage", "start": 0.03, "end": 0.2 },
+    "serverPulse": {
+      "label": "Onde du serveur",
+      "actor": "scene",
+      "step": "partage",
+      "start": 0.03,
+      "end": 0.2
+    },
     "linksToDevices": {
       "label": "Liens vers les appareils, écrans allumés",
       "actor": "scene",
       "step": "partage",
       "start": 0.05,
       "end": 0.55,
-      "params": { "each": 0.52, "lightFrom": 0.85, "lightTo": 1.35 }
+      "params": {
+        "each": 0.52,
+        "lightFrom": 0.85,
+        "lightTo": 1.35
+      }
     },
     "serverDisappears": {
       "label": "Le serveur disparaît",
@@ -509,11 +628,29 @@
       "start": 0,
       "end": 1,
       "endStep": "convocation",
-      "params": { "stagger": 0.55, "walk": 0.42 }
+      "params": {
+        "stagger": 0.55,
+        "walk": 0.42
+      }
     },
-    "agendaFirstItem": { "label": "Premier point inscrit", "actor": "pieces", "step": "inscription", "start": 0.3 },
-    "agendaSecondItem": { "label": "Second point inscrit", "actor": "pieces", "step": "inscription", "start": 0.65 },
-    "agendaFrozen": { "label": "Ordre du jour figé", "actor": "pieces", "step": "convocation", "start": 0.12 },
+    "agendaFirstItem": {
+      "label": "Premier point inscrit",
+      "actor": "pieces",
+      "step": "inscription",
+      "start": 0.3
+    },
+    "agendaSecondItem": {
+      "label": "Second point inscrit",
+      "actor": "pieces",
+      "step": "inscription",
+      "start": 0.65
+    },
+    "agendaFrozen": {
+      "label": "Ordre du jour figé",
+      "actor": "pieces",
+      "step": "convocation",
+      "start": 0.12
+    },
     "convocationFiled": {
       "label": "Convocation : posée sur la fiche",
       "actor": "pieces",
@@ -558,7 +695,13 @@
       "start": 0.2,
       "end": 0.52
     },
-    "proxyShown": { "label": "Pouvoir affiché", "actor": "scene", "step": "appel", "start": 0.56, "after": "rollCall" },
+    "proxyShown": {
+      "label": "Pouvoir affiché",
+      "actor": "scene",
+      "step": "appel",
+      "start": 0.56,
+      "after": "rollCall"
+    },
     "meetingOpened": {
       "label": "Séance ouverte",
       "actor": "scene",
@@ -574,7 +717,13 @@
       "end": 0.94,
       "after": "meetingOpened"
     },
-    "debateNotes": { "label": "Notes de séance", "actor": "pieces", "step": "debat", "start": 0.05, "end": 0.95 },
+    "debateNotes": {
+      "label": "Notes de séance",
+      "actor": "pieces",
+      "step": "debat",
+      "start": 0.05,
+      "end": 0.95
+    },
     "reportShownInDebate": {
       "label": "Le rapport s'affiche au-dessus de la table",
       "actor": "scene",
@@ -603,7 +752,11 @@
       "step": "scrutin",
       "start": 0.08,
       "end": 0.7,
-      "params": { "fall": 0.0806451612903226, "glow": 0.0967741935483871, "wave": 0.161290322580645 }
+      "params": {
+        "fall": 0.0806451612903226,
+        "glow": 0.0967741935483871,
+        "wave": 0.161290322580645
+      }
     },
     "voteConfirmed": {
       "label": "Résultat confirmé",
@@ -642,7 +795,12 @@
       "end": 0.88,
       "after": "draftTurnsAdopted"
     },
-    "questionClosed": { "label": "Question ouverte close", "actor": "pieces", "step": "deliberation", "start": 0.92 },
+    "questionClosed": {
+      "label": "Question ouverte close",
+      "actor": "pieces",
+      "step": "deliberation",
+      "start": 0.92
+    },
     "laptopsOff": {
       "label": "Les écrans des élus s'éteignent",
       "actor": "scene",
@@ -679,7 +837,10 @@
       "start": 0,
       "end": 1,
       "endStep": "liste",
-      "params": { "stagger": 0.45, "walk": 0.5 }
+      "params": {
+        "stagger": 0.45,
+        "walk": 0.5
+      }
     },
     "secretaryWalksToCar": {
       "label": "La maire marche jusqu'à sa voiture",
@@ -740,73 +901,380 @@
       "start": 0.1,
       "end": 0.82
     },
-    "linkToPrefectureDrawn": {
-      "label": "Le lien vers la préfecture se trace",
-      "actor": "scene",
-      "step": "liste",
-      "start": 0.4,
-      "end": 0.25,
-      "endStep": "pv"
+    "resolutionCopied": {
+      "label": "Copie de la délibération : sortie de la fiche",
+      "actor": "pieces",
+      "step": "transmission",
+      "start": 0.009625,
+      "end": 0.095315
     },
-    "resolutionSent": {
-      "label": "La délibération part vers la préfecture",
+    "resolutionDeparts": {
+      "label": "Copie de la délibération : trajet vers la préfecture",
+      "actor": "pieces",
+      "step": "transmission",
+      "start": "resolutionCopied.end",
+      "end": 0.832508,
+      "after": "resolutionCopied"
+    },
+    "resolutionShrinks": {
+      "label": "Délibération : réduction vers la porte de la préfecture",
+      "actor": "pieces",
+      "step": "transmission",
+      "start": "resolutionDeparts.end",
+      "end": 0.923954,
+      "after": "resolutionDeparts"
+    },
+    "resolutionEnters": {
+      "label": "Délibération : entrée dans la préfecture",
+      "actor": "pieces",
+      "step": "transmission",
+      "start": "resolutionShrinks.end",
+      "end": 0.949787,
+      "after": "resolutionShrinks"
+    },
+    "resolutionSharedPause": {
+      "label": "Préfecture : plan final dégagé",
       "actor": "scene",
-      "step": "liste",
-      "start": 0.5,
-      "end": 0.22,
-      "endStep": "transmission"
+      "step": "transmission",
+      "start": "resolutionEnters.end",
+      "end": 0.97,
+      "after": "resolutionEnters"
+    },
+    "linkToPrefectureDrawn": {
+      "label": "Le lien mairie–préfecture se trace",
+      "actor": "scene",
+      "step": "transmission",
+      "start": 0.009625,
+      "end": 0.29537
     },
     "prefectureGlowFades": {
-      "label": "Arrivée à la préfecture : l'anneau s'atténue",
+      "label": "Le halo de la destination s’atténue",
       "actor": "scene",
       "step": "transmission",
-      "start": "resolutionSent.end",
-      "end": 0.55
+      "start": "resolutionDeparts.end",
+      "end": 0.969976,
+      "after": "resolutionDeparts"
     },
-    "receiptReturns": {
-      "label": "L'accusé de réception revient",
+    "sharingLinkReturns": {
+      "label": "La liaison lumineuse revient vers la mairie",
       "actor": "scene",
       "step": "transmission",
-      "start": 0.42,
-      "end": 0.72,
-      "after": "resolutionSent"
+      "start": 0.882208,
+      "end": 0.963526
     }
   },
   "camera": [
-    { "p": 0, "aim": "village", "az": 196, "el": 42, "dist": 950 },
-    { "p": 0.03, "aim": "village", "az": 204, "el": 38, "dist": 420 },
-    { "step": "creer", "at": 0.6, "aim": "home", "az": 214, "el": 31, "dist": 32 },
-    { "step": "rendezvous", "at": 0.36, "aim": "home", "az": 234, "el": 33, "dist": 33 },
-    { "step": "rendezvous", "at": 0.6, "aim": "car", "az": 220, "el": 44, "dist": 60 },
-    { "step": "rendezvous", "at": 0.86, "aim": "car", "az": 205, "el": 50, "dist": 85 },
-    { "step": "photo", "at": 0.09, "aim": "viewpoint", "az": 205, "el": 30, "dist": 26 },
-    { "step": "photo", "at": 0.96, "aim": "viewpoint", "az": 214, "el": 30, "dist": 25 },
-    { "step": "trace", "at": 0.12, "aim": "cheminCentre", "az": 228, "el": 47, "dist": 70 },
-    { "step": "cadastre", "at": 0.1, "aim": "cadastreView", "az": 228, "el": 52, "dist": 140 },
-    { "step": "cadastre", "at": 0.95, "aim": "cadastreView", "az": 224, "el": 56, "dist": 150 },
-    { "step": "assistant", "at": 0.04, "aim": "car", "az": 192, "el": 44, "dist": 60 },
-    { "step": "assistant", "at": 0.18, "aim": "mairieDoor", "az": 196, "el": 32, "dist": 34 },
-    { "step": "assistant", "at": 0.28, "aim": "mairieDoorClose", "az": 200, "el": 26, "dist": 24 },
-    { "step": "assistant", "at": 0.96, "aim": "mairieDoorClose", "az": 206, "el": 26, "dist": 25 },
-    { "step": "projet", "at": 0.3, "aim": "mairieDoor", "az": 200, "el": 33, "dist": 34 },
-    { "step": "projet", "at": 0.97, "aim": "mairieDoor", "az": 204, "el": 33, "dist": 36 },
-    { "step": "partage", "at": 0.16, "aim": "councilDevices", "az": 196, "el": 60, "dist": 235 },
-    { "step": "partage", "at": 0.86, "aim": "councilDevices", "az": 206, "el": 60, "dist": 228 },
-    { "step": "question", "at": 0.4, "aim": "mairieDoor", "az": 205, "el": 32, "dist": 34 },
-    { "step": "dossier", "at": 0.95, "aim": "mairieDoor", "az": 214, "el": 33, "dist": 33 },
-    { "step": "appel", "at": 0.24, "aim": "dais", "az": 194, "el": 42, "dist": 16.5 },
-    { "step": "debat", "at": 0.85, "aim": "dais", "az": 202.9, "el": 40.9, "dist": 16.31 },
-    { "step": "scrutin", "at": 0.04, "aim": "dais", "az": 204.3, "el": 40.7, "dist": 10.5 },
-    { "step": "scrutin", "at": 0.78, "aim": "dais", "az": 210.5, "el": 39.9, "dist": 10.5 },
-    { "step": "deliberation", "at": 0.15, "aim": "dais", "az": 213, "el": 39.6, "dist": 16.1 },
-    { "step": "cloture", "at": 0.95, "aim": "dais", "az": 218, "el": 39, "dist": 16 },
-    { "step": "gel", "at": 0.22, "aim": "mairieSquare", "az": 200, "el": 30, "dist": 38 },
-    { "step": "liste", "at": 0.36, "aim": "mairieSquare", "az": 212, "el": 31, "dist": 40 },
-    { "step": "liste", "at": 0.85, "aim": "towardPrefectureNear", "az": 175, "el": 44, "dist": 260 },
-    { "step": "pv", "at": 0.6, "aim": "towardPrefectureFar", "az": 168, "el": 44, "dist": 380 },
-    { "step": "transmission", "at": 0.24, "aim": "prefecture", "az": 162, "el": 32, "dist": 78 },
-    { "step": "transmission", "at": 0.97, "aim": "prefecture", "az": 156, "el": 31, "dist": 74 },
-    { "p": 1, "aim": "prefecture", "az": 150, "el": 33, "dist": 86 }
+    {
+      "p": 0,
+      "aim": "village",
+      "az": 196,
+      "el": 42,
+      "dist": 950
+    },
+    {
+      "p": 0.03,
+      "aim": "village",
+      "az": 204,
+      "el": 38,
+      "dist": 420
+    },
+    {
+      "step": "creer",
+      "at": 0.6,
+      "aim": "home",
+      "az": 214,
+      "el": 31,
+      "dist": 32
+    },
+    {
+      "step": "rendezvous",
+      "at": -0.02625,
+      "aim": "car",
+      "az": 220,
+      "el": 44,
+      "dist": 36
+    },
+    {
+      "step": "rendezvous",
+      "at": 0.378744,
+      "aim": "car",
+      "az": 220,
+      "el": 44,
+      "dist": 36
+    },
+    {
+      "step": "rendezvous",
+      "at": 0.408366,
+      "aim": "car",
+      "az": 205,
+      "el": 48,
+      "dist": 32,
+      "cut": true
+    },
+    {
+      "step": "rendezvous",
+      "at": 0.911794,
+      "aim": "car",
+      "az": 205,
+      "el": 48,
+      "dist": 32
+    },
+    {
+      "step": "rendezvous",
+      "at": 0.969852,
+      "aim": "car",
+      "az": 205,
+      "el": 38,
+      "dist": 28
+    },
+    {
+      "step": "photo",
+      "at": 0.09,
+      "aim": "viewpoint",
+      "az": 205,
+      "el": 30,
+      "dist": 26
+    },
+    {
+      "step": "photo",
+      "at": 0.96,
+      "aim": "viewpoint",
+      "az": 214,
+      "el": 30,
+      "dist": 25
+    },
+    {
+      "step": "trace",
+      "at": 0.12,
+      "aim": "cheminCentre",
+      "az": 228,
+      "el": 47,
+      "dist": 70
+    },
+    {
+      "step": "cadastre",
+      "at": 0.1,
+      "aim": "cadastreView",
+      "az": 228,
+      "el": 52,
+      "dist": 140
+    },
+    {
+      "step": "cadastre",
+      "at": 0.95,
+      "aim": "cadastreView",
+      "az": 224,
+      "el": 56,
+      "dist": 150
+    },
+    {
+      "step": "assistant",
+      "at": 0,
+      "aim": "car",
+      "az": 310,
+      "el": 48,
+      "dist": 26,
+      "cut": true
+    },
+    {
+      "step": "assistant",
+      "at": 0.216416,
+      "aim": "car",
+      "az": 310,
+      "el": 48,
+      "dist": 26
+    },
+    {
+      "step": "assistant",
+      "at": 0.680543,
+      "aim": "mairieArrival",
+      "az": 306,
+      "el": 48,
+      "dist": 26
+    },
+    {
+      "step": "assistant",
+      "at": 0.967684,
+      "aim": "mairieDoorClose",
+      "az": 310,
+      "el": 36,
+      "dist": 16.8
+    },
+    {
+      "step": "assistant",
+      "at": 0.969999,
+      "aim": "mairieDoorClose",
+      "az": 316,
+      "el": 36,
+      "dist": 17.5
+    },
+    {
+      "step": "projet",
+      "at": 0.3,
+      "aim": "mairieDoor",
+      "az": 310,
+      "el": 43,
+      "dist": 23.8
+    },
+    {
+      "step": "projet",
+      "at": 0.97,
+      "aim": "mairieDoor",
+      "az": 314,
+      "el": 43,
+      "dist": 25.2
+    },
+    {
+      "step": "partage",
+      "at": 0.16,
+      "aim": "councilDevices",
+      "az": 196,
+      "el": 60,
+      "dist": 235
+    },
+    {
+      "step": "partage",
+      "at": 0.86,
+      "aim": "councilDevices",
+      "az": 206,
+      "el": 60,
+      "dist": 228
+    },
+    {
+      "step": "question",
+      "at": 0.4,
+      "aim": "mairieDoor",
+      "az": 315,
+      "el": 42,
+      "dist": 23.8
+    },
+    {
+      "step": "dossier",
+      "at": 0.95,
+      "aim": "mairieDoor",
+      "az": 324,
+      "el": 43,
+      "dist": 23.1
+    },
+    {
+      "step": "appel",
+      "at": 0.24,
+      "aim": "dais",
+      "az": 194,
+      "el": 42,
+      "dist": 16.5
+    },
+    {
+      "step": "debat",
+      "at": 0.85,
+      "aim": "dais",
+      "az": 202.9,
+      "el": 40.9,
+      "dist": 16.31
+    },
+    {
+      "step": "scrutin",
+      "at": 0.04,
+      "aim": "dais",
+      "az": 204.3,
+      "el": 40.7,
+      "dist": 10.5
+    },
+    {
+      "step": "scrutin",
+      "at": 0.78,
+      "aim": "dais",
+      "az": 210.5,
+      "el": 39.9,
+      "dist": 10.5
+    },
+    {
+      "step": "deliberation",
+      "at": 0.15,
+      "aim": "dais",
+      "az": 213,
+      "el": 39.6,
+      "dist": 16.1
+    },
+    {
+      "step": "cloture",
+      "at": 0.95,
+      "aim": "dais",
+      "az": 218,
+      "el": 39,
+      "dist": 16
+    },
+    {
+      "step": "gel",
+      "at": 0.22,
+      "aim": "mairieSquare",
+      "az": 310,
+      "el": 40,
+      "dist": 26.6
+    },
+    {
+      "step": "liste",
+      "at": 0.36,
+      "aim": "mairieSquare",
+      "az": 322,
+      "el": 41,
+      "dist": 28
+    },
+    {
+      "step": "pv",
+      "at": 0.97,
+      "aim": "mairieSquare",
+      "az": 322,
+      "el": 41,
+      "dist": 28
+    },
+    {
+      "step": "transmission",
+      "at": 0.095315,
+      "aim": "sharedResolution",
+      "az": 322,
+      "el": 41,
+      "dist": 28
+    },
+    {
+      "step": "transmission",
+      "at": 0.271602,
+      "aim": "sharedResolution",
+      "az": 175,
+      "el": 44,
+      "dist": 260
+    },
+    {
+      "step": "transmission",
+      "at": 0.487685,
+      "aim": "sharedResolution",
+      "az": 168,
+      "el": 44,
+      "dist": 380
+    },
+    {
+      "step": "transmission",
+      "at": 0.832508,
+      "aim": "sharedResolution",
+      "az": 162,
+      "el": 32,
+      "dist": 78
+    },
+    {
+      "step": "transmission",
+      "at": 0.97,
+      "aim": "prefecture",
+      "az": 156,
+      "el": 31,
+      "dist": 74
+    },
+    {
+      "p": 1,
+      "aim": "prefecture",
+      "az": 150,
+      "el": 33,
+      "dist": 86
+    }
   ],
   "margins": {
     "deputyCarShownBefore": 0.004,

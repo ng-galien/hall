@@ -3307,43 +3307,6 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     0 0 14px rgb(15 23 35 / 0.85);
 }
 
-/* Envoi à la préfecture : coche de l'accusé de réception */
-.b-row-check {
-  margin-left: auto;
-  display: grid;
-  place-items: center;
-  width: 1.2rem;
-  height: 1.2rem;
-  border-radius: 50%;
-  color: #fff;
-  background: var(--success);
-  opacity: 0;
-  transform: scale(0.6);
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
-}
-
-.b-row-check svg {
-  width: 0.75rem;
-  height: 0.75rem;
-  fill: currentColor;
-}
-
-.b-row-check.is-shown {
-  opacity: 1;
-  transform: none;
-}
-
-.b-send {
-  opacity: 0.55;
-  transition: opacity 0.3s ease;
-}
-
-.b-send.is-sent {
-  opacity: 1;
-}
-
 /* Photos de la fiche : vignette du paysage photographié */
 .b-photo {
   background-size: cover;
@@ -4025,18 +3988,6 @@ html[data-scene="ready"] body .p-watermark.is-empty {
     line-height: 1.2;
     white-space: nowrap;
     color: var(--text);
-  }
-
-  body:not(#phone) .p-board:not(.is-expanded) .b-row-check {
-    position: absolute;
-    margin: 0;
-    width: 0.8rem;
-    height: 0.8rem;
-    transform: translate(0.6rem, 0.55rem);
-  }
-
-  body:not(#phone) .p-board:not(.is-expanded) .b-send {
-    position: relative;
   }
 
   /* Fiche ouverte d'un toucher sur la colonne : version réduite, au-dessus de la scène */

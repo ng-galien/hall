@@ -31,7 +31,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
   color: inherit;
 }
@@ -167,6 +168,61 @@ input {
   padding: 5px 8px;
   border: 1px solid var(--st-line);
   border-radius: 7px;
+}
+
+.st-navigation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--st-hair);
+}
+
+.st-step-picker {
+  width: min(100%, 620px);
+  padding: 5px 8px;
+  border: 1px solid var(--st-line);
+  border-radius: 5px;
+  background: var(--st-panel);
+}
+
+.st-inspector {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--st-line);
+  border-radius: 6px;
+  background: var(--st-bg);
+}
+
+.st-inspector-title,
+.st-inspector-links {
+  flex-basis: 100%;
+}
+
+.st-inspector-links {
+  color: var(--st-text-2);
+}
+
+.st-time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.st-time-field input {
+  width: 100px;
+  padding: 4px 6px;
+  border: 1px solid var(--st-line);
+  border-radius: 4px;
+}
+
+.st-duration {
+  padding: 4px 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .st-status {
@@ -555,6 +611,20 @@ input {
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--st-text-2);
+}
+
+.st-camera-cut {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 16px;
+  color: var(--st-text);
+}
+
+.st-key.is-cut {
+  border-radius: 0;
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .st-tracks.is-cut .st-lane,

@@ -43,7 +43,7 @@ test("le premier écran présente le scénario et le bouton qui lance le parcour
     "Chemin communal",
     "Mairie",
     "Séance",
-    "Préfecture",
+    "Actes du conseil",
   ]);
   const start = scenario.getByTestId("story-start");
   await expect(start).toHaveText("Commencer le parcours");

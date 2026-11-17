@@ -15,14 +15,21 @@ export const communeCode = "39227";
 
 export const spots = {
   home: { x: 3686, y: -4802 },
-  homeDoor: { x: 3690, y: -4824 },
-  mairie: { x: 3850, y: -4496 },
-  mairieDoor: { x: 3850, y: -4522 },
-  prefecture: { x: 1158, y: -1910 },
+  homeDoor: { x: 3701.8, y: -4818.4 },
+  mairie: { x: 3853, y: -4496 },
+  mairieDoor: { x: 3843.36, y: -4497.46 },
+  prefecture: { x: 1408, y: -2285 },
 };
 
 /** Point où la voiture du secrétariat se gare devant la mairie. */
-export const mairieParking: Spot = { x: 3832, y: -4550 };
+export const mairieParking: Spot = { x: 3855, y: -4464 };
+export const mairieForecourt = { centre: { x: 3855, y: -4467 }, width: 2.6, depth: 2.4 };
+export const mairieWalk: Spot[] = [
+  { x: 3850, y: -4464 },
+  { x: 3844, y: -4477 },
+  { x: 3842, y: -4483 },
+  spots.mairieDoor,
+];
 
 /** Centre du bourg, entre le bureau et la mairie, et centre du chemin, pour la caméra. */
 export const village: Spot = { x: 3768, y: -4649 };
@@ -123,15 +130,23 @@ export const roadBeyondChemin: Spot[] = [
 /** Arrivée de la voiture du secrétariat devant la mairie, puis son départ vers le nord du bourg. */
 export const roadToMairie: Spot[] = [
   { x: 3880, y: -4753 },
-  { x: 3861, y: -4682 },
-  { x: 3836, y: -4592 },
-  { x: 3832, y: -4550 },
+  { x: 3860.6, y: -4681.7 },
+  { x: 3836, y: -4592.1 },
+  { x: 3830.2, y: -4530.1 },
+  { x: 3843.1, y: -4516.6 },
+  { x: 3836.6, y: -4474.1 },
+  { x: 3843, y: -4473 },
+  { x: 3855, y: -4473 },
+  mairieParking,
 ];
 export const roadFromMairie: Spot[] = [
-  { x: 3832, y: -4550 },
-  { x: 3830, y: -4530 },
-  { x: 3843, y: -4517 },
-  { x: 3814, y: -4175 },
+  mairieParking,
+  { x: 3855, y: -4455 },
+  { x: 3854.4, y: -4437.8 },
+  { x: 3836.9, y: -4437.7 },
+  { x: 3835, y: -4416.4 },
+  { x: 3832.6, y: -4409.7 },
+  { x: 3824.4, y: -4261.3 },
 ];
 
 /** Parcelles riveraines du chemin : contour et numéro cadastral, déplacé quand il toucherait celui d'une parcelle voisine. */

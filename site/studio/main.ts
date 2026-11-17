@@ -147,9 +147,24 @@ function undo() {
 /* ------------------------------------------------------------------ Barre d'outils */
 
 const bar = el("div", "st-bar");
+const navigation = el("label", "st-navigation");
+const stepPicker = el("select", "st-step-picker");
+stepPicker.dataset.testid = "studio-step-picker";
+stepPicker.disabled = true;
+navigation.append("Étape", stepPicker);
 const ribbon = el("div", "st-ribbon");
 const detail = el("div", "st-detail");
-panel.append(bar, ribbon, detail);
+panel.append(bar, navigation, ribbon, detail);
+stepPicker.addEventListener("change", () => {
+  player.stop();
+  current = stepIndex(stepPicker.value);
+  selected = null;
+  range = null;
+  host.seek(base.progress(playStart()));
+  renderRibbon();
+  renderDetail();
+  renderBar();
+});
 
 const playButton = el("button", "st-button");
 playButton.dataset.testid = "studio-play";
@@ -311,7 +326,7 @@ undoButton.addEventListener("click", undo);
 /* Clavier : espace pour lire, flèches pour décaler l'élément sélectionné (Maj : par demi-seconde) */
 window.addEventListener("keydown", (event) => {
   const target = event.target as HTMLElement;
-  if (/^(INPUT|TEXTAREA)$/.test(target.tagName)) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
   if ((event.metaKey || event.ctrlKey) && event.key === "z") {
     event.preventDefault();
     undo();
@@ -429,6 +444,15 @@ const ribbonX = (t: number) => (t / base.starts[base.starts.length - 1]) * 100;
 const ribbonHead = el("div", "st-ribbon-head");
 
 function renderRibbon() {
+  if (!stepPicker.options.length) {
+    for (const step of host.steps) {
+      const option = el("option", "", `${host.places[step.place]} · ${step.title}`);
+      option.value = step.id;
+      stepPicker.append(option);
+    }
+    stepPicker.disabled = false;
+  }
+  stepPicker.value = stepId();
   const places = el("div", "st-places");
   const steps = el("div", "st-steps");
   host.places.forEach((name, place) => {
@@ -643,6 +667,16 @@ const momentPaths = (name: string, edges: ("start" | "end")[]) =>
 
 const isSelected = (name: string) => selected?.kind === "moment" && selected.name === name;
 
+/** Show the selected action within the current step, without losing the editing selection. */
+function showMoment(name: string) {
+  player.stop();
+  const [a, b] = timeline.moment(name).map((p) => base.time(p));
+  const from = Math.max(a, playStart());
+  const to = Math.min(b, playStart() + playLength());
+  host.seek(base.progress(from <= to ? (from + to) / 2 : a));
+  renderBar();
+}
+
 function momentBlock(name: string, moment: MomentSettings): Item | null {
   const [s, e] = timeline.moment(name);
   const ts = base.time(s);
@@ -671,6 +705,7 @@ function momentBlock(name: string, moment: MomentSettings): Item | null {
   }
   const select = () => {
     selected = { kind: "moment", name };
+    showMoment(name);
     renderDetail();
   };
   node.addEventListener("pointerdown", (event) => {
@@ -826,6 +861,75 @@ function showNote(note: Note, x: number, y: number) {
 const playhead = el("div", "st-playhead");
 const info = el("div", "st-info");
 
+/** Edit the selected action in seconds, through the same operations as the timeline handles. */
+function momentInspector(name: string): HTMLFormElement {
+  const moment = timeline.momentSettings(name);
+  const [a, b] = timeline.moment(name).map((p) => base.time(p));
+  const origin = playStart();
+  const form = el("form", "st-inspector");
+  form.dataset.testid = "studio-moment-inspector";
+  const title = el("strong", "st-inspector-title", moment.label);
+  title.dataset.testid = "studio-moment-name";
+  form.append(title);
+  const inputs = new Map<"start" | "end", HTMLInputElement>();
+  for (const [edge, label, time] of [
+    ["start", "Début (s)", a],
+    ["end", "Fin (s)", b],
+  ] as const) {
+    const field = el("label", "st-time-field", label);
+    const input = el("input", "");
+    input.type = "number";
+    input.step = "0.01";
+    input.required = true;
+    input.value = String(hundredths(time - origin));
+    input.dataset.testid = `studio-moment-${edge}`;
+    input.disabled = typeof moment[edge] === "string" || (edge === "end" && moment.end === undefined);
+    inputs.set(edge, input);
+    field.append(input);
+    form.append(field);
+  }
+  const duration = el("span", "st-duration", `Durée : ${seconds(b - a, 2)}`);
+  duration.dataset.testid = "studio-moment-duration";
+  const apply = el("button", "st-button is-primary", "Appliquer");
+  apply.type = "submit";
+  apply.dataset.testid = "studio-moment-apply";
+  apply.disabled = [...inputs.values()].every((input) => input.disabled);
+  const show = el("button", "st-button", "Voir l’action");
+  show.type = "button";
+  show.dataset.testid = "studio-moment-show";
+  show.addEventListener("click", () => showMoment(name));
+  form.append(duration, apply, show);
+  const links = (["start", "end"] as const).flatMap((edge) => {
+    const value = moment[edge];
+    if (typeof value !== "string") return [];
+    const [other, side] = value.split(".");
+    return `${edge === "start" ? "Début" : "Fin"} lié au ${side === "start" ? "début" : "terme"} de ${quoted(other)}.`;
+  });
+  if (links.length) {
+    const notice = el("span", "st-inspector-links", links.join(" "));
+    notice.dataset.testid = "studio-moment-links";
+    form.append(notice);
+  }
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    player.stop();
+    const edits = [...inputs].filter(
+      ([edge, input]) =>
+        !input.disabled &&
+        Number.isFinite(input.valueAsNumber) &&
+        Math.abs(input.valueAsNumber - hundredths((edge === "start" ? a : b) - origin)) > 0.001,
+    );
+    if (!edits.length) return;
+    commit((next) => {
+      for (const [edge, input] of edits) {
+        next.settings = setMomentEdge(next.settings, order(), name, edge, origin + input.valueAsNumber);
+        for (const path of momentPaths(name, [edge])) next.touched.add(path);
+      }
+    });
+  });
+  return form;
+}
+
 function renderDetail() {
   if (!host) return;
   const id = stepId();
@@ -845,6 +949,7 @@ function renderDetail() {
   );
   const tracks = el("div", `st-tracks is-${tool}`);
   detail.replaceChildren(head, info, tracks);
+  if (selected?.kind === "moment") detail.insertBefore(momentInspector(selected.name), tracks);
   const ruler = lane();
   ruler.classList.add("st-ruler");
   tracks.append(el("div", "st-row-label", "Temps"), ruler);
@@ -919,7 +1024,8 @@ function renderDetail() {
         node.dataset.testid = `studio-camera-key-${index}`;
         node.classList.toggle("is-selected", selected?.kind === "key" && selected.index === index);
         node.style.left = `${xOf(t)}px`;
-        node.title = `Plan de caméra vers ${key.aim} · ${seconds(t - start, 2)}`;
+        node.title = `${key.cut ? "Coupe vers" : "Plan de caméra vers"} ${key.aim} · ${seconds(t - start, 2)}`;
+        node.classList.toggle("is-cut", Boolean(key.cut));
         node.addEventListener("pointerdown", (event) => {
           if (tool !== "move" || key.step === undefined) return;
           event.stopPropagation();
@@ -987,6 +1093,23 @@ function renderDetail() {
           : tool === "note"
             ? "Note : cliquer sur la ligne de temps à l'instant voulu."
             : "Glisser un bloc pour le déplacer, ses bords pour le raccourcir ou l'allonger (Alt : sans accroche) ; cliquer ou glisser ailleurs pour déplacer la tête de lecture.";
+  if (selected?.kind === "key") {
+    const index = selected.index;
+    const label = el("label", "st-camera-cut");
+    const toggle = el("input", "");
+    toggle.type = "checkbox";
+    toggle.dataset.testid = "studio-camera-cut";
+    toggle.checked = Boolean(state.settings.camera[index].cut);
+    toggle.addEventListener("change", () => {
+      commit((next) => {
+        if (toggle.checked) next.settings.camera[index].cut = true;
+        else delete next.settings.camera[index].cut;
+        next.touched.add(`camera.${index}.cut`);
+      });
+    });
+    label.append(toggle, " Coupe franche avant ce plan");
+    info.append(label);
+  }
 }
 
 /* ------------------------------------------------------------------ Lecture */

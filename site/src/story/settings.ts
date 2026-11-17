@@ -39,6 +39,8 @@ export interface MomentSettings {
 }
 
 export interface CameraKey {
+  /** Begin a new shot here, without interpolating from the preceding camera shot. */
+  cut?: boolean;
   /** Absolute progress, for the keys before and after the story. */
   p?: number;
   step?: string;
@@ -68,8 +70,6 @@ export interface PlaybackSettings {
   jumpMs: number;
   /** The fiche keeps the previous sub-step's state during this part of the jump. */
   boardSwapMs: number;
-  /** Beyond this distance in progress, a playback becomes a jump. */
-  jumpBeyond: number;
   /** Glide of the page between the story and the section below. */
   glideMs: number;
 }

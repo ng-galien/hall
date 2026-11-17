@@ -157,19 +157,44 @@ export function buildMairie(): THREE.Group {
 }
 
 /** Bureau de travail : immeuble sobre à toit plat, bandeaux vitrés, entrée abritée. */
+export const BUREAU_GARAGE = { x: -1.25, width: 1.1, height: 1.15, front: 1.2 };
+
 export function buildBureau(): THREE.Group {
   const m = materials();
   const g = new THREE.Group();
   const W = 4.4;
   const D = 2.4;
-  g.add(box(m.trim, W + 0.2, 0.2, D + 0.2, 0, 0.1, 0));
-  g.add(box(m.wall, W, 2.6, D, 0, 1.5, 0));
+  const left = BUREAU_GARAGE.x - BUREAU_GARAGE.width / 2;
+  const right = BUREAU_GARAGE.x + BUREAU_GARAGE.width / 2;
+  for (const [material, width, height, depth, y] of [
+    [m.trim, W + 0.2, 0.2, D + 0.2, 0.1],
+    [m.wall, W, 2.6, D, 1.5],
+  ] as const) {
+    g.add(box(material, left + width / 2, height, depth, (left - width / 2) / 2, y, 0));
+    g.add(box(material, width / 2 - right, height, depth, (right + width / 2) / 2, y, 0));
+  }
+  g.add(
+    box(
+      m.wall,
+      BUREAU_GARAGE.width,
+      2.8 - BUREAU_GARAGE.height,
+      D,
+      BUREAU_GARAGE.x,
+      (2.8 + BUREAU_GARAGE.height) / 2,
+      0,
+    ),
+  );
   g.add(box(m.trim, W + 0.1, 0.14, D + 0.1, 0, 2.87, 0));
   g.add(box(m.roof, W - 0.3, 0.18, D - 0.3, 0, 3.0, 0));
   for (const y of [0.95, 2.1]) {
-    g.add(box(m.glass, W - 0.6, 0.62, 0.04, 0, y, D / 2 + 0.01));
-    for (let i = 0; i <= 8; i++)
-      g.add(box(m.trim, 0.05, 0.66, 0.06, -(W - 0.6) / 2 + ((W - 0.6) * i) / 8, y, D / 2 + 0.02));
+    const from = y < BUREAU_GARAGE.height ? right : -(W - 0.6) / 2;
+    const to = (W - 0.6) / 2;
+    g.add(box(m.glass, to - from, 0.62, 0.04, (from + to) / 2, y, D / 2 + 0.01));
+    for (let i = 0; i <= 8; i++) {
+      const x = -(W - 0.6) / 2 + ((W - 0.6) * i) / 8;
+      if (x < from) continue;
+      g.add(box(m.trim, 0.05, 0.66, 0.06, x, y, D / 2 + 0.02));
+    }
     g.add(box(m.glass, 0.04, 0.62, D - 0.6, W / 2 + 0.01, y, 0));
   }
   g.add(box(m.trim, 1.3, 0.08, 0.7, 1.1, 1.35, D / 2 + 0.35));

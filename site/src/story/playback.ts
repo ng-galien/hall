@@ -1,9 +1,8 @@
 import type { TimeBase } from "./timebase";
 
 /**
- * Playback of a story for the studio, on the time base of the card arrows: reading on plays the sub-steps one
- * after the other as successive arrow presses would; replaying a sub-step plays it exactly as one arrow press.
- * `speed` slows the reading down.
+ * Shared playback for the page and studio. TimeBase keeps each sub-step's timing when starting in its middle,
+ * crossing several steps or reading backwards. `speed` scales this same clock.
  */
 export class Player {
   speed = 1;
@@ -32,16 +31,24 @@ export class Player {
     this.stop();
     this.onStop = onStop ?? null;
     let t = from;
+    const direction = Math.sign(to - from);
     let last = performance.now();
     this.seek(this.base().progress(t));
+    if (direction === 0) return this.stop();
     const step = (now: number) => {
-      t = Math.min(to, t + (Math.max(0, now - last) / 1000) * this.speed);
+      const next = t + (Math.max(0, now - last) / 1000) * this.speed * direction;
+      t = direction > 0 ? Math.min(to, next) : Math.max(to, next);
       last = now;
       this.seek(this.base().progress(t));
-      if (t >= to) return this.stop();
+      if (t === to) return this.stop();
       this.frame = requestAnimationFrame(step);
     };
     this.frame = requestAnimationFrame(step);
+  }
+
+  /** Plays the actual remaining interval, in either direction, without squeezing it into one step. */
+  playTo(from: number, to: number, onStop?: () => void) {
+    this.run(from, to, onStop);
   }
 
   /** Reads on from time t to the end of the story. */

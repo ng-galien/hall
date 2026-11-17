@@ -42,7 +42,7 @@ export const places: Place[] = [
   { name: "Chemin communal", short: "Chemin", feature: "Terrain et cartes" },
   { name: "Mairie", short: "Mairie", feature: "Préparation du conseil" },
   { name: "Séance", short: "Séance", feature: "Séance et vote" },
-  { name: "Préfecture", short: "Préfecture", feature: "Actes du conseil" },
+  { name: "Actes du conseil", short: "Actes", feature: "Documents et partage" },
 ];
 
 export const subSteps: SubStep[] = [
