@@ -624,7 +624,8 @@ test("calendar uses one complete form for business, quarter hours and participan
   const creation = await creationResponse;
   expect(creation.status(), await creation.text()).toBe(201);
   const created = (await creation.json()).properties;
-  expect(created.path).toBe(business.folderPath);
+  // An appointment linked to a business is filed in the folder of the business.
+  expect(created.path).toBe(business.folderPath ? `${business.folderPath}/${business.title}` : business.title);
   await page.getByTestId(`calendar-event-${created.id}`).click();
   await expect(page.getByTestId("event-council-business")).toContainText(business.title);
   await page.getByTestId("event-start-time").click();
