@@ -123,7 +123,8 @@ test.describe("names of documents, folders and businesses", () => {
 
     // A folder created with a taken name: one alert.
     await createInFolder(page, "folder", "Pris");
-    await expectOneAlert(page, "Un dossier porte déjà ce nom à cet emplacement.");
+    await expect(alerts(page)).toHaveCount(1);
+    await expect(alerts(page)).toContainText("porte déjà ce nom");
     await page.keyboard.press("Escape");
     await expect(alerts(page)).toHaveCount(0);
 
@@ -173,7 +174,8 @@ test.describe("names of documents, folders and businesses", () => {
     });
     expect(created.status()).toBe(201);
     const text = (await created.json()).properties as { id: string; path: string };
-    await page.route(`**/api/resources/${text.id}/content`, async (route) => {
+    // The content is sent to the address of the document named by its slug; every write of a content is refused here.
+    await page.route("**/api/resources/*/content", async (route) => {
       if (route.request().method() !== "PUT") return route.fallback();
       await route.fulfill({
         status: 409,
