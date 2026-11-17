@@ -19,14 +19,16 @@ function MapPlace({ entry, folderColor }: { entry: MapEntry; folderColor: string
     return (
       <span className="maps-finder-place" data-place="business" data-nature="council">
         <CouncilBusinessIcon aria-hidden="true" />
-        {entry.businesses.map((business) => business.title).join(", ")}
+        <span className="maps-finder-place-text">{entry.businesses.map((business) => business.title).join(", ")}</span>
       </span>
     );
   const segments = mapPathSegments(entry.map.path).map((segment) => segment.name);
   return (
     <span className="maps-finder-place" data-place="folder" data-nature="folder">
       <FolderIcon aria-hidden="true" {...folderColorIconProps(folderColor)} />
-      {segments.length ? segments.join(" › ") : t("navigation.workspace")}
+      <span className="maps-finder-place-text">
+        {segments.length ? segments.join(" › ") : t("navigation.workspace")}
+      </span>
     </span>
   );
 }

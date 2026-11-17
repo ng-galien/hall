@@ -86,6 +86,7 @@
    « Mesures » and « Couches », on the surface of the map tools. The row keeps one line: when the labels and the field
    no longer hold on it, the commands pass to icons and the field takes the room left. */
 .geographic-top-tools:has(> .maps-finder) { flex-wrap: nowrap; }
+.geographic-top-tools:has(> .maps-finder) > :not(.maps-finder) { flex-shrink: 0; }
 .geographic-top-tools:has(> .maps-finder[data-open="true"]) { z-index: calc(var(--hall-z-content) + 3); }
 
 .maps-finder {
@@ -139,13 +140,27 @@
 /* The line reached by the arrow keys or the pointer; the opened map keeps the mark of the chosen row. */
 .maps-finder-list > .list-row[data-highlighted="true"] > .list-row-line { background: var(--hall-color-surface-selected); }
 
+/* The icon of the business or of the folder, then its title or its path on the same line, shortened with an ellipsis. */
+.maps-finder-place {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hall-space-1);
+}
+
 .maps-finder-place > svg {
-  margin-inline-end: var(--hall-space-1);
-  vertical-align: text-bottom;
+  flex: none;
   font-size: var(--hall-font-size-icon);
 }
 
 .maps-finder-place > svg:not(.workspace-folder-icon-colored) { color: var(--type-icon-color); }
+
+.maps-finder-place-text {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .maps-finder-empty {
   margin: 0;
@@ -165,13 +180,27 @@
 
 .maps-finder-standalone > .maps-finder { min-width: 0; }
 
-/* In a narrow map the open field covers the whole row of commands, so that the names of the maps are read. */
+/* In a narrow map the field takes the first line of the commands, whole width, so that its label is read; the
+   switch « Éléments » / « Mesures » and « Couches » share the second line and pass to icons when it is too narrow. The
+   windows of the map open under the two lines. */
 @container (max-width: 760px) {
-  .geographic-top-tools > .maps-finder[data-open="true"] {
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
+  .geographic-top-tools:has(> .maps-finder) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "finder finder finder" "modes . layers";
+  }
+  .geographic-top-tools > .maps-finder { grid-area: finder; min-width: 0; }
+  .geographic-top-tools:has(> .maps-finder) > .geographic-mode-switch { grid-area: modes; }
+  .geographic-top-tools:has(> .maps-finder) > .geographic-layers { grid-area: layers; margin-left: 0; }
+  .geographic-map-stage:has(> .geographic-top-tools > .maps-finder),
+  .geographic-map-stage:has(> .geographic-top-tools > .maps-finder) > :is(.geographic-composition, .geographic-measures) {
+    --geographic-panel-top: calc(
+      var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control)) * 2 + var(--hall-space-2) +
+        var(--hall-space-1)
+    );
+  }
+  .geographic-map-stage:has(> .geographic-top-tools > .maps-finder) > .geographic-feature-card {
+    top: calc(var(--hall-space-3) + var(--geographic-map-control, var(--hall-size-control)) * 2 + var(--hall-space-4));
   }
 }
 
