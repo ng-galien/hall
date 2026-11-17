@@ -280,7 +280,7 @@ test("phone calendar keeps a two-row toolbar, a floating « + Nouveau » and a s
 
 // @verifies-requirement HALL-FR-LAY-010
 // @verifies-requirement HALL-FR-WSP-320
-test("phone maps open the list of maps over the map from the field, the back arrow closes it", async ({
+test("phone maps open the list of maps over the map from the field, the system back closes it and the header arrow leaves Cartes", async ({
   appPage: page,
 }) => {
   const root = `Cartes téléphone ${Date.now()}`;
@@ -323,12 +323,22 @@ test("phone maps open the list of maps over the map from the field, the back arr
   await expect(page.getByTestId("maps-list")).toHaveCount(0);
   await expect(search).toHaveValue("");
 
+  const title = await page.getByTestId("phone-header-title").textContent();
+
+  // The back of the system closes the open list first, the map and its address unchanged.
+  await search.tap();
+  await expect(page.getByTestId("maps-list")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByTestId("maps-list")).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/maps/${id}\\?view=`));
+  await expect(page.getByTestId("phone-header-title")).toHaveText(title ?? "");
+  await expectFitsWidth(page);
+
+  // The arrow of the header leaves Cartes in one press, the list open or not.
   await search.tap();
   await expect(page.getByTestId("maps-list")).toBeVisible();
   await page.getByTestId("phone-header-back").tap();
-  await expect(page.getByTestId("maps-list")).toHaveCount(0);
-  await expect(page).toHaveURL(new RegExp(`/maps/${id}\\?view=`));
-  await expectFitsWidth(page);
+  await expect(page).toHaveURL(/\/app\/?$/);
 });
 
 // @verifies-requirement HALL-FR-LAY-010
