@@ -8,7 +8,7 @@ import {
   hallGeoJsonMeasurements,
   hallGeoJsonWithinCapacity,
 } from "@hall/domain";
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "ol/ol.css";
 import { Button } from "@/components/ui/button";
 import type { ColorPickerPreset } from "@/components/ui/color-picker";
@@ -108,6 +108,7 @@ export function GeographicResourceMap({
   onViewChange,
   initialView,
   embedded = false,
+  topTool,
 }: {
   resource: GeographicResource;
   representation?: SirenEntity | null;
@@ -121,6 +122,8 @@ export function GeographicResourceMap({
   /** View displayed when the map is created; the saved framing stays `data.view`. */
   initialView?: GeographicView;
   embedded?: boolean;
+  /** Control of the host screen placed in the row of commands at the top of the map, between the modes and the layers. */
+  topTool?: ReactNode;
 }) {
   const { t } = useI18n();
   const { setStatus: setSaveStatus } = useResourceSaveStatus(resource.id);
@@ -632,6 +635,7 @@ export function GeographicResourceMap({
           municipalOnlyLayerIds={featureState.municipalOnlyLayerIds}
           onMunicipalOnly={featureState.setMunicipalOnly}
           onImportMunicipalProperty={canUpdate && municipalImport ? () => setMunicipalImportOpen(true) : undefined}
+          topTool={topTool}
         />
         {workspaceMode === "measure" ? (
           <GeographicMeasurePanel

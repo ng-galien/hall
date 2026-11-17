@@ -9096,20 +9096,32 @@
         "state": "accepted",
         "since": "2026-10-10"
       },
-      "statement": "Un panneau repliable, à gauche de la carte dans « Cartes », permet de trouver et d’ouvrir une carte.",
+      "statement": "Dans « Cartes », le champ « Rechercher une carte », posé sur la carte, ouvre par-dessus la carte la liste des cartes, où l’on choisit la carte à ouvrir.",
       "acceptanceCriteria": [
-        "La liste des cartes du panneau provient de la recherche des ressources de nature carte de l’espace de travail.",
-        "Un champ de recherche filtre les cartes par nom et par chemin, sans tenir compte des accents ni des majuscules.",
-        "Le panneau liste les cinq dernières cartes ouvertes dans « Cartes » sur ce navigateur ; cette liste est conservée dans le navigateur et n’est pas enregistrée sur le serveur.",
-        "L’arborescence de l’espace de travail du panneau ne montre que les dossiers qui contiennent une carte à une profondeur quelconque, avec leurs cartes ; un dossier d’affaire porte le titre et l’icône de l’affaire.",
-        "Une bascule remplace l’arborescence par la liste des affaires qui ont au moins une carte associée, chacune avec ses cartes ; une carte associée à plusieurs affaires figure sous chacune d’elles.",
-        "Le panneau se replie pour laisser toute la largeur à la carte et se rouvre par le même bouton ; la carte ouverte est signalée dans chaque liste."
+        "La liste provient de la recherche des ressources de nature carte de l’espace de travail ; elle présente toutes les cartes à plat, dans l’ordre alphabétique de leur nom.",
+        "Chaque ligne donne le nom de la carte et, dessous, l’affaire ou les affaires auxquelles la carte est associée ou, à défaut, le chemin de son dossier ; la carte ouverte est signalée dans la liste.",
+        "La frappe dans le champ réduit la liste aux cartes dont le nom, le chemin du dossier ou le titre d’une affaire associée contient le texte saisi, sans tenir compte des accents ni des majuscules ; sans carte correspondante, la liste l’indique.",
+        "Les flèches du clavier parcourent la liste et Entrée ouvre la carte désignée ; un clic ou un toucher sur une ligne ouvre la carte. Le choix referme la liste et vide le champ.",
+        "Échap, un clic hors de la liste et la commande retour referment la liste sans changer la carte affichée.",
+        "À l’arrivée sur « Cartes », la liste est fermée ; le même champ et la même liste servent sur téléphone, tablette et ordinateur."
       ],
       "clauses": [
         {
           "key": "maps-selector-panel",
           "origin": "product",
-          "statement": "Passer rapidement d’une carte à une autre, par recherche, par carte récente, par dossier ou par affaire.",
+          "statement": "Passer rapidement d’une carte à une autre en la cherchant depuis la carte affichée.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request-flat-list",
+          "origin": "product",
+          "statement": "Mots du propriétaire, 17 novembre 2026 : « Moi, je verrais plus juste une liste avec des cartes pour toutes les cartes classées. […] quand elles n'ont pas d'affaires, on met le chemin, et sinon, on met le dossier auquel c'est rattaché. »",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request-search-over-map",
+          "origin": "product",
+          "statement": "Mots du propriétaire, 17 novembre 2026 : « Je verrais plus le champ de recherche sur les cartes. Et puis la liste, en fait, elle s'affiche en overlay par-dessus pour le sélectionner. […] en plus en mobile, ça sera un peu pareil plutôt que le panneau latéral. »",
           "sourceIds": []
         }
       ]
@@ -12539,7 +12551,7 @@
         "state": "accepted",
         "since": "2026-11-10"
       },
-      "statement": "Un dossier de l’espace de travail peut recevoir une couleur, partagée par tous les utilisateurs, qui colore son icône partout où ce dossier est montré avec son icône : arbre latéral, liste de l’explorateur, affaire ouverte, arbre des documents d’une affaire, panneau des cartes et résultats de recherche.",
+      "statement": "Un dossier de l’espace de travail peut recevoir une couleur, partagée par tous les utilisateurs, qui colore son icône partout où ce dossier est montré avec son icône : arbre latéral, liste de l’explorateur, affaire ouverte, arbre des documents d’une affaire, liste des cartes et résultats de recherche.",
       "acceptanceCriteria": [
         "La couleur se choisit depuis le menu d’un dossier, avec le sélecteur de couleur commun, par qui peut modifier les métadonnées du dossier (action resource.update-metadata) ; aucun droit nouveau n’est créé.",
         "La couleur est enregistrée sur le dossier au format #RRGGBB ; tous les utilisateurs voient la même couleur.",

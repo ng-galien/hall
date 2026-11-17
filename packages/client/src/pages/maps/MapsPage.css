@@ -1,100 +1,11 @@
-/* Cartes: a collapsible list of maps beside the map, which takes the whole remaining height of the screen. */
+/* Cartes: the map takes the whole width and the whole remaining height of the screen. */
 .app-content:has(> .maps-page) { flex: 1 1 0; min-height: 0; }
 
 .maps-page {
   display: flex;
   flex: 1 1 0;
   min-height: 0;
-  gap: var(--hall-space-4);
   padding: var(--hall-space-4) var(--hall-space-6);
-}
-
-.maps-panel {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  width: var(--hall-size-workspace-list);
-  min-height: 0;
-  gap: var(--hall-space-3);
-}
-
-.maps-panel-collapsed {
-  width: auto;
-}
-
-.maps-panel-header {
-  display: flex;
-  align-items: center;
-  gap: var(--hall-space-1);
-}
-
-.maps-panel-header > :first-child { flex: 1 1 auto; min-width: 0; }
-
-.maps-panel-body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  gap: var(--hall-space-4);
-  overflow-y: auto;
-}
-
-.maps-panel-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--hall-space-1);
-}
-
-.maps-panel-section-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--hall-space-1) var(--hall-space-2);
-}
-
-.maps-panel-section-title {
-  margin: 0;
-  color: var(--hall-color-text-muted);
-  font-size: var(--hall-font-size-caption);
-  font-weight: var(--hall-font-weight-semibold);
-}
-
-.maps-panel-empty {
-  margin: 0;
-  color: var(--hall-color-text-muted);
-  font-size: var(--hall-font-size-body);
-}
-
-/* « Par dossier » and « Par affaire » form one switch: the chosen presentation is blue on a pale ground. */
-.maps-mode-switch {
-  display: flex;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  min-inline-size: 0;
-}
-
-.maps-mode-switch > .hall-button[aria-pressed="true"] {
-  color: var(--hall-color-brand);
-  background: var(--hall-color-brand-subtle);
-}
-
-.maps-tree-map {
-  font-weight: var(--hall-font-weight-regular);
-}
-
-.maps-tree-map-active {
-  color: var(--hall-color-brand);
-  font-weight: var(--hall-font-weight-semibold);
-}
-
-.maps-tree-count {
-  margin-left: auto;
-  color: var(--hall-color-text-subtle);
-  font-size: var(--hall-font-size-caption);
-  font-variant-numeric: tabular-nums;
 }
 
 .maps-main {
@@ -161,6 +72,7 @@
 }
 
 .maps-surface {
+  position: relative;
   flex: 1;
   min-height: 0;
 }
@@ -170,11 +82,99 @@
   min-height: 0;
 }
 
-/* On a phone the screen shows one thing at a time: the list of maps until a map is chosen, then the map alone, the
-   arrow of the header leading back to the list. */
+/* « Rechercher une carte » stands in the row of the commands at the top of the map, between the switch « Éléments » /
+   « Mesures » and « Couches », on the surface of the map tools. The row keeps one line: when the labels and the field
+   no longer hold on it, the commands pass to icons and the field takes the room left. */
+.geographic-top-tools:has(> .maps-finder) { flex-wrap: nowrap; }
+.geographic-top-tools:has(> .maps-finder[data-open="true"]) { z-index: calc(var(--hall-z-content) + 3); }
+
+.maps-finder {
+  position: relative;
+  flex: 0 1 var(--hall-size-relative-24rem);
+  min-width: var(--hall-size-relative-12rem);
+}
+
+.geographic-top-tools[data-icon-only="true"] > .maps-finder { flex-grow: 1; min-width: 0; }
+
+.maps-finder [data-slot="search-input"] > .hall-input {
+  min-height: var(--geographic-map-control, var(--hall-size-control));
+  border-radius: var(--hall-radius-medium);
+  background: var(--hall-color-surface);
+  box-shadow: 0 0 0 var(--hall-stroke-thin) var(--hall-color-border), var(--hall-shadow-medium);
+  text-overflow: ellipsis;
+}
+
+.maps-finder [data-slot="search-input"] > .hall-input:hover { background: var(--hall-color-surface-subtle); }
+
+.maps-finder [data-slot="search-input"] > .hall-input:focus-visible,
+.maps-finder[data-open="true"] [data-slot="search-input"] > .hall-input {
+  background: var(--hall-color-surface);
+  box-shadow: 0 0 0 var(--hall-stroke-thick) var(--hall-color-focus), var(--hall-shadow-medium);
+}
+
+/* The list of maps opens under the field, over the map, and scrolls within the height of the map. */
+.maps-finder-popup {
+  position: absolute;
+  z-index: var(--hall-z-popover);
+  top: calc(100% + var(--hall-space-1));
+  right: 0;
+  left: 0;
+  max-height: min(
+    var(--hall-size-relative-28rem),
+    calc(100cqh - var(--geographic-panel-top, var(--hall-size-control)) - var(--hall-space-6))
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: var(--hall-stroke-thin) solid var(--hall-color-border);
+  border-radius: var(--hall-radius-medium);
+  background: var(--hall-color-surface);
+  box-shadow: var(--hall-shadow-large);
+}
+
+.maps-finder-list.maps-finder-list {
+  margin: 0;
+  border-block: 0;
+}
+
+/* The line reached by the arrow keys or the pointer; the opened map keeps the mark of the chosen row. */
+.maps-finder-list > .list-row[data-highlighted="true"] > .list-row-line { background: var(--hall-color-surface-selected); }
+
+.maps-finder-place > svg {
+  margin-inline-end: var(--hall-space-1);
+  vertical-align: text-bottom;
+  font-size: var(--hall-font-size-icon);
+}
+
+.maps-finder-place > svg:not(.workspace-folder-icon-colored) { color: var(--type-icon-color); }
+
+.maps-finder-empty {
+  margin: 0;
+  padding: var(--hall-space-3);
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-body);
+}
+
+/* A map that cannot be opened leaves the field at the place it has on a map. */
+.maps-finder-standalone {
+  position: absolute;
+  z-index: var(--hall-z-content);
+  top: var(--hall-space-3);
+  left: var(--hall-space-3);
+  width: min(var(--hall-size-relative-24rem), calc(100% - var(--hall-space-6)));
+}
+
+.maps-finder-standalone > .maps-finder { min-width: 0; }
+
+/* In a narrow map the open field covers the whole row of commands, so that the names of the maps are read. */
+@container (max-width: 760px) {
+  .geographic-top-tools > .maps-finder[data-open="true"] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+  }
+}
+
 @media (max-width: 760px) {
   .app-main .maps-page.maps-page { padding: 0 var(--hall-space-4) var(--hall-space-4); }
-  .app-main .maps-page[data-map-open="false"] > .maps-main { display: none; }
-  .app-main .maps-page[data-map-open="false"] > .maps-panel { width: 100%; }
-  .app-main .maps-page[data-map-open="true"] > .maps-panel { display: none; }
 }

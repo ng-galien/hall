@@ -136,7 +136,7 @@ const listFiles = [
   "pages/council-meetings/MeetingReport.tsx",
   "pages/council-meetings/live/ConductView.tsx",
   "pages/home/HomeDocuments.tsx",
-  "pages/maps/MapsPanel.tsx",
+  "pages/maps/MapsFinder.tsx",
   "pages/minutes/MinutesFacts.tsx",
   "pages/minutes/MinutesPage.tsx",
   "pages/workspace/BusinessSubjectHistory.tsx",

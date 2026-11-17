@@ -16,8 +16,8 @@ import type { ApiErrorCode } from "../../services/apiClient";
 import { loadCommunePosition } from "../../services/hallSettingsApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
-import { MapsPanel } from "./MapsPanel";
-import { type MapSummary, mapPathSegments, readRecentMapIds, rememberRecentMap } from "./mapsSelector";
+import { MapsFinder } from "./MapsFinder";
+import { type MapSummary, mapPathSegments } from "./mapsSelector";
 import {
   communeMapsView,
   formatMapsViewParameter,
@@ -46,8 +46,6 @@ interface MapsSurface {
 
 const SEARCH_PAGE_SIZE = 100;
 const DEFAULT_SURFACE_SIZE: PixelSize = { width: 1024, height: 768 };
-/** Below this width an opened map takes the place of the list of maps, which stays one command away. */
-const NARROW_SCREEN = "(max-width: 1280px)";
 const COMMUNE_SURFACE_ID = "00000000-0000-4000-8000-000000000000";
 
 /** Lists every geographic resource through the workspace search relation. */
@@ -130,13 +128,13 @@ function workspaceResourceHref(resource: GeographicResource): string {
 }
 
 /**
- * Cartes entry: one map at a time, with a view that lives in the address and is never saved. The opened map is named by
- * the title of the screen, its folder and businesses under it, its commands on the line of the title. Up to 1280 pixels
- * an opened map folds the list of maps; on a phone the list and the map take the screen in turn.
+ * Cartes entry: one map at a time over the whole width, with a view that lives in the address and is never saved. The
+ * opened map is named by the title of the screen, its folder and businesses under it, its commands on the line of the
+ * title. The field « Rechercher une carte » on the map opens the list of maps over it, on a phone as on a computer.
  * @implements-requirement HALL-FR-WSP-310
  * @implements-requirement HALL-FR-WSP-330
- * @implements-requirement HALL-FR-WSP-340 (also: the businesses of the opened map are found among the documents of
- * every business, loaded on demand)
+ * @implements-requirement HALL-FR-WSP-340 (also: the businesses of the maps are found among the documents of every
+ * business, loaded in one request when Cartes opens)
  * @implements-requirement HALL-FR-WSP-360
  */
 export function MapsPage() {
@@ -153,9 +151,8 @@ export function MapsPage() {
   const [maps, setMaps] = useState<MapSummary[] | null>(null);
   const [surface, setSurface] = useState<MapsSurface | null>(null);
   const [error, setError] = useState<ApiErrorCode | null>(null);
-  const [recentIds, setRecentIds] = useState<string[]>(readRecentMapIds);
   const phone = usePhoneLayout();
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const refocusFinderRef = useRef(false);
   const businesses = useCouncilBusinessStore((state) => state.businesses);
   const loadCatalog = useWorkspaceResourcesStore((state) => state.loadCatalog);
 
@@ -212,7 +209,6 @@ export function MapsPage() {
           view: geographicViewFromMapsView(view),
           canUpdate,
         });
-        setRecentIds(rememberRecentMap(resource.id));
         writeView(resourceId, view);
         return;
       }
@@ -249,17 +245,25 @@ export function MapsPage() {
     (view: GeographicView) => changeView(surfaceRouteId, view),
     [changeView, surfaceRouteId],
   );
-  const openMapRoute = useCallback((id: string) => navigate(`/maps/${encodeURIComponent(id)}`), [navigate]);
+  const openMapRoute = useCallback(
+    (id: string, byKeyboard: boolean) => {
+      refocusFinderRef.current = byKeyboard;
+      navigate(`/maps/${encodeURIComponent(id)}`);
+    },
+    [navigate],
+  );
+  const claimFinderFocus = useCallback(() => {
+    const claimed = refocusFinderRef.current;
+    refocusFinderRef.current = false;
+    return claimed;
+  }, []);
 
   const opened = surface?.routeId ? surface.resource : null;
   const openedId = opened?.id ?? null;
-  useEffect(() => {
-    if (openedId && window.matchMedia(NARROW_SCREEN).matches) setPanelCollapsed(true);
-  }, [openedId]);
   const businessIds = useMemo(() => businesses.map((business) => business.id).join(","), [businesses]);
   useEffect(() => {
-    if (openedId && businessIds) void useCouncilBusinessStore.getState().loadResourceItems(businessIds.split(","));
-  }, [openedId, businessIds]);
+    if (businessIds) void useCouncilBusinessStore.getState().loadResourceItems(businessIds.split(","));
+  }, [businessIds]);
   const relatedBusinesses = useMemo(
     () =>
       opened ? businesses.filter((business) => business.resources.some((resource) => resource.id === opened.id)) : [],
@@ -290,6 +294,8 @@ export function MapsPage() {
         },
       ]
     : [];
+
+  const finder = <MapsFinder maps={maps} activeId={openedId} onOpen={openMapRoute} claimFocus={claimFinderFocus} />;
 
   return (
     <div className="maps-page" data-testid="maps-page" data-map-open={opened ? "true" : "false"}>
@@ -350,14 +356,6 @@ export function MapsPage() {
           </span>
         </ScreenTitleFacts>
       )}
-      <MapsPanel
-        maps={maps}
-        recentIds={recentIds}
-        activeId={opened?.id ?? null}
-        collapsed={panelCollapsed}
-        onCollapsedChange={setPanelCollapsed}
-        onOpen={openMapRoute}
-      />
       <section className="maps-main" aria-label={t("navigation.maps")}>
         <RequestErrorBanner error={error} onDismiss={() => setError(null)} />
         <div className="maps-surface" data-testid="maps-surface" ref={surfaceRef}>
@@ -371,7 +369,10 @@ export function MapsPage() {
               onError={setError}
               onViewChange={onViewChange}
               initialView={surface.view}
+              topTool={finder}
             />
+          ) : error ? (
+            <div className="maps-finder-standalone">{finder}</div>
           ) : null}
         </div>
       </section>

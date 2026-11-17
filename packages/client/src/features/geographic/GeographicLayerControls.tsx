@@ -1,7 +1,7 @@
 import type { GeographicMapOverlay } from "@hall/api-contract";
 import type { GeographicLayer, GeographicLayerId } from "@hall/domain";
 import { geographicLayerOptions } from "@hall/domain";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import {
   AddIcon,
@@ -48,6 +48,8 @@ interface GeographicLayerControlsProps {
   onMunicipalOnly(layerId: string, enabled: boolean): void;
   /** Present only when the commune's parcel list advertises its import action. */
   onImportMunicipalProperty?(): void;
+  /** Control of the host screen placed between the modes and the layers. */
+  topTool?: ReactNode;
 }
 
 /** Owns the base-layer controls, the linked data-layer rows and their transient drag/drop state. */
@@ -76,6 +78,7 @@ export function GeographicLayerControls({
   municipalOnlyLayerIds,
   onMunicipalOnly,
   onImportMunicipalProperty,
+  topTool,
 }: GeographicLayerControlsProps) {
   const { t, formatNumber } = useI18n();
   const [layersOpen, setLayersOpen] = useState(false);
@@ -124,6 +127,7 @@ export function GeographicLayerControls({
             {iconOnly ? null : <span>{measureLabel}</span>}
           </Button>
         </fieldset>
+        {topTool}
         <div className="geographic-layers">
           <Button
             variant="plain"

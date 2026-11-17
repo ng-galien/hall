@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { mapsByBusiness, mapsTree } from "../src/pages/maps/mapsSelector.ts";
+import { mapEntries, matchingMapEntries } from "../src/pages/maps/mapsSelector.ts";
 import {
   communeMapsView,
   fitMapsView,
@@ -119,53 +119,42 @@ function summary(id, name, path) {
 }
 
 // @verifies-requirement HALL-FR-WSP-320
-test("the selector tree keeps only the branches holding maps and lists maps under each business", () => {
-  const tree = [
-    {
-      path: "Équipements",
-      name: "Équipements",
-      business: null,
-      children: [{ path: "Équipements/Voirie", name: "Voirie", business: null, children: [] }],
-    },
-    { path: "Finances", name: "Finances", business: null, children: [] },
+test("the list of maps holds every map in alphabetical order with the businesses it is associated with", () => {
+  const maps = [
+    summary("m1", "Routes", "Équipements/Voirie"),
+    summary("m2", "Bâtiments", "Équipements"),
+    summary("m3", "Commune", ""),
   ];
-  const maps = [summary("m1", "Routes", "Équipements/Voirie"), summary("m2", "Bâtiments", "Équipements")];
-  const reduced = mapsTree(tree, maps);
-  assert.deepEqual(
-    reduced.map((node) => [node.path, node.mapCount, node.maps.map((map) => map.id)]),
-    [["Équipements", 2, ["m2"]]],
-  );
-  assert.deepEqual(
-    reduced[0].children.map((node) => [node.path, node.maps.map((map) => map.id)]),
-    [["Équipements/Voirie", ["m1"]]],
-  );
-
   const businesses = [
     { id: "b1", title: "Voirie", resources: [{ id: "m1" }, { id: "text" }] },
     { id: "b2", title: "Aménagement", resources: [{ id: "m1" }, { id: "m2" }] },
     { id: "b3", title: "Budget", resources: [] },
   ];
+  const entries = mapEntries(maps, businesses);
   assert.deepEqual(
-    mapsByBusiness(businesses, maps).map((group) => [group.business.id, group.maps.map((map) => map.id)]),
+    entries.map((entry) => [entry.map.id, entry.businesses.map((business) => business.id)]),
     [
-      ["b2", ["m1", "m2"]],
-      ["b1", ["m1"]],
+      ["m2", ["b2"]],
+      ["m3", []],
+      ["m1", ["b2", "b1"]],
     ],
   );
 });
 
-// @verifies-requirement HALL-FR-WSP-480
-test("each branch of the selector tree keeps the shared colour of its own folder", () => {
-  const tree = [
-    {
-      path: "Équipements",
-      name: "Équipements",
-      business: null,
-      color: "#1F7A4A",
-      children: [{ path: "Équipements/Voirie", name: "Voirie", business: null, color: null, children: [] }],
-    },
-  ];
-  const reduced = mapsTree(tree, [summary("m1", "Routes", "Équipements/Voirie")]);
-  assert.equal(reduced[0].color, "#1F7A4A");
-  assert.equal(reduced[0].children[0].color, null);
+// @verifies-requirement HALL-FR-WSP-320
+test("the list of maps is reduced by name, folder path or business title, ignoring accents and case", () => {
+  const entries = mapEntries(
+    [
+      summary("m1", "Routes", "Équipements/Voirie"),
+      summary("m2", "Bâtiments", "Finances"),
+      summary("m3", "Écoles", ""),
+    ],
+    [{ id: "b1", title: "Aménagement du bourg", resources: [{ id: "m3" }] }],
+  );
+  const ids = (query) => matchingMapEntries(entries, query).map((entry) => entry.map.id);
+  assert.deepEqual(ids(""), ["m2", "m3", "m1"]);
+  assert.deepEqual(ids("batim"), ["m2"]);
+  assert.deepEqual(ids("equipements"), ["m1"]);
+  assert.deepEqual(ids("AMENAGEMENT"), ["m3"]);
+  assert.deepEqual(ids("parking"), []);
 });
