@@ -24,6 +24,7 @@ import { shareOrDownload } from "../../services/fileSharing";
 import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
 import { ScreenTitleFacts } from "../../shell/headerTrail";
 import { usePreparedSubjectPhoneActions } from "./CouncilBusinessSubjects";
+import { useMoveTo } from "./MoveToDialog";
 import {
   type PhoneDocumentAction,
   PhoneDocumentActions,
@@ -62,6 +63,8 @@ export function ResourcePhoneView({
   const [informationOpen, setInformationOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const movedId = session.resource?.id ?? "";
+  const move = useMoveTo({ id: movedId, onMoved: (path) => onSelect({ kind: "resource", id: movedId }, path) });
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const openChanges = useRef<(() => void) | null>(null);
   const resource = session.resource;
@@ -199,6 +202,7 @@ export function ResourcePhoneView({
     ...(session.capabilities.updateMetadata
       ? [{ id: "rename", label: t("common.rename"), icon: <EditIcon />, onSelect: () => setRenaming(true) }]
       : []),
+    ...(move.command ? [move.command] : []),
     ...(session.capabilities.deleteResource
       ? [
           {
@@ -332,6 +336,7 @@ export function ResourcePhoneView({
         }}
       />
       {pdf.view}
+      {move.dialog}
       <PhoneRenameDialog
         open={renaming}
         name={resource.name}

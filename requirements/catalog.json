@@ -6076,15 +6076,42 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "L’association d’une ressource à une affaire ne la déplace pas.",
+      "statement": "Joindre un document à une affaire le rattache sans le déplacer ; le déplacer vers une affaire le range dans le dossier de l’affaire et l’y rattache.",
       "acceptanceCriteria": [
-        "Association ressource sans déplacement : P"
+        "« Joindre un document existant » depuis la page d’une affaire rattache le document à l’affaire ; il reste dans son dossier.",
+        "Lâcher un document ou un dossier sur une affaire, dans l’explorateur Documents comme dans l’arbre du menu, le range dans le dossier de l’affaire ; un document y est aussi rattaché à l’affaire. Un document déjà dans ce dossier et déjà rattaché reste tel quel, sans erreur.",
+        "« Déplacer vers… », dans le menu d’un document de l’explorateur, du document ouvert et du téléphone, propose les dossiers et les affaires de la commune à qui peut déplacer le document ; vers une affaire, le document est rangé dans le dossier de l’affaire et rattaché à l’affaire.",
+        "Un déplacement refusé, par exemple un nom déjà pris dans la destination ou un droit absent, est annoncé par une seule erreur qui en dit la raison."
       ],
       "clauses": [
         {
-          "key": "implementation",
+          "key": "criterion-1",
           "origin": "product",
-          "statement": "Association ressource sans déplacement : P",
+          "statement": "« Joindre un document existant » depuis la page d’une affaire rattache le document à l’affaire ; il reste dans son dossier.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "Lâcher un document ou un dossier sur une affaire, dans l’explorateur Documents comme dans l’arbre du menu, le range dans le dossier de l’affaire ; un document y est aussi rattaché à l’affaire. Un document déjà dans ce dossier et déjà rattaché reste tel quel, sans erreur.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "« Déplacer vers… », dans le menu d’un document de l’explorateur, du document ouvert et du téléphone, propose les dossiers et les affaires de la commune à qui peut déplacer le document ; vers une affaire, le document est rangé dans le dossier de l’affaire et rattaché à l’affaire.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-4",
+          "origin": "product",
+          "statement": "Un déplacement refusé, par exemple un nom déjà pris dans la destination ou un droit absent, est annoncé par une seule erreur qui en dit la raison.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Le 17 novembre 2026, une photo ne se déplaçait pas dans une affaire. Mots d’Alexandre : « J'essaie de la déplacer dans l'affaire de coupe de bois sur route communale et j'arrive pas. » Décision du coordinateur : le glisser-déposer sur une affaire et la commande « Déplacer vers… » rangent le document dans le dossier de l’affaire et le rattachent ; « Joindre un document existant » continue de rattacher sans déplacer.",
           "sourceIds": []
         }
       ]
@@ -6176,15 +6203,15 @@
         "state": "accepted",
         "since": "2026-09-06"
       },
-      "statement": "L’ajout d’une pièce à une affaire ne déplace pas la ressource.",
+      "statement": "Une pièce ajoutée à une affaire par « Joindre un document existant » reste à son emplacement.",
       "acceptanceCriteria": [
-        "Ajout pièce sans déplacement : P"
+        "La pièce jointe à l’affaire garde son dossier et son nom."
       ],
       "clauses": [
         {
           "key": "implementation",
           "origin": "product",
-          "statement": "Ajout pièce sans déplacement : P",
+          "statement": "La pièce jointe à l’affaire garde son dossier et son nom.",
           "sourceIds": []
         }
       ]

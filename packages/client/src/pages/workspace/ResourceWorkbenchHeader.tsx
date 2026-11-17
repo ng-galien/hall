@@ -21,6 +21,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import type { ApiErrorCode } from "../../services/apiClient";
 import { type SharedFile, shareOrDownload } from "../../services/fileSharing";
+import { useMoveTo } from "./MoveToDialog";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
@@ -75,7 +76,9 @@ export function ResourceWorkbenchHeader({
     disabled: pdfMarkdown === undefined,
   });
   const mail = usePrepareMail({ kind: "resource", resourceId: resource.id });
+  const move = useMoveTo({ id: resource.id, onMoved: (path) => onSelect({ kind: "resource", id: resource.id }, path) });
   const menu: ItemCommand[] = [
+    ...(move.command ? [move.command] : []),
     ...(pdfMarkdown !== undefined ? pdf.commands : []),
     ...(resource.kind === "document" && mail.available
       ? [
@@ -159,7 +162,12 @@ export function ResourceWorkbenchHeader({
         },
       ]}
       menu={menu}
-      dialogs={pdf.view}
+      dialogs={
+        <>
+          {pdf.view}
+          {move.dialog}
+        </>
+      }
       actionError={actionError}
       onDismissError={onDismissError}
       metadata={

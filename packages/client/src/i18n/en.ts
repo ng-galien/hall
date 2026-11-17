@@ -964,7 +964,7 @@ export const en = {
   "resources.previewFailed": "The preview could not be generated. Try again or download the original file.",
   "workspace.dissociate": "Remove {name}",
   "workspace.emptyBench": "Choose a folder, a subject or a document to get started.",
-  "workspace.moveTo": "Move to",
+  "workspace.moveTo": "Move to…",
   "workspace.newTextPlaceholder": "Text title",
   "workspace.newRemotePlaceholder": "Resource title",
   "workspace.newGeographicPlaceholder": "Map title",

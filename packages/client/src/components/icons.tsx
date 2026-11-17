@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 export {
   AddressBook as ContactIcon,
+  ArrowBendUpRight as MoveIcon,
   ArrowClockwise as RedoIcon,
   ArrowCounterClockwise as UndoIcon,
   ArrowDown as ArrowDownIcon,

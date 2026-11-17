@@ -983,7 +983,7 @@ export const fr: Messages = {
   "resources.previewFailed": "L’aperçu n’a pas pu être généré. Réessayez ou téléchargez le fichier original.",
   "workspace.dissociate": "Retirer {name}",
   "workspace.emptyBench": "Choisissez un dossier, un sujet ou un document pour commencer.",
-  "workspace.moveTo": "Déplacer vers",
+  "workspace.moveTo": "Déplacer vers…",
   "workspace.newTextPlaceholder": "Titre du texte",
   "workspace.newRemotePlaceholder": "Titre de la ressource",
   "workspace.newGeographicPlaceholder": "Titre de la carte",

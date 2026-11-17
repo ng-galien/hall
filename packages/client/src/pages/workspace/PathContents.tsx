@@ -32,6 +32,7 @@ import {
   EditIcon,
   FolderAddIcon,
   LinkIcon,
+  MoveIcon,
   WorkspaceIcon,
 } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
@@ -55,10 +56,18 @@ import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { folderCapabilitiesAt, useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { FolderColorPicker } from "./FolderColorPicker";
+import { MoveToDialog } from "./MoveToDialog";
 import { businessFolderPath, explorerFolderPaths } from "./paths";
 import { type WorkspaceCreateKind, workspaceCreateKindIcons, workspaceCreateKindTones } from "./workspaceCreateKind";
 import type { WorkspaceSelection } from "./workspaceItemReference";
-import { DRAG_TYPE, type DragPayload, decodeDragPayload, encodeDragPayload, moveToPath } from "./workspaceOrg";
+import {
+  DRAG_TYPE,
+  type DragPayload,
+  decodeDragPayload,
+  encodeDragPayload,
+  moveIntoBusiness,
+  moveToPath,
+} from "./workspaceOrg";
 
 export type WorkspaceViewMode = "all" | "businesses" | "resources";
 type RenameTarget = DragPayload | { kind: "folder"; path: string };
@@ -81,11 +90,13 @@ function RenameContextMenu({
   onExportBundle,
   onDelete,
   onColor,
+  onMove,
   keepFocusAway,
 }: {
   children: ReactElement;
   enabled: boolean;
   onRename(): void;
+  onMove?(): void;
   onAttachDocument?(): void;
   onImportFolder?(): void;
   onExportBundle?(): void;
@@ -95,7 +106,8 @@ function RenameContextMenu({
   keepFocusAway?(): boolean;
 }) {
   const { t } = useI18n();
-  if (!enabled && !onAttachDocument && !onImportFolder && !onExportBundle && !onDelete && !onColor) return children;
+  if (!enabled && !onAttachDocument && !onImportFolder && !onExportBundle && !onDelete && !onColor && !onMove)
+    return children;
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
@@ -133,6 +145,12 @@ function RenameContextMenu({
             <EditIcon aria-hidden="true" />
             {t("common.rename")}
             <ContextMenuShortcut>F2</ContextMenuShortcut>
+          </ContextMenuItem>
+        ) : null}
+        {onMove ? (
+          <ContextMenuItem data-testid="workspace-tree-move-to" onSelect={onMove}>
+            <MoveIcon aria-hidden="true" />
+            {t("workspace.moveTo")}
           </ContextMenuItem>
         ) : null}
         {onColor ? (
@@ -174,7 +192,7 @@ function ContentRow({
   movable: boolean;
   testId: string;
   className: string;
-  onDrop?(payload: DragPayload): void;
+  onDrop?(payloads: DragPayload[]): void;
   onFolderDrop?(transfer: DataTransfer): void;
   onOpen?: () => void;
   openTestId?: string;
@@ -213,7 +231,7 @@ function ContentRow({
         }
         if (!onDrop || !event.dataTransfer.types.includes(DRAG_TYPE)) return;
         event.preventDefault();
-        event.dataTransfer.dropEffect = "link";
+        event.dataTransfer.dropEffect = "move";
         setDropActive(true);
       }}
       onDragLeave={() => setDropActive(false)}
@@ -230,7 +248,7 @@ function ContentRow({
         event.stopPropagation();
         setDropActive(false);
         const dropped = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
-        if (dropped?.length === 1) onDrop(dropped[0]);
+        if (dropped) onDrop(dropped);
       }}
     />
   );
@@ -316,6 +334,7 @@ export function PathContents({
   const [dropPath, setDropPath] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
   const [moveError, setMoveError] = useState<ApiErrorCode | null>(null);
+  const [moveTarget, setMoveTarget] = useState<string | null>(null);
   const [attachTarget, setAttachTarget] = useState<{ business: CouncilBusinessView; x: number; y: number } | null>(
     null,
   );
@@ -957,17 +976,18 @@ export function PathContents({
     }
   };
 
-  const attach = async (business: CouncilBusinessView, payload: DragPayload) => {
-    if (payload.kind !== "resource" || business.resources.some((resource) => resource.id === payload.id)) return;
-    const resource = resourcesStore.summaries[payload.id];
-    if (!resource || resource.kind === "folder") return;
+  const dropOnBusiness = async (business: CouncilBusinessView, payloads: DragPayload[]) => {
     setMoveError(null);
-    const associated = await councilBusinessStore.associateResource(business.id, resource.id);
-    if (!associated) {
-      setMoveError(useCouncilBusinessStore.getState().error);
-      return;
+    for (const payload of payloads.filter((entry) => entry.kind !== "councilBusiness" || entry.id !== business.id)) {
+      const error = await moveIntoBusiness(payload, business);
+      if (error) {
+        setFeedback("");
+        setMoveError(error);
+        return;
+      }
     }
-    setFeedback(t("workspace.attachedFeedback", { name: resource.name }));
+    setFeedback(t("workspace.movedFeedback", { name: business.title }));
+    refresh();
   };
 
   const treeLineProps = (key: string, renaming: boolean): ListRowProps["lineProps"] =>
@@ -1033,7 +1053,11 @@ export function PathContents({
                   ? (transfer) => onImportFolder(business.folderPath, business, transfer)
                   : undefined
               }
-              onDrop={businessCapabilities?.associateResource ? (payload) => void attach(business, payload) : undefined}
+              onDrop={
+                businessCapabilities?.associateResource
+                  ? (payloads) => void dropOnBusiness(business, payloads)
+                  : undefined
+              }
               testId={`workspace-business-${business.id}`}
               className="path-contents-business"
               selected={selectedKeys.has(key)}
@@ -1165,7 +1189,15 @@ export function PathContents({
               }
               lineProps={treeLineProps(key, renaming)}
               wrapLine={(line) => (
-                <RenameContextMenu enabled={renamable} onRename={() => startRename(payload)}>
+                <RenameContextMenu
+                  enabled={renamable}
+                  onRename={() => startRename(payload)}
+                  onMove={
+                    resourceCapabilities(resourcesStore.representations[resource.id] ?? null).relocate
+                      ? () => setMoveTarget(resource.id)
+                      : undefined
+                  }
+                >
                   {line}
                 </RenameContextMenu>
               )}
@@ -1453,6 +1485,14 @@ export function PathContents({
           )}
         </ListRows>
       </div>
+      <MoveToDialog
+        item={moveTarget ? { kind: "resource", id: moveTarget } : null}
+        onClose={() => setMoveTarget(null)}
+        onMoved={(target) => {
+          setFeedback(t("workspace.movedFeedback", { name: target.split("/").at(-1) || t("navigation.documents") }));
+          refresh();
+        }}
+      />
       {attachTarget ? (
         <AttachmentPicker
           key={attachTarget.business.id}

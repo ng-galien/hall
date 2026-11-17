@@ -9,7 +9,13 @@ import { councilBusinessHref } from "../features/references/referenceNavigation"
 import { useI18n } from "../i18n/I18nProvider";
 import { folderColorIconProps } from "../pages/workspace/folderColor";
 import { buildPathTree, type PathNode } from "../pages/workspace/paths";
-import { DRAG_TYPE, decodeDragPayload, moveToPath } from "../pages/workspace/workspaceOrg";
+import {
+  DRAG_TYPE,
+  type DragPayload,
+  decodeDragPayload,
+  moveIntoBusiness,
+  moveToPath,
+} from "../pages/workspace/workspaceOrg";
 import { listCouncilBusinessNavigationIndex } from "../services/councilBusinessApi";
 import { useCouncilBusinessStore } from "../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../stores/workspaceResourcesStore";
@@ -20,6 +26,18 @@ function activePathFrom(search: string, pathname: string): string | null {
 }
 
 type TreeBusiness = CouncilBusinessNavigationIndex["businesses"][number];
+
+/** Moves the dropped items into a folder or a business of the tree; a refusal is written in the documents screen. */
+async function dropOnNode(node: PathNode<TreeBusiness>, payloads: DragPayload[]) {
+  const business = node.business;
+  for (const payload of payloads.filter((entry) => entry.kind !== "councilBusiness" || entry.id !== business?.id)) {
+    const error = business ? await moveIntoBusiness(payload, business) : await moveToPath(payload, node.path);
+    if (error) {
+      useWorkspaceResourcesStore.setState({ error });
+      return;
+    }
+  }
+}
 
 /** One folder or affaire of the tree; the folder icon unfolds the folder, open while its children show. */
 function TreeNode({
@@ -90,6 +108,7 @@ function TreeNode({
           onDragOver={(event: DragEvent) => {
             if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
             event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
             setDropping(true);
           }}
           onDragLeave={() => setDropping(false)}
@@ -97,7 +116,7 @@ function TreeNode({
             event.preventDefault();
             setDropping(false);
             const payload = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
-            if (payload) void Promise.all(payload.map((entry) => moveToPath(entry, node.path)));
+            if (payload) void dropOnNode(node, payload);
           }}
         >
           <span className="workspace-tree-name">{name}</span>
