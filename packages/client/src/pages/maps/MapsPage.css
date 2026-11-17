@@ -186,7 +186,7 @@
 @container (max-width: 760px) {
   .geographic-top-tools:has(> .maps-finder) {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
     grid-template-areas: "finder finder finder" "modes . layers";
   }
   .geographic-top-tools > .maps-finder { grid-area: finder; min-width: 0; }
