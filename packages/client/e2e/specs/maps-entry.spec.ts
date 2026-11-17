@@ -509,3 +509,54 @@ test("the field, the map commands and the list of maps hold without overlap from
   }
   await page.emulateMedia({ colorScheme: null });
 });
+
+// @verifies-requirement HALL-FR-WSP-310
+// @verifies-requirement HALL-FR-WSP-320
+test("maps chosen in Cartes replace the address: one back returns to the screen Cartes was opened from", async ({
+  appPage: page,
+}) => {
+  const { root, washhouse, lock, troughs } = await listedMaps(page);
+
+  // Opened from the menu of the home screen: several choices, then one back returns home.
+  await page.goto("/app/");
+  await page.getByTestId("navigation-maps").click();
+  await expect(page).toHaveURL(/\/app\/maps\?view=/);
+  await chooseMap(page, root, washhouse.id);
+  await expect(page).toHaveURL(new RegExp(`/maps/${washhouse.id}\\?view=`));
+  await chooseMap(page, root, lock.id);
+  await expect(page).toHaveURL(new RegExp(`/maps/${lock.id}\\?view=`));
+  await chooseMap(page, root, troughs.id);
+  await expect(page.getByTestId("screen-header-title")).toHaveText("Abreuvoirs");
+  // The open list closes first; the next back leaves Cartes.
+  await page.getByTestId("maps-search").click();
+  await expect(page.getByTestId("maps-list")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByTestId("maps-list")).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/maps/${troughs.id}\\?view=`));
+  await page.goBack();
+  await expect(page).toHaveURL(/\/app\/?$/);
+
+  // A map opened from another screen keeps its history entry: one back after other choices returns to that screen.
+  const workspace = `/app/workspace?path=${encodeURIComponent(`${root}/Patrimoine`)}&resource=${washhouse.id}`;
+  await page.goto(workspace);
+  await page.getByTestId("resource-open-in-maps").click();
+  await expect(page).toHaveURL(new RegExp(`/maps/${washhouse.id}\\?view=`));
+  await chooseMap(page, root, lock.id);
+  await expect(page).toHaveURL(new RegExp(`/maps/${lock.id}\\?view=`));
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/app/workspace\\?.*resource=${washhouse.id}`));
+
+  // On a phone, the header arrow of an opened map names the home screen and returns to it in one press.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/app/");
+  await page.getByTestId("phone-navigation-more").click();
+  await page.getByTestId("phone-more").getByTestId("phone-more-maps").click();
+  await expect(page).toHaveURL(/\/app\/maps\?view=/);
+  await chooseMap(page, root, washhouse.id);
+  await expect(page).toHaveURL(new RegExp(`/maps/${washhouse.id}\\?view=`));
+  await chooseMap(page, root, lock.id);
+  await expect(page).toHaveURL(new RegExp(`/maps/${lock.id}\\?view=`));
+  await expect(page.getByTestId("phone-header-back")).toContainText("Home");
+  await page.getByTestId("phone-header-back").click();
+  await expect(page).toHaveURL(/\/app\/?$/);
+});
