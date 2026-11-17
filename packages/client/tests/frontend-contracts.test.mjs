@@ -208,11 +208,9 @@ test("the common resource modal reuses Workbench bodies without nested viewers",
     session.indexOf("const load = useCallback"),
   );
   assert.doesNotMatch(updatedAdoption, /setTitle|setTags|setContent|setRemoteUrl/);
-  // A new name is sent first and shown once saved, even while another save is on its way (a274886d).
-  assert.match(
-    workbench,
-    /const saved = await session\.save\(nextTitle\);\s*if \(saved\) session\.setTitle\(nextTitle\);/,
-  );
+  // A new name is sent first and shown once saved, as the server recorded it, even while another save is on its way (a274886d).
+  assert.match(workbench, /const renameResource = \(nextTitle: string\) => session\.save\(nextTitle\);/);
+  assert.match(persistence, /if \(requestedTitle !== undefined\) adoptSavedName\(metadata\.name\);/);
   assert.match(persistence, /adoptUpdatedResource\(updated\);[\s\S]*setAutosaveEnabled\(enabled\)/);
   assert.match(capabilities, /findSirenAction\(representation, "resource\.update-metadata"\)/);
   assert.match(capabilities, /findSirenAction\(representation, "resource\.update-content"\)/);
