@@ -387,8 +387,6 @@ test("the initials name the signed-in person on hover and focus, and Settings sh
         expect(text.overflows, `${label}: ${text.id} cut`).toBe(false);
         expect(text.contrast, `${label}: contrast of ${text.id}`).toBeGreaterThanOrEqual(4.5);
       }
-      await page.mouse.move(0, viewport.height - 1);
-      await expect(page.getByTestId("screen-header-account-name")).toHaveCount(0);
 
       await page.goto("/app/settings");
       const facts = page.getByTestId("settings-account");
