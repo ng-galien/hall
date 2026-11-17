@@ -63,7 +63,7 @@ test("a changed file leads to its screens, a shared component to its declared sa
     [
       "packages/client/src/pages/UserPage.tsx",
       "packages/client/src/components/ui/field.tsx",
-      "packages/client/src/lib/unknown.ts",
+      "packages/client/src/unknown/thing.ts",
       "packages/client/tests/screen-audit.test.mjs",
       "packages/server/src/index.ts",
     ],
@@ -81,7 +81,7 @@ test("a changed file leads to its screens, a shared component to its declared sa
       "document-texte",
     ]),
   );
-  assert.deepEqual(target.unmapped, ["src/lib/unknown.ts"]);
+  assert.deepEqual(target.unmapped, ["src/unknown/thing.ts"]);
   assert.equal(target.reasons.find((reason) => reason.file.endsWith("field.tsx")).component, "champ de formulaire");
 });
 
