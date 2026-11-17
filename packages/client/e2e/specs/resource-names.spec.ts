@@ -50,6 +50,24 @@ async function expectAlertUnder(page: Page, field: Locator) {
   expect(alertBox.y - (fieldBox.y + fieldBox.height), "the alert stands next to the name field").toBeLessThan(160);
 }
 
+/** The refusal of a name typed in a row of the explorer: one alert, under the field of that row, in view. */
+async function expectRowRefusal(page: Page, input: Locator, label = "") {
+  const refusal = page.getByTestId("workspace-tree-name-refusal");
+  await expect(refusal, `${label} refusal under the row`).toBeVisible();
+  await expect(refusal).toContainText("porte déjà ce nom");
+  await expect(alerts(page), `${label} one alert`).toHaveCount(1);
+  await expect(refusal.locator('[role="alert"]')).toHaveCount(1);
+  await expect(refusal).toBeInViewport();
+  const inputBox = await input.boundingBox();
+  const refusalBox = await refusal.boundingBox();
+  if (!inputBox || !refusalBox) throw new Error("The name field and its refusal must be rendered");
+  expect(refusalBox.y, `${label} refusal under the field`).toBeGreaterThanOrEqual(inputBox.y + inputBox.height - 1);
+  expect(refusalBox.y - (inputBox.y + inputBox.height), `${label} refusal next to the field`).toBeLessThan(40);
+  expect(refusalBox.x + refusalBox.width, `${label} refusal inside the screen`).toBeLessThanOrEqual(
+    page.viewportSize()!.width + 0.5,
+  );
+}
+
 async function createInFolder(page: Page, kind: "folder" | "text", name: string) {
   await page.getByTestId("workspace-tree-root").click({ button: "right" });
   await page.getByTestId("workspace-tree-create").press("ArrowRight");
@@ -123,16 +141,14 @@ test.describe("names of documents, folders and businesses", () => {
 
     // A folder created with a taken name: one alert.
     await createInFolder(page, "folder", "Pris");
-    await expect(alerts(page)).toHaveCount(1);
-    await expect(alerts(page)).toContainText("porte déjà ce nom");
+    await expectRowRefusal(page, page.getByTestId("workspace-tree-create-folder-input"));
     await page.screenshot({ path: test.info().outputPath("folder-create-refused.png") });
     await page.goto(`/app/workspace?path=${encodeURIComponent(folder)}`);
     await expect(alerts(page)).toHaveCount(0);
 
     // An item created in place with a taken name: one alert.
     await createInFolder(page, "text", "Note prise");
-    await expect(alerts(page)).toHaveCount(1);
-    await expect(alerts(page)).toContainText("porte déjà ce nom");
+    await expectRowRefusal(page, page.getByTestId("workspace-tree-create-input"));
     await page.screenshot({ path: test.info().outputPath("item-create-refused.png") });
     await page.goto(`/app/workspace?path=${encodeURIComponent(folder)}`);
     await expect(alerts(page)).toHaveCount(0);
@@ -142,8 +158,7 @@ test.describe("names of documents, folders and businesses", () => {
     await page.getByTestId("workspace-tree-rename").click();
     await page.getByTestId("workspace-tree-rename-input").fill("Pris");
     await page.getByTestId("workspace-tree-rename-input").press("Enter");
-    await expect(alerts(page)).toHaveCount(1);
-    await expect(alerts(page)).toContainText("porte déjà ce nom");
+    await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"));
     await page.screenshot({ path: test.info().outputPath("folder-rename-refused.png") });
 
     // A business named with « / », then renamed from its page: « ∕ » shown, a reserved name refused once.
@@ -290,4 +305,70 @@ test("the refusal of a name is read next to the name field from 320 pixels to a 
     }
   }
   await page.emulateMedia({ colorScheme: null });
+});
+
+// @verifies-requirement HALL-FR-DOC-590
+test("each refused name of the explorer is written under the row being typed from 320 pixels to a wide screen", async ({
+  appPage: page,
+}) => {
+  test.setTimeout(180_000);
+  const folder = `Lignes ${crypto.randomUUID().slice(0, 8)}`;
+  for (const [kind, name] of [
+    ["folder", "Pris"],
+    ["folder", "Relevés"],
+  ] as const) {
+    const response = await page.request.post("/api/resources", { data: { kind, path: folder, name } });
+    expect(response.status()).toBe(201);
+  }
+  const ids: Record<string, string> = {};
+  for (const name of ["Note prise", "Note libre"]) {
+    const response = await page.request.post("/api/resources", {
+      data: { kind: "text", path: folder, name, content: "" },
+    });
+    expect(response.status()).toBe(201);
+    ids[name] = (await response.json()).properties.id;
+  }
+  for (const name of ["Affaire prise", "Affaire libre"]) {
+    const response = await page.request.post("/api/council-business", {
+      data: { path: folder, name, reportName: "Rapport", reportContent: "" },
+    });
+    expect(response.status()).toBe(201);
+    ids[name] = (await response.json()).properties.id;
+  }
+  const reopen = async () => {
+    await page.goto(`/app/workspace?path=${encodeURIComponent(folder)}`);
+    await expect(page.getByTestId(`workspace-resource-${ids["Note libre"]}`)).toBeVisible();
+  };
+  const renameRow = async (row: Locator, name: string) => {
+    await row.click({ button: "right" });
+    await page.getByTestId("workspace-tree-rename").click();
+    await page.getByTestId("workspace-tree-rename-input").fill(name);
+    await page.getByTestId("workspace-tree-rename-input").press("Enter");
+  };
+  for (const viewport of [
+    { width: 320, height: 700 },
+    { width: 375, height: 812 },
+    { width: 768, height: 1024 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const label = `${viewport.width} px:`;
+    await reopen();
+    await createInFolder(page, "folder", "Pris");
+    await expectRowRefusal(page, page.getByTestId("workspace-tree-create-folder-input"), `${label} folder creation`);
+    await page.screenshot({ path: test.info().outputPath(`row-refusal-${viewport.width}-folder-creation.png`) });
+    await reopen();
+    await createInFolder(page, "text", "Note prise");
+    await expectRowRefusal(page, page.getByTestId("workspace-tree-create-input"), `${label} creation in place`);
+    await reopen();
+    await renameRow(page.getByTestId(`workspace-folder-name-${folder}/Relevés`), "Pris");
+    await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"), `${label} folder renaming`);
+    await reopen();
+    await renameRow(page.getByTestId(`workspace-resource-title-${ids["Note libre"]}`), "Note prise");
+    await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"), `${label} document renaming`);
+    await page.screenshot({ path: test.info().outputPath(`row-refusal-${viewport.width}-document-renaming.png`) });
+    await reopen();
+    await renameRow(page.getByTestId(`workspace-business-title-${ids["Affaire libre"]}`), "Affaire prise");
+    await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"), `${label} business renaming`);
+  }
 });

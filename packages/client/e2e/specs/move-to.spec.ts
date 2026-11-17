@@ -164,7 +164,12 @@ test.describe("moving documents on a computer", () => {
     await page.screenshot({ path: test.info().outputPath("move-to-refused.png") });
     expect(await resourcePath(page, twin)).toBe(where.root);
     // The error is read where the person chose the destination: it is within the visible part of the window.
-    await expect(dialog.locator('[role="alert"]')).toBeInViewport();
+    expect(
+      await dialog.evaluate((element) => [...element.querySelectorAll("*")].some((node) => node.scrollTop > 0)),
+    ).toBe(true);
+    await expect(page.getByTestId("move-to-error")).toBeVisible();
+    await expect(page.getByTestId("move-to-error")).toContainText("porte déjà ce nom");
+    await expect(page.getByTestId("move-to-error")).toBeInViewport();
   });
 
   // @verifies-requirement HALL-FR-WSP-090
@@ -211,6 +216,18 @@ test.describe("moving documents on a phone", () => {
     await expect(dialog).toHaveCount(0);
     await expect.poll(() => resourcePath(page, moved)).toBe(where.businessFolder);
     await expect.poll(() => businessResourceIds(page, where.businessId)).toContain(moved);
+
+    const twin = await text(page, where.root, "Doublon");
+    await text(page, where.sorting, "Doublon");
+    await page.goto(`/app/workspace?path=${encodeURIComponent(where.root)}&resource=${twin}`);
+    await page.getByTestId("phone-document-actions").click();
+    await page.getByTestId("phone-document-action-move").click();
+    await dialog.getByTestId(`move-to-folder-${where.sorting}`).click();
+    await expect(page.getByTestId("move-to-error")).toContainText("porte déjà ce nom");
+    await expect(page.getByTestId("move-to-error")).toBeInViewport();
+    await expect(alerts(page)).toHaveCount(1);
+    await page.screenshot({ path: test.info().outputPath("phone-move-to-refused.png") });
+    expect(await resourcePath(page, twin)).toBe(where.root);
   });
 });
 

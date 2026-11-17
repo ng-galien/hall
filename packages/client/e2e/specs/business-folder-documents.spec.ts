@@ -179,3 +179,54 @@ test.describe("documents created from a business in a sub-folder, on a phone", (
     await expect.poll(() => businessResourceIds(page, business.id)).toEqual(expect.arrayContaining(ids));
   });
 });
+
+for (const device of [
+  { label: "computer", use: { viewport: { width: 1440, height: 900 } }, photo: false },
+  { label: "phone", use: { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }, photo: true },
+] as const) {
+  test.describe(`a business opened by its address on a ${device.label}`, () => {
+    test.use(device.use);
+
+    // @verifies-requirement HALL-FR-WSP-460
+    test(`a text, a file${device.photo ? " and a photo" : ""} created from « Joindre » go into the folder of the business`, async ({
+      appPage: page,
+    }) => {
+      test.setTimeout(90_000);
+      const business = await businessInSubFolder(page, `adresse ${device.label}`);
+      const ids: string[] = [];
+      const open = async () => {
+        await page.goto(`/app/workspace?councilBusiness=${business.id}`);
+        await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+        if (!device.photo) {
+          const toggle = page.getByTestId("business-category-documents-toggle");
+          if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+        }
+        await page.getByTestId("attachment-picker-open").click();
+      };
+
+      await open();
+      ids.push(await createText(page, `Note par l’adresse ${device.label}`));
+      await open();
+      ids.push(
+        await importFile(page, page.getByTestId("attachment-picker-create-file"), {
+          name: `Plan par l’adresse ${device.label}.pdf`,
+          mimeType: "application/pdf",
+          buffer: minimalPdf,
+        }),
+      );
+      if (device.photo) {
+        await open();
+        ids.push(
+          await importFile(page, page.getByTestId("attachment-picker-create-takePhoto"), {
+            name: "image.png",
+            mimeType: "image/png",
+            buffer: png,
+          }),
+        );
+      }
+
+      for (const id of ids) expect(await resourcePath(page, id), `path of ${id}`).toBe(business.folder);
+      await expect.poll(() => businessResourceIds(page, business.id)).toEqual(expect.arrayContaining(ids));
+    });
+  });
+}
