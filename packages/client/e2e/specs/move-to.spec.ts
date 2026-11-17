@@ -217,3 +217,73 @@ test.describe("moving documents on a phone", () => {
 test.afterAll(() => {
   if (synthetic.length) console.log(`Drags dispatched as synthetic events: ${synthetic.join(", ")}`);
 });
+
+// @verifies-requirement HALL-FR-WSP-090
+test("the « Déplacer vers… » window holds within the screen from 320 pixels to a wide screen, light and dark", async ({
+  appPage: page,
+}) => {
+  test.setTimeout(120_000);
+  const where = await place(page);
+  const moved = await text(page, where.root, "Relevé de la route communale de la forêt domaniale");
+  for (const viewport of [
+    { width: 320, height: 700 },
+    { width: 375, height: 812 },
+    { width: 768, height: 1024 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const phone = viewport.width < 768;
+    for (const colorScheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme });
+      const label = `${viewport.width} px, ${colorScheme}`;
+      await page.goto(`/app/workspace?path=${encodeURIComponent(where.root)}&resource=${moved}`);
+      if (phone) {
+        await page.getByTestId("phone-document-actions").click();
+        await page.getByTestId("phone-document-action-move").click();
+      } else await runItemCommand(page, "resource-move-to");
+      const dialog = page.getByTestId("move-to-dialog");
+      await expect(dialog).toBeVisible();
+      await page.evaluate(() =>
+        Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
+      );
+      await page.screenshot({ path: test.info().outputPath(`move-to-${viewport.width}-${colorScheme}.png`) });
+      const measured = await dialog.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const rows = [...element.querySelectorAll('[data-testid^="move-to-"]')].map((row) => {
+          const rect = row.getBoundingClientRect();
+          const title = row.querySelector(".list-row-title") as HTMLElement | null;
+          return {
+            id: row.getAttribute("data-testid"),
+            left: rect.left,
+            right: rect.right,
+            cut: title
+              ? title.scrollWidth > title.clientWidth + 1 && getComputedStyle(title).textOverflow !== "ellipsis"
+              : false,
+          };
+        });
+        const close = element.querySelector("button[aria-label]")?.getBoundingClientRect() ?? null;
+        return {
+          box: { left: box.left, top: box.top, right: box.right, bottom: box.bottom },
+          rows,
+          close: close ? { left: close.left, top: close.top, right: close.right, bottom: close.bottom } : null,
+        };
+      });
+      expect(measured.box.left, `${label}: window inside the screen`).toBeGreaterThanOrEqual(-0.5);
+      expect(measured.box.right, `${label}: window inside the screen`).toBeLessThanOrEqual(viewport.width + 0.5);
+      expect(measured.box.top, `${label}: window inside the screen`).toBeGreaterThanOrEqual(-0.5);
+      expect(measured.box.bottom, `${label}: window inside the screen`).toBeLessThanOrEqual(viewport.height + 0.5);
+      if (phone) expect(measured.box.bottom, `${label}: bottom sheet`).toBeGreaterThanOrEqual(viewport.height - 1);
+      expect(measured.close, `${label}: close command`).not.toBeNull();
+      expect(measured.close!.top, `${label}: close command reachable`).toBeGreaterThanOrEqual(-0.5);
+      expect(measured.close!.right, `${label}: close command reachable`).toBeLessThanOrEqual(viewport.width + 0.5);
+      for (const row of measured.rows) {
+        expect(row.left, `${label}: ${row.id} inside the screen`).toBeGreaterThanOrEqual(-0.5);
+        expect(row.right, `${label}: ${row.id} inside the screen`).toBeLessThanOrEqual(viewport.width + 0.5);
+        expect(row.cut, `${label}: ${row.id} cut without ellipsis`).toBe(false);
+      }
+      await page.keyboard.press("Escape");
+      await expect(dialog).toHaveCount(0);
+    }
+  }
+  await page.emulateMedia({ colorScheme: null });
+});

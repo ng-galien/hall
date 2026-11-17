@@ -200,3 +200,89 @@ test.describe("names of documents, folders and businesses", () => {
     await page.screenshot({ path: test.info().outputPath("content-refused.png") });
   });
 });
+
+// @verifies-requirement HALL-FR-DOC-590
+test("the refusal of a name is read next to the name field from 320 pixels to a wide screen, light and dark", async ({
+  appPage: page,
+}) => {
+  test.setTimeout(120_000);
+  const folder = `Alertes ${crypto.randomUUID().slice(0, 8)}`;
+  const photo = await upload(page, folder, "Rapoutier dessous.jpg");
+  for (const viewport of [
+    { width: 320, height: 700 },
+    { width: 375, height: 812 },
+    { width: 768, height: 1024 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const phone = viewport.width < 768;
+    for (const colorScheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme });
+      const label = `${viewport.width} px, ${colorScheme}`;
+      await page.goto(`/app/workspace?path=${encodeURIComponent(folder)}&resource=${photo.id}`);
+      let field: Locator;
+      if (phone) {
+        await page.getByTestId("phone-document-actions").click();
+        await page.getByTestId("phone-document-action-rename").click();
+        field = page.getByTestId("phone-rename-name");
+        await field.fill("..");
+        await page.getByTestId("phone-rename-submit").click();
+      } else {
+        await renameOpened(page, "..");
+        field = page.getByTestId("workspace-workbench-title-input");
+      }
+      await expectOneAlert(page, "Les noms « . » et « .. » sont réservés.");
+      await expect(alerts(page)).toBeInViewport();
+      await page.evaluate(() =>
+        Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
+      );
+      await page.screenshot({ path: test.info().outputPath(`name-alert-${viewport.width}-${colorScheme}.png`) });
+      const alertBox = (await alerts(page).boundingBox())!;
+      expect(alertBox.x, `${label}: alert inside the screen`).toBeGreaterThanOrEqual(-0.5);
+      expect(alertBox.x + alertBox.width, `${label}: alert inside the screen`).toBeLessThanOrEqual(
+        viewport.width + 0.5,
+      );
+      if (await field.isVisible()) {
+        const fieldBox = (await field.boundingBox())!;
+        expect(
+          alertBox.y + alertBox.height <= fieldBox.y + 0.5 || alertBox.y >= fieldBox.y + fieldBox.height - 0.5,
+          `${label}: alert over the name field`,
+        ).toBe(true);
+        expect(
+          Math.min(
+            Math.abs(alertBox.y - (fieldBox.y + fieldBox.height)),
+            Math.abs(fieldBox.y - (alertBox.y + alertBox.height)),
+          ),
+          `${label}: alert next to the name field`,
+        ).toBeLessThan(80);
+      }
+      const contrast = await alerts(page).evaluate((element) => {
+        const paint = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+        const rgba = (color: string) => {
+          paint.clearRect(0, 0, 1, 1);
+          paint.fillStyle = color;
+          paint.fillRect(0, 0, 1, 1);
+          return [...paint.getImageData(0, 0, 1, 1).data];
+        };
+        const luminance = (channels: number[]) => {
+          const [r, g, b] = channels.slice(0, 3).map((channel) => {
+            const value = channel / 255;
+            return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+        };
+        const text = element.querySelector("span") ?? element;
+        let background = "rgba(0, 0, 0, 0)";
+        for (let node: Element | null = element; node && rgba(background)[3] === 0; node = node.parentElement)
+          background = getComputedStyle(node).backgroundColor;
+        const [high, low] = [luminance(rgba(getComputedStyle(text).color)), luminance(rgba(background))].sort(
+          (a, b) => b - a,
+        );
+        return (high! + 0.05) / (low! + 0.05);
+      });
+      expect(contrast, `${label}: contrast of the alert`).toBeGreaterThanOrEqual(4.5);
+      expect(await resourceName(page, photo.id)).toBe("Rapoutier dessous.jpg");
+    }
+  }
+  await page.emulateMedia({ colorScheme: null });
+});
