@@ -82,7 +82,10 @@ test("les écrans de Hall sur le jeu Alésia", async ({ docsPage: page }) => {
   const remote = byKind("remote");
   if (remote) await open(page, `/workspace?resource=${remote.id}`, "ressource-web");
   const geographic = byKind("geographic");
-  await open(page, "/maps", "cartes-entree");
+  await open(page, "/maps", "cartes-entree", async () => {
+    await page.getByTestId("maps-search").click();
+    await expect(page.getByTestId("maps-list").getByTestId("maps-entry").first()).toBeVisible();
+  });
   if (geographic) {
     await open(page, `/maps/${geographic.id}`, "cartes", async () => {
       await page.waitForTimeout(2500);
