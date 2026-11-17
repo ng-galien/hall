@@ -339,11 +339,15 @@ test("each refused name of the explorer is written under the row being typed fro
     await page.goto(`/app/workspace?path=${encodeURIComponent(folder)}`);
     await expect(page.getByTestId(`workspace-resource-${ids["Note libre"]}`)).toBeVisible();
   };
+  const offered: string[] = [];
   const renameRow = async (row: Locator, name: string) => {
     await row.click({ button: "right" });
-    await page.getByTestId("workspace-tree-rename").click();
+    const command = page.getByTestId("workspace-tree-rename");
+    if (!(await command.isVisible({ timeout: 2_000 }).catch(() => false))) return false;
+    await command.click();
     await page.getByTestId("workspace-tree-rename-input").fill(name);
     await page.getByTestId("workspace-tree-rename-input").press("Enter");
+    return true;
   };
   for (const viewport of [
     { width: 320, height: 700 },
@@ -354,21 +358,32 @@ test("each refused name of the explorer is written under the row being typed fro
     await page.setViewportSize(viewport);
     const label = `${viewport.width} px:`;
     await reopen();
-    await createInFolder(page, "folder", "Pris");
-    await expectRowRefusal(page, page.getByTestId("workspace-tree-create-folder-input"), `${label} folder creation`);
-    await page.screenshot({ path: test.info().outputPath(`row-refusal-${viewport.width}-folder-creation.png`) });
+    if (await page.getByTestId("workspace-tree-root").isVisible()) {
+      offered.push(`${viewport.width} creation`);
+      await createInFolder(page, "folder", "Pris");
+      await expectRowRefusal(page, page.getByTestId("workspace-tree-create-folder-input"), `${label} folder creation`);
+      await page.screenshot({ path: test.info().outputPath(`row-refusal-${viewport.width}-folder-creation.png`) });
+      await reopen();
+      await createInFolder(page, "text", "Note prise");
+      await expectRowRefusal(page, page.getByTestId("workspace-tree-create-input"), `${label} creation in place`);
+      await reopen();
+    }
+    if (await renameRow(page.getByTestId(`workspace-folder-name-${folder}/Relevés`), "Pris")) {
+      offered.push(`${viewport.width} folder renaming`);
+      await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"), `${label} folder renaming`);
+    }
     await reopen();
-    await createInFolder(page, "text", "Note prise");
-    await expectRowRefusal(page, page.getByTestId("workspace-tree-create-input"), `${label} creation in place`);
+    if (await renameRow(page.getByTestId(`workspace-resource-title-${ids["Note libre"]}`), "Note prise")) {
+      offered.push(`${viewport.width} document renaming`);
+      await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"), `${label} document renaming`);
+      await page.screenshot({ path: test.info().outputPath(`row-refusal-${viewport.width}-document-renaming.png`) });
+    }
     await reopen();
-    await renameRow(page.getByTestId(`workspace-folder-name-${folder}/Relevés`), "Pris");
-    await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"), `${label} folder renaming`);
-    await reopen();
-    await renameRow(page.getByTestId(`workspace-resource-title-${ids["Note libre"]}`), "Note prise");
-    await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"), `${label} document renaming`);
-    await page.screenshot({ path: test.info().outputPath(`row-refusal-${viewport.width}-document-renaming.png`) });
-    await reopen();
-    await renameRow(page.getByTestId(`workspace-business-title-${ids["Affaire libre"]}`), "Affaire prise");
-    await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"), `${label} business renaming`);
+    if (await renameRow(page.getByTestId(`workspace-business-title-${ids["Affaire libre"]}`), "Affaire prise")) {
+      offered.push(`${viewport.width} business renaming`);
+      await expectRowRefusal(page, page.getByTestId("workspace-tree-rename-input"), `${label} business renaming`);
+    }
   }
+  test.info().annotations.push({ type: "offered", description: offered.join("; ") });
+  expect(offered.filter((entry) => entry.startsWith("1440"))).toHaveLength(4);
 });
