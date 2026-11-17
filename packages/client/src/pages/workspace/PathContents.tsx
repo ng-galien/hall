@@ -209,6 +209,8 @@ function ContentRow({
   openProps?: ListRowProps["openProps"];
   head: ReactNode;
   title: ReactNode;
+  /** Under the title: the refusal of the name being typed in the row. */
+  detail?: ReactNode;
   status?: ListRowStatus;
   wide: ReactNode;
   selected: boolean;
@@ -541,6 +543,8 @@ export function PathContents({
                 ? { kind: "autosave", enabled: resource.autosaveEnabled }
                 : { kind: "fixed" },
           });
+          if (!updated && renameSessionRef.current === session)
+            setRenameError(takeStoreError(useWorkspaceResourcesStore));
           return Boolean(updated);
         },
         councilBusiness: async (entry) => {
@@ -550,7 +554,10 @@ export function PathContents({
             path: business.folderPath,
             name: nextTitle,
           });
-          if (!updated) return false;
+          if (!updated) {
+            if (renameSessionRef.current === session) setRenameError(takeStoreError(useWorkspaceResourcesStore));
+            return false;
+          }
           return Boolean(await useCouncilBusinessStore.getState().refresh(business.id));
         },
       });
@@ -733,6 +740,13 @@ export function PathContents({
     return true;
   };
 
+  const nameRefusal = (editing: boolean) =>
+    editing && renameError ? (
+      <span data-testid="workspace-tree-name-refusal">
+        <RequestErrorBanner compact error={renameError} />
+      </span>
+    ) : undefined;
+
   const renderFolderCreation = (parentPath: string) =>
     creatingFolderParent === parentPath ? (
       <ListRow
@@ -754,6 +768,7 @@ export function PathContents({
             <span />
           </InlineRenameField>
         }
+        detail={nameRefusal(true)}
       />
     ) : null;
 
@@ -791,6 +806,7 @@ export function PathContents({
             <span />
           </InlineRenameField>
         }
+        detail={nameRefusal(true)}
       />
     );
   };
@@ -1112,6 +1128,7 @@ export function PathContents({
                 </InlineRenameField>
               }
               onOpen={renaming ? undefined : () => onSelect({ kind: "councilBusiness", id: business.id })}
+              detail={nameRefusal(renaming)}
               openTestId={"workspace-business-title-" + business.id}
               openProps={treeNodeProps(key, { "data-workspace-folder-path": businessFolder })}
               wide={<time dateTime={business.updatedAt}>{formatDate(business.updatedAt)}</time>}
@@ -1182,6 +1199,7 @@ export function PathContents({
                 </InlineRenameField>
               }
               onOpen={renaming ? undefined : () => onPreview(resource)}
+              detail={nameRefusal(renaming)}
               openTestId={"workspace-resource-title-" + resource.id}
               openProps={treeNodeProps(key, { title: resource.name })}
               status={
@@ -1290,6 +1308,7 @@ export function PathContents({
           </InlineRenameField>
         }
         onOpen={(renaming ? undefined : () => undefined) as () => void}
+        detail={nameRefusal(renaming)}
         openTestId={`workspace-folder-open-${folderPath}`}
         openProps={treeNodeProps(key, {
           "data-workspace-folder-path": folderPath,
@@ -1446,7 +1465,7 @@ export function PathContents({
         </div>
         {toolbarControls ? <span className="workspace-explorer-toolbar-controls">{toolbarControls}</span> : null}
       </div>
-      <RequestErrorBanner error={renameError ?? moveError} />
+      <RequestErrorBanner error={moveError} />
       <p className="sr-only" aria-live="polite">
         {feedback}
       </p>

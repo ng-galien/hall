@@ -11,3 +11,6 @@
 
 .path-contents-tree .workspace-explorer-empty { list-style: none; }
 .path-contents-loading { display: flex; justify-content: center; padding: var(--hall-space-2) 0; list-style: none; }
+/* The refusal of a name typed in a row is written whole under that name. */
+.path-contents-tree .list-row-detail:has([data-testid="workspace-tree-name-refusal"]) { white-space: normal; }
+.path-contents-tree .list-row-detail-text:has([data-testid="workspace-tree-name-refusal"]) { overflow: visible; }
