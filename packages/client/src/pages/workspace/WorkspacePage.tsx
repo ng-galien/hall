@@ -38,7 +38,7 @@ import {
 import { PathContents } from "./PathContents";
 import { PersonalFolderEntry } from "./PersonalFolderEntry";
 import { PinnedRow } from "./PinnedRow";
-import { isUnderPath } from "./paths";
+import { businessFolderPath, isUnderPath } from "./paths";
 import { ResourceWorkbench } from "./ResourceWorkbench";
 import { useSessionControls } from "./useSessionControls";
 import { WorkspaceBreadcrumb } from "./WorkspaceBreadcrumb";
@@ -218,10 +218,11 @@ export function WorkspacePage() {
 
   const createInFolder = async (
     kind: WorkspaceCreateKind,
-    folderPath: string,
+    parentPath: string,
     title?: string,
     business?: CouncilBusinessView,
   ): Promise<WorkspaceSelection> => {
+    const folderPath = business ? businessFolderPath(business) : parentPath;
     creationFolderPathRef.current = folderPath;
     creationBusinessRef.current = business;
     const source = business ? councilBusinessStore.representationsById[business.id] : undefined;
@@ -245,7 +246,7 @@ export function WorkspacePage() {
       councilMatter: async () => {
         if (!normalizedTitle) return null;
         const business = await councilBusinessStore.create({
-          path: folderPath,
+          path: parentPath,
           name: normalizedTitle,
           reportName: t("meeting.report"),
           reportContent: "",

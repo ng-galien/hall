@@ -5,6 +5,7 @@ import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
 import { Sheet } from "../../components/ui/sheet";
 import { useI18n } from "../../i18n/I18nProvider";
+import { businessFolderPath } from "../../pages/workspace/paths";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -49,7 +50,7 @@ export function EventCreateSheet({
     const business = businesses.find((entry) => entry.id === councilBusinessId);
     const created = await resources.createEvent({
       kind: "event",
-      path: business?.folderPath ?? "",
+      path: business ? businessFolderPath(business) : "",
       name,
       document: draft,
       ...(councilBusinessId ? { councilBusinessId } : {}),

@@ -2,6 +2,7 @@ import { findSirenAction, type SirenEntity } from "@hall/api-contract";
 import { useContext, useMemo } from "react";
 import type { EditorDocumentUpload } from "../../components/editor/imageTransfer";
 import { ReferenceBusinessContext } from "../../hooks/useReferenceMentionables";
+import { businessFolderPath } from "../../pages/workspace/paths";
 import { convertSpreadsheetTable } from "../../services/resourcesApi";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
@@ -48,7 +49,7 @@ export function useEditorDocumentUpload(
   );
   const collectionRepresentation = useWorkspaceResourcesStore((state) => state.collectionRepresentation);
   const representation = businessId ? businessRepresentation : collectionRepresentation;
-  const path = business ? business.folderPath : folderPath;
+  const path = business ? businessFolderPath(business) : folderPath;
 
   return useMemo(() => {
     if (!representation || path === undefined || (businessId && !business)) return undefined;
