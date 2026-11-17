@@ -10,6 +10,7 @@ import "../downloads.css";
 import { followInstallSteps, renderHomeDownloads } from "../sections";
 import { renderFeatures } from "./features";
 import { glyphTint, type PieceKind, photoThumb, svgIcon } from "./icons";
+import { compactStoryQuery } from "./layout";
 import { chemin, type Spot } from "./place";
 import { at, places, range, storyEnd, storyStart, subStepAt, subSteps, timeline } from "./story";
 
@@ -465,7 +466,7 @@ export function turnWheel(c: number) {
 }
 
 /** Téléphone : titre et points courts, chacun sur une ligne */
-const phoneLayout = window.matchMedia("(max-width: 760px)");
+const phoneLayout = window.matchMedia(compactStoryQuery);
 
 /** Écrit le texte d'une sous-étape dans le bloc du bas ; index < 0 le vide. */
 export function renderStepText(index: number) {

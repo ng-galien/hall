@@ -779,7 +779,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   display: block;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1179px) {
   .p-board {
     right: 0.5rem;
     width: 15rem;
@@ -1476,7 +1476,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   border-radius: 0.25rem;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1179px) {
   .p-gutter {
     max-width: 46vw;
     font-size: 0.85rem;
@@ -2223,7 +2223,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   color: var(--accent-text);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1179px) {
   .p-gutter {
     width: 46vw;
     height: 38vh;
@@ -2313,7 +2313,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   font-size: clamp(1.7rem, 2.6vw, 2.4rem);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1179px) {
   .p-watermark,
   .p-watermark.is-a,
   .p-watermark.is-b {
@@ -2466,12 +2466,12 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   will-change: transform, opacity;
 }
 
-/* ---- Panneau d'étape : grand, lisible, verre dépoli, taille stable ---- */
+/* ---- Panneau d’étape : grand, lisible, verre dépoli, taille stable, à droite de la liste des lieux ---- */
 .p-watermark,
 .p-watermark.is-a,
 .p-watermark.is-b {
-  left: max(1rem, calc(50% - 25rem));
-  width: min(42rem, calc(100vw - 23rem - 4rem - max(1rem, 50% - 25rem)));
+  left: max(19rem, calc(50% - 25rem));
+  width: min(42rem, calc(100vw - 23rem - 4rem - max(19rem, 50% - 25rem)));
   bottom: 1.5rem;
   padding: 1.15rem 1.5rem 1.1rem;
   border: 1px solid rgb(255 255 255 / 0.7);
@@ -2650,7 +2650,7 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   height: 4px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1179px) {
   .p-watermark,
   .p-watermark.is-a,
   .p-watermark.is-b {
@@ -3186,8 +3186,8 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
   font-size: 1.07rem;
 }
 
-/* Téléphone : la gouttière laisse la place, la fiche se réduit en bandeau, le panneau d'étape occupe le bas */
-@media (max-width: 760px) {
+/* Téléphone et tablette (layout.ts) : la gouttière laisse la place, la fiche se réduit en bandeau, le panneau d'étape occupe le bas */
+@media (max-width: 1179px) {
   .p-gutter {
     display: none;
   }
@@ -3268,7 +3268,9 @@ html[data-scene="ready"] :is(.p-phone, .p-board, .p-watermark, .p-gutter) {
     height: 16rem;
     margin-left: -4rem;
   }
+}
 
+@media (max-width: 760px) {
   .p-hero-content {
     left: 1rem;
     right: 1rem;
@@ -3610,9 +3612,9 @@ html[data-scene="ready"] body .p-watermark.is-empty {
   display: none;
 }
 
-/* ---- Téléphone : la scène d'abord, la chronologie à gauche, la fiche à droite, un panneau d'étape léger ---- */
+/* ---- Téléphone et tablette (layout.ts) : la scène d'abord, la chronologie à gauche, la fiche à droite, un panneau d'étape léger ---- */
 /* body:not(#phone) place ces règles au-dessus des variantes empilées plus haut, sans !important */
-@media (max-width: 760px) {
+@media (max-width: 1179px) {
   /* Gouttière en colonne le long du bord gauche : les cinq lieux, le lieu courant ouvert sur ses sous-étapes */
   body:not(#phone) .p-gutter {
     display: block;
@@ -4213,8 +4215,8 @@ html[data-scene="ready"] body .p-watermark.is-empty {
   }
 }
 
-/* Gouttière du parcours, hors téléphone : textes plus lisibles sur la carte, sans fond ajouté */
-@media (min-width: 761px) {
+/* Gouttière du parcours, sur un écran large : textes plus lisibles sur la carte, sans fond ajouté */
+@media (min-width: 1180px) {
   .p-gutter .g-item,
   .p-gutter .g-item .g-place-words {
     color: var(--text);

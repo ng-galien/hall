@@ -21,6 +21,7 @@ import { buildCar, buildCharacter } from "./actors";
 import { type BoardState, createBoard, type Face, type FolderItem, type Point } from "./board";
 import { discCanvas, glyphs, indexCanvas, type PieceKind, sheetCanvas } from "./icons";
 import { BUREAU_GARAGE, buildBureau, buildMairie, buildPrefecture } from "./landmarks";
+import { COMPACT_STORY_WIDTH, compactStoryQuery } from "./layout";
 import { lightBuildings } from "./look";
 import {
   along,
@@ -91,6 +92,13 @@ function softwareRenderer(): boolean {
 const LIGHTER_RATIOS = [1, 0.75, 0.6];
 /** Durée d'image au-delà de laquelle la scène s'allège (environ 22 images par seconde). */
 const SLOW_FRAME_MS = 45;
+
+/** Place names and sub-step titles shown in the place list; their text may extend past the list's own box. */
+function gutterWords(): HTMLElement[] {
+  return [...gutter.querySelectorAll<HTMLElement>(".g-place-words, .g-sub-title")].filter(
+    (node) => node.offsetWidth > 0 && node.closest<HTMLElement>(".g-item")?.style.visibility !== "hidden",
+  );
+}
 
 /* ------------------------------------------------------------------ Scène */
 
@@ -1397,7 +1405,7 @@ export async function start() {
     car: "car",
     viewpoint,
     cheminCentre,
-    cadastreView: window.matchMedia("(min-width: 761px)").matches
+    cadastreView: !window.matchMedia(compactStoryQuery).matches
       ? { x: cheminCentre.x + 130, y: cheminCentre.y - 280 }
       : cheminCentre,
     mairieArrival: mid(mairieParking, spots.mairieDoor),
@@ -1490,9 +1498,12 @@ export async function start() {
     const board = boardNode.getBoundingClientRect();
     const card = watermark.getBoundingClientRect();
     const gutterBox = gutter.getBoundingClientRect();
+    const gutterRight = narrow
+      ? gutterBox.right
+      : Math.max(gutterBox.right, ...gutterWords().map((node) => node.getBoundingClientRect().right));
     const phoneBox = phone.getBoundingClientRect();
     const phoneShow = smooth(during(p, "phoneRises")) * (1 - smooth(during(p, "phoneLowers")));
-    const left = narrow ? gutterBox.right + 12 : Math.max(gutterBox.right + 20, phoneBox.right * phoneShow + 18);
+    const left = narrow ? gutterRight + 12 : Math.max(gutterRight + 20, phoneBox.right * phoneShow + 18);
     const right = board.left - (narrow ? 12 : 24);
     const top = masthead.bottom + (narrow ? 16 : 24);
     const cardTop = card.top - 24;
@@ -1547,7 +1558,7 @@ export async function start() {
     renderer.setSize(width, height, false);
     flight.setSize(width, height, false);
     camera.aspect = width / height;
-    narrow = width < 760;
+    narrow = width <= COMPACT_STORY_WIDTH;
     frameView(shown);
     for (const line of [trace, parcels, ...devices.map((device) => device.link)])
       (line.material as { resolution: THREE.Vector2 }).resolution.set(width, height);
