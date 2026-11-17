@@ -304,3 +304,124 @@ test("writes the cause of an account email that was not sent beside its result, 
     expect(written.x).toBeGreaterThan(outcome.x);
   }
 });
+
+/** Rectangles of the elements named by their test identifiers, whether their text overflows, and the contrast of their text on the background painted under them. */
+async function measureTexts(page: import("@playwright/test").Page, testIds: string[]) {
+  return page.evaluate((ids) => {
+    const paint = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+    const rgba = (color: string) => {
+      paint.clearRect(0, 0, 1, 1);
+      paint.fillStyle = color;
+      paint.fillRect(0, 0, 1, 1);
+      return [...paint.getImageData(0, 0, 1, 1).data];
+    };
+    const luminance = (channels: number[]) => {
+      const [r, g, b] = channels.slice(0, 3).map((channel) => {
+        const value = channel / 255;
+        return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    const background = (element: Element | null): string => {
+      for (let node = element; node; node = node.parentElement) {
+        const color = getComputedStyle(node).backgroundColor;
+        if (rgba(color)[3]! > 0) return color;
+      }
+      return getComputedStyle(document.body).backgroundColor;
+    };
+    return ids.map((id) => {
+      const element = document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
+      if (!element) return { id, box: null, overflows: false, contrast: 0 };
+      const rect = element.getBoundingClientRect();
+      const [high, low] = [luminance(rgba(getComputedStyle(element).color)), luminance(rgba(background(element)))].sort(
+        (a, b) => b - a,
+      );
+      return {
+        id,
+        box: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
+        overflows: element.scrollWidth > element.clientWidth + 1,
+        contrast: (high! + 0.05) / (low! + 0.05),
+      };
+    });
+  }, testIds);
+}
+
+// @verifies-requirement HALL-FR-LAY-100
+// @verifies-requirement HALL-FR-CFG-010
+test("the initials name the signed-in person on hover and focus, and Settings shows the name, the address and the role above the session commands", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(() => localStorage.setItem("mairie.locale", "fr"));
+  const bootstrap = await page.request.post("/api/auth/bootstrap", {
+    data: {
+      displayName: "Camille Martin-Lefebvre",
+      email: "camille.martin@example.test",
+      password: "Hall-identity-1!",
+    },
+  });
+  expect(bootstrap.status()).toBe(201);
+
+  for (const viewport of [
+    { width: 320, height: 700 },
+    { width: 375, height: 812 },
+    { width: 768, height: 1024 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    for (const colorScheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme });
+      const label = `${viewport.width} px, ${colorScheme}`;
+      await page.goto("/app/");
+      const account = page.getByTestId("screen-header-account");
+      await expect(account).toHaveText("CM");
+      await expect(account).toHaveAttribute("aria-label", "Mon compte : Camille Martin-Lefebvre");
+      await account.hover();
+      await expect(page.getByTestId("screen-header-account-name")).toHaveText("Camille Martin-Lefebvre");
+      await expect(page.getByTestId("screen-header-account-email")).toHaveText("camille.martin@example.test");
+      await page.screenshot({ path: test.info().outputPath(`account-tooltip-${viewport.width}-${colorScheme}.png`) });
+      for (const text of await measureTexts(page, ["screen-header-account-name", "screen-header-account-email"])) {
+        expect(text.box, `${label}: ${text.id}`).not.toBeNull();
+        expect(text.box!.left, `${label}: ${text.id} inside the screen`).toBeGreaterThanOrEqual(-0.5);
+        expect(text.box!.right, `${label}: ${text.id} inside the screen`).toBeLessThanOrEqual(viewport.width + 0.5);
+        expect(text.overflows, `${label}: ${text.id} cut`).toBe(false);
+        expect(text.contrast, `${label}: contrast of ${text.id}`).toBeGreaterThanOrEqual(4.5);
+      }
+      await page.mouse.move(0, viewport.height - 1);
+      await expect(page.getByTestId("screen-header-account-name")).toHaveCount(0);
+
+      await page.goto("/app/settings");
+      const facts = page.getByTestId("settings-account");
+      await expect(facts.getByTestId("settings-account-name")).toHaveText("Camille Martin-Lefebvre");
+      await expect(facts.getByTestId("settings-account-email")).toHaveText("camille.martin@example.test");
+      await expect(facts.getByTestId("settings-account-roles")).toHaveText("Administrateur");
+      await expect(page.getByTestId("settings-change-password")).toBeVisible();
+      await expect(page.getByTestId("settings-logout")).toBeVisible();
+      await facts.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: test.info().outputPath(`settings-session-${viewport.width}-${colorScheme}.png`) });
+      const measured = await measureTexts(page, [
+        "settings-account-name",
+        "settings-account-email",
+        "settings-account-roles",
+        "settings-change-password",
+        "settings-logout",
+      ]);
+      const factsBottom = Math.max(...measured.slice(0, 3).map((text) => text.box!.bottom));
+      for (const text of measured) {
+        expect(text.box!.left, `${label}: ${text.id} inside the screen`).toBeGreaterThanOrEqual(-0.5);
+        expect(text.box!.right, `${label}: ${text.id} inside the screen`).toBeLessThanOrEqual(viewport.width + 0.5);
+        expect(text.overflows, `${label}: ${text.id} cut`).toBe(false);
+        expect(text.contrast, `${label}: contrast of ${text.id}`).toBeGreaterThanOrEqual(4.5);
+      }
+      for (const command of measured.slice(3))
+        expect(command.box!.top, `${label}: ${command.id} under the account`).toBeGreaterThanOrEqual(factsBottom - 0.5);
+    }
+  }
+
+  await page.emulateMedia({ colorScheme: null });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/app/");
+  await page.getByTestId("screen-header-account").focus();
+  await expect(page.getByTestId("screen-header-account-name")).toHaveText("Camille Martin-Lefebvre");
+  await expect(page.getByTestId("screen-header-account-email")).toHaveText("camille.martin@example.test");
+});
