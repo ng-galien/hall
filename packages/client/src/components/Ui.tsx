@@ -129,6 +129,7 @@ export function Modal({
   returnFocusRef,
   size = "default",
   hint,
+  footer,
 }: {
   open: boolean;
   title: string;
@@ -140,6 +141,8 @@ export function Modal({
   initialFocusRef?: { current: HTMLElement | null };
   returnFocusRef?: { current: HTMLElement | null };
   size?: "default" | "wide";
+  /** Content kept in view under the scrolling body, such as the refusal of a choice made in a long list. */
+  footer?: ReactNode;
 }) {
   const phone = usePhoneLayout();
   return (
@@ -150,6 +153,7 @@ export function Modal({
       size={size}
       title={title}
       titleAddon={hint ? <HelpHint text={hint} /> : null}
+      footer={footer}
       testId={testId}
       closeTestId={testId ? `${testId}-close` : undefined}
       bodyTestId={testId ? `${testId}-content` : undefined}

@@ -116,8 +116,19 @@ function OpenMoveToDialog({
     onMoved?.(target);
   };
   return (
-    <Modal open title={t("workspace.moveTo")} testId="move-to-dialog" onClose={close}>
-      <RequestErrorBanner error={error} />
+    <Modal
+      open
+      title={t("workspace.moveTo")}
+      testId="move-to-dialog"
+      onClose={close}
+      footer={
+        error ? (
+          <div className="w-full" data-testid="move-to-error">
+            <RequestErrorBanner error={error} />
+          </div>
+        ) : undefined
+      }
+    >
       <ListRows aria-busy={busy || undefined}>
         <ListRow
           head={
