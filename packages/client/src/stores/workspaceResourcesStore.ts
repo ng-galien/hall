@@ -430,9 +430,9 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
     async create(input, source) {
       set({ error: null });
       try {
-        const representation = get().folderRepresentations[input.path] ?? get().collectionRepresentation;
+        const representation = source ?? get().folderRepresentations[input.path] ?? get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
-        const result = await createDocumentaryResource(source ?? representation, input);
+        const result = await createDocumentaryResource(representation, input);
         adopt(result.data, result.representation);
         return result.data;
       } catch (error) {
@@ -456,9 +456,9 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
     async importSpreadsheet(form, source) {
       set({ error: null });
       try {
-        const representation = get().folderRepresentations[formPath(form)] ?? get().collectionRepresentation;
+        const representation = source ?? get().folderRepresentations[formPath(form)] ?? get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
-        const result = await importDocumentarySpreadsheet(source ?? representation, form);
+        const result = await importDocumentarySpreadsheet(representation, form);
         adopt(result.data, result.representation);
         return result.data;
       } catch (error) {
@@ -469,9 +469,9 @@ export const useWorkspaceResourcesStore = create<WorkspaceResourcesState>((set, 
     async uploadDocument(form, source) {
       set({ error: null });
       try {
-        const representation = get().folderRepresentations[formPath(form)] ?? get().collectionRepresentation;
+        const representation = source ?? get().folderRepresentations[formPath(form)] ?? get().collectionRepresentation;
         if (!representation) throw new SirenCapabilityUnavailable("resources");
-        const result = await uploadDocumentaryResource(source ?? representation, await reducePhotoOfForm(form));
+        const result = await uploadDocumentaryResource(representation, await reducePhotoOfForm(form));
         adopt(result.data, result.representation);
         return result.data;
       } catch (error) {
