@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { resourceFillsScreen } from "../features/resources/resourceEditorPolicy";
@@ -8,6 +8,7 @@ import { AppSidebar } from "../shell/AppSidebar";
 import {
   HeaderTrailSlotContext,
   ScreenActionsSlotContext,
+  ScreenBackContext,
   ScreenLeadingSlotContext,
   ScreenScrolledContext,
   ScreenTitleContext,
@@ -55,6 +56,8 @@ export function Layout() {
     [titleIconSlot, titleCommandsSlot, titleFactsSlot, titleHintSlot],
   );
   const [pageTitle, setPageTitle] = useState<string | null>(null);
+  const [screenBack, setScreenBack] = useState<(() => void) | null>(null);
+  const registerScreenBack = useCallback((back: (() => void) | null) => setScreenBack(() => back), []);
   const [mainElement, setMainElement] = useState<HTMLElement | null>(null);
   const [titleElement, setTitleElement] = useState<HTMLHeadingElement | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -91,52 +94,55 @@ export function Layout() {
         <ScreenTitleSlotsContext.Provider value={titleSlots}>
           <ScreenActionsSlotContext.Provider value={actionsSlot}>
             <ScreenTitleContext.Provider value={setPageTitle}>
-              <ScreenScrolledContext.Provider value={scrolled}>
-                <div className="app-shell">
-                  {phone ? null : (
-                    <AppSidebar
-                      compact={compact}
-                      navigation={{ expanded: !compact, toggle: () => setCompact(!compact) }}
-                    />
-                  )}
-                  <div className="app-column">
-                    <ScreenHeader
-                      phone={phone}
-                      title={title}
-                      back={heading.back}
-                      reading={reading}
-                      collapsed={scrolled || reading || fillsScreen}
-                      leadingSlot={setLeadingSlot}
-                      actionsSlot={setActionsSlot}
-                      trailSlot={setTrailSlot}
-                      itemSlots={fillsScreen ? largeTitleSlots : undefined}
-                    />
-                    <main
-                      ref={setMainElement}
-                      className="app-main"
-                      data-testid="application-main"
-                      data-route={location.pathname}
-                      data-fills-screen={fillsScreen ? "true" : undefined}
-                    >
-                      {reading || fillsScreen ? null : (
-                        <ScreenLargeTitle
-                          phone={phone}
-                          title={title}
-                          titleRef={setTitleElement}
-                          slots={largeTitleSlots}
-                        />
-                      )}
-                      <div className="app-content">
-                        <Suspense fallback={<LoadingIndicator size="page" label={t("common.loading")} />}>
-                          <Outlet />
-                        </Suspense>
-                      </div>
-                    </main>
-                    {phone && !isPhoneReadingLocation(location) ? <PhoneNavigation /> : null}
+              <ScreenBackContext.Provider value={registerScreenBack}>
+                <ScreenScrolledContext.Provider value={scrolled}>
+                  <div className="app-shell">
+                    {phone ? null : (
+                      <AppSidebar
+                        compact={compact}
+                        navigation={{ expanded: !compact, toggle: () => setCompact(!compact) }}
+                      />
+                    )}
+                    <div className="app-column">
+                      <ScreenHeader
+                        phone={phone}
+                        title={title}
+                        back={heading.back}
+                        onBack={screenBack}
+                        reading={reading}
+                        collapsed={scrolled || reading || fillsScreen}
+                        leadingSlot={setLeadingSlot}
+                        actionsSlot={setActionsSlot}
+                        trailSlot={setTrailSlot}
+                        itemSlots={fillsScreen ? largeTitleSlots : undefined}
+                      />
+                      <main
+                        ref={setMainElement}
+                        className="app-main"
+                        data-testid="application-main"
+                        data-route={location.pathname}
+                        data-fills-screen={fillsScreen ? "true" : undefined}
+                      >
+                        {reading || fillsScreen ? null : (
+                          <ScreenLargeTitle
+                            phone={phone}
+                            title={title}
+                            titleRef={setTitleElement}
+                            slots={largeTitleSlots}
+                          />
+                        )}
+                        <div className="app-content">
+                          <Suspense fallback={<LoadingIndicator size="page" label={t("common.loading")} />}>
+                            <Outlet />
+                          </Suspense>
+                        </div>
+                      </main>
+                      {phone && !isPhoneReadingLocation(location) ? <PhoneNavigation /> : null}
+                    </div>
                   </div>
-                </div>
-                <GlobalSearchPalette />
-              </ScreenScrolledContext.Provider>
+                  <GlobalSearchPalette />
+                </ScreenScrolledContext.Provider>
+              </ScreenBackContext.Provider>
             </ScreenTitleContext.Provider>
           </ScreenActionsSlotContext.Provider>
         </ScreenTitleSlotsContext.Provider>

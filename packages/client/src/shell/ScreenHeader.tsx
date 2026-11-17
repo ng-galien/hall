@@ -168,6 +168,7 @@ export function ScreenHeader({
   phone,
   title,
   back,
+  onBack,
   collapsed,
   reading,
   leadingSlot,
@@ -178,6 +179,8 @@ export function ScreenHeader({
   phone: boolean;
   title: string;
   back: Back | null;
+  /** Set by the page while one of its states takes the back arrow: the arrow runs it and stays on the screen. */
+  onBack?: (() => void) | null;
   collapsed: boolean;
   /** A document read on a phone has no large title: its name is the heading of this line. */
   reading: boolean;
@@ -214,6 +217,11 @@ export function ScreenHeader({
               to={back.to}
               aria-label={t("common.back")}
               onClick={(event) => {
+                if (onBack) {
+                  event.preventDefault();
+                  onBack();
+                  return;
+                }
                 if (!hasPreviousApplicationScreen()) return;
                 event.preventDefault();
                 navigate(-1);

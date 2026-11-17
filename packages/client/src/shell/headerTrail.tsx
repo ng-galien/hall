@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useEffect } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
 export const HeaderTrailSlotContext = createContext<HTMLElement | null>(null);
@@ -27,6 +27,20 @@ export function ScreenTitle({ children }: { children: string }) {
     return () => setTitle(null);
   }, [children, setTitle]);
   return null;
+}
+
+export const ScreenBackContext = createContext<(back: (() => void) | null) => void>(() => undefined);
+
+/** While `active`, the back arrow of the phone header runs `back` instead of returning to the previous screen. */
+export function useScreenBack(active: boolean, back: () => void) {
+  const setBack = useContext(ScreenBackContext);
+  const latest = useRef(back);
+  latest.current = back;
+  useEffect(() => {
+    if (!active) return;
+    setBack(() => latest.current());
+    return () => setBack(null);
+  }, [active, setBack]);
 }
 
 export const ScreenScrolledContext = createContext(false);

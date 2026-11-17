@@ -15,7 +15,7 @@ import { useTextWriting } from "../../features/resources/useTextWriting";
 import { useI18n } from "../../i18n/I18nProvider";
 import { apiFile, downloadFile, shareOrDownload } from "../../services/fileSharing";
 import { minutesContentHref } from "../../services/minutesApi";
-import { ScreenTitle } from "../../shell/headerTrail";
+import { ScreenTitle, useScreenBack } from "../../shell/headerTrail";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useCouncilMeetingsStore } from "../../stores/councilMeetingsStore";
 import { type PhoneDocumentAction, PhoneDocumentActions, phoneActionIcons } from "../workspace/PhoneDocumentActions";
@@ -83,6 +83,7 @@ function MinutesDetail({ id }: { id: string }) {
   const agenda = minutes?.facts.agenda ?? [];
   const writingIndex = phone && writing.editing ? agenda.findIndex((item) => item.id === writingPointId) : -1;
   const writingPoint = writingIndex >= 0 ? agenda[writingIndex] : null;
+  useScreenBack(writingPoint !== null, () => window.history.back());
   useEffect(() => {
     if (writing.editing || !writingPointId) return;
     setReturnPointId(writingPointId);
