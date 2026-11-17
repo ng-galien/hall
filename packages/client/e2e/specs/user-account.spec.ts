@@ -419,7 +419,14 @@ test("the initials name the signed-in person on hover and focus, and Settings sh
   await page.emulateMedia({ colorScheme: null });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/app/");
-  await page.getByTestId("screen-header-account").focus();
+  await expect(page.getByTestId("screen-header-account")).toHaveText("CM");
+  // The keyboard reaches the initials: the same name and address appear on focus.
+  for (let presses = 0; presses < 60; presses += 1) {
+    if (await page.getByTestId("screen-header-account").evaluate((element) => element === document.activeElement))
+      break;
+    await page.keyboard.press("Tab");
+  }
+  await expect(page.getByTestId("screen-header-account")).toBeFocused();
   await expect(page.getByTestId("screen-header-account-name")).toHaveText("Camille Martin-Lefebvre");
   await expect(page.getByTestId("screen-header-account-email")).toHaveText("camille.martin@example.test");
 });
