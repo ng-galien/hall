@@ -126,26 +126,24 @@ jobs:
 
           Les applications de bureau sont des démonstrations. Au premier lancement, choisissez Foncine-le-Bas, commune réelle du Jura avec des données fictives, ou Alésia. L’application charge le jeu choisi et s’ouvre connectée en tant que son administrateur, sans compte à créer ni mot de passe à saisir. Tout fonctionne sur l’ordinateur, avec une base de données embarquée ; rien n’est envoyé à un serveur. Le menu **Démonstration** remet le jeu de données à zéro.
           NOTICE
-          if [ "$TAG" = "v1.4.0" ]; then
+          if [ "$TAG" = "v1.4.1" ]; then
             cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
 
-          ## Nouveautés de la version 1.4.0
+          ## Nouveautés de la version 1.4.1
 
-          - Démonstration : choisissez Foncine-le-Bas, Jura, ou Alésia à la première ouverture. Le menu Démonstration permet de remettre les données à zéro et de changer de jeu.
-          - Site public : un parcours suit une affaire de Foncine-le-Bas, de sa préparation à la délibération ; les captures présentent Hall, et chaque système dispose de son téléchargement et de ses étapes d’installation.
-          - Procurations : enregistrez les pouvoirs écrits et leur document avant la séance ; ils sont repris lors de l’appel à l’ouverture.
-          - Documents : accès direct à « Mon espace », affaires dépliables dans l’explorateur, couleurs de dossiers conservées dans les différentes vues et dans les imports d’affaires.
-          - Téléphone : formulaires et choix s’ouvrent depuis le bas de l’écran ; le retour ferme d’abord l’élément ouvert ; recherche, calendrier, cartes et documents s’adaptent à la largeur disponible.
-          - Tableur : lecture sans clavier à l’ouverture sur téléphone, modification par « Modifier » et « Terminé », enregistrement des changements sans écriture à la simple ouverture.
-          - Agenda : un conseiller peut créer des rendez-vous et modifier ou supprimer ceux dont il est l’auteur ; un agenda ouvert se met à jour après un changement dans une autre session.
-          - Séance : confirmation des déports, de la suspension et de la clôture d’un point ; récapitulatif des informations avant confirmation d’un vote.
-          - Photos : réduction avant envoi, emplacement visible pendant le chargement et conservation de l’image lors de l’enregistrement du texte.
-          - Comptes : affichage du mot de passe à la demande, erreurs de saisie et d’envoi de courriel précisées ; seul un administrateur peut attribuer ou retirer le rôle administrateur.
-          - Maintenance : historique protégé contre les modifications, nettoyage des sessions et liens de mot de passe périmés, dépendances d’empaquetage actualisées et tests accélérés.
+          - Procès-verbal : le texte de chaque point s’affiche directement ; une commande montre les notes de séance de tous les points à côté du texte. Au téléphone, chaque point s’écrit sur son propre écran.
+          - Procès-verbal : le secrétaire de séance en fonction à la clôture rédige et génère le procès-verbal de sa séance.
+          - Modèles : le procès-verbal est signé par le secrétaire de séance à gauche et par le président de séance à droite, chacun avec sa qualité ; les questions ajoutées en séance sont imprimées dans une section à part.
+          - Cartes : le champ de recherche est posé sur la carte et ouvre la liste de toutes les cartes, avec l’affaire ou le dossier de chacune ; la carte occupe toute la largeur et un seul retour quitte l’écran. Les commandes posées sur la carte se réduisent à leur icône quand la place manque.
+          - Contacts et élus : le numéro et l’adresse d’une personne ouvrent l’appel et le courriel ; au téléphone, chaque ligne les propose par deux icônes.
+          - Listes : modèles, délibérations, choix de personnes et documents récents suivent le même classement par nom ; les délibérations d’une séance sont classées par numéro.
+          - Droits : dans une nouvelle installation, la modification des brouillons de courriel n’est plus accordée par défaut aux conseillers ; une installation existante conserve les droits déjà enregistrés.
+          - Application installée sur téléphone : l’adresse de chaque icône suit son image, pour qu’un nouveau logo remplace l’icône installée.
+          - Démonstration : les délibérations de Foncine-le-Bas sont numérotées dans l’ordre de l’ordre du jour.
 
           ## Serveur existant
 
-          Le paquet serveur `ng-galien-hall-1.4.0.tgz` est fourni séparément des démonstrations. La version 1.4.0 modifie le schéma : procurations, droits sur les rendez-vous et suppression des anciennes tables après contrôles. La [description des migrations](https://github.com/ng-galien/hall/blob/v1.4.0/docs/distribution.md#schema-changes-in-140) et la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.4.0/docs/distribution.md#update-interruption-and-code-rollback) précisent les vérifications. Répétez la migration sur une copie restaurée, puis arrêtez le serveur et conservez une sauvegarde vérifiée avant `hall migrate`. Un retour à la version précédente nécessite la restauration de cette sauvegarde. Les modèles PDF existants ne sont pas remplacés automatiquement.
+          Le paquet serveur `ng-galien-hall-1.4.1.tgz` est fourni séparément des démonstrations. La version 1.4.1 ne crée et ne modifie aucune table : `hall migrate` étend la contrainte des conditions de droits et ajoute le droit du secrétaire de séance sur le procès-verbal. La [description des changements](https://github.com/ng-galien/hall/blob/v1.4.1/docs/distribution.md#schema-changes-in-141) et la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.4.1/docs/distribution.md#update-interruption-and-code-rollback) précisent les vérifications. Arrêtez le serveur et conservez une sauvegarde vérifiée avant `hall migrate`. Les modèles PDF installés ne sont pas remplacés automatiquement : le script `replace-default-templates-1.4.1.sql`, décrit dans [Modèles de documents de la 1.4.1](https://github.com/ng-galien/hall/blob/v1.4.1/docs/distribution.md#document-templates-in-141), installe les nouveaux modèles et laisse intact un modèle personnalisé.
 
           Au premier lancement de cette version, la démonstration recharge son jeu de données ; les modifications faites dans la démonstration précédente ne sont pas conservées.
           NOTICE
