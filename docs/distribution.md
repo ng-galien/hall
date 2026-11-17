@@ -68,6 +68,11 @@ so that it offers the new files:
 gh workflow run pages.yml --ref main
 ```
 
+After its deployment the workflow runs `npm run check:site-downloads`, which reads the
+deployed page and fails unless it announces the latest release and links to its six files and
+`SHA256SUMS.txt`, each reachable, with no address of an older release. Run it by hand with
+`npm run check:site-downloads -- --site <address>`.
+
 The workflow token needs only `actions: read` and `contents: write`. Authorization
 errors fail closed; this tool does not create credentials or increase their scope.
 The workflow prepares drafts, and does not automatically promote them. Do not use

@@ -41,6 +41,7 @@
     "test:i18n-hmr": "npm run test:i18n-hmr -w @hall/client",
     "check:test-inventory": "node scripts/checks/check-test-inventory.mjs",
     "check:public-artifacts": "node scripts/checks/check-public-artifacts.mjs",
+    "check:site-downloads": "node scripts/distribution/check-site-downloads.mjs",
     "test:all": "node scripts/testing/gate.mjs",
     "check:requirements": "node scripts/checks/check-requirements.mjs",
     "test:requirements": "vitest run tests/meta/check-requirements.test.mjs tests/meta/requirements-ui.test.mjs",
