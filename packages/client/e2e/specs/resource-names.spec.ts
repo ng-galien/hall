@@ -151,10 +151,10 @@ test.describe("names of documents, folders and businesses", () => {
       data: { path: folder, name: "Coupe 17/11", reportName: "Rapport", reportContent: "" },
     });
     expect(business.status(), await business.text()).toBe(201);
-    const created = (await business.json()).properties as { id: string; title: string };
-    expect(created.title).toBe("Coupe 17∕11");
+    const created = (await business.json()).properties as { id: string };
     await page.goto(`/app/workspace?path=${encodeURIComponent(folder)}&councilBusiness=${created.id}`);
     await expect(page.getByTestId("council-business-workbench")).toBeVisible();
+    await expect(page.getByTestId("screen-header-title")).toHaveText("Coupe 17∕11");
     await renameOpened(page, "Coupe de bois / route communale");
     await expect(page.getByTestId("screen-header-title")).toHaveText("Coupe de bois ∕ route communale");
     await expect(alerts(page)).toHaveCount(0);
