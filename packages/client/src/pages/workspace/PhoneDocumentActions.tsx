@@ -10,7 +10,7 @@ import {
   PinnedIcon,
   RedoIcon,
 } from "../../components/icons";
-import { Modal } from "../../components/Ui";
+import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import {
 import { Field } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
 import { useI18n } from "../../i18n/I18nProvider";
+import type { ApiErrorCode } from "../../services/apiClient";
 import { ScreenActions } from "../../shell/headerTrail";
 
 export interface PhoneDocumentAction {
@@ -80,11 +81,14 @@ export function PhoneRenameDialog({
   name,
   onClose,
   onRename,
+  error = null,
 }: {
   open: boolean;
   name: string;
   onClose(): void;
   onRename(name: string): Promise<boolean>;
+  /** The refusal of the last rename, written under the name field. */
+  error?: ApiErrorCode | null;
 }) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -124,6 +128,7 @@ export function PhoneRenameDialog({
             required
           />
         </Field>
+        <RequestErrorBanner compact error={error} testId="phone-rename-error-dismiss" />
         <Button
           className="justify-self-end"
           type="submit"

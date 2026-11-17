@@ -255,7 +255,7 @@ export function CouncilBusinessWorkbench({
                 onError={setActionError}
               />
             ) : null}
-            <RequestErrorBanner error={actionError ?? reportSession.actionError} />
+            <RequestErrorBanner error={phoneRenaming ? null : (actionError ?? reportSession.actionError)} />
           </>
         ) : (
           <WorkspaceWorkbenchHeader
@@ -439,7 +439,11 @@ export function CouncilBusinessWorkbench({
             <PhoneRenameDialog
               open={phoneRenaming}
               name={business.title}
-              onClose={() => setPhoneRenaming(false)}
+              error={actionError}
+              onClose={() => {
+                setPhoneRenaming(false);
+                setActionError(null);
+              }}
               onRename={renameBusiness}
             />
           </>

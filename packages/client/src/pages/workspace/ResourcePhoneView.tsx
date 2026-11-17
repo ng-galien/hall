@@ -254,7 +254,10 @@ export function ResourcePhoneView({
     >
       {writing.control}
       <PhoneDocumentActions actions={actions} />
-      <RequestErrorBanner error={session.actionError} onDismiss={() => session.setActionError(null)} />
+      <RequestErrorBanner
+        error={renaming ? null : session.actionError}
+        onDismiss={() => session.setActionError(null)}
+      />
       <div className="phone-document-content">
         <ResourcePresentationBody
           resource={resource}
@@ -340,7 +343,11 @@ export function ResourcePhoneView({
       <PhoneRenameDialog
         open={renaming}
         name={resource.name}
-        onClose={() => setRenaming(false)}
+        error={session.actionError}
+        onClose={() => {
+          setRenaming(false);
+          session.setActionError(null);
+        }}
         onRename={(name) => session.save(name)}
       />
       {confirmingDelete ? (
