@@ -11,7 +11,7 @@ import { test } from "vitest";
 const clientRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 // @verifies-requirement HALL-FR-DOC-590
-test("a rename keeps the name written by the server and announces a refusal once, with its reason", async () => {
+test("a rename keeps the name written by the server; a refused rename or content is announced once, with its reason", async () => {
   const temporary = mkdtempSync(join(clientRoot, ".tmp-resource-rename-"));
   const entry = join(temporary, "entry.tsx");
   const output = join(temporary, "entry.mjs");
@@ -106,6 +106,25 @@ test("a rename keeps the name written by the server and announces a refusal once
     assert.equal(session.actionError, null);
     assert.equal(session.title, "Rapoutier dessous 17∕11∕2026");
     assert.equal(session.dirty, false);
+
+    useWorkspaceResourcesStore.setState({
+      updateContent: async () => {
+        useWorkspaceResourcesStore.setState({ error: "permission_denied" });
+        return null;
+      },
+    });
+    await act(async () => session.setContent("Coupe le 17/11"));
+    await act(async () => {
+      saved = await session.save();
+    });
+    assert.equal(saved, false);
+    assert.equal(session.actionError, "permission_denied");
+    assert.equal(useWorkspaceResourcesStore.getState().error, null, "a refused content is announced once");
+    assert.equal(
+      session.saveStatus,
+      "dirty",
+      "the save state says the content is not recorded, without a second error",
+    );
   } finally {
     if (root) await act(async () => root.unmount());
     for (const [key, descriptor] of Object.entries(originals)) {

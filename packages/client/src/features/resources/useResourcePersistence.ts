@@ -34,8 +34,8 @@ interface ResourcePersistenceOptions {
   setActionError(error: ApiErrorCode | null): void;
 }
 
-/** The refusal of a metadata update, taken from the store so that the screen announces it only once. */
-function metadataRefusal(): ApiError {
+/** The refusal of an update, taken from the documents store so that the screen announces it only once. */
+function storeRefusal(): ApiError {
   const code = useWorkspaceResourcesStore.getState().error ?? "request_failed";
   useWorkspaceResourcesStore.setState({ error: null });
   return new ApiError(code, 0);
@@ -93,7 +93,7 @@ export function useResourcePersistence({
       const current = resource;
       const pending = run(async () => {
         const statusBefore = saveStatusRef.current;
-        let refusedName = false;
+        let refusal: "name" | "content" | null = null;
         setActionError(null);
         setSaveStatus("saving");
         try {
@@ -115,8 +115,8 @@ export function useResourcePersistence({
                 : { kind: "fixed" },
             });
             if (!metadata) {
-              refusedName = requestedTitle !== undefined;
-              throw metadataRefusal();
+              refusal = requestedTitle !== undefined ? "name" : null;
+              throw storeRefusal();
             }
             if (metadata.kind === "folder") throw new Error("resource_kind_mismatch");
             updated = metadata;
@@ -126,7 +126,10 @@ export function useResourcePersistence({
             const input = resourceContentUpdate(updated, { content, remoteUrl });
             if (!input || !capabilities.updateContent) throw new Error("resource_update_unavailable");
             const contentUpdated = await useWorkspaceResourcesStore.getState().updateContent(updated.id, input);
-            if (!contentUpdated) throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+            if (!contentUpdated) {
+              refusal = "content";
+              throw storeRefusal();
+            }
             if (contentUpdated.kind === "folder") throw new Error("resource_kind_mismatch");
             updated = contentUpdated;
           }
@@ -135,7 +138,7 @@ export function useResourcePersistence({
           return true;
         } catch (failure) {
           setActionError(apiErrorCode(failure));
-          setSaveStatus(refusedName ? statusBefore : "error");
+          setSaveStatus(refusal === "name" ? statusBefore : refusal === "content" ? "dirty" : "error");
           return false;
         }
       })
@@ -180,6 +183,8 @@ export function useResourcePersistence({
     (enabled: boolean) => {
       if (!resource || !capabilities.updateMetadata || !resourceSupportsAutosave(resource)) return;
       void runAfter(async () => {
+        const statusBefore = saveStatusRef.current;
+        let refused = false;
         setActionError(null);
         setSaveStatus("saving");
         try {
@@ -189,7 +194,10 @@ export function useResourcePersistence({
             tags,
             editing: { kind: "autosave", enabled },
           });
-          if (!updated) throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+          if (!updated) {
+            refused = true;
+            throw storeRefusal();
+          }
           if (updated.kind === "folder") throw new Error("resource_kind_mismatch");
           adoptUpdatedResource(updated);
           setAutosaveEnabled(enabled);
@@ -197,7 +205,7 @@ export function useResourcePersistence({
           return true;
         } catch (failure) {
           setActionError(apiErrorCode(failure));
-          setSaveStatus("error");
+          setSaveStatus(refused ? statusBefore : "error");
           return false;
         }
       });

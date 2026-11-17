@@ -164,6 +164,16 @@ function RenameContextMenu({
   );
 }
 
+/** The refusal a store holds, taken from it so that the screen announces it only once, beside the gesture. */
+function takeStoreError(store: {
+  getState(): { error: ApiErrorCode | null };
+  setState(partial: { error: null }): void;
+}): ApiErrorCode | null {
+  const error = store.getState().error;
+  store.setState({ error: null });
+  return error;
+}
+
 /** Rows that unfold like a folder: a folder row and a business row. */
 const unfoldableRowSelector = "li.path-contents-folder, li.path-contents-business";
 
@@ -557,7 +567,10 @@ export function PathContents({
       const separator = sourcePath.lastIndexOf("/");
       const parentPath = separator < 0 ? "" : sourcePath.slice(0, separator);
       const updated = await resourcesStore.relocate(folder.id, { path: parentPath, name: nextName });
-      if (!updated) throw new Error(resourcesStore.error ?? "request_failed");
+      if (!updated) {
+        if (renameSessionRef.current === session) setRenameError(takeStoreError(useWorkspaceResourcesStore));
+        return false;
+      }
       const result = { sourcePath, targetPath: updated.fullPath, updatedAt: updated.updatedAt };
       const active =
         renameSessionRef.current === session &&
@@ -675,13 +688,13 @@ export function PathContents({
     if (!created) {
       setRenameError(
         matchLiteral(target.kind, {
-          councilMatter: () => useCouncilBusinessStore.getState().error,
-          text: () => useWorkspaceResourcesStore.getState().error,
-          spreadsheet: () => useWorkspaceResourcesStore.getState().error,
-          remote: () => useWorkspaceResourcesStore.getState().error,
-          geographic: () => useWorkspaceResourcesStore.getState().error,
-          event: () => useWorkspaceResourcesStore.getState().error,
-          legalReference: () => useWorkspaceResourcesStore.getState().error,
+          councilMatter: () => takeStoreError(useCouncilBusinessStore),
+          text: () => takeStoreError(useWorkspaceResourcesStore),
+          spreadsheet: () => takeStoreError(useWorkspaceResourcesStore),
+          remote: () => takeStoreError(useWorkspaceResourcesStore),
+          geographic: () => takeStoreError(useWorkspaceResourcesStore),
+          event: () => takeStoreError(useWorkspaceResourcesStore),
+          legalReference: () => takeStoreError(useWorkspaceResourcesStore),
         }),
       );
       return false;
@@ -706,7 +719,7 @@ export function PathContents({
     setRenameError(null);
     const created = await resourcesStore.create({ kind: "folder", path: parentPath, name });
     if (!created) {
-      setRenameError(useWorkspaceResourcesStore.getState().error);
+      setRenameError(takeStoreError(useWorkspaceResourcesStore));
       return false;
     }
     const createdPath = created.fullPath;

@@ -141,6 +141,7 @@ export function CouncilBusinessWorkbench({
       });
       if (!folder) {
         setActionError(useWorkspaceResourcesStore.getState().error);
+        useWorkspaceResourcesStore.setState({ error: null });
         return false;
       }
       return Boolean(await useCouncilBusinessStore.getState().refresh(business.id));
