@@ -1,4 +1,3 @@
-import { basename, extname } from "node:path";
 import { promisify } from "node:util";
 import { gzip } from "node:zlib";
 import {
@@ -20,7 +19,7 @@ import { GeographicLayerImportError } from "../../services/geographicLayerImport
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { sendProblem } from "../problemDetails.js";
 import { routeParameter } from "../routeParameter.js";
-import { uploadFileName } from "../uploadFileName.js";
+import { uploadFileName, uploadFileStem } from "../uploadFileName.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: GEOGRAPHIC_LAYER_MAX_FILE_BYTES } });
 const gzipAsync = promisify(gzip);
@@ -62,9 +61,7 @@ export function createGeographicLayersRouter({ geographicLayerService, requestCo
     requireBusinessUpdateForContext,
     async (request, response) => {
       if (!request.file) throw new DomainError("invalid_request");
-      const name = request.body.name
-        ? String(request.body.name)
-        : basename(request.file.originalname, extname(request.file.originalname));
+      const name = request.body.name ? String(request.body.name) : uploadFileStem(request.file.originalname);
       try {
         response.status(201).json(
           await geographicLayerService.importLayer({

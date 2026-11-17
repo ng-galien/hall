@@ -1,3 +1,4 @@
+import { isResourceNameRefusal } from "@hall/api-contract";
 import type { ErrorRequestHandler } from "express";
 import { MulterError } from "multer";
 import { ZodError } from "zod";
@@ -59,6 +60,7 @@ export function loggedError(error: unknown, depth = 0): LoggedError {
 
 // @implements-requirement HALL-TR-DST-040
 // @implements-requirement HALL-TR-DST-050
+// @implements-requirement HALL-FR-DOC-590
 export const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
   const sqlState = hallSqlState(error);
   if (response.locals) response.locals.sqlState = sqlState;
@@ -84,7 +86,8 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     return;
   }
   if (error instanceof ZodError) {
-    sendProblem(request, response, 400, "invalid_request", { errors: error.issues });
+    const nameRefusal = error.issues.find((issue) => isResourceNameRefusal(issue.message))?.message;
+    sendProblem(request, response, 400, nameRefusal ?? "invalid_request", { errors: error.issues });
     return;
   }
   if (error instanceof DomainError) {

@@ -1,4 +1,3 @@
-import { basename, extname } from "node:path";
 import {
   createEventResourceSchema,
   createResourceSchema,
@@ -10,6 +9,7 @@ import {
   relocateResourceSchema,
   resolveLegalReferenceSchema,
   resourceIdSchema,
+  resourceNameSchema,
   resourcePathSchema,
   resourceReferenceSchema,
   resourceSearchCriteriaSchema,
@@ -25,6 +25,7 @@ import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { mailRepresentation } from "../mailRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
 import { singleFileUpload } from "../singleFileUpload.js";
+import { uploadFileStem } from "../uploadFileName.js";
 
 // @implements-requirement HALL-FR-DOC-280
 // @implements-requirement HALL-FR-CAL-240
@@ -171,9 +172,9 @@ export function createDocumentaryResourcesRouter({
     requireBusinessUpdateForContext,
     async (request, response) => {
       if (!request.file) throw new DomainError("invalid_request");
-      const name = request.body.name
-        ? String(request.body.name)
-        : basename(request.file.originalname, extname(request.file.originalname));
+      const name = resourceNameSchema.parse(
+        request.body.name ? String(request.body.name) : uploadFileStem(request.file.originalname),
+      );
       const path = resourcePathSchema.parse(request.body.path ?? "");
       const document = await parseSpreadsheetImport({
         title: name,

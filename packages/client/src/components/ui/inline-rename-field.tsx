@@ -41,6 +41,7 @@ export function InlineRenameField({
   className,
   testId,
   commitUnchanged = false,
+  commitEmpty = false,
   commitOnBlur = true,
   invalid = false,
   onDraftChange,
@@ -54,6 +55,8 @@ export function InlineRenameField({
   className: string;
   testId: string;
   commitUnchanged?: boolean;
+  /** Sends an empty name too, so that its refusal is said instead of the previous name coming back. */
+  commitEmpty?: boolean;
   commitOnBlur?: boolean;
   invalid?: boolean;
   onDraftChange?(): void;
@@ -80,7 +83,7 @@ export function InlineRenameField({
   const commit = async (reason: "blur" | "commit") => {
     if (commitActive.current) return;
     const nextValue = draft.trim();
-    if (!nextValue || (!commitUnchanged && nextValue === value)) {
+    if ((!nextValue && !commitEmpty) || (!commitUnchanged && nextValue === value)) {
       setDraft(value);
       onEditingChange(false, reason);
       return;

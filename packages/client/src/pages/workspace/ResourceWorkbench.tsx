@@ -79,11 +79,7 @@ export function ResourceWorkbench({
     );
   }
 
-  const renameResource = async (nextTitle: string) => {
-    const saved = await session.save(nextTitle);
-    if (saved) session.setTitle(nextTitle);
-    return saved;
-  };
+  const renameResource = (nextTitle: string) => session.save(nextTitle);
   const remove = async () => {
     if (await session.remove()) onSelect(null);
   };

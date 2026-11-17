@@ -6,8 +6,7 @@ import {
   useImageUploadsPending,
 } from "../../components/editor/imageUploadGate";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
-import type { ApiErrorCode } from "../../services/apiClient";
-import { apiErrorCode } from "../../services/apiClient";
+import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import type { DocumentaryLeafDetail } from "../documents/DocumentaryResourceGlyph";
 import type { ResourceCapabilities } from "./resourceCapabilities";
@@ -29,8 +28,17 @@ interface ResourcePersistenceOptions {
   /** Runs an action once the action on its way, if any, has ended. */
   runAfter: SubmissionRunner;
   adoptUpdatedResource(resource: DocumentaryLeafDetail): void;
+  /** Takes the name a rename recorded, as the server wrote it. */
+  adoptSavedName(name: string): void;
   setAutosaveEnabled(enabled: boolean): void;
   setActionError(error: ApiErrorCode | null): void;
+}
+
+/** The refusal of a metadata update, taken from the store so that the screen announces it only once. */
+function metadataRefusal(): ApiError {
+  const code = useWorkspaceResourcesStore.getState().error ?? "request_failed";
+  useWorkspaceResourcesStore.setState({ error: null });
+  return new ApiError(code, 0);
 }
 
 /**
@@ -50,6 +58,7 @@ export function useResourcePersistence({
   run,
   runAfter,
   adoptUpdatedResource,
+  adoptSavedName,
   setAutosaveEnabled,
   setActionError,
 }: ResourcePersistenceOptions) {
@@ -57,6 +66,8 @@ export function useResourcePersistence({
   const bodyFlushRef = useRef<(() => Promise<boolean>) | null>(null);
   const persistenceResourceIdRef = useRef<string | null | undefined>(undefined);
   const { status: saveStatus, setStatus: setSaveStatus } = useResourceSaveStatus(resourceId);
+  const saveStatusRef = useRef(saveStatus);
+  saveStatusRef.current = saveStatus;
   const latest = useRef<{ save(nextTitle?: string): Promise<boolean>; flush(): Promise<boolean> }>({
     save: () => Promise.resolve(true),
     flush: () => Promise.resolve(true),
@@ -81,6 +92,8 @@ export function useResourcePersistence({
       }
       const current = resource;
       const pending = run(async () => {
+        const statusBefore = saveStatusRef.current;
+        let refusedName = false;
         setActionError(null);
         setSaveStatus("saving");
         try {
@@ -101,9 +114,13 @@ export function useResourcePersistence({
                 ? { kind: "autosave", enabled: autosaveEnabled }
                 : { kind: "fixed" },
             });
-            if (!metadata) throw new Error(useWorkspaceResourcesStore.getState().error ?? "request_failed");
+            if (!metadata) {
+              refusedName = requestedTitle !== undefined;
+              throw metadataRefusal();
+            }
             if (metadata.kind === "folder") throw new Error("resource_kind_mismatch");
             updated = metadata;
+            if (requestedTitle !== undefined) adoptSavedName(metadata.name);
           }
           if (resourceContentDirty(updated, { content, remoteUrl })) {
             const input = resourceContentUpdate(updated, { content, remoteUrl });
@@ -118,7 +135,7 @@ export function useResourcePersistence({
           return true;
         } catch (failure) {
           setActionError(apiErrorCode(failure));
-          setSaveStatus("error");
+          setSaveStatus(refusedName ? statusBefore : "error");
           return false;
         }
       })
@@ -131,6 +148,7 @@ export function useResourcePersistence({
       return pending;
     },
     [
+      adoptSavedName,
       adoptUpdatedResource,
       autosaveEnabled,
       capabilities.updateContent,

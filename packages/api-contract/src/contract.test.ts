@@ -21,9 +21,12 @@ import {
   provisionInitialCouncilMeetingSchema,
   recordMeetingAttendanceSchema,
   recordMeetingOpeningSchema,
+  relocateResourceSchema,
   reorderCouncilAgendaSchema,
   reprogramAgendaItemSchema,
   resourceDetailSchema,
+  resourceNameSchema,
+  resourceSearchCriteriaSchema,
   saveContactSchema,
   saveCouncilCommitteeSchema,
   scheduleAgendaItemSchema,
@@ -482,6 +485,29 @@ describe("shared HTTP contract", () => {
 });
 
 // @verifies-requirement HALL-FR-DOC-460
+// @verifies-requirement HALL-FR-DOC-590
+describe("name of a document, a folder or a council business", () => {
+  it("writes each « / » as « ∕ » and keeps the rest of the name", () => {
+    expect(resourceNameSchema.parse(" Rapoutier dessous 17/11/2026.jpg ")).toBe("Rapoutier dessous 17∕11∕2026.jpg");
+    expect(relocateResourceSchema.parse({ path: "photos/2026", name: "17/11" })).toEqual({
+      path: "photos/2026",
+      name: "17∕11",
+    });
+  });
+
+  it("names the reason of a refused name", () => {
+    const reason = (name: string) => resourceNameSchema.safeParse(name).error?.issues.map((issue) => issue.message);
+    expect(reason("  ")).toEqual(["resource_name_required"]);
+    expect(reason(".")).toEqual(["resource_name_reserved"]);
+    expect(reason("..")).toEqual(["resource_name_reserved"]);
+    expect(reason("a".repeat(201))).toEqual(["resource_name_too_long"]);
+  });
+
+  it("searches a typed « / » as the « ∕ » of a name", () => {
+    expect(resourceSearchCriteriaSchema.parse({ query: "17/11/2026" }).query).toBe("17∕11∕2026");
+  });
+});
+
 describe("saved measurements in a geographic document", () => {
   const document = {
     view: { kind: "center", center: [4.5, 47.54], zoom: 15 },

@@ -1,4 +1,11 @@
-import { eventDocumentSchema } from "@hall/contracts";
+import {
+  eventDocumentSchema,
+  isResourceNameRefusal,
+  type ResourceNameRefusal,
+  resourceNameRefusals,
+  resourceNameSchema,
+  resourceNameText,
+} from "@hall/contracts";
 import { z } from "zod";
 
 export const resourceKinds = [
@@ -26,12 +33,7 @@ export const resourcePathSchema = z
         !path.split("/").some((segment) => segment === "." || segment === "..")),
     "Resource path must be normalized",
   );
-export const resourceNameSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(200)
-  .refine((name) => !name.includes("/") && name !== "." && name !== "..", "Resource name is invalid");
+export { isResourceNameRefusal, type ResourceNameRefusal, resourceNameRefusals, resourceNameSchema, resourceNameText };
 export const resourceSlugSchema = z
   .string()
   .min(1)
@@ -698,7 +700,7 @@ export const resourceSearchCriteriaSchema = z.object({
   preferredIds: z.array(resourceIdSchema).optional(),
   excludedIds: z.array(resourceIdSchema).optional(),
   includedIds: z.array(resourceIdSchema).optional(),
-  query: z.string().max(200).default(""),
+  query: z.string().max(200).overwrite(resourceNameText).default(""),
   paths: z.array(resourcePathSchema).default([]),
   kinds: z.array(resourceKindSchema).default([]),
   tags: resourceTagsSchema.default([]),

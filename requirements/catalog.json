@@ -11055,6 +11055,46 @@
         }
       ]
     },
+    "HALL-FR-DOC-590": {
+      "name": "RESOURCE_NAME_KEEPS_ITS_SLASHES",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-17"
+      },
+      "statement": "Le nom d’un document, d’un dossier ou d’une affaire s’écrit librement, « / » compris ; un nom refusé l’est par une seule erreur qui en dit la raison.",
+      "acceptanceCriteria": [
+        "Un nom tapé avec « / » pour un document, un dossier ou une affaire est accepté et enregistré avec « ∕ » à la place de chaque « / » : « Rapoutier dessous 17/11/2026 » devient « Rapoutier dessous 17∕11∕2026 », et c’est ce nom qui s’affiche et qui nomme le fichier téléchargé.",
+        "Une recherche tapée avec « / » retrouve les noms enregistrés avec « ∕ ».",
+        "Un nom vide, « . », « .. », de plus de 200 caractères ou déjà pris dans le dossier est refusé par une seule erreur, à côté du champ du nom, dont le texte nomme la raison ; le serveur répond resource_name_required, resource_name_reserved, resource_name_too_long ou workspace_title_conflict."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "Un nom tapé avec « / » pour un document, un dossier ou une affaire est accepté et enregistré avec « ∕ » à la place de chaque « / » : « Rapoutier dessous 17/11/2026 » devient « Rapoutier dessous 17∕11∕2026 », et c’est ce nom qui s’affiche et qui nomme le fichier téléchargé.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "Une recherche tapée avec « / » retrouve les noms enregistrés avec « ∕ ».",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "Un nom vide, « . », « .. », de plus de 200 caractères ou déjà pris dans le dossier est refusé par une seule erreur, à côté du champ du nom, dont le texte nomme la raison ; le serveur répond resource_name_required, resource_name_reserved, resource_name_too_long ou workspace_title_conflict.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Le 17 novembre 2026, le renommage d’une photo en « Rapoutier dessous 17/11/2026.jpg » sur l’installation de la mairie affichait deux erreurs sans raison. Mots d’Alexandre : « c'est pas normal que j'ai deux messages d'erreur » ; « Les slash dans les noms, faudrait pouvoir les gérer, d'une manière ou d'une autre. » Décision du coordinateur : « / » s’écrit « ∕ » (U+2215) à l’entrée de la règle de nom partagée ; les chemins de dossier gardent « / » comme séparateur ; aucune donnée existante n’est modifiée.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MIN-270": {
       "name": "EXAMINED_DELIBERATIONS_LIST",
       "nature": "functional",

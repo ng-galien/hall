@@ -170,6 +170,7 @@ export function WorkspaceWorkbenchHeader({
         label={titleLabel}
         className="hall-input workbench-title-inline-input"
         testId="workspace-workbench-title-input"
+        commitEmpty
       >
         {heading}
       </InlineRenameField>

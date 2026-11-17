@@ -90,6 +90,9 @@ export type ApiErrorCode =
   | "conflict"
   | "user_email_conflict"
   | "workspace_title_conflict"
+  | "resource_name_required"
+  | "resource_name_reserved"
+  | "resource_name_too_long"
   | "workspace_folder_conflict"
   | "workspace_folder_not_found"
   | "council_decision_not_found"
@@ -235,6 +238,9 @@ const apiErrorCodes = new Set<ApiErrorCode>([
   "conflict",
   "user_email_conflict",
   "workspace_title_conflict",
+  "resource_name_required",
+  "resource_name_reserved",
+  "resource_name_too_long",
   "workspace_folder_conflict",
   "workspace_folder_not_found",
   "council_decision_not_found",

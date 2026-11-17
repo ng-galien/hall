@@ -1,4 +1,4 @@
-import { eventDocumentSchema } from "@hall/contracts";
+import { eventDocumentSchema, resourceNameSchema } from "@hall/contracts";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { type ZodType, z } from "zod";
 import { recordAuditEvent } from "./audit.js";
@@ -32,12 +32,7 @@ export const resourcePathSchema = z
         !path.split("/").some((segment) => segment === "." || segment === "..")),
     "Resource path must be normalized",
   );
-export const resourceNameSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(200)
-  .refine((name) => !name.includes("/") && name !== "." && name !== "..", "Resource name is invalid");
+export { resourceNameSchema };
 export const resourceIdSchema = z.string().uuid();
 const resourceSlugSchema = z
   .string()

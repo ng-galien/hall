@@ -39,9 +39,7 @@ export function EventSheet({
   const saveName = async () => {
     const next = name.trim();
     if (!next || next === savedName || !session.capabilities.updateMetadata) return true;
-    const saved = await session.save(next);
-    if (saved) session.setTitle(next);
-    return saved;
+    return session.save(next);
   };
   const close = async () => {
     if (closing) return;

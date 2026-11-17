@@ -1,4 +1,4 @@
-import type { ResourceKind } from "@hall/api-contract";
+import { type ResourceKind, resourceNameText } from "@hall/api-contract";
 import type { CouncilDecisionStatus, MeetingStatus, ReferenceEntityKind } from "@hall/domain";
 import { compareNameParts } from "./names";
 
@@ -43,9 +43,9 @@ export function normalizeForSearch(value: string): string {
     .replace(/\p{Diacritic}/gu, "");
 }
 
-/** Plain text terms; a trailing `#fragment` belongs to SearchBox facet completion. */
+/** Plain text terms, « / » written as in a name; a trailing `#fragment` belongs to SearchBox facet completion. */
 function searchTerms(raw: string): string[] {
-  return normalizeForSearch(raw)
+  return normalizeForSearch(resourceNameText(raw))
     .split(/\s+/)
     .filter((term) => term.length > 0 && !term.startsWith("#"));
 }

@@ -202,6 +202,7 @@ export function useResourceSession({ resourceId }: { resourceId: string | null }
     run,
     runAfter,
     adoptUpdatedResource,
+    adoptSavedName: editTitle,
     setAutosaveEnabled,
     setActionError,
   });

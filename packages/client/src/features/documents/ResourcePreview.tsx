@@ -180,11 +180,7 @@ export function ResourcePreviewWithSession({
               titleLabel={t("resources.textTitle")}
               onTitleChange={
                 resource.kind === "event" && session.capabilities.updateMetadata
-                  ? async (nextTitle) => {
-                      const saved = await session.save(nextTitle);
-                      if (saved) session.setTitle(nextTitle);
-                      return saved;
-                    }
+                  ? (nextTitle) => session.save(nextTitle)
                   : undefined
               }
               date={documentaryResourceDate(resource)}

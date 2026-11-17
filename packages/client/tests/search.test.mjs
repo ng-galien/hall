@@ -149,3 +149,12 @@ test("business documents precede nearby results without excluding other resource
     ["other"],
   );
 });
+
+// @verifies-requirement HALL-FR-DOC-590
+test("a typed « / » finds the « ∕ » of a name", () => {
+  const photos = [{ kind: "resource", id: "p1", label: "Rapoutier dessous 17∕11∕2026.jpg" }];
+  assert.deepEqual(
+    searchEntities(photos, "17/11/2026").results.map((entry) => entry.id),
+    ["p1"],
+  );
+});

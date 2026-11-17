@@ -692,7 +692,7 @@ export function PathContents({
     }
     const createdPath = created.fullPath;
     setCreatingFolderParent(null);
-    setFeedback(t("workspace.folderCreatedFeedback", { name: name }));
+    setFeedback(t("workspace.folderCreatedFeedback", { name: created.name }));
     window.requestAnimationFrame(() => {
       treeRef.current
         ?.querySelector<HTMLButtonElement>(`button[data-workspace-node-key="folder:${createdPath}"]`)

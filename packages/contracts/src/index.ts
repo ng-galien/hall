@@ -9,3 +9,4 @@ export * from "./meetingDocuments.js";
 export * from "./meetingEntry.js";
 export * from "./meetingNotice.js";
 export * from "./preparedCouncilSubject.js";
+export * from "./resourceName.js";
