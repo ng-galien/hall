@@ -43,6 +43,11 @@ export const sharedSamples = [
     screens: ["accueil", "dossier", "contact", "seance-preparation"],
   },
   {
+    component: "services et fonctions communes sans dessin",
+    files: /src\/(lib|services)\//,
+    screens: ["accueil", "documents", "dossier", "contact"],
+  },
+  {
     component: "jetons et styles communs",
     files: /styles\/(tokens|components|mobile)\.css$|styles\.css$|theme\/|src\/(App|main)\.tsx$/,
     screens: ["accueil", "dossier", "contact", "seance-preparation"],
