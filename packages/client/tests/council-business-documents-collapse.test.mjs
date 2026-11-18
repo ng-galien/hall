@@ -72,6 +72,8 @@ vi.mock("../src/features/documents/PdfPreviewButton", () => ({
 vi.mock("../src/pages/workspace/AttachmentPicker", () => ({ AttachmentPicker: () => null }));
 vi.mock("../src/pages/workspace/CouncilBusinessSubjects", () => ({ CouncilBusinessSubjects: () => null }));
 vi.mock("../src/pages/workspace/BusinessDocumentTree", () => ({
+  useBusinessDocuments: () => ({ root: "folder/First", filed: [], elsewhere: [], loaded: true, count: 1 }),
+  BusinessFolderCreateButton: () => null,
   BusinessDocumentTree: () =>
     h("details", { "data-testid": "document-descendant" }, h("summary", {}, "Document"), "Document content"),
 }));

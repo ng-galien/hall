@@ -333,6 +333,9 @@ export const fr: Messages = {
 
   "workspace.openDocumentFullscreen": "Ouvrir en plein écran",
   "workspace.businessDocumentsEmpty": "Aucun document n’est rattaché à cette affaire.",
+  "workspace.businessDocumentsElsewhere": "Associés, rangés ailleurs",
+  "workspace.dissociateFromBusiness": "Retirer de l’affaire",
+  "workspace.fileIntoBusiness": "Ranger dans le dossier de l’affaire",
   "workspace.openDocument": "Ouvrir le document",
   "workspace.proposalCategory": "Projets de délibération",
   "workspace.questionCategory": "Questions ouvertes",

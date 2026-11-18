@@ -1,5 +1,5 @@
 import { findSirenLink } from "@hall/api-contract";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
@@ -8,7 +8,6 @@ import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
 import { ColorIcon, EditIcon, PinIcon, PinnedIcon } from "../../components/icons";
 import { MarkdownView } from "../../components/MarkdownView";
 import { RequestErrorBanner } from "../../components/Ui";
-import { ExplorerTree } from "../../components/ui/explorer-tree";
 import { ListRow, ListRows } from "../../components/ui/list-row";
 import { CouncilBusinessCommittees } from "../../features/council-business/CouncilBusinessCommittees";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
@@ -32,7 +31,7 @@ import { useCouncilDecisionsStore } from "../../stores/councilDecisionsStore";
 import { useWorkspaceCouncilActivityStore } from "../../stores/workspaceCouncilActivityStore";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { AttachmentPicker } from "./AttachmentPicker";
-import { BusinessDocumentTree } from "./BusinessDocumentTree";
+import { BusinessDocumentTree, BusinessFolderCreateButton, useBusinessDocuments } from "./BusinessDocumentTree";
 import { CouncilBusinessSubjects } from "./CouncilBusinessSubjects";
 import { FolderColorPicker } from "./FolderColorPicker";
 import {
@@ -80,12 +79,21 @@ export function CouncilBusinessWorkbench({
   });
   const { submitting, run } = useSubmitting();
   const preparedSubjects = useCouncilBusinessStore((state) => state.preparedSubjects);
-  const subjectResourceIds = new Set(
-    preparedSubjects
-      .filter((subject) => subject.councilBusinessId === business.id)
-      .map((subject) => subject.textResourceId),
+  const subjectResourceKey = preparedSubjects
+    .filter((subject) => subject.councilBusinessId === business.id)
+    .map((subject) => subject.textResourceId)
+    .join("\n");
+  const subjectResourceIds = useMemo(
+    () => new Set(subjectResourceKey.split("\n").filter(Boolean)),
+    [subjectResourceKey],
   );
-  const attachedResources = business.resources.filter((resource) => !subjectResourceIds.has(resource.id));
+  const documents = useBusinessDocuments(business, subjectResourceIds);
+  const phoneDocuments = [
+    ...documents.filed.filter(
+      (resource): resource is (typeof business.resources)[number] => resource.kind !== "folder",
+    ),
+    ...documents.elsewhere,
+  ];
   const folderRepresentation = useWorkspaceResourcesStore(
     (state) => state.representations[business.folderResourceId] ?? null,
   );
@@ -354,17 +362,25 @@ export function CouncilBusinessWorkbench({
           className="business-content-section"
           testId="business-category-documents"
           title={t("workspace.documentCategory")}
-          count={documentsLoaded ? attachedResources.length : undefined}
+          count={documentsLoaded && documents.loaded ? documents.count : undefined}
           open={documentsOpen}
           onOpenChange={setDocumentsOpen}
           actions={
-            <AttachmentPicker
-              business={business}
-              disabled={submitting}
-              onCreate={createDocument}
-              onAttached={() => void loadCouncilActivity()}
-              onError={setActionError}
-            />
+            <>
+              {phone ? null : (
+                <BusinessFolderCreateButton
+                  root={documents.root}
+                  onCreated={() => void useCouncilBusinessStore.getState().loadResources(business.id)}
+                />
+              )}
+              <AttachmentPicker
+                business={business}
+                disabled={submitting}
+                onCreate={createDocument}
+                onAttached={() => void loadCouncilActivity()}
+                onError={setActionError}
+              />
+            </>
           }
         >
           {!documentsOpen ? null : documentsError ? (
@@ -379,33 +395,33 @@ export function CouncilBusinessWorkbench({
             </div>
           ) : !documentsLoaded ? (
             <LoadingIndicator size="zone" label={t("common.loading")} />
-          ) : phone && attachedResources.length ? (
-            <ListRows className="business-phone-list" data-testid="business-phone-documents">
-              {attachedResources.map((resource) => (
-                <ListRow
-                  key={resource.id}
-                  to={`/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id, fromBusiness: business.id })}`}
-                  openTestId={`business-phone-document-${resource.id}`}
-                  head={<DocumentaryResourceGlyph resource={resource} />}
-                  title={resource.name}
-                />
-              ))}
-            </ListRows>
-          ) : attachedResources.length ? (
-            <ExplorerTree className="business-document-tree" data-testid="business-resource-tree">
-              <BusinessDocumentTree
-                resources={attachedResources}
-                basePath={business.folderPath}
-                onOpen={setViewedResourceId}
-                onRenamed={async () => {
-                  await useCouncilBusinessStore.getState().loadResources(business.id);
-                }}
-              />
-            </ExplorerTree>
+          ) : phone ? (
+            phoneDocuments.length ? (
+              <ListRows className="business-phone-list" data-testid="business-phone-documents">
+                {phoneDocuments.map((resource) => (
+                  <ListRow
+                    key={resource.id}
+                    to={`/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id, fromBusiness: business.id })}`}
+                    openTestId={`business-phone-document-${resource.id}`}
+                    head={<DocumentaryResourceGlyph resource={resource} />}
+                    title={resource.name}
+                  />
+                ))}
+              </ListRows>
+            ) : (
+              <p className="workspace-list-empty" data-testid="business-documents-empty">
+                {t("workspace.businessDocumentsEmpty")}
+              </p>
+            )
           ) : (
-            <p className="workspace-list-empty" data-testid="business-documents-empty">
-              {t("workspace.businessDocumentsEmpty")}
-            </p>
+            <BusinessDocumentTree
+              business={business}
+              documents={documents}
+              onOpen={setViewedResourceId}
+              onChanged={async () => {
+                await useCouncilBusinessStore.getState().loadResources(business.id);
+              }}
+            />
           )}
         </CollapsibleSection>
 

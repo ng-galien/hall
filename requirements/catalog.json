@@ -8938,9 +8938,9 @@
         "state": "accepted",
         "since": "2026-09-12"
       },
-      "statement": "Dans les documents d’une affaire, chaque dossier est désigné par son nom lisible, et jamais uniquement par la notation relative « .. ».",
+      "statement": "Dans les documents d’une affaire, chaque dossier est désigné par son nom ; un document associé rangé hors du dossier de l’affaire indique le chemin de son dossier.",
       "acceptanceCriteria": [
-        "Les dossiers parents affichent leur nom réel ; la racine est désignée par le libellé commun Documents.",
+        "Les sous-dossiers du dossier de l’affaire affichent leur nom ; un document associé rangé ailleurs affiche le chemin de son dossier, et la racine est désignée par le libellé commun Documents.",
         "Les documents conservent leur classement et leur ouverture existants."
       ],
       "clauses": [
@@ -8948,6 +8948,12 @@
           "key": "readable-document-folders",
           "origin": "product",
           "statement": "Identifier le répertoire des documents par son nom au lieu de « .. ».",
+          "sourceIds": []
+        },
+        {
+          "key": "business-folder-tree",
+          "origin": "product",
+          "statement": "Depuis le 18 novembre 2026, l’arborescence d’une affaire est celle de son dossier (HALL-FR-WSP-510) ; la notation relative « .. » n’existe plus.",
           "sourceIds": []
         }
       ]
@@ -9269,7 +9275,7 @@
       },
       "statement": "La section « Documents » d’une affaire se replie par son en-tête et chaque document s’ouvre en plein écran depuis sa ligne.",
       "acceptanceCriteria": [
-        "L’en-tête de la section, avec le titre « Documents » et le nombre de documents rattachés, la replie ou la rouvre et indique son état ouvert ou replié.",
+        "L’en-tête de la section, avec le titre « Documents » et le nombre de documents de l’affaire, rangés dans son dossier ou associés, la replie ou la rouvre et indique son état ouvert ou replié.",
         "Sur ordinateur et tablette, la section est repliée à l’ouverture d’une affaire et lors du changement d’affaire ; un clic sur l’en-tête la replie ou la rouvre ; une actualisation de la même affaire conserve le choix manuel et les branches de documents dépliées. Les actions de création et de rattachement restent visibles à droite de l’en-tête dans les deux états.",
         "Chaque ligne de document porte une action « Ouvrir en plein écran », visible avec son infobulle, qui ouvre le document dans la visionneuse partagée avec les droits de l’utilisateur.",
         "Sur ordinateur et tablette, le contenu d’un document reste aussi consultable dans la ligne dépliée. Sur un téléphone, la section présente la liste des documents de l’affaire et chaque document s’ouvre sur sa propre page.",
@@ -12738,6 +12744,81 @@
           "key": "order-rule",
           "origin": "product",
           "statement": "Règle acceptée par le propriétaire le 15 novembre 2026 pour la version 1.4.0 : sous-dossiers, puis affaires, puis documents, chacun par nom, le même ordre sur tous les écrans qui montrent un dossier ; comparaison française des noms, accents et majuscules ignorés, nombres dans l’ordre naturel ; un document garde sa place à l’ouverture et à l’enregistrement, un document créé ou renommé prend la place de son nom.",
+          "sourceIds": []
+        }
+      ]
+    },
+    "HALL-FR-WSP-510": {
+      "name": "BUSINESS_DOCUMENTS_ARE_ITS_FOLDER_AND_ITS_ASSOCIATIONS",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-18"
+      },
+      "statement": "Les documents d’une affaire sont ceux rangés dans son dossier, à toute profondeur, et ceux qui lui sont associés depuis un autre dossier ; l’affaire permet de classer son dossier.",
+      "acceptanceCriteria": [
+        "La section « Documents » d’une affaire montre l’arborescence complète du dossier de l’affaire : ses sous-dossiers, vides compris, et tous les documents qui s’y trouvent, rattachés ou non. Être rangé dans le dossier de l’affaire suffit pour faire partie de l’affaire. Le rapport et les textes des sujets préparés restent dans leurs propres sections.",
+        "À part, la section montre les documents associés à l’affaire et rangés hors de son dossier, chacun avec l’emplacement de son dossier ; ils ne sont pas déplacés.",
+        "Dans cette arborescence, qui en a le droit crée un sous-dossier, à la racine du dossier de l’affaire ou dans un sous-dossier, renomme un document ou un dossier et déplace un document ou un dossier par « Déplacer vers… », la même commande que dans l’écran Documents, ou par glisser-déposer sur un dossier de l’arborescence.",
+        "« Joindre un document existant » associe à l’affaire un document rangé ailleurs ; « Retirer de l’affaire » supprime cette association sans toucher au document ; « Ranger dans le dossier de l’affaire » déplace un document associé dans le dossier de l’affaire. Aucun document associé n’est rangé automatiquement.",
+        "Un document ou un dossier sorti du dossier de l’affaire, depuis l’affaire ou depuis l’écran Documents, quitte l’affaire : son association avec cette affaire est supprimée. Déplacer ou renommer le dossier de l’affaire lui-même garde ses documents dans l’affaire. Le rapport de l’affaire et le texte d’un projet de délibération restent dans le dossier de l’affaire (HALL-FR-WSP-020, HALL-FR-WSP-220).",
+        "Les associations existantes restent ; les documents déjà rangés dans le dossier d’une affaire y apparaissent sans aucune reprise de données.",
+        "Chaque ligne porte un bouton d’actions visible qui ouvre les mêmes commandes que son menu contextuel ; le clic droit reste un raccourci.",
+        "Un même document peut être associé à plusieurs affaires."
+      ],
+      "clauses": [
+        {
+          "key": "criterion-1",
+          "origin": "product",
+          "statement": "La section « Documents » d’une affaire montre l’arborescence complète du dossier de l’affaire : ses sous-dossiers, vides compris, et tous les documents qui s’y trouvent, rattachés ou non. Être rangé dans le dossier de l’affaire suffit pour faire partie de l’affaire. Le rapport et les textes des sujets préparés restent dans leurs propres sections.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-2",
+          "origin": "product",
+          "statement": "À part, la section montre les documents associés à l’affaire et rangés hors de son dossier, chacun avec l’emplacement de son dossier ; ils ne sont pas déplacés.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-3",
+          "origin": "product",
+          "statement": "Dans cette arborescence, qui en a le droit crée un sous-dossier, à la racine du dossier de l’affaire ou dans un sous-dossier, renomme un document ou un dossier et déplace un document ou un dossier par « Déplacer vers… », la même commande que dans l’écran Documents, ou par glisser-déposer sur un dossier de l’arborescence.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-4",
+          "origin": "product",
+          "statement": "« Joindre un document existant » associe à l’affaire un document rangé ailleurs ; « Retirer de l’affaire » supprime cette association sans toucher au document ; « Ranger dans le dossier de l’affaire » déplace un document associé dans le dossier de l’affaire. Aucun document associé n’est rangé automatiquement.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-5",
+          "origin": "product",
+          "statement": "Un document ou un dossier sorti du dossier de l’affaire, depuis l’affaire ou depuis l’écran Documents, quitte l’affaire : son association avec cette affaire est supprimée. Déplacer ou renommer le dossier de l’affaire lui-même garde ses documents dans l’affaire. Le rapport de l’affaire et le texte d’un projet de délibération restent dans le dossier de l’affaire (HALL-FR-WSP-020, HALL-FR-WSP-220).",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-6",
+          "origin": "product",
+          "statement": "Les associations existantes restent ; les documents déjà rangés dans le dossier d’une affaire y apparaissent sans aucune reprise de données.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-7",
+          "origin": "product",
+          "statement": "Chaque ligne porte un bouton d’actions visible qui ouvre les mêmes commandes que son menu contextuel ; le clic droit reste un raccourci.",
+          "sourceIds": []
+        },
+        {
+          "key": "criterion-8",
+          "origin": "product",
+          "statement": "Un même document peut être associé à plusieurs affaires.",
+          "sourceIds": []
+        },
+        {
+          "key": "owner-request",
+          "origin": "product",
+          "statement": "Mots du propriétaire, 18 novembre 2026 : « Dans l'affaire, comment j'organise les fichiers, comment je les renomme ? » ; « je veux que ces gestes existent » ; « si on met tout à plat, si on peut pas créer de répertoire, si on peut pas bien réorganiser, ça va vite être le dawa » ; « quand le document, il est dans l'affaire, il est dedans, on l'associe ; et on peut associer un document qui est pas dans l'affaire, on le reclasse pas automatiquement » ; « plusieurs affaires peuvent faire référence à un seul document ».",
           "sourceIds": []
         }
       ]

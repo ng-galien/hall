@@ -495,7 +495,9 @@ function measurementsSvg(data: GeographicResourceData, canvas: Canvas): string {
     .map((measurement) => {
       if (measurement.properties.kind === "lengthMeasurement") {
         const line = measurement.geometry.coordinates as GeographicPosition[];
-        const [x, y] = canvas.project(line[Math.floor(line.length / 2)] ?? line[0]!);
+        const [startX, startY] = canvas.project(line[Math.floor((line.length - 1) / 2)] ?? line[0]!);
+        const [endX, endY] = canvas.project(line[Math.ceil((line.length - 1) / 2)] ?? line[0]!);
+        const [x, y] = [(startX + endX) / 2, (startY + endY) / 2];
         return `<polyline points="${pointsAttribute(line, canvas)}" fill="none"${stroke}/>${text(x, y - 26, measurement.properties.label, formatPrintedLength(measurement.properties.length))}`;
       }
       const polygon = measurement.geometry.coordinates as GeographicPosition[][];

@@ -329,6 +329,9 @@ export const en = {
 
   "workspace.openDocumentFullscreen": "Open full screen",
   "workspace.businessDocumentsEmpty": "No document is attached to this business.",
+  "workspace.businessDocumentsElsewhere": "Associated, filed elsewhere",
+  "workspace.dissociateFromBusiness": "Remove from the business",
+  "workspace.fileIntoBusiness": "File in the business folder",
   "workspace.openDocument": "Open document",
   "workspace.proposalCategory": "Decision proposals",
   "workspace.questionCategory": "Open questions",

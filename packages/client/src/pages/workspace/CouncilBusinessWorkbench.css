@@ -144,3 +144,15 @@
     padding: var(--hall-space-5) var(--hall-space-4) var(--hall-space-4);
   }
 }
+
+.workspace-business-workbench .business-documents-elsewhere {
+  display: grid;
+  gap: var(--hall-space-1);
+}
+
+.workspace-business-workbench .business-documents-elsewhere h3 {
+  margin: 0;
+  color: var(--hall-color-text-muted);
+  font-size: var(--hall-font-size-caption);
+  font-weight: var(--hall-font-weight-semibold);
+}

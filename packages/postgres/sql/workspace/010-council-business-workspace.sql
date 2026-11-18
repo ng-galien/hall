@@ -302,3 +302,37 @@ FOR EACH ROW EXECUTE FUNCTION hall.enforce_business_resource_outside_personal_wo
 CREATE TRIGGER resource_business_outside_personal_workspace
 AFTER INSERT OR UPDATE OF path, name ON hall.resource
 FOR EACH ROW EXECUTE FUNCTION hall.enforce_business_resource_outside_personal_workspace();
+
+-- @implements-requirement HALL-FR-WSP-510
+-- A resource that leaves the folder of an affair leaves the affair: its
+-- association with that affair is removed. A relocation moves a folder before
+-- its descendants, so moving or renaming the folder of the affair itself keeps
+-- every descendant inside it. The text of a prepared subject keeps its own
+-- ownership rules (HV820).
+CREATE FUNCTION hall.dissociate_resource_leaving_business_folder()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+BEGIN
+  DELETE FROM hall.council_business_resource AS link
+  USING hall.council_business_workspace AS workspace
+  JOIN hall.resource AS folder
+    ON folder.id = workspace.folder_resource
+  WHERE link.resource = NEW.id
+    AND link.council_business = workspace.council_business
+    AND starts_with(OLD.full_path, folder.full_path || '/')
+    AND NOT starts_with(NEW.full_path, folder.full_path || '/')
+    AND NOT EXISTS (
+      SELECT FROM hall.prepared_council_subject AS subject WHERE subject.text_resource = NEW.id
+    );
+  RETURN NULL;
+END
+$function$;
+
+CREATE TRIGGER resource_leaving_business_folder_dissociates
+AFTER UPDATE OF path, name ON hall.resource
+FOR EACH ROW
+WHEN (OLD.path IS DISTINCT FROM NEW.path OR OLD.name IS DISTINCT FROM NEW.name)
+EXECUTE FUNCTION hall.dissociate_resource_leaving_business_folder();

@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "./context-menu";
-import { ListRow, ListRows } from "./list-row";
+import { ListRow, type ListRowProps, ListRows } from "./list-row";
 import "./explorer-tree.css";
 
 /** A compact tree of `ExplorerTreeBranch` rows. */
@@ -23,9 +23,11 @@ export function ExplorerTreeBranch({
   onContextMenuCloseAutoFocus,
   expandable = true,
   onActivate,
+  lineProps,
 }: {
   title: ReactNode;
-  icon?: ReactNode;
+  /** The icon, or the icon for the open state, such as a folder that shows itself open. */
+  icon?: ReactNode | ((open: boolean) => ReactNode);
   actions?: ReactNode;
   meta?: ReactNode;
   children: ReactNode;
@@ -35,6 +37,8 @@ export function ExplorerTreeBranch({
   onContextMenuCloseAutoFocus?(event: Event): void;
   expandable?: boolean;
   onActivate?(): void;
+  /** Handlers of the visible line, such as a drag source or a drop target. */
+  lineProps?: ListRowProps["lineProps"];
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [visited, setVisited] = useState(defaultOpen);
@@ -42,6 +46,7 @@ export function ExplorerTreeBranch({
     setVisited(true);
     setOpen(!open);
   };
+  const glyph = typeof icon === "function" ? icon(open) : icon;
   return (
     <ListRow
       data-testid={testId}
@@ -56,10 +61,10 @@ export function ExplorerTreeBranch({
             aria-expanded={open}
             onClick={toggle}
           >
-            {icon}
+            {glyph}
           </button>
         ) : (
-          icon
+          glyph
         )
       }
       title={
@@ -75,6 +80,7 @@ export function ExplorerTreeBranch({
       }
       detail={meta}
       action={actions}
+      lineProps={lineProps}
       wrapLine={
         contextMenu
           ? (line) => (

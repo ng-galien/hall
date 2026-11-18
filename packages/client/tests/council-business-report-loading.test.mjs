@@ -125,7 +125,11 @@ vi.mock("../src/features/documents/PdfPreviewButton", () => ({
 }));
 vi.mock("../src/pages/workspace/AttachmentPicker", () => ({ AttachmentPicker: () => null }));
 vi.mock("../src/pages/workspace/CouncilBusinessSubjects", () => ({ CouncilBusinessSubjects: () => null }));
-vi.mock("../src/pages/workspace/BusinessDocumentTree", () => ({ BusinessDocumentTree: () => null }));
+vi.mock("../src/pages/workspace/BusinessDocumentTree", () => ({
+  useBusinessDocuments: () => ({ root: "path/Affaire", filed: [], elsewhere: [], loaded: true, count: 0 }),
+  BusinessFolderCreateButton: () => null,
+  BusinessDocumentTree: () => null,
+}));
 
 // @verifies-requirement HALL-FR-WSP-370
 test("report shows real initial loading, then content or empty state, and keeps its editor during save", async () => {

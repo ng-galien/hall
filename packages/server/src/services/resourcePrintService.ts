@@ -53,8 +53,13 @@ function columnLabel(index: number): string {
   return label;
 }
 
-function landscape(printHtml: string): string {
-  return printHtml.replace("</head>", "<style>@page { size: A4 landscape; }</style></head>");
+/** The page orientation, and for a map an image kept within the first page under its title. */
+function pageStyle(printHtml: string, orientation: "portrait" | "landscape"): string {
+  const mapHeight = orientation === "landscape" ? 135 : 200;
+  return printHtml.replace(
+    "</head>",
+    `<style>${orientation === "landscape" ? "@page { size: A4 landscape; }" : ""} .hall-template-map.hall-print-map { width: auto; max-width: 100%; max-height: ${mapHeight}mm; margin-inline: auto; }</style></head>`,
+  );
 }
 
 // @implements-requirement HALL-FR-DOC-600
@@ -216,7 +221,7 @@ export function createResourcePrintService({
       if (preview.diagnostics.some((diagnostic) => diagnostic.severity === "error"))
         throw new DomainError("template_invalid", 422);
       return documentRenderer.pdf({
-        html: orientation === "landscape" ? landscape(preview.printHtml) : preview.printHtml,
+        html: pageStyle(preview.printHtml, orientation),
         headerHtml: preview.headerHtml,
         footerHtml: preview.footerHtml,
       });
@@ -263,7 +268,7 @@ export function createResourcePrintService({
     });
     const parts = [
       `# ${markdownText(resource.name)}`,
-      `<img class="hall-template-map" src="${image}" alt="${htmlText(resource.name)}" style="width:100%;max-height:${map.width >= map.height ? 140 : 210}mm;object-fit:contain">`,
+      `<img class="hall-template-map hall-print-map" src="${image}" alt="${htmlText(resource.name)}">`,
     ];
     if (map.elementList) {
       const notes = new Map(
