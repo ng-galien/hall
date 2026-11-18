@@ -1,4 +1,5 @@
 import { type CSSProperties, type ReactElement, type SyntheticEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { CloseIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,8 @@ export interface ColorPickerNamedPresets {
  * focus, and closes on Escape or a pointer outside. An empty `value` means that no colour is chosen. The popover
  * renders in a portal and stops its events, which React would otherwise bubble to the anchor's ancestors.
  * With `live`, each chosen colour is applied at once instead of when the picker closes. With `closeLabel`, the picker
- * has a close button, and a pointer pressed outside only closes it.
+ * has a close button, and a pointer pressed outside only closes it: a transparent layer under the picker receives the
+ * press of any pointer, mouse, pen or touch, so that nothing under it is selected or opened.
  */
 export function ColorPicker({
   value,
@@ -162,8 +164,34 @@ export function ColorPicker({
     onClear?.();
   };
 
+  const stopOutside = (event: SyntheticEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   return (
     <Popover open={open} onOpenChange={changeOpen}>
+      {closeLabel && open
+        ? createPortal(
+            <div
+              className="color-picker-backdrop"
+              aria-hidden="true"
+              data-testid={testId ? `${testId}-backdrop` : undefined}
+              onPointerDown={stopOutside}
+              onMouseDown={stopOutside}
+              onClick={(event) => {
+                stopOutside(event);
+                changeOpen(false);
+              }}
+              onDoubleClick={stopOutside}
+              onContextMenu={(event) => {
+                stopOutside(event);
+                changeOpen(false);
+              }}
+            />,
+            document.body,
+          )
+        : null}
       {anchor ? (
         <PopoverAnchor asChild>{anchor}</PopoverAnchor>
       ) : (
