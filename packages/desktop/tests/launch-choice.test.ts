@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import launchHtml from "../src/launch/index.html?raw";
 
 const loadGeodata = vi.hoisted(() => vi.fn());
@@ -11,15 +11,23 @@ const choose = vi.fn();
 const retry = vi.fn();
 const reportStarted = vi.fn();
 let receive: (message: unknown) => void = () => undefined;
+/** The page opened by the running test; the frames asked by an earlier page are never drawn. */
+let page = 0;
 
 async function openPage(presentation: string) {
   vi.resetModules();
+  page += 1;
+  const opened = page;
   history.replaceState(null, "", `/index.html?presentation=${presentation}`);
   document.open();
   document.write(launchHtml);
   document.close();
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
-  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => setTimeout(() => callback(0), 0));
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
+    setTimeout(() => {
+      if (page === opened) callback(0);
+    }, 0),
+  );
   window.hallLaunch = {
     reportStarted,
     reportMeasurements: vi.fn(),
@@ -34,6 +42,13 @@ async function openPage(presentation: string) {
   };
   await import("../src/launch/main.js");
 }
+
+afterEach(() => {
+  page += 1;
+  vi.unstubAllGlobals();
+  delete window.hallLaunch;
+  delete window.hallLaunchSnapshot;
+});
 
 const testId = (id: string) => document.querySelector<HTMLElement>(`[data-testid='${id}']`)!;
 
