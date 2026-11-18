@@ -786,20 +786,25 @@ export function createTemplateRenderingService({
       if (directive.name === "image") {
         const id = directive.attributes.id;
         const resource = id ? ((await resourcesClient.open(id))?.data ?? null) : null;
-        if (resource?.kind !== "document" || !["image/jpeg", "image/png"].includes(resource.binary.mediaType)) {
+        // An image inserted in a text is an editor asset of that text; a document image is a document resource.
+        const asset = id && !resource ? ((await resourcesClient.openEditorAsset(id))?.data ?? null) : null;
+        const mediaType = resource?.kind === "document" ? resource.binary.mediaType : (asset?.mediaType ?? null);
+        if (!mediaType || !["image/jpeg", "image/png"].includes(mediaType)) {
           values.set(key, { type: "text", value: directive.label });
           if (id) {
             diagnostics.push(
               diagnostic(
                 "unresolved_reference",
-                resource ? `Resource ${id} is not a JPEG or PNG image` : `Image reference not found: ${id}`,
+                resource || asset ? `Resource ${id} is not a JPEG or PNG image` : `Image reference not found: ${id}`,
                 directive,
               ),
             );
           }
           continue;
         }
-        const content = await resourcesClient.readDocumentContent(resource.id);
+        const content = asset
+          ? await resourcesClient.readEditorAssetContent(asset.id)
+          : await resourcesClient.readDocumentContent(id!);
         if (!content) {
           values.set(key, { type: "text", value: directive.label });
           diagnostics.push(diagnostic("unresolved_reference", `Image content not found: ${id}`, directive));
@@ -812,7 +817,7 @@ export function createTemplateRenderingService({
         values.set(key, {
           type: "image",
           url: `data:${content.mediaType};base64,${content.content.toString("base64")}`,
-          alt: directive.label || resource.name,
+          alt: directive.label || (resource?.name ?? asset?.title ?? ""),
           data: {
             hProperties: {
               className: ["hall-template-image", `hall-template-image-${align}`],
