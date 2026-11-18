@@ -24,6 +24,7 @@ export function ExplorerTreeBranch({
   expandable = true,
   onActivate,
   lineProps,
+  titleAction,
 }: {
   title: ReactNode;
   /** The icon, or the icon for the open state, such as a folder that shows itself open. */
@@ -39,6 +40,8 @@ export function ExplorerTreeBranch({
   onActivate?(): void;
   /** Handlers of the visible line, such as a drag source or a drop target. */
   lineProps?: ListRowProps["lineProps"];
+  /** A small command written right after the title, on its line. */
+  titleAction?: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [visited, setVisited] = useState(defaultOpen);
@@ -68,15 +71,18 @@ export function ExplorerTreeBranch({
         )
       }
       title={
-        <button
-          type="button"
-          className="explorer-tree-node"
-          data-testid={`${testId}-open`}
-          aria-expanded={expandable ? open : undefined}
-          onClick={expandable ? toggle : onActivate}
-        >
-          {title}
-        </button>
+        <span className="explorer-tree-title">
+          <button
+            type="button"
+            className="explorer-tree-node"
+            data-testid={`${testId}-open`}
+            aria-expanded={expandable ? open : undefined}
+            onClick={expandable ? toggle : onActivate}
+          >
+            {title}
+          </button>
+          {titleAction}
+        </span>
       }
       detail={meta}
       action={actions}

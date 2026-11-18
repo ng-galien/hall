@@ -114,8 +114,9 @@
   text-overflow: ellipsis;
 }
 
+/* The full screen command follows the name of the document on its line without making the line taller. */
 .workspace-business-workbench .business-document-tree .business-document-view {
-  margin-left: auto;
+  margin-block: calc((var(--hall-line-height-body-large) - var(--hall-size-control)) / 2);
   color: var(--hall-color-text-subtle);
 }
 
@@ -145,9 +146,29 @@
   }
 }
 
+/* The heading of the documents filed elsewhere is a line of the same list, so that their rows share its column. */
 .workspace-business-workbench .business-documents-elsewhere {
-  display: grid;
-  gap: var(--hall-space-1);
+  padding: var(--hall-space-3) var(--hall-space-3) var(--hall-space-1);
+  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+}
+
+/* A document filed elsewhere keeps its type icon on the line of its name, its location under it. */
+.workspace-business-workbench .business-document-elsewhere-line > .list-row-main {
+  align-items: flex-start;
+}
+
+.workspace-business-workbench .business-document-elsewhere-line .list-row-head {
+  height: var(--hall-line-height-body-large);
+}
+
+@media (pointer: fine) {
+  .workspace-business-workbench .business-document-elsewhere-line .list-row-head {
+    height: var(--hall-line-height-body-small);
+  }
+
+  .workspace-business-workbench .business-document-tree .business-document-view {
+    margin-block: calc((var(--hall-line-height-body-small) - var(--hall-size-control)) / 2);
+  }
 }
 
 .workspace-business-workbench .business-documents-elsewhere h3 {

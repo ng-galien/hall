@@ -8,16 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  DeleteIcon,
-  EditIcon,
-  FolderAddIcon,
-  FullscreenIcon,
-  LinkOffIcon,
-  MoreIcon,
-  MoveIcon,
-  OpenIcon,
-} from "../../components/icons";
+import { DeleteIcon, EditIcon, FolderAddIcon, LinkOffIcon, MoreIcon, MoveIcon, OpenIcon } from "../../components/icons";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { ContextMenuItem } from "../../components/ui/context-menu";
 import { ExplorerTree, ExplorerTreeBranch } from "../../components/ui/explorer-tree";
@@ -331,15 +322,20 @@ function dragSource(id: string, movable: boolean) {
     : {};
 }
 
+/** Rows of the documents filed elsewhere, which are not a place to file into. */
+const elsewhereSelector = ".business-documents-elsewhere, .business-document-elsewhere-line";
+
 function dropTarget(onDrop: (payloads: DragPayload[]) => void) {
   return {
     onDragOver: (event: DragEvent) => {
       if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
+      if ((event.target as Element).closest?.(elsewhereSelector)) return;
       event.preventDefault();
       event.stopPropagation();
       event.dataTransfer.dropEffect = "move";
     },
     onDrop: (event: DragEvent) => {
+      if ((event.target as Element).closest?.(elsewhereSelector)) return;
       const payloads = decodeDragPayload(event.dataTransfer.getData(DRAG_TYPE));
       if (!payloads) return;
       event.preventDefault();
@@ -440,7 +436,7 @@ function FullscreenButton({ id, onOpen }: { id: string; onOpen(id: string): void
           aria-label={t("workspace.openDocumentFullscreen")}
           onClick={() => onOpen(id)}
         >
-          <FullscreenIcon />
+          <OpenIcon />
         </Button>
       </TooltipTrigger>
       <TooltipContent>{t("workspace.openDocumentFullscreen")}</TooltipContent>
@@ -535,14 +531,13 @@ function DocumentRow({
           </span>
         ) : undefined
       }
-      actions={
-        <>
-          <FullscreenButton id={resource.id} onOpen={context.onOpen} />
-          <RowCommandsButton commands={commands} testId={`business-document-actions-${resource.id}`} />
-        </>
-      }
+      titleAction={<FullscreenButton id={resource.id} onOpen={context.onOpen} />}
+      actions={<RowCommandsButton commands={commands} testId={`business-document-actions-${resource.id}`} />}
       contextMenu={contextMenuItems(commands)}
-      lineProps={dragSource(resource.id, capabilities.relocate)}
+      lineProps={{
+        ...dragSource(resource.id, capabilities.relocate),
+        ...(elsewhere ? { className: "business-document-elsewhere-line" } : {}),
+      }}
     >
       <li>
         <InlineResourceContent resourceId={resource.id} />
@@ -633,21 +628,19 @@ export function BusinessDocumentTree({
         {...dropTarget((payloads) => context.drop(payloads, documents.root))}
       >
         <FolderContents path={documents.root} context={context} />
+        {documents.elsewhere.length ? (
+          <li className="business-documents-elsewhere" data-testid="business-documents-elsewhere">
+            <h3>{t("workspace.businessDocumentsElsewhere")}</h3>
+          </li>
+        ) : null}
+        {sortByName(
+          documents.elsewhere,
+          (resource) => resource.name,
+          (resource) => resource.id,
+        ).map((resource) => (
+          <DocumentRow key={resource.id} resource={resource} context={context} elsewhere />
+        ))}
       </ExplorerTree>
-      {documents.elsewhere.length ? (
-        <section className="business-documents-elsewhere" data-testid="business-documents-elsewhere">
-          <h3>{t("workspace.businessDocumentsElsewhere")}</h3>
-          <ExplorerTree className="business-document-tree">
-            {sortByName(
-              documents.elsewhere,
-              (resource) => resource.name,
-              (resource) => resource.id,
-            ).map((resource) => (
-              <DocumentRow key={resource.id} resource={resource} context={context} elsewhere />
-            ))}
-          </ExplorerTree>
-        </section>
-      ) : null}
       {gesture?.kind === "rename" ? (
         <NameDialog
           title={t("common.rename")}

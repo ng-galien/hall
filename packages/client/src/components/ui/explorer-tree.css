@@ -12,7 +12,20 @@
 
 .explorer-tree-toggle { display: inline-grid; place-items: center; border-radius: var(--hall-radius-small); }
 
+/* The title and the small command written right after it, on the same line. */
+.explorer-tree-title {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hall-space-1);
+  vertical-align: top;
+}
+
+.explorer-tree-title > :not(.explorer-tree-node) { flex: none; }
+
 .explorer-tree-node {
+  min-width: 0;
   max-width: 100%;
   overflow: hidden;
   text-align: left;
