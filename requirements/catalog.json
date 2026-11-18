@@ -4203,6 +4203,7 @@
         "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur, et un PDF s’affiche page après page, dessiné par Hall, dans un navigateur sans lecteur PDF intégré ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
         "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré. Sur un téléphone, hors conduite de la séance en direct, un document de l’espace de travail ouvert depuis une référence, la recherche ou la composition de l’ordre du jour s’ouvre sur sa propre page ; un rendez-vous ouvert depuis l’agenda s’ouvre dans la feuille du bas de l’agenda (HALL-FR-CAL-060).",
         "La visionneuse présente le document avec les droits de l’utilisateur, quel que soit l’endroit d’où il est ouvert : une carte, un texte ou un tableur que l’utilisateur peut modifier y est modifiable avec son propre éditeur, exactement comme dans la ligne dépliée (pour une carte : mode Dessin, mesures, notes et « Enregistrer ce cadrage »), et il y est présenté en lecture sinon.",
+        "La visionneuse porte les commandes que l’écran Documents offre pour ce document, avec les mêmes droits : renommer, « Déplacer vers… », copier la référence, l’aperçu PDF d’un texte, partager et télécharger un fichier, supprimer, et la commande principale de son type, « Ouvrir dans Cartes » pour une carte. Après une suppression, la visionneuse se ferme.",
         "Les aperçus de PV, délibérations, PDF temporaires et modèles HTML réutilisent le cadre commun, avec un titre identifiant leur document et son contexte ; le corps reste adapté au format. L’en-tête, le contenu et la fermeture sont alignés en clair et sombre, sans changer les octets des documents figés.",
         "Un tableur ouvert dans la ligne dépliée des documents d’une affaire présente une grille de cellules visible et utilisable, sans devoir passer en plein écran ; les modifications restent enregistrées après réouverture.",
         "Sur un téléphone, les pages d’un PDF défilent l’une sous l’autre, s’agrandissent par pincement ou double appui, et l’indication « Page N / total » s’affiche pendant le défilement."
@@ -4218,6 +4219,12 @@
           "key": "shared-document-viewer",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : la visionneuse en plein écran est un seul composant partagé, utilisé partout où un document peut être ouvert.",
+          "sourceIds": []
+        },
+        {
+          "key": "viewer-carries-document-commands",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 18 novembre 2026, sur la vue plein écran d’un document : « Dans la vue plein écran, pourquoi on mettrait pas les contrôles aussi dedans ? Comme ça on règle le problème, on règle au moins le problème renommage » ; « je t'avais dit elle prenait trop de place, le header et tout ».",
           "sourceIds": []
         },
         {
@@ -8721,6 +8728,12 @@
       ],
       "clauses": [
         {
+          "key": "document-reference-current-name",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 18 novembre 2026 : « les références des documents dans le texte du conseil, normalement c'est par l'ID, mais faut vérifier que ça pose pas de problème ». Décision retenue : après un renommage, la référence affiche le nom courant du document, comme le PDF ; le libellé enregistré sert seulement quand le document est introuvable, l’éditeur ne distinguant pas un libellé saisi du nom à l’insertion.",
+          "sourceIds": []
+        },
+        {
           "key": "shared-search",
           "origin": "product",
           "statement": "La recherche commune porte exclusivement sur les titres et noms des ressources.",
@@ -8765,7 +8778,7 @@
         "La navigation clavier et souris désigne le même résultat ; la sélection produit une seule action.",
         "La sélection inline ne rouvre pas une recherche ; seule une configuration propre à la ressource peut suivre.",
         "L’insertion d’un PDF, depuis @ ou le bouton de recherche, utilise la référence inline existante (icône et nom cliquable) et non une carte pleine largeur. Le choix de présentation appartient à une seule autorité partagée.",
-        "Une référence native conserve le libellé explicitement fourni dans le texte, pour les ressources comme pour les contacts, sans renommer sa cible ; en l’absence de libellé, elle affiche le titre courant de la cible. Son lien et sa présentation inline sont conservés.",
+        "Une référence native à un document, en ligne comme en bloc intégré, en édition comme en lecture et dans le PDF, affiche le nom courant du document et suit ses renommages ; le libellé enregistré dans le texte s’affiche seulement quand le document est introuvable. Une référence native à une autre cible, comme un contact, conserve le libellé explicitement fourni dans le texte, sans renommer sa cible ; en l’absence de libellé, elle affiche le titre courant de la cible. Son lien et sa présentation inline sont conservés.",
         "Sur ordinateur et tablette, un clic normal sur une référence native de contact ouvre une fiche contact en lecture dans une modale dédiée, depuis le rapport, l’espace de travail, un document ou son aperçu agrandi. L’affaire, le document et le défilement restent en place ; Échap ou Fermer ferme la fiche et restitue le focus au lien. Les clics modifiés conservent le lien vers la page contact. Le chargement, le contact introuvable et le refus d’accès sont signalés dans la modale.",
         "La fiche contact modale reprend la hiérarchie visuelle et les composants de Hall : identité en en-tête, fonction et organisme, coordonnées regroupées, puis notes lisibles. Elle conserve toutes les informations du contact dans une présentation adaptée aux fenêtres étroites et reste en lecture seule.",
         "Sur ordinateur et tablette, un clic normal sur une référence native de membre du conseil ouvre sa fiche en lecture dans une modale dédiée, depuis l’affaire, sans perdre le document ou le défilement ; elle présente son identité, sa fonction réellement enregistrée, son mandat et ses coordonnées avec les composants de Hall. Échap ou Fermer restitue le focus au lien, les clics modifiés conservent l’accès à la page membre, et les états de chargement, d’absence ou de refus d’accès restent dans la modale.",
@@ -11968,7 +11981,7 @@
         "Un élément ouvert dont le contenu occupe toute la hauteur de l’écran (document PDF ou image, tableur, carte, couche cartographique) s’ouvre avec le bandeau déjà réduit et le contenu prend la hauteur libérée. Au téléphone, son titre est écrit dans la première ligne. Sur ordinateur et tablette, la première ligne porte, après le fil d’Ariane, l’icône de son type, son titre et sa ligne de faits, puis ses commandes avant les initiales ; rien n’est retiré : quand la largeur manque, le titre et les faits passent sous le fil d’Ariane, ou les commandes sur une ligne à droite, plutôt que d’être coupés.",
         "Sur ordinateur et tablette, la ligne du titre d’un élément ouvert (document, carte, tableur, texte, affaire), sur l’écran comme dans la fenêtre d’un document, porte à gauche l’icône de son type et son titre, qui peut passer sur deux lignes, et à droite, sur sa première ligne, dans cet ordre : la commande principale en bouton avec son libellé (« Modifier » ou « Terminé » pour un texte, « Ouvrir dans Cartes » pour une carte), au plus deux icônes pour les commandes les plus fréquentes (« Épingler », « Plein écran »), le menu « … » qui range les autres commandes avec leur libellé en clair (renommer, copier la référence, aperçu PDF, préparer un courriel, partager, télécharger, voir les modifications, couper ou activer la sauvegarde automatique), puis la croix qui ferme l’élément. Quand la largeur manque, les icônes rejoignent le menu « … » avant que le titre soit coupé.",
         "Sous le titre d’un élément ouvert, une ligne de faits écrit sa date, « Modifié le … » ou « Créé le … », et son état d’enregistrement : « Enregistré », « Enregistrement… » ou « Modifications en cours ».",
-        "La fenêtre d’un document suit la même règle : sa première ligne porte le chemin du document et la croix seulement, sa ligne de titre porte le titre et les commandes du document, une seule fois chacune. Au téléphone, la fenêtre d’un document porte sur une seule ligne la flèche de retour, le titre et les commandes du document ; sa ligne de faits écrit le dossier du document avant sa date et son état d’enregistrement, et le contenu suit directement.",
+        "Sur ordinateur et tablette, l’en-tête de la fenêtre d’un document tient sur une seule ligne : le chemin du document, l’icône de son type, son titre et sa ligne de faits, les commandes du document une seule fois chacune, puis la croix ; quand la largeur manque, le chemin se raccourcit d’abord, puis les commandes passent sous le titre, à droite. Au téléphone, la fenêtre d’un document porte sur une seule ligne la flèche de retour, le titre et les commandes du document ; sa ligne de faits écrit le dossier du document avant sa date et son état d’enregistrement, et le contenu suit directement.",
         "La recherche dans Documents, « Rechercher dans Documents… » avec ses filtres, et le champ « Filtrer ce dossier… » apparaissent sur l’écran d’un dossier et jamais sur un élément ouvert.",
         "Le titre n’est pas répété dans le contenu de l’écran : un texte lu sous son titre ne montre pas une première rubrique identique à ce titre."
       ],
