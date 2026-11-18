@@ -198,6 +198,8 @@ function generate(board) {
   write("packages/client/public/icons/icon-192.png", web(192));
   write("packages/client/public/icons/icon-512.png", web(512));
   write("packages/client/public/icons/icon-maskable-512.png", render(work, maskableSvg(), 512, "maskable"));
+  write("packages/client/public/icons/icon-1024.png", web(1024));
+  write("packages/client/public/icons/icon-maskable-1024.png", render(work, maskableSvg(), 1024, "maskable"));
   write("site/public/icons/favicon-32.png", web(32));
   write("site/public/icons/apple-touch-icon.png", web(180));
 

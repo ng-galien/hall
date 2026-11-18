@@ -60,7 +60,9 @@ export function renderManifest(base) {
     icons: [
       { src: iconHref(base, "icon-192.png"), sizes: "192x192", type: "image/png", purpose: "any" },
       { src: iconHref(base, "icon-512.png"), sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: iconHref(base, "icon-1024.png"), sizes: "1024x1024", type: "image/png", purpose: "any" },
       { src: iconHref(base, "icon-maskable-512.png"), sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: iconHref(base, "icon-maskable-1024.png"), sizes: "1024x1024", type: "image/png", purpose: "maskable" },
     ],
   };
 }
