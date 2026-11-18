@@ -1503,7 +1503,9 @@ test("conducts public and secret ballots and leaves an unexamined previous PV un
     });
     await page.getByTestId("decision-view").click();
     await expect(page.getByTestId("decision-document-dialog")).toBeVisible();
-    expect(await page.getByTestId("decision-document-frame").getAttribute("src")).toBe(downloadHref);
+    expect(await page.getByTestId("decision-document-frame").getAttribute("src")).toBe(
+      `${downloadHref}#navpanes=0&pagemode=none`,
+    );
     await page.getByTestId("decision-document-close").click();
     await expect(page.getByTestId("decision-document-dialog")).toBeHidden();
     await page.screenshot({

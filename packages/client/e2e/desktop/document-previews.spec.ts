@@ -83,7 +83,8 @@ async function aligned(page: Page, dialog: Locator, name: string, rich = false, 
   expect(Math.abs(layout.x - frame!.x)).toBeLessThanOrEqual(2);
   expect(Math.abs(layout.y - frame!.y)).toBeLessThanOrEqual(2);
   expect(layout.width).toBeGreaterThan(frame!.width - 4);
-  expect(layout.height).toBeGreaterThan(phonePage ? 43 : 55);
+  if (rich) expect(layout.height).toBeLessThan(64);
+  expect(layout.height).toBeGreaterThan(phonePage ? 43 : rich ? 31 : 55);
   if (phonePage) {
     expect(frame!.x).toBeCloseTo(0, 0);
     expect(frame!.y).toBeCloseTo(0, 0);
@@ -109,6 +110,10 @@ async function aligned(page: Page, dialog: Locator, name: string, rich = false, 
   const closeBox = await close.boundingBox();
   expect(closeBox!.y).toBeGreaterThanOrEqual(layout.y);
   expect(closeBox!.y + closeBox!.height).toBeLessThanOrEqual(layout.y + layout.height + 1);
+  if (rich) {
+    const titleBox = (await title.boundingBox())!;
+    expect(Math.abs(titleBox.y + titleBox.height / 2 - (closeBox!.y + closeBox!.height / 2))).toBeLessThanOrEqual(6);
+  }
   await page.screenshot({ path: test.info().outputPath(`${name}.png`) });
   return { title: await title.innerText(), frame, header: layout };
 }

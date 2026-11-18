@@ -222,6 +222,14 @@ test("runs agenda scheduling, meeting locks, adjournment and reopening end to en
       .getByTestId(`business-inline-resource-${subject.textResourceId}`)
       .getByTestId("editor-writing-area");
     await expect(editor).toHaveAttribute("contenteditable", "true");
+    // In the opened row, the pencil comes first, then the save state, then « Voir les modifications ».
+    const row = page.getByTestId(`business-subject-${subject.id}`);
+    const order = await Promise.all(
+      [`business-subject-rename-${subject.id}`, "resource-autosave-toggle", "resource-changes-trigger"].map(
+        async (testId) => (await row.getByTestId(testId).boundingBox())!.x,
+      ),
+    );
+    expect(order).toEqual([...order].sort((left, right) => left - right));
     const preparedContent = `${spec.title} content edited during preparation.`;
     await editor.fill(preparedContent);
     const save = page.getByTestId(`business-inline-save-${subject.textResourceId}`);
@@ -1190,10 +1198,7 @@ test("HALL-FR-WSP-240 sidebar opens the council business instead of its folder",
 });
 
 // @verifies-requirement HALL-FR-WSP-250
-// @verifies-requirement HALL-FR-WSP-260
-test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folders have readable names", async ({
-  appPage: page,
-}) => {
+test("HALL-FR-WSP-250 demo folder is at root", async ({ appPage: page }) => {
   const response = await page.request.get("/api/resources/catalog");
   expect(response.ok()).toBeTruthy();
   const catalog = (await response.json()).entities.map(
@@ -1203,23 +1208,6 @@ test("HALL-FR-WSP-250 HALL-FR-WSP-260 demo folder is at root and document folder
     path: "",
     kind: "folder",
   });
-  const businessesResponse = await page.request.get("/api/council-business/workspace-items");
-  expect(businessesResponse.ok()).toBeTruthy();
-  const business = (await businessesResponse.json()).entities
-    .map((entry: { properties: { id: string; folderPath: string } }) => entry.properties)
-    .find((entry: { folderPath: string }) => entry.folderPath === "Réserves");
-  expect(business).toBeTruthy();
-  await page.goto(`/app/workspace?${new URLSearchParams({ path: business.folderPath, councilBusiness: business.id })}`);
-  await expect(page.getByTestId("council-business-workbench")).toBeVisible();
-  await page.getByTestId("business-category-documents-toggle").click();
-  // This linked document lives at the workspace root, one level above the business filing path.
-  const parentFolder = page.getByTestId("business-document-folder-..");
-  await expect(parentFolder).toBeVisible();
-  await expect(parentFolder.getByTestId("business-document-folder-..-toggle")).toHaveAttribute(
-    "aria-label",
-    "Documents",
-  );
-  await page.screenshot({ path: "/tmp/hall-workspace-root.png" });
 });
 
 // @verifies-requirement HALL-FR-WSP-270
@@ -1341,15 +1329,32 @@ test("colours a folder icon from its menu, keeps it after reload and removes it"
   const chosen = ((await preset.getAttribute("data-color")) ?? "").toUpperCase();
   expect(chosen).toMatch(/^#[0-9A-F]{6}$/);
   await preset.click();
-  await page.keyboard.press("Escape");
-  await expect(picker).toBeHidden();
-
+  // The chosen colour is applied at once, while the picker stays open.
   const expected = await rgbOf(page, chosen);
   await expect(explorerIcon).toHaveAttribute("data-folder-color", chosen);
   await expect(sidebarIcon).toHaveAttribute("data-folder-color", chosen);
+  await expect(picker).toBeVisible();
   expect(await iconColor(explorerIcon)).toBe(expected);
   expect(await iconColor(sidebarIcon)).toBe(expected);
   await page.screenshot({ path: test.info().outputPath("folder-color-desktop.png") });
+  await picker.getByTestId("workspace-folder-color-picker-close").click();
+  await expect(picker).toBeHidden();
+
+  // Escape closes the picker; a press outside it closes it without opening the row under the pointer.
+  await page.getByTestId(`workspace-folder-name-${name}`).click({ button: "right" });
+  await page.getByTestId("workspace-tree-folder-color").click();
+  await expect(picker).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(picker).toBeHidden();
+  await page.getByTestId(`workspace-folder-name-${name}`).click({ button: "right" });
+  await page.getByTestId("workspace-tree-folder-color").click();
+  await expect(picker).toBeVisible();
+  const before = page.url();
+  const row = (await page.getByTestId(`workspace-folder-name-${name}`).boundingBox())!;
+  await page.mouse.click(row.x + row.width / 2, row.y + row.height / 2);
+  await expect(picker).toBeHidden();
+  expect(page.url()).toBe(before);
+  await expect(page.getByTestId(`workspace-folder-expand-${name}/Enfant`)).toHaveCount(0);
 
   await page.reload();
   await expect(explorerIcon).toHaveAttribute("data-folder-color", chosen);

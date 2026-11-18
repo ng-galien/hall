@@ -1,4 +1,4 @@
-import { expect, runItemCommand, test } from "../fixtures/application";
+import { expect, historySettled, runItemCommand, test } from "../fixtures/application";
 
 // @verifies-requirement HALL-FR-DOC-280
 test("opens recorded history for a non-text resource and its folder", async ({ appPage: page }) => {
@@ -32,6 +32,9 @@ test("opens recorded history for a non-text resource and its folder", async ({ a
     await expect(panel.getByTestId("resource-changes-item")).toHaveCount(3);
     await expect(panel.locator("time")).toHaveCount(3);
     await page.keyboard.press("Escape");
+    // Closing the panel gives its history entry back; the folder address is opened once that return has arrived.
+    await expect(panel).toBeHidden();
+    await historySettled(page);
     await page.goto(`/app/workspace?path=${encodeURIComponent(folderName)}`);
     await runItemCommand(page, "resource-changes-trigger");
     await expect(page.getByTestId("resource-changes-panel").getByTestId("resource-changes-item")).toHaveCount(1);

@@ -120,3 +120,32 @@ test("without the update action a template reads without any way to change it", 
   await expect(page.getByTestId("template-save")).toHaveCount(0);
   await expect(page.getByTestId("template-header-insert-image")).toHaveCount(0);
 });
+
+// @verifies-requirement HALL-FR-DOC-480
+test("the PDF of a text draws the photo inserted in it", async ({ appPage: page }) => {
+  const created = await page.request.post("/api/resources", {
+    data: { kind: "text", path: "", name: `Photo ${Date.now()}`, content: "" },
+  });
+  expect(created.status(), await created.text()).toBe(201);
+  const text = (await created.json()).properties as { id: string };
+  const uploaded = await page.request.post("/api/resources/editor-assets", {
+    multipart: {
+      ownerKind: "textResourceContent",
+      ownerId: text.id,
+      title: "Vue de la place",
+      file: { name: "place.png", mimeType: "image/png", buffer: png },
+    },
+  });
+  expect(uploaded.status(), await uploaded.text()).toBe(201);
+  const asset = (await uploaded.json()).properties as { id: string };
+  const response = await page.request.post("/api/templates/preview-pdf", {
+    data: {
+      bodyMarkdown: `Texte avec une photo.\n\n::image[Vue de la place]{#${asset.id} align="center" width="60"}`,
+      attachPdfDocuments: false,
+    },
+  });
+  expect(response.status(), await response.text()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("application/pdf");
+  expect((await response.body()).toString("latin1")).toMatch(/\/Subtype\s*\/Image/);
+  await page.request.delete(`/api/resources/${text.id}`);
+});

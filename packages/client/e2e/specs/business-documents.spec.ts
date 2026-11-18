@@ -1,5 +1,7 @@
 import { crc32 } from "node:zlib";
+import type { Locator } from "@playwright/test";
 import { expect, runItemCommand, test } from "../fixtures/application";
+import { pdfTextRuns } from "../fixtures/pdfText";
 
 test.use({ builtInPdfViewer: true });
 
@@ -38,8 +40,33 @@ function minimalOdt(): Buffer {
   return Buffer.concat([local, name, data, central, name, end]);
 }
 
+/** The header of the full screen view holds on one row: the place, the title, the commands, then the cross, last. */
+async function expectHeaderOnOneRow(viewer: Locator) {
+  await viewer.evaluate((element) =>
+    Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined))),
+  );
+  const row = await viewer.evaluate((dialog) => {
+    const box = (selector: string) => dialog.querySelector(selector)!.getBoundingClientRect();
+    const close = box('[data-testid="resource-preview-close"]');
+    const middle = (rect: DOMRect) => rect.top + rect.height / 2;
+    const controls = [...dialog.querySelectorAll(".resource-preview-shell-header :is(button, a)")]
+      .map((control) => control.getBoundingClientRect())
+      .filter((rect) => rect.width > 0 && rect.top < close.bottom && rect.bottom > close.top);
+    return {
+      middles: [box(".workspace-breadcrumb"), box("#resource-preview-title"), close].map(middle),
+      lastRight: Math.max(...controls.map((rect) => rect.right)),
+      closeRight: close.right,
+    };
+  });
+  expect(Math.max(...row.middles) - Math.min(...row.middles), "place, title and cross on one row").toBeLessThanOrEqual(
+    6,
+  );
+  expect(row.lastRight, "the cross is the last control of the row").toBeLessThanOrEqual(row.closeRight + 0.5);
+}
+
 // @verifies-requirement HALL-FR-WSP-370
 // @verifies-requirement HALL-FR-DOC-480
+// @verifies-requirement HALL-FR-LAY-100
 test("the business documents section folds by its header and opens each document in the shared viewer", async ({
   appPage: page,
 }) => {
@@ -118,10 +145,10 @@ test("the business documents section folds by its header and opens each document
   await expect(viewer).toHaveAttribute("data-resource-mode", "edit");
   await expect(viewer.getByTestId("editor-writing-area").locator("strong")).toHaveText("rendu");
   await expect(viewer.getByTestId("editor-writing-area")).toHaveAttribute("contenteditable", "true");
-  // The dialog writes each command and the title once: save state, changes and close on its first line, the title below.
+  // The dialog writes the place, the title, each command and the cross once, on one row.
   await expect(viewer.getByTestId("resource-preview-close")).toHaveCount(1);
   await expect(viewer.getByTestId("workspace-breadcrumb-close")).toHaveCount(0);
-  await expect(viewer.locator(".workspace-breadcrumb button")).toHaveCount(1);
+  await expectHeaderOnOneRow(viewer);
   await expect(viewer.getByTestId("resource-autosave-toggle")).toHaveCount(1);
   await expect(viewer.getByTestId("resource-changes-trigger")).toHaveCount(1);
   await expect(viewer.getByTestId("workspace-workbench-title")).toHaveCount(1);
@@ -137,8 +164,8 @@ test("the business documents section folds by its header and opens each document
   await expect(viewer).toBeVisible();
   await expect(viewer.getByTestId("resource-preview-object")).toHaveAttribute("src", /.+/);
   await expect(viewer.getByTestId("resource-preview-download")).toBeVisible();
-  await expect(viewer.locator(".workspace-breadcrumb button")).toHaveCount(1);
   await expect(viewer.getByTestId("resource-preview-close")).toHaveCount(1);
+  await expectHeaderOnOneRow(viewer);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(viewer).toBeHidden();
@@ -175,4 +202,262 @@ test("the business documents section folds by its header and opens each document
     .toBe(1);
   await viewer.getByTestId("resource-preview-close").click();
   await expect(viewer).toBeHidden();
+});
+
+async function created(response: Awaited<ReturnType<import("@playwright/test").APIRequestContext["post"]>>) {
+  expect(response.status(), await response.text()).toBe(201);
+  return (await response.json()).properties as { id: string; folderPath: string; path: string; name: string };
+}
+
+async function rowCommand(page: import("@playwright/test").Page, actions: string, command: string) {
+  await page.getByTestId(actions).click();
+  await page.getByRole("menu").getByTestId(`${command}-menu`).click();
+}
+
+// @verifies-requirement HALL-FR-WSP-510
+// @verifies-requirement HALL-FR-WSP-260
+test("the documents of a business are the tree of its folder and its associations filed elsewhere, filed from there", async ({
+  appPage: page,
+}) => {
+  const marker = crypto.randomUUID().slice(0, 8);
+  const business = await created(
+    await page.request.post("/api/council-business", {
+      data: { path: "", name: `Affaire ${marker}`, reportName: "Rapport", reportContent: "" },
+    }),
+  );
+  const root = `Affaire ${marker}`;
+  const post = (data: Record<string, unknown>) => page.request.post("/api/resources", { data });
+  const empty = await created(await post({ kind: "folder", path: root, name: "Vide" }));
+  await created(await post({ kind: "folder", path: root, name: "Pièces" }));
+  const plan = await created(await post({ kind: "text", path: `${root}/Pièces`, name: "Plan", content: "" }));
+  const elsewhere = `Ailleurs ${marker}`;
+  await created(await post({ kind: "folder", path: "", name: elsewhere }));
+  const letter = await created(
+    await post({ kind: "text", path: elsewhere, name: "Courrier", content: "", councilBusinessId: business.id }),
+  );
+  const annex = await created(
+    await post({ kind: "text", path: elsewhere, name: "Annexe", content: "", councilBusinessId: business.id }),
+  );
+  const atRoot = await created(
+    await post({ kind: "text", path: "", name: `Racine ${marker}`, content: "", councilBusinessId: business.id }),
+  );
+  const resourcePath = async (id: string) =>
+    ((await (await page.request.get(`/api/resources/${id}`)).json()).properties as { path: string }).path;
+  const members = async () =>
+    (
+      ((await (await page.request.get(`/api/council-business/resource-items?councilBusinessId=${business.id}`)).json())
+        .entities ?? []) as Array<{ properties: { id: string } }>
+    ).map((entry) => entry.properties.id);
+
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: root, councilBusiness: business.id })}`);
+  await page.getByTestId("business-category-documents-toggle").click();
+  const tree = page.getByTestId("business-resource-tree");
+  await expect(tree).toBeVisible();
+  // The whole folder: an empty sub-folder and a document filed without association, each under its own name.
+  await expect(tree.getByTestId("business-document-folder-Vide-open")).toHaveText("Vide");
+  const pieces = tree.getByTestId(`business-document-folder-${encodeURIComponent("Pièces")}`);
+  await expect(pieces.getByTestId(`business-document-folder-${encodeURIComponent("Pièces")}-open`)).toHaveText(
+    "Pièces",
+  );
+  await expect(pieces.getByTestId(`business-attached-resource-${plan.id}`)).toBeVisible();
+  await expect(tree.getByTestId("business-document-folder-..")).toHaveCount(0);
+  // The associated documents filed elsewhere, apart, with the place of their folder.
+  await expect(tree.getByTestId("business-documents-elsewhere")).toBeVisible();
+  await expect(tree.getByTestId(`business-document-location-${letter.id}`)).toHaveText(elsewhere);
+  await expect(tree.getByTestId(`business-document-location-${atRoot.id}`)).toHaveText("Documents");
+  await expect(tree.getByTestId(`business-document-location-${plan.id}`)).toHaveCount(0);
+
+  await tree
+    .getByTestId("business-documents-create-folder")
+    .or(page.getByTestId("business-documents-create-folder"))
+    .first()
+    .click();
+  await page.getByTestId("business-documents-create-folder-dialog-name").fill("Nouveau");
+  await page.getByTestId("business-documents-create-folder-dialog-submit").click();
+  await expect(tree.getByTestId("business-document-folder-Nouveau")).toBeVisible();
+
+  await rowCommand(page, `business-folder-actions-${empty.id}`, `business-folder-create-${empty.id}`);
+  await page.getByTestId("business-folder-create-dialog-name").fill("Sous");
+  await page.getByTestId("business-folder-create-dialog-submit").click();
+  await expect(tree.getByTestId(`business-document-folder-${encodeURIComponent("Vide/Sous")}`)).toBeVisible();
+
+  await rowCommand(page, `business-document-actions-${plan.id}`, `business-document-rename-${plan.id}`);
+  await page.getByTestId(`business-document-rename-${plan.id}-dialog-name`).fill("Plan renommé");
+  await page.getByTestId(`business-document-rename-${plan.id}-dialog-submit`).click();
+  await expect(tree.getByTestId(`business-attached-resource-${plan.id}-open`)).toHaveText("Plan renommé");
+
+  await rowCommand(page, `business-document-actions-${plan.id}`, `business-document-move-${plan.id}`);
+  const move = page.getByTestId("move-to-dialog");
+  await move.getByTestId(`move-to-folder-${root}/Vide`).click();
+  await expect(move).toHaveCount(0);
+  await expect.poll(() => resourcePath(plan.id)).toBe(`${root}/Vide`);
+  await expect(
+    tree.getByTestId("business-document-folder-Vide").getByTestId(`business-attached-resource-${plan.id}`),
+  ).toBeVisible();
+
+  await rowCommand(page, `business-document-actions-${letter.id}`, `business-document-file-${letter.id}`);
+  await expect.poll(() => resourcePath(letter.id)).toBe(root);
+  await expect(tree.getByTestId(`business-document-location-${letter.id}`)).toHaveCount(0);
+  await expect(tree.getByTestId(`business-attached-resource-${letter.id}`)).toBeVisible();
+
+  await rowCommand(page, `business-document-actions-${annex.id}`, `business-document-dissociate-${annex.id}`);
+  await expect(tree.getByTestId(`business-attached-resource-${annex.id}`)).toHaveCount(0);
+  expect(await members()).not.toContain(annex.id);
+  expect(await resourcePath(annex.id)).toBe(elsewhere);
+
+  // A document taken out of the folder of the business leaves the business.
+  expect(await members()).toContain(letter.id);
+  await rowCommand(page, `business-document-actions-${letter.id}`, `business-document-move-${letter.id}`);
+  await move.getByTestId(`move-to-folder-${elsewhere}`).click();
+  await expect(move).toHaveCount(0);
+  await expect.poll(() => resourcePath(letter.id)).toBe(elsewhere);
+  await expect.poll(members).not.toContain(letter.id);
+  await expect(tree.getByTestId(`business-attached-resource-${letter.id}`)).toHaveCount(0);
+  await expect(page.locator('[role="alert"]:visible')).toHaveCount(0);
+});
+
+// @verifies-requirement HALL-FR-LAY-100
+// @verifies-requirement HALL-FR-DOC-480
+test("the full screen view of a document carries the commands of the Documents screen on one header row", async ({
+  appPage: page,
+}) => {
+  const marker = crypto.randomUUID().slice(0, 8);
+  const post = (data: Record<string, unknown>) => page.request.post("/api/resources", { data });
+  const folder = `Plein écran ${marker}`;
+  await created(await post({ kind: "folder", path: "", name: folder }));
+  await created(await post({ kind: "folder", path: folder, name: "Classement" }));
+  const text = await created(await post({ kind: "text", path: folder, name: "Note", content: "Texte." }));
+  const map = await created(await post({ kind: "geographic", path: folder, name: "Plan du bourg" }));
+  const resource = async (id: string) =>
+    (await page.request.get(`/api/resources/${id}`)).json() as Promise<{
+      properties: { name: string; path: string };
+    }>;
+
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: folder, resource: text.id })}`);
+  await runItemCommand(page, "resource-open-extended");
+  const viewer = page.getByTestId("resource-preview");
+  await expect(viewer).toBeVisible();
+  await expectHeaderOnOneRow(viewer);
+  // The date is read in the tooltip of the automatic saving, not on a line of its own.
+  const autosave = viewer.getByTestId("resource-autosave-toggle");
+  await expect(autosave).toHaveAttribute("aria-label", /(Updated|Created) on/);
+  await autosave.hover();
+  await expect(page.getByRole("tooltip", { name: /(Updated|Created) on/ })).toBeVisible();
+  for (const command of ["copy-object-reference", "resource-move-to", "resource-preview-pdf-preview"]) {
+    const direct = viewer.getByTestId(command);
+    if (!(await direct.isVisible())) {
+      await viewer.getByTestId("item-commands-more").click();
+      await expect(page.getByRole("menu").getByTestId(command)).toBeVisible();
+      await page.keyboard.press("Escape");
+    }
+  }
+
+  await runItemCommand(page, "workspace-workbench-rename", viewer);
+  const title = viewer.getByTestId("workspace-workbench-title-input");
+  await title.fill("Note renommée");
+  await title.press("Enter");
+  await expect(viewer.getByTestId("workspace-workbench-title")).toHaveText("Note renommée");
+  await expect.poll(async () => (await resource(text.id)).properties.name).toBe("Note renommée");
+
+  await runItemCommand(page, "resource-move-to", viewer);
+  const move = page.getByTestId("move-to-dialog");
+  await move.getByTestId(`move-to-folder-${folder}/Classement`).click();
+  await expect(move).toHaveCount(0);
+  await expect.poll(async () => (await resource(text.id)).properties.path).toBe(`${folder}/Classement`);
+  await expect(viewer).toBeVisible();
+
+  await runItemCommand(page, "resource-preview-delete", viewer);
+  await page.getByTestId("resource-delete-confirm").click();
+  await expect(viewer).toHaveCount(0);
+  await expect.poll(async () => (await page.request.get(`/api/resources/${text.id}`)).status()).toBe(404);
+
+  // « Ouvrir dans Cartes » is an icon of the row, with the tooltip of the application.
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: folder, resource: map.id })}`);
+  await runItemCommand(page, "resource-open-extended");
+  await expect(viewer).toBeVisible();
+  await expectHeaderOnOneRow(viewer);
+  const openInMaps = viewer.getByTestId("resource-open-in-maps");
+  await expect(openInMaps).toHaveText("");
+  await openInMaps.hover();
+  await expect(page.getByRole("tooltip", { name: await openInMaps.getAttribute("aria-label") })).toBeVisible();
+  await openInMaps.click();
+  await expect(viewer).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/app/maps/${map.id}`));
+});
+
+// @verifies-requirement HALL-FR-DOC-600
+test("a spreadsheet and a map print from their full screen view as a PDF in the viewer, the map alone or with its elements", async ({
+  appPage: page,
+}) => {
+  const marker = crypto.randomUUID().slice(0, 8);
+  const post = (data: Record<string, unknown>) => page.request.post("/api/resources", { data });
+  const folder = `Impression ${marker}`;
+  await created(await post({ kind: "folder", path: "", name: folder }));
+  const sheet = await created(
+    await post({
+      kind: "spreadsheet",
+      path: folder,
+      name: `Tableau ${marker}`,
+      document: {
+        schemaVersion: 2,
+        workbook: {
+          id: "budget",
+          name: `Tableau ${marker}`,
+          appVersion: "0.25.1",
+          locale: "enUS",
+          styles: {},
+          sheetOrder: ["lignes"],
+          sheets: {
+            lignes: {
+              id: "lignes",
+              name: "Lignes",
+              rowCount: 20,
+              columnCount: 8,
+              cellData: { 0: { 0: { v: "Poste" }, 1: { v: "Montant" } } },
+              rowData: {},
+              columnData: {},
+              mergeData: [],
+              showGridlines: 1,
+            },
+          },
+        },
+      },
+    }),
+  );
+  const map = await created(await post({ kind: "geographic", path: folder, name: `Carte ${marker}` }));
+  const viewer = page.getByTestId("resource-preview");
+  const printedText = async () => {
+    const frame = page.getByTestId("resource-preview-print-native-viewer").locator("iframe, object").first();
+    await expect(frame).toBeVisible({ timeout: 30_000 });
+    const address = (await frame.getAttribute("src")) ?? (await frame.getAttribute("data"));
+    const pdf = await page.request.get(address!.split("#")[0]!);
+    expect(pdf.headers()["content-type"]).toContain("application/pdf");
+    return (await pdfTextRuns(await pdf.body()))
+      .flat()
+      .map((run) => run.text)
+      .join(" ");
+  };
+
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: folder, resource: sheet.id })}`);
+  await runItemCommand(page, "resource-open-extended");
+  await expect(viewer).toBeVisible();
+  await runItemCommand(page, "resource-preview-print", viewer);
+  await expect(page.getByTestId("resource-preview-print-dialog")).toBeVisible();
+  const printedSheet = await printedText();
+  expect(printedSheet).toContain(`Tableau ${marker}`);
+  expect(printedSheet).toContain("Montant");
+  await page.getByTestId("resource-preview-print-close").click();
+  await page.getByTestId("resource-preview-close").click();
+  await expect(viewer).toHaveCount(0);
+
+  for (const choice of ["map-only", "with-elements"]) {
+    await page.goto(`/app/workspace?${new URLSearchParams({ path: folder, resource: map.id })}`);
+    await runItemCommand(page, "resource-open-extended");
+    await expect(viewer).toBeVisible();
+    await viewer.getByTestId("resource-preview-print-choices").click();
+    await page.getByRole("menu").getByTestId(`resource-preview-print-${choice}`).click();
+    await expect(page.getByTestId("resource-preview-print-dialog")).toBeVisible();
+    expect(await printedText()).toContain(`Carte ${marker}`);
+    await page.getByTestId("resource-preview-print-close").click();
+  }
 });

@@ -137,6 +137,12 @@ test("cursors follow the tool state and a click selects a drawing before its sha
 
   const saveView = page.getByTestId("geographic-save-view");
   await expect(saveView).toBeDisabled();
+  // Saving the framing is an icon button named by its label and by the tooltip of the application, disabled as well.
+  await expect(saveView).toHaveText("");
+  const saveViewLabel = await saveView.getAttribute("aria-label");
+  expect(saveViewLabel).toBeTruthy();
+  await saveView.locator("..").hover();
+  await expect(page.getByRole("tooltip", { name: saveViewLabel! })).toBeVisible();
   await page.mouse.dblclick(...at(0.5, 0.4));
   await expect(row).toHaveAttribute("data-modifying", "false");
   await page.keyboard.press("Escape");
