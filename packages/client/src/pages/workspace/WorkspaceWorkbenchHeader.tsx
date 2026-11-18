@@ -74,6 +74,8 @@ export function WorkspaceWorkbenchHeader({
   reference,
   leading,
   place,
+  trailing,
+  singleLine = false,
 }: {
   icon?: ReactNode;
   title: string;
@@ -101,6 +103,10 @@ export function WorkspaceWorkbenchHeader({
   leading?: ReactNode;
   /** In a dialog on a phone: the folder of the item, first on the line of facts. */
   place?: ReactNode;
+  /** In a dialog: the control written after the commands, such as the cross that closes it. */
+  trailing?: ReactNode;
+  /** In a dialog: the place, the title, its facts and the commands on one row. */
+  singleLine?: boolean;
 }) {
   const { t, formatDate } = useI18n();
   const screenControls = useContext(WorkbenchControlsContext);
@@ -181,7 +187,10 @@ export function WorkspaceWorkbenchHeader({
   return (
     <div className="workspace-workbench-header" data-testid="resource-workbench-header">
       {titleId ? (
-        <div className="screen-title-block workbench-dialog-title-block">
+        <div
+          className="screen-title-block workbench-dialog-title-block"
+          data-single-line={singleLine ? "true" : undefined}
+        >
           <div className="screen-title-row">
             {leading}
             {icon ? <span className="screen-title-icon">{icon}</span> : null}
@@ -190,9 +199,11 @@ export function WorkspaceWorkbenchHeader({
                 {title}
               </h2>,
             )}
+            {singleLine ? <div className="screen-title-facts">{facts}</div> : null}
             <div className="screen-title-commands">{itemCommands}</div>
+            {trailing}
           </div>
-          <div className="screen-title-facts">{facts}</div>
+          {singleLine ? null : <div className="screen-title-facts">{facts}</div>}
         </div>
       ) : (
         <>

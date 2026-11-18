@@ -1,18 +1,21 @@
-import { useCallback, useRef, useState } from "react";
+import { type MouseEvent, type ReactNode, useCallback, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { usePhoneEditorCommands } from "../../components/editor/phoneEditorCommands";
-import { BackIcon, DownloadIcon, ShareIcon } from "../../components/icons";
+import { BackIcon, ChevronRightIcon, CloseIcon, DeleteIcon, DownloadIcon, ShareIcon } from "../../components/icons";
 import type { ItemCommand } from "../../components/ui/item-commands";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useResourceCommands } from "../../pages/workspace/ResourceWorkbenchHeader";
 import { useSessionControls } from "../../pages/workspace/useSessionControls";
 import { WorkspaceBreadcrumb } from "../../pages/workspace/WorkspaceBreadcrumb";
-import { WorkspaceWorkbenchHeader } from "../../pages/workspace/WorkspaceWorkbenchHeader";
+import { type WorkbenchControls, WorkspaceWorkbenchHeader } from "../../pages/workspace/WorkspaceWorkbenchHeader";
 import { shareOrDownload } from "../../services/fileSharing";
 import { documentaryResourceFile, downloadDocumentaryResource } from "../../services/resourcesApi";
 import { PhonePageOpening } from "../../shell/PhonePageOpening";
 import { usePhoneDocumentPages, usePhoneLayout } from "../../shell/usePhoneLayout";
+import { ResourceDeleteDialog } from "../resources/ResourceDeleteDialog";
 import { ResourcePresentationBody } from "../resources/ResourcePresentationBody";
 import { type ResourceSession, useResourceSession } from "../resources/useResourceSession";
 import { useTextWriting } from "../resources/useTextWriting";
@@ -45,15 +48,23 @@ function ResourcePreviewModal({ resourceId, onClose }: { resourceId: string; onC
   return <ResourcePreviewWithSession session={session} onClose={onClose} />;
 }
 
-/** Resource modal shell for a session already owned by its host workbench. On a phone, during the live meeting, a
- * spreadsheet opens for reading, with « Modifier » for whoever may write it. */
+/** Resource modal shell for a session already owned by its host workbench. Its header is one row: the place, the
+ * title and the commands the Documents screen offers for this document, with the same rights. On a phone, during the
+ * live meeting, a spreadsheet opens for reading, with « Modifier » for whoever may write it.
+ * @implements-requirement HALL-FR-DOC-480 */
 export function ResourcePreviewWithSession({
   session,
   onClose,
+  onMoved,
+  onRemoved,
   refreshSessionOnClose = false,
 }: {
   session: ResourceSession;
   onClose(): void;
+  /** After « Déplacer vers… », with the new folder of the document. */
+  onMoved?(path: string): void;
+  /** After the document is deleted; the dialog is then closed without saving. */
+  onRemoved?(): void;
   refreshSessionOnClose?: boolean;
 }) {
   const { t } = useI18n();
@@ -101,39 +112,11 @@ export function ResourcePreviewWithSession({
         ),
       }
     : sessionControls;
-  const download = () => {
-    const representation = session.representation;
-    if (resource?.kind === "document" && representation) {
-      void downloadDocumentaryResource(resource, representation);
-    }
-  };
   const writingCommands = usePhoneEditorCommands((store) => store.commands);
   const spreadsheetCommands: ItemCommand[] = writingCommands.map((command) => ({
     ...command,
     testId: `resource-preview-${command.id}`,
   }));
-  const fileCommands: ItemCommand[] =
-    resource?.kind === "document" && session.representation
-      ? [
-          {
-            id: "share",
-            label: t("common.share"),
-            icon: <ShareIcon />,
-            testId: "resource-preview-share",
-            onSelect: () =>
-              void documentaryResourceFile(resource, session.representation!)
-                .then(shareOrDownload)
-                .catch(() => undefined),
-          },
-          {
-            id: "download",
-            label: t("common.download"),
-            icon: <DownloadIcon />,
-            testId: "resource-preview-download",
-            onSelect: download,
-          },
-        ]
-      : [];
   const back = (
     <Button
       ref={closeButtonRef}
@@ -145,6 +128,19 @@ export function ResourcePreviewWithSession({
       onClick={() => void requestClose()}
     >
       <BackIcon />
+    </Button>
+  );
+  const close = (
+    <Button
+      ref={closeButtonRef}
+      data-testid={closeTestId}
+      size="icon"
+      variant="plain"
+      aria-label={t("common.close")}
+      title={t("common.close")}
+      onClick={() => void requestClose()}
+    >
+      <CloseIcon aria-hidden="true" />
     </Button>
   );
   return (
@@ -159,38 +155,24 @@ export function ResourcePreviewWithSession({
       onClose={() => void requestClose()}
       header={
         <div className="resource-preview-shell-header">
-          {phone ? null : (
-            <WorkspaceBreadcrumb
-              path={resource?.path ?? ""}
-              currentSelection={resource ? { kind: "resource", id: resource.id } : null}
-              interactive={false}
-              closeButtonRef={closeButtonRef}
-              closeTestId={closeTestId}
-              onClose={() => void requestClose()}
-            />
-          )}
           {resource ? (
-            <WorkspaceWorkbenchHeader
-              leading={phone ? back : undefined}
-              icon={phone ? undefined : <DocumentaryResourceGlyph resource={resource} large />}
-              place={phone ? folderName(resource.path) || t("navigation.workspace") : undefined}
-              title={resource.name}
-              titleId="resource-preview-title"
+            <ResourcePreviewHeader
+              resource={resource}
+              session={session}
               controls={controls}
-              titleLabel={t("resources.textTitle")}
-              onTitleChange={
-                resource.kind === "event" && session.capabilities.updateMetadata
-                  ? (nextTitle) => session.save(nextTitle)
-                  : undefined
-              }
-              date={documentaryResourceDate(resource)}
-              menu={phoneSpreadsheet ? spreadsheetCommands : fileCommands}
-              actionError={session.actionError}
+              phone={phone}
+              phoneCommands={phoneSpreadsheet ? spreadsheetCommands : undefined}
+              back={back}
+              close={close}
+              onClose={onClose}
+              onMoved={onMoved}
+              onRemoved={onRemoved}
             />
           ) : (
             <header className="resource-preview-loading-header">
               {phone ? back : null}
               <h2 id="resource-preview-title">{t("editor.kind.resource")}</h2>
+              {phone ? null : close}
             </header>
           )}
         </div>
@@ -223,5 +205,145 @@ export function ResourcePreviewWithSession({
         />
       ) : null}
     </DocumentViewerDialog>
+  );
+}
+
+/** The single row of the full screen view of a loaded document: the place, the title and the commands of the
+ * Documents screen, then the cross. On a phone the arrow, the title and the commands, with the facts under them. */
+function ResourcePreviewHeader({
+  resource,
+  session,
+  controls,
+  phone,
+  phoneCommands,
+  back,
+  close,
+  onClose,
+  onMoved,
+  onRemoved,
+}: {
+  resource: NonNullable<ResourceSession["resource"]>;
+  session: ResourceSession;
+  controls: WorkbenchControls;
+  phone: boolean;
+  /** On a phone, the commands of the spreadsheet being written, in place of those of the document. */
+  phoneCommands?: ItemCommand[];
+  back: ReactNode;
+  close: ReactNode;
+  onClose(): void;
+  onMoved?(path: string): void;
+  onRemoved?(): void;
+}) {
+  const { t } = useI18n();
+  const navigate = useNavigate();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const openInMaps = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    void session.flush().then((flushed) => {
+      if (!flushed) return;
+      onClose();
+      navigate(`/maps/${encodeURIComponent(resource.id)}`);
+    });
+  };
+  const resourceCommands = useResourceCommands({
+    resource,
+    pdfMarkdown: resource.kind === "text" ? session.content : undefined,
+    pdfTestId: "resource-preview-pdf-preview",
+    onMoved: (path) => {
+      void session.flush().then((flushed) => (flushed ? session.reload() : false));
+      onMoved?.(path);
+    },
+    onOpenInMaps: openInMaps,
+  });
+  const representation = session.representation;
+  const fileCommands: ItemCommand[] =
+    resource.kind === "document" && representation
+      ? [
+          {
+            id: "share",
+            label: t("common.share"),
+            icon: <ShareIcon />,
+            testId: "resource-preview-share",
+            onSelect: () =>
+              void documentaryResourceFile(resource, representation)
+                .then(shareOrDownload)
+                .catch(() => undefined),
+          },
+          {
+            id: "download",
+            label: t("common.download"),
+            icon: <DownloadIcon />,
+            testId: "resource-preview-download",
+            onSelect: () => void downloadDocumentaryResource(resource, representation),
+          },
+        ]
+      : [];
+  const deleteCommands: ItemCommand[] = session.capabilities.deleteResource
+    ? [
+        {
+          id: "delete",
+          label: t("workspace.deleteResource"),
+          icon: <DeleteIcon />,
+          testId: "resource-preview-delete",
+          destructive: true,
+          onSelect: () => setConfirmingDelete(true),
+        },
+      ]
+    : [];
+  /** The commands of the document after « Renommer » and « Copier la référence »; a further command joins this list. */
+  const commands: ItemCommand[] = [
+    ...resourceCommands.move,
+    ...resourceCommands.pdf,
+    ...fileCommands,
+    ...deleteCommands,
+  ];
+  const remove = async () => {
+    if (!(await session.remove())) return;
+    setConfirmingDelete(false);
+    (onRemoved ?? onClose)();
+  };
+  return (
+    <WorkspaceWorkbenchHeader
+      singleLine={!phone}
+      leading={
+        phone ? (
+          back
+        ) : (
+          <span className="resource-preview-place">
+            <WorkspaceBreadcrumb
+              path={resource.path}
+              currentSelection={{ kind: "resource", id: resource.id }}
+              interactive={false}
+            />
+            <span className="workspace-crumb-sep" aria-hidden="true">
+              <ChevronRightIcon />
+            </span>
+          </span>
+        )
+      }
+      icon={phone ? undefined : <DocumentaryResourceGlyph resource={resource} />}
+      place={phone ? folderName(resource.path) || t("navigation.workspace") : undefined}
+      title={session.title}
+      titleId="resource-preview-title"
+      controls={controls}
+      titleLabel={t("resources.textTitle")}
+      onTitleChange={session.capabilities.updateMetadata ? (nextTitle) => session.save(nextTitle) : undefined}
+      date={documentaryResourceDate(resource)}
+      reference={resourceCommands.reference}
+      primary={resourceCommands.primary}
+      menu={phoneCommands ?? commands}
+      trailing={phone ? undefined : close}
+      actionError={session.actionError}
+      onDismissError={() => session.setActionError(null)}
+      dialogs={
+        <>
+          {resourceCommands.dialogs}
+          {confirmingDelete ? (
+            <ResourceDeleteDialog name={resource.name} onConfirm={remove} onClose={() => setConfirmingDelete(false)} />
+          ) : null}
+        </>
+      }
+    />
   );
 }

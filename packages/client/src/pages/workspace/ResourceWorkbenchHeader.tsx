@@ -1,7 +1,8 @@
 import type { ResourceDetail } from "@hall/api-contract";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import type { ObjectReference } from "../../components/CopyReferenceButton";
 import {
   DownloadIcon,
   FullscreenIcon,
@@ -25,6 +26,75 @@ import { useMoveTo } from "./MoveToDialog";
 import { WorkspaceWorkbenchHeader } from "./WorkspaceWorkbenchHeader";
 import type { WorkspaceSelection } from "./workspaceItemReference";
 import { useWorkspacePrefsStore } from "./workspacePrefs";
+
+/**
+ * The commands an opened document offers wherever it is opened, on the Documents screen and in its full screen view:
+ * « Ouvrir dans Cartes » for a map, « Déplacer vers… », the PDF preview of a text and « Copier la référence ».
+ */
+export function useResourceCommands({
+  resource,
+  pdfMarkdown,
+  pdfTestId,
+  onMoved,
+  onOpenInMaps,
+  primary,
+}: {
+  resource: Exclude<ResourceDetail, { kind: "folder" }>;
+  /** The current text of a text document, previewed as a PDF. */
+  pdfMarkdown?: string;
+  pdfTestId: string;
+  onMoved(path: string): void;
+  /** Called when « Ouvrir dans Cartes » is chosen, before the route changes. */
+  onOpenInMaps?(event: MouseEvent<HTMLAnchorElement>): void;
+  /** The main command of a document that is not a map. */
+  primary?: ReactNode;
+}): {
+  move: ItemCommand[];
+  pdf: ItemCommand[];
+  primary: ReactNode;
+  reference: ObjectReference;
+  dialogs: ReactNode;
+} {
+  const { t } = useI18n();
+  const pdf = usePdfCommands({
+    markdown: pdfMarkdown ?? "",
+    title: resource.name,
+    testId: pdfTestId,
+    disabled: pdfMarkdown === undefined,
+  });
+  const move = useMoveTo({ id: resource.id, onMoved });
+  return {
+    move: move.command ? [move.command] : [],
+    pdf: pdfMarkdown !== undefined ? pdf.commands : [],
+    primary:
+      resource.kind === "geographic" ? (
+        <Button asChild variant="secondary" className="resource-open-in-maps">
+          <Link
+            data-testid="resource-open-in-maps"
+            to={`/maps/${encodeURIComponent(resource.id)}`}
+            onClick={onOpenInMaps}
+          >
+            <MapIcon />
+            {t("maps.openInMaps")}
+          </Link>
+        </Button>
+      ) : (
+        primary
+      ),
+    reference: {
+      name: resource.name,
+      path: resource.path || undefined,
+      page: `/app/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id })}`,
+      href: `/api/resources/${resource.slug}`,
+    },
+    dialogs: (
+      <>
+        {pdf.view}
+        {move.dialog}
+      </>
+    ),
+  };
+}
 
 /**
  * Title line of an opened resource: « Ouvrir dans Cartes » for a map as the main command, then « Plein écran »,
@@ -69,17 +139,17 @@ export function ResourceWorkbenchHeader({
   const { t } = useI18n();
   const { isPinned, togglePin } = useWorkspacePrefsStore();
   const pinned = isPinned({ kind: "resource", id: resource.id });
-  const pdf = usePdfCommands({
-    markdown: pdfMarkdown ?? "",
-    title: resource.name,
-    testId: "resource-pdf-preview",
-    disabled: pdfMarkdown === undefined,
+  const commands = useResourceCommands({
+    resource,
+    pdfMarkdown,
+    pdfTestId: "resource-pdf-preview",
+    onMoved: (path) => onSelect({ kind: "resource", id: resource.id }, path),
+    primary,
   });
   const mail = usePrepareMail({ kind: "resource", resourceId: resource.id });
-  const move = useMoveTo({ id: resource.id, onMoved: (path) => onSelect({ kind: "resource", id: resource.id }, path) });
   const menu: ItemCommand[] = [
-    ...(move.command ? [move.command] : []),
-    ...(pdfMarkdown !== undefined ? pdf.commands : []),
+    ...commands.move,
+    ...commands.pdf,
     ...(resource.kind === "document" && mail.available
       ? [
           {
@@ -126,24 +196,8 @@ export function ResourceWorkbenchHeader({
       titleLabel={t("resources.textTitle")}
       date={documentaryResourceDate(resource)}
       onTitleChange={canUpdate ? onTitleChange : undefined}
-      reference={{
-        name: resource.name,
-        path: resource.path || undefined,
-        page: `/app/workspace?${new URLSearchParams({ path: resource.path, resource: resource.id })}`,
-        href: `/api/resources/${resource.slug}`,
-      }}
-      primary={
-        resource.kind === "geographic" ? (
-          <Button asChild variant="secondary" className="resource-open-in-maps">
-            <Link data-testid="resource-open-in-maps" to={`/maps/${encodeURIComponent(resource.id)}`}>
-              <MapIcon />
-              {t("maps.openInMaps")}
-            </Link>
-          </Button>
-        ) : (
-          primary
-        )
-      }
+      reference={commands.reference}
+      primary={commands.primary}
       frequent={[
         {
           id: "fullscreen",
@@ -162,12 +216,7 @@ export function ResourceWorkbenchHeader({
         },
       ]}
       menu={menu}
-      dialogs={
-        <>
-          {pdf.view}
-          {move.dialog}
-        </>
-      }
+      dialogs={commands.dialogs}
       actionError={actionError}
       onDismissError={onDismissError}
       metadata={

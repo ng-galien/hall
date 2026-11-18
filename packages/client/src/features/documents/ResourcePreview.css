@@ -8,18 +8,70 @@
   background: var(--hall-color-surface);
 }
 
-.resource-preview-shell-header > .workspace-breadcrumb {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: var(--hall-space-2) var(--hall-space-5);
-  border-bottom: var(--hall-stroke-thin) solid var(--hall-color-border);
+.resource-preview-shell-header > .workspace-workbench-header {
+  gap: 0;
+  padding: var(--hall-space-1-5) var(--hall-space-3) var(--hall-space-1-5) var(--hall-space-5);
 }
 
-.resource-preview-shell-header > .workspace-workbench-header,
 .resource-preview-loading-header {
-  padding: var(--hall-space-4) var(--hall-space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hall-space-2);
+  padding: var(--hall-space-1-5) var(--hall-space-3) var(--hall-space-1-5) var(--hall-space-5);
+}
+
+/* One row: the place, the type icon, the title and its facts, the commands, then the cross. When the row lacks room the
+   place is cut first; the commands then pass under the title, at the right. */
+.workbench-dialog-title-block[data-single-line="true"] {
+  padding: 0;
+  border: 0;
+}
+.workbench-dialog-title-block[data-single-line="true"] > .screen-title-row {
+  align-items: center;
+  column-gap: var(--hall-space-2);
+}
+.workbench-dialog-title-block[data-single-line="true"] .screen-title-icon {
+  min-height: 0;
+}
+.workbench-dialog-title-block[data-single-line="true"] .screen-title-commands {
+  min-height: 0;
+}
+.workbench-dialog-title-block[data-single-line="true"] .workbench-dialog-title {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  font-size: var(--hall-font-size-title);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workbench-dialog-title-block[data-single-line="true"] > .screen-title-row > .screen-title-facts {
+  min-width: 0;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.workbench-dialog-title-block[data-single-line="true"] .workbench-title-inline-input {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.resource-preview-place {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 40%;
+  flex: 0 1 auto;
+  align-items: center;
+}
+.resource-preview-place > .workspace-breadcrumb {
+  overflow: hidden;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.resource-preview-place .workspace-crumb,
+.resource-preview-place .workspace-crumb-group {
+  white-space: nowrap;
 }
 
 .resource-preview-loading-header h2 {

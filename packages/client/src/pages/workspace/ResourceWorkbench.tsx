@@ -175,6 +175,11 @@ export function ResourceWorkbench({
         <ResourcePreviewWithSession
           session={session}
           refreshSessionOnClose
+          onMoved={(path) => onSelect({ kind: "resource", id: resource.id }, path)}
+          onRemoved={() => {
+            setViewerOpen(false);
+            onSelect(null);
+          }}
           onClose={() => {
             setViewerOpen(false);
             window.requestAnimationFrame(() => focusExtendedViewTrigger());
