@@ -49,6 +49,17 @@ export function useResourceAppearance(id: string): ResourceReferenceAppearance |
   return useContext(ResourcePreviewContext)?.resourceAppearance(id) ?? null;
 }
 
+/** Name written for a referenced document: its current name when it is known, otherwise the label stored in the text. */
+export function useResourceReferenceLabel(id: string, stored: string): string {
+  const presentation = useContext(ResourcePreviewContext);
+  const target = presentation?.referenceTarget("resource", id) ?? null;
+  const requestReference = presentation?.requestReference;
+  useEffect(() => {
+    if (!target) requestReference?.("resource", id);
+  }, [target, requestReference, id]);
+  return target?.label ?? stored;
+}
+
 /** Supplies the resource preview renderer used by reference badges. */
 export function ReferencePresentationProvider({
   renderResourcePreview,
@@ -116,7 +127,7 @@ export function ReferenceBadge({
   const content = (
     <>
       {appearance?.icon}
-      {hasExplicitLabel ? children : (target?.label ?? children)}
+      {kind === "resource" && target ? target.label : hasExplicitLabel ? children : (target?.label ?? children)}
     </>
   );
   return (

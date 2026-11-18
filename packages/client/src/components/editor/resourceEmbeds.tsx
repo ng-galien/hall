@@ -36,7 +36,7 @@ import { insertResourceImage } from "./images";
 import { writingChain } from "./phoneKeyboard";
 import { type FullSearchRequest, ReferenceSearchDialog } from "./ReferenceSearchDialog";
 import type { Mentionable } from "./references";
-import { useResourceAppearance, useResourcePreviewRenderer } from "./references";
+import { useResourceAppearance, useResourcePreviewRenderer, useResourceReferenceLabel } from "./references";
 import "./resourceEmbeds.css";
 
 export type { ResourceEmbedAttributes } from "@hall/templating";
@@ -91,6 +91,7 @@ function ResourceEmbedBlock({
   const presentation = useContext(ResourceEmbedPresentationContext);
   const renderResourcePreview = useResourcePreviewRenderer();
   const resourceAppearance = useResourceAppearance(attributes.id);
+  const label = useResourceReferenceLabel(attributes.id, attributes.label);
   const [previewing, setPreviewing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [presentationRevision, setPresentationRevision] = useState(0);
@@ -164,7 +165,7 @@ function ResourceEmbedBlock({
               ref={keepTrigger}
               className="editor-resource-embed-open"
               data-testid={testId}
-              aria-label={`${attributes.label} · ${t("editor.openHint")}`}
+              aria-label={`${label} · ${t("editor.openHint")}`}
               to={`/workspace?${new URLSearchParams({ resource: attributes.id })}`}
               onClick={(event) => {
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -174,17 +175,15 @@ function ResourceEmbedBlock({
             />
           ) : null}
           <Fragment key={presentationRevision}>
-            {presentation?.render(attributes) ?? (
-              <div className="editor-resource-embed-fallback">{attributes.label}</div>
-            )}
+            {presentation?.render(attributes) ?? <div className="editor-resource-embed-fallback">{label}</div>}
           </Fragment>
           {hasInlineOverlay ? (
             <EditorMediaOverlay
               icon={resourceAppearance?.glyph ?? null}
-              title={attributes.label}
+              title={label}
               testId={`${testId}-info`}
               titleTestId={testId}
-              titleAriaLabel={`${t("workspace.open")} · ${attributes.label}`}
+              titleAriaLabel={`${t("workspace.open")} · ${label}`}
               titleRef={keepTrigger}
               onTitleClick={open}
               onDelete={editable ? onDelete : undefined}
@@ -208,10 +207,10 @@ function ResourceEmbedBlock({
         {isResizableMap ? (
           <EditorMediaOverlay
             icon={resourceAppearance?.glyph ?? null}
-            title={attributes.label}
+            title={label}
             testId={`${testId}-info`}
             titleTestId={testId}
-            titleAriaLabel={`${t("workspace.open")} · ${attributes.label}`}
+            titleAriaLabel={`${t("workspace.open")} · ${label}`}
             titleRef={keepTrigger}
             onTitleClick={open}
             onDelete={editable ? onDelete : undefined}
