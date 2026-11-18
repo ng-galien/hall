@@ -10,6 +10,7 @@ import {
 } from "@hall/domain";
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "ol/ol.css";
+import { toLonLat } from "ol/proj";
 import { Button } from "@/components/ui/button";
 import type { ColorPickerPreset } from "@/components/ui/color-picker";
 import { standardColorPresets } from "@/components/ui/color-presets";
@@ -20,6 +21,7 @@ import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiCli
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
 import { photoFile } from "../documents/photoFile";
 import { useEditorDocumentUpload } from "../documents/useEditorDocumentUpload";
+import { useDisplayedResourceState } from "../documents/useResourcePrint";
 import { GeographicCompositionEditor } from "./GeographicCompositionEditor";
 import { DrawingActionsMenu, DrawingColorControl } from "./GeographicDrawingControls";
 import { GeographicDrawnElementCard, useGeographicDrawnElementNotes } from "./GeographicDrawnElementCard";
@@ -249,6 +251,28 @@ export function GeographicResourceMap({
   const canChangeOverlays = canUpdate && canLinkGeographicLayer(mapRepresentation);
   const canAddLayer = canUpdate && canImportGeographicLayer(mapRepresentation);
   const featureState = useGeographicFeatureState(resource.id);
+  const printedMap = mapRuntime.map;
+  const municipalOnlyLayerIds = featureState.municipalOnlyLayerIds;
+  useDisplayedResourceState(
+    embedded ? null : resource.id,
+    useCallback(() => {
+      const view = printedMap?.getView();
+      const center = view?.getCenter();
+      const size = printedMap?.getSize();
+      if (!view || !center || !size) return {};
+      const [longitude, latitude] = toLonLat(center);
+      return {
+        map: {
+          center: [longitude, latitude],
+          zoom: view.getZoom() ?? 0,
+          width: Math.round(size[0]),
+          height: Math.round(size[1]),
+          drawingsVisible: hallLayerVisible,
+          municipalOnlyLayerIds: [...municipalOnlyLayerIds],
+        },
+      };
+    }, [printedMap, hallLayerVisible, municipalOnlyLayerIds]),
+  );
   const overlayRuntime = useGeographicOverlays(mapRuntime.map, overlays, featureState.styleInputs);
   const overlayStatuses = overlayRuntime.statuses;
   const [municipalImportOpen, setMunicipalImportOpen] = useState(false);

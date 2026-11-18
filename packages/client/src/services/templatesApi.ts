@@ -1,5 +1,5 @@
 import { findSirenAction } from "@hall/api-contract";
-import type { ContentTemplate } from "@hall/domain";
+import type { ContentTemplate, ResourcePrint } from "@hall/domain";
 import {
   apiPathFromHref,
   apiRequest,
@@ -17,6 +17,19 @@ export async function previewTemplatePdf(bodyMarkdown: string, attachPdfDocument
   const preview = await apiRequest<{ url: string }>(`${apiPathFromHref(action.href)}?delivery=url`, {
     method: action.method,
     body: JSON.stringify({ bodyMarkdown, attachPdfDocuments }),
+  });
+  return preview.url;
+}
+
+// @implements-requirement HALL-FR-DOC-600
+/** Prints a spreadsheet sheet or a map as displayed, through the PDF preview action; returns the viewer URL. */
+export async function printResourcePdf(input: ResourcePrint): Promise<string> {
+  const representation = await sirenRepresentation("/templates");
+  const action = findSirenAction(representation, "template.preview-pdf");
+  if (!action) throw new SirenCapabilityUnavailable("template.preview-pdf");
+  const preview = await apiRequest<{ url: string }>(`${apiPathFromHref(action.href)}?delivery=url`, {
+    method: action.method,
+    body: JSON.stringify(input),
   });
   return preview.url;
 }

@@ -11141,6 +11141,30 @@
         }
       ]
     },
+    "HALL-FR-DOC-600": {
+      "name": "RESOURCE_PRINT_FROM_FULL_SCREEN",
+      "nature": "functional",
+      "lifecycle": {
+        "state": "accepted",
+        "since": "2026-11-18"
+      },
+      "statement": "Chaque type de document s’imprime depuis sa vue plein écran par un PDF ouvert dans la visionneuse : la note par son aperçu PDF, le tableau par sa feuille affichée, la carte telle qu’affichée avec, au choix, la liste de ses éléments.",
+      "acceptanceCriteria": [
+        "La vue plein écran d’un tableau et celle d’une carte proposent « Imprimer » : la commande enregistre d’abord les modifications en attente, puis ouvre le PDF dans la visionneuse native, comme l’« Aperçu PDF » d’une note ; la note s’imprime par cet « Aperçu PDF » de sa vue plein écran, et un PDF déposé s’ouvre déjà dans la visionneuse du navigateur, qui l’imprime.",
+        "Le PDF d’un tableau porte le nom du tableau en titre puis la feuille affichée à l’écran, de A1 à la dernière cellule remplie, mise en page par le modèle « Impression de document » ; la page A4 est en paysage quand les colonnes de la feuille sont plus larges qu’une page en portrait.",
+        "Le PDF d’une carte porte le nom de la carte en titre puis l’image de la carte telle qu’affichée à l’écran : même centre, même zoom et mêmes proportions que la surface de la carte, fonds visibles avec leur opacité, couches importées visibles avec leur opacité, leur mise en évidence des parcelles communales, le filtre qui ne montre que les parcelles communales et les numéros de parcelle à partir du zoom où l’écran les montre, dessins visibles et leurs libellés, mesures enregistrées avec leur nom et leur valeur, et la légende. La page A4 est en paysage quand la carte est plus large que haute.",
+        "« Imprimer » d’une carte propose deux choix au moment d’imprimer : « Carte seule » et « Avec la liste des éléments ». Le second ajoute, après la carte, la liste des éléments : pour chaque dessin visible et chaque mesure enregistrée, son libellé, son type (Point, Ligne, Zone, Mesure de distance, Mesure de surface), ses mesures (position d’un point en WGS84, longueur d’une ligne, surface et périmètre d’une zone, valeur enregistrée d’une mesure) et le contenu de sa note liée quand il en a une.",
+        "L’impression passe par l’action d’aperçu PDF existante et ses droits ; elle ne modifie ni la ressource ni son cadrage enregistré."
+      ],
+      "clauses": [
+        {
+          "key": "owner-print-request",
+          "origin": "product",
+          "statement": "Mots du propriétaire : « comment j'imprime la carte ou les autres documents de l'affaire ? » ; « gros manque, c'est l'impression, ça c'est clair » ; « l'impression des cartes, faut réfléchir à avoir un truc sympa. La carte, la visualisation actuelle, et peut-être avoir des petites options, à l'intérieur des points, etc. Imprimer une liste et tout. Il n'y a pas que la carte, il y a aussi les contenus des éléments qu'il faudra peut-être mettre. » Résultat accepté le 18 novembre 2026 : impression depuis la vue plein écran pour la note, le tableau et la carte, option de la liste des éléments choisie au moment d’imprimer.",
+          "sourceIds": []
+        }
+      ]
+    },
     "HALL-FR-MIN-270": {
       "name": "EXAMINED_DELIBERATIONS_LIST",
       "nature": "functional",

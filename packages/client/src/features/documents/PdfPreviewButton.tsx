@@ -16,14 +16,12 @@ import { PrepareMailButton, usePrepareMail } from "../mail/PrepareMailButton";
 import { DocumentViewerDialog } from "./DocumentViewerDialog";
 import { NativeDocumentFrame } from "./NativeDocumentFrame";
 
-/** Generation and viewer of the PDF preview of a Markdown text, presented by a button or a menu. */
-export function usePdfPreview({
-  markdown,
+/** Generation of a PDF and its viewer: the latest request alone opens, and closing forgets the pending one. */
+export function usePdfViewer({
   title,
   testId,
   viewerTestId,
 }: {
-  markdown: string;
   title: string;
   testId: string;
   viewerTestId?: string;
@@ -31,13 +29,6 @@ export function usePdfPreview({
   const { t } = useI18n();
   const [url, setUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "failed">("idle");
-  const referencesDocuments = useMemo(
-    () =>
-      collectResourceReferences(parse(markdown)).some(
-        ({ directive }) => directive === "resource" || directive === "resource-embed",
-      ),
-    [markdown],
-  );
   const requestSequence = useRef(0);
 
   useEffect(
@@ -47,12 +38,12 @@ export function usePdfPreview({
     [],
   );
 
-  const openPreview = async (attachDocuments: boolean) => {
+  const open = async (load: () => Promise<string | null>) => {
     const request = ++requestSequence.current;
     setStatus("loading");
     setUrl(null);
     try {
-      const nextUrl = await previewTemplatePdf(markdown, attachDocuments);
+      const nextUrl = await load();
       if (request !== requestSequence.current) return;
       setUrl(nextUrl);
       setStatus("idle");
@@ -87,6 +78,30 @@ export function usePdfPreview({
       ) : null}
     </>
   );
+  return { status, open, view };
+}
+
+/** Generation and viewer of the PDF preview of a Markdown text, presented by a button or a menu. */
+export function usePdfPreview({
+  markdown,
+  title,
+  testId,
+  viewerTestId,
+}: {
+  markdown: string;
+  title: string;
+  testId: string;
+  viewerTestId?: string;
+}) {
+  const { status, open, view } = usePdfViewer({ title, testId, viewerTestId });
+  const referencesDocuments = useMemo(
+    () =>
+      collectResourceReferences(parse(markdown)).some(
+        ({ directive }) => directive === "resource" || directive === "resource-embed",
+      ),
+    [markdown],
+  );
+  const openPreview = (attachDocuments: boolean) => open(() => previewTemplatePdf(markdown, attachDocuments));
   return { referencesDocuments, status, openPreview, view };
 }
 

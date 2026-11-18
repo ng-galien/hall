@@ -21,6 +21,7 @@ import { type ResourceSession, useResourceSession } from "../resources/useResour
 import { useTextWriting } from "../resources/useTextWriting";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "./DocumentaryResourceGlyph";
 import { DocumentViewerDialog } from "./DocumentViewerDialog";
+import { useResourcePrintCommands } from "./useResourcePrint";
 import { useWorkspaceResourceImageUpload } from "./useWorkspaceResourceImageUpload";
 import "./ResourcePreview.css";
 
@@ -256,6 +257,11 @@ function ResourcePreviewHeader({
     },
     onOpenInMaps: openInMaps,
   });
+  const printCommands = useResourcePrintCommands({
+    resource,
+    flush: session.flush,
+    testId: "resource-preview-print",
+  });
   const representation = session.representation;
   const fileCommands: ItemCommand[] =
     resource.kind === "document" && representation
@@ -295,6 +301,7 @@ function ResourcePreviewHeader({
   const commands: ItemCommand[] = [
     ...resourceCommands.move,
     ...resourceCommands.pdf,
+    ...printCommands.commands,
     ...fileCommands,
     ...deleteCommands,
   ];
@@ -339,6 +346,7 @@ function ResourcePreviewHeader({
       dialogs={
         <>
           {resourceCommands.dialogs}
+          {printCommands.view}
           {confirmingDelete ? (
             <ResourceDeleteDialog name={resource.name} onConfirm={remove} onClose={() => setConfirmingDelete(false)} />
           ) : null}

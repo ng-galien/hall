@@ -6,6 +6,7 @@ import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
 import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { useWorkspaceResourcesStore } from "../../stores/workspaceResourcesStore";
+import { useDisplayedResourceState } from "../documents/useResourcePrint";
 import type { ResourcePresentationMode } from "../resources/ResourcePresentationBody";
 import { SpreadsheetPhoneBars } from "./SpreadsheetPhoneBars";
 import type { SpreadsheetCell, SpreadsheetCells } from "./spreadsheetCells";
@@ -45,6 +46,13 @@ export function SpreadsheetResourceEditor({
   const [cell, setCell] = useState<SpreadsheetCell | null>(null);
   const [editRequest, setEditRequest] = useState(0);
   const [typing, setTyping] = useState(false);
+  useDisplayedResourceState(
+    resource.id,
+    useCallback(() => {
+      const sheetId = cells?.current()?.sheetId;
+      return sheetId ? { sheetId } : {};
+    }, [cells]),
+  );
   const latestDraftRef = useRef(draft);
   const publishPendingRef = useRef<(() => void) | null>(null);
   const savedDocumentRef = useRef(spreadsheetSignature(document));
