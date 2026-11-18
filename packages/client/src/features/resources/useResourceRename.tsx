@@ -44,7 +44,7 @@ export function useResourceRename({
     setError(null);
     try {
       const store = useWorkspaceResourcesStore.getState();
-      const current = store.details[resourceId];
+      const current = store.details[resourceId] ?? (await store.open(resourceId))?.data;
       if (!current) {
         setError("request_failed");
         return false;
