@@ -22,7 +22,7 @@
 }
 
 /* One row: the place, the type icon, the title and its facts, the commands, then the cross. When the row lacks room the
-   place is cut first; the commands then pass under the title, at the right. */
+   place is shortened first; the commands then pass under the title, at the right, before the title is cut. */
 .workbench-dialog-title-block[data-single-line="true"] {
   padding: 0;
   border: 0;
@@ -38,12 +38,10 @@
   min-height: 0;
 }
 .workbench-dialog-title-block[data-single-line="true"] .workbench-dialog-title {
-  min-width: 0;
+  min-width: min(100%, var(--hall-size-relative-12rem));
   flex: 0 1 auto;
-  overflow: hidden;
+  overflow-wrap: anywhere;
   font-size: var(--hall-font-size-title);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .workbench-dialog-title-block[data-single-line="true"] > .screen-title-row > .screen-title-facts {
   min-width: 0;
