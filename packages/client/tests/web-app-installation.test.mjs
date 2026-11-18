@@ -99,7 +99,9 @@ test("the manifest takes its names from the translation keys and installs Hall u
     [
       ["192x192", "any"],
       ["512x512", "any"],
+      ["1024x1024", "any"],
       ["512x512", "maskable"],
+      ["1024x1024", "maskable"],
     ],
   );
 });
@@ -107,7 +109,7 @@ test("the manifest takes its names from the translation keys and installs Hall u
 test("each icon address of the manifest and of the page carries a fingerprint of its image, under /app/", () => {
   assert.deepEqual(
     renderManifest("/app/").icons.map((icon) => icon.src),
-    ["icon-192.png", "icon-512.png", "icon-maskable-512.png"].map(
+    ["icon-192.png", "icon-512.png", "icon-1024.png", "icon-maskable-512.png", "icon-maskable-1024.png"].map(
       (file) => `/app/icons/${file}?v=${fingerprint(file)}`,
     ),
   );
@@ -120,6 +122,7 @@ test("each icon address of the manifest and of the page carries a fingerprint of
     ],
   );
   assert.notEqual(fingerprint("icon-512.png"), fingerprint("icon-maskable-512.png"));
+  assert.notEqual(fingerprint("icon-1024.png"), fingerprint("icon-maskable-1024.png"));
 });
 
 test("the offline page is titled by the application name and carries its icon inline", () => {
