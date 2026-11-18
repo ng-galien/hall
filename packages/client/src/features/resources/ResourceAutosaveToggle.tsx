@@ -53,7 +53,7 @@ export function ResourceAutosaveToggle({
           onClick={() => onChange(!enabled)}
         >
           <span className="resource-autosave-icon" aria-hidden="true">
-            <SaveStatusGlyph status={status} enabled={enabled} />
+            <SaveStatusGlyph status={status} enabled={enabled} weight="regular" />
           </span>
         </Button>
       </TooltipTrigger>

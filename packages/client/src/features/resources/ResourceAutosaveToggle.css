@@ -7,6 +7,11 @@
     transform var(--hall-motion-fast) var(--hall-motion-curve-standard);
 }
 
+/* The glyph takes the size of the icons of the neighbouring icon buttons. */
+.resource-autosave-icon > svg {
+  font-size: var(--hall-font-size-icon-large);
+}
+
 .resource-autosave-toggle[data-enabled="true"] .resource-autosave-icon {
   color: var(--hall-color-success);
 }

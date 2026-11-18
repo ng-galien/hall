@@ -188,7 +188,6 @@ function SubjectRow({
               <RequestErrorBanner compact error={rename.error} />
             </span>
           ) : null}
-          <span ref={setAutosaveActionsHost} className="business-subject-autosave" />
           {rename.canRename && !editingTitle ? (
             <Button
               variant="plain"
@@ -203,6 +202,7 @@ function SubjectRow({
               <EditIcon aria-hidden="true" />
             </Button>
           ) : null}
+          <span ref={setAutosaveActionsHost} className="business-subject-autosave" />
           {meeting?.reference && meetingLabel ? (
             <span className="business-subject-schedule">
               <Link

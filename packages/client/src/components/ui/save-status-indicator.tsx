@@ -4,13 +4,22 @@ import { cn } from "@/lib/utils";
 
 export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
-export function SaveStatusGlyph({ status, enabled = true }: { status: SaveStatus; enabled?: boolean }) {
+/** The icon of a save state; `bold` by default for the small indicator, `regular` beside the other commands. */
+export function SaveStatusGlyph({
+  status,
+  enabled = true,
+  weight = "bold",
+}: {
+  status: SaveStatus;
+  enabled?: boolean;
+  weight?: "bold" | "regular";
+}) {
   const glyphs: Record<SaveStatus, ReactNode> = {
-    idle: enabled ? <AutosaveOnIcon weight="bold" /> : <AutosaveOffIcon weight="bold" />,
-    dirty: <AutosaveSavingIcon weight="bold" />,
-    saving: <AutosaveSavingIcon weight="bold" />,
-    saved: <AutosaveOnIcon weight="bold" />,
-    error: <WarningIcon weight="bold" />,
+    idle: enabled ? <AutosaveOnIcon weight={weight} /> : <AutosaveOffIcon weight={weight} />,
+    dirty: <AutosaveSavingIcon weight={weight} />,
+    saving: <AutosaveSavingIcon weight={weight} />,
+    saved: <AutosaveOnIcon weight={weight} />,
+    error: <WarningIcon weight={weight} />,
   };
   return <>{glyphs[status]}</>;
 }
