@@ -1,8 +1,38 @@
 import { type CSSProperties, type ReactElement, type SyntheticEvent, useEffect, useRef, useState } from "react";
 
+import { CloseIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
+import { Button } from "./button";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "./popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
+
+/** Events of the gesture that follow a pointer pressed outside the picker. */
+const outsideGestureEvents = ["mousedown", "click", "auxclick", "dblclick", "contextmenu"] as const;
+
+/**
+ * Stops the rest of a gesture begun outside the picker, so that the click that closes it neither selects nor opens the
+ * element under the pointer. The gesture ends with its pointer release.
+ */
+function swallowOutsideGesture() {
+  const swallow = (event: Event) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+  for (const type of outsideGestureEvents) window.addEventListener(type, swallow, { capture: true });
+  const release = () => {
+    window.removeEventListener("pointerup", release, { capture: true });
+    window.removeEventListener("pointercancel", release, { capture: true });
+    window.setTimeout(() => {
+      for (const type of outsideGestureEvents) window.removeEventListener(type, swallow, { capture: true });
+    }, 0);
+  };
+  window.addEventListener("pointerup", release, { capture: true });
+  window.addEventListener("pointercancel", release, { capture: true });
+}
+
+/** Delay before a colour of the custom field, which changes while it is dragged, is applied live. */
+const liveCustomDelay = 300;
 
 export interface ColorPickerPreset {
   value: string;
@@ -22,6 +52,8 @@ export interface ColorPickerNamedPresets {
  * opening is controlled by `open` and `onOpenChange`; it stays open while the menu that opened it returns its
  * focus, and closes on Escape or a pointer outside. An empty `value` means that no colour is chosen. The popover
  * renders in a portal and stops its events, which React would otherwise bubble to the anchor's ancestors.
+ * With `live`, each chosen colour is applied at once instead of when the picker closes. With `closeLabel`, the picker
+ * has a close button, and a pointer pressed outside only closes it.
  */
 export function ColorPicker({
   value,
@@ -33,6 +65,8 @@ export function ColorPicker({
   anchor,
   open: controlledOpen,
   clearLabel,
+  closeLabel,
+  live = false,
   testId,
   onOpenChange,
   onClear,
@@ -47,6 +81,8 @@ export function ColorPicker({
   anchor?: ReactElement;
   open?: boolean;
   clearLabel?: string;
+  closeLabel?: string;
+  live?: boolean;
   testId?: string;
   onOpenChange?(open: boolean): void;
   onClear?(): void;
@@ -60,10 +96,33 @@ export function ColorPicker({
   };
   const [draftValue, setDraftValueState] = useState(value);
   const draftRef = useRef(value);
-  const setDraftValue = (next: string) => {
+  const appliedRef = useRef(value);
+  const liveTimer = useRef<number | null>(null);
+  const cancelLiveTimer = () => {
+    if (liveTimer.current !== null) window.clearTimeout(liveTimer.current);
+    liveTimer.current = null;
+  };
+  const applyDraft = () => {
+    cancelLiveTimer();
+    const chosen = draftRef.current;
+    if (chosen === appliedRef.current) return;
+    appliedRef.current = chosen;
+    onValueChange(chosen);
+  };
+  const setDraftValue = (next: string, delay = 0) => {
     draftRef.current = next;
     setDraftValueState(next);
+    if (!live) return;
+    cancelLiveTimer();
+    if (delay) liveTimer.current = window.setTimeout(applyDraft, delay);
+    else applyDraft();
   };
+  useEffect(
+    () => () => {
+      if (liveTimer.current !== null) window.clearTimeout(liveTimer.current);
+    },
+    [],
+  );
   const keepInside = (event: SyntheticEvent) => event.stopPropagation();
   const swatchStyle = (color: string) => ({ "--color-picker-value": color }) as CSSProperties;
 
@@ -73,19 +132,31 @@ export function ColorPicker({
     setDraftValueState(value);
   }, [open, value]);
 
+  useEffect(() => {
+    if (!open) appliedRef.current = value;
+  }, [open, value]);
+
   const changeOpen = (nextOpen: boolean) => {
     if (nextOpen) {
-      setDraftValue(value);
+      appliedRef.current = value;
+      draftRef.current = value;
+      setDraftValueState(value);
       setOpen(true);
       return;
     }
     setOpen(false);
+    if (live) {
+      applyDraft();
+      return;
+    }
     const chosen = draftRef.current;
     if (chosen !== value) onValueChange(chosen);
   };
 
   const clear = () => {
-    setDraftValue(value);
+    cancelLiveTimer();
+    draftRef.current = value;
+    setDraftValueState(value);
     if (controlledOpen === undefined) setUncontrolledOpen(false);
     onOpenChange?.(false);
     onClear?.();
@@ -119,7 +190,32 @@ export function ColorPicker({
         onContextMenu={keepInside}
         onDoubleClick={keepInside}
         onFocusOutside={anchor ? (event) => event.preventDefault() : undefined}
+        onPointerDownOutside={
+          closeLabel
+            ? (event) => {
+                if (event.detail.originalEvent.pointerType !== "touch") swallowOutsideGesture();
+              }
+            : undefined
+        }
       >
+        {closeLabel ? (
+          <div className="color-picker-header">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="plain"
+                  size="icon"
+                  aria-label={closeLabel}
+                  data-testid={testId ? `${testId}-close` : undefined}
+                  onClick={() => changeOpen(false)}
+                >
+                  <CloseIcon />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{closeLabel}</TooltipContent>
+            </Tooltip>
+          </div>
+        ) : null}
         {namedPresets?.presets.length ? (
           <fieldset className="color-picker-named">
             <legend className="color-picker-named-title">{namedPresets.title}</legend>
@@ -162,7 +258,7 @@ export function ColorPicker({
             type="color"
             value={draftValue || "#000000"}
             aria-label={customLabel}
-            onChange={(event) => setDraftValue(event.currentTarget.value)}
+            onChange={(event) => setDraftValue(event.currentTarget.value, liveCustomDelay)}
           />
         </label>
         {onClear && clearLabel ? (

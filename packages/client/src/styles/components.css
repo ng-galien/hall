@@ -159,6 +159,11 @@
     font-size: var(--hall-font-size-caption);
     cursor: pointer;
   }
+  .color-picker-header {
+    display: flex;
+    justify-content: flex-end;
+    margin: calc(var(--hall-space-1) * -1) calc(var(--hall-space-1) * -1) var(--hall-space-0-5) 0;
+  }
   .color-picker-clear {
     display: flex;
     width: 100%;

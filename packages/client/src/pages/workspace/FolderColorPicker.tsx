@@ -55,6 +55,8 @@ export function FolderColorPicker({
       ariaLabel={t("workspace.folderColor")}
       customLabel={t("geographic.color.custom")}
       clearLabel={t("workspace.folderColorClear")}
+      closeLabel={t("common.close")}
+      live
       testId="workspace-folder-color-picker"
       onOpenChange={(open) => {
         if (!open) onClose();
