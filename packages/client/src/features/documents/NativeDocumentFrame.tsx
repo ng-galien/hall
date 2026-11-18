@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
-import { usePhoneLayout } from "../../shell/usePhoneLayout";
 import { DocumentPreviewFailure, DocumentPreviewUnavailable } from "./DocumentPreviewFailure";
 
 function PdfRendererUnavailable() {
@@ -80,6 +79,25 @@ function browserDisplayable(type: string): boolean {
   );
 }
 
+/** Fragment parameters that open the browser PDF viewer with its page sidebar closed: `navpanes` for Chrome and Edge,
+ * `pagemode` for Firefox. */
+const closedPagePanes = [
+  ["navpanes", "0"],
+  ["pagemode", "none"],
+] as const;
+
+/** Address of a PDF for the browser viewer, with its page sidebar closed; the parameters already in the fragment, such
+ * as `page`, are kept. Works for `blob:` addresses as for server ones. */
+export function pdfViewerUrl(url: string): string {
+  const hashIndex = url.indexOf("#");
+  const base = hashIndex < 0 ? url : url.slice(0, hashIndex);
+  const fragment = hashIndex < 0 ? "" : url.slice(hashIndex + 1);
+  const parts = fragment.split("&").filter(Boolean);
+  const names = new Set(parts.map((part) => part.split("=", 1)[0]));
+  for (const [name, value] of closedPagePanes) if (!names.has(name)) parts.push(`${name}=${value}`);
+  return `${base}#${parts.join("&")}`;
+}
+
 // @implements-requirement HALL-FR-DOC-480
 /** Shared browser surface for every loaded document representation. */
 export function NativeDocumentFrame({
@@ -95,7 +113,6 @@ export function NativeDocumentFrame({
   testId?: string;
   onError?(): void;
 }) {
-  const phone = usePhoneLayout();
   const type = mediaType.split(";", 1)[0]?.trim().toLowerCase() ?? "";
   if (type === "text/plain" || type === "text/markdown") {
     return <TextDocumentFrame key={url} url={url} mediaType={type} title={title} testId={testId} />;
@@ -111,8 +128,14 @@ export function NativeDocumentFrame({
     );
   }
   return mediaType === "application/pdf" ? (
-    <iframe data-testid={testId} src={phone ? `${url}#navpanes=0` : url} title={title} onError={onError} />
+    <iframe data-testid={testId} src={pdfViewerUrl(url)} title={title} onError={onError} />
   ) : (
-    <object data-testid={testId} data={url} type={mediaType} aria-label={title} onError={onError} />
+    <object
+      data-testid={testId}
+      data={type === "application/pdf" ? pdfViewerUrl(url) : url}
+      type={mediaType}
+      aria-label={title}
+      onError={onError}
+    />
   );
 }

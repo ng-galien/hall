@@ -4200,7 +4200,7 @@
       "statement": "Un document s’ouvre dans une seule visionneuse en plein écran, partagée par tous les endroits qui ouvrent un document.",
       "acceptanceCriteria": [
         "La visionneuse est une fenêtre de dialogue qui occupe presque tout l’écran, avec le titre du document et un bouton de fermeture ; ce bouton la ferme, et Échap la ferme lorsque le focus n’est pas dans un éditeur de texte, où Échap reste à l’éditeur. Sur un téléphone, y compris pendant la conduite de la séance en direct, elle occupe tout l’écran avec une flèche de retour à la place du bouton de fermeture ; la flèche et le retour du téléphone la ferment et ramènent à l’écran d’où le document a été ouvert.",
-        "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur, et un PDF s’affiche page après page, dessiné par Hall, dans un navigateur sans lecteur PDF intégré ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
+        "Un texte s’y affiche rendu ; un PDF ou un fichier que le navigateur sait afficher s’y affiche dans le cadre du navigateur, un PDF avec le volet des pages fermé à l’ouverture, que l’utilisateur peut ouvrir, et un PDF s’affiche page après page, dessiné par Hall, dans un navigateur sans lecteur PDF intégré ; un fichier déposé propose toujours « Télécharger », qui reste le moyen de lire un fichier que le navigateur n’affiche pas.",
         "La même visionneuse sert à l’ouverture d’un document depuis la section « Documents » d’une affaire, depuis une référence ou une ressource intégrée dans un texte, depuis la recherche, le calendrier, la composition de l’ordre du jour et la conduite de séance, depuis les pièces d’une séance, et pour l’aperçu d’une convocation ou d’un procès-verbal généré. Sur un téléphone, hors conduite de la séance en direct, un document de l’espace de travail ouvert depuis une référence, la recherche ou la composition de l’ordre du jour s’ouvre sur sa propre page ; un rendez-vous ouvert depuis l’agenda s’ouvre dans la feuille du bas de l’agenda (HALL-FR-CAL-060).",
         "La visionneuse présente le document avec les droits de l’utilisateur, quel que soit l’endroit d’où il est ouvert : une carte, un texte ou un tableur que l’utilisateur peut modifier y est modifiable avec son propre éditeur, exactement comme dans la ligne dépliée (pour une carte : mode Dessin, mesures, notes et « Enregistrer ce cadrage »), et il y est présenté en lecture sinon.",
         "La visionneuse porte les commandes que l’écran Documents offre pour ce document, avec les mêmes droits : renommer, « Déplacer vers… », copier la référence, l’aperçu PDF d’un texte, partager et télécharger un fichier, supprimer, et la commande principale de son type, « Ouvrir dans Cartes » pour une carte. Après une suppression, la visionneuse se ferme.",
@@ -4219,6 +4219,12 @@
           "key": "shared-document-viewer",
           "origin": "product",
           "statement": "Demande du propriétaire du 2026-10-10 : la visionneuse en plein écran est un seul composant partagé, utilisé partout où un document peut être ouvert.",
+          "sourceIds": []
+        },
+        {
+          "key": "pdf-page-sidebar-closed",
+          "origin": "product",
+          "statement": "Mots du propriétaire du 18 novembre 2026 : « Est-ce qu'on peut régler l'affichage pour tous les PDF de ne pas avoir la sidebar des pages ouverte par défaut. Ça, c'est pas terrible. »",
           "sourceIds": []
         },
         {
