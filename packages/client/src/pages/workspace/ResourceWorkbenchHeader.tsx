@@ -14,6 +14,7 @@ import {
 } from "../../components/icons";
 import { TagInput } from "../../components/TagInput";
 import type { ItemCommand } from "../../components/ui/item-commands";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { CouncilBusinessGlyph } from "../../features/council-business/CouncilBusinessGlyph";
 import { DocumentaryResourceGlyph, documentaryResourceDate } from "../../features/documents/DocumentaryResourceGlyph";
 import { usePdfCommands } from "../../features/documents/PdfPreviewButton";
@@ -38,6 +39,7 @@ export function useResourceCommands({
   onMoved,
   onOpenInMaps,
   primary,
+  compactPrimary = false,
 }: {
   resource: Exclude<ResourceDetail, { kind: "folder" }>;
   /** The current text of a text document, previewed as a PDF. */
@@ -48,6 +50,8 @@ export function useResourceCommands({
   onOpenInMaps?(event: MouseEvent<HTMLAnchorElement>): void;
   /** The main command of a document that is not a map. */
   primary?: ReactNode;
+  /** « Ouvrir dans Cartes » as an icon with its tooltip, like the other commands of the row. */
+  compactPrimary?: boolean;
 }): {
   move: ItemCommand[];
   pdf: ItemCommand[];
@@ -67,7 +71,23 @@ export function useResourceCommands({
     move: move.command ? [move.command] : [],
     pdf: pdfMarkdown !== undefined ? pdf.commands : [],
     primary:
-      resource.kind === "geographic" ? (
+      resource.kind === "geographic" && compactPrimary ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button asChild variant="plain" size="icon">
+              <Link
+                data-testid="resource-open-in-maps"
+                aria-label={t("maps.openInMaps")}
+                to={`/maps/${encodeURIComponent(resource.id)}`}
+                onClick={onOpenInMaps}
+              >
+                <MapIcon />
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t("maps.openInMaps")}</TooltipContent>
+        </Tooltip>
+      ) : resource.kind === "geographic" ? (
         <Button asChild variant="secondary" className="resource-open-in-maps">
           <Link
             data-testid="resource-open-in-maps"

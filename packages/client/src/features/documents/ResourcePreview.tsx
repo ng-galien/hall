@@ -5,6 +5,7 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { usePhoneEditorCommands } from "../../components/editor/phoneEditorCommands";
 import { BackIcon, ChevronRightIcon, CloseIcon, DeleteIcon, DownloadIcon, ShareIcon } from "../../components/icons";
 import type { ItemCommand } from "../../components/ui/item-commands";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { useReferenceMentionables } from "../../hooks/useReferenceMentionables";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourceCommands } from "../../pages/workspace/ResourceWorkbenchHeader";
@@ -68,7 +69,7 @@ export function ResourcePreviewWithSession({
   onRemoved?(): void;
   refreshSessionOnClose?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const mentionables = useReferenceMentionables();
   const { canUpload: canUploadImage, uploadImage } = useWorkspaceResourceImageUpload();
   const [closing, setClosing] = useState(false);
@@ -90,7 +91,11 @@ export function ResourcePreviewWithSession({
   }, [closing, onClose, refreshSessionOnClose, session]);
 
   const resource = session.resource;
-  const sessionControls = useSessionControls(session);
+  const date = resource ? documentaryResourceDate(resource) : null;
+  const dateLabel = date
+    ? t(date.kind === "created" ? "workspace.createdOn" : "workspace.updatedOn", { date: formatDate(date.value) })
+    : undefined;
+  const sessionControls = useSessionControls(session, undefined, phone ? undefined : dateLabel);
   const phoneSpreadsheet = phone && resource?.kind === "spreadsheet";
   const writing = useTextWriting({
     id: phoneSpreadsheet ? resource.id : null,
@@ -132,17 +137,21 @@ export function ResourcePreviewWithSession({
     </Button>
   );
   const close = (
-    <Button
-      ref={closeButtonRef}
-      data-testid={closeTestId}
-      size="icon"
-      variant="plain"
-      aria-label={t("common.close")}
-      title={t("common.close")}
-      onClick={() => void requestClose()}
-    >
-      <CloseIcon aria-hidden="true" />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          ref={closeButtonRef}
+          data-testid={closeTestId}
+          size="icon"
+          variant="plain"
+          aria-label={t("common.close")}
+          onClick={() => void requestClose()}
+        >
+          <CloseIcon aria-hidden="true" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{t("common.close")}</TooltipContent>
+    </Tooltip>
   );
   return (
     <DocumentViewerDialog
@@ -161,6 +170,7 @@ export function ResourcePreviewWithSession({
               resource={resource}
               session={session}
               controls={controls}
+              dateLabel={dateLabel}
               phone={phone}
               phoneCommands={phoneSpreadsheet ? spreadsheetCommands : undefined}
               back={back}
@@ -215,6 +225,7 @@ function ResourcePreviewHeader({
   resource,
   session,
   controls,
+  dateLabel,
   phone,
   phoneCommands,
   back,
@@ -226,6 +237,8 @@ function ResourcePreviewHeader({
   resource: NonNullable<ResourceSession["resource"]>;
   session: ResourceSession;
   controls: WorkbenchControls;
+  /** « Modifié le … », read in the tooltip of the automatic saving, or of the type icon when there is none. */
+  dateLabel?: string;
   phone: boolean;
   /** On a phone, the commands of the spreadsheet being written, in place of those of the document. */
   phoneCommands?: ItemCommand[];
@@ -256,6 +269,7 @@ function ResourcePreviewHeader({
       onMoved?.(path);
     },
     onOpenInMaps: openInMaps,
+    compactPrimary: !phone,
   });
   const printCommands = useResourcePrintCommands({
     resource,
@@ -329,7 +343,20 @@ function ResourcePreviewHeader({
           </span>
         )
       }
-      icon={phone ? undefined : <DocumentaryResourceGlyph resource={resource} />}
+      icon={
+        phone ? undefined : session.canConfigureAutosave ? (
+          <DocumentaryResourceGlyph resource={resource} />
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="resource-preview-type" data-testid="resource-preview-type">
+                <DocumentaryResourceGlyph resource={resource} />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{dateLabel}</TooltipContent>
+          </Tooltip>
+        )
+      }
       place={phone ? folderName(resource.path) || t("navigation.workspace") : undefined}
       title={session.title}
       titleId="resource-preview-title"

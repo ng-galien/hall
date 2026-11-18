@@ -9,7 +9,12 @@ import type { WorkbenchControls } from "./WorkspaceWorkbenchHeader";
  * switch of the automatic saving and « Voir les modifications », visible on the line of the title, and, for an item the
  * person may modify, the save state under the title.
  */
-export function useSessionControls(session: ResourceSession | null, close?: ReactNode): WorkbenchControls {
+export function useSessionControls(
+  session: ResourceSession | null,
+  close?: ReactNode,
+  /** A further line of the tooltip of the automatic saving, such as « Modifié le … ». */
+  saveDetail?: string,
+): WorkbenchControls {
   const resource = session?.resource ?? null;
   return {
     menu: [],
@@ -26,6 +31,7 @@ export function useSessionControls(session: ResourceSession | null, close?: Reac
               enabled={session.autosaveEnabled}
               status={session.saveStatus}
               onChange={session.updateAutosave}
+              detail={saveDetail}
             />
           ) : null}
           <ResourceChangesControl

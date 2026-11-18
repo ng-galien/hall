@@ -105,7 +105,7 @@ export function WorkspaceWorkbenchHeader({
   place?: ReactNode;
   /** In a dialog: the control written after the commands, such as the cross that closes it. */
   trailing?: ReactNode;
-  /** In a dialog: the place, the title, its facts and the commands on one row. */
+  /** In a dialog: the place, the title, its save state and the commands on one row; the date is read in a tooltip. */
   singleLine?: boolean;
 }) {
   const { t, formatDate } = useI18n();
@@ -159,9 +159,11 @@ export function WorkspaceWorkbenchHeader({
           {place}
         </span>
       ) : null}
-      <span className="workbench-eyebrow">
-        {t(date.kind === "created" ? "workspace.createdOn" : "workspace.updatedOn", { date: formatDate(date.value) })}
-      </span>
+      {singleLine ? null : (
+        <span className="workbench-eyebrow">
+          {t(date.kind === "created" ? "workspace.createdOn" : "workspace.updatedOn", { date: formatDate(date.value) })}
+        </span>
+      )}
       {controls?.save ? <SaveFact save={controls.save} /> : null}
       {hint}
     </>

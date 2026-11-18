@@ -10,7 +10,7 @@
 
 .resource-preview-shell-header > .workspace-workbench-header {
   gap: 0;
-  padding: var(--hall-space-1-5) var(--hall-space-3) var(--hall-space-1-5) var(--hall-space-5);
+  padding: var(--hall-space-1) var(--hall-space-2) var(--hall-space-1) var(--hall-space-4);
 }
 
 .resource-preview-loading-header {
@@ -18,10 +18,10 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--hall-space-2);
-  padding: var(--hall-space-1-5) var(--hall-space-3) var(--hall-space-1-5) var(--hall-space-5);
+  padding: var(--hall-space-1) var(--hall-space-2) var(--hall-space-1) var(--hall-space-4);
 }
 
-/* One row: the place, the type icon, the title and its facts, the commands, then the cross. When the row lacks room the
+/* One row: the place, the type icon, the title and its save state, the commands, then the cross. When the row lacks room the
    place is shortened first; the commands then pass under the title, at the right, before the title is cut. */
 .workbench-dialog-title-block[data-single-line="true"] {
   padding: 0;
@@ -29,16 +29,21 @@
 }
 .workbench-dialog-title-block[data-single-line="true"] > .screen-title-row {
   align-items: center;
-  column-gap: var(--hall-space-2);
+  column-gap: var(--hall-space-1-5);
 }
 .workbench-dialog-title-block[data-single-line="true"] .screen-title-icon {
   min-height: 0;
 }
-.workbench-dialog-title-block[data-single-line="true"] .screen-title-commands {
+.workbench-dialog-title-block[data-single-line="true"] .screen-title-commands,
+.workbench-dialog-title-block[data-single-line="true"] .item-commands {
   min-height: 0;
+  gap: 0;
+}
+.resource-preview-type {
+  display: inline-flex;
 }
 .workbench-dialog-title-block[data-single-line="true"] .workbench-dialog-title {
-  min-width: min(100%, var(--hall-size-relative-12rem));
+  min-width: min(100%, var(--hall-size-relative-8rem));
   flex: 0 1 auto;
   overflow-wrap: anywhere;
   font-size: var(--hall-font-size-title);
@@ -58,8 +63,8 @@
 .resource-preview-place {
   display: inline-flex;
   min-width: 0;
-  max-width: 40%;
-  flex: 0 1 auto;
+  max-width: 30%;
+  flex: 0 3 auto;
   align-items: center;
 }
 .resource-preview-place > .workspace-breadcrumb {
