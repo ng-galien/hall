@@ -14,7 +14,8 @@ import { toLonLat } from "ol/proj";
 import { Button } from "@/components/ui/button";
 import type { ColorPickerPreset } from "@/components/ui/color-picker";
 import { standardColorPresets } from "@/components/ui/color-presets";
-import { PinIcon } from "../../components/icons";
+import { SaveViewIcon } from "../../components/icons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import { useI18n } from "../../i18n/I18nProvider";
 import { useResourceSaveStatus } from "../../pages/workspace/saveStatusStore";
 import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
@@ -778,21 +779,26 @@ export function GeographicResourceMap({
             entries={hallLayerVisible ? (draft.hallLayer.legend ?? []) : []}
             actions={
               canUpdate
-                ? (iconOnly) => (
-                    <Button
-                      type="button"
-                      variant="plain"
-                      className="geographic-save-view"
-                      data-testid="geographic-save-view"
-                      size={iconOnly ? "icon" : "default"}
-                      disabled={conflict || sameGeographicView(displayedView, draft.view)}
-                      aria-label={iconOnly ? t("geographic.saveView") : undefined}
-                      title={iconOnly ? t("geographic.saveView") : undefined}
-                      onClick={saveDisplayedView}
-                    >
-                      <PinIcon />
-                      {iconOnly ? null : <span>{t("geographic.saveView")}</span>}
-                    </Button>
+                ? () => (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            type="button"
+                            variant="plain"
+                            className="geographic-save-view"
+                            data-testid="geographic-save-view"
+                            size="icon"
+                            disabled={conflict || sameGeographicView(displayedView, draft.view)}
+                            aria-label={t("geographic.saveView")}
+                            onClick={saveDisplayedView}
+                          >
+                            <SaveViewIcon />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{t("geographic.saveView")}</TooltipContent>
+                    </Tooltip>
                   )
                 : undefined
             }

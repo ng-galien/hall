@@ -18,6 +18,7 @@ export {
   ArrowUp as ArrowUpIcon,
   At as ReferenceIcon,
   Bank as CouncilIcon,
+  BookmarkSimple as SaveViewIcon,
   BookOpenText as DocsIcon,
   BookOpenText as LegalReferenceIcon,
   BoundingBox as FitBoundsIcon,
