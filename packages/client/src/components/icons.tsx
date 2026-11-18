@@ -15,6 +15,7 @@ export {
   ArrowsInLineHorizontal as MergeCellsIcon,
   ArrowsOut as FullscreenIcon,
   ArrowsOutLineHorizontal as SplitCellIcon,
+  ArrowsOutSimple as OpenFullscreenIcon,
   ArrowUp as ArrowUpIcon,
   At as ReferenceIcon,
   Bank as CouncilIcon,

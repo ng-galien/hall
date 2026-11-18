@@ -8,7 +8,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { DeleteIcon, EditIcon, FolderAddIcon, LinkOffIcon, MoreIcon, MoveIcon, OpenIcon } from "../../components/icons";
+import {
+  DeleteIcon,
+  EditIcon,
+  FolderAddIcon,
+  LinkOffIcon,
+  MoreIcon,
+  MoveIcon,
+  OpenFullscreenIcon,
+  OpenIcon,
+} from "../../components/icons";
 import { Modal, RequestErrorBanner } from "../../components/Ui";
 import { ContextMenuItem } from "../../components/ui/context-menu";
 import { ExplorerTree, ExplorerTreeBranch } from "../../components/ui/explorer-tree";
@@ -436,7 +445,7 @@ function FullscreenButton({ id, onOpen }: { id: string; onOpen(id: string): void
           aria-label={t("workspace.openDocumentFullscreen")}
           onClick={() => onOpen(id)}
         >
-          <OpenIcon />
+          <OpenFullscreenIcon />
         </Button>
       </TooltipTrigger>
       <TooltipContent>{t("workspace.openDocumentFullscreen")}</TooltipContent>
