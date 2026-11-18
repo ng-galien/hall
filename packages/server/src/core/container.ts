@@ -75,6 +75,7 @@ import { createMeetingNoticeService, type MeetingNoticeService } from "../servic
 import { createMinutesService, type MinutesService } from "../services/minutesService.js";
 import { createPasswordLinkService, type PasswordLinkService } from "../services/passwordLinkService.js";
 import { createReferenceEntityResolver, type ReferenceEntityResolver } from "../services/referenceEntityResolver.js";
+import { createResourcePrintService, type ResourcePrintService } from "../services/resourcePrintService.js";
 import {
   createTemplatePreviewContextService,
   type TemplatePreviewContextService,
@@ -141,6 +142,7 @@ export interface Cradle {
   documentPreviewConverter: DocumentPreviewConverter;
   legalReferenceProvider: LegalReferenceProvider;
   contentTemplateService: ContentTemplateService;
+  resourcePrintService: ResourcePrintService;
   templatePreviewContextService: TemplatePreviewContextService;
 }
 
@@ -191,6 +193,7 @@ export function buildContainer(config: ServerConfig, options: ServerCompositionO
     documentPreviewConverter: asFunction(createMarkdownDocumentPreviewConverter).singleton(),
     legalReferenceProvider: asFunction(createLegifranceProvider).singleton(),
     contentTemplateService: asFunction(createContentTemplateService).singleton(),
+    resourcePrintService: asFunction(createResourcePrintService).singleton(),
     templatePreviewContextService: asFunction(createTemplatePreviewContextService).singleton(),
   });
   container.register({

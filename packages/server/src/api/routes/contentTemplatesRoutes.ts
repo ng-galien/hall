@@ -5,6 +5,7 @@ import {
   previewContentTemplateSchema,
   previewPdfSchema,
   referenceEntityKinds,
+  resourcePrintSchema,
   updateContentTemplateSchema,
 } from "@hall/domain";
 import { Router } from "express";
@@ -26,7 +27,7 @@ function contains(label: string, query: string): boolean {
 }
 
 export function createContentTemplatesRouter(cradle: Cradle): Router {
-  const { contentTemplateService, referenceEntityResolver, mailService } = cradle;
+  const { contentTemplateService, referenceEntityResolver, mailService, resourcePrintService } = cradle;
   const router = Router();
   const pdfPreviews = new Map<string, { content: Buffer; expiresAt: number }>();
 
@@ -58,11 +59,15 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
   });
 
   router.post("/preview-pdf", requireActionPermission("template.preview-pdf"), async (request, response) => {
-    const input = z.union([previewContentTemplateSchema.options[0], previewPdfSchema.strict()]).parse(request.body);
+    const input = z
+      .union([previewContentTemplateSchema.options[0], previewPdfSchema.strict(), resourcePrintSchema])
+      .parse(request.body);
     const content =
-      "kind" in input
-        ? await contentTemplateService.previewPdfDraft(input, input.context)
-        : await contentTemplateService.previewPdf(input.bodyMarkdown, input.context, input.attachPdfDocuments);
+      "resourceId" in input
+        ? await resourcePrintService.print(input)
+        : "kind" in input
+          ? await contentTemplateService.previewPdfDraft(input, input.context)
+          : await contentTemplateService.previewPdf(input.bodyMarkdown, input.context, input.attachPdfDocuments);
     if (request.query.delivery === "url") {
       const now = Date.now();
       for (const [id, preview] of pdfPreviews) if (preview.expiresAt <= now) pdfPreviews.delete(id);

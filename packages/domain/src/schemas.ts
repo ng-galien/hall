@@ -125,6 +125,31 @@ export const previewPdfSchema = z.object({
   attachPdfDocuments: z.boolean().default(true),
 });
 
+// @implements-requirement HALL-FR-DOC-600
+/** The print of a spreadsheet or of a map from its full-screen view, with what the screen displays. */
+export const resourcePrintSchema = z
+  .object({
+    resourceId: z.string().uuid(),
+    /** The sheet displayed by a spreadsheet; the first sheet otherwise. */
+    sheetId: z.string().min(1).max(200).optional(),
+    /** The map as displayed: centre and zoom of the view, size of the map surface, and the print options. */
+    map: z
+      .object({
+        center: z.tuple([z.number().min(-180).max(180), z.number().min(-85.06).max(85.06)]),
+        zoom: z.number().min(0).max(22),
+        width: z.number().int().min(50).max(10_000),
+        height: z.number().int().min(50).max(10_000),
+        drawingsVisible: z.boolean().default(true),
+        municipalOnlyLayerIds: z.array(z.string().uuid()).max(100).default([]),
+        /** Append the list of the map elements, with their measures and the content of their notes. */
+        elementList: z.boolean().default(false),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export type ResourcePrint = z.infer<typeof resourcePrintSchema>;
+
 export const generateContentTemplateSchema = z.object({
   context: templateRenderContextSchema.default({}),
   attachmentResourceIds: z.array(z.string().uuid()).max(20).default([]),
