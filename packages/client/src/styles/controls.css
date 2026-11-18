@@ -51,7 +51,9 @@
 }
 
 /* @implements-requirement HALL-FR-LAY-140 */
-/* An input outside a form field (search, filter): filled and underlined. A form field: see the Field rules below. */
+/* Every input, in a form field or alone (search, filter, selection), takes the colours of the form field: no fill, a
+   rule under the value that turns blue and thicker while typing, red in error, and disappears when it is disabled. The
+   Field rules below set only the layout of a field. */
 @layer components {
   .hall-input {
     display: flex;
@@ -62,9 +64,9 @@
     padding: 0 var(--hall-space-3);
     border: 0;
     border-radius: var(--hall-radius-small) var(--hall-radius-small) 0 0;
-    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thin)) 0 var(--hall-color-field-line);
+    box-shadow: inset 0 calc(-1 * var(--hall-stroke-thin)) 0 var(--hall-color-field-rule);
     color: var(--hall-color-text);
-    background: var(--hall-color-field);
+    background: transparent;
     font: inherit;
     font-size: var(--hall-font-size-text);
     line-height: var(--hall-line-height-body-large);
@@ -73,15 +75,15 @@
   /* A date input is a block, so that its calendar button sits at the right edge of the field. */
   .hall-input:is([type="date"], [type="time"], [type="datetime-local"]) { display: block; }
   .hall-input::placeholder,
-  .hall-select-trigger[data-placeholder] { color: var(--hall-color-text-subtle); }
+  .hall-select-trigger[data-placeholder] { color: var(--hall-color-field-empty); opacity: 1; }
   /* An empty date is written like an empty field: grey and italic. */
   .hall-input[data-empty="true"] { color: var(--hall-color-field-empty); font-style: italic; }
-  .hall-input:hover:not(:disabled) { background: var(--hall-color-field-hover); }
   .hall-input:focus,
   .hall-input:focus-visible,
   .hall-input[data-state="open"] { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-brand); }
   .hall-input[aria-invalid="true"] { box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-danger); }
   .hall-input:disabled { cursor: default; opacity: var(--hall-opacity-disabled); }
+  .hall-input:not(.hall-textarea):disabled { box-shadow: none; }
   .hall-textarea { display: block; min-height: var(--hall-size-textarea-min); padding-block: var(--hall-space-2); field-sizing: content; resize: vertical; }
   /* With a mouse on a computer, search and filter fields take the 14-pixel size of the side menu and the header. */
   @media (pointer: fine) {
@@ -125,10 +127,8 @@
   .hall-field :is(.hall-input, .hall-textarea, .hall-select-trigger, .hall-field-value) {
     padding-inline: 0;
     border-radius: 0;
-    background: transparent;
     box-shadow: inset 0 calc(-1 * var(--hall-stroke-thin)) 0 var(--hall-color-field-rule);
   }
-  .hall-field :is(.hall-input, .hall-textarea, .hall-select-trigger):hover:not(:disabled) { background: transparent; }
   .hall-field :is(.hall-input, .hall-textarea, .hall-select-trigger):is(:focus, :focus-visible, [data-state="open"]) {
     box-shadow: inset 0 calc(-1 * var(--hall-stroke-thick)) 0 var(--hall-color-brand);
   }
@@ -137,8 +137,7 @@
   }
   .hall-field :is(input, textarea)[readonly],
   .hall-field :is(input, textarea)[readonly]:is(:hover, :focus, :focus-visible),
-  .hall-field .hall-field-value,
-  .hall-field :is(.hall-input, .hall-select-trigger):disabled { box-shadow: none; }
+  .hall-field .hall-field-value { box-shadow: none; }
   /* A control made of several parts, such as tags and the draft of the next one, takes the rule of the field as a
      whole; the input inside it is bare text. */
   .hall-field > .hall-field-composite {

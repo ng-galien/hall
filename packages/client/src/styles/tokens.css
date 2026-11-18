@@ -53,8 +53,6 @@
   --hall-color-logo-right-pillar: #dc2626;
   --hall-color-focus: #2457d6;
   /* Filled search and filter field: tinted surface and an underline that turns blue on focus. */
-  --hall-color-field: #eef1f5;
-  --hall-color-field-hover: #e6eaf0;
   --hall-color-field-line: #42506a;
   /* Form field: no fill, a grey rule under its value; an empty field writes « Non renseigné » in grey italics. */
   --hall-color-field-rule: #b4becb;
@@ -356,8 +354,6 @@
   --hall-color-nature-council: #d5dbe5;
   --hall-color-nature-folder: #9aa5b8;
   --hall-color-focus: #7f9cf0;
-  --hall-color-field: #23272f;
-  --hall-color-field-hover: #2a2f39;
   --hall-color-field-line: #9aa5b8;
   --hall-color-field-rule: #4f5868;
   --hall-color-field-empty: #7a8392;
