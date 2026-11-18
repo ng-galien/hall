@@ -317,7 +317,12 @@ test("the charter holds no warm tint: no cream, orange, brown or amber token, ex
 // @verifies-requirement HALL-FR-LAY-100
 test("the commands of an opened item and of a document dialog are on the line of its title, once", () => {
   const preview = readFileSync(join(sourceRoot, "features/documents/ResourcePreview.tsx"), "utf8");
-  assert.equal(preview.match(/closeTestId=/g)?.length, 1, "a document dialog has one close cross");
+  assert.equal(preview.match(/<CloseIcon\b/g)?.length, 1, "a document dialog has one close cross");
+  assert.equal(
+    preview.match(/data-testid=\{closeTestId\}/g)?.length,
+    2,
+    "the dialog closes by its cross, or on a phone by the arrow of its title line",
+  );
   assert.equal(preview.match(/"resource-preview-close"/g)?.length, 1);
   assert.doesNotMatch(preview, /currentLabel=/, "the dialog trail does not repeat the document title");
   assert.doesNotMatch(

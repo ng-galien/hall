@@ -10,47 +10,54 @@ import { I18nProvider } from "../src/i18n/I18nProvider.tsx";
 
 vi.stubGlobal("localStorage", { getItem: () => "fr", setItem: () => undefined });
 
-// @verifies-requirement HALL-FR-SRC-030
-for (const kind of ["resource", "contact"]) {
-  test(`${kind} reference keeps an explicit short label and falls back to the current target title`, () => {
-    function render(label) {
-      return renderToStaticMarkup(
+function renderReference(kind, label, target = "Current full title") {
+  return renderToStaticMarkup(
+    h(
+      MemoryRouter,
+      null,
+      h(
+        I18nProvider,
+        null,
         h(
-          MemoryRouter,
+          TooltipProvider,
           null,
           h(
-            I18nProvider,
-            null,
-            h(
-              TooltipProvider,
-              null,
-              h(
-                ReferencePresentationProvider,
-                {
-                  renderResourcePreview: () => null,
-                  resourceAppearance: () => null,
-                  referenceTarget: () => ({
-                    label: "Current full title",
-                    tooltip: "Target details",
-                    open: { kind: "route", href: "/target" },
-                  }),
-                },
-                h(ReferenceBadge, { kind, id: "target" }, label),
-              ),
-            ),
+            ReferencePresentationProvider,
+            {
+              renderResourcePreview: () => null,
+              resourceAppearance: () => null,
+              referenceTarget: () =>
+                target ? { label: target, tooltip: "Target details", open: { kind: "route", href: "/target" } } : null,
+            },
+            h(ReferenceBadge, { kind, id: "target" }, label),
           ),
         ),
-      );
-    }
-    const explicit = render("Short label");
-    assert.match(explicit, />Short label<\/a>/);
-    assert.match(explicit, /href="\/target"/);
-    assert.match(explicit, new RegExp(`editor-reference-${kind}`));
-    assert.doesNotMatch(explicit, /Current full title/);
-    assert.match(render(""), />Current full title<\/a>/);
-    assert.match(render("   "), />Current full title<\/a>/);
-  });
+      ),
+    ),
+  );
 }
+
+// @verifies-requirement HALL-FR-SRC-030
+test("a document reference writes the current name of the document, and its stored label only when it is not found", () => {
+  const renamed = renderReference("resource", "Name at insertion", "Name after rename");
+  assert.match(renamed, />Name after rename<\/a>/);
+  assert.match(renamed, /href="\/target"/);
+  assert.match(renamed, /editor-reference-resource/);
+  assert.doesNotMatch(renamed, /Name at insertion/);
+  assert.match(renderReference("resource", ""), />Current full title<\/a>/);
+  assert.match(renderReference("resource", "Stored label", null), /Stored label/);
+});
+
+// @verifies-requirement HALL-FR-SRC-030
+test("a contact reference keeps an explicit short label and falls back to the current contact name", () => {
+  const explicit = renderReference("contact", "Short label");
+  assert.match(explicit, />Short label<\/a>/);
+  assert.match(explicit, /href="\/target"/);
+  assert.match(explicit, /editor-reference-contact/);
+  assert.doesNotMatch(explicit, /Current full title/);
+  assert.match(renderReference("contact", ""), />Current full title<\/a>/);
+  assert.match(renderReference("contact", "   "), />Current full title<\/a>/);
+});
 
 // @verifies-requirement HALL-FR-SRC-030
 test("a reference whose target is not loaded asks for it once, and a known one asks for nothing", async () => {
