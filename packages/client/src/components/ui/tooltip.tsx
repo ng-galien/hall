@@ -13,8 +13,28 @@ function Tooltip({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Root
   return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
 }
 
-function TooltipTrigger({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
+/** Keys that move the focus from one control to the next; a focus they bring opens the tooltip of its control. */
+const focusMovingKeys = new Set(["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"]);
+let focusMovedByKey = false;
+if (typeof document !== "undefined") {
+  document.addEventListener("keydown", (event) => (focusMovedByKey = focusMovingKeys.has(event.key)), true);
+  document.addEventListener("pointerdown", () => (focusMovedByKey = false), true);
+}
+
+/** The control a tooltip names. Its tooltip opens on hover, and on focus only when the person moves the focus with the
+ * keyboard: a focus the program gives, such as the first control of a window that opens, leaves it closed, so that
+ * Escape goes to the window. */
+function TooltipTrigger({ onFocus, ...props }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
+  return (
+    <TooltipPrimitive.Trigger
+      data-slot="tooltip-trigger"
+      onFocus={(event) => {
+        onFocus?.(event);
+        if (!focusMovedByKey) event.preventDefault();
+      }}
+      {...props}
+    />
+  );
 }
 
 function TooltipContent({
