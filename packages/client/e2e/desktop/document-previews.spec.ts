@@ -148,7 +148,13 @@ test("document previews share a contextual frame in both themes without changing
     const page = app.windows().find((window) => window.url().includes("/app/"))!;
     await expect(page.getByTestId("home-meeting")).toBeVisible({ timeout: 480_000 });
     const origin = new URL(page.url()).origin;
-    const go = (path: string) => page.goto(`${origin}/app/${path}`);
+    // A closed window gives its history entry back before the next address is opened.
+    const go = async (path: string) => {
+      await expect
+        .poll(() => page.evaluate(() => (history.state as { hallLayer?: string } | null)?.hallLayer ?? null))
+        .toBeNull();
+      return page.goto(`${origin}/app/${path}`);
+    };
     await page.getByTestId("navigation-settings").click();
     await page.getByTestId("settings-language").click();
     await page.getByTestId("settings-language-fr").click();
@@ -183,8 +189,18 @@ test("document previews share a contextual frame in both themes without changing
       for (const entry of agenda) {
         const item = entry.properties;
         // The server dates each conduct observation when it receives it.
-        if (!item.completedAt && !item.adjournedAt)
-          await command("POST", `${path}/agenda-items/${item.id}/${item.startedAt ? "complete" : "adjourn"}`, {});
+        if (item.completedAt || item.adjournedAt) continue;
+        // A started point that still needs its ballot is adjourned, like a point never started.
+        const completed = item.startedAt
+          ? await command("POST", `${path}/agenda-items/${item.id}/complete`, {}).then(
+              () => true,
+              (error: Error) => {
+                if (!error.message.includes("agenda_ballot_required")) throw error;
+                return false;
+              },
+            )
+          : false;
+        if (!completed) await command("POST", `${path}/agenda-items/${item.id}/adjourn`, {});
       }
       return command("POST", `${path}/close`, {});
     }, active);
