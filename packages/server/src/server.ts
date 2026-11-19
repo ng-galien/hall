@@ -15,36 +15,14 @@ export interface HttpServerHandle {
 /** Longest wait, at shutdown, for the requests still being processed before the database pool is closed. */
 const SHUTDOWN_DRAIN_TIMEOUT_MS = 5_000;
 const SHUTDOWN_DRAIN_POLL_MS = 25;
-/** The pool counts as released once it has held no connection and no waiting query over this span. */
-const SHUTDOWN_IDLE_SPAN_MS = 100;
 
-/** The occupation counters of the database pool. */
-interface PoolOccupation {
-  totalCount: number;
-  idleCount: number;
-  waitingCount: number;
-}
-
-function poolBusy(pool: PoolOccupation): boolean {
-  return pool.totalCount > pool.idleCount || pool.waitingCount > 0;
-}
-
-/**
- * Waits for the responses still open and, for a request whose connection closed before its response, for its database
- * work: until the pool stays released for a short span, within a time bound.
- */
-async function drainRequests(open: ReadonlySet<ServerResponse>, pool: PoolOccupation): Promise<void> {
+/** Waits, within a time bound, until the handler of every request has ended its response, including a request whose
+ * client has left: a PDF generation waiting for its slot or being rendered is still counted. */
+async function drainRequests(running: ReadonlySet<ServerResponse>): Promise<void> {
   const deadline = Date.now() + SHUTDOWN_DRAIN_TIMEOUT_MS;
-  let idleSince: number | null = null;
-  while (Date.now() < deadline) {
-    if (open.size > 0 || poolBusy(pool)) idleSince = null;
-    else {
-      idleSince ??= Date.now();
-      if (Date.now() - idleSince >= SHUTDOWN_IDLE_SPAN_MS) return;
-    }
-    await delay(SHUTDOWN_DRAIN_POLL_MS);
-  }
-  logger.warn({ openResponses: open.size }, "Requests still running when the database pool closes");
+  while (running.size > 0 && Date.now() < deadline) await delay(SHUTDOWN_DRAIN_POLL_MS);
+  if (running.size > 0)
+    logger.warn({ runningRequests: running.size }, "Requests still running when the database pool closes");
 }
 
 export async function startHttpServer(
@@ -67,10 +45,14 @@ export async function startHttpServer(
         resolve(listening);
       });
     });
-    const openResponses = new Set<ServerResponse>();
-    server.on("request", (_request, response: ServerResponse) => {
-      openResponses.add(response);
-      response.once("close", () => openResponses.delete(response));
+    const runningRequests = new Set<ServerResponse>();
+    server.prependListener("request", (_request, response: ServerResponse) => {
+      runningRequests.add(response);
+      const end = response.end.bind(response) as (...parts: unknown[]) => ServerResponse;
+      response.end = ((...parts: unknown[]) => {
+        runningRequests.delete(response);
+        return end(...parts);
+      }) as ServerResponse["end"];
     });
     const address = server.address() as AddressInfo;
     const liveWebSocket = attachLiveWebSocket(server, container.cradle);
@@ -87,7 +69,7 @@ export async function startHttpServer(
         await new Promise<void>((resolve, reject) => {
           server.close((error) => (error ? reject(error) : resolve()));
         });
-        await drainRequests(openResponses, container.cradle.postgresPool);
+        await drainRequests(runningRequests);
         await container.cradle.postgresClient.close();
       },
     };
