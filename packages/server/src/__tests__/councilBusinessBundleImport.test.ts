@@ -137,6 +137,10 @@ it("transfers a whole business across clean installations and refuses duplicate 
     await b("/resources", "POST", { kind: "folder", path: "", name: "Archives" }, 201);
     const document = details.find((r: { kind: string }) => r.kind === "document");
     await b(`/resources/${document.id}/location`, "PATCH", { path: "Archives", name: "Photo conservée" });
+    const stillLinked = (await b(`/council-business/${imported.id}/resources`)).entities.map(
+      (e: { properties: { resourceId: string } }) => e.properties.resourceId,
+    );
+    expect(stillLinked).not.toContain(document.id);
     const other = (
       await b(
         "/council-business",
@@ -151,7 +155,7 @@ it("transfers a whole business across clean installations and refuses duplicate 
     expect((await b(`/council-business/${imported.id}`)).properties.id).toBe(imported.id);
     await b(`/council-business/${other.id}/resources/dissociate`, "POST", { resourceId: importedText.id });
     await b(`/council-business/${imported.id}`, "DELETE", undefined, 409);
-    for (const resource of details)
+    for (const resource of details.filter((r: { id: string }) => stillLinked.includes(r.id)))
       await b(`/council-business/${imported.id}/resources/dissociate`, "POST", { resourceId: resource.id });
     await b(`/council-business/${imported.id}`, "DELETE", undefined, 409);
     const folders = (await b("/resources?path=Imports%2Farverna-epona%2FCaptage")).entities.map(
