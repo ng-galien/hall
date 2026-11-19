@@ -1458,9 +1458,29 @@ test.describe("folder colour of an opened business on phone", () => {
     await expect(picker).toBeVisible();
     const preset = picker.getByTestId("workspace-folder-color-picker-preset").nth(2);
     const chosen = ((await preset.getAttribute("data-color")) ?? "").toUpperCase();
+    // Opened from the actions menu, the picker lies over its press layer, which lies over the screen.
+    const layers = await page.evaluate(() => {
+      const picker = document.querySelector('[data-testid="workspace-folder-color-picker"]')!.getBoundingClientRect();
+      const inside = document.elementFromPoint(picker.x + picker.width / 2, picker.y + picker.height / 2);
+      const outside = document.elementFromPoint(window.innerWidth / 2, window.innerHeight - 40);
+      return {
+        insidePicker: Boolean(inside?.closest('[data-testid="workspace-folder-color-picker"]')),
+        outsideOnBackdrop: outside?.getAttribute("data-testid") === "workspace-folder-color-picker-backdrop",
+      };
+    });
+    expect(layers).toEqual({ insidePicker: true, outsideOnBackdrop: true });
     await preset.tap();
     await page.keyboard.press("Escape");
     await expect(picker).toBeHidden();
+    // A tap outside the picker only closes it.
+    await page.getByTestId("phone-document-actions").tap();
+    await page.getByTestId("phone-document-action-folder-color").tap();
+    await expect(picker).toBeVisible();
+    const url = page.url();
+    await page.touchscreen.tap(195, 760);
+    await expect(picker).toBeHidden();
+    expect(page.url()).toBe(url);
+    await expect(page.getByTestId("council-business-workbench")).toBeVisible();
     await expect
       .poll(async () => {
         const folder = await page.request.get(`/api/resources/${business.folderResourceId}`);

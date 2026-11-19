@@ -461,3 +461,170 @@ test("a spreadsheet and a map print from their full screen view as a PDF in the 
     await page.getByTestId("resource-preview-print-close").click();
   }
 });
+
+// @verifies-requirement HALL-FR-SRC-030
+test("a document inserted in a text shows its current name after a rename, from one reading of that document", async ({
+  appPage: page,
+}) => {
+  const marker = crypto.randomUUID().slice(0, 8);
+  const post = (data: Record<string, unknown>) => page.request.post("/api/resources", { data });
+  const folder = `Inclusion ${marker}`;
+  await created(await post({ kind: "folder", path: "", name: folder }));
+  const included = await created(await post({ kind: "text", path: folder, name: "Ancien nom", content: "Pièce." }));
+  const text = await created(
+    await post({
+      kind: "text",
+      path: folder,
+      name: "Note",
+      content: `Avant.\n\n::resource-embed[Ancien nom]{#${included.id} presentation="text"}\n\nAprès.`,
+    }),
+  );
+  const renamed = await page.request.patch(`/api/resources/${included.id}/location`, {
+    data: { path: folder, name: "Nom courant" },
+  });
+  expect(renamed.ok(), await renamed.text()).toBeTruthy();
+  const readings: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (request.method() === "GET" && url.pathname === `/api/resources/${included.id}`) readings.push(url.href);
+  });
+
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: folder, resource: text.id })}`);
+  const embed = page.locator(`[data-testid$="resource-embed-${included.id}"]`).first();
+  await expect(embed).toHaveAttribute("aria-label", /Nom courant/);
+  await expect(page.getByTestId("resource-workbench")).not.toContainText("Ancien nom");
+  await page.waitForLoadState("networkidle");
+  expect(readings, "one complete reading of the inserted document").toHaveLength(1);
+});
+
+// @verifies-requirement HALL-FR-WSP-510
+test("a content saved in another session reaches the open business and folder without rereading the catalog or the business list", async ({
+  appPage: page,
+}) => {
+  const marker = crypto.randomUUID().slice(0, 8);
+  const root = `Affaire suivie ${marker}`;
+  const business = (await created(
+    await page.request.post("/api/council-business", {
+      data: { path: "", name: root, reportName: "Rapport", reportContent: "Rapport initial." },
+    }),
+  )) as unknown as { id: string; reportResourceId: string };
+  const subject = (await created(
+    await page.request.post(`/api/council-business/${business.id}/prepared-subjects`, {
+      data: { kind: "openQuestion", name: "Sujet suivi", content: "Texte initial du sujet." },
+    }),
+  )) as unknown as { id: string; textResourceId: string };
+  const piece = await created(
+    await page.request.post("/api/resources", {
+      data: { kind: "text", path: root, name: "Pièce suivie", content: "Pièce initiale." },
+    }),
+  );
+  const save = async (id: string, content: string) => {
+    const current = (await (await page.request.get(`/api/resources/${id}`)).json()).properties as { version: number };
+    const response = await page.request.put(`/api/resources/${id}/content`, {
+      data: { kind: "text", expectedVersion: current.version, content },
+    });
+    expect(response.status(), await response.text()).toBe(200);
+  };
+  const wholeRereads: string[] = [];
+  const folderReads: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (request.method() !== "GET") return;
+    if (url.pathname === "/api/resources/catalog" || url.pathname === "/api/council-business/workspace-items")
+      wholeRereads.push(url.pathname);
+    if (url.pathname === "/api/resources" && url.searchParams.get("path") === root) folderReads.push(url.href);
+  });
+
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: "", councilBusiness: business.id })}`);
+  await expect(page.getByTestId("business-report-editor")).toContainText("Rapport initial.");
+  await page.getByTestId(`business-subject-${subject.id}-open`).click();
+  const subjectText = page.getByTestId(`business-inline-resource-${subject.textResourceId}`);
+  await expect(subjectText).toContainText("Texte initial du sujet.");
+  await page.waitForLoadState("networkidle");
+  wholeRereads.length = 0;
+
+  await save(business.reportResourceId, "Rapport modifié ailleurs.");
+  await expect(page.getByTestId("business-report-editor")).toContainText("Rapport modifié ailleurs.");
+  await save(subject.textResourceId, "Texte du sujet modifié ailleurs.");
+  await expect(subjectText).toContainText("Texte du sujet modifié ailleurs.");
+  await page.waitForLoadState("networkidle");
+  expect(wholeRereads, "no reread of the catalog or of the business list").toEqual([]);
+
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: root })}`);
+  await expect(page.getByTestId(`workspace-resource-title-${piece.id}`)).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  wholeRereads.length = 0;
+  folderReads.length = 0;
+  await save(piece.id, "Pièce modifiée ailleurs.");
+  await expect
+    .poll(() => folderReads.length, { message: "the folder of the saved piece is read again" })
+    .toBeGreaterThan(0);
+  await page.waitForLoadState("networkidle");
+  expect(wholeRereads, "no reread of the catalog or of the business list").toEqual([]);
+  await page.getByTestId(`workspace-resource-title-${piece.id}`).click();
+  await expect(page.getByTestId("resource-workbench")).toContainText("Pièce modifiée ailleurs.");
+});
+
+// @verifies-requirement HALL-FR-WSP-370
+test("the Documents screen offers on a business the actions of that business, with requests that do not grow with the businesses listed", async ({
+  appPage: page,
+}) => {
+  const marker = crypto.randomUUID().slice(0, 8);
+  test.setTimeout(120_000);
+  const folders = { few: `Peu d'affaires ${marker}`, many: `Beaucoup d'affaires ${marker}` };
+  const businesses: Record<keyof typeof folders, string[]> = { few: [], many: [] };
+  for (const [size, count] of [
+    ["few", 2],
+    ["many", 12],
+  ] as const) {
+    await created(
+      await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: folders[size] } }),
+    );
+    for (let index = 0; index < count; index += 1) {
+      const business = await created(
+        await page.request.post("/api/council-business", {
+          data: { path: folders[size], name: `Affaire ${index + 1}`, reportName: "Rapport", reportContent: "" },
+        }),
+      );
+      businesses[size].push(business.id);
+    }
+  }
+  let reads: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (request.method() === "GET" && url.pathname.startsWith("/api/council-business"))
+      reads.push(url.pathname + url.search);
+  });
+  const readsOpening = async (folder: string, first: string) => {
+    await page.goto("/app/");
+    await page.waitForLoadState("networkidle");
+    reads = [];
+    await page.goto(`/app/workspace?${new URLSearchParams({ path: folder })}`);
+    await expect(page.getByTestId(`workspace-business-${first}`)).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    return reads;
+  };
+  const few = await readsOpening(folders.few, businesses.few[0]!);
+  const many = await readsOpening(folders.many, businesses.many[0]!);
+  const perBusiness = /^\/api\/council-business\/[0-9a-f-]{36}/;
+  expect(
+    [...few, ...many].filter((read) => perBusiness.test(read)),
+    "no read of one business at a time",
+  ).toEqual([]);
+  expect(many.length, `reads for 12 businesses against ${few.length} for 2`).toBeLessThanOrEqual(few.length);
+
+  // The commands of a business row follow the actions of the business read on its own.
+  const single = (await (await page.request.get(`/api/council-business/${businesses.many[5]}`)).json()) as {
+    actions?: Array<{ name: string }>;
+  };
+  const actions = new Set((single.actions ?? []).map((action) => action.name));
+  await page.getByTestId(`workspace-business-${businesses.many[5]}`).click({ button: "right" });
+  const menu = page.getByRole("menu");
+  for (const [item, action] of [
+    ["workspace-tree-delete-business", "council-business.delete"],
+    ["workspace-tree-export-bundle", "council-business.export-bundle"],
+    ["workspace-tree-attach-document", "council-business.associate-resource"],
+  ] as const)
+    await expect(menu.getByTestId(item), item).toHaveCount(actions.has(action) ? 1 : 0);
+  expect(actions.has("council-business.associate-resource")).toBe(true);
+});
