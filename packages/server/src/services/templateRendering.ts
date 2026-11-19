@@ -786,7 +786,6 @@ export function createTemplateRenderingService({
       if (directive.name === "image") {
         const id = directive.attributes.id;
         const resource = id ? ((await resourcesClient.open(id))?.data ?? null) : null;
-        // An image inserted in a text is an editor asset of that text; a document image is a document resource.
         const asset = id && !resource ? ((await resourcesClient.openEditorAsset(id))?.data ?? null) : null;
         const mediaType = resource?.kind === "document" ? resource.binary.mediaType : (asset?.mediaType ?? null);
         if (!mediaType || !["image/jpeg", "image/png"].includes(mediaType)) {
