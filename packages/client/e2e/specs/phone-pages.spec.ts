@@ -617,6 +617,9 @@ test.describe("Hall pages on a phone", () => {
         .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height)))
         expect(height, "« ⋯ » menu row height").toBeGreaterThanOrEqual(44);
       await page.keyboard.press("Escape");
+      // The closed menu gives the focus back to its button at the end of its closing animation.
+      await expect(page.locator('[data-slot="dropdown-menu-content"]')).toHaveCount(0);
+      await expect(page.getByTestId("phone-document-actions")).toBeFocused();
 
       const row = page.getByTestId(`business-phone-document-${document.id}`);
       await expect(row).toBeVisible();
