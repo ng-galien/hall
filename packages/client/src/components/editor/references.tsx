@@ -49,15 +49,10 @@ export function useResourceAppearance(id: string): ResourceReferenceAppearance |
   return useContext(ResourcePreviewContext)?.resourceAppearance(id) ?? null;
 }
 
-/** Name written for a referenced document: its current name when it is known, otherwise the label stored in the text. */
+/** Name written for a referenced document: its current name when the documents already loaded know it, otherwise the
+ * label stored in the text. It reads no document of its own. */
 export function useResourceReferenceLabel(id: string, stored: string): string {
-  const presentation = useContext(ResourcePreviewContext);
-  const target = presentation?.referenceTarget("resource", id) ?? null;
-  const requestReference = presentation?.requestReference;
-  useEffect(() => {
-    if (!target) requestReference?.("resource", id);
-  }, [target, requestReference, id]);
-  return target?.label ?? stored;
+  return useContext(ResourcePreviewContext)?.referenceTarget("resource", id)?.label ?? stored;
 }
 
 /** Supplies the resource preview renderer used by reference badges. */
