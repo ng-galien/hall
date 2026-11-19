@@ -13,7 +13,7 @@ vi.mock("../src/stores/councilBusinessStore", () => ({
     businesses: [],
     preparedSubjects: [],
     capabilitiesById: {},
-    loadResources: vi.fn(async () => undefined),
+    loadCapabilities: vi.fn(async () => undefined),
   }),
 }));
 vi.mock("../src/stores/workspaceResourcesStore", () => ({
