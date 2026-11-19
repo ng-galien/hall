@@ -10,13 +10,15 @@ test("the public site stays non-technical and links the user guide", async ({ pa
   await expect(page.getByTestId("documentation-link")).toContainText("Guide d’utilisation");
 });
 
-test("the rendered manual still documents the MCP assistant", async ({ page }) => {
+test("the rendered manual still documents the MCP assistant", async ({ page }, testInfo) => {
   await page.goto("./documentation/index.html#/docs/assistant-ia");
   await expect(page.locator("h1")).toHaveText("Connecter un agent IA par MCP");
   await expect(page.locator("article")).toContainText("terminal privé");
   await expect(page.locator("article")).toContainText("22.12");
   await expect(page.locator("article")).toContainText("npm install --prefix");
   await expect(page.locator("article")).toContainText("archive du paquet serveur");
+  // On a phone the contents of the manual open on demand, in place of the page.
+  if (testInfo.project.name === "telephone") await page.getByTestId("docs-navigation-toggle").click();
   await expect(page.getByTestId("docs-page-assistant-ia")).toBeVisible();
   await page.getByTestId("docs-search").fill("hall_learn");
   await page.getByTestId("docs-search-result-assistant-ia").click();

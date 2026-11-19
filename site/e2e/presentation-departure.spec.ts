@@ -24,19 +24,23 @@ test("the councillor drives straight out of the garage then follows the local be
   await page.goto("./");
   await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
   const [a, b] = base.timeline.moment("carDepartsBureau").map((p) => base.time(p));
-  const show = async (time: number) => {
-    const progress = await page.evaluate((p) => {
-      const state = window as unknown as Inspection;
-      if (state.__story) {
-        state.__story.seek(p);
-        return p;
-      }
-      const max =
-        (document.querySelector(".p-scroll") as HTMLElement).offsetHeight - document.documentElement.clientHeight;
-      const pixel = Math.round(p * max);
-      window.scrollTo(0, pixel);
-      return pixel / max;
-    }, base.progress(time));
+  // Without the studio, a progress is reached by scrolling, at a whole pixel: the samples around a moment are taken
+  // at the same number of pixels on each side, so that the bearing they give is centred on the moment.
+  const pixels = await page.evaluate(() => {
+    const state = window as unknown as Inspection;
+    if (state.__story) return null;
+    return (document.querySelector(".p-scroll") as HTMLElement).offsetHeight - document.documentElement.clientHeight;
+  });
+  const reachable = (p: number) => (pixels === null ? p : Math.round(p * pixels) / pixels);
+  const show = async (progress: number) => {
+    await page.evaluate(
+      ([p, max]) => {
+        const state = window as unknown as Inspection;
+        if (state.__story) state.__story.seek(p);
+        else window.scrollTo(0, Math.round(p * (max ?? 1)));
+      },
+      [progress, pixels] as const,
+    );
     await page.waitForFunction(
       (p) => Math.abs((window as unknown as Inspection).__presentation.progress() - p) < 0.00001,
       progress,
@@ -50,9 +54,11 @@ test("the councillor drives straight out of the garage then follows the local be
   let straightSamples = 0;
   for (const fraction of [0.1, 0.3, 0.5, 0.7, 0.9]) {
     const time = a + (b - a) * fraction;
-    const before = await show(time - 0.03);
-    const here = await show(time);
-    const after = await show(time + 0.03);
+    const middle = reachable(base.progress(time));
+    const step = reachable(base.progress(time + 0.03)) - middle;
+    const before = await show(middle - step);
+    const here = await show(middle);
+    const after = await show(middle + step);
     const bearing = Math.atan2(after.spot.x - before.spot.x, -(after.spot.y - before.spot.y));
     const angle = Math.atan2(Math.sin(here.heading - bearing), Math.cos(here.heading - bearing));
     expect(Math.abs(angle)).toBeLessThan(0.06);
