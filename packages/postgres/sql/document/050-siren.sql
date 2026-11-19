@@ -379,10 +379,12 @@ AS $function$
       'links', hall.resource_siren_links(resource)
     )
     || CASE
-      WHEN include_actions AND jsonb_array_length(hall.resource_siren_actions(resource)) > 0
-        THEN jsonb_build_object('actions', hall.resource_siren_actions(resource))
+      WHEN jsonb_array_length(computed.actions) > 0 THEN jsonb_build_object('actions', computed.actions)
       ELSE '{}'::jsonb
     END
+  FROM (
+    SELECT CASE WHEN include_actions THEN hall.resource_siren_actions(resource) ELSE '[]'::jsonb END AS actions
+  ) AS computed
 $function$;
 
 CREATE FUNCTION hall.resource_siren_item(resource JSONB, include_actions BOOLEAN DEFAULT true)
@@ -613,10 +615,15 @@ AS $function$
       )
     )
     || CASE
-      WHEN include_collection_actions AND jsonb_array_length(hall.resource_collection_siren_actions(collection_path)) > 0
-        THEN jsonb_build_object('actions', hall.resource_collection_siren_actions(collection_path))
+      WHEN jsonb_array_length(computed.actions) > 0 THEN jsonb_build_object('actions', computed.actions)
       ELSE '{}'::jsonb
     END
+  FROM (
+    SELECT CASE
+      WHEN include_collection_actions THEN hall.resource_collection_siren_actions(collection_path)
+      ELSE '[]'::jsonb
+    END AS actions
+  ) AS computed
 $function$;
 
 CREATE FUNCTION hall_api.present_resource_search(search_result JSONB)

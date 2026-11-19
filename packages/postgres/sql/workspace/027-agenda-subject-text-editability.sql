@@ -93,12 +93,33 @@ AS $function$
 $function$;
 
 -- @implements-requirement HALL-FR-WSP-280
+-- The occurrences of the subject whose text this is are read through the
+-- indexes of the subject and of the agenda item, never by scanning the agenda.
 CREATE FUNCTION hall.agenda_subject_text_is_editable(target_resource UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
 SET search_path = pg_catalog, hall
 AS $function$
+  WITH subject AS (
+    SELECT
+      (SELECT workspace.council_decision_proposal
+       FROM hall.council_decision_proposal_workspace AS workspace
+       WHERE workspace.text_resource = target_resource) AS proposal,
+      (SELECT workspace.open_question
+       FROM hall.open_question_workspace AS workspace
+       WHERE workspace.text_resource = target_resource) AS question
+  ), occurrence AS (
+    SELECT item.*
+    FROM subject
+    JOIN hall.council_agenda_item AS item
+      ON item.council_decision_proposal = subject.proposal
+    UNION ALL
+    SELECT item.*
+    FROM subject
+    JOIN hall.council_agenda_item AS item
+      ON item.open_question = subject.question
+  )
   SELECT NOT EXISTS (
     SELECT
     FROM hall.agenda_subject_text_lock AS source_lock
@@ -106,14 +127,9 @@ AS $function$
   )
   AND NOT EXISTS (
     SELECT
-    FROM hall.council_agenda_item AS item
+    FROM occurrence AS item
     JOIN hall.council_meetings AS meeting ON meeting.id = item.council_meeting
-    LEFT JOIN hall.council_decision_proposal_workspace AS proposal
-      ON proposal.council_decision_proposal = item.council_decision_proposal
-    LEFT JOIN hall.open_question_workspace AS question
-      ON question.open_question = item.open_question
-    WHERE coalesce(proposal.text_resource, question.text_resource) = target_resource
-      AND meeting.started_at IS NOT NULL
+    WHERE meeting.started_at IS NOT NULL
       AND meeting.closed_at IS NULL
       AND NOT meeting.stale
       AND (item.position > 0 OR item.adjourned_at IS NOT NULL)
@@ -125,13 +141,9 @@ AS $function$
   )
   AND NOT EXISTS (
     SELECT
-    FROM hall.council_agenda_item AS item
-    LEFT JOIN hall.council_decision_proposal_workspace AS proposal
-      ON proposal.council_decision_proposal = item.council_decision_proposal
-    LEFT JOIN hall.open_question_workspace AS question
-      ON question.open_question = item.open_question
-    WHERE coalesce(proposal.text_resource, question.text_resource) = target_resource
-      AND hall.council_agenda_item_is_treated(item)
+    FROM occurrence
+    JOIN hall.council_agenda_item AS item ON item.id = occurrence.id
+    WHERE hall.council_agenda_item_is_treated(item)
   )
 $function$;
 
