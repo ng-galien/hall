@@ -66,8 +66,7 @@ test("one attachment picker attaches and creates documents from the business vie
 
   // The tree offers business actions once the business capabilities are loaded.
   const capabilitiesLoaded = page.waitForResponse(
-    (response) =>
-      new URL(response.url()).pathname === "/api/council-business" && response.request().method() === "GET",
+    (response) => new URL(response.url()).pathname === "/api/council-business" && response.request().method() === "GET",
   );
   await page.goto("/app/workspace?path=seed");
   const row = page.getByTestId(`workspace-business-${business.id}`);
