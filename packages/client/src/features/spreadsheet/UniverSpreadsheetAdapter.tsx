@@ -1,5 +1,5 @@
 import type { ResourceDetail } from "@hall/api-contract";
-import { CommandType, LocaleType, Univer } from "@univerjs/core";
+import { CommandType, LifecycleStages, LocaleType, Univer } from "@univerjs/core";
 import { FUniver } from "@univerjs/core/facade";
 import {
   CalculationMode,
@@ -214,7 +214,11 @@ export function UniverSpreadsheetAdapter({
     let personActed = false;
     let snapshotTimer: number | null = null;
     let cellsFrame: number | null = null;
-    const engineCells = spreadsheetCells(univerAPI, workbook, locale);
+    let rendered = false;
+    const lifecycle = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+      rendered = stage >= LifecycleStages.Rendered;
+    });
+    const engineCells = spreadsheetCells(univerAPI, workbook, locale, () => rendered);
     const cells: SpreadsheetCells = {
       ...engineCells,
       write: (target, input) => {
@@ -301,6 +305,7 @@ export function UniverSpreadsheetAdapter({
       redo.dispose();
       undo.dispose();
       commandExecuted.dispose();
+      lifecycle.dispose();
       univerAPI.dispose();
       instanceHost.remove();
       window.setTimeout(() => univer.dispose(), 0);

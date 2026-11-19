@@ -63,11 +63,20 @@ export function typedCellValue(
   return { kind: "text", value: input };
 }
 
-export function spreadsheetCells(univerAPI: FUniver, workbook: Workbook, locale: "fr" | "en"): SpreadsheetCells {
+/** `rendered` tells whether the grid has reached its rendered stage: before it, the library has no scrolling yet. */
+export function spreadsheetCells(
+  univerAPI: FUniver,
+  workbook: Workbook,
+  locale: "fr" | "en",
+  rendered: () => boolean = () => true,
+): SpreadsheetCells {
   const activeCell = () => workbook.getActiveCell();
+  const scrollTo = (row: number, column: number) => {
+    if (rendered()) workbook.getActiveSheet().scrollToCell(row, column);
+  };
   const reveal = () => {
     const cell = activeCell();
-    if (cell) workbook.getActiveSheet().scrollToCell(cell.getRow(), cell.getColumn());
+    if (cell) scrollTo(cell.getRow(), cell.getColumn());
   };
   return {
     current() {
@@ -100,7 +109,7 @@ export function spreadsheetCells(univerAPI: FUniver, workbook: Workbook, locale:
       const row = Math.min(Math.max(cell.getRow() + rows, 0), sheet.getMaxRows() - 1);
       const column = Math.min(Math.max(cell.getColumn() + columns, 0), sheet.getMaxColumns() - 1);
       sheet.getRange(row, column).activate();
-      sheet.scrollToCell(row, column);
+      scrollTo(row, column);
     },
     reveal,
     run(command) {

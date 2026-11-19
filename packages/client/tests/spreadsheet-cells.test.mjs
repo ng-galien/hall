@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { cellInput, typedCellValue } from "../src/features/spreadsheet/spreadsheetCells.ts";
+import { cellInput, spreadsheetCells, typedCellValue } from "../src/features/spreadsheet/spreadsheetCells.ts";
 import {
   spreadsheetSignature,
   workbookFromSpreadsheetDocument,
@@ -60,4 +60,35 @@ test("the library receives a copy of the workbook: completing it at opening leav
   opened.sheets.s.rowCount = 1000;
   opened.resources = [];
   assert.equal(spreadsheetSignature(document), loaded);
+});
+
+// @verifies-requirement HALL-FR-LAY-180
+test("moving to the next cell designates it at once and scrolls to it only once the grid is rendered", () => {
+  const events = [];
+  let active = { row: 2, column: 1 };
+  const range = (row, column) => ({
+    activate: () => {
+      active = { row, column };
+      events.push(`activate ${row},${column}`);
+    },
+  });
+  const sheet = {
+    getMaxRows: () => 100,
+    getMaxColumns: () => 26,
+    getRange: range,
+    scrollToCell: (row, column) => events.push(`scroll ${row},${column}`),
+  };
+  const workbook = {
+    getActiveSheet: () => sheet,
+    getActiveCell: () => ({ getRow: () => active.row, getColumn: () => active.column }),
+  };
+  let rendered = false;
+  const cells = spreadsheetCells({}, workbook, "fr", () => rendered);
+  cells.move(1, 0);
+  cells.reveal();
+  assert.deepEqual(events, ["activate 3,1"]);
+  rendered = true;
+  cells.move(0, 1);
+  cells.reveal();
+  assert.deepEqual(events, ["activate 3,1", "activate 3,2", "scroll 3,2", "scroll 3,2"]);
 });

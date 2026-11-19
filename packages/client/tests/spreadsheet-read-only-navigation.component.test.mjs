@@ -15,6 +15,7 @@ const univerStub = `
 export const calls = [];
 export const CommandType = { MUTATION: 2 };
 export const LocaleType = { FR_FR: "frFR", EN_US: "enUS" };
+export const LifecycleStages = { Starting: 0, Ready: 1, Rendered: 2, Steady: 3 };
 export const CalculationMode = { FORCED: 0 };
 export class Univer { registerPlugin(plugin) { calls.push(["plugin", plugin.name]); } dispose() {} }
 export class UniverUIPlugin {}
@@ -46,7 +47,7 @@ const workbook = {
 };
 export const FUniver = {
   newAPI: () => ({
-    Event: { CommandExecuted: "CommandExecuted", Undo: "Undo", Redo: "Redo" },
+    Event: { CommandExecuted: "CommandExecuted", Undo: "Undo", Redo: "Redo", LifeCycleChanged: "LifeCycleChanged" },
     undo: async () => true,
     redo: async () => true,
     Enum: { WorkbookPermissionPoint: { CopyContent: "WorkbookCopy" } },
