@@ -1,6 +1,6 @@
 import { crc32 } from "node:zlib";
 import type { Locator } from "@playwright/test";
-import { expect, runItemCommand, test } from "../fixtures/application";
+import { expect, historySettled, runItemCommand, test } from "../fixtures/application";
 import { pdfTextRuns } from "../fixtures/pdfText";
 
 test.use({ builtInPdfViewer: true });
@@ -389,6 +389,7 @@ test("the full screen view of a document carries the commands of the Documents s
 test("a spreadsheet and a map print from their full screen view as a PDF in the viewer, the map alone or with its elements", async ({
   appPage: page,
 }) => {
+  test.setTimeout(120_000);
   const marker = crypto.randomUUID().slice(0, 8);
   const post = (data: Record<string, unknown>) => page.request.post("/api/resources", { data });
   const folder = `Impression ${marker}`;
@@ -451,14 +452,20 @@ test("a spreadsheet and a map print from their full screen view as a PDF in the 
   await expect(viewer).toHaveCount(0);
 
   for (const choice of ["map-only", "with-elements"]) {
+    // The PDF window and the full screen view closed before give their history entries back first.
+    await historySettled(page);
     await page.goto(`/app/workspace?${new URLSearchParams({ path: folder, resource: map.id })}`);
     await runItemCommand(page, "resource-open-extended");
     await expect(viewer).toBeVisible();
     await viewer.getByTestId("resource-preview-print-choices").click();
     await page.getByRole("menu").getByTestId(`resource-preview-print-${choice}`).click();
-    await expect(page.getByTestId("resource-preview-print-dialog")).toBeVisible();
+    // The server draws the map from the background layers of the map service, each read within twelve seconds.
+    await expect(page.getByTestId("resource-preview-print-dialog")).toBeVisible({ timeout: 30_000 });
     expect(await printedText()).toContain(`Carte ${marker}`);
     await page.getByTestId("resource-preview-print-close").click();
+    await expect(page.getByTestId("resource-preview-print-dialog")).toHaveCount(0);
+    await page.getByTestId("resource-preview-close").click();
+    await expect(viewer).toHaveCount(0);
   }
 });
 
