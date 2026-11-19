@@ -1,6 +1,7 @@
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 import { CloseIcon } from "../../components/icons";
 import { RequestErrorBanner } from "../../components/Ui";
 import { Button } from "../../components/ui/button";
@@ -62,11 +63,39 @@ export function WorkspacePage() {
   const phone = usePhoneLayout();
   const { submitting, run } = useSubmitting();
   const [searchParams, setSearchParams] = useSearchParams();
-  const councilBusinessStore = useCouncilBusinessStore();
-  const resourcesStore = useWorkspaceResourcesStore();
+  const councilBusinessStore = useCouncilBusinessStore(
+    useShallow((state) => ({
+      adoptReport: state.adoptReport,
+      businesses: state.businesses,
+      create: state.create,
+      error: state.error,
+      load: state.load,
+      loadResources: state.loadResources,
+      loadSelected: state.loadSelected,
+      representationsById: state.representationsById,
+    })),
+  );
+  const resourcesStore = useWorkspaceResourcesStore(
+    useShallow((state) => ({
+      collectionCapabilities: state.collectionCapabilities,
+      create: state.create,
+      error: state.error,
+      folderCapabilities: state.folderCapabilities,
+      importSpreadsheet: state.importSpreadsheet,
+      loadCatalog: state.loadCatalog,
+      open: state.open,
+      representations: state.representations,
+      summaries: state.summaries,
+      uploadDocument: state.uploadDocument,
+    })),
+  );
   const { businesses, error: councilBusinessError } = councilBusinessStore;
-  const resources = Object.values(resourcesStore.summaries).filter(
-    (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder",
+  const resources = useMemo(
+    () =>
+      Object.values(resourcesStore.summaries).filter(
+        (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder",
+      ),
+    [resourcesStore.summaries],
   );
   const resourcesError = resourcesStore.error;
   const [search, setSearch] = useState<WorkspaceSearchState>(emptySearch);

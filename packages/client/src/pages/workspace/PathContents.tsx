@@ -14,6 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -322,9 +323,33 @@ export function PathContents({
       ),
     [arrivedResources],
   );
-  const councilBusinessStore = useCouncilBusinessStore();
+  const councilBusinessStore = useCouncilBusinessStore(
+    useShallow((state) => ({
+      businesses: state.businesses,
+      capabilitiesById: state.capabilitiesById,
+      load: state.load,
+      loadCapabilities: state.loadCapabilities,
+      loadResources: state.loadResources,
+    })),
+  );
   const { load: loadCouncilActivity } = useWorkspaceCouncilActivityStore();
-  const resourcesStore = useWorkspaceResourcesStore();
+  const resourcesStore = useWorkspaceResourcesStore(
+    useShallow((state) => ({
+      catalog: state.catalog,
+      collectionCapabilities: state.collectionCapabilities,
+      create: state.create,
+      error: state.error,
+      folderCapabilities: state.folderCapabilities,
+      hydrate: state.hydrate,
+      loadFolder: state.loadFolder,
+      loadedPaths: state.loadedPaths,
+      loadingPaths: state.loadingPaths,
+      relocate: state.relocate,
+      representations: state.representations,
+      summaries: state.summaries,
+      updateMetadata: state.updateMetadata,
+    })),
+  );
   const businessIds = businesses.map((business) => business.id).join("\n");
   const pendingCapabilities = useRef(new Set<string>());
   useEffect(() => {
