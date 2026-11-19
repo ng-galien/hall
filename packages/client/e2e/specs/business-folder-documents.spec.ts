@@ -112,7 +112,7 @@ test.describe("documents created from a business in a sub-folder, on a computer"
 
     const capabilities = page.waitForResponse(
       (response) =>
-        response.url().endsWith(`/api/council-business/${business.id}`) && response.request().method() === "GET",
+        new URL(response.url()).pathname === "/api/council-business" && response.request().method() === "GET",
     );
     await page.goto(`/app/workspace?path=${encodeURIComponent(business.parent)}`);
     const row = page.getByTestId(`workspace-business-${business.id}`);
@@ -159,7 +159,7 @@ test.describe("documents created from a business in a sub-folder, on a phone", (
 
     const capabilities = page.waitForResponse(
       (response) =>
-        response.url().endsWith(`/api/council-business/${business.id}`) && response.request().method() === "GET",
+        new URL(response.url()).pathname === "/api/council-business" && response.request().method() === "GET",
     );
     await page.goto(`/app/workspace?path=${encodeURIComponent(business.parent)}`);
     const row = page.getByTestId(`workspace-business-${business.id}`);
