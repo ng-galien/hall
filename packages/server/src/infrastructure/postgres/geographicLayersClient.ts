@@ -102,10 +102,10 @@ export function createPostgresGeographicLayersClient({
         representation: sirenEntitySchema.parse(listed.representation),
       };
     },
-    async readFeatures(layerId) {
+    async readFeatures(layerId, within) {
       try {
         return geographicLayerFeatureCollectionSchema.parse(
-          await postgresResources.readGeographicLayerFeatures(currentRequest(), layerId),
+          await postgresResources.readGeographicLayerFeatures(currentRequest(), layerId, within),
         );
       } catch (error) {
         if (error instanceof HallPostgresError && ["HV601", "HV609"].includes(error.sqlState)) return null;

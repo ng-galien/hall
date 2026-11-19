@@ -29,7 +29,11 @@ export interface GeographicLayersClient {
     },
   ): Promise<ResourceRepresentation<GeographicLayerDetail>>;
   list(): Promise<{ data: GeographicLayerDetail[]; representation: SirenEntity }>;
-  readFeatures(layerId: string): Promise<GeographicLayerFeatureCollection | null>;
+  /** Every feature of a layer, or only those whose extent crosses `within`, a frame in WGS84 degrees. */
+  readFeatures(
+    layerId: string,
+    within?: Readonly<{ west: number; south: number; east: number; north: number }>,
+  ): Promise<GeographicLayerFeatureCollection | null>;
   /** The same collection as GeoJSON text, for the HTTP edge. */
   readFeaturesText(layerId: string): Promise<string | null>;
   setOverlay(input: {

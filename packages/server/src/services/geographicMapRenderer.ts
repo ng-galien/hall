@@ -365,6 +365,38 @@ function mercatorCanvas(frame: GeographicPrintFrame): Canvas & { wms: WmsFrame }
   };
 }
 
+/** Longitude and latitude of a spherical Web Mercator point. */
+function geographic([x, y]: readonly [number, number]): GeographicPosition {
+  return [
+    (x / MERCATOR_RADIUS) * (180 / Math.PI),
+    (2 * Math.atan(Math.exp(y / MERCATOR_RADIUS)) - Math.PI / 2) * (180 / Math.PI),
+  ];
+}
+
+/**
+ * The printed frame in WGS84 degrees, widened by a tenth on each side: the features whose extent does not cross it are
+ * outside the printed image.
+ */
+export function printFrameBounds(frame: GeographicPrintFrame): {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+} {
+  const resolution = MERCATOR_ZOOM_ZERO_RESOLUTION / 2 ** frame.zoom;
+  const [centerX, centerY] = mercator(frame.center);
+  const halfWidth = (frame.width / 2) * resolution * 1.1;
+  const halfHeight = (frame.height / 2) * resolution * 1.1;
+  const [west, south] = geographic([centerX - halfWidth, centerY - halfHeight]);
+  const [east, north] = geographic([centerX + halfWidth, centerY + halfHeight]);
+  return {
+    west: Math.max(-180, west),
+    south: Math.max(-90, south),
+    east: Math.min(180, east),
+    north: Math.min(90, north),
+  };
+}
+
 function isPosition(value: unknown): value is GeographicPosition {
   return Array.isArray(value) && typeof value[0] === "number" && typeof value[1] === "number";
 }

@@ -19,6 +19,7 @@ import {
   formatPrintedLength,
   type GeographicMapRenderer,
   type GeographicPrintOverlay,
+  printFrameBounds,
 } from "./geographicMapRenderer.js";
 
 export interface ResourcePrintService {
@@ -215,9 +216,9 @@ export function createResourcePrintService({
   contentTemplateService: ContentTemplateService;
   documentRenderer: DocumentRenderer;
 }): ResourcePrintService {
-  const render = (bodyMarkdown: string, orientation: "portrait" | "landscape") =>
+  const render = (body: () => Promise<string>, orientation: "portrait" | "landscape") =>
     contentTemplateService.withGenerationSlot(async () => {
-      const preview = await contentTemplateService.generatedPreview("document-print", bodyMarkdown, null, {}, false);
+      const preview = await contentTemplateService.generatedPreview("document-print", await body(), null, {}, false);
       if (preview.diagnostics.some((diagnostic) => diagnostic.severity === "error"))
         throw new DomainError("template_invalid", 422);
       return documentRenderer.pdf({
@@ -227,14 +228,18 @@ export function createResourcePrintService({
       });
     });
 
-  const overlays = async (resource: GeographicDetail, municipalOnlyLayerIds: readonly string[]) => {
+  const overlays = async (
+    resource: GeographicDetail,
+    municipalOnlyLayerIds: readonly string[],
+    within: ReturnType<typeof printFrameBounds>,
+  ) => {
     const visible = resource.overlays
       .filter((overlay) => overlay.visible)
       .toSorted((left, right) => left.position - right.position);
     const loaded = await Promise.all(
       visible.map(async (overlay) => {
         const [collection, layer] = await Promise.all([
-          geographicLayersClient.readFeatures(overlay.layerId),
+          geographicLayersClient.readFeatures(overlay.layerId, within),
           resourcesClient.open(overlay.layerId),
         ]);
         const featureKey = layer?.data.kind === "geographicLayer" ? layer.data.featureKey.kind : "none";
@@ -263,7 +268,7 @@ export function createResourcePrintService({
       data: resource.document,
       title: resource.name,
       frame: map,
-      overlays: await overlays(resource, map.municipalOnlyLayerIds),
+      overlays: await overlays(resource, map.municipalOnlyLayerIds, printFrameBounds(map)),
       drawingsVisible: map.drawingsVisible,
     });
     const parts = [
@@ -294,19 +299,18 @@ export function createResourcePrintService({
         spreadsheet: (entry) => {
           const sheet = spreadsheetPrint(entry, input.sheetId);
           return render(
-            [
-              `# ${markdownText(entry.name)}`,
-              `::resource-embed[${markdownText(entry.name)}]{#${entry.id} presentation="table" sheet="${sheet.sheetId.replace(/"/g, "")}" range="${sheet.range}"}`,
-            ].join("\n\n"),
+            async () =>
+              [
+                `# ${markdownText(entry.name)}`,
+                `::resource-embed[${markdownText(entry.name)}]{#${entry.id} presentation="table" sheet="${sheet.sheetId.replace(/"/g, "")}" range="${sheet.range}"}`,
+              ].join("\n\n"),
             sheet.landscape ? "landscape" : "portrait",
           );
         },
         geographic: async (entry) => {
           if (!input.map) throw new DomainError("resource_preview_unavailable", 422);
-          return render(
-            await mapMarkdown(entry, input.map),
-            input.map.width >= input.map.height ? "landscape" : "portrait",
-          );
+          const map = input.map;
+          return render(() => mapMarkdown(entry, map), map.width >= map.height ? "landscape" : "portrait");
         },
         folder: () => Promise.reject(new DomainError("resource_preview_unavailable", 422)),
         text: () => Promise.reject(new DomainError("resource_preview_unavailable", 422)),

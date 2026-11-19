@@ -151,6 +151,8 @@ GRANT EXECUTE ON FUNCTION hall_api.list_geographic_layer_resources()
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.geographic_layer_features(UUID)
   TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.geographic_layer_features_within(UUID, DOUBLE PRECISION, DOUBLE PRECISION, DOUBLE PRECISION, DOUBLE PRECISION)
+  TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.present_geographic_layer_collection(JSONB)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.set_geographic_map_overlay(UUID, UUID, BOOLEAN, NUMERIC)

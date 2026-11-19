@@ -148,6 +148,50 @@ BEGIN
 END
 $function$;
 
+-- @implements-requirement HALL-FR-DOC-600
+-- The features of a layer whose extent crosses a frame given in WGS84 degrees,
+-- in the shape of hall_api.geographic_layer_features, for a printed map.
+CREATE FUNCTION hall_api.geographic_layer_features_within(
+  resource_id UUID,
+  west DOUBLE PRECISION,
+  south DOUBLE PRECISION,
+  east DOUBLE PRECISION,
+  north DOUBLE PRECISION
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+BEGIN
+  PERFORM hall.require_resource(resource_id, 'geographicLayer');
+  RETURN jsonb_build_object(
+    'type', 'FeatureCollection',
+    'features', coalesce(
+      (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'type', 'Feature',
+            'id', feature.position,
+            'sourceId', feature.source_id,
+            'key', feature.feature_key,
+            'label', feature.label,
+            'geometry', feature.geometry,
+            'properties', feature.properties
+          )
+          ORDER BY feature.position
+        )
+        FROM hall.geographic_layer_feature AS feature
+        WHERE feature.geographic_layer_resource_id = resource_id
+          AND feature.extent && box(point(east, north), point(west, south))
+      ),
+      '[]'::jsonb
+    )
+  );
+END
+$function$;
+
 -- @implements-requirement HALL-FR-DOC-380
 -- JSONB does not keep key order: properties are written as text in the key
 -- order recorded at import; keys absent from that order come last.

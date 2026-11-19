@@ -1459,14 +1459,22 @@ export class PostgresResources {
   readGeographicLayerFeatures(
     request: PostgresResourceRequest,
     id: string,
+    within?: Readonly<{ west: number; south: number; east: number; north: number }>,
   ): Promise<PostgresGeographicLayerFeatureCollection> {
     return this.readJson(
       request,
       "resource.readGeographicLayerFeatures",
-      {
-        text: "SELECT hall_api.geographic_layer_features($1::uuid) AS payload",
-        values: [resourceIdSchema.parse(id)],
-      },
+      within
+        ? {
+            text: `SELECT hall_api.geographic_layer_features_within(
+              $1::uuid, $2::double precision, $3::double precision, $4::double precision, $5::double precision
+            ) AS payload`,
+            values: [resourceIdSchema.parse(id), within.west, within.south, within.east, within.north],
+          }
+        : {
+            text: "SELECT hall_api.geographic_layer_features($1::uuid) AS payload",
+            values: [resourceIdSchema.parse(id)],
+          },
       geographicLayerFeatureCollectionSchema,
     );
   }
