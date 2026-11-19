@@ -137,3 +137,7 @@ CREATE TABLE hall.document_template (
 CREATE INDEX document_template_by_document_type ON hall.document_template USING btree (document_type, kind);
 
 CREATE INDEX audit_event_by_occurrence ON hall.audit_event USING btree (occurred_at DESC);
+
+-- @implements-requirement HALL-FR-DOC-280
+-- The history of one resource reads only the events of that resource, newest first.
+CREATE INDEX audit_event_by_target ON hall.audit_event USING btree (target_type, target_id, occurred_at DESC);

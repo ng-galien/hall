@@ -176,6 +176,11 @@ CREATE TABLE hall.council_business_resource (
 COMMENT ON TABLE hall.council_business_resource IS
   'Ordered many-to-many association between an affair and existing non-folder working resources; FolderPath remains owned by hall.resource.';
 
+-- @implements-requirement HALL-FR-WSP-510
+-- The affairs of one resource are found from the resource: deletion guards and
+-- the dissociation of a resource leaving the folder of an affair.
+CREATE INDEX council_business_resource_by_resource ON hall.council_business_resource USING btree (resource);
+
 CREATE FUNCTION hall.enforce_council_business_resource()
 RETURNS TRIGGER
 LANGUAGE plpgsql
