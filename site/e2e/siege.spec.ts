@@ -24,26 +24,33 @@ test("the siege landmarks render and retain the existing scenario interactions",
   expect(Object.keys(models).sort()).toEqual(Object.keys(destinations).sort());
   expect(models.plaine.triangles).toBeGreaterThan(1000);
   expect(Object.values(models).reduce((sum, model) => sum + model.meshes, 0)).toBeLessThan(50);
+  // Since the battle map, a place shows its label only while its scenario is open; the scenarios open from the menu.
   for (const [place, scenario] of Object.entries(destinations)) {
-    await page.getByTestId(`terrain-label-${place}`).click();
+    await page.goto(`./demonstration/#${scenario}`);
     await expect(page.getByTestId(`scenario-${scenario}`)).toBeVisible();
     await expect(stage).toHaveAttribute("data-motion", "done", { timeout: 30_000 });
-    await expect(page.getByTestId(`terrain-label-${place}`)).toHaveClass(/is-active/);
-    await page.getByTestId("scenario-close").click();
+    const label = page.getByTestId(`terrain-label-${place}`);
+    await expect(label).toBeVisible();
+    await expect(label).toHaveClass(/is-active/);
+    for (const other of Object.keys(destinations).filter((entry) => entry !== place))
+      await expect(page.getByTestId(`terrain-label-${other}`)).toBeHidden();
   }
-  await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-  await expect(stage).toHaveAttribute("data-motion", "done");
-  await page.evaluate(
-    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
-  );
-  const label = page.getByTestId("terrain-label-maison");
+  // A landmark pressed on the relief opens its scenario: the pointer finds one where the stage marks it as pointing.
+  await page.getByTestId("scenario-close").click();
+  await expect(page.getByTestId("scenario-panel")).toBeHidden();
+  await expect(stage).toHaveAttribute("data-motion", "done", { timeout: 30_000 });
   const box = await stage.boundingBox();
   if (!box) throw new Error("Missing terrain");
-  await page.mouse.click(
-    box.x + Number(await label.getAttribute("data-hit-x")),
-    box.y + Number(await label.getAttribute("data-hit-y")),
-  );
-  await expect(page.getByTestId("scenario-convocation")).toBeVisible();
+  let landmark: { x: number; y: number } | null = null;
+  for (let y = box.y + 100; y < box.y + box.height - 40 && !landmark; y += 24)
+    for (let x = box.x + 40; x < box.x + box.width - 40 && !landmark; x += 24) {
+      await page.mouse.move(x, y);
+      if (await stage.evaluate((node) => node.classList.contains("is-pointing"))) landmark = { x, y };
+    }
+  if (!landmark) throw new Error("No landmark under the pointer");
+  await page.mouse.click(landmark.x, landmark.y);
+  await expect(page.getByTestId("scenario-panel")).toBeVisible();
+  await expect(page.locator('[data-testid^="terrain-label-"].is-active')).toHaveCount(1);
   expect(errors).toEqual([]);
 });
 

@@ -19,6 +19,8 @@ type Inspection = {
 };
 
 test("the councillor drives straight out of the garage then follows the local bend", async ({ page }) => {
+  // Since the continuous playback, a scrolled position plays the story up to it on its own clock.
+  test.setTimeout(90_000);
   await page.goto("./");
   await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
   const [a, b] = base.timeline.moment("carDepartsBureau").map((p) => base.time(p));

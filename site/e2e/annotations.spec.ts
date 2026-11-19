@@ -8,8 +8,8 @@ for (const { id: scene } of scenes) {
     await page.goto(`./demonstration/?view=3d#${scene}`);
     await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
     await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-motion", "done");
-    if (await page.getByTestId("terrain-mark").count())
-      await expect(page.getByTestId("terrain-mark").last()).toBeVisible();
+    // Since the battle map, the narrative marks of a scene carry their text without being drawn on the relief.
+    await expect(page.locator('[data-testid="terrain-mark"]:not([hidden])')).toHaveCount(0);
     await expect
       .poll(() =>
         page.evaluate(() => {

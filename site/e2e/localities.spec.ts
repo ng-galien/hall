@@ -25,13 +25,8 @@ test("local villages and hamlets are available without covering story labels", a
     "Cornu",
   ])
     expect(names).toContain(name);
-  const pose = await stage.evaluate((node) => ({ ...node.dataset }));
-  expect(Number(pose.azimuth)).toBeCloseTo(-2.7673, 3);
-  expect(Number(pose.polar)).toBeCloseTo(1.1328, 3);
-  if (testInfo.project.name === "bureau") {
-    expect(Number(pose.targetWorldX)).toBeCloseTo(-378.024, 2);
-    expect(Number(pose.targetWorldZ)).toBeCloseTo(189.177, 2);
-  }
+  // Since the battle map, the demonstration opens on the battle introduction rather than on the overview of the relief.
+  await expect(stage).toHaveAttribute("data-intro", "ready");
   const overlaps = () =>
     page.evaluate(() => {
       const nodes = [...document.querySelectorAll<HTMLElement>(".is-locality, .terrain-label, .terrain-mark")]

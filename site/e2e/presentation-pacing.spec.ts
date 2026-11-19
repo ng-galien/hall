@@ -36,19 +36,23 @@ test("the road edit skips the long journey and the mairie actions remain distinc
   test.setTimeout(90_000);
   await page.goto("./");
   await expect(page.locator("body")).toHaveAttribute("data-ready", "true", { timeout: 60_000 });
+  // The published page plays the story from the scroll position: a progress is reached at the nearest pixel.
   const show = async (p: number) => {
-    await page.evaluate((p) => {
+    const reached = await page.evaluate((p) => {
       const state = window as unknown as PageState;
-      if (state.__story) state.__story.seek(p);
-      else {
-        const max =
-          (document.querySelector(".p-scroll") as HTMLElement).offsetHeight - document.documentElement.clientHeight;
-        window.scrollTo(0, Math.round(p * max));
+      if (state.__story) {
+        state.__story.seek(p);
+        return p;
       }
+      const max =
+        (document.querySelector(".p-scroll") as HTMLElement).offsetHeight - document.documentElement.clientHeight;
+      const pixel = Math.round(p * max);
+      window.scrollTo(0, pixel);
+      return pixel / max;
     }, p);
     await page.waitForFunction(
-      (p) => Math.abs((window as unknown as PageState).__presentation.progress() - p) < 0.0001,
-      p,
+      (p) => Math.abs((window as unknown as PageState).__presentation.progress() - p) < 0.000001,
+      reached,
     );
     await page.evaluate(
       () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
@@ -56,14 +60,14 @@ test("the road edit skips the long journey and the mairie actions remain distinc
     return page.evaluate(() => (window as unknown as PageState).__presentation.motion());
   };
   const cut = timeline.start("carArrivesAtChemin");
-  const before = await show(cut - 0.00001);
-  const after = await show(cut + 0.00001);
+  const before = await show(cut - 0.0002);
+  const after = await show(cut + 0.0002);
   expect(distance(before.car.spot, after.car.spot)).toBeGreaterThan(1000);
   expect(distance(after.camera, after.car.spot)).toBeLessThan(80);
   for (const phase of ["carDepartsBureau", "carArrivesAtChemin", "carToMairie"]) {
     const [a, b] = timeline.moment(phase);
-    const first = await show(a + 0.00001);
-    const last = await show(b - 0.00001);
+    const first = await show(a + 0.0002);
+    const last = await show(b - 0.0002);
     const actor = phase === "carToMairie" ? "mairieCar" : "car";
     expect(distance(first[actor].spot, last[actor].spot), phase).toBeLessThan(90);
     expect(distance(first[actor].spot, last[actor].spot), phase).toBeGreaterThan(10);
