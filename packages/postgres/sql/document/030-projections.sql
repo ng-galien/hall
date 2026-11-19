@@ -87,9 +87,6 @@ SELECT resource.id,
        CASE
          WHEN resource.remote_resource_id IS NOT NULL AND remote_target.remote_resource_id IS NULL THEN 'incomplete'
          WHEN resource.text_resource_id IS NOT NULL AND text_resource.content = '' THEN 'empty'
-         WHEN resource.spreadsheet_resource_id IS NOT NULL AND spreadsheet_resource.document = '{}'::jsonb THEN 'empty'
-         WHEN resource.legal_reference_resource_id IS NOT NULL
-              AND legal_reference_resource.document = '{}'::jsonb THEN 'incomplete'
          ELSE 'ready'
        END AS readiness,
        CASE
