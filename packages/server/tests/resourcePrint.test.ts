@@ -200,3 +200,262 @@ describe("printing a document from its full screen view", () => {
     expect(formatPrintedArea(25_000)).toMatch(/^2,50\sha$/);
   });
 });
+
+const drawnMap: GeographicResourceData = {
+  ...mapData,
+  hallLayer: {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        id: "44444444-4444-4444-8444-444444444444",
+        properties: { kind: "line", visible: true, label: "Conduite", style: { color: "#24439b", width: 2 } },
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [2.149, 48.15],
+            [2.151, 48.15],
+          ],
+        },
+      },
+      {
+        type: "Feature",
+        id: "55555555-5555-4555-8555-555555555555",
+        properties: {
+          kind: "area",
+          visible: true,
+          label: null,
+          style: { fillColor: "#24439b", strokeColor: "#102a83", strokeWidth: 2, fillOpacity: 0.2 },
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [2.149, 48.149],
+              [2.151, 48.149],
+              [2.151, 48.151],
+              [2.149, 48.149],
+            ],
+            [
+              [2.1495, 48.1495],
+              [2.1497, 48.1495],
+              [2.1497, 48.1497],
+              [2.1495, 48.1495],
+            ],
+          ],
+        },
+      },
+      {
+        type: "Feature",
+        id: "66666666-6666-4666-8666-666666666666",
+        properties: { kind: "areaMeasurement", label: "Prairie", area: 25_000, perimeter: 640 },
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [2.1485, 48.1485],
+              [2.1515, 48.1485],
+              [2.1515, 48.1515],
+              [2.1485, 48.1485],
+            ],
+          ],
+        },
+      },
+    ],
+  },
+};
+
+const square = (x: number, y: number) => [
+  [
+    [x, y],
+    [x + 0.001, y],
+    [x + 0.001, y + 0.001],
+    [x, y],
+  ],
+];
+
+const overlayFeatures = [
+  { key: "P1", label: "Parcelle communale", geometry: { type: "Polygon", coordinates: square(2.149, 48.149) } },
+  { key: "P2", label: "Parcelle privée", geometry: { type: "MultiPolygon", coordinates: [square(2.15, 48.15)] } },
+  { key: "S1", label: "Source", geometry: { type: "Point", coordinates: [2.15, 48.15] } },
+  { key: "S2", label: null, geometry: { type: "MultiPoint", coordinates: [[2.1501, 48.1501]] } },
+  {
+    key: "R1",
+    label: "Ruisseau",
+    geometry: {
+      type: "LineString",
+      coordinates: [
+        [2.149, 48.1504],
+        [2.151, 48.1504],
+      ],
+    },
+  },
+  {
+    key: "R2",
+    label: null,
+    geometry: {
+      type: "MultiLineString",
+      coordinates: [
+        [
+          [2.149, 48.1501],
+          [2.151, 48.1501],
+        ],
+      ],
+    },
+  },
+  { key: "far", label: "Hors cadre", geometry: { type: "Point", coordinates: [3.5, 49.5] } },
+];
+
+describe("printing a map with its layers, drawings and notes", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // @verifies-requirement HALL-FR-DOC-600
+  it("draws the visible layers, the communal parcels and the labels from the zoom where the screen shows them", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
+    const overlay = (municipalOnly: boolean) => ({
+      opacity: 0.6,
+      features: overlayFeatures as never,
+      municipalParcelIds: new Set(["P1"]),
+      municipalOnly,
+    });
+    const render = async (zoom: number, municipalOnly: boolean) => {
+      const image = await createGeographicMapRenderer().renderPrint({
+        data: drawnMap,
+        title: "Réseau",
+        frame: { ...frame, zoom },
+        overlays: [overlay(municipalOnly)],
+        drawingsVisible: true,
+      });
+      return Buffer.from(image.split(",")[1]!, "base64").toString("utf8");
+    };
+    const near = await render(17, false);
+    expect(near).toContain("Fond cartographique indisponible");
+    expect(near).toContain('opacity="0.6"');
+    expect(near).toContain("Parcelle communale");
+    expect(near).toContain("Ruisseau");
+    expect(near).not.toContain("Hors cadre");
+    expect(near).toContain('stroke="#6a4bc4"');
+    expect(near).toContain("Prairie");
+    expect(near).toContain(formatPrintedArea(25_000));
+    const far = await render(15, false);
+    expect(far).not.toContain("Parcelle communale");
+    const communal = await render(17, true);
+    expect(communal).toContain("Parcelle communale");
+    expect(communal).not.toContain("Parcelle privée");
+    expect(communal).not.toContain("Ruisseau");
+  });
+
+  // @verifies-requirement HALL-FR-DOC-600
+  it("prints the visible layers of a map and the note linked to an element of its list", async () => {
+    const map = {
+      id: "map-resource",
+      kind: "geographic",
+      name: "Réseau",
+      document: drawnMap,
+      overlays: [
+        { layerId: "parcels", visible: true, opacity: 0.6, position: 2 },
+        { layerId: "streams", visible: true, opacity: 1, position: 1 },
+        { layerId: "hidden", visible: false, opacity: 1, position: 0 },
+      ],
+    };
+    const resources: Record<string, unknown> = {
+      "map-resource": map,
+      parcels: { kind: "geographicLayer", featureKey: { kind: "cadastreParcel" } },
+      streams: { kind: "geographicLayer", featureKey: { kind: "none" } },
+    };
+    const rendered: Parameters<GeographicMapRenderer["renderPrint"]>[0][] = [];
+    let markdown = "";
+    const service = createResourcePrintService({
+      resourcesClient: { open: async (id: string) => (resources[id] ? { data: resources[id] } : null) } as never,
+      geographicLayersClient: {
+        readFeatures: async (id: string) => (id === "streams" ? null : { features: overlayFeatures }),
+        readMunicipalProperty: async () => ({ data: { parcelIds: ["P1"] } }),
+        listDrawnElementNotes: async () => [
+          { key: "44444444-4444-4444-8444-444444444444", name: "Note de la conduite", noteId: "note-1" },
+        ],
+      } as never,
+      geographicMapRenderer: {
+        render: async () => "",
+        renderPrint: async (input) => {
+          rendered.push(input);
+          return "data:image/svg+xml;base64,AA";
+        },
+      },
+      contentTemplateService: {
+        withGenerationSlot: (run: () => Promise<Buffer>) => run(),
+        generatedPreview: async (_kind: string, body: string) => {
+          markdown = body;
+          return {
+            diagnostics: [],
+            printHtml: "<html><head></head><body></body></html>",
+            headerHtml: "",
+            footerHtml: "",
+          };
+        },
+      } as never,
+      documentRenderer: { pdf: async () => Buffer.from("%PDF-") } as never,
+    });
+    await service.print({
+      resourceId: "map-resource",
+      map: {
+        ...frame,
+        width: 600,
+        height: 900,
+        drawingsVisible: true,
+        municipalOnlyLayerIds: ["parcels"],
+        elementList: true,
+      },
+    });
+    expect(rendered[0]!.overlays).toHaveLength(1);
+    expect(rendered[0]!.overlays[0]).toMatchObject({ opacity: 0.6, municipalOnly: true });
+    expect([...(rendered[0]!.overlays[0]!.municipalParcelIds ?? [])]).toEqual(["P1"]);
+    const text = markdown.replace(/\\/g, "");
+    expect(text).toContain("### Conduite");
+    expect(text).toMatch(/Ligne · Longueur : /);
+    expect(text).toMatch(/### Zone\n\nZone · Surface : .* · Périmètre : /);
+    expect(text).toContain("### Prairie");
+    expect(text).toContain(`Mesure de surface · Surface : ${formatPrintedArea(25_000)}`);
+    expect(text).toContain('{#note-1 presentation="text"}');
+  });
+
+  // @verifies-requirement HALL-FR-DOC-600
+  it("refuses a document kind it cannot print, an unknown document and a print template in error", async () => {
+    for (const kind of ["folder", "remote", "event", "legalReference", "geographicLayer", "document"])
+      await expect(
+        printService({ id: kind, kind, name: kind }).service.print({ resourceId: kind }),
+      ).rejects.toMatchObject({ code: "resource_preview_unavailable" });
+    const missing = createResourcePrintService({
+      resourcesClient: { open: async () => null } as never,
+      geographicLayersClient: {} as never,
+      geographicMapRenderer: {} as never,
+      contentTemplateService: {} as never,
+      documentRenderer: {} as never,
+    });
+    await expect(missing.print({ resourceId: "missing" })).rejects.toMatchObject({ code: "resource_not_found" });
+    const invalid = createResourcePrintService({
+      resourcesClient: {
+        open: async () => ({
+          data: {
+            id: "s",
+            kind: "spreadsheet",
+            name: "Tableau",
+            document: { workbook: { sheetOrder: ["a"], sheets: { a: { cellData: {} } } } },
+          },
+        }),
+      } as never,
+      geographicLayersClient: {} as never,
+      geographicMapRenderer: {} as never,
+      contentTemplateService: {
+        withGenerationSlot: (run: () => Promise<Buffer>) => run(),
+        generatedPreview: async () => ({
+          diagnostics: [{ severity: "error" }],
+          printHtml: "",
+          headerHtml: "",
+          footerHtml: "",
+        }),
+      } as never,
+      documentRenderer: {} as never,
+    });
+    await expect(invalid.print({ resourceId: "s" })).rejects.toMatchObject({ code: "template_invalid" });
+  });
+});
