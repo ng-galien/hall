@@ -546,20 +546,37 @@ export type PostgresPresentedResourceSearch = Readonly<{
 }>;
 
 // @implements-requirement HALL-FR-DOC-280
-function changedResourceFields(before: PostgresResourceDetail, after: PostgresResourceDetail): string[] {
+/** The state a change is recorded against, read in the database without the content itself. */
+const resourceAuditStateSchema = z
+  .object({
+    kind: z.string(),
+    name: z.string(),
+    path: z.string(),
+    tags: z.array(z.string()),
+    autosaveEnabled: z.boolean().nullable(),
+    color: z.string().nullable(),
+    contentDigest: z.string(),
+  })
+  .strict();
+type ResourceAuditState = z.infer<typeof resourceAuditStateSchema>;
+
+/** The identity of a resource and whether it is the folder or the report of an affair. */
+export const resourceCouncilBusinessOwnershipSchema = z
+  .object({ id: resourceIdSchema, councilBusinessOwned: z.boolean() })
+  .strict();
+export type ResourceCouncilBusinessOwnership = z.infer<typeof resourceCouncilBusinessOwnershipSchema>;
+
+function changedResourceFields(before: ResourceAuditState, after: ResourceAuditState): string[] {
   const fields: string[] = [];
-  const contentChanged =
-    ("content" in before && "content" in after && before.content !== after.content) ||
-    ("document" in before &&
-      "document" in after &&
-      JSON.stringify(before.document) !== JSON.stringify(after.document)) ||
-    ("target" in before && "target" in after && JSON.stringify(before.target) !== JSON.stringify(after.target)) ||
-    ("contentSha256" in before && "contentSha256" in after && before.contentSha256 !== after.contentSha256);
-  if (contentChanged) fields.push("content");
+  if (before.contentDigest !== after.contentDigest) fields.push("content");
   if (before.name !== after.name) fields.push("name");
   if (before.path !== after.path) fields.push("path");
   if (before.tags.slice().sort().join("\u0000") !== after.tags.slice().sort().join("\u0000")) fields.push("tags");
-  if ("autosaveEnabled" in before && "autosaveEnabled" in after && before.autosaveEnabled !== after.autosaveEnabled)
+  if (
+    before.autosaveEnabled !== null &&
+    after.autosaveEnabled !== null &&
+    before.autosaveEnabled !== after.autosaveEnabled
+  )
     fields.push("autosave");
   if (before.kind === "folder" && after.kind === "folder" && before.color !== after.color) fields.push("color");
   return fields;
@@ -596,22 +613,20 @@ export class PostgresResources {
     auditBeforeResourceId?: string,
   ): Promise<PostgresPresentedResource<Result>> {
     return this.transactions.run({ role: request.role, context: this.runContext(request, action) }, async (client) => {
-      const before = auditBeforeResourceId
-        ? await callJson(client, {
-            text: "SELECT hall_api.open_resource($1::uuid) AS payload",
-            values: [resourceIdSchema.parse(auditBeforeResourceId)],
-            schema: postgresResourceDetailSchema,
-          })
-        : null;
+      const auditState = (id: string) =>
+        callJson(client, {
+          text: "SELECT hall_api.resource_audit_state($1::uuid) AS payload",
+          values: [resourceIdSchema.parse(id)],
+          schema: resourceAuditStateSchema,
+        });
+      const before = auditBeforeResourceId ? await auditState(auditBeforeResourceId) : null;
       const presented = await callJson(client, { ...call, schema });
       if (councilBusinessId)
         await client.query("SELECT hall_api.associate_council_business_resource($1::uuid, $2::uuid)", [
           councilBusinessId,
           presented.data.id,
         ]);
-      const changedFields = before
-        ? changedResourceFields(before, postgresResourceDetailSchema.parse(presented.data))
-        : null;
+      const changedFields = before ? changedResourceFields(before, await auditState(presented.data.id)) : null;
       await recordAuditEvent(client, {
         targetType: "resource",
         targetId: presented.data.id,
@@ -635,6 +650,22 @@ export class PostgresResources {
         values: [resourceIdSchema.parse(id)],
       },
       presentedResourceSchema(postgresResourceDetailSchema),
+    );
+  }
+
+  /** The identity of a resource named by its identifier or slug, and whether an affair owns it; null when unknown. */
+  councilBusinessOwnership(
+    request: PostgresResourceRequest,
+    reference: string,
+  ): Promise<ResourceCouncilBusinessOwnership | null> {
+    return this.readJson(
+      request,
+      "resource.councilBusinessOwnership",
+      {
+        text: "SELECT hall_api.resource_council_business_ownership($1::text) AS payload",
+        values: [reference],
+      },
+      resourceCouncilBusinessOwnershipSchema.nullable(),
     );
   }
 

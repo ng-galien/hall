@@ -42,3 +42,34 @@ $function$;
 
 ALTER FUNCTION hall_api.list_resource_changes(UUID) OWNER TO hall_owner;
 REVOKE ALL ON FUNCTION hall_api.list_resource_changes(UUID) FROM PUBLIC;
+
+-- @implements-requirement HALL-FR-DOC-280
+-- The state a change of one resource is recorded against: name, location,
+-- tags, autosave choice, folder colour and a digest of the owned content, so
+-- the changed fields are found without carrying the content out of the database.
+CREATE FUNCTION hall_api.resource_audit_state(resource_id UUID)
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT jsonb_build_object(
+    'kind', current_state.detail ->> 'kind',
+    'name', current_state.detail ->> 'name',
+    'path', current_state.detail ->> 'path',
+    'tags', current_state.detail -> 'tags',
+    'autosaveEnabled', current_state.detail -> 'autosaveEnabled',
+    'color', current_state.detail -> 'color',
+    'contentDigest', md5(jsonb_build_array(
+      current_state.detail -> 'content',
+      current_state.detail -> 'document',
+      current_state.detail -> 'target',
+      current_state.detail -> 'contentSha256'
+    )::text)
+  )
+  FROM (SELECT hall.resource_detail(resource_id) AS detail) AS current_state
+$function$;
+
+ALTER FUNCTION hall_api.resource_audit_state(UUID) OWNER TO hall_owner;
+REVOKE ALL ON FUNCTION hall_api.resource_audit_state(UUID) FROM PUBLIC;

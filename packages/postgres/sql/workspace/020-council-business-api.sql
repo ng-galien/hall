@@ -30,6 +30,37 @@ AS $function$
   SELECT hall.council_business_workspace_projection(target_business)
 $function$;
 
+-- The identity of a resource named by its identifier or its slug, and whether
+-- it is the folder or the report of an affair; NULL for an unknown resource.
+CREATE FUNCTION hall_api.resource_council_business_ownership(resource_reference TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+DECLARE
+  target_id UUID;
+BEGIN
+  IF resource_reference ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+    SELECT resource.id INTO target_id FROM hall.resource AS resource WHERE resource.id = resource_reference::UUID;
+  ELSE
+    SELECT resource.id INTO target_id FROM hall.resource AS resource WHERE resource.slug = resource_reference;
+  END IF;
+  IF target_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+  RETURN jsonb_build_object(
+    'id', target_id,
+    'councilBusinessOwned', EXISTS (
+      SELECT FROM hall.council_business_workspace AS workspace WHERE workspace.folder_resource = target_id
+    ) OR EXISTS (
+      SELECT FROM hall.council_business_workspace AS workspace WHERE workspace.report_resource = target_id
+    )
+  );
+END
+$function$;
+
 CREATE FUNCTION hall_api.list_council_business()
 RETURNS JSONB
 LANGUAGE sql

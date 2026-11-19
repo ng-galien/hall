@@ -171,6 +171,11 @@ export function createPostgresResourcesClient({
       );
       return found ? resourceDetail(found) : null;
     },
+    async councilBusinessOwnership(reference) {
+      return read(() =>
+        postgresResources.councilBusinessOwnership(currentRequest(), resourceReferenceSchema.parse(reference)),
+      );
+    },
     listResourceChanges(id) {
       return postgresResources.listResourceChanges(currentRequest(), id);
     },

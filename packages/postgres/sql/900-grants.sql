@@ -72,6 +72,8 @@ GRANT EXECUTE ON FUNCTION hall_api.open_resource(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_resource_changes(UUID)
   TO hall_api_authenticated;
+GRANT EXECUTE ON FUNCTION hall_api.resource_audit_state(UUID)
+  TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.open_resource_by_slug(TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_resources()
@@ -164,6 +166,8 @@ GRANT EXECUTE ON FUNCTION hall_api.relocate_resource(UUID, TEXT, TEXT)
 GRANT EXECUTE ON FUNCTION hall_api.open_council_business(UUID)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_council_business()
+  TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.resource_council_business_ownership(TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_council_business_workspace_items()
   TO hall_api_authenticated, hall_api_worker;

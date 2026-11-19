@@ -55,6 +55,8 @@ export interface ResourcesClient {
   findDocumentsByHashes(hashes: readonly string[]): Promise<ResourceRepresentation<ResourceSummary[]>>;
   search(criteria: ResourceSearchCriteria): Promise<ResourceRepresentation<ResourceSearchResult>>;
   open(reference: string): Promise<ResourceRepresentation<ResourceDetail> | null>;
+  /** The identity of a resource named by its identifier or slug, and whether it is the folder or report of an affair. */
+  councilBusinessOwnership(reference: string): Promise<{ id: string; councilBusinessOwned: boolean } | null>;
   listResourceChanges(id: string): Promise<ResourceAuditChange[]>;
   create(input: PersistResource): Promise<ResourceRepresentation<ResourceDetail>>;
   provisionPersonalWorkspace(contactId: string): Promise<ResourceRepresentation<ResourceDetail>>;

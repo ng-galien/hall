@@ -157,8 +157,19 @@ export async function createTestServer(
   if (options.realClients === false) {
     const resourcesClient = createTestResourcesClient();
     const minutes = createTestMinutesClient();
+    const councilClient = createTestCouncilClient(resourcesClient, minutes.entries);
+    const ownership = resourcesClient.councilBusinessOwnership;
+    resourcesClient.councilBusinessOwnership = async (reference) => {
+      const found = await ownership(reference);
+      if (!found) return null;
+      const businesses = await councilClient.listBusinesses();
+      const owned = businesses.some(
+        (business) => business.folderResourceId === found.id || business.reportResourceId === found.id,
+      );
+      return { ...found, councilBusinessOwned: owned };
+    };
     container.register({
-      councilClient: asValue(createTestCouncilClient(resourcesClient, minutes.entries)),
+      councilClient: asValue(councilClient),
       minutesClient: asValue(minutes.client),
       councilDecisionClient: asValue<CouncilDecisionClient>({
         list: async () => [],

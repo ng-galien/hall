@@ -45,6 +45,8 @@ export interface DocumentaryResourceService {
   findDocumentsByHashes(hashes: readonly string[]): Promise<SirenEntity>;
   search(criteria: ResourceSearchCriteria): Promise<SirenEntity>;
   open(reference: string): Promise<SirenEntity>;
+  /** The identity of a resource and whether it is the folder or the report of an affair. */
+  councilBusinessOwnership(reference: string): Promise<{ id: string; councilBusinessOwned: boolean }>;
   listChanges(reference: string): Promise<ResourceChanges>;
   create(input: CreateResource): Promise<SirenEntity>;
   createDocument(input: {
@@ -189,6 +191,11 @@ export function createDocumentaryResourceService({
     },
     search(criteria) {
       return resourcesClient.search(criteria).then(({ representation }) => representation);
+    },
+    async councilBusinessOwnership(reference) {
+      const ownership = await resourcesClient.councilBusinessOwnership(reference);
+      if (!ownership) throw new DomainError("resource_not_found", 404);
+      return ownership;
     },
     async open(reference) {
       const resource = await resourcesClient.open(reference);

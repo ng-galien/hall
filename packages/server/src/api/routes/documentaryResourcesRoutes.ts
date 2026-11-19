@@ -47,7 +47,6 @@ function declareContentChange(response: Response, representation: { properties?:
 /** Routes of the documentary resources; a created event is read again after its creation commits. */
 export function createDocumentaryResourcesRouter({
   documentaryResourceService,
-  councilBusinessWorkspaceService,
   eventInvitationService,
   mailService,
   realtimeEvents,
@@ -72,16 +71,14 @@ export function createDocumentaryResourcesRouter({
     next();
   };
   const requireBusinessUpdateForOwnedResource = async (request: Request, response: Response, next: NextFunction) => {
-    const reference = resourceReferenceSchema.parse(routeParameter(request.params.reference));
-    const representation = await documentaryResourceService.open(reference);
-    const resourceId = representation.properties?.id;
-    const businesses = await councilBusinessWorkspaceService.list();
-    const belongsToBusiness = businesses.some(
-      (business) => business.folderResourceId === resourceId || business.reportResourceId === resourceId,
+    const ownership = await documentaryResourceService.councilBusinessOwnership(
+      resourceReferenceSchema.parse(routeParameter(request.params.reference)),
     );
-    if (belongsToBusiness) return requireBusinessUpdate(request, response, next);
+    response.locals.resourceId = ownership.id;
+    if (ownership.councilBusinessOwned) return requireBusinessUpdate(request, response, next);
     next();
   };
+  const ownedResourceId = (response: Response): string => resourceIdSchema.parse(response.locals.resourceId);
   const uploadFile = singleFileUpload(requestContext);
 
   router.get("/catalog", async (_request, response) => {
@@ -351,7 +348,7 @@ export function createDocumentaryResourcesRouter({
     requireBusinessUpdateForOwnedResource,
     async (request, response) => {
       const changed = await documentaryResourceService.relocate(
-        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+        ownedResourceId(response),
         relocateResourceSchema.parse(request.body),
       );
       publishSavedTextChange(request, changed);
@@ -365,7 +362,7 @@ export function createDocumentaryResourcesRouter({
     requireBusinessUpdateForOwnedResource,
     async (request, response) => {
       const changed = await documentaryResourceService.updateMetadata(
-        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+        ownedResourceId(response),
         updateResourceMetadataSchema.parse(request.body),
       );
       publishSavedTextChange(request, changed);
@@ -379,10 +376,7 @@ export function createDocumentaryResourcesRouter({
     requireBusinessUpdateForOwnedResource,
     async (request, response) => {
       const input = updateResourceContentSchema.parse(request.body);
-      const changed = await documentaryResourceService.updateContent(
-        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
-        input,
-      );
+      const changed = await documentaryResourceService.updateContent(ownedResourceId(response), input);
       if (!("name" in input && input.name !== undefined)) declareContentChange(response, changed);
       publishSavedTextChange(request, changed);
       response.json(changed);

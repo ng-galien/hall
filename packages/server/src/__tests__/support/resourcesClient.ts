@@ -143,6 +143,10 @@ export function createTestResourcesClient(): ResourcesClient {
       const resource = find(reference);
       return resource ? representation(resource) : null;
     },
+    async councilBusinessOwnership(reference) {
+      const resource = find(reference);
+      return resource ? { id: resource.id, councilBusinessOwned: false } : null;
+    },
     async listResourceChanges() {
       return [];
     },
