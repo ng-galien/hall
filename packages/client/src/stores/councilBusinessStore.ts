@@ -60,6 +60,11 @@ interface CouncilBusinessStoreState {
   loadResources(id: string): Promise<boolean>;
   /** Loads, in one request, the documents of the listed businesses that are not loaded yet. */
   loadResourceItems(ids: readonly string[]): Promise<void>;
+  /**
+   * Rereads, after another session saved the content of these resources, only what shows them: the selected business,
+   * the report of a business, the documents of a business and the prepared subjects of a business.
+   */
+  rereadSavedContents(resourceIds: readonly string[], selectedId: string | null): Promise<void>;
   associateResource(id: string, resourceId: string): Promise<boolean>;
   dissociateResource(id: string, resourceId: string): Promise<boolean>;
   reorderResources(id: string, resourceIds: string[]): Promise<boolean>;
@@ -377,6 +382,45 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
         resourceItemsErrorById: { ...state.resourceItemsErrorById, [id]: apiErrorCode(error) },
       }));
       return false;
+    }
+  },
+  async rereadSavedContents(resourceIds, selectedId) {
+    const touched = new Set(resourceIds);
+    const state = get();
+    const subjects = state.preparedSubjects.filter((subject) => touched.has(subject.textResourceId));
+    const shows = (business: CouncilBusinessView) =>
+      touched.has(business.reportResourceId) ||
+      business.resources.some((resource) => touched.has(resource.id)) ||
+      subjects.some((subject) => subject.councilBusinessId === business.id);
+    const selected = selectedId ? state.businesses.find((business) => business.id === selectedId) : undefined;
+    const others = state.businesses.filter((business) => business.id !== selected?.id);
+    const reports = others.filter((business) => touched.has(business.reportResourceId));
+    const documents = others
+      .filter((business) => state.resourceItemsLoadedById[business.id])
+      .filter((business) => business.resources.some((resource) => touched.has(resource.id)))
+      .map((business) => business.id);
+    try {
+      await Promise.all([
+        selected && shows(selected) ? get().refresh(selected.id) : null,
+        ...reports.map(async (business) => {
+          const report = await useWorkspaceResourcesStore.getState().open(business.reportResourceId);
+          if (report?.data.kind === "text") get().adoptReport(business.id, report.data);
+        }),
+        documents.length
+          ? loadBusinessResourceItems(documents).then((resourceItems) =>
+              set((current) => ({
+                businesses: current.businesses.map((business) =>
+                  documents.includes(business.id) ? councilBusinessView(business, resourceItems) : business,
+                ),
+              })),
+            )
+          : null,
+        ...[...new Set(subjects.map((subject) => subject.councilBusinessId))].map((id) =>
+          get().loadPreparedSubjects(id),
+        ),
+      ]);
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
     }
   },
   async associateResource(id, resourceId) {

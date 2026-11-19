@@ -1,3 +1,4 @@
+import type { LiveEvent, WorkspaceContentChange } from "@hall/api-contract";
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { subscribeLiveUpdates } from "../services/liveUpdates";
@@ -39,9 +40,33 @@ export async function rereadWorkspace(selectedBusinessId: string | null): Promis
   await Promise.all([...screenRereads].map((reread) => reread()));
 }
 
+type SavedResource = WorkspaceContentChange["resource"];
+
 /**
- * Keeps the workspace current when another session or the MCP changes a resource or a business: each change event,
- * and each reconnection after the first connection, triggers one grouped reread.
+ * Rereads what saved contents touched: the loaded folder that lists each resource, the businesses and prepared subjects
+ * that show it, and the shown screens when an appointment changed. The catalog and the other businesses stay as read.
+ */
+export async function rereadSavedContents(resources: readonly SavedResource[], selectedBusinessId: string | null) {
+  const workspace = useWorkspaceResourcesStore.getState();
+  const folders = [...new Set(resources.map((resource) => resource.path))].filter((path) =>
+    workspace.loadedPaths.includes(path),
+  );
+  await Promise.all([
+    ...folders.map((path) => workspace.loadFolder(path, { force: true })),
+    useCouncilBusinessStore.getState().rereadSavedContents(
+      resources.map((resource) => resource.id),
+      selectedBusinessId,
+    ),
+  ]);
+  if (resources.some((resource) => resource.kind === "event")) {
+    await Promise.all([...screenRereads].map((reread) => reread()));
+  }
+}
+
+/**
+ * Keeps the workspace current when another session or the MCP changes a resource or a business. Events are grouped:
+ * a group of saved contents rereads only what they touched; any other change, and each reconnection after the first
+ * connection, rereads the whole workspace.
  */
 // @implements-requirement HALL-TR-LIV-010
 export function useWorkspaceLiveUpdates(): void {
@@ -54,12 +79,22 @@ export function useWorkspaceLiveUpdates(): void {
     let timer: number | undefined;
     let running: Promise<void> | null = null;
     let requested = false;
+    let whole = false;
+    let saved = new Map<string, SavedResource>();
     const run = () => {
       if (running) {
         requested = true;
         return;
       }
-      running = rereadWorkspace(selectedBusinessId.current).finally(() => {
+      const rereadWhole = whole;
+      const resources = [...saved.values()];
+      whole = false;
+      saved = new Map();
+      running = (
+        rereadWhole
+          ? rereadWorkspace(selectedBusinessId.current)
+          : rereadSavedContents(resources, selectedBusinessId.current)
+      ).finally(() => {
         running = null;
         if (requested) {
           requested = false;
@@ -71,8 +106,17 @@ export function useWorkspaceLiveUpdates(): void {
       window.clearTimeout(timer);
       timer = window.setTimeout(run, rereadDelayMs);
     };
-    const unsubscribe = subscribeLiveUpdates({ kind: "workspace" }, schedule, () => {
-      if (connected) schedule();
+    const receive = (event: LiveEvent) => {
+      if (event.type === "workspace.changed" && event.change)
+        saved.set(event.change.resource.id, event.change.resource);
+      else whole = true;
+      schedule();
+    };
+    const unsubscribe = subscribeLiveUpdates({ kind: "workspace" }, receive, () => {
+      if (connected) {
+        whole = true;
+        schedule();
+      }
       connected = true;
     });
     return () => {

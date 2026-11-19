@@ -9,6 +9,7 @@ import {
   relocateResourceSchema,
   resolveLegalReferenceSchema,
   resourceIdSchema,
+  resourceKindSchema,
   resourceNameSchema,
   resourcePathSchema,
   resourceReferenceSchema,
@@ -17,7 +18,9 @@ import {
   updateResourceMetadataSchema,
 } from "@hall/api-contract";
 import { type NextFunction, type Request, type Response, Router } from "express";
+import { z } from "zod";
 import type { Cradle } from "../../core/container.js";
+import { declareWorkspaceChange } from "../../realtime/workspaceChanges.js";
 import { requireAction } from "../../security/authorization.js";
 import { DomainError } from "../../services/errors.js";
 import { parseSpreadsheetImport, spreadsheetMarkdownTable } from "../../services/spreadsheetImportService.js";
@@ -26,6 +29,18 @@ import { mailRepresentation } from "../mailRepresentation.js";
 import { routeParameter } from "../routeParameter.js";
 import { singleFileUpload } from "../singleFileUpload.js";
 import { uploadFileStem } from "../uploadFileName.js";
+
+const workspaceChangedResourceSchema = z.object({
+  id: resourceIdSchema,
+  path: resourcePathSchema,
+  kind: resourceKindSchema,
+});
+
+/** A saved content leaves the resource's name and location as they were; other sessions reread only that resource. */
+function declareContentChange(response: Response, representation: { properties?: Record<string, unknown> }): void {
+  const resource = workspaceChangedResourceSchema.safeParse(representation.properties);
+  if (resource.success) declareWorkspaceChange(response, { kind: "content", resource: resource.data });
+}
 
 // @implements-requirement HALL-FR-DOC-280
 // @implements-requirement HALL-FR-CAL-240
@@ -159,6 +174,7 @@ export function createDocumentaryResourcesRouter({
     uploadFile,
     async (request, response) => {
       if (!request.file) throw new DomainError("invalid_request");
+      declareWorkspaceChange(response, { kind: "none" });
       response.json(
         await spreadsheetMarkdownTable({ fileName: request.file.originalname, content: request.file.buffer }),
       );
@@ -217,6 +233,7 @@ export function createDocumentaryResourcesRouter({
     "/legal-references/search",
     requireActionPermission("resource.search-legal-references"),
     async (request, response) => {
+      declareWorkspaceChange(response, { kind: "none" });
       response.json(
         await documentaryResourceService.searchLegalReferences(legalReferenceSearchInputSchema.parse(request.body)),
       );
@@ -319,12 +336,12 @@ export function createDocumentaryResourcesRouter({
     uploadFile,
     async (request, response) => {
       if (!request.file) throw new DomainError("invalid_request");
-      response.json(
-        await documentaryResourceService.replaceDocumentContent(
-          resourceReferenceSchema.parse(routeParameter(request.params.reference)),
-          { fileName: request.file.originalname, content: request.file.buffer },
-        ),
+      const changed = await documentaryResourceService.replaceDocumentContent(
+        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+        { fileName: request.file.originalname, content: request.file.buffer },
       );
+      declareContentChange(response, changed);
+      response.json(changed);
     },
   );
 
@@ -361,10 +378,12 @@ export function createDocumentaryResourcesRouter({
     requireActionPermission("resource.update-content"),
     requireBusinessUpdateForOwnedResource,
     async (request, response) => {
+      const input = updateResourceContentSchema.parse(request.body);
       const changed = await documentaryResourceService.updateContent(
         resourceReferenceSchema.parse(routeParameter(request.params.reference)),
-        updateResourceContentSchema.parse(request.body),
+        input,
       );
+      if (!("name" in input && input.name !== undefined)) declareContentChange(response, changed);
       publishSavedTextChange(request, changed);
       response.json(changed);
     },
@@ -374,6 +393,7 @@ export function createDocumentaryResourcesRouter({
     "/:reference/event-invitation",
     requireActionPermission("resource.generate-event-invitation"),
     async (request, response) => {
+      declareWorkspaceChange(response, { kind: "none" });
       if (!request.get("Accept")?.includes("message/rfc822")) {
         response
           .status(201)

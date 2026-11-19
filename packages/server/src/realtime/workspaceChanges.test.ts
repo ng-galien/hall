@@ -3,11 +3,11 @@ import type { LiveEventPublication } from "@hall/api-contract";
 import type { Request, Response } from "express";
 import { describe, expect, it } from "vitest";
 import { RequestContextStore } from "../security/requestContext.js";
-import { publishWorkspaceChanges } from "./workspaceChanges.js";
+import { publishWorkspaceChanges, type WorkspaceChangeScope } from "./workspaceChanges.js";
 
 const principal = { id: "user-id", displayName: "Secrétariat", roles: ["clerk"], contactId: null };
 
-function exchange(method: string, statusCode: number, body: unknown = {}) {
+function exchange(method: string, statusCode: number, body: unknown = {}, scope?: WorkspaceChangeScope) {
   const published: { event: LiveEventPublication; origin: string | undefined }[] = [];
   const requestContext = new RequestContextStore();
   const middleware = publishWorkspaceChanges({
@@ -16,7 +16,10 @@ function exchange(method: string, statusCode: number, body: unknown = {}) {
       publish: (event) => published.push({ event, origin: requestContext.current()?.liveOrigin }),
     },
   });
-  const response = Object.assign(new EventEmitter(), { statusCode }) as unknown as Response;
+  const response = Object.assign(new EventEmitter(), {
+    statusCode,
+    locals: scope ? { workspaceChange: scope } : {},
+  }) as unknown as Response;
   const request = { method, body, principal } as unknown as Request;
   let nextCalled = false;
   requestContext.run({ requestId: "request", liveOrigin: "origin-id" }, () =>
@@ -39,6 +42,21 @@ describe("workspace change publication", () => {
         origin: "origin-id",
       },
     ]);
+  });
+
+  it("announces a saved content with the resource it touched, and nothing for a command that changes no data", () => {
+    const resource = { id: "22222222-2222-4222-8222-222222222222", path: "Affaires", kind: "text" as const };
+    expect(exchange("PUT", 200, {}, { kind: "content", resource }).published).toEqual([
+      {
+        event: {
+          type: "workspace.changed",
+          actor: { id: "user-id", displayName: "Secrétariat" },
+          change: { kind: "content", resource },
+        },
+        origin: "origin-id",
+      },
+    ]);
+    expect(exchange("POST", 200, {}, { kind: "none" }).published).toEqual([]);
   });
 
   it("announces nothing for a reading, a refusal or a preview", () => {
