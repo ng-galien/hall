@@ -159,10 +159,11 @@
     font-size: var(--hall-font-size-caption);
     cursor: pointer;
   }
-  /* Under an open folder colour picker: takes the press outside it, so that nothing under it reacts. */
+  /* Under an open folder colour picker, above the screen and the windows opened before it: takes the press outside it,
+     so that nothing under it reacts. */
   .color-picker-backdrop {
     position: fixed;
-    z-index: calc(var(--hall-z-popover) - 1);
+    z-index: var(--hall-z-dialog);
     inset: 0;
     background: transparent;
   }
