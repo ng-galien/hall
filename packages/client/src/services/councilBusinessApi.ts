@@ -72,6 +72,12 @@ export function listCouncilBusinessNavigationIndex() {
   return pending;
 }
 
+/** Every business with its actions, in one read. */
+export async function listCouncilBusinessRepresentations() {
+  const result = await apiSirenRequest<unknown>("/council-business");
+  return { ...result, data: councilBusinessSchema.array().parse(result.data) };
+}
+
 export async function openCouncilBusiness(id: string) {
   const result = await apiSirenRequest<unknown>(councilBusinessPath(id));
   return { ...result, data: councilBusinessSchema.parse(result.data) };

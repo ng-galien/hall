@@ -16,6 +16,7 @@ import {
   createPreparedCouncilSubject,
   dissociateCouncilBusinessResource,
   listCouncilBusinesses,
+  listCouncilBusinessRepresentations,
   listCouncilBusinessResourceItems,
   listPreparedCouncilSubjects,
   openCouncilBusiness,
@@ -58,7 +59,12 @@ interface CouncilBusinessStoreState {
   adoptReport(id: string, report: Extract<ResourceDetail, { kind: "text" }>): void;
   refresh(id: string): Promise<CouncilBusinessView | null>;
   loadResources(id: string): Promise<boolean>;
-  /** Loads, in one request, the documents of the listed businesses that are not loaded yet. */
+  /**
+   * Loads the actions of the listed businesses that have none yet in one read of every business, and their documents
+   * by a hundred businesses per request.
+   */
+  loadCapabilities(ids: readonly string[]): Promise<void>;
+  /** Loads, by a hundred businesses per request, the documents of the listed businesses that are not loaded yet. */
   loadResourceItems(ids: readonly string[]): Promise<void>;
   /**
    * Rereads, after another session saved the content of these resources, only what shows them: the selected business,
@@ -98,10 +104,16 @@ function capabilities(representation: SirenEntity | null): CouncilBusinessCapabi
   };
 }
 
+/** The resource-items request accepts at most one hundred businesses. */
+const resourceItemsBatchSize = 100;
+
 // @implements-requirement HALL-FR-WSP-370
 /** A business's documents carry the summaries its report references need: adopt them without the catalog. */
 async function loadBusinessResourceItems(ids: readonly string[]) {
-  const items = await listCouncilBusinessResourceItems(ids);
+  const batches: string[][] = [];
+  for (let start = 0; start < ids.length; start += resourceItemsBatchSize)
+    batches.push(ids.slice(start, start + resourceItemsBatchSize));
+  const items = (await Promise.all(batches.map((batch) => listCouncilBusinessResourceItems(batch)))).flat();
   useWorkspaceResourcesStore
     .getState()
     .adoptSummaries(items.map(({ councilBusinessId: _business, position: _position, ...summary }) => summary));
@@ -383,6 +395,30 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
       }));
       return false;
     }
+  },
+  async loadCapabilities(ids) {
+    const missing = [...new Set(ids)].filter((id) => !get().capabilitiesById[id]);
+    if (missing.length === 0) return;
+    try {
+      const listed = await listCouncilBusinessRepresentations();
+      const entities = (listed.representation?.entities ?? []).filter(
+        (entity): entity is SirenEmbeddedEntity =>
+          "properties" in entity && typeof entity.properties?.id === "string" && missing.includes(entity.properties.id),
+      );
+      set((state) => ({
+        capabilitiesById: {
+          ...state.capabilitiesById,
+          ...Object.fromEntries(entities.map((entity) => [entity.properties?.id as string, capabilities(entity)])),
+        },
+        representationsById: {
+          ...state.representationsById,
+          ...Object.fromEntries(entities.map((entity) => [entity.properties?.id as string, entity])),
+        },
+      }));
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+    }
+    await get().loadResourceItems(missing);
   },
   async rereadSavedContents(resourceIds, selectedId) {
     const touched = new Set(resourceIds);

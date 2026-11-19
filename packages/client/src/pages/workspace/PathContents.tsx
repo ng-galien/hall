@@ -329,12 +329,15 @@ export function PathContents({
   const pendingCapabilities = useRef(new Set<string>());
   useEffect(() => {
     if (hidden) return;
-    for (const id of businessIds.split("\n").filter(Boolean)) {
-      if (councilBusinessStore.capabilitiesById[id] || pendingCapabilities.current.has(id)) continue;
-      pendingCapabilities.current.add(id);
-      void councilBusinessStore.loadResources(id).finally(() => pendingCapabilities.current.delete(id));
-    }
-  }, [businessIds, councilBusinessStore.loadResources, councilBusinessStore.capabilitiesById, hidden]);
+    const missing = businessIds
+      .split("\n")
+      .filter((id) => id && !councilBusinessStore.capabilitiesById[id] && !pendingCapabilities.current.has(id));
+    if (missing.length === 0) return;
+    for (const id of missing) pendingCapabilities.current.add(id);
+    void councilBusinessStore.loadCapabilities(missing).finally(() => {
+      for (const id of missing) pendingCapabilities.current.delete(id);
+    });
+  }, [businessIds, councilBusinessStore.loadCapabilities, councilBusinessStore.capabilitiesById, hidden]);
   const treeRef = useRef<HTMLDivElement | null>(null);
   const renameTargetRef = useRef<RenameTarget | null>(null);
   const renameSessionRef = useRef(0);

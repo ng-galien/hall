@@ -22,6 +22,9 @@ import { committeeLinkCollection, committeeLinkResult } from "../councilBusiness
 import { councilBusinessReorganizationRepresentation } from "../councilBusinessReorganizationActions.js";
 import { routeParameter } from "../routeParameter.js";
 
+/** The agenda history is read by at most one hundred businesses at a time. */
+const agendaHistoryBatchSize = 100;
+
 export function createCouncilBusinessRouter({
   councilBusinessWorkspaceService,
   councilClient,
@@ -124,10 +127,12 @@ export function createCouncilBusinessRouter({
 
   router.get("/", async (_request, response) => {
     const businesses = await councilBusinessWorkspaceService.list();
-    response.locals.currentCouncilBusinessAgendaItems =
-      businesses.length === 0
-        ? []
-        : await councilBusinessWorkspaceService.listAgendaItems(businesses.map(({ id }) => id));
+    const batches: string[][] = [];
+    for (let start = 0; start < businesses.length; start += agendaHistoryBatchSize)
+      batches.push(businesses.slice(start, start + agendaHistoryBatchSize).map(({ id }) => id));
+    response.locals.currentCouncilBusinessAgendaItems = (
+      await Promise.all(batches.map((ids) => councilBusinessWorkspaceService.listAgendaItems(ids)))
+    ).flat();
     response.locals.deletableCouncilBusinessIds = new Set(
       await councilClient.listDeletableBusinesses(businesses.map(({ id }) => id)),
     );
