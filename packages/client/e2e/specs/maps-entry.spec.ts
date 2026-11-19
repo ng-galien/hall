@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { expect, test } from "../fixtures/application";
+import { expect, historySettled, test } from "../fixtures/application";
 
 interface SirenAction {
   name: string;
@@ -526,6 +526,8 @@ test("maps chosen in Cartes replace the address: one back returns to the screen 
   await expect(page).toHaveURL(new RegExp(`/maps/${lock.id}\\?view=`));
   await chooseMap(page, root, troughs.id);
   await expect(page.getByTestId("screen-header-title")).toHaveText("Abreuvoirs");
+  // The list closed by the choice gives its history entry back before it is opened again.
+  await historySettled(page);
   // The open list closes first; the next back leaves Cartes.
   await page.getByTestId("maps-search").click();
   await expect(page.getByTestId("maps-list")).toBeVisible();
