@@ -20,6 +20,7 @@ import {
 } from "../documents/DocumentaryResourceGlyph";
 import { GeographicResourceMap } from "../geographic/GeographicResourceMap";
 import { legalStatusLabel } from "../legal/legalReferencePresentation";
+import { openSessionResource } from "./useResourceSession";
 import "./ResourceEmbedPresentation.css";
 
 type SpreadsheetDocument = Extract<ResourceDetail, { kind: "spreadsheet" }>["document"];
@@ -330,9 +331,11 @@ export function ResourceEmbedPresentation({ attributes }: { attributes: Resource
     setDetails(null);
     setRepresentation(null);
     setFailed(false);
-    void openDocumentaryResource(attributes.id).then(
+    void openSessionResource(attributes.id).then(
       (result) => {
-        if (active && result.data.kind !== "folder") {
+        if (!active) return;
+        if (!result) setFailed(true);
+        else if (result.data.kind !== "folder") {
           setDetails(result.data);
           setRepresentation(result.representation);
         }
