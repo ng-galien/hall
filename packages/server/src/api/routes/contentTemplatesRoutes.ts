@@ -21,6 +21,24 @@ const referenceQuerySchema = z.object({
 });
 
 const PDF_PREVIEW_TTL_MS = 5 * 60 * 1_000;
+/** Bytes of PDF previews kept at once; the oldest previews leave first beyond it. */
+const PDF_PREVIEW_MAX_BYTES = 256 * 1024 * 1024;
+
+type PdfPreview = { content: Buffer; expiresAt: number };
+
+/** Forgets the expired previews, then the oldest ones until `incoming` more bytes fit in the bound. */
+function boundPdfPreviews(previews: Map<string, PdfPreview>, now: number, incoming = 0): void {
+  let kept = 0;
+  for (const [id, preview] of previews) {
+    if (preview.expiresAt <= now) previews.delete(id);
+    else kept += preview.content.byteLength;
+  }
+  for (const [id, preview] of previews) {
+    if (kept + incoming <= PDF_PREVIEW_MAX_BYTES) break;
+    previews.delete(id);
+    kept -= preview.content.byteLength;
+  }
+}
 
 function contains(label: string, query: string): boolean {
   return label.toLocaleLowerCase("fr-FR").includes(query.toLocaleLowerCase("fr-FR"));
@@ -29,7 +47,7 @@ function contains(label: string, query: string): boolean {
 export function createContentTemplatesRouter(cradle: Cradle): Router {
   const { contentTemplateService, referenceEntityResolver, mailService, resourcePrintService } = cradle;
   const router = Router();
-  const pdfPreviews = new Map<string, { content: Buffer; expiresAt: number }>();
+  const pdfPreviews = new Map<string, PdfPreview>();
 
   router.get("/", async (_request, response) => {
     response.json(await contentTemplateService.list());
@@ -70,7 +88,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
           : await contentTemplateService.previewPdf(input.bodyMarkdown, input.context, input.attachPdfDocuments);
     if (request.query.delivery === "url") {
       const now = Date.now();
-      for (const [id, preview] of pdfPreviews) if (preview.expiresAt <= now) pdfPreviews.delete(id);
+      boundPdfPreviews(pdfPreviews, now, content.byteLength);
       const id = randomUUID();
       pdfPreviews.set(id, { content, expiresAt: now + PDF_PREVIEW_TTL_MS });
       response.status(201).json({ url: `/api/templates/preview-pdf/${id}` });
@@ -86,6 +104,7 @@ export function createContentTemplatesRouter(cradle: Cradle): Router {
 
   router.get("/preview-pdf/:previewId", (request, response) => {
     const id = routeParameter(request.params.previewId);
+    boundPdfPreviews(pdfPreviews, Date.now());
     const preview = pdfPreviews.get(id);
     if (!preview || preview.expiresAt <= Date.now()) {
       pdfPreviews.delete(id);
