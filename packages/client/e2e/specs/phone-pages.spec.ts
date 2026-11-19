@@ -576,7 +576,7 @@ test.describe("Hall pages on a phone", () => {
         data: { path: "seed", name: `Convention ${marker}`, reportName: "Rapport", reportContent: "" },
       });
       expect(createdBusiness.ok()).toBeTruthy();
-      const business = (await createdBusiness.json()).properties as { id: string; folderPath: string };
+      const business = (await createdBusiness.json()).properties as { id: string };
       const name = `Délibération relative au renouvellement de la convention de mise à disposition ${marker}`;
       const created = await page.request.post("/api/resources", {
         data: { kind: "text", path: "seed", name, content: "Texte." },
@@ -589,7 +589,7 @@ test.describe("Hall pages on a phone", () => {
       expect(associated.ok()).toBeTruthy();
 
       await page.goto(
-        `/app/workspace?${new URLSearchParams({ councilBusiness: business.id, path: business.folderPath })}`,
+        `/app/workspace?${new URLSearchParams({ councilBusiness: business.id, path: `seed/Convention ${marker}` })}`,
       );
       await expect(page.getByTestId("council-business-workbench")).toBeVisible();
       const minimumSide = async (testId: string) => {

@@ -324,7 +324,10 @@ test.describe("Markdown editor", () => {
     expect((await nativePdfResponse).status()).toBe(200);
     const viewer = page.getByTestId("editor-pdf-native-viewer");
     await expect(viewer).toBeVisible();
-    await expect(viewer.locator("iframe")).toHaveAttribute("src", /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/);
+    await expect(viewer.locator("iframe")).toHaveAttribute(
+      "src",
+      /\/api\/templates\/preview-pdf\/[0-9a-f-]+#navpanes=0&pagemode=none$/,
+    );
   });
 
   test("synchronizes text, blocks, marks, undo and redo with Markdown and rendering", async ({ appPage: page }) => {
@@ -572,7 +575,10 @@ test.describe("Markdown editor", () => {
     const loadedPdf = await nativePdfResponse;
     expect(loadedPdf.status()).toBe(200);
     expect(loadedPdf.headers()["content-type"]).toContain("application/pdf");
-    await expect(modal.getByTestId("resource-preview-object")).toHaveAttribute("src", /\/preview$/);
+    await expect(modal.getByTestId("resource-preview-object")).toHaveAttribute(
+      "src",
+      /\/preview#navpanes=0&pagemode=none$/,
+    );
     await modal.getByTestId("resource-preview-close").click();
     await expect(modal).toHaveCount(0);
     await expect(reference).toBeFocused();
@@ -615,7 +621,7 @@ test.describe("Markdown editor", () => {
     expect(loadedPdf.headers()["content-type"]).toContain("application/pdf");
     await expect(page.getByTestId("editor-pdf-native-viewer").locator("iframe")).toHaveAttribute(
       "src",
-      /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/,
+      /\/api\/templates\/preview-pdf\/[0-9a-f-]+#navpanes=0&pagemode=none$/,
     );
   });
 
@@ -690,7 +696,7 @@ test.describe("Markdown editor", () => {
     expect(loadedPdf.headers()["content-type"]).toContain("application/pdf");
     await expect(page.getByTestId("editor-pdf-native-viewer").locator("iframe")).toHaveAttribute(
       "src",
-      /\/api\/templates\/preview-pdf\/[0-9a-f-]+$/,
+      /\/api\/templates\/preview-pdf\/[0-9a-f-]+#navpanes=0&pagemode=none$/,
     );
   });
 
