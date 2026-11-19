@@ -189,6 +189,10 @@ CREATE TABLE hall.editor_asset (
 COMMENT ON TABLE hall.editor_asset IS
   'Private image owned by one text resource. It is intentionally outside the workspace Resource union.';
 
+-- @implements-requirement HALL-FR-DOC-240
+-- The images of one text are found from the text: each save removes the ones it no longer references.
+CREATE INDEX editor_asset_by_owner ON hall.editor_asset USING btree (owner_text_resource_id);
+
 -- @implements-requirement HALL-FR-DOC-010
 -- @implements-requirement HALL-FR-DOC-020
 -- @implements-requirement HALL-FR-DOC-030
