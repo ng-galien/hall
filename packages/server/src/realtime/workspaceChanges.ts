@@ -1,4 +1,4 @@
-import type { WorkspaceContentChange } from "@hall/api-contract";
+import type { WorkspaceChange } from "@hall/api-contract";
 import type { NextFunction, Request, Response } from "express";
 import type { RequestContextStore } from "../security/requestContext.js";
 import type { LiveEventPublisher } from "./liveEvents.js";
@@ -11,9 +11,20 @@ function isPreview(body: unknown): boolean {
 
 /**
  * What a route says of its write, in `response.locals.workspaceChange`: nothing for a command that changes no workspace
- * data, or the content of one resource. A route that says nothing announces a change of anything the workspace shows.
+ * data, or what it touched. A route that says nothing announces a change of anything the workspace shows, except a
+ * command on one affair, which announces that affair.
  */
-export type WorkspaceChangeScope = { kind: "none" } | WorkspaceContentChange;
+export type WorkspaceChangeScope = { kind: "none" } | WorkspaceChange;
+
+const identifierPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A command addressed to one affair (`/api/council-business/:id/...`), other than its deletion or a merge. */
+function affairCommand(request: Request): WorkspaceChange | undefined {
+  if (request.baseUrl !== "/api/council-business") return undefined;
+  const [affair, command] = request.path.split("/").filter(Boolean);
+  if (!affair || !identifierPattern.test(affair) || !command || command === "merge") return undefined;
+  return { kind: "business", councilBusinessId: affair.toLowerCase() };
+}
 
 export function declareWorkspaceChange(response: Response, scope: WorkspaceChangeScope): void {
   response.locals.workspaceChange = scope;
@@ -34,10 +45,11 @@ export function publishWorkspaceChanges({
       return;
     }
     const context = requestContext.current();
+    const affair = affairCommand(request);
     response.once("finish", () => {
       const principal = request.principal;
       if (response.statusCode >= 400 || !principal || isPreview(request.body)) return;
-      const scope = response.locals.workspaceChange as WorkspaceChangeScope | undefined;
+      const scope = (response.locals.workspaceChange as WorkspaceChangeScope | undefined) ?? affair;
       if (scope?.kind === "none") return;
       const publish = () =>
         realtimeEvents.publish({

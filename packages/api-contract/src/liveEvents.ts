@@ -3,16 +3,19 @@ import { resourceKindSchema, resourcePathSchema } from "./resources.js";
 
 const id = z.uuid();
 
+const changedResource = z.object({ id, path: resourcePathSchema, kind: resourceKindSchema }).strict();
+
 /**
- * The content of one resource was saved; its identity, name and location are unchanged. A workspace change without
- * this scope may have changed anything the workspace shows.
+ * What one workspace write touched: the content of one resource, whose identity, name and location are unchanged; one
+ * resource created, renamed, moved or described again, with the affair it was created in; one deleted resource; or
+ * one affair. A workspace change without this scope may have changed anything the workspace shows.
  */
-const workspaceContentChange = z
-  .object({
-    kind: z.literal("content"),
-    resource: z.object({ id, path: resourcePathSchema, kind: resourceKindSchema }).strict(),
-  })
-  .strict();
+const workspaceChange = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("content"), resource: changedResource }).strict(),
+  z.object({ kind: z.literal("resource"), resource: changedResource, councilBusinessId: id.optional() }).strict(),
+  z.object({ kind: z.literal("removed"), resourceId: id }).strict(),
+  z.object({ kind: z.literal("business"), councilBusinessId: id }).strict(),
+]);
 
 /** Request header carrying the client session that issued a command. */
 export const LIVE_ORIGIN_HEADER = "X-Hall-Live-Origin";
@@ -35,13 +38,14 @@ export const liveEventSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("workspace.changed"),
       actor,
-      change: workspaceContentChange.optional(),
+      change: workspaceChange.optional(),
       origin: id.nullable(),
     })
     .strict(),
 ]);
 
 export type LiveEvent = z.infer<typeof liveEventSchema>;
-export type WorkspaceContentChange = z.infer<typeof workspaceContentChange>;
+export type WorkspaceChange = z.infer<typeof workspaceChange>;
+export type WorkspaceChangedResource = z.infer<typeof changedResource>;
 type WithoutOrigin<Event> = Event extends unknown ? Omit<Event, "origin"> : never;
 export type LiveEventPublication = WithoutOrigin<LiveEvent>;

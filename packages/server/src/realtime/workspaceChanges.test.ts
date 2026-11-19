@@ -7,7 +7,13 @@ import { publishWorkspaceChanges, type WorkspaceChangeScope } from "./workspaceC
 
 const principal = { id: "user-id", displayName: "Secrétariat", roles: ["clerk"], contactId: null };
 
-function exchange(method: string, statusCode: number, body: unknown = {}, scope?: WorkspaceChangeScope) {
+function exchange(
+  method: string,
+  statusCode: number,
+  body: unknown = {},
+  scope?: WorkspaceChangeScope,
+  location: { baseUrl: string; path: string } = { baseUrl: "/api/resources", path: "/" },
+) {
   const published: { event: LiveEventPublication; origin: string | undefined }[] = [];
   const requestContext = new RequestContextStore();
   const middleware = publishWorkspaceChanges({
@@ -20,7 +26,7 @@ function exchange(method: string, statusCode: number, body: unknown = {}, scope?
     statusCode,
     locals: scope ? { workspaceChange: scope } : {},
   }) as unknown as Response;
-  const request = { method, body, principal } as unknown as Request;
+  const request = { method, body, principal, ...location } as unknown as Request;
   let nextCalled = false;
   requestContext.run({ requestId: "request", liveOrigin: "origin-id" }, () =>
     middleware(request, response, () => {
@@ -57,6 +63,18 @@ describe("workspace change publication", () => {
       },
     ]);
     expect(exchange("POST", 200, {}, { kind: "none" }).published).toEqual([]);
+  });
+
+  it("announces a command on one affair with that affair, and its deletion or a merge as a change of anything", () => {
+    const affair = "33333333-3333-4333-8333-333333333333";
+    const at = (method: string, path: string) =>
+      exchange(method, 200, {}, undefined, { baseUrl: "/api/council-business", path }).published.map(({ event }) =>
+        event.type === "workspace.changed" ? event.change : null,
+      );
+    expect(at("POST", `/${affair}/resources`)).toEqual([{ kind: "business", councilBusinessId: affair }]);
+    expect(at("DELETE", `/${affair}`)).toEqual([undefined]);
+    expect(at("POST", `/${affair}/merge`)).toEqual([undefined]);
+    expect(at("POST", "/")).toEqual([undefined]);
   });
 
   it("announces nothing for a reading, a refusal or a preview", () => {

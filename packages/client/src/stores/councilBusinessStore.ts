@@ -71,6 +71,11 @@ interface CouncilBusinessStoreState {
    * the report of a business, the documents of a business and the prepared subjects of a business.
    */
   rereadSavedContents(resourceIds: readonly string[], selectedId: string | null): Promise<void>;
+  /**
+   * Rereads, after another session changed these businesses, the selected one, their documents and prepared subjects,
+   * and forgets their actions so that the screens that show them read them again.
+   */
+  rereadBusinesses(ids: readonly string[], selectedId: string | null): Promise<void>;
   associateResource(id: string, resourceId: string): Promise<boolean>;
   dissociateResource(id: string, resourceId: string): Promise<boolean>;
   reorderResources(id: string, resourceIds: string[]): Promise<boolean>;
@@ -454,6 +459,38 @@ export const useCouncilBusinessStore = create<CouncilBusinessStoreState>((set, g
         ...[...new Set(subjects.map((subject) => subject.councilBusinessId))].map((id) =>
           get().loadPreparedSubjects(id),
         ),
+      ]);
+    } catch (error) {
+      set({ error: apiErrorCode(error) });
+    }
+  },
+  async rereadBusinesses(ids, selectedId) {
+    const touched = new Set(ids);
+    if (touched.size === 0) return;
+    const state = get();
+    const known = state.businesses.filter((business) => touched.has(business.id));
+    const documents = known
+      .filter((business) => business.id !== selectedId && state.resourceItemsLoadedById[business.id])
+      .map((business) => business.id);
+    set((current) => ({
+      capabilitiesById: Object.fromEntries(Object.entries(current.capabilitiesById).filter(([id]) => !touched.has(id))),
+      representationsById: Object.fromEntries(
+        Object.entries(current.representationsById).filter(([id]) => !touched.has(id)),
+      ),
+    }));
+    try {
+      await Promise.all([
+        selectedId && touched.has(selectedId) ? get().refresh(selectedId) : null,
+        documents.length
+          ? loadBusinessResourceItems(documents).then((resourceItems) =>
+              set((current) => ({
+                businesses: current.businesses.map((business) =>
+                  documents.includes(business.id) ? councilBusinessView(business, resourceItems) : business,
+                ),
+              })),
+            )
+          : null,
+        ...known.map((business) => get().loadPreparedSubjects(business.id)),
       ]);
     } catch (error) {
       set({ error: apiErrorCode(error) });

@@ -42,6 +42,21 @@ function declareContentChange(response: Response, representation: { properties?:
   if (resource.success) declareWorkspaceChange(response, { kind: "content", resource: resource.data });
 }
 
+/** One resource was created, renamed, moved or described again; other sessions reread that resource. */
+function declareResourceChange(
+  response: Response,
+  representation: { properties?: Record<string, unknown> },
+  councilBusinessId?: string,
+): void {
+  const resource = workspaceChangedResourceSchema.safeParse(representation.properties);
+  if (resource.success)
+    declareWorkspaceChange(response, {
+      kind: "resource",
+      resource: resource.data,
+      ...(councilBusinessId ? { councilBusinessId } : {}),
+    });
+}
+
 // @implements-requirement HALL-FR-DOC-280
 // @implements-requirement HALL-FR-CAL-240
 /** Routes of the documentary resources; a created event is read again after its creation commits. */
@@ -130,7 +145,10 @@ export function createDocumentaryResourcesRouter({
     requireActionPermission("resource.create"),
     requireBusinessUpdateForContext,
     async (request, response) => {
-      response.status(201).json(await documentaryResourceService.create(createResourceSchema.parse(request.body)));
+      const input = createResourceSchema.parse(request.body);
+      const created = await documentaryResourceService.create(input);
+      declareResourceChange(response, created, "councilBusinessId" in input ? input.councilBusinessId : undefined);
+      response.status(201).json(created);
     },
   );
 
@@ -139,9 +157,12 @@ export function createDocumentaryResourcesRouter({
     requireActionPermission("resource.create-event"),
     requireBusinessUpdateForContext,
     async (request, response) => {
-      const created = await documentaryResourceService.create(createEventResourceSchema.parse(request.body));
+      const input = createEventResourceSchema.parse(request.body);
+      const created = await documentaryResourceService.create(input);
       const reference = resourceReferenceSchema.parse(created.properties?.id);
-      response.status(201).json(await documentaryResourceService.open(reference));
+      const opened = await documentaryResourceService.open(reference);
+      declareResourceChange(response, opened, input.councilBusinessId);
+      response.status(201).json(opened);
     },
   );
 
@@ -152,16 +173,17 @@ export function createDocumentaryResourcesRouter({
     requireBusinessUpdateForContext,
     async (request, response) => {
       if (!request.file) throw new DomainError("invalid_request");
-      response.status(201).json(
-        await documentaryResourceService.createDocument({
-          path: resourcePathSchema.parse(request.body.path ?? ""),
-          councilBusinessId: resourceIdSchema.optional().parse(request.body.councilBusinessId),
-          name: request.body.name ? String(request.body.name) : request.file.originalname,
-          fileName: request.file.originalname,
-          content: request.file.buffer,
-          numberTakenName: request.body.onNameConflict === "suffix",
-        }),
-      );
+      const councilBusinessId = resourceIdSchema.optional().parse(request.body.councilBusinessId);
+      const created = await documentaryResourceService.createDocument({
+        path: resourcePathSchema.parse(request.body.path ?? ""),
+        councilBusinessId,
+        name: request.body.name ? String(request.body.name) : request.file.originalname,
+        fileName: request.file.originalname,
+        content: request.file.buffer,
+        numberTakenName: request.body.onNameConflict === "suffix",
+      });
+      declareResourceChange(response, created, councilBusinessId);
+      response.status(201).json(created);
     },
   );
 
@@ -196,15 +218,16 @@ export function createDocumentaryResourcesRouter({
         fileName: request.file.originalname,
         content: request.file.buffer,
       });
-      response.status(201).json(
-        await documentaryResourceService.create({
-          kind: "spreadsheet",
-          path,
-          name,
-          document,
-          councilBusinessId: resourceIdSchema.optional().parse(request.body.councilBusinessId),
-        }),
-      );
+      const councilBusinessId = resourceIdSchema.optional().parse(request.body.councilBusinessId);
+      const created = await documentaryResourceService.create({
+        kind: "spreadsheet",
+        path,
+        name,
+        document,
+        councilBusinessId,
+      });
+      declareResourceChange(response, created, councilBusinessId);
+      response.status(201).json(created);
     },
   );
 
@@ -216,6 +239,7 @@ export function createDocumentaryResourcesRouter({
       if (!request.file || request.body.ownerKind !== "textResourceContent") {
         throw new DomainError("invalid_request");
       }
+      declareWorkspaceChange(response, { kind: "none" });
       const created = await documentaryResourceService.createEditorAsset({
         ownerId: resourceIdSchema.parse(request.body.ownerId),
         title: editorAssetTitleSchema.parse(request.body.title),
@@ -241,12 +265,12 @@ export function createDocumentaryResourcesRouter({
     "/:reference/legal-reference/resolve",
     requireActionPermission("resource.resolve-legal-reference"),
     async (request, response) => {
-      response.json(
-        await documentaryResourceService.resolveLegalReference(
-          resourceReferenceSchema.parse(routeParameter(request.params.reference)),
-          resolveLegalReferenceSchema.parse(request.body),
-        ),
+      const changed = await documentaryResourceService.resolveLegalReference(
+        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+        resolveLegalReferenceSchema.parse(request.body),
       );
+      declareResourceChange(response, changed);
+      response.json(changed);
     },
   );
 
@@ -255,12 +279,12 @@ export function createDocumentaryResourcesRouter({
     requireActionPermission("resource.refresh-legal-reference"),
     async (request, response) => {
       const { expectedSnapshotHash } = refreshLegalReferenceSchema.parse(request.body);
-      response.json(
-        await documentaryResourceService.refreshLegalReference(
-          resourceReferenceSchema.parse(routeParameter(request.params.reference)),
-          expectedSnapshotHash,
-        ),
+      const changed = await documentaryResourceService.refreshLegalReference(
+        resourceReferenceSchema.parse(routeParameter(request.params.reference)),
+        expectedSnapshotHash,
       );
+      declareResourceChange(response, changed);
+      response.json(changed);
     },
   );
 
@@ -351,6 +375,7 @@ export function createDocumentaryResourcesRouter({
         ownedResourceId(response),
         relocateResourceSchema.parse(request.body),
       );
+      declareResourceChange(response, changed);
       publishSavedTextChange(request, changed);
       response.json(changed);
     },
@@ -365,6 +390,7 @@ export function createDocumentaryResourcesRouter({
         ownedResourceId(response),
         updateResourceMetadataSchema.parse(request.body),
       );
+      declareResourceChange(response, changed);
       publishSavedTextChange(request, changed);
       response.json(changed);
     },
@@ -377,7 +403,8 @@ export function createDocumentaryResourcesRouter({
     async (request, response) => {
       const input = updateResourceContentSchema.parse(request.body);
       const changed = await documentaryResourceService.updateContent(ownedResourceId(response), input);
-      if (!("name" in input && input.name !== undefined)) declareContentChange(response, changed);
+      if ("name" in input && input.name !== undefined) declareResourceChange(response, changed);
+      else declareContentChange(response, changed);
       publishSavedTextChange(request, changed);
       response.json(changed);
     },
@@ -423,7 +450,10 @@ export function createDocumentaryResourcesRouter({
   });
 
   router.delete("/:reference", requireActionPermission("resource.delete"), async (request, response) => {
-    await documentaryResourceService.delete(resourceReferenceSchema.parse(routeParameter(request.params.reference)));
+    const reference = resourceReferenceSchema.parse(routeParameter(request.params.reference));
+    const { id } = await documentaryResourceService.councilBusinessOwnership(reference);
+    await documentaryResourceService.delete(id);
+    declareWorkspaceChange(response, { kind: "removed", resourceId: id });
     response.status(204).end();
   });
 
