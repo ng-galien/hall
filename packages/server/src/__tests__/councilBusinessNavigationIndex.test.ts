@@ -14,8 +14,11 @@ it("builds sidebar navigation from metadata without opening any report", async (
   const open = vi.fn(() => {
     throw new Error("individual resources must not be opened");
   });
-  const listAll = vi.fn().mockResolvedValue({
-    data: [
+  const listAll = vi.fn(() => {
+    throw new Error("the whole catalog must not be read");
+  });
+  const listFolderNavigation = vi.fn().mockResolvedValue({
+    folders: [
       {
         id: "folder",
         kind: "folder",
@@ -24,19 +27,12 @@ it("builds sidebar navigation from metadata without opening any report", async (
         fullPath: "Tourisme et loisirs/Tourisme",
         slug: "tourisme",
       },
-      {
-        id: "report",
-        kind: "text",
-        name: "Rapport",
-        path: "Tourisme et loisirs/Tourisme",
-        fullPath: "Tourisme et loisirs/Tourisme/Rapport",
-        slug: "rapport",
-      },
     ],
+    paths: ["Tourisme et loisirs/Tourisme"],
   });
   const service = createCouncilBusinessWorkspaceService({
     councilClient: { listBusinesses, listBusinessWorkspaceItems } as unknown as CouncilClient,
-    resourcesClient: { listAll, open } as unknown as ResourcesClient,
+    resourcesClient: { listAll, listFolderNavigation, open } as unknown as ResourcesClient,
   });
 
   const index = await service.listNavigationIndex();
@@ -52,7 +48,8 @@ it("builds sidebar navigation from metadata without opening any report", async (
   expect(index.catalog).toHaveLength(1);
   expect(index.paths).toEqual(["Tourisme et loisirs/Tourisme"]);
   expect(listBusinesses).toHaveBeenCalledOnce();
-  expect(listAll).toHaveBeenCalledOnce();
+  expect(listFolderNavigation).toHaveBeenCalledOnce();
+  expect(listAll).not.toHaveBeenCalled();
   expect(listBusinessWorkspaceItems).not.toHaveBeenCalled();
   expect(open).not.toHaveBeenCalled();
 });

@@ -146,6 +146,10 @@ export function createPostgresResourcesClient({
     async listAll() {
       return documentaryRepresentation(await postgresResources.listResources(currentRequest()), resourceCatalogSchema);
     },
+    async listFolderNavigation() {
+      const listed = await postgresResources.listFolderNavigation(currentRequest());
+      return { folders: resourceCatalogSchema.parse(listed.folders), paths: listed.paths };
+    },
     async listFolder(path) {
       const listing = await read(() => postgresResources.listFolder(currentRequest(), path));
       return listing ? documentaryRepresentation(listing, resourceSummarySchema.array()) : null;

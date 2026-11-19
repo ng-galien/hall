@@ -78,6 +78,8 @@ GRANT EXECUTE ON FUNCTION hall_api.open_resource_by_slug(TEXT)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_resources()
   TO hall_api_authenticated, hall_api_worker;
+GRANT EXECUTE ON FUNCTION hall_api.list_folder_navigation()
+  TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.find_documents_by_hashes(text[])
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.search_resources(TEXT, TEXT[], TEXT[], TEXT[], TEXT[], TEXT[], INTEGER, INTEGER, TEXT, UUID[], UUID[], UUID[])

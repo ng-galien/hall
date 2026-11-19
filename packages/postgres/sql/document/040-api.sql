@@ -199,6 +199,39 @@ AS $function$
   FROM hall.resource AS resource
 $function$;
 
+-- @implements-requirement HALL-FR-WSP-370
+-- The folders of the workspace and every filing location, for the navigation
+-- tree, without the other resources.
+CREATE FUNCTION hall_api.list_folder_navigation()
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, hall
+AS $function$
+  SELECT jsonb_build_object(
+    'folders', coalesce(
+      (
+        SELECT jsonb_agg(hall.resource_catalog_entry(folder) ORDER BY folder.path, folder.name, folder.id)
+        FROM hall.resource AS folder
+        WHERE folder.is_folder
+      ),
+      '[]'::jsonb
+    ),
+    'paths', coalesce(
+      (
+        SELECT jsonb_agg(location.path ORDER BY location.path)
+        FROM (
+          SELECT DISTINCT CASE WHEN resource.is_folder THEN resource.full_path ELSE resource.path END AS path
+          FROM hall.resource AS resource
+        ) AS location
+        WHERE location.path <> ''
+      ),
+      '[]'::jsonb
+    )
+  )
+$function$;
+
 -- @implements-requirement HALL-FR-DOC-210
 -- @implements-requirement HALL-FR-SRC-010
 -- @implements-requirement HALL-FR-SRC-020

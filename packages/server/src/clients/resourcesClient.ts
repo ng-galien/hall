@@ -51,6 +51,8 @@ export type PersistResource =
 /** Thin server-side client for the resource operations exposed by PostgreSQL. */
 export interface ResourcesClient {
   listAll(): Promise<ResourceRepresentation<ResourceCatalogEntry[]>>;
+  /** The folders of the workspace and every filing location, without the other resources. */
+  listFolderNavigation(): Promise<{ folders: ResourceCatalogEntry[]; paths: string[] }>;
   listFolder(path: string): Promise<ResourceRepresentation<ResourceSummary[]> | null>;
   findDocumentsByHashes(hashes: readonly string[]): Promise<ResourceRepresentation<ResourceSummary[]>>;
   search(criteria: ResourceSearchCriteria): Promise<ResourceRepresentation<ResourceSearchResult>>;

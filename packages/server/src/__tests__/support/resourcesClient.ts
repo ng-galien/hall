@@ -96,6 +96,15 @@ export function createTestResourcesClient(): ResourcesClient {
         },
       };
     },
+    async listFolderNavigation() {
+      const entries: ResourceCatalogEntry[] = [...resources.values()];
+      return {
+        folders: entries.filter((entry) => entry.kind === "folder"),
+        paths: [
+          ...new Set(entries.map((entry) => (entry.kind === "folder" ? entry.fullPath : entry.path)).filter(Boolean)),
+        ].sort(),
+      };
+    },
     async listFolder(path) {
       const data = [...resources.values()].filter((resource) => resource.path === path).map(summary);
       return {

@@ -55,25 +55,19 @@ export function createCouncilBusinessWorkspaceService({
     list: () => councilClient.listBusinesses().catch(translateFailure),
     listWorkspaceItems: () => councilClient.listBusinessWorkspaceItems().catch(translateFailure),
     async listNavigationIndex() {
-      const [businesses, resources] = await Promise.all([
+      const [businesses, navigation] = await Promise.all([
         councilClient.listBusinesses().catch(translateFailure),
-        resourcesClient.listAll(),
+        resourcesClient.listFolderNavigation(),
       ]);
-      const foldersById = new Map(
-        resources.data.filter((entry) => entry.kind === "folder").map((entry) => [entry.id, entry]),
-      );
+      const foldersById = new Map(navigation.folders.map((entry) => [entry.id, entry]));
       return {
         businesses: businesses.map((business) => {
           const folder = foldersById.get(business.folderResourceId);
           if (!folder) throw new DomainError("conflict", 409);
           return { ...business, title: folder.name, folderPath: folder.path };
         }),
-        catalog: resources.data.filter((entry) => entry.kind === "folder"),
-        paths: [
-          ...new Set(
-            resources.data.map((entry) => (entry.kind === "folder" ? entry.fullPath : entry.path)).filter(Boolean),
-          ),
-        ],
+        catalog: navigation.folders,
+        paths: navigation.paths,
       };
     },
     async get(id) {

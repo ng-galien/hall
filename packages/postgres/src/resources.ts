@@ -716,6 +716,18 @@ export class PostgresResources {
     );
   }
 
+  /** The folders of the workspace and every filing location, without the other resources. */
+  listFolderNavigation(
+    request: PostgresResourceRequest,
+  ): Promise<{ folders: z.infer<typeof resourceCatalogEntrySchema>[]; paths: string[] }> {
+    return this.readJson(
+      request,
+      "resource.listFolderNavigation",
+      { text: "SELECT hall_api.list_folder_navigation() AS payload" },
+      z.object({ folders: z.array(resourceCatalogEntrySchema), paths: z.array(z.string()) }).strict(),
+    );
+  }
+
   listResources(
     request: PostgresResourceRequest,
   ): Promise<PostgresPresentedResourceCollection<z.infer<typeof resourceCatalogEntrySchema>>> {
