@@ -147,6 +147,37 @@ export function numberedName(name: string, number: number) {
 
 // @implements-requirement HALL-FR-DOC-280
 // @implements-requirement HALL-FR-DOC-230
+type DocumentPreview = { content: Buffer; mediaType: string; byteSize: number; contentSha256: string };
+
+/** Bytes of converted previews kept at once; the least recently shown leave first beyond it. */
+const CONVERTED_PREVIEW_MAX_BYTES = 32 * 1024 * 1024;
+
+/** The converted previews of the last shown files, by the digest of the original file. */
+function convertedPreviewCache() {
+  const previews = new Map<string, DocumentPreview>();
+  let kept = 0;
+  return {
+    get(digest: string): DocumentPreview | undefined {
+      const preview = previews.get(digest);
+      if (preview) {
+        previews.delete(digest);
+        previews.set(digest, preview);
+      }
+      return preview;
+    },
+    set(digest: string, preview: DocumentPreview): void {
+      if (preview.byteSize > CONVERTED_PREVIEW_MAX_BYTES || previews.has(digest)) return;
+      previews.set(digest, preview);
+      kept += preview.byteSize;
+      for (const [oldest, entry] of previews) {
+        if (kept <= CONVERTED_PREVIEW_MAX_BYTES) break;
+        previews.delete(oldest);
+        kept -= entry.byteSize;
+      }
+    },
+  };
+}
+
 // @implements-requirement HALL-FR-WSP-380 (personalWorkspace)
 // @implements-requirement HALL-FR-WSP-460
 export function createDocumentaryResourceService({
@@ -164,6 +195,7 @@ export function createDocumentaryResourceService({
   legalReferenceProvider: LegalReferenceProvider;
   securityRepository: SecurityRepository;
 }): DocumentaryResourceService {
+  const convertedPreviews = convertedPreviewCache();
   const requireMutation = async (mutation: ReturnType<ResourcesClient["relocate"]>): Promise<SirenEntity> => {
     const result = await mutation;
     if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
@@ -368,6 +400,8 @@ export function createDocumentaryResourceService({
       const resource = await resourcesClient.open(reference);
       if (!resource) throw new DomainError("resource_not_found", 404);
       if (resource.data.kind !== "document") throw new DomainError("resource_preview_unavailable", 409);
+      const converted = convertedPreviews.get(resource.data.binary.contentSha256);
+      if (converted) return converted;
       const original = await resourcesClient.readDocumentContent(resource.data.id);
       if (!original) throw new DomainError("resource_not_found", 404);
       return matchLiteral(documentPreviewModeForMediaType(original.mediaType), {
@@ -386,12 +420,14 @@ export function createDocumentaryResourceService({
           } catch {
             throw new DomainError("resource_preview_conversion_failed", 502);
           }
-          return {
+          const preview = {
             content,
             mediaType: "text/markdown; charset=utf-8",
             byteSize: content.byteLength,
             contentSha256: createHash("sha256").update(content).digest("hex"),
           };
+          convertedPreviews.set(original.contentSha256, preview);
+          return preview;
         },
       });
     },
