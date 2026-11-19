@@ -311,7 +311,6 @@ function ResourcePreviewHeader({
         },
       ]
     : [];
-  /** The commands of the document after « Renommer » and « Copier la référence »; a further command joins this list. */
   const commands: ItemCommand[] = [
     ...resourceCommands.move,
     ...resourceCommands.pdf,
