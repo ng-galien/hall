@@ -1,5 +1,5 @@
 import { PDFArray, PDFBool, PDFDict, PDFDocument, PDFHexString, PDFName, PDFString } from "pdf-lib";
-import { chromium } from "playwright";
+import { type Browser, chromium } from "playwright";
 
 export interface PdfRenderInput {
   html: string;
@@ -40,16 +40,38 @@ function originOf(url: string): string | null {
   }
 }
 
+let launchedBrowser: Promise<Browser> | null = null;
+
+/** One headless browser for the process, launched at the first PDF and again after it disconnects. */
+function sharedBrowser(): Promise<Browser> {
+  if (!launchedBrowser) {
+    const launching = chromium.launch({ headless: true }).then(
+      (browser) => {
+        browser.once("disconnected", () => {
+          if (launchedBrowser === launching) launchedBrowser = null;
+        });
+        return browser;
+      },
+      (error: unknown) => {
+        if (launchedBrowser === launching) launchedBrowser = null;
+        throw error;
+      },
+    );
+    launchedBrowser = launching;
+  }
+  return launchedBrowser;
+}
+
 export async function printDocumentation(input: DocumentationPrintInput): Promise<Buffer> {
   const printOrigin = originOf(input.url);
-  const browser = await chromium.launch({ headless: true });
+  const browser = await sharedBrowser();
+  const context = await browser.newContext({
+    javaScriptEnabled: true,
+    serviceWorkers: "block",
+    locale: "fr-FR",
+    colorScheme: "light",
+  });
   try {
-    const context = await browser.newContext({
-      javaScriptEnabled: true,
-      serviceWorkers: "block",
-      locale: "fr-FR",
-      colorScheme: "light",
-    });
     await context.route("**/*", (route) => {
       const url = route.request().url();
       const allowed =
@@ -73,19 +95,18 @@ export async function printDocumentation(input: DocumentationPrintInput): Promis
       footerTemplate: input.footerHtml,
       margin: { top: "16mm", right: "16mm", bottom: "18mm", left: "16mm" },
     });
-    await context.close();
     return Buffer.from(bytes);
   } finally {
-    await browser.close();
+    await context.close();
   }
 }
 
 export function createDocumentRenderer(): DocumentRenderer {
   return {
     async pdf(input) {
-      const browser = await chromium.launch({ headless: true });
+      const browser = await sharedBrowser();
+      const context = await browser.newContext({ javaScriptEnabled: false });
       try {
-        const context = await browser.newContext({ javaScriptEnabled: false });
         await context.route("**/*", (route) => {
           const url = route.request().url();
           return url.startsWith("about:") || url.startsWith("data:") ? route.continue() : route.abort();
@@ -107,10 +128,9 @@ export function createDocumentRenderer(): DocumentRenderer {
             left: "18mm",
           },
         });
-        await context.close();
         return Buffer.from(bytes);
       } finally {
-        await browser.close();
+        await context.close();
       }
     },
     async appendPdfs(primary, attachments) {
