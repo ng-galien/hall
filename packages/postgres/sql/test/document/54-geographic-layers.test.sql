@@ -218,6 +218,29 @@ SELECT lives_ok(
   'the layer can be linked again'
 )
 FROM geographic_layer_fixture;
+
+-- @verifies-requirement HALL-FR-DOC-600
+SELECT is(
+  hall_api.geographic_layer_features_within((layer ->> 'id')::UUID, 4.40, 47.40, 4.60, 47.60),
+  hall_api.geographic_layer_features((layer ->> 'id')::UUID),
+  'a frame covering the whole layer reads the same features as the full layer'
+)
+FROM geographic_layer_fixture;
+SELECT is(
+  jsonb_path_query_array(
+    hall_api.geographic_layer_features_within((layer ->> 'id')::UUID, 4.475, 47.505, 4.49, 47.52),
+    '$.features[*].sourceId'
+  ),
+  '["A-1"]'::JSONB,
+  'a frame crossing one feature extent reads only that feature'
+)
+FROM geographic_layer_fixture;
+SELECT is(
+  hall_api.geographic_layer_features_within((layer ->> 'id')::UUID, 4.60, 47.60, 4.70, 47.70) -> 'features',
+  '[]'::JSONB,
+  'a frame outside every feature reads no feature'
+)
+FROM geographic_layer_fixture;
 SELECT lives_ok(
   format('SELECT hall_api.delete_resource(%L::uuid)', map),
   'deleting the map removes its links'
