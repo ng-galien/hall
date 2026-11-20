@@ -16,8 +16,19 @@ export interface HttpServerHandle {
 const SHUTDOWN_DRAIN_TIMEOUT_MS = 5_000;
 const SHUTDOWN_DRAIN_POLL_MS = 25;
 
+/** Whether a response is an event stream, such as the MCP stream: it stays open for the client and has no end of its own. */
+function isEventStream(response: ServerResponse, headers: unknown): boolean {
+  const declared =
+    response.getHeader("content-type") ??
+    (headers && typeof headers === "object" && !Array.isArray(headers)
+      ? Object.entries(headers).find(([name]) => name.toLowerCase() === "content-type")?.[1]
+      : undefined);
+  return String(declared ?? "").includes("text/event-stream");
+}
+
 /** Waits, within a time bound, until the handler of every request has ended its response, including a request whose
- * client has left: a PDF generation waiting for its slot or being rendered is still counted. */
+ * client has left: a PDF generation waiting for its slot or being rendered is still counted. An event stream counts
+ * until its headers are sent. */
 async function drainRequests(running: ReadonlySet<ServerResponse>): Promise<void> {
   const deadline = Date.now() + SHUTDOWN_DRAIN_TIMEOUT_MS;
   while (running.size > 0 && Date.now() < deadline) await delay(SHUTDOWN_DRAIN_POLL_MS);
@@ -53,6 +64,18 @@ export async function startHttpServer(
         runningRequests.delete(response);
         return end(...parts);
       }) as ServerResponse["end"];
+      const writeHead = response.writeHead.bind(response) as (...parts: unknown[]) => ServerResponse;
+      response.writeHead = ((...parts: unknown[]) => {
+        const written = writeHead(...parts);
+        if (
+          isEventStream(
+            response,
+            parts.find((part) => part && typeof part === "object"),
+          )
+        )
+          runningRequests.delete(response);
+        return written;
+      }) as ServerResponse["writeHead"];
     });
     const address = server.address() as AddressInfo;
     const liveWebSocket = attachLiveWebSocket(server, container.cradle);
@@ -66,10 +89,13 @@ export async function startHttpServer(
       url,
       close: async () => {
         await liveWebSocket.close();
-        await new Promise<void>((resolve, reject) => {
+        const closed = new Promise<void>((resolve, reject) => {
           server.close((error) => (error ? reject(error) : resolve()));
         });
+        server.closeIdleConnections();
         await drainRequests(runningRequests);
+        server.closeAllConnections();
+        await closed;
         await container.cradle.postgresClient.close();
       },
     };
