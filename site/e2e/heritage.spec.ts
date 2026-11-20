@@ -7,15 +7,41 @@ test("landscape photographs have independent credited links without covering sto
   await page.setViewportSize({ width: phone ? 390 : 1440, height: phone ? 844 : 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./demonstration/");
-  await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-ready", "true");
-  await expect(page.getByTestId("terrain-stage")).toHaveAttribute("data-motion", "done");
-  if (phone) {
-    for (let i = 0; i < 2; i++) {
-      await page.mouse.move(330, 740);
+  const stage = page.getByTestId("terrain-stage");
+  await expect(stage).toHaveAttribute("data-ready", "true");
+  // Since the battle map, the photographs are reached by moving the free map onto their place: the scenario enters
+  // the free map, zooms out over the valley and, if needed, moves it aside, until both photographs are in frame.
+  await expect(stage).toHaveAttribute("data-intro", "ready");
+  const box = await page.getByTestId("terrain-canvas").boundingBox();
+  if (!box) throw new Error("The terrain canvas is not visible");
+  const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await page.mouse.move(centre.x, centre.y + 100);
+  await page.mouse.wheel(0, -150);
+  await expect(stage).toHaveAttribute("data-intro", "off");
+  const inFrame = () =>
+    page.evaluate(() =>
+      ["langouette", "bief-ruine"].every(
+        (id) => document.querySelector<HTMLElement>(`[data-testid="heritage-${id}"]`)?.hidden === false,
+      ),
+    );
+  const moves: Array<() => Promise<void>> = [
+    ...Array.from({ length: 10 }, () => async () => {
+      await page.mouse.move(centre.x, centre.y);
+      await page.mouse.wheel(0, 300);
+    }),
+    ...Array.from({ length: 2 }, () => async () => {
+      await page.mouse.move(centre.x, centre.y);
       await page.mouse.down({ button: "right" });
-      await page.mouse.move(80, 610, { steps: 10 });
+      await page.mouse.move(centre.x - Math.min(150, box.width / 3), centre.y, { steps: 8 });
       await page.mouse.up({ button: "right" });
-    }
+    }),
+  ];
+  for (const move of moves) {
+    if (await inFrame()) break;
+    await move();
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+    );
   }
   for (const id of ["langouette", "bief-ruine"]) {
     const marker = page.getByTestId(`heritage-${id}`);
