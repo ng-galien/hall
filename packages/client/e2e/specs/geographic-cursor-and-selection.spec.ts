@@ -85,7 +85,19 @@ test("cursors follow the tool state and a click selects a drawing before its sha
   await expect(card).toBeVisible();
   await expect(row).toHaveClass(/geographic-composition-feature-selected/);
   await expect(row).toHaveAttribute("data-modifying", "false");
-  // The card is resized with its handle.
+  // The card is resized with its handle, once it has taken its full height.
+  await card.evaluate((element) =>
+    Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined))),
+  );
+  let settledHeight = -1;
+  await expect
+    .poll(async () => {
+      const height = (await card.boundingBox())?.height ?? 0;
+      const settled = height === settledHeight;
+      settledHeight = height;
+      return settled;
+    })
+    .toBe(true);
   const cardBox = (await card.boundingBox())!;
   await page.mouse.move(cardBox.x + cardBox.width - 3, cardBox.y + cardBox.height - 3);
   await page.mouse.down();

@@ -293,6 +293,8 @@ test("gives council members read access and a personal folder that only they and
   });
 
   await test.step("the personal folder itself offers renaming, moving and deletion to the administrator only", async () => {
+    // The deletion window closed above gives its history entry back before the next address is opened.
+    await historySettled(alicePage);
     await alicePage.goto(workspaceAt("Espaces personnels"));
     await alicePage.getByTestId(`workspace-folder-${aliceFolder}`).click({ button: "right" });
     await expect(alicePage.getByTestId("workspace-tree-rename")).toHaveCount(0);

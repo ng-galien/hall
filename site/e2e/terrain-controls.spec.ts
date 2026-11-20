@@ -64,7 +64,9 @@ test("the first wheel gesture after the animated introduction enters the navigab
   await page.goto("./demonstration/");
   const stage = page.getByTestId("terrain-stage");
   await expect(stage).toHaveAttribute("data-ready", "true");
-  await expect(stage).toHaveAttribute("data-intro", "ready", { timeout: 10_000 });
+  // The introduction lasts seven seconds of animation, each frame counting at most 50 ms: a slow software renderer
+  // lengthens it in real time.
+  await expect(stage).toHaveAttribute("data-intro", "ready", { timeout: 30_000 });
   const canvas = page.getByTestId("terrain-canvas");
   const box = await canvas.boundingBox();
   if (!box) throw new Error("The terrain canvas is not visible");
