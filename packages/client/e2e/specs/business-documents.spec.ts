@@ -635,3 +635,60 @@ test("the Documents screen offers on a business the actions of that business, wi
     await expect(menu.getByTestId(item), item).toHaveCount(actions.has(action) ? 1 : 0);
   expect(actions.has("council-business.associate-resource")).toBe(true);
 });
+
+// @verifies-requirement HALL-FR-WSP-510
+test("a creation, a rename, a move, a deletion and a business command made in another session reach the open folder and business", async ({
+  appPage: page,
+}) => {
+  const marker = crypto.randomUUID().slice(0, 8);
+  const folder = `Suivi ${marker}`;
+  await created(await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: folder } }));
+  await created(
+    await page.request.post("/api/resources", { data: { kind: "folder", path: folder, name: "Classement" } }),
+  );
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: folder })}`);
+  await expect(page.getByTestId(`workspace-folder-open-${folder}/Classement`)).toBeVisible();
+
+  const note = await created(
+    await page.request.post("/api/resources", { data: { kind: "text", path: folder, name: "Note", content: "" } }),
+  );
+  const row = page.getByTestId(`workspace-resource-title-${note.id}`);
+  await expect(row).toContainText("Note");
+  const renamed = await page.request.patch(`/api/resources/${note.id}/location`, {
+    data: { path: folder, name: "Note renommée" },
+  });
+  expect(renamed.ok(), await renamed.text()).toBeTruthy();
+  await expect(row).toContainText("Note renommée");
+  const moved = await page.request.patch(`/api/resources/${note.id}/location`, {
+    data: { path: `${folder}/Classement`, name: "Note renommée" },
+  });
+  expect(moved.ok(), await moved.text()).toBeTruthy();
+  await expect(row).toHaveCount(0);
+  const other = await created(
+    await page.request.post("/api/resources", { data: { kind: "text", path: folder, name: "Brouillon", content: "" } }),
+  );
+  await expect(page.getByTestId(`workspace-resource-title-${other.id}`)).toBeVisible();
+  expect((await page.request.delete(`/api/resources/${other.id}`)).ok()).toBeTruthy();
+  await expect(page.getByTestId(`workspace-resource-title-${other.id}`)).toHaveCount(0);
+
+  const business = (await created(
+    await page.request.post("/api/council-business", {
+      data: { path: "", name: `Affaire suivie ${marker}`, reportName: "Rapport", reportContent: "" },
+    }),
+  )) as unknown as { id: string };
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: "", councilBusiness: business.id })}`);
+  const documentsToggle = page.getByTestId("business-category-documents-toggle");
+  if ((await documentsToggle.getAttribute("aria-expanded")) !== "true") await documentsToggle.click();
+  await expect(documentsToggle).toHaveAttribute("aria-expanded", "true");
+  const associated = await page.request.post(`/api/council-business/${business.id}/resources`, {
+    data: { resourceId: note.id },
+  });
+  expect(associated.ok(), await associated.text()).toBeTruthy();
+  await expect(page.getByTestId(`business-attached-resource-${note.id}`)).toBeVisible();
+  await expect(page.getByTestId(`business-document-location-${note.id}`)).toHaveText(`${folder}/Classement`);
+  const dissociated = await page.request.post(`/api/council-business/${business.id}/resources/dissociate`, {
+    data: { resourceId: note.id },
+  });
+  expect(dissociated.ok(), await dissociated.text()).toBeTruthy();
+  await expect(page.getByTestId(`business-attached-resource-${note.id}`)).toHaveCount(0);
+});

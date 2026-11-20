@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, openMenuEntry, test } from "../fixtures/application";
+import { pdfTextRuns } from "../fixtures/pdfText";
 
 test.use({ seedScenario: "minutes", builtInPdfViewer: true });
 
@@ -148,4 +149,26 @@ test("the PDF of a text draws the photo inserted in it", async ({ appPage: page 
   expect(response.headers()["content-type"]).toContain("application/pdf");
   expect((await response.body()).toString("latin1")).toMatch(/\/Subtype\s*\/Image/);
   await page.request.delete(`/api/resources/${text.id}`);
+});
+
+// @verifies-requirement HALL-FR-DOC-480
+test("PDFs generated one after the other and at the same time each carry their own text", async ({ appPage: page }) => {
+  const text = async (marker: string) => {
+    const response = await page.request.post("/api/templates/preview-pdf", {
+      data: { bodyMarkdown: `Document ${marker}.`, attachPdfDocuments: false },
+    });
+    expect(response.status(), await response.text()).toBe(200);
+    return (await pdfTextRuns(await response.body()))
+      .flat()
+      .map((run) => run.text)
+      .join(" ");
+  };
+  for (const marker of ["premier-1", "second-2"]) expect(await text(marker)).toContain(`Document ${marker}.`);
+  const together = await Promise.all(
+    ["trois-3", "quatre-4", "cinq-5"].map(async (marker) => [marker, await text(marker)]),
+  );
+  for (const [marker, content] of together) {
+    expect(content).toContain(`Document ${marker}.`);
+    for (const [other] of together) if (other !== marker) expect(content).not.toContain(other);
+  }
 });
