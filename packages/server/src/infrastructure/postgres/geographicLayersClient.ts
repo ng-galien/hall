@@ -1,4 +1,5 @@
 import {
+  createdGeographicFeatureNoteSchema,
   geographicFeatureNoteSchema,
   geographicLayerFeatureCollectionSchema,
   municipalPropertySchema,
@@ -144,10 +145,15 @@ export function createPostgresGeographicLayersClient({
         throw error;
       }
     },
-    async createDrawnElementNote(mapId, elementId) {
+    async createDrawnElementNote(mapId, elementId, initial) {
       try {
-        const note = await postgresResources.createGeographicDrawnElementNote(currentRequest(), mapId, elementId);
-        return { status: "created", note: geographicFeatureNoteSchema.parse(note) };
+        const note = await postgresResources.createGeographicDrawnElementNote(
+          currentRequest(),
+          mapId,
+          elementId,
+          initial,
+        );
+        return { status: "created", note: createdGeographicFeatureNoteSchema.parse(note) };
       } catch (error) {
         if (error instanceof HallPostgresError && error.sqlState === "HV601") return { status: "notFound" };
         if (error instanceof HallPostgresError && error.sqlState === "HV613") return { status: "measurement" };
@@ -155,10 +161,10 @@ export function createPostgresGeographicLayersClient({
         throw error;
       }
     },
-    async createNote(layerId, position) {
+    async createNote(layerId, position, initial) {
       try {
-        const note = await postgresResources.createGeographicFeatureNote(currentRequest(), layerId, position);
-        return { status: "created", note: geographicFeatureNoteSchema.parse(note) };
+        const note = await postgresResources.createGeographicFeatureNote(currentRequest(), layerId, position, initial);
+        return { status: "created", note: createdGeographicFeatureNoteSchema.parse(note) };
       } catch (error) {
         if (error instanceof HallPostgresError && error.sqlState === "HV601") return { status: "notFound" };
         if (error instanceof HallPostgresError && error.sqlState === "HV609") return { status: "withoutStableKey" };

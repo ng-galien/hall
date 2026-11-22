@@ -46,6 +46,16 @@ test("a parcel clicked on the map opens its card, receives a note and shows it a
     },
   });
   expect(imported.status()).toBe(201);
+  const layer = (await imported.json()).properties;
+  const notes = async () => {
+    const listed = await page.request.get(`/api/resources/${layer.id}/feature-notes`);
+    return (await listed.json()).properties.items as Array<{ noteId: string }>;
+  };
+  let creationAttempts = 0;
+  await page.route("**/feature-notes", async (route) => {
+    if (route.request().method() === "POST" && ++creationAttempts === 1) await route.abort();
+    else await route.continue();
+  });
   const framed = await page.request.put(`/api/resources/${map.id}/content`, {
     data: {
       kind: "geographic",
@@ -68,21 +78,24 @@ test("a parcel clicked on the map opens its card, receives a note and shows it a
   await page.keyboard.press("Escape");
   await expect(card).toHaveCount(0);
   await expect(dialog).toBeVisible();
+  expect(await notes()).toEqual([]);
+  expect(creationAttempts).toBe(0);
   await clickMapCentre(page, dialog);
   await expect(card).toBeVisible();
   const writingArea = card.getByTestId("editor-writing-area");
   await expect(writingArea).toHaveAttribute("contenteditable", "true");
   await writingArea.click();
   await page.keyboard.type("Bail agricole jusqu’en 2030");
+  await expect(card.getByTestId("geographic-note-retry")).toBeVisible();
+  await expect(writingArea).toContainText("Bail agricole jusqu’en 2030");
+  expect(await notes()).toEqual([]);
+  await card.getByTestId("geographic-note-retry").click();
+  await writingArea.click();
   await expect(writingArea).toBeFocused();
   await page.keyboard.press("Escape");
 
-  const notes = async () => {
-    const layer = (await imported.json()).properties;
-    const listed = await page.request.get(`/api/resources/${layer.id}/feature-notes`);
-    return (await listed.json()).properties.items as Array<{ noteId: string }>;
-  };
   await expect.poll(async () => (await notes()).length).toBe(1);
+  expect(creationAttempts).toBe(2);
   const [{ noteId }] = await notes();
   await expect
     .poll(async () => (await (await page.request.get(`/api/resources/${noteId}`)).json()).properties.content)

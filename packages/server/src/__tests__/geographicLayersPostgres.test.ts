@@ -402,18 +402,29 @@ postgres("geographic layers", () => {
     ]);
 
     const createNote = action(first.body, "resource.create-geographic-feature-note");
-    const note = await administration.post(createNote.href).send({ position: 1 }).expect(201);
+    const initialContent = "Bail agricole jusqu’en 2030.";
+    await administration.post(createNote.href).send({ position: 1, initialContent: "  " }).expect(400);
+    expect((await administration.get(createNote.href).expect(200)).body.properties.items).toEqual([]);
+    const note = await administration.post(createNote.href).send({ position: 1, initialContent }).expect(201);
     expect(note.body.properties).toMatchObject({
       key: "999990000A0002",
       subjectKind: "cadastreParcel",
       name: "Parcelle A 2 (999990000A0002)",
       fullPath: "Cartes/Notes cartographiques/Parcelle A 2 (999990000A0002)",
+      initialVersion: 2,
     });
     const noteId = note.body.properties.noteId as string;
-    await administration
-      .put(`/api/resources/${noteId}/content`)
-      .send({ kind: "text", expectedVersion: 1, content: "Bail agricole jusqu’en 2030." })
+    const replay = await administration.post(createNote.href).send({ position: 1, initialContent }).expect(201);
+    expect(replay.body.properties).toMatchObject({ noteId, initialVersion: 2 });
+    const conflict = await administration
+      .post(createNote.href)
+      .send({ position: 1, initialContent: "Une autre saisie." })
       .expect(200);
+    expect(conflict.body.properties).toMatchObject({ noteId, initialVersion: null });
+    expect((await administration.get(`/api/resources/${noteId}`).expect(200)).body.properties).toMatchObject({
+      content: initialContent,
+      version: 2,
+    });
     const search = await administration.get("/api/resources/search?query=Parcelle%20A%202").expect(200);
     expect(search.body.properties.items.map(({ id }: { id: string }) => id)).toContain(noteId);
 
@@ -505,14 +516,36 @@ postgres("geographic layers", () => {
       "council-business.create",
       "council-business.import-bundle",
     ]);
-    const note = await contributorAgent
-      .post(action(layer.body, "resource.create-geographic-feature-note").href)
-      .send({ position: 0 })
-      .expect(201);
+    const createNote = action(layer.body, "resource.create-geographic-feature-note");
     const image = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6uAAAAABJRU5ErkJggg==",
       "base64",
     );
+    const noteImage = (payload: Buffer, title = "Première photo") =>
+      contributorAgent
+        .post(createNote.href)
+        .field("position", "0")
+        .field("title", title)
+        .attach("file", payload, "parcelle.png");
+    expect((await noteImage(Buffer.from("pas une image"))).status).toBeGreaterThanOrEqual(400);
+    expect((await contributorAgent.get(createNote.href).expect(200)).body.properties.items).toEqual([]);
+    const note = await noteImage(image).expect(201);
+    const { noteId, initialAsset } = note.body.properties;
+    expect(initialAsset.owner.id).toBe(noteId);
+    const reopened = await contributorAgent.get(`/api/resources/${noteId}`).expect(200);
+    expect(reopened.body.properties.content).toContain(initialAsset.id);
+    expect(reopened.body.properties.version).toBe(2);
+    const replay = await noteImage(image).expect(201);
+    expect(replay.body.properties).toMatchObject({ noteId, initialVersion: 2, initialAsset: { id: initialAsset.id } });
+    const conflictingImage = await noteImage(image, "Autre légende").expect(200);
+    expect(conflictingImage.body.properties).toMatchObject({ noteId, initialVersion: null });
+    await contributorAgent
+      .post(createNote.href)
+      .send({ position: 1, initialContent: `::image[Photo d’une autre note]{#${initialAsset.id}}` })
+      .expect(409);
+    expect((await contributorAgent.get(createNote.href).expect(200)).body.properties.items).toEqual([
+      expect.objectContaining({ noteId }),
+    ]);
     await contributorAgent
       .post("/api/resources/editor-assets")
       .field("ownerKind", "textResourceContent")

@@ -1,4 +1,5 @@
 import type {
+  CreatedGeographicFeatureNote,
   GeographicFeatureNote,
   GeographicLayerFeatureCollection,
   MunicipalProperty,
@@ -10,6 +11,19 @@ import type { ResourceRepresentation } from "./resourcesClient.js";
 
 export type GeographicLayerDetail = Extract<ResourceDetail, { kind: "geographicLayer" }>;
 export type GeographicMapDetail = Extract<ResourceDetail, { kind: "geographic" }>;
+
+export type GeographicInitialContent =
+  | { kind: "text"; content: string; referencedEditorAssetIds: string[] }
+  | {
+      kind: "image";
+      title: string;
+      fileName: string;
+      content: Buffer;
+      mediaType: "image/jpeg" | "image/png";
+      contentSha256: string;
+      serialize(id: string): string;
+      existingAssetId(content: string): string | undefined;
+    };
 
 export type GeographicOverlayResult =
   | { status: "updated"; map: ResourceRepresentation<GeographicMapDetail> }
@@ -48,12 +62,16 @@ export interface GeographicLayersClient {
   createDrawnElementNote(
     mapId: string,
     elementId: string,
-  ): Promise<{ status: "created"; note: GeographicFeatureNote } | { status: "notFound" } | { status: "measurement" }>;
+    initial?: GeographicInitialContent,
+  ): Promise<
+    { status: "created"; note: CreatedGeographicFeatureNote } | { status: "notFound" } | { status: "measurement" }
+  >;
   createNote(
     layerId: string,
     position: number,
+    initial?: GeographicInitialContent,
   ): Promise<
-    { status: "created"; note: GeographicFeatureNote } | { status: "notFound" } | { status: "withoutStableKey" }
+    { status: "created"; note: CreatedGeographicFeatureNote } | { status: "notFound" } | { status: "withoutStableKey" }
   >;
   readMunicipalProperty(): Promise<ResourceRepresentation<MunicipalProperty>>;
   replaceMunicipalProperty(input: {

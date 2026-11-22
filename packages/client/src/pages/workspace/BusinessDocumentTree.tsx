@@ -28,6 +28,7 @@ import {
   DocumentaryResourceGlyph,
 } from "../../features/documents/DocumentaryResourceGlyph";
 import { FolderGlyph } from "../../features/documents/FolderGlyph";
+import { isListedInDocuments } from "../../features/resources/documentaryListing";
 import { InlineResourceContent } from "../../features/resources/InlineResourceContent";
 import { ResourceDeleteDialog } from "../../features/resources/ResourceDeleteDialog";
 import { resourceCapabilities } from "../../features/resources/resourceCapabilities";
@@ -86,7 +87,10 @@ export function useBusinessDocuments(business: CouncilBusinessView, hiddenIds: R
     () =>
       Object.values(summaries).filter(
         (summary) =>
-          isUnder(summary.path, root) && summary.id !== business.reportResourceId && !hiddenIds.has(summary.id),
+          isListedInDocuments(summary) &&
+          isUnder(summary.path, root) &&
+          summary.id !== business.reportResourceId &&
+          !hiddenIds.has(summary.id),
       ),
     [summaries, root, business.reportResourceId, hiddenIds],
   );
@@ -100,7 +104,10 @@ export function useBusinessDocuments(business: CouncilBusinessView, hiddenIds: R
   const elsewhere = useMemo(
     () =>
       business.resources.filter(
-        (resource) => !hiddenIds.has(resource.id) && !isUnder(summaries[resource.id]?.path ?? resource.path, root),
+        (resource) =>
+          isListedInDocuments(summaries[resource.id] ?? resource) &&
+          !hiddenIds.has(resource.id) &&
+          !isUnder(summaries[resource.id]?.path ?? resource.path, root),
       ),
     [business.resources, hiddenIds, summaries, root],
   );

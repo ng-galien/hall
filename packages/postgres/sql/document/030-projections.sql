@@ -106,7 +106,10 @@ SELECT resource.id,
          'byteSize', binary_object.byte_size,
          'contentSha256', binary_object.content_sha256
        ) ELSE NULL END AS binary,
-       resource.options
+       resource.options,
+       resource.event_resource_id IS NOT NULL OR EXISTS (
+         SELECT FROM hall.geographic_feature_note AS note WHERE note.text_resource_id = resource.text_resource_id
+       ) AS hidden_in_documents
 FROM hall.resource AS resource
 LEFT JOIN hall.text_resource ON text_resource.id = resource.text_resource_id
 LEFT JOIN hall.remote_resource ON remote_resource.id = resource.remote_resource_id
@@ -150,6 +153,9 @@ AS $function$
     ELSE '{}'::jsonb
   END || CASE
     WHEN target.binary IS NOT NULL THEN jsonb_build_object('binary', target.binary)
+    ELSE '{}'::jsonb
+  END || CASE
+    WHEN target.hidden_in_documents THEN jsonb_build_object('hiddenInDocuments', true)
     ELSE '{}'::jsonb
   END || hall.resource_options_presentation(target.options)
 $function$;

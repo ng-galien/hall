@@ -16,6 +16,7 @@ import {
 import { BusinessDeleteDialog } from "../../features/council-business/BusinessDeleteDialog";
 import type { DocumentaryLeafSummary } from "../../features/documents/DocumentaryResourceGlyph";
 import { photoFile } from "../../features/documents/photoFile";
+import { isListedInDocuments } from "../../features/resources/documentaryListing";
 import { ResourceChangesControl } from "../../features/resources/ResourceChangesControl";
 import { useResourceSession } from "../../features/resources/useResourceSession";
 import { createEmptySpreadsheetDocument } from "../../features/spreadsheet/univerWorkbook";
@@ -93,7 +94,7 @@ export function WorkspacePage() {
   const resources = useMemo(
     () =>
       Object.values(resourcesStore.summaries).filter(
-        (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder",
+        (resource): resource is DocumentaryLeafSummary => resource.kind !== "folder" && isListedInDocuments(resource),
       ),
     [resourcesStore.summaries],
   );

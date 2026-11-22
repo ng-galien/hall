@@ -18,6 +18,7 @@ export interface ResourceSearchScope {
   excludedIds?: readonly string[];
   includedIds?: readonly string[];
   context?: string;
+  documentsOnly?: boolean;
   businessId?: string;
 }
 export const allSearchTypes: readonly SearchType[] = [
@@ -50,9 +51,10 @@ export function useResourceSearch(
   const allowed = scope.types ?? allSearchTypes;
   const eligibleTypes = allSearchTypes.filter(
     (type) =>
-      allowed.includes(type) ||
-      (allowed.includes("resource") && isDocumentaryType(type)) ||
-      (type === imageSearchType && allowed.includes("document")),
+      (!scope.documentsOnly || type !== "event") &&
+      (allowed.includes(type) ||
+        (allowed.includes("resource") && isDocumentaryType(type)) ||
+        (type === imageSearchType && allowed.includes("document"))),
   );
   const types = state.types.length
     ? eligibleTypes.filter(
@@ -78,6 +80,7 @@ export function useResourceSearch(
     preferredIds: preferred,
     excludedIds: [...excluded],
     includedIds: scope.includedIds,
+    documentsOnly: scope.documentsOnly,
   };
   const [retryEpoch, setRetryEpoch] = useState(0);
   const key = JSON.stringify({ ...criteria, states: state.states, retryEpoch });

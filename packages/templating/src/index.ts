@@ -40,6 +40,7 @@ export {
   type ResourcePresentationKind,
   referenceKinds,
   resourcePresentationKinds,
+  serializeImageDirective,
   serializeResourceEmbedDirective,
 } from "./grammar.js";
 export { preferredResourcePresentation, resourceSupportsPresentation } from "./resourcePresentation.js";

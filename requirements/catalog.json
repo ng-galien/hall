@@ -3408,7 +3408,8 @@
       },
       "statement": "La présentation d’une ressource relève de l’autorité persistante.",
       "acceptanceCriteria": [
-        "Présentation sous autorité persistante : P"
+        "Présentation sous autorité persistante : P",
+        "Les listes et la recherche de Documents ne montrent ni les rendez-vous ni les notes liées aux éléments cartographiques, qu’elles soient vides ou renseignées. Les rendez-vous restent accessibles dans Agenda, les notes depuis les fiches des cartes. Les références directes restent valides."
       ],
       "clauses": [
         {
@@ -3904,15 +3905,15 @@
       },
       "statement": "Une entité qui a un identifiant stable porte une note riche, rédigée avec l’éditeur de texte de Hall et affichée dans sa fiche.",
       "acceptanceCriteria": [
-        "La note est un document texte de l’espace de travail : tableaux, images téléversées, liens et enregistrement automatique y fonctionnent comme dans les autres documents texte, et la recherche de l’espace de travail la trouve comme les autres textes.",
+        "La note utilise le même éditeur que les autres textes : tableaux, images téléversées, liens et enregistrement automatique fonctionnent depuis la fiche. Une note liée à un élément cartographique ne figure pas dans Documents.",
         "La note est rattachée à l’identifiant stable de l’entité, non à la ligne de l’entité : une note de parcelle cadastrale s’affiche pour cette parcelle dans toute couche qui suit la règle « parcelle cadastrale », y compris après l’import d’un nouveau millésime ; une note sous la règle « identifiant du fichier » reste propre à sa couche.",
-        "Un utilisateur qui dispose du droit d’écriture sur l’espace de travail crée la note depuis la fiche et la modifie dans la fiche ; un lecteur la consulte.",
+        "Un utilisateur qui dispose du droit d’écriture sur l’espace de travail rédige la note dans la fiche ; un lecteur la consulte.",
         "La note est créée dans le dossier « Notes cartographiques » placé dans le dossier de la couche, sous le nom « Parcelle A 221 (999990000A0221) » pour une parcelle ou « nom de la couche - identifiant » sinon.",
         "Une entité a au plus une note ; la suppression de la note dans l’espace de travail la détache de l’entité.",
         "Le rattachement est décrit par la nature du sujet, sa portée et son identifiant, de sorte que les éléments dessinés d’une carte pourront recevoir des notes par le même mécanisme.",
         "Le fichier d’une affaire transporte les notes des entités des couches qu’il contient, avec leurs documents texte et leurs rattachements ; son import recrée les documents et les rattachements.",
         "La suppression d’une couche conserve les rattachements des notes de parcelles cadastrales, qui s’affichent de nouveau dans toute couche importée plus tard pour ces parcelles ; elle détache les notes rattachées à un identifiant du fichier propre à la couche, dont les documents texte restent dans l’espace de travail.",
-        "Pour qui peut créer la note, l’ouverture de la fiche prépare directement la note vide existante ou nouvelle et son éditeur, sans bouton « Ajouter une note ». Un lecteur ne crée aucune note ; les erreurs sont signalées sans relance automatique en boucle.",
+        "Pour qui peut écrire, l’ouverture de la fiche affiche l’éditeur. S’il n’y a aucune note, Hall crée le texte lié lors du premier enregistrement d’un contenu ou de la première insertion d’un média. L’ouverture, la fermeture et une saisie vide ne créent aucune ressource. Un lecteur ne crée aucune note et peut consulter une note existante. Les erreurs sont signalées et la saisie reste disponible pour réessayer.",
         "La fiche d’un marqueur sélectionné et la lecture d’un marqueur dans le panneau Mesures n’affichent pas ses coordonnées WGS84 en guise de mesure ; les coordonnées restent disponibles dans l’onglet dédié du panneau Mesures."
       ],
       "clauses": [
@@ -4035,14 +4036,14 @@
       "statement": "Un dessin d’une carte porte une note en texte riche, avec des photos, rédigée avec l’éditeur de Hall depuis la fiche du dessin.",
       "acceptanceCriteria": [
         "Un clic normal sur un dessin ouvre sa fiche et sa note sans devoir activer Dessin, y compris dans une carte incluse dans un texte ou un aperçu ; un outil de dessin ou de mesure en cours reste prioritaire. La fiche présente libellé, nature, centrage et fermeture par bouton ou Échap.",
-        "Qui a le droit d’écrire dans l’espace de travail crée la note depuis la fiche ; la note est un texte ordinaire du dossier « Notes cartographiques » du dossier de la carte, édité dans la fiche avec l’éditeur de Hall et son enregistrement automatique.",
+        "Qui a le droit d’écrire dans l’espace de travail peut rédiger une note dans la fiche avec l’éditeur de Hall et son enregistrement automatique. Le texte reste classé dans le dossier « Notes cartographiques » de la carte et ne figure pas dans Documents tant qu’il est lié au dessin.",
         "Les photos s’insèrent dans la note par le téléversement d’images de l’éditeur, ouvert à qui peut modifier la note, et suivent les règles de stockage et d’aperçu des fichiers de Hall.",
         "La note est rattachée au dessin par son identifiant dans la carte et reste affichée après rechargement.",
         "La suppression d’un dessin détache sa note ; le texte reste dans « Notes cartographiques ». La suppression de la carte détache de même les notes de ses dessins.",
         "La base rattache une note seulement à un dessin de la carte : l’identifiant d’une mesure enregistrée (longueur ou surface) est refusé avec l’erreur HV613 « A saved measurement has no note », et le serveur répond par une requête invalide.",
         "Le fichier d’une affaire exporté transporte, pour chaque carte qu’il contient, les notes de ses dessins avec leur lien au dessin (identifiant du dessin dans la carte), comme il transporte les notes des parcelles et des entités des couches (HALL-FR-DOC-390) ; l’import restaure chaque note sur le dessin de la carte importée, avec son texte et ses photos.",
         "Un lecteur sans droit de modifier la carte qui clique sur un dessin, en mode Carte de l’espace de travail comme dans « Cartes », ouvre la fiche du dessin en lecture : libellé, nature, mesures du dessin (longueur, ou surface et périmètre) et note rendue, sans « Modifier la forme », sans création de note et sans modification de la note ; le bouton de fermeture et Échap ferment la fiche.",
-        "Pour qui peut créer la note, l’ouverture de la fiche prépare directement la note vide existante ou nouvelle et son éditeur, sans bouton « Ajouter une note ». Un lecteur ne crée aucune note ; les erreurs sont signalées sans relance automatique en boucle.",
+        "Pour qui peut écrire, l’ouverture de la fiche affiche l’éditeur. S’il n’y a aucune note, Hall crée le texte lié lors du premier enregistrement d’un contenu ou de la première insertion d’un média. L’ouverture, la fermeture et une saisie vide ne créent aucune ressource. Un lecteur ne crée aucune note et peut consulter une note existante. Les erreurs sont signalées et la saisie reste disponible pour réessayer.",
         "La fiche d’un dessin est la même en mode Éléments et en mode Mesures : géométrie, nom, couleur et menu « ⋯ » de la ligne du dessin pour qui peut modifier la carte, centrage et fermeture ; « Modifier la forme » choisi en mode Mesures ouvre Éléments sur ce dessin.",
         "Les mesures d’une ligne ou d’une zone s’affichent dans sa fiche quand elles sont affichées sur la carte ; en mode Mesures, un clic sur un dessin affiche ses mesures sur la carte et dans la fiche ; un lecteur voit toujours les mesures dans la fiche.",
         "La note occupe directement le corps de la fiche, sans second cadre ni bandeau, en gardant la place de la barre de mise en forme de l’éditeur.",

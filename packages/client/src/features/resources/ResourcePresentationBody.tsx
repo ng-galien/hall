@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { MarkdownEditor } from "../../components/editor/MarkdownEditor";
+import { MarkdownEditor, type MarkdownEditorProps } from "../../components/editor/MarkdownEditor";
 import type { Mentionable } from "../../components/editor/references";
 import { MarkdownView } from "../../components/MarkdownView";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -31,6 +31,18 @@ const SpreadsheetResourceEditor = lazy(() =>
 export type ResourcePresentationMode = "read" | "edit";
 
 export type ResourcePresentationCapabilities = ResourceCapabilities;
+
+export function ResourceTextEditor({
+  canUploadDocument,
+  ...editor
+}: MarkdownEditorProps & { canUploadDocument: boolean }) {
+  const uploadDocument = useEditorDocumentUpload(editor.searchContext ?? "");
+  return (
+    <div className="grid gap-1.5" data-testid="resource-presentation-text-edit">
+      <MarkdownEditor {...editor} onUploadDocument={canUploadDocument ? uploadDocument : undefined} />
+    </div>
+  );
+}
 
 /** The single type-specific resource body shared by the Workspace and the resource modal.
  * @implements-requirement HALL-FR-SRC-030
@@ -87,7 +99,6 @@ export function ResourcePresentationBody({
   phoneWriting?: boolean;
 }) {
   const { t } = useI18n();
-  const uploadDocument = useEditorDocumentUpload(resource.path);
   const [editingRemoteId, setEditingRemoteId] = useState<string | null>(null);
   const editing = mode === "edit";
   const editingResource = editing && capabilities.updateContent;
@@ -96,21 +107,19 @@ export function ResourcePresentationBody({
     folder: () => null,
     text: (entry) =>
       editingResource || readOnlyTextEditor ? (
-        <div className="grid gap-1.5" data-testid="resource-presentation-text-edit">
-          <MarkdownEditor
-            title={entry.name}
-            markdown={content}
-            onChange={onContentChange}
-            mentionables={mentionables}
-            searchContext={entry.path}
-            onUploadImage={canUploadImage && capabilities.updateContent ? onUploadImage : undefined}
-            onUploadPhoto={capabilities.updateContent ? onUploadPhoto : undefined}
-            onUploadDocument={capabilities.updateContent ? uploadDocument : undefined}
-            readOnly={!editingResource}
-            variant={layout === "extended" ? "enriched" : "compact"}
-            phoneWriting={phoneWriting}
-          />
-        </div>
+        <ResourceTextEditor
+          title={entry.name}
+          markdown={content}
+          onChange={onContentChange}
+          mentionables={mentionables}
+          searchContext={entry.path}
+          onUploadImage={canUploadImage && capabilities.updateContent ? onUploadImage : undefined}
+          onUploadPhoto={capabilities.updateContent ? onUploadPhoto : undefined}
+          canUploadDocument={capabilities.updateContent}
+          readOnly={!editingResource}
+          variant={layout === "extended" ? "enriched" : "compact"}
+          phoneWriting={phoneWriting}
+        />
       ) : (
         <div className="resource-preview-text" data-testid="resource-presentation-text-read">
           <MarkdownView markdown={entry.content} title={entry.name} />

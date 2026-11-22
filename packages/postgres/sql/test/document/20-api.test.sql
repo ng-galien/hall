@@ -56,6 +56,15 @@ SELECT ok(
   'an event advertises standard calendar invitation generation'
 );
 
+-- @verifies-requirement HALL-FR-DOC-200
+SELECT is(hall_api.open_resource((payload ->> 'id')::UUID)->>'hiddenInDocuments', 'true',
+  'an appointment keeps its resource link but is marked outside Documents')
+FROM api_result WHERE key = 'event';
+SELECT is((hall_api.search_resources('Rendez-vous', documents_only => true)->>'total')::INTEGER, 0,
+  'the Documents search excludes appointments');
+SELECT is((hall_api.search_resources('Rendez-vous')->>'total')::INTEGER, 1,
+  'appointments remain available outside the Documents projection');
+
 SELECT lives_ok(
   format(
     'SELECT hall_api.delete_resource(%L::uuid)',

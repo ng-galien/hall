@@ -1,4 +1,5 @@
 import {
+  createdGeographicFeatureNoteSchema,
   findSirenAction,
   findSirenLink,
   type GeographicFeatureKeyRule,
@@ -77,12 +78,25 @@ export function canCreateGeographicFeatureNote(layer: SirenEntity | null | undef
   return Boolean(layer && findSirenAction(layer, "resource.create-geographic-feature-note"));
 }
 
-export async function createGeographicFeatureNote(
-  layer: SirenEntity,
-  position: number,
-): Promise<GeographicFeatureNote> {
-  const result = await submitSirenAction<unknown>(layer, "resource.create-geographic-feature-note", { position });
-  return geographicFeatureNoteSchema.parse(result.data);
+export type GeographicNoteInitial = { kind: "text"; content: string } | { kind: "image"; file: File; title: string };
+
+async function createGeographicNote(
+  subject: SirenEntity,
+  target: { position: number } | { elementId: string },
+  initial: GeographicNoteInitial,
+) {
+  const payload = initial.kind === "text" ? { ...target, initialContent: initial.content } : new FormData();
+  if (payload instanceof FormData && initial.kind === "image") {
+    for (const [key, value] of Object.entries(target)) payload.set(key, String(value));
+    payload.set("title", initial.title);
+    payload.set("file", initial.file);
+  }
+  const result = await submitSirenAction<unknown>(subject, "resource.create-geographic-feature-note", payload);
+  return createdGeographicFeatureNoteSchema.parse(result.data);
+}
+
+export function createGeographicFeatureNote(layer: SirenEntity, position: number, initial: GeographicNoteInitial) {
+  return createGeographicNote(layer, { position }, initial);
 }
 
 /** Notes linked to the drawn elements of a map, keyed by element id. */
@@ -92,12 +106,8 @@ export async function readGeographicDrawnElementNotes(map: SirenEntity): Promise
   return geographicFeatureNoteSchema.array().parse(result.data);
 }
 
-export async function createGeographicDrawnElementNote(
-  map: SirenEntity,
-  elementId: string,
-): Promise<GeographicFeatureNote> {
-  const result = await submitSirenAction<unknown>(map, "resource.create-geographic-feature-note", { elementId });
-  return geographicFeatureNoteSchema.parse(result.data);
+export function createGeographicDrawnElementNote(map: SirenEntity, elementId: string, initial: GeographicNoteInitial) {
+  return createGeographicNote(map, { elementId }, initial);
 }
 
 export interface MunicipalPropertyState {

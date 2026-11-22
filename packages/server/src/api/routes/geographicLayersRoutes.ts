@@ -2,6 +2,7 @@ import { promisify } from "node:util";
 import { gzip } from "node:zlib";
 import {
   createGeographicFeatureNoteSchema,
+  editorAssetTitleSchema,
   GEOGRAPHIC_LAYER_MAX_FILE_BYTES,
   importMunicipalPropertySchema,
   linkGeographicLayerSchema,
@@ -19,6 +20,7 @@ import { GeographicLayerImportError } from "../../services/geographicLayerImport
 import { requireActionPermission } from "../apiCommandAuthorization.js";
 import { sendProblem } from "../problemDetails.js";
 import { routeParameter } from "../routeParameter.js";
+import { singleFileUpload } from "../singleFileUpload.js";
 import { uploadFileName, uploadFileStem } from "../uploadFileName.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: GEOGRAPHIC_LAYER_MAX_FILE_BYTES } });
@@ -33,6 +35,8 @@ const gzipAsync = promisify(gzip);
 export function createGeographicLayersRouter({ geographicLayerService, requestContext }: Cradle): Router {
   const router = Router();
   const requireBusinessUpdate = requireAction("council-business.associate-resource");
+  const requireNoteAsset = requireActionPermission("resource.create-editor-asset");
+  const uploadNoteAsset = singleFileUpload(requestContext);
   const requireBusinessUpdateForContext = (request: Request, response: Response, next: NextFunction): void => {
     if (request.body?.councilBusinessId) {
       requireBusinessUpdate(request, response, next);
@@ -120,12 +124,32 @@ export function createGeographicLayersRouter({ geographicLayerService, requestCo
   router.post(
     "/:reference/feature-notes",
     requireActionPermission("resource.create-geographic-feature-note"),
+    (request, response, next) => {
+      if (!request.is("multipart/form-data")) return next();
+      return requireNoteAsset(request, response, () => uploadNoteAsset(request, response, next));
+    },
     async (request, response) => {
+      let input: unknown = request.body;
+      let image: { title: string; fileName: string; content: Buffer } | undefined;
+      if (request.is("multipart/form-data")) {
+        if (!request.file) throw new DomainError("invalid_request", 400);
+        const { position, title, ...subject } = request.body;
+        input = {
+          ...subject,
+          ...(position === undefined ? {} : { position: /^\d+$/.test(position) ? Number(position) : position }),
+        };
+        image = {
+          title: editorAssetTitleSchema.parse(title),
+          fileName: request.file.originalname,
+          content: request.file.buffer,
+        };
+      }
       const note = await geographicLayerService.createNote(
         resourceReferenceSchema.parse(routeParameter(request.params.reference)),
-        createGeographicFeatureNoteSchema.parse(request.body),
+        createGeographicFeatureNoteSchema.parse(input),
+        image,
       );
-      response.status(201).json({
+      response.status(note.initialVersion === null ? 200 : 201).json({
         class: ["geographic-feature-note"],
         properties: note,
         links: [{ rel: ["note"], href: `/api/resources/${encodeURIComponent(note.slug)}` }],

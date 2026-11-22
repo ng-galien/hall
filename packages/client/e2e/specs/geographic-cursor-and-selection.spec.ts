@@ -261,7 +261,7 @@ test("in Cartes a click selects a drawing and the shape modification is a separa
   await row.getByTestId(`geographic-composition-feature-menu-${featureId}`).click();
   await page.getByTestId(`geographic-composition-feature-modify-${featureId}`).click();
   await expect(row).toHaveAttribute("data-modifying", "true");
-  // Automatic note editors cover the map centre; target the visible lower portion of this same area.
+  // The note editor covers the map centre; target the visible lower portion of this same area.
   const visibleShape = [middle[0], box.y + box.height * 0.72] as const;
   await page.mouse.move(...visibleShape, { steps: 2 });
   await expect.poll(cursor).toBe("move");

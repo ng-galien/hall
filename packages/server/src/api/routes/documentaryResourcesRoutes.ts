@@ -118,6 +118,7 @@ export function createDocumentaryResourcesRouter({
       offset: request.query.offset === undefined ? undefined : Number(request.query.offset),
       limit: request.query.limit === undefined ? undefined : Number(request.query.limit),
       context: request.query.context,
+      documentsOnly: request.query.documentsOnly === "true" ? true : undefined,
       preferredIds: queryValues(request.query.preferredIds),
       excludedIds: queryValues(request.query.excludedIds),
       includedIds: request.query.includedIds === undefined ? undefined : queryValues(request.query.includedIds),

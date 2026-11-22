@@ -3,7 +3,7 @@ import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { type ZodType, z } from "zod";
 import { recordAuditEvent } from "./audit.js";
 import type { PostgresCallContext, PostgresRequest } from "./callContext.js";
-import { ProjectionValidationError } from "./errors.js";
+import { HallPostgresError, ProjectionValidationError } from "./errors.js";
 import { callJson } from "./jsonCall.js";
 import { PostgresTransactionManager } from "./transaction.js";
 
@@ -72,6 +72,7 @@ const resourcePresentationSchema = resourceIdentitySchema.extend({
   state: resourceStateSchema,
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
+  hiddenInDocuments: z.literal(true).optional(),
 });
 const binarySummarySchema = z.object({
   id: resourceIdSchema,
@@ -279,6 +280,18 @@ export type PostgresDocumentResource = z.infer<typeof documentResourceSchema>;
 export type PostgresGeographicLayerResource = z.infer<typeof geographicLayerResourceSchema>;
 export type PostgresGeographicLayerFeatureCollection = z.infer<typeof geographicLayerFeatureCollectionSchema>;
 export type PostgresGeographicFeatureNote = z.infer<typeof geographicFeatureNoteSchema>;
+type GeographicInitialContent =
+  | { kind: "text"; content: string; referencedEditorAssetIds: string[] }
+  | (Omit<EditorAssetInput, "ownerId"> & {
+      kind: "image";
+      contentSha256: string;
+      serialize(id: string): string;
+      existingAssetId(content: string): string | undefined;
+    });
+type CreatedGeographicNote = PostgresGeographicFeatureNote & {
+  initialVersion?: number | null;
+  initialAsset?: PostgresEditorAsset;
+};
 export type PostgresMunicipalProperty = z.infer<typeof municipalPropertySchema>;
 
 export type PostgresResourceRequest = PostgresRequest;
@@ -289,6 +302,7 @@ export type PostgresResourceSearchCriteria = Readonly<{
   preferredIds?: readonly string[];
   excludedIds?: readonly string[];
   includedIds?: readonly string[];
+  documentsOnly?: boolean;
   query: string;
   paths: readonly string[];
   kinds: readonly PostgresResourceKind[];
@@ -487,6 +501,14 @@ const presentedEditorAssetSchema = postgresEditorAssetSirenSchema.transform((rep
 }));
 
 export type PostgresEditorAsset = z.infer<typeof postgresEditorAssetSchema>;
+const editorAssetInputSchema = z.object({
+  ownerId: resourceIdSchema,
+  title: z.string().trim().min(1).max(200),
+  fileName: z.string().trim().min(1),
+  mediaType: z.enum(["image/jpeg", "image/png"]),
+  content: z.instanceof(Buffer),
+});
+type EditorAssetInput = z.input<typeof editorAssetInputSchema>;
 
 // @implements-requirement HALL-FR-WSP-420 (the class of a resource carries the personal-workspace mark)
 function resourceSirenEntitySchema<Resource>(resourceSchema: ZodType<Resource>) {
@@ -776,7 +798,7 @@ export class PostgresResources {
             $3::text[],
             $4::text[],
             $5::text[],
-            $6::text[], $7::integer, $8::integer, $9::text, $10::uuid[], $11::uuid[], $12::uuid[]
+            $6::text[], $7::integer, $8::integer, $9::text, $10::uuid[], $11::uuid[], $12::uuid[], $13::boolean
           )
         ) AS payload`,
         values: [
@@ -792,6 +814,7 @@ export class PostgresResources {
           [...(criteria.preferredIds ?? [])],
           [...(criteria.excludedIds ?? [])],
           criteria.includedIds === undefined ? null : [...criteria.includedIds],
+          criteria.documentsOnly ?? false,
         ],
       },
       presentedResourceSearchSchema,
@@ -1269,42 +1292,30 @@ export class PostgresResources {
 
   createEditorAsset(
     request: PostgresResourceRequest,
-    input: Readonly<{
-      ownerId: string;
-      title: string;
-      fileName: string;
-      mediaType: "image/jpeg" | "image/png";
-      content: Buffer;
-    }>,
+    input: Readonly<EditorAssetInput>,
   ): Promise<PostgresPresentedResource<PostgresEditorAsset>> {
-    const parsed = z
-      .object({
-        ownerId: resourceIdSchema,
-        title: z.string().trim().min(1).max(200),
-        fileName: z.string().trim().min(1),
-        mediaType: z.enum(["image/jpeg", "image/png"]),
-        content: z.instanceof(Buffer),
-      })
-      .parse(input);
     return this.transactions.run(
       { role: request.role, context: this.runContext(request, "editorAsset.create") },
-      async (client) => {
-        const presented = await callJson(client, {
-          text: `SELECT hall_api.present_editor_asset(
-            hall_api.create_editor_asset($1::uuid, $2::text, $3::text, $4::text, $5::bytea)
-          ) AS payload`,
-          values: [parsed.ownerId, parsed.title, parsed.fileName, parsed.mediaType, parsed.content],
-          schema: presentedEditorAssetSchema,
-        });
-        await recordAuditEvent(client, {
-          targetType: "editorAsset",
-          targetId: presented.data.id,
-          outcome: "succeeded",
-          details: { ownerId: presented.data.owner.id },
-        });
-        return presented;
-      },
+      (client) => this.createEditorAssetInTransaction(client, input),
     );
+  }
+
+  private async createEditorAssetInTransaction(client: PoolClient, input: Readonly<EditorAssetInput>) {
+    const parsed = editorAssetInputSchema.parse(input);
+    const presented = await callJson(client, {
+      text: `SELECT hall_api.present_editor_asset(
+        hall_api.create_editor_asset($1::uuid, $2::text, $3::text, $4::text, $5::bytea)
+      ) AS payload`,
+      values: [parsed.ownerId, parsed.title, parsed.fileName, parsed.mediaType, parsed.content],
+      schema: presentedEditorAssetSchema,
+    });
+    await recordAuditEvent(client, {
+      targetType: "editorAsset",
+      targetId: presented.data.id,
+      outcome: "succeeded",
+      details: { ownerId: presented.data.owner.id },
+    });
+    return presented;
   }
 
   openEditorAsset(
@@ -1517,7 +1528,8 @@ export class PostgresResources {
     request: PostgresResourceRequest,
     layerId: string,
     position: number,
-  ): Promise<PostgresGeographicFeatureNote> {
+    initial?: GeographicInitialContent,
+  ): Promise<CreatedGeographicNote> {
     const parsedLayerId = resourceIdSchema.parse(layerId);
     const parsedPosition = z.number().int().nonnegative().parse(position);
     return this.transactions.run(
@@ -1534,7 +1546,7 @@ export class PostgresResources {
           outcome: "succeeded",
           details: { fullPath: note.fullPath, geographicLayerId: parsedLayerId, subjectKey: note.key },
         });
-        return note;
+        return this.initializeGeographicNote(client, note, initial);
       },
     );
   }
@@ -1560,7 +1572,8 @@ export class PostgresResources {
     request: PostgresResourceRequest,
     mapId: string,
     elementId: string,
-  ): Promise<PostgresGeographicFeatureNote> {
+    initial?: GeographicInitialContent,
+  ): Promise<CreatedGeographicNote> {
     const parsedMapId = resourceIdSchema.parse(mapId);
     const parsedElementId = z.string().min(1).max(200).parse(elementId);
     return this.transactions.run(
@@ -1577,9 +1590,77 @@ export class PostgresResources {
           outcome: "succeeded",
           details: { fullPath: note.fullPath, geographicResourceId: parsedMapId, subjectKey: note.key },
         });
-        return note;
+        return this.initializeGeographicNote(client, note, initial);
       },
     );
+  }
+
+  /** Creates the first revision while the note link and its namespace lock are still in the same transaction. */
+  private async initializeGeographicNote(
+    client: PoolClient,
+    note: PostgresGeographicFeatureNote,
+    initial: GeographicInitialContent | undefined,
+  ): Promise<CreatedGeographicNote> {
+    if (!initial) return note;
+    const { data: opened, representation } = await callJson(client, {
+      text: "SELECT hall_api.present_resource(hall_api.open_resource($1::uuid)) AS payload",
+      values: [note.noteId],
+      schema: presentedResourceSchema(textResourceSchema),
+    });
+    if (!representation.actions?.some(({ name }) => name === "resource.update-content")) {
+      throw new HallPostgresError(
+        "The caller cannot edit the map note",
+        {
+          sqlState: "HV614",
+          constraint: null,
+          table: null,
+          column: null,
+          detail: null,
+          schema: null,
+        },
+        undefined,
+      );
+    }
+    if (opened.version !== 1 || opened.content !== "") {
+      if (initial.kind === "text" && opened.content === initial.content) {
+        return { ...note, initialVersion: opened.version };
+      }
+      const id = initial.kind === "image" ? initial.existingAssetId(opened.content) : undefined;
+      if (id && initial.kind === "image") {
+        const asset = await callJson(client, {
+          text: "SELECT hall_api.open_editor_asset($1::uuid) AS payload",
+          values: [id],
+          schema: postgresEditorAssetSchema.nullable(),
+        });
+        if (
+          asset?.owner.id === note.noteId &&
+          asset.contentSha256 === initial.contentSha256 &&
+          asset.fileName === initial.fileName &&
+          asset.title === initial.title &&
+          asset.mediaType === initial.mediaType
+        ) {
+          return { ...note, initialVersion: opened.version, initialAsset: asset };
+        }
+      }
+      return { ...note, initialVersion: null };
+    }
+    let content: string;
+    let assetIds: string[];
+    let asset: PostgresEditorAsset | undefined;
+    if (initial.kind === "text") {
+      content = initial.content;
+      assetIds = initial.referencedEditorAssetIds;
+    } else {
+      asset = (await this.createEditorAssetInTransaction(client, { ...initial, ownerId: note.noteId })).data;
+      content = initial.serialize(asset.id);
+      assetIds = [asset.id];
+    }
+    const updated = await callJson(client, {
+      text: "SELECT hall_api.update_text_resource($1::uuid, $2::integer, $3::text, $4::uuid[]) AS payload",
+      values: [note.noteId, opened.version, content, assetIds],
+      schema: textResourceSchema,
+    });
+    return { ...note, initialVersion: updated.version, ...(asset ? { initialAsset: asset } : {}) };
   }
 
   // @implements-requirement HALL-FR-DOC-400

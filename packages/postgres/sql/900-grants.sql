@@ -82,7 +82,7 @@ GRANT EXECUTE ON FUNCTION hall_api.list_folder_navigation()
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.find_documents_by_hashes(text[])
   TO hall_api_authenticated, hall_api_worker;
-GRANT EXECUTE ON FUNCTION hall_api.search_resources(TEXT, TEXT[], TEXT[], TEXT[], TEXT[], TEXT[], INTEGER, INTEGER, TEXT, UUID[], UUID[], UUID[])
+GRANT EXECUTE ON FUNCTION hall_api.search_resources(TEXT, TEXT[], TEXT[], TEXT[], TEXT[], TEXT[], INTEGER, INTEGER, TEXT, UUID[], UUID[], UUID[], BOOLEAN)
   TO hall_api_authenticated, hall_api_worker;
 GRANT EXECUTE ON FUNCTION hall_api.list_folder(TEXT)
   TO hall_api_authenticated, hall_api_worker;

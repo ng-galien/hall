@@ -369,10 +369,21 @@ export const geographicFeatureNoteSchema = z
   })
   .strict();
 // @implements-requirement HALL-FR-DOC-430
+const initialGeographicNoteContentSchema = z.string().refine((content) => content.trim().length > 0);
 export const createGeographicFeatureNoteSchema = z.union([
-  z.object({ position: z.number().int().nonnegative() }).strict(),
-  z.object({ elementId: z.string().min(1).max(200) }).strict(),
+  z
+    .object({ position: z.number().int().nonnegative(), initialContent: initialGeographicNoteContentSchema.optional() })
+    .strict(),
+  z
+    .object({ elementId: z.string().min(1).max(200), initialContent: initialGeographicNoteContentSchema.optional() })
+    .strict(),
 ]);
+export type CreateGeographicFeatureNote = z.infer<typeof createGeographicFeatureNoteSchema>;
+export const createdGeographicFeatureNoteSchema = geographicFeatureNoteSchema.extend({
+  initialVersion: versionSchema.nullable().optional(),
+  initialAsset: editorAssetSchema.optional(),
+});
+export type CreatedGeographicFeatureNote = z.infer<typeof createdGeographicFeatureNoteSchema>;
 // @implements-requirement HALL-FR-DOC-400
 const municipalPropertySourceSchema = z
   .object({
@@ -536,6 +547,7 @@ const resourcePresentationSchema = resourceIdentitySchema.extend({
   state: resourceStateSchema,
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
+  hiddenInDocuments: z.literal(true).optional(),
 });
 const binarySummarySchema = z.object({
   id: resourceIdSchema,
@@ -700,6 +712,7 @@ export const resourceSearchCriteriaSchema = z.object({
   preferredIds: z.array(resourceIdSchema).optional(),
   excludedIds: z.array(resourceIdSchema).optional(),
   includedIds: z.array(resourceIdSchema).optional(),
+  documentsOnly: z.boolean().optional(),
   query: z.string().max(200).overwrite(resourceNameText).default(""),
   paths: z.array(resourcePathSchema).default([]),
   kinds: z.array(resourceKindSchema).default([]),

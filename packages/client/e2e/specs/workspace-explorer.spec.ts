@@ -21,6 +21,48 @@ test("opens a business from the workspace list with one click", async ({ appPage
   await expect(page.getByTestId("council-business-workbench")).toBeVisible();
 });
 
+// @verifies-requirement HALL-FR-DOC-200
+test("keeps an appointment accessible without listing it beside documents", async ({ appPage: page }) => {
+  const prefix = `Projection ${crypto.randomUUID()}`;
+  const content = "Appointment details";
+  const start = new Date(Date.now() + 86_400_000);
+  const end = new Date(start.getTime() + 3_600_000);
+  const event = await page.request.post("/api/resources", {
+    data: {
+      kind: "event",
+      path: "",
+      name: `${prefix} appointment`,
+      document: {
+        content,
+        location: "",
+        schedule: { kind: "timed", start: start.toISOString(), end: end.toISOString() },
+        participants: [],
+      },
+    },
+  });
+  const text = await page.request.post("/api/resources", {
+    data: { kind: "text", path: "", name: `${prefix} document`, content: "" },
+  });
+  expect(event.status()).toBe(201);
+  expect(text.status()).toBe(201);
+  const appointment = (await event.json()).properties;
+  const document = (await text.json()).properties;
+  await page.goto("/app/workspace");
+  await expect(page.getByTestId(`workspace-resource-title-${document.id}`)).toBeVisible();
+  await expect(page.getByTestId(`workspace-resource-title-${appointment.id}`)).toHaveCount(0);
+
+  await page.getByTestId("workspace-search-input").fill(prefix);
+  const result = page.getByTestId("workspace-search-result");
+  await expect(result.filter({ hasText: document.name })).toBeVisible();
+  await expect(result.filter({ hasText: appointment.name })).toHaveCount(0);
+
+  const everything = await page.request.get(`/api/resources/search?${new URLSearchParams({ query: prefix })}`);
+  const allResources = (await everything.json()).properties.items;
+  expect(allResources.map((item: { id: string }) => item.id)).toContain(appointment.id);
+  const detail = await page.request.get(`/api/resources/${appointment.id}`);
+  await expect(detail.json()).resolves.toMatchObject({ properties: { document: { content } } });
+});
+
 // @verifies-requirement HALL-FR-WSP-270
 test("keeps folder icons upright and navigates workspace rows with the keyboard", async ({ appPage: page }) => {
   const folderName = `Keyboard ${Date.now()}`;

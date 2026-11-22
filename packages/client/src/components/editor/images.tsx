@@ -4,6 +4,7 @@ import {
   isImageAlignment,
   isImageDirective,
   isImageWidth,
+  serializeImageDirective,
 } from "@hall/templating";
 import { mergeAttributes, Node } from "@tiptap/core";
 import { type Editor, type NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, useEditorState } from "@tiptap/react";
@@ -82,10 +83,6 @@ function unescapeLabel(value: string): string {
   return value.replace(/\\([\\\]])/g, "$1");
 }
 
-function escapeLabel(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/\]/g, "\\]").trim();
-}
-
 function attribute(source: string, name: string): string | undefined {
   if (name === "id") return /(?:^|\s)#([^\s}]+)/.exec(source)?.[1];
   const match = new RegExp(`(?:^|\\s)${name}=(?:"([^"]*)"|([^\\s}]+))`).exec(source);
@@ -108,13 +105,7 @@ export function parseImageDirective(source: string): (ResourceImageAttributes & 
   };
 }
 
-export function serializeImageDirective(attributes: ResourceImageAttributes): string {
-  const align = isImageAlignment(attributes.align) ? attributes.align : "left";
-  const width = Math.round(
-    Math.min(imageWidthRange.max, Math.max(imageWidthRange.min, attributes.width || imageWidthRange.default)),
-  );
-  return `::image[${escapeLabel(attributes.alt)}]{#${attributes.id} align="${align}" width="${width}"}`;
-}
+export { serializeImageDirective };
 
 function useResourceImageHref(resourceId: string) {
   const resolve = useContext(ResourceImageResolverContext);

@@ -180,8 +180,9 @@ export function createWorkspaceMcp(client: WorkspaceAccess) {
   server.registerTool(
     "workspace_search",
     {
-      description: "Search all workspace resources with existing Hall filters and facets.",
-      inputSchema: resourceSearchCriteriaSchema,
+      description:
+        "Search workspace resources, including calendar appointments, with existing Hall filters and facets.",
+      inputSchema: resourceSearchCriteriaSchema.omit({ documentsOnly: true }),
       annotations: { readOnlyHint: true },
     },
     (criteria) =>

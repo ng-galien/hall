@@ -1,7 +1,13 @@
-import type { GeographicFeatureNote, SirenEntity } from "@hall/api-contract";
+import type { CreatedGeographicFeatureNote, CreateGeographicFeatureNote, SirenEntity } from "@hall/api-contract";
 import { cadastreParcelIdsInText } from "@hall/domain";
-import type { GeographicLayersClient, GeographicOverlayResult } from "../clients/geographicLayersClient.js";
+import { serializeImageDirective } from "@hall/templating";
+import type {
+  GeographicInitialContent,
+  GeographicLayersClient,
+  GeographicOverlayResult,
+} from "../clients/geographicLayersClient.js";
 import type { ResourcesClient } from "../clients/resourcesClient.js";
+import { inspectEditorImage, referencedEditorAssetIds } from "./editorAssetInput.js";
 import { DomainError } from "./errors.js";
 import { parseGeographicLayerImport } from "./geographicLayerImport.js";
 
@@ -10,6 +16,38 @@ export interface GeographicLayerFeatures {
   layerId: string;
   /** GeoJSON text of the whole layer. */
   readText(): Promise<string>;
+}
+
+interface GeographicNoteImage {
+  title: string;
+  fileName: string;
+  content: Buffer;
+}
+
+async function initialNoteContent(
+  content?: string,
+  image?: GeographicNoteImage,
+): Promise<GeographicInitialContent | undefined> {
+  if (!image)
+    return content === undefined
+      ? undefined
+      : {
+          kind: "text",
+          content,
+          referencedEditorAssetIds: referencedEditorAssetIds(content),
+        };
+  if (content !== undefined) throw new DomainError("invalid_request", 400);
+  const inspection = await inspectEditorImage(image.fileName, image.content);
+  const serialize = (id: string) => serializeImageDirective({ id, alt: image.title });
+  return {
+    kind: "image",
+    ...image,
+    ...inspection,
+    serialize,
+    existingAssetId(markdown) {
+      return referencedEditorAssetIds(markdown).find((id) => serialize(id) === markdown);
+    },
+  };
 }
 
 export interface GeographicLayerService {
@@ -26,7 +64,11 @@ export interface GeographicLayerService {
   link(mapReference: string, input: { layerId: string; visible: boolean; opacity?: number }): Promise<SirenEntity>;
   unlink(mapReference: string, layerId: string): Promise<SirenEntity>;
   notes(reference: string): Promise<SirenEntity>;
-  createNote(reference: string, subject: { position: number } | { elementId: string }): Promise<GeographicFeatureNote>;
+  createNote(
+    reference: string,
+    subject: CreateGeographicFeatureNote,
+    image?: GeographicNoteImage,
+  ): Promise<CreatedGeographicFeatureNote>;
   municipalProperty(): Promise<SirenEntity>;
   importMunicipalProperty(input: {
     label: string;
@@ -116,16 +158,17 @@ export function createGeographicLayerService({
         links: [{ rel: ["self"], href: `/api/resources/${encodeURIComponent(subject.slug)}/feature-notes` }],
       };
     },
-    async createNote(reference, subject) {
+    async createNote(reference, subject, image) {
+      const initial = await initialNoteContent(subject.initialContent, image);
       if ("elementId" in subject) {
         const map = await requireResource(reference, "geographic");
-        const result = await geographicLayersClient.createDrawnElementNote(map.id, subject.elementId);
+        const result = await geographicLayersClient.createDrawnElementNote(map.id, subject.elementId, initial);
         if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
         if (result.status === "measurement") throw new DomainError("invalid_request", 400);
         return result.note;
       }
       const layer = await requireResource(reference, "geographicLayer");
-      const result = await geographicLayersClient.createNote(layer.id, subject.position);
+      const result = await geographicLayersClient.createNote(layer.id, subject.position, initial);
       if (result.status === "notFound") throw new DomainError("resource_not_found", 404);
       if (result.status === "withoutStableKey") throw new DomainError("invalid_request", 400);
       return result.note;

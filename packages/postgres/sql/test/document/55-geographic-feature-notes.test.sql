@@ -64,9 +64,22 @@ SELECT is(hall_api.create_geographic_feature_note(vintage_2026, 0) ->> 'noteId',
 FROM first_note, note_fixture;
 SELECT ok(
   hall_api.search_resources('Parcelle A 221') -> 'items' @> jsonb_build_array(jsonb_build_object('id', note ->> 'noteId')),
-  'the workspace search finds the note like other texts'
+  'the unscoped resource search can still resolve references to the note'
 )
 FROM first_note;
+-- @verifies-requirement HALL-FR-DOC-200
+SELECT is(hall_api.open_resource((note ->> 'noteId')::UUID) ->> 'hiddenInDocuments', 'true',
+  'an empty linked geographic note is marked outside Documents')
+FROM first_note;
+SELECT lives_ok(format(
+  'SELECT hall_api.update_text_resource(%L::UUID, 1, %L, ARRAY[]::UUID[])', note ->> 'noteId', 'Note de terrain'),
+  'a linked geographic note can still be filled')
+FROM first_note;
+SELECT is(hall_api.open_resource((note ->> 'noteId')::UUID) ->> 'hiddenInDocuments', 'true',
+  'a filled linked geographic note is also marked outside Documents')
+FROM first_note;
+SELECT is((hall_api.search_resources('Parcelle A 221', documents_only => true)->>'total')::INTEGER, 0,
+  'the Documents search excludes a filled geographic note');
 
 CREATE TEMP TABLE vintage_2027 AS
 SELECT (hall_api.create_geographic_layer_resource('Cartes', 'Parcelles 2027', source, '{"kind":"cadastreParcel","property":"id"}'::JSONB, ARRAY[]::TEXT[],

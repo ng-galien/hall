@@ -88,6 +88,7 @@ export async function searchDocumentaryResources(
   if (criteria.limit !== undefined) url.searchParams.set("limit", String(criteria.limit));
   if (criteria.offset !== undefined) url.searchParams.set("offset", String(criteria.offset));
   if (criteria.context !== undefined) url.searchParams.set("context", criteria.context);
+  if (criteria.documentsOnly) url.searchParams.set("documentsOnly", "true");
   const result = await apiSirenRequest<unknown>(apiPathFromHref(url.href));
   const data: ResourceSearchResult = resourceSearchResultSchema.parse(result.representation?.properties ?? result.data);
   return { ...result, data };

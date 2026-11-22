@@ -66,6 +66,7 @@ import {
   useGeographicMapRuntime,
 } from "./useGeographicMapRuntime";
 import { useGeographicDrawingMeasureLayer, useGeographicSavedMeasurementLayer } from "./useGeographicMeasurements";
+import { useGeographicNoteDrafts } from "./useGeographicNoteDrafts";
 import { useGeographicOverlays } from "./useGeographicOverlays";
 
 const GEOGRAPHIC_SAVE_DEBOUNCE_MS = 1_500;
@@ -172,7 +173,7 @@ export function GeographicResourceMap({
     return () => observer.disconnect();
   }, []);
   const mapStageStyle = { "--geographic-overlay-height": `${mapOverlayHeight}px` } as CSSProperties;
-  const [notePreparationRetry, setNotePreparationRetry] = useState(0);
+  const noteDraftFor = useGeographicNoteDrafts();
   const [displayedView, setDisplayedView] = useState<GeographicView>(initialView ?? normalizedData.view);
   const displayedData = useMemo(
     () => ({ ...data, hallLayer: draft.hallLayer, ...(initialView ? { view: initialView } : {}) }),
@@ -487,9 +488,7 @@ export function GeographicResourceMap({
   const retryConflict = () => {
     conflictRef.current = false;
     setConflict(false);
-    void save().then((saved) => {
-      if (saved) setNotePreparationRetry((attempt) => attempt + 1);
-    });
+    void save();
   };
   const toggleWorkspaceMode = (mode: GeographicPanelMode) => {
     setWorkspaceMode((current) => (current === mode ? "map" : mode));
@@ -582,6 +581,7 @@ export function GeographicResourceMap({
     const id = String(drawing.id);
     const geometry = mapRuntime.drawingSource?.getFeatureById(id)?.getGeometry();
     const measure = geometry ? measureGeometry(geometry) : null;
+    const note = drawnElementNotes.notes?.find((candidate) => candidate.key === id) ?? null;
     return (
       <GeographicDrawnElementCard
         key={key}
@@ -596,14 +596,19 @@ export function GeographicResourceMap({
             <MeasureReadout measure={measure} testId="geographic-drawn-element-card-measures" />
           ) : null
         }
-        note={drawnElementNotes.notes?.find((note) => note.key === drawing.id) ?? null}
+        note={note}
         loading={drawnElementNotes.notes === null}
-        canCreateNote={editable && drawnElementNotes.canCreate && !conflict}
-        creatingNote={drawnElementNotes.creating}
+        noteDraft={
+          editable && drawnElementNotes.canCreate
+            ? noteDraftFor(`drawing:${resource.id}:${id}`, note?.noteId ?? null, (initial) =>
+                drawnElementNotes.create(id, save, initial),
+              )
+            : undefined
+        }
+        notePath={resource.path}
         mapElement={mapRuntime.mapElementRef.current}
         modifying={mapRuntime.modifyingFeatureId === id}
         onStopModifying={mapRuntime.stopModifying}
-        onCreateNote={() => drawnElementNotes.create(id, save)}
         onCenter={() => mapRuntime.fitFeature(id)}
         onClose={onClose}
         uploadPhoto={editable ? uploadDrawingPhoto : undefined}
@@ -721,7 +726,7 @@ export function GeographicResourceMap({
         {inspectedDrawingCard}
         {selectedDrawnElement
           ? drawingCard(selectedDrawnElement, {
-              key: `${selectedDrawnElement.id}:${notePreparationRetry}`,
+              key: String(selectedDrawnElement.id),
               editable: true,
               onClose: mapRuntime.clearSelection,
             })
@@ -733,8 +738,20 @@ export function GeographicResourceMap({
             layerName={overlays.find((overlay) => overlay.layerId === selectedFeature.layerId)?.name ?? ""}
             note={selectedNote.note}
             notesLoading={selectedNote.loading}
-            canCreateNote={selectedNote.canCreate}
-            creatingNote={selectedNote.creating}
+            noteDraft={
+              selectedNote.canCreate && selectedFeature.key
+                ? noteDraftFor(
+                    selectedFeature.featureKey.kind === "cadastreParcel"
+                      ? `parcel:${selectedFeature.key}`
+                      : `layer:${selectedFeature.layerId}:${selectedFeature.key}`,
+                    selectedNote.note?.noteId ?? null,
+                    selectedNote.create,
+                  )
+                : undefined
+            }
+            notePath={
+              typeof selectedFeature.layer.properties?.path === "string" ? selectedFeature.layer.properties.path : ""
+            }
             municipal={{
               isMunicipal:
                 selectedFeature.featureKey.kind === "cadastreParcel" &&
@@ -745,7 +762,6 @@ export function GeographicResourceMap({
                 ? featureState.municipalOnlyLayerIds.has(selectedFeature.layerId)
                 : null,
             }}
-            onCreateNote={() => selectedNote.create()}
             onMunicipalOnly={(enabled) => featureState.setMunicipalOnly(selectedFeature.layerId, enabled)}
             onCenter={() => overlayRuntime.fitFeature(selectedFeature)}
             onClose={() => setSelection(null)}

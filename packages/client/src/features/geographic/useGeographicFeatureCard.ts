@@ -6,6 +6,7 @@ import { escapeOwnedByControl } from "./geographicEscape";
 import {
   canCreateGeographicFeatureNote,
   createGeographicFeatureNote,
+  type GeographicNoteInitial,
   type MunicipalPropertyState,
   readGeographicFeatureNotes,
   readMunicipalProperty,
@@ -108,7 +109,6 @@ export function useGeographicFeatureNote(
   onError: (error: ApiErrorCode | null) => void,
 ) {
   const [notesByLayer, setNotesByLayer] = useState<Record<string, GeographicFeatureNote[]>>({});
-  const [creating, setCreating] = useState(false);
   const layer = feature?.layer ?? null;
   const layerId = feature?.layerId ?? null;
   const keyed = Boolean(feature?.key) && feature?.featureKey.kind !== "none";
@@ -136,33 +136,19 @@ export function useGeographicFeatureNote(
 
   const notes = layerId ? notesByLayer[layerId] : undefined;
   const note = feature?.key ? (notes?.find((candidate) => candidate.key === feature.key) ?? null) : null;
-  const create = async () => {
-    if (!feature || !layerId) return;
-    setCreating(true);
-    try {
-      const created = await createGeographicFeatureNote(feature.layer, feature.position);
-      setNotesByLayer((state) => ({ ...state, [layerId]: [...(state[layerId] ?? []), created] }));
-    } catch (failure) {
-      onError(apiErrorCode(failure));
-    } finally {
-      setCreating(false);
-    }
+  const create = async (initial: GeographicNoteInitial) => {
+    if (!feature || !layerId) throw new Error("geographic_feature_unavailable");
+    const created = await createGeographicFeatureNote(feature.layer, feature.position, initial);
+    setNotesByLayer((state) => ({
+      ...state,
+      [layerId]: [...(state[layerId] ?? []).filter(({ key }) => key !== created.key), created],
+    }));
+    return created;
   };
   return {
     note,
     loading: keyed && notes === undefined,
     canCreate: canCreateGeographicFeatureNote(layer),
-    creating,
     create,
   };
-}
-
-/** Prepare a missing note once per mounted card, after its read has completed. Never creates for a reader. */
-export function useAutomaticGeographicNote(ready: boolean, onCreate?: () => void) {
-  const attempted = useRef(false);
-  useEffect(() => {
-    if (!ready || !onCreate || attempted.current) return;
-    attempted.current = true;
-    void onCreate();
-  }, [ready, onCreate]);
 }

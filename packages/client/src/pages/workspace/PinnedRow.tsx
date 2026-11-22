@@ -15,6 +15,7 @@ import {
   DocumentaryResourceGlyph,
   documentaryResourceDate,
 } from "../../features/documents/DocumentaryResourceGlyph";
+import { isListedInDocuments } from "../../features/resources/documentaryListing";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { CouncilBusinessView } from "../../models/councilBusiness";
 import { useCouncilBusinessStore } from "../../stores/councilBusinessStore";
@@ -56,7 +57,7 @@ export function PinnedRow({
       },
       resource: (entry) => {
         const resource = summaries[entry.id];
-        return resource && resource.kind !== "folder" ? [{ pin, resource }] : [];
+        return resource && resource.kind !== "folder" && isListedInDocuments(resource) ? [{ pin, resource }] : [];
       },
     });
   });

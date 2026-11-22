@@ -166,6 +166,21 @@ export function isImageWidth(value: string): boolean {
   return width >= imageWidthRange.min && width <= imageWidthRange.max;
 }
 
+/** Serializes the image block shared by saved text and the rich editor. */
+export function serializeImageDirective(attributes: {
+  id: string;
+  alt: string;
+  align?: ImageAlignment;
+  width?: number;
+}): string {
+  const align = attributes.align && isImageAlignment(attributes.align) ? attributes.align : "left";
+  const width = Math.round(
+    Math.min(imageWidthRange.max, Math.max(imageWidthRange.min, attributes.width || imageWidthRange.default)),
+  );
+  const label = attributes.alt.replace(/\\/g, "\\\\").replace(/\]/g, "\\]").trim();
+  return `::image[${label}]{#${attributes.id} align="${align}" width="${width}"}`;
+}
+
 function unescapeDirectiveValue(value: string): string {
   return value.replace(/\\([\\\]"])/g, "$1");
 }

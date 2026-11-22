@@ -247,7 +247,8 @@ CREATE FUNCTION hall_api.search_resources(
   search_context TEXT DEFAULT '',
   preferred_ids UUID[] DEFAULT ARRAY[]::UUID[],
   excluded_ids UUID[] DEFAULT ARRAY[]::UUID[],
-  included_ids UUID[] DEFAULT NULL
+  included_ids UUID[] DEFAULT NULL,
+  documents_only BOOLEAN DEFAULT false
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -306,7 +307,8 @@ BEGIN
           WHEN starts_with(read_model.path, search_context || '/') OR starts_with(search_context, read_model.path || '/') THEN 1 ELSE 0 END AS proximity
       FROM hall.resource_read_model read_model
       WHERE read_model.kind <> 'folder'
-          AND (included_ids IS NULL OR read_model.id=ANY(included_ids))
+        AND (documents_only IS NOT TRUE OR NOT read_model.hidden_in_documents)
+        AND (included_ids IS NULL OR read_model.id=ANY(included_ids))
         AND NOT (read_model.id = ANY(excluded_ids))
         AND (cardinality(search_kinds) = 0 OR read_model.kind = ANY(search_kinds))
         AND (cardinality(search_paths) = 0 OR EXISTS (SELECT FROM unnest(search_paths) selected_path
@@ -336,6 +338,7 @@ BEGIN
         SELECT DISTINCT read_model.path AS path
         FROM hall.resource_read_model AS read_model
         WHERE read_model.kind <> 'folder'
+          AND (documents_only IS NOT TRUE OR NOT read_model.hidden_in_documents)
           AND (included_ids IS NULL OR read_model.id=ANY(included_ids))
           AND (cardinality(search_kinds)=0 OR read_model.kind=ANY(search_kinds))
           AND NOT (read_model.id=ANY(excluded_ids))
@@ -347,6 +350,7 @@ BEGIN
         SELECT DISTINCT jsonb_array_elements_text(read_model.tags) AS tag
         FROM hall.resource_read_model AS read_model
         WHERE read_model.kind <> 'folder'
+          AND (documents_only IS NOT TRUE OR NOT read_model.hidden_in_documents)
           AND (included_ids IS NULL OR read_model.id=ANY(included_ids))
           AND (cardinality(search_kinds)=0 OR read_model.kind=ANY(search_kinds))
           AND NOT (read_model.id=ANY(excluded_ids))
@@ -358,6 +362,7 @@ BEGIN
         SELECT DISTINCT read_model.readiness
         FROM hall.resource_read_model AS read_model
         WHERE read_model.kind <> 'folder'
+          AND (documents_only IS NOT TRUE OR NOT read_model.hidden_in_documents)
           AND (included_ids IS NULL OR read_model.id=ANY(included_ids))
           AND (cardinality(search_kinds)=0 OR read_model.kind=ANY(search_kinds))
           AND NOT (read_model.id=ANY(excluded_ids))

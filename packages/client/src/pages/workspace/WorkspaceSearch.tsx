@@ -40,7 +40,7 @@ export function WorkspaceSearch({
       <ResourceSearch
         state={search}
         onState={onSearch}
-        scope={{ types: ["resource", "councilBusiness"], context }}
+        scope={{ types: ["resource", "councilBusiness"], context, documentsOnly: true }}
         testId="workspace-search"
         placeholder={t("workspace.searchDocuments")}
         autoFocus={autoFocus}

@@ -6,21 +6,21 @@ import { HelpHint } from "../../components/HelpHint";
 import { CenterOnFeatureIcon, CloseIcon } from "../../components/icons";
 import { Button } from "../../components/ui/button";
 import { useI18n } from "../../i18n/I18nProvider";
-import { type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
-import { InlineResourceContent } from "../resources/InlineResourceContent";
+import { ApiError, type ApiErrorCode, apiErrorCode } from "../../services/apiClient";
+import { InlineResourceContent, type InlineTextDraft } from "../resources/InlineResourceContent";
 import {
   canCreateGeographicFeatureNote,
   createGeographicDrawnElementNote,
+  type GeographicNoteInitial,
   readGeographicDrawnElementNotes,
 } from "./geographicLayersApi";
-import { escapeBelongsToTarget, useAutomaticGeographicNote } from "./useGeographicFeatureCard";
+import { escapeBelongsToTarget } from "./useGeographicFeatureCard";
 import { useGeographicPanelSize } from "./useGeographicPanelSize";
 
 /** Notes of the drawn elements of a map, read through the map and created on demand. */
 // @implements-requirement HALL-FR-DOC-430
 export function useGeographicDrawnElementNotes(map: SirenEntity | null, onError: (error: ApiErrorCode | null) => void) {
   const [notes, setNotes] = useState<GeographicFeatureNote[] | null>(null);
-  const [creating, setCreating] = useState(false);
   useEffect(() => {
     if (!map) return;
     let current = true;
@@ -39,24 +39,15 @@ export function useGeographicDrawnElementNotes(map: SirenEntity | null, onError:
     };
   }, [map, onError]);
   const create = useCallback(
-    async (elementId: string, beforeCreate: () => Promise<boolean>) => {
-      if (!map) return false;
-      setCreating(true);
-      try {
-        if (!(await beforeCreate())) return false;
-        const created = await createGeographicDrawnElementNote(map, elementId);
-        setNotes((state) => [...(state ?? []).filter(({ key }) => key !== created.key), created]);
-        return true;
-      } catch (failure) {
-        onError(apiErrorCode(failure));
-        return false;
-      } finally {
-        setCreating(false);
-      }
+    async (elementId: string, beforeCreate: () => Promise<boolean>, initial: GeographicNoteInitial) => {
+      if (!map || !(await beforeCreate())) throw new ApiError("request_failed", 0);
+      const created = await createGeographicDrawnElementNote(map, elementId, initial);
+      setNotes((state) => [...(state ?? []).filter(({ key }) => key !== created.key), created]);
+      return created;
     },
-    [map, onError],
+    [map],
   );
-  return { notes, creating, canCreate: canCreateGeographicFeatureNote(map), create };
+  return { notes, canCreate: canCreateGeographicFeatureNote(map), create };
 }
 
 /**
@@ -74,12 +65,11 @@ export function GeographicDrawnElementCard({
   hidden = false,
   note,
   loading,
-  canCreateNote,
-  creatingNote,
+  noteDraft,
+  notePath,
   mapElement,
   modifying,
   onStopModifying,
-  onCreateNote,
   onCenter,
   onClose,
   readOnly = false,
@@ -100,20 +90,18 @@ export function GeographicDrawnElementCard({
   hidden?: boolean;
   note: GeographicFeatureNote | null;
   loading: boolean;
-  canCreateNote: boolean;
-  creatingNote: boolean;
+  noteDraft?: InlineTextDraft;
+  notePath: string;
   mapElement: HTMLElement | null;
   /** True while the shape of this drawing is being modified. */
   modifying: boolean;
   onStopModifying?(): void;
-  onCreateNote?(): void;
   onCenter(): void;
   onClose(): void;
 }) {
   const { t } = useI18n();
   const cardRef = useRef<HTMLElement | null>(null);
   const sizeStyle = useGeographicPanelSize(cardRef, "card");
-  useAutomaticGeographicNote(!readOnly && !loading && !note && canCreateNote && !creatingNote, onCreateNote);
   useEffect(() => {
     const leaveOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || escapeBelongsToTarget(event.target, mapElement)) return;
@@ -182,16 +170,16 @@ export function GeographicDrawnElementCard({
           ></div>
         )}
         <div className="geographic-feature-card-note" data-testid="geographic-drawn-element-card-note">
-          {loading || creatingNote ? (
+          {loading ? (
             <LoadingIndicator size="zone" label={t("common.loading")} />
-          ) : note ? (
+          ) : note || noteDraft ? (
             <InlineResourceContent
-              key={note.noteId}
-              resourceId={note.noteId}
+              resourceId={note?.noteId ?? null}
               heading={t("geographicFeature.note")}
               compact={readOnly}
               readOnly={readOnly}
               uploadPhoto={uploadPhoto}
+              noteEditor={{ title: label, path: notePath, draft: noteDraft }}
             />
           ) : (
             <p className="geographic-feature-card-muted">{t("geographicFeature.noNote")}</p>

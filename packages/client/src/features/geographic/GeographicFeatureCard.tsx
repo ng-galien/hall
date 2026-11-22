@@ -5,9 +5,8 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { CenterOnFeatureIcon, CloseIcon, FilterIcon } from "../../components/icons";
 import { useI18n } from "../../i18n/I18nProvider";
-import { InlineResourceContent } from "../resources/InlineResourceContent";
+import { InlineResourceContent, type InlineTextDraft } from "../resources/InlineResourceContent";
 import { geographicPropertyText, orderedGeographicProperties } from "./geographicFeatureCardModel";
-import { useAutomaticGeographicNote } from "./useGeographicFeatureCard";
 import type { GeographicFeatureDescription } from "./useGeographicOverlays";
 
 export interface GeographicFeatureMunicipalState {
@@ -27,10 +26,9 @@ export function GeographicFeatureCard({
   layerName,
   note,
   notesLoading,
-  canCreateNote,
-  creatingNote,
+  noteDraft,
+  notePath,
   municipal,
-  onCreateNote,
   onMunicipalOnly,
   onCenter,
   onClose,
@@ -39,25 +37,15 @@ export function GeographicFeatureCard({
   layerName: string;
   note: GeographicFeatureNote | null;
   notesLoading: boolean;
-  canCreateNote: boolean;
-  creatingNote: boolean;
+  noteDraft?: InlineTextDraft;
+  notePath: string;
   municipal: GeographicFeatureMunicipalState;
-  onCreateNote(): void;
   onMunicipalOnly(enabled: boolean): void;
   onCenter(): void;
   onClose(): void;
 }) {
   const { t, formatDate } = useI18n();
   const [metadataOpen, setMetadataOpen] = useState(false);
-  useAutomaticGeographicNote(
-    feature.featureKey.kind !== "none" &&
-      Boolean(feature.key) &&
-      !notesLoading &&
-      !note &&
-      canCreateNote &&
-      !creatingNote,
-    onCreateNote,
-  );
   const title =
     feature.featureKey.kind === "cadastreParcel" && feature.label
       ? t("geographicFeature.parcelTitle", { label: feature.label })
@@ -149,10 +137,14 @@ export function GeographicFeatureCard({
         <div className="geographic-feature-card-note" data-testid="geographic-feature-card-note">
           {feature.featureKey.kind === "none" || !feature.key ? (
             <p className="geographic-feature-card-muted">{t("geographicFeature.noStableKey")}</p>
-          ) : notesLoading || creatingNote ? (
+          ) : notesLoading ? (
             <LoadingIndicator size="zone" label={t("common.loading")} />
-          ) : note ? (
-            <InlineResourceContent key={note.noteId} resourceId={note.noteId} heading={t("geographicFeature.note")} />
+          ) : note || noteDraft ? (
+            <InlineResourceContent
+              resourceId={note?.noteId ?? null}
+              heading={t("geographicFeature.note")}
+              noteEditor={{ title, path: notePath, draft: noteDraft }}
+            />
           ) : (
             <p className="geographic-feature-card-muted">{t("geographicFeature.noNote")}</p>
           )}

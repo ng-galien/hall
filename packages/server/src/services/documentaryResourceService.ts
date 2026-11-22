@@ -10,13 +10,11 @@ import {
   type ResourceChanges,
   type ResourceSearchCriteria,
   resourceChangesSchema,
-  resourceIdSchema,
   type SirenEntity,
   type UpdateResourceContent,
   type UpdateResourceMetadata,
 } from "@hall/api-contract";
 import { matchDiscriminated, matchLiteral } from "@hall/domain";
-import { collectResourceReferences, parse } from "@hall/templating";
 import type { ResourceContent, ResourcesClient } from "../clients/resourcesClient.js";
 import { documentPreviewModeForMediaType, inspectDocument } from "../domain/documentPolicy.js";
 import type { HallSettingsRepository } from "../repositories/contracts.js";
@@ -24,6 +22,7 @@ import { PersistenceError } from "../repositories/errors.js";
 import type { SecurityRepository } from "../repositories/securityRepository.js";
 import type { AuthorizationClient } from "../security/authorization.js";
 import type { DocumentPreviewConverter } from "./documentPreviewConverter.js";
+import { inspectEditorImage, referencedEditorAssetIds } from "./editorAssetInput.js";
 import { DomainError } from "./errors.js";
 import {
   type LegalReferenceProvider,
@@ -337,13 +336,10 @@ export function createDocumentaryResourceService({
       if (!owner.representation.actions?.some(({ name }) => name === "resource.update-content")) {
         throw new DomainError("permission_denied", 403);
       }
-      const inspection = await inspectDocument(input.fileName, input.content);
-      if (inspection.format !== "jpeg" && inspection.format !== "png") {
-        throw new DomainError("unsupported_document_format", 415);
-      }
+      const { mediaType } = await inspectEditorImage(input.fileName, input.content);
       return resourcesClient.createEditorAsset({
         ...input,
-        mediaType: inspection.format === "jpeg" ? "image/jpeg" : "image/png",
+        mediaType,
       });
     },
     async openEditorAsset(id) {
@@ -371,12 +367,7 @@ export function createDocumentaryResourceService({
       return requireMutation(resourcesClient.updateMetadata(reference, input));
     },
     updateContent(reference, input) {
-      const editorAssetIds =
-        input.kind === "text"
-          ? collectResourceReferences(parse(input.content))
-              .map(({ id }) => id)
-              .filter((id) => resourceIdSchema.safeParse(id).success)
-          : [];
+      const editorAssetIds = input.kind === "text" ? referencedEditorAssetIds(input.content) : [];
       return requireMutation(resourcesClient.updateContent(reference, input, editorAssetIds));
     },
     async replaceDocumentContent(reference, input) {

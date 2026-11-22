@@ -270,18 +270,16 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
   await expect(rows).toHaveCount(1);
   const writingArea = card.getByTestId("editor-writing-area");
   await expect(writingArea).toHaveAttribute("contenteditable", "true");
-  await writingArea.click();
-  await page.keyboard.type("Chêne à conserver");
   const notes = async () =>
     (await (await page.request.get(`/api/resources/${map.id}/feature-notes`)).json()).properties.items as Array<{
       noteId: string;
       key: string;
     }>;
-  await expect.poll(async () => (await notes()).map(({ key }) => key)).toEqual([elementId]);
-  const [{ noteId }] = await notes();
-  const noteContent = async () =>
-    (await (await page.request.get(`/api/resources/${noteId}`)).json()).properties.content as string;
-  await expect.poll(noteContent, { timeout: 15_000 }).toContain("Chêne à conserver");
+  await card.getByTestId("geographic-drawn-element-card-close").click();
+  await expect(card).toHaveCount(0);
+  expect(await notes()).toEqual([]);
+  await rows.first().locator(".geographic-composition-feature-select").click();
+  await expect(writingArea).toHaveAttribute("contenteditable", "true");
 
   const png = [
     ...Buffer.from(
@@ -300,12 +298,15 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
     );
   const nextUpload = () =>
     page.waitForResponse(
-      (response) => response.url().endsWith("/api/resources/editor-assets") && response.request().method() === "POST",
+      (response) =>
+        response.request().method() === "POST" &&
+        (response.url().endsWith("/api/resources/editor-assets") || response.url().endsWith("/feature-notes")),
     );
   const uploadedId = async (response: Promise<import("@playwright/test").Response>) => {
     const upload = await response;
     expect(upload.status()).toBe(201);
-    return (await upload.json()).properties.id as string;
+    const { id, initialAsset } = (await upload.json()).properties;
+    return (initialAsset?.id ?? id) as string;
   };
   const dropOn = async (area: import("@playwright/test").Locator, name: string) => {
     const transfer = await photoTransfer(name);
@@ -341,7 +342,14 @@ test("a drawn element carries a rich-text note that survives a reload and outliv
 
   const inlineDropId = await dropOn(writingArea, "chene-fiche.png");
   await expect(card.locator(`[data-resource-id="${inlineDropId}"] img`)).toBeVisible();
+  await expect.poll(async () => (await notes()).map(({ key }) => key)).toEqual([elementId]);
+  const [{ noteId }] = await notes();
+  const noteContent = async () =>
+    (await (await page.request.get(`/api/resources/${noteId}`)).json()).properties.content as string;
   await expect.poll(noteContent, { timeout: 15_000 }).toContain(inlineDropId);
+  await writingArea.press("End");
+  await page.keyboard.type("Chêne à conserver");
+  await expect.poll(noteContent, { timeout: 15_000 }).toContain("Chêne à conserver");
   await writingArea.press("End");
   const inlinePasteId = await pasteInto(writingArea, "chene-colle.png");
   await expect(card.locator(`[data-resource-id="${inlinePasteId}"] img`)).toBeVisible();
@@ -491,10 +499,6 @@ test("drawing edit retains rendered base tiles and exterior dimension overlays",
     },
   });
   expect(saved.ok()).toBeTruthy();
-  // This fixture note prevents automatic preparation; the protected source map is never addressed by this runtime.
-  expect(
-    (await page.request.post(`/api/resources/${map.id}/feature-notes`, { data: { elementId: copied.id } })).ok(),
-  ).toBeTruthy();
   await page.goto(`/app/maps/${map.id}?view=${center[0]},${center[1]},19`);
   const mapElement = page.locator(".maps-surface .geographic-map");
   await expect.poll(() => mapElement.evaluate((el) => el.querySelector("canvas")?.width === el.clientWidth)).toBe(true);
