@@ -24,7 +24,7 @@
     "@code-moniker/client": "0.14.1",
     "@hall/contracts": "*",
     "@hall/domain": "*",
-    "@ng-galien/postgresql-catalog": "0.1.6",
+    "@ng-galien/postgresql-catalog": "0.1.7",
     "pg": "^8.23.0",
     "zod": "^4.3.6"
   },
