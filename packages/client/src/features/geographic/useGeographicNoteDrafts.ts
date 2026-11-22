@@ -95,6 +95,13 @@ export function useGeographicNoteDrafts() {
           draft.content = [draft.content.trimEnd(), draft.savedContent].filter(Boolean).join("\n\n");
           draft.firstImagePlaced = true;
         }
+        if (draft.savedContent !== draft.content) {
+          const opened = await openSessionResource(note.noteId);
+          if (opened?.data.kind !== "text") {
+            const error = useWorkspaceResourcesStore.getState().openErrors[note.noteId] ?? "request_failed";
+            throw new ApiError(error, 0);
+          }
+        }
         while (draft.savedContent !== draft.content) {
           if (imageUploadsPending()) await imageUploadsSettled();
           const version = draft.version;

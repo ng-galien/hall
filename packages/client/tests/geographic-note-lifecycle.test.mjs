@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { test, vi } from "vitest";
 import { useGeographicFeatureNote } from "../src/features/geographic/useGeographicFeatureCard.ts";
 import { useGeographicNoteDrafts } from "../src/features/geographic/useGeographicNoteDrafts.ts";
+import { openSessionResource } from "../src/features/resources/useResourceSession.ts";
 
 vi.mock("../src/features/geographic/geographicLayersApi.ts", () => ({
   canCreateGeographicFeatureNote: () => true,
@@ -33,6 +34,7 @@ test("an empty card never writes and a first edit can be saved after a failed cr
     noteId: "created",
     initialVersion: 2,
   });
+  openSessionResource.mockResolvedValue({ data: { kind: "text", content: "Brouillon", version: 2 } });
   updateContent.mockResolvedValue({ kind: "text", version: 3 });
   let draft;
   function Card() {
@@ -57,6 +59,8 @@ test("an empty card never writes and a first edit can be saved after a failed cr
     assert.deepEqual(updateContent.mock.calls, [
       ["created", { kind: "text", expectedVersion: 2, content: "Brouillon complété" }],
     ]);
+    assert.deepEqual(openSessionResource.mock.calls, [["created"]]);
+    assert.ok(openSessionResource.mock.invocationCallOrder[0] < updateContent.mock.invocationCallOrder[0]);
     assert.equal(draft.readyVersion, 3);
   } finally {
     await act(async () => root.unmount());
