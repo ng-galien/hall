@@ -525,6 +525,7 @@ test("maps chosen in Cartes replace the address: one back returns to the screen 
   await chooseMap(page, root, lock.id);
   await expect(page).toHaveURL(new RegExp(`/maps/${lock.id}\\?view=`));
   await chooseMap(page, root, troughs.id);
+  await expect(page).toHaveURL(new RegExp(`/maps/${troughs.id}\\?view=`));
   await expect(page.getByTestId("screen-header-title")).toHaveText("Abreuvoirs");
   // The list closed by the choice gives its history entry back before it is opened again.
   await historySettled(page);

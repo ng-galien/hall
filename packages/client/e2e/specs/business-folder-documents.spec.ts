@@ -110,18 +110,14 @@ test.describe("documents created from a business in a sub-folder, on a computer"
       }),
     );
 
-    const capabilities = page.waitForResponse(
-      (response) =>
-        new URL(response.url()).pathname === "/api/council-business" && response.request().method() === "GET",
-    );
     await page.goto(`/app/workspace?path=${encodeURIComponent(business.parent)}`);
     const row = page.getByTestId(`workspace-business-${business.id}`);
-    await expect(row).toBeVisible();
-    await capabilities;
+    await expect(row).toHaveAttribute("data-folder-import-enabled", "true");
     await row.click({ button: "right" });
     await page.getByTestId("workspace-tree-attach-document").click();
     ids.push(await createText(page, "Note de la ligne"));
     await page.goto(`/app/workspace?path=${encodeURIComponent(business.parent)}`);
+    await expect(row).toHaveAttribute("data-folder-import-enabled", "true");
     await row.click({ button: "right" });
     await page.getByTestId("workspace-tree-attach-document").click();
     ids.push(
