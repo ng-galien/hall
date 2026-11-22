@@ -7470,7 +7470,9 @@
         "Le manifeste livré est exécuté dans une base cible réutilisable puis sa projection PostgreSQL est comparée à la structure extraite des fichiers SQL ; toute perte structurelle bloque la mise à jour.",
         "La projection de la base installée est comparée à celle de la base cible et produit un plan DDL déterministe ; un renommage de colonne exige une annotation renamed-from explicite conservée dans COMMENT ON COLUMN.",
         "Après application transactionnelle sous verrou, la base installée est relue par la même projection et doit être isomorphe à la cible avant l'enregistrement de la nouvelle empreinte et le démarrage du serveur.",
-        "Les données métier ne sont pas recréées. Les rôles et privilèges sont appliqués séparément par des commandes idempotentes. Les anciennes signatures de routines Hall absentes de la cible sont supprimées sans CASCADE."
+        "Les données métier ne sont pas recréées. Les rôles et privilèges sont appliqués séparément par des commandes idempotentes. Les anciennes signatures de routines Hall absentes de la cible sont supprimées sans CASCADE.",
+        "Une migration de schéma applique le différentiel structurel sans exécuter de script de données. Une base plus ancienne que le point de départ pris en charge est refusée avant tout changement.",
+        "Une migration de données nommée s’exécute sous verrou sur un schéma compatible. Les modifications de données et le marqueur sont validés dans la même transaction. L’empreinte structurelle est conservée."
       ],
       "clauses": [
         {

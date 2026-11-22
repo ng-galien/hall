@@ -1,7 +1,7 @@
 import type { Pool, PoolClient } from "pg";
+import { hasCompletedHistoricalUpgrade } from "./dataMigrations.js";
 import { HallPostgresError, preservePostgresError, SchemaContractError } from "./errors.js";
 import { inspectHallSchemaUpgrade, verifyUpgradedHallSchema } from "./schemaComparison.js";
-import { executeSchemaDataMigrations } from "./schemaDataMigrations.js";
 import { loadSchemaManifest, type SchemaManifest } from "./schemaManifest.js";
 import { planHallSchemaUpgrade } from "./schemaUpgrade.js";
 import { type HallSchemaUpgradeRuntime, openHallSchemaUpgradeRuntime } from "./schemaUpgradeRuntime.js";
@@ -100,9 +100,6 @@ async function executeUpgrade(
       );
     }
   }
-  if (schemaOwner === "hall_owner") await client.query("RESET ROLE");
-  await executeSchemaDataMigrations(client);
-  if (schemaOwner === "hall_owner") await client.query("SET LOCAL ROLE hall_owner");
   const upgraded = await verifyUpgradedHallSchema(runtime.codeMoniker, client, inspection.targetDocuments);
   if (!upgraded.comparison.isomorphic) {
     throw new SchemaContractError(
@@ -183,19 +180,22 @@ export class PostgresSchemaBootstrap {
   // The optional initializer shares this transaction and must not commit or release its client.
   async install(initialize?: TransactionalInitialization): Promise<BootstrapResult> {
     const manifest = await this.manifestProvider();
-    const client = await this.pool.connect();
-    try {
-      await client.query("BEGIN");
-      await client.query("SELECT pg_advisory_xact_lock(hashtextextended('hall.schema.install', 0))");
+    return this.withMigrationLock<BootstrapResult>(async (client) => {
       const existingFingerprint = await schemaContractFingerprint(client);
       if (existingFingerprint) {
         if (existingFingerprint === manifest.fingerprint) {
           await initialize?.(client);
-          await client.query("COMMIT");
           return "verified";
         }
         if (this.upgradeMode === "verify-only") {
           assertMatchingFingerprint(existingFingerprint, manifest.fingerprint);
+        }
+        if (!(await hasCompletedHistoricalUpgrade(client))) {
+          throw new SchemaContractError(
+            "The installed database predates the supported starting point for schema upgrades.",
+            manifest.fingerprint,
+            existingFingerprint,
+          );
         }
         const runtime = await this.upgradeRuntimeProvider(manifest);
         try {
@@ -204,15 +204,36 @@ export class PostgresSchemaBootstrap {
           await runtime.close();
         }
         await initialize?.(client);
-        await client.query("COMMIT");
         return "upgraded";
       }
 
       await assertDatabaseHasNoHallModel(client, manifest.fingerprint);
       await executeManifest(client, manifest);
       await initialize?.(client);
-      await client.query("COMMIT");
       return "installed";
+    });
+  }
+
+  async migrateData<Result>(execute: (client: PoolClient) => Promise<Result>): Promise<Result> {
+    const manifest = await this.manifestProvider();
+    return this.withMigrationLock(async (client) => {
+      const existing = await schemaContractFingerprint(client);
+      if (existing === null) {
+        throw new SchemaContractError("Data migration requires an installed Hall schema", manifest.fingerprint);
+      }
+      assertMatchingFingerprint(existing, manifest.fingerprint);
+      return execute(client);
+    });
+  }
+
+  private async withMigrationLock<Result>(run: (client: PoolClient) => Promise<Result>): Promise<Result> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtextextended('hall.schema.install', 0))");
+      const result = await run(client);
+      await client.query("COMMIT");
+      return result;
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       throw preservePostgresError(error);

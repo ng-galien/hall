@@ -196,12 +196,12 @@ CREATE TEMP TABLE migrated AS SELECT phase, jsonb_set(payload, '{documents}', (
     WHERE entry->>'resource' NOT IN (SELECT id::text FROM question_text UNION ALL SELECT id::text FROM proxy))) AS payload
 FROM reduced;
 SET LOCAL session_replication_role = replica;
-\ir ../../migrations/004-meeting-snapshot-document-references.sql
+\ir ../../migrations/test/004-meeting-snapshot-document-references.sql
 SET LOCAL session_replication_role = origin;
 SELECT set_eq($$SELECT phase, payload FROM council_meeting_snapshot$$, $$SELECT phase, payload FROM migrated$$,
   'migration reduces copied snapshots to the captured reference form');
 SET LOCAL session_replication_role = replica;
-\ir ../../migrations/004-meeting-snapshot-document-references.sql
+\ir ../../migrations/test/004-meeting-snapshot-document-references.sql
 SET LOCAL session_replication_role = origin;
 SELECT set_eq($$SELECT phase, payload FROM council_meeting_snapshot$$, $$SELECT phase, payload FROM migrated$$,
   'the migration can run again without changing anything');

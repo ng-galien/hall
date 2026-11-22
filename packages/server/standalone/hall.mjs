@@ -26,6 +26,7 @@ Usage:
   hall start [--env-file /absolute/path/hall.env]
   hall schema-check [--env-file /absolute/path/hall.env]
   hall migrate [--env-file /absolute/path/hall.env]
+  hall migrate-data <name> [--env-file /absolute/path/hall.env]
   hall backup [--env-file /absolute/path/hall.env] [--postgresql-bin /absolute/path/bin]
   hall verify-backup [--env-file /absolute/path/hall.env] [--archive /absolute/path/hall-<database>-<date>.dump]
                      [--postgresql-bin /absolute/path/bin]
@@ -38,6 +39,9 @@ DATABASE_URL must identify an external PostgreSQL database.
 Configuration, backups and database files must stay outside this package.
 start verifies the installed schema and refuses an absent or incompatible schema.
 migrate explicitly installs or upgrades the schema without starting HTTP.
+migrate-data runs one named, tracked data migration on the matching schema.
+Names: mail-authorization-defaults, contact-phone-numbers,
+appointment-authorization-defaults, minutes-secretary-authorization-defaults.
 Stop application writers and verify a backup before migrate on an existing database.
 schema-check only verifies the installed schema fingerprint; it does not migrate.
 backup writes a dated pg_dump archive, its SHA-256 manifest with the Hall version,
@@ -265,8 +269,14 @@ async function main() {
     });
     return;
   }
-  if (!["start", "schema-check", "migrate", "backup", "verify-backup", "windows-tasks"].includes(command)) {
+  if (
+    !["start", "schema-check", "migrate", "migrate-data", "backup", "verify-backup", "windows-tasks"].includes(command)
+  ) {
     throw new Error("Invalid command or arguments. Run hall --help.");
+  }
+  const migrationName = command === "migrate-data" ? args.shift() : undefined;
+  if (command === "migrate-data" && (!migrationName || migrationName.startsWith("-"))) {
+    throw new Error("migrate-data requires the name of a tracked data migration. Run hall --help.");
   }
   const options = parseOptions(command, args);
   const environmentFile = options["--env-file"];
@@ -327,13 +337,17 @@ async function main() {
     );
     return;
   }
-  if (command === "schema-check" || command === "migrate") {
+  if (["schema-check", "migrate", "migrate-data"].includes(command)) {
     const { Pool } = await import("pg");
     const { PostgresSchemaBootstrap } = await import("../../postgres/src/bootstrap.ts");
     const pool = new Pool({ connectionString: config.database.url, max: 1 });
     try {
       const bootstrap = new PostgresSchemaBootstrap(pool);
-      if (command === "migrate") {
+      if (command === "migrate-data") {
+        const { executeNamedDataMigration } = await import("../../postgres/src/dataMigrations.ts");
+        const result = await bootstrap.migrateData((client) => executeNamedDataMigration(client, migrationName));
+        process.stdout.write(`Hall data migration ${migrationName}: ${result}. HTTP was not started.\n`);
+      } else if (command === "migrate") {
         const result = await bootstrap.install();
         await bootstrap.verify();
         process.stdout.write(`Hall schema ${result}; fingerprint verified. HTTP was not started.\n`);

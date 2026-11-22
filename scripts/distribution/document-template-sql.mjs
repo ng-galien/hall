@@ -1,11 +1,6 @@
 /**
- * Writes the three SQL files that bring the document templates of hall.document_template to the current defaults:
- * - the schema manifest gives a new installation the default template of every generated document;
- * - migration 005 inserts the attendance sheet and proxy form families when absent;
- * - the replacement script, run by hand after backup, replaces the body and stylesheet of the
- *   signed templates whose body is still a default of a previous release, and their header and
- *   footer while these are still a previous default, keeping their identifiers, and lists the
- *   customized ones left unchanged.
+ * Writes the installation defaults in the schema manifest and the SQL fixtures
+ * for the former attendance/proxy and template replacement migrations.
  * `--check` fails when a file differs from the current defaults instead of writing it.
  */
 import { execFileSync } from "node:child_process";
@@ -15,13 +10,13 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const migrationsDirectory = join(root, "packages/postgres/sql/migrations");
+const migrationFixtures = join(root, "packages/postgres/sql/migrations/test");
 /** Releases whose defaults an installed template may still carry: 1.0.3, 1.1.0 to 1.3.0 (one set of defaults), and 1.4.0. */
 export const previousReleases = ["v1.0.3", "v1.3.0", "v1.4.0"];
 export const insertedTypes = ["attendance-sheet", "proxy-form"];
 export const replacedTypes = ["minutes", "meeting-notice", "council-decision", "deliberation-list", ...insertedTypes];
-export const migrationPath = join(migrationsDirectory, "005-attendance-sheet-and-proxy-form-templates.sql");
-export const replacementPath = join(migrationsDirectory, "replace-default-templates-1.4.1.sql");
+export const migrationPath = join(migrationFixtures, "005-attendance-sheet-and-proxy-form-templates.sql");
+export const replacementPath = join(migrationFixtures, "replace-default-templates-1.4.1.sql");
 export const installationPath = join(root, "packages/postgres/sql/administration/030-default-document-templates.sql");
 
 const literal = (value) => (value === null ? "NULL" : `'${value.replaceAll("'", "''")}'`);

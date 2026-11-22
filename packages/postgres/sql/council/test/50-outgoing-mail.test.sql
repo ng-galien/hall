@@ -52,7 +52,7 @@ SELECT ok(NOT hall.allows('mail.create'),'councillor cannot create shared drafts
 SELECT ok(NOT hall.allows('mail.update'),'councillor cannot edit shared drafts initially');
 SELECT ok(NOT hall.allows('mail.send'),'councillor cannot send initially');
 INSERT INTO hall.authorization_grant(role,access,condition) VALUES ('councillor','mail.create','always'),('councillor','mail.write','always');
-\ir ../../migrations/002-authorization-defaults.sql
+\ir ../../migrations/test/002-authorization-defaults.sql
 \ir ../../migrations/008-mail-authorization-defaults.sql
 SELECT ok(hall.allows('mail.create') AND hall.allows('mail.update'),'upgrade keeps the mail grants recorded for the councillor');
 SELECT * FROM finish();

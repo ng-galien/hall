@@ -366,7 +366,7 @@ SELECT is((SELECT count(*)::INTEGER FROM hall.agenda_subject_text_lock), 0,
   'an older database can contain started items without durable text locks');
 
 SET LOCAL session_replication_role = replica;
-\ir ../../migrations/001-agenda-subject-text-lock.sql
+\ir ../../migrations/test/001-agenda-subject-text-lock.sql
 SET LOCAL session_replication_role = origin;
 SELECT is((SELECT count(*)::INTEGER FROM hall.agenda_subject_text_lock), 4,
   'the data migration restores locks for previously started subjects');
@@ -381,7 +381,7 @@ SELECT ok(NOT hall.agenda_subject_text_is_editable(id),
 FROM source_editability_resources WHERE kind IN ('carried', 'carried-decision');
 
 SET LOCAL session_replication_role = replica;
-\ir ../../migrations/001-agenda-subject-text-lock.sql
+\ir ../../migrations/test/001-agenda-subject-text-lock.sql
 SET LOCAL session_replication_role = origin;
 SELECT is((SELECT count(*)::INTEGER FROM hall.agenda_subject_text_lock), 4,
   'rerunning the data migration creates no duplicate locks');

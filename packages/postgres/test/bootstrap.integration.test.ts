@@ -290,8 +290,8 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
     expect((await pool.query("SELECT options FROM hall.contact")).rows).toEqual([{ options: {} }]);
   });
 
-  // @verifies-requirement HALL-FR-DIR-170
-  it("adds the three telephone numbers to an installed contact table and copies the former telephone into them", async () => {
+  // @verifies-requirement HALL-TR-SCH-020
+  it("rejects a database older than the supported starting point before changing its schema", async () => {
     await reset();
     const bootstrap = new PostgresSchemaBootstrap(pool);
     await bootstrap.install();
@@ -303,30 +303,28 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
       CREATE OR REPLACE FUNCTION hall.contact_projection(target hall.contact) RETURNS jsonb LANGUAGE sql STABLE
         SET search_path = pg_catalog, hall
         AS $$ SELECT jsonb_build_object('id', target.id, 'phone', target.phone) $$;
+      DROP TABLE hall_meta.data_migration;
       UPDATE hall_meta.schema_contract SET manifest_sha256 = repeat('d', 64);
     `);
     await pool.query(
       "INSERT INTO hall.contact (first_name, last_name, organization_name, phone, notes) VALUES ('Anne', 'Martin', 'Syndicat des eaux', '03 84 87 42 31 / 07 86 29 55 76 / bureau', 'Rencontrée en mai.')",
     );
 
-    await expect(bootstrap.install()).resolves.toBe("upgraded");
-    await expect(bootstrap.verify()).resolves.toBeUndefined();
+    await expect(bootstrap.install()).rejects.toMatchObject({
+      name: "SchemaContractError",
+      actualFingerprint: "d".repeat(64),
+      message: expect.stringContaining("predates the supported starting point"),
+    });
+    expect((await pool.query("SELECT manifest_sha256 FROM hall_meta.schema_contract")).rows[0].manifest_sha256).toBe(
+      "d".repeat(64),
+    );
     expect(
       (
         await pool.query(
-          "SELECT phone, mobile_phone, personal_phone, professional_phone, notes, hall.contact_projection(contact) ? 'phone' AS projected FROM hall.contact AS contact",
+          "SELECT hall.contact_projection(contact) ->> 'phone' AS phone, to_jsonb(contact) ? 'mobile_phone' AS migrated FROM hall.contact AS contact",
         )
       ).rows,
-    ).toEqual([
-      {
-        phone: "03 84 87 42 31 / 07 86 29 55 76 / bureau",
-        mobile_phone: "+33786295576",
-        personal_phone: null,
-        professional_phone: "+33384874231",
-        notes: "Rencontrée en mai.\n\nTéléphone repris : bureau",
-        projected: false,
-      },
-    ]);
+    ).toEqual([{ phone: "03 84 87 42 31 / 07 86 29 55 76 / bureau", migrated: false }]);
   });
 
   it("recreates SQL routines that call each other whatever their catalog order", async () => {

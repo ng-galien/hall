@@ -432,22 +432,25 @@ they are not an invitation to use the shared development or production database.
 
 1. Keep the current tarball, configuration and verified backup.
 2. Install the candidate into a new release directory without starting it.
-3. Verify its assets, dependencies and release metadata. Rehearse startup and any
-   schema change with `hall migrate` on a restored copy, including retained records
-   and failure cases, then use `schema-check` and `start`.
+3. Verify its assets, dependencies and release metadata. Follow the
+   [migration rehearsal](#migration-rehearsal) for the exact source and target
+   packages. Resolve every unexplained change before scheduling the update.
 4. During the authorized maintenance window, stop every writer and take the final
-   backup. Run the candidate's `hall migrate`, then `schema-check` and `start`;
-   verify the API and application data before
-   allowing writes again.
+   backup. Check that the final database still meets the rehearsal assumptions.
+   Run the candidate's `hall migrate` for schema changes. Apply any data
+   migration explicitly required by the release instructions, then run
+   `schema-check` and `start`. Compare the resulting data with the expected
+   changes and verify the API before allowing writes again.
 5. Retain the old release and backup until recovery requirements are satisfied.
 
 If npm installation is interrupted, discard only the incomplete candidate code
 directory and reinstall it; configuration and PostgreSQL data remain external.
 Do not overwrite the active release while its process is running.
 
-`migrate` runs the Hall schema upgrade and its data migrations in one transaction
-with advisory locks. If an operation fails, the transaction rolls back and
-preserves the installed schema, fingerprint and existing data. Stop
+`migrate` runs the Hall schema upgrade in one transaction with an advisory lock.
+It applies the difference between the installed and target catalogs. If an
+operation fails, the transaction rolls back and preserves the installed schema,
+fingerprint and existing data. Stop
 writers, retain the error, correct its cause, then rerun the same candidate command.
 A matching schema is verified on retry; no automatic downgrade is attempted.
 If the connection is lost while committing, the outcome may be unknown. Keep
@@ -464,762 +467,66 @@ pre-update dump into a separate database and switch the old package to that
 database. Any writes after the backup need an explicit recovery decision. No
 automatic downgrade, merge or reverse migration is implemented.
 
-The current data-migration list is ordered but has no per-migration applied-version
-ledger. Its SQL files are separate from the structural manifest fingerprint.
-Rehearsal must cover the exact source and target versions; structural convergence
-alone does not establish data-migration history or semantic correctness.
-
-### Schema changes in 1.5.0
-
-Run `hall migrate` when upgrading from 1.4.2. This release adds PostgreSQL indexes
-and updates functions and triggers for document filing, navigation and map
-printing. Rehearse the update on a restored copy of the 1.4.2 database and run
-`hall schema-check` before starting 1.5.0.
-
-### Schema changes in 1.4.2
-
-1.4.2 changes no SQL file of `packages/postgres/sql`: no table, constraint, function,
-data migration or default document template changes, and the schema fingerprint of 1.4.1
-is unchanged. A 1.4.1 database needs no `hall migrate`: install the 1.4.2 package, check
-it with `hall schema-check`, then restart the server. A 1.4.0 database first needs the
-changes of [Schema changes in 1.4.1](#schema-changes-in-141) and
-[Document templates in 1.4.1](#document-templates-in-141).
-
-### Schema changes in 1.4.1
-
-`hall migrate` from 1.4.0 adds the condition `minutesSecretary` to the constraint
-`authorization_grant_condition` of `hall.authorization_grant` and to the conditions
-offered for the access `minutes.draft` (requirement HALL-FR-MIN-300): the account whose
-contact is the secretary in office at the closure of a meeting drafts and generates the
-minutes of that meeting. It adds `hall.is_minutes_secretary` and replaces
-`hall.role_grants` and `hall.capture_minutes_facts`: minutes created from then on name
-the chair and the secretary in office at closure, handovers included. The facts of
-existing minutes are unchanged.
-
-The migration runs `012-minutes-secretary-authorization-defaults.sql` once to add the
-grant `minutes.draft` with the condition `minutesSecretary` to the existing councillor
-role when that role has no grant for this access. No other grant is added, changed or
-removed. The migration is recorded so that a later administrator change survives
-subsequent upgrades.
-
-### Document templates in 1.4.1
-
-The 1.4.1 defaults of « Procès-verbal du conseil » and « Délibération du conseil
-municipal » sign with « Le secrétaire de séance » on the left; the minutes are signed on the
-right by « Le président de séance » with the quality of the mandate under each name, open with
-« Président de séance » and « Secrétaire de séance », and print the questions added during the
-meeting in a separate section « Questions ajoutées en séance ». `hall migrate` does not change
-installed templates. After the backup and `hall migrate`, run the replacement script of the
-1.4.1 package:
-
-```sh
-psql --dbname="$DATABASE" --set=ON_ERROR_STOP=1 \
-  --file=/srv/hall/releases/1.4.1/node_modules/@ng-galien/hall/sql/migrations/replace-default-templates-1.4.1.sql
-```
-
-The script gives the current default body and stylesheet to a PDF template whose body is still
-a default of 1.0.3, of 1.1.0 to 1.3.0 or of 1.4.0, and the current header and footer while these
-are still such a default; it keeps the identifier and the name. It prints one row per template
-with its outcome: `replaced`, `current` or `customized`. A `customized` template is left
-unchanged; bring the changes of the current default to it by hand in **Paramètres → Documents**.
-Running the script again changes nothing.
-
-### Schema changes in 1.4.0
-
-`hall migrate` from 1.3.0 creates the empty table `hall.meeting_proxy_registration`
-(requirement HALL-FR-ATT-190): the written proxies registered for a meeting before its
-opening, each with its document, the member who gives it and the member who receives
-it. It replaces `hall_api.meeting_conduct` and adds the functions
-`hall_api.register_meeting_proxy`, `hall_api.change_meeting_proxy_registration` and
-`hall_api.withdraw_meeting_proxy_registration`, with the actions
-`meeting.register-proxy` and `meeting.correct-proxy-registration` in the role matrix
-under the access `meeting.conduct`. No data migration applies: existing meetings have
-no registered proxy and their attendance is unchanged.
-
-The same migration adds `hall.insert_document_resource`, now used by
-`hall_api.create_document_resource`, and `hall_api.create_meeting_proxy_document`
-with the action `meeting.upload-proxy-document` under the access `meeting.conduct`:
-an account that registers the proxies of a meeting stores the signed written proxy at
-the root of the workspace without the right to create any other document.
-
-It replaces `hall_api.create_app_session`: each sign-in deletes the expired sessions of
-every account (requirement HALL-TR-SCH-030). It replaces
-`hall_api.issue_account_password_link`: each issued link first deletes the password links
-of every account that were used, superseded or expired, once issued more than an hour
-before (requirement HALL-FR-USR-080). A valid session and a usable link are never
-deleted. The first sign-in and the first issued link after the update remove the expired
-sessions and finished links kept before it.
-
-`hall migrate` from 1.3.0 also runs
-`packages/postgres/sql/migrations/010-drop-former-server-tables.sql` (requirement
-HALL-TR-SCH-030): it drops the seven former server tables of schema `public` (`users`,
-`user_roles`, `sessions`, `hall_settings`, `hall_meeting_locations`, `templates`,
-`audit_events`), copied into schema `hall` by migration 007 and no longer read or
-written since 1.1.0. Before the drop it checks that `hall.app_user` holds every account
-of `public.users`, `hall.audit_event` every event of `public.audit_events` and
-`hall.settings` the settings row of `public.hall_settings`; if one is missing,
-`hall migrate` fails and rolls the whole upgrade back. Accounts keep their password and
-open sessions stay valid. A database without these tables, such as a new installation
-or a database already updated, is left unchanged.
-
-The migration also runs `011-appointment-authorization-defaults.sql` once to add
-missing default grants for `appointment.create` and `appointment.manage` to existing
-roles. Existing grants are not overwritten. The migration is recorded so that a later
-administrator change survives subsequent upgrades.
-
-Existing PDF templates are not replaced by `hall migrate`. The explicit template
-replacement script described below remains a separate operation.
-
-### Update procedure from 1.2.0 to 1.3.0 on the municipal computer
-
-This list applies to the Windows installation described in
-[Municipal installation and recovery](municipal-bootstrap.md), with `C:\Hall` as root,
-updated to 1.2.0 by the procedure below. Run the steps in this order in one PowerShell
-session. Record each output in the installation record.
-
-Version 1.3.0 changes the schema, runs two new data migrations and reads one new
-configuration variable for account emails. `hall migrate` runs in one transaction:
-
-- It creates the table `hall_meta.data_migration`, which records the data migrations
-  that run once, the shared mailbox tables of `packages/postgres/sql/mail/010-model.sql`
-  (`hall.mail_message`, `hall.mail_recipient`, `hall.mail_attachment`,
-  `hall.mail_submission`, `hall.mail_submission_attachment`,
-  `hall.mail_recipient_group`, `hall.mail_recipient_group_member`), and the account
-  tables `hall.account_password_link` and `hall.account_mail`. All are empty after the
-  update.
-- It adds `password_change_required BOOLEAN NOT NULL DEFAULT false` to `hall.app_user`
-  (requirement HALL-FR-USR-070): no existing account is asked to change its password.
-- It adds `mobile_phone`, `personal_phone` and `professional_phone` after `options` on
-  `hall.contact`, with the constraint `contact_phone_numbers_are_normalized`
-  (requirement HALL-FR-DIR-170). The former column `phone` keeps its value; 1.3.0
-  neither reads nor writes it.
-- It replaces the API functions and views, including the mail actions, the withdrawal
-  of a recusal (`agenda-item.withdraw-recusal`) and the password link action
-  (`user.send-password-link`) in the role matrix.
-- It runs the existing data migrations 001 through 007 again, with the results
-  described in the 1.1.0 to 1.2.0 procedure, then the two new ones, each recorded in
-  `hall_meta.data_migration` and skipped on a later run:
-  - `packages/postgres/sql/migrations/008-mail-authorization-defaults.sql` grants the
-    mail accesses to the built-in roles: create and modify a draft for the administrator,
-    the clerk and the contributor;
-    delete a draft, send and verify, and manage recipient groups for the clerk and the
-    administrator (requirement HALL-FR-EML-050). Custom roles receive nothing.
-  - `packages/postgres/sql/migrations/009-contact-phone-numbers.sql` copies each
-    readable number of `phone` into a new number: a French 06 or 07 number goes to
-    the mobile; another number goes to the professional number when the contact has
-    an organization, otherwise to the personal number. A French number is stored as
-    `+33` followed by nine digits, a foreign number written with `+` keeps its digits.
-    A number without a free slot and any unreadable text are appended to the notes of
-    the contact as `Téléphone repris : …`.
-
-The former `public` tables stay in place. The default document templates are
-unchanged: no template replacement script applies.
-
-A database of release 1.2.0 stores the schema fingerprint
-`abf1afd5259878d09731f2b0bc4e2f083ceabdd9fbdba887944364ed7996e556`; the
-`schemaFingerprint` of the 1.3.0 `release.json` is the target.
-
-Session variables, used by every step. The PostgreSQL connection uses the `PG*`
-variables and the protected `pgpass.conf` of
-[Restore the selected backup](municipal-bootstrap.md#restore-the-selected-backup-before-starting-hall);
-`$Database` is the database named in `DATABASE_URL` of `C:\Hall\config\hall.env`.
-
-```powershell
-$ErrorActionPreference = 'Stop'
-$HallRoot = 'C:\Hall'
-$Config = Join-Path $HallRoot 'config\hall.env'
-$Archive = 'C:\Transfer\ng-galien-hall-1.3.0.tgz'
-$Release = Join-Path $HallRoot 'releases\1.3.0'
-$PostgresqlBin = 'C:\Program Files\PostgreSQL\17\bin'
-$env:PATH = "$PostgresqlBin;$env:PATH"
-$env:PGHOST = '127.0.0.1'
-$env:PGPORT = '5432'
-$env:PGUSER = 'postgres'
-$env:PGPASSFILE = "$HallRoot\config\pgpass.conf"
-$Database = 'DATABASE_NAME_FROM_HALL_ENV'
-$OldHall = 'C:\Hall\releases\1.2.0\node_modules\.bin\hall.cmd'
-$Counts = @'
-SELECT 'hall.resource' AS table_name, count(*) FROM hall.resource
-UNION ALL SELECT 'hall.binary_object', count(*) FROM hall.binary_object
-UNION ALL SELECT 'hall.contact', count(*) FROM hall.contact
-UNION ALL SELECT 'hall.contact with phone', count(*) FROM hall.contact WHERE phone IS NOT NULL
-UNION ALL SELECT 'hall.council_member', count(*) FROM hall.council_member
-UNION ALL SELECT 'hall.council_meetings', count(*) FROM hall.council_meetings
-UNION ALL SELECT 'hall.council_agenda_item', count(*) FROM hall.council_agenda_item
-UNION ALL SELECT 'hall.council_decision', count(*) FROM hall.council_decision
-UNION ALL SELECT 'hall.app_user', count(*) FROM hall.app_user
-UNION ALL SELECT 'hall.document_template', count(*) FROM hall.document_template
-'@
-$Phones = @'
-SELECT count(*) FILTER (WHERE mobile_phone IS NOT NULL) AS mobile,
-       count(*) FILTER (WHERE personal_phone IS NOT NULL) AS personal,
-       count(*) FILTER (WHERE professional_phone IS NOT NULL) AS professional,
-       count(*) FILTER (WHERE position('repris : ' IN notes) > 0) AS carried_to_notes
-FROM hall.contact
-'@
-```
-
-1. **Read-only record before the update.** Hall can keep running during this step,
-   provided nobody works in it until step 2; `PGOPTIONS` makes the session read-only.
-
-   ```powershell
-   $env:PGOPTIONS = '-c default_transaction_read_only=on'
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT manifest_sha256 FROM hall_meta.schema_contract"
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command=$Counts
-   Remove-Item Env:PGOPTIONS
-   ```
-
-   Expected: the stored fingerprint is the 1.2.0 value above. Record the ten counts.
-   If the fingerprint differs, stop and determine which package installed that schema.
-
-2. **Stop Hall** and every other writer:
-
-   ```powershell
-   Stop-ScheduledTask -TaskName 'Hall'   # or Ctrl+C in the Hall terminal
-   ```
-
-3. **Backup with 1.2.0.** Back up with the installed 1.2.0 release and verify the
-   archive:
-
-   ```powershell
-   & $OldHall backup --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Backup failed' }
-   & $OldHall verify-backup --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed: do not change anything' }
-   ```
-
-   This backup is the only way back: after `hall migrate`, the 1.2.0 package refuses
-   to start (`fingerprint differs`). The archive and its `.json` manifest are in
-   `HALL_BACKUP_DIRECTORY`. Record their names and SHA-256, and copy both files to a
-   medium outside the computer. See
-   [Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover).
-
-4. **Install the package** into `C:\Hall\releases\1.3.0` without touching
-   `C:\Hall\releases\1.2.0`: run the PowerShell block of
-   [Install the package](municipal-bootstrap.md#install-the-package) with the
-   `$Release` and `$Archive` values above. Expected: `hall --version` prints `1.3.0`,
-   and `release.json` gives version `1.3.0` and the commit recorded with the tarball.
-   The block defines `$Hall`, the 1.3.0 command used below. Record the target
-   fingerprint:
-
-   ```powershell
-   $Target = (Get-Content -Raw "$Release\node_modules\@ng-galien\hall\release.json" | ConvertFrom-Json).schemaFingerprint
-   $Target
-   ```
-
-5. **Migration, Hall stopped.**
-
-   ```powershell
-   & $Hall migrate --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Migration failed; keep Hall stopped and inspect the error' }
-   & $Hall schema-check --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Schema verification failed; do not start Hall' }
-   ```
-
-   Expected: `Hall schema upgraded; fingerprint verified. HTTP was not started.`, then
-   `Hall schema fingerprint matches this package. No migration performed.` A failed
-   migration leaves the database at 1.2.0, since `hall migrate` runs in one transaction.
-
-6. **Read-only record after the migration.**
-
-   ```powershell
-   $env:PGOPTIONS = '-c default_transaction_read_only=on'
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT manifest_sha256 FROM hall_meta.schema_contract"
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command=$Counts
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command=$Phones
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT name, applied_at FROM hall_meta.data_migration ORDER BY name"
-   Remove-Item Env:PGOPTIONS
-   ```
-
-   Expected: the stored fingerprint equals `$Target`; the ten counts equal those of
-   step 1, `hall.contact with phone` included, since the former numbers are kept;
-   `hall_meta.data_migration` lists `contact-phone-numbers` and
-   `mail-authorization-defaults`. Record the four counts of `$Phones`. If a count of
-   `$Counts` differs, keep Hall stopped and do not reopen access.
-
-7. **Address of the account email links.** Add to `C:\Hall\config\hall.env` the
-   address people type to open Hall, as an exact origin without a path or final slash:
-
-   ```dotenv
-   HALL_PUBLIC_ORIGIN=http://127.0.0.1:3100
-   ```
-
-   Replace the example with the address actually used, when people reach Hall by
-   another address. Without this line, no invitation or recovery email leaves and each
-   one is recorded as failed (`public_origin_not_configured`); with a value that is not
-   an exact HTTP(S) origin, Hall refuses to start. See
-   [Configuration and startup](#configuration-and-startup). Emails leave only with
-   `HALL_EMAIL_TRANSPORT=outlook` and the conditions of
-   [outbound mail](outbound-mail.md#outlook-configuration-and-verification-boundary);
-   without it, each email is recorded as failed (`transport_not_configured`).
-
-8. **Start 1.3.0.** Point the action of the scheduled task **Hall** at the new
-   release, start it and check the health endpoint:
-
-   ```powershell
-   $Action = New-ScheduledTaskAction -Execute (Get-Command node.exe).Source -WorkingDirectory $HallRoot `
-     -Argument "`"$Release\node_modules\@ng-galien\hall\bin\hall.mjs`" start --env-file `"$Config`""
-   Set-ScheduledTask -TaskName 'Hall' -Action $Action
-   Start-ScheduledTask -TaskName 'Hall'
-   Invoke-RestMethod http://127.0.0.1:3100/api/health
-   ```
-
-   Expected: `status` `ok` and `version` `1.3.0:<commit>:clean`, with the commit of
-   `release.json`. The notes of step 7 of the
-   [1.0.3 to 1.1.0 procedure](#update-procedure-from-103-to-110-on-the-municipal-computer)
-   on a stored password and on a missing **Hall** task apply unchanged.
-
-9. **Backup tasks.** The backup tasks still call the 1.2.0 release. Generate the
-   registration script with the 1.3.0 release, then run it in an elevated PowerShell:
-
-   ```powershell
-   & $Hall windows-tasks --env-file $Config --postgresql-bin $PostgresqlBin
-   if ($LASTEXITCODE -ne 0) { throw 'Task script generation failed' }
-   powershell -ExecutionPolicy Bypass -File (Join-Path $HallRoot 'config\register-hall-tasks.ps1')
-   ```
-
-   Expected output and options (`-Account`, `-StorePassword`) are those of
-   [Schedule nightly backups](municipal-bootstrap.md#schedule-nightly-backups).
-
-10. **Verified backup with 1.3.0.**
-
-    ```powershell
-    & $Hall backup --env-file $Config
-    if ($LASTEXITCODE -ne 0) { throw 'Backup failed' }
-    & $Hall verify-backup --env-file $Config
-    if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed' }
-    ```
-
-    Expected: `Hall 1.3.0` in the backup output, and `Backup verified:`. The `.json`
-    manifest records the fingerprint `$Target`. Record the archive name and SHA-256.
-
-11. **Acceptance, reading only.** Sign in, open **Contacts** and a contact that had a
-    telephone number: the number appears under **Coordonnées** in its new place, or
-    in the notes as `Téléphone repris : …`. Open the closed meeting of 6 November 2026:
-    its documents, its deliberations and its proceedings. Open **Courriels**: both
-    folders are empty. Do not send a password link or a message, create a draft,
-    modify a contact or conduct a test meeting on the municipal database.
-
-Keep the 1.2.0 release and the backup of step 3 until acceptance. To return to 1.2.0,
-restore the backup of step 3 into a new database with the 1.2.0 release, as described in
-[Restore the selected backup](municipal-bootstrap.md#restore-the-selected-backup-before-starting-hall)
-and [Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover),
-never over the migrated database, which is kept for diagnosis. Point `DATABASE_URL`
-at the restored database, check it with `& $OldHall schema-check --env-file $Config`
-(expected: the 1.2.0 fingerprint), point the **Hall** task at the 1.2.0 release and run
-`hall windows-tasks` of the 1.2.0 release again. Do not run the 1.2.0 `hall migrate`
-on the migrated database: it refuses to remove the 1.3.0 tables and columns. Changes
-made after the backup of step 3 are absent from the restored database. The line
-`HALL_PUBLIC_ORIGIN` can stay in `hall.env`: release 1.2.0 does not read it.
-
-### Update procedure from 1.1.0 to 1.2.0 on the municipal computer
-
-This list applies to the Windows installation described in
-[Municipal installation and recovery](municipal-bootstrap.md), with `C:\Hall` as root,
-updated to 1.1.0 by the procedure below. Run the steps in this order in one PowerShell
-session. Record each output in the installation record.
-
-Version 1.2.0 changes the schema only; it has no new data migration, no control query
-to run before the update and no new configuration variable. `hall migrate` adds the
-column `options JSONB NOT NULL DEFAULT '{}'::jsonb`, constrained to a JSON object, as
-the last column of `hall.resource`, `hall.contact`, `hall.council_member`,
-`hall.council_committee`, `hall.council_delegation`, `hall.app_user` and
-`hall.document_template` (requirement HALL-TR-SCH-060). Every existing row receives an
-empty object. On `hall.resource` the only declared option is the folder colour
-`#RRGGBB` (requirement HALL-FR-WSP-480); after the update no folder has a colour.
-`hall_api.update_resource_metadata` takes an optional colour, and
-`hall_api.add_open_question` an optional council business (requirement
-HALL-FR-AGI-410). As on every upgrade, `hall migrate` then runs the existing data
-migrations 001 through 007 again; on a 1.1.0 database migration 005 adds no template
-and migration 007 copies nothing because `hall.app_user` holds an account. The former
-`public` tables stay in place. The default document templates are unchanged: no
-template replacement script applies.
-
-A database of release 1.1.0 stores the schema fingerprint
-`489f861a3c9914e5023e29ed60e505af27f969dee0d1afb6aaf6744a46fdff6c`; the
-`schemaFingerprint` of the 1.2.0 `release.json` is the target.
-
-Session variables, used by every step. The PostgreSQL connection uses the `PG*`
-variables and the protected `pgpass.conf` of
-[Restore the selected backup](municipal-bootstrap.md#restore-the-selected-backup-before-starting-hall);
-`$Database` is the database named in `DATABASE_URL` of `C:\Hall\config\hall.env`.
-
-```powershell
-$ErrorActionPreference = 'Stop'
-$HallRoot = 'C:\Hall'
-$Config = Join-Path $HallRoot 'config\hall.env'
-$Archive = 'C:\Transfer\ng-galien-hall-1.2.0.tgz'
-$Release = Join-Path $HallRoot 'releases\1.2.0'
-$PostgresqlBin = 'C:\Program Files\PostgreSQL\17\bin'
-$env:PATH = "$PostgresqlBin;$env:PATH"
-$env:PGHOST = '127.0.0.1'
-$env:PGPORT = '5432'
-$env:PGUSER = 'postgres'
-$env:PGPASSFILE = "$HallRoot\config\pgpass.conf"
-$Database = 'DATABASE_NAME_FROM_HALL_ENV'
-$OldHall = 'C:\Hall\releases\1.1.0\node_modules\.bin\hall.cmd'
-$Counts = @'
-SELECT 'hall.resource' AS table_name, count(*) FROM hall.resource
-UNION ALL SELECT 'hall.binary_object', count(*) FROM hall.binary_object
-UNION ALL SELECT 'hall.contact', count(*) FROM hall.contact
-UNION ALL SELECT 'hall.council_member', count(*) FROM hall.council_member
-UNION ALL SELECT 'hall.council_meetings', count(*) FROM hall.council_meetings
-UNION ALL SELECT 'hall.council_agenda_item', count(*) FROM hall.council_agenda_item
-UNION ALL SELECT 'hall.council_decision', count(*) FROM hall.council_decision
-UNION ALL SELECT 'hall.app_user', count(*) FROM hall.app_user
-UNION ALL SELECT 'hall.document_template', count(*) FROM hall.document_template
-'@
-```
-
-1. **Read-only record before the update.** Hall can keep running during this step,
-   provided nobody works in it until step 2; `PGOPTIONS` makes the session read-only.
-
-   ```powershell
-   $env:PGOPTIONS = '-c default_transaction_read_only=on'
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT manifest_sha256 FROM hall_meta.schema_contract"
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command=$Counts
-   Remove-Item Env:PGOPTIONS
-   ```
-
-   Expected: the stored fingerprint is the 1.1.0 value above. Record the nine counts.
-   If the fingerprint differs, stop and determine which package installed that schema.
-
-2. **Stop Hall** and every other writer:
-
-   ```powershell
-   Stop-ScheduledTask -TaskName 'Hall'   # or Ctrl+C in the Hall terminal
-   ```
-
-3. **Backup with 1.1.0.** Back up with the installed 1.1.0 release and verify the
-   archive:
-
-   ```powershell
-   & $OldHall backup --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Backup failed' }
-   & $OldHall verify-backup --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed: do not change anything' }
-   ```
-
-   This backup is the only way back: after `hall migrate`, the 1.1.0 package refuses
-   to start (`fingerprint differs`). The archive and its `.json` manifest are in
-   `HALL_BACKUP_DIRECTORY`. Record their names and SHA-256, and copy both files to a
-   medium outside the computer. See
-   [Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover).
-
-4. **Install the package** into `C:\Hall\releases\1.2.0` without touching
-   `C:\Hall\releases\1.1.0`: run the PowerShell block of
-   [Install the package](municipal-bootstrap.md#install-the-package) with the
-   `$Release` and `$Archive` values above. Expected: `hall --version` prints `1.2.0`,
-   and `release.json` gives version `1.2.0` and the commit recorded with the tarball.
-   The block defines `$Hall`, the 1.2.0 command used below. Record the target
-   fingerprint:
-
-   ```powershell
-   $Target = (Get-Content -Raw "$Release\node_modules\@ng-galien\hall\release.json" | ConvertFrom-Json).schemaFingerprint
-   $Target
-   ```
-
-5. **Migration, Hall stopped.**
-
-   ```powershell
-   & $Hall migrate --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Migration failed; keep Hall stopped and inspect the error' }
-   & $Hall schema-check --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Schema verification failed; do not start Hall' }
-   ```
-
-   Expected: `Hall schema upgraded; fingerprint verified. HTTP was not started.`, then
-   `Hall schema fingerprint matches this package. No migration performed.`
-
-6. **Read-only record after the migration.**
-
-   ```powershell
-   $env:PGOPTIONS = '-c default_transaction_read_only=on'
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT manifest_sha256 FROM hall_meta.schema_contract"
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command=$Counts
-   Remove-Item Env:PGOPTIONS
-   ```
-
-   Expected: the stored fingerprint equals `$Target`, and the nine counts equal those
-   of step 1. If a count differs, keep Hall stopped and do not reopen access.
-
-7. **Start 1.2.0.** Point the action of the scheduled task **Hall** at the new
-   release, start it and check the health endpoint:
-
-   ```powershell
-   $Action = New-ScheduledTaskAction -Execute (Get-Command node.exe).Source -WorkingDirectory $HallRoot `
-     -Argument "`"$Release\node_modules\@ng-galien\hall\bin\hall.mjs`" start --env-file `"$Config`""
-   Set-ScheduledTask -TaskName 'Hall' -Action $Action
-   Start-ScheduledTask -TaskName 'Hall'
-   Invoke-RestMethod http://127.0.0.1:3100/api/health
-   ```
-
-   Expected: `status` `ok` and `version` `1.2.0:<commit>:clean`, with the commit of
-   `release.json`. The notes of step 7 of the
-   [1.0.3 to 1.1.0 procedure](#update-procedure-from-103-to-110-on-the-municipal-computer)
-   on a stored password and on a missing **Hall** task apply unchanged.
-
-8. **Backup tasks.** The backup tasks still call the 1.1.0 release. Generate the
-   registration script with the 1.2.0 release, then run it in an elevated PowerShell:
-
-   ```powershell
-   & $Hall windows-tasks --env-file $Config --postgresql-bin $PostgresqlBin
-   if ($LASTEXITCODE -ne 0) { throw 'Task script generation failed' }
-   powershell -ExecutionPolicy Bypass -File (Join-Path $HallRoot 'config\register-hall-tasks.ps1')
-   ```
-
-   Expected output and options (`-Account`, `-StorePassword`) are those of
-   [Schedule nightly backups](municipal-bootstrap.md#schedule-nightly-backups).
-
-9. **Verified backup with 1.2.0.**
-
-   ```powershell
-   & $Hall backup --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Backup failed' }
-   & $Hall verify-backup --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed' }
-   ```
-
-   Expected: `Hall 1.2.0` in the backup output, and `Backup verified:`. The `.json`
-   manifest records the fingerprint `$Target`. Record the archive name and SHA-256.
-
-10. **Acceptance, reading only.** Sign in, open the workspace tree and the explorer
-    list: every folder shows its grey icon. Open the closed meeting of 6 November 2026:
-    its list of points, its meeting documents, one document of the meeting and its
-    minutes (PV). Do not choose a folder colour, add an open question or conduct a test
-    meeting on the municipal database.
-
-Keep the 1.1.0 release and the backup of step 3 until acceptance. To return to 1.1.0,
-restore the backup of step 3 into a new database with the 1.1.0 release, as described in
-[Restore the selected backup](municipal-bootstrap.md#restore-the-selected-backup-before-starting-hall)
-and [Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover),
-never over the migrated database, which is kept for diagnosis. Point `DATABASE_URL`
-at the restored database, check it with `& $OldHall schema-check --env-file $Config`
-(expected: the 1.1.0 fingerprint), point the **Hall** task at the 1.1.0 release and run
-`hall windows-tasks` of the 1.1.0 release again. Do not run the 1.1.0 `hall migrate`
-on the migrated database. Changes made after the backup of step 3 are absent from the
-restored database.
-
-### Update procedure from 1.0.3 to 1.1.0 on the municipal computer
-
-This list applies to the Windows installation described in
-[Municipal installation and recovery](municipal-bootstrap.md), with `C:\Hall` as root.
-Run the steps in this order in one PowerShell session. Record each output in the
-installation record.
-
-Version 1.1.0 runs four data migrations (004 through 007).
-`packages/postgres/sql/migrations/004-meeting-snapshot-document-references.sql`
-(requirement HALL-FR-MIN-160) replaces the document bytes and editor images copied
-into `hall.council_meeting_snapshot` by references to the resource and its binary
-object. `packages/postgres/sql/migrations/005-attendance-sheet-and-proxy-form-templates.sql`
-(requirements HALL-FR-ATT-170 and HALL-FR-ATT-180) adds the default templates
-« Feuille d’émargement » and « Pouvoir » when the database has none of that type.
-`packages/postgres/sql/migrations/006-agenda-revisions.sql` (requirements HALL-FR-NOT-100
-and HALL-FR-NOT-140) records the date and location of each agenda freeze, now an
-established agenda revision, from the facts of its last notice or from the meeting,
-and links each notice to the revision active when it was generated. A meeting in
-preparation whose date or location changed after the notice of its active revision
-moves to the next, open revision. Closed meetings keep their facts and documents.
-The migrations run in `hall migrate` (step 4), not at startup: `hall start`
-refuses an incompatible schema.
-
-Version 1.1.0 also runs
-`packages/postgres/sql/migrations/007-server-tables-into-hall.sql` (requirement
-HALL-TR-SCH-030): it copies the seven server tables of schema `public` (`users`,
-`user_roles`, `sessions`, `hall_settings`, `hall_meeting_locations`, `templates`,
-`audit_events`) into `hall.app_user`, `hall.app_user_role`, `hall.app_session`,
-`hall.settings`, `hall.meeting_location`, `hall.document_template` and
-`hall.audit_event`, with their identifiers, password hashes, active sessions,
-customized templates and dates. Accounts keep their password and open sessions stay
-valid. For each table the migration checks the row count and the copied identifiers;
-any difference fails `hall migrate` and rolls the whole upgrade back. The `public`
-tables stay in place, unchanged, and are no longer read or written, until the
-update to 1.4.0 drops them (migration 010, described in
-[Schema changes prepared for 1.4.0](#schema-changes-prepared-for-140)). Run again, the migration
-copies nothing as soon as `hall.app_user` holds an account.
-
-Session variables, used by every step. The PostgreSQL connection uses the `PG*`
-variables and the protected `pgpass.conf` of
-[Restore the selected backup](municipal-bootstrap.md#restore-the-selected-backup-before-starting-hall);
-`$Database` is the database named in `DATABASE_URL` of `C:\Hall\config\hall.env`.
-
-```powershell
-$ErrorActionPreference = 'Stop'
-$HallRoot = 'C:\Hall'
-$Config = Join-Path $HallRoot 'config\hall.env'
-$Archive = 'C:\Transfer\ng-galien-hall-1.1.0.tgz'
-$Release = Join-Path $HallRoot 'releases\1.1.0'
-$PostgresqlBin = 'C:\Program Files\PostgreSQL\17\bin'
-$env:PATH = "$PostgresqlBin;$env:PATH"
-$env:PGHOST = '127.0.0.1'
-$env:PGPORT = '5432'
-$env:PGUSER = 'postgres'
-$env:PGPASSFILE = "$HallRoot\config\pgpass.conf"
-$Database = 'DATABASE_NAME_FROM_HALL_ENV'
-$OldHall = 'C:\Hall\releases\1.0.3\node_modules\.bin\hall.cmd'
-```
-
-1. **Read-only control before the migration.** The control query
-   `sql/migrations/control-before-004-meeting-snapshot-document-references.sql` is in the
-   1.1.0 package. It lists the documents and editor images copied into a meeting
-   snapshot whose resource or editor image was deleted afterwards, with
-   `bytes_present`, the presence of their binary object. After the migration such an
-   entry stays readable only from that binary object. Hall can keep running during
-   this step; `PGOPTIONS` makes the session read-only.
-
-   ```powershell
-   $Check = Join-Path $HallRoot 'releases\control-1.1.0'
-   New-Item -ItemType Directory -Force -Path $Check | Out-Null
-   tar -xzf $Archive -C $Check package/sql/migrations/control-before-004-meeting-snapshot-document-references.sql
-   $env:PGOPTIONS = '-c default_transaction_read_only=on'
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --file="$Check\package\sql\migrations\control-before-004-meeting-snapshot-document-references.sql"
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT pg_size_pretty(pg_total_relation_size('hall.council_meeting_snapshot'))"
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT manifest_sha256 FROM hall_meta.schema_contract"
-   Remove-Item Env:PGOPTIONS
-   ```
-
-   Expected result: no row with `bytes_present` = `f`. Rows with `t` are deleted
-   documents that remain readable. Record the rows and the size of
-   `hall.council_meeting_snapshot` before the migration. If a row shows `f`, stop the
-   update: the bytes of that document exist only in the snapshot copy.
-   `hall migrate` runs the data migrations only when the stored schema fingerprint
-   differs from the fingerprint of the package. A database of release 1.0.3 stores
-   `c41aefcfa9abe9f2631e28b8f220337e212ed1d20ca5a39cd0d10efb613c06a3`; the
-   `schemaFingerprint` of the 1.1.0 `release.json` is the target. If the stored value
-   already equals the target, migration 004 does not run in step 4: stop and
-   determine which package installed that schema.
-
-2. **Backup.** Stop Hall and every other writer, then back up with the installed
-   1.0.3 release, verify the archive, and copy it off the computer:
-
-   ```powershell
-   Stop-ScheduledTask -TaskName 'Hall'   # or Ctrl+C in the Hall terminal
-   & $OldHall backup --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Backup failed' }
-   & $OldHall verify-backup --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed: do not change anything' }
-   ```
-
-   This backup is the only way back. After `hall migrate`, the 1.0.3 package refuses
-   to start (`fingerprint differs`) and its `hall migrate` refuses the 1.1.0 schema;
-   pointing the task back at the 1.0.3 release is not a rollback. To return to 1.0.3,
-   restore this backup, which also discards the accounts, sessions, settings and
-   templates changed after the update.
-
-   The archive and its `.json` manifest are in `HALL_BACKUP_DIRECTORY`, or in
-   `C:\Hall\config\backups` when the variable is not yet set. Record their names and
-   SHA-256, and copy both files to a medium outside the computer. See
-   [Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover).
-
-3. **Install the package** into `C:\Hall\releases\1.1.0`: run the PowerShell block of
-   [Install the package](municipal-bootstrap.md#install-the-package) with the
-   `$Release` and `$Archive` values above. It checks the SHA-256 against the
-   `.sha256` file, runs `npm.cmd install --prefix`, `hall --version`, prints
-   `release.json` and runs `hall install-browser`. Expected: `hall --version` prints
-   `1.1.0`, and `release.json` gives version `1.1.0` and the commit recorded with the
-   tarball. The block defines `$Hall`, the 1.1.0 command used below.
-
-4. **Migration, Hall stopped.**
-
-   ```powershell
-   & $Hall migrate --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Migration failed; keep Hall stopped and inspect the error' }
-   & $Hall schema-check --env-file $Config
-   if ($LASTEXITCODE -ne 0) { throw 'Schema verification failed; do not start Hall' }
-   ```
-
-5. **Return the snapshot space to the system.** The migration marks the old snapshot
-   versions as free space inside the table; the database files keep their size until
-   the table is rewritten. `VACUUM FULL` holds an exclusive lock on the table until it
-   finishes; Hall stays stopped.
-
-   ```powershell
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command='VACUUM (FULL, ANALYZE) hall.council_meeting_snapshot'
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --command="SELECT pg_size_pretty(pg_total_relation_size('hall.council_meeting_snapshot'))"
-   ```
-
-   Record the size after; compare it with the size of step 1.
-
-6. **Configuration.** Add these lines to `C:\Hall\config\hall.env` with a local editor:
-
-   ```dotenv
-   HALL_LOG_FILE=C:\Hall\logs\hall.log
-   HALL_BACKUP_DIRECTORY=C:\Hall\backups
-   HALL_BACKUP_RETENTION=14
-   ```
-
-   The backup folder and retention are to be confirmed with the municipality and the
-   SIDEC. The statement timeouts are optional; without them Hall uses
-   `HALL_STATEMENT_TIMEOUT_MS=15000` and `HALL_DOCUMENT_STATEMENT_TIMEOUT_MS=120000`
-   (see [database statement timeouts](runtime.md#database-statement-timeouts)).
-
-7. **Start 1.1.0.** Point the action of the scheduled task **Hall** at the new
-   release, start it and check the health endpoint:
-
-   ```powershell
-   $Action = New-ScheduledTaskAction -Execute (Get-Command node.exe).Source -WorkingDirectory $HallRoot `
-     -Argument "`"$Release\node_modules\@ng-galien\hall\bin\hall.mjs`" start --env-file `"$Config`""
-   Set-ScheduledTask -TaskName 'Hall' -Action $Action
-   Start-ScheduledTask -TaskName 'Hall'
-   Invoke-RestMethod http://127.0.0.1:3100/api/health
-   ```
-
-   Expected: `status` `ok` and `version` `1.1.0`, and the file `C:\Hall\logs\hall.log`
-   appears. When the task runs with a stored password, Windows may require
-   `-User` and `-Password` on `Set-ScheduledTask`, or the change of the action in the
-   Task Scheduler window. Without a **Hall** task, start Hall in the foreground with
-   `& $Hall start --env-file $Config` and check the health endpoint from a second
-   terminal.
-
-8. **Daily backup.** Generate the registration script with the 1.1.0 release, then run
-   it in an elevated PowerShell:
-
-   ```powershell
-   & $Hall windows-tasks --env-file $Config --postgresql-bin $PostgresqlBin
-   if ($LASTEXITCODE -ne 0) { throw 'Task script generation failed' }
-   powershell -ExecutionPolicy Bypass -File (Join-Path $HallRoot 'config\register-hall-tasks.ps1')
-   ```
-
-   Add `-Account COMPUTER\user` when the **Hall** task does not exist, and
-   `-StorePassword` when Windows refuses the S4U registration or the backup folder is
-   on a network share. Expected output: the account, the backup folder and the outcome
-   log, then `First scheduled backup: <archive>`, `First scheduled verification
-   succeeded.` and `Tasks registered.`; `C:\Hall\logs\backup.log` gains two lines with
-   `"outcome":"succeeded"`. Details are in
-   [Schedule nightly backups](municipal-bootstrap.md#schedule-nightly-backups).
-
-9. **Document templates.** The six PDF templates « Procès-verbal du conseil »,
-   « Convocation au conseil municipal », « Délibération du conseil municipal », « Liste
-   des délibérations examinées », « Feuille d’émargement » and « Pouvoir » receive the
-   current defaults (signature blocks without table, attendance sheet, proxy form) with
-   the replacement script of the 1.1.0 package, after the backup of step 2:
-
-   ```powershell
-   psql --dbname=$Database --set=ON_ERROR_STOP=1 --file="$Release\node_modules\@ng-galien\hall\sql\migrations\replace-default-templates-1.0.4.sql"
-   ```
-
-   The script of the 1.1.0 package acts on `hall.document_template`, filled by
-   migration 007; run it after `hall migrate`. The script keeps each
-   template, its identifier and its name. A template whose body is
-   still the 1.0.3 default receives the current default body and stylesheet. It prints one
-   row per template with its outcome: `replaced`, `current` (already the default, such as
-   the two templates added by migration 005) or `customized`. A `customized` template is
-   left unchanged: in **Paramètres → Documents**, add the signature block of the current
-   default at the end of its body and the signature rules of the default stylesheet
-   (see [Default models](document-templates.md#default-models)), without replacing the
-   municipality's text. Expected: six rows, none missing. Running the script again
-   changes nothing. Generate a preview of each of the six templates.
-
-10. **Acceptance.** Sign in and open the closed meeting of 6 November 2026: its list of
-    points, its meeting documents, one document of the meeting and its minutes (PV).
-    Record the display time of each. Do not conduct a test meeting on the municipal
-    database.
-
-Keep the 1.0.3 release and the backup of step 2 until acceptance. To return to 1.0.3,
-restore the backup of step 2 as described in
-[Back up, update and recover](municipal-bootstrap.md#back-up-update-and-recover), then
-point the **Hall** task at the 1.0.3 release: reinstalling 1.0.3 alone does not reverse
-the migration and 1.0.3 refuses to start on the 1.1.0 schema.
+### What the migration command runs
+
+`hall_meta.schema_contract` stores one fingerprint for the installed structural
+manifest. `hall schema-check` verifies that fingerprint. A matching fingerprint
+also takes the verification path in `hall migrate`. On an empty database the
+command applies the structural manifest, including its initial defaults.
+
+On an upgrade from a different fingerprint, Hall compares the packaged
+structural manifest with the installed catalog, applies the resulting DDL,
+verifies convergence, reapplies API grants and records the new fingerprint
+before committing. The full manifest builds the comparison target. The installed
+database receives the DDL difference.
+
+An installed database with a different fingerprint must meet the supported
+starting point before Hall applies any change. Hall checks for the
+`minutes-secretary-authorization-defaults` marker that releases since 1.4.1
+record during installation or upgrade.
+
+### Data migrations
+
+`hall migrate-data <name>` runs one tracked data migration selected by name.
+It requires the installed schema to match the package,
+uses the same advisory lock and commits the change and its marker together.
+The available names are `mail-authorization-defaults`, `contact-phone-numbers`,
+`appointment-authorization-defaults` and `minutes-secretary-authorization-defaults`.
+A recorded marker leaves the data intact on retry. The command leaves the
+schema and its fingerprint intact.
+
+`hall_meta.data_migration` records a name and application timestamp for selected
+operations. The authorization initializer writes its default-grant markers when
+it creates the initial catalog. A marker records that the operation is covered.
+Its timestamp alone does not identify the command that wrote it.
+
+### Migration rehearsal
+
+1. Record the source and candidate versions, package checksums, database
+   fingerprints and the exact backup checksum. Review the packaged DDL changes
+   and the release's explicit data steps. For each data script required by that
+   upgrade, identify its guards, affected data, expected changes and the checks
+   that will show those changes.
+2. Restore the verified backup into a disposable PostgreSQL cluster with
+   independent roles and a separate loopback configuration. The upgrade
+   materializes a comparison database and updates cluster-wide roles. Recreate
+   the roles referenced by the archive, preserve ownership and grants during
+   the restore, and use the live migration role with equivalent permissions
+   and independent credentials. Disable mail delivery. Run the source
+   version's `schema-check` and capture the baseline.
+3. Check the existing data markers for the operations required by the release.
+   Investigate any data effect without an agreed expectation before proceeding.
+4. Run the candidate `migrate` on the copy, then `schema-check`. Compare table
+   counts and content, including document bytes, and check timestamps and
+   identifiers where the scripts may rewrite them. Verify the data markers
+   and the references and permissions affected by the change. Record each
+   observed difference and match it to the expected change. Run the candidate
+   again and verify that no further change occurs.
+5. Start the candidate on loopback and check health, sign-in and the workflows
+   affected by the update. Restore the same dump independently, verify that the
+   source release accepts it, and compare it with the baseline. Record any check
+   that could not be performed. Stop the production update if a required check
+   is open, an expected change is absent, or an unexplained change remains.
 
 ## Scope of validation
 

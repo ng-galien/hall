@@ -209,7 +209,16 @@ it(
       expect(await readFile(join(installed, "municipal-bootstrap.md"), "utf8")).toBe(
         await readFile(join(root, "docs/municipal-bootstrap.md"), "utf8"),
       );
-      expect(contents).toContain("package/sql/migrations/001-agenda-subject-text-lock.sql");
+      const packagedMigrations = contents
+        .split(/\r?\n/)
+        .filter((path) => path.startsWith("package/sql/migrations/") && path.endsWith(".sql"))
+        .sort();
+      expect(packagedMigrations).toEqual([
+        "package/sql/migrations/008-mail-authorization-defaults.sql",
+        "package/sql/migrations/009-contact-phone-numbers.sql",
+        "package/sql/migrations/011-appointment-authorization-defaults.sql",
+        "package/sql/migrations/012-minutes-secretary-authorization-defaults.sql",
+      ]);
 
       if (!externalDatabase)
         container = run(
@@ -490,29 +499,49 @@ it(
         try {
           await restored.query("ALTER TABLE hall_meta.schema_contract DROP COLUMN installed_at");
           await restored.query("UPDATE hall_meta.schema_contract SET manifest_sha256 = repeat('0', 64)");
-          const migrationPath = join(installed, "sql/migrations/001-agenda-subject-text-lock.sql");
+          await restored.query("CREATE TABLE public.unexpected_update_probe (id integer NOT NULL)");
+          await restored.query("INSERT INTO public.unexpected_update_probe (id) VALUES (17)");
+          const { id: phoneContact } = (
+            await restored.query(
+              "INSERT INTO hall.contact (first_name, last_name, phone) VALUES ('Migration', 'Probe', '06 12 34 56 78') RETURNING id",
+            )
+          ).rows[0];
+          const mobilePhone = async () =>
+            (await restored.query("SELECT mobile_phone FROM hall.contact WHERE id = $1", [phoneContact])).rows[0]
+              .mobile_phone;
+          const migrationPath = join(installed, "sql/migrations/009-contact-phone-numbers.sql");
           const migration = await readFile(migrationPath, "utf8");
           await writeFile(
             migrationPath,
             `${migration}\nDO $$ BEGIN RAISE EXCEPTION 'distribution rollback probe'; END $$;\n`,
           );
-          const failedMigration = command(process.execPath, [cli, "migrate", "--env-file", envFile]);
-          expect(failedMigration.status).not.toBe(0);
-          expect(failedMigration.stderr).toContain("distribution rollback probe");
-          expect(
-            (await restored.query("SELECT manifest_sha256 FROM hall_meta.schema_contract")).rows[0].manifest_sha256,
-          ).toBe("0".repeat(64));
-          expect(
-            (
-              await restored.query(
-                "SELECT column_name FROM information_schema.columns WHERE table_schema='hall_meta' AND table_name='schema_contract' AND column_name='installed_at'",
-              )
-            ).rows,
-          ).toHaveLength(0);
-          await writeFile(migrationPath, migration);
-          await restored.query("CREATE TABLE public.unexpected_update_probe (id integer NOT NULL)");
-          await restored.query("INSERT INTO public.unexpected_update_probe (id) VALUES (17)");
+          const dataMigration = [cli, "migrate-data", "contact-phone-numbers", "--env-file", envFile];
+          const dataBeforeSchema = command(process.execPath, dataMigration);
+          expect(dataBeforeSchema.status).not.toBe(0);
+          expect(dataBeforeSchema.stderr).toContain("fingerprint differs");
           expect(run(process.execPath, [cli, "migrate", "--env-file", envFile])).toContain("schema upgraded");
+          expect(await mobilePhone()).toBeNull();
+          const markers = async () =>
+            (await restored.query("SELECT name FROM hall_meta.data_migration ORDER BY name")).rows.map(
+              ({ name }) => name,
+            );
+          const beforeData = await markers();
+          expect(beforeData).not.toContain("contact-phone-numbers");
+          const failedDataMigration = command(process.execPath, dataMigration);
+          expect(failedDataMigration.status).not.toBe(0);
+          expect(failedDataMigration.stderr).toContain("distribution rollback probe");
+          expect(await markers()).toEqual(beforeData);
+          expect(await mobilePhone()).toBeNull();
+          await writeFile(migrationPath, migration);
+
+          expect(run(process.execPath, dataMigration)).toContain("contact-phone-numbers: applied");
+          expect(await markers()).toEqual([...beforeData, "contact-phone-numbers"].sort());
+          expect(await mobilePhone()).toBe("+33612345678");
+          expect(run(process.execPath, dataMigration)).toContain("contact-phone-numbers: already recorded");
+          expect((await restored.query("SELECT manifest_sha256 FROM hall_meta.schema_contract")).rows).toEqual([
+            { manifest_sha256: fingerprint },
+          ]);
+
           expect(run(process.execPath, [cli, "migrate", "--env-file", envFile])).toContain("schema verified");
           expect((await restored.query("SELECT id FROM public.unexpected_update_probe")).rows).toEqual([{ id: 17 }]);
           await start();

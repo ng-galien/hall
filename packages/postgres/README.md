@@ -13,6 +13,8 @@ for the documentary HTTP surface through Hall's PostgreSQL runtime.
   constraints and indexes, and refuses to remove a table, column or type
   without an explicit migration rule. Desktop local mode only verifies the
   fingerprint.
+- The schema upgrade applies DDL. A named data migration runs separately on
+  the matching schema under the same advisory lock.
 - Runtime calls execute in serializable transactions with a closed PostgreSQL
   role and transaction-local request context.
 - JSONB projections are validated before commit. Binary values remain outside

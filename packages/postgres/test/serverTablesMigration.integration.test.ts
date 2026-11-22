@@ -1,11 +1,13 @@
 import { readFile } from "node:fs/promises";
 import type { PoolClient } from "pg";
 import { expect, it } from "vitest";
-import { executeSchemaDataMigrations } from "../src/schemaDataMigrations.js";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
 
-const migration = readFile(new URL("../sql/migrations/007-server-tables-into-hall.sql", import.meta.url), "utf8");
-const dropMigration = readFile(new URL("../sql/migrations/010-drop-former-server-tables.sql", import.meta.url), "utf8");
+const migration = readFile(new URL("../sql/migrations/test/007-server-tables-into-hall.sql", import.meta.url), "utf8");
+const dropMigration = readFile(
+  new URL("../sql/migrations/test/010-drop-former-server-tables.sql", import.meta.url),
+  "utf8",
+);
 const formerTables = [
   "users",
   "user_roles",
@@ -239,7 +241,8 @@ postgresDescribe("migration 010 dropping the former server tables of schema publ
     try {
       await inTransaction(client, async () => {
         await createReleaseServerTables(client, "contact_id");
-        await executeSchemaDataMigrations(client);
+        await client.query(await migration);
+        await client.query(await dropMigration);
 
         expect(await remainingFormerTables(client)).toEqual([]);
         expect(
@@ -255,7 +258,7 @@ postgresDescribe("migration 010 dropping the former server tables of schema publ
           (await client.query("SELECT count(*)::int AS count FROM hall.audit_event WHERE id = $1", [auditId])).rows,
         ).toEqual([{ count: 1 }]);
 
-        await executeSchemaDataMigrations(client);
+        await client.query(await migration);
         await client.query(await dropMigration);
         expect(await remainingFormerTables(client)).toEqual([]);
         expect((await client.query("SELECT count(*)::int AS count FROM hall.app_user")).rows).toEqual([{ count: 2 }]);

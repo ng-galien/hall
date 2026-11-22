@@ -36,7 +36,6 @@ test("the former free-text telephone of a contact is declared once and read only
     // The telephone of the commune, a different field.
     "packages/postgres/sql/administration/010-model.sql": 1,
     "packages/postgres/sql/administration/020-api.sql": 1,
-    "packages/postgres/sql/migrations/007-server-tables-into-hall.sql": 1,
   });
 });
 

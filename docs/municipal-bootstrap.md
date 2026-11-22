@@ -330,15 +330,19 @@ archive listing is not a restoration test. Back up external secrets separately
 with restricted access. The database contains Hall document bytes; preserve any
 external resources referenced by URL according to the municipality's policy.
 
-Install an update into a new release directory and verify it without touching the
-active release. Rehearse `migrate`, `schema-check` and startup on a restored copy, including login, municipality
-values, collaborator permissions, counts, text and binary content, and PDFs.
-Schema migrations require a compatible Code Moniker runtime. The migration list
-has no individual applied-version ledger; exact source-to-target rehearsal is
-required, even when structural fingerprints converge.
+Install an update into a new release directory. Follow the
+[migration rehearsal](distribution.md#migration-rehearsal) using the exact
+candidate and a restored copy in a separate PostgreSQL cluster. Identify the
+expected data effects before running the candidate, check the existing
+`hall_meta.data_migration` markers and legacy data, then record and explain the
+differences after migration. Verify login, municipality settings, collaborator
+permissions, record counts, text, document bytes and PDF generation where
+affected. Schema migrations require a compatible Code Moniker runtime.
 
 During the authorized maintenance window, stop every writer, take the final
-verified backup, select the candidate release/configuration, and execute:
+verified backup, and confirm that the live database still meets the rehearsal
+assumptions. Stop if the checks differ from the rehearsal or an expected data
+effect remains unexplained. Select the candidate release and configuration.
 
 ```powershell
 # $Hall must refer to the candidate release, $Config to the selected database.
@@ -346,6 +350,7 @@ verified backup, select the candidate release/configuration, and execute:
 if ($LASTEXITCODE -ne 0) { throw 'Candidate release is not executable' }
 & $Hall migrate --env-file $Config
 if ($LASTEXITCODE -ne 0) { throw 'Migration failed; keep writers stopped and inspect the error' }
+# Run any explicitly required data migration here, before reopening access.
 & $Hall schema-check --env-file $Config
 if ($LASTEXITCODE -ne 0) { throw 'Schema verification failed; do not reopen access' }
 & $Hall start --env-file $Config
@@ -365,10 +370,11 @@ for diagnosis instead of overwriting it. There is no automatic merge or downgrad
 
 ## Acceptance record
 
-Record separately: package installed; selected dump restored; schema compatible
-or migration rehearsed; administrator login successful; municipality reviewed;
-each collaborator's required actions verified; PDF generated; restart verified;
-network access verified if needed; backup restored; recovery rehearsed.
+Record the exact package and restored dump, the markers and legacy data found
+before migration, the expected and observed data differences, the schema checks
+and the independent recovery rehearsal. Record the administrator login,
+municipality settings, collaborator actions, PDF generation, restart and network
+access checks separately.
 
 An unchecked item remains open. Mac test results do not establish Windows
 execution, a prepared workflow is not a hosted CI result, and a local artifact

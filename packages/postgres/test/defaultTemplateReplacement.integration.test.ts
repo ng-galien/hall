@@ -3,7 +3,10 @@ import { defaultDocumentTemplates } from "@hall/domain";
 import { expect, it } from "vitest";
 import { createTestPool, postgresDescribe, useFreshHallDatabase } from "./support/database.js";
 
-const replacement = readFile(new URL("../sql/migrations/replace-default-templates-1.4.1.sql", import.meta.url), "utf8");
+const replacement = readFile(
+  new URL("../sql/migrations/test/replace-default-templates-1.4.1.sql", import.meta.url),
+  "utf8",
+);
 const generator = new URL("../../../scripts/distribution/document-template-sql.mjs", import.meta.url).href;
 
 type Template = {
