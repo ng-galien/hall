@@ -249,12 +249,16 @@ postgresDescribe("PostgreSQL schema bootstrap", () => {
       "document_template",
       "resource",
     ];
-    // The installed schema of version 1.2.0 has the read-model view without its trailing options column.
+    // Version 1.2.0 predates the options column and every projection appended after it.
     const view = await pool.query<{ definition: string }>(
       "SELECT pg_get_viewdef('hall.resource_read_model'::regclass) AS definition",
     );
-    const previousView = view.rows[0].definition.replace(/,\s*resource\.options\s+FROM/, "\n   FROM");
+    const previousView = view.rows[0].definition.replace(
+      /,\s*resource\.options\b[\s\S]*?(?=\n\s*FROM\s+\(*(?:hall\.)?resource resource\b)/,
+      "",
+    );
     expect(previousView).not.toContain("resource.options");
+    expect(previousView).not.toContain("hidden_in_documents");
     await pool.query(`
       DROP VIEW hall.resource_read_model CASCADE;
       DROP FUNCTION hall_api.update_resource_metadata(uuid, text, text, text[], jsonb) CASCADE;
