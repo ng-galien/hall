@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { serializeImageDirective } from "@hall/templating";
 import { test } from "vitest";
 
 const clientRoot = join(import.meta.dirname, "..");
@@ -94,7 +95,8 @@ test("the documentary Workspace reuses its collection representation without dup
   assert.match(store, /updateDocumentaryResourceMetadata\(representation, input\)/);
   assert.match(store, /updateDocumentaryResourceContent\(representation, input\)/);
   assert.match(search, /<ResourceSearch/);
-  assert.match(search, /scope=\{\{ types: \["resource", "councilBusiness"\], context \}\}/);
+  assert.match(search, /types: \["resource", "councilBusiness"\]/);
+  assert.match(search, /documentsOnly: true/);
   assert.match(sharedSearch, /searchDocumentaryResources/);
   assert.doesNotMatch(search, /useSearchCorpus|useResourcesStore/);
 });
@@ -237,7 +239,11 @@ test("editor images keep immutable resource references and follow document capab
   const api = read("src/services/resourcesApi.ts");
   const app = read("src/App.tsx");
   const styles = read("src/styles/editor.css");
-  assert.match(images, /::image\[\$\{escapeLabel\(attributes\.alt\)\}\]\{#\$\{attributes\.id\}/);
+  assert.match(images, /renderMarkdown: \(node\) => serializeImageDirective\(node\.attrs/);
+  assert.equal(
+    serializeImageDirective({ id: "01234567-89ab-4cde-8fab-0123456789ab", alt: "Dessin ]" }),
+    '::image[Dessin \\]]{#01234567-89ab-4cde-8fab-0123456789ab align="left" width="100"}',
+  );
   assert.match(images, /role="slider"/);
   assert.match(images, /aria-valuemin=\{imageWidthRange\.min\}/);
   assert.match(images, /useContext\(ResourceImagePreviewContext\)/);
