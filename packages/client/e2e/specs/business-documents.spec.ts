@@ -214,6 +214,170 @@ async function rowCommand(page: import("@playwright/test").Page, actions: string
   await page.getByRole("menu").getByTestId(`${command}-menu`).click();
 }
 
+// @verifies-requirement HALL-FR-DOC-200
+// @verifies-requirement HALL-FR-WSP-510
+test("keeps associated appointments and map notes out of both document lists regardless of filing location", async ({
+  appPage: page,
+}) => {
+  const suffix = crypto.randomUUID().slice(0, 8);
+  const root = `Affaire ${suffix}`;
+  const business = await created(
+    await page.request.post("/api/council-business", {
+      data: { path: "", name: root, reportName: "Rapport", reportContent: "" },
+    }),
+  );
+  const outside = `Dossier extérieur ${suffix}`;
+  await created(await page.request.post("/api/resources", { data: { kind: "folder", path: "", name: outside } }));
+  const start = new Date();
+  start.setHours(12, 0, 0, 0);
+  const end = new Date(start.getTime() + 3_600_000);
+
+  const createFixture = async (mapPath: string, label: string) => {
+    const mapResponse = await page.request.post("/api/resources", {
+      data: { kind: "geographic", path: mapPath, name: `Carte ${label} ${suffix}` },
+    });
+    expect(mapResponse.status(), await mapResponse.text()).toBe(201);
+    const map = (await mapResponse.json()).properties;
+    const elementId = crypto.randomUUID();
+    const updated = await page.request.put(`/api/resources/${map.id}/content`, {
+      data: {
+        kind: "geographic",
+        expectedVersion: map.version,
+        document: {
+          ...map.document,
+          view: { kind: "center", center: [4.5, 47.54], zoom: 16 },
+          hallLayer: {
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                id: elementId,
+                properties: {
+                  kind: "marker",
+                  label: `Repère ${label}`,
+                  visible: true,
+                  style: { color: "#2255aa", size: "large" },
+                },
+                geometry: { type: "Point", coordinates: [4.5, 47.54] },
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(updated.ok(), await updated.text()).toBeTruthy();
+
+    const noteContent = `Note renseignée du repère ${label}.`;
+    const noteResponse = await page.request.post(`/api/resources/${map.id}/feature-notes`, {
+      data: { elementId, initialContent: noteContent },
+    });
+    expect(noteResponse.status(), await noteResponse.text()).toBe(201);
+    const note = (await noteResponse.json()).properties as { noteId: string; name: string; fullPath: string };
+    const path = note.fullPath.slice(0, note.fullPath.lastIndexOf("/"));
+    expect(path.startsWith(`${mapPath}/`)).toBe(true);
+    const appointmentContent = `Contenu du rendez-vous ${label}.`;
+    const appointment = await created(
+      await page.request.post("/api/resources", {
+        data: {
+          kind: "event",
+          path,
+          name: `Rendez-vous ${label} ${suffix}`,
+          document: {
+            content: appointmentContent,
+            location: "Mairie",
+            schedule: { kind: "timed", start: start.toISOString(), end: end.toISOString() },
+            participants: [],
+          },
+        },
+      }),
+    );
+    const ordinary = await created(
+      await page.request.post("/api/resources", {
+        data: { kind: "text", path, name: `Courrier ${label} ${suffix}`, content: "Courrier joint." },
+      }),
+    );
+    for (const resourceId of [appointment.id, note.noteId, ordinary.id]) {
+      const attached = await page.request.post(`/api/council-business/${business.id}/resources`, {
+        data: { resourceId },
+      });
+      expect(attached.status(), await attached.text()).toBe(201);
+    }
+    return { path, mapId: map.id as string, note, noteContent, appointment, appointmentContent, ordinary };
+  };
+
+  const filed = await createFixture(root, "interne");
+  const linked = await createFixture(outside, "extérieur");
+  const fixtures = [filed, linked];
+  const associationResponse = await page.request.get(`/api/council-business/${business.id}/resources`);
+  expect(associationResponse.ok(), await associationResponse.text()).toBeTruthy();
+  const associations = (await associationResponse.json()).entities as { properties: { resourceId: string } }[];
+  expect(associations.map(({ properties }) => properties.resourceId)).toEqual(
+    expect.arrayContaining(
+      fixtures.flatMap(({ appointment, note, ordinary }) => [appointment.id, note.noteId, ordinary.id]),
+    ),
+  );
+
+  for (const { path, appointment, note, ordinary } of fixtures) {
+    await page.goto(`/app/workspace?${new URLSearchParams({ path })}`);
+    await expect(page.getByTestId(`workspace-resource-title-${ordinary.id}`)).toBeVisible();
+    await expect(page.getByTestId(`workspace-resource-title-${appointment.id}`)).toHaveCount(0);
+    await expect(page.getByTestId(`workspace-resource-title-${note.noteId}`)).toHaveCount(0);
+  }
+
+  await page.goto(`/app/workspace?${new URLSearchParams({ path: root, councilBusiness: business.id })}`);
+  await page.getByTestId("business-category-documents-toggle").click();
+  const tree = page.getByTestId("business-resource-tree");
+  await expect(tree.getByTestId(`business-attached-resource-${filed.ordinary.id}`)).toBeVisible();
+  await expect(
+    tree.getByTestId("business-documents-elsewhere").getByTestId(`business-attached-resource-${linked.ordinary.id}`),
+  ).toBeVisible();
+  for (const { appointment, note } of fixtures) {
+    await expect(tree.getByTestId(`business-attached-resource-${appointment.id}`)).toHaveCount(0);
+    await expect(tree.getByTestId(`business-attached-resource-${note.noteId}`)).toHaveCount(0);
+  }
+
+  await page.goto("/app/calendar", { waitUntil: "domcontentloaded" });
+  await page.getByTestId(`calendar-event-${linked.appointment.id}`).click();
+  await expect(page.getByTestId("event-resource-editor")).toContainText(linked.appointmentContent);
+
+  await page.goto(`/app/maps/${filed.mapId}?view=4.50,47.54,16`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("geographic-mode-draw")).toHaveAttribute("aria-pressed", "false");
+  const map = page.locator(".maps-surface .geographic-map");
+  await expect(map.locator("canvas").first()).toBeVisible();
+  const box = await map.boundingBox();
+  if (!box) throw new Error("Map must be visible");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2 - 8);
+  await expect(page.getByTestId("geographic-drawn-element-card-note")).toContainText(filed.noteContent);
+
+  const serverPort = process.env.HALL_E2E_SERVER_PORT;
+  if (!serverPort) throw new Error("The dedicated browser test server port is required for MCP");
+  const callMcp = async (name: string, args: Record<string, unknown>) => {
+    const response = await page.request.post(`http://127.0.0.1:${serverPort}/mcp`, {
+      headers: { accept: "application/json, text/event-stream" },
+      data: { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } },
+    });
+    expect(response.ok(), await response.text()).toBeTruthy();
+    const responseBody = await response.json();
+    expect(responseBody.error).toBeUndefined();
+    expect(responseBody.result.isError).not.toBe(true);
+    return JSON.parse(responseBody.result.content[0].text);
+  };
+  for (const { appointment, appointmentContent, note, noteContent } of fixtures) {
+    const eventMatches = await callMcp("workspace_search", { query: appointment.name });
+    expect(eventMatches.properties.items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: appointment.id })]),
+    );
+    const noteMatches = await callMcp("workspace_search", { query: note.name });
+    expect(noteMatches.properties.items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: note.noteId })]),
+    );
+    const event = await callMcp("workspace_read", { href: `/api/resources/${appointment.id}` });
+    expect(event.properties.document.content).toBe(appointmentContent);
+    const mapNote = await callMcp("workspace_read", { href: `/api/resources/${note.noteId}` });
+    expect(mapNote.properties.content).toBe(noteContent);
+  }
+});
+
 // @verifies-requirement HALL-FR-WSP-510
 // @verifies-requirement HALL-FR-WSP-260
 test("the documents of a business are the tree of its folder and its associations filed elsewhere, filed from there", async ({
