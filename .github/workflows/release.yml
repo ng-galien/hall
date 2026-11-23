@@ -143,6 +143,19 @@ jobs:
           Au premier lancement de cette version, la démonstration recharge son jeu de données. Cette réinitialisation efface les modifications faites dans la démonstration précédente.
           NOTICE
           fi
+          if [ "$TAG" = "v1.5.1" ]; then
+            cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
+
+          ## Correctifs de la version 1.5.1
+
+          - L’explorateur et la section Documents d’une affaire masquent les rendez-vous et les textes de fiches cartographiques, y compris quand ils sont joints à l’affaire.
+          - Les rendez-vous restent accessibles dans Agenda et via le MCP. Les notes cartographiques sont accessibles depuis Cartes. Hall enregistre une première note à la première saisie ou à l’ajout d’une image.
+
+          ## Serveur existant
+
+          Le paquet serveur `ng-galien-hall-1.5.1.tgz` est fourni séparément. Pour passer de Hall 1.5.0 à 1.5.1, suivez la [procédure de mise à jour](https://github.com/ng-galien/hall/blob/v1.5.1/docs/distribution.md#update-interruption-and-code-rollback). La commande `hall migrate` applique le changement de schéma. `hall migrate-data` exécute une migration de données nommée lorsque celle-ci est requise.
+          NOTICE
+          fi
           cat >> "$RUNNER_TEMP/notes.md" <<'NOTICE'
 
           ## Téléchargements
