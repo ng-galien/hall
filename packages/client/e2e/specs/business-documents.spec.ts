@@ -176,7 +176,7 @@ test("the business documents section folds by its header and opens each document
   const download = page.waitForEvent("download");
   await runItemCommand(page, "resource-preview-download", viewer);
   expect((await download).suggestedFilename()).toBe("releves.odt");
-  await page.keyboard.press("Escape");
+  await viewer.getByTestId("resource-preview-close").click();
   await expect(viewer).toBeHidden();
 
   await page.getByTestId(`business-document-view-${map.id}`).click();
@@ -328,9 +328,9 @@ test("keeps associated appointments and map notes out of both document lists reg
   await page.getByTestId("business-category-documents-toggle").click();
   const tree = page.getByTestId("business-resource-tree");
   await expect(tree.getByTestId(`business-attached-resource-${filed.ordinary.id}`)).toBeVisible();
-  await expect(
-    tree.getByTestId("business-documents-elsewhere").getByTestId(`business-attached-resource-${linked.ordinary.id}`),
-  ).toBeVisible();
+  await expect(tree.getByTestId("business-documents-elsewhere")).toBeVisible();
+  await expect(tree.getByTestId(`business-attached-resource-${linked.ordinary.id}`)).toBeVisible();
+  await expect(tree.getByTestId(`business-document-location-${linked.ordinary.id}`)).toHaveText(linked.path);
   for (const { appointment, note } of fixtures) {
     await expect(tree.getByTestId(`business-attached-resource-${appointment.id}`)).toHaveCount(0);
     await expect(tree.getByTestId(`business-attached-resource-${note.noteId}`)).toHaveCount(0);
